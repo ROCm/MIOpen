@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
     {
         drv = new CBAInferFusionDriver<float, double>();
     }
-    else if(base_arg == "CBAInfer16")
+    else if(base_arg == "CBAInferfp16")
     {
         drv = new CBAInferFusionDriver<float16, double>();
     }
@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
     }
     else if(base_arg == "bnormfp16")
     {
-        drv = new BatchNormDriver<float16, double>();
+        drv = new BatchNormDriver<float16, double, float>();
     }
     else if(base_arg == "rnn")
     {
@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
     drv->GetandSetData();
     drv->AllocateBuffersAndCopy();
 
-    int fargval = ((base_arg != "CBAInfer") && (base_arg != "CBAInfer16"))
+    int fargval = ((base_arg != "CBAInfer") && (base_arg != "CBAInferfp16"))
                       ? drv->GetInputFlags().GetValueInt("forw")
                       : 1;
     bool bnFwdInVer = (fargval == 2 && (base_arg == "bnorm"));

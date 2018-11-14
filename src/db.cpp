@@ -151,7 +151,7 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
         pos->end   = -1;
     }
 
-    MIOPEN_LOG_I("Looking for key: " << key);
+    MIOPEN_LOG_I2("Looking for key: " << key);
 
     std::ifstream file(filename);
 
@@ -191,7 +191,7 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
         {
             continue;
         }
-        MIOPEN_LOG_I("Key match: " << current_key);
+        MIOPEN_LOG_I2("Key match: " << current_key);
         const auto contents = line.substr(key_size + 1);
 
         if(contents.empty())
@@ -201,7 +201,7 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
                                                          << n_line);
             continue;
         }
-        MIOPEN_LOG_I("Contents found: " << contents);
+        MIOPEN_LOG_I2("Contents found: " << contents);
 
         DbRecord record(key);
         const bool is_parse_ok = record.ParseContents(contents);
@@ -248,16 +248,20 @@ bool Db::FlushUnsafe(const DbRecord& record, const RecordPositions* pos)
 
     if(pos->begin < 0 || pos->end < 0)
     {
-        std::ofstream file(filename, std::ios::app);
-
-        if(!file)
         {
-            MIOPEN_LOG_E("File is unwritable: " << filename);
-            return false;
+            std::ofstream file(filename, std::ios::app);
+
+            if(!file)
+            {
+                MIOPEN_LOG_E("File is unwritable: " << filename);
+                return false;
+            }
+
+            (void)file.tellp();
+            record.WriteContents(file);
         }
 
-        (void)file.tellp();
-        record.WriteContents(file);
+        boost::filesystem::permissions(filename, boost::filesystem::all_all);
     }
     else
     {
@@ -299,7 +303,7 @@ bool Db::FlushUnsafe(const DbRecord& record, const RecordPositions* pos)
 
 bool Db::StoreRecordUnsafe(const DbRecord& record)
 {
-    MIOPEN_LOG_I("Storing record: " << record.key);
+    MIOPEN_LOG_I2("Storing record: " << record.key);
     RecordPositions pos;
     const auto old_record = FindRecordUnsafe(record.key, &pos);
     return FlushUnsafe(record, &pos);
@@ -313,11 +317,11 @@ bool Db::UpdateRecordUnsafe(DbRecord& record)
     if(old_record)
     {
         new_record.Merge(*old_record);
-        MIOPEN_LOG_I("Updating record: " << record.key);
+        MIOPEN_LOG_I2("Updating record: " << record.key);
     }
     else
     {
-        MIOPEN_LOG_I("Storing record: " << record.key);
+        MIOPEN_LOG_I2("Storing record: " << record.key);
     }
     bool result = FlushUnsafe(new_record, &pos);
     if(result)

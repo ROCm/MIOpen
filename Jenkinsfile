@@ -9,7 +9,7 @@ def rocmtestnode(variant, name, body) {
             mkdir build
             cd build
             CXX=${compiler} CXXFLAGS='-Werror' cmake -DMIOPEN_GPU_SYNC=On -DCMAKE_CXX_FLAGS_DEBUG='-g -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=undefined' ${flags} .. 
-            CTEST_PARALLEL_LEVEL=4 dumb-init make -j32 check doc MIOpenDriver
+            CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 dumb-init make -j32 check doc MIOpenDriver
         """
         echo cmd
         sh cmd
@@ -133,7 +133,7 @@ rocmtest opencl: rocmnode('vega') { cmake_build ->
     }
 }, hip: rocmnode('vega') { cmake_build ->
     // stage('Hip Debug') {
-    //     cmake_build('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+    //     cmake_build('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_USE_ROCBLAS=ON')
     // }
     stage('Hip Release') {
         cmake_build('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')

@@ -65,7 +65,7 @@ inline std::string JoinStrings(Strings strings, std::string delim)
 }
 
 template <class F>
-inline std::string TransformString(std::string s, F f)
+static inline std::string TransformString(std::string s, F f)
 {
     std::transform(s.begin(), s.end(), s.begin(), f);
     return s;

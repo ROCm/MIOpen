@@ -32,14 +32,7 @@
 #include <vector>
 #include <numeric>
 #include <algorithm>
-
-#if MIOPEN_USE_MIOPENGEMM
-#include <miopen/gemm.hpp>
-
-//#define MIO_RNN_OCL_DEBUG 1
-#define MIO_RNN_FINDSOL_TIMEOUT 0.003
-#endif
-
+#include <miopen/gemm_v2.hpp>
 namespace miopen {
 
 // Assuming sequence length is set to > 0 otherwise throw exception.
@@ -194,7 +187,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     hx_stride[0] = in_n.at(0) * uni_stride;
     hx_stride[1] = uni_stride;
 
-#if MIOPEN_USE_MIOPENGEMM
+#if MIOPEN_USE_GEMM
 
     int wei_shift, prelayer_shift;
     int wei_len = 0;
@@ -260,28 +253,30 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
             }
             else
             {
-                RunGemmGeometryRNN(handle,
-                                   x,
-                                   w,
-                                   workSpace,
-                                   batch_n,
-                                   wei_len * bi,
-                                   in_h,
-                                   1,
-                                   1,
-                                   false,
-                                   true,
-                                   false,
-                                   in_stride,
-                                   in_stride,
-                                   hy_stride,
-                                   0,
-                                   0,
-                                   hid_shift,
-                                   false,
-                                   network_config,
-                                   MIO_RNN_FINDSOL_TIMEOUT);
+                miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                                  false,
+                                                                  true,
+                                                                  batch_n,
+                                                                  wei_len * bi,
+                                                                  in_h,
+                                                                  in_stride,
+                                                                  in_stride,
+                                                                  hy_stride,
+                                                                  1, // batch count
+                                                                  0, // Stride A
+                                                                  0, // Stride B
+                                                                  0, // Stride C
+                                                                  1, // alpha
+                                                                  1, // beta
+                                                                  xDesc[0].GetType()};
 
+                miopenStatus_t gemm_status =
+                    CallGemm(handle, gemm_desc, x, 0, w, 0, workSpace, hid_shift, nullptr, false);
+
+                if(gemm_status != miopenStatusSuccess)
+                {
+                    MIOPEN_LOG_E("GEMM failed");
+                }
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
             }
@@ -291,27 +286,37 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
             wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
             prelayer_shift = (li - 1) * batch_n * hy_stride + hid_off;
 
-            RunGemmGeometryRNN(handle,
-                               workSpace,
-                               w,
-                               workSpace,
-                               batch_n,
-                               wei_len * bi,
-                               hy_h * bi,
-                               1,
-                               1,
-                               false,
-                               true,
-                               false,
-                               hy_stride,
-                               bi_stride,
-                               hy_stride,
-                               prelayer_shift,
-                               wei_shift,
-                               hid_shift,
-                               false,
-                               network_config,
-                               MIO_RNN_FINDSOL_TIMEOUT);
+            miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                              false,
+                                                              true,
+                                                              batch_n,
+                                                              wei_len * bi,
+                                                              hy_h * bi,
+                                                              hy_stride,
+                                                              bi_stride,
+                                                              hy_stride,
+                                                              1, // batch count
+                                                              0, // Stride A
+                                                              0, // Stride B
+                                                              0, // Stride C
+                                                              1, // alpha
+                                                              1, // beta
+                                                              xDesc[0].GetType()};
+            miopenStatus_t gemm_status = CallGemm(handle,
+                                                  gemm_desc,
+                                                  workSpace,
+                                                  prelayer_shift,
+                                                  w,
+                                                  wei_shift,
+                                                  workSpace,
+                                                  hid_shift,
+                                                  nullptr,
+                                                  false);
+
+            if(gemm_status != miopenStatusSuccess)
+            {
+                MIOPEN_LOG_E("GEMM failed");
+            }
             // Update time
             profileRNNkernels(handle, 1, ctime);
         }
@@ -534,27 +539,39 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                     {
                         if(hx != nullptr)
                         {
-                            RunGemmGeometryRNN(handle,
-                                               hx,
-                                               w,
-                                               workSpace,
-                                               in_n.at(cur_time),
-                                               wei_len,
-                                               hy_h,
-                                               1,
-                                               1,
-                                               false,
-                                               true,
-                                               false,
-                                               uni_stride,
-                                               uni_stride,
-                                               hy_stride,
-                                               hx_shift + ri * hy_n * hy_h,
-                                               wei_shift + ri * wei_len * uni_stride,
-                                               offset + ri * wei_len,
-                                               false,
-                                               network_config,
-                                               MIO_RNN_FINDSOL_TIMEOUT);
+                            miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                                              false,
+                                                                              true,
+                                                                              in_n.at(cur_time),
+                                                                              wei_len,
+                                                                              hy_h,
+                                                                              uni_stride,
+                                                                              uni_stride,
+                                                                              hy_stride,
+                                                                              1, // batch count
+                                                                              0, // Stride A
+                                                                              0, // Stride B
+                                                                              0, // Stride C
+                                                                              1, // alpha
+                                                                              1, // beta
+                                                                              xDesc[0].GetType()};
+
+                            miopenStatus_t gemm_status =
+                                CallGemm(handle,
+                                         gemm_desc,
+                                         hx,
+                                         hx_shift + ri * hy_n * hy_h,
+                                         w,
+                                         wei_shift + ri * wei_len * uni_stride,
+                                         workSpace,
+                                         offset + ri * wei_len,
+                                         nullptr,
+                                         false);
+
+                            if(gemm_status != miopenStatusSuccess)
+                            {
+                                MIOPEN_LOG_E("GEMM failed");
+                            }
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
                         }
@@ -563,56 +580,78 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                     {
                         if(ri == 1 && hx != nullptr && in_n.at(cur_time) > in_n.at(use_time))
                         {
-                            RunGemmGeometryRNN(
-                                handle,
-                                hx,
-                                w,
-                                workSpace,
-                                (in_n.at(cur_time) - in_n.at(use_time)),
-                                wei_len,
-                                hy_h,
-                                1,
-                                1,
-                                false,
-                                true,
-                                false,
-                                uni_stride,
-                                uni_stride,
-                                hy_stride,
-                                hx_shift + ri * hy_n * hy_h + in_n.at(use_time) * hy_h,
-                                wei_shift + ri * wei_len * uni_stride,
-                                offset + ri * wei_len + in_n.at(use_time) * hy_stride,
-                                false,
-                                network_config,
-                                MIO_RNN_FINDSOL_TIMEOUT);
+                            miopen::GemmDescriptor gemm_desc =
+                                GemmDescriptor{false,
+                                               false,
+                                               true,
+                                               (in_n.at(cur_time) - in_n.at(use_time)),
+                                               wei_len,
+                                               hy_h,
+                                               uni_stride,
+                                               uni_stride,
+                                               hy_stride,
+                                               1, // batch count
+                                               0, // Stride A
+                                               0, // Stride B
+                                               0, // Stride C
+                                               1, // alpha
+                                               1, // beta
+                                               xDesc[0].GetType()};
+                            miopenStatus_t gemm_status =
+                                CallGemm(handle,
+                                         gemm_desc,
+                                         hx,
+                                         hx_shift + ri * hy_n * hy_h + in_n.at(use_time) * hy_h,
+                                         w,
+                                         wei_shift + ri * wei_len * uni_stride,
+                                         workSpace,
+                                         offset + ri * wei_len + in_n.at(use_time) * hy_stride,
+                                         nullptr,
+                                         false);
+
+                            if(gemm_status != miopenStatusSuccess)
+                            {
+                                MIOPEN_LOG_E("GEMM failed");
+                            }
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
                         }
 
                         if(in_n.at(use_time) > 0)
                         {
-                            RunGemmGeometryRNN(handle,
-                                               workSpace,
-                                               w,
-                                               workSpace,
-                                               in_n.at(use_time),
-                                               wei_len,
-                                               hy_h,
-                                               1,
-                                               1,
-                                               false,
-                                               true,
-                                               false,
-                                               hy_stride,
-                                               uni_stride,
-                                               hy_stride,
-                                               pretime_shift + hid_off + ri * hy_h,
-                                               wei_shift + ri * wei_len * uni_stride,
-                                               offset + ri * wei_len,
-                                               false,
-                                               network_config,
-                                               MIO_RNN_FINDSOL_TIMEOUT);
+                            miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                                              false,
+                                                                              true,
+                                                                              in_n.at(use_time),
+                                                                              wei_len,
+                                                                              hy_h,
+                                                                              hy_stride,
+                                                                              uni_stride,
+                                                                              hy_stride,
+                                                                              1, // batch count
+                                                                              0, // Stride A
+                                                                              0, // Stride B
+                                                                              0, // Stride C
+                                                                              1, // alpha
+                                                                              1, // beta
+                                                                              xDesc[0].GetType()};
 
+                            miopenStatus_t gemm_status =
+                                CallGemm(handle,
+                                         gemm_desc,
+                                         workSpace,
+                                         pretime_shift + hid_off + ri * hy_h,
+                                         w,
+                                         wei_shift + ri * wei_len * uni_stride,
+                                         workSpace,
+                                         offset + ri * wei_len,
+                                         nullptr,
+                                         false);
+
+                            if(gemm_status != miopenStatusSuccess)
+                            {
+                                MIOPEN_LOG_E("GEMM failed");
+                            }
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
                         }
@@ -1297,7 +1336,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     hx_stride[0] = in_n.at(0) * uni_stride;
     hx_stride[1] = uni_stride;
 
-#if MIOPEN_USE_MIOPENGEMM
+#if MIOPEN_USE_GEMM
 
     int wei_shift, prelayer_shift;
     int wei_len = 0;
@@ -1363,27 +1402,30 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             }
             else
             {
-                RunGemmGeometryRNN(handle,
-                                   x,
-                                   w,
-                                   reserveSpace,
-                                   batch_n,
-                                   wei_len * bi,
-                                   in_h,
-                                   1,
-                                   1,
-                                   false,
-                                   true,
-                                   false,
-                                   in_stride,
-                                   in_stride,
-                                   hy_stride,
-                                   0,
-                                   0,
-                                   hid_shift,
-                                   false,
-                                   network_config,
-                                   MIO_RNN_FINDSOL_TIMEOUT);
+                miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                                  false,
+                                                                  true,
+                                                                  batch_n,
+                                                                  wei_len * bi,
+                                                                  in_h,
+                                                                  in_stride,
+                                                                  in_stride,
+                                                                  hy_stride,
+                                                                  1, // batch count
+                                                                  0, // Stride A
+                                                                  0, // Stride B
+                                                                  0, // Stride C
+                                                                  1, // alpha
+                                                                  1, // beta
+                                                                  xDesc[0].GetType()};
+
+                miopenStatus_t gemm_status = CallGemm(
+                    handle, gemm_desc, x, 0, w, 0, reserveSpace, hid_shift, nullptr, false);
+
+                if(gemm_status != miopenStatusSuccess)
+                {
+                    MIOPEN_LOG_E("GEMM failed");
+                }
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
             }
@@ -1393,28 +1435,38 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
             prelayer_shift = (li - 1) * batch_n * hy_stride + hid_off;
 
-            RunGemmGeometryRNN(handle,
-                               reserveSpace,
-                               w,
-                               reserveSpace,
-                               batch_n,
-                               wei_len * bi,
-                               hy_h * bi,
-                               1,
-                               1,
-                               false,
-                               true,
-                               false,
-                               hy_stride,
-                               bi_stride,
-                               hy_stride,
-                               prelayer_shift,
-                               wei_shift,
-                               hid_shift,
-                               false,
-                               network_config,
-                               MIO_RNN_FINDSOL_TIMEOUT);
+            miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                              false,
+                                                              true,
+                                                              batch_n,
+                                                              wei_len * bi,
+                                                              hy_h * bi,
+                                                              hy_stride,
+                                                              bi_stride,
+                                                              hy_stride,
+                                                              1, // batch count
+                                                              0, // Stride A
+                                                              0, // Stride B
+                                                              0, // Stride C
+                                                              1, // alpha
+                                                              1, // beta
+                                                              xDesc[0].GetType()};
 
+            miopenStatus_t gemm_status = CallGemm(handle,
+                                                  gemm_desc,
+                                                  reserveSpace,
+                                                  prelayer_shift,
+                                                  w,
+                                                  wei_shift,
+                                                  reserveSpace,
+                                                  hid_shift,
+                                                  nullptr,
+                                                  false);
+
+            if(gemm_status != miopenStatusSuccess)
+            {
+                MIOPEN_LOG_E("GEMM failed");
+            }
             // Update time
             profileRNNkernels(handle, 1, ctime);
         }
@@ -1637,27 +1689,39 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     {
                         if(hx != nullptr)
                         {
-                            RunGemmGeometryRNN(handle,
-                                               hx,
-                                               w,
-                                               reserveSpace,
-                                               in_n.at(cur_time),
-                                               wei_len,
-                                               hy_h,
-                                               1,
-                                               1,
-                                               false,
-                                               true,
-                                               false,
-                                               uni_stride,
-                                               uni_stride,
-                                               hy_stride,
-                                               hx_shift + ri * hy_n * hy_h,
-                                               wei_shift + ri * wei_len * uni_stride,
-                                               offset + ri * wei_len,
-                                               false,
-                                               network_config,
-                                               MIO_RNN_FINDSOL_TIMEOUT);
+                            miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                                              false,
+                                                                              true,
+                                                                              in_n.at(cur_time),
+                                                                              wei_len,
+                                                                              hy_h,
+                                                                              uni_stride,
+                                                                              uni_stride,
+                                                                              hy_stride,
+                                                                              1, // batch count
+                                                                              0, // Stride A
+                                                                              0, // Stride B
+                                                                              0, // Stride C
+                                                                              1, // alpha
+                                                                              1, // beta
+                                                                              xDesc[0].GetType()};
+
+                            miopenStatus_t gemm_status =
+                                CallGemm(handle,
+                                         gemm_desc,
+                                         hx,
+                                         hx_shift + ri * hy_n * hy_h,
+                                         w,
+                                         wei_shift + ri * wei_len * uni_stride,
+                                         reserveSpace,
+                                         offset + ri * wei_len,
+                                         nullptr,
+                                         false);
+
+                            if(gemm_status != miopenStatusSuccess)
+                            {
+                                MIOPEN_LOG_E("GEMM failed");
+                            }
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
                         }
@@ -1666,55 +1730,79 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     {
                         if(ri == 1 && hx != nullptr && in_n.at(cur_time) > in_n.at(use_time))
                         {
-                            RunGemmGeometryRNN(
-                                handle,
-                                hx,
-                                w,
-                                reserveSpace,
-                                (in_n.at(cur_time) - in_n.at(use_time)),
-                                wei_len,
-                                hy_h,
-                                1,
-                                1,
-                                false,
-                                true,
-                                false,
-                                uni_stride,
-                                uni_stride,
-                                hy_stride,
-                                hx_shift + ri * hy_n * hy_h + in_n.at(use_time) * hy_h,
-                                wei_shift + ri * wei_len * uni_stride,
-                                offset + ri * wei_len + in_n.at(use_time) * hy_stride,
-                                false,
-                                network_config,
-                                MIO_RNN_FINDSOL_TIMEOUT);
+                            miopen::GemmDescriptor gemm_desc =
+                                GemmDescriptor{false,
+                                               false,
+                                               true,
+                                               (in_n.at(cur_time) - in_n.at(use_time)),
+                                               wei_len,
+                                               hy_h,
+                                               uni_stride,
+                                               uni_stride,
+                                               hy_stride,
+                                               1, // batch count
+                                               0, // Stride A
+                                               0, // Stride B
+                                               0, // Stride C
+                                               1, // alpha
+                                               1, // beta
+                                               xDesc[0].GetType()};
+
+                            miopenStatus_t gemm_status =
+                                CallGemm(handle,
+                                         gemm_desc,
+                                         hx,
+                                         hx_shift + ri * hy_n * hy_h + in_n.at(use_time) * hy_h,
+                                         w,
+                                         wei_shift + ri * wei_len * uni_stride,
+                                         reserveSpace,
+                                         offset + ri * wei_len + in_n.at(use_time) * hy_stride,
+                                         nullptr,
+                                         false);
+
+                            if(gemm_status != miopenStatusSuccess)
+                            {
+                                MIOPEN_LOG_E("GEMM failed");
+                            }
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
                         }
 
                         if(in_n.at(use_time) > 0)
                         {
-                            RunGemmGeometryRNN(handle,
-                                               reserveSpace,
-                                               w,
-                                               reserveSpace,
-                                               in_n.at(use_time),
-                                               wei_len,
-                                               hy_h,
-                                               1,
-                                               1,
-                                               false,
-                                               true,
-                                               false,
-                                               hy_stride,
-                                               uni_stride,
-                                               hy_stride,
-                                               pretime_shift + hid_off + ri * hy_h,
-                                               wei_shift + ri * wei_len * uni_stride,
-                                               offset + ri * wei_len,
-                                               false,
-                                               network_config,
-                                               MIO_RNN_FINDSOL_TIMEOUT);
+                            miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                                              false,
+                                                                              true,
+                                                                              in_n.at(use_time),
+                                                                              wei_len,
+                                                                              hy_h,
+                                                                              hy_stride,
+                                                                              uni_stride,
+                                                                              hy_stride,
+                                                                              1, // batch count
+                                                                              0, // Stride A
+                                                                              0, // Stride B
+                                                                              0, // Stride C
+                                                                              1, // alpha
+                                                                              1, // beta
+                                                                              xDesc[0].GetType()};
+
+                            miopenStatus_t gemm_status =
+                                CallGemm(handle,
+                                         gemm_desc,
+                                         reserveSpace,
+                                         pretime_shift + hid_off + ri * hy_h,
+                                         w,
+                                         wei_shift + ri * wei_len * uni_stride,
+                                         reserveSpace,
+                                         offset + ri * wei_len,
+                                         nullptr,
+                                         false);
+
+                            if(gemm_status != miopenStatusSuccess)
+                            {
+                                MIOPEN_LOG_E("GEMM failed");
+                            }
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
                         }
@@ -2430,7 +2518,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     hx_stride[0] = in_n.at(0) * uni_stride;
     hx_stride[1] = uni_stride;
 
-#if MIOPEN_USE_MIOPENGEMM
+#if MIOPEN_USE_GEMM
 
     int prelayer_shift, pretime_shift, cur_time, cur_batch;
     int wei_len    = 0;
@@ -2499,30 +2587,39 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         }
         else
         {
-            prelayer_shift = (li + 1) * batch_n * hy_stride;
+            prelayer_shift                   = (li + 1) * batch_n * hy_stride;
+            miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                              false,
+                                                              false,
+                                                              batch_n,
+                                                              hy_h * bi,
+                                                              wei_len * bi,
+                                                              hy_stride,
+                                                              bi_stride,
+                                                              hy_stride,
+                                                              1, // batch count
+                                                              0, // Stride A
+                                                              0, // Stride B
+                                                              0, // Stride C
+                                                              1, // alpha
+                                                              1, // beta
+                                                              yDesc[0].GetType()};
 
-            RunGemmGeometryRNN(handle,
-                               workSpace,
-                               w,
-                               workSpace,
-                               batch_n,
-                               hy_h * bi,
-                               wei_len * bi,
-                               1,
-                               1,
-                               false,
-                               false,
-                               false,
-                               hy_stride,
-                               bi_stride,
-                               hy_stride,
-                               prelayer_shift,
-                               wei_shift,
-                               hid_shift + dhd_off,
-                               false,
-                               network_config,
-                               MIO_RNN_FINDSOL_TIMEOUT);
+            miopenStatus_t gemm_status = CallGemm(handle,
+                                                  gemm_desc,
+                                                  workSpace,
+                                                  prelayer_shift,
+                                                  w,
+                                                  wei_shift,
+                                                  workSpace,
+                                                  hid_shift + dhd_off,
+                                                  nullptr,
+                                                  false);
 
+            if(gemm_status != miopenStatusSuccess)
+            {
+                MIOPEN_LOG_E("GEMM failed");
+            }
             // Update time
             profileRNNkernels(handle, 1, ctime);
         }
@@ -2678,28 +2775,39 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
                             }
+                            miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                                              false,
+                                                                              false,
+                                                                              in_n.at(use_time),
+                                                                              hy_h,
+                                                                              wei_len,
+                                                                              hy_stride,
+                                                                              uni_stride,
+                                                                              hy_stride,
+                                                                              1, // batch count
+                                                                              0, // Stride A
+                                                                              0, // Stride B
+                                                                              0, // Stride C
+                                                                              1, // alpha
+                                                                              1, // beta
+                                                                              yDesc[0].GetType()};
 
-                            RunGemmGeometryRNN(handle,
-                                               workSpace,
-                                               w,
-                                               workSpace,
-                                               in_n.at(use_time),
-                                               hy_h,
-                                               wei_len,
-                                               1,
-                                               1,
-                                               false,
-                                               false,
-                                               false,
-                                               hy_stride,
-                                               uni_stride,
-                                               hy_stride,
-                                               pretime_shift,
-                                               weitime_shift + ri * wei_len * uni_stride,
-                                               offset + dhd_off + ri * hy_h,
-                                               false,
-                                               network_config,
-                                               MIO_RNN_FINDSOL_TIMEOUT);
+                            miopenStatus_t gemm_status =
+                                CallGemm(handle,
+                                         gemm_desc,
+                                         workSpace,
+                                         pretime_shift,
+                                         w,
+                                         weitime_shift + ri * wei_len * uni_stride,
+                                         workSpace,
+                                         offset + dhd_off + ri * hy_h,
+                                         nullptr,
+                                         false);
+
+                            if(gemm_status != miopenStatusSuccess)
+                            {
+                                MIOPEN_LOG_E("GEMM failed");
+                            }
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
 
@@ -3397,31 +3505,42 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                              use_batch * hy_stride + nLayers * batch_n * hy_stride);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
-
-                                RunGemmGeometryRNN(handle,
-                                                   reserveSpace,
-                                                   w,
-                                                   dhx,
+                                miopen::GemmDescriptor gemm_desc =
+                                    GemmDescriptor{false,
+                                                   false,
+                                                   false,
                                                    (in_n.at(cur_time) - use_batch),
                                                    hy_h,
                                                    hy_h,
-                                                   1,
-                                                   0,
-                                                   false,
-                                                   false,
-                                                   false,
                                                    hy_stride,
                                                    uni_stride,
                                                    uni_stride,
-                                                   pretime_shift + dhd_off + ri * hy_h +
-                                                       use_batch * hy_stride +
-                                                       nLayers * batch_n * hy_stride,
-                                                   weitime_shift + 2 * hy_h * uni_stride +
-                                                       ri * wei_len * uni_stride,
-                                                   hx_shift + ri * hy_n * hy_h + use_batch * hy_h,
-                                                   false,
-                                                   network_config,
-                                                   MIO_RNN_FINDSOL_TIMEOUT);
+                                                   1, // batch count
+                                                   0, // Stride A
+                                                   0, // Stride B
+                                                   0, // Stride C
+                                                   1, // alpha
+                                                   0, // beta
+                                                   yDesc[0].GetType()};
+
+                                miopenStatus_t gemm_status = CallGemm(
+                                    handle,
+                                    gemm_desc,
+                                    reserveSpace,
+                                    pretime_shift + dhd_off + ri * hy_h + use_batch * hy_stride +
+                                        nLayers * batch_n * hy_stride,
+                                    w,
+                                    weitime_shift + 2 * hy_h * uni_stride +
+                                        ri * wei_len * uni_stride,
+                                    dhx,
+                                    hx_shift + ri * hy_n * hy_h + use_batch * hy_h,
+                                    nullptr,
+                                    false);
+
+                                if(gemm_status != miopenStatusSuccess)
+                                {
+                                    MIOPEN_LOG_E("GEMM failed");
+                                }
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
 
@@ -3447,28 +3566,40 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                 profileRNNkernels(handle, 1, ctime);
                             }
 
-                            RunGemmGeometryRNN(handle,
-                                               workSpace,
-                                               w,
-                                               dhx,
+                            miopen::GemmDescriptor gemm_desc =
+                                GemmDescriptor{false,
+                                               false,
+                                               false,
                                                (in_n.at(cur_time) - use_batch),
                                                hy_h,
                                                wei_len_t,
-                                               1,
-                                               1,
-                                               false,
-                                               false,
-                                               false,
                                                hy_stride,
                                                uni_stride,
                                                uni_stride,
-                                               pretime_shift + ri * wei_len + use_batch * hy_stride,
-                                               weitime_shift + ri * wei_len * uni_stride,
-                                               hx_shift + ri * hy_n * hy_h + use_batch * hy_h,
-                                               false,
-                                               network_config,
-                                               MIO_RNN_FINDSOL_TIMEOUT);
+                                               1, // batch count
+                                               0, // Stride A
+                                               0, // Stride B
+                                               0, // Stride C
+                                               1, // alpha
+                                               1, // beta
+                                               yDesc[0].GetType()};
 
+                            miopenStatus_t gemm_status =
+                                CallGemm(handle,
+                                         gemm_desc,
+                                         workSpace,
+                                         pretime_shift + ri * wei_len + use_batch * hy_stride,
+                                         w,
+                                         weitime_shift + ri * wei_len * uni_stride,
+                                         dhx,
+                                         hx_shift + ri * hy_n * hy_h + use_batch * hy_h,
+                                         nullptr,
+                                         false);
+
+                            if(gemm_status != miopenStatusSuccess)
+                            {
+                                MIOPEN_LOG_E("GEMM failed");
+                            }
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
                         }
@@ -3541,28 +3672,28 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     }
     else
     {
-        RunGemmGeometryRNN(handle,
-                           workSpace,
-                           w,
-                           dx,
-                           batch_n,
-                           in_h,
-                           wei_len * bi,
-                           1,
-                           0,
-                           false,
-                           false,
-                           false,
-                           hy_stride,
-                           in_stride,
-                           in_stride,
-                           0,
-                           0,
-                           0,
-                           false,
-                           network_config,
-                           MIO_RNN_FINDSOL_TIMEOUT);
-
+        miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                          false,
+                                                          false,
+                                                          batch_n,
+                                                          in_h,
+                                                          wei_len * bi,
+                                                          hy_stride,
+                                                          in_stride,
+                                                          in_stride,
+                                                          1, // batch count
+                                                          0, // Stride A
+                                                          0, // Stride B
+                                                          0, // Stride C
+                                                          1, // alpha
+                                                          0, // beta
+                                                          yDesc[0].GetType()};
+        miopenStatus_t gemm_status =
+            CallGemm(handle, gemm_desc, workSpace, 0, w, 0, dx, 0, nullptr, false);
+        if(gemm_status != miopenStatusSuccess)
+        {
+            MIOPEN_LOG_E("GEMM failed");
+        }
         // Update time
         profileRNNkernels(handle, 2, ctime);
     }
@@ -3699,7 +3830,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     w_stride[1] = wei_stride;
     w_size[2]   = 1;
 
-#if MIOPEN_USE_MIOPENGEMM
+#if MIOPEN_USE_GEMM
 
     int wei_len   = 0;
     int hid_off   = 0;
@@ -3736,58 +3867,69 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         {
             if(inputMode == miopenRNNlinear)
             {
-                RunGemmGeometryRNN(handle,
-                                   workSpace,
-                                   x,
-                                   dw,
-                                   wei_len * bi,
-                                   in_h,
-                                   batch_n,
-                                   1,
-                                   1,
-                                   true,
-                                   false,
-                                   false,
-                                   hy_stride,
-                                   in_stride,
-                                   in_stride,
-                                   0,
-                                   0,
-                                   0,
-                                   false,
-                                   network_config,
-                                   MIO_RNN_FINDSOL_TIMEOUT);
+                miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                                  true,
+                                                                  false,
+                                                                  wei_len * bi,
+                                                                  in_h,
+                                                                  batch_n,
+                                                                  hy_stride,
+                                                                  in_stride,
+                                                                  in_stride,
+                                                                  1, // batch count
+                                                                  0, // Stride A
+                                                                  0, // Stride B
+                                                                  0, // Stride C
+                                                                  1, // alpha
+                                                                  1, // beta
+                                                                  xDesc[0].GetType()};
 
+                miopenStatus_t gemm_status =
+                    CallGemm(handle, gemm_desc, workSpace, 0, x, 0, dw, 0, nullptr, false);
+
+                if(gemm_status != miopenStatusSuccess)
+                {
+                    MIOPEN_LOG_E("GEMM failed");
+                }
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
             }
         }
         else
         {
-            int prelayer_shift = (li - 1) * batch_n * hy_stride + hid_off;
+            int prelayer_shift               = (li - 1) * batch_n * hy_stride + hid_off;
+            miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                              true,
+                                                              false,
+                                                              wei_len * bi,
+                                                              hy_h * bi,
+                                                              batch_n,
+                                                              hy_stride,
+                                                              hy_stride,
+                                                              bi_stride,
+                                                              1, // batch count
+                                                              0, // Stride A
+                                                              0, // Stride B
+                                                              0, // Stride C
+                                                              1, // alpha
+                                                              1, // beta
+                                                              xDesc[0].GetType()};
 
-            RunGemmGeometryRNN(handle,
-                               workSpace,
-                               reserveSpace,
-                               dw,
-                               wei_len * bi,
-                               hy_h * bi,
-                               batch_n,
-                               1,
-                               1,
-                               true,
-                               false,
-                               false,
-                               hy_stride,
-                               hy_stride,
-                               bi_stride,
-                               hid_shift,
-                               prelayer_shift,
-                               wei_shift,
-                               false,
-                               network_config,
-                               MIO_RNN_FINDSOL_TIMEOUT);
+            miopenStatus_t gemm_status = CallGemm(handle,
+                                                  gemm_desc,
+                                                  workSpace,
+                                                  hid_shift,
+                                                  reserveSpace,
+                                                  prelayer_shift,
+                                                  dw,
+                                                  wei_shift,
+                                                  nullptr,
+                                                  false);
 
+            if(gemm_status != miopenStatusSuccess)
+            {
+                MIOPEN_LOG_E("GEMM failed");
+            }
             // Update time
             profileRNNkernels(handle, 1, ctime);
         }
@@ -3998,27 +4140,38 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                 if(in_n.at(cur_time) > 0 && hx != nullptr)
                 {
-                    RunGemmGeometryRNN(handle,
-                                       workSpace,
-                                       hx,
-                                       dw,
-                                       wei_len,
-                                       hy_h,
-                                       in_n.at(cur_time),
-                                       1,
-                                       1,
-                                       true,
-                                       false,
-                                       false,
-                                       hy_stride,
-                                       uni_stride,
-                                       uni_stride,
-                                       hid_shift + ri * wei_len,
-                                       hx_shift + ri * hy_n * hy_h,
-                                       wei_shift + ri * wei_len * uni_stride,
-                                       false,
-                                       network_config,
-                                       MIO_RNN_FINDSOL_TIMEOUT);
+                    miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                                      true,
+                                                                      false,
+                                                                      wei_len,
+                                                                      hy_h,
+                                                                      in_n.at(cur_time),
+                                                                      hy_stride,
+                                                                      uni_stride,
+                                                                      uni_stride,
+                                                                      1, // batch count
+                                                                      0, // Stride A
+                                                                      0, // Stride B
+                                                                      0, // Stride C
+                                                                      1, // alpha
+                                                                      1, // beta
+                                                                      xDesc[0].GetType()};
+
+                    miopenStatus_t gemm_status = CallGemm(handle,
+                                                          gemm_desc,
+                                                          workSpace,
+                                                          hid_shift + ri * wei_len,
+                                                          hx,
+                                                          hx_shift + ri * hy_n * hy_h,
+                                                          dw,
+                                                          wei_shift + ri * wei_len * uni_stride,
+                                                          nullptr,
+                                                          false);
+
+                    if(gemm_status != miopenStatusSuccess)
+                    {
+                        MIOPEN_LOG_E("GEMM failed");
+                    }
 
                     // Update time
                     if(li == nLayers - 1 && ri == bi - 1 && seqLen == 1)
@@ -4031,29 +4184,41 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 {
                     if(ri == 1 && hx != nullptr && in_n.at(0) > in_n.at(seqLen - 1))
                     {
-                        RunGemmGeometryRNN(handle,
-                                           workSpace,
-                                           hx,
-                                           dw,
+                        miopen::GemmDescriptor gemm_desc =
+                            GemmDescriptor{false,
+                                           true,
+                                           false,
                                            wei_len,
                                            hy_h,
                                            (in_n.at(0) - in_n.at(seqLen - 1)),
-                                           1,
-                                           1,
-                                           true,
-                                           false,
-                                           false,
                                            hy_stride,
                                            uni_stride,
                                            uni_stride,
-                                           hid_shift + ri * wei_len -
-                                               (in_n.at(0) - in_n.at(seqLen - 1)) * hy_stride,
-                                           hx_shift + ri * hy_n * hy_h + in_n.at(seqLen - 1) * hy_h,
-                                           wei_shift + ri * wei_len * uni_stride,
-                                           false,
-                                           network_config,
-                                           MIO_RNN_FINDSOL_TIMEOUT);
+                                           1, // batch count
+                                           0, // Stride A
+                                           0, // Stride B
+                                           0, // Stride C
+                                           1, // alpha
+                                           1, // beta
+                                           xDesc[0].GetType()};
 
+                        miopenStatus_t gemm_status =
+                            CallGemm(handle,
+                                     gemm_desc,
+                                     workSpace,
+                                     hid_shift + ri * wei_len -
+                                         (in_n.at(0) - in_n.at(seqLen - 1)) * hy_stride,
+                                     hx,
+                                     hx_shift + ri * hy_n * hy_h + in_n.at(seqLen - 1) * hy_h,
+                                     dw,
+                                     wei_shift + ri * wei_len * uni_stride,
+                                     nullptr,
+                                     false);
+
+                        if(gemm_status != miopenStatusSuccess)
+                        {
+                            MIOPEN_LOG_E("GEMM failed");
+                        }
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
                     }
@@ -4064,28 +4229,39 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                         ri == 0 ? li * batch_n * hy_stride + hid_off
                                 : li * batch_n * hy_stride + in_n.at(0) * hy_stride + hid_off;
 
-                    RunGemmGeometryRNN(handle,
-                                       workSpace,
-                                       reserveSpace,
-                                       dw,
+                    miopen::GemmDescriptor gemm_desc =
+                        GemmDescriptor{false,
+                                       true,
+                                       false,
                                        wei_len,
                                        hy_h,
                                        in_n.at(0) * (seqLen - 2) + in_n.at(seqLen - 1),
-                                       1,
-                                       1,
-                                       true,
-                                       false,
-                                       false,
                                        hy_stride,
                                        hy_stride,
                                        uni_stride,
-                                       hid_shift + ri * wei_len,
-                                       pretime_shift + ri * hy_h,
-                                       wei_shift + ri * wei_len * uni_stride,
-                                       false,
-                                       network_config,
-                                       MIO_RNN_FINDSOL_TIMEOUT);
+                                       1, // batch count
+                                       0, // Stride A
+                                       0, // Stride B
+                                       0, // Stride C
+                                       1, // alpha
+                                       1, // beta
+                                       xDesc[0].GetType()};
 
+                    miopenStatus_t gemm_status = CallGemm(handle,
+                                                          gemm_desc,
+                                                          workSpace,
+                                                          hid_shift + ri * wei_len,
+                                                          reserveSpace,
+                                                          pretime_shift + ri * hy_h,
+                                                          dw,
+                                                          wei_shift + ri * wei_len * uni_stride,
+                                                          nullptr,
+                                                          false);
+
+                    if(gemm_status != miopenStatusSuccess)
+                    {
+                        MIOPEN_LOG_E("GEMM failed");
+                    }
                     // Update time
                     if(li == nLayers - 1 && ri == bi - 1)
                         profileRNNkernels(handle, 2, ctime);
@@ -4123,27 +4299,40 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                         {
                             if(hx != nullptr)
                             {
-                                RunGemmGeometryRNN(handle,
-                                                   workSpace,
-                                                   hx,
-                                                   dw,
+                                miopen::GemmDescriptor gemm_desc =
+                                    GemmDescriptor{false,
+                                                   true,
+                                                   false,
                                                    wei_len,
                                                    hy_h,
                                                    in_n.at(cur_time),
-                                                   1,
-                                                   1,
-                                                   true,
-                                                   false,
-                                                   false,
                                                    hy_stride,
                                                    uni_stride,
                                                    uni_stride,
-                                                   hid_shift + ri * wei_len,
-                                                   hx_shift + ri * hy_n * hy_h,
-                                                   wei_shift + ri * wei_len * uni_stride,
-                                                   false,
-                                                   network_config,
-                                                   MIO_RNN_FINDSOL_TIMEOUT);
+                                                   1, // batch count
+                                                   0, // Stride A
+                                                   0, // Stride B
+                                                   0, // Stride C
+                                                   1, // alpha
+                                                   1, // beta
+                                                   xDesc[0].GetType()};
+
+                                miopenStatus_t gemm_status =
+                                    CallGemm(handle,
+                                             gemm_desc,
+                                             workSpace,
+                                             hid_shift + ri * wei_len,
+                                             hx,
+                                             hx_shift + ri * hy_n * hy_h,
+                                             dw,
+                                             wei_shift + ri * wei_len * uni_stride,
+                                             nullptr,
+                                             false);
+
+                                if(gemm_status != miopenStatusSuccess)
+                                {
+                                    MIOPEN_LOG_E("GEMM failed");
+                                }
                                 // Update time
                                 if(li == nLayers - 1 && ti == seqLen - 1 && ri == bi - 1)
                                     profileRNNkernels(handle, 2, ctime);
@@ -4155,29 +4344,40 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                         {
                             if(ri == 1 && hx != nullptr && in_n.at(cur_time) > in_n.at(use_time))
                             {
-                                RunGemmGeometryRNN(
-                                    handle,
-                                    workSpace,
-                                    hx,
-                                    dw,
-                                    wei_len,
-                                    hy_h,
-                                    (in_n.at(cur_time) - in_n.at(use_time)),
-                                    1,
-                                    1,
-                                    true,
-                                    false,
-                                    false,
-                                    hy_stride,
-                                    uni_stride,
-                                    uni_stride,
-                                    hid_shift + ri * wei_len + in_n.at(use_time) * hy_stride,
-                                    hx_shift + ri * hy_n * hy_h + in_n.at(use_time) * hy_h,
-                                    wei_shift + ri * wei_len * uni_stride,
-                                    false,
-                                    network_config,
-                                    MIO_RNN_FINDSOL_TIMEOUT);
+                                miopen::GemmDescriptor gemm_desc =
+                                    GemmDescriptor{false,
+                                                   true,
+                                                   false,
+                                                   wei_len,
+                                                   hy_h,
+                                                   (in_n.at(cur_time) - in_n.at(use_time)),
+                                                   hy_stride,
+                                                   uni_stride,
+                                                   uni_stride,
+                                                   1, // batch count
+                                                   0, // Stride A
+                                                   0, // Stride B
+                                                   0, // Stride C
+                                                   1, // alpha
+                                                   1, // beta
+                                                   xDesc[0].GetType()};
 
+                                miopenStatus_t gemm_status = CallGemm(
+                                    handle,
+                                    gemm_desc,
+                                    workSpace,
+                                    hid_shift + ri * wei_len + in_n.at(use_time) * hy_stride,
+                                    hx,
+                                    hx_shift + ri * hy_n * hy_h + in_n.at(use_time) * hy_h,
+                                    dw,
+                                    wei_shift + ri * wei_len * uni_stride,
+                                    nullptr,
+                                    false);
+
+                                if(gemm_status != miopenStatusSuccess)
+                                {
+                                    MIOPEN_LOG_E("GEMM failed");
+                                }
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
                             }
@@ -4187,28 +4387,40 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                             if(in_n.at(use_time) > 0)
                             {
-                                RunGemmGeometryRNN(handle,
-                                                   workSpace,
-                                                   reserveSpace,
-                                                   dw,
+                                miopen::GemmDescriptor gemm_desc =
+                                    GemmDescriptor{false,
+                                                   true,
+                                                   false,
                                                    wei_len,
                                                    hy_h,
                                                    in_n.at(use_time),
-                                                   1,
-                                                   1,
-                                                   true,
-                                                   false,
-                                                   false,
                                                    hy_stride,
                                                    hy_stride,
                                                    uni_stride,
-                                                   hid_shift + ri * wei_len,
-                                                   pretime_shift + ri * hy_h,
-                                                   wei_shift + ri * wei_len * uni_stride,
-                                                   false,
-                                                   network_config,
-                                                   MIO_RNN_FINDSOL_TIMEOUT);
+                                                   1, // batch count
+                                                   0, // Stride A
+                                                   0, // Stride B
+                                                   0, // Stride C
+                                                   1, // alpha
+                                                   1, // beta
+                                                   xDesc[0].GetType()};
 
+                                miopenStatus_t gemm_status =
+                                    CallGemm(handle,
+                                             gemm_desc,
+                                             workSpace,
+                                             hid_shift + ri * wei_len,
+                                             reserveSpace,
+                                             pretime_shift + ri * hy_h,
+                                             dw,
+                                             wei_shift + ri * wei_len * uni_stride,
+                                             nullptr,
+                                             false);
+
+                                if(gemm_status != miopenStatusSuccess)
+                                {
+                                    MIOPEN_LOG_E("GEMM failed");
+                                }
                                 // Update time
                                 if(li == nLayers - 1 && ti == seqLen - 1 && ri == bi - 1)
                                     profileRNNkernels(handle, 2, ctime);

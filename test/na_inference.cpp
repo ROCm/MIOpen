@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2018 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,13 @@
  *******************************************************************************/
 #include "fusionHost.hpp"
 #include <miopen/stringutils.hpp>
+
+#define MIO_BN_USE_MIX_PREC 1
+#if MIO_BN_USE_MIX_PREC == 1
+#define PREC_TYPE float
+#else
+#define PREC_TYPE T
+#endif
 
 using ptr_FusionPlanDesc = MIOPEN_MANAGE_PTR(miopenFusionPlanDescriptor_t, miopenDestroyFusionPlan);
 using ptr_FusionPlanArgs = MIOPEN_MANAGE_PTR(miopenOperatorArgs_t, miopenDestroyOperatorArgs);
@@ -51,17 +58,17 @@ ptr_ActivationDesc GetManagedActivDesc()
     return ptr_ActivationDesc{activdesc};
 }
 
-template <class T>
+template <class T, class U>
 struct verify_inference_batchnorm_activ
 {
     tensor<T> input;
     miopenTensorDescriptor_t inputDesc{};
     miopenActivationDescriptor_t activDesc{};
     miopenTensorDescriptor_t biasScaleTensor{};
-    tensor<T> bnscale{};
-    tensor<T> bnbias{};
-    tensor<T> estMean{};
-    tensor<T> estVariance{};
+    tensor<U> bnscale{};
+    tensor<U> bnbias{};
+    tensor<U> estMean{};
+    tensor<U> estVariance{};
     miopenBatchNormMode_t bnmode;
     miopenFusionPlanDescriptor_t fusionplan;
     miopenFusionOpDescriptor_t bNormOp;
@@ -71,10 +78,10 @@ struct verify_inference_batchnorm_activ
     verify_inference_batchnorm_activ(miopenFusionPlanDescriptor_t pfusionplan,
                                      tensor<T>& pinput,
                                      miopenActivationDescriptor_t pactivDesc,
-                                     tensor<T>& pbnscale,
-                                     tensor<T>& pbnbias,
-                                     tensor<T>& pestMean,
-                                     tensor<T>& pestVariance,
+                                     tensor<U>& pbnscale,
+                                     tensor<U>& pbnbias,
+                                     tensor<U>& pestMean,
+                                     tensor<U>& pestVariance,
                                      miopenBatchNormMode_t pbnmode,
                                      miopenFusionOpDescriptor_t pbNormOp,
                                      miopenFusionOpDescriptor_t pactivOp)
@@ -173,10 +180,10 @@ template <class T>
 struct na_fusion_driver : test_driver
 {
     tensor<T> input;
-    tensor<T> scale;
-    tensor<T> shift;
-    tensor<T> estMean;
-    tensor<T> estVariance;
+    tensor<PREC_TYPE> scale;
+    tensor<PREC_TYPE> shift;
+    tensor<PREC_TYPE> estMean;
+    tensor<PREC_TYPE> estVariance;
     ptr_ActivationDesc ptr_activdesc = nullptr;
 
     miopenActivationMode_t activ_mode = miopenActivationRELU;
@@ -244,32 +251,22 @@ struct na_fusion_driver : test_driver
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, bnmode);
         std::tie(ssn, ssc, ssh, ssw) = miopen::tien<4>(derivedBnDesc.GetLengths());
 
-        if(input.desc.GetType() == miopenFloat)
-        {
-            scale       = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
-            shift       = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
-            estMean     = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
-            estVariance = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
-        }
-        else
-        {
-            scale       = tensor<T>{ssn, ssc, ssh, ssw};
-            shift       = tensor<T>{ssn, ssc, ssh, ssw};
-            estMean     = tensor<T>{ssn, ssc, ssh, ssw};
-            estVariance = tensor<T>{ssn, ssc, ssh, ssw};
+        scale       = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
+        shift       = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
+        estMean     = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
+        estVariance = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
 
-            srand(0);
-            for(int i = 0; i < scale.desc.GetElementSize(); i++)
-            {
-                scale[i]       = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
-                shift[i]       = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
-                estMean[i]     = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
-                estVariance[i] = std::fabs((((rand() % 2) == 1) ? -1 : 1) * 1e-2 * T(rand() % 100));
-            }
-            for(int i = 0; i < input.desc.GetElementSize(); i++)
-            {
-                input[i] = (((rand() % 2) == 1) ? -1 : 1) * T(rand() % 100);
-            }
+        srand(0);
+        for(int i = 0; i < scale.desc.GetElementSize(); i++)
+        {
+            scale[i]       = (((rand() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(rand() % 100);
+            shift[i]       = (((rand() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(rand() % 100);
+            estMean[i]     = (((rand() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(rand() % 100);
+            estVariance[i] = (1e-2 * PREC_TYPE(rand() % 100));
+        }
+        for(int i = 0; i < input.desc.GetElementSize(); i++)
+        {
+            input[i] = (((rand() % 2) == 1) ? -1 : 1) * T(rand() % 100);
         }
 
         auto&& handle = get_handle();
@@ -289,16 +286,16 @@ struct na_fusion_driver : test_driver
         }
         else
         {
-            verify(verify_inference_batchnorm_activ<T>{ptr_fusionplan.get(),
-                                                       input,
-                                                       ptr_activdesc.get(),
-                                                       scale,
-                                                       shift,
-                                                       estMean,
-                                                       estVariance,
-                                                       bnmode,
-                                                       bNormOp,
-                                                       activOp});
+            verify(verify_inference_batchnorm_activ<T, PREC_TYPE>{ptr_fusionplan.get(),
+                                                                  input,
+                                                                  ptr_activdesc.get(),
+                                                                  scale,
+                                                                  shift,
+                                                                  estMean,
+                                                                  estVariance,
+                                                                  bnmode,
+                                                                  bNormOp,
+                                                                  activOp});
         }
     }
 };

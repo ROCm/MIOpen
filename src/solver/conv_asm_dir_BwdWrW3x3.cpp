@@ -38,7 +38,7 @@
 #define MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED 0
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_SEARCH_QUICK)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_SEARCH_OPTIMIZED)
 
 namespace miopen {
 namespace solver {
@@ -63,7 +63,7 @@ bool PerformanceConfigAsmDirect3x3WrW::SetNextValue()
     do
     {
 #if MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED == 0
-        if(!miopen::IsEnabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_SEARCH_QUICK{}))
+        if(miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_SEARCH_OPTIMIZED{}))
         {
             // (0 <= limit_wave_cnt && limit_wave_cnt <= 9)
             if(++limit_wave_cnt <= 9)
@@ -135,6 +135,11 @@ static bool IsReverseInOutAllowed(const ConvolutionContext& config)
     return config.kernel_stride0 == 1 && config.kernel_stride1 == 1;
 }
 
+inline int elements_in_dword(const ConvolutionContext& config)
+{
+    return config.float_size == 16 ? 2 : 1;
+}
+
 bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config) const
 {
     if(!IsValidValue())
@@ -154,18 +159,19 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config)
         return false;
     if((reverse_inout != 0) && !IsReverseInOutAllowed(config))
         return false;
-
     {
         const int accums_cnt =
             (config.kernel_size0 * config.kernel_size1 * GetCPerWave() * k_per_wave * chunk_size) /
             64;
         assert(chunk_size);
-        int gprs_per_line_in = (config.out_width + chunk_size - 1) / chunk_size;
+        const int out_w_vec =
+            (config.out_width + elements_in_dword(config) - 1) / elements_in_dword(config);
+        int gprs_per_line_in = (out_w_vec + chunk_size - 1) / chunk_size;
         if(chunk_size != 16)
         {
             assert(chunk_size - config.pad0);
             gprs_per_line_in =
-                (config.out_width + chunk_size - config.pad0 - 1) / (chunk_size - config.pad0);
+                (out_w_vec + chunk_size - config.pad0 - 1) / (chunk_size - config.pad0);
         }
         assert(config.kernel_stride0);
         gprs_per_line_in += gprs_per_line_in % config.kernel_stride0;
@@ -176,8 +182,10 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config)
         assert(config.kernel_stride1);
         const int lines_out =
             (pipe_lines_depth + config.kernel_stride1 - 1) / config.kernel_stride1;
-        const int vgprs =
-            accums_cnt + lines_in * gprs_per_line_in + lines_out * gprs_per_line_out + 6;
+        const int vgprs = accums_cnt +
+                          (lines_in * gprs_per_line_in + lines_out * gprs_per_line_out) *
+                              elements_in_dword(config) +
+                          6 + (elements_in_dword(config) - 1);
         if(!(vgprs <= 256))
             return false;
         if(n_per_group > 4)
@@ -192,12 +200,20 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config)
         const int unroll_factor = pipe_lines_depth * (pipe_lines_depth + 2);
         const int steps         = std::max(0, config.out_height - 1 - pipe_lines_depth);
         assert(unroll_factor);
-        const int loops   = pipe_lines_depth + unroll_factor + steps % unroll_factor + 1;
-        const int m_instr = 3 + (gprs_per_line_in + 3) / 4;
-        const int v_instr =
-            (k_per_wave * config.kernel_size1 * gprs_per_line_out * config.kernel_size0 * 4) / 3;
-        const int total = loops * (m_instr + v_instr); // instructions
-        if(total >= 32000)                             // Estimation, a bit smaller than 32K.
+        const int loops        = pipe_lines_depth + unroll_factor + steps % unroll_factor + 1;
+        const int m_instr      = 3 + (gprs_per_line_in + 3) / 4;
+        const std::string name = config.GetStream().GetDeviceName();
+        /// \todo parsing "gfx[0-9]+" and finding major/minor/stepping from handle. using this
+        /// information here and in all similar places across other Solvers.
+        const bool dot2_inst_avail = name >= "gfx906";
+        const bool dot2_emulate    = (!dot2_inst_avail) && (elements_in_dword(config) == 2);
+        const int v_instr          = (k_per_wave * config.kernel_size1 * gprs_per_line_out *
+                             config.kernel_size0 * 4 * (dot2_emulate ? 2 : 1)) /
+                            3 * elements_in_dword(config);
+        const int exch_instr = elements_in_dword(config) == 2 ? 3 * m_instr : 0;
+        const int total =
+            loops * (m_instr + v_instr + exch_instr) * elements_in_dword(config); // instructions
+        if(total >= 32000) // Estimation, a bit smaller than 32K.
             return false;
     }
     return true;
@@ -268,6 +284,11 @@ void PerformanceConfigAsmDirect3x3WrW::EuristicInit(const ConvolutionContext& co
             /// because that's how reverse convolutions are handled in MIOpen.
             reverse_inout = 1;
         }
+        if(!IsValid(config))
+        {
+            MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init 2...");
+            pipe_lines_depth = 1;
+        }
         assert(IsValid(config));
     }
     MIOPEN_LOG_I(ToString());
@@ -322,13 +343,22 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_dilation0 == 1
         && params.kernel_dilation1 == 1
         && params.bias == 0
-        && params.float_size == 32
+        && (params.float_size == 32 || params.float_size == 16)
         && params.in_layout == "NCHW";
-     // && _weights_layout == "KCHW"
     if(!ok)
     {
         return false; // Early exit to speed up the check.
     }
+
+    if(params.float_size == 16
+          && (name.find("gfx8") != std::string::npos // Not supported.
+             || params.batch_sz % 2 != 0 /// \todo Initial version.
+             || params.kernel_stride0 != 1 /// \todo Initial version.
+             || params.kernel_stride1 != 1))
+    {
+       return false;
+    }
+
     // Check limits:
     const auto h_w     = static_cast<long>(params.out_height) * params.out_width;
     const auto r_s     = static_cast<long>(params.kernel_size1) * params.kernel_size0;
@@ -366,6 +396,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
 {
     ConvSolution result;
     std::ostringstream options;
+    GenerateClangDefsym(options, "elements_in_dword", (params.float_size == 16) ? 2 : 1);
     GenerateClangDefsym(options, "batch_size", params.batch_sz); // N
     GenerateClangDefsym(options, "img_h", params.out_height);    // H
     GenerateClangDefsym(options, "img_w", params.out_width);     // W

@@ -30,31 +30,34 @@
 namespace miopen {
 namespace solver {
 
+// Workaround for issue 1185.
+// OpenCL fails to allocate a single piece of GPU memory, if the require mem size is too large
+// However, the limit of mem size is unknown currently, and has been raised as a remaining question
+// in issue 1289
+#define WORKAROUND_ISSUE_1185 1
+
 bool ConvOclBwdWrW2::IsApplicable(const ConvolutionContext& params) const
 {
-    bool solution = true;
-
-    solution &= params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1;
+    return (params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1) &&
 
 #if 0
-    // TODO: chao: revisit this if failure is encountered.
-    // There is a stronger restriction than this one, which make this one unnecessary.
-    // The kernel read stripes (in height direction, one stripe at a time) of input into LDS,
-    // the height of stripe is (MLO_N_ALIGNED_OUT_SCAN_BLK - 1) * MLO_FILTER_STRIDE1 +
-    // MLO_FILTER_SIZE1,
-    // (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1) of it is reusable from previous read,
-    // (MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_FILTER_STRIDE1) of it is fresh read from device memory.
-    // So (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1) need no less than 0.
-    solution &= params.kernel_size1 - params.kernel_stride1 >= 0;
+           // There is a stronger restriction than this one, which make this one unnecessary.
+           // The kernel read stripes (in height direction, one stripe at a time) of input into LDS,
+           // the height of stripe is (MLO_N_ALIGNED_OUT_SCAN_BLK - 1) * MLO_FILTER_STRIDE1 +
+           // MLO_FILTER_SIZE1, (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1) of it is reusable from
+           // previous read, (MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_FILTER_STRIDE1) of it is fresh read
+           // from device memory. So (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1) need no less than 0.
+           // TODO: chao: revisit this if failure is encountered.
+           (params.kernel_size1 - params.kernel_stride1 >= 0) &&
 #endif
 
-    // The first scan of stripe of the input into LDS will read a strip of height (kernel_size1 -
-    // kernel_stride1),
-    // this stripe should include the whole lower bound padding, as well as some or none of the
-    // input.
-    solution &= params.kernel_size1 - params.kernel_stride1 >= params.pad1;
+           // The first scan of stripe of the input into LDS will read a strip of height
+           // (kernel_size1 - kernel_stride1), this stripe should include the whole lower bound
+           // padding, as well as some or none of the input.
+           (params.kernel_size1 - params.kernel_stride1 >= params.pad1) &&
 
-    return solution;
+           // Avoid LDS over-allocation
+           GetSolution(params).Succeeded();
 }
 
 ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
@@ -183,13 +186,82 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
     assert(N_ALIGNED_OUT_SCAN_BLK != 0);
     int N_OUT_BLK = (params.in_height + N_ALIGNED_OUT_SCAN_BLK - 1) / N_ALIGNED_OUT_SCAN_BLK;
 
-    int lcl_mem_sz =
-        N_ALIGNED_OUT_SCAN_BLK * ALIGNED_OUT_SCAN_LN * read_unit +
-        (((params.out_width + read_unit - 1) / read_unit) * read_unit + params.kernel_size0 - 1) *
-            ((N_ALIGNED_OUT_SCAN_BLK - 1) * params.kernel_stride1 + params.kernel_size1);
-    if(lcl_mem_sz > 8 * 1024)
+    int in_lcl_height = (N_ALIGNED_OUT_SCAN_BLK - 1) * params.kernel_stride1 + params.kernel_size1;
+
+    int in_lcl_width = 0;
+    int in_lcl_sz    = 0;
     {
-        return ConvSolution(miopenStatusNotInitialized);
+        // Chao: Reserve space in LDS for left padding, it also reserve
+        //   enough space in LDS for right padding and the footprint of scaning (from
+        //   device into LDS). To reduces LDS consumption, right padding of one row
+        //   is overlapped with the left padding of the next row.
+        //   Also, for the last row, right padding is needed.
+        // Revisit this if encounter failure
+        int in_width  = params.out_width; // out is in, in is out
+        int out_width = params.in_width;
+
+        int in_lcl_width_effective =
+            std::max(in_width + 2 * params.pad0,
+                     std::max(params.pad0 + ((in_width + read_unit - 1) / read_unit) * read_unit,
+                              params.kernel_size0 + (out_width - 1) * params.kernel_stride0));
+
+        int in_lcl_width_right_buffer =
+            std::max(in_lcl_width_effective - (in_width + 2 * params.pad0), 0);
+
+        in_lcl_width = params.pad0 + in_width + in_lcl_width_right_buffer;
+
+        // Chao: attempt to reduce LDS bank conflict during reading input image from LDS
+        // Revisit this if performance regress
+        if(params.out_data_type == "FP32")
+        {
+            in_lcl_width = (in_lcl_width / 2) * 2 + 1;
+        }
+
+        // make enough room for right padding and buffer for the last row in LDS
+        in_lcl_sz = in_lcl_width * in_lcl_height + params.pad0 + in_lcl_width_right_buffer;
+    }
+
+    // check LDS consumption
+    {
+        int n_lcl_batchs   = result.n_stacks;
+        int n_lcl_in_maps  = result.n_in_data_tiles;
+        int n_lcl_out_maps = result.n_out_pix_tiles;
+
+        // LDS used for "bot"
+        int total_in_lcl_sz = in_lcl_sz * n_lcl_batchs * n_lcl_in_maps;
+
+        // LDS used for workgroup-level reduction of weights
+        int wei_lcl_sz        = 0;
+        int max_wei_blk       = 0;
+        int out_wei_scan_loop = 0;
+        {
+            int out_width = params.in_width; // out is in, in is out
+
+            int wei_blk_sz0   = ((params.kernel_size0 + WEI_WKITEM - 1) / WEI_WKITEM);
+            int wei_blk_sz    = params.kernel_size1 * wei_blk_sz0;
+            int n_wei_blk     = GRP_SZ / wei_blk_sz;
+            out_wei_scan_loop = (out_width + n_wei_blk - 1) / n_wei_blk;
+            max_wei_blk =
+                std::min(n_wei_blk, (out_width + out_wei_scan_loop - 1) / out_wei_scan_loop);
+            wei_lcl_sz = wei_blk_sz * WEI_WKITEM * max_wei_blk;
+        }
+        int total_wei_lcl_sz = wei_lcl_sz * n_lcl_in_maps * n_lcl_out_maps;
+
+        // LDS use for "top_df"
+        int out_horiz_pix_ext_sz =
+            std::max(out_wei_scan_loop * max_wei_blk, ALIGNED_OUT_SCAN_LN * read_unit);
+        int total_out_lcl_sz =
+            (N_ALIGNED_OUT_SCAN_BLK * out_horiz_pix_ext_sz) * n_lcl_batchs * n_lcl_out_maps;
+
+        int total_lcl_mem_sz =
+            std::max(total_in_lcl_sz + total_out_lcl_sz, total_wei_lcl_sz) *
+            ((params.out_data_type == "FP32" ? 4 : (params.out_data_type == "FP16" ? 2 : 8)));
+
+        if(total_lcl_mem_sz > 64 * 1024)
+        {
+            MIOPEN_LOG_I2("ConvOClBwdWrW2: Not enough LDS, need " << total_lcl_mem_sz << " byte");
+            return ConvSolution(miopenStatusNotInitialized);
+        }
     }
 
     int OUT_N_PIXS_OFF = params.in_width - (params.in_width / read_unit) * read_unit;
@@ -237,17 +309,10 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
         std::to_string((params.out_width)) + std::string(" -DMLO_IN_HEIGHT=") +
         std::to_string(params.out_height) + std::string(" -DMLO_OUT_WIDTH=") +
         std::to_string(params.in_width) + std::string(" -DMLO_OUT_HEIGHT=") +
-        std::to_string(params.in_height) + std::string(" -DMLO_IN_TILE1=") +
-        std::to_string(result.in_tile1) + std::string(" -DMLO_IN_TILE0=") +
-        std::to_string(result.in_tile0) + std::string(" -DMLO_N_LCL_BATCHS=") +
-        std::to_string(result.n_stacks) // # of diff stacks (part of batch).
-        + std::string(" -DMLO_N_LCL_OUT_MAPS=") +
+        std::to_string(params.in_height) + std::string(" -DMLO_N_LCL_OUT_MAPS=") +
         std::to_string(result.n_out_pix_tiles) // # output pixel tiles per wk-item (ALU)
         + std::string(" -DMLO_N_LCL_IN_MAPS=") +
         std::to_string(result.n_in_data_tiles) // total # of blocks of different inputs in LDS
-        + std::string(" -DMLO_OUT_TILE0=") +
-        std::to_string((result.out_pix_tile0)) // size of ouptput tile per wk-item (ALU))
-        + std::string(" -DMLO_OUT_TILE1=") + std::to_string(result.out_pix_tile1) //
         + std::string(" -DMLO_N_WAVES=") + std::to_string(n_waves) +
         std::string(" -DMLO_READ_TYPE=") + READ_TYPE + std::string(" -DMLO_READ_UNIT=") +
         std::to_string(read_unit) + std::string(" -DMLO_ALIGNED_OUT_SCAN_LN=") +
@@ -258,7 +323,9 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
         std::string(" -DMLO_N_OUT_BLK=") + std::to_string(N_OUT_BLK) +
         std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(_hw_wave_sz) +
         std::string(" -DMLO_LG2_PHYS_WAVE_SZ=") + std::to_string(mloLg2(_hw_wave_sz)) +
-        std::string(" -DMLO_OUT_N_PIXS_OFF=") + std::to_string(OUT_N_PIXS_OFF)
+        std::string(" -DMLO_OUT_N_PIXS_OFF=") + std::to_string(OUT_N_PIXS_OFF) +
+        std::string(" -DMLO_IN_LCL_WIDTH=") + std::to_string(in_lcl_width) +
+        std::string(" -DMLO_IN_LCL_SZ=") + std::to_string(in_lcl_sz)
 
         + std::string(" -DMLO_CONV_BIAS=") + std::to_string(params.bias)
 
@@ -319,8 +386,21 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
 
         int data_len =
             (params.out_data_type == "FP16" ? 2 : params.out_data_type == "FP32" ? 4 : 8);
-        result.workspce_sz = wei_bstride * params.n_inputs * n_batch_blks * data_len;
+        result.workspce_sz =
+            static_cast<std::size_t>(wei_bstride) * static_cast<std::size_t>(params.n_inputs) *
+            static_cast<std::size_t>(n_batch_blks) * static_cast<std::size_t>(data_len);
+
+#if WORKAROUND_ISSUE_1185
+        if(result.workspce_sz > 8 * 1024 * 1024)
+        {
+            MIOPEN_LOG_I2("ConvOclBwdWrW2: limiting allocation of a single workspace to 8GB, need "
+                          << result.workspce_sz
+                          << " byte");
+            return ConvSolution(miopenStatusNotInitialized);
+        }
+#endif
     }
+
     return result;
 }
 } // namespace solver

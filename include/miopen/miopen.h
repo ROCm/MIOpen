@@ -100,6 +100,7 @@ typedef enum {
     miopenStatusInternalError  = 5, /*!< MIOpen failure. */
     miopenStatusNotImplemented = 6, /*!< Use of unimplemented feature. */
     miopenStatusUnknownError   = 7, /*!< Unknown error occurred. */
+    miopenStatusUnsupportedOp  = 8, /*!< Unsupported operator for fusion. */
 } miopenStatus_t;
 
 /*! @brief Get character string for an error code.
@@ -1890,18 +1891,31 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescripto
 
 //---
 
-// Activation create ops ---
+// Activation forward create ops ---
 /*! @brief Creates a forward activation operator.
 *
 * @param fusePlanDesc    A fusion plan descriptor (input)
-* @param activOp         Pointer to an operator type (output)
+* @param activFwdOp         Pointer to an operator type (output)
 * @param mode            Activation version (input)
 * @return                miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
 miopenCreateOpActivationForward(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                miopenFusionOpDescriptor_t* activOp,
+                                miopenFusionOpDescriptor_t* activFwdOp,
                                 miopenActivationMode_t mode);
+
+// Activation backward create ops ---
+/*! @brief Creates a backward activation operator.
+*
+* @param fusePlanDesc    A fusion plan descriptor (input)
+* @param activBwdOp         Pointer to an operator type (output)
+* @param mode            Activation version (input)
+* @return                miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateOpActivationBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                 miopenFusionOpDescriptor_t* activBwdOp,
+                                 miopenActivationMode_t mode);
 
 // Bias create ops ---
 /*! @brief Creates a forward bias operator.
@@ -1929,6 +1943,33 @@ miopenCreateOpBatchNormInference(miopenFusionPlanDescriptor_t fusePlanDesc,
                                  miopenFusionOpDescriptor_t* bnOp,
                                  const miopenBatchNormMode_t bn_mode,
                                  const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc);
+
+/*! @brief Creates a forward training batch normalization operator.
+*
+* @param fusePlanDesc           A fusion plan descriptor (input)
+* @param bnFwdOp                   Pointer to an operator type (output)
+* @param bn_mode                Batch normalization layer mode (input)
+* @param runningMeanVariance    Toggles whether or not to save population statistics for inference;
+* batch statistic are required (input)
+* @return                       miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateOpBatchNormForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                               miopenFusionOpDescriptor_t* bnFwdOp,
+                               const miopenBatchNormMode_t bn_mode,
+                               bool runningMeanVariance);
+
+/*! @brief Creates a back propagation batch normalization operator.
+*
+* @param fusePlanDesc           A fusion plan descriptor (input)
+* @param bnBwdOp                   Pointer to an operator type (output)
+* @param bn_mode                Batch normalization layer mode (input)
+* @return                       miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateOpBatchNormBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                miopenFusionOpDescriptor_t* bnBwdOp,
+                                const miopenBatchNormMode_t bn_mode);
 
 //---
 /*! @brief Creates an operator argument object
@@ -1964,6 +2005,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t arg
 /*! @brief Sets the arguments for forward activation op
 *
 * @param args    An arguments object type (output)
+* @param activFwdOp   Activation backwards operator (input)
 * @param alpha   Floating point scaling factor, allocated on the host (input)
 * @param beta    Floating point shift factor, allocated on the host (input)
 * @param activAlpha  Double precision activation parameter which depends on activation mode (input)
@@ -1971,13 +2013,39 @@ MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t arg
 * @param activGamma  Double precision activation parameter which depends on activation mode (input)
 * @return        miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
-                                                         const miopenFusionOpDescriptor_t activOp,
-                                                         const void* alpha,
-                                                         const void* beta,
-                                                         double activAlpha,
-                                                         double activBeta,
-                                                         double activGamma);
+MIOPEN_EXPORT miopenStatus_t
+miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
+                            const miopenFusionOpDescriptor_t activFwdOp,
+                            const void* alpha,
+                            const void* beta,
+                            double activAlpha,
+                            double activBeta,
+                            double activGamma);
+
+/*! @brief Sets the arguments for backward activation op
+*
+* @param args    An arguments object type (output)
+* @param activBwdOp   Activation backwards operator (input)
+* @param alpha   Floating point scaling factor, allocated on the host (input)
+* @param beta    Floating point shift factor, allocated on the host (input)
+* @param y        Data tensor y, output of activations in the forward direction (input)
+* @param reserved    Data tensor reserved memory space; currently should be nullptr (input)
+* @param activAlpha  Double precision activation parameter which depends on activation mode (input)
+* @param activBeta   Double precision activation parameter which depends on activation mode (input)
+* @param activGamma  Double precision activation parameter which depends on activation mode (input)
+* @return        miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenSetOpArgsActivBackward(miopenOperatorArgs_t args,
+                             const miopenFusionOpDescriptor_t activBwdOp,
+                             const void* alpha,
+                             const void* beta,
+                             const void* y,
+                             const void* reserved,
+                             double activAlpha,
+                             double activBeta,
+                             double activGamma);
+
 // Batch Normalization set arguments ---
 /*! @brief Sets the arguments for inference batch normalization op
 *
@@ -2002,6 +2070,62 @@ miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t args,
                                   const void* estimatedMean,
                                   const void* estimatedVariance,
                                   double epsilon);
+
+/*! @brief Sets the arguments for forward batch normalization op
+*
+* @param args               An arguments object type (output)
+* @param bnOp               Batch normalization forward operator (input)
+* @param alpha              Floating point scaling factor, allocated on the host (input)
+* @param beta               Floating point shift factor, allocated on the host (input)
+* @param bnScale            Pointer to the gamma tensor memory  (input)
+* @param bnBias             Pointer to the beta tensor memory  (input)
+* @param savedMean          Pointer to batch mean memory  (input)
+* @param savedInvVariance   Pointer to batch inverse variance memory  (input)
+* @param runningMean        Pointer to population mean memory  (input)
+* @param runningVariance    Pointer to population variance memory  (input)
+* @param expAvgFactor       Scalar value for control of population statistics (input)
+* @param epsilon            Scalar value for numerical stability (input)
+* @return                   miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsBatchNormForward(miopenOperatorArgs_t args,
+                                                             const miopenFusionOpDescriptor_t bnOp,
+                                                             const void* alpha,
+                                                             const void* beta,
+                                                             const void* bnScale,
+                                                             const void* bnBias,
+                                                             void* savedMean,
+                                                             void* savedInvVariance,
+                                                             void* runningMean,
+                                                             void* runningVariance,
+                                                             double expAvgFactor,
+                                                             double epsilon);
+
+/*! @brief Sets the arguments for backward batch normalization op
+*
+* @param args               An arguments object type (output)
+* @param bnOp               Batch normalization forward operator (input)
+* @param alpha              Floating point scaling factor, allocated on the host (input)
+* @param beta               Floating point shift factor, allocated on the host (input)
+* @param x                  Pointer to the forward input tensor memory  (input)
+* @param bnScale            Pointer to the gamma tensor memory  (input)
+* @param bnBias             Pointer to the beta tensor memory  (input)
+* @param resultBnScaleDiff  Pointer to the gamma gradient tensor memory  (output)
+* @param resultBnBiasDiff   Pointer to the beta gradient tensor memory  (output)
+* @param savedMean          Pointer to batch mean memory  (input)
+* @param savedInvVariance   Pointer to batch inverse variance memory  (input)
+* @return                   miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsBatchNormBackward(miopenOperatorArgs_t args,
+                                                              const miopenFusionOpDescriptor_t bnOp,
+                                                              const void* alpha,
+                                                              const void* beta,
+                                                              const void* x,
+                                                              const void* bnScale,
+                                                              const void* bnBias,
+                                                              void* resultBnScaleDiff,
+                                                              void* resultBnBiasDiff,
+                                                              const void* savedMean,
+                                                              const void* savedInvVariance);
 
 // Bias forward set arguments ---
 /*! @brief Sets the arguments for forward bias op

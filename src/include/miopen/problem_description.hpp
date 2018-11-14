@@ -56,7 +56,6 @@ struct ConvolutionDescriptor;
 
 struct ProblemDescription
 {
-    int vec_size         = 1;
     int n_inputs         = 0;
     int in_height        = 0;
     int in_width         = 0;
@@ -270,8 +269,13 @@ struct ProblemDescription
     /*
      * set convolutional parameters
      */
-    void setConvDescr(
-        int u_padding, int v_padding, int u_stride, int v_stride, int h_dilation, int w_dilation)
+    void setConvDescr(int u_padding,
+                      int v_padding,
+                      int u_stride,
+                      int v_stride,
+                      int h_dilation,
+                      int w_dilation,
+                      int grp_cnt)
     {
         pad1             = u_padding;
         pad0             = v_padding;
@@ -279,6 +283,7 @@ struct ProblemDescription
         kernel_stride1   = v_stride;
         kernel_dilation0 = h_dilation;
         kernel_dilation1 = w_dilation;
+        group_counts     = grp_cnt;
     }
 
     /*
@@ -303,7 +308,6 @@ struct ProblemDescription
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
         weights_sz = size;
-        vec_size   = 32 / float_size;
     }
 
     /*

@@ -229,9 +229,13 @@ extern "C" miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
                   << " -p " << miopen::deref(convDesc).pad_h << " -q "
                   << miopen::deref(convDesc).pad_w << " -u " << miopen::deref(convDesc).u << " -v "
                   << miopen::deref(convDesc).v << " -l " << miopen::deref(convDesc).dilation_h
-                  << " -j " << miopen::deref(convDesc).dilation_w
-
-                  << " -t "
+                  << " -j " << miopen::deref(convDesc).dilation_w << " -m "
+                  << (miopen::deref(convDesc).mode == 3
+                          ? "dw"
+                          : miopen::deref(convDesc).mode == 2
+                                ? "group"
+                                : miopen::deref(convDesc).mode == 1 ? "trans" : "conv")
+                  << " -g " << miopen::deref(convDesc).group_count << " -t "
                   << "1"
                   << "\n";
     }
@@ -374,9 +378,13 @@ miopenConvolutionBackwardData(miopenHandle_t handle,
                   << " -p " << miopen::deref(convDesc).pad_h << " -q "
                   << miopen::deref(convDesc).pad_w << " -u " << miopen::deref(convDesc).u << " -v "
                   << miopen::deref(convDesc).v << " -l " << miopen::deref(convDesc).dilation_h
-                  << " -j " << miopen::deref(convDesc).dilation_w
-
-                  << " -t "
+                  << " -j " << miopen::deref(convDesc).dilation_w << " -m "
+                  << (miopen::deref(convDesc).mode == 3
+                          ? "dw"
+                          : miopen::deref(convDesc).mode == 2
+                                ? "group"
+                                : miopen::deref(convDesc).mode == 1 ? "trans" : "conv")
+                  << " -g " << miopen::deref(convDesc).group_count << " -t "
                   << "1"
                   << "\n";
     }
@@ -493,9 +501,13 @@ miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
                   << " -p " << miopen::deref(convDesc).pad_h << " -q "
                   << miopen::deref(convDesc).pad_w << " -u " << miopen::deref(convDesc).u << " -v "
                   << miopen::deref(convDesc).v << " -l " << miopen::deref(convDesc).dilation_h
-                  << " -j " << miopen::deref(convDesc).dilation_w
-
-                  << " -t "
+                  << " -j " << miopen::deref(convDesc).dilation_w << " -m "
+                  << (miopen::deref(convDesc).mode == 3
+                          ? "dw"
+                          : miopen::deref(convDesc).mode == 2
+                                ? "group"
+                                : miopen::deref(convDesc).mode == 1 ? "trans" : "conv")
+                  << " -g " << miopen::deref(convDesc).group_count << " -t "
                   << "1"
                   << "\n";
     }

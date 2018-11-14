@@ -165,6 +165,10 @@ bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue()
                 break;
             if(!Inc_1_2_4(n_per_gpr))
                 break;
+            if(!IncPack<1, 0>(short_store))
+                break;
+            if(!IncPack<1, 0, 2, 3, 4>(data_prefetch))
+                break;
             // All the fields (components) of performance confic have wrapped around.
             return false;
         } while(false);
@@ -175,32 +179,38 @@ bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue()
         {
             // if SetNextValue executed from default class state
             if((read_size == 1) && (c_per_gpr == 1) && (c_mult == 1) && (k_mult == 1) &&
-               (k_per_gpr == 1) && (chunk_size == 1) && (n_per_gpr == 1) && (n_part_cnt == 1))
+               (k_per_gpr == 1) && (chunk_size == 1) && (n_per_gpr == 1) && (n_part_cnt == 1) &&
+               (short_store == 1) && (data_prefetch == 1))
             {
-                read_size = 2;
-                c_per_gpr = 2;
-                c_mult    = 2;
-                k_per_gpr = 2;
-                k_mult    = 2;
+                read_size   = 2;
+                c_per_gpr   = 2;
+                c_mult      = 2;
+                k_mult      = 2;
+                short_store = 0;
                 return true;
             }
+
             do
             {
                 if(!IncPack<2, 4>(read_size))
                     break;
-                if(!IncPack<1, 2, 4, 8>(chunk_size))
+                if(!IncPack<1, 2, 4>(chunk_size))
                     break;
                 if(!IncPack<2, 4, 8, 16>(c_per_gpr))
                     break;
-                if(!IncPack<2, 4, 8, 16>(c_mult))
+                if(!IncPack<2, 4, 8>(c_mult))
                     break;
-                if(!IncPack<2, 4, 8>(k_per_gpr))
+                if(!IncPack<1, 2, 4, 8>(k_per_gpr))
                     break;
                 if(!IncPack<2, 4, 8>(k_mult))
                     break;
                 if(!IncPack<1, 2>(n_per_gpr))
                     break;
-                if(!IncPack<1, 2, 4, 8>(n_part_cnt))
+                if(!IncPack<1, 2, 4>(n_part_cnt))
+                    break;
+                if(!IncPack<0>(short_store))
+                    break;
+                if(!IncPack<1, 0, 2, 3>(data_prefetch))
                     break;
                 return false;
             } while(false);
@@ -225,6 +235,10 @@ bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue()
                     break;
                 if(!IncPack<1, 2, 4, 8>(n_part_cnt))
                     break;
+                if(!IncPack<1, 0>(short_store))
+                    break;
+                if(!IncPack<1, 0, 2, 3>(data_prefetch))
+                    break;
                 return false;
             } while(false);
         }
@@ -240,6 +254,8 @@ PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(int chunk_s
                                                                      int n_per_gpr_,
                                                                      int n_part_cnt_,
                                                                      int read_size_,
+                                                                     int short_store_,
+                                                                     int data_prefetch_,
                                                                      bool use_spare_set_)
     : chunk_size(chunk_size_),
       c_per_gpr(c_per_gpr_),
@@ -249,6 +265,8 @@ PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(int chunk_s
       n_per_gpr(n_per_gpr_),
       n_part_cnt(n_part_cnt_),
       read_size(read_size_),
+      short_store(short_store_),
+      data_prefetch(data_prefetch_),
       use_spare_set(use_spare_set_)
 {
 }
@@ -265,6 +283,8 @@ operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const
         && n_per_gpr == other.n_per_gpr
         && n_part_cnt == other.n_part_cnt
         && read_size == other.read_size
+        && short_store == other.short_store
+        && data_prefetch == other.data_prefetch
         && use_spare_set == other.use_spare_set; // clang-format on
 }
 
@@ -279,7 +299,9 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValidValue() const
         && (IsFromPack<1,2,4>(n_per_gpr))
         && (n_part_cnt >= 1 && n_part_cnt <= 8)
         && Is_1_2_4(GetHWPerGpr())
-        && Is_1_2_4_8_16(chunk_size); // clang-format on
+        && Is_1_2_4_8_16(chunk_size)
+        && IsFromPack<0, 1>(short_store)
+        && IsFromPack<0, 1, 2, 3, 4>(data_prefetch); // clang-format on
 }
 
 bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config) const
@@ -295,18 +317,20 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
 
     if(!(c_per_gpr * n_per_gpr * GetHWPerGpr() * chunk_size == wave_size))
         return false;
-
-    if(c_mult > 1 || k_mult > 1)
+    if(config.out_data_type == "FP16")
     {
-        assert(c_per_gpr * c_mult != 0);
-        if(!(config.n_outputs % (c_per_gpr * c_mult) == 0))
-            return false;
-        assert(k_per_gpr * k_mult != 0);
-        if(!(config.n_inputs % (k_per_gpr * k_mult) == 0))
+        if((short_store == 0) && ((c_mult % 2) != 0 || (config.n_inputs % 2) != 0))
             return false;
     }
+    else
+    {
+        if(short_store == 1)
+            return false;
+    }
+
     int acc_gprs = c_mult * k_mult * k_per_gpr;
-    if(!(acc_gprs + 11 + (c_mult + k_mult) * read_size <= (n_part_cnt > 4 ? 128 : 256)))
+    if(!(acc_gprs + 12 + (c_mult + k_mult) * read_size * (data_prefetch + 1) <=
+         (n_part_cnt > 4 ? 128 : 256)))
     {
         return false;
     }
@@ -321,10 +345,11 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
 
 void PerformanceConfigConvAsmBwdWrW1x1::EuristicInit(const ConvolutionContext& config)
 {
-    read_size = 4;
+    short_store = (config.out_data_type == "FP16") ? 1 : 0;
+    read_size   = 4;
     n_per_gpr =
         (config.batch_sz >= 4 && (AsmImgHeight(config) * AsmImgWidth(config)) <= 128) ? 4 : 1;
-
+    data_prefetch      = 1;
     const auto c_k_256 = config.n_outputs * config.n_inputs / 256; // C*K/256
     if(c_k_256 < 2)
     {
@@ -386,27 +411,16 @@ void PerformanceConfigConvAsmBwdWrW1x1::EuristicInit(const ConvolutionContext& c
     {
         MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
 
-        c_per_gpr  = 2;
-        chunk_size = 16 / c_per_gpr;
-        c_mult     = 1;
-        k_per_gpr  = 2;
-        k_mult     = 1;
-        n_per_gpr  = 1;
-        n_part_cnt = 1;
-        read_size  = 1;
-        if(!IsValid(config))
-        {
-            MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative 2-nd re-init...");
-            chunk_size = 1;
-            c_per_gpr  = 1;
-            c_mult     = 1;
-            k_per_gpr  = 1;
-            k_mult     = 1;
-            n_per_gpr  = 1;
-            n_part_cnt = 1;
-            read_size  = 1;
-            assert(IsValid(config));
-        }
+        c_per_gpr     = 2;
+        chunk_size    = 16 / c_per_gpr;
+        c_mult        = 1;
+        k_per_gpr     = 2;
+        k_mult        = 1;
+        n_per_gpr     = 1;
+        n_part_cnt    = 1;
+        read_size     = 1;
+        data_prefetch = 0;
+        assert(IsValid(config));
     }
     MIOPEN_LOG_I(ToString());
 }
@@ -461,7 +475,7 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_dilation0 == 1
         && params.kernel_dilation1 == 1
         && params.bias == 0
-        && params.float_size == 32
+        && (params.float_size == 32 || params.float_size == 16) 
         && params.in_layout == "NCHW");
     if(!ok)
     {
@@ -506,7 +520,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 
     assert(params.pad1 == 0 && params.pad0 == 0);
     result.workspce_sz = 0;
-
+    int data_len = (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
     if(UseSubsample(params))
     {
         // subsampled input, in_height equals to image size after downsampling
@@ -554,14 +568,16 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 
         assert(params.out_data_type == "FP16" || params.out_data_type == "FP32" ||
                params.out_data_type == "FP64");
-        int data_len =
-            (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
+
         result.workspce_sz = in_batch_stride * params.batch_sz * data_len;
     }
     GenerateClangDefsym(options, "stride_h", 1);
     GenerateClangDefsym(options, "stride_w", 1);
     GenerateClangDefsym(options, "img_h", AsmImgHeight(params)); // H
     GenerateClangDefsym(options, "img_w", AsmImgWidth(params));  // W
+    GenerateClangDefsym(options, "out_h", AsmImgHeight(params)); // output H
+    GenerateClangDefsym(options, "out_w", AsmImgWidth(params));  // output W
+
     GenerateClangDefsym(options, "batch_size", params.batch_sz); // N
     // Note that params.n_outputs and params.n_inputs are swapped for backward convolutions.
     GenerateClangDefsym(options, "input_channels", params.n_outputs); // C
@@ -576,6 +592,92 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
         options, "ROCM_METADATA_VERSION", (params.rmv == rocm_meta_version::V3) ? 3 : 4);
     // Perf tune:
     GenerateClangDefsym(options, "do_not_use_default_perf_params", 1);
+
+    GenerateClangDefsym(options, "acc_type", 1);
+    GenerateClangDefsym(options, "buf_type", (data_len == 2 ? 2 : 1));
+
+    enum class MemLayout : int
+    {
+        NCHW = 0,
+        CNHW = 1,
+    };
+
+    struct buff_info
+    {
+        size_t total_byte_size;
+        struct
+        {
+            int nk, c, h, w;
+        } stride{}, byte_stride{}, size{};
+
+        buff_info(MemLayout layout, int nk, int c, int h, int w, int vec_c, int data_len_t)
+        {
+            int c_hi        = (c + vec_c - 1) / vec_c;
+            int count       = nk * c_hi * h * w * vec_c;
+            total_byte_size = count * data_len_t;
+            size.nk         = nk;
+            size.c          = c;
+            size.h          = h;
+            size.w          = w;
+
+            switch(layout)
+            {
+            case MemLayout::NCHW:
+                stride.w  = 1;
+                stride.h  = w;
+                stride.c  = w * h;
+                stride.nk = w * h * c_hi;
+                break;
+            case MemLayout::CNHW:
+                stride.w  = 1;
+                stride.h  = w;
+                stride.nk = w * h;
+                stride.c  = w * h * nk;
+                break;
+            }
+            stride.nk *= vec_c;
+            stride.c *= vec_c;
+            stride.h *= vec_c;
+            stride.w *= vec_c;
+            byte_stride.nk = stride.nk * data_len_t;
+            byte_stride.c  = stride.c * data_len_t;
+            byte_stride.h  = stride.h * data_len_t;
+            byte_stride.w  = stride.w * data_len_t;
+        }
+    };
+
+    buff_info ibuf(MemLayout::NCHW,
+                   params.batch_sz,
+                   params.n_outputs,
+                   AsmImgHeight(params),
+                   AsmImgWidth(params),
+                   1,
+                   data_len);
+    buff_info obuf(MemLayout::NCHW,
+                   params.batch_sz,
+                   params.n_inputs,
+                   AsmImgHeight(params),
+                   AsmImgWidth(params),
+                   1,
+                   data_len);
+    buff_info fbuf(MemLayout::NCHW, params.n_inputs, params.n_outputs, 1, 1, 1, data_len);
+    GenerateClangDefsym(options, "input_n_stride", ibuf.byte_stride.nk);
+    GenerateClangDefsym(options, "input_c_stride", ibuf.byte_stride.c);
+    GenerateClangDefsym(options, "input_h_stride", ibuf.byte_stride.h);
+    GenerateClangDefsym(options, "input_w_stride", ibuf.byte_stride.w);
+
+    GenerateClangDefsym(options, "output_n_stride", obuf.byte_stride.nk);
+    GenerateClangDefsym(options, "output_k_stride", obuf.byte_stride.c);
+    GenerateClangDefsym(options, "output_h_stride", obuf.byte_stride.h);
+    GenerateClangDefsym(options, "output_w_stride", obuf.byte_stride.w);
+
+    GenerateClangDefsym(options, "filter_k_stride", fbuf.byte_stride.nk);
+    GenerateClangDefsym(options, "filter_c_stride", fbuf.byte_stride.c);
+    GenerateClangDefsym(options, "filter_h_stride", fbuf.byte_stride.h);
+    GenerateClangDefsym(options, "filter_w_stride", fbuf.byte_stride.w);
+    GenerateClangDefsym(options, "input_buffer_size", ibuf.total_byte_size);
+    GenerateClangDefsym(options, "filter_buffer_size", fbuf.total_byte_size);
+    GenerateClangDefsym(options, "output_buffer_size", obuf.total_byte_size);
 
     const PerformanceConfigConvAsmBwdWrW1x1* pcfg = &config;
     PerformanceConfigConvAsmBwdWrW1x1 fromEnv;
@@ -604,6 +706,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
         }
     }
 
+    GenerateClangDefsym(options, "short_store", pcfg->GetShortStore());
     GenerateClangDefsym(options, "chunk_size", pcfg->GetChunkSize());
     GenerateClangDefsym(options, "c_per_gpr", pcfg->GetCPerGpr());
     GenerateClangDefsym(options, "c_mult", pcfg->GetCMult());
@@ -613,6 +716,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "n_part_cnt", pcfg->GetNPartCnt());
     GenerateClangDefsym(options, "hw_per_gpr", pcfg->GetHWPerGpr());
     GenerateClangDefsym(options, "read_size", pcfg->GetReadSize());
+    GenerateClangDefsym(options, "data_prefetch", pcfg->GetDataPrefetch());
 
     KernelInfo kernel;
 
