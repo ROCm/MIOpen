@@ -64,6 +64,7 @@ set( MIOpen_Source
     convolution_fft.cpp
     db.cpp
     db_record.cpp
+    expanduser.cpp
     find_controls.cpp
     fusion.cpp
     op_args.cpp
@@ -113,7 +114,9 @@ set( MIOpen_Source
     include/miopen/md_graph.hpp
     include/miopen/fusion_ops.hpp
     include/miopen/fusion.hpp
+    include/miopen/mdg_expr.hpp
     md_graph.cpp
+    mdg_expr.cpp
     tensor.cpp
     tensor_api.cpp
     solver.cpp
@@ -142,6 +145,14 @@ list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     set(MIOPEN_KERNEL_INCLUDES
+        kernels/Conv_Winograd_v13_3_12_fp16dot_stride1.inc
+        kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dec.inc
+        kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dil.inc
+        kernels/Conv_Winograd_v14_3_3_fp16dot_stride1.inc
+        kernels/Conv_Winograd_v14_3_3_fp16dot_stride2_dec.inc
+        kernels/Conv_Winograd_v14_3_3_fp16dot_stride2_dil.inc
+        kernels/Conv_Winograd_v13_3_12_epilogue.inc
+        kernels/Conv_Winograd_v13_3_12_prologue.inc
         kernels/inst_wrappers.inc
         kernels/common.inc
         kernels/conv_sizes.inc
@@ -149,6 +160,10 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
 
     set(MIOPEN_KERNELS
         kernels/MIOpenCheckNumerics.cl
+        kernels/MIOpenBatchNormActivBwdPerAct.cl
+        kernels/MIOpenBatchNormActivBwdSpatial.cl
+        kernels/MIOpenBatchNormActivFwdTrainPerAct.cl
+        kernels/MIOpenBatchNormActivFwdTrainSpatial.cl
         kernels/MIOpenBatchNormFwdTrainSpatial.cl
         kernels/MIOpenBatchNormFwdTrainPerAct.cl
         kernels/MIOpenBatchNormFwdInferSpatial.cl
@@ -162,7 +177,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenLRNFwd.cl
         kernels/MIOpenNeuron.cl
         kernels/MIOpenPooling.cl
-        kernels/MIOpenPoolingBwd.cl       
+        kernels/MIOpenPoolingBwd.cl
         kernels/MIOpenConv1x1S.cl
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
@@ -180,6 +195,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvFFT.cl
         kernels/MIOpenGroupConvDirUni.cl
         kernels/bugzilla_34765_detect.s
+        kernels/dummy_kernel.s
         kernels/conv3x3.s
         kernels/conv1x1u.s
         kernels/conv1x1u_bias_activ.s
@@ -191,9 +207,18 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenTensorKernels.cl
         kernels/MIOpenSubTensorOpWithScalarKernel.cl
         kernels/MIOpenSubTensorOpWithSubTensorKernel.cl
+        kernels/Conv_Winograd_v13_3_12_fp16dot_stride1.s
+        kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dec.s
+        kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dil.s
+        kernels/Conv_Winograd_v14_3_3_fp16dot_stride1.s
+        kernels/Conv_Winograd_v14_3_3_fp16dot_stride2_dec.s
+        kernels/Conv_Winograd_v14_3_3_fp16dot_stride2_dil.s
         kernels/conv_3x3_wheel_alpha_v9_2_7_gfx803_md10.so
         kernels/conv_3x3_wheel_alpha_v9_2_7_gfx900_md10.so
         kernels/conv_3x3_wheel_alpha_v9_2_7_gfx906_md10.so
+        kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec_gfx803_md10.so
+        kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec_gfx900_md10.so
+        kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec_gfx906_md10.so
         kernels/conv_3x3_wheel_alpha_v9_0_15_gfx803_m30.so
         kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx803_m30.so
         kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec_gfx803_m30.so

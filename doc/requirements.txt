@@ -23,7 +23,8 @@
 # SOFTWARE.
 # 
 ################################################################################
-sphinx
-git+https://github.com/arximboldi/breathe@fix-node-parent
-sphinx_rtd_theme
-recommonmark
+sphinx==1.6.2
+breathe==4.9.1
+#git+https://github.com/arximboldi/breathe@fix-node-parent
+sphinx_rtd_theme==0.4.0
+recommonmark==0.4.0

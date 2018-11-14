@@ -237,7 +237,8 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
     int top_df_off = b * MLO_POOLBWD_TOPDF_BATCH_STRIDE + o * MLO_POOLBWD_TOPDF_CHANNEL_STRIDE;
 
     _FLOAT res[MLO_POOLBWD_N_VERT_OUT_PIX][MLO_POOLBWD_N_HORIZ_OUT_PIX];
-
+    _FLOAT top_df_val;
+    _INT_MASK_LOCAL mask_val;
     // load tiles
     // top df and top
     for(int tj = lcl_id1; tj < MLO_POOLBWD_LCL_DATA_HEIGHT; tj += MLO_POOLBWD_GROUP_SZ1)
@@ -251,26 +252,27 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
 
         for(int ti = lcl_id0; ti < MLO_POOLBWD_LCL_DATA_WIDTH; ti += MLO_POOLBWD_GROUP_SZ0)
         {
-
+            mask_val      = 0xFF;
             int top_x_act = top_x + ti;
+            int lcl_idx   = lcl_off_v + ti;
 
             bool visible = visibleY && (top_x_act < MLO_POOLBWD_TOP_WIDTH);
-            int idx      = visible ? (top_df_off + top_df_y_off + top_x_act) : 0;
+            if(visible)
+            {
+                int idx = top_df_off + top_df_y_off + top_x_act;
 
-            _FLOAT top_df_val        = top_df[idx];
-            _INT_MASK_LOCAL mask_val = mask[idx];
-            // top_df_val *= visible;
-            mask_val = visible ? mask_val : 0xFF;
+                top_df_val = top_df[idx];
+                mask_val   = mask[idx];
+                // top_df_val *= visible;
 
-            int lcl_idx = lcl_off_v + ti;
-
-            lcl_top_df[lcl_idx] = top_df_val;
-            lcl_mask[lcl_idx]   = mask_val;
+                lcl_top_df[lcl_idx] = top_df_val;
+            }
+            lcl_mask[lcl_idx] = mask_val;
         }
     }
 
     barrier(CLK_LOCAL_MEM_FENCE);
-
+    _FLOAT add_val;
     int bt_y  = (y + lcl_id1 * MLO_POOLBWD_N_VERT_OUT_PIX);
     int bt_x  = (x + lcl_id0 * MLO_POOLBWD_N_HORIZ_OUT_PIX);
     int b_idx = bt_y * MLO_POOLBWD_BOT_WIDTH + bt_x;
@@ -300,10 +302,12 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
                 tt_y + (MLO_POOLING_KERNEL_SZ1 + MLO_POOLING_STRIDE1 - 1) / MLO_POOLING_STRIDE1;
                 ++th)
             {
-                for(int tw = lt_x;
-                    tw <
-                    lt_x + (MLO_POOLING_KERNEL_SZ0 + MLO_POOLING_STRIDE0 - 1) / MLO_POOLING_STRIDE0;
-                    ++tw)
+                __attribute__((opencl_unroll_hint(2))) for(int tw = lt_x;
+                                                           tw < lt_x +
+                                                                    (MLO_POOLING_KERNEL_SZ0 +
+                                                                     MLO_POOLING_STRIDE0 - 1) /
+                                                                        MLO_POOLING_STRIDE0;
+                                                           ++tw)
                 {
                     int lcl_th = th - top_y;
                     int lcl_tw = tw - top_x;
@@ -323,8 +327,12 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
                                  (filter_y >= 0);
 
                     //_FLOAT add_val = lcl_top_df[lcl_idx] * match;
-                    _FLOAT add_val = match ? lcl_top_df[lcl_idx] : (_FLOAT)0;
-                    res[k][l] += add_val;
+                    //_FLOAT add_val = match ? lcl_top_df[lcl_idx] : (_FLOAT)0;
+                    if(match)
+                    {
+                        add_val = lcl_top_df[lcl_idx];
+                        res[k][l] += add_val;
+                    }
                 }
             }
             b_idx++;

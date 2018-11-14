@@ -27,6 +27,7 @@
 #include <miopen/db_path.hpp>
 #include <miopen/env.hpp>
 #include <miopen/stringutils.hpp>
+#include <miopen/expanduser.hpp>
 
 #include <cstdlib>
 
@@ -51,18 +52,7 @@ std::string PrepareUserDbPath()
     auto p = GetStringEnv(MIOPEN_USER_DB_PATH{});
     if(p == nullptr)
         p = "${MIOPEN_USER_DB_PATH}";
-
-    const char* home_dir = GetStringEnv(HOME{});
-    if(home_dir == nullptr)
-    {
-        // todo:
-        // need to figure out what is the correct thing to do here
-        // in tensoflow unit tests run via bazel, $HOME is not set, so this can happen
-        // setting home_dir to the /tmp for now
-        home_dir = "/tmp";
-    }
-
-    return ReplaceString(p, "~", home_dir);
+    return ExpandUser(p);
 }
 
 std::string PrepareFindDbPath()
@@ -71,7 +61,7 @@ std::string PrepareFindDbPath()
     if(p == nullptr)
         p = "${MIOPEN_FIND_DB_PATH}";
 
-    return ReplaceString(p, "~", GetStringEnv(HOME{}));
+    return ExpandUser(p);
 }
 } // namespace
 

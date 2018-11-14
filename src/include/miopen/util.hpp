@@ -52,7 +52,8 @@ float Im2ColGPU(Handle& handle,
                 int stride_w,
                 int dilation_h,
                 int dilation_w,
-                Data_t col);
+                Data_t col,
+                miopenDataType_t type);
 
 float Col2ImGPU(Handle& handle,
                 ConstData_t col,
@@ -70,7 +71,8 @@ float Col2ImGPU(Handle& handle,
                 int h,
                 int w,
                 Data_t im,
-                int im_offset);
+                int im_offset,
+                miopenDataType_t type);
 
 float transpose_NCHW2CNHW(Handle& handle,
                           int n,
@@ -84,7 +86,8 @@ float transpose_NCHW2CNHW(Handle& handle,
                           int in_offset,
                           int out_offset,
                           int h_stride,
-                          int w_stride);
+                          int w_stride,
+                          miopenDataType_t type);
 
 float transpose_CNHW2NCHW(Handle& handle,
                           int n,
@@ -98,7 +101,8 @@ float transpose_CNHW2NCHW(Handle& handle,
                           int in_offset,
                           int out_offset,
                           int h_stride,
-                          int w_stride);
+                          int w_stride,
+                          miopenDataType_t type);
 
 } // namespace miopen
 

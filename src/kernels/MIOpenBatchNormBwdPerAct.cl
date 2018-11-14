@@ -34,6 +34,7 @@
 #define MIO_BN_NODPP 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
+#define _FLOAT_PREC half
 #ifndef HALF_MAX
 #define MAX_VAL 65504 /* max value */
 #else
@@ -42,11 +43,24 @@
 #endif
 #if MIOPEN_USE_FP32 == 1
 #define _FLOAT float
+#define _FLOAT_PREC float
 #ifndef FLT_MAX
 #define MAX_VAL 3.402823466e+38F /* max value */
 #else
 #define MAX_VAL FLT_MAX
 #endif
+#endif
+#if MIOPEN_USE_FPMIX == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#define _FLOAT_PREC float
+/*
+#ifndef HALF_MAX
+#define MAX_VAL 65504
+#else
+#define MAX_VAL HALF_MAX
+#endif
+*/
 #endif
 
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
@@ -101,11 +115,11 @@ __kernel void MIOpenBatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
                                                    unsigned int in_nstride,
                                                    unsigned int in_cstride,
                                                    __global _FLOAT* dx_out,
-                                                   const __global _FLOAT* scale,
-                                                   __global _FLOAT* delta_scale,
-                                                   __global _FLOAT* delta_bias,
-                                                   const __global _FLOAT* savedMean,
-                                                   const __global _FLOAT* savedInvVariance)
+                                                   const __global _FLOAT_PREC* scale,
+                                                   __global _FLOAT_PREC* delta_scale,
+                                                   __global _FLOAT_PREC* delta_bias,
+                                                   const __global _FLOAT_PREC* savedMean,
+                                                   const __global _FLOAT_PREC* savedInvVariance)
 {
 
     int xgid    = get_global_id(0);
@@ -114,13 +128,13 @@ __kernel void MIOpenBatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
     int Cidx    = in_cstride * xgid;
 
     unsigned int inImgIndex, index, adjIndex;
-    _FLOAT mean, invVar;
-    _FLOAT xhat, dyelem;
-    _FLOAT pvt_scale, pvt_dscale;
-    _FLOAT pvt_dbias;
-    _FLOAT tmp1, tmp2, tmp3;
-    _FLOAT dxhat    = (_FLOAT)0.;
-    _FLOAT dxhathat = (_FLOAT)0.;
+    _FLOAT_PREC mean, invVar;
+    _FLOAT_PREC xhat, dyelem;
+    _FLOAT_PREC pvt_scale, pvt_dscale;
+    _FLOAT_PREC pvt_dbias;
+    _FLOAT_PREC tmp1, tmp2, tmp3;
+    _FLOAT_PREC dxhat    = (_FLOAT_PREC)0.;
+    _FLOAT_PREC dxhathat = (_FLOAT_PREC)0.;
 
     // move across the sections of an image in the mini_batch stack
     for(int img_offset = 0; img_offset < in_cstride; img_offset += yglb_sz)
@@ -134,17 +148,17 @@ __kernel void MIOpenBatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
             mean       = savedMean[adjIndex];
             invVar     = savedInvVariance[adjIndex];
             pvt_scale  = scale[adjIndex];
-            pvt_dscale = (_FLOAT)0.;
-            pvt_dbias  = (_FLOAT)0.;
-            dxhat      = (_FLOAT)0.;
-            dxhathat   = (_FLOAT)0.;
+            pvt_dscale = (_FLOAT_PREC)0.;
+            pvt_dbias  = (_FLOAT_PREC)0.;
+            dxhat      = (_FLOAT_PREC)0.;
+            dxhathat   = (_FLOAT_PREC)0.;
 
             for(int n = 0; n < N; n++)
             {
                 // per (x-dims) channel load a block of data into LDS
                 index  = in_nstride * n + adjIndex;
-                xhat   = (*(x_in + index) - mean) * invVar;
-                dyelem = dy_in[index];
+                xhat   = ((_FLOAT_PREC)(*(x_in + index)) - mean) * invVar;
+                dyelem = (_FLOAT_PREC)(dy_in[index]);
                 pvt_dbias += dyelem;
                 pvt_dscale = mad(xhat, dyelem, pvt_dscale);
                 tmp1       = pvt_scale * dyelem;
@@ -155,11 +169,11 @@ __kernel void MIOpenBatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
             for(int n = 0; n < N; n++)
             {
                 index         = in_nstride * n + adjIndex;
-                xhat          = (*(x_in + index) - mean) * invVar;
+                xhat          = ((_FLOAT_PREC)(*(x_in + index)) - mean) * invVar;
                 tmp1          = mad(xhat, dxhathat, dxhat);
-                tmp2          = mad((_FLOAT)N, dxhat, -tmp1);
-                tmp3          = invVar / ((_FLOAT)N);
-                dx_out[index] = tmp3 * tmp2;
+                tmp2          = mad((_FLOAT_PREC)N, dxhat, -tmp1);
+                tmp3          = invVar / ((_FLOAT_PREC)N);
+                dx_out[index] = (_FLOAT)(tmp3 * tmp2);
             }
             // Write out data
             delta_bias[adjIndex]  = pvt_dbias;
@@ -174,9 +188,9 @@ __kernel void MIOpenBatchNormBwdPerActivation(const __global _FLOAT* x_in,
                                               unsigned int in_nstride,
                                               unsigned int in_cstride,
                                               __global _FLOAT* dx_out,
-                                              const __global _FLOAT* scale,
-                                              __global _FLOAT* delta_scale,
-                                              __global _FLOAT* delta_bias,
+                                              const __global _FLOAT_PREC* scale,
+                                              __global _FLOAT_PREC* delta_scale,
+                                              __global _FLOAT_PREC* delta_bias,
                                               double epsilon)
 {
 
@@ -186,20 +200,20 @@ __kernel void MIOpenBatchNormBwdPerActivation(const __global _FLOAT* x_in,
     int Cidx    = in_cstride * xgid;
 
     unsigned int inImgIndex, index, adjIndex;
-    _FLOAT mean, invVar;
-    _FLOAT xhat, dyelem;
-    _FLOAT pvt_scale, pvt_dscale;
-    _FLOAT pvt_dbias;
-    _FLOAT tmp1, tmp2, tmp3;
-    _FLOAT variance;
-    _FLOAT dxhat    = (_FLOAT)0.;
-    _FLOAT dxhathat = (_FLOAT)0.;
+    _FLOAT_PREC mean, invVar;
+    _FLOAT_PREC xhat, dyelem;
+    _FLOAT_PREC pvt_scale, pvt_dscale;
+    _FLOAT_PREC pvt_dbias;
+    _FLOAT_PREC tmp1, tmp2, tmp3;
+    _FLOAT_PREC variance;
+    _FLOAT_PREC dxhat    = (_FLOAT_PREC)0.;
+    _FLOAT_PREC dxhathat = (_FLOAT_PREC)0.;
 
     // move across the sections of the image mini_batch stack
     for(int img_offset = 0; img_offset < in_cstride; img_offset += yglb_sz)
     {
-        mean       = (_FLOAT)0.;
-        variance   = (_FLOAT)0.;
+        mean       = (_FLOAT_PREC)0.;
+        variance   = (_FLOAT_PREC)0.;
         inImgIndex = ygid + img_offset;
 
         // #1 calculate the mean
@@ -213,29 +227,29 @@ __kernel void MIOpenBatchNormBwdPerActivation(const __global _FLOAT* x_in,
 #pragma unroll
             for(int n = 0; n < MIO_BN_N; n++)
             {
-                index     = in_nstride * n + adjIndex;
-                _FLOAT in = *(x_in + index);
+                index          = in_nstride * n + adjIndex;
+                _FLOAT_PREC in = (_FLOAT_PREC)(*(x_in + index));
                 mean += in;
                 variance = mad(in, in, variance);
             } // end for(n)
-            mean /= (_FLOAT)N;
-            variance /= (_FLOAT)N;
+            mean /= (_FLOAT_PREC)N;
+            variance /= (_FLOAT_PREC)N;
             variance = mad(-mean, mean, variance);
             invVar   = rsqrt(fabs(variance + epsilon));
 
             pvt_scale  = *(scale + adjIndex);
-            pvt_dscale = (_FLOAT)0.;
-            pvt_dbias  = (_FLOAT)0.;
-            dxhat      = (_FLOAT)0.;
-            dxhathat   = (_FLOAT)0.;
+            pvt_dscale = (_FLOAT_PREC)0.;
+            pvt_dbias  = (_FLOAT_PREC)0.;
+            dxhat      = (_FLOAT_PREC)0.;
+            dxhathat   = (_FLOAT_PREC)0.;
 
 #pragma unroll
             for(int n = 0; n < MIO_BN_N; n++)
             {
                 // per (x-dims) channel load a block of data into LDS
                 index  = in_nstride * n + adjIndex;
-                xhat   = (*(x_in + index) - mean) * invVar;
-                dyelem = dy_in[index];
+                xhat   = ((_FLOAT_PREC)(*(x_in + index)) - mean) * invVar;
+                dyelem = (_FLOAT_PREC)(dy_in[index]);
                 pvt_dbias += dyelem;
                 pvt_dscale = mad(xhat, dyelem, pvt_dscale);
                 tmp1       = pvt_scale * dyelem;
@@ -247,11 +261,11 @@ __kernel void MIOpenBatchNormBwdPerActivation(const __global _FLOAT* x_in,
             for(int n = 0; n < MIO_BN_N; n++)
             {
                 index         = in_nstride * n + adjIndex;
-                xhat          = (*(x_in + index) - mean) * invVar;
+                xhat          = ((_FLOAT_PREC)(*(x_in + index)) - mean) * invVar;
                 tmp1          = mad(xhat, dxhathat, dxhat);
-                tmp2          = mad((_FLOAT)N, dxhat, -tmp1);
-                tmp3          = invVar / ((_FLOAT)N);
-                dx_out[index] = tmp3 * tmp2;
+                tmp2          = mad((_FLOAT_PREC)N, dxhat, -tmp1);
+                tmp3          = invVar / ((_FLOAT_PREC)N);
+                dx_out[index] = (_FLOAT)(tmp3 * tmp2);
             }
             // Write out data
             delta_bias[adjIndex]  = pvt_dbias;

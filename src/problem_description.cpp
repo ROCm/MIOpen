@@ -58,6 +58,13 @@ int miopen::ProblemDescription::mloBuildConf_Key(std::string& conf_key) const
         std::to_string(static_cast<long long>(out_width)) + std::string("x") +
         std::to_string(static_cast<long long>(batch_sz)) + std::string("x") + in_layout +
         std::string("x") + in_data_type + std::string("x") +
+        std::to_string(static_cast<long long>(pad1)) + std::string("x") +
+        std::to_string(static_cast<long long>(pad0)) + std::string("x") +
+        std::to_string(static_cast<long long>(kernel_stride0)) + std::string("x") +
+        std::to_string(static_cast<long long>(kernel_stride1)) + std::string("x") +
+        std::to_string(static_cast<long long>(kernel_dilation0)) + std::string("x") +
+        std::to_string(static_cast<long long>(kernel_dilation1)) + std::string("x") +
+        std::to_string(static_cast<long long>(group_counts)) + std::string("x") +
         (direction.IsForward() ? "1" : "0"); /// \todo Shall we separate keys for WrW convolutions?
     return (0);
 }
@@ -75,5 +82,6 @@ miopen::ProblemDescription::ProblemDescription(const TensorDescriptor& in,
     SetDescFromMLDesc(*this, in, &ProblemDescription::setInputDescr);
     SetDescFromMLDesc(*this, weights, &ProblemDescription::setWeightsDescr);
     SetDescFromMLDesc(*this, out, &ProblemDescription::setOutputDescr);
-    setConvDescr(conv.pad_h, conv.pad_w, conv.u, conv.v, conv.dilation_h, conv.dilation_w);
+    setConvDescr(
+        conv.pad_h, conv.pad_w, conv.u, conv.v, conv.dilation_h, conv.dilation_w, conv.group_count);
 }

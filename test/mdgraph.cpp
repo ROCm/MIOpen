@@ -51,8 +51,8 @@ void BNAlgTest(std::vector<int> inputs,
     miopenCreateOpBatchNormInference(&fp, &bNormOp, bnmode, &scaleTensor);
 
     pgm = fp.GetProgramName(handle);
-    krn = fp.GetKernelName();
-    alg = fp.GetAlgorithmName();
+    krn = fp.GetKernelName(handle);
+    alg = fp.GetAlgorithmName(handle);
 }
 
 void ConvAlgTest(std::vector<int> inputs,
@@ -94,8 +94,8 @@ void ConvAlgTest(std::vector<int> inputs,
 
     STATUS(miopenCreateOpConvForward(&fp, &convoOp, convDesc, &convFilter));
     pgm = fp.GetProgramName(handle);
-    krn = fp.GetKernelName();
-    alg = fp.GetAlgorithmName();
+    krn = fp.GetKernelName(handle);
+    alg = fp.GetAlgorithmName(handle);
 
     // Cleanup
     miopenDestroyConvolutionDescriptor(convDesc);

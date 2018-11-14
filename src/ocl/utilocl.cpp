@@ -26,11 +26,11 @@
 #include <cmath>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/util.hpp>
+#include <miopen/logger.hpp>
 
 #define WG_SIZE 256
 #define MAX_ACTIVE_THREADS (64 * 4 * 64)
 #define MAX_LOCAL_MEM 65536
-//#define MIOPEN_TRANS_DEBUG
 
 namespace miopen {
 
@@ -51,16 +51,18 @@ float Im2ColGPU(Handle& handle,
                 const int stride_w,
                 const int dilation_h,
                 const int dilation_w,
-                Data_t col)
+                Data_t col,
+                miopenDataType_t type)
 {
     std::string program_name = "MIOpenUtilKernels.cl";
     std::string kernel_name  = "Im2Col";
 
-    std::string network_config = std::to_string(c) + std::to_string(h) + std::to_string(w) +
-                                 std::to_string(wei_h) + std::to_string(wei_w) +
-                                 std::to_string(pad_h) + std::to_string(pad_w) +
-                                 std::to_string(stride_h) + std::to_string(stride_w) +
-                                 std::to_string(dilation_h) + std::to_string(dilation_w);
+    std::string network_config = "c" + std::to_string(c) + "h" + std::to_string(h) + "w" +
+                                 std::to_string(w) + "y" + std::to_string(wei_h) + "x" +
+                                 std::to_string(wei_w) + "p" + std::to_string(pad_h) + "q" +
+                                 std::to_string(pad_w) + "u" + std::to_string(stride_h) + "v" +
+                                 std::to_string(stride_w) + "l" + std::to_string(dilation_h) + "j" +
+                                 std::to_string(dilation_w) + "t" + std::to_string(type);
 
     auto&& kernels = handle.GetKernels("miopenIm2Col", network_config);
 
@@ -97,20 +99,20 @@ float Im2ColGPU(Handle& handle,
         int tile_sz_x  = 32;
         int tile_sz_y  = 8;
         int num_blks_x = std::ceil(static_cast<float>(out_w) / tile_sz_x);
-        int num_blks   = num_blks_x * std::ceil(static_cast<float>(out_h) / tile_sz_y);
+        int num_blks   = num_blks_x * int(std::ceil(static_cast<float>(out_h) / tile_sz_y));
         int local_mem_sz;
         if(num_ch_per_wg == 1)
             local_mem_sz = ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
                            ((tile_sz_y - 1) * stride_h + (wei_h - 1) * dilation_h + 1);
         else
-            local_mem_sz = std::max(
+            local_mem_sz = int(std::max(
                 num_ch_per_wg *
                     ((std::ceil(static_cast<float>(tile_sz_x) / num_ch_per_wg) - 1) * stride_w +
                      (wei_w - 1) * dilation_w + 1) *
                     ((tile_sz_y - 1) * stride_h + (wei_h - 1) * dilation_h + 1),
                 num_ch_per_wg * ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
                     ((std::ceil(static_cast<float>(tile_sz_y) / num_ch_per_wg) - 1) * stride_h +
-                     (wei_h - 1) * dilation_h + 1));
+                     (wei_h - 1) * dilation_h + 1)));
 
         // adjust mapping for large kernel
         int type_size    = 4; // Need to adjust for fp16
@@ -128,12 +130,12 @@ float Im2ColGPU(Handle& handle,
                 tile_sz_x  = tile_sz_x == 1 ? 1 : (tile_sz_y == 1 ? (tile_sz_x / 2) : tile_sz_x);
                 tile_sz_y  = tile_sz_y == 1 ? 1 : (tile_sz_y / 2);
                 num_blks_x = std::ceil(static_cast<float>(out_w) / tile_sz_x);
-                num_blks   = num_blks_x * std::ceil(static_cast<float>(out_h) / tile_sz_y);
+                num_blks   = num_blks_x * int(std::ceil(static_cast<float>(out_h) / tile_sz_y));
                 if(num_ch_per_wg == 1)
                     local_mem_sz = ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
                                    ((tile_sz_y - 1) * stride_h + (wei_h - 1) * dilation_h + 1);
                 else
-                    local_mem_sz = std::max(
+                    local_mem_sz = int(std::max(
                         num_ch_per_wg *
                             ((std::ceil(static_cast<float>(tile_sz_x) / num_ch_per_wg) - 1) *
                                  stride_w +
@@ -143,7 +145,7 @@ float Im2ColGPU(Handle& handle,
                             ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
                             ((std::ceil(static_cast<float>(tile_sz_y) / num_ch_per_wg) - 1) *
                                  stride_h +
-                             (wei_h - 1) * dilation_h + 1));
+                             (wei_h - 1) * dilation_h + 1)));
             }
         }
 
@@ -156,7 +158,12 @@ float Im2ColGPU(Handle& handle,
         params += " -DSTRIDE_GT_1=" + std::to_string(static_cast<int>(stride_h * stride_w > 1));
         params += " -DTILE_SZ_X=" + std::to_string(tile_sz_x);
         params += " -DTILE_SZ_Y=" + std::to_string(tile_sz_y);
-        params += " -DUSE_IM_OFF_GUARD=1 -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+        params += " -DUSE_IM_OFF_GUARD=1";
+
+        if(type == miopenFloat)
+            params += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+        else
+            params += " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
 
         const std::vector<size_t> vld{256, 1, 1};
         size_t global_threads = 256 * std::max(1, (c / num_ch_per_wg)) * num_blks;
@@ -201,16 +208,18 @@ float Col2ImGPU(Handle& handle,
                 const int h,
                 const int w,
                 Data_t im,
-                int im_offset)
+                int im_offset,
+                miopenDataType_t type)
 {
     std::string program_name = "MIOpenUtilKernels2.cl";
     std::string kernel_name  = "Col2Im";
 
-    std::string network_config =
-        std::to_string(col_h) + std::to_string(col_w) + std::to_string(wei_h) +
-        std::to_string(wei_w) + std::to_string(pad_h) + std::to_string(pad_w) +
-        std::to_string(stride_h) + std::to_string(stride_w) + std::to_string(dilation_h) +
-        std::to_string(dilation_w) + std::to_string(c) + std::to_string(h) + std::to_string(w);
+    std::string network_config = "c" + std::to_string(c) + "h" + std::to_string(h) + "w" +
+                                 std::to_string(w) + "y" + std::to_string(wei_h) + "x" +
+                                 std::to_string(wei_w) + "p" + std::to_string(pad_h) + "q" +
+                                 std::to_string(pad_w) + "u" + std::to_string(stride_h) + "v" +
+                                 std::to_string(stride_w) + "l" + std::to_string(dilation_h) + "j" +
+                                 std::to_string(dilation_w) + "t" + std::to_string(type);
 
     auto&& kernels = handle.GetKernels("miopenCol2Im", network_config);
 
@@ -235,7 +244,12 @@ float Col2ImGPU(Handle& handle,
     }
     else
     {
-        std::string params = "-DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+        std::string params;
+        if(type == miopenFloat)
+            params += "-DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+        else
+            params += "-DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
+
         const std::vector<size_t> vld{256, 1, 1};
         size_t global_threads = c * h * w;
         const std::vector<size_t> vgd{global_threads, 1, 1};
@@ -272,30 +286,44 @@ float transpose_NCHW2CNHW(Handle& handle,
                           int in_offset,
                           int out_offset,
                           int h_stride,
-                          int w_stride)
+                          int w_stride,
+                          miopenDataType_t type)
 {
 
     std::string program_name = "MIOpenUtilKernels4.cl";
 
-    if(h_stride == 1 && w_stride == 1)
+    std::string network_config = "n" + std::to_string(n) + "c" + std::to_string(c) + "h" +
+                                 std::to_string(h_in) + "w" + std::to_string(w_in) + "inoff" +
+                                 std::to_string(in_offset) + "otoff" + std::to_string(out_offset) +
+                                 "u" + std::to_string(h_stride) + "v" + std::to_string(w_stride) +
+                                 "t" + std::to_string(type);
+
+    std::string kernel_name = "transpose_NCHW2CNHW";
+
+    if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
+        kernel_name += "_opt";
+
+    auto&& kernels = handle.GetKernels(kernel_name, network_config);
+
+    if(!kernels.empty())
     {
-        assert(h_in == h_out && w_in == w_out);
+        auto kernel = kernels.front();
+        kernel(in, out);
+    }
+    else
+    {
+        std::string params;
 
-        std::string kernel_name = "transpose_NCHW2CNHW_opt";
-
-        std::string network_config = std::to_string(n) + std::to_string(c) + std::to_string(h_in) +
-                                     std::to_string(w_in) + std::to_string(in_offset) +
-                                     std::to_string(out_offset);
-
-        auto&& kernels = handle.GetKernels(kernel_name, network_config);
-
-        if(!kernels.empty())
-        {
-            auto kernel = kernels.front();
-            kernel(in, out);
-        }
+        if(type == miopenFloat)
+            params += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
         else
+            params += " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
+
+        if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
         {
+            params +=
+                " -DNC_TRANS_NCHW_OPT=1 -DNC_TRANS_CNHW_OPT=0 -DNC_TRANS_NCHW=0 -DNC_TRANS_CNHW=0";
+
             int RD_BLCK      = ((h_in * w_in) % 4 == 0) ? 4 : ((h_in * w_in) % 2 == 0) ? 2 : 1;
             int HW_RD        = (h_in * w_in) / RD_BLCK;
             size_t MAP_RD    = HW_RD * c;
@@ -303,8 +331,6 @@ float transpose_NCHW2CNHW(Handle& handle,
 
             std::string READ_TYPE = (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
 
-            std::string params;
-            params += " -DNC_TRANS_NCHW_OPT";
             params += " -DIN_OFF=" + std::to_string(in_offset);
             params += " -DOUT_OFF=" + std::to_string(out_offset);
             params += " -DH=" + std::to_string(h_in);
@@ -322,35 +348,21 @@ float transpose_NCHW2CNHW(Handle& handle,
             if(MAP_RD < MAX_ACTIVE_THREADS)
             {
                 vgd = {MAP_RD, static_cast<size_t>(n), 1};
-                params += " -D_2D_WG";
+                params += " -DIS_2D_WG=1";
+            }
+            else
+            {
+                params += " -DIS_2D_WG=0";
             }
 
             handle.AddKernel(
                 kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(in, out);
         }
-    }
-    else
-    {
-        assert(h_in > h_out && w_in > w_out);
-
-        std::string kernel_name = "transpose_NCHW2CNHW";
-
-        std::string network_config =
-            std::to_string(n) + std::to_string(c) + std::to_string(h_in) + std::to_string(h_out) +
-            std::to_string(w_in) + std::to_string(w_out) + std::to_string(h_stride) +
-            std::to_string(w_stride) + std::to_string(in_offset) + std::to_string(out_offset);
-
-        auto&& kernels = handle.GetKernels(kernel_name, network_config);
-
-        if(!kernels.empty())
-        {
-            auto kernel = kernels.front();
-            kernel(in, out);
-        }
         else
         {
-            std::string params;
-            params += " -DNC_TRANS_NCHW";
+            params +=
+                " -DNC_TRANS_NCHW_OPT=0 -DNC_TRANS_CNHW_OPT=0 -DNC_TRANS_NCHW=1 -DNC_TRANS_CNHW=0";
+
             params += " -DN=" + std::to_string(n);
             params += " -DC=" + std::to_string(c);
             params += " -DHW_IN=" + std::to_string(h_in * w_in);
@@ -370,22 +382,17 @@ float transpose_NCHW2CNHW(Handle& handle,
             if(gd0 < MAX_ACTIVE_THREADS)
             {
                 vgd = {gd0, static_cast<size_t>(n), 1};
-                params += " -D_2D_WG";
+                params += " -DIS_2D_WG=1";
+            }
+            else
+            {
+                params += " -DIS_2D_WG=0";
             }
 
             handle.AddKernel(
                 kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(in, out);
         }
     }
-
-#ifdef MIOPEN_TRANS_DEBUG
-    float nMB = (float)n * c * (h_out * w_out + h_in * w_in) * sizeof(float) * 1e-6;
-    fprintf(stderr,
-            "NCHW->CNHW MB: %f time: %f GB/s: %f\n",
-            nMB,
-            handle.GetKernelTime(),
-            2 * nMB / handle.GetKernelTime());
-#endif
 
     return handle.GetKernelTime();
 }
@@ -402,30 +409,44 @@ float transpose_CNHW2NCHW(Handle& handle,
                           int in_offset,
                           int out_offset,
                           int h_stride,
-                          int w_stride)
+                          int w_stride,
+                          miopenDataType_t type)
 {
 
     std::string program_name = "MIOpenUtilKernels4.cl";
 
-    if(h_stride == 1 && w_stride == 1)
+    std::string network_config = "n" + std::to_string(n) + "c" + std::to_string(c) + "h" +
+                                 std::to_string(h_in) + "w" + std::to_string(w_in) + "inoff" +
+                                 std::to_string(in_offset) + "otoff" + std::to_string(out_offset) +
+                                 "u" + std::to_string(h_stride) + "v" + std::to_string(w_stride) +
+                                 "t" + std::to_string(type);
+
+    std::string kernel_name = "transpose_CNHW2NCHW";
+
+    if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
+        kernel_name += "_opt";
+
+    auto&& kernels = handle.GetKernels(kernel_name, network_config);
+
+    if(!kernels.empty())
     {
-        assert(h_out == h_in && w_out == w_in);
+        auto kernel = kernels.front();
+        kernel(in, out);
+    }
+    else
+    {
+        std::string params;
 
-        std::string kernel_name = "transpose_CNHW2NCHW_opt";
-
-        std::string network_config = std::to_string(n) + std::to_string(c) + std::to_string(h_out) +
-                                     std::to_string(w_out) + std::to_string(in_offset) +
-                                     std::to_string(out_offset);
-
-        auto&& kernels = handle.GetKernels(kernel_name, network_config);
-
-        if(!kernels.empty())
-        {
-            auto kernel = kernels.front();
-            kernel(in, out);
-        }
+        if(type == miopenFloat)
+            params += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
         else
+            params += " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
+
+        if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
         {
+            params +=
+                " -DNC_TRANS_NCHW_OPT=0 -DNC_TRANS_CNHW_OPT=1 -DNC_TRANS_NCHW=0 -DNC_TRANS_CNHW=0";
+
             int RD_BLCK      = ((h_out * w_out) % 4 == 0) ? 4 : ((h_out * w_out) % 2 == 0) ? 2 : 1;
             int HW_RD        = (h_out * w_out) / RD_BLCK;
             size_t MAP_RD    = HW_RD * c;
@@ -433,8 +454,6 @@ float transpose_CNHW2NCHW(Handle& handle,
 
             std::string READ_TYPE = (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
 
-            std::string params;
-            params += " -DNC_TRANS_CNHW_OPT";
             params += " -DIN_OFF=" + std::to_string(in_offset);
             params += " -DOUT_OFF=" + std::to_string(out_offset);
             params += " -DH=" + std::to_string(h_out);
@@ -452,35 +471,21 @@ float transpose_CNHW2NCHW(Handle& handle,
             if(MAP_RD < MAX_ACTIVE_THREADS)
             {
                 vgd = {MAP_RD, static_cast<size_t>(n), 1};
-                params += " -D_2D_WG";
+                params += " -DIS_2D_WG=1";
+            }
+            else
+            {
+                params += " -DIS_2D_WG=0";
             }
 
             handle.AddKernel(
                 kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(in, out);
         }
-    }
-    else
-    {
-        assert(h_in > h_out && w_in > w_out);
-
-        std::string kernel_name = "transpose_CNHW2NCHW";
-
-        std::string network_config =
-            std::to_string(n) + std::to_string(c) + std::to_string(h_in) + std::to_string(h_out) +
-            std::to_string(w_in) + std::to_string(w_out) + std::to_string(h_stride) +
-            std::to_string(w_stride) + std::to_string(in_offset) + std::to_string(out_offset);
-
-        auto&& kernels = handle.GetKernels(kernel_name, network_config);
-
-        if(!kernels.empty())
-        {
-            auto kernel = kernels.front();
-            kernel(in, out);
-        }
         else
         {
-            std::string params;
-            params += " -DNC_TRANS_CNHW";
+            params +=
+                " -DNC_TRANS_NCHW_OPT=0 -DNC_TRANS_CNHW_OPT=0 -DNC_TRANS_NCHW=0 -DNC_TRANS_CNHW=1";
+
             params += " -DN=" + std::to_string(n);
             params += " -DC=" + std::to_string(c);
             params += " -DHW_IN=" + std::to_string(h_in * w_in);
@@ -500,22 +505,17 @@ float transpose_CNHW2NCHW(Handle& handle,
             if(gd0 < MAX_ACTIVE_THREADS)
             {
                 vgd = {gd0, static_cast<size_t>(n), 1};
-                params += " -D_2D_WG";
+                params += " -DIS_2D_WG=1";
+            }
+            else
+            {
+                params += " -DIS_2D_WG=0";
             }
 
             handle.AddKernel(
                 kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(in, out);
         }
     }
-
-#ifdef MIOPEN_TRANS_DEBUG
-    float nMB = (float)n * c * (h_out * w_out + h_in * w_in) * sizeof(float) * 1e-6;
-    fprintf(stderr,
-            "CNHW->NCHW MB: %f time: %f GB/s: %f\n",
-            nMB,
-            handle.GetKernelTime(),
-            nMB / handle.GetKernelTime());
-#endif
 
     return handle.GetKernelTime();
 }

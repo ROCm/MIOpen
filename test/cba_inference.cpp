@@ -105,9 +105,6 @@ struct verify_forward_conv_bias
         EXPECT(miopenError == miopenStatusSuccess);
         miopenError = miopenFusionPlanGetOp(fusionplan, 1, &biasOp);
         EXPECT(miopenError == miopenStatusSuccess);
-        miopenFusionOpDescriptor_t dummyOp;
-        miopenError = miopenFusionPlanGetOp(fusionplan, 2, &dummyOp);
-        EXPECT(miopenError != miopenStatusSuccess);
         miopenSetOpArgsConvForward(ptr_fusionargs.get(), convoOp, &alpha, &beta, wei_dev.get());
         miopenSetOpArgsBiasForward(ptr_fusionargs.get(), biasOp, &alpha, &beta, b_dev.get());
         miopenExecuteFusionPlan(&handle,
@@ -170,7 +167,7 @@ struct verify_forward_conv_bias_activ
         miopenActivationMode_t activ_mode;
         miopenGetActivationDescriptor(
             activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
-        convHostForward(input, rout, weights, 1, bias, filter);
+        convHostForward(input, rout, weights, bias_mode, bias, filter);
         activationHostInfer(activ_mode, activ_gamma, activ_beta, activ_alpha, rout.data, aout.data);
         return aout;
     }
@@ -277,10 +274,12 @@ struct cba_fusion_driver : test_driver
     std::vector<miopen::ConvolutionDescriptor> get_filters()
     {
         return {miopen::ConvolutionDescriptor{0, 0, 1, 1},
-                miopen::ConvolutionDescriptor{1, 1, 1, 1} /*
+                miopen::ConvolutionDescriptor{1, 1, 1, 1},
                 miopen::ConvolutionDescriptor{0, 0, 2, 2},
                 miopen::ConvolutionDescriptor{1, 1, 2, 2},
                 miopen::ConvolutionDescriptor{2, 2, 1, 1},
+                miopen::ConvolutionDescriptor{2, 2, 2, 2},
+                /*
                 miopen::ConvolutionDescriptor{3, 3, 2, 2}*/};
     };
 

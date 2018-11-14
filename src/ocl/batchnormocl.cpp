@@ -60,7 +60,7 @@ void BatchNormForwardTraining(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(xDesc.GetType() != yDesc.GetType() || xDesc.GetType() != bnScaleBiasMeanVarDesc.GetType())
+    if(xDesc.GetType() != yDesc.GetType())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -104,12 +104,18 @@ void BatchNormForwardTraining(Handle& handle,
     std::vector<size_t> vld;
     std::vector<size_t> vgd;
 
-    bool bfp16parm = false;
-    bool bfp32parm = true;
-    if(xDesc.GetType() == miopenHalf)
+    bool bfpmixparm = false;
+    bool bfp16parm  = false;
+    bool bfp32parm  = true;
+    if(xDesc.GetType() == miopenHalf && bnScaleBiasMeanVarDesc.GetType() == miopenHalf)
     {
         bfp16parm = true;
         bfp32parm = false;
+    }
+    else if(xDesc.GetType() == miopenHalf && bnScaleBiasMeanVarDesc.GetType() == miopenFloat)
+    {
+        bfpmixparm = true;
+        bfp32parm  = false;
     }
 
     bool resultsave = false;
@@ -177,7 +183,7 @@ void BatchNormForwardTraining(Handle& handle,
             if(!kernels.empty())
             {
                 auto kernel = kernels.front();
-                visit_float(xDesc.GetType(), [&](auto as_float) {
+                visit_float(bnScaleBiasMeanVarDesc.GetType(), [&](auto as_float) {
                     if(resultsave && resultrunning)
                     {
 
@@ -239,6 +245,7 @@ void BatchNormForwardTraining(Handle& handle,
                 std::string parms =
                     " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
                     " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                    " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
                     " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(static_cast<int>(resultsave)) +
                     " -DMIO_RUNNING_RESULT=" + std::to_string(static_cast<int>(resultrunning)) +
                     " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
@@ -255,7 +262,7 @@ void BatchNormForwardTraining(Handle& handle,
                 MIOPEN_LOG_I2("..." << network_config);
 
                 bnFwdTrainSelectSingle(handle,
-                                       xDesc.GetType(),
+                                       bnScaleBiasMeanVarDesc.GetType(),
                                        program_name,
                                        algo_name,
                                        kernel_name,
@@ -283,7 +290,7 @@ void BatchNormForwardTraining(Handle& handle,
             if(!kernels.empty())
             {
                 float ctime = 0.;
-                visit_float(xDesc.GetType(), [&](auto as_float) {
+                visit_float(bnScaleBiasMeanVarDesc.GetType(), [&](auto as_float) {
                     if(resultsave && resultrunning)
                     {
                         kernels[0](x, y);
@@ -360,6 +367,7 @@ void BatchNormForwardTraining(Handle& handle,
                 std::string parms =
                     " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
                     " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                    " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
                     " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(static_cast<int>(resultsave)) +
                     " -DMIO_RUNNING_RESULT=" + std::to_string(static_cast<int>(resultrunning)) +
                     " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
@@ -375,7 +383,7 @@ void BatchNormForwardTraining(Handle& handle,
                 MIOPEN_LOG_I2(kernel_name << ":: " << parms);
 
                 bnFwdTrainSelectMulti(handle,
-                                      xDesc.GetType(),
+                                      bnScaleBiasMeanVarDesc.GetType(),
                                       program_name,
                                       algo_name,
                                       kernel_name,
@@ -403,7 +411,7 @@ void BatchNormForwardTraining(Handle& handle,
     {
         xlocalsize            = 1;
         ylocalsize            = 256;
-        auto segment          = std::ceil(double(in_cstride) / double(ylocalsize));
+        size_t segment        = std::ceil(double(in_cstride) / double(ylocalsize));
         xgridsize             = c;
         ygridsize             = segment * ylocalsize;
         std::string algo_name = "miopenBatchNormForwardTrainingPerActivation";
@@ -479,6 +487,7 @@ void BatchNormForwardTraining(Handle& handle,
             std::string parms =
                 " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
                 " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
                 " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(static_cast<int>(resultsave)) +
                 " -DMIO_RUNNING_RESULT=" + std::to_string(static_cast<int>(resultrunning)) +
                 " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
@@ -599,8 +608,7 @@ void BatchNormForwardInference(Handle& handle,
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
-        if(xDesc.GetType() != yDesc.GetType() ||
-           xDesc.GetType() != bnScaleBiasMeanVarDesc.GetType())
+        if(xDesc.GetType() != yDesc.GetType())
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
@@ -615,12 +623,18 @@ void BatchNormForwardInference(Handle& handle,
             MIOPEN_THROW(miopenStatusBadParm);
         }
 
-        bool bfp16parm = false;
-        bool bfp32parm = true;
-        if(xDesc.GetType() == miopenHalf)
+        bool bfpmixparm = false;
+        bool bfp16parm  = false;
+        bool bfp32parm  = true;
+        if(xDesc.GetType() == miopenHalf && bnScaleBiasMeanVarDesc.GetType() == miopenHalf)
         {
             bfp16parm = true;
             bfp32parm = false;
+        }
+        else if(xDesc.GetType() == miopenHalf && bnScaleBiasMeanVarDesc.GetType() == miopenFloat)
+        {
+            bfpmixparm = true;
+            bfp32parm  = false;
         }
 
         int n, c, h, w;
@@ -674,6 +688,7 @@ void BatchNormForwardInference(Handle& handle,
             std::string parms =
                 " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
                 " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
                 " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_HW=" + std::to_string(in_cstride) +
                 " -DMIO_BN_CHW=" + std::to_string(in_nstride) + " -DMIO_BN_GRP0=" +
                 std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
@@ -763,8 +778,7 @@ void BatchNormBackward(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(dxDesc.GetType() != dyDesc.GetType() || dyDesc.GetType() != xDesc.GetType() ||
-       xDesc.GetType() != bnScaleBiasDiffDesc.GetType())
+    if(dxDesc.GetType() != dyDesc.GetType() || dyDesc.GetType() != xDesc.GetType())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -788,12 +802,18 @@ void BatchNormBackward(Handle& handle,
     std::vector<size_t> vld;
     std::vector<size_t> vgd;
 
-    bool bfp16parm = false;
-    bool bfp32parm = true;
-    if(xDesc.GetType() == miopenHalf)
+    bool bfpmixparm = false;
+    bool bfp16parm  = false;
+    bool bfp32parm  = true;
+    if(xDesc.GetType() == miopenHalf && bnScaleBiasDiffDesc.GetType() == miopenHalf)
     {
         bfp16parm = true;
         bfp32parm = false;
+    }
+    else if(xDesc.GetType() == miopenHalf && bnScaleBiasDiffDesc.GetType() == miopenFloat)
+    {
+        bfpmixparm = true;
+        bfp32parm  = false;
     }
 
     int n, c, h, w;
@@ -879,7 +899,7 @@ void BatchNormBackward(Handle& handle,
             if(!kernels.empty())
             {
                 auto kernel = kernels.front();
-                visit_float(xDesc.GetType(), [&](auto as_float) {
+                visit_float(bnScaleBiasDiffDesc.GetType(), [&](auto as_float) {
                     if(useSaved)
                     {
                         kernel(x,
@@ -916,6 +936,7 @@ void BatchNormBackward(Handle& handle,
                 std::string parms =
                     " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
                     " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                    " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
                     " -DMIO_BN_USESAVED=" + std::to_string(static_cast<int>(useSaved)) +
                     " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
                     " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
@@ -929,7 +950,7 @@ void BatchNormBackward(Handle& handle,
                 MIOPEN_LOG_I2(kernel_name << ":: " << parms);
 
                 bnBwdTrainSelectSingle(handle,
-                                       xDesc.GetType(),
+                                       bnScaleBiasDiffDesc.GetType(),
                                        program_name,
                                        algo_name,
                                        kernel_name,
@@ -955,7 +976,7 @@ void BatchNormBackward(Handle& handle,
             if(!kernels.empty())
             {
                 float ctime = 0.;
-                visit_float(xDesc.GetType(), [&](auto as_float) {
+                visit_float(bnScaleBiasDiffDesc.GetType(), [&](auto as_float) {
                     if(useSaved)
                     {
                         kernels[0](x, dy, dx, savedMean, savedInvVariance);
@@ -1016,6 +1037,7 @@ void BatchNormBackward(Handle& handle,
                 std::string parms =
                     " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
                     " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                    " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
                     " -DMIO_BN_USESAVED=" + std::to_string(static_cast<int>(useSaved)) +
                     " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
                     " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
@@ -1030,7 +1052,7 @@ void BatchNormBackward(Handle& handle,
                 MIOPEN_LOG_I2(kernel_name << ":: " << parms);
 
                 bnBwdTrainSelectMulti(handle,
-                                      xDesc.GetType(),
+                                      bnScaleBiasDiffDesc.GetType(),
                                       program_name,
                                       algo_name,
                                       kernel_name,
@@ -1124,6 +1146,7 @@ void BatchNormBackward(Handle& handle,
             std::string parms =
                 " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
                 " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
                 " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
                 " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
                 std::to_string(in_nhw) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +

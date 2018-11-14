@@ -123,6 +123,7 @@ static_assert( chunks_per_wave % input_dword_chunks_cnt == 0)
 hi_input_channels = (input_channels + vec_c_in - 1) / vec_c_in
 hi_output_channels = (output_channels + vec_k_out - 1) / vec_k_out
 
+s_pack_instructions_available = 0
 dot_instructions_available = 0
 .if (.option.machine_version_major == 9) && (.option.machine_version_minor == 0) && (.option.machine_version_stepping == 6)
     dot_instructions_available = 1
@@ -135,6 +136,7 @@ fmamix_instructions_available = 0
     .else
         madmix_instructions_available = 1
     .endif
+    s_pack_instructions_available = 1
 .endif
 
 // perf params
@@ -146,12 +148,14 @@ default chunk_size, 16 // 1..64
 default balanced_n, 1 // 0..1 (deprecated)
 default balanced_chunk, 1 // 0..1 (deprecated)
 default n_mult, 1 // 1..8
-default waves_in_group, 1 // 1..16 (preffer 1..8)
+default waves_c_in_group, 1 // 1..8 (preffer 1..4)
+default waves_k_in_group, 1 // 1,2,4,8 (preffer 1,2,4,8)
 default lds_limit, .MAX_LDS / 8
 default disable_case_opt, 0
 
 static_assert ( (read_size * input_dword_chunks_cnt) <= chunks_per_wave)
-static_assert (waves_in_group <= hi_input_channels && waves_in_group <= 16)
+static_assert (waves_c_in_group <= hi_input_channels && waves_c_in_group <= 16)
+static_assert (waves_k_in_group <= hi_output_channels && waves_k_in_group <= 16)
 //static_assert (hi_output_channels % k_mult == 0)
 default use_saturated_integer_cast, 0
 
@@ -201,20 +205,22 @@ active_mask_lo = active_mask & 0xFFFFFFFF
 active_mask_hi = active_mask >> 32
 
 // group parameters
-hi_c_per_wave = (hi_input_channels + waves_in_group - 1) / waves_in_group
-last_wave_hi_c_per_wave = hi_input_channels - hi_c_per_wave * (waves_in_group-1)
+hi_c_per_wave = (hi_input_channels + waves_c_in_group - 1) / waves_c_in_group
+last_wave_hi_c_per_wave = hi_input_channels - hi_c_per_wave * (waves_c_in_group-1)
 lds_per_group = 0
-.if waves_in_group > 1
-    lds_per_wave = lds_limit / (waves_in_group - 1)
+double_lds = 0
+.if waves_c_in_group > 1
+    lds_per_wave = lds_limit / (waves_c_in_group - 1) / waves_k_in_group
     lds_gprs_per_wave = lds_per_wave / (4 * .WAVE_SIZE)
     .if lds_gprs_per_wave >= accums_cnt
         sync_loops = 1
         lds_gprs_per_loop = accums_cnt
-        lds_per_group = lds_gprs_per_loop * 4 * .WAVE_SIZE * (waves_in_group - 1)
+        lds_per_group = lds_gprs_per_loop * 4 * .WAVE_SIZE * (waves_c_in_group - 1) * waves_k_in_group
     .else
         lds_gprs_per_loop = lds_gprs_per_wave / 2
         sync_loops = (accums_cnt + lds_gprs_per_loop - 1) / lds_gprs_per_loop
-        lds_per_group = 2 * lds_gprs_per_loop * 4 * .WAVE_SIZE * (waves_in_group - 1)
+        lds_per_group = 2 * lds_gprs_per_loop * 4 * .WAVE_SIZE * (waves_c_in_group - 1) * waves_k_in_group
+        double_lds = 1
     .endif
 .endif
 
@@ -253,7 +259,7 @@ raw_filter_dword_k_cnt = 1
     .SGPR_ALLOC desc_wei, 4 // output buffer descriptor
     .SGPR_ALLOC filtersA, k_mult * c_mult, 1
     .if .SGPR_NEXT_FREE % 4
-        .SGPR_ALLOC_ONCE wave_id // wave_id in group
+        .SGPR_ALLOC_ONCE wave_c_id // wave_c_id in group
     .endif
     .if .SGPR_NEXT_FREE % 4
         .SGPR_ALLOC_ONCE loop_cnt
@@ -262,7 +268,8 @@ raw_filter_dword_k_cnt = 1
         .SGPR_ALLOC_ONCE stmp_offset
     .endif
     .SGPR_ALLOC filtersB, k_mult * c_mult, 1
-    .SGPR_ALLOC_ONCE wave_id // wave_id in group
+    .SGPR_ALLOC_ONCE wave_c_id // wave_c_id in group
+    .SGPR_ALLOC_ONCE wave_k_id // wave_k_id in group
     .SGPR_ALLOC_ONCE loop_cnt
     .SGPR_ALLOC_ONCE stmp_offset
     .SGPR_ALLOC_ONCE stmp
@@ -289,7 +296,29 @@ raw_filter_dword_k_cnt = 1
 .GPR_ALLOC_END
 
 max_waves_per_CU = (256 / .AUTO_VGPR_COUNT) * 4
-static_assert( max_waves_per_CU >= waves_in_group )
+static_assert( max_waves_per_CU >= waves_c_in_group * waves_k_in_group)
+
+.macro get_rcp reg, val 
+   .if \val == 1
+      s_mov_b32 s[\reg], 1.0
+   .elseif \val == 2
+      s_mov_b32 s[\reg], 0.5
+   .elseif \val == 3
+      s_mov_b32 s[\reg], 0.33333333333
+   .elseif \val == 4
+      s_mov_b32 s[\reg], 0.25
+   .elseif \val == 5
+      s_mov_b32 s[\reg], 0.2
+   .elseif \val == 6
+      s_mov_b32 s[\reg], 0.16666666666
+   .elseif \val == 7
+      s_mov_b32 s[\reg], 0.14285714285
+   .elseif \val == 8
+      s_mov_b32 s[\reg], 0.125
+   .else
+      .error "val > 8"
+   .endif
+.endm
 
 gcnAsmConv1x1U:
     .amd_kernel_code_t
@@ -328,7 +357,16 @@ gcnAsmConv1x1U:
     s_mov_b32 s[desc_out+3], 0x00027000
 
     v_lshrrev_b32 v[vtmp], 6, v[tid]
-    v_readfirstlane_b32 s[wave_id], v[vtmp]
+    v_readfirstlane_b32 s[wave_c_id], v[vtmp]
+    //wave_k_id = wave_id / waves_c_in_group
+    v_cvt_f32_u32 v[vtmp], v[vtmp]
+    get_rcp stmp, waves_c_in_group
+    v_mul_f32 v[vtmp], v[vtmp], s[stmp] 
+    v_cvt_u32_f32 v[vtmp], v[vtmp]
+    v_readfirstlane_b32 s[wave_k_id], v[vtmp]
+    // wave_c_id = wave_id % waves_c_in_group
+    s_mul_i32 s[stmp], s[wave_k_id], waves_c_in_group
+    s_sub_i32 s[wave_c_id], s[wave_c_id], s[stmp] 
     v_and_b32 v[tid], 0x3f, v[tid]
 
     // calculate input/output offsets
@@ -353,15 +391,19 @@ gcnAsmConv1x1U:
     s_mul_i32 s[stmp], s[gid_hw], 0 + active_hw_per_wave * output_w_stride
     s_add_u32 s[soffset_out], s[soffset_out], s[stmp]
 
-    s_mul_i32 s[stmp], s[wave_id], 0 + hi_c_per_wave * input_c_stride
+    s_mul_i32 s[stmp], s[wave_c_id], 0 + hi_c_per_wave * input_c_stride
     s_add_u32 s[soffset_in], s[soffset_in], s[stmp]
 
-    s_mul_i32 s[stmp], s[gid_k], 0 + output_k_stride * k_mult / vec_k_out
+    s_mul_i32 s[stmp], s[gid_k], 0 + output_k_stride * k_mult * waves_k_in_group / vec_k_out
     s_add_u32 s[soffset_out], s[soffset_out], s[stmp]
-    s_mul_i32 s[soffset_wei], s[gid_k], 0 + k_mult * filter_k_stride
+    s_mul_i32 s[stmp], s[wave_k_id], 0 + output_k_stride * k_mult / vec_k_out
+    s_add_u32 s[soffset_out], s[soffset_out], s[stmp]
+    s_mul_i32 s[soffset_wei], s[gid_k], 0 + k_mult * filter_k_stride * waves_k_in_group
+    s_mul_i32 s[stmp], s[wave_k_id], 0 + k_mult * filter_k_stride
+    s_add_u32 s[soffset_wei], s[soffset_wei], s[stmp]
     
     static_assert(vec_c_in == vec_c_filter)
-    s_mul_i32 s[stmp], s[wave_id], 0 + hi_c_per_wave * filter_c_stride
+    s_mul_i32 s[stmp], s[wave_c_id], 0 + hi_c_per_wave * filter_c_stride
     s_add_u32 s[soffset_wei], s[soffset_wei], s[stmp]
 
     s_waitcnt 0
@@ -484,14 +526,24 @@ gcnAsmConv1x1U:
         v_mov_b32_sdwa v[\img_c1], v[vtmp] dst_sel:WORD_0 src0_sel:WORD_1
     .endm
 
-    //repack filter between two sgpr
-    .macro exch_filter, filter_c0, filter_c1
-        s_mov_b32 s[stmp], s[\filter_c0]
-        s_pack_ll_b32_b16 s[\filter_c0], s[\filter_c0], s[\filter_c1]
-        s_pack_hh_b32_b16 s[\filter_c1], s[stmp], s[\filter_c1]
-    .endm
+	.macro exch_filter filter_c0, filter_c1, tmp0, tmp1
+        static_assert(\filter_c0 != \filter_c1 && \filter_c0 != \tmp0 && \filter_c1 != \tmp0)
+        .if s_pack_instructions_available
+            s_mov_b32         s[\tmp0],       s[\filter_c0] 
+            s_pack_ll_b32_b16 s[\filter_c0],  s[\filter_c0],  s[\filter_c1]
+            s_pack_hh_b32_b16 s[\filter_c1],  s[stmp_offset], s[\filter_c1]
+        .else
+            static_assert(\tmp1 != \filter_c0 && \tmp1 != \filter_c1 && \tmp1 != \tmp0)
+            s_lshr_b32 s[\tmp1],      s[\filter_c0], 16
+            s_and_b32  s[\tmp0],      s[\filter_c0], 0x0000ffff
+            s_lshl_b32 s[\filter_c0], s[\filter_c1], 16
+            s_or_b32   s[\filter_c0], s[\filter_c0], s[\tmp0]
+            s_and_b32  s[\filter_c1], s[\filter_c1], 0xffff0000
+            s_or_b32   s[\filter_c1], s[\filter_c1], s[\tmp1]
+        .endif
+    .endm    
 
-        //repack input across channels
+    //repack input across channels
     .macro trans_input ibase
       .if(input_dword_chunks_cnt == 2)
         c = 0
@@ -525,7 +577,7 @@ gcnAsmConv1x1U:
                     c_gpr_filter = (c) * filter_c_gpr_stride
                     k_gpr_filter = k * filter_k_gpr_stride
                     wei = \fbase + k_gpr_filter + c_gpr_filter
-                    exch_filter wei, wei + filter_c_gpr_stride
+                    exch_filter wei, wei + filter_c_gpr_stride, stmp_offset, stmp
                     k = k + 1
                 .endr
                 c = c + raw_filter_dword_k_cnt
@@ -577,12 +629,14 @@ gcnAsmConv1x1U:
                                 v_fma_mix_f32 v[acc], s[f_gpr], v[inp_gpr], v[acc] op_sel:[0,0,0] op_sel_hi:[1,1,0]
                                 v_fma_mix_f32 v[acc], s[f_gpr], v[inp_gpr], v[acc] op_sel:[1,1,0] op_sel_hi:[1,1,0]
                             .else
+                                v_mov_b32 v[vtmp_f_cvt], s[f_gpr]
                                 v_cvt_f32_f16 v[vtmp], v[inp_gpr]
-                                v_cvt_f32_f16 v[vtmp_f_cvt], v[f_gpr]
+                                v_cvt_f32_f16 v[vtmp_f_cvt], v[vtmp_f_cvt]
                                 v_mac_f32     v[acc], v[vtmp], v[vtmp_f_cvt]
 
+                                v_mov_b32 v[vtmp_f_cvt], s[f_gpr]
                                 v_lshrrev_b32 v[vtmp], 16, v[inp_gpr]
-                                v_lshrrev_b32 v[vtmp_f_cvt], 16, v[f_gpr]
+                                v_lshrrev_b32 v[vtmp_f_cvt], 16, v[vtmp_f_cvt]
 
                                 v_cvt_f32_f16 v[vtmp], v[vtmp]
                                 v_cvt_f32_f16 v[vtmp_f_cvt], v[vtmp_f_cvt]
@@ -655,7 +709,7 @@ gcnAsmConv1x1U:
         _v_add_nc_u32 v[current_hw_in],  s[stmp], v[current_hw_in]
     .endif
     s_mov_b32 s[loop_cnt], 0 + hi_c_per_wave * vec_c_in
-    s_cmpk_eq_u32 s[wave_id], 0 + waves_in_group - 1
+    s_cmpk_eq_u32 s[wave_c_id], 0 + waves_c_in_group - 1
     s_cmov_b32 s[loop_cnt], 0 + last_wave_hi_c_per_wave * vec_c_in
 
     load_input inputA
@@ -705,19 +759,22 @@ loop_end:
     // all waves but last store accums to LDS and dies
     // last wave survives and read LDS
     .GPR_REUSE voffset_in, lds_off
-    .if waves_in_group > 1
+    .GPR_REUSE soffset_in, lds_off_k
+    .if waves_c_in_group > 1
+        s_mul_i32 s[lds_off_k], s[wave_k_id], 4 * .WAVE_SIZE * lds_gprs_per_loop * (waves_c_in_group-1) * (double_lds + 1)
         s_mov_b32 m0, -1
-        s_cmpk_eq_u32 s[wave_id], 0 + waves_in_group - 1
+        s_cmpk_eq_u32 s[wave_c_id], 0 + waves_c_in_group - 1
         s_cbranch_scc1 last_wave
 
-        s_mul_i32 s[stmp], s[wave_id], 4 * .WAVE_SIZE * lds_gprs_per_loop
+        s_mul_i32 s[stmp], s[wave_c_id], 4 * .WAVE_SIZE * lds_gprs_per_loop
 
         v_lshlrev_b32 v[lds_off], 2, v[tid]
         _v_add_nc_u32 v[lds_off], s[stmp], v[lds_off]
+        _v_add_nc_u32 v[lds_off], s[lds_off_k], v[lds_off]
         acc_id = 0
         sync_loop = 0
         .rept sync_loops
-            imm_off = (sync_loop % 2) * lds_gprs_per_loop * (waves_in_group-1) * 4 * .WAVE_SIZE
+            imm_off = (sync_loop % 2) * lds_gprs_per_loop * (waves_c_in_group-1) * 4 * .WAVE_SIZE
             .rept lds_gprs_per_loop
                 .if acc_id < accums_cnt
                     ds_write_b32 v[lds_off], v[accums + acc_id], offset:0+imm_off
@@ -736,12 +793,13 @@ last_wave:
         sync_loop = 0
         .rept sync_loops
             v_lshlrev_b32 v[lds_off], 2, v[tid]
+            _v_add_nc_u32 v[lds_off], s[lds_off_k], v[lds_off]
             s_barrier
             gpr = 0
             .rept lds_gprs_per_loop
                 wave = 0
-                .rept waves_in_group-1
-                    imm_off = 4 * .WAVE_SIZE * (gpr + wave * lds_gprs_per_loop + (sync_loop % 2) * lds_gprs_per_loop * (waves_in_group-1))
+                .rept waves_c_in_group-1
+                    imm_off = 4 * .WAVE_SIZE * (gpr + wave * lds_gprs_per_loop + (sync_loop % 2) * lds_gprs_per_loop * (waves_c_in_group-1))
                     .if acc_id < accums_cnt
                         ds_read_b32 v[vtmp], v[lds_off] offset:0+imm_off
                         s_waitcnt 0
@@ -848,7 +906,10 @@ last_wave:
     // store output
     .GPR_REUSE stmp_offset, current_k
         
-    s_mul_i32 s[current_k], s[gid_k], 0 + k_mult / vec_k_out
+    s_mul_i32 s[current_k], s[gid_k], 0 + k_mult * waves_k_in_group / vec_k_out
+    s_mul_i32 s[stmp], s[wave_k_id], 0 + k_mult / vec_k_out
+    s_add_u32 s[current_k], s[current_k], s[stmp]
+
     
     .if(!rem_hw_in)
         .GPR_REUSE inputA, current_hw
@@ -864,6 +925,9 @@ last_wave:
         k = 0
         .rept k_mult / vec_k_out
             nb = 0
+            s_cmpk_ge_i32 s[current_k], 0 + hi_output_channels - k
+            s_cmov_b32 s[desc_out+2], 0
+
             .rept n_mult
                 s_mov_b32 exec_lo, active_mask_lo
                 s_mov_b32 exec_hi, active_mask_hi
@@ -894,10 +958,6 @@ last_wave:
                     s_add_u32 s[soffset_out], s[soffset_out], 0 + active_n_per_gpr * output_n_stride
                 .endif
             .endr
-            .if (1  || hi_output_channels % (k_mult / vec_k_out))
-                s_cmpk_ge_i32 s[current_k], 0 + hi_output_channels - k - 1
-                s_cmov_b32 s[desc_out+2], 0
-            .endif
             k = k + 1
         .endr
     .endm
@@ -967,7 +1027,25 @@ s_endpgm
   .endif
 .endm
 
-.if waves_in_group == 8
+waves_in_group = waves_c_in_group * waves_k_in_group
+
+.if waves_in_group == 16
+    metadata 1024
+.elseif waves_in_group == 15
+    metadata 960
+.elseif waves_in_group == 14
+    metadata 896
+.elseif waves_in_group == 13
+    metadata 832
+.elseif waves_in_group == 12
+    metadata 768
+.elseif waves_in_group == 11
+    metadata 704
+.elseif waves_in_group == 10
+    metadata 640
+.elseif waves_in_group == 9
+    metadata 576
+.elseif waves_in_group == 8
     metadata 512
 .elseif waves_in_group == 7
     metadata 448

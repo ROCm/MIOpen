@@ -33,6 +33,7 @@
 #if MIOPEN_USE_FP16 == 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
+#define _FLOAT_PREC half
 #ifndef HALF_MAX
 #define MAX_VAL 65504 /* max value */
 #else
@@ -41,11 +42,24 @@
 #endif
 #if MIOPEN_USE_FP32 == 1
 #define _FLOAT float
+#define _FLOAT_PREC float
 #ifndef FLT_MAX
 #define MAX_VAL 3.402823466e+38F /* max value */
 #else
 #define MAX_VAL FLT_MAX
 #endif
+#endif
+#if MIOPEN_USE_FPMIX == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#define _FLOAT_PREC float
+/*
+#ifndef HALF_MAX
+#define MAX_VAL 65504
+#else
+#define MAX_VAL HALF_MAX
+#endif
+*/
 #endif
 
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
@@ -103,36 +117,37 @@
 //==================== PER ACTIVATION =======================
 
 __kernel void MIOpenBatchNormFwdTrainPerActivation(
-    const __global _FLOAT* __restrict in,    /* x input */
-    unsigned int in_nstride,                 /* C*H*W */
-    unsigned int in_cstride,                 /* H*W */
-    __global _FLOAT* __restrict out,         /* y output */
-    const __global _FLOAT* __restrict scale, /* gamma 1xCxHxW */
-    const __global _FLOAT* __restrict bias,  /* beta 1xCxHxW */
+    const __global _FLOAT* __restrict in,         /* x input */
+    unsigned int in_nstride,                      /* C*H*W */
+    unsigned int in_cstride,                      /* H*W */
+    __global _FLOAT* __restrict out,              /* y output */
+    const __global _FLOAT_PREC* __restrict scale, /* gamma 1xCxHxW */
+    const __global _FLOAT_PREC* __restrict bias,  /* beta 1xCxHxW */
 #if(MIO_RUNNING_RESULT == 1)
-    double expAvgFactor,                               /* input momentum */
-    __global _FLOAT* __restrict resultRunningMean,     /*input and output, same descriptor as bias*/
-    __global _FLOAT* __restrict resultRunningVariance, /*input and output*/
+    double expAvgFactor, /* input momentum */
+    __global
+        _FLOAT_PREC* __restrict resultRunningMean, /*input and output, same descriptor as bias*/
+    __global _FLOAT_PREC* __restrict resultRunningVariance, /*input and output*/
 #endif
     double epsilon /* input fuzz param > 0 */
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
     ,
-    __global _FLOAT* __restrict resultSaveMean,       /*output only*/
-    __global _FLOAT* __restrict resultSaveInvVariance /*output only*/
+    __global _FLOAT_PREC* __restrict resultSaveMean,       /*output only*/
+    __global _FLOAT_PREC* __restrict resultSaveInvVariance /*output only*/
 #endif
     )
 {
 
     // PER ACTIVATION
-    _FLOAT mean        = 0.;
-    _FLOAT variance    = 0.;
-    _FLOAT invVariance = 0.;
-    _FLOAT inhat       = 0.;
-    _FLOAT pvt_scale   = 0.;
-    _FLOAT pvt_bias    = 0.;
+    _FLOAT_PREC mean        = 0.;
+    _FLOAT_PREC variance    = 0.;
+    _FLOAT_PREC invVariance = 0.;
+    _FLOAT_PREC inhat       = 0.;
+    _FLOAT_PREC pvt_scale   = 0.;
+    _FLOAT_PREC pvt_bias    = 0.;
 #if(MIO_RUNNING_RESULT == 1)
-    _FLOAT pvt_runMean;
-    _FLOAT pvt_newRunMean;
+    _FLOAT_PREC pvt_runMean;
+    _FLOAT_PREC pvt_newRunMean;
 #endif
     unsigned int xgid    = get_global_id(0);
     unsigned int ygid    = get_global_id(1);
@@ -140,7 +155,7 @@ __kernel void MIOpenBatchNormFwdTrainPerActivation(
     unsigned int Cidx    = MIO_BN_HW * xgid;
     unsigned int adjIndex, inImgIndex, index;
 
-    _FLOAT N = (_FLOAT)MIO_BN_N;
+    _FLOAT_PREC N = (_FLOAT_PREC)MIO_BN_N;
 
     // move across the sections of the image mini_batch stack
     for(unsigned int img_offset = 0; img_offset < in_cstride; img_offset += yglb_sz)
@@ -148,15 +163,15 @@ __kernel void MIOpenBatchNormFwdTrainPerActivation(
         inImgIndex = img_offset + ygid;
         if(inImgIndex < in_cstride)
         {
-            mean     = (_FLOAT)0.;
-            variance = (_FLOAT)0.;
+            mean     = (_FLOAT_PREC)0.;
+            variance = (_FLOAT_PREC)0.;
             adjIndex = Cidx + inImgIndex; // gamma and beta tensor index
 
 #pragma unroll
             for(unsigned int n = 0; n < MIO_BN_N; n++)
             {
-                index      = in_nstride * n + adjIndex;
-                _FLOAT xin = *(in + index);
+                index           = in_nstride * n + adjIndex;
+                _FLOAT_PREC xin = (_FLOAT_PREC)(*(in + index));
                 mean += xin;
                 variance = mad(xin, xin, variance);
             } // end for(n)
@@ -172,25 +187,27 @@ __kernel void MIOpenBatchNormFwdTrainPerActivation(
             resultSaveMean[adjIndex]        = mean;
 #endif
 #if(MIO_RUNNING_RESULT == 1)
-            pvt_runMean = *(resultRunningMean + adjIndex); // previous: oldRunMean
-            pvt_newRunMean =
-                mad((_FLOAT)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
+            pvt_runMean    = *(resultRunningMean + adjIndex); // previous: oldRunMean
+            pvt_newRunMean = mad((_FLOAT_PREC)-expAvgFactor,
+                                 pvt_runMean,
+                                 pvt_runMean); // tmp = oldRunMean*(1-factor)
 
-            resultRunningMean[adjIndex] =
-                mad((_FLOAT)mean, (_FLOAT)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
+            resultRunningMean[adjIndex] = mad((_FLOAT_PREC)mean,
+                                              (_FLOAT_PREC)expAvgFactor,
+                                              pvt_newRunMean); // newMean*factor + tmp
 
-            const _FLOAT adjust = (MIO_BN_N == 1) ? variance : variance * (N / (N - 1));
+            const _FLOAT_PREC adjust = (MIO_BN_N == 1) ? variance : variance * (N / (N - 1));
             resultRunningVariance[adjIndex] =
-                (1 - (_FLOAT)expAvgFactor) * *(resultRunningVariance + adjIndex) +
-                (_FLOAT)expAvgFactor * adjust;
+                (1 - (_FLOAT_PREC)expAvgFactor) * *(resultRunningVariance + adjIndex) +
+                (_FLOAT_PREC)expAvgFactor * adjust;
 #endif
 
 #pragma unroll
             for(unsigned int n = 0; n < MIO_BN_N; n++)
             { // per (x-dims) channel load a block of data unsigned into LDS
                 index      = in_nstride * n + adjIndex;
-                inhat      = (*(in + index) - mean) * invVariance;
-                out[index] = mad(pvt_scale, inhat, pvt_bias);
+                inhat      = ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance;
+                out[index] = (_FLOAT)(mad(pvt_scale, inhat, pvt_bias));
             } // end for(n)
         }     // end if(inImgIndex)
     }         // end for(img_offset) //image mini_batch is processed

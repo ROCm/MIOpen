@@ -69,8 +69,23 @@ miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> d
     desc->GetOutputDesc(output_desc);
     op_map.emplace_back(desc);
     op_count++;
-    is_valid = lu.Advance(desc);
-    return miopenStatusSuccess;
+    is_valid = lu.Advance(desc, [&](const std::string& sym, int& val) -> bool {
+        // check tensor attr
+        if(GetTensorAttr(sym, val))
+            return true;
+        // check op attr
+        if(desc->GetOpAttr(sym, val))
+            return true;
+        // check dev attr
+        // if(GetDevAttribute(sym, val, handle))
+        //     return true;
+        // else return false
+        return false;
+    });
+    if(is_valid)
+        return miopenStatusSuccess;
+    else
+        return miopenStatusUnsupportedOp;
 }
 
 miopenStatus_t FusionPlanDescriptor::GetOp(int op_idx, std::shared_ptr<FusionOpDescriptor>& desc)
@@ -183,13 +198,89 @@ miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
     return miopenStatusSuccess;
 }
 
-std::vector<std::string> ConvForwardOpDescriptor::GetArgs() const
+std::vector<std::pair<std::string, OpKernelArg>> ConvForwardOpDescriptor::GetArgs() const
 {
-    std::vector<std::string> keys;
-    keys.push_back("weights" + std::to_string(GetIdx()));
+    ConstData_t w = nullptr;
+    std::vector<std::pair<std::string, OpKernelArg>> keys;
+    keys.emplace_back("weights" + std::to_string(GetIdx()), OpKernelArg(w));
     return keys;
 }
 
+std::string ConvForwardOpDescriptor::GetArgKey(const std::string& k) const
+{
+    return k + std::to_string(GetIdx());
+}
+
+bool ConvForwardOpDescriptor::GetOpAttr(const std::string& sym, int& val) const
+{
+    int o, c, x, y;
+    std::tie(o, c, x, y) = tien<4>(filter_desc.GetLengths());
+    if(sym == "x")
+    {
+        val = x;
+        return true;
+    }
+    else if(sym == "y")
+    {
+        val = y;
+        return true;
+    }
+    else if(sym == "c")
+    {
+        val = c;
+        return true;
+    }
+    else if(sym == "pad_h")
+    {
+        val = base_desc.pad_h;
+        return true;
+    }
+    else if(sym == "pad_w")
+    {
+        val = base_desc.pad_w;
+        return true;
+    }
+    else if(sym == "dilation_h")
+    {
+        val = base_desc.dilation_h;
+        return true;
+    }
+    else if(sym == "dilation_w")
+    {
+        val = base_desc.dilation_w;
+        return true;
+    }
+    else if(sym == "u")
+    {
+        val = base_desc.u;
+        return true;
+    }
+    else if(sym == "v")
+    {
+        val = base_desc.v;
+        return true;
+    }
+    else if(sym == "k")
+    {
+        val = o;
+        return true;
+    }
+    else
+        return false;
+}
+
+OpKernelArg ConvForwardOpDescriptor::GetOpAttr(const std::string& k) const
+{
+    int v;
+    if(GetOpAttr(k, v))
+    {
+        return OpKernelArg(v);
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusInternalError, "Unknown Convolution Op Attribute");
+    }
+}
 FusionMDGraph_Edge_Map ConvForwardOpDescriptor::MDGraphKey(miopenConvolutionMode_t conv_mode,
                                                            miopenPaddingMode_t pad_mode,
                                                            int pad_h,
@@ -240,13 +331,14 @@ FusionMDGraph_Edge_Map ConvForwardOpDescriptor::MDGraphKey() const
     return m;
 }
 
-// Activ Forward
-miopenStatus_t ActivFusionOpDescriptor::SetArgs(OperatorArgs& args,
-                                                const void* /*alpha*/,
-                                                const void* /*beta*/,
-                                                double activAlpha,
-                                                double activBeta,
-                                                double activGamma)
+// Activ Forward ------------------------------------
+
+miopenStatus_t ActivFwdFusionOpDescriptor::SetArgs(OperatorArgs& args,
+                                                   const void* /*alpha*/,
+                                                   const void* /*beta*/,
+                                                   double activAlpha,
+                                                   double activBeta,
+                                                   double activGamma)
 {
     auto id = std::to_string(GetIdx());
     if(input_desc.GetType() == miopenFloat)
@@ -264,37 +356,140 @@ miopenStatus_t ActivFusionOpDescriptor::SetArgs(OperatorArgs& args,
     return miopenStatusSuccess;
 }
 
-std::vector<std::string> ActivFusionOpDescriptor::GetArgs() const
+std::string ActivFwdFusionOpDescriptor::GetArgKey(const std::string& k) const
 {
-    std::vector<std::string> keys;
+    return k + std::to_string(GetIdx());
+}
+
+std::vector<std::pair<std::string, OpKernelArg>> ActivFwdFusionOpDescriptor::GetArgs() const
+{
+    std::vector<std::pair<std::string, OpKernelArg>> keys;
     auto id = std::to_string(GetIdx());
-    keys.push_back("activAlpha" + id);
-    keys.push_back("activBeta" + id);
-    keys.push_back("activGamma" + id);
+    if(input_desc.GetType() == miopenFloat)
+    {
+        float a = 0.0;
+        keys.emplace_back("activAlpha" + id, OpKernelArg(a));
+        keys.emplace_back("activBeta" + id, OpKernelArg(a));
+        keys.emplace_back("activGamma" + id, OpKernelArg(a));
+    }
+    else if(input_desc.GetType() == miopenHalf)
+    {
+        half_float::half a;
+        keys.emplace_back("activAlpha" + id, OpKernelArg(a));
+        keys.emplace_back("activBeta" + id, OpKernelArg(a));
+        keys.emplace_back("activGamma" + id, OpKernelArg(a));
+    }
+
     return keys;
 }
 
-miopenStatus_t ActivFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
+OpKernelArg ActivFwdFusionOpDescriptor::GetOpAttr(const std::string& /* k */) const
+{
+    MIOPEN_THROW(miopenStatusInternalError, "Unknown Activation Op Attribute");
+}
+
+miopenStatus_t ActivFwdFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
 {
     // activation does not change the size
     output_desc = input_desc;
     return miopenStatusSuccess;
 }
-FusionMDGraph_Edge_Map ActivFusionOpDescriptor::MDGraphKey(miopenActivationMode_t mode)
+FusionMDGraph_Edge_Map ActivFwdFusionOpDescriptor::MDGraphKey(miopenActivationMode_t mode)
 {
     return {{"activ_mode", {EdgeOp(mode, true, OpEqual)}}};
 }
 
-FusionMDGraph_Edge_Map ActivFusionOpDescriptor::MDGraphKey() const
+FusionMDGraph_Edge_Map ActivFwdFusionOpDescriptor::MDGraphKey() const
 {
-    return ActivFusionOpDescriptor::MDGraphKey(activMode);
+    return ActivFwdFusionOpDescriptor::MDGraphKey(activMode);
 }
 
-miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
+// Activ Backwards-----------------------------------------
+miopenStatus_t ActivBwdFusionOpDescriptor::SetArgs(OperatorArgs& args,
+                                                   const void* /*alpha*/,
+                                                   const void* /*beta*/,
+                                                   const void* y,
+                                                   const void* x,
+                                                   double activAlpha,
+                                                   double activBeta,
+                                                   double activGamma)
 {
+    auto id             = std::to_string(GetIdx());
+    auto activDiffScale = activBeta * activGamma;
+    if(input_desc.GetType() == miopenFloat)
+    {
+        args.ins_arg("activAlpha" + id, OpKernelArg(static_cast<float>(activAlpha)));
+        args.ins_arg("activBeta" + id, OpKernelArg(static_cast<float>(activBeta)));
+        args.ins_arg("activGamma" + id, OpKernelArg(static_cast<float>(activGamma)));
+        args.ins_arg("activDiffScale" + id, OpKernelArg(static_cast<float>(activDiffScale)));
+    }
+    else if(input_desc.GetType() == miopenHalf)
+    {
+        args.ins_arg("activAlpha" + id, OpKernelArg(static_cast<half_float::half>(activAlpha)));
+        args.ins_arg("activBeta" + id, OpKernelArg(static_cast<half_float::half>(activBeta)));
+        args.ins_arg("activGamma" + id, OpKernelArg(static_cast<half_float::half>(activGamma)));
+        args.ins_arg("activDiffScale" + id,
+                     OpKernelArg(static_cast<half_float::half>(activDiffScale)));
+    }
+
+    auto y_any = OpKernelArg(y);
+    auto x_any = OpKernelArg(x);
+    args.ins_arg("y" + id, y_any);
+    args.ins_arg("x" + id, x_any);
+    return miopenStatusSuccess;
+}
+
+std::string ActivBwdFusionOpDescriptor::GetArgKey(const std::string& k) const
+{
+    return k + std::to_string(GetIdx());
+}
+
+OpKernelArg ActivBwdFusionOpDescriptor::GetOpAttr(const std::string& k) const
+{
+    MIOPEN_THROW("ActivBwdFusionOpDescriptor op does not support attribute: " + k);
+}
+
+std::vector<std::pair<std::string, OpKernelArg>> ActivBwdFusionOpDescriptor::GetArgs() const
+{
+    std::vector<std::pair<std::string, OpKernelArg>> keys;
+    auto id = std::to_string(GetIdx());
+    if(input_desc.GetType() == miopenFloat)
+    {
+        float a = 0.0;
+        keys.emplace_back("activAlpha" + id, OpKernelArg(a));
+        keys.emplace_back("activBeta" + id, OpKernelArg(a));
+        keys.emplace_back("activGamma" + id, OpKernelArg(a));
+    }
+    else if(input_desc.GetType() == miopenHalf)
+    {
+        half_float::half a;
+        keys.emplace_back("activAlpha" + id, OpKernelArg(a));
+        keys.emplace_back("activBeta" + id, OpKernelArg(a));
+        keys.emplace_back("activGamma" + id, OpKernelArg(a));
+    }
+    keys.emplace_back("activDiffScale" + id, OpKernelArg(nullptr));
+    keys.emplace_back("y" + id, OpKernelArg(nullptr));
+    keys.emplace_back("x" + id, OpKernelArg(nullptr));
+    return keys;
+}
+
+miopenStatus_t ActivBwdFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
+{
+    // activation does not change the size
     output_desc = input_desc;
     return miopenStatusSuccess;
 }
+FusionMDGraph_Edge_Map ActivBwdFusionOpDescriptor::MDGraphKey(miopenActivationMode_t mode)
+{
+    return {{"activ_mode", {EdgeOp(mode, true, OpEqual)}}};
+}
+
+FusionMDGraph_Edge_Map ActivBwdFusionOpDescriptor::MDGraphKey() const
+{
+    return ActivBwdFusionOpDescriptor::MDGraphKey(activMode);
+}
+
+//==============================
 
 miopenStatus_t BatchNormInferenceFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                              const void* alpha,
@@ -321,16 +516,38 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::SetArgs(OperatorArgs& args,
     return miopenStatusSuccess;
 }
 
-std::vector<std::string> BatchNormInferenceFusionOpDescriptor::GetArgs() const
+std::string BatchNormInferenceFusionOpDescriptor::GetArgKey(const std::string& k) const
 {
-    std::vector<std::string> keys;
-    auto id = std::to_string(GetIdx());
-    keys.push_back("epsilon" + id);
-    keys.push_back("bnScale" + id);
-    keys.push_back("bnBias" + id);
-    keys.push_back("estimatedMean" + id);
-    keys.push_back("estimatedVariance" + id);
+    return k + std::to_string(GetIdx());
+}
+
+std::vector<std::pair<std::string, OpKernelArg>>
+BatchNormInferenceFusionOpDescriptor::GetArgs() const
+{
+    std::vector<std::pair<std::string, OpKernelArg>> keys;
+    auto id        = std::to_string(GetIdx());
+    double epsilon = 0.0;
+    keys.emplace_back("epsilon" + id, OpKernelArg(epsilon));
+    ConstData_t bnScale = nullptr;
+    keys.emplace_back("bnScale" + id, OpKernelArg(bnScale));
+    ConstData_t bnBias = nullptr;
+    keys.emplace_back("bnBias" + id, OpKernelArg(bnBias));
+    ConstData_t estimatedMean = nullptr;
+    keys.emplace_back("estimatedMean" + id, OpKernelArg(estimatedMean));
+    ConstData_t estimatedVariance = nullptr;
+    keys.emplace_back("estimatedVariance" + id, OpKernelArg(estimatedVariance));
     return keys;
+}
+
+miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
+{
+    output_desc = input_desc;
+    return miopenStatusSuccess;
+}
+
+OpKernelArg BatchNormInferenceFusionOpDescriptor::GetOpAttr(const std::string& /* k */) const
+{
+    MIOPEN_THROW(miopenStatusInternalError, "Unknown Activation Op Attribute");
 }
 
 FusionMDGraph_Edge_Map
@@ -343,6 +560,195 @@ FusionMDGraph_Edge_Map BatchNormInferenceFusionOpDescriptor::MDGraphKey() const
 {
     return BatchNormInferenceFusionOpDescriptor::MDGraphKey(mode);
 }
+
+// Batch Normalization Forward Training --------------
+miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::SetArgs(OperatorArgs& args,
+                                                            const void* /*alpha*/,
+                                                            const void* /*beta*/,
+                                                            Data_t runningMean,
+                                                            Data_t runningVariance,
+                                                            Data_t savedMean,
+                                                            Data_t savedInvVariance,
+                                                            ConstData_t bnScale,
+                                                            ConstData_t bnBias,
+                                                            double expAvgFactor,
+                                                            double epsilon)
+{
+
+    // @todo add in saved versus running boolean toggles
+    auto id                   = std::to_string(GetIdx());
+    auto bnScale_any          = OpKernelArg(bnScale);
+    auto bnBias_any           = OpKernelArg(bnBias);
+    auto runningMean_any      = OpKernelArg(runningMean);
+    auto runningVariance_any  = OpKernelArg(runningVariance);
+    auto savedMean_any        = OpKernelArg(savedMean);
+    auto savedInvVariance_any = OpKernelArg(savedInvVariance);
+    auto expAvgFactor_any     = OpKernelArg(static_cast<double>(expAvgFactor));
+    auto epsilon_any          = OpKernelArg(static_cast<double>(epsilon));
+    int n, c, h, w;
+    std::tie(n, c, h, w) = tien<4>(input_desc.GetLengths());
+    float nhw = n * h * w;
+
+    auto inhw_any = static_cast<float>(1.0f / nhw);
+
+    if(runningMeanVar && (runningMean == nullptr || runningVariance == nullptr))
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "Save batch statistics was turned on at op creation time "
+                     "but runningMean or runningVariance is set to nullptr");
+    }
+
+    args.ins_arg("inhw" + id, inhw_any);
+    args.ins_arg("expAvgFactor" + id, expAvgFactor_any);
+    args.ins_arg("epsilon" + id, epsilon_any);
+    args.ins_arg("bnScale" + id, bnScale_any);
+    args.ins_arg("bnBias" + id, bnBias_any);
+    args.ins_arg("savedMean" + id, savedMean_any);
+    args.ins_arg("savedInvVariance" + id, savedInvVariance_any);
+    args.ins_arg("runningMean" + id, runningMean_any);
+    args.ins_arg("runningVariance" + id, runningVariance_any);
+    return miopenStatusSuccess;
+}
+
+std::vector<std::pair<std::string, OpKernelArg>>
+BatchNormFwdTrainFusionOpDescriptor::GetArgs() const
+{
+
+    // @todo add in saved versus running boolean toggles
+    std::vector<std::pair<std::string, OpKernelArg>> keys;
+    auto id        = std::to_string(GetIdx());
+    Data_t d       = nullptr;
+    ConstData_t cd = nullptr;
+    auto f_any     = OpKernelArg(static_cast<float>(0.0f));
+    auto d_any     = OpKernelArg(d);
+    auto cd_any    = OpKernelArg(cd);
+
+    if(mode == miopenBNSpatial)
+    {
+        keys.emplace_back("inhw" + id, f_any);
+    }
+
+    keys.emplace_back("epsilon" + id, OpKernelArg(static_cast<double>(0)));
+    keys.emplace_back("bnScale" + id, cd_any);
+    keys.emplace_back("bnBias" + id, cd_any);
+    keys.emplace_back("savedMean" + id, d_any);
+    keys.emplace_back("savedInvVariance" + id, d_any);
+    keys.emplace_back("expAvgFactor" + id, OpKernelArg(static_cast<double>(0)));
+    keys.emplace_back("runningMean" + id, d_any);
+    keys.emplace_back("runningVariance" + id, d_any);
+    return keys;
+}
+
+miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
+{
+    output_desc = input_desc;
+    return miopenStatusSuccess;
+}
+
+FusionMDGraph_Edge_Map
+BatchNormFwdTrainFusionOpDescriptor::MDGraphKey(miopenBatchNormMode_t bn_mode)
+{
+    return {{"bn_mode", {EdgeOp(bn_mode, true, OpEqual)}}};
+}
+
+FusionMDGraph_Edge_Map BatchNormFwdTrainFusionOpDescriptor::MDGraphKey() const
+{
+    return BatchNormFwdTrainFusionOpDescriptor::MDGraphKey(mode);
+}
+
+// end BN forward training -----------------------------
+
+// Batch Normalization Backward Training --------------
+std::string BatchNormBwdTrainFusionOpDescriptor::GetArgKey(const std::string& k) const
+{
+    return k + std::to_string(GetIdx());
+}
+OpKernelArg BatchNormBwdTrainFusionOpDescriptor::GetOpAttr(const std::string& k) const
+{
+    if(k == "diff_scale")
+    {
+        return OpKernelArg(static_cast<float>(0.0));
+    }
+    else if(k == "iNHW")
+    {
+        int n, h, w;
+        std::tie(n, std::ignore, h, w) = tien<4>(input_desc.GetLengths());
+        float nhw = n * h * w;
+        return OpKernelArg(static_cast<float>(1.0f / nhw));
+    }
+    else
+        MIOPEN_THROW("BatchNormBwdTrainFusionOpDescriptor does not support attribute: " + k);
+}
+miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::SetArgs(OperatorArgs& args,
+                                                            const void* /*alpha*/,
+                                                            const void* /*beta*/,
+                                                            ConstData_t x,
+                                                            ConstData_t bnScale,
+                                                            ConstData_t bnBias,
+                                                            Data_t resBnScaleDiff,
+                                                            Data_t resBnBiasDiff,
+                                                            ConstData_t savedMean,
+                                                            ConstData_t savedInvVariance)
+{
+
+    // @todo add in saved boolean toggle
+    auto id                   = std::to_string(GetIdx());
+    auto x_any                = OpKernelArg(x);
+    auto bnScale_any          = OpKernelArg(bnScale);
+    auto bnBias_any           = OpKernelArg(bnBias);
+    auto resBnScaleDiff_any   = OpKernelArg(resBnScaleDiff);
+    auto resBnBiasDiff_any    = OpKernelArg(resBnBiasDiff);
+    auto savedMean_any        = OpKernelArg(savedMean);
+    auto savedInvVariance_any = OpKernelArg(savedInvVariance);
+
+    args.ins_arg("x" + id, x_any);
+    args.ins_arg("bnScale" + id, bnScale_any);
+    args.ins_arg("bnBias" + id, bnBias_any);
+    args.ins_arg("resBnScaleDiff" + id, resBnScaleDiff_any);
+    args.ins_arg("resBnBiasDiff" + id, resBnBiasDiff_any);
+    args.ins_arg("savedMean" + id, savedMean_any);
+    args.ins_arg("savedInvVariance" + id, savedInvVariance_any);
+    return miopenStatusSuccess;
+}
+
+std::vector<std::pair<std::string, OpKernelArg>>
+BatchNormBwdTrainFusionOpDescriptor::GetArgs() const
+{
+    std::vector<std::pair<std::string, OpKernelArg>> keys;
+    auto id        = std::to_string(GetIdx());
+    Data_t d       = nullptr;
+    ConstData_t cd = nullptr;
+    auto d_any     = OpKernelArg(d);
+    auto cd_any    = OpKernelArg(cd);
+
+    keys.emplace_back("x" + id, cd_any);
+    keys.emplace_back("bnScale" + id, cd_any);
+    keys.emplace_back("bnBias" + id, cd_any);
+    keys.emplace_back("resBnScaleDiff" + id, d_any);
+    keys.emplace_back("resBnBiasDiff" + id, d_any);
+    keys.emplace_back("savedMean" + id, cd_any);
+    keys.emplace_back("savedInvVariance" + id, cd_any);
+    return keys;
+}
+
+miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
+{
+    output_desc = input_desc;
+    return miopenStatusSuccess;
+}
+
+FusionMDGraph_Edge_Map
+BatchNormBwdTrainFusionOpDescriptor::MDGraphKey(miopenBatchNormMode_t bn_mode)
+{
+    return {{"bn_mode", {EdgeOp(bn_mode, true, OpEqual)}}};
+}
+
+FusionMDGraph_Edge_Map BatchNormBwdTrainFusionOpDescriptor::MDGraphKey() const
+{
+    return BatchNormBwdTrainFusionOpDescriptor::MDGraphKey(mode);
+}
+
+// end BN backwards training ---------------------------
 
 // Bias forward
 miopenStatus_t BiasFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
@@ -361,10 +767,21 @@ miopenStatus_t BiasFusionOpDescriptor::SetArgs(OperatorArgs& args,
     return miopenStatusSuccess;
 }
 
-std::vector<std::string> BiasFusionOpDescriptor::GetArgs() const
+std::string BiasFusionOpDescriptor::GetArgKey(const std::string& k) const
 {
-    std::vector<std::string> keys;
-    keys.push_back("bias" + std::to_string(GetIdx()));
+    return k + std::to_string(GetIdx());
+}
+
+OpKernelArg BiasFusionOpDescriptor::GetOpAttr(const std::string& /* k */) const
+{
+    MIOPEN_THROW(miopenStatusInternalError, "Unknown Bias Op Attribute");
+}
+
+std::vector<std::pair<std::string, OpKernelArg>> BiasFusionOpDescriptor::GetArgs() const
+{
+    ConstData_t bdata = nullptr;
+    std::vector<std::pair<std::string, OpKernelArg>> keys;
+    keys.emplace_back("bias" + std::to_string(GetIdx()), OpKernelArg(bdata));
     return keys;
 }
 
@@ -385,7 +802,7 @@ std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
 {
     if(!op_map.empty())
     {
-        program_name = lu.GetProgramName();
+        program_name = lu.GetProgramName(handle);
         // Replace "GFX*" wildcard by device name (in lowercase)
         auto d = handle.GetDeviceName();
         std::transform(d.begin(), d.end(), d.begin(), ::tolower);
@@ -398,11 +815,11 @@ std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
     }
 }
 
-std::string FusionPlanDescriptor::GetKernelName()
+std::string FusionPlanDescriptor::GetKernelName(Handle& handle)
 {
     if(!op_map.empty())
     {
-        kernel_name = lu.GetKernelName();
+        kernel_name = lu.GetKernelName(handle);
         return kernel_name;
     }
     else
@@ -411,11 +828,11 @@ std::string FusionPlanDescriptor::GetKernelName()
     }
 }
 
-std::string FusionPlanDescriptor::GetAlgorithmName()
+std::string FusionPlanDescriptor::GetAlgorithmName(Handle& handle)
 {
     if(!op_map.empty())
     {
-        algorithm_name = lu.GetAlgoName();
+        algorithm_name = lu.GetAlgoName(handle);
         return algorithm_name;
     }
     else
@@ -424,25 +841,100 @@ std::string FusionPlanDescriptor::GetAlgorithmName()
     }
 }
 
+bool FusionPlanDescriptor::GetTensorAttr(const std::string& sym, int& val) const
+{
+    int N, C, H, W, oN, K, oH, oW;
+    std::tie(N, C, H, W)    = miopen::tien<4>(input_desc.GetLengths(), 1);
+    std::tie(oN, K, oH, oW) = miopen::tien<4>(output_desc.GetLengths(), 1);
+    if(sym == "iN")
+    {
+        val = N;
+        return true;
+    }
+    else if(sym == "iC")
+    {
+        val = C;
+        return true;
+    }
+    else if(sym == "iH")
+    {
+        val = H;
+        return true;
+    }
+    else if(sym == "iW")
+    {
+        val = W;
+        return true;
+    }
+    else if(sym == "oN")
+    {
+        val = oN;
+        return true;
+    }
+    else if(sym == "oK")
+    {
+        val = K;
+        return true;
+    }
+    else if(sym == "oH")
+    {
+        val = oH;
+        return true;
+    }
+    else if(sym == "oW")
+    {
+        val = oW;
+        return true;
+    }
+    else
+        return false;
+}
+
+OpKernelArg FusionPlanDescriptor::GetTensorAttr(const std::string& sym) const
+{
+    int val;
+    if(FusionPlanDescriptor::GetTensorAttr(sym, val))
+        return OpKernelArg(val);
+    else
+    {
+        MIOPEN_THROW(miopenStatusInternalError, "Unknown Tensor Attribute: " + sym);
+    }
+}
+OpKernelArg FusionPlanDescriptor::GetDevAttribute(const std::string& k, Handle& handle) const
+{
+    if(k == "devCUs")
+    {
+        int num_cus = handle.GetMaxComputeUnits();
+        return OpKernelArg(num_cus);
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusInternalError, "Unknown device attribute " + k);
+    }
+}
+
 miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
     miopenStatus_t status = miopenStatusUnknownError;
     if(!isValid())
     {
-        MIOPEN_LOG_I2("Trying to compile an invalid FusionPlan");
+        MIOPEN_LOG_I2("A previous attempt to add an operator failed");
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    network_config = "";
-    network_config += output_desc.ToString();
+    network_config =
+        input_desc.ToString() + ((input_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
+    network_config +=
+        output_desc.ToString() + ((input_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
+
     for(auto&& op : op_map)
     {
         op->GetNetworkConfig(network_config, handle);
     }
     // Check if the kernel is assembly or OpenCL
     auto ops_head  = op_map[0];
-    algorithm_name = lu.GetAlgoName();
+    algorithm_name = lu.GetAlgoName(handle);
     program_name   = GetProgramName(handle);
-    kernel_name    = GetKernelName();
+    kernel_name    = GetKernelName(handle);
     MIOPEN_LOG_I2(program_name << ',' << kernel_name);
     if(program_name.empty())
     {
@@ -496,71 +988,177 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         MIOPEN_LOG_I2("Build options: " << compile_config);
         handle.AddKernel(
             algorithm_name, network_config, program_name, kernel_name, vld, vgd, compile_config);
+
         status = miopenStatusSuccess;
     }
+    arg_list = CalcArgOrder(handle);
     return status;
 }
 
-std::ostream& operator<<(std::ostream& s, const OpKernelArg& arg)
+std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder(Handle& handle)
 {
-    union
-    {
-        unsigned long long ul = 0;
-        double d;
-        float f;
-        half_float::half h;
-        char c[sizeof(ul)];
-    } val = {0};
-    if(arg.buffer.size() > sizeof(val.ul))
-        return s << "<too long value>";
-    for(int i    = 0; i < arg.buffer.size(); ++i)
-        val.c[i] = arg.buffer[i];
-    s << std::hex << "0x" << val.ul << std::dec << " = " << static_cast<long long>(val.ul);
-    switch(arg.buffer.size())
-    {
-    case 2: s << " = " << static_cast<float>(val.h) << "H"; break;
-    case 4: s << " = " << val.f << "F"; break;
-    case 8: s << " = " << val.d << "D"; break;
-    default: break;
-    }
-    return s;
-}
+    std::vector<Exec_arg_t> arg_keys;
+    // Construct the kernel args
+    std::set<size_t> arg_sizes; // a set of argument sizes
+    // A map between argument sizes and argument names
+    std::map<std::pair<size_t, size_t>, std::vector<std::string>> size_map;
+    // A map between argument pointers (buffers) and argument names
+    std::map<size_t, std::vector<std::string>> ptr_map;
 
-static OpKernelArg GetArg(std::vector<std::shared_ptr<FusionOpDescriptor>>& op_map,
-                          const OperatorArgs& op_args,
-                          const miopenFusionOp_t op,
-                          const std::string arg_name)
-{
-    for(auto idx = 0; idx < op_map.size(); ++idx)
+    for(size_t idx = 0; idx < op_map.size(); idx++)
     {
-        if(op_map[idx]->kind() == op)
+        auto op   = op_map.at(idx);
+        auto keys = op->GetArgs();
+        for(auto&& key_arg : keys)
         {
-            std::string key = arg_name + std::to_string(idx);
-            MIOPEN_LOG_I2(*op_map[idx] << ", finding: " << key);
-            auto it = op_args.args_map.find(key);
-            if(it != op_args.args_map.end())
+            if(!key_arg.second.is_ptr)
             {
-                MIOPEN_LOG_I2("found " << (it->second.is_ptr ? "pointer: " : "scalar: ") << key
-                                       << " = "
-                                       << it->second);
-                return it->second;
+                arg_sizes.insert(key_arg.second.size());
+                size_map[std::make_pair(idx, key_arg.second.size())].push_back(key_arg.first);
+            }
+            else
+            {
+                ptr_map[idx].push_back(key_arg.first);
             }
         }
     }
-    MIOPEN_THROW(miopenStatusInternalError, "Not found: arg_name = " + arg_name);
-}
 
-#ifdef ADD_ARGUMENT
-#error "ADD_ARGUMENT defined"
-#endif
-#define ADD_ARGUMENT(argument_name)                                                     \
-    do                                                                                  \
-    {                                                                                   \
-        const OpKernelArg argument(argument_name);                                      \
-        args.emplace_back(argument);                                                    \
-        MIOPEN_LOG_I((argument.is_ptr ? "Pointer " : "Scalar ") << #argument_name " = " \
-                                                                << argument);           \
-    } while(false)
+    arg_keys.clear();
+
+    // if(kernel_source_type != Binary)
+    if(lu.GetCurVertex(handle)->default_args.empty())
+    {
+        MIOPEN_LOG_I2("Predefined kernel args order not found");
+        for(auto sz : arg_sizes) // Populate args for scalars
+        {
+            for(auto idx = 0; idx < op_map.size(); idx++)
+            {
+                auto key_pair = std::make_pair(idx, sz);
+                if(size_map.count(key_pair) > 0)
+                {
+                    auto keys = size_map.at(key_pair);
+                    std::sort(keys.begin(), keys.end());
+                    for(auto& key : keys)
+                    {
+                        MIOPEN_LOG_I("Scalar " << key << " = " << key);
+                        arg_keys.emplace_back(key, Scalar, sz);
+                    }
+                }
+            }
+        }
+        // insert input / output pointer
+        arg_keys.emplace_back("reserved_input_tensor_ptr", Input_Ptr, sizeof(ConstData_t));
+        arg_keys.emplace_back("reserved_output_tensor_ptr", Output_Ptr, sizeof(ConstData_t));
+        // add other pointers in op-order
+        for(auto idx = 0; idx < op_map.size(); idx++)
+        {
+            auto op = op_map.at(idx);
+            if(ptr_map.count(idx) > 0)
+            {
+                auto keys = ptr_map.at(idx);
+                std::sort(keys.begin(), keys.end());
+                for(auto& key : keys)
+                {
+                    arg_keys.emplace_back(key, Pointer, sizeof(ConstData_t));
+                }
+            }
+        }
+        if(kernel_source_type == AsmText)
+        { // Padded arguments
+            std::vector<Exec_arg_t> padded_args;
+            size_t running_sz = arg_keys[0].size;
+            padded_args.push_back(arg_keys[0]);
+            for(auto idx = 1; idx < arg_keys.size(); idx++)
+            {
+                if(arg_keys[idx - 1].size != arg_keys[idx].size)
+                {
+                    auto padding = running_sz % arg_keys[idx].size;
+                    if(padding != 0)
+                    {
+                        MIOPEN_LOG_I("*** Padding: " << padding);
+                        padded_args.emplace_back("reserved_padding", Padding, padding);
+                        running_sz += padding;
+                    }
+                }
+                padded_args.push_back(arg_keys[idx]);
+                running_sz += arg_keys[idx].size;
+            }
+            arg_keys = std::move(padded_args);
+        }
+
+        if(arg_keys.empty())
+        {
+            MIOPEN_THROW("Kernel arguments not setup properly");
+        }
+    }
+    else
+    {
+        auto default_args = lu.GetKernelArgs(handle);
+        if(default_args.empty())
+        {
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "Default kernel args no supplied in metadata graph");
+        }
+        for(auto& arg : default_args)
+        {
+            MIOPEN_LOG_I2("Setting arg: " + arg.key);
+            switch(arg.type)
+            {
+            case OpArg:
+                if(arg.op_idx < op_map.size())
+                {
+                    auto& op = op_map.at(arg.op_idx);
+                    auto k   = op->GetArgKey(arg.key);
+                    arg_keys.emplace_back(
+                        k, arg.default_val.is_ptr ? Pointer : Scalar, arg.default_val.size());
+                    break;
+                }
+                else
+                {
+                    arg_keys.emplace_back(
+                        arg.key, Default, arg.default_val.size(), arg.default_val);
+                }
+                break;
+            case OpAttr:
+                if(arg.op_idx < op_map.size())
+                {
+                    auto& op     = op_map.at(arg.op_idx);
+                    auto op_attr = op->GetOpAttr(arg.key);
+                    arg_keys.emplace_back(arg.key, Default, op_attr.size(), op_attr);
+                }
+                else
+                {
+                    arg_keys.emplace_back(
+                        arg.key, Default, arg.default_val.size(), arg.default_val);
+                }
+                break;
+            case Other:
+                // The operator does not exist in the fusion plan, load the default value
+                arg_keys.emplace_back(arg.key, Default, arg.default_val.size(), arg.default_val);
+                break;
+            case InputTensor:
+                arg_keys.emplace_back("reserved_input_tensor_ptr", Input_Ptr, sizeof(ConstData_t));
+                break;
+            case OutputTensor:
+                arg_keys.emplace_back(
+                    "reserved_output_tensor_ptr", Output_Ptr, sizeof(ConstData_t));
+                break;
+            case DevAttribute:
+            {
+                auto dev_attr = GetDevAttribute(arg.key, handle);
+                arg_keys.emplace_back(arg.key, Default, dev_attr.size(), dev_attr);
+            }
+            break;
+            case InputTensorDesc:
+            case OutputTensorDesc:
+                auto tensor_arg = GetTensorAttr(arg.key);
+                arg_keys.emplace_back(arg.key, Default, tensor_arg.size(), tensor_arg);
+                break;
+            }
+        }
+    }
+    return arg_keys;
+}
 
 miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                                              TensorDescriptor& inputDesc,
@@ -593,181 +1191,41 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     }
     KernelInvoke kernel = kernels.front();
 
-    // Construct the kernel args
-    std::set<size_t> arg_sizes; // a set of argument sizes
-    // A map between argument sizes and argument names
-    std::map<std::pair<size_t, size_t>, std::vector<std::string>> size_map;
-    // A map between argument pointers (buffers) and argument names
-    std::map<size_t, std::vector<std::string>> ptr_map;
-
-    for(auto idx = 0; idx < op_map.size(); idx++)
+    std::vector<OpKernelArg> args;
+    if(arg_list.empty())
     {
-        auto op   = op_map.at(idx);
-        auto keys = op->GetArgs();
-        for(auto&& key : keys)
+        MIOPEN_THROW("Kernel arguments not setup properly");
+    }
+    for(auto& arg : arg_list)
+    {
+        MIOPEN_LOG_I2("Key: " + arg.key);
+        switch(arg.type)
         {
-            auto it = op_args.args_map.find(key);
+        case Input_Ptr: args.emplace_back(OpKernelArg(input)); break;
+        case Output_Ptr: args.emplace_back(OpKernelArg(output)); break;
+        case Padding: args.emplace_back(OpKernelArg(0, arg.size)); break;
+        case Scalar:
+        case Pointer:
+        {
+            auto it = op_args.args_map.find(arg.key);
             if(it != op_args.args_map.end())
             {
-                if(!it->second.is_ptr)
-                {
-                    arg_sizes.insert(it->second.size());
-                    size_map[std::pair<size_t, size_t>(idx, it->second.size())].push_back(key);
-                }
-                else
-                {
-                    ptr_map[idx].push_back(key);
-                }
+                args.push_back(it->second);
             }
             else
             {
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "Arg " + key + " was not set for Operator: " +
-                                 std::to_string(op->kind()));
+                MIOPEN_THROW(miopenStatusInternalError, "Argument Not Set: " + arg.key);
             }
+            break;
+        }
+        case Default: args.push_back(arg.val); break;
         }
     }
-    std::vector<OpKernelArg> args;
-    if(kernel_source_type == Binary)
+    if(args.empty())
     {
-        if((input_desc.GetType() != miopenFloat) || (output_desc.GetType() != miopenFloat))
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Only FP32 floats are currently supported for the Winograd kernel");
-        }
-        int N, C, H, W, oN, K, oH, oW;
-        std::tie(N, C, H, W)    = miopen::tien<4>(input_desc.GetLengths(), 1);
-        std::tie(oN, K, oH, oW) = miopen::tien<4>(output_desc.GetLengths(), 1);
-        if(N != oN)
-            MIOPEN_THROW("input and output batch sizes do not match");
-        const int n_groups = handle.GetMaxComputeUnits();
-        // Get topology (C>B>A, C>B, C>A), find out activation mode.
-        assert(op_map[0]->kind() == miopenFusionOpConvForward && 2 <= op_map.size() &&
-               op_map.size() <= 3);
-        bool is_bias       = false;
-        bool is_activation = false;
-        bool is_leakyRELU  = false;
-        for(const auto& op : op_map)
-        {
-            if(op->kind() == miopenFusionOpBiasForward)
-                is_bias = true;
-            else if(op->kind() == miopenFusionOpActivForward)
-            {
-                is_activation = true;
-                is_leakyRELU =
-                    (boost::any_cast<miopenActivationMode_t>(
-                         op->MDGraphKey().at("activ_mode").at(0).val) == miopenActivationLEAKYRELU);
-            }
-        }
-        const int flags        = (is_bias ? (1 << 7) : 0) + (is_activation ? (1 << 8) : 0);
-        const int reserved     = 0;
-        const int R            = 3;
-        const int S            = 3;
-        const int pad_h        = 1;
-        const int pad_w        = 1;
-        int* const return_addr = nullptr;
-        const auto weights     = GetArg(op_map, op_args, miopenFusionOpConvForward, "weights");
-        const auto bias = is_bias ? GetArg(op_map, op_args, miopenFusionOpBiasForward, "bias")
-                                  : OpKernelArg(nullptr); // Kernel does not use it.
-        const auto alpha = (is_activation && is_leakyRELU)
-                               ? GetArg(op_map, op_args, miopenFusionOpActivForward, "activAlpha")
-                               : OpKernelArg(0.0f); // Fixed to 0.0 for RELU.
-        ADD_ARGUMENT(N);
-        ADD_ARGUMENT(C);
-        ADD_ARGUMENT(H);
-        ADD_ARGUMENT(W);
-        ADD_ARGUMENT(K);
-        ADD_ARGUMENT(n_groups);
-        ADD_ARGUMENT(flags);
-        ADD_ARGUMENT(reserved);
-        ADD_ARGUMENT(input);
-        ADD_ARGUMENT(weights);
-        ADD_ARGUMENT(output);
-        ADD_ARGUMENT(return_addr);
-        ADD_ARGUMENT(R);
-        ADD_ARGUMENT(S);
-        ADD_ARGUMENT(pad_h);
-        ADD_ARGUMENT(pad_w);
-        ADD_ARGUMENT(oH);
-        ADD_ARGUMENT(oW);
-        ADD_ARGUMENT(bias);
-        ADD_ARGUMENT(alpha);
+        MIOPEN_THROW("Operator args not populated properly");
     }
-    else
-    {
-        for(auto sz : arg_sizes) // Populate args for scalars
-        {
-            for(auto idx = 0; idx < op_map.size(); idx++)
-            {
-                auto key_pair = std::pair<size_t, size_t>(idx, sz);
-                if(size_map.count(key_pair) > 0)
-                {
-                    auto keys = size_map.at(key_pair);
-                    std::sort(keys.begin(), keys.end());
-                    for(auto& key : keys)
-                    {
-                        auto it = op_args.args_map.find(key);
-                        if(it != op_args.args_map.end())
-                        {
-                            MIOPEN_LOG_I("Scalar " << key << " = " << it->second);
-                            args.push_back(it->second);
-                        }
-                    }
-                }
-            }
-        }
-        // insert input / output pointer
-        args.emplace_back(OpKernelArg(input));
-        MIOPEN_LOG_I("Input ptr = " << input);
-        args.emplace_back(OpKernelArg(output));
-        MIOPEN_LOG_I("Output ptr = " << output);
-        // add other pointers in op-order
-        for(auto idx = 0; idx < op_map.size(); idx++)
-        {
-            auto op = op_map.at(idx);
-            if(ptr_map.count(idx) > 0)
-            {
-                auto keys = ptr_map.at(idx);
-                std::sort(keys.begin(), keys.end());
-                for(auto& key : keys)
-                {
-                    auto it = op_args.args_map.find(key);
-                    if(it != op_args.args_map.end())
-                    {
-                        MIOPEN_LOG_I("Pointer " << key << " = " << it->second);
-                        args.push_back(it->second);
-                    }
-                }
-            }
-        }
-    }
-    if(kernel_source_type == AsmText)
-    { // Padded arguments
-        std::vector<OpKernelArg> padded_args;
-        size_t running_sz = args[0].size();
-        padded_args.push_back(std::move(args[0]));
-        for(auto idx = 1; idx < args.size(); idx++)
-        {
-            if(args[idx - 1].size() != args[idx].size())
-            {
-                auto padding = running_sz % args[idx].size();
-                if(padding != 0)
-                {
-                    MIOPEN_LOG_I("*** Padding: " << padding);
-                    OpKernelArg tmp(0, padding);
-                    padded_args.push_back(tmp);
-                    running_sz += padding;
-                }
-            }
-            padded_args.push_back(std::move(args[idx]));
-            running_sz += args[idx].size();
-        }
-        kernel(padded_args);
-    }
-    else
-    {
-        kernel(args);
-    }
+    kernel(args);
     return miopenStatusSuccess;
 }
 
