@@ -309,6 +309,8 @@ COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 28 28 --weights 32 32 5 
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 14 14 --weights 512 512 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode same
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 4 4 --weights 512 512 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode valid
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 56 56 --weights 64 64 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 100 3 64 64 --weights 3 3 1 1 --filter 2 2 1 1 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 100 6 4 4 --weights 6 4 1 1 --filter 2 2 1 1 1 1  --cmode trans --pmode default
 )
 
 

@@ -173,9 +173,11 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
         {
             output_c = filter_c;
             output_h = std::max<std::ptrdiff_t>(
-                1, u * (input_h - 1) + 1 + dilation_h * (filter_h - 1.0) - 2 * pad_h);
+                1,
+                std::ptrdiff_t(u * (input_h - 1) + 1 + dilation_h * (filter_h - 1.0) - 2 * pad_h));
             output_w = std::max<std::ptrdiff_t>(
-                1, v * (input_w - 1) + 1 + dilation_w * (filter_w - 1.0) - 2 * pad_w);
+                1,
+                std::ptrdiff_t(v * (input_w - 1) + 1 + dilation_w * (filter_w - 1.0) - 2 * pad_w));
         }
         else
         {
@@ -287,31 +289,6 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
            (_n_outputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28) && _n_inputs % 2 == 0 &&
            _n_inputs >= (device_is_gfx8 ? 16 : 18) && (GetTypeSize(wDesc.GetType()) == 4) &&
            (GetTypeSize(xDesc.GetType()) == 4);
-}
-
-bool ConvolutionDescriptor::IsBwdWeightsDirectSupported(const TensorDescriptor& wDesc) const
-{
-    int k, c, _kernel_size0, _kernel_size1;
-    std::tie(k, c, _kernel_size0, _kernel_size1) = tien<4>(wDesc.GetLengths());
-
-    bool supported_filters =
-        ((_kernel_size0 == 1 && _kernel_size1 == 1) || (_kernel_size0 == 3 && _kernel_size1 == 3) ||
-         (_kernel_size0 == 5 && _kernel_size1 == 5) || (_kernel_size0 == 7 && _kernel_size1 == 7) ||
-         (_kernel_size0 == 9 && _kernel_size1 == 9) ||
-         (_kernel_size0 == 11 && _kernel_size1 == 11) ||
-         (_kernel_size0 == 5 && _kernel_size1 == 10 && u == 2 && v == 2 && pad_h == 0 &&
-          pad_w == 0) ||
-         (_kernel_size0 == 5 && _kernel_size1 == 20 && u == 2 && v == 2 && pad_h == 0 &&
-          pad_w == 0));
-
-    bool workarounds =
-        //        (((_kernel_size0 == 1 && _kernel_size1 == 1 && ((c & 0xF) > 0 || (k & 0xF) > 0)))
-        //        ||
-        ((_kernel_size0 == 1 && _kernel_size1 == 1 && (u > 2 || v > 2)) ||
-         (_kernel_size0 == 3 && _kernel_size1 == 3 && (u > 2 || v > 2)) ||
-         (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0));
-
-    return (supported_filters && !workarounds);
 }
 
 bool ConvolutionDescriptor::IsDirectSupported(const TensorDescriptor& wDesc) const

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2018 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -145,12 +145,29 @@ extern "C" miopenStatus_t miopenCreateOpActivationForward(miopenFusionPlanDescri
     MIOPEN_LOG_FUNCTION(fusePlanDesc, activOp, mode);
     miopenStatus_t res = miopenStatusUnknownError;
     miopen::try_([&] {
-        auto fod               = std::make_shared<miopen::ActivFusionOpDescriptor>(mode);
+        auto fod               = std::make_shared<miopen::ActivFwdFusionOpDescriptor>(mode);
         miopen::deref(activOp) = fod.get();
         res                    = miopen::deref(fusePlanDesc).AddOp(fod);
     });
     return res;
 }
+
+extern "C" miopenStatus_t
+miopenCreateOpActivationBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                 miopenFusionOpDescriptor_t* activOp,
+                                 miopenActivationMode_t mode)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, activOp, mode);
+    miopenStatus_t res = miopenStatusUnknownError;
+    miopen::try_([&] {
+        auto fod               = std::make_shared<miopen::ActivBwdFusionOpDescriptor>(mode);
+        miopen::deref(activOp) = fod.get();
+        res                    = miopen::deref(fusePlanDesc).AddOp(fod);
+    });
+    return res;
+}
+//---
+
 extern "C" miopenStatus_t miopenCreateOpBiasForward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                                     miopenFusionOpDescriptor_t* biasOp,
                                                     const miopenTensorDescriptor_t bDesc)
@@ -182,6 +199,38 @@ miopenCreateOpBatchNormInference(miopenFusionPlanDescriptor_t fusePlanDesc,
     });
     return res;
 }
+
+extern "C" miopenStatus_t miopenCreateOpBatchNormForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                         miopenFusionOpDescriptor_t* bnOp,
+                                                         const miopenBatchNormMode_t bn_mode,
+                                                         bool runningMeanVariance)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode, runningMeanVariance);
+    miopenStatus_t res = miopenStatusUnknownError;
+    miopen::try_([&] {
+        auto bod = std::make_shared<miopen::BatchNormFwdTrainFusionOpDescriptor>(
+            bn_mode, runningMeanVariance);
+        miopen::deref(bnOp) = bod.get();
+        res                 = miopen::deref(fusePlanDesc).AddOp(bod);
+    });
+    return res;
+}
+
+extern "C" miopenStatus_t miopenCreateOpBatchNormBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                          miopenFusionOpDescriptor_t* bnOp,
+                                                          const miopenBatchNormMode_t bn_mode)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode);
+    miopenStatus_t res = miopenStatusUnknownError;
+    miopen::try_([&] {
+        auto bod = std::make_shared<miopen::BatchNormBwdTrainFusionOpDescriptor>(bn_mode);
+        miopen::deref(bnOp) = bod.get();
+        res                 = miopen::deref(fusePlanDesc).AddOp(bod);
+    });
+    return res;
+}
+//---
+
 extern "C" miopenStatus_t miopenCreateOperatorArgs(miopenOperatorArgs_t* args)
 {
     MIOPEN_LOG_FUNCTION(args);
@@ -222,7 +271,7 @@ extern "C" miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t args,
 }
 
 extern "C" miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
-                                                      const miopenFusionOpDescriptor_t activOp,
+                                                      const miopenFusionOpDescriptor_t activFwdOp,
                                                       const void* alpha,
                                                       const void* beta,
                                                       double activAlpha,
@@ -230,10 +279,34 @@ extern "C" miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
                                                       double activGamma)
 {
 
-    MIOPEN_LOG_FUNCTION(args, activOp, alpha, beta, activAlpha, activBeta, activGamma);
+    MIOPEN_LOG_FUNCTION(args, activFwdOp, alpha, beta, activAlpha, activBeta, activGamma);
     return miopen::try_([&] {
-        auto&& op = dynamic_cast<miopen::ActivFusionOpDescriptor&>(miopen::deref(activOp));
+        auto&& op = dynamic_cast<miopen::ActivFwdFusionOpDescriptor&>(miopen::deref(activFwdOp));
         op.SetArgs(miopen::deref(args), alpha, beta, activAlpha, activBeta, activGamma);
+    });
+}
+
+extern "C" miopenStatus_t miopenSetOpArgsActivBackward(miopenOperatorArgs_t args,
+                                                       const miopenFusionOpDescriptor_t activBwdOp,
+                                                       const void* alpha,
+                                                       const void* beta,
+                                                       const void* y,
+                                                       const void* /*reserved*/,
+                                                       double activAlpha,
+                                                       double activBeta,
+                                                       double activGamma)
+{
+    MIOPEN_LOG_FUNCTION(args, activBwdOp, alpha, beta, y, activAlpha, activBeta, activGamma);
+    return miopen::try_([&] {
+        auto&& op = dynamic_cast<miopen::ActivBwdFusionOpDescriptor&>(miopen::deref(activBwdOp));
+        op.SetArgs(miopen::deref(args),
+                   alpha,
+                   beta,
+                   DataCast(y),
+                   nullptr,
+                   activAlpha,
+                   activBeta,
+                   activGamma);
     });
 }
 
@@ -263,6 +336,89 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t
                    epsilon);
     });
 }
+
+extern "C" miopenStatus_t miopenSetOpArgsBatchNormForward(miopenOperatorArgs_t args,
+                                                          const miopenFusionOpDescriptor_t bnFwdOp,
+                                                          const void* alpha,
+                                                          const void* beta,
+                                                          const void* bnScale,
+                                                          const void* bnBias,
+                                                          void* savedMean,
+                                                          void* savedInvVariance,
+                                                          void* runningMean,
+                                                          void* runningVariance,
+                                                          double expAvgFactor,
+                                                          double epsilon)
+{
+    MIOPEN_LOG_FUNCTION(args,
+                        bnFwdOp,
+                        alpha,
+                        beta,
+                        bnScale,
+                        bnBias,
+                        savedMean,
+                        savedInvVariance,
+                        runningMean,
+                        runningVariance,
+                        expAvgFactor,
+                        epsilon);
+    return miopen::try_([&] {
+        auto&& op =
+            dynamic_cast<miopen::BatchNormFwdTrainFusionOpDescriptor&>(miopen::deref(bnFwdOp));
+        op.SetArgs(miopen::deref(args),
+                   alpha,
+                   beta,
+                   DataCast(runningMean),
+                   DataCast(runningVariance),
+                   DataCast(savedMean),
+                   DataCast(savedInvVariance),
+                   DataCast(bnScale),
+                   DataCast(bnBias),
+                   expAvgFactor,
+                   epsilon);
+    });
+}
+
+extern "C" miopenStatus_t miopenSetOpArgsBatchNormBackward(miopenOperatorArgs_t args,
+                                                           const miopenFusionOpDescriptor_t bnBwdOp,
+                                                           const void* alpha,
+                                                           const void* beta,
+                                                           const void* x,
+                                                           const void* bnScale,
+                                                           const void* bnBias,
+                                                           void* resultBnScaleDiff,
+                                                           void* resultBnBiasDiff,
+                                                           const void* savedMean,
+                                                           const void* savedInvVariance)
+{
+    MIOPEN_LOG_FUNCTION(args,
+                        bnBwdOp,
+                        alpha,
+                        beta,
+                        x,
+                        bnScale,
+                        bnBias,
+                        resultBnScaleDiff,
+                        resultBnBiasDiff,
+                        savedMean,
+                        savedInvVariance);
+    return miopen::try_([&] {
+        auto&& op =
+            dynamic_cast<miopen::BatchNormBwdTrainFusionOpDescriptor&>(miopen::deref(bnBwdOp));
+        op.SetArgs(miopen::deref(args),
+                   alpha,
+                   beta,
+                   DataCast(x),
+                   DataCast(bnScale),
+                   DataCast(bnBias),
+                   DataCast(resultBnScaleDiff),
+                   DataCast(resultBnBiasDiff),
+                   DataCast(savedMean),
+                   DataCast(savedInvVariance));
+    });
+}
+//---
+
 // Return an error code that is "NotImplemented", if it exists then return success
 extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenHandle_t handle,
                                                   const miopenFusionPlanDescriptor_t fusePlanDesc,

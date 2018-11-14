@@ -177,13 +177,19 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
             PerformanceConfig config{};
             if(db.Load(context, SolverDbId(s), config))
             {
-                MIOPEN_LOG_I("Perf Db: record loaded: " << SolverDbId(s));
+                MIOPEN_LOG_I2("Perf Db: record loaded: " << SolverDbId(s));
                 if(s.IsValidPerformanceConfig(context, config))
                 {
                     return s.GetSolution(context, config);
                 }
-                MIOPEN_LOG_W("Invalid config loaded from Perf Db: " << SolverDbId(s) << ": "
-                                                                    << config);
+                MIOPEN_LOG(
+                    (MIOPEN_INSTALLABLE ? LoggingLevel::Warning : miopen::LoggingLevel::Error),
+                    "Invalid config loaded from Perf Db: " << SolverDbId(s) << ": " << config
+                                                           << ". Performance may degrade.");
+            }
+            else
+            {
+                MIOPEN_LOG_I("Perf Db: record not found for: " << SolverDbId(s));
             }
         }
 
@@ -531,23 +537,22 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
 {
     // ----------------- // Full set          Optimized       Spare
     // ----------------------------------------------------------------------------
-    int read_size;       // [1..4]            <same>          <same>
-    int k_mult;          // 1,[4,8,12..32]    16,32           1,4
-    int chunks_per_wave; // [1..16]           [1..8]          <same>
-    int chunk_size;      // 2^n[1..64]        2^n[16..64]     1,4
-    int n_mult;          // [1..8]            [1..4]          <same>
-    int c_mult;          // 2^n[1..32]        2^n[1,2]        <same>
-    int waves_in_group;  // [1..8]            [1..4]          <same>
+    int read_size;        // [1..4]            <same>          <same>
+    int k_mult;           // 1,[4,8,12..32]    2^n[8..32]      1,4
+    int chunks_per_wave;  // [1..16]           [1..8]          <same>
+    int chunk_size;       // 2^n[1..64]        2^n[16..64]     1,4
+    int n_mult;           // [1..8]            [1..4]          <same>
+    int c_mult;           // 2^n[1..32]        2^n[1..4]       <same>
+    int waves_c_in_group; // [1..8]            [1..4]          <same>
+    int waves_k_in_group; // 1,[2,4,8]         1,[2,4,8]       <same>
     bool use_spare_set;
 
-    PerformanceConfigConvAsm1x1U(int, int, int, int, int, int, int, bool);
-    PerformanceConfigConvAsm1x1U() : PerformanceConfigConvAsm1x1U(-1, -1, -1, -1, -1, -1, -1, false)
+    PerformanceConfigConvAsm1x1U(int, int, int, int, int, int, int, int, bool);
+    PerformanceConfigConvAsm1x1U()
+        : PerformanceConfigConvAsm1x1U(-1, -1, -1, -1, -1, -1, -1, -1, false)
     {
     }
-    PerformanceConfigConvAsm1x1U(bool spare)
-        : PerformanceConfigConvAsm1x1U(1, 1, 1, 1, 1, 1, 1, spare)
-    {
-    }
+    PerformanceConfigConvAsm1x1U(bool spare);
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
@@ -558,7 +563,8 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
         f(self.chunk_size, "chunk_size");
         f(self.n_mult, "n_mult");
         f(self.c_mult, "c_mult");
-        f(self.waves_in_group, "waves_in_group");
+        f(self.waves_c_in_group, "waves_c_in_group");
+        f(self.waves_k_in_group, "waves_k_in_group");
     }
 
     // clang-format off
@@ -568,7 +574,8 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
     int GetChunkSize() const { return chunk_size; }
     int GetNMult() const { return n_mult; }
     int GetCMult() const { return c_mult; }
-    int GetWavesInGroup() const { return waves_in_group; }
+    int GetWavesCInGroup() const { return waves_c_in_group; }
+    int GetWavesKInGroup() const { return waves_k_in_group; }
     int GetNPerGpr() const { assert(chunk_size); return 64 / chunk_size; }
     // clang-format on
 
@@ -578,7 +585,6 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvAsm1x1U& other) const;
     std::string ToString() const;
-    bool IsValidForProblem(const ConvolutionContext& config) const;
 };
 
 struct ConvAsm1x1U : SolverBase<ConvolutionContext>
@@ -644,6 +650,10 @@ struct ConvOclDirectFwdLegacyExhaustiveSearch : SolverBase<ConvolutionContext>
 {
     LegacyPerformanceConfig GetPerformanceConfig(const ConvolutionContext&) const;
     LegacyPerformanceConfig Search(const ConvolutionContext&) const;
+
+    private:
+    template <typename Tgpu>
+    LegacyPerformanceConfig SearchImpl(const ConvolutionContext&) const;
 };
 
 struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
@@ -751,14 +761,16 @@ struct ConvAsmBwdWrW3x3 : SolverBase<ConvolutionContext>
 struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsmBwdWrW1x1>
 {
 
-    int chunk_size; // {1,2,4,8,16}
-    int c_per_gpr;  // {1,2,4,8,16}
-    int c_mult;     // {1,2,4,8,16}
-    int k_per_gpr;  // {1,2,4,8,16}
-    int k_mult;     // {1,2,4,8,16}
-    int n_per_gpr;  // {1,2,4}
-    int n_part_cnt; // [1..8]
-    int read_size;  // [1..4]
+    int chunk_size;    // {1,2,4,8,16}
+    int c_per_gpr;     // {1,2,4,8,16}
+    int c_mult;        // {1,2,4,8,16}
+    int k_per_gpr;     // {1,2,4,8,16}
+    int k_mult;        // {1,2,4,8,16}
+    int n_per_gpr;     // {1,2,4}
+    int n_part_cnt;    // [1..8]
+    int read_size;     // [1..4]
+    int short_store;   // {0,1}
+    int data_prefetch; // [0..4]
     bool use_spare_set;
 
     /// The following conditions must be met.
@@ -787,13 +799,15 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
                                       int n_per_gpr_,
                                       int n_part_cnt_,
                                       int read_size_,
+                                      int short_store_,
+                                      int data_prefetch_,
                                       bool);
     PerformanceConfigConvAsmBwdWrW1x1()
-        : PerformanceConfigConvAsmBwdWrW1x1(-1, -1, -1, -1, -1, -1, -1, -1, false)
+        : PerformanceConfigConvAsmBwdWrW1x1(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false)
     {
     }
     PerformanceConfigConvAsmBwdWrW1x1(bool spare)
-        : PerformanceConfigConvAsmBwdWrW1x1(1, 1, 1, 1, 1, 1, 1, 1, spare)
+        : PerformanceConfigConvAsmBwdWrW1x1(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, spare)
     {
     }
 
@@ -808,6 +822,8 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
         f(self.n_per_gpr, "n_per_gpr");
         f(self.n_part_cnt, "n_part_cnt");
         f(self.read_size, "read_size");
+        f(self.short_store, "short_store");
+        f(self.data_prefetch, "data_prefetch");
     }
 
     // clang-format off
@@ -818,9 +834,11 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
     int GetKMult() const { return k_mult; }
     int GetNPerGpr() const { return n_per_gpr; }
     int GetNPartCnt() const { return n_part_cnt; }
-    int GetHWPerGpr() const {   assert(c_per_gpr); assert(n_per_gpr); assert(chunk_size);  
+    int GetHWPerGpr() const {   assert(c_per_gpr); assert(n_per_gpr); assert(chunk_size);
                                 return wave_size / (c_per_gpr * n_per_gpr * chunk_size); } // "hw" stands for "height-and-width".
     int GetReadSize() const { return read_size; }
+    int GetShortStore() const {return short_store; }
+    int GetDataPrefetch() const { return data_prefetch; }
     // clang-format on
 
     void EuristicInit(const ConvolutionContext& config);
