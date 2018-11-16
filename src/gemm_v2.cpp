@@ -53,6 +53,8 @@ dummy_memset(Handle& handle, Data_t mem, std::size_t mem_len, miopenDataType_t d
 
     switch(data_type)
     {
+    case miopenInt8:
+    case miopenInt32: break;
     case miopenHalf:
     {
         data_size = sizeof(half_float::half);
@@ -115,6 +117,8 @@ miopenStatus_t CallGemm(Handle& handle,
 
     switch(gemm_desc.dataType)
     {
+    case miopenInt8:
+    case miopenInt32: break;
     case miopenHalf:
     {
         float alpha = gemm_desc.alpha;
@@ -332,6 +336,8 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
 
     switch(gemm_desc.dataType)
     {
+    case miopenInt8:
+    case miopenInt32: break;
     case miopenHalf:
     {
         float alpha = gemm_desc.alpha;
@@ -496,6 +502,8 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
 
     switch(gemm_desc.dataType)
     {
+    case miopenInt8:
+    case miopenInt32: break;
     case miopenHalf:
     {
         float alpha = gemm_desc.alpha;
