@@ -1319,6 +1319,12 @@ static std::string parms_half_or_float(const miopenDataType_t t)
         s = " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
         break;
     }
+    case miopenInt8:
+    {
+        s = " -DMIOPEN_USE_INTE8=1";
+        break;
+    }
+    case miopenInt32: break;
     }
 
     return s;
@@ -1878,6 +1884,222 @@ void CopyTensor(Handle& handle,
     else
     {
         handle.Copy(src, dst, srcDesc_flat.GetElementSize() * GetTypeSize(srcDesc_flat.GetType()));
+    }
+}
+
+void CastTensor(Handle& handle,
+                const void* alpha,
+                const TensorDescriptor& srcDesc,
+                ConstData_t src,
+                const TensorDescriptor& dstDesc,
+                Data_t dst,
+                int srcOffset,
+                int dstOffset)
+{
+    if(src == nullptr || dst == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
+    }
+
+    if(srcDesc.GetLengths() != dstDesc.GetLengths())
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
+    }
+
+    auto flat_descriptors = GetConsistentFlattenedTensorDescriptors(srcDesc, dstDesc);
+    const TensorDescriptor& srcDesc_flat = std::get<0>(flat_descriptors);
+    const TensorDescriptor& dstDesc_flat = std::get<1>(flat_descriptors);
+
+#ifndef NDEBUG
+    if(srcDesc.GetSize() != srcDesc_flat.GetSize())
+    {
+        std::cout << __func__ << std::endl
+                  << "src real descriptor: " << srcDesc << std::endl
+                  << "src flat descriptor: " << srcDesc_flat << std::endl
+                  << "dst real descriptor: " << dstDesc << std::endl
+                  << "dst flat descriptor: " << dstDesc_flat << std::endl;
+    }
+#endif
+
+    std::size_t srcDim_flat = srcDesc_flat.GetSize();
+
+    if(srcDim_flat < 1 || srcDim_flat > 5)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension sizes unsupported.");
+    }
+
+    if(srcDesc.GetType() == dstDesc.GetType() && srcOffset == 0 && dstOffset == 0 &&
+       srcDesc_flat.IsPacked() && dstDesc_flat.IsPacked())
+    {
+        handle.Copy(src, dst, srcDesc_flat.GetElementSize() * GetTypeSize(srcDesc_flat.GetType()));
+    }
+    else
+    {
+        std::string kernel_name = "SubTensorOpWithCastTensor" + std::to_string(srcDim_flat) + "d";
+
+        const std::vector<std::size_t>& lens = srcDesc_flat.GetLengths();
+
+        std::string network_config = "cast " + std::to_string(dstDesc_flat.GetType());
+        for(auto& len : lens)
+        {
+            network_config += " " + std::to_string(len);
+        }
+
+        auto&& kernels = handle.GetKernels(kernel_name, network_config);
+        KernelInvoke kernel;
+
+        auto miopen_alpha = *(static_cast<const float*>(alpha));
+
+        if(!kernels.empty())
+        {
+            kernel = kernels.front();
+        }
+        else
+        {
+            std::string program_name = "MIOpenSubTensorOpWithCastTensorKernel.cl";
+
+            std::vector<std::size_t> worker_sizes = get_worker_sizes(lens);
+
+            std::size_t wgd = std::accumulate(worker_sizes.begin(),
+                                              worker_sizes.end(),
+                                              std::size_t{1},
+                                              std::multiplies<std::size_t>());
+
+            std::size_t wld = 256 < wgd ? 256 : wgd;
+
+            std::string parms =
+                "-DMIOPEN_SRC_TYPE=" +
+                std::to_string(srcDesc_flat.GetType() == miopenInt8
+                                   ? 0
+                                   : srcDesc_flat.GetType() == miopenInt32
+                                         ? 1
+                                         : srcDesc_flat.GetType() == miopenHalf ? 2 : 3) +
+                " -DMIOPEN_DST_TYPE=" +
+                std::to_string(dstDesc_flat.GetType() == miopenInt8
+                                   ? 0
+                                   : dstDesc_flat.GetType() == miopenInt32
+                                         ? 1
+                                         : dstDesc_flat.GetType() == miopenHalf ? 2 : 3);
+
+            if(!float_equal(miopen_alpha, 1.0))
+            {
+                parms += " -DALPHA";
+            }
+
+            for(int i = 0; i < srcDim_flat; ++i)
+            {
+                parms +=
+                    " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
+            }
+
+            kernel = handle.AddKernel(kernel_name,
+                                      network_config,
+                                      program_name,
+                                      kernel_name,
+                                      {wld, 1, 1},
+                                      {wgd, 1, 1},
+                                      parms);
+        }
+
+        switch(srcDim_flat)
+        {
+        case 1:
+        {
+            kernel(src,
+                   miopen_alpha,
+                   srcOffset,
+                   int(srcDesc_flat.GetStrides()[0]),
+                   int(srcDesc_flat.GetLengths()[0]),
+                   dst,
+                   dstOffset,
+                   int(dstDesc_flat.GetStrides()[0]));
+
+            break;
+        }
+        case 2:
+        {
+            kernel(src,
+                   miopen_alpha,
+                   srcOffset,
+                   int(srcDesc_flat.GetStrides()[0]),
+                   int(srcDesc_flat.GetStrides()[1]),
+                   int(srcDesc_flat.GetLengths()[0]),
+                   int(srcDesc_flat.GetLengths()[1]),
+                   dst,
+                   dstOffset,
+                   int(dstDesc_flat.GetStrides()[0]),
+                   int(dstDesc_flat.GetStrides()[1]));
+
+            break;
+        }
+        case 3:
+        {
+            kernel(src,
+                   miopen_alpha,
+                   srcOffset,
+                   int(srcDesc_flat.GetStrides()[0]),
+                   int(srcDesc_flat.GetStrides()[1]),
+                   int(srcDesc_flat.GetStrides()[2]),
+                   int(srcDesc_flat.GetLengths()[0]),
+                   int(srcDesc_flat.GetLengths()[1]),
+                   int(srcDesc_flat.GetLengths()[2]),
+                   dst,
+                   dstOffset,
+                   int(dstDesc_flat.GetStrides()[0]),
+                   int(dstDesc_flat.GetStrides()[1]),
+                   int(dstDesc_flat.GetStrides()[2]));
+
+            break;
+        }
+        case 4:
+        {
+            kernel(src,
+                   miopen_alpha,
+                   srcOffset,
+                   int(srcDesc_flat.GetStrides()[0]),
+                   int(srcDesc_flat.GetStrides()[1]),
+                   int(srcDesc_flat.GetStrides()[2]),
+                   int(srcDesc_flat.GetStrides()[3]),
+                   int(srcDesc_flat.GetLengths()[0]),
+                   int(srcDesc_flat.GetLengths()[1]),
+                   int(srcDesc_flat.GetLengths()[2]),
+                   int(srcDesc_flat.GetLengths()[3]),
+                   dst,
+                   dstOffset,
+                   int(dstDesc_flat.GetStrides()[0]),
+                   int(dstDesc_flat.GetStrides()[1]),
+                   int(dstDesc_flat.GetStrides()[2]),
+                   int(dstDesc_flat.GetStrides()[3]));
+
+            break;
+        }
+        case 5:
+        {
+            kernel(src,
+                   miopen_alpha,
+                   srcOffset,
+                   int(srcDesc_flat.GetStrides()[0]),
+                   int(srcDesc_flat.GetStrides()[1]),
+                   int(srcDesc_flat.GetStrides()[2]),
+                   int(srcDesc_flat.GetStrides()[3]),
+                   int(srcDesc_flat.GetStrides()[4]),
+                   int(srcDesc_flat.GetLengths()[0]),
+                   int(srcDesc_flat.GetLengths()[1]),
+                   int(srcDesc_flat.GetLengths()[2]),
+                   int(srcDesc_flat.GetLengths()[3]),
+                   int(srcDesc_flat.GetLengths()[4]),
+                   dst,
+                   dstOffset,
+                   int(dstDesc_flat.GetStrides()[0]),
+                   int(dstDesc_flat.GetStrides()[1]),
+                   int(dstDesc_flat.GetStrides()[2]),
+                   int(dstDesc_flat.GetStrides()[3]),
+                   int(dstDesc_flat.GetStrides()[4]));
+
+            break;
+        }
+        default: assert(false);
+        }
     }
 }
 
