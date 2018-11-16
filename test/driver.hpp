@@ -739,7 +739,7 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
     Driver d{};
     d.program_name = program_name;
 
-    std::set<std::string> keywords{"--help", "-h", "--half", "--float", "--double"};
+    std::set<std::string> keywords{"--help", "-h", "--half", "--float", "--double", "--int8"};
     d.parse(keyword_set{keywords});
     auto arg_map = args::parse(as, [&](std::string x) {
         return (keywords.count(x) > 0) or
@@ -749,6 +749,10 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
     if(arg_map.count("--half") > 0)
     {
         d.type = miopenHalf;
+    }
+    else if(arg_map.count("--int8") > 0)
+    {
+        d.type = miopenInt8;
     }
     else if(arg_map.count("--double") > 0)
     {
@@ -836,6 +840,11 @@ void test_drive(int argc, const char* argv[])
         if(arg == "--half")
         {
             test_drive_impl<Driver<half_float::half>>(argv[0], std::move(as));
+            break;
+        }
+        if(arg == "--int8")
+        {
+            test_drive_impl<Driver<int8_t>>(argv[0], std::move(as));
             break;
         }
         if(arg == "--float")

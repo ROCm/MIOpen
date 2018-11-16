@@ -294,6 +294,8 @@ MIOPEN_DECLARE_OBJECT(miopenRNNDescriptor);
 typedef enum {
     miopenHalf  = 0, /*!< 16-bit floating point (Not supported) */
     miopenFloat = 1, /*!< 32-bit floating point (Fully supported) */
+    miopenInt32 = 2, /*!< 32-bit int point (Not supported) */
+    miopenInt8  = 3, /*!< 8-bit int point (Not supported) */
 } miopenDataType_t;
 
 /*! @ingroup tensor
