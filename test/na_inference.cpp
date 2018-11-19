@@ -189,9 +189,9 @@ struct na_fusion_driver : test_driver
     miopenActivationMode_t activ_mode = miopenActivationRELU;
     std::string amode;
     miopenBatchNormMode_t bnmode{};
-    int batchnormMode = 0;
+    int batchnormMode = 1;
 
-    unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
+    unsigned long max_value = miopen_type<T>{} == miopenHalf ? 3 : 17;
     double alpha = 0., beta = 0., gamma = 0.;
 
     na_fusion_driver()
@@ -204,7 +204,7 @@ struct na_fusion_driver : test_driver
             "amode",
             generate_data(
                 {"MIOPENACTIVATIONRELU", "MIOPENACTIVATIONLOGISTIC", "MIOPENACTIVATIONABS"}));
-        add(batchnormMode, "batch-norm-mode", generate_data({0, 1}));
+        add(batchnormMode, "batch-norm-mode", generate_data({0 /*, 1*/}));
     }
 
     void run()
@@ -251,22 +251,27 @@ struct na_fusion_driver : test_driver
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, bnmode);
         std::tie(ssn, ssc, ssh, ssw) = miopen::tien<4>(derivedBnDesc.GetLengths());
 
-        scale       = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
-        shift       = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
-        estMean     = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
-        estVariance = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
+        scale = tensor<PREC_TYPE>{
+            ssn, ssc, ssh, ssw}; //.generate(                tensor_elem_gen_integer{max_value});;
+        shift = tensor<PREC_TYPE>{
+            ssn, ssc, ssh, ssw}; //.generate(               tensor_elem_gen_integer{max_value});;
+        estMean = tensor<PREC_TYPE>{
+            ssn, ssc, ssh, ssw}; //.generate(                tensor_elem_gen_integer{max_value});;
+        estVariance = tensor<PREC_TYPE>{
+            ssn, ssc, ssh, ssw}; //.generate(                tensor_elem_gen_integer{max_value});;
 
         srand(0);
         for(int i = 0; i < scale.desc.GetElementSize(); i++)
         {
+
             scale[i]       = (((rand() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(rand() % 100);
             shift[i]       = (((rand() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(rand() % 100);
             estMean[i]     = (((rand() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(rand() % 100);
-            estVariance[i] = (1e-2 * PREC_TYPE(rand() % 100));
+            estVariance[i] = (1e-2 * (PREC_TYPE(rand() % 100) + 1));
         }
         for(int i = 0; i < input.desc.GetElementSize(); i++)
         {
-            input[i] = (((rand() % 2) == 1) ? -1 : 1) * T(rand() % 100);
+            input[i] = 1e-2 * (((rand() % 2) == 1) ? -1 : 1) * T(rand() % 100);
         }
 
         auto&& handle = get_handle();
