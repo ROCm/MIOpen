@@ -14,6 +14,7 @@ Welcome to MIOpen
     releasenotes
     install
     driver
+    DebugAndLogging
     cache
     perfdatabase
     Getting_Started_FusionAPI
