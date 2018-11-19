@@ -17,6 +17,7 @@ AMD's library for high peformance machine learning primitives. MIOpen supports t
 * [OpenSSL](https://www.openssl.org/) or [libressl](https://www.libressl.org/)
 * [Boost](http://www.boost.org/) at least version 1.58
   * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/master/doc/src/cache.md)
+* [rocBlas](https://github.com/ROCmSoftwarePlatform/rocBLAS) Minimum version 14.3
 
 ## Installing the dependencies
 
@@ -27,6 +28,9 @@ This will install by default to `/usr/local` but it can be installed in another 
 ```
 cmake -P install_deps.cmake --prefix /some/local/dir
 ```
+This prefix can used to specify the dependency path during the configuration phase using the `CMAKE_PREFIX_PATH`.
+
+MIOpen's HIP backend uses [rocBlas](https://github.com/ROCmSoftwarePlatform/rocBLAS) by default. Users can intall RocBlas minimum release by using `apt-get install rocblas`. To disable using RocBlas set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off`. rocBlas is *not* available for the OpenCL backend.
 
 Instructions to manually install all the dependencies on Ubuntu v16 are present in this [section](#installing-the-dependencies-manually).
 
@@ -62,6 +66,11 @@ The above assumes that OpenCL is installed in one of the standard locations. If 
 
 ```
 cmake -DMIOPEN_BACKEND=OpenCL -DOPENCL_LIBRARIES=<opencl-library-path> -DOPENCL_INCLUDE_DIRS=<opencl-headers-path> ..
+```
+
+And an example setting the dependency path:
+```
+cmake -DMIOPEN_BACKEND=OpenCL -DCMAKE_PREFIX_PATH=/some/local/dir ..
 ```
 
 #### For HIP, run:

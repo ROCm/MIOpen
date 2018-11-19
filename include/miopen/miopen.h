@@ -289,11 +289,11 @@ MIOPEN_DECLARE_OBJECT(miopenRNNDescriptor);
 
 /*! @ingroup tensor
  * @enum miopenDataType_t
- * MIOpen floating point datatypes. Currently only 32-bit floats are fully supported in MIOpen.
+ * MIOpen floating point datatypes. Both 32-bit and 16-bit floats are supported in MIOpen.
 */
 typedef enum {
-    miopenHalf  = 0, /*!< 16-bit floating point (Not supported) */
-    miopenFloat = 1, /*!< 32-bit floating point (Fully supported) */
+    miopenHalf  = 0, /*!< 16-bit floating point */
+    miopenFloat = 1, /*!< 32-bit floating point */
 } miopenDataType_t;
 
 /*! @ingroup tensor
@@ -394,7 +394,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor
  * Interface for setting 4-D tensor shape. MIOpen currently only implements NCHW layout.
  *
  * @param tensorDesc Tensor descriptor type (output)
- * @param dataType   Currently only miopenFloat (32-bit floats) is implemented (input)
+ * @param dataType   MIOpen datatype (input)
  * @param n          Mini-batch size (input)
  * @param c          Number of channels (input)
  * @param h          Data height dimension size (input)
@@ -409,7 +409,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptor(
  * Interface to query the 4-D tensor shape.
  *
  * @param tensorDesc Tensor descriptor type (input)
- * @param dataType   Currently only miopenFloat (32-bit floats) is implemented (output)
+ * @param dataType   MIOpen datatype (input)
  * @param n          Mini-batch size (output)
  * @param c          Number of channels (output)
  * @param h          Data height dimension size (output)
@@ -436,7 +436,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_
  * Interface for setting tensor shape. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of
  * layout.
  * @param tensorDesc   Tensor descriptor type (input)
- * @param dataType     Currently only miopenFloat is implemented (input)
+ * @param dataType     MIOpen datatype (input)
  * @param nbDims       Number of dimensions in the dimsA array (input)
  * @param dimsA        Array containing the size of dimensions (input)
  * @param stridesA     Array containing the size of stride (input)
@@ -462,7 +462,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetTensorDescriptorSize(miopenTensorDescripto
 /*! @brief Get the details of the N-dimensional tensor descriptor.
  *
  * @param tensorDesc Tensor descriptor type (input)
- * @param dataType   Currently only miopenFloat is implemented (output)
+ * @param dataType   MIOpen datatype (input)
  * @param dimsA      Array containing the size of dimensions (output)
  * @param stridesA   Array containing the size of stride (output)
  * @return           miopenStatus_t
@@ -2174,8 +2174,8 @@ miopenExecuteFusionPlan(const miopenHandle_t handle,
 * RNN mode selection for rnn layer preference
 */
 typedef enum {
-    miopenRNNRELU = 0, /*!< RNN ReLU activation */
-    miopenRNNTANH = 1, /*!< RNN tanh activation */
+    miopenRNNRELU = 0, /*!< RNN with ReLU activation */
+    miopenRNNTANH = 1, /*!< RNN with tanh activation */
     miopenLSTM    = 2, /*!< LSTM */
     miopenGRU     = 3, /*!< GRU */
 } miopenRNNMode_t;
@@ -2350,7 +2350,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNParamsSize(miopenHandle_t handle,
  * @param rnnDesc         Fully populated RNN layer descriptor type (input)
  * @param xDesc           A previously populated tensor descriptor (input)
  * @param wDesc           A previously allocated tensor descriptor (output)
- * @param dtype           MIOpen data type enum (input)
+ * @param dtype           MIOpen data type enum, currently only fp32 is supported (input)
  * @return                miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNParamsDescriptor(miopenHandle_t handle,
