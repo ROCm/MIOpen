@@ -1,6 +1,33 @@
 
 ## MIOpen Release notes
 
+
+### 11/18/2018 [ 1.6.0 ]
+
+- Training in fp16 (half precision) including mixed-precision is now fully supported
+- Batch Normalization in fp16 (half precision) including mixed-precision are now available
+- Performance improvements for 3x3 and 1x1 single-precision convolutions
+- Layer fusions for BatchNorm+Activation are now available
+- Layer fusions with convolutions now support varying strides and padding configurations
+
+Changes: 
+
+- rocBLAS is now used as the default BLAS library for the HIP backend (minimum version 14.3.0)
+- Fixed various bugs in convolution kernels
+- Fixed issues with bad references in layer fusion 
+- Fixed gfx803 assembily issues
+- Added support fp16 Winograd convolutions
+- Added support for fp16 pooling
+- Improved error reporting for convolutions and layer fusions
+- Improved documentation
+
+Known Issues:
+
+- RNNs do not support fp16
+- OpenCL backend does not have full fp16 support
+- Layer fusions for convolution 1x1 fp16 are not supported
+
+
 ### 09/14/2018 [ 1.5.0 ]
 
 Notes:
