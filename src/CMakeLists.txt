@@ -453,6 +453,7 @@ install(FILES
     kernels/gfx900_64.cd.pdb.txt
     kernels/gfx900_56.cd.pdb.txt
     kernels/gfx906_64.cd.pdb.txt
+    kernels/gfx906_60.cd.pdb.txt
     kernels/gfx906_56.cd.pdb.txt
  DESTINATION ${DATA_INSTALL_DIR}/db)
 

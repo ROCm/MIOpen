@@ -391,9 +391,10 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
             static_cast<std::size_t>(n_batch_blks) * static_cast<std::size_t>(data_len);
 
 #if WORKAROUND_ISSUE_1185
-        if(result.workspce_sz > 8 * 1024 * 1024)
+        if(result.workspce_sz >
+           (std::size_t(6) * std::size_t(1024) * std::size_t(1024) * std::size_t(1024)))
         {
-            MIOPEN_LOG_I2("ConvOclBwdWrW2: limiting allocation of a single workspace to 8GB, need "
+            MIOPEN_LOG_I2("ConvOclBwdWrW2: limiting allocation of a single workspace to 6GB, need "
                           << result.workspce_sz
                           << " byte");
             return ConvSolution(miopenStatusNotInitialized);

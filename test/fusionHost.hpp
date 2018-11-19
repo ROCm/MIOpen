@@ -160,6 +160,7 @@ void batchNormSpatialHostInference(const tensor<T>& input,
                     double inhat   = elemStd * invertVar;
                     output(bidx, cidx, row, column) =
                         static_cast<T>(scale(0, cidx, 0, 0) * inhat + bias(0, cidx, 0, 0));
+                    // printf("output: %f\n",scale(0, cidx, 0, 0) * inhat + bias(0, cidx, 0, 0));
                 }
             }
         }
@@ -193,6 +194,7 @@ void batchNormPerActivHostInference(const tensor<T>& input,
                     double inhat   = elemStd * elemInvVar;
                     output(bidx, cidx, row, column) =
                         scale(0, cidx, row, column) * inhat + bias(0, cidx, row, column);
+                    //    printf("output: %f\n",output(bidx, cidx, row, column));
                 }
             }
         }
