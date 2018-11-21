@@ -1557,6 +1557,10 @@ void ScaleTensor(
     assert(yDim_flat > 0 && yDim_flat <= 5);
 
     const miopenDataType_t dataType = yDesc_flat.GetType();
+    if(dataType == miopenInt8)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
 
     std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(yDim_flat) + "d";
 
@@ -2100,6 +2104,87 @@ void CastTensor(Handle& handle,
         }
         default: assert(false);
         }
+    }
+}
+
+void TransformTensor(Handle& handle,
+                     const void* alpha,
+                     const TensorDescriptor& xDesc,
+                     ConstData_t x,
+                     const void* beta,
+                     const TensorDescriptor& yDesc,
+                     Data_t y)
+{
+    if(x == nullptr || y == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    std::vector<int> x_len(4);
+    std::vector<int> y_len(4);
+    std::tie(x_len[0], x_len[1], x_len[2], x_len[3]) = tien<4>(xDesc.GetLengths());
+    std::tie(y_len[0], y_len[1], y_len[2], y_len[3]) = tien<4>(yDesc.GetLengths());
+
+    if(x_len.size() != 4 || y_len.size() != 4)
+    {
+        MIOPEN_THROW("Tensor dimension must be 4");
+    }
+
+    if(x_len[0] != y_len[0])
+    {
+        MIOPEN_THROW("Tensor x and y batch sizes do not match");
+    }
+
+    if(xDesc.GetType() == miopenInt8 && yDesc.GetType() == miopenInt8)
+    {
+        if(x_len[2] != y_len[2] || x_len[3] != y_len[3])
+        {
+            MIOPEN_THROW("Tensor x and y height or width sizes do not match");
+        }
+
+        if(x_len[1] <= y_len[1])
+        {
+            if(x_len[1] <= (y_len[1] - 4) || y_len[1] % 4 != 0)
+            {
+                MIOPEN_THROW("Invalid y channel size");
+            }
+
+            int8_t zero = 0;
+            SetTensor(handle, yDesc, y, &zero);
+        }
+        else if(x_len[1] % 4 != 0)
+        {
+            MIOPEN_THROW("Invalid x channel size");
+        }
+
+        size_t batch_n = x_len[0];
+
+        x_len[0] = 1;
+        y_len[0] = 1;
+
+        miopen::TensorDescriptor x_batch_desc, y_batch_desc;
+        x_batch_desc = miopen::TensorDescriptor(miopenInt8, x_len.data(), 4);
+        y_batch_desc = miopen::TensorDescriptor(miopenInt8, y_len.data(), 4);
+
+        size_t x_batch_sz = x_batch_desc.GetElementSize();
+        size_t y_batch_sz = y_batch_desc.GetElementSize();
+
+        for(int i = 0; i < batch_n; i++)
+        {
+            size_t x_offset = i * x_batch_sz;
+            size_t y_offset = i * y_batch_sz;
+
+            CopyTensor(handle,
+                       ((x_len[1] <= y_len[1]) ? x_batch_desc : y_batch_desc),
+                       x,
+                       ((x_len[1] <= y_len[1]) ? x_batch_desc : y_batch_desc),
+                       y,
+                       x_offset,
+                       y_offset);
+        }
+
+        (void)alpha;
+        (void)beta;
     }
 }
 

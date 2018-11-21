@@ -186,5 +186,12 @@ void CastTensor(Handle& handle,
                 int srcOffset = 0,
                 int dstOffset = 0);
 
+void TransformTensor(Handle& handle,
+                     const void* alpha,
+                     const TensorDescriptor& xDesc,
+                     ConstData_t x,
+                     const void* beta,
+                     const TensorDescriptor& yDesc,
+                     Data_t y);
 } // namespace miopen
 #endif // GUARD_MIOPEN_TENSOR_OPPS_HPP_
