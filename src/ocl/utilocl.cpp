@@ -115,7 +115,7 @@ float Im2ColGPU(Handle& handle,
                      (wei_h - 1) * dilation_h + 1)));
 
         // adjust mapping for large kernel
-        int type_size    = 4; // Need to adjust for fp16
+        int type_size    = 4; // Need to adjust for fp16, int8
         int extreme_case = num_ch_per_wg * ((wei_w - 1) * dilation_w + 1) *
                            ((wei_h - 1) * dilation_h + 1) * type_size;
         if(extreme_case > MAX_LOCAL_MEM)
@@ -160,10 +160,12 @@ float Im2ColGPU(Handle& handle,
         params += " -DTILE_SZ_Y=" + std::to_string(tile_sz_y);
         params += " -DUSE_IM_OFF_GUARD=1";
 
-        if(type == miopenFloat)
-            params += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+        if(type == miopenInt8)
+            params += " -DMIOPEN_USE_INTE8=1";
+        else if(type == miopenHalf)
+            params += " -DMIOPEN_USE_FP16=1";
         else
-            params += " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
+            params += " -DMIOPEN_USE_FP32=1";
 
         const std::vector<size_t> vld{256, 1, 1};
         size_t global_threads = 256 * std::max(1, (c / num_ch_per_wg)) * num_blks;
@@ -314,10 +316,12 @@ float transpose_NCHW2CNHW(Handle& handle,
     {
         std::string params;
 
-        if(type == miopenFloat)
-            params += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+        if(type == miopenInt8)
+            params += " -DMIOPEN_USE_INTE8=1";
+        else if(type == miopenHalf)
+            params += " -DMIOPEN_USE_FP16=1";
         else
-            params += " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
+            params += " -DMIOPEN_USE_FP32=1";
 
         if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
         {
@@ -437,10 +441,12 @@ float transpose_CNHW2NCHW(Handle& handle,
     {
         std::string params;
 
-        if(type == miopenFloat)
-            params += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+        if(type == miopenInt8)
+            params += " -DMIOPEN_USE_INTE8=1";
+        else if(type == miopenHalf)
+            params += " -DMIOPEN_USE_FP16=1";
         else
-            params += " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
+            params += " -DMIOPEN_USE_FP32=1";
 
         if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
         {

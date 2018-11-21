@@ -547,6 +547,25 @@ MIOPEN_EXPORT miopenStatus_t miopenScaleTensor(miopenHandle_t handle,
 MIOPEN_EXPORT miopenStatus_t miopenGetTensorNumBytes(miopenTensorDescriptor_t tensorDesc,
                                                      size_t* numBytes);
 
+/*! @brief Copies one tensor to another tensor with a different layout.
+ *
+ * @param handle     MIOpen handle (input)
+ * @param alpha      Floating point scaling factor, allocated on the host (input)
+ * @param xDesc      Source Tensor descriptor for tensor x (input)
+ * @param x          Source Tensor x (input)
+ * @param beta       Floating point scaling factor, allocated on the host (input)
+ * @param yDesc      Destination Tensor descriptor for tensor y (input)
+ * @param y          Destination Tensor y (output)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenTransformTensor(miopenHandle_t handle,
+                                                   const void* alpha,
+                                                   const miopenTensorDescriptor_t xDesc,
+                                                   const void* x,
+                                                   const void* beta,
+                                                   const miopenTensorDescriptor_t yDesc,
+                                                   void* y);
+
 /** @} */
 // CLOSEOUT TENSOR DOXYGEN GROUP
 
