@@ -34,8 +34,8 @@ namespace miopen {
 // GEMM operation: C = alpha * op(A) * op(B) + beta * C.
 // op() can be either transpose or no-operation for A or B.
 // The shape (nRow x nCol) of op(A), op(B), C are:
-//   m x n,
-//   n x k,
+//   m x k,
+//   k x n,
 //   m x n.
 // A, B, C are what are actually being saved in memory,
 //   they can either be all column-major or all row-major.
