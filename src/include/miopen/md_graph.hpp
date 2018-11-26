@@ -111,6 +111,7 @@ struct FusionMDGraph
     static bool ExecOpGTE(const EdgeOp& edg_op, const EdgeOp& op_val);
     static bool ExecOpLTE(const EdgeOp& edg_op, const EdgeOp& op_val);
     std::vector<solver::AnySolver> GetSolvers();
+    void WriteToFile(std::string filename = "");
 
     protected:
     std::vector<std::pair<MDGraph_vertex_ptr, cur_vertex_map>> cur_vertex;
