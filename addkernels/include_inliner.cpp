@@ -66,29 +66,31 @@ static std::string GetAbsolutePath(const std::string& path)
 }
 } // namespace PathHelpers
 
-InlineStackOverflowException::InlineStackOverflowException(const std::string& trace)
+std::string IncludeFileExceptionBase::What() const
 {
     std::ostringstream ss;
+    ss << GetMessage() << ": <" << _file << ">";
 
-    ss << "Include stack depth limit has been reached." << std::endl;
-    ss << trace;
-
-    _trace = ss.str();
+    return ss.str();
 }
 
 void IncludeInliner::Process(std::istream& input,
                              std::ostream& output,
                              const std::string& root,
-                             const std::string& file_name)
+                             const std::string& file_name,
+                             const std::string& directive,
+                             bool allow_angle_brackets)
 {
-    ProcessCore(input, output, root, file_name, 0);
+    ProcessCore(input, output, root, file_name, 0, directive, allow_angle_brackets);
 }
 
 void IncludeInliner::ProcessCore(std::istream& input,
                                  std::ostream& output,
                                  const std::string& root,
                                  const std::string& file_name,
-                                 int line_number)
+                                 int line_number,
+                                 const std::string& directive,
+                                 bool allow_angle_brackets)
 {
     if(_include_depth >= include_depth_limit)
         throw InlineStackOverflowException(GetIncludeStackTrace(0));
@@ -96,7 +98,8 @@ void IncludeInliner::ProcessCore(std::istream& input,
     _include_depth++;
     _included_stack_head =
         std::make_shared<SourceFileDesc>(file_name, _included_stack_head, line_number);
-    auto current_line = 0;
+    auto current_line          = 0;
+    auto next_include_optional = false;
 
     while(!input.eof())
     {
@@ -107,29 +110,74 @@ void IncludeInliner::ProcessCore(std::istream& input,
         current_line++;
         std::transform(word.begin(), word.end(), word.begin(), ::tolower);
 
-        if(!word.empty() && word == ".include")
-        {
-            const auto first_quote_pos = line.find('"', static_cast<int>(line_parser.tellg()) + 1);
-            if(first_quote_pos == std::string::npos)
-                continue;
+        const auto include_optional = next_include_optional;
+        next_include_optional       = false;
 
-            const auto second_quote_pos = line.find('"', first_quote_pos + 1);
-            if(second_quote_pos == std::string::npos)
-                continue;
+        if(!word.empty() && word == "//inliner-include-optional")
+        {
+            if(include_optional)
+                throw IncludeExpectedException(GetIncludeStackTrace(current_line));
+            next_include_optional = true;
+            continue;
+        }
+
+        if(!word.empty() && word == directive)
+        {
+            auto first_quote_pos = line.find('"', static_cast<int>(line_parser.tellg()) + 1);
+            std::string::size_type second_quote_pos;
+
+            if(first_quote_pos != std::string::npos)
+            {
+                second_quote_pos = line.find('"', first_quote_pos + 1);
+                if(second_quote_pos == std::string::npos)
+                    throw WrongInlineDirectiveException(GetIncludeStackTrace(current_line));
+            }
+            else
+            {
+                if(!allow_angle_brackets)
+                    throw WrongInlineDirectiveException(GetIncludeStackTrace(current_line));
+
+                first_quote_pos = line.find('<', static_cast<int>(line_parser.tellg()) + 1);
+                if(first_quote_pos == std::string::npos)
+                    throw WrongInlineDirectiveException(GetIncludeStackTrace(current_line));
+
+                second_quote_pos = line.find('>', first_quote_pos + 1);
+                if(second_quote_pos == std::string::npos)
+                    throw WrongInlineDirectiveException(GetIncludeStackTrace(current_line));
+            }
 
             const std::string include_file_path =
                 line.substr(first_quote_pos + 1, second_quote_pos - first_quote_pos - 1);
             const std::string abs_include_file_path(
                 PathHelpers::GetAbsolutePath(root + "/" + include_file_path)); // NOLINT
+
+            if(abs_include_file_path.empty())
+            {
+                if(include_optional)
+                    continue;
+                throw IncludeNotFoundException(include_file_path,
+                                               GetIncludeStackTrace(current_line));
+            }
+
             std::ifstream include_file(abs_include_file_path, std::ios::in);
 
             if(!include_file.good())
-                continue;
+                throw IncludeCantBeOpenedException(include_file_path,
+                                                   GetIncludeStackTrace(current_line));
 
-            ProcessCore(include_file, output, root, include_file_path, current_line);
+            ProcessCore(include_file,
+                        output,
+                        root,
+                        include_file_path,
+                        current_line,
+                        directive,
+                        allow_angle_brackets);
         }
         else
         {
+            if(include_optional)
+                throw IncludeExpectedException(GetIncludeStackTrace(current_line));
+
             if(output.tellp() > 0)
                 output << std::endl;
 
