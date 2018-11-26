@@ -58,6 +58,7 @@ gid_z = 4
 .set out_ptr_off, 0x10
 
 .ifnotdef no_params_file
+    //inliner-include-optional
     .include "params.ins"
     .ifndef params_file
         .set batch_size, 1
