@@ -1231,6 +1231,18 @@ std::string edge_op_str(const MDGraph_op_t o)
     case OpModulo: return " % ";
     case OpGTE: return " >= ";
     case OpLTE: return " <= ";
+    case OpEval: return " eval ";
+    case OpAdd: return " + ";
+    case OpSub: return " - ";
+    case OpMul: return " * ";
+    case OpDiv: return " / ";
+    case OpPow: return " ^ ";
+    case OpAnd: return " && ";
+    case OpOr: return " || ";
+    case OpCeil: return " ceil ";
+    case OpAssign: return " = ";
+    case OpGT: return " > ";
+    case OpLT: return " < ";
     }
     MIOPEN_THROW("Invalid Operation");
 }
