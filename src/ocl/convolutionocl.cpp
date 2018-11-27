@@ -1016,6 +1016,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     ProblemDescription problem(xDesc, wDesc, yDesc, *this, 1);
 
     const auto find_db_path = GetFindDbPath() + "/" + handle.GetDbPathFilename() + ".cd.fdb.txt";
+    (void)find_db_path;
     auto record =
         boost::optional<DbRecord>{boost::none}; // Db{find_db_path, false}.FindRecord(problem);
     auto loaded = record.is_initialized();

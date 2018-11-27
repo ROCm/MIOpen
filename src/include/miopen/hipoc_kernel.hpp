@@ -111,11 +111,7 @@ struct KernelArgsPack<>
 template <class... Ts>
 struct KernelArgs
 {
-    KernelArgs(Ts... xs) : pack(xs...)
-    {
-        for(auto& x : hidden)
-            x = 0;
-    }
+    KernelArgs(Ts... xs) : pack(xs...) { std::fill(std::begin(hidden), std::end(hidden), 0); }
     KernelArgsPack<Ts...> pack;
     uint64_t hidden[6] = {};
 };

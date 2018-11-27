@@ -191,14 +191,13 @@ bool FusionMDGraph::SetConvAlgo(miopenConvFwdAlgorithm_t algo)
 
     for(auto& kinder : cur_vertex)
     {
-        MDGraph_vertex_ptr& cur_vertex_ptr = kinder.first;
-        auto& cur_map                      = kinder.second;
+        auto& cur_map = kinder.second;
         if(cur_map.find("algo") != cur_map.end())
         {
             miopenConvFwdAlgorithm_t a = boost::any_cast<miopenConvFwdAlgorithm_t>(cur_map["algo"]);
             if(a == algo)
             {
-                new_list.emplace_back(cur_vertex_ptr, cur_map);
+                new_list.emplace_back(kinder.first, cur_map);
             }
         }
         else
@@ -1088,19 +1087,23 @@ bool FusionMDGraph::CmpOpKey(const FusionMDGraph_Edge_Map& edge_val,
             auto op_val = op->MDGraphKey();
             if(op_val.count(kv.first) == 1)
             {
-                for(auto& edg_ops : kv.second)
+                auto edg_op_it =
+                    std::find_if(kv.second.begin(), kv.second.end(), [&](auto&& edg_ops) {
+                        return !FusionMDGraph::ExecEdgeOp(edg_ops, op_val.at(kv.first).at(0));
+                    });
+                if(edg_op_it == kv.second.end())
                 {
-                    if(!FusionMDGraph::ExecEdgeOp(edg_ops, op_val.at(kv.first).at(0)))
-                    {
-                        MIOPEN_LOG_I2("Edge Op :" << edg_ops << " Op Val: "
-                                                  << op_val.at(kv.first).at(0)
-                                                  << " Edge Op for key: "
-                                                  << kv.first
-                                                  << " Failed");
-                        return false;
-                    }
+                    MIOPEN_LOG_I2("Edge Op for key: " << kv.first << " Successfull");
                 }
-                MIOPEN_LOG_I2("Edge Op for key: " << kv.first << " Successfull");
+                else
+                {
+                    MIOPEN_LOG_I2("Edge Op :" << *edg_op_it << " Op Val: "
+                                              << op_val.at(kv.first).at(0)
+                                              << " Edge Op for key: "
+                                              << kv.first
+                                              << " Failed");
+                    return false;
+                }
             }
             else
             {
