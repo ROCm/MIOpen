@@ -26,6 +26,7 @@
 #ifndef GUARD_MIOPEN_LOGGER_HPP
 #define GUARD_MIOPEN_LOGGER_HPP
 
+#include <algorithm>
 #include <array>
 #include <iostream>
 #include <miopen/each_args.hpp>
@@ -166,15 +167,11 @@ std::array<T, sizeof...(Ts) + 1> make_array(T x, Ts... xs)
 template <class T, class Range>
 std::ostream& LogEnum(std::ostream& os, T x, Range&& values)
 {
-    for(auto&& p : values)
-    {
-        if(p.second == x)
-        {
-            os << p.first;
-            return os;
-        }
-    }
-    os << "Unknown: " << x;
+    auto it = std::find_if(values.begin(), values.end(), [&](auto&& p) { return p.second == x; });
+    if(it == values.end())
+        os << "Unknown: " << x;
+    else
+        os << it->first;
     return os;
 }
 

@@ -124,6 +124,7 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
 
     // param
     // 6 get us the min
+    // cppcheck-suppress knownConditionTrueFalse
     static const int backwards_min_output = (data_multiplier1 > 1 || data_multiplier0 > 1) ? 1 : 4;
     result.n_out_pix_tiles                = (is_forward)
                                  ? std::min(6, (params.n_outputs + n_out_stacks - 1) / n_out_stacks)

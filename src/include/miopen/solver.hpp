@@ -272,12 +272,9 @@ auto SearchForSolution(const Context& search_params, Db db) ->
 template <class Solution>
 static inline bool IsPureOpenCLSolution(const Solution& s)
 {
-    for(auto& k : s.construction_params)
-    {
-        if(!miopen::EndsWith(k.kernel_file, ".cl"))
-            return false;
-    }
-    return true;
+    return std::all_of(s.construction_params.begin(),
+                       s.construction_params.end(),
+                       [](const auto& k) { return miopen::EndsWith(k.kernel_file, ".cl"); });
 }
 
 // Search for all applicable solutions among many solvers

@@ -108,15 +108,7 @@ inline std::vector<std::vector<int>> generate_batchSeq(const int batchSize, cons
     return {batchSeq};
 }
 
-inline int sumvc(const std::vector<int>& x)
-{
-    int sum = 0;
-    for(int i : x)
-    {
-        sum += i;
-    }
-    return sum;
-}
+inline int sumvc(const std::vector<int>& x) { return std::accumulate(x.begin(), x.end(), 0); }
 
 inline float activfunc(float x, int actvf)
 {
