@@ -186,6 +186,7 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         && params.in_width > 3
         && params.in_width <= 1000
         && params.float_size == 32
+        && params.mode.IsNormal()
         && params.in_layout == "NCHW";
         // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
     // clang-format on

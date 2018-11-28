@@ -64,7 +64,7 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 #endif
 
     return (params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1) &&
-           (params.kernel_stride0 == 1 && params.kernel_stride1 == 1) &&
+           (params.kernel_stride0 == 1 && params.kernel_stride1 == 1) && params.mode.IsNormal() &&
 
            // This limitation is because of the way the kernel process data at lower vertical
            // boundary (including padding).

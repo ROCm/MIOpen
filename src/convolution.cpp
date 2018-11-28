@@ -250,6 +250,8 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
         // Right now this does not matter as there is none perf filtering for Winograd
         return false;
     }
+    if(mode != miopenConvolution)
+        return false;
 
     const auto device_name       = handle.GetDeviceName();
     const auto max_compute_units = handle.GetMaxComputeUnits();
@@ -281,8 +283,13 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
            (GetTypeSize(xDesc.GetType()) == 4);
 }
 
+/// \todo GET RID OF THIS FUNCTION. --atamazov
+/// At least, this function must be re-implemented by leveraging
+/// IsApplicable() from respective Solvers.
 bool ConvolutionDescriptor::IsDirectSupported(const TensorDescriptor& wDesc) const
 {
+    if(mode != miopenConvolution)
+        return true;
 
     int k, c, _kernel_size0, _kernel_size1;
     std::tie(k, c, _kernel_size0, _kernel_size1) = tien<4>(wDesc.GetLengths());
@@ -618,8 +625,6 @@ size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
     construct_params.setDoSearch(false);
     construct_params.setStream(&handle);
     construct_params.setWorkaroundDisableSearchEnforce(true);
-    if(mode == miopenGroupConv || mode == miopenDepthwise)
-        construct_params.setGroupConvCounts(group_count);
 
     try
     {

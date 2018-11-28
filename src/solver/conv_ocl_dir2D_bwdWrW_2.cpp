@@ -39,6 +39,7 @@ namespace solver {
 bool ConvOclBwdWrW2::IsApplicable(const ConvolutionContext& params) const
 {
     return (params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1) &&
+           params.mode.IsNormal() &&
 
 #if 0
            // There is a stronger restriction than this one, which make this one unnecessary.

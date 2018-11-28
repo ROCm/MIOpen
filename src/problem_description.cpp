@@ -47,25 +47,24 @@ n batchs (stacks) processed by the group
 int miopen::ProblemDescription::mloBuildConf_Key(std::string& conf_key) const
 {
 
-    conf_key =
-        std::to_string(static_cast<long long>(n_inputs)) + std::string("x") +
-        std::to_string(static_cast<long long>(in_height)) + std::string("x") +
-        std::to_string(static_cast<long long>(in_width)) + std::string("x") +
-        std::to_string(static_cast<long long>(kernel_size1)) + std::string("x") +
-        std::to_string(static_cast<long long>(kernel_size0)) + std::string("x") +
-        std::to_string(static_cast<long long>(n_outputs)) + std::string("x") +
-        std::to_string(static_cast<long long>(out_height)) + std::string("x") +
-        std::to_string(static_cast<long long>(out_width)) + std::string("x") +
-        std::to_string(static_cast<long long>(batch_sz)) + std::string("x") + in_layout +
-        std::string("x") + in_data_type + std::string("x") +
-        std::to_string(static_cast<long long>(pad1)) + std::string("x") +
-        std::to_string(static_cast<long long>(pad0)) + std::string("x") +
-        std::to_string(static_cast<long long>(kernel_stride0)) + std::string("x") +
-        std::to_string(static_cast<long long>(kernel_stride1)) + std::string("x") +
-        std::to_string(static_cast<long long>(kernel_dilation0)) + std::string("x") +
-        std::to_string(static_cast<long long>(kernel_dilation1)) + std::string("x") +
-        std::to_string(static_cast<long long>(group_counts)) + std::string("x") +
-        (direction.IsForward() ? "1" : "0"); /// \todo Shall we separate keys for WrW convolutions?
+    conf_key = std::to_string(static_cast<long long>(n_inputs)) + std::string("x") +
+               std::to_string(static_cast<long long>(in_height)) + std::string("x") +
+               std::to_string(static_cast<long long>(in_width)) + std::string("x") +
+               std::to_string(static_cast<long long>(kernel_size1)) + std::string("x") +
+               std::to_string(static_cast<long long>(kernel_size0)) + std::string("x") +
+               std::to_string(static_cast<long long>(n_outputs)) + std::string("x") +
+               std::to_string(static_cast<long long>(out_height)) + std::string("x") +
+               std::to_string(static_cast<long long>(out_width)) + std::string("x") +
+               std::to_string(static_cast<long long>(batch_sz)) + std::string("x") + in_layout +
+               std::string("x") + in_data_type + std::string("x") +
+               std::to_string(static_cast<long long>(pad1)) + std::string("x") +
+               std::to_string(static_cast<long long>(pad0)) + std::string("x") +
+               std::to_string(static_cast<long long>(kernel_stride0)) + std::string("x") +
+               std::to_string(static_cast<long long>(kernel_stride1)) + std::string("x") +
+               std::to_string(static_cast<long long>(kernel_dilation0)) + std::string("x") +
+               std::to_string(static_cast<long long>(kernel_dilation1)) + std::string("x") +
+               std::to_string(static_cast<long long>(group_counts)) + std::string("x") +
+               (mode.IsTranspose() ? "mT" : "") + (direction.IsForward() ? "1" : "0");
     return (0);
 }
 
@@ -82,6 +81,17 @@ miopen::ProblemDescription::ProblemDescription(const TensorDescriptor& in,
     SetDescFromMLDesc(*this, in, &ProblemDescription::setInputDescr);
     SetDescFromMLDesc(*this, weights, &ProblemDescription::setWeightsDescr);
     SetDescFromMLDesc(*this, out, &ProblemDescription::setOutputDescr);
-    setConvDescr(
-        conv.pad_h, conv.pad_w, conv.u, conv.v, conv.dilation_h, conv.dilation_w, conv.group_count);
+    setConvDescr(conv);
+}
+
+void miopen::ProblemDescription::setConvDescr(const ConvolutionDescriptor& conv)
+{
+    pad1             = conv.pad_h;
+    pad0             = conv.pad_w;
+    kernel_stride0   = conv.u;
+    kernel_stride1   = conv.v;
+    kernel_dilation0 = conv.dilation_h;
+    kernel_dilation1 = conv.dilation_w;
+    group_counts     = conv.group_count;
+    mode.val         = conv.mode;
 }
