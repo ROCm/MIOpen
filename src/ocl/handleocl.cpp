@@ -562,6 +562,14 @@ std::string Handle::GetDeviceName()
     return GetDeviceNameFromMap(name);
 }
 
+std::size_t Handle::GetMaxMemoryAllocSize()
+{
+    if(m_MaxMemoryAllocSizeCached == 0)
+        m_MaxMemoryAllocSizeCached = miopen::GetDeviceInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>(
+            miopen::GetDevice(this->GetStream()));
+    return m_MaxMemoryAllocSizeCached;
+}
+
 std::size_t Handle::GetMaxComputeUnits()
 {
     return miopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(miopen::GetDevice(this->GetStream()));
