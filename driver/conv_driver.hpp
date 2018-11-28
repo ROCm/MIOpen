@@ -316,6 +316,11 @@ int ConvDriver<Tgpu, Tref, Tfile>::AddCmdLineArgs()
     inflags.AddInputFlag("dilation_w", 'j', "1", "Dilation of Filter Width (Default=1)", "int");
     inflags.AddInputFlag("in_bias", 'a', "", "Input bias filename (Default=)", "string");
     inflags.AddInputFlag("group_count", 'g', "1", "Number of Groups (Default=1)", "int");
+    inflags.AddInputFlag("dout_data",
+                         'D',
+                         "",
+                         "dy data filename for backward weight computation (Default=)",
+                         "string");
 
     return 0;
 }
@@ -581,6 +586,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     std::string inFileName   = inflags.GetValueStr("in_data");
     std::string weiFileName  = inflags.GetValueStr("weights");
     std::string biasFileName = inflags.GetValueStr("in_bias");
+    std::string doutFileName = inflags.GetValueStr("dout_data");
 
     /* Unless seed is persistent between runs validation using cache stored in file is impossible.
      */
@@ -602,9 +608,18 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
         }
     }
 
-    for(int i = 0; i < out_sz; i++)
+    bool doutRead = false;
+    if(!doutFileName.empty())
     {
-        dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        doutRead = readBufferFromFile<Tgpu>(dout.data(), out_sz, doutFileName.c_str());
+    }
+
+    if(!doutRead)
+    {
+        for(int i = 0; i < out_sz; i++)
+        {
+            dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        }
     }
 
     if(inflags.GetValueInt("bias") != 0)
@@ -656,7 +671,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
         dumpBufferToFile<Tgpu>("dump_wei.bin", wei.data(), wei_sz);
         if(inflags.GetValueInt("bias") != 0)
             dumpBufferToFile<Tgpu>("dump_bias.bin", b.data(), GetTensorSize(biasTensor));
+
+        dumpBufferToFile<Tgpu>("dump_dout.bin", dout.data(), out_sz);
     }
+
 #if MIOPEN_BACKEND_OPENCL
     cl_int status;
 #elif MIOPEN_BACKEND_HIP

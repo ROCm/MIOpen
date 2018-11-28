@@ -34,7 +34,6 @@
 #include <miopen/tensor.hpp>
 #include <utility>
 
-// #include "network_data.hpp"
 #include "driver.hpp"
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
@@ -676,6 +675,14 @@ struct conv_driver : test_driver
             return;
         }
 
+        // bwd53 kernel (large images supported) doesnt support stride !=1 and dialation and pad.
+        if(input_w >= 2048 &&
+           ((filter.u != 1) || (filter.v != 1) || (filter.dilation_h != 1) ||
+            (filter.dilation_w != 1) || (filter.pad_w != 0) || (filter.pad_h != 0)))
+        {
+            return;
+        }
+
         if(((filter.mode == miopenTranspose) && (input_c == wei_k)) ||
            ((filter.mode == miopenConvolution) && (input_c == wei_c)) ||
            ((filter.mode == miopenGroupConv) && (input_c % wei_c == 0)) ||
@@ -762,6 +769,15 @@ struct conv_driver : test_driver
                         get_handle(), filter, input.desc, weights.desc, output.desc);
                 }
 #endif
+
+                // bwd53 kernel (large images supported) doesnt support stride !=1 and dialation and
+                // pad.
+                if(input_w >= 2048 &&
+                   ((filter.u != 1) || (filter.v != 1) || (filter.dilation_h != 1) ||
+                    (filter.dilation_w != 1) || (filter.pad_w != 0) || (filter.pad_h != 0)))
+                {
+                    return;
+                }
 
                 input.generate(gen_positive_value);
                 output.generate(gen_positive_value);

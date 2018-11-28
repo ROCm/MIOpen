@@ -263,9 +263,9 @@ enable_clang_tidy(
 )
 include(CppCheck)
 enable_cppcheck(
-    CHECKS 
+    CHECKS
         all
-    SUPPRESS 
+    SUPPRESS
         ConfigurationNotChecked
         unmatchedSuppression
         unusedFunction

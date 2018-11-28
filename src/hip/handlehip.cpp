@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2017-2018 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -373,6 +373,22 @@ std::size_t Handle::GetMaxComputeUnits()
         MIOPEN_THROW_HIP_STATUS(status);
 
     return result;
+}
+
+// No HIP API that could return maximum memory allocation size
+// for a single object.
+std::size_t Handle::GetMaxMemoryAllocSize()
+{
+    if(m_MaxMemoryAllocSizeCached == 0)
+    {
+        size_t free, total;
+        auto status = hipMemGetInfo(&free, &total);
+        if(status != hipSuccess)
+            MIOPEN_THROW_HIP_STATUS(status, "Failed getting available memory");
+        m_MaxMemoryAllocSizeCached = floor(total * 0.85);
+    }
+
+    return m_MaxMemoryAllocSizeCached;
 }
 
 std::string Handle::GetDeviceName()
