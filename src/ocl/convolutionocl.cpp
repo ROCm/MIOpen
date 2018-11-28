@@ -261,8 +261,7 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
                                                ExtraKernelArgs& extraArgs) const
 {
 
-    if((!IsDirectSupported(wDesc) || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{})) &&
-       !(mode == miopenGroupConv || mode == miopenDepthwise))
+    if(!IsDirectSupported(wDesc) || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
         return {};
 
     mlo_construct_direct2D construct_params(xDesc, wDesc, yDesc, *this, isForward ? 1 : 0);
@@ -272,12 +271,8 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
     construct_params.setStream(&handle);
     construct_params.setupRocm();
 
-    if(mode == miopenGroupConv || mode == miopenDepthwise)
-        construct_params.setGroupConvCounts(group_count);
-
-    if((IsWinograd3x3Supported(handle, isForward, wDesc, (isForward ? xDesc : yDesc)) &&
-        construct_params.mloIsFastBinaryWinograd3x3U()) &&
-       construct_params.usesBinaryKernel() && !(mode == miopenGroupConv || mode == miopenDepthwise))
+    if(IsWinograd3x3Supported(handle, isForward, wDesc, (isForward ? xDesc : yDesc)) &&
+       construct_params.mloIsFastBinaryWinograd3x3U() && construct_params.usesBinaryKernel())
         return {};
 
     try
@@ -1072,12 +1067,11 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     if(perf_db.empty())
         MIOPEN_THROW("Fwd Convolution cannot be executed due to incorrect params");
 
-    // sort the perf_db
     std::sort(begin(perf_db), end(perf_db));
+
     for(const auto& entry : perf_db)
         MIOPEN_LOG_I(entry.name << "\t" << entry.time << "\t" << entry.workspace);
 
-    // update perfResults
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
 
     for(int i = 0; i < *returnedAlgoCount; i++)
@@ -2451,12 +2445,11 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     if(perf_db.empty())
         MIOPEN_THROW(miopenStatusUnknownError, "Backward Data Algo cannot be executed");
 
-    // sort the perf_db
     std::sort(begin(perf_db), end(perf_db));
+
     for(const auto& entry : perf_db)
         MIOPEN_LOG_I(entry.name << "\t" << entry.time << "\t" << entry.workspace);
 
-    // update perfResults
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
 
     for(int i = 0; i < *returnedAlgoCount; i++)
@@ -3568,10 +3561,11 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     if(perf_db.empty())
         MIOPEN_THROW("Bwd Weights Convolution cannot be executed due to incorrect params");
 
-    // sort the perf_db
     std::sort(begin(perf_db), end(perf_db));
 
-    // update perfResults
+    for(const auto& entry : perf_db)
+        MIOPEN_LOG_I(entry.name << "\t" << entry.time << "\t" << entry.workspace);
+
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
 
     for(int i = 0; i < *returnedAlgoCount; i++)

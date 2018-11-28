@@ -67,6 +67,7 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& p
         && params.in_width == 224      // -W
         && params.in_height == 224     // -H
         && params.float_size == 32
+        && params.mode.IsNormal()
         && params.in_layout == "NCHW";
         // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
     // clang-format on

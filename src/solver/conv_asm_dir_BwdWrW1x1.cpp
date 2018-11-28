@@ -475,7 +475,8 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_dilation0 == 1
         && params.kernel_dilation1 == 1
         && params.bias == 0
-        && (params.float_size == 32 || params.float_size == 16) 
+        && (params.float_size == 32 || params.float_size == 16)
+        && params.mode.IsNormal()
         && params.in_layout == "NCHW");
     if(!ok)
     {
