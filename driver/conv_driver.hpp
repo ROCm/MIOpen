@@ -1919,6 +1919,27 @@ std::string ConvDriver<Tgpu, Tref, Tfile>::GetVerificationCacheFileName() const
        << "_" << weiDesc[1] << "x" << pad_h << "x" << pad_w << "x" << u << "x" << v << "x" << sx
        << "x" << sy << "x" << inflags.GetValueInt("pad_val");
 
+    switch(mode)
+    {
+    case miopenConvolution:
+        // Do not encode conv ("normal") mode to maintain compatibility with existing
+        // verification cache files.
+        break;
+    case miopenGroupConv:
+        // Group mode can be distinguished from conv by value of weiDesc[1] (which has group count
+        // included as a multiplier, so we do not need to encode group count at all).
+        break;
+    case miopenDepthwise:
+        // DW mode is essantilly Group mode when number of groups is equal to C.
+        break;
+    case miopenTranspose:
+        // In spite of weiDesc[1] is included into filename, transpose mode cannot be realiably
+        // distinguished from other modes in some corner cases, for example if C==K, 3x3, pad=1x1:
+        // "-c 8 -k 8 -H 57 -W 57 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1"
+        ss << "mT";
+        break;
+    }
+
     assert(sizeof(Tfile) == 8 || sizeof(Tfile) == 4 || sizeof(Tfile) == 2);
     // Legacy files contain floats and have no prefix.
     if(sizeof(Tfile) != 4)

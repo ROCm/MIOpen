@@ -660,6 +660,22 @@ struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const LegacyPerformanceConfig& searched_params) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&, const LegacyPerformanceConfig&) const;
+
+    protected:
+    bool IsApplicableBase(const ConvolutionContext& params) const;
+};
+
+/// Disabling auto-tune/perf-db functionality requires separate Solver.
+struct GroupConvOclDirectFwd : ConvOclDirectFwd
+{
+    bool IsApplicable(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
+
+    private:
+    // The "Solution GetSolution(Context, PerfConfig)" implicitly declares Solver
+    // auto-tunable (a.k.a. searchable). We shall hide it in this Solver.
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const LegacyPerformanceConfig& searched_params) const;
 };
 
 struct ConvOclDirectFwdFused : ConvOclDirectFwd

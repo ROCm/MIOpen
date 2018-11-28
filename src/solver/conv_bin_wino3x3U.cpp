@@ -81,6 +81,7 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
         && (params.n_outputs * params.kernel_size0 * params.kernel_size1) <= std::pow(2, 28)
         && params.n_inputs % 2 == 0 && params.n_inputs >= (device_is_gfx8 ? 16 : 18)
         && params.float_size == 32
+        && params.mode.IsNormal()
         && params.in_layout == "NCHW";
         /// \todo _n_inputs > 18 is a requirement of the v7 shader and NOT a dependency on gfx9
         /// The current way of implemenation is a hack as gfx8 uses v3.0 shader and gfx9 uses v7.
