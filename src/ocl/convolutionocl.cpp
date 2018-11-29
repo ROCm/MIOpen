@@ -3401,6 +3401,57 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             }
         }
 #endif
+        // direct convolution for groups
+        {
+
+            if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+            {
+                mlo_construct_BwdWrW2D construct_params(
+                    xDesc, dwDesc, dyDesc, *this, 0); // backward with regards to weights
+                construct_params.setDoSearch(exhaustiveSearch);
+                construct_params.setStream(&handle);
+
+                construct_params.mloBuildConf_Key(network_config);
+                const std::string algorithm_name = "miopenConvolutionBwdWeightsAlgoDirect";
+
+                miopen::solver::ConvSolution selected{miopenStatusUnknownError};
+                float best     = std::numeric_limits<float>::max();
+                const auto all = FindAllSolutions(construct_params);
+
+                visit_float(dyDesc.GetType(), [&](auto as_float) {
+                    for(const auto& sol : all)
+                    {
+
+                        /// \todo If there is only one solution available,
+                        /// we can avoid wasting time for building kernels with empty
+                        /// algorithm_name and network_config.
+                        float elapsed = EvaluateWrWDirectSolution(handle,
+                                                                  construct_params,
+                                                                  sol,
+                                                                  dy,
+                                                                  x,
+                                                                  tmp_dw.get(),
+                                                                  workSpace,
+                                                                  workSpaceSize,
+                                                                  as_float(0.0f));
+                        MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
+                                         << best);
+                        if(elapsed < best)
+                        {
+                            best     = elapsed;
+                            selected = sol;
+                        }
+                    }
+                });
+                if(selected.Succeeded())
+                {
+                    AddKernels(handle, algorithm_name, network_config, selected, nullptr);
+                    MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
+                                              << selected.workspce_sz);
+                    perf_db.push_back(PerfField{algorithm_name, best, selected.workspce_sz});
+                }
+            }
+        }
     }
     else if(mode == miopenConvolution)
     {
@@ -3912,83 +3963,130 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         if(in_c / group_count != wei_c || (mode == miopenDepthwise && wei_c != 1))
             MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
 
+        switch(algo)
+        {
+        case miopenConvolutionBwdWeightsAlgoGEMM: {
 #if MIOPEN_USE_GEMM
-        // Zeroing out the output buffer
-        float zero = 0.0f;
-        SetTensor(handle, dwDesc, dw, &zero);
+            // Zeroing out the output buffer
+            float zero = 0.0f;
+            SetTensor(handle, dwDesc, dw, &zero);
 
-        if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0)
-        {
-            assert(workSpace != nullptr &&
-                   workSpaceSize >=
-                       (group_count * BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc)));
-        }
-
-        GemmDescriptor gemm_desc =
-            CreateGemmDescriptorGroupConvBwdWeight(dyDesc, xDesc, dwDesc, group_count);
-
-        handle.ResetKernelTime();
-        float time_0 = 0;
-        float t1     = 0;
-        for(int i = 0; i < in_n; i++)
-        {
             if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0)
             {
-                size_t in_offset = i * in_c * in_h * in_w;
-                Im2ColGPU(handle,
-                          xDesc.GetElementSize(),
-                          x,
-                          in_offset,
-                          in_c,
-                          in_h,
-                          in_w,
-                          wei_h,
-                          wei_w,
-                          out_h,
-                          out_w,
-                          pad_h,
-                          pad_w,
-                          u,
-                          v,
-                          dilation_h,
-                          dilation_w,
-                          workSpace,
-                          dyDesc.GetType());
-                if(handle.IsProfilingEnabled())
-                    t1 += handle.GetKernelTime();
+                assert(workSpace != nullptr &&
+                       workSpaceSize >= (group_count * BackwardWeightsGetWorkSpaceSizeGEMM(
+                                                           handle, dyDesc, dwDesc)));
             }
 
-            size_t out_offset = i * wei_n * out_h * out_w;
-            if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0)
-            {
-                CallGemmStridedBatched(
-                    handle, gemm_desc, dy, out_offset, workSpace, 0, dw, 0, nullptr, false);
+            GemmDescriptor gemm_desc =
+                CreateGemmDescriptorGroupConvBwdWeight(dyDesc, xDesc, dwDesc, group_count);
 
-                // Update times for both the kernels
-                if(handle.IsProfilingEnabled())
+            handle.ResetKernelTime();
+            float time_0 = 0;
+            float t1     = 0;
+            for(int i = 0; i < in_n; i++)
+            {
+                if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0)
                 {
-                    if(i == in_n - 1)
-                        handle.AccumKernelTime(t1 + time_0);
-                    time_0 += handle.GetKernelTime();
+                    size_t in_offset = i * in_c * in_h * in_w;
+                    Im2ColGPU(handle,
+                              xDesc.GetElementSize(),
+                              x,
+                              in_offset,
+                              in_c,
+                              in_h,
+                              in_w,
+                              wei_h,
+                              wei_w,
+                              out_h,
+                              out_w,
+                              pad_h,
+                              pad_w,
+                              u,
+                              v,
+                              dilation_h,
+                              dilation_w,
+                              workSpace,
+                              dyDesc.GetType());
+                    if(handle.IsProfilingEnabled())
+                        t1 += handle.GetKernelTime();
+                }
+
+                size_t out_offset = i * wei_n * out_h * out_w;
+                if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0)
+                {
+                    CallGemmStridedBatched(
+                        handle, gemm_desc, dy, out_offset, workSpace, 0, dw, 0, nullptr, false);
+
+                    // Update times for both the kernels
+                    if(handle.IsProfilingEnabled())
+                    {
+                        if(i == in_n - 1)
+                            handle.AccumKernelTime(t1 + time_0);
+                        time_0 += handle.GetKernelTime();
+                    }
+                }
+                else
+                {
+                    size_t in_offset = i * in_c * in_h * in_w;
+                    CallGemmStridedBatched(
+                        handle, gemm_desc, dy, out_offset, x, in_offset, dw, 0, nullptr, false);
+
+                    if(handle.IsProfilingEnabled())
+                    {
+                        if(i == in_n - 1)
+                            handle.AccumKernelTime(time_0);
+                        time_0 += handle.GetKernelTime();
+                    }
                 }
             }
-            else
-            {
-                size_t in_offset = i * in_c * in_h * in_w;
-                CallGemmStridedBatched(
-                    handle, gemm_desc, dy, out_offset, x, in_offset, dw, 0, nullptr, false);
-
-                if(handle.IsProfilingEnabled())
-                {
-                    if(i == in_n - 1)
-                        handle.AccumKernelTime(time_0);
-                    time_0 += handle.GetKernelTime();
-                }
-            }
-        }
 #else
-        MIOPEN_THROW("GEMM is not supported");
+            MIOPEN_THROW("GEMM is not supported");
 #endif
+        }
+        break;
+        case miopenConvolutionBwdWeightsAlgoDirect:
+        {
+            mlo_construct_BwdWrW2D construct_params(
+                xDesc, dwDesc, dyDesc, *this, 0); // backward with regards to weights
+            construct_params.setStream(&handle);
+
+            visit_float(dyDesc.GetType(), [&](auto as_float) {
+
+                std::string network_config;
+                construct_params.mloBuildConf_Key(network_config);
+
+                auto&& kernels =
+                    handle.GetKernels("miopenConvolutionBwdWeightsAlgoDirect", network_config);
+                if(kernels.empty())
+                    MIOPEN_THROW("Error running direct backwards weights convolution. Was Find() "
+                                 "executed previously?");
+                auto kernel = kernels[0];
+
+                handle.ResetKernelTime();
+
+                if(kernels.size() == 1)
+                {
+                    float padding_val = 0;
+                    kernel(dy, x, dw, as_float(padding_val));
+                }
+                else
+                {
+                    assert(kernels.size() == 2);
+                    // this pointer needed here as a workaround in gcc 5
+                    assert(workSpace != nullptr);
+                    float padding_val = 0;
+                    kernel(dy, x, workSpace, as_float(padding_val));
+
+                    float time0 = handle.GetKernelTime();
+                    // second kernel - reduction
+                    kernels[1](workSpace, dw);
+
+                    handle.AccumKernelTime(time0);
+                }
+            });
+        } // case
+        } // switch
     }
 
     if(miopen::CheckNumericsEnabled() != 0)
