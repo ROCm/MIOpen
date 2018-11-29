@@ -655,7 +655,6 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
     construct_params.setDoSearch(false);
     construct_params.setStream(&handle);
     construct_params.setWorkaroundDisableSearchEnforce(true);
-
     try
     {
         const auto ss = FindAllSolutions(construct_params);
