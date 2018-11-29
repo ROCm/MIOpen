@@ -44,8 +44,7 @@ ConvolutionDescriptor::ConvolutionDescriptor(
       dilation_w(p_dilation_w),
       group_count(1)
 {
-    if(pad_h < 0 || pad_w < 0 || u <= 0 || v <= 0 || dilation_h <= 0 || dilation_w <= 0 ||
-       (dilation_h != dilation_w))
+    if(pad_h < 0 || pad_w < 0 || u <= 0 || v <= 0 || dilation_h <= 0 || dilation_w <= 0)
     {
         MIOPEN_THROW(miopenStatusBadParm,
                      "Invalid parameters, check usage. MIOPEN expects padding "
@@ -72,8 +71,7 @@ ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t c_mode,
       dilation_w(p_dilation_w),
       group_count(1)
 {
-    if(pad_h < 0 || pad_w < 0 || u <= 0 || v <= 0 || dilation_h <= 0 || dilation_w <= 0 ||
-       (dilation_h != dilation_w))
+    if(pad_h < 0 || pad_w < 0 || u <= 0 || v <= 0 || dilation_h <= 0 || dilation_w <= 0)
     {
         MIOPEN_THROW(miopenStatusBadParm,
                      "Invalid parameters, check usage. MIOPEN expects padding "
