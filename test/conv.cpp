@@ -649,7 +649,11 @@ struct conv_driver : test_driver
                 miopen::ConvolutionDescriptor{3, 3, 2, 2},
                 miopen::ConvolutionDescriptor{0, 0, 1, 1, 2, 2},
                 miopen::ConvolutionDescriptor{1, 1, 2, 2, 3, 3},
-                miopen::ConvolutionDescriptor{3, 3, 2, 2, 4, 4}};
+                miopen::ConvolutionDescriptor{3, 3, 2, 2, 4, 4},
+                miopen::ConvolutionDescriptor{0, 0, 1, 1, 1, 2},
+                miopen::ConvolutionDescriptor{1, 1, 2, 2, 2, 1},
+                miopen::ConvolutionDescriptor{2, 2, 1, 1, 4, 3},
+                miopen::ConvolutionDescriptor{3, 3, 2, 2, 3, 4}};
     }
 
     void run()
