@@ -42,7 +42,6 @@ namespace solver {
 
 bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 {
-
     bool workaround = false;
 
 #if WORKAROUND_ISSUE_1173
@@ -62,9 +61,9 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
                    (params.kernel_size0 == 7 && params.kernel_size1 == 7 && params.pad0 == 1)) &&
                   (params.out_height % 112 == 0 || params.out_width % 112 == 0));
 #endif
-
     return (params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1) &&
-           (params.kernel_stride0 == 1 && params.kernel_stride1 == 1) && params.mode.IsNormal() &&
+           (params.kernel_stride0 == 1 && params.kernel_stride1 == 1) &&
+           (params.mode.IsNormal() || params.mode.IsGroup()) &&
 
            // This limitation is because of the way the kernel process data at lower vertical
            // boundary (including padding).
@@ -161,6 +160,7 @@ static inline void ComputeOutputParams(int output_width,
                                        int workgroup_size,
                                        int output_width_chunk,
                                        int num_out_channels, // No. of output channels in config
+                                       int group_counts,
                                        int& out_tile0,
                                        int& n_out_stacks)
 {
@@ -181,8 +181,16 @@ static inline void ComputeOutputParams(int output_width,
     if(output_width == output_width_chunk)
     {
         // span size
-        int n_spans  = std::ceil(static_cast<float>(output_width_chunk) / out_tile0);
-        n_out_stacks = std::min(num_out_channels, std::max(1, workgroup_size / n_spans));
+        int n_spans = std::ceil(static_cast<float>(output_width_chunk) / out_tile0);
+
+        // Only process 1 output channel in workgroup when group is specified
+        // TBD: To support more than output channels in workgroup, more changes are required in
+        // kernel
+        // as which input channels are to be read from input is driven by combination of
+        // weight input channel thread idx and output channel index.
+        n_out_stacks = (group_counts == 1)
+                           ? std::min(num_out_channels, std::max(1, workgroup_size / n_spans))
+                           : 1;
     }
 }
 
@@ -246,7 +254,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     const auto hw_wave_sz = 64;
     // inpout are outputs
     int wei_cstride = params.kernel_size0 * params.kernel_size1;
-    int wei_bstride = params.n_outputs * wei_cstride;
+    int wei_bstride = (params.n_outputs / params.group_counts) * wei_cstride;
 
     // number  of batch iterations
     result.n_stacks = 1;
@@ -269,12 +277,11 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
                       ? 4
                       : (params.in_width <= 16) ? 1 : 2;
     int GRP_SZ = hw_wave_sz * n_waves;
-    // number of input maps per group
-
     result.n_in_data_tiles =
         (params.in_width <= 32 && (result.out_pix_tile0 * result.out_pix_tile1) <= 16) ? 4 : 1;
 
-    result.n_in_data_tiles = std::min(result.n_in_data_tiles, params.n_outputs);
+    result.n_in_data_tiles =
+        std::min(result.n_in_data_tiles, (params.n_outputs / params.group_counts));
 
     static const int read_unit =
         (params.out_width % 4 == 0) ? 4 : (params.out_width % 3 == 0)
@@ -323,7 +330,12 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
                               out_horizon_last_chunk_valid_pixels);
     if(out_n_horizon_read_loops > 2 && params.pad0 != 0)
     {
-        MIOPEN_LOG_W("Padding where split is more than 2 ways is not supported yet.");
+        MIOPEN_LOG_W("Padding where split is more than 2 ways is not supported.");
+        return ConvSolution(miopenStatusNotInitialized);
+    }
+    if(out_n_horizon_read_loops > 1 && params.group_counts > 1)
+    {
+        MIOPEN_LOG_W("For large images, group support is missing.");
         return ConvSolution(miopenStatusNotInitialized);
     }
 
@@ -344,8 +356,13 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     result.in_tile1        = 1;
     result.n_out_pix_tiles = 1;
     int n_out_stacks       = 1;
-    ComputeOutputParams(
-        params.in_width, GRP_SZ, in_width_chunk, params.n_inputs, result.in_tile0, n_out_stacks);
+    ComputeOutputParams(params.in_width,
+                        GRP_SZ,
+                        in_width_chunk,
+                        params.n_inputs,
+                        params.group_counts,
+                        result.in_tile0,
+                        n_out_stacks);
 
     if(result.in_tile0 <= 0)
     {
@@ -376,6 +393,10 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     std::string UT_READ_TYPE =
         (ut_read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((ut_read_unit));
 
+    // group parameters
+    int n_input_channels_per_group  = params.n_outputs / params.group_counts;
+    int n_output_channels_per_group = params.n_inputs / params.group_counts;
+
     if(!params.direction.IsBackwardWrW())
         MIOPEN_THROW("!params.direction.IsBackwardWrW()");
     // it's backward - inputs are outputs and vs versa
@@ -394,6 +415,9 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         std::string(" -DSTRIDE_H=") + std::to_string(params.kernel_stride1) +
         std::string(" -DMLO_N_OUTPUTS=") + std::to_string(params.n_inputs) +
         std::string(" -DMLO_N_INPUTS=") + std::to_string(params.n_outputs) +
+        std::string(" -DMLO_GROUP_COUNTS=") + std::to_string(params.group_counts) +
+        std::string(" -DMLO_N_INPUTS_PER_GROUP=") + std::to_string(n_input_channels_per_group) +
+        std::string(" -DMLO_N_OUTPUTS_PER_GROUP=") + std::to_string(n_output_channels_per_group) +
         std::string(" -DMLO_BATCH_SZ=") + std::to_string(params.batch_sz) +
         std::string(" -DMLO_N_BATCH_LOOPS=") + std::to_string(N_BATCH_LOOPS) +
         std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(params.in_batch_stride) +
@@ -456,19 +480,31 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         kernel.l_wk.push_back(grp_tile2);
         // input is output
 
-        size_t gbl_wk0 =
-            GRP_SZ * ((params.n_outputs + result.n_in_data_tiles - 1) / result.n_in_data_tiles);
         size_t gbl_wk1 = ((params.n_inputs + total_out_maps - 1) / total_out_maps);
         size_t gbl_wk2 = n_batch_blks;
+        size_t gbl_wk0 = GRP_SZ;
+
+        if(params.group_counts > 1)
+        {
+            gbl_wk0 *= (((params.n_outputs / params.group_counts) + result.n_in_data_tiles - 1) /
+                        result.n_in_data_tiles);
+
+            kernel.kernel_file = "MIOpenGroupConvBwdWrW_LxG_P53.cl";
+            kernel.kernel_name = "MIOpenCvBwdWrW";
+        }
+        else
+        {
+            gbl_wk0 *= ((params.n_outputs + result.n_in_data_tiles - 1) / result.n_in_data_tiles);
+
+            kernel.kernel_file = "MIOpenConvBwdWrW_LxG_P53.cl";
+            kernel.kernel_name = "MIOpenCvBwdWrW";
+        }
 
         kernel.g_wk.push_back(gbl_wk0);
         kernel.g_wk.push_back(gbl_wk1);
         kernel.g_wk.push_back(gbl_wk2);
 
-        kernel.kernel_file  = "MIOpenConvBwdWrW_LxG_P53.cl";
-        kernel.kernel_name  = "MIOpenCvBwdWrW";
         kernel.comp_options = comp_options;
-
         result.construction_params.push_back(kernel);
         result.workspce_sz = 0;
     }

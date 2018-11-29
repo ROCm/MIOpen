@@ -39,7 +39,7 @@ namespace solver {
 bool ConvOclBwdWrW2::IsApplicable(const ConvolutionContext& params) const
 {
     return (params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1) &&
-           params.mode.IsNormal() &&
+           (params.mode.IsNormal() || params.mode.IsGroup()) &&
 
 #if 0
            // There is a stronger restriction than this one, which make this one unnecessary.
@@ -91,7 +91,6 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
           std::to_string(params.kernel_stride0) + "x" + std::to_string(params.n_outputs) + "x" +
           std::to_string(params.out_height) + "x" + std::to_string(params.out_width) + "x" +
           std::to_string(params.batch_sz);
-    //	std::map<std::string, std::string> lcl_db;
     bool found = false;
     int i      = 0;
     for(; s_stride_table[i][0] != nullptr; ++i)
@@ -107,7 +106,7 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
 
     int N_BATCH_LOOPS = 1; // _batch_sz / _n_stacks;
                            // n of map in a block (see below)
-    result.out_pix_tile1 = (params.out_width > 512) ? 1 : 2;
+    result.out_pix_tile1 = (params.out_width > 512 || params.group_counts > 1) ? 1 : 2;
     int n_waves          = (params.kernel_size0 > 11) ? 2 : 4;
     // n of shared blocks of output maps in lcl memory
     result.n_out_pix_tiles = 2;
@@ -135,7 +134,7 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
     //_dev_local_mem_sz = localMemSize; // in bytes
     // inpout are outputs
     int wei_cstride = params.kernel_size0 * params.kernel_size1;
-    int wei_bstride = params.n_outputs * wei_cstride;
+    int wei_bstride = (params.n_outputs / params.group_counts) * wei_cstride;
 
     // number  of batch iterations
     result.n_stacks = 1;
@@ -166,11 +165,16 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
     result.n_in_data_tiles = 1;
 
     // select output mapping
-    int total_out_maps   = result.n_out_pix_tiles * result.out_pix_tile1;
-    result.out_pix_tile1 = (total_out_maps > params.n_inputs) ? 1 : result.out_pix_tile1;
-    total_out_maps       = result.n_out_pix_tiles * result.out_pix_tile1;
-    result.n_out_pix_tiles =
-        (total_out_maps > params.n_inputs) ? params.n_inputs : result.n_out_pix_tiles;
+    int n_input_channels_per_group  = params.n_outputs / params.group_counts;
+    int n_output_channels_per_group = params.n_inputs / params.group_counts;
+
+    int total_out_maps = result.n_out_pix_tiles * result.out_pix_tile1;
+    result.out_pix_tile1 =
+        (total_out_maps > n_output_channels_per_group) ? 1 : result.out_pix_tile1;
+    total_out_maps         = result.n_out_pix_tiles * result.out_pix_tile1;
+    result.n_out_pix_tiles = (total_out_maps > n_output_channels_per_group)
+                                 ? n_output_channels_per_group
+                                 : result.n_out_pix_tiles;
     int N_OUT_BLK_GRP = result.out_pix_tile1;
     total_out_maps    = result.n_out_pix_tiles * result.out_pix_tile1;
 
@@ -326,38 +330,46 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
         std::string(" -DMLO_LG2_PHYS_WAVE_SZ=") + std::to_string(mloLg2(_hw_wave_sz)) +
         std::string(" -DMLO_OUT_N_PIXS_OFF=") + std::to_string(OUT_N_PIXS_OFF) +
         std::string(" -DMLO_IN_LCL_WIDTH=") + std::to_string(in_lcl_width) +
-        std::string(" -DMLO_IN_LCL_SZ=") + std::to_string(in_lcl_sz)
-
-        + std::string(" -DMLO_CONV_BIAS=") + std::to_string(params.bias)
-
-        + std::string(" -DMLO_UT_READ_TYPE=") + UT_READ_TYPE + std::string(" -DMLO_UT_READ_UNIT=") +
-        std::to_string(ut_read_unit)
-
-        + std::string(" -DMLO_UT_GRP_SZ0=") + std::to_string((UT_GRP_SZ0))
-
+        std::string(" -DMLO_IN_LCL_SZ=") + std::to_string(in_lcl_sz) +
+        std::string(" -DMLO_CONV_BIAS=") + std::to_string(params.bias) +
+        std::string(" -DMLO_UT_READ_TYPE=") + UT_READ_TYPE + std::string(" -DMLO_UT_READ_UNIT=") +
+        std::to_string(ut_read_unit) + std::string(" -DMLO_UT_GRP_SZ0=") +
+        std::to_string((UT_GRP_SZ0)) + std::string(" -DMLO_GROUP_COUNTS=") +
+        std::to_string(params.group_counts) + std::string(" -DMLO_N_INPUTS_PER_GROUP=") +
+        std::to_string(n_input_channels_per_group) + std::string(" -DMLO_N_OUTPUTS_PER_GROUP=") +
+        std::to_string(n_output_channels_per_group)
         //		+ std::string(" -limit-vector-registers=64 ")
         + params.general_compile_options;
 
     // wrt to W
     {
         KernelInfo kernel;
-
         kernel.l_wk.push_back(result.grp_tile0);
         kernel.l_wk.push_back(result.grp_tile1);
         kernel.l_wk.push_back(grp_tile2);
-        // input is output
 
-        size_t gbl_wk0 = GRP_SZ * params.n_outputs;
         assert(total_out_maps != 0);
         size_t gbl_wk1 = ((params.n_inputs + total_out_maps - 1) / total_out_maps);
         size_t gbl_wk2 = n_batch_blks;
+        size_t gbl_wk0 = GRP_SZ;
+
+        if(params.group_counts > 1)
+        {
+            gbl_wk0 *= n_input_channels_per_group;
+            kernel.kernel_file = "MIOpenGroupConvBwdWrWS2.cl";
+            kernel.kernel_name = "MIOpenCvBwdWrW";
+        }
+        else
+        {
+            gbl_wk0 *= params.n_outputs;
+            kernel.kernel_file = "MIOpenConvBwdWrWS2.cl";
+            kernel.kernel_name = "MIOpenCvBwdWrW";
+        }
 
         kernel.g_wk.push_back(gbl_wk0);
         kernel.g_wk.push_back(gbl_wk1);
         kernel.g_wk.push_back(gbl_wk2);
 
-        kernel.kernel_file  = "MIOpenConvBwdWrWS2.cl";
-        kernel.kernel_name  = "MIOpenCvBwdWrW";
         kernel.comp_options = comp_options;
 
         result.construction_params.push_back(kernel);
