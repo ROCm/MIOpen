@@ -40,6 +40,7 @@
 
 namespace miopen {
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_FIND_DB)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
@@ -401,6 +402,7 @@ static void DirConvFindCore(Handle& handle,
             MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
 
 #if MIOPEN_USE_GEMM
+        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
         { // GEMM algo
             float time_gemm = 0;
 
@@ -648,7 +650,7 @@ static void DirConvFindCore(Handle& handle,
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
 #if MIOPEN_USE_GEMM
-        // GEMM based convolution
+        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
         {
             // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR
             // for 1x1_stride=2
@@ -1280,6 +1282,10 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
         case miopenConvolutionFwdAlgoGEMM: {
 #if MIOPEN_USE_GEMM
+            if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
+            {
+                MIOPEN_THROW("GEMM convolution is disabled");
+            }
             int in_n, in_c, in_h, in_w;
             std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
 
@@ -1585,6 +1591,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         break;
 
         case miopenConvolutionFwdAlgoGEMM:
+#if MIOPEN_USE_GEMM
         {
             int in_n, in_c, in_h, in_w;
             std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
@@ -1603,7 +1610,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             if(in_c / group_count != wei_c || (mode == miopenDepthwise && wei_c != 1))
                 MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
 
-#if MIOPEN_USE_GEMM
             // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
             // 1x1_stride=2
             if((wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0) &&
@@ -1730,13 +1736,12 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     }
                 }
             }
+        }
+        break;
 #else
             MIOPEN_THROW("GEMM is not supported");
 #endif
-        }
-#if MIOPEN_USE_GEMM
-        break;
-#endif
+
         case miopenConvolutionFwdAlgoWinograd:
             MIOPEN_THROW("Winograd is not supported for group conv");
         case miopenConvolutionFwdAlgoFFT: MIOPEN_THROW("FFT is not supported for group conv");
@@ -2263,7 +2268,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         }
 
 #if MIOPEN_USE_GEMM
-        // GEMM based
+        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
         {
             std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
@@ -2646,6 +2651,10 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
         case miopenConvolutionBwdDataAlgoGEMM: {
 #if MIOPEN_USE_GEMM
+            if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
+            {
+                MIOPEN_THROW("GEMM convolution is disabled");
+            }
             int in_n, in_c, in_h, in_w;
             std::tie(in_n, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
 
@@ -2945,6 +2954,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         }
 
         case miopenConvolutionBwdDataAlgoGEMM:
+#if MIOPEN_USE_GEMM
         {
             int in_n, in_c, in_h, in_w;
             std::tie(in_n, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
@@ -2963,7 +2973,6 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             if(in_c / group_count != wei_c || (mode == miopenDepthwise && wei_c != 1))
                 MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
 
-#if MIOPEN_USE_GEMM
             if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2))
             {
                 float t1 = 0;
@@ -3107,13 +3116,12 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                     }
                 }
             }
+        }
+        break;
 #else
             MIOPEN_THROW("GEMM is not supported");
 #endif
-        }
-#if MIOPEN_USE_GEMM
-        break;
-#endif
+
         case miopenConvolutionBwdDataAlgoWinograd:
             MIOPEN_THROW("Winograd is not supported for group conv");
         case miopenConvolutionBwdDataAlgoFFT: MIOPEN_THROW("FFT is not supported for group conv");
@@ -3456,7 +3464,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     else if(mode == miopenConvolution)
     {
 #if MIOPEN_USE_GEMM
-        // GEMM based convolution
+        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
         {
             std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
 
@@ -3695,6 +3703,11 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         {
         case miopenConvolutionBwdWeightsAlgoGEMM: {
 #if MIOPEN_USE_GEMM
+            if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
+            {
+                MIOPEN_THROW("GEMM convolution is disabled");
+            }
+
             // Zeroing out the output buffer
             float zero = 0.0f;
             SetTensor(handle, dwDesc, dw, &zero);
@@ -3768,6 +3781,10 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
                 CallGemmStridedBatchedSequential(
                     handle, gemm_desc, dy, 0, x, 0, dw, 0, nullptr, false);
+            }
+            else
+            {
+                MIOPEN_THROW("GEMM WrW convolution cannot be executed due to incorrect params");
             }
 #else
             MIOPEN_THROW("GEMM is not supported");
