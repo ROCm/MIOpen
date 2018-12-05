@@ -164,7 +164,8 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
 
     result.n_in_data_tiles = 1;
 
-    // select output mapping
+    // At convolutionocl level, the assertion is present to ensure output channels are
+    // in multiple of group counts
     int n_input_channels_per_group  = params.n_outputs / params.group_counts;
     int n_output_channels_per_group = params.n_inputs / params.group_counts;
 
