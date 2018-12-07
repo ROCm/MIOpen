@@ -672,9 +672,7 @@ struct conv_driver : test_driver
 
         // lack of transposeConv for half type
         // \todo enhance support of half type into transConv
-        if((input.desc.GetType() == miopenHalf) &&
-           ((filter.mode == miopenTranspose || filter.mode == miopenGroupConv ||
-             filter.mode == miopenDepthwise)))
+        if((input.desc.GetType() == miopenHalf) && (filter.mode == miopenTranspose))
         {
             return;
         }
