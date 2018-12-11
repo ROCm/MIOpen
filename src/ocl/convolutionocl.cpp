@@ -40,6 +40,7 @@
 
 namespace miopen {
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_FIND_DB)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
@@ -401,6 +402,7 @@ static void DirConvFindCore(Handle& handle,
             MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
 
 #if MIOPEN_USE_GEMM
+        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
         { // GEMM algo
             float time_gemm = 0;
 
@@ -563,16 +565,43 @@ static void DirConvFindCore(Handle& handle,
                 if(!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}))
                 {
                     // rocBLAS need extra warm-up call for accurate timing
-                    CallGemmStridedBatched(
-                        handle, gemm_desc, w, 0, workSpace, 0, tmp_y.get(), 0, nullptr, false);
+                    CallGemmStridedBatched(handle,
+                                           gemm_desc,
+                                           w,
+                                           0,
+                                           workSpace,
+                                           0,
+                                           tmp_y.get(),
+                                           0,
+                                           nullptr,
+                                           false,
+                                           GemmBackend_t::miopengemm);
 
-                    gemm_status = CallGemmStridedBatched(
-                        handle, gemm_desc, w, 0, workSpace, 0, tmp_y.get(), 0, &kcache_key, true);
+                    gemm_status = CallGemmStridedBatched(handle,
+                                                         gemm_desc,
+                                                         w,
+                                                         0,
+                                                         workSpace,
+                                                         0,
+                                                         tmp_y.get(),
+                                                         0,
+                                                         &kcache_key,
+                                                         true,
+                                                         GemmBackend_t::miopengemm);
                 }
                 else
                 {
-                    gemm_status = CallGemmStridedBatched(
-                        handle, gemm_desc, w, 0, workSpace, 0, tmp_y.get(), 0, &kcache_key, false);
+                    gemm_status = CallGemmStridedBatched(handle,
+                                                         gemm_desc,
+                                                         w,
+                                                         0,
+                                                         workSpace,
+                                                         0,
+                                                         tmp_y.get(),
+                                                         0,
+                                                         &kcache_key,
+                                                         false,
+                                                         GemmBackend_t::miopengemm);
                 }
 
                 time_gemm = in_n * (time_im2col + handle.GetKernelTime());
@@ -648,7 +677,7 @@ static void DirConvFindCore(Handle& handle,
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
 #if MIOPEN_USE_GEMM
-        // GEMM based convolution
+        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
         {
             // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR
             // for 1x1_stride=2
@@ -820,17 +849,45 @@ static void DirConvFindCore(Handle& handle,
                 if(!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}))
                 {
                     // rocBLAS need a warm-up call for accurate timing
-                    CallGemm(handle, gemm_desc, w, 0, workSpace, 0, tmp_y.get(), 0, nullptr, false);
+                    CallGemm(handle,
+                             gemm_desc,
+                             w,
+                             0,
+                             workSpace,
+                             0,
+                             tmp_y.get(),
+                             0,
+                             nullptr,
+                             false,
+                             GemmBackend_t::miopengemm);
 
                     // y = w * Im2Col(x)
-                    gemm_status = CallGemm(
-                        handle, gemm_desc, w, 0, workSpace, 0, tmp_y.get(), 0, &kcache_key, true);
+                    gemm_status = CallGemm(handle,
+                                           gemm_desc,
+                                           w,
+                                           0,
+                                           workSpace,
+                                           0,
+                                           tmp_y.get(),
+                                           0,
+                                           &kcache_key,
+                                           true,
+                                           GemmBackend_t::miopengemm);
                 }
                 else
                 {
                     // y = w * Im2Col(x)
-                    gemm_status = CallGemm(
-                        handle, gemm_desc, w, 0, workSpace, 0, tmp_y.get(), 0, &kcache_key, false);
+                    gemm_status = CallGemm(handle,
+                                           gemm_desc,
+                                           w,
+                                           0,
+                                           workSpace,
+                                           0,
+                                           tmp_y.get(),
+                                           0,
+                                           &kcache_key,
+                                           false,
+                                           GemmBackend_t::miopengemm);
                 }
 
                 float time_gemm = in_n * (time_im2col + handle.GetKernelTime());
@@ -1280,6 +1337,10 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
         case miopenConvolutionFwdAlgoGEMM: {
 #if MIOPEN_USE_GEMM
+            if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
+            {
+                MIOPEN_THROW("GEMM convolution is disabled");
+            }
             int in_n, in_c, in_h, in_w;
             std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
 
@@ -1404,7 +1465,17 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                         t1 = handle.GetKernelTime();
 
                     // y = w * Im2Col(x)
-                    CallGemm(handle, gemm_desc, w, 0, workSpace, 0, y, out_offset, nullptr, false);
+                    CallGemm(handle,
+                             gemm_desc,
+                             w,
+                             0,
+                             workSpace,
+                             0,
+                             y,
+                             out_offset,
+                             nullptr,
+                             false,
+                             GemmBackend_t::miopengemm);
 
                     // Update times for both the kernels
                     if(handle.IsProfilingEnabled())
@@ -1585,6 +1656,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         break;
 
         case miopenConvolutionFwdAlgoGEMM:
+#if MIOPEN_USE_GEMM
         {
             int in_n, in_c, in_h, in_w;
             std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
@@ -1603,7 +1675,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             if(in_c / group_count != wei_c || (mode == miopenDepthwise && wei_c != 1))
                 MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
 
-#if MIOPEN_USE_GEMM
             // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
             // 1x1_stride=2
             if((wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0) &&
@@ -1718,8 +1789,17 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                         t1 += handle.GetKernelTime();
 
                     size_t out_offset = i * wei_n * out_h * out_w;
-                    CallGemmStridedBatched(
-                        handle, gemm_desc, w, 0, workSpace, 0, y, out_offset, nullptr, false);
+                    CallGemmStridedBatched(handle,
+                                           gemm_desc,
+                                           w,
+                                           0,
+                                           workSpace,
+                                           0,
+                                           y,
+                                           out_offset,
+                                           nullptr,
+                                           false,
+                                           GemmBackend_t::miopengemm);
 
                     // Update times for both the kernels
                     if(handle.IsProfilingEnabled())
@@ -1730,13 +1810,12 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     }
                 }
             }
+        }
+        break;
 #else
             MIOPEN_THROW("GEMM is not supported");
 #endif
-        }
-#if MIOPEN_USE_GEMM
-        break;
-#endif
+
         case miopenConvolutionFwdAlgoWinograd:
             MIOPEN_THROW("Winograd is not supported for group conv");
         case miopenConvolutionFwdAlgoFFT: MIOPEN_THROW("FFT is not supported for group conv");
@@ -2011,16 +2090,43 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 if(!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}))
                 {
                     // rocBLAS need a warm-up call for accurate timing
-                    CallGemmStridedBatched(
-                        handle, gemm_desc, w, 0, dy, 0, workSpace, 0, nullptr, false);
+                    CallGemmStridedBatched(handle,
+                                           gemm_desc,
+                                           w,
+                                           0,
+                                           dy,
+                                           0,
+                                           workSpace,
+                                           0,
+                                           nullptr,
+                                           false,
+                                           GemmBackend_t::miopengemm);
 
-                    gemm_status = CallGemmStridedBatched(
-                        handle, gemm_desc, w, 0, dy, 0, workSpace, 0, nullptr, true);
+                    gemm_status = CallGemmStridedBatched(handle,
+                                                         gemm_desc,
+                                                         w,
+                                                         0,
+                                                         dy,
+                                                         0,
+                                                         workSpace,
+                                                         0,
+                                                         nullptr,
+                                                         true,
+                                                         GemmBackend_t::miopengemm);
                 }
                 else
                 {
-                    gemm_status = CallGemmStridedBatched(
-                        handle, gemm_desc, w, 0, dy, 0, workSpace, 0, nullptr, false);
+                    gemm_status = CallGemmStridedBatched(handle,
+                                                         gemm_desc,
+                                                         w,
+                                                         0,
+                                                         dy,
+                                                         0,
+                                                         workSpace,
+                                                         0,
+                                                         nullptr,
+                                                         false,
+                                                         GemmBackend_t::miopengemm);
                 }
 
                 time_gemm   = (in_n * handle.GetKernelTime());
@@ -2263,7 +2369,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         }
 
 #if MIOPEN_USE_GEMM
-        // GEMM based
+        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
         {
             std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
@@ -2394,17 +2500,45 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 if(!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}))
                 {
                     // rocBLAS need a warm-up call for accurate timing
-                    CallGemm(handle, gemm_desc, w, 0, dy, 0, workSpace, 0, nullptr, false);
+                    CallGemm(handle,
+                             gemm_desc,
+                             w,
+                             0,
+                             dy,
+                             0,
+                             workSpace,
+                             0,
+                             nullptr,
+                             false,
+                             GemmBackend_t::miopengemm);
 
                     // dx = transpose(w) * dy
-                    gemm_status =
-                        CallGemm(handle, gemm_desc, w, 0, dy, 0, workSpace, 0, nullptr, true);
+                    gemm_status = CallGemm(handle,
+                                           gemm_desc,
+                                           w,
+                                           0,
+                                           dy,
+                                           0,
+                                           workSpace,
+                                           0,
+                                           nullptr,
+                                           true,
+                                           GemmBackend_t::miopengemm);
                 }
                 else
                 {
                     // dx = transpose(w) * dy
-                    gemm_status =
-                        CallGemm(handle, gemm_desc, w, 0, dy, 0, workSpace, 0, nullptr, false);
+                    gemm_status = CallGemm(handle,
+                                           gemm_desc,
+                                           w,
+                                           0,
+                                           dy,
+                                           0,
+                                           workSpace,
+                                           0,
+                                           nullptr,
+                                           false,
+                                           GemmBackend_t::miopengemm);
                 }
 
                 float time_gemm = in_n * handle.GetKernelTime();
@@ -2646,6 +2780,10 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
         case miopenConvolutionBwdDataAlgoGEMM: {
 #if MIOPEN_USE_GEMM
+            if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
+            {
+                MIOPEN_THROW("GEMM convolution is disabled");
+            }
             int in_n, in_c, in_h, in_w;
             std::tie(in_n, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
 
@@ -2761,7 +2899,17 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                     size_t in_offset = i * in_c * in_h * in_w;
 
                     // dx = transpose(w) * dy
-                    CallGemm(handle, gemm_desc, w, 0, dy, out_offset, workSpace, 0, nullptr, false);
+                    CallGemm(handle,
+                             gemm_desc,
+                             w,
+                             0,
+                             dy,
+                             out_offset,
+                             workSpace,
+                             0,
+                             nullptr,
+                             false,
+                             GemmBackend_t::miopengemm);
 
                     if(handle.IsProfilingEnabled())
                         t1 = handle.GetKernelTime();
@@ -2945,6 +3093,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         }
 
         case miopenConvolutionBwdDataAlgoGEMM:
+#if MIOPEN_USE_GEMM
         {
             int in_n, in_c, in_h, in_w;
             std::tie(in_n, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
@@ -2963,7 +3112,6 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             if(in_c / group_count != wei_c || (mode == miopenDepthwise && wei_c != 1))
                 MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
 
-#if MIOPEN_USE_GEMM
             if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2))
             {
                 float t1 = 0;
@@ -3073,8 +3221,17 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                     size_t in_offset  = i * in_c * in_h * in_w;
                     size_t out_offset = i * wei_n * out_h * out_w;
 
-                    CallGemmStridedBatched(
-                        handle, gemm_desc, w, 0, dy, out_offset, workSpace, 0, nullptr, false);
+                    CallGemmStridedBatched(handle,
+                                           gemm_desc,
+                                           w,
+                                           0,
+                                           dy,
+                                           out_offset,
+                                           workSpace,
+                                           0,
+                                           nullptr,
+                                           false,
+                                           GemmBackend_t::miopengemm);
 
                     if(handle.IsProfilingEnabled())
                         t1 += handle.GetKernelTime();
@@ -3107,13 +3264,12 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                     }
                 }
             }
+        }
+        break;
 #else
             MIOPEN_THROW("GEMM is not supported");
 #endif
-        }
-#if MIOPEN_USE_GEMM
-        break;
-#endif
+
         case miopenConvolutionBwdDataAlgoWinograd:
             MIOPEN_THROW("Winograd is not supported for group conv");
         case miopenConvolutionBwdDataAlgoFFT: MIOPEN_THROW("FFT is not supported for group conv");
@@ -3334,16 +3490,43 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 if(!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}))
                 {
                     // rocBLAS need a warm-up call for accurate timing
-                    CallGemmStridedBatched(
-                        handle, gemm_desc, dy, 0, x, 0, tmp_dw.get(), 0, nullptr, false);
+                    CallGemmStridedBatched(handle,
+                                           gemm_desc,
+                                           dy,
+                                           0,
+                                           x,
+                                           0,
+                                           tmp_dw.get(),
+                                           0,
+                                           nullptr,
+                                           false,
+                                           GemmBackend_t::miopengemm);
 
-                    gemm_status = CallGemmStridedBatched(
-                        handle, gemm_desc, dy, 0, x, 0, tmp_dw.get(), 0, nullptr, true);
+                    gemm_status = CallGemmStridedBatched(handle,
+                                                         gemm_desc,
+                                                         dy,
+                                                         0,
+                                                         x,
+                                                         0,
+                                                         tmp_dw.get(),
+                                                         0,
+                                                         nullptr,
+                                                         true,
+                                                         GemmBackend_t::miopengemm);
                 }
                 else
                 {
-                    gemm_status = CallGemmStridedBatched(
-                        handle, gemm_desc, dy, 0, x, 0, tmp_dw.get(), 0, nullptr, false);
+                    gemm_status = CallGemmStridedBatched(handle,
+                                                         gemm_desc,
+                                                         dy,
+                                                         0,
+                                                         x,
+                                                         0,
+                                                         tmp_dw.get(),
+                                                         0,
+                                                         nullptr,
+                                                         false,
+                                                         GemmBackend_t::miopengemm);
                 }
 
                 time_gemm = in_n * handle.GetKernelTime();
@@ -3381,16 +3564,43 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 if(!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}))
                 {
                     // rocBLAS need a warm-up call for accurate timing
-                    CallGemmStridedBatched(
-                        handle, gemm_desc, dy, 0, workSpace, 0, tmp_dw.get(), 0, nullptr, false);
+                    CallGemmStridedBatched(handle,
+                                           gemm_desc,
+                                           dy,
+                                           0,
+                                           workSpace,
+                                           0,
+                                           tmp_dw.get(),
+                                           0,
+                                           nullptr,
+                                           false,
+                                           GemmBackend_t::miopengemm);
 
-                    gemm_status = CallGemmStridedBatched(
-                        handle, gemm_desc, dy, 0, workSpace, 0, tmp_dw.get(), 0, nullptr, true);
+                    gemm_status = CallGemmStridedBatched(handle,
+                                                         gemm_desc,
+                                                         dy,
+                                                         0,
+                                                         workSpace,
+                                                         0,
+                                                         tmp_dw.get(),
+                                                         0,
+                                                         nullptr,
+                                                         true,
+                                                         GemmBackend_t::miopengemm);
                 }
                 else
                 {
-                    gemm_status = CallGemmStridedBatched(
-                        handle, gemm_desc, dy, 0, workSpace, 0, tmp_dw.get(), 0, nullptr, false);
+                    gemm_status = CallGemmStridedBatched(handle,
+                                                         gemm_desc,
+                                                         dy,
+                                                         0,
+                                                         workSpace,
+                                                         0,
+                                                         tmp_dw.get(),
+                                                         0,
+                                                         nullptr,
+                                                         false,
+                                                         GemmBackend_t::miopengemm);
                 }
 
                 time_gemm = in_n * (time_im2col + handle.GetKernelTime());
@@ -3456,7 +3666,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     else if(mode == miopenConvolution)
     {
 #if MIOPEN_USE_GEMM
-        // GEMM based convolution
+        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
         {
             std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
 
@@ -3497,18 +3707,45 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 if(!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}))
                 {
                     // rocBLAS need a warm-up call for accurate timing
-                    CallGemm(
-                        handle, gemm_desc, dy, 0, workSpace, 0, tmp_dw.get(), 0, nullptr, false);
+                    CallGemm(handle,
+                             gemm_desc,
+                             dy,
+                             0,
+                             workSpace,
+                             0,
+                             tmp_dw.get(),
+                             0,
+                             nullptr,
+                             false,
+                             GemmBackend_t::miopengemm);
 
                     // dw = dy * transpose(Im2Col(x))
-                    gemm_status = CallGemm(
-                        handle, gemm_desc, dy, 0, workSpace, 0, tmp_dw.get(), 0, nullptr, true);
+                    gemm_status = CallGemm(handle,
+                                           gemm_desc,
+                                           dy,
+                                           0,
+                                           workSpace,
+                                           0,
+                                           tmp_dw.get(),
+                                           0,
+                                           nullptr,
+                                           true,
+                                           GemmBackend_t::miopengemm);
                 }
                 else
                 {
                     // dw = dy * transpose(Im2Col(x))
-                    gemm_status = CallGemm(
-                        handle, gemm_desc, dy, 0, workSpace, 0, tmp_dw.get(), 0, nullptr, false);
+                    gemm_status = CallGemm(handle,
+                                           gemm_desc,
+                                           dy,
+                                           0,
+                                           workSpace,
+                                           0,
+                                           tmp_dw.get(),
+                                           0,
+                                           nullptr,
+                                           false,
+                                           GemmBackend_t::miopengemm);
                 }
 
                 float time_gemm = in_n * (time_im2col + handle.GetKernelTime());
@@ -3533,18 +3770,45 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 if(!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}))
                 {
                     // rocBLAS need a warm-up call for accurate timing
-                    CallGemmStridedBatchedSequential(
-                        handle, gemm_desc, dy, 0, x, 0, tmp_dw.get(), 0, nullptr, false);
+                    CallGemmStridedBatchedSequential(handle,
+                                                     gemm_desc,
+                                                     dy,
+                                                     0,
+                                                     x,
+                                                     0,
+                                                     tmp_dw.get(),
+                                                     0,
+                                                     nullptr,
+                                                     false,
+                                                     GemmBackend_t::miopengemm);
 
                     // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
-                    gemm_status = CallGemmStridedBatchedSequential(
-                        handle, gemm_desc, dy, 0, x, 0, tmp_dw.get(), 0, nullptr, true);
+                    gemm_status = CallGemmStridedBatchedSequential(handle,
+                                                                   gemm_desc,
+                                                                   dy,
+                                                                   0,
+                                                                   x,
+                                                                   0,
+                                                                   tmp_dw.get(),
+                                                                   0,
+                                                                   nullptr,
+                                                                   true,
+                                                                   GemmBackend_t::miopengemm);
                 }
                 else
                 {
                     // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
-                    gemm_status = CallGemmStridedBatchedSequential(
-                        handle, gemm_desc, dy, 0, x, 0, tmp_dw.get(), 0, nullptr, false);
+                    gemm_status = CallGemmStridedBatchedSequential(handle,
+                                                                   gemm_desc,
+                                                                   dy,
+                                                                   0,
+                                                                   x,
+                                                                   0,
+                                                                   tmp_dw.get(),
+                                                                   0,
+                                                                   nullptr,
+                                                                   false,
+                                                                   GemmBackend_t::miopengemm);
                 }
 
                 float time_gemm = handle.GetKernelTime();
@@ -3695,6 +3959,11 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         {
         case miopenConvolutionBwdWeightsAlgoGEMM: {
 #if MIOPEN_USE_GEMM
+            if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
+            {
+                MIOPEN_THROW("GEMM convolution is disabled");
+            }
+
             // Zeroing out the output buffer
             float zero = 0.0f;
             SetTensor(handle, dwDesc, dw, &zero);
@@ -3743,8 +4012,17 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                         t1 = handle.GetKernelTime();
 
                     // dw = dy * transpose(Im2Col(x))
-                    CallGemm(
-                        handle, gemm_desc, dy, out_offset, workSpace, 0, dw, 0, nullptr, false);
+                    CallGemm(handle,
+                             gemm_desc,
+                             dy,
+                             out_offset,
+                             workSpace,
+                             0,
+                             dw,
+                             0,
+                             nullptr,
+                             false,
+                             GemmBackend_t::miopengemm);
 
                     // Update times for both the kernels
                     if(handle.IsProfilingEnabled())
@@ -3766,8 +4044,21 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(dyDesc, xDesc, dwDesc);
 
                 // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
-                CallGemmStridedBatchedSequential(
-                    handle, gemm_desc, dy, 0, x, 0, dw, 0, nullptr, false);
+                CallGemmStridedBatchedSequential(handle,
+                                                 gemm_desc,
+                                                 dy,
+                                                 0,
+                                                 x,
+                                                 0,
+                                                 dw,
+                                                 0,
+                                                 nullptr,
+                                                 false,
+                                                 GemmBackend_t::miopengemm);
+            }
+            else
+            {
+                MIOPEN_THROW("GEMM WrW convolution cannot be executed due to incorrect params");
             }
 #else
             MIOPEN_THROW("GEMM is not supported");
@@ -4015,8 +4306,17 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 size_t out_offset = i * wei_n * out_h * out_w;
                 if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0)
                 {
-                    CallGemmStridedBatched(
-                        handle, gemm_desc, dy, out_offset, workSpace, 0, dw, 0, nullptr, false);
+                    CallGemmStridedBatched(handle,
+                                           gemm_desc,
+                                           dy,
+                                           out_offset,
+                                           workSpace,
+                                           0,
+                                           dw,
+                                           0,
+                                           nullptr,
+                                           false,
+                                           GemmBackend_t::miopengemm);
 
                     // Update times for both the kernels
                     if(handle.IsProfilingEnabled())
@@ -4029,8 +4329,17 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 else
                 {
                     size_t in_offset = i * in_c * in_h * in_w;
-                    CallGemmStridedBatched(
-                        handle, gemm_desc, dy, out_offset, x, in_offset, dw, 0, nullptr, false);
+                    CallGemmStridedBatched(handle,
+                                           gemm_desc,
+                                           dy,
+                                           out_offset,
+                                           x,
+                                           in_offset,
+                                           dw,
+                                           0,
+                                           nullptr,
+                                           false,
+                                           GemmBackend_t::miopengemm);
 
                     if(handle.IsProfilingEnabled())
                     {
