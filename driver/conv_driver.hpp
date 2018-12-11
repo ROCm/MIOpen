@@ -770,6 +770,24 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
 
     if(inflags.GetValueInt("time") == 1)
     {
+        int in_n, in_c, in_h, in_w;
+        std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
+        int wei_c, wei_n, wei_h, wei_w;
+        std::tie(wei_c, wei_n, wei_h, wei_w) =
+            miopen::tien<4>(miopen::deref(weightTensor).GetLengths());
+        int out_n, out_c, out_h, out_w;
+        std::tie(out_n, out_c, out_h, out_w) =
+            miopen::tien<4>(miopen::deref(outputTensor).GetLengths());
+        size_t flopCnt = 2L * in_n * in_c * wei_h * wei_w * out_c * out_h * out_w;
+        size_t inputBytes =
+            in_n * in_c * in_h * in_w * miopen::GetTypeSize(miopen::deref(inputTensor).GetType());
+        size_t weightBytes = wei_n * wei_c * wei_h * wei_w *
+                             miopen::GetTypeSize(miopen::deref(weightTensor).GetType());
+        size_t readBytes = inputBytes + weightBytes;
+
+        size_t outputBytes = 1.0 * out_n * out_c * out_h * out_w *
+                             miopen::GetTypeSize(miopen::deref(outputTensor).GetType());
+
         STOP_TIME;
         if(WALL_CLOCK)
             printf("Wall-clock Time Forward Conv. Elapsed: %f ms\n",
@@ -781,6 +799,26 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
 
         printf("MIOpen Forward Conv. Algorithm: %d\n", perf_results[0].fwd_algo);
         printf("GPU Kernel Time Forward Conv. Elapsed: %f ms (average)\n", kernel_average_time);
+        printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
+               "GB/s, timeMs\n");
+        printf("stats: %s%dx%du%d, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
+               "fwd-conv",
+               wei_h,
+               wei_w,
+               miopen::deref(convDesc).u,
+               in_n,
+               in_c,
+               out_h,
+               out_w,
+               wei_h,
+               wei_w,
+               out_c,
+               flopCnt,
+               readBytes,
+               outputBytes,
+               flopCnt / kernel_average_time / 1e6,
+               (readBytes + outputBytes) / kernel_average_time / 1e6,
+               kernel_average_time);
     }
 
     if(inflags.GetValueInt("bias") != 0)
@@ -1177,6 +1215,46 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
         printf("MIOpen Backward Data Conv. Algorithm: %d\n", perf_results_data[0].bwd_data_algo);
         printf("GPU Kernel Time Backward Data Conv. Elapsed: %f ms (average)\n",
                kernel_average_time);
+
+        int in_n, in_c, in_h, in_w;
+        std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
+        int wei_c, wei_n, wei_h, wei_w;
+        std::tie(wei_c, wei_n, wei_h, wei_w) =
+            miopen::tien<4>(miopen::deref(weightTensor).GetLengths());
+        int out_n, out_c, out_h, out_w;
+        std::tie(out_n, out_c, out_h, out_w) =
+            miopen::tien<4>(miopen::deref(outputTensor).GetLengths());
+
+        size_t flopCnt     = 2L * in_n * in_c * in_h * in_w * wei_h * wei_w * out_c;
+        size_t weightBytes = wei_n * wei_c * wei_h * wei_w *
+                             miopen::GetTypeSize(miopen::deref(weightTensor).GetType());
+        size_t inputBytes =
+            in_n * in_c * out_c * miopen::GetTypeSize(miopen::deref(inputTensor).GetType());
+        size_t readBytes = inputBytes + weightBytes;
+
+        size_t outputBytes = 1.0 * out_n * out_c * out_h * out_w *
+                             miopen::GetTypeSize(miopen::deref(outputTensor).GetType());
+
+        printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
+               "GB/s, timeMs\n");
+        printf("stats: %s%dx%du%d, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
+               "bwdd-conv",
+               wei_h,
+               wei_w,
+               miopen::deref(convDesc).u,
+               in_n,
+               in_c,
+               wei_h,
+               wei_w,
+               out_c,
+               out_h,
+               out_w,
+               flopCnt,
+               readBytes,
+               outputBytes,
+               flopCnt / kernel_average_time / 1e6,
+               (readBytes + outputBytes) / kernel_average_time / 1e6,
+               kernel_average_time);
     }
 
     din_dev->FromGPU(GetStream(), din.data());
@@ -1233,6 +1311,40 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
         printf("MIOpen Backward Weights Conv. Algorithm: %d\n",
                perf_results_weights[0].bwd_weights_algo);
         printf("GPU Kernel Time Backward Weights Conv. Elapsed: %f ms (average)\n",
+               kernel_average_time);
+
+        int in_n, in_c, in_h, in_w;
+        std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
+        int wei_c, wei_n, wei_h, wei_w;
+        std::tie(wei_c, wei_n, wei_h, wei_w) =
+            miopen::tien<4>(miopen::deref(weightTensor).GetLengths());
+        int out_n, out_c, out_h, out_w;
+        std::tie(out_n, out_c, out_h, out_w) =
+            miopen::tien<4>(miopen::deref(outputTensor).GetLengths());
+
+        size_t flopCnt     = 2L * in_n * in_c * in_h * in_w * wei_h * wei_w * out_c;
+        size_t readBytes   = 0;
+        size_t outputBytes = 0;
+
+        printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
+               "GB/s, timeMs\n");
+        printf("stats: %s%dx%du%d, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
+               "bwdw-conv",
+               wei_h,
+               wei_w,
+               miopen::deref(convDesc).u,
+               in_n,
+               in_c,
+               out_h,
+               out_w,
+               wei_h,
+               wei_w,
+               out_c,
+               flopCnt,
+               readBytes,
+               outputBytes,
+               flopCnt / kernel_average_time / 1e6,
+               (readBytes + outputBytes) / kernel_average_time / 1e6,
                kernel_average_time);
     }
     dwei_dev->FromGPU(GetStream(), dwei.data());
