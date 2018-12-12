@@ -236,7 +236,7 @@
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #define UNUSED __attribute__((__unused__))
-#define INLINE __attribute__((always_inline))
+#define INLINE
 #define DBG_OUT_OF_RNGE 0
 
 INLINE

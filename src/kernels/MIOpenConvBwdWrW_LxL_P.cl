@@ -127,13 +127,13 @@
 #define MLO_LCL_SZ (MLO_WEI_BLKS_LCL_SZ)
 #endif
 
-__attribute__((always_inline)) uint iDiv(uint v, uint d)
+uint iDiv(uint v, uint d)
 {
     uint r = (uint)((float)v / d + 0.00001f);
     return (r);
 }
 
-__attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
+uint iMod(uint v, uint u, uint d)
 {
     uint r = v - mul24((uint)u, (uint)d);
     return (r);

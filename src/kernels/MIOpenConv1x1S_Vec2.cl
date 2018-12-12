@@ -58,13 +58,13 @@
 
 // calculating the size of the area for weights prefetch
 
-__attribute__((always_inline)) uint iDiv(uint v, uint d)
+uint iDiv(uint v, uint d)
 {
     uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
     return (r);
 }
 
-__attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
+uint iMod(uint v, uint u, uint d)
 {
     uint r = v - mul24(u, d);
     return (r);

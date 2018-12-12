@@ -80,13 +80,13 @@
 //#define MIOPEN_NEURON_SQR 11         // sqr(x)
 #define MIOPEN_NEURON_TOTAL 10
 
-__attribute__((always_inline)) uint iDiv(uint v, uint d)
+uint iDiv(uint v, uint d)
 {
     uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
     return (r);
 }
 
-__attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
+uint iMod(uint v, uint u, uint d)
 {
     uint r = v - mul24(u, d);
     return (r);
@@ -94,12 +94,12 @@ __attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
 
 static __constant _FLOAT_PREC kBNLL_THRESHOLD = (_FLOAT_PREC)50.;
 
-__attribute__((always_inline)) void ActivationFunction_PassThru(const uint n,
-                                                                _FLOAT_PREC* res,
-                                                                const _FLOAT_PREC* data,
-                                                                UNUSED const _FLOAT_PREC gamma,
-                                                                UNUSED const _FLOAT_PREC beta,
-                                                                UNUSED const _FLOAT_PREC alpha)
+void ActivationFunction_PassThru(const uint n,
+                                 _FLOAT_PREC* res,
+                                 const _FLOAT_PREC* data,
+                                 UNUSED const _FLOAT_PREC gamma,
+                                 UNUSED const _FLOAT_PREC beta,
+                                 UNUSED const _FLOAT_PREC alpha)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -107,12 +107,12 @@ __attribute__((always_inline)) void ActivationFunction_PassThru(const uint n,
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_ReLU(const uint n,
-                                                            _FLOAT_PREC* res,
-                                                            const _FLOAT_PREC* data,
-                                                            UNUSED const _FLOAT_PREC gamma,
-                                                            UNUSED const _FLOAT_PREC beta,
-                                                            UNUSED const _FLOAT_PREC alpha)
+void ActivationFunction_ReLU(const uint n,
+                             _FLOAT_PREC* res,
+                             const _FLOAT_PREC* data,
+                             UNUSED const _FLOAT_PREC gamma,
+                             UNUSED const _FLOAT_PREC beta,
+                             UNUSED const _FLOAT_PREC alpha)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -120,12 +120,12 @@ __attribute__((always_inline)) void ActivationFunction_ReLU(const uint n,
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_Sigmoid(const uint n,
-                                                               _FLOAT_PREC* res,
-                                                               const _FLOAT_PREC* data,
-                                                               UNUSED const _FLOAT_PREC gamma,
-                                                               UNUSED const _FLOAT_PREC beta,
-                                                               UNUSED const _FLOAT_PREC alpha)
+void ActivationFunction_Sigmoid(const uint n,
+                                _FLOAT_PREC* res,
+                                const _FLOAT_PREC* data,
+                                UNUSED const _FLOAT_PREC gamma,
+                                UNUSED const _FLOAT_PREC beta,
+                                UNUSED const _FLOAT_PREC alpha)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -134,12 +134,12 @@ __attribute__((always_inline)) void ActivationFunction_Sigmoid(const uint n,
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_TanH(const uint n,
-                                                            _FLOAT_PREC* res,
-                                                            const _FLOAT_PREC* data,
-                                                            UNUSED const _FLOAT_PREC gamma,
-                                                            const _FLOAT_PREC beta,
-                                                            const _FLOAT_PREC alpha)
+void ActivationFunction_TanH(const uint n,
+                             _FLOAT_PREC* res,
+                             const _FLOAT_PREC* data,
+                             UNUSED const _FLOAT_PREC gamma,
+                             const _FLOAT_PREC beta,
+                             const _FLOAT_PREC alpha)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -148,12 +148,12 @@ __attribute__((always_inline)) void ActivationFunction_TanH(const uint n,
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_Abs(const uint n,
-                                                           _FLOAT_PREC* res,
-                                                           const _FLOAT_PREC* data,
-                                                           UNUSED const _FLOAT_PREC gamma,
-                                                           UNUSED const _FLOAT_PREC beta,
-                                                           UNUSED const _FLOAT_PREC alpha)
+void ActivationFunction_Abs(const uint n,
+                            _FLOAT_PREC* res,
+                            const _FLOAT_PREC* data,
+                            UNUSED const _FLOAT_PREC gamma,
+                            UNUSED const _FLOAT_PREC beta,
+                            UNUSED const _FLOAT_PREC alpha)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -161,12 +161,12 @@ __attribute__((always_inline)) void ActivationFunction_Abs(const uint n,
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_Square(const uint n,
-                                                              _FLOAT_PREC* res,
-                                                              const _FLOAT_PREC* data,
-                                                              UNUSED const _FLOAT_PREC gamma,
-                                                              UNUSED const _FLOAT_PREC beta,
-                                                              UNUSED const _FLOAT_PREC alpha)
+void ActivationFunction_Square(const uint n,
+                               _FLOAT_PREC* res,
+                               const _FLOAT_PREC* data,
+                               UNUSED const _FLOAT_PREC gamma,
+                               UNUSED const _FLOAT_PREC beta,
+                               UNUSED const _FLOAT_PREC alpha)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -175,12 +175,12 @@ __attribute__((always_inline)) void ActivationFunction_Square(const uint n,
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_Sqrt(const uint n,
-                                                            _FLOAT_PREC* res,
-                                                            const _FLOAT_PREC* data,
-                                                            UNUSED const _FLOAT_PREC gamma,
-                                                            UNUSED const _FLOAT_PREC beta,
-                                                            UNUSED const _FLOAT_PREC alpha)
+void ActivationFunction_Sqrt(const uint n,
+                             _FLOAT_PREC* res,
+                             const _FLOAT_PREC* data,
+                             UNUSED const _FLOAT_PREC gamma,
+                             UNUSED const _FLOAT_PREC beta,
+                             UNUSED const _FLOAT_PREC alpha)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -189,12 +189,12 @@ __attribute__((always_inline)) void ActivationFunction_Sqrt(const uint n,
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_Linear(const uint n,
-                                                              _FLOAT_PREC* res,
-                                                              const _FLOAT_PREC* data,
-                                                              UNUSED const _FLOAT_PREC gamma,
-                                                              const _FLOAT_PREC beta,
-                                                              const _FLOAT_PREC alpha)
+void ActivationFunction_Linear(const uint n,
+                               _FLOAT_PREC* res,
+                               const _FLOAT_PREC* data,
+                               UNUSED const _FLOAT_PREC gamma,
+                               const _FLOAT_PREC beta,
+                               const _FLOAT_PREC alpha)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -202,12 +202,12 @@ __attribute__((always_inline)) void ActivationFunction_Linear(const uint n,
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_Power(const uint n,
-                                                             _FLOAT_PREC* res,
-                                                             const _FLOAT_PREC* data,
-                                                             const _FLOAT_PREC gamma,
-                                                             const _FLOAT_PREC beta,
-                                                             const _FLOAT_PREC alpha)
+void ActivationFunction_Power(const uint n,
+                              _FLOAT_PREC* res,
+                              const _FLOAT_PREC* data,
+                              const _FLOAT_PREC gamma,
+                              const _FLOAT_PREC beta,
+                              const _FLOAT_PREC alpha)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -217,12 +217,12 @@ __attribute__((always_inline)) void ActivationFunction_Power(const uint n,
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_BNLL(const uint n,
-                                                            _FLOAT_PREC* res,
-                                                            const _FLOAT_PREC* data,
-                                                            UNUSED const _FLOAT_PREC gamma,
-                                                            UNUSED const _FLOAT_PREC beta,
-                                                            UNUSED const _FLOAT_PREC alpha)
+void ActivationFunction_BNLL(const uint n,
+                             _FLOAT_PREC* res,
+                             const _FLOAT_PREC* data,
+                             UNUSED const _FLOAT_PREC gamma,
+                             UNUSED const _FLOAT_PREC beta,
+                             UNUSED const _FLOAT_PREC alpha)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -232,12 +232,12 @@ __attribute__((always_inline)) void ActivationFunction_BNLL(const uint n,
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_Leaky_ReLU(const uint n,
-                                                                  _FLOAT_PREC* res,
-                                                                  const _FLOAT_PREC* data,
-                                                                  UNUSED const _FLOAT_PREC gamma,
-                                                                  UNUSED const _FLOAT_PREC beta,
-                                                                  const _FLOAT_PREC alpha)
+void ActivationFunction_Leaky_ReLU(const uint n,
+                                   _FLOAT_PREC* res,
+                                   const _FLOAT_PREC* data,
+                                   UNUSED const _FLOAT_PREC gamma,
+                                   UNUSED const _FLOAT_PREC beta,
+                                   const _FLOAT_PREC alpha)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -245,12 +245,12 @@ __attribute__((always_inline)) void ActivationFunction_Leaky_ReLU(const uint n,
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_Clipped_ReLU(const uint n,
-                                                                    _FLOAT_PREC* res,
-                                                                    const _FLOAT_PREC* data,
-                                                                    UNUSED const _FLOAT_PREC gamma,
-                                                                    UNUSED const _FLOAT_PREC beta,
-                                                                    const _FLOAT_PREC alpha)
+void ActivationFunction_Clipped_ReLU(const uint n,
+                                     _FLOAT_PREC* res,
+                                     const _FLOAT_PREC* data,
+                                     UNUSED const _FLOAT_PREC gamma,
+                                     UNUSED const _FLOAT_PREC beta,
+                                     const _FLOAT_PREC alpha)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -258,12 +258,12 @@ __attribute__((always_inline)) void ActivationFunction_Clipped_ReLU(const uint n
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_ELU(const uint n,
-                                                           _FLOAT_PREC* res,
-                                                           const _FLOAT_PREC* data,
-                                                           UNUSED const _FLOAT_PREC gamma,
-                                                           UNUSED const _FLOAT_PREC beta,
-                                                           const _FLOAT_PREC alpha)
+void ActivationFunction_ELU(const uint n,
+                            _FLOAT_PREC* res,
+                            const _FLOAT_PREC* data,
+                            UNUSED const _FLOAT_PREC gamma,
+                            UNUSED const _FLOAT_PREC beta,
+                            const _FLOAT_PREC alpha)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -271,12 +271,12 @@ __attribute__((always_inline)) void ActivationFunction_ELU(const uint n,
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction(const uint n,
-                                                       _FLOAT_PREC* res,
-                                                       const _FLOAT_PREC* data,
-                                                       const _FLOAT_PREC gamma,
-                                                       const _FLOAT_PREC beta,
-                                                       const _FLOAT_PREC alpha)
+void ActivationFunction(const uint n,
+                        _FLOAT_PREC* res,
+                        const _FLOAT_PREC* data,
+                        const _FLOAT_PREC gamma,
+                        const _FLOAT_PREC beta,
+                        const _FLOAT_PREC alpha)
 {
 #if MIOPEN_NRN_OP_ID == MIOPEN_NEURON_PASTHRU
     {
@@ -333,13 +333,13 @@ __attribute__((always_inline)) void ActivationFunction(const uint n,
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
-__attribute__((always_inline)) void BatchNormFunctionSpatial(const uint n,
-                                                             _FLOAT_PREC* out,
-                                                             const _FLOAT* in,
-                                                             const _FLOAT_PREC mean,
-                                                             const _FLOAT_PREC invVariance,
-                                                             const _FLOAT_PREC scale,
-                                                             const _FLOAT_PREC bias)
+void BatchNormFunctionSpatial(const uint n,
+                              _FLOAT_PREC* out,
+                              const _FLOAT* in,
+                              const _FLOAT_PREC mean,
+                              const _FLOAT_PREC invVariance,
+                              const _FLOAT_PREC scale,
+                              const _FLOAT_PREC bias)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -406,13 +406,13 @@ MIOpenBatchNormActivInferSpatialEst(const _FLOAT alpha,
     }
 } // end spatial norm
 
-__attribute__((always_inline)) void BatchNormFunctionPerAct(const uint n,
-                                                            _FLOAT_PREC* out,
-                                                            const _FLOAT* in,
-                                                            const _FLOAT_PREC* mean,
-                                                            const _FLOAT_PREC* invVariance,
-                                                            const _FLOAT_PREC* scale,
-                                                            const _FLOAT_PREC* bias)
+void BatchNormFunctionPerAct(const uint n,
+                             _FLOAT_PREC* out,
+                             const _FLOAT* in,
+                             const _FLOAT_PREC* mean,
+                             const _FLOAT_PREC* invVariance,
+                             const _FLOAT_PREC* scale,
+                             const _FLOAT_PREC* bias)
 {
     for(uint i = 0; i < n; ++i)
     {

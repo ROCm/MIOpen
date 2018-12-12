@@ -80,13 +80,13 @@
 #define MLO_LCL_SZ (MLO_WEI_LCL_SZ)
 #endif
 
-__attribute__((always_inline)) int iDiv(int v, int d)
+int iDiv(int v, int d)
 {
     int r = (int)((float)v / d + 0.00001f);
     return (r);
 }
 
-__attribute__((always_inline)) int iMod(int v, int u, int d)
+int iMod(int v, int u, int d)
 {
     int r = v - mul24((int)u, (int)d);
     return (r);
@@ -99,10 +99,10 @@ __attribute__((always_inline)) int iMod(int v, int u, int d)
 
         no guard against number of inputs
 */
-__attribute__((always_inline)) void readInput(int lcl_id,
-                                              int gbl_in_scan_off,
-                                              const __global _FLOAT* __restrict bot,
-                                              __local _FLOAT* __restrict lcl_bot)
+void readInput(int lcl_id,
+               int gbl_in_scan_off,
+               const __global _FLOAT* __restrict bot,
+               __local _FLOAT* __restrict lcl_bot)
 {
     for(int p4 = lcl_id; p4 < MLO_N_LCL_IN_MAPS * MLO_N_IN_HORIZ_READS * MLO_IN_VERT_READS;
         p4 += MLO_GRP_SZ)
@@ -178,13 +178,13 @@ __attribute__((always_inline)) void readInput(int lcl_id,
         loop over filter vertical size
 
 */
-__attribute__((always_inline)) void Processing(UNUSED int sc,
-                                               int sc_lcl_off,
-                                               int top_lim,
-                                               int bot_lim,
-                                               __private _FLOAT* __restrict pvt_accum,
-                                               __local _FLOAT* __restrict lcl_bot,
-                                               __private _FLOAT* __restrict top_dat)
+void Processing(UNUSED int sc,
+                int sc_lcl_off,
+                int top_lim,
+                int bot_lim,
+                __private _FLOAT* __restrict pvt_accum,
+                __local _FLOAT* __restrict lcl_bot,
+                __private _FLOAT* __restrict top_dat)
 {
     for(int l = top_lim; l >= bot_lim; --l)
     {
@@ -215,7 +215,7 @@ __attribute__((always_inline)) void Processing(UNUSED int sc,
     }
 }
 
-__attribute__((always_inline)) void moveOutputUp(__private _FLOAT* __restrict top_dat)
+void moveOutputUp(__private _FLOAT* __restrict top_dat)
 {
     // move up output to reduce overfetch
     for(int j = 0; j < MLO_FILTER_SIZE1 - 1; ++j)
