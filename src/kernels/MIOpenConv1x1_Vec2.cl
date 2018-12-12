@@ -53,7 +53,7 @@
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #define UNUSED __attribute__((__unused__))
-#define INLINE __attribute__((always_inline))
+#define INLINE
 #define IDIV(A, B) (iDiv(A, B))
 #define IMOD(A, B, C) (iMod(A, B, C))
 //#define IDIV(A,B) ((uint)((float)A * (1.0f / (float) B) + 0.00001f))

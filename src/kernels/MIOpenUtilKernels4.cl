@@ -47,13 +47,13 @@ typedef short data_t;
 typedef float data_t;
 #endif
 
-__attribute__((always_inline)) uint iDiv(uint v, uint d)
+uint iDiv(uint v, uint d)
 {
     uint r = v / d;
     return (r);
 }
 
-__attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
+uint iMod(uint v, uint u, uint d)
 {
     uint r = v - mul24(u, d);
     return (r);

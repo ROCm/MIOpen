@@ -51,13 +51,13 @@
 #define _FLOAT4 PPCAT(_FLOAT, FOUR)
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
-__attribute__((always_inline)) uint iDiv(uint v, uint d)
+uint iDiv(uint v, uint d)
 {
     uint r = v / d;
     return (r);
 }
 
-__attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
+uint iMod(uint v, uint u, uint d)
 {
     uint r = v - mul24(u, d);
     return (r);

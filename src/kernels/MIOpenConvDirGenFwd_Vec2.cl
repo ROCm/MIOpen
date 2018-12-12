@@ -52,7 +52,7 @@
 #define _FLOAT4 PPCAT(_FLOAT, FOUR)
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
-#define INLINE __attribute__((always_inline))
+#define INLINE
 #ifndef MLO_OUT_ALIGNED
 #define MLO_OUT_ALIGNED 0
 #endif
