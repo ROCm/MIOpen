@@ -99,25 +99,25 @@
 #define MLO_PVT_OUT_DATA_HEIGHT MLO_N_OUT_PIX_SZ1* MLO_LCL_N_OUT_CHNLS
 #define MLO_PVT_OUT_DATA_SZ MLO_PVT_OUT_DATA_HEIGHT* MLO_N_OUT_PIX_SZ0
 
-__attribute__((always_inline)) void readDataTile(__local _FLOAT* lcl_data,
-                                                 const __global _FLOAT* gbl_data,
-                                                 int tile_y,
-                                                 int tile_x,
-                                                 uint gbl_stride,
-                                                 uint gbl_base,
-                                                 uint lcl_stride,
-                                                 uint lcl_base,
-                                                 uint gbl_height,
-                                                 uint gbl_width,
-                                                 uint lcl_height,
-                                                 uint lcl_width,
-                                                 uint lcl_id1,
-                                                 uint lcl_id0,
-                                                 uint lcl_grp_sz1,
-                                                 uint lcl_grp_sz0,
-                                                 uint fltr_pad1,
-                                                 uint fltr_pad0,
-                                                 _FLOAT padding_val)
+void readDataTile(__local _FLOAT* lcl_data,
+                  const __global _FLOAT* gbl_data,
+                  int tile_y,
+                  int tile_x,
+                  uint gbl_stride,
+                  uint gbl_base,
+                  uint lcl_stride,
+                  uint lcl_base,
+                  uint gbl_height,
+                  uint gbl_width,
+                  uint lcl_height,
+                  uint lcl_width,
+                  uint lcl_id1,
+                  uint lcl_id0,
+                  uint lcl_grp_sz1,
+                  uint lcl_grp_sz0,
+                  uint fltr_pad1,
+                  uint fltr_pad0,
+                  _FLOAT padding_val)
 {
     for(uint j = lcl_id1; j < lcl_height; j += lcl_grp_sz1)
     {

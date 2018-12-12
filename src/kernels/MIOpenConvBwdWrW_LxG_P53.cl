@@ -124,13 +124,13 @@
 // if to read all of the number of MLO_N_LCL_IN_MAPS input channel or not
 #define MLO_READ_PARTIAL_N_LCL_IN_MAPS (MLO_N_INPUTS % MLO_N_LCL_IN_MAPS != 0)
 
-__attribute__((always_inline)) uint iDiv(uint v, uint d)
+uint iDiv(uint v, uint d)
 {
     uint r = v / d;
     return (r);
 }
 
-__attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
+uint iMod(uint v, uint u, uint d)
 {
     uint r = v - mul24((uint)u, (uint)d);
     return (r);
@@ -143,16 +143,16 @@ __attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
 
         no guard against number of inputs
 */
-__attribute__((always_inline)) void readInput(uint lcl_id,
-                                              uint gbl_in_scan_off,
+void readInput(uint lcl_id,
+               uint gbl_in_scan_off,
 #if !MLO_READ_PARTIAL_N_LCL_IN_MAPS
-                                              UNUSED
+               UNUSED
 #endif
-                                                  uint n_in_map_reads,
-                                              uint n_v_reads,
-                                              const __global _FLOAT* __restrict bot,
-                                              __local _FLOAT* __restrict lcl_bot,
-                                              uint chunk_id)
+                   uint n_in_map_reads,
+               uint n_v_reads,
+               const __global _FLOAT* __restrict bot,
+               __local _FLOAT* __restrict lcl_bot,
+               uint chunk_id)
 {
 
 #if MLO_IN_WIDTH_N_LOOPS > 1 && MLO_FILTER_PAD0 > 0
@@ -279,15 +279,14 @@ __attribute__((always_inline)) void readInput(uint lcl_id,
 
         loop over filter vertical size
 */
-__attribute__((always_inline)) void
-Processing(UNUSED uint sc,
-           uint sc_lcl_off,
-           uint top_lim,
-           int bot_lim, // bot_lim could be negative at lower boundary padding
-           __private _FLOAT_ACCUM* __restrict pvt_accum,
-           __local _FLOAT* __restrict lcl_bot,
-           __private _FLOAT* __restrict top_dat,
-           uint chunk_id)
+void Processing(UNUSED uint sc,
+                uint sc_lcl_off,
+                uint top_lim,
+                int bot_lim, // bot_lim could be negative at lower boundary padding
+                __private _FLOAT_ACCUM* __restrict pvt_accum,
+                __local _FLOAT* __restrict lcl_bot,
+                __private _FLOAT* __restrict top_dat,
+                uint chunk_id)
 {
     for(int l = top_lim; l >= bot_lim; --l)
     {
@@ -334,7 +333,7 @@ Processing(UNUSED uint sc,
     }
 }
 
-__attribute__((always_inline)) void moveOutputUp(__private _FLOAT* __restrict top_dat)
+void moveOutputUp(__private _FLOAT* __restrict top_dat)
 {
     // move up output to reduce overfetch
     for(uint k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
@@ -351,7 +350,7 @@ __attribute__((always_inline)) void moveOutputUp(__private _FLOAT* __restrict to
     }
 }
 
-__attribute__((always_inline)) void zeroInitLDS(uint lcl_id, __local _FLOAT* __restrict lcl_bot)
+void zeroInitLDS(uint lcl_id, __local _FLOAT* __restrict lcl_bot)
 {
     barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -363,14 +362,14 @@ __attribute__((always_inline)) void zeroInitLDS(uint lcl_id, __local _FLOAT* __r
     barrier(CLK_LOCAL_MEM_FENCE);
 }
 
-__attribute__((always_inline)) void spanReadingOutput(int spn,
-                                                      int k,
-                                                      int j,
-                                                      int top_df_off,
-                                                      _FLOAT mask,
-                                                      __private _FLOAT* __restrict top_dat,
-                                                      const __global _FLOAT* __restrict top_df,
-                                                      uint chunk_id)
+void spanReadingOutput(int spn,
+                       int k,
+                       int j,
+                       int top_df_off,
+                       _FLOAT mask,
+                       __private _FLOAT* __restrict top_dat,
+                       const __global _FLOAT* __restrict top_df,
+                       uint chunk_id)
 {
     int pvt_off                     = k * MLO_IN_TILE0 * MLO_FILTER_SIZE1 + j * MLO_IN_TILE0;
     const __global _FLOAT* top_df_p = &top_df[top_df_off];
