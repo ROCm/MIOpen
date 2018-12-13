@@ -82,6 +82,11 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
         {nullptr, nullptr},
     };
 
+    // At convolutionocl level, the assertion is present to ensure output channels are
+    // in multiple of group counts
+    int n_input_channels_per_group  = params.n_outputs / params.group_counts;
+    int n_output_channels_per_group = params.n_inputs / params.group_counts;
+
     std::string key;
 
     key = std::to_string(params.n_inputs) + "x" + std::to_string(params.in_height) + "x" +
@@ -104,10 +109,23 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
 
     ConvSolution result;
 
-    int N_BATCH_LOOPS = 1; // _batch_sz / _n_stacks;
-                           // n of map in a block (see below)
-    result.out_pix_tile1 = (params.out_width > 512 || params.group_counts > 1) ? 1 : 2;
+    int N_BATCH_LOOPS    = 1; // _batch_sz / _n_stacks;
+    result.out_pix_tile1 = (params.out_width > 512) ? 1 : 2;
     int n_waves          = (params.kernel_size0 > 11) ? 2 : 4;
+    if(params.group_counts > 1 && params.out_width < 512)
+    {
+        if(n_output_channels_per_group % 4 == 0)
+            result.out_pix_tile1 = 4;
+        else if(n_output_channels_per_group % 3 == 0)
+            result.out_pix_tile1 = 3;
+        else if(n_output_channels_per_group % 2 == 0)
+            result.out_pix_tile1 = 2;
+        else
+            result.out_pix_tile1 = 1;
+
+        n_waves = 2;
+    }
+
     // n of shared blocks of output maps in lcl memory
     result.n_out_pix_tiles = 2;
     int read_unit          = 6;
@@ -164,12 +182,8 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
 
     result.n_in_data_tiles = 1;
 
-    // At convolutionocl level, the assertion is present to ensure output channels are
-    // in multiple of group counts
-    int n_input_channels_per_group  = params.n_outputs / params.group_counts;
-    int n_output_channels_per_group = params.n_inputs / params.group_counts;
-
-    int total_out_maps = result.n_out_pix_tiles * result.out_pix_tile1;
+    result.n_out_pix_tiles = (params.group_counts > 1) ? 1 : result.n_out_pix_tiles;
+    int total_out_maps     = result.n_out_pix_tiles * result.out_pix_tile1;
     result.out_pix_tile1 =
         (total_out_maps > n_output_channels_per_group) ? 1 : result.out_pix_tile1;
     total_out_maps         = result.n_out_pix_tiles * result.out_pix_tile1;

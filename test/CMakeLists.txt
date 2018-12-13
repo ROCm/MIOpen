@@ -369,6 +369,16 @@ COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 832 7 7 --weights 128 52 5
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 192 28 28 --weights 32 24 1 1 --filter 0 0 1 1,  --group-count 8
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 832 7 7 --weights 128 104 1 1 --filter 0 0 1 1,  --group-count 8
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 11 23 161 700  --weights 46 1 7 7 --filter 1 1 2 2,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 1 1 1 1,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 0 0 1 1,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 0 0 2 2,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 1 1 2 2,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 2 2 2 2,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 1 1 1 1,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 0 0 1 1,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 0 0 2 2,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 1 1 2 2,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 2 2 2 2,  --cmode dw
 )
 
 
@@ -455,3 +465,4 @@ if(MIOPEN_TEST_CONV)
     add_test(NAME test_conv_input_1x32x28x28_weights_1x32x5x5_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 32, 28, 28 --weights 1, 32, 5, 5 --filter 0 0 4 4)
     add_test(NAME test_conv_input_1x48x7x7_weights_1x48x5x5_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 48, 7, 7 --weights 1, 48, 5, 5 --filter 0 0 4 4)
 endif()
+
