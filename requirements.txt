@@ -1,5 +1,5 @@
 RadeonOpenCompute/rocm-cmake@3f43e2d493f24abbab4dc189a9ab12cc3ad33baf --build
-RadeonOpenCompute/clang-ocl@799713643b5591a3b877c586ef2c7fbc012af819
+RadeonOpenCompute/clang-ocl@688fe5d98b3d6a06838f10d3a7db951c288c0f54
 ROCmSoftwarePlatform/MIOpenGEMM@0eb1257cfaef83ea155aabd67af4437c0028db48
 ROCmSoftwarePlatform/rocBLAS@v14.3.0
 boost@1.58 -DCMAKE_POSITION_INDEPENDENT_CODE=On --build
