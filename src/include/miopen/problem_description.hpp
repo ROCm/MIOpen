@@ -152,7 +152,7 @@ struct ProblemDescription
             << sep << batch_sz
             << sep << pad1 << 'x' << pad0
             << sep << kernel_stride1 << 'x' << kernel_stride0
-            << sep << kernel_dilation1 << 'x' << kernel_dilation1
+            << sep << kernel_dilation1 << 'x' << kernel_dilation0
             << sep << bias
             << sep << in_layout
             << sep << in_data_type
