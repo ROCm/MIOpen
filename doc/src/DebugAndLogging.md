@@ -2,13 +2,21 @@ Debugging and Logging
 =====================
 
 ## Logging
-The most basic enviromental variable for debugging purposes is `MIOPEN_ENABLE_LOGGING=1`. This will give the user basic layer by layer call and configurations. If bulding from source, a user can use the environmental variable `MIOPEN_ENABLE_LOGGING_CMD=1` to output the associated `MIOpenDriver` command line.
 
+* `MIOPEN_ENABLE_LOGGING` - Enables printing the basic layer by layer MIOpen API call information with actual parameters (configurations). Important for debugging. Disabled by default.
+
+* `MIOPEN_ENABLE_LOGGING_CMD` - A user can use this environmental variable to output the associated `MIOpenDriver` command line(s) onto console. Disabled by default.
+
+> **_NOTE:_ These two and other two-state ("boolean") environment variables can be set to the following values:**
+> ```
+> 1, yes, true, enable, enabled - to enable feature
+> 0, no, false, disable, disabled - to disable feature
+> ```
 
 ## Log Levels
 The `MIOPEN_LOG_LEVEL` environment variable controls the verbosity of the messages printed by MIOpen onto console. Allowed values are:
 * 0 - Default. Works as level 4 for Release builds, level 5 for Debug builds.
-* 1 - Quiet. No logging messages (except those controlled by MIOPEN_ENABLE_LOGGING).
+* 1 - Quiet. No logging messages.
 * 2 - Fatal errors only (not used yet).
 * 3 - Errors and fatals.
 * 4 - All errors and warnings.
@@ -18,17 +26,34 @@ The `MIOPEN_LOG_LEVEL` environment variable controls the verbosity of the messag
 
 All messages output via `stderr`.
 
+`MIOPEN_ENABLE_LOGGING` and `MIOPEN_LOG_LEVEL` are independent from each other.
+
+> **_NOTE:_ When asking for technical support, please include the console log obtained with the following settings:**
+> ```
+> export MIOPEN_ENABLE_LOGGING=1
+> export MIOPEN_LOG_LEVEL=5
+> ```
 
 ## Layer Filtering
-The following list of environment variables can be helpful for both debugging MIOpen as well integration with frameworks.
 
-* `MIOPEN_ENABLE_LOGGING=1` – log all the MIOpen APIs called including the parameters passed to those APIs.
-* `MIOPEN_DEBUG_GCN_ASM_KERNELS=0` – disable hand-tuned asm. kernels for Direct convolution algorithm. Fall-back to kernels written in high-level language.
-* `MIOPEN_DEBUG_CONV_FFT=0` – disable FFT convolution algorithm. 
-* `MIOPEN_DEBUG_CONV_DIRECT=0` – disable Direct convolution algorithm.
-* `MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES=0` - this disables binary Winograd kernels, however, not all Winograds are binaries. To disable all Winograd algorithms, the following two vars can be used:
-* MIOPEN_DEBUG_AMD_WINOGRAD_3X3=0 - FP32 Winograd Fwd/Bwd, filter size fixed to 3x3.
-* MIOPEN_DEBUG_AMD_WINOGRAD_RXS=0 - FP32 and FP16 Winograd Fwd/Bwd, variable filter size.
+The following list of environment variables allow for enabling/disabling various kinds of kernels and algorithms. This can be helpful for both debugging MIOpen and integration with frameworks.
+
+> **_NOTE:_ These variables can be set to the following values:**
+> ```
+> 1, yes, true, enable, enabled - to enable kernels/algorithm
+> 0, no, false, disable, disabled - to disable kernels/algorithm
+> ```
+
+If a variable is not set, then MIOpen behaves as if it is set to `enabled`, unless otherwise specified. So all kinds of kernels/algorithms are enabled by default and variables can be used for disabling them.
+
+* `MIOPEN_DEBUG_CONV_FFT` – FFT convolution algorithm. 
+* `MIOPEN_DEBUG_CONV_DIRECT` – Direct convolution algorithm.
+* `MIOPEN_DEBUG_CONV_GEMM` - GEMM convolution algorithm. These are implemented on top of miopengemm or rocBlas.
+* `MIOPEN_DEBUG_GCN_ASM_KERNELS` – Kernels written in assembly language. So far, the most of the assembly kernels are implementing the Direct convolution algorithm.
+* `MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES` - Binary kernels. Right now all the binary kernels are Winograd ones, however, not all Winograds are binaries. To disable all Winograd algorithms, the following two vars can be used:
+* `MIOPEN_DEBUG_AMD_WINOGRAD_3X3` - FP32 Winograd Fwd/Bwd, filter size fixed to 3x3.
+* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS` - FP32 and FP16 Winograd Fwd/Bwd, variable filter size.
+* `MIOPEN_DEBUG_AMD_FUSED_WINOGRAD` - Fused FP32 Winograd kernels, variable filter size.
 
 ## rocBlas Logging
 The `ROCBLAS_LAYER` environmental variable can be set to output GEMM information:
@@ -37,7 +62,6 @@ The `ROCBLAS_LAYER` environmental variable can be set to output GEMM information
 * `ROCBLAS_LAYER=2` - is set to 2, then there is bench logging
 * `ROCBLAS_LAYER=3` - is set to 3, then there is both trace and bench logging
 
- To disable using rocBlas entirely set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off` during MIOpen configuration.
-
+To disable using rocBlas entirely set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off` during MIOpen configuration.
 
 More information on logging with RocBlas can be found [here](https://github.com/ROCmSoftwarePlatform/rocBLAS/wiki/5.Logging).
