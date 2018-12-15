@@ -29,7 +29,7 @@ cmake -P install_deps.cmake --prefix /some/local/dir
 ```
 This prefix can used to specify the dependency path during the configuration phase using the `CMAKE_PREFIX_PATH`.
 
-MIOpen's HIP backend uses [rocBlas](https://github.com/ROCmSoftwarePlatform/rocBLAS) by default. Users can intall RocBlas minimum release by using `apt-get install rocblas`. To disable using RocBlas set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off`. rocBlas is *not* available for the OpenCL backend.
+MIOpen's HIP backend uses [rocBlas](https://github.com/ROCmSoftwarePlatform/rocBLAS) by default. Users can intall rocBlas minimum release by using `apt-get install rocblas`. To disable using rocBlas set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off`. rocBlas is *not* available for the OpenCL backend.
 
 Instructions to manually install all the dependencies on Ubuntu v16 are present in this [section](#installing-the-dependencies-manually).
 
