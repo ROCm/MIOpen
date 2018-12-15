@@ -55,13 +55,21 @@ If a variable is not set, then MIOpen behaves as if it is set to `enabled`, unle
 * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS` - FP32 and FP16 Winograd Fwd/Bwd, variable filter size.
 * `MIOPEN_DEBUG_AMD_FUSED_WINOGRAD` - Fused FP32 Winograd kernels, variable filter size.
 
-## rocBlas Logging
+## rocBlas Logging and Behavior
 The `ROCBLAS_LAYER` environmental variable can be set to output GEMM information:
-* `ROCBLAS_LAYER=` - is not set, there is no logging
+* `ROCBLAS_LAYER=`  - is not set, there is no logging
 * `ROCBLAS_LAYER=1` - is set to 1, then there is trace logging
 * `ROCBLAS_LAYER=2` - is set to 2, then there is bench logging
 * `ROCBLAS_LAYER=3` - is set to 3, then there is both trace and bench logging
 
-To disable using rocBlas entirely set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off` during MIOpen configuration.
+Additionally, using environment variable "MIOPEN_GEMM_ENFORCE_BACKEND", can override the default behavior. The default behavior which is to use
+both MIOpenGEMM and rocBlas depending on the input configuration:
+
+* `MIOPEN_GEMM_ENFORCE_BACKEND=1`, use rocBLAS if enabled
+* `MIOPEN_GEMM_ENFORCE_BACKEND=2`, use MIOpenGEMM for FP32, use rocBLAS for FP16 if enabled
+* `MIOPEN_GEMM_ENFORCE_BACKEND=3`, no gemm will be called
+* `MIOPEN_GEMM_ENFORCE_BACKEND=<any other value>`, use default behavior
+
+To disable using rocBlas entirely, set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off` during MIOpen configuration.
 
 More information on logging with RocBlas can be found [here](https://github.com/ROCmSoftwarePlatform/rocBLAS/wiki/5.Logging).
