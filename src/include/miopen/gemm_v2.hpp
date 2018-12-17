@@ -32,6 +32,13 @@
 
 namespace miopen {
 
+enum GemmBackend_t
+{
+    nogemmbackend = 0,
+    rocblas       = 1,
+    miopengemm    = 2,
+};
+
 // GEMM operation: C = alpha * op(A) * op(B) + beta * C.
 // op() can be either transpose or no-operation for A or B.
 // The shape (nRow x nCol) of op(A), op(B), C are:
@@ -67,7 +74,8 @@ miopenStatus_t CallGemm(Handle& handle,
                         Data_t C,
                         int c_offset,
                         std::string* kcache_key,
-                        bool enqueue_dummy_kernel);
+                        bool enqueue_dummy_kernel,
+                        GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
 
 miopenStatus_t CallGemmStridedBatched(Handle& handle,
                                       GemmDescriptor gemm_desc,
@@ -78,18 +86,21 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                                       Data_t C,
                                       int c_offset,
                                       std::string* kcache_key,
-                                      bool enqueue_dummy_kernel);
+                                      bool enqueue_dummy_kernel,
+                                      GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
 
-miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
-                                                GemmDescriptor gemm_desc,
-                                                ConstData_t A,
-                                                int a_offset,
-                                                ConstData_t B,
-                                                int b_offset,
-                                                Data_t C,
-                                                int c_offset,
-                                                std::string* kcache_key,
-                                                bool enqueue_dummy_kernel);
+miopenStatus_t
+CallGemmStridedBatchedSequential(Handle& handle,
+                                 GemmDescriptor gemm_desc,
+                                 ConstData_t A,
+                                 int a_offset,
+                                 ConstData_t B,
+                                 int b_offset,
+                                 Data_t C,
+                                 int c_offset,
+                                 std::string* kcache_key,
+                                 bool enqueue_dummy_kernel,
+                                 GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
 
 // GEMM parameters for Convolution (using Im2Col) Fwd
 // y = w * Im2Col(x)

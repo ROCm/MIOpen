@@ -713,9 +713,9 @@ typedef enum {
 
  * @brief Perf struct for forward, backward filter, or backward data algorithms
  *
- * Contains the union to hold the selected convolution algorithm for forward, or backwards layers.
- * Also contains the time it took to run the algorithm and the workspace required to run the
- * algorithm.
+ * Contains the union to hold the selected convolution algorithm for forward, or backwards layers,
+ * and also contains the time it took to run the algorithm and the workspace required to run the
+ * algorithm. The workspace in this structure can be used when executing the convolution layer.
  */
 typedef struct
 {
@@ -733,9 +733,11 @@ typedef struct
 
 /*! @brief Query the workspace size required for a forward convolution layer
  *
- * This call is required and must be executed before running the findConvolution and before
- * executing convolution layer functions. The maximum size of the memory needed from the set
- * of potential forward convolution algorithms is returned.
+ * This call is required and must be executed once before running
+ * miopenFindConvolutionForwardAlgorithm()
+ * in order to determine the largest required allocation for the algorithm search; i.e., the maximum
+ * size
+ * of the memory needed from the set of potential forward convolution algorithm is returned.
  *
  * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
  * this.
@@ -813,10 +815,9 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
 
 /*! @brief Execute a forward convolution layer
  *
- * Runs the forward convolution layer based on the selected algorithm. The functions
- * miopenConvolutionForwardGetWorkSpaceSize() and miopenFindConvolutionForwardAlgorithm() must have
- * been executed previously to determine the required memory needed for the workspace and the
- * best convolutional algorithm, respectively.
+ * Runs the forward convolution layer based on the selected algorithm. The function
+ * miopenFindConvolutionForwardAlgorithm() must have been executed previously to
+ * determine the required memory needed for the workspace and the best convolutional algorithm.
  *
  * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
  * this.
@@ -875,9 +876,9 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
  *
  * For a provided tensor descriptors and algorithm selection, this function calculates and returns
  * the workspace size required for back propagation on data. This call is required and must be
- * executed before running the miopenFindConvolutionBackwardDataAlgorithm() and before executing
- * convolution layer functions. The maximum size of the memory needed from the set of potential
- * forward convolution algorithms is returned.
+ * executed once before running miopenFindConvolutionBackwardDataAlgorithm() in order to determine
+ * the largest required allocation for the algorithm search; i.e., the maximum size of the memory
+ * needed from the set of potential backward convolution algorithm is returned.
  *
  * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
  * this.
@@ -956,9 +957,9 @@ miopenFindConvolutionBackwardDataAlgorithm(miopenHandle_t handle,
 /*! @brief Execute a backward data convolution layer
  *
  * Runs the backward data convolution layer based on the selected algorithm. The function
- * miopenConvolutionBackwardDataGetWorkSpaceSize() and miopenFindConvolutionBackwardDataAlgorithm()
- * must have been executed previously to determine the required memory needed for the workspace and
- * the best convolutional algorithm, respectively.
+ * miopenFindConvolutionBackwardDataAlgorithm() must have been executed previously to
+ * determine the required memory needed for the workspace and the best convolutional
+ * algorithm.
  *
  * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
  * this.
@@ -995,11 +996,13 @@ miopenConvolutionBackwardData(miopenHandle_t handle,
 
 /*! @brief Get the GPU memory required for the backward weights convolution algorithm.
  *
+ *
  * For a provided tensor descriptors and algorithm selection, this function calculates and returns
- * the workspace size required for back propagation on weights. This call is required and must be
- * executed before running the miopenFindConvolutionBackwardWeightsAlgorithm() and before executing
- * convolution layer functions. The maximum size of the memory needed from the set of potential
- * forward convolution algorithms is returned.
+ * the workspace size required for back propagation on data. This call is required and must be
+ * executed once before running miopenFindConvolutionBackwardWeightsAlgorithm() in order to
+ * determine
+ * the largest required allocation for the algorithm search; i.e., the maximum size of the memory
+ * needed from the set of potential backward weights convolution algorithm is returned.
  *
  * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
  * this.
@@ -1078,10 +1081,9 @@ miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
 /*! @brief Execute a backward weights convolution layer
  *
  * Runs the backward weights convolution layer based on the selected algorithm. The function
- * miopenConvolutionBackwardWeightsGetWorkSpaceSize() and
  * miopenFindConvolutionBackwardWeightsAlgorithm() must have
  * been executed previously to determine the required memory needed for the workspace and the
- * best convolutional algorithm, respectively.
+ * best convolutional algorithm.
  *
  * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
  * this.

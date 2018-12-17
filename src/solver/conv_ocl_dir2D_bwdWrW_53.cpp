@@ -254,6 +254,9 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     const auto hw_wave_sz = 64;
     // inpout are outputs
     int wei_cstride = params.kernel_size0 * params.kernel_size1;
+
+    // At convolutionocl level, the assertion is present to ensure output channels are
+    // in multiple of group counts
     int wei_bstride = (params.n_outputs / params.group_counts) * wei_cstride;
 
     // number  of batch iterations
@@ -330,12 +333,12 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
                               out_horizon_last_chunk_valid_pixels);
     if(out_n_horizon_read_loops > 2 && params.pad0 != 0)
     {
-        MIOPEN_LOG_W("Padding where split is more than 2 ways is not supported.");
+        MIOPEN_LOG_I("Padding where split is more than 2 ways is not supported.");
         return ConvSolution(miopenStatusNotInitialized);
     }
     if(out_n_horizon_read_loops > 1 && params.group_counts > 1)
     {
-        MIOPEN_LOG_W("For large images, group support is missing.");
+        MIOPEN_LOG_I("For large images, group support is missing.");
         return ConvSolution(miopenStatusNotInitialized);
     }
 
