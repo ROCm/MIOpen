@@ -74,3 +74,8 @@ This variable allows for limiting the scope of `MIOPEN_FIND_ENFORCE`, so that on
 **CONV_BWD (3)** `MIOPEN_FIND_ENFORCE` affects only Backward Data convolutions.
 
 **CONV_WRW (4)** `MIOPEN_FIND_ENFORCE` affects only Backward With Regard to Weights (a.k.a. WRW) convolutions.
+
+
+### Updating MIOpen and the User Db
+
+It is important to note that if the user installs a new version of MIOpen, it is recommended that the user move, or delete their old user performance database file. This will prevent older database entries from polution the configurations shipped with the newer system database. The user can find the file with the suffix `*.updb.txt` in the user perf db path.
