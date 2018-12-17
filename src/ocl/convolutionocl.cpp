@@ -4060,10 +4060,6 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             {
                 MIOPEN_THROW("GEMM WrW convolution cannot be executed due to incorrect params");
             }
-            else
-            {
-                MIOPEN_THROW("GEMM WrW convolution cannot be executed due to incorrect params");
-            }
 #else
             MIOPEN_THROW("GEMM is not supported");
 #endif
