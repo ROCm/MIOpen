@@ -30,6 +30,26 @@
 #define FOUR 4
 #define EIGHT 8
 
+#ifndef MIOPEN_USE_FP32
+#define MIOPEN_USE_FP32 0
+#endif
+
+#ifndef MIOPEN_USE_FP16
+#define MIOPEN_USE_FP16 0
+#endif
+
+#ifndef MIOPEN_USE_INTE8
+#define MIOPEN_USE_INTE8 0
+#endif
+
+#if MIOPEN_USE_INTE8 == 1
+#define _FLOAT char
+#ifndef FLT_MAX
+#define MAX_VAL 127 /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
+#endif
 #if MIOPEN_USE_FP16 == 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half

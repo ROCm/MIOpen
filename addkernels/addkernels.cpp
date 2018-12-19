@@ -116,7 +116,10 @@ void PrintHelp()
     WrongUsage(ss.str());
 }
 
-void Process(std::string sourcePath, std::ostream& target, size_t bufferSize, size_t lineSize)
+void Process(const std::string& sourcePath,
+             std::ostream& target,
+             size_t bufferSize,
+             size_t lineSize)
 {
     std::string fileName(sourcePath);
     std::string extension, root;
@@ -146,17 +149,24 @@ void Process(std::string sourcePath, std::ostream& target, size_t bufferSize, si
         std::exit(1);
     }
 
-    if(extension == "s")
+    const auto is_asm = extension == "s";
+    const auto is_cl  = extension == "cl";
+
+    if(is_asm || is_cl)
     {
         IncludeInliner inliner;
 
         try
         {
-            inliner.Process(sourceFile, inlinerTemp, root, sourcePath);
+            if(is_asm)
+                inliner.Process(sourceFile, inlinerTemp, root, sourcePath, ".include", false);
+            else if(is_cl)
+                inliner.Process(sourceFile, inlinerTemp, root, sourcePath, "#include", true);
         }
         catch(const InlineException& ex)
         {
-            std::cerr << ex.what() << std::endl;
+            std::cerr << ex.What() << std::endl;
+            std::cerr << ex.GetTrace() << std::endl;
             std::exit(1);
         }
 
@@ -182,7 +192,7 @@ int main(int argsn, char** args)
     std::ofstream targetFile;
     std::ostream* target = &std::cout;
 
-    size_t i = 0;
+    int i = 0;
     while(++i < argsn && **args != '-')
     {
         std::string arg(args[i] + 1);

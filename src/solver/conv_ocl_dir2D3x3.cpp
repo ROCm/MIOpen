@@ -34,7 +34,7 @@ bool ConvOclDirectFwd3x3::IsApplicable(const ConvolutionContext& params) const
 {
     return (params.kernel_size0 == 3 && params.kernel_size1 == 3 && params.pad1 == 1 &&
             params.pad0 == 1 && params.kernel_stride0 == 1 && params.kernel_stride1 == 1 &&
-            params.direction.IsForward()) &&
+            params.mode.IsNormal() && params.direction.IsForward()) &&
            (params.out_width == 512 || params.out_width == 64 || params.out_width == 128 ||
             params.out_width == 256);
 }

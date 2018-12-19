@@ -2853,9 +2853,7 @@ struct gru_driver : test_driver
             std::cout << "batch seq[" << i << "]: " << batchSeq.at(i) << std::endl;
         }
 #endif
-        int batch_n = 0;
-        for(auto& n : batchSeq)
-            batch_n += n;
+        int batch_n = std::accumulate(batchSeq.begin(), batchSeq.end(), 0);
 
         miopenRNNDescriptor_t rnnDesc;
         miopenCreateRNNDescriptor(&rnnDesc);

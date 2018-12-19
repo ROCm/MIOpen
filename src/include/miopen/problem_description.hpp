@@ -32,6 +32,7 @@
 
 #include <cassert>
 #include <string>
+#include <sstream>
 
 namespace miopen {
 
@@ -90,6 +91,14 @@ struct ProblemDescription
     int out_channel_stride = 0;
     int out_batch_stride   = 0;
     int group_counts       = 0;
+    struct Mode
+    {
+        miopenConvolutionMode_t val = miopenConvolution;
+        // Helper functions for use in Solvers.
+        bool IsNormal() const { return val == miopenConvolution; }
+        bool IsTranspose() const { return val == miopenTranspose; }
+        bool IsGroup() const { return val == miopenGroupConv || val == miopenDepthwise; }
+    } mode;
     struct Direction
     {
         enum class Value
@@ -149,6 +158,20 @@ struct ProblemDescription
             << sep << in_data_type
             << sep << (direction.IsForward() ? "F"
                      : direction.IsBackwardData() ? "B" : "W"); // clang-format on
+        // New performance config entries shall come into variable/optional part of db key.
+        // This is to support backward compatibility with previous versions of databases.
+        std::ostringstream optional;
+        {
+            if(mode.IsTranspose())
+                optional << "mT";
+            // Group count > 1 identifies Group/Depthwise modes.
+            if(group_counts != 1)
+                optional << 'g' << group_counts;
+        }
+        if(!optional.str().empty())
+        {
+            stream << '_' << optional.str();
+        }
     }
 
     friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
@@ -269,22 +292,7 @@ struct ProblemDescription
     /*
      * set convolutional parameters
      */
-    void setConvDescr(int u_padding,
-                      int v_padding,
-                      int u_stride,
-                      int v_stride,
-                      int h_dilation,
-                      int w_dilation,
-                      int grp_cnt)
-    {
-        pad1             = u_padding;
-        pad0             = v_padding;
-        kernel_stride0   = u_stride;
-        kernel_stride1   = v_stride;
-        kernel_dilation0 = h_dilation;
-        kernel_dilation1 = w_dilation;
-        group_counts     = grp_cnt;
-    }
+    void setConvDescr(const ConvolutionDescriptor& conv);
 
     /*
      * set weights tensor

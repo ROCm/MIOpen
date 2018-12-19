@@ -1,9 +1,33 @@
 
 ## MIOpen Release notes
 
-### 11/18/2018 [ 1.6.0 ]
 
-Notes:
+### 12/19/2018 [ 1.7.0 ]
+
+- This release contains general bug fixes and an updated performance database
+- Group convolutions backwards weights performance has been improved
+- Logging across the library has been improved
+- Performance database has been updated
+  
+Changes:
+
+- Fixed logging issues with group convolution and pooling
+- Fixed sphinx version issue in document generation
+- Fixed issues with corrupt entries in performance database
+- Removed external dependency on libSSL and libCrypto
+- Added support for large image backwards weights in direct convolution
+- Added fp16 support for RNNs on the HIP backend
+- Improved performance database coverage
+
+Known Issues:
+
+- RNNs do not support fp16
+- OpenCL backend does not support GEMM convolutions in fp16
+- Layer fusions for convolution 1x1 fp16 are not supported
+- Layer fusions for large image 1x1 convolutions may cause an exception instead of a warning during compile phase if plan is not supported
+
+
+### 11/18/2018 [ 1.6.0 ]
 
 - Training in fp16 (half precision) including mixed-precision is now fully supported
 - Batch Normalization in fp16 (half precision) including mixed-precision are now available
