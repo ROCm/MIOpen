@@ -26,6 +26,8 @@
 #include <iterator>
 #include <miopen/config.h>
 #include <miopen/kernel_warnings.hpp>
+#include <miopen/stringutils.hpp>
+#include <numeric>
 #include <sstream>
 
 namespace miopen {
@@ -51,16 +53,13 @@ std::vector<std::string> KernelWarnings()
 
 std::string MakeKernelWarningsString()
 {
-    std::string result;
 #if MIOPEN_BACKEND_OPENCL
     std::string prefix = " -Wf,";
 
 #else
     std::string prefix = " ";
 #endif
-    for(auto&& x : KernelWarnings())
-        result += prefix + x;
-    return result;
+    return prefix + JoinStrings(KernelWarnings(), prefix);
 }
 
 const std::string& KernelWarningsString()

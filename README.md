@@ -14,7 +14,6 @@ AMD's library for high peformance machine learning primitives. MIOpen supports t
 * [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) to enable various functionalities including transposed and dilated convolutions
 * ROCm cmake modules can be installed from [here](https://github.com/RadeonOpenCompute/rocm-cmake)
 * [Half](http://half.sourceforge.net/) - IEEE 754-based half-precision floating point library
-* [OpenSSL](https://www.openssl.org/) or [libressl](https://www.libressl.org/)
 * [Boost](http://www.boost.org/) at least version 1.58
   * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/master/doc/src/cache.md)
 * [rocBlas](https://github.com/ROCmSoftwarePlatform/rocBLAS) Minimum version 14.3
@@ -30,7 +29,7 @@ cmake -P install_deps.cmake --prefix /some/local/dir
 ```
 This prefix can used to specify the dependency path during the configuration phase using the `CMAKE_PREFIX_PATH`.
 
-MIOpen's HIP backend uses [rocBlas](https://github.com/ROCmSoftwarePlatform/rocBLAS) by default. Users can intall RocBlas minimum release by using `apt-get install rocblas`. To disable using RocBlas set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off`. rocBlas is *not* available for the OpenCL backend.
+MIOpen's HIP backend uses [rocBlas](https://github.com/ROCmSoftwarePlatform/rocBLAS) by default. Users can intall rocBlas minimum release by using `apt-get install rocblas`. To disable using rocBlas set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off`. rocBlas is *not* available for the OpenCL backend.
 
 Instructions to manually install all the dependencies on Ubuntu v16 are present in this [section](#installing-the-dependencies-manually).
 
@@ -80,22 +79,19 @@ Set the C++ compiler to `hcc`.
 cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="<hip-installed-path>;<hcc-installed-path>;<clang-ocl-installed-path>" ..
 ```
 An example cmake step can be:
-* `OpenSSL` installed using `apt-get` on Ubuntu v16? **Yes**.
-```
-CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/hcc;/opt/rocm/hip" -DCMAKE_CXX_FLAGS="-isystem /usr/include/x86_64-linux-gnu/" ..
-```
-* `OpenSSL` installed using `apt-get` on Ubuntu v16? **No**.
 ```
 CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/hcc;/opt/rocm/hip" ..
 ```
 
-#### Setting up locations
+#### Setting Up Locations
 
 By default the install location is set to '/opt/rocm', this can be set by using `CMAKE_INSTALL_PREFIX`:
 
 ```
 cmake -DMIOPEN_BACKEND=OpenCL -DCMAKE_INSTALL_PREFIX=<miopen-installed-path> ..
 ```
+
+##### System Performance Database and User Database
 
 The default path to the System PerfDb is `miopen/share/miopen/db/` within install location. The default path to the User PerfDb is `~/.config/miopen/`. For development purposes, setting `BUILD_DEV` will change default path to both database files to the source directory:
 
@@ -104,6 +100,20 @@ cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On ..
 ```
 
 Database paths can be explicitly customized by means of `MIOPEN_DB_PATH` (System PerfDb) and `MIOPEN_USER_DB_PATH` (User PerfDb) cmake variables.
+
+If the user installs a new version of MIOpen, it is recommended that the user move, or delete their old user database file. The user can find the file with the suffix `*.updb.txt` in the user perf db path. 
+
+More information about the performance database can be found [here](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/master/doc/src/perfdatabase.md).
+
+
+##### Persistent Program Cache
+
+MIOpen by default caches the device programs in the location `~/.cache/miopen/`. In the cache directory there exists a directory for each version of MIOpen. Users change the location of the cache directory during configuration using the flag `-DMIOPEN_CACHE_DIR=<cache-directory-path>`. 
+
+Users can also disable the cache during runtime using the environmental variable set as `MIOPEN_DISABLE_CACHE=1`. 
+
+If the compiler changes, or the user modifies the kernels then the cache must be deleted for the MIOpen version in use; e.g., `rm -rf ~/.cache/miopen/<miopen-version-number>`. More information about the cache can be found [here](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/master/doc/src/cache.md).
+
 
 #### Changing the cmake configuration
 
@@ -182,9 +192,8 @@ Also, githooks can be installed to format the code per-commit:
 
 ## Installing the dependencies manually
 
-If Ubuntu v16 is used then the `OpenSSL` and `Boost` packages can also be installed by:
+If Ubuntu v16 is used then the `Boost` packages can also be installed by:
 ```
-sudo apt-get install libssl-dev
 sudo apt-get install libboost-dev
 sudo apt-get install libboost-system-dev
 sudo apt-get install libboost-filesystem-dev

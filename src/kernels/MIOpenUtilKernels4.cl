@@ -23,7 +23,22 @@
  * SOFTWARE.
  *
  */
-#if MIOPEN_USE_FP16
+
+#ifndef MIOPEN_USE_FP32
+#define MIOPEN_USE_FP32 0
+#endif
+
+#ifndef MIOPEN_USE_FP16
+#define MIOPEN_USE_FP16 0
+#endif
+
+#ifndef MIOPEN_USE_INTE8
+#define MIOPEN_USE_INTE8 0
+#endif
+
+#if MIOPEN_USE_INTE8
+typedef char data_t;
+#elif MIOPEN_USE_FP16
 // As the half type degrades the performance, use short instead of half in
 // transpose kernels, which have no match op. May change back to half when
 // compile can deliver equal performance as short

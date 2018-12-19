@@ -272,12 +272,9 @@ auto SearchForSolution(const Context& search_params, Db db) ->
 template <class Solution>
 static inline bool IsPureOpenCLSolution(const Solution& s)
 {
-    for(auto& k : s.construction_params)
-    {
-        if(!miopen::EndsWith(k.kernel_file, ".cl"))
-            return false;
-    }
-    return true;
+    return std::all_of(s.construction_params.begin(),
+                       s.construction_params.end(),
+                       [](const auto& k) { return miopen::EndsWith(k.kernel_file, ".cl"); });
 }
 
 // Search for all applicable solutions among many solvers
@@ -663,6 +660,22 @@ struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const LegacyPerformanceConfig& searched_params) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&, const LegacyPerformanceConfig&) const;
+
+    protected:
+    bool IsApplicableBase(const ConvolutionContext& params) const;
+};
+
+/// Disabling auto-tune/perf-db functionality requires separate Solver.
+struct GroupConvOclDirectFwd : ConvOclDirectFwd
+{
+    bool IsApplicable(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
+
+    private:
+    // The "Solution GetSolution(Context, PerfConfig)" implicitly declares Solver
+    // auto-tunable (a.k.a. searchable). We shall hide it in this Solver.
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const LegacyPerformanceConfig& searched_params) const;
 };
 
 struct ConvOclDirectFwdFused : ConvOclDirectFwd

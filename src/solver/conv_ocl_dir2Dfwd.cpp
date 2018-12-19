@@ -31,7 +31,17 @@
 namespace miopen {
 namespace solver {
 
-bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
+bool GroupConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
+{
+    return IsApplicableBase(params) && params.mode.IsGroup();
+}
+
+ConvSolution GroupConvOclDirectFwd::GetSolution(const ConvolutionContext& params) const
+{
+    return ConvOclDirectFwd::GetSolution(params, GetPerformanceConfig(params));
+}
+
+bool ConvOclDirectFwd::IsApplicableBase(const ConvolutionContext& params) const
 {
     // clang-format off
     // Cases when dy has negative padding are not supported (issue 918)
@@ -41,7 +51,6 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
 
     return params.kernel_stride0 == params.kernel_stride1
         && params.pad0 == params.pad1
-        && !(params.kernel_size0 == 1 && params.kernel_size1 == 1 &&  params.group_counts<2)
         /// \todo need to make sure support stride > 2, should support but not tested
         && !(params.kernel_stride0 > 2 || params.kernel_stride1 > 2)
         /// \todo Workaround to avoid FP16 precision issue:
@@ -52,6 +61,13 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
             && params.kernel_stride0 == 2)
         && IsValidPerformanceConfig(params, GetPerformanceConfig(params));
     // clang-format on
+}
+
+bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
+{
+    return IsApplicableBase(params) && params.mode.IsNormal() &&
+           !(params.kernel_size0 == 1 &&
+             params.kernel_size1 == 1); // We have optimized 1x1 kernel for normal conv.
 }
 
 /// This prevents errors in ConvOclDirectFwd::GetSolution(),

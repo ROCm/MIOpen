@@ -242,3 +242,24 @@ extern "C" miopenStatus_t miopenScaleTensor(miopenHandle_t handle,
     return miopen::try_(
         [&] { ScaleTensor(miopen::deref(handle), miopen::deref(yDesc), DataCast(y), alpha); });
 }
+
+extern "C" miopenStatus_t miopenTransformTensor(miopenHandle_t handle,
+                                                const void* alpha,
+                                                const miopenTensorDescriptor_t xDesc,
+                                                const void* x,
+                                                const void* beta,
+                                                const miopenTensorDescriptor_t yDesc,
+                                                void* y)
+{
+    // dstValue = alpha[0]*srcValue + beta[0]*priorDstValue
+    MIOPEN_LOG_FUNCTION(alpha, xDesc, x, beta, yDesc, y);
+    return miopen::try_([&] {
+        TransformTensor(miopen::deref(handle),
+                        alpha,
+                        miopen::deref(xDesc),
+                        DataCast(x),
+                        beta,
+                        miopen::deref(yDesc),
+                        DataCast(y));
+    });
+}

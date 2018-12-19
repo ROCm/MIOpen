@@ -444,14 +444,6 @@ struct mlo_construct_direct2D
     inline void setStream(miopen::Handle* stream) { _search_params.SetStream(stream); }
 
     /*
-     * set group convolutional parameters
-     */
-    inline void setGroupConvCounts(int group_conv_counts)
-    {
-        _search_params.group_counts = group_conv_counts;
-    }
-
-    /*
      * set top tensor
      */
     void setTopDescr(const std::string& layout,

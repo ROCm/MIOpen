@@ -121,6 +121,9 @@ struct Handle : miopenHandle
     std::size_t GetLocalMemorySize();
     std::size_t GetMaxComputeUnits();
 
+    std::size_t m_MaxMemoryAllocSizeCached = 0;
+    std::size_t GetMaxMemoryAllocSize();
+
     std::string GetDeviceName();
 
     void Copy(ConstData_t src, Data_t dest, std::size_t size);

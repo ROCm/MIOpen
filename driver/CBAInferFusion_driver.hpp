@@ -40,6 +40,7 @@
 #include <miopen/miopen.h>
 #include <miopen/handle.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/md_graph.hpp>
 #include <numeric>
 #include <vector>
 #include <cassert>
@@ -267,6 +268,29 @@ int CBAInferFusionDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
+    if(inflags.GetValueStr("dot_graph") != "")
+    {
+        std::string op = inflags.GetValueStr("dot_graph");
+        miopen::FusionMDGraph mdg;
+        if(op == "ConvForward")
+        {
+            miopen::FusionMDGraph::InitConv(mdg);
+        }
+        else if(op == "BatchNormInference")
+        {
+            miopen::FusionMDGraph::InitBN(mdg);
+        }
+        else
+        {
+            std::cerr
+                << "Invalid Graph specified, valid values are ConvForward or BatchNormInference"
+                << std::endl;
+        }
+        mdg.WriteToFile("/tmp/mdgraph.dot");
+        std::cerr << "Graph written to /tmp/mdgraph.dot" << std::endl;
+        exit(EXIT_SUCCESS);
+    }
+
     if(inflags.GetValueInt("time") == 1)
     {
         miopenEnableProfiling(GetHandle(), true);
@@ -405,6 +429,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
         "0",
         "Fusion mode (cbna = 0, cna = 1, na = 2, cn = 3, cba = 4, ca = 5, cb = 6) (Default=cbna)",
         "int");
+    inflags.AddInputFlag("dot_graph",
+                         'D',
+                         "",
+                         "Write out the fusion metadata graph for the specified operator",
+                         "str");
 
     return miopenStatusSuccess;
 }

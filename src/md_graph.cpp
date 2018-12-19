@@ -34,7 +34,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
 namespace miopen {
 
-int MDGraph_vertex::running_id = 0;
+int MDGraph_vertex::running_id = 1;
 
 MDGraph_vertex::MDGraph_vertex(miopenFusionOp_t o,
                                std::string program_name,
@@ -191,14 +191,13 @@ bool FusionMDGraph::SetConvAlgo(miopenConvFwdAlgorithm_t algo)
 
     for(auto& kinder : cur_vertex)
     {
-        MDGraph_vertex_ptr& cur_vertex_ptr = kinder.first;
-        auto& cur_map                      = kinder.second;
+        auto& cur_map = kinder.second;
         if(cur_map.find("algo") != cur_map.end())
         {
             miopenConvFwdAlgorithm_t a = boost::any_cast<miopenConvFwdAlgorithm_t>(cur_map["algo"]);
             if(a == algo)
             {
-                new_list.emplace_back(cur_vertex_ptr, cur_map);
+                new_list.emplace_back(kinder.first, cur_map);
             }
         }
         else
@@ -1088,19 +1087,23 @@ bool FusionMDGraph::CmpOpKey(const FusionMDGraph_Edge_Map& edge_val,
             auto op_val = op->MDGraphKey();
             if(op_val.count(kv.first) == 1)
             {
-                for(auto& edg_ops : kv.second)
+                auto edg_op_it =
+                    std::find_if(kv.second.begin(), kv.second.end(), [&](auto&& edg_ops) {
+                        return !FusionMDGraph::ExecEdgeOp(edg_ops, op_val.at(kv.first).at(0));
+                    });
+                if(edg_op_it == kv.second.end())
                 {
-                    if(!FusionMDGraph::ExecEdgeOp(edg_ops, op_val.at(kv.first).at(0)))
-                    {
-                        MIOPEN_LOG_I2("Edge Op :" << edg_ops << " Op Val: "
-                                                  << op_val.at(kv.first).at(0)
-                                                  << " Edge Op for key: "
-                                                  << kv.first
-                                                  << " Failed");
-                        return false;
-                    }
+                    MIOPEN_LOG_I2("Edge Op for key: " << kv.first << " Successfull");
                 }
-                MIOPEN_LOG_I2("Edge Op for key: " << kv.first << " Successfull");
+                else
+                {
+                    MIOPEN_LOG_I2("Edge Op :" << *edg_op_it << " Op Val: "
+                                              << op_val.at(kv.first).at(0)
+                                              << " Edge Op for key: "
+                                              << kv.first
+                                              << " Failed");
+                    return false;
+                }
             }
             else
             {
@@ -1204,6 +1207,144 @@ void FusionMDGraph::Reset()
     cur_vertex.clear();
     cur_vertex_map empty_map = {{"weight", 0}};
     cur_vertex.emplace_back(nullptr, empty_map);
+}
+
+// guard for debug only
+#define MIOPEN_ENUM_STR(x) std::pair<decltype(x), std::string>(x, #x)
+#define MIOPEN_ENUM_ARR(...) make_array(MIOPEN_PP_TRANSFORM_ARGS(MIOPEN_ENUM_STR, __VA_ARGS__))
+
+template <class U>
+std::unordered_map<int, std::string> enum_map(U lst)
+{
+    std::unordered_map<int, std::string> m;
+    for(auto& kinder : lst)
+    {
+        m.emplace(kinder.first, kinder.second);
+    }
+    return m;
+}
+
+std::string edge_op_str(const MDGraph_op_t o)
+{
+    switch(o)
+    {
+    case OpEqual: return " == ";
+    case OpNotEqual: return " != ";
+    case OpAny: return " : ";
+    case OpModulo: return " % ";
+    case OpGTE: return " >= ";
+    case OpLTE: return " <= ";
+    case OpEval: return " eval ";
+    case OpAdd: return " + ";
+    case OpSub: return " - ";
+    case OpMul: return " * ";
+    case OpDiv: return " / ";
+    case OpPow: return " ^ ";
+    case OpAnd: return " && ";
+    case OpOr: return " || ";
+    case OpCeil: return " ceil ";
+    case OpAssign: return " = ";
+    case OpGT: return " > ";
+    case OpLT: return " < ";
+    }
+    MIOPEN_THROW("Invalid Operation");
+}
+
+std::string any_string(const boost::any& a)
+{
+    if(a.type() == typeid(std::string))
+        return boost::any_cast<std::string>(a);
+    else if(a.type() == typeid(int))
+        return std::to_string(boost::any_cast<int>(a));
+    else if(a.type() == typeid(miopenConvolutionMode_t))
+        return std::to_string(boost::any_cast<miopenConvolutionMode_t>(a));
+    else if(a.type() == typeid(miopenPaddingMode_t))
+        return std::to_string(boost::any_cast<miopenPaddingMode_t>(a));
+    else if(a.type() == typeid(size_t))
+        return std::to_string(boost::any_cast<size_t>(a));
+    else if(a.type() == typeid(miopenBatchNormMode_t))
+        return std::to_string(boost::any_cast<miopenBatchNormMode_t>(a));
+    else if(a.type() == typeid(miopenActivationMode_t))
+        return std::to_string(boost::any_cast<miopenActivationMode_t>(a));
+    else if(a.type() == typeid(miopenDataType_t))
+        return std::to_string(boost::any_cast<miopenDataType_t>(a));
+    else
+        return ""; // assert(false);
+}
+
+void FusionMDGraph::WriteToFile(std::string filename)
+{
+    const auto op_enum = enum_map(MIOPEN_ENUM_ARR(miopenFusionOpConvForward,
+                                                  miopenFusionOpActivForward,
+                                                  miopenFusionOpBatchNormInference,
+                                                  miopenFusionOpBiasForward));
+
+    if(filename.empty())
+    {
+        filename = "/tmp/mdgraph.dot";
+    }
+    std::set<MDGraph_vertex_ptr> nodes;
+    std::ofstream dot_file;
+    std::stringstream dot_graph;
+    dot_file.open(filename);
+
+    for(auto& edge : edge_list)
+    {
+        nodes.insert(edge.first);
+        for(auto& edge2 : edge.second)
+        {
+            nodes.insert(edge2.first);
+        }
+    }
+
+    dot_graph << "digraph { " << std::endl;
+    for(auto& node : nodes)
+    {
+        if(node == nullptr)
+        {
+            dot_graph << "0 [label=root];" << std::endl;
+        }
+        else
+        {
+            dot_graph << node->id << " [ label=\"" << op_enum.at(node->op) << ":"
+                      << node->vertex_data.at("kernel") << ":" << node->id << "\"];" << std::endl;
+        }
+    }
+
+    int src_id, dst_id;
+
+    for(auto& edge : edge_list)
+    {
+        if(edge.first != nullptr)
+            src_id = edge.first->id;
+        else
+            src_id = 0;
+        for(auto& edge2 : edge.second)
+        {
+            if(edge2.first != nullptr)
+                dst_id = edge2.first->id;
+            else
+                dst_id = 0;
+            for(auto& edg_map : edge2.second)
+            {
+                std::stringstream edge_label;
+                for(auto& edg_ops : edg_map)
+                {
+                    for(auto& e : edg_ops.second)
+                    {
+                        if(e.op != OpAny) // skip metadata and dont cares
+                            edge_label << edg_ops.first << edge_op_str(e.op) << any_string(e.val)
+                                       << "\\n";
+                    }
+                }
+                dot_graph << src_id << "->" << dst_id << "[label=\"" << edge_label.str() << "\"];"
+                          << std::endl;
+            }
+        }
+    }
+
+    dot_graph << "}" << std::endl;
+    dot_file << dot_graph.str();
 }
 
 } // namespace miopen

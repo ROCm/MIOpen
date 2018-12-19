@@ -29,6 +29,7 @@
 #include <functional>
 
 #include <miopen/each_args.hpp>
+#include <numeric>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -274,12 +275,11 @@ struct read_value
               ARGS_REQUIRES(is_container<Container>{} and not is_output_streamable<Container>{})>
     std::string operator()(Container& xs) const
     {
-        std::string result;
-        for(auto&& x : xs)
-        {
-            result += (*this)(x) + " ";
-        }
-        return result;
+        if(xs.begin() == xs.end())
+            return "";
+        return std::accumulate(xs.begin() + 1, xs.end(), (*this)(*xs.begin()), [&](auto x, auto y) {
+            return x + " " + (*this)(y);
+        });
     }
 
     template <class T, ARGS_REQUIRES(is_output_streamable<T>{})>

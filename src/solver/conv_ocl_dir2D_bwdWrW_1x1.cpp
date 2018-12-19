@@ -33,7 +33,8 @@ namespace solver {
 
 bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
-    bool result = (params.kernel_size0 == 1) && (params.kernel_size1 == 1);
+    bool result =
+        (params.kernel_size0 == 1) && (params.kernel_size1 == 1) && params.mode.IsNormal();
 
     // Does not support strides > 1 if not multiple of 16
     if((params.n_inputs & 0xF) > 0 || (params.n_outputs & 0xF) > 0)

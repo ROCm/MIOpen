@@ -188,7 +188,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
         kernels/MIOpenConvBwdWrWS2.cl
+        kernels/MIOpenGroupConvBwdWrWS2.cl
         kernels/MIOpenConvBwdWrW_LxG_P53.cl
+        kernels/MIOpenGroupConvBwdWrW_LxG_P53.cl
         kernels/MIOpenConvBwdWrW_LxG_5x5.cl
         kernels/MIOpenConvBwdWrW1x1_PAD_read4.cl
         kernels/MIOpenConvFwd_LxL_11.cl
@@ -207,6 +209,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenTensorKernels.cl
         kernels/MIOpenSubTensorOpWithScalarKernel.cl
         kernels/MIOpenSubTensorOpWithSubTensorKernel.cl
+        kernels/MIOpenSubTensorOpWithCastTensorKernel.cl
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride1.s
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dec.s
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dil.s
@@ -391,7 +394,6 @@ if(WIN32 AND NOT MSVC)
     target_link_libraries(MIOpen PUBLIC -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
 endif()
 
-target_link_libraries(MIOpen PRIVATE OpenSSL::Crypto)
 target_include_directories(MIOpen PUBLIC $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>)
 target_internal_library(MIOpen
     optimized ${Boost_FILESYSTEM_LIBRARY_RELEASE}

@@ -31,6 +31,7 @@ include(CheckCXXCompilerFlag)
 
 option( MIOPEN_TEST_ALL "Run the full test suite" OFF )
 option( MIOPEN_TEST_HALF "Test in half mode" OFF )
+option( MIOPEN_TEST_INT8 "Test in int8 mode" OFF )
 option(MIOPEN_TEST_CONV Off)
 option(MIOPEN_TEST_DEEPBENCH Off)
 
@@ -49,8 +50,16 @@ if(MIOPEN_TEST_HALF)
     set(MIOPEN_TEST_FLOAT_ARG --half)
 endif()
 
+if(MIOPEN_TEST_INT8)
+    set(SKIP_ALL_EXCEPT_TESTS test_tensor_cast test_tensor_trans test_tensor_copy test_tensor_set test_tensor_transform)
+    set(MIOPEN_TEST_FLOAT_ARG --int8)
+endif()
+
 function(add_test_command NAME EXE)
-    if(NAME IN_LIST SKIP_TESTS)
+    if((NOT (NAME IN_LIST SKIP_ALL_EXCEPT_TESTS)) AND MIOPEN_TEST_INT8)
+        add_test(NAME ${NAME} COMMAND echo skipped)
+        set_tests_properties(${NAME} PROPERTIES DISABLED On)
+    elseif(NAME IN_LIST SKIP_TESTS)
         add_test(NAME ${NAME} COMMAND echo skipped)
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
     elseif(WIN32)
@@ -132,16 +141,18 @@ endforeach()
 # add_sanitize_test(type_name.cpp)
 
 function(add_custom_test NAME)
-    set(options ALL)
-    set(oneValueArgs)
-    set(multiValueArgs)
+    if(NOT MIOPEN_TEST_INT8)
+        set(options ALL)
+        set(oneValueArgs)
+        set(multiValueArgs)
 
-    cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+        cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     
-    add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
-    if(NOT PARSE_ALL OR MIOPEN_TEST_ALL)
-        add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
+        add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
+        if(NOT PARSE_ALL OR MIOPEN_TEST_ALL)
+            add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
+        endif()
     endif()
 endfunction()
 
@@ -299,6 +310,10 @@ COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 3 227 227  --weights 4 3 11
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 3 224 224  --weights 4 3 11 11 --filter 2 2 4 4
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 1 48 480 --weights 16 1 3 3 --filter 1 1 1 1 1 1
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 64 27 27 --weights 192 64 5 5 --filter 2 2 1 1
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 64 14 14 --weights 24 64 5 5 --filter 2 2 1 1 1 1
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 96 14 14 --weights 32 96 5 5 --filter 2 2 1 1 1 1
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 16 14 14 --weights  4 16 5 5 --filter 2 2 1 1 1 1
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 32 14 14 --weights  4 32 5 5 --filter 2 2 1 1 1 1
 )
 
 
@@ -354,6 +369,16 @@ COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 832 7 7 --weights 128 52 5
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 192 28 28 --weights 32 24 1 1 --filter 0 0 1 1,  --group-count 8
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 832 7 7 --weights 128 104 1 1 --filter 0 0 1 1,  --group-count 8
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 11 23 161 700  --weights 46 1 7 7 --filter 1 1 2 2,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 1 1 1 1,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 0 0 1 1,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 0 0 2 2,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 1 1 2 2,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 2 2 2 2,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 1 1 1 1,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 0 0 1 1,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 0 0 2 2,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 1 1 2 2,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 2 2 2 2,  --cmode dw
 )
 
 
@@ -440,3 +465,4 @@ if(MIOPEN_TEST_CONV)
     add_test(NAME test_conv_input_1x32x28x28_weights_1x32x5x5_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 32, 28, 28 --weights 1, 32, 5, 5 --filter 0 0 4 4)
     add_test(NAME test_conv_input_1x48x7x7_weights_1x48x5x5_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 48, 7, 7 --weights 1, 48, 5, 5 --filter 0 0 4 4)
 endif()
+

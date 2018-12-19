@@ -57,7 +57,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 1.6.0)
+rocm_setup_version(VERSION 1.7.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
@@ -158,7 +158,6 @@ else()
     set(MIOPEN_USE_MIOPENGEMM 0)
 endif()
 
-find_package(OpenSSL REQUIRED)
 set(BOOST_COMPONENTS filesystem system)
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
@@ -187,8 +186,8 @@ else()
     set(MIOPEN_CACHE_DIR "~/.cache/miopen/" CACHE STRING "")
 endif()
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "openssl, rocm-opencl-dev, rocm-utils, hip_hcc, miopengemm")
-set(CPACK_RPM_PACKAGE_REQUIRES "openssl, rocm-opencl-devel, rocm-utils, hip_hcc, miopengemm")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "rocm-opencl-dev, rocm-utils, hip_hcc, miopengemm")
+set(CPACK_RPM_PACKAGE_REQUIRES "rocm-opencl-devel, rocm-utils, hip_hcc, miopengemm")
 
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}
@@ -264,9 +263,9 @@ enable_clang_tidy(
 )
 include(CppCheck)
 enable_cppcheck(
-    CHECKS 
+    CHECKS
         all
-    SUPPRESS 
+    SUPPRESS
         ConfigurationNotChecked
         unmatchedSuppression
         unusedFunction

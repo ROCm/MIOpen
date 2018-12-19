@@ -183,7 +183,8 @@ struct verify_lrn_bwd
                     {
                         for(auto j = top; j < bottom; j++)
                         {
-                            ydy += (inputY(b, c, j, i) * inputDY(b, c, j, i) / scale(b, c, j, i));
+                            ydy += (double(inputY(b, c, j, i) * inputDY(b, c, j, i)) /
+                                    double(scale(b, c, j, i)));
                         }
                     }
 
@@ -204,7 +205,8 @@ struct verify_lrn_bwd
 
                     for(auto k = start; k < end; k++)
                     {
-                        ydy += (inputY(b, k, h, w) * inputDY(b, k, h, w) / scale(b, k, h, w));
+                        ydy += (double(inputY(b, k, h, w) * inputDY(b, k, h, w)) /
+                                double(scale(b, k, h, w)));
                     }
 
                     routputDX(b, c, h, w) = pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
