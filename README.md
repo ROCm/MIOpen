@@ -101,14 +101,18 @@ cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On ..
 
 Database paths can be explicitly customized by means of `MIOPEN_DB_PATH` (System PerfDb) and `MIOPEN_USER_DB_PATH` (User PerfDb) cmake variables.
 
+If the user installs a new version of MIOpen, it is recommended that the user move, or delete their old user database file. The user can find the file with the suffix `*.updb.txt` in the user perf db path. 
+
+More information about the performance database can be found [here](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/master/doc/src/perfdatabase.md).
+
+
 ##### Persistent Program Cache
 
 MIOpen by default caches the device programs in the location `~/.cache/miopen/`. In the cache directory there exists a directory for each version of MIOpen. Users change the location of the cache directory during configuration using the flag `-DMIOPEN_CACHE_DIR=<cache-directory-path>`. 
 
 Users can also disable the cache during runtime using the environmental variable set as `MIOPEN_DISABLE_CACHE=1`. 
 
-If the compiler changes, or the user modifies the kernels then the cache must be deleted for the MIOpen version in use; e.g., `rm -rf ~/.cache/miopen/<miopen-version-number>`.
-
+If the compiler changes, or the user modifies the kernels then the cache must be deleted for the MIOpen version in use; e.g., `rm -rf ~/.cache/miopen/<miopen-version-number>`. More information about the cache can be found [here](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/master/doc/src/cache.md).
 
 
 #### Changing the cmake configuration
