@@ -81,10 +81,6 @@ mlo_construct_direct2D_fusion::FindSolution(std::vector<miopen::solver::AnySolve
 
 std::vector<miopen::solver::ConvSolution> mlo_construct_direct2D::FindAllSolutions()
 {
-    if(_search_params.group_counts > 1)
-        return miopen::solver::SearchForAllSolutions<miopen::solver::ConvOclDirectFwd>(
-            _search_params, this->GetDb());
-
     // clang-format off
     return miopen::solver::SearchForAllSolutions<
         miopen::solver::ConvAsm3x3U,
@@ -96,6 +92,7 @@ std::vector<miopen::solver::ConvSolution> mlo_construct_direct2D::FindAllSolutio
         miopen::solver::ConvOclDirectFwdGen,
         miopen::solver::ConvOclDirectFwd3x3,
         miopen::solver::ConvOclDirectFwd1x1,
+        miopen::solver::GroupConvOclDirectFwd,
         miopen::solver::ConvOclDirectFwd
     >(_search_params, this->GetDb());
     // clang-format on

@@ -104,9 +104,8 @@ bool PerformanceConfigConvAsm3x3U::IsValid(const ConvolutionContext& config) con
     assert(active_lanes != 0);
     if(active_lanes == 0)
         return false;
-    const bool uneven_line_read_mode  = (img_x_blocks % active_lanes != 0);
-    const bool uneven_line_write_mode = (img_width % active_lanes != 0);
-    if(uneven_line_read_mode || uneven_line_write_mode)
+    const bool uneven_line_read_mode = (img_x_blocks % active_lanes != 0);
+    if(uneven_line_read_mode)
         ++n;
 
     const int block_size_x        = 1;
@@ -187,6 +186,7 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         && params.in_width > 3
         && params.in_width <= 1000
         && params.float_size == 32
+        && params.mode.IsNormal()
         && params.in_layout == "NCHW";
         // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
     // clang-format on

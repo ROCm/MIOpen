@@ -88,6 +88,16 @@ struct miopen_type<half_float::half> : std::integral_constant<miopenDataType_t, 
 {
 };
 
+template <>
+struct miopen_type<int8_t> : std::integral_constant<miopenDataType_t, miopenInt8>
+{
+};
+
+template <>
+struct miopen_type<int> : std::integral_constant<miopenDataType_t, miopenInt32>
+{
+};
+
 template <class T>
 struct tensor
 {

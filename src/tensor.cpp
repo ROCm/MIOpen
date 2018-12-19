@@ -127,7 +127,9 @@ std::size_t TensorDescriptor::GetNumBytes() const
     std::size_t typesize = 0;
     switch(this->type)
     {
-    case miopenHalf: typesize  = 2; break;
+    case miopenInt8: typesize = 1; break;
+    case miopenHalf: typesize = 2; break;
+    case miopenInt32:
     case miopenFloat: typesize = 4; break;
     }
     return typesize * this->GetElementSpace();

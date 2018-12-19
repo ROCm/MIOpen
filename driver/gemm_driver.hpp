@@ -298,7 +298,9 @@ int GemmDriver<T>::RunForwardGPU()
                                b_dev->GetMem(),
                                0,
                                c_dev->GetMem(),
-                               0);
+                               0,
+                               nullptr,
+                               false);
 #else
         if(gemm_desc.batch_count > 1)
             CallGemmStridedBatched(miopen::deref(GetHandle()),
@@ -308,7 +310,9 @@ int GemmDriver<T>::RunForwardGPU()
                                    b_dev->GetMem(),
                                    0,
                                    c_dev->GetMem(),
-                                   0);
+                                   0,
+                                   nullptr,
+                                   false);
         else
             CallGemm(miopen::deref(GetHandle()),
                      gemm_desc,
@@ -317,7 +321,9 @@ int GemmDriver<T>::RunForwardGPU()
                      b_dev->GetMem(),
                      0,
                      c_dev->GetMem(),
-                     0);
+                     0,
+                     nullptr,
+                     false);
 #endif
 
 #if GEMM_DRIVER_DEBUG

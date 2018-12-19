@@ -128,6 +128,9 @@ inline std::set<std::vector<int>> get_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_S
         { pick_batch_size(32, n),  1056, 7,   7   },
         { pick_batch_size(32, n),  1024, 7,   7   },
         { pick_batch_size(32, n),  2048, 11,  11  },
+        { pick_batch_size(32, n),  16,   2048, 2048 },
+        { pick_batch_size(32, n),  16,   3072, 3072 },
+        { pick_batch_size(32, n),  16,   4096, 4096 },
         { 1,                       1,    1,   1   }
     };
     // clang-format on

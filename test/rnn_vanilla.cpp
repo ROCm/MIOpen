@@ -2269,9 +2269,7 @@ struct rnn_vanilla_driver : test_driver
 
         auto&& handle = get_handle();
 
-        int batch_n = 0;
-        for(auto& n : batchSeq)
-            batch_n += n;
+        int batch_n = std::accumulate(batchSeq.begin(), batchSeq.end(), 0);
 
         miopenRNNDescriptor_t rnnDesc;
         miopenCreateRNNDescriptor(&rnnDesc);

@@ -33,7 +33,7 @@ namespace solver {
 bool ConvOclDirectFwdGen::IsApplicable(const ConvolutionContext& params) const
 {
     return params.direction.IsForward() && params.kernel_stride0 == params.kernel_stride1 &&
-           params.pad0 == params.pad1 &&
+           params.pad0 == params.pad1 && params.mode.IsNormal() &&
            (params.kernel_size0 > 11 || params.kernel_size1 > 11 ||
             ((params.kernel_stride0 > 1 || params.kernel_stride1 > 1) &&
              !(params.kernel_size0 == 1 && params.kernel_size1 == 1)));

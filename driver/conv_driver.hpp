@@ -316,6 +316,11 @@ int ConvDriver<Tgpu, Tref, Tfile>::AddCmdLineArgs()
     inflags.AddInputFlag("dilation_w", 'j', "1", "Dilation of Filter Width (Default=1)", "int");
     inflags.AddInputFlag("in_bias", 'a', "", "Input bias filename (Default=)", "string");
     inflags.AddInputFlag("group_count", 'g', "1", "Number of Groups (Default=1)", "int");
+    inflags.AddInputFlag("dout_data",
+                         'D',
+                         "",
+                         "dy data filename for backward weight computation (Default=)",
+                         "string");
 
     return 0;
 }
@@ -581,6 +586,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     std::string inFileName   = inflags.GetValueStr("in_data");
     std::string weiFileName  = inflags.GetValueStr("weights");
     std::string biasFileName = inflags.GetValueStr("in_bias");
+    std::string doutFileName = inflags.GetValueStr("dout_data");
 
     /* Unless seed is persistent between runs validation using cache stored in file is impossible.
      */
@@ -602,9 +608,18 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
         }
     }
 
-    for(int i = 0; i < out_sz; i++)
+    bool doutRead = false;
+    if(!doutFileName.empty())
     {
-        dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        doutRead = readBufferFromFile<Tgpu>(dout.data(), out_sz, doutFileName.c_str());
+    }
+
+    if(!doutRead)
+    {
+        for(int i = 0; i < out_sz; i++)
+        {
+            dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        }
     }
 
     if(inflags.GetValueInt("bias") != 0)
@@ -656,7 +671,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
         dumpBufferToFile<Tgpu>("dump_wei.bin", wei.data(), wei_sz);
         if(inflags.GetValueInt("bias") != 0)
             dumpBufferToFile<Tgpu>("dump_bias.bin", b.data(), GetTensorSize(biasTensor));
+
+        dumpBufferToFile<Tgpu>("dump_dout.bin", dout.data(), out_sz);
     }
+
 #if MIOPEN_BACKEND_OPENCL
     cl_int status;
 #elif MIOPEN_BACKEND_HIP
@@ -1850,7 +1868,9 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardBiasCPU()
             {
                 for(int w = 0; w < out_w; w++)
                 {
-                    if((inflags.GetValueStr("mode")) == "conv")
+                    if((inflags.GetValueStr("mode")) == "conv" ||
+                       (inflags.GetValueStr("mode")) == "group" ||
+                       (inflags.GetValueStr("mode")) == "dw")
                     {
                         db_host[c] += static_cast<Tref>(
                             dout[n * out_nstride + c * out_cstride + h * out_hstride + w]);
@@ -1898,6 +1918,27 @@ std::string ConvDriver<Tgpu, Tref, Tfile>::GetVerificationCacheFileName() const
        << "x" << inputDesc[0] //_batch_sz
        << "_" << weiDesc[1] << "x" << pad_h << "x" << pad_w << "x" << u << "x" << v << "x" << sx
        << "x" << sy << "x" << inflags.GetValueInt("pad_val");
+
+    switch(mode)
+    {
+    case miopenConvolution:
+        // Do not encode conv ("normal") mode to maintain compatibility with existing
+        // verification cache files.
+        break;
+    case miopenGroupConv:
+        // Group mode can be distinguished from conv by value of weiDesc[1] (which has group count
+        // included as a multiplier, so we do not need to encode group count at all).
+        break;
+    case miopenDepthwise:
+        // DW mode is essantilly Group mode when number of groups is equal to C.
+        break;
+    case miopenTranspose:
+        // In spite of weiDesc[1] is included into filename, transpose mode cannot be realiably
+        // distinguished from other modes in some corner cases, for example if C==K, 3x3, pad=1x1:
+        // "-c 8 -k 8 -H 57 -W 57 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1"
+        ss << "mT";
+        break;
+    }
 
     assert(sizeof(Tfile) == 8 || sizeof(Tfile) == 4 || sizeof(Tfile) == 2);
     // Legacy files contain floats and have no prefix.

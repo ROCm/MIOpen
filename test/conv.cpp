@@ -34,7 +34,6 @@
 #include <miopen/tensor.hpp>
 #include <utility>
 
-// #include "network_data.hpp"
 #include "driver.hpp"
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
@@ -650,7 +649,11 @@ struct conv_driver : test_driver
                 miopen::ConvolutionDescriptor{3, 3, 2, 2},
                 miopen::ConvolutionDescriptor{0, 0, 1, 1, 2, 2},
                 miopen::ConvolutionDescriptor{1, 1, 2, 2, 3, 3},
-                miopen::ConvolutionDescriptor{3, 3, 2, 2, 4, 4}};
+                miopen::ConvolutionDescriptor{3, 3, 2, 2, 4, 4},
+                miopen::ConvolutionDescriptor{0, 0, 1, 1, 1, 2},
+                miopen::ConvolutionDescriptor{1, 1, 2, 2, 2, 1},
+                miopen::ConvolutionDescriptor{2, 2, 1, 1, 4, 3},
+                miopen::ConvolutionDescriptor{3, 3, 2, 2, 3, 4}};
     }
 
     void run()
@@ -669,9 +672,15 @@ struct conv_driver : test_driver
 
         // lack of transposeConv for half type
         // \todo enhance support of half type into transConv
-        if((input.desc.GetType() == miopenHalf) &&
-           ((filter.mode == miopenTranspose || filter.mode == miopenGroupConv ||
-             filter.mode == miopenDepthwise)))
+        if((input.desc.GetType() == miopenHalf) && (filter.mode == miopenTranspose))
+        {
+            return;
+        }
+
+        // bwd53 kernel (large images supported) doesnt support stride !=1 and dialation and pad.
+        if(input_w >= 2048 &&
+           ((filter.u != 1) || (filter.v != 1) || (filter.dilation_h != 1) ||
+            (filter.dilation_w != 1) || (filter.pad_w != 0) || (filter.pad_h != 0)))
         {
             return;
         }
@@ -762,6 +771,15 @@ struct conv_driver : test_driver
                         get_handle(), filter, input.desc, weights.desc, output.desc);
                 }
 #endif
+
+                // bwd53 kernel (large images supported) doesnt support stride !=1 and dialation and
+                // pad.
+                if(input_w >= 2048 &&
+                   ((filter.u != 1) || (filter.v != 1) || (filter.dilation_h != 1) ||
+                    (filter.dilation_w != 1) || (filter.pad_w != 0) || (filter.pad_h != 0)))
+                {
+                    return;
+                }
 
                 input.generate(gen_positive_value);
                 output.generate(gen_positive_value);

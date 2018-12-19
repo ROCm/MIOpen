@@ -921,8 +921,11 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         MIOPEN_LOG_I2("A previous attempt to add an operator failed");
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    network_config = "";
-    network_config += output_desc.ToString();
+    network_config =
+        input_desc.ToString() + ((input_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
+    network_config +=
+        output_desc.ToString() + ((input_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
+
     for(auto&& op : op_map)
     {
         op->GetNetworkConfig(network_config, handle);
@@ -1054,10 +1057,12 @@ std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder(Handle& handle)
             {
                 auto keys = ptr_map.at(idx);
                 std::sort(keys.begin(), keys.end());
-                for(auto& key : keys)
-                {
-                    arg_keys.emplace_back(key, Pointer, sizeof(ConstData_t));
-                }
+                std::transform(keys.begin(),
+                               keys.end(),
+                               std::back_inserter(arg_keys),
+                               [&](auto&& key) -> Exec_arg_t {
+                                   return {key, Pointer, sizeof(ConstData_t)};
+                               });
             }
         }
         if(kernel_source_type == AsmText)
