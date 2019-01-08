@@ -153,6 +153,16 @@ struct tensor
     template <class G>
     void generate_impl(G g)
     {
+        auto seed = std::accumulate(desc.GetLengths().begin(),
+                                    desc.GetLengths().end(),
+                                    std::size_t{521288629},
+                                    [](auto x, auto y) {
+                                        x ^= x << 1U;
+                                        return x ^ y;
+                                    });
+        seed ^= data.size();
+        seed ^= desc.GetLengths().size();
+        std::srand(seed);
         auto iterator = data.begin();
         auto assign   = [&](T x) {
             assert(iterator < data.end());
@@ -256,6 +266,28 @@ struct tensor
         return stream << t.desc;
     }
 };
+
+template <class T>
+void serialize(std::istream& s, tensor<T>& x)
+{
+    std::vector<std::size_t> lens;
+    serialize(s, lens);
+    std::vector<std::size_t> strides;
+    serialize(s, strides);
+    x.desc = miopen::TensorDescriptor{miopen_type<T>{}, lens, strides};
+    serialize(s, x.data);
+}
+
+template <class T>
+void serialize(std::ostream& s, const tensor<T>& x)
+{
+    std::vector<std::size_t> lens    = x.desc.GetLengths();
+    std::vector<std::size_t> strides = x.desc.GetStrides();
+    serialize(s, lens);
+    serialize(s, strides);
+    serialize(s, x.data);
+}
+
 template <class T>
 void save_tensor(tensor<T> input, std::string fn, int slice)
 {
