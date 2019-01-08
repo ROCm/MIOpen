@@ -2,6 +2,8 @@
 def rocmtestnode(variant, name, body) {
     def image = 'miopen'
     def cmake_build = { compiler, flags ->
+        def workspace_dir = pwd()
+        def vcache = "/var/jenkins/.cache/miopen/vcache"
         def cmd = """
             echo \$HSA_ENABLE_SDMA
             mkdir -p $WINEPREFIX
@@ -9,7 +11,7 @@ def rocmtestnode(variant, name, body) {
             mkdir build
             cd build
             CXX=${compiler} CXXFLAGS='-Werror' cmake -DMIOPEN_GPU_SYNC=On -DCMAKE_CXX_FLAGS_DEBUG='-g -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=undefined' ${flags} .. 
-            CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 dumb-init make -j32 check doc MIOpenDriver
+            CTEST_PARALLEL_LEVEL=4 MIOPEN_VERIFY_CACHE_PATH=${vcache} MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 dumb-init make -j32 check doc MIOpenDriver
         """
         echo cmd
         sh cmd
@@ -36,7 +38,7 @@ def rocmtestnode(variant, name, body) {
                 }
             }
         }
-        withDockerContainer(image: image, args: '--device=/dev/kfd --device=/dev/dri --group-add video') {
+        withDockerContainer(image: image, args: '--device=/dev/kfd --device=/dev/dri --group-add video -v=/var/jenkins/:/var/jenkins') {
             timeout(time: 2, unit: 'HOURS') {
                 body(cmake_build)
             }

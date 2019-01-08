@@ -134,6 +134,7 @@ struct tensor_transform_driver : test_driver
 
     tensor_transform_driver()
     {
+        disabled_cache = true;
         add(srcLens,
             "srcLens",
             generate_data({{32, 11, 32, 16},

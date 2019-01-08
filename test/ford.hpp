@@ -55,6 +55,13 @@ std::future<typename std::result_of<Function()>::type> detach_async(Function&& f
     return std::move(fut);
 }
 
+template <class T, class Work>
+auto then(std::future<T> f, Work w) -> std::future<decltype(w(f.get()))>
+{
+    return std::async(std::launch::deferred,
+                      [ =, f = std::move(f) ]() mutable { return w(f.get()); });
+}
+
 struct joinable_thread : std::thread
 {
     template <class... Xs>

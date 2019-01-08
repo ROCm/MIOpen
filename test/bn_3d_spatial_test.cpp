@@ -1192,7 +1192,6 @@ struct batch_norm_3d_spatial_driver : test_driver
 
     void run()
     {
-
         std::size_t n, c, d, h, w;
         std::tie(n, c, d, h, w) = miopen::tien<5>(input.desc.GetLengths());
 
