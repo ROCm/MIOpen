@@ -173,6 +173,11 @@ extern uint __llvm_amdgcn_readfirstlane(uint) __asm("llvm.amdgcn.readfirstlane")
 #define uniform(x) (x)
 #endif
 
+#ifdef GRP_MOD_ENABLE
+#define MLO_GRPWISE_N_OUTPUTS (MLO_N_OUTPUTS / MLO_GROUP_COUNTS)
+#define MLO_GRPWISE_N_INPUTS (MLO_N_INPUTS / MLO_GROUP_COUNTS)
+#endif
+
 static inline uint iDiv(uint v, uint d)
 {
     uint r = v / d;
@@ -495,8 +500,14 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
     uint alu_tl0          = alu_out_id & (MLO_ALU_VTILE0 - 1);
 #endif
 
+#ifdef GRP_MOD_ENABLE
+    uint ig          = o_pack / MLO_STACK_PERGROUP;
+    uint within_ig   = o_pack % MLO_STACK_PERGROUP;
+    uint o_map_plane = ig * MLO_GROUP_TILES + within_ig * MLO_N_OUT_TILES_PERSTACK;
+#else
     uint o_map_plane =
         o_pack * MLO_N_OUT_TILES_PERSTACK; // first output maps index per full ALU plane stack
+#endif
     uint o_map_base = alu_out_plane_id * MLO_N_OUT_TILES; // local output map offset
     uint o_map      = o_map_plane + o_map_base;           // output map index per ALU plane
     uint b_index    = b_pack * MLO_N_STACKS;
@@ -527,38 +538,63 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
     uint x_in_lcl = alu_tl0 * MLO_OUT_TILE0 * MLO_FILTER_STRIDE0;
     uint y_in_lcl = alu_tl1 * MLO_OUT_TILE1 * MLO_FILTER_STRIDE1;
 #else
-    uint x_grp            = x_tile_blk * (MLO_IN_TILE0 / MLO_FILTER_STRIDE0);
-    uint y_grp            = y_tile_blk * (MLO_IN_TILE1 / MLO_FILTER_STRIDE1);
+    uint x_grp    = x_tile_blk * (MLO_IN_TILE0 / MLO_FILTER_STRIDE0);
+    uint y_grp    = y_tile_blk * (MLO_IN_TILE1 / MLO_FILTER_STRIDE1);
 #if MLO_LARGE_MAP == 1
-    uint x_in_grp         = x_grp - (MLO_FILTER_PAD0 / MLO_FILTER_STRIDE0);
-    uint y_in_grp         = y_grp - (MLO_FILTER_PAD1 / MLO_FILTER_STRIDE1);
+    uint x_in_grp = x_grp - (MLO_FILTER_PAD0 / MLO_FILTER_STRIDE0);
+    uint y_in_grp = y_grp - (MLO_FILTER_PAD1 / MLO_FILTER_STRIDE1);
 #endif
-    uint x_in_lcl         = alu_tl0 * (MLO_OUT_TILE0 / MLO_FILTER_STRIDE0);
-    uint y_in_lcl         = alu_tl1 * (MLO_OUT_TILE1 / MLO_FILTER_STRIDE1);
+    uint x_in_lcl = alu_tl0 * (MLO_OUT_TILE0 / MLO_FILTER_STRIDE0);
+    uint y_in_lcl = alu_tl1 * (MLO_OUT_TILE1 / MLO_FILTER_STRIDE1);
 #endif
 
     // base offset to read data from local input data
     uint in_stg_off = stack * MLO_IN_LCL_PERSTACK_SZ + (y_in_lcl)*MLO_IN_LCL_WIDTH + x_in_lcl;
 
-    uint in_off = b_index * MLO_IN_BATCH_STRIDE;
-
-#if MLO_DIR_FORWARD == 1
-    uint wei_off = mul24(o_map_plane, (uint)(MLO_N_INPUTS * MLO_FILTER_SZ));
-#else
-    uint wei_off          = mul24(o_map_plane, (uint)MLO_FILTER_SZ);
-#endif
-
 #if MLO_LARGE_MAP == 0
     for(uint i = lcl_id; i < MLO_IN_LCL_SZ; i += MLO_GRP_SZ)
     {
-        lcl_indata[i] = 0.f;
+        lcl_indata[i] = (_FLOAT)0.f;
     }
 #endif
 
     for(uint i = 0; i < MLO_PVT_ACCUM_DATA_SZ; ++i)
     {
-        pvt_accum[i] = 0.f;
+        pvt_accum[i] = (_FLOAT)0.f;
     }
+
+#ifdef GRP_MOD_ENABLE
+#if MLO_DIR_FORWARD == 1
+    uint wei_off0 =
+        (MLO_GRPWISE_N_OUTPUTS * ig +
+         ((o_map % MLO_GRPWISE_N_OUTPUTS) / MLO_N_OUT_TILES_PERSTACK) * MLO_N_OUT_TILES_PERSTACK) *
+        MLO_GRPWISE_N_INPUTS * MLO_FILTER_SZ;
+#else
+    uint wei_off0 =
+        (MLO_GRPWISE_N_OUTPUTS * MLO_GRPWISE_N_INPUTS * ig +
+         ((o_map % MLO_GRPWISE_N_OUTPUTS) / MLO_N_OUT_TILES_PERSTACK) * MLO_N_OUT_TILES_PERSTACK) *
+        MLO_FILTER_SZ;
+#endif
+
+    uint in_off0 =
+        MLO_GRPWISE_N_INPUTS * ig * MLO_IN_CHANNEL_STRIDE + b_index * MLO_IN_BATCH_STRIDE;
+
+    for(uint ic = MLO_GRPWISE_N_INPUTS * ig; ic < MLO_GRPWISE_N_INPUTS * (ig + 1);
+        ic += MLO_N_IN_TILES_PERSTACK,
+             in_off0 += MLO_IN_CHANNEL_STRIDE * MLO_N_IN_TILES_PERSTACK,
+             wei_off0 += MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ
+#if MLO_DIR_FORWARD == 0
+                         *
+                         MLO_GRPWISE_N_OUTPUTS
+#endif
+#else
+    uint in_off   = b_index * MLO_IN_BATCH_STRIDE;
+
+#if MLO_DIR_FORWARD == 1
+    uint wei_off  = mul24(o_map_plane, (uint)(MLO_N_INPUTS * MLO_FILTER_SZ));
+#else
+    uint wei_off = mul24(o_map_plane, (uint)MLO_FILTER_SZ);
+#endif
 
     for(uint ic = 0; ic < MLO_N_INPUTS; ic += MLO_N_IN_TILES_PERSTACK,
              in_off += MLO_IN_CHANNEL_STRIDE * MLO_N_IN_TILES_PERSTACK,
@@ -566,6 +602,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #if MLO_DIR_FORWARD == 0
                                         *
                                         MLO_N_OUTPUTS
+#endif
 #endif
         )
     {
@@ -579,7 +616,13 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 
 #if MLO_LARGE_MAP == 1
         uint in_lcl_off1 = 0;
-        uint in_off1     = in_off;
+        uint in_off1 =
+#ifdef GRP_MOD_ENABLE
+            in_off0
+#else
+            in_off
+#endif
+            ;
         for(uint i_b = 0; i_b < MLO_N_STACKS;
             ++i_b, in_off1 += MLO_IN_BATCH_STRIDE, in_lcl_off1 += MLO_IN_LCL_PERSTACK_SZ)
         {
@@ -594,10 +637,13 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
             for(uint i_c = 0; i_c < MLO_N_IN_TILES_PERSTACK;
                 ++i_c, in_off2 += MLO_IN_CHANNEL_STRIDE, in_lcl_off2 += MLO_IN_LCL_TILE_SZ)
             {
-#if MLO_INPUTS_ALIGNED == 0
+#ifdef GRP_MOD_ENABLE
+                vis &= (ig < MLO_GROUP_COUNTS);
+                vis &= (ic + i_c < MLO_GRPWISE_N_INPUTS * (ig + 1));
+                vis &= (ic + i_c >= MLO_GRPWISE_N_INPUTS * ig);
+#elif MLO_INPUTS_ALIGNED == 0
                 vis &= (ic + i_c < MLO_N_INPUTS);
 #endif
-
                 uint elem_id      = lcl_id;
                 uint lcl_p_stride = MLO_GRP_SZ0;
                 uint lcl_base     = 0;
@@ -632,8 +678,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
             uint i_b = iDiv(i, MLO_N_IN_TILES_PERSTACK);
             uint i_c = iMod(i, i_b, MLO_N_IN_TILES_PERSTACK);
 #else
-            uint i_b   = i / MLO_N_IN_TILES_PERSTACK;
-            uint i_c   = i & (MLO_N_IN_TILES_PERSTACK - 1);
+            uint i_b = i / MLO_N_IN_TILES_PERSTACK;
+            uint i_c = i & (MLO_N_IN_TILES_PERSTACK - 1);
 #endif
 
             bool vis = true;
@@ -642,10 +688,17 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
             vis &= (b_index + i_b < MLO_BATCH_SZ);
 #endif
 
+#ifdef GRP_MOD_ENABLE
+            vis &= (ig < MLO_GROUP_COUNTS);
+            vis &= (ic + i_c < MLO_GRPWISE_N_INPUTS * (ig + 1));
+            vis &= (ic + i_c >= MLO_GRPWISE_N_INPUTS * ig);
+            uint in_off2     = in_off0 + i_b * MLO_IN_BATCH_STRIDE + i_c * MLO_IN_CHANNEL_STRIDE;
+#else
 #if MLO_INPUTS_ALIGNED == 0
             vis &= (ic + i_c < MLO_N_INPUTS);
 #endif
-            uint in_off2     = in_off + i_b * MLO_IN_BATCH_STRIDE + i_c * MLO_IN_CHANNEL_STRIDE;
+            uint in_off2 = in_off + i_b * MLO_IN_BATCH_STRIDE + i_c * MLO_IN_CHANNEL_STRIDE;
+#endif
             uint in_lcl_off2 = i_b * MLO_IN_LCL_PERSTACK_SZ + i_c * MLO_IN_LCL_TILE_SZ;
 
             uint elem_id      = wave_lcl_id;
@@ -655,8 +708,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
             uint lcl_y        = MLO_FILTER_PAD1;
             uint lcl_x        = MLO_FILTER_PAD0;
 #else
-            uint lcl_y = (MLO_FILTER_PAD1 / MLO_FILTER_STRIDE0);
-            uint lcl_x = (MLO_FILTER_PAD0 / MLO_FILTER_STRIDE1);
+            uint lcl_y   = (MLO_FILTER_PAD1 / MLO_FILTER_STRIDE0);
+            uint lcl_x   = (MLO_FILTER_PAD0 / MLO_FILTER_STRIDE1);
 #endif
             uint gbl_base     = in_off2;
 
@@ -694,12 +747,20 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
             uint lcl_o = iDiv(i, (MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ));
             uint gbl_i = iMod(i, lcl_o, (MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ));
 #else
-            uint lcl_o = i / (MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ);
-            uint gbl_i = i & ((MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ) - 1);
+            uint lcl_o        = i / (MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ);
+            uint gbl_i        = i & ((MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ) - 1);
 #endif
+#ifdef GRP_MOD_ENABLE
+            uint gbl_we_off   = wei_off0 + lcl_o * MLO_GRPWISE_N_INPUTS * MLO_FILTER_SZ + gbl_i;
+            bool within_range = gbl_we_off < (MLO_GRPWISE_N_OUTPUTS * MLO_GRPWISE_N_INPUTS *
+                                              (ig + 1) * MLO_FILTER_SZ);
+            within_range &=
+                gbl_we_off >= (MLO_GRPWISE_N_OUTPUTS * MLO_GRPWISE_N_INPUTS * ig * MLO_FILTER_SZ);
+            within_range &= (ig < MLO_GROUP_COUNTS);
+#else
             uint gbl_we_off   = wei_off + lcl_o * MLO_N_INPUTS * MLO_FILTER_SZ + gbl_i;
             bool within_range = gbl_we_off < (MLO_N_OUTPUTS * MLO_N_INPUTS * MLO_FILTER_SZ);
-
+#endif
             gbl_we_off = (within_range) ? gbl_we_off : 0;
             _FLOAT wei = weights[gbl_we_off];
             wei        = (within_range) ? wei : 0;
@@ -711,22 +772,33 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
             uint lcl_o = iDiv(i, (MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ));
             uint gbl_i = iMod(i, lcl_o, (MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ));
 #else
-            uint lcl_o = i / (MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ);
-            uint gbl_i = i & ((MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ) - 1);
+            uint lcl_o      = i / (MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ);
+            uint gbl_i      = i & ((MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ) - 1);
 #endif
 #if MLO_FILTER_SZ & (MLO_FILTER_SZ - 1)
             uint lcl_c = iDiv(gbl_i, MLO_FILTER_SZ);
             uint lcl_i = iMod(gbl_i, lcl_c, MLO_FILTER_SZ);
 #else
-            uint lcl_c = gbl_i / MLO_FILTER_SZ;
-            uint lcl_i = gbl_i & (MLO_FILTER_SZ - 1);
+            uint lcl_c      = gbl_i / MLO_FILTER_SZ;
+            uint lcl_i      = gbl_i & (MLO_FILTER_SZ - 1);
 #endif
 
             uint lcl_we_off = mad24(
                 mad24(lcl_c, (uint)MLO_N_IN_TILES_PERSTACK, lcl_o), (uint)MLO_FILTER_SZ, lcl_i);
+#ifdef GRP_MOD_ENABLE
+            uint gbl_we_off = mad24(mad24(lcl_o, (uint)MLO_GRPWISE_N_OUTPUTS, lcl_c),
+                                    (uint)MLO_FILTER_SZ,
+                                    wei_off0 + lcl_i);
+            bool within_range = gbl_we_off < (MLO_GRPWISE_N_OUTPUTS * MLO_GRPWISE_N_INPUTS *
+                                              (ig + 1) * MLO_FILTER_SZ);
+            within_range &=
+                gbl_we_off >= (MLO_GRPWISE_N_OUTPUTS * MLO_GRPWISE_N_INPUTS * ig * MLO_FILTER_SZ);
+            within_range &= (ig < MLO_GROUP_COUNTS);
+#else
             uint gbl_we_off = mad24(
                 mad24(lcl_o, (uint)MLO_N_OUTPUTS, lcl_c), (uint)MLO_FILTER_SZ, wei_off + lcl_i);
-            bool within_range   = gbl_we_off < (MLO_N_OUTPUTS * MLO_N_INPUTS * MLO_FILTER_SZ);
+            bool within_range = gbl_we_off < (MLO_N_OUTPUTS * MLO_N_INPUTS * MLO_FILTER_SZ);
+#endif
             gbl_we_off          = (within_range) ? gbl_we_off : 0;
             _FLOAT wei          = weights[gbl_we_off];
             wei                 = (within_range) ? wei : 0;
@@ -761,8 +833,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
     uint y_out_grp = y_tile_blk * MLO_IN_TILE1;
 #endif
 #else
-    uint x_out_grp        = x_grp * MLO_FILTER_STRIDE0;
-    uint y_out_grp        = y_grp * MLO_FILTER_STRIDE1;
+    uint x_out_grp = x_grp * MLO_FILTER_STRIDE0;
+    uint y_out_grp = y_grp * MLO_FILTER_STRIDE1;
 #endif
     uint x_out_lcl = alu_tl0 * MLO_OUT_TILE0;
     uint y_out_lcl = alu_tl1 * MLO_OUT_TILE1;
@@ -779,8 +851,13 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
         uint out_off1 = out_off;
         for(uint o = 0; o < MLO_N_OUT_TILES; ++o, out_off1 += MLO_OUT_CHANNEL_STRIDE)
         {
+#ifdef GRP_MOD_ENABLE
+            if(o_map + o < MLO_GRPWISE_N_OUTPUTS * (ig + 1) &&
+               o_map + o >= MLO_GRPWISE_N_OUTPUTS * ig && ig < MLO_GROUP_COUNTS)
+#else
 #if MLO_OUTPUTS_ALIGNED == 0
             if(o_map + o < MLO_N_OUTPUTS)
+#endif
 #endif
             {
                 // over output tile

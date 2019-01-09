@@ -396,6 +396,7 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
              std::to_string(static_cast<long long>(
                  (params.n_outputs / group_counts + n_out_tiles_perstack - 1) /
                  n_out_tiles_perstack)));
+        kernel_params.comp_options += std::string(" -DGRP_MOD_ENABLE");
     }
 
     kernel_params.l_wk.push_back(result.grp_tile1 * result.grp_tile0);
@@ -420,9 +421,8 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
     kernel_params.g_wk.push_back(gbl_wk1);
     kernel_params.g_wk.push_back(gbl_wk2);
 
-    kernel_params.kernel_file =
-        group_counts >= 2 ? "MIOpenGroupConvDirUni.cl" : "MIOpenConvDirUni.cl";
-    kernel_params.kernel_name = group_counts >= 2 ? "MIOpenGroupConvUni" : "MIOpenConvUni";
+    kernel_params.kernel_file = "MIOpenConvDirUni.cl";
+    kernel_params.kernel_name = "MIOpenConvUni";
 
     result.construction_params.push_back(kernel_params);
 

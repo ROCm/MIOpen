@@ -39,6 +39,13 @@ enum GemmBackend_t
     miopengemm    = 2,
 };
 
+enum CallGemmType_t
+{
+    callGemm                         = 0,
+    callGemmStridedBatched           = 1,
+    callGemmStridedBatchedSequential = 2,
+};
+
 // GEMM operation: C = alpha * op(A) * op(B) + beta * C.
 // op() can be either transpose or no-operation for A or B.
 // The shape (nRow x nCol) of op(A), op(B), C are:
@@ -64,6 +71,19 @@ struct GemmDescriptor
     float alpha, beta;
     miopenDataType_t dataType;
 };
+
+miopenStatus_t CallGemmTimeMeasure(Handle& handle,
+                                   GemmDescriptor gemm_desc,
+                                   ConstData_t A,
+                                   int a_offset,
+                                   ConstData_t B,
+                                   int b_offset,
+                                   Data_t C,
+                                   int c_offset,
+                                   std::string* kcache_key,
+                                   bool time_precision,
+                                   CallGemmType_t call_gemm_type,
+                                   GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
 
 miopenStatus_t CallGemm(Handle& handle,
                         GemmDescriptor gemm_desc,

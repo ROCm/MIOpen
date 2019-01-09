@@ -131,6 +131,115 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
     return gemm_backend_enforced;
 }
 
+miopenStatus_t CallGemmTimeMeasure(Handle& handle,
+                                   GemmDescriptor gemm_desc,
+                                   ConstData_t A,
+                                   int a_offset,
+                                   ConstData_t B,
+                                   int b_offset,
+                                   Data_t C,
+                                   int c_offset,
+                                   std::string* kcache_key,
+                                   bool time_precision,
+                                   CallGemmType_t call_gemm_type,
+                                   GemmBackend_t gemm_backend)
+{
+    switch(call_gemm_type)
+    {
+    case callGemm:
+    {
+        if(time_precision)
+        {
+            // rocBLAS need a warm-up call for accurate timing
+            CallGemm(handle,
+                     gemm_desc,
+                     A,
+                     a_offset,
+                     B,
+                     b_offset,
+                     C,
+                     c_offset,
+                     nullptr,
+                     false,
+                     gemm_backend);
+        }
+
+        return CallGemm(handle,
+                        gemm_desc,
+                        A,
+                        a_offset,
+                        B,
+                        b_offset,
+                        C,
+                        c_offset,
+                        kcache_key,
+                        time_precision,
+                        gemm_backend);
+    }
+    case callGemmStridedBatched:
+    {
+        if(time_precision)
+        {
+            // rocBLAS need extra warm-up call for accurate timing
+            CallGemmStridedBatched(handle,
+                                   gemm_desc,
+                                   A,
+                                   a_offset,
+                                   B,
+                                   b_offset,
+                                   C,
+                                   c_offset,
+                                   nullptr,
+                                   false,
+                                   gemm_backend);
+        }
+
+        return CallGemmStridedBatched(handle,
+                                      gemm_desc,
+                                      A,
+                                      a_offset,
+                                      B,
+                                      b_offset,
+                                      C,
+                                      c_offset,
+                                      kcache_key,
+                                      time_precision,
+                                      gemm_backend);
+    }
+    case callGemmStridedBatchedSequential:
+    {
+        if(time_precision)
+        {
+            // rocBLAS need a warm-up call for accurate timing
+            CallGemmStridedBatchedSequential(handle,
+                                             gemm_desc,
+                                             A,
+                                             a_offset,
+                                             B,
+                                             b_offset,
+                                             C,
+                                             c_offset,
+                                             nullptr,
+                                             false,
+                                             gemm_backend);
+        }
+
+        return CallGemmStridedBatchedSequential(handle,
+                                                gemm_desc,
+                                                A,
+                                                a_offset,
+                                                B,
+                                                b_offset,
+                                                C,
+                                                c_offset,
+                                                kcache_key,
+                                                time_precision,
+                                                gemm_backend);
+    }
+    }
+    return miopenStatusNotImplemented;
+}
+
 miopenStatus_t CallGemm(Handle& handle,
                         GemmDescriptor gemm_desc,
                         ConstData_t A,
