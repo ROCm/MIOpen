@@ -937,62 +937,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardCPU()
     if(out_h <= 0 || out_w <= 0)
         throw std::runtime_error("Invalid Test Case: Check Output Dimension.");
 
-    if(mode == miopenConvolution)
-    {
-        miopenGet4dTensorDescriptor(weightTensor,
-                                    &dt,
-                                    &wei_n,
-                                    &wei_c,
-                                    &wei_h,
-                                    &wei_w,
-                                    &wei_nstride,
-                                    &wei_cstride,
-                                    &wei_hstride,
-                                    &wei_wstride);
-
-        for(int o = 0; o < out_n; o++)
-        { // mini-batch size
-            for(int w = 0; w < out_c; w++)
-            { // out_channels (num filters)
-                for(int i = 0; i < out_h; i++)
-                { // output_height (from getforwardoutputdim())
-                    int in_off_h = i * u;
-                    for(int j = 0; j < out_w; j++)
-                    { // output_width (from getforwardoutputdim())
-                        Tref acc     = static_cast<Tref>(0);
-                        int in_off_w = j * v;
-                        for(int k = 0; k < in_c; k++)
-                        { // in_channels (RGB)
-                            for(int x = 0; x < wei_h; x++)
-                            {
-                                int in_x = in_off_h - pad_h + x * dilation_h;
-                                if(in_x >= 0 && in_x < in_h)
-                                {
-                                    for(int y = 0; y < wei_w; y++)
-                                    {
-                                        int in_y = in_off_w - pad_w + y * dilation_w;
-                                        if(in_y >= 0 && in_y < in_w)
-                                        {
-                                            acc += static_cast<Tref>(
-                                                       in[o * in_nstride + k * in_cstride +
-                                                          in_x * in_w + in_y]) *
-                                                   static_cast<Tref>(
-                                                       wei[w * wei_nstride + k * wei_cstride +
-                                                           x * wei_hstride + y]);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        acc =
-                            inflags.GetValueInt("bias") != 0 ? acc + static_cast<Tref>(b[w]) : acc;
-                        outhost[o * out_nstride + w * out_cstride + i * out_hstride + j] = acc;
-                    }
-                }
-            }
-        }
-    }
-    else if(mode == miopenTranspose)
+    if(mode == miopenTranspose)
     {
         miopenGet4dTensorDescriptor(weightTensor,
                                     &dt,
@@ -1045,7 +990,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardCPU()
             }
         }
     }
-    else if(mode == miopenGroupConv || mode == miopenDepthwise)
+    else
     {
         for(int o = 0; o < out_n; o++)
         { // mini-batch size
@@ -1478,95 +1423,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardWeightsCPU()
     if(out_h <= 0 || out_w <= 0)
         throw std::runtime_error("Invalid Test Case: Check Output Dimension.");
 
-    if(mode == miopenConvolution)
-    {
-        miopenGet4dTensorDescriptor(weightTensor,
-                                    &dt,
-                                    &wei_n,
-                                    &wei_c,
-                                    &wei_h,
-                                    &wei_w,
-                                    &wei_nstride,
-                                    &wei_cstride,
-                                    &wei_hstride,
-                                    &wei_wstride);
-
-#ifdef MIOPEN_USE_MIOPENGEMM
-#ifndef NDEBUG
-        if(in_n == 1 && wei_h != 1 && wei_w != 1)
-        {
-            // workspace_bwd_weights will be nonzero only if gemm was chosen as the algo
-            bool zeros = std::all_of(workspace_bwd_weights.begin(),
-                                     workspace_bwd_weights.end(),
-                                     [](int i) { return i == 0; });
-
-            if(!zeros)
-            {
-                Im2ColCPU<Tgpu, Tref>(in,
-                                      0,
-                                      in_c,
-                                      in_h,
-                                      in_w,
-                                      wei_h,
-                                      wei_w,
-                                      out_h,
-                                      out_w,
-                                      pad_h,
-                                      pad_w,
-                                      u,
-                                      v,
-                                      workspace_bwd_weights_host);
-
-                for(int i = 0; i < workspace_bwd_weights.size(); i++)
-                {
-                    if(std::abs(workspace_bwd_weights[i] - workspace_bwd_weights_host[i]) > 0.0)
-                    {
-                        printf("Im2col error: %d %f %f\n ",
-                               i,
-                               static_cast<float>(workspace_bwd_weights[i]),
-                               static_cast<float>(workspace_bwd_weights_host[i]));
-                    }
-                }
-            }
-        }
-#endif
-#endif
-
-        RunBackwardWeightsCPUVerify<Tgpu, Tref>(dwei_host,
-                                                in,
-                                                dout,
-                                                in_n,
-                                                in_c,
-                                                in_h,
-                                                in_w,
-                                                in_nstride,
-                                                in_cstride,
-                                                in_hstride,
-                                                in_wstride,
-                                                wei_n,
-                                                wei_c,
-                                                wei_h,
-                                                wei_w,
-                                                wei_nstride,
-                                                wei_cstride,
-                                                wei_hstride,
-                                                wei_wstride,
-                                                out_n,
-                                                out_c,
-                                                out_h,
-                                                out_w,
-                                                out_nstride,
-                                                out_cstride,
-                                                out_hstride,
-                                                out_wstride,
-                                                u,
-                                                v,
-                                                pad_h,
-                                                pad_w,
-                                                dilation_h,
-                                                dilation_w);
-    }
-    else if(mode == miopenTranspose)
+    if(mode == miopenTranspose)
     {
         miopenGet4dTensorDescriptor(weightTensor,
                                     &dt,
@@ -1654,7 +1511,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardWeightsCPU()
                                     dilation_h,
                                     dilation_w);
     }
-    else if(mode == miopenGroupConv || mode == miopenDepthwise)
+    else
     {
         for(int o = 0; o < out_n; o++) // mini-batch size
         {
@@ -1783,60 +1640,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardDataCPU()
         }
     }
 
-    if(mode == miopenConvolution)
-    {
-        miopenGet4dTensorDescriptor(weightTensor,
-                                    &dt,
-                                    &wei_n,
-                                    &wei_c,
-                                    &wei_h,
-                                    &wei_w,
-                                    &wei_nstride,
-                                    &wei_cstride,
-                                    &wei_hstride,
-                                    &wei_wstride);
-
-        for(int o = 0; o < out_n; o++)
-        { // mini-batch size
-            for(int k = 0; k < in_c; k++)
-            { // in_channels (RGB)
-                for(int w = 0; w < out_c; w++)
-                { // out_channels (num filters)
-                    for(int i = 0; i < out_h; i++)
-                    { // output_height (from getforwardoutputdim())
-                        int in_off_h = i * u;
-                        for(int j = 0; j < out_w; j++)
-                        { // output_width (from getforwardoutputdim())
-                            int in_off_w = j * v;
-                            for(int x = 0; x < wei_h; x++)
-                            {
-                                int in_x = in_off_h - pad_h + x * dilation_h;
-                                if(in_x >= 0 && in_x < in_h)
-                                {
-                                    for(int y = 0; y < wei_w; y++)
-                                    {
-                                        int in_y = in_off_w - pad_w + y * dilation_w;
-                                        if(in_y >= 0 && in_y < in_w)
-                                        {
-                                            din_host[o * in_nstride + k * in_cstride +
-                                                     in_x * in_hstride + in_y] +=
-                                                static_cast<Tref>(
-                                                    dout[o * out_nstride + w * out_cstride +
-                                                         i * out_hstride + j]) *
-                                                static_cast<Tref>(
-                                                    wei[w * wei_nstride + k * wei_cstride +
-                                                        x * wei_hstride + y]);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    else if(mode == miopenTranspose)
+    if(mode == miopenTranspose)
     {
         miopenGet4dTensorDescriptor(weightTensor,
                                     &dt,
@@ -1892,7 +1696,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardDataCPU()
             }
         }
     }
-    else if(mode == miopenGroupConv || mode == miopenDepthwise)
+    else
     {
 
         for(int o = 0; o < out_n; o++)
