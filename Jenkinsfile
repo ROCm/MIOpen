@@ -65,6 +65,10 @@ def rocmnode(name, body) {
         node_name = 'rocmtest && fiji';
     } else if(name == 'vega') {
         node_name = 'rocmtest && vega';
+    } else if(name == 'vega10') {
+        node_name = 'rocmtest && vega10';
+    } else if(name == 'vega20') {
+        node_name = 'rocmtest && vega20';
     } else {
         node_name = name
     }
@@ -140,11 +144,11 @@ rocmtest opencl: rocmnode('vega') { cmake_build ->
     stage('Hip Release') {
         cmake_build('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
     }
-}, half_hip: rocmnode('vega') { cmake_build ->
+}, half_hip: rocmnode('vega20') { cmake_build ->
     stage('Half Hip Release') {
         cmake_build('hcc', '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
     }
-}, half_opencl: rocmnode('vega') { cmake_build ->
+}, half_opencl: rocmnode('vega20') { cmake_build ->
     stage('Half GCC Debug') {
         cmake_build('g++-5', '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
     }
@@ -155,11 +159,11 @@ rocmtest opencl: rocmnode('vega') { cmake_build ->
 //     stage('Windows Release') {
 //         cmake_build('x86_64-w64-mingw32-g++', '-DBUILD_DEV=On -DCMAKE_TOOLCHAIN_FILE=/usr/local/x86_64-w64-mingw32/cmake/toolchain.cmake -DCMAKE_BUILD_TYPE=release')
 //     }
-}, int8_hip: rocmnode('vega') { cmake_build ->
+}, int8_hip: rocmnode('vega20') { cmake_build ->
     stage('Int8 Hip Release') {
         cmake_build('hcc', '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
     }
-}, int8_opencl: rocmnode('vega') { cmake_build ->
+}, int8_opencl: rocmnode('vega20') { cmake_build ->
     stage('Int8 GCC Debug') {
         cmake_build('g++-5', '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
     }
@@ -177,11 +181,11 @@ rocmtest opencl_all: rocmnode('vega') { cmake_build ->
     stage('Hip Release All') {
         cmake_build('hcc', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
-}, half_hip_all: rocmnode('vega') { cmake_build ->
+}, half_hip_all: rocmnode('vega20') { cmake_build ->
     stage('Half Hip Release All') {
         cmake_build('hcc', '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
-}, int8_hip_all: rocmnode('vega') { cmake_build ->
+}, int8_hip_all: rocmnode('vega20') { cmake_build ->
     stage('Int8 Hip Release All') {
         cmake_build('hcc', '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
