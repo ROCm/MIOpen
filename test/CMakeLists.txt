@@ -46,7 +46,7 @@ set(SKIP_TESTS)
 set(MIOPEN_TEST_FLOAT_ARG)
 
 if(MIOPEN_TEST_HALF)
-    set(SKIP_TESTS test_gru test_rnn_vanilla test_lstm)
+    set(SKIP_TESTS test_gru test_rnn_vanilla test_lstm test_soft_max)
     set(MIOPEN_TEST_FLOAT_ARG --half)
 endif()
 
