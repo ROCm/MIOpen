@@ -78,7 +78,7 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ConvolutionContext& params) const
         && params.out_height >= min_out_height  // -H   inp_h
         && params.out_height <= max_out_height
         && params.float_size == 32
-        && params.mode.IsNormal()
+        && params.group_counts == 1
         && params.out_layout == "NCHW";         // hardcoded
         // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
     // clang-format on

@@ -326,6 +326,14 @@ COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 4 4 --weights 512 512 1
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 56 56 --weights 64 64 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode valid
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 100 3 64 64 --weights 3 3 1 1 --filter 2 2 1 1 1 1  --cmode trans --pmode default
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 100 6 4 4 --weights 6 4 1 1 --filter 2 2 1 1 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 28 28 --weights 128 16 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode default   --group-count 8
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 256 28 28 --weights 256 64 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode same  --group-count 4
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 28 28 --weights 32 1 5 5 --filter 0 0 2 2 1 1  --cmode trans --pmode default  --group-count 32
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 14 14 --weights 512 16 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode same  --group-count 32
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 4 4 --weights 512 16 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode valid  --group-count 32
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 56 56 --weights 64 2 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode valid  --group-count 32
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 100 3 64 64 --weights 3 3 1 1 --filter 2 2 1 1 1 1  --cmode trans --pmode default  --group-count 3
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 100 6 4 4 --weights 6 4 1 1 --filter 2 2 1 1 1 1  --cmode trans --pmode default  --group-count 2
 )
 
 
@@ -344,16 +352,16 @@ COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 512 28 28 --weights 1024 1
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 512 14 14 --weights 1024 16 3 3 --filter 1 1 1 1,  --group-count 32
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 1024 14 14 --weights 2048 32 3 3 --filter 1 1 2 2,  --group-count 32
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 1024 7 7 --weights 2048 32 3 3 --filter 1 1 1 1,  --group-count 32
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 4 161 700  --weights 32 1 5 20 --filter 0 0 2 2,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 2 161 700  --weights 32 1 5 20 --filter 0 0 2 2,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 4 161 700  --weights 32 1 5 20 --filter 0 0 2 2,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 2 161 700  --weights 32 1 5 20 --filter 0 0 2 2,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 4 161 700  --weights 32 1 5 20 --filter 0 0 2 2,  --group-count 4
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 2 161 700  --weights 32 1 5 20 --filter 0 0 2 2,  --group-count 2
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 4 161 700  --weights 32 1 5 20 --filter 0 0 2 2,  --group-count 4
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 2 161 700  --weights 32 1 5 20 --filter 0 0 2 2,  --group-count 2
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 32 79 341  --weights 32 16 5 10 --filter 0 0 2 2,  --group-count 2
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 79 341  --weights 32 16 5 10 --filter 0 0 2 2,  --group-count 2
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 32 79 341  --weights 32 16 5 10 --filter 0 0 2 2,  --group-count 2
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 32 79 341  --weights 32 16 5 10 --filter 0 0 2 2,  --group-count 2
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 4 48 480 --weights 16 1 3 3 --filter 1 1 1 1,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 16 24 240 --weights 32 1 3 3 --filter 1 1 1 1,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 4 48 480 --weights 16 1 3 3 --filter 1 1 1 1,  --group-count 4
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 16 24 240 --weights 32 1 3 3 --filter 1 1 1 1,  --group-count 16
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 32 12 120 --weights 64 8 3 3 --filter 1 1 1 1,  --group-count 4
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 64 6 60 --weights 128 16 3 3 --filter 1 1 1 1,  --group-count 4
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 3 108 108 --weights 63 1 3 3 --filter 1 1 2 2,  --group-count 3
@@ -368,17 +376,17 @@ COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 192 28 28 --weights 32 12 
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 832 7 7 --weights 128 52 5 5 --filter 2 2 1 1,  --group-count 16
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 192 28 28 --weights 32 24 1 1 --filter 0 0 1 1,  --group-count 8
 COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 832 7 7 --weights 128 104 1 1 --filter 0 0 1 1,  --group-count 8
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 11 23 161 700  --weights 46 1 7 7 --filter 1 1 2 2,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 1 1 1 1,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 0 0 1 1,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 0 0 2 2,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 1 1 2 2,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 2 2 2 2,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 1 1 1 1,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 0 0 1 1,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 0 0 2 2,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 1 1 2 2,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 2 2 2 2,  --cmode dw
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 11 23 161 700  --weights 46 1 7 7 --filter 1 1 2 2,  --group-count 23
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 1 1 1 1,  --group-count 7
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 0 0 1 1,  --group-count 7
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 0 0 2 2,  --group-count 7
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 1 1 2 2,  --group-count 7
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 2 2 2 2,  --group-count 7
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 1 1 1 1,  --group-count 3
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 0 0 1 1,  --group-count 3
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 0 0 2 2,  --group-count 3
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 1 1 2 2,  --group-count 3
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 2 2 2 2,  --group-count 3
 )
 
 

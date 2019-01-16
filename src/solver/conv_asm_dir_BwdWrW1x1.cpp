@@ -477,7 +477,7 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
         && params.bias == 0
         && (params.float_size == 32 || params.float_size == 16) 
         && params.in_layout == "NCHW"
-        && params.mode.IsNormal());
+        && params.group_counts == 1);
     if(!ok)
     {
         return false; // Early exit to speed up the check.

@@ -406,7 +406,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
         && params.n_inputs % elements_in_dword == 0
         && params.n_outputs % elements_in_dword == 0
         && params.in_layout == "NCHW"
-        && params.mode.IsNormal()
+        && params.group_counts == 1
         && img_hw >= elements_in_dword
         && (elements_in_dword == 1 || params.n_outputs >= 4));
     if(!ok)

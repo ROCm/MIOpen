@@ -308,6 +308,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     int dilation_h;
     int dilation_w;
     int group_count;
+    int trans_output_pad_h;
+    int trans_output_pad_w;
 };
 
 void ConvolutionBackwardBias(Handle& handle,

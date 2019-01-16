@@ -42,7 +42,9 @@ ConvolutionDescriptor::ConvolutionDescriptor(
       v(p_v),
       dilation_h(p_dilation_h),
       dilation_w(p_dilation_w),
-      group_count(1)
+      group_count(1),
+      trans_output_pad_h(0),
+      trans_output_pad_w(0)
 {
     if(pad_h < 0 || pad_w < 0 || u <= 0 || v <= 0 || dilation_h <= 0 || dilation_w <= 0)
     {
@@ -69,7 +71,9 @@ ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t c_mode,
       v(p_v),
       dilation_h(p_dilation_h),
       dilation_w(p_dilation_w),
-      group_count(1)
+      group_count(1),
+      trans_output_pad_h(0),
+      trans_output_pad_w(0)
 {
     if(pad_h < 0 || pad_w < 0 || u <= 0 || v <= 0 || dilation_h <= 0 || dilation_w <= 0)
     {
@@ -78,8 +82,7 @@ ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t c_mode,
                      ">= 0, stride >= 1, dilation >= 1 and the same dilation "
                      "factor for horizontal and vertical direction");
     }
-    if(!(mode == miopenConvolution || mode == miopenTranspose || mode == miopenGroupConv ||
-         mode == miopenDepthwise))
+    if(!(mode == miopenConvolution || mode == miopenTranspose))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Convolution mode not supported");
     }
@@ -119,30 +122,25 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
 
     if(mode == miopenConvolution)
     {
-        if(input_c != filter_c)
+        if((group_count == 1 && input_c != filter_c) ||
+           (group_count >= 2 &&
+            (input_c % filter_c != 0 ||
+             filter_k % (input_c / filter_c) !=
+                 0))) // for depthwise conv filter_c must be 1 while group_count must be filter_c
         {
             MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
         }
     }
     else if(mode == miopenTranspose)
     {
-        if(input_c != filter_k)
+        if(input_c != filter_k || (group_count >= 2 && (filter_k % group_count != 0)))
         {
             MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
         }
-    }
-    else if(mode == miopenGroupConv)
-    {
-        if(input_c % filter_c != 0 || filter_k % (input_c / filter_c) != 0)
+        if(trans_output_pad_h >= u || trans_output_pad_w >= v)
         {
-            MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
-        }
-    }
-    else if(mode == miopenDepthwise)
-    {
-        if(filter_c != 1 || filter_k % input_c != 0)
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "Output shape doesn't match due to invalid output padding");
         }
     }
 
@@ -169,13 +167,15 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
     {
         if(mode == miopenTranspose)
         {
-            output_c = filter_c;
-            output_h = std::max<std::ptrdiff_t>(
-                1,
-                std::ptrdiff_t(u * (input_h - 1) + 1 + dilation_h * (filter_h - 1.0) - 2 * pad_h));
-            output_w = std::max<std::ptrdiff_t>(
-                1,
-                std::ptrdiff_t(v * (input_w - 1) + 1 + dilation_w * (filter_w - 1.0) - 2 * pad_w));
+            output_c = filter_c * group_count;
+            output_h = std::max<std::ptrdiff_t>(1,
+                                                std::ptrdiff_t(u * (input_h - 1) + 1 +
+                                                               dilation_h * (filter_h - 1.0) -
+                                                               2 * pad_h + trans_output_pad_h));
+            output_w = std::max<std::ptrdiff_t>(1,
+                                                std::ptrdiff_t(v * (input_w - 1) + 1 +
+                                                               dilation_w * (filter_w - 1.0) -
+                                                               2 * pad_w + trans_output_pad_w));
         }
         else
         {
@@ -248,8 +248,6 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
         // Right now this does not matter as there is none perf filtering for Winograd
         return false;
     }
-    if(mode == miopenTranspose)
-        return false;
 
     const auto device_name       = handle.GetDeviceName();
     const auto max_compute_units = handle.GetMaxComputeUnits();
@@ -286,9 +284,6 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
 /// IsApplicable() from respective Solvers.
 bool ConvolutionDescriptor::IsDirectSupported(const TensorDescriptor& wDesc) const
 {
-    if(mode != miopenConvolution)
-        return true;
-
     int k, c, _kernel_size0, _kernel_size1;
     std::tie(k, c, _kernel_size0, _kernel_size1) = tien<4>(wDesc.GetLengths());
 
@@ -306,7 +301,7 @@ bool ConvolutionDescriptor::IsDirectSupported(const TensorDescriptor& wDesc) con
                         (_kernel_size0 == 1 && _kernel_size1 == 1 && (pad_h > 0 || pad_w > 0)) ||
                         (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0));
 
-    return (supported_filters && !workarounds);
+    return (supported_filters && !workarounds) || group_count >= 2;
 }
 
 size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
@@ -315,13 +310,6 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
                                                       const TensorDescriptor& yDesc) const
 {
     MIOPEN_LOG_I2("");
-    if(mode == miopenTranspose)
-#if MIOPEN_USE_GEMM
-        return BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc);
-#else
-        return 0;
-#endif
-    else
     {
         int wei_h, wei_w;
         std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
@@ -371,13 +359,6 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
                                                            const TensorDescriptor& dxDesc) const
 {
     MIOPEN_LOG_I2("");
-    if(mode == miopenTranspose)
-#if MIOPEN_USE_GEMM
-        return ForwardGetWorkSpaceSizeGEMM(handle, wDesc, dxDesc);
-#else
-        return 0;
-#endif
-    else
     {
         int wei_h, wei_w;
         std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
@@ -662,11 +643,6 @@ size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
     MIOPEN_LOG_I2("");
 
     size_t workspace_size = 0;
-    if(mode == miopenTranspose)
-    {
-        workspace_size = BackwardWeightsGetWorkSpaceSizeGEMM(handle, xDesc, dwDesc);
-    }
-    else
     {
         size_t workspace_size_gemm = 0;
 #if MIOPEN_USE_GEMM
@@ -683,9 +659,7 @@ size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
 
 std::ostream& operator<<(std::ostream& stream, const ConvolutionDescriptor& c)
 {
-    MIOPEN_LOG_ENUM(
-        stream, c.mode, miopenConvolution, miopenTranspose, miopenGroupConv, miopenDepthwise)
-        << ", ";
+    MIOPEN_LOG_ENUM(stream, c.mode, miopenConvolution, miopenTranspose) << ", ";
     stream << c.pad_h << ", ";
     stream << c.pad_w << ", ";
     stream << c.u << ", ";
@@ -694,7 +668,11 @@ std::ostream& operator<<(std::ostream& stream, const ConvolutionDescriptor& c)
     stream << c.dilation_w << ", ";
     if(c.group_count >= 2)
         stream << c.group_count << ", ";
-
+    if(c.mode == miopenTranspose)
+    {
+        stream << c.trans_output_pad_h << ", ";
+        stream << c.trans_output_pad_w << ", ";
+    }
     return stream;
 }
 

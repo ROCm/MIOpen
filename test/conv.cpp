@@ -156,30 +156,38 @@ struct verify_forward_conv : conv_base<T>
         {
             std::fill(rout.begin(), rout.end(), 0);
 
-            int out_h, out_w;
-            std::tie(std::ignore, std::ignore, out_h, out_w) =
-                miopen::tien<4>(rout.desc.GetLengths());
-
-            int wei_c, wei_h, wei_w;
-            std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
-
             int in_n, in_c, in_h, in_w;
             std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
-            par_ford(in_n, wei_c)([&](int o, int k) {
-                ford(in_c, in_h, in_w, wei_h, wei_w)([&](int w, int i, int j, int x, int y) {
-                    const int start_x = i * filter.u - filter.pad_h;
-                    const int start_y = j * filter.v - filter.pad_w;
-                    const int out_x   = start_x + x * filter.dilation_h;
-                    const int out_y   = start_y + y * filter.dilation_w;
-                    if(out_x >= 0 && out_x < out_h && out_y >= 0 && out_y < out_w)
+            int wei_n, wei_c, wei_h, wei_w;
+            std::tie(wei_n, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
+
+            int out_c, out_h, out_w;
+            std::tie(std::ignore, out_c, out_h, out_w) = miopen::tien<4>(rout.desc.GetLengths());
+
+            par_ford(in_n, out_c, out_h, out_w)([&](int n, int c, int hi, int wi) {
+                const int group_id = c / wei_c;
+                double acc         = 0;
+                ford(wei_n / filter.group_count, wei_h, wei_w)([&](int k, int y, int x) {
+                    int h_ = filter.pad_h + hi - y * filter.dilation_h;
+                    int w_ = filter.pad_w + wi - x * filter.dilation_w;
+
+                    int ho = h_ / filter.u;
+                    int wo = w_ / filter.v;
+
+                    if(((ho * filter.u == h_) and (wo * filter.v == w_)) and
+                       ((ho >= 0 and ho < in_h) and (wo >= 0 and wo < in_w)))
                     {
-                        rout(o, k, out_x, out_y) += input(o, w, i, j) * weights(w, k, x, y);
+                        const int in_ch  = group_id * (wei_n / filter.group_count) + k;
+                        const int wei_ch = c % wei_c;
+                        acc +=
+                            double(input(n, in_ch, ho, wo)) * double(weights(in_ch, wei_ch, y, x));
                     }
                 });
+                rout(n, c, hi, wi) = acc;
             });
         }
-        else if(filter.mode == miopenGroupConv || filter.mode == miopenDepthwise)
+        else
         {
             int in_h, in_w;
             std::tie(std::ignore, std::ignore, in_h, in_w) =
@@ -200,32 +208,7 @@ struct verify_forward_conv : conv_base<T>
                     const int in_ch = group_id * wei_c + k;
                     if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
                     {
-                        acc += input(o, in_ch, in_x, in_y) * weights(w, k, x, y);
-                    }
-                });
-                rout(o, w, i, j) = acc;
-            });
-        }
-        else
-        {
-            int in_h, in_w;
-            std::tie(std::ignore, std::ignore, in_h, in_w) =
-                miopen::tien<4>(input.desc.GetLengths());
-
-            int wei_c, wei_h, wei_w;
-            std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
-
-            rout.par_for_each([&](int o, int w, int i, int j) {
-                const int start_x = i * filter.u - filter.pad_h;
-                const int start_y = j * filter.v - filter.pad_w;
-
-                double acc = bias;
-                ford(wei_c, wei_h, wei_w)([&](int k, int x, int y) {
-                    const int in_x = start_x + x * filter.dilation_h;
-                    const int in_y = start_y + y * filter.dilation_w;
-                    if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
-                    {
-                        acc += double(input(o, k, in_x, in_y)) * double(weights(w, k, x, y));
+                        acc += double(input(o, in_ch, in_x, in_y)) * double(weights(w, k, x, y));
                     }
                 });
                 rout(o, w, i, j) = acc;
@@ -245,7 +228,9 @@ struct verify_forward_conv : conv_base<T>
         auto out_dev = handle.Write(rout.data);
 
         size_t workspace_size =
-            filter.ForwardGetWorkSpaceSize(handle, weights.desc, input.desc, rout.desc);
+            filter.mode == miopenTranspose
+                ? filter.BackwardDataGetWorkSpaceSize(handle, weights.desc, input.desc, rout.desc)
+                : filter.ForwardGetWorkSpaceSize(handle, weights.desc, input.desc, rout.desc);
 
         std::vector<char> workspace(workspace_size);
         auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
@@ -255,32 +240,64 @@ struct verify_forward_conv : conv_base<T>
 
         float alpha = 1, beta = 0;
 
-        filter.FindConvFwdAlgorithm(handle,
-                                    input.desc,
-                                    in_dev.get(),
-                                    weights.desc,
-                                    wei_dev.get(),
-                                    rout.desc,
-                                    out_dev.get(),
-                                    1,
-                                    &ret_algo_count,
-                                    &perf,
-                                    workspace_dev.get(),
-                                    workspace_size,
-                                    search);
+        if(filter.mode == miopenTranspose)
+        {
+            filter.FindConvBwdDataAlgorithm(handle,
+                                            input.desc,
+                                            in_dev.get(),
+                                            weights.desc,
+                                            wei_dev.get(),
+                                            rout.desc,
+                                            out_dev.get(),
+                                            1,
+                                            &ret_algo_count,
+                                            &perf,
+                                            workspace_dev.get(),
+                                            workspace_size,
+                                            search);
 
-        filter.ConvolutionForward(handle,
-                                  &alpha,
-                                  input.desc,
-                                  in_dev.get(),
-                                  weights.desc,
-                                  wei_dev.get(),
-                                  perf.fwd_algo,
-                                  &beta,
-                                  rout.desc,
-                                  out_dev.get(),
-                                  workspace_dev.get(),
-                                  workspace_size);
+            filter.ConvolutionBackwardData(handle,
+                                           &alpha,
+                                           input.desc,
+                                           in_dev.get(),
+                                           weights.desc,
+                                           wei_dev.get(),
+                                           perf.bwd_data_algo,
+                                           &beta,
+                                           rout.desc,
+                                           out_dev.get(),
+                                           workspace_dev.get(),
+                                           workspace_size);
+        }
+        else
+        {
+            filter.FindConvFwdAlgorithm(handle,
+                                        input.desc,
+                                        in_dev.get(),
+                                        weights.desc,
+                                        wei_dev.get(),
+                                        rout.desc,
+                                        out_dev.get(),
+                                        1,
+                                        &ret_algo_count,
+                                        &perf,
+                                        workspace_dev.get(),
+                                        workspace_size,
+                                        search);
+
+            filter.ConvolutionForward(handle,
+                                      &alpha,
+                                      input.desc,
+                                      in_dev.get(),
+                                      weights.desc,
+                                      wei_dev.get(),
+                                      perf.fwd_algo,
+                                      &beta,
+                                      rout.desc,
+                                      out_dev.get(),
+                                      workspace_dev.get(),
+                                      workspace_size);
+        }
 
         rout.data = handle.Read<T>(out_dev, rout.data.size());
 
@@ -330,52 +347,25 @@ struct verify_backward_conv : conv_base<T>
             std::tie(std::ignore, std::ignore, out_h, out_w) =
                 miopen::tien<4>(out.desc.GetLengths());
 
-            int wei_c, wei_h, wei_w;
-            std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
+            int wei_n, wei_c, wei_h, wei_w;
+            std::tie(wei_n, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
 
             rinput.par_for_each([&](int o, int w, int i, int j) {
-                const int start_x = i * filter.u - filter.pad_h;
-                const int start_y = j * filter.v - filter.pad_w;
+                const int start_x  = i * filter.u - filter.pad_h;
+                const int start_y  = j * filter.v - filter.pad_w;
+                const int group_id = w / (wei_n / filter.group_count);
 
                 double acc = 0.0;
                 ford(wei_c, wei_h, wei_w)([&](int k, int x, int y) {
-                    const int in_x = start_x + x * filter.dilation_h;
-                    const int in_y = start_y + y * filter.dilation_w;
-                    if(in_x >= 0 && in_x < out_h && in_y >= 0 && in_y < out_w)
+                    const int out_x  = start_x + x * filter.dilation_h;
+                    const int out_y  = start_y + y * filter.dilation_w;
+                    const int out_ch = group_id * wei_c + k;
+                    if(out_x >= 0 && out_x < out_h && out_y >= 0 && out_y < out_w)
                     {
-                        acc += out(o, k, in_x, in_y) * weights(w, k, x, y);
+                        acc += double(out(o, out_ch, out_x, out_y)) * double(weights(w, k, x, y));
                     }
                 });
                 rinput(o, w, i, j) = acc;
-            });
-        }
-        else if(filter.mode == miopenGroupConv || filter.mode == miopenDepthwise)
-        {
-            int in_c, in_h, in_w;
-            std::tie(std::ignore, in_c, in_h, in_w) = miopen::tien<4>(rinput.desc.GetLengths());
-
-            int wei_c, wei_h, wei_w;
-            std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
-
-            int out_n, out_c, out_h, out_w;
-            std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(out.desc.GetLengths());
-
-            par_ford(out_n, in_c)([&](int o, int k) {
-                const int group_id = k / wei_c;
-                ford(out_c / filter.group_count, out_h, out_w, wei_h, wei_w)(
-                    [&](int w, int i, int j, int x, int y) {
-                        const int start_x = i * filter.u - filter.pad_h;
-                        const int start_y = j * filter.v - filter.pad_w;
-                        const int in_x    = start_x + x;
-                        const int in_y    = start_y + y;
-                        const int out_ch  = group_id * (out_c / filter.group_count) + w;
-                        const int wei_ch  = k % wei_c;
-                        if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
-                        {
-                            rinput(o, k, in_x, in_y) +=
-                                out(o, out_ch, i, j) * weights(out_ch, wei_ch, x, y);
-                        }
-                    });
             });
         }
         else
@@ -383,16 +373,17 @@ struct verify_backward_conv : conv_base<T>
             int in_n, in_c, in_h, in_w;
             std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(rinput.desc.GetLengths());
 
-            int wei_n, wei_h, wei_w;
-            std::tie(wei_n, std::ignore, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
+            int wei_n, wei_c, wei_h, wei_w;
+            std::tie(wei_n, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
 
             int out_h, out_w;
             std::tie(std::ignore, std::ignore, out_h, out_w) =
                 miopen::tien<4>(out.desc.GetLengths());
 
             par_ford(in_n, in_c, in_h, in_w)([&](int n, int c, int hi, int wi) {
-                double acc = 0;
-                ford(wei_n, wei_h, wei_w)([&](int k, int y, int x) {
+                const int group_id = c / wei_c;
+                double acc         = 0;
+                ford(wei_n / filter.group_count, wei_h, wei_w)([&](int k, int y, int x) {
                     int h_ = filter.pad_h + hi - y * filter.dilation_h;
                     int w_ = filter.pad_w + wi - x * filter.dilation_w;
 
@@ -402,7 +393,10 @@ struct verify_backward_conv : conv_base<T>
                     if(((ho * filter.u == h_) and (wo * filter.v == w_)) and
                        ((ho >= 0 and ho < out_h) and (wo >= 0 and wo < out_w)))
                     {
-                        acc += double(out(n, k, ho, wo)) * double(weights(k, c, y, x));
+                        const int out_ch = group_id * (wei_n / filter.group_count) + k;
+                        const int wei_ch = c % wei_c;
+                        acc +=
+                            double(out(n, out_ch, ho, wo)) * double(weights(out_ch, wei_ch, y, x));
                     }
                 });
                 rinput(n, c, hi, wi) = acc;
@@ -422,7 +416,9 @@ struct verify_backward_conv : conv_base<T>
         auto in_dev  = handle.Write(rinput.data);
 
         size_t workspace_size =
-            filter.BackwardDataGetWorkSpaceSize(handle, weights.desc, out.desc, rinput.desc);
+            filter.mode == miopenTranspose
+                ? filter.ForwardGetWorkSpaceSize(handle, weights.desc, out.desc, rinput.desc)
+                : filter.BackwardDataGetWorkSpaceSize(handle, weights.desc, out.desc, rinput.desc);
 
         std::vector<char> workspace(workspace_size);
         auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
@@ -432,7 +428,9 @@ struct verify_backward_conv : conv_base<T>
 
         float alpha = 1, beta = 0;
 
-        filter.FindConvBwdDataAlgorithm(handle,
+        if(filter.mode == miopenTranspose)
+        {
+            filter.FindConvFwdAlgorithm(handle,
                                         out.desc,
                                         out_dev.get(),
                                         weights.desc,
@@ -446,18 +444,48 @@ struct verify_backward_conv : conv_base<T>
                                         workspace_size,
                                         search);
 
-        filter.ConvolutionBackwardData(handle,
-                                       &alpha,
-                                       out.desc,
-                                       out_dev.get(),
-                                       weights.desc,
-                                       wei_dev.get(),
-                                       perf.bwd_data_algo,
-                                       &beta,
-                                       rinput.desc,
-                                       in_dev.get(),
-                                       workspace_dev.get(),
-                                       workspace_size);
+            filter.ConvolutionForward(handle,
+                                      &alpha,
+                                      out.desc,
+                                      out_dev.get(),
+                                      weights.desc,
+                                      wei_dev.get(),
+                                      perf.fwd_algo,
+                                      &beta,
+                                      rinput.desc,
+                                      in_dev.get(),
+                                      workspace_dev.get(),
+                                      workspace_size);
+        }
+        else
+        {
+            filter.FindConvBwdDataAlgorithm(handle,
+                                            out.desc,
+                                            out_dev.get(),
+                                            weights.desc,
+                                            wei_dev.get(),
+                                            rinput.desc,
+                                            in_dev.get(),
+                                            1,
+                                            &ret_algo_count,
+                                            &perf,
+                                            workspace_dev.get(),
+                                            workspace_size,
+                                            search);
+
+            filter.ConvolutionBackwardData(handle,
+                                           &alpha,
+                                           out.desc,
+                                           out_dev.get(),
+                                           weights.desc,
+                                           wei_dev.get(),
+                                           perf.bwd_data_algo,
+                                           &beta,
+                                           rinput.desc,
+                                           in_dev.get(),
+                                           workspace_dev.get(),
+                                           workspace_size);
+        }
 
         rinput.data = handle.Read<T>(in_dev, rinput.data.size());
         return rinput;
@@ -511,9 +539,7 @@ struct verify_backward_weights_conv : conv_base<T>
         std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(
             filter.mode == miopenTranspose ? input.desc.GetLengths() : out.desc.GetLengths());
 
-        int groups = 1;
-        if(filter.mode == miopenGroupConv || filter.mode == miopenDepthwise)
-            groups = filter.group_count;
+        int groups = filter.group_count;
 
         par_ford(out_c, wei_c, wei_h, wei_w)([&](int w, int k, int x, int y) {
             double acc         = 0.0;
@@ -527,7 +553,7 @@ struct verify_backward_weights_conv : conv_base<T>
                 if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
                 {
                     acc += (filter.mode == miopenTranspose
-                                ? double(out(o, k, in_x, in_y)) * double(input(o, w, i, j))
+                                ? double(out(o, in_ch, in_x, in_y)) * double(input(o, w, i, j))
                                 : double(input(o, in_ch, in_x, in_y)) * double(out(o, w, i, j)));
                 }
             });
@@ -547,7 +573,10 @@ struct verify_backward_weights_conv : conv_base<T>
         auto in_dev  = handle.Write(input.data);
 
         std::size_t workspace_size = filter.ConvolutionBackwardWeightsGetWorkSpaceSize(
-            handle, out.desc, input.desc, rweights.desc);
+            handle,
+            filter.mode == miopenTranspose ? input.desc : out.desc,
+            filter.mode == miopenTranspose ? out.desc : input.desc,
+            rweights.desc);
 
         std::vector<char> workspace(workspace_size);
         auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
@@ -556,32 +585,34 @@ struct verify_backward_weights_conv : conv_base<T>
         miopenConvAlgoPerf_t perf;
 
         float alpha = 1, beta = 0;
-        filter.FindConvBwdWeightsAlgorithm(handle,
-                                           out.desc,
-                                           out_dev.get(),
-                                           input.desc,
-                                           in_dev.get(),
-                                           rweights.desc,
-                                           wei_dev.get(),
-                                           1,
-                                           &ret_algo_count,
-                                           &perf,
-                                           workspace_dev.get(),
-                                           workspace_size,
-                                           search);
+        filter.FindConvBwdWeightsAlgorithm(
+            handle,
+            filter.mode == miopenTranspose ? input.desc : out.desc,
+            filter.mode == miopenTranspose ? in_dev.get() : out_dev.get(),
+            filter.mode == miopenTranspose ? out.desc : input.desc,
+            filter.mode == miopenTranspose ? out_dev.get() : in_dev.get(),
+            rweights.desc,
+            wei_dev.get(),
+            1,
+            &ret_algo_count,
+            &perf,
+            workspace_dev.get(),
+            workspace_size,
+            search);
 
-        filter.ConvolutionBackwardWeights(handle,
-                                          &alpha,
-                                          out.desc,
-                                          out_dev.get(),
-                                          input.desc,
-                                          in_dev.get(),
-                                          perf.bwd_weights_algo,
-                                          &beta,
-                                          rweights.desc,
-                                          wei_dev.get(),
-                                          workspace_dev.get(),
-                                          workspace_size);
+        filter.ConvolutionBackwardWeights(
+            handle,
+            &alpha,
+            filter.mode == miopenTranspose ? input.desc : out.desc,
+            filter.mode == miopenTranspose ? in_dev.get() : out_dev.get(),
+            filter.mode == miopenTranspose ? out.desc : input.desc,
+            filter.mode == miopenTranspose ? out_dev.get() : in_dev.get(),
+            perf.bwd_weights_algo,
+            &beta,
+            rweights.desc,
+            wei_dev.get(),
+            workspace_dev.get(),
+            workspace_size);
 
         rweights.data = handle.Read<T>(wei_dev, rweights.data.size());
         return rweights;
@@ -612,12 +643,8 @@ struct conv_driver : test_driver
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
         {"CONV", miopenConvolution},
         {"TRANS", miopenTranspose},
-        {"GROUP", miopenGroupConv},
-        {"DW", miopenDepthwise},
         {"CONVOLUTION", miopenConvolution},
-        {"TRANSPOSE", miopenTranspose},
-        {"GROUPCONV", miopenGroupConv},
-        {"DEPTHWISE", miopenDepthwise}};
+        {"TRANSPOSE", miopenTranspose}};
 
     std::unordered_map<std::string, miopenPaddingMode_t> pmode_lookup = {
         {"SAME", miopenPaddingSame},
@@ -664,18 +691,7 @@ struct conv_driver : test_driver
 
         filter.mode        = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode = pmode_lookup[miopen::ToUpper(pad_mode)];
-        filter.group_count =
-            filter.mode == miopenDepthwise ? input_c : std::max(static_cast<int>(groupCount), 1);
-        if(filter.group_count > 1 &&
-           !(filter.mode == miopenDepthwise || filter.mode == miopenTranspose))
-            filter.mode = miopenGroupConv;
-
-        // lack of transposeConv for half type
-        // \todo enhance support of half type into transConv
-        if((input.desc.GetType() == miopenHalf) && (filter.mode == miopenTranspose))
-        {
-            return;
-        }
+        filter.group_count = std::max(static_cast<int>(groupCount), 1);
 
         // bwd53 kernel (large images supported) doesnt support stride !=1 and dialation and pad.
         if(input_w >= 2048 &&
@@ -685,10 +701,12 @@ struct conv_driver : test_driver
             return;
         }
 
-        if(((filter.mode == miopenTranspose) && (input_c == wei_k)) ||
-           ((filter.mode == miopenConvolution) && (input_c == wei_c)) ||
-           ((filter.mode == miopenGroupConv) && (input_c % wei_c == 0)) ||
-           ((filter.mode == miopenDepthwise) && (wei_c == 1)))
+        if(((filter.mode == miopenTranspose) &&
+            ((filter.group_count == 1 && input_c == wei_k) ||
+             (filter.group_count >= 2 && wei_k % filter.group_count == 0))) ||
+           ((filter.mode == miopenConvolution) &&
+            ((filter.group_count == 1 && input_c == wei_c) ||
+             (filter.group_count >= 2 && input_c % wei_c == 0))))
         {
             if(filter.mode == miopenConvolution &&
                ((filter.dilation_h == 1 && filter.dilation_w == 1) || (wei_h == 1 && wei_w == 1)))
@@ -729,14 +747,22 @@ struct conv_driver : test_driver
                         return;
                 }
             }
+            if(filter.mode == miopenTranspose)
+            {
+                filter.trans_output_pad_h = filter.u - 1;
+                filter.trans_output_pad_w = filter.v - 1;
+            }
 
-            if(((filter.mode == miopenConvolution &&
-                 input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1)) ||
-                (filter.mode == miopenTranspose &&
-                 input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(0)) ||
-                (filter.mode == miopenGroupConv &&
-                 (input.desc.GetLengths().at(1) % weights.desc.GetLengths().at(1) == 0)) ||
-                (filter.mode == miopenDepthwise && weights.desc.GetLengths().at(1) == 1)))
+            if(((filter.mode == miopenTranspose) &&
+                ((filter.group_count == 1 &&
+                  (input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(0))) ||
+                 (filter.group_count >= 2 &&
+                  (weights.desc.GetLengths().at(0) % filter.group_count == 0)))) ||
+               ((filter.mode == miopenConvolution) &&
+                ((filter.group_count == 1 &&
+                  (input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1))) ||
+                 (filter.group_count >= 2 &&
+                  (input.desc.GetLengths().at(1) % weights.desc.GetLengths().at(1) == 0)))))
             {
                 auto output = get_output_tensor(filter, input, weights);
 

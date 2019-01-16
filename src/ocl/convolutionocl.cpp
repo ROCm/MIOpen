@@ -102,16 +102,19 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
                                       const TensorDescriptor& wDesc,
                                       const ConvolutionDescriptor& conv)
 {
+    if(conv.group_count == 1)
+    {
+        if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1])
+            MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
+    }
     if(conv.group_count >= 2)
     {
         if(xDesc.GetLengths()[1] % conv.group_count != 0 ||
            wDesc.GetLengths()[0] % conv.group_count != 0 ||
            conv.group_count > xDesc.GetLengths()[1] || conv.group_count > wDesc.GetLengths()[0] ||
-           conv.group_count < 1 ||
-           (conv.mode == miopenDepthwise && conv.group_count != xDesc.GetLengths()[1]))
+           conv.group_count < 1)
             MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
-        if(xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[1] ||
-           (conv.mode == miopenDepthwise && wDesc.GetLengths()[1] != 1))
+        if(xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[1])
             MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
     }
 }
@@ -330,93 +333,18 @@ static void DirConvFindCore(Handle& handle,
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
 
-    int wei_n, wei_h, wei_w;
-
     int out_h, out_w;
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
 
-    if(conv.mode == miopenTranspose)
     {
-        std::tie(std::ignore, wei_n, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
-
-#if MIOPEN_USE_MIOPENGEMM
-        if(xDesc.GetType() == miopenFloat)
-        {
-            std::string network_config;
-
-            size_t workspace_req = conv.BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc);
-            float time_gemm      = 0;
-            GemmGeometry gg =
-                CreateGemmGeometryConvBwdData(xDesc, wDesc, yDesc, true, network_config);
-
-            // 1x1 does not require im2col or workspace
-            if(wei_h == 1 && wei_w == 1 && conv.v == 1 && conv.u == 1 && conv.pad_h == 0 &&
-               conv.pad_w == 0)
-            {
-                MIOPEN_LOG_FUNCTION("transpose, 1x1");
-
-                gg.FindSolution(.003, handle, w, x, tmp_y.get(), false);
-                gg.RunGemm(handle, w, x, tmp_y.get(), 0, 0, 0);
-
-                time_gemm = in_n * handle.GetKernelTime();
-
-                record.SetValues(
-                    "miopenConvolutionFwdAlgoGEMM",
-                    FindDbData{"gemm", time_gemm, 0, network_config}); // Todo: gemm solver id?
-            }
-
-            // if not 1x1
-            else if(workSpace != nullptr && workSpaceSize >= workspace_req)
-            {
-                MIOPEN_LOG_FUNCTION("transpose, non 1x1");
-
-                float time_col2im = 0;
-                int out_offset    = 0;
-
-                gg.FindSolution(.003, handle, w, x, workSpace, false);
-                gg.RunGemm(handle, w, x, workSpace, 0, 0, 0);
-
-                time_gemm   = in_n * handle.GetKernelTime();
-                time_col2im = Col2ImGPU(handle,
-                                        workSpace,
-                                        in_h,
-                                        in_w,
-                                        wei_h,
-                                        wei_w,
-                                        conv.pad_h,
-                                        conv.pad_w,
-                                        conv.u,
-                                        conv.v,
-                                        conv.dilation_h,
-                                        conv.dilation_w,
-                                        wei_n,
-                                        out_h,
-                                        out_w,
-                                        tmp_y.get(),
-                                        out_offset,
-                                        xDesc.GetType());
-
-                time_gemm += in_n * time_col2im;
-
-                record.SetValues(
-                    "miopenConvolutionFwdAlgoGEMM",
-                    FindDbData{
-                        "gemm", time_gemm, workspace_req, network_config}); // Todo: gemm solver id?
-            }
-        }
-#else
-        (void)workSpace;     // Suppress warning
-        (void)workSpaceSize; // Suppress warning
-#endif
-    }
-    else
-    {
-        std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
         ValidateGroupCount(xDesc, wDesc, conv);
 
 #if MIOPEN_USE_GEMM
         if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
         { // GEMM algo
+            int wei_n, wei_h, wei_w;
+            std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+
             float time_gemm           = 0;
             const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
             // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR
@@ -898,12 +826,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         miopen::checkNumericsInput(handle, wDesc, w);
     }
 
-    if(mode != miopenTranspose)
     {
-        if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1] && mode == miopenConvolution)
-        {
-            MIOPEN_THROW(miopenStatusBadParm);
-        }
         ValidateGroupCount(xDesc, wDesc, *this);
 
         switch(algo)
@@ -1291,99 +1214,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         break;
         }
     }
-    else
-    {
-        if(xDesc.GetLengths()[1] != wDesc.GetLengths()[0])
-        {
-            MIOPEN_THROW(miopenStatusBadParm);
-        }
-
-        // GEMM based
-        int in_n, in_c, in_h, in_w;
-        std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
-
-        int wei_n, wei_h, wei_w;
-        std::tie(std::ignore, wei_n, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
-
-        int out_h, out_w;
-        std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
-
-        if(wei_h != 1 || wei_w != 1 || u != 1 || v != 1 || pad_h != 0 || pad_w != 0)
-        {
-            assert(workSpace != nullptr &&
-                   workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc));
-        }
-
-        std::string network_config;
-
-#if MIOPEN_USE_MIOPENGEMM
-        CreateGemmGeometryConvBwdData(xDesc, wDesc, yDesc, true, network_config);
-        GemmGeometry gg =
-            GetGemmGeometry(handle, "miopenConvolutionBwdDataAlgoGEMM", network_config);
-
-        float time_0 = 0;
-        float t1     = 0;
-        for(int i = 0; i < in_n; i++)
-        {
-            int out_offset = i * wei_n * out_h * out_w;
-            if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0)
-            {
-                MIOPEN_LOG_FUNCTION("transppose, non 1x1");
-
-                int in_offset = i * in_c * in_h * in_w;
-
-                gg.RunGemm(handle, w, x, workSpace, 0, in_offset, 0);
-
-                if(handle.IsProfilingEnabled())
-                    t1 = handle.GetKernelTime();
-
-                Col2ImGPU(handle,
-                          workSpace,
-                          in_h,
-                          in_w,
-                          wei_h,
-                          wei_w,
-                          pad_h,
-                          pad_w,
-                          u,
-                          v,
-                          dilation_h,
-                          dilation_w,
-                          wei_n,
-                          out_h,
-                          out_w,
-                          y,
-                          out_offset,
-                          xDesc.GetType());
-
-                // Update times for both the kernels
-                if(handle.IsProfilingEnabled())
-                {
-                    if(i == in_n - 1)
-                        handle.AccumKernelTime(t1 + time_0);
-                    else
-                        handle.AccumKernelTime(t1);
-                    time_0 += handle.GetKernelTime();
-                }
-            }
-            else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1 && pad_h == 0 && pad_w == 0)
-            {
-                MIOPEN_LOG_FUNCTION("transppose, 1x1");
-
-                int in_offset = i * in_c * in_h * in_w;
-                gg.RunGemm(handle, w, x, y, 0, in_offset, out_offset);
-                if(handle.IsProfilingEnabled())
-                {
-                    if(i == in_n - 1)
-                        handle.AccumKernelTime(time_0);
-                    time_0 += handle.GetKernelTime();
-                }
-            }
-        }
-#else
-        MIOPEN_THROW("GEMM is not supported");
-#endif
-    }
 
     if(miopen::CheckNumericsEnabled() != 0)
     {
@@ -1432,78 +1262,10 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
 
-    int wei_n, wei_h, wei_w;
-
     int out_h, out_w;
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
     std::string network_config;
-
-    if(mode == miopenTranspose)
-    {
-#if MIOPEN_USE_MIOPENGEMM
-        // GEMM based
-        std::tie(std::ignore, wei_n, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
-
-        if(dyDesc.GetType() == miopenFloat)
-        {
-            size_t workspace_req = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, dxDesc);
-            float time_gemm      = 0;
-            GemmGeometry gg =
-                CreateGemmGeometryTranBwdData(dyDesc, wDesc, dxDesc, true, network_config);
-
-            // 1x1 does not require im2col or workspace
-            if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1 && pad_h == 0 && pad_w == 0)
-            {
-                MIOPEN_LOG_FUNCTION("transppose, 1x1");
-
-                gg.FindSolution(.003, handle, w, dy, tmp_dx.get(), false);
-                gg.RunGemm(handle, w, dy, tmp_dx.get(), 0, 0, 0);
-
-                time_gemm = in_n * handle.GetKernelTime();
-                perf_db.push_back(PerfField{"miopenTransposeBwdDataAlgoGEMM", time_gemm, 0});
-            }
-
-            // if not 1x1
-            else if(workSpace != nullptr && workSpaceSize >= workspace_req)
-            {
-                MIOPEN_LOG_FUNCTION("transppose, non 1x1");
-
-                float time_im2col = 0;
-                int out_offset    = 0;
-                time_im2col       = Im2ColGPU(handle,
-                                        dyDesc.GetElementSize(),
-                                        dy,
-                                        out_offset,
-                                        wei_n,
-                                        out_h,
-                                        out_w,
-                                        wei_h,
-                                        wei_w,
-                                        in_h,
-                                        in_w,
-                                        pad_h,
-                                        pad_w,
-                                        u,
-                                        v,
-                                        dilation_h,
-                                        dilation_w,
-                                        workSpace,
-                                        dyDesc.GetType());
-
-                gg.FindSolution(.003, handle, w, workSpace, tmp_dx.get(), false);
-                gg.RunGemm(handle, w, workSpace, tmp_dx.get(), 0, 0, 0);
-                time_gemm = in_n * (time_im2col + handle.GetKernelTime());
-                perf_db.push_back(
-                    PerfField{"miopenTransposeBwdDataAlgoGEMM", time_gemm, workspace_req});
-            }
-        }
-#else
-        (void)workSpace;     // Suppress warning
-        (void)workSpaceSize; // Suppress warning
-#endif
-    }
-    else
     {
         if(dilation_h == 1 && dilation_w == 1)
         {
@@ -1662,6 +1424,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
         {
             const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
+            int wei_n, wei_h, wei_w;
             std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
             ValidateGroupCount(dxDesc, wDesc, *this);
 
@@ -1920,9 +1683,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         }
     }
 
-    if(mode != miopenTranspose)
     {
-        if(dyDesc.GetLengths()[1] != wDesc.GetLengths()[0] && mode == miopenConvolution)
+        if(dyDesc.GetLengths()[1] != wDesc.GetLengths()[0])
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
@@ -2318,98 +2080,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             }
         }
         break;
-
-        case miopenTransposeBwdDataAlgoGEMM: break;
         }
-    }
-    else
-    {
-        if(dyDesc.GetLengths()[1] != wDesc.GetLengths()[1])
-        {
-            MIOPEN_THROW(miopenStatusBadParm);
-        }
-
-        int in_n, in_c, in_h, in_w;
-        std::tie(in_n, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
-
-        int wei_n, wei_h, wei_w;
-        std::tie(std::ignore, wei_n, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
-
-        int out_h, out_w;
-        std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
-
-        if(wei_h != 1 || wei_w != 1 || u != 1 || v != 1 || pad_h != 0 || pad_w != 0)
-        {
-            assert(workSpace != nullptr &&
-                   workSpaceSize >= ForwardGetWorkSpaceSizeGEMM(handle, wDesc, dxDesc));
-        }
-
-        std::string network_config;
-#if MIOPEN_USE_MIOPENGEMM
-        CreateGemmGeometryTranBwdData(dyDesc, wDesc, dxDesc, true, network_config);
-        GemmGeometry gg = GetGemmGeometry(handle, "miopenTransposeBwdDataAlgoGEMM", network_config);
-
-        float time_0 = 0;
-        float t1     = 0;
-        for(int i = 0; i < in_n; i++)
-        {
-            int in_offset = i * in_c * in_h * in_w;
-            if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0)
-            {
-                MIOPEN_LOG_FUNCTION("transpose, non 1x1");
-
-                int out_offset = i * wei_n * out_h * out_w;
-                Im2ColGPU(handle,
-                          dyDesc.GetElementSize(),
-                          dy,
-                          out_offset,
-                          wei_n,
-                          out_h,
-                          out_w,
-                          wei_h,
-                          wei_w,
-                          in_h,
-                          in_w,
-                          pad_h,
-                          pad_w,
-                          u,
-                          v,
-                          dilation_h,
-                          dilation_w,
-                          workSpace,
-                          dyDesc.GetType());
-                if(handle.IsProfilingEnabled())
-                    t1 = handle.GetKernelTime();
-
-                gg.RunGemm(handle, w, workSpace, dx, 0, 0, in_offset);
-
-                // Update times for both the kernels
-                if(handle.IsProfilingEnabled())
-                {
-                    if(i == in_n - 1)
-                        handle.AccumKernelTime(t1 + time_0);
-                    else
-                        handle.AccumKernelTime(t1);
-                    time_0 += handle.GetKernelTime();
-                }
-            }
-            else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1 && pad_h == 0 && pad_w == 0)
-            {
-                MIOPEN_LOG_FUNCTION("transpose, 1x1");
-
-                int out_offset = i * wei_n * out_h * out_w;
-                gg.RunGemm(handle, w, dy, dx, 0, out_offset, in_offset);
-                if(handle.IsProfilingEnabled())
-                {
-                    if(i == in_n - 1)
-                        handle.AccumKernelTime(time_0);
-                    time_0 += handle.GetKernelTime();
-                }
-            }
-        }
-#else
-        MIOPEN_THROW("GEMM is not supported");
-#endif
     }
 
     if(miopen::CheckNumericsEnabled() != 0)
@@ -2529,83 +2200,16 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
 
-    int wei_n, wei_h, wei_w;
-
     int out_h, out_w;
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
     std::string network_config;
-
-    if(mode == miopenTranspose)
-    {
-#if MIOPEN_USE_MIOPENGEMM
-        std::tie(std::ignore, wei_n, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
-
-        if(dyDesc.GetType() == miopenFloat)
-        {
-            GemmGeometry gg =
-                CreateGemmGeometryConvBwdWeights(xDesc, dyDesc, dwDesc, false, network_config);
-            std::size_t workspace_req = BackwardWeightsGetWorkSpaceSizeGEMM(handle, xDesc, dwDesc);
-
-            float time_gemm = 0;
-
-            // 1x1 does not require im2col or workspace
-            if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1 && pad_h == 0 && pad_w == 0)
-            {
-                MIOPEN_LOG_FUNCTION("transpose, 1x1");
-
-                gg.FindSolution(.003, handle, dy, x, tmp_dw.get(), false);
-                gg.RunGemm(handle, dy, x, tmp_dw.get(), 0, 0, 0);
-
-                time_gemm = in_n * handle.GetKernelTime();
-                perf_db.push_back(PerfField{"miopenConvolutionBwdWeightsAlgoGEMM", time_gemm, 0});
-            }
-            // if not 1x1
-            else if(workSpace != nullptr && workSpaceSize >= workspace_req)
-            {
-                MIOPEN_LOG_FUNCTION("transpose, non 1x1");
-
-                float time_im2col = 0;
-                int out_offset    = 0;
-                time_im2col       = Im2ColGPU(handle,
-                                        dyDesc.GetElementSize(),
-                                        dy,
-                                        out_offset,
-                                        wei_n,
-                                        out_h,
-                                        out_w,
-                                        wei_h,
-                                        wei_w,
-                                        in_h,
-                                        in_w,
-                                        pad_h,
-                                        pad_w,
-                                        u,
-                                        v,
-                                        dilation_h,
-                                        dilation_w,
-                                        workSpace,
-                                        dyDesc.GetType());
-
-                gg.FindSolution(.003, handle, workSpace, x, tmp_dw.get(), false);
-                gg.RunGemm(handle, workSpace, x, tmp_dw.get(), 0, 0, 0);
-                time_gemm = in_n * (time_im2col + handle.GetKernelTime());
-                perf_db.push_back(
-                    PerfField{"miopenConvolutionBwdWeightsAlgoGEMM", time_gemm, workspace_req});
-            }
-        }
-#else
-        (void)workSpace;     // Suppress warning
-        (void)workSpaceSize; // Suppress warning
-                             // (void)workspace_req; // Suppress warning
-#endif
-    }
-    else
     {
 #if MIOPEN_USE_GEMM
         if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
         {
             const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
+            int wei_n, wei_h, wei_w;
             std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
             ValidateGroupCount(xDesc, dwDesc, *this);
 
@@ -2840,14 +2444,10 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
 
-    int wei_n, wei_h, wei_w;
-
     int out_h, out_w;
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
-    if(mode != miopenTranspose)
     {
-        std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
         ValidateGroupCount(xDesc, dwDesc, *this);
 
         switch(algo)
@@ -2858,6 +2458,9 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             {
                 MIOPEN_THROW("GEMM convolution is disabled");
             }
+
+            int wei_n, wei_h, wei_w;
+            std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
 
             // Zeroing out the output buffer
             float zero = 0.0f;
@@ -3039,7 +2642,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     assert(workSpace != nullptr &&
                            ((workSpaceSize >= this->BackwardWeightsGetWorkSpaceSizeDirect(
                                                   handle, dyDesc, xDesc, dwDesc) &&
-                             mode == miopenConvolution) ||
+                             group_count == 1) ||
                             group_count >= 2));
                     if(kernel.GetName() == "SubSample")
                     {
@@ -3094,88 +2697,6 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         }
         break;
         };
-    }
-    else
-    {
-        std::tie(std::ignore, wei_n, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
-
-        std::string network_config;
-
-        if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0)
-        {
-            assert(workSpace != nullptr &&
-                   workSpaceSize >= BackwardWeightsGetWorkSpaceSizeGEMM(handle, xDesc, dwDesc));
-        }
-
-#if MIOPEN_USE_MIOPENGEMM
-        CreateGemmGeometryConvBwdWeights(xDesc, dyDesc, dwDesc, false, network_config);
-        GemmGeometry gg =
-            GetGemmGeometry(handle, "miopenConvolutionBwdWeightsAlgoGEMM", network_config);
-
-        handle.ResetKernelTime();
-        float time_0 = 0;
-        float t1     = 0;
-        for(int i = 0; i < in_n; i++)
-        {
-            int in_offset = i * in_c * in_h * in_w;
-            if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0)
-            {
-                MIOPEN_LOG_FUNCTION("transpose, non 1x1");
-
-                int out_offset = i * wei_n * out_h * out_w;
-                Im2ColGPU(handle,
-                          dyDesc.GetElementSize(),
-                          dy,
-                          out_offset,
-                          wei_n,
-                          out_h,
-                          out_w,
-                          wei_h,
-                          wei_w,
-                          in_h,
-                          in_w,
-                          pad_h,
-                          pad_w,
-                          u,
-                          v,
-                          dilation_h,
-                          dilation_w,
-                          workSpace,
-                          dyDesc.GetType());
-
-                if(handle.IsProfilingEnabled())
-                    t1 = handle.GetKernelTime();
-
-                gg.RunGemm(handle, workSpace, x, dw, 0, in_offset, 0);
-
-                // Update times for both the kernels
-                if(handle.IsProfilingEnabled())
-                {
-                    if(i == in_n - 1)
-                        handle.AccumKernelTime(t1 + time_0);
-                    else
-                        handle.AccumKernelTime(t1);
-                    time_0 += handle.GetKernelTime();
-                }
-            }
-            else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1 && pad_h == 0 && pad_w == 0)
-            {
-                MIOPEN_LOG_FUNCTION("transpose, 1x1");
-
-                int out_offset = i * wei_n * out_h * out_w;
-                gg.RunGemm(handle, dy, x, dw, out_offset, in_offset, 0);
-
-                if(handle.IsProfilingEnabled())
-                {
-                    if(i == in_n - 1)
-                        handle.AccumKernelTime(time_0);
-                    time_0 += handle.GetKernelTime();
-                }
-            }
-        }
-#else
-        MIOPEN_THROW("GEMM is not supported");
-#endif
     }
 
     if(miopen::CheckNumericsEnabled() != 0)
