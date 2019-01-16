@@ -64,7 +64,7 @@ int miopen::ProblemDescription::mloBuildConf_Key(std::string& conf_key) const
                std::to_string(static_cast<long long>(kernel_dilation0)) + std::string("x") +
                std::to_string(static_cast<long long>(kernel_dilation1)) + std::string("x") +
                std::to_string(static_cast<long long>(group_counts)) + std::string("x") +
-               (mode.IsTranspose() ? "mT" : "") + (direction.IsForward() ? "1" : "0");
+               (direction.IsForward() ? "1" : "0");
     return (0);
 }
 
@@ -93,5 +93,4 @@ void miopen::ProblemDescription::setConvDescr(const ConvolutionDescriptor& conv)
     kernel_dilation0 = conv.dilation_h;
     kernel_dilation1 = conv.dilation_w;
     group_counts     = conv.group_count;
-    mode.val         = conv.mode;
 }

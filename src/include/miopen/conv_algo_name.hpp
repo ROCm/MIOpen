@@ -49,7 +49,6 @@ inline int BwdDataAlgoResolver(const std::string& s)
         {"miopenConvolutionBwdDataAlgoDirect", 1},
         {"miopenConvolutionBwdDataAlgoFFT", 2},
         {"miopenConvolutionBwdDataAlgoWinograd", 3},
-        {"miopenTransposeBwdDataAlgoGEMM", 4},
     };
     return data.at(s);
 }

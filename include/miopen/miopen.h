@@ -316,8 +316,6 @@ typedef enum {
 typedef enum {
     miopenConvolution = 0, /*!< Cross-Correlation convolution */
     miopenTranspose   = 1, /*!< Transpose convolutions -- deconvolution */
-    miopenGroupConv   = 2, /*!< Group convolution */
-    miopenDepthwise   = 3, /*!< Depthwise convolution */
 } miopenConvolutionMode_t;
 
 /*! @ingroup padding
@@ -645,6 +643,21 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDes
 MIOPEN_EXPORT miopenStatus_t miopenSetConvolutionGroupCount(miopenConvolutionDescriptor_t convDesc,
                                                             int groupCount);
 
+/*! @brief Set the output padding to be used in Transpose convolution
+*
+* This function is optional for initialization of Transpose convolution. If applicable, it must be
+* called before all computational APIs of Transpose convolution. It is preferable to call
+* miopenInitConvolutionDescriptor() first, then miopenSetTransposeConvOutputPadding() to fully
+* initialize transpose convolutions.
+*
+* @param convDesc   Convolution layer descriptor (output)
+* @param adj_h      output padding for the height of output data (input)
+* @param adj_w      output padding for the width of output data (input)
+* @return           miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenSetTransposeConvOutputPadding(miopenConvolutionDescriptor_t convDesc, int adj_h, int adj_w);
+
 /*! @brief Get the shape of a resulting 4-D tensor from a 2-D convolution
  *
  * This function returns the dimensions of the resulting 4D tensor of a 2D
@@ -706,7 +719,6 @@ typedef enum {
     miopenConvolutionBwdDataAlgoDirect   = 1, /*!< Direct convolutions */
     miopenConvolutionBwdDataAlgoFFT      = 2, /*!< Fast Fourier Transform indirect convolutions */
     miopenConvolutionBwdDataAlgoWinograd = 3, /*!< Winograd indirect convolutions */
-    miopenTransposeBwdDataAlgoGEMM       = 4, /*!< Transpose GEMM variant */
 } miopenConvBwdDataAlgorithm_t;
 
 /*! @struct miopenConvAlgoPerf_t

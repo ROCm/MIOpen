@@ -34,12 +34,6 @@ namespace miopen {
 GemmGeometry
 GetGemmGeometry(Handle& handle, std::string algorithm_name, std::string network_config);
 
-GemmGeometry CreateGemmGeometryTranBwdData(const TensorDescriptor& dyDesc,
-                                           const TensorDescriptor& wDesc,
-                                           const TensorDescriptor& dxDesc,
-                                           bool isDataColMajor,
-                                           std::string& network_config);
-
 GemmGeometry CreateGemmGeometryConvBwdWeights(const TensorDescriptor& dyDesc,
                                               const TensorDescriptor& xDesc,
                                               const TensorDescriptor& dwDesc,

@@ -256,17 +256,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::GetandSetData()
 
     if(inflags.GetValueInt("bias") != 0)
     {
-        if((inflags.GetValueStr("mode")) == "conv" || (inflags.GetValueStr("mode")) == "group" ||
-           (inflags.GetValueStr("mode")) == "dw")
-        {
-            std::vector<int> b_len{1, inflags.GetValueInt("out_channels"), 1, 1};
-            SetTensor4d(biasTensor, b_len, data_type);
-        }
-        else if((inflags.GetValueStr("mode")) == "trans")
-        {
-            std::vector<int> b_len{1, inflags.GetValueInt("in_channels"), 1, 1};
-            SetTensor4d(biasTensor, b_len, data_type);
-        }
+        std::vector<int> b_len{1, inflags.GetValueInt("out_channels"), 1, 1};
+        SetTensor4d(biasTensor, b_len, data_type);
     }
     return (0);
 }
@@ -290,6 +281,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::AddCmdLineArgs()
     inflags.AddInputFlag("pad_h", 'p', "0", "Zero Padding Height (Default=0)", "int");
     inflags.AddInputFlag("pad_w", 'q', "0", "Zero Padding Width (Default=0)", "int");
     inflags.AddInputFlag("pad_val", 'r', "0", "Padding Value (Default=0)", "int");
+    inflags.AddInputFlag(
+        "trans_output_pad_h", 'Y', "0", "Zero Padding Output Bottom (Default=0)", "int");
+    inflags.AddInputFlag(
+        "trans_output_pad_w", 'X', "0", "Zero Padding Output Right (Default=0)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("verification_cache",
@@ -307,7 +302,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::AddCmdLineArgs()
     inflags.AddInputFlag("weights", 'e', "", "Input weights filename (Default=)", "string");
     inflags.AddInputFlag("bias", 'b', "", "Use Bias (Default=0)", "int");
     inflags.AddInputFlag(
-        "mode", 'm', "conv", "Convolution Mode (conv, trans, group, dw) (Default=conv)", "str");
+        "mode", 'm', "conv", "Convolution Mode (conv, trans) (Default=conv)", "str");
 
     inflags.AddInputFlag(
         "pad_mode", 'z', "default", "Padding Mode (same, valid, default) (Default=default)", "str");
@@ -344,10 +339,7 @@ std::vector<int> ConvDriver<Tgpu, Tref, Tfile>::GetWeightTensorLengthsFromCmdLin
     int wei_h       = inflags.GetValueInt("fil_h");
     int wei_w       = inflags.GetValueInt("fil_w");
     int group_count = std::max(inflags.GetValueInt("group_count"), 1);
-
-    miopenConvolutionMode_t mode;
-    if(group_count > 1 &&
-       ((inflags.GetValueStr("mode")) == "conv" || (inflags.GetValueStr("mode")) == "group"))
+    if(group_count > 1)
     {
         if(wei_c % group_count != 0 || wei_n % group_count != 0 || group_count > wei_c ||
            group_count > wei_n)
@@ -355,23 +347,12 @@ std::vector<int> ConvDriver<Tgpu, Tref, Tfile>::GetWeightTensorLengthsFromCmdLin
             printf("Invalid group number\n");
             exit(0);
         }
-        mode = miopenGroupConv;
     }
-    else if((inflags.GetValueStr("mode")) == "dw" && wei_c > 1)
+
+    miopenConvolutionMode_t mode;
+    if((inflags.GetValueStr("mode")) == "conv")
     {
-        group_count = wei_c;
-        if(wei_n % group_count != 0 || group_count > wei_n)
-        {
-            printf("Invalid channel number\n");
-            exit(0);
-        }
-        mode = miopenDepthwise;
-    }
-    else if((inflags.GetValueStr("mode")) == "conv" || (inflags.GetValueStr("mode")) == "group" ||
-            (inflags.GetValueStr("mode")) == "dw")
-    {
-        group_count = 1;
-        mode        = miopenConvolution;
+        mode = miopenConvolution;
     }
     else if((inflags.GetValueStr("mode")) == "trans")
     {
@@ -384,7 +365,7 @@ std::vector<int> ConvDriver<Tgpu, Tref, Tfile>::GetWeightTensorLengthsFromCmdLin
     }
 
     if(mode == miopenTranspose)
-        return std::vector<int>({wei_c, wei_n, wei_h, wei_w});
+        return std::vector<int>({wei_c, wei_n / group_count, wei_h, wei_w});
 
     return std::vector<int>({wei_n, wei_c / group_count, wei_h, wei_w});
 }
@@ -408,10 +389,11 @@ int ConvDriver<Tgpu, Tref, Tfile>::SetConvDescriptorFromCmdLineArgs()
     int out_c                 = inflags.GetValueInt("out_channels");
     int in_c                  = inflags.GetValueInt("in_channels");
     int group_count           = std::max(inflags.GetValueInt("group_count"), 1);
+    int trans_output_pad_h    = inflags.GetValueInt("trans_output_pad_h");
+    int trans_output_pad_w    = inflags.GetValueInt("trans_output_pad_w");
 
     pmode = miopenPaddingDefault;
-    if(group_count > 1 &&
-       ((inflags.GetValueStr("mode")) == "conv" || (inflags.GetValueStr("mode")) == "group"))
+    if(group_count > 1)
     {
         if(in_c % group_count != 0 || out_c % group_count != 0 || group_count > in_c ||
            group_count > out_c)
@@ -419,28 +401,15 @@ int ConvDriver<Tgpu, Tref, Tfile>::SetConvDescriptorFromCmdLineArgs()
             printf("Invalid group number\n");
             exit(0);
         }
-        mode = miopenGroupConv;
     }
-    else if((inflags.GetValueStr("mode")) == "dw" && in_c > 1)
+
+    if((inflags.GetValueStr("mode")) == "conv")
     {
-        group_count = in_c;
-        if(out_c % group_count != 0 || group_count > out_c)
-        {
-            printf("Invalid channel number\n");
-            exit(0);
-        }
-        mode = miopenDepthwise;
-    }
-    else if((inflags.GetValueStr("mode")) == "conv" || (inflags.GetValueStr("mode")) == "group" ||
-            (inflags.GetValueStr("mode")) == "dw")
-    {
-        group_count = 1;
-        mode        = miopenConvolution;
+        mode = miopenConvolution;
     }
     else if((inflags.GetValueStr("mode")) == "trans")
     {
-        pmode = miopenPaddingDefault;
-        mode  = miopenTranspose;
+        mode = miopenTranspose;
     }
     else
     {
@@ -473,6 +442,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::SetConvDescriptorFromCmdLineArgs()
     miopen::deref(convDesc) =
         miopen::ConvolutionDescriptor(mode, pmode, pad_h, pad_w, u, v, dilation_h, dilation_w);
     miopenSetConvolutionGroupCount(convDesc, group_count);
+    if(mode == miopenTranspose)
+        miopenSetTransposeConvOutputPadding(convDesc, trans_output_pad_h, trans_output_pad_w);
 
     return miopenStatusSuccess;
 }
@@ -509,20 +480,34 @@ template <typename Tgpu, typename Tref, typename Tfile>
 int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
 {
 
-    size_t in_sz  = GetTensorSize(inputTensor);
-    size_t wei_sz = GetTensorSize(weightTensor);
-    size_t out_sz = GetTensorSize(outputTensor);
-
+    size_t in_sz                = GetTensorSize(inputTensor);
+    size_t wei_sz               = GetTensorSize(weightTensor);
+    size_t out_sz               = GetTensorSize(outputTensor);
+    size_t workSpaceSize_fwd    = 0;
     size_t workSpaceSize_bwd_wt = 0;
     size_t workSpaceSize_bwd_dt = 0;
     miopenConvolutionBackwardWeightsGetWorkSpaceSize(
-        GetHandle(), outputTensor, inputTensor, convDesc, weightTensor, &workSpaceSize_bwd_wt);
+        GetHandle(),
+        (inflags.GetValueStr("mode")) == "trans" ? inputTensor : outputTensor,
+        (inflags.GetValueStr("mode")) == "trans" ? outputTensor : inputTensor,
+        convDesc,
+        weightTensor,
+        &workSpaceSize_bwd_wt);
     miopenConvolutionBackwardDataGetWorkSpaceSize(
-        GetHandle(), outputTensor, weightTensor, convDesc, inputTensor, &workSpaceSize_bwd_dt);
+        GetHandle(),
+        (inflags.GetValueStr("mode")) == "trans" ? inputTensor : outputTensor,
+        weightTensor,
+        convDesc,
+        (inflags.GetValueStr("mode")) == "trans" ? outputTensor : inputTensor,
+        (inflags.GetValueStr("mode")) == "trans" ? &workSpaceSize_fwd : &workSpaceSize_bwd_dt);
 
-    size_t workSpaceSize_fwd = 0;
     miopenConvolutionForwardGetWorkSpaceSize(
-        GetHandle(), weightTensor, inputTensor, convDesc, outputTensor, &workSpaceSize_fwd);
+        GetHandle(),
+        weightTensor,
+        (inflags.GetValueStr("mode")) == "trans" ? outputTensor : inputTensor,
+        convDesc,
+        (inflags.GetValueStr("mode")) == "trans" ? inputTensor : outputTensor,
+        (inflags.GetValueStr("mode")) == "trans" ? &workSpaceSize_bwd_dt : &workSpaceSize_fwd);
 
     // Workaround: Pad buffers allocations to be a multiple of 2M
     if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
@@ -636,10 +621,6 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
                    RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
             db[i] = static_cast<Tgpu>(i % 8) +
                     RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            if((inflags.GetValueStr("mode")) == "trans")
-            {
-                db[i] = 0;
-            }
         }
 
         if(!biasFileName.empty())
@@ -705,6 +686,22 @@ int ConvDriver<Tgpu, Tref, Tfile>::FindForward(int& ret_algo_count,
                                                int request_algo_count,
                                                std::vector<miopenConvAlgoPerf_t>& perf_results)
 {
+    if(miopen::deref(convDesc).mode == miopenTranspose)
+        return miopenFindConvolutionBackwardDataAlgorithm(
+            GetHandle(),
+            inputTensor,
+            in_dev->GetMem(),
+            weightTensor,
+            wei_dev->GetMem(),
+            convDesc,
+            outputTensor,
+            out_dev->GetMem(),
+            request_algo_count,
+            &ret_algo_count,
+            perf_results.data(),
+            (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetMem() : nullptr,
+            (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetSize() : 0,
+            (inflags.GetValueInt("search") == 1) ? true : false);
 
     return miopenFindConvolutionForwardAlgorithm(
         GetHandle(),
@@ -746,20 +743,36 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenConvolutionForward(GetHandle(),
-                                 &alpha,
-                                 inputTensor,
-                                 in_dev->GetMem(),
-                                 weightTensor,
-                                 wei_dev->GetMem(),
-                                 convDesc,
-                                 perf_results[0].fwd_algo, // use the fastest algo
-                                 &beta,
-                                 outputTensor,
-                                 out_dev->GetMem(),
-                                 (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetMem()
-                                                                : nullptr,
-                                 perf_results[0].memory);
+        if(miopen::deref(convDesc).mode == miopenTranspose)
+            miopenConvolutionBackwardData(
+                GetHandle(),
+                &alpha,
+                inputTensor,
+                in_dev->GetMem(),
+                weightTensor,
+                wei_dev->GetMem(),
+                convDesc,
+                perf_results[0].bwd_data_algo,
+                &beta,
+                outputTensor,
+                out_dev->GetMem(),
+                (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetMem() : nullptr,
+                perf_results[0].memory);
+        else
+            miopenConvolutionForward(GetHandle(),
+                                     &alpha,
+                                     inputTensor,
+                                     in_dev->GetMem(),
+                                     weightTensor,
+                                     wei_dev->GetMem(),
+                                     convDesc,
+                                     perf_results[0].fwd_algo, // use the fastest algo
+                                     &beta,
+                                     outputTensor,
+                                     out_dev->GetMem(),
+                                     (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetMem()
+                                                                    : nullptr,
+                                     perf_results[0].memory);
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -823,27 +836,13 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
 
     if(inflags.GetValueInt("bias") != 0)
     {
-        if((inflags.GetValueStr("mode")) == "conv" || (inflags.GetValueStr("mode")) == "group" ||
-           (inflags.GetValueStr("mode")) == "dw")
-        {
-            miopenConvolutionForwardBias(GetHandle(),
-                                         &alpha,
-                                         biasTensor,
-                                         b_dev->GetMem(),
-                                         &beta,
-                                         outputTensor,
-                                         out_dev->GetMem());
-        }
-        else if((inflags.GetValueStr("mode")) == "trans")
-        {
-            miopenConvolutionBackwardBias(GetHandle(),
-                                          &alpha,
-                                          inputTensor,
-                                          in_dev->GetMem(),
-                                          &beta,
-                                          biasTensor,
-                                          b_dev->GetMem());
-        }
+        miopenConvolutionForwardBias(GetHandle(),
+                                     &alpha,
+                                     biasTensor,
+                                     b_dev->GetMem(),
+                                     &beta,
+                                     outputTensor,
+                                     out_dev->GetMem());
 
         if(inflags.GetValueInt("time") == 1)
         {
@@ -952,38 +951,63 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardCPU()
 
         for(int o = 0; o < in_n; o++)
         { // mini-batch size
-            for(int k = 0; k < out_c; k++)
-            { // out_channels (RGB)
-                for(int w = 0; w < in_c; w++)
-                { // in_channels (num filters)
-                    for(int i = 0; i < in_h; i++)
-                    { // input_height
-                        int out_off_h = i * v;
-                        for(int j = 0; j < in_w; j++)
-                        { // input_width
-                            int out_off_w = j * u;
-                            for(int x = 0; x < wei_h; x++)
-                            {
-                                int out_x = out_off_h - pad_h + x * dilation_h;
-                                if(out_x >= 0 && out_x < out_h)
+            for(int g = 0; g < group_count; g++)
+            { // number of groups
+                for(int k = 0; k < wei_n; k++)
+                { // out_channels (RGB)
+                    for(int w = 0; w < in_c / group_count; w++)
+                    { // in_channels (num filters)
+                        for(int i = 0; i < in_h; i++)
+                        { // input_height
+                            int out_off_h = i * u;
+                            for(int j = 0; j < in_w; j++)
+                            { // input_width
+                                int out_off_w = j * v;
+                                for(int x = 0; x < wei_h; x++)
                                 {
-                                    for(int y = 0; y < wei_w; y++)
+                                    int out_x = out_off_h - pad_h + x * dilation_h;
+                                    if(out_x >= 0 && out_x < out_h)
                                     {
-                                        int out_y = out_off_w - pad_w + y * dilation_w;
-                                        if(out_y >= 0 && out_y < out_w)
+                                        for(int y = 0; y < wei_w; y++)
                                         {
-                                            outhost[o * out_nstride + k * out_cstride +
-                                                    out_x * out_hstride + out_y] +=
-                                                static_cast<Tref>(
-                                                    in[o * in_nstride + w * in_cstride +
-                                                       i * in_hstride + j]) *
-                                                static_cast<Tref>(
-                                                    wei[w * wei_cstride + k * wei_nstride +
-                                                        x * wei_hstride + y]);
+                                            int out_y = out_off_w - pad_w + y * dilation_w;
+                                            if(out_y >= 0 && out_y < out_w)
+                                            {
+                                                outhost[o * out_nstride +
+                                                        (g * wei_n + k) * out_cstride +
+                                                        out_x * out_hstride + out_y] +=
+                                                    static_cast<Tref>(
+                                                        in[o * in_nstride +
+                                                           (g * (in_c / group_count) + w) *
+                                                               in_cstride +
+                                                           i * in_hstride + j]) *
+                                                    static_cast<Tref>(
+                                                        wei[(g * (wei_c / group_count) + w) *
+                                                                wei_cstride +
+                                                            k * wei_nstride + x * wei_hstride + y]);
+                                            }
                                         }
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        if(inflags.GetValueInt("bias") != 0)
+        {
+            for(int o = 0; o < out_n; o++)
+            { // mini-batch size
+                for(int w = 0; w < out_c; w++)
+                { // out_channels (num filters)
+                    for(int i = 0; i < out_h; i++)
+                    { // output_height (from getforwardoutputdim())
+                        for(int j = 0; j < out_w; j++)
+                        { // output_width (from getforwardoutputdim())
+                            outhost[o * out_nstride + w * out_cstride + i * out_hstride + j] +=
+                                static_cast<Tref>(b[w]);
                         }
                     }
                 }
@@ -1058,6 +1082,22 @@ int ConvDriver<Tgpu, Tref, Tfile>::FindBackwardData(int& ret_algo_count,
                                                     int request_algo_count,
                                                     std::vector<miopenConvAlgoPerf_t>& perf_results)
 {
+    if(miopen::deref(convDesc).mode == miopenTranspose)
+        return miopenFindConvolutionForwardAlgorithm(
+            GetHandle(),
+            outputTensor,
+            dout_dev->GetMem(),
+            weightTensor,
+            wei_dev->GetMem(),
+            convDesc,
+            inputTensor,
+            din_dev->GetMem(),
+            request_algo_count,
+            &ret_algo_count,
+            perf_results.data(),
+            (workspace_bwd_data_dev != nullptr) ? workspace_bwd_data_dev->GetMem() : nullptr,
+            (workspace_bwd_data_dev != nullptr) ? workspace_bwd_data_dev->GetSize() : 0,
+            (inflags.GetValueInt("search") == 1) ? true : false);
 
     return miopenFindConvolutionBackwardDataAlgorithm(
         GetHandle(),
@@ -1083,10 +1123,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::FindBackwardWeights(
 
     miopenFindConvolutionBackwardWeightsAlgorithm(
         GetHandle(),
-        outputTensor,
-        dout_dev->GetMem(),
-        inputTensor,
-        in_dev->GetMem(),
+        miopen::deref(convDesc).mode == miopenTranspose ? inputTensor : outputTensor,
+        miopen::deref(convDesc).mode == miopenTranspose ? in_dev->GetMem() : dout_dev->GetMem(),
+        miopen::deref(convDesc).mode == miopenTranspose ? outputTensor : inputTensor,
+        miopen::deref(convDesc).mode == miopenTranspose ? dout_dev->GetMem() : in_dev->GetMem(),
         convDesc,
         weightTensor,
         wei_dev->GetMem(),
@@ -1124,20 +1164,36 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        ret = miopenConvolutionBackwardData(
-            GetHandle(),
-            &alpha,
-            outputTensor,
-            dout_dev->GetMem(),
-            weightTensor,
-            wei_dev->GetMem(),
-            convDesc,
-            perf_results_data[0].bwd_data_algo,
-            &beta,
-            inputTensor,
-            din_dev->GetMem(),
-            (workspace_bwd_data_dev != nullptr) ? workspace_bwd_data_dev->GetMem() : nullptr,
-            perf_results_data[0].memory);
+        if(miopen::deref(convDesc).mode == miopenTranspose)
+            miopenConvolutionForward(
+                GetHandle(),
+                &alpha,
+                outputTensor,
+                dout_dev->GetMem(),
+                weightTensor,
+                wei_dev->GetMem(),
+                convDesc,
+                perf_results_data[0].fwd_algo, // use the fastest algo
+                &beta,
+                inputTensor,
+                din_dev->GetMem(),
+                (workspace_bwd_data_dev != nullptr) ? workspace_bwd_data_dev->GetMem() : nullptr,
+                perf_results_data[0].memory);
+        else
+            ret = miopenConvolutionBackwardData(
+                GetHandle(),
+                &alpha,
+                outputTensor,
+                dout_dev->GetMem(),
+                weightTensor,
+                wei_dev->GetMem(),
+                convDesc,
+                perf_results_data[0].bwd_data_algo,
+                &beta,
+                inputTensor,
+                din_dev->GetMem(),
+                (workspace_bwd_data_dev != nullptr) ? workspace_bwd_data_dev->GetMem() : nullptr,
+                perf_results_data[0].memory);
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -1220,10 +1276,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
         ret = miopenConvolutionBackwardWeights(
             GetHandle(),
             &alpha,
-            outputTensor,
-            dout_dev->GetMem(),
-            inputTensor,
-            in_dev->GetMem(),
+            miopen::deref(convDesc).mode == miopenTranspose ? inputTensor : outputTensor,
+            miopen::deref(convDesc).mode == miopenTranspose ? in_dev->GetMem() : dout_dev->GetMem(),
+            miopen::deref(convDesc).mode == miopenTranspose ? outputTensor : inputTensor,
+            miopen::deref(convDesc).mode == miopenTranspose ? dout_dev->GetMem() : in_dev->GetMem(),
             convDesc,
             perf_results_weights[0].bwd_weights_algo,
             &beta,
@@ -1310,28 +1366,13 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
 
     if(inflags.GetValueInt("bias") != 0)
     {
-
-        if((inflags.GetValueStr("mode")) == "conv" || (inflags.GetValueStr("mode")) == "group" ||
-           (inflags.GetValueStr("mode")) == "dw")
-        {
-            ret = miopenConvolutionBackwardBias(GetHandle(),
-                                                &alpha,
-                                                outputTensor,
-                                                dout_dev->GetMem(),
-                                                &beta,
-                                                biasTensor,
-                                                db_dev->GetMem());
-        }
-        //       else if((inflags.GetValueStr("mode")) == "trans")
-        //       {
-        //           ret = miopenConvolutionForwardBias(GetHandle(),
-        //		                            &alpha,
-        //		                            biasTensor,
-        //		                            db_dev->GetMem(),
-        //		                            &beta,
-        //		                            inputTensor,
-        //		                            din_dev->GetMem());
-        //       }
+        ret = miopenConvolutionBackwardBias(GetHandle(),
+                                            &alpha,
+                                            outputTensor,
+                                            dout_dev->GetMem(),
+                                            &beta,
+                                            biasTensor,
+                                            db_dev->GetMem());
 
         if(inflags.GetValueInt("time") == 1)
         {
@@ -1436,80 +1477,49 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardWeightsCPU()
                                     &wei_hstride,
                                     &wei_wstride);
 
-#ifdef MIOPEN_USE_MIOPENGEMM
-#ifndef NDEBUG
-        if(in_n == 1 && wei_h != 1 && wei_w != 1)
+        for(int o = 0; o < out_n; o++) // mini-batch size
         {
-            // workspace_bwd_weights will be nonzero only if gemm was chosen as the algo
-            bool zeros = std::all_of(workspace_bwd_weights.begin(),
-                                     workspace_bwd_weights.end(),
-                                     [](int i) { return i == 0; });
-
-            if(!zeros)
+            for(int g = 0; g < group_count; g++) // number of groups
             {
-                Im2ColCPU<Tgpu, Tref>(dout,
-                                      0,
-                                      out_c,
-                                      out_h,
-                                      out_w,
-                                      wei_h,
-                                      wei_w,
-                                      in_h,
-                                      in_w,
-                                      pad_h,
-                                      pad_w,
-                                      v,
-                                      u,
-                                      workspace_bwd_weights_host);
-
-                for(int i = 0; i < workspace_bwd_weights.size(); i++)
+                for(int w = 0; w < in_c / group_count; w++) // in_channels (num filters)
                 {
-                    if(std::abs(workspace_bwd_weights[i] - workspace_bwd_weights_host[i]) > 0.0)
+                    for(int k = 0; k < wei_n; k++) // filter channels
                     {
-                        printf("Im2col error: %d %f %f\n ",
-                               i,
-                               static_cast<float>(workspace_bwd_weights[i]),
-                               static_cast<float>(workspace_bwd_weights_host[i]));
+                        for(int x = 0; x < wei_h; x++) // filter height
+                        {
+                            for(int y = 0; y < wei_w; y++) // filter width
+                            {
+                                for(int i = 0; i < in_h; i++) // input height
+                                {
+                                    for(int j = 0; j < in_w; j++) // input width
+                                    {
+                                        int out_i = x * dilation_h + i * u - pad_h; // vertical
+                                        int out_j = y * dilation_w + j * v - pad_w; // horizontal
+
+                                        if((out_i >= 0) && (out_i < out_h) && (out_j >= 0) &&
+                                           (out_j < out_w))
+                                        {
+                                            dwei_host[(g * (wei_c / group_count) + w) *
+                                                          wei_cstride +
+                                                      k * wei_nstride + x * wei_hstride + y] +=
+                                                static_cast<Tref>(
+                                                    dout[o * out_nstride +
+                                                         (g * wei_n + k) * out_cstride +
+                                                         out_i * out_hstride + out_j]) *
+                                                static_cast<Tref>(
+                                                    in[o * in_nstride +
+                                                       (g * (wei_c / group_count) + w) *
+                                                           in_cstride +
+                                                       i * in_hstride + j]);
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
-#endif
-#endif
-
-        RunBackwardWeightsCPUVerify(dwei_host,
-                                    dout,
-                                    in,
-                                    out_n,
-                                    out_c,
-                                    out_h,
-                                    out_w,
-                                    out_nstride,
-                                    out_cstride,
-                                    out_hstride,
-                                    out_wstride,
-                                    wei_c,
-                                    wei_n,
-                                    wei_h,
-                                    wei_w,
-                                    wei_cstride,
-                                    wei_nstride,
-                                    wei_hstride,
-                                    wei_wstride,
-                                    in_n,
-                                    in_c,
-                                    in_h,
-                                    in_w,
-                                    in_nstride,
-                                    in_cstride,
-                                    in_hstride,
-                                    in_wstride,
-                                    u,
-                                    v,
-                                    pad_h,
-                                    pad_w,
-                                    dilation_h,
-                                    dilation_w);
     }
     else
     {
@@ -1655,42 +1665,46 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardDataCPU()
 
         for(int o = 0; o < in_n; o++)
         { // mini-batch size
-            for(int w = 0; w < in_c; w++)
-            { // in_channels (num filters)
-                for(int i = 0; i < in_h; i++)
-                { // input_height (from getforwardoutputdim())
-                    int out_off_h = i * v;
-                    for(int j = 0; j < in_w; j++)
-                    { // input_width (from getforwardoutputdim())
-                        Tref acc      = static_cast<Tref>(0);
-                        int out_off_w = j * u;
-                        for(int k = 0; k < out_c; k++)
-                        { // out_channels (RGB)
-                            for(int x = 0; x < wei_h; x++)
-                            {
-                                int out_x = out_off_h - pad_h + x * dilation_h;
-                                if(out_x >= 0 && out_x < out_h)
+            for(int g = 0; g < group_count; g++)
+            { // number of groups
+                for(int w = 0; w < in_c / group_count; w++)
+                { // in_channels (num filters)
+                    for(int i = 0; i < in_h; i++)
+                    { // input_height (from getforwardoutputdim())
+                        int out_off_h = i * u;
+                        for(int j = 0; j < in_w; j++)
+                        { // input_width (from getforwardoutputdim())
+                            Tref acc      = static_cast<Tref>(0);
+                            int out_off_w = j * v;
+                            for(int k = 0; k < out_c / group_count; k++)
+                            { // out_channels (RGB)
+                                for(int x = 0; x < wei_h; x++)
                                 {
-                                    for(int y = 0; y < wei_w; y++)
+                                    int out_x = out_off_h - pad_h + x * dilation_h;
+                                    if(out_x >= 0 && out_x < out_h)
                                     {
-                                        int out_y = out_off_w - pad_w + y * dilation_w;
-                                        if(out_y >= 0 && out_y < out_w)
+                                        for(int y = 0; y < wei_w; y++)
                                         {
-                                            acc += static_cast<Tref>(
-                                                       dout[o * out_nstride + k * out_cstride +
-                                                            out_x * out_w + out_y]) *
-                                                   static_cast<Tref>(
-                                                       wei[w * wei_cstride + k * wei_nstride +
-                                                           x * wei_hstride + y]);
+                                            int out_y = out_off_w - pad_w + y * dilation_w;
+                                            if(out_y >= 0 && out_y < out_w)
+                                            {
+                                                acc +=
+                                                    static_cast<Tref>(
+                                                        dout[o * out_nstride +
+                                                             (g * wei_n + k) * out_cstride +
+                                                             out_x * out_w + out_y]) *
+                                                    static_cast<Tref>(
+                                                        wei[(g * (in_c / group_count) + w) *
+                                                                wei_cstride +
+                                                            k * wei_nstride + x * wei_hstride + y]);
+                                            }
                                         }
                                     }
                                 }
                             }
+                            din_host[o * in_nstride + (g * (in_c / group_count) + w) * in_cstride +
+                                     i * in_hstride + j] = acc;
                         }
-                        // acc =
-                        //    inflags.GetValueInt("bias") != 0 ? acc + static_cast<Tref>(b[w]) :
-                        //    acc;
-                        din_host[o * in_nstride + w * in_cstride + i * in_hstride + j] = acc;
                     }
                 }
             }
@@ -1784,18 +1798,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardBiasCPU()
             {
                 for(int w = 0; w < out_w; w++)
                 {
-                    if((inflags.GetValueStr("mode")) == "conv" ||
-                       (inflags.GetValueStr("mode")) == "group" ||
-                       (inflags.GetValueStr("mode")) == "dw")
-                    {
-                        db_host[c] += static_cast<Tref>(
-                            dout[n * out_nstride + c * out_cstride + h * out_hstride + w]);
-                    }
-                    //                    else if((inflags.GetValueStr("mode")) == "trans")
-                    //                    {
-                    //                        db_host[c] += dout[n * out_nstride + c * out_cstride +
-                    //                        h * out_hstride + w] * dYb[c];
-                    //                    }
+                    db_host[c] += static_cast<Tref>(
+                        dout[n * out_nstride + c * out_cstride + h * out_hstride + w]);
                 }
             }
         }
@@ -1834,27 +1838,6 @@ std::string ConvDriver<Tgpu, Tref, Tfile>::GetVerificationCacheFileName() const
        << "x" << inputDesc[0] //_batch_sz
        << "_" << weiDesc[1] << "x" << pad_h << "x" << pad_w << "x" << u << "x" << v << "x" << sx
        << "x" << sy << "x" << inflags.GetValueInt("pad_val");
-
-    switch(mode)
-    {
-    case miopenConvolution:
-        // Do not encode conv ("normal") mode to maintain compatibility with existing
-        // verification cache files.
-        break;
-    case miopenGroupConv:
-        // Group mode can be distinguished from conv by value of weiDesc[1] (which has group count
-        // included as a multiplier, so we do not need to encode group count at all).
-        break;
-    case miopenDepthwise:
-        // DW mode is essantilly Group mode when number of groups is equal to C.
-        break;
-    case miopenTranspose:
-        // In spite of weiDesc[1] is included into filename, transpose mode cannot be realiably
-        // distinguished from other modes in some corner cases, for example if C==K, 3x3, pad=1x1:
-        // "-c 8 -k 8 -H 57 -W 57 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1"
-        ss << "mT";
-        break;
-    }
 
     assert(sizeof(Tfile) == 8 || sizeof(Tfile) == 4 || sizeof(Tfile) == 2);
     // Legacy files contain floats and have no prefix.

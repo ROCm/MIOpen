@@ -103,7 +103,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_dilation0 == 1
         && params.kernel_dilation1 == 1
         && params.bias == 0
-        && params.mode.IsNormal()
+        && params.group_counts == 1
         && params.in_layout == "NCHW"))
         return false;
     // clang-format on
