@@ -77,7 +77,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
     result.n_stacks = 1; // # of diff stacks (part of batch).
 
     if(params.kernel_size0 == 1 && params.kernel_size1 == 1 &&
-       params.mode.IsNormal()) // Group conv: None 1x1 version yet, fallback to universal kernel.
+       params.group_counts == 1) // Group conv: None 1x1 version yet, fallback to universal kernel.
     {
 
         // version
@@ -367,7 +367,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     long long runs_left = 0;
 
     if(params.kernel_size0 == 1 && params.kernel_size1 == 1 &&
-       params.mode.IsNormal()) // Group conv: None 1x1 version yet, fallback to universal kernel.
+       params.group_counts == 1) // Group conv: None 1x1 version yet, fallback to universal kernel.
     {
         MIOPEN_LOG_W("Searching the best solution in the 4 dim space. Please, be patient...");
         int n_grp_tiles0 = 3;
@@ -675,8 +675,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
         double default_time       = std::numeric_limits<double>::max();
         const auto default_config = GetPerformanceConfig(params);
         if(params.kernel_size0 == 1 && params.kernel_size1 == 1 &&
-           params.mode
-               .IsNormal()) // Group conv: None 1x1 version yet, fallback to universal kernel.
+           params.group_counts ==
+               1) // Group conv: None 1x1 version yet, fallback to universal kernel.
         {
             ret = MeasurePerfConfig<Tgpu, ConvOclDirectFwd1x1>(&profile_h,
                                                                bot_ocl_buf.get(),

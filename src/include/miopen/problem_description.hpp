@@ -91,14 +91,6 @@ struct ProblemDescription
     int out_channel_stride = 0;
     int out_batch_stride   = 0;
     int group_counts       = 0;
-    struct Mode
-    {
-        miopenConvolutionMode_t val = miopenConvolution;
-        // Helper functions for use in Solvers.
-        bool IsNormal() const { return val == miopenConvolution; }
-        bool IsTranspose() const { return val == miopenTranspose; }
-        bool IsGroup() const { return val == miopenGroupConv || val == miopenDepthwise; }
-    } mode;
     struct Direction
     {
         enum class Value
@@ -162,8 +154,6 @@ struct ProblemDescription
         // This is to support backward compatibility with previous versions of databases.
         std::ostringstream optional;
         {
-            if(mode.IsTranspose())
-                optional << "mT";
             // Group count > 1 identifies Group/Depthwise modes.
             if(group_counts != 1)
                 optional << 'g' << group_counts;

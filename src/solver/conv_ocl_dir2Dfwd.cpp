@@ -33,7 +33,7 @@ namespace solver {
 
 bool GroupConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
 {
-    return IsApplicableBase(params) && params.mode.IsGroup();
+    return IsApplicableBase(params) && params.group_counts >= 2;
 }
 
 ConvSolution GroupConvOclDirectFwd::GetSolution(const ConvolutionContext& params) const
@@ -65,7 +65,7 @@ bool ConvOclDirectFwd::IsApplicableBase(const ConvolutionContext& params) const
 
 bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
 {
-    return IsApplicableBase(params) && params.mode.IsNormal() &&
+    return IsApplicableBase(params) && params.group_counts == 1 &&
            !(params.kernel_size0 == 1 &&
              params.kernel_size1 == 1); // We have optimized 1x1 kernel for normal conv.
 }

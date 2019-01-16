@@ -340,7 +340,7 @@ bool ConvActivAsm1x1U::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_dilation1 == 1
         && params.bias == 0
         && params.float_size == 32
-        && params.mode.IsNormal()
+        && params.group_counts == 1
         && params.in_layout == "NCHW");
     if(!ok)
     {

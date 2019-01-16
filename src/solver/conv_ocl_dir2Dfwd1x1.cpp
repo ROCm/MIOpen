@@ -34,7 +34,7 @@ namespace solver {
 bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
 {
     return params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1 &&
-           params.kernel_size0 == 1 && params.kernel_size1 == 1 && params.mode.IsNormal() &&
+           params.kernel_size0 == 1 && params.kernel_size1 == 1 && params.group_counts == 1 &&
            // TODO: update 1x1 fwd kernel to support padding
            params.pad0 == 0 && params.pad1 == 0;
 }
