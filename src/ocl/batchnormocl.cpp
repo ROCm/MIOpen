@@ -137,6 +137,7 @@ void BatchNormForwardTraining(Handle& handle,
         unsigned int variant  = 1;
         unsigned int ldsgcn   = xlocalsize / 64;
         unsigned int ldsnogcn = xlocalsize;
+        std::string algo_name = "miopenBatchNormForwardTrainingSpatial";
         if(in_nhw < 33554432 && in_cstride > 1024)
         {
             //
@@ -148,6 +149,7 @@ void BatchNormForwardTraining(Handle& handle,
             ldsgcn     = xlocalsize / 64;
             ldsnogcn   = xlocalsize;
             xgridsize  = c * xlocalsize;
+            algo_name  = "gcnAsmBNFwdTrainSpatial";
         }
         else if(in_cstride <= 512)
         {
@@ -166,7 +168,6 @@ void BatchNormForwardTraining(Handle& handle,
             ldsnogcn     = ylocalsize;
         }
 
-        std::string algo_name = "miopenBatchNormForwardTrainingSpatial";
         std::string network_config =
             std::to_string(variant) + std::to_string(xgridsize) + std::to_string(ldsgcn) +
             std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
@@ -230,9 +231,78 @@ void BatchNormForwardTraining(Handle& handle,
             }
             else
             {
+                std::string kernel_name;
+                std::string program_name;
+                std::string parms;
 
-                std::string kernel_name  = "MIOpenBatchNormFwdTrainSpatial";
-                std::string program_name = "MIOpenBatchNormFwdTrainSpatial.cl";
+                // const std::string name = params.GetStream().GetDeviceName();
+                // if ((variant == 3)&&(bfpmixparm == true)&&(name == "gfx906"))
+                if((variant == 3) && (bfpmixparm) && (n < 65))
+                {
+                    kernel_name  = "gcnAsmBNFwdTrainSpatial";
+                    program_name = "gcnAsmBNFwdTrainSpatial.s";
+
+                    union nhw_val
+                    {
+                        unsigned u32;
+                        float f32;
+                        nhw_val()
+                        {
+                            u32 = 0;
+                            f32 = 0;
+                        }
+                    } NHW_value;
+                    NHW_value.f32 = in_nhw / (in_nhw - 1.0);
+
+                    parms = "-Wa,-defsym,MIOPEN_USE_FP16=" +
+                            std::to_string(static_cast<int>(bfp16parm)) +
+                            " -Wa,-defsym,MIOPEN_USE_FP32=" +
+                            std::to_string(static_cast<int>(bfp32parm)) +
+                            " -Wa,-defsym,MIOPEN_USE_FPMIX=" +
+                            std::to_string(static_cast<int>(bfpmixparm)) +
+                            " -Wa,-defsym,MIO_SAVE_MEAN_VARIANCE=" +
+                            std::to_string(static_cast<int>(resultsave)) +
+                            " -Wa,-defsym,MIO_RUNNING_RESULT=" +
+                            std::to_string(static_cast<int>(resultrunning)) +
+                            " -Wa,-defsym,MIO_BN_N=" + std::to_string(n) +
+                            " -Wa,-defsym,MIO_BN_C=" + std::to_string(c) +
+                            " -Wa,-defsym,MIO_BN_HW=" + std::to_string(in_cstride) +
+                            " -Wa,-defsym,MIO_BN_NHW=" + std::to_string(in_nhw) +
+                            " -Wa,-defsym,MIO_BN_NHW_DIV=" + std::to_string(NHW_value.u32) +
+                            " -Wa,-defsym,MIO_BN_CHW=" + std::to_string(in_nstride) +
+                            " -Wa,-defsym,MIO_BN_NCHW=" + std::to_string(in_nchw) +
+                            " -Wa,-defsym,MIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
+                            " -Wa,-defsym,MIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
+                            " -Wa,-defsym,MIO_BN_VARIANT=" + std::to_string(variant) +
+                            " -Wa,-defsym,MIO_BN_GRP0=" + std::to_string(xlocalsize) +
+                            " -Wa,-defsym,MIO_BN_GRP1=" + std::to_string(ylocalsize) +
+                            " -Wa,-defsym,MIO_BN_GRP2=" + std::to_string(zlocalsize);
+                }
+                else
+                {
+                    kernel_name  = "MIOpenBatchNormFwdTrainSpatial";
+                    program_name = "MIOpenBatchNormFwdTrainSpatial.cl";
+
+                    parms =
+                        " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
+                        " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                        " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
+                        " -DMIO_SAVE_MEAN_VARIANCE=" +
+                        std::to_string(static_cast<int>(resultsave)) + " -DMIO_RUNNING_RESULT=" +
+                        std::to_string(static_cast<int>(resultrunning)) + " -DMIO_BN_N=" +
+                        std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) + " -DMIO_BN_HW=" +
+                        std::to_string(in_cstride) + " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
+                        " -DMIO_BN_CHW=" + std::to_string(in_nstride) + " -DMIO_BN_NCHW=" +
+                        std::to_string(in_nchw) + " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
+                        " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) + " -DMIO_BN_VARIANT=" +
+                        std::to_string(variant) + " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
+                        " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" +
+                        std::to_string(zlocalsize);
+
+                    MIOPEN_LOG_I2(kernel_name << ":: " << algo_name);
+                    MIOPEN_LOG_I2("..." << parms);
+                    MIOPEN_LOG_I2("..." << network_config);
+                }
 
                 vld.push_back(xlocalsize);
                 vld.push_back(ylocalsize);
@@ -241,25 +311,6 @@ void BatchNormForwardTraining(Handle& handle,
                 vgd.push_back(xgridsize);
                 vgd.push_back(ygridsize);
                 vgd.push_back(zgridsize);
-
-                std::string parms =
-                    " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
-                    " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
-                    " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
-                    " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(static_cast<int>(resultsave)) +
-                    " -DMIO_RUNNING_RESULT=" + std::to_string(static_cast<int>(resultrunning)) +
-                    " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
-                    " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
-                    std::to_string(in_nhw) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
-                    " -DMIO_BN_NCHW=" + std::to_string(in_nchw) + " -DMIO_BN_LDS_SIZE=" +
-                    std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
-                    " -DMIO_BN_VARIANT=" + std::to_string(variant) + " -DMIO_BN_GRP0=" +
-                    std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
-                    " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
-
-                MIOPEN_LOG_I2(kernel_name << ":: " << algo_name);
-                MIOPEN_LOG_I2("..." << parms);
-                MIOPEN_LOG_I2("..." << network_config);
 
                 bnFwdTrainSelectSingle(handle,
                                        bnScaleBiasMeanVarDesc.GetType(),
@@ -362,25 +413,76 @@ void BatchNormForwardTraining(Handle& handle,
                 vgd.push_back(ygridsize);
                 vgd.push_back(zgridsize);
 
-                std::string kernel_name  = "MIOpenBatchNormFwdTrainSpatial";
-                std::string program_name = "MIOpenBatchNormFwdTrainSpatial.cl";
-                std::string parms =
-                    " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
-                    " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
-                    " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
-                    " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(static_cast<int>(resultsave)) +
-                    " -DMIO_RUNNING_RESULT=" + std::to_string(static_cast<int>(resultrunning)) +
-                    " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
-                    " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
-                    std::to_string(in_nhw) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
-                    " -DMIO_BN_NCHW=" + std::to_string(in_nchw) + " -DMIO_BN_NGRPS=" +
-                    std::to_string(int(std::ceil(float(ygridsize) / ylocalsize))) +
-                    " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" +
-                    std::to_string(ldsgcn) + " -DMIO_BN_VARIANT=" + std::to_string(variant) +
-                    " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
-                    std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+                std::string kernel_name;
+                std::string program_name;
+                std::string parms;
+                // if ((variant == 3)&&(bfpmixparm == true)&&(name == "gfx906"))
+                if((variant == 3) && (bfpmixparm) && (n < 65))
+                {
+                    kernel_name  = "gcnAsmBNFwdTrainSpatial";
+                    program_name = "gcnAsmBNFwdTrainSpatial.s";
 
-                MIOPEN_LOG_I2(kernel_name << ":: " << parms);
+                    union nhw_val
+                    {
+                        unsigned u32;
+                        float f32;
+                        nhw_val()
+                        {
+                            u32 = 0;
+                            f32 = 0;
+                        }
+                    } NHW_value;
+
+                    NHW_value.f32 = in_nhw / (in_nhw - 1.0);
+
+                    parms = "-Wa,-defsym,MIOPEN_USE_FP16=" +
+                            std::to_string(static_cast<int>(bfp16parm)) +
+                            " -Wa,-defsym,MIOPEN_USE_FP32=" +
+                            std::to_string(static_cast<int>(bfp32parm)) +
+                            " -Wa,-defsym,MIOPEN_USE_FPMIX=" +
+                            std::to_string(static_cast<int>(bfpmixparm)) +
+                            " -Wa,-defsym,MIO_SAVE_MEAN_VARIANCE=" +
+                            std::to_string(static_cast<int>(resultsave)) +
+                            " -Wa,-defsym,MIO_RUNNING_RESULT=" +
+                            std::to_string(static_cast<int>(resultrunning)) +
+                            " -Wa,-defsym,MIO_BN_N=" + std::to_string(n) +
+                            " -Wa,-defsym,MIO_BN_C=" + std::to_string(c) +
+                            " -Wa,-defsym,MIO_BN_HW=" + std::to_string(in_cstride) +
+                            " -Wa,-defsym,MIO_BN_NHW=" + std::to_string(in_nhw) +
+                            " -Wa,-defsym,MIO_BN_NHW_DIV=" + std::to_string(NHW_value.u32) +
+                            " -Wa,-defsym,MIO_BN_CHW=" + std::to_string(in_nstride) +
+                            " -Wa,-defsym,MIO_BN_NCHW=" + std::to_string(in_nchw) +
+                            " -Wa,-defsym,MIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
+                            " -Wa,-defsym,MIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
+                            " -Wa,-defsym,MIO_BN_VARIANT=" + std::to_string(variant) +
+                            " -Wa,-defsym,MIO_BN_GRP0=" + std::to_string(xlocalsize) +
+                            " -Wa,-defsym,MIO_BN_GRP1=" + std::to_string(ylocalsize) +
+                            " -Wa,-defsym,MIO_BN_GRP2=" + std::to_string(zlocalsize);
+                }
+                else
+                {
+                    kernel_name  = "MIOpenBatchNormFwdTrainSpatial";
+                    program_name = "MIOpenBatchNormFwdTrainSpatial.cl";
+                    parms =
+                        " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
+                        " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                        " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
+                        " -DMIO_SAVE_MEAN_VARIANCE=" +
+                        std::to_string(static_cast<int>(resultsave)) + " -DMIO_RUNNING_RESULT=" +
+                        std::to_string(static_cast<int>(resultrunning)) + " -DMIO_BN_N=" +
+                        std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) + " -DMIO_BN_HW=" +
+                        std::to_string(in_cstride) + " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
+                        " -DMIO_BN_CHW=" + std::to_string(in_nstride) + " -DMIO_BN_NCHW=" +
+                        std::to_string(in_nchw) + " -DMIO_BN_NGRPS=" +
+                        std::to_string(int(std::ceil(float(ygridsize) / ylocalsize))) +
+                        " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
+                        " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) + " -DMIO_BN_VARIANT=" +
+                        std::to_string(variant) + " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
+                        " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" +
+                        std::to_string(zlocalsize);
+
+                    MIOPEN_LOG_I2(kernel_name << ":: " << parms);
+                }
 
                 bnFwdTrainSelectMulti(handle,
                                       bnScaleBiasMeanVarDesc.GetType(),
