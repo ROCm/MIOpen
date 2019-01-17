@@ -526,4 +526,111 @@ float transpose_CNHW2NCHW(Handle& handle,
     return handle.GetKernelTime();
 }
 
+float transpose_NCHW2Vec(Handle& handle,
+                         int n,
+                         int c,
+                         int h,
+                         int w,
+                         ConstData_t in,
+                         Data_t out,
+                         int vec_size,
+                         bool trans,
+                         bool forward)
+{
+    std::string program_name = "MIOpenUtilKernels5.cl";
+
+    if(!(vec_size == 2 || vec_size == 4))
+    {
+        MIOPEN_THROW("Only support type half and int8!");
+    }
+
+    std::string network_config = std::to_string(n) + std::to_string(c) + std::to_string(h) +
+                                 std::to_string(w) + std::to_string(static_cast<int>(trans)) +
+                                 std::to_string(vec_size) +
+                                 std::to_string(static_cast<int>(forward));
+
+    std::string algo_name = "transpose_NCHWVecForward";
+
+    auto&& kernels = handle.GetKernels(algo_name, network_config);
+
+    if(!kernels.empty())
+    {
+        auto kernel = kernels.front();
+        kernel(in, out);
+    }
+    else
+    {
+        int n_vec = (trans && (n % vec_size != 0)) ? (n + (vec_size - n % vec_size)) : n;
+        int c_vec = (!trans && (c % vec_size != 0)) ? (c + (vec_size - c % vec_size)) : c;
+
+        std::string kernel_name = "transpose_NCHW2Vec";
+
+        const std::vector<size_t> vld{WG_SIZE, 1, 1};
+        std::vector<size_t> vgd{1, 1, 1};
+
+        int RD_BLCK   = ((h * w) % (vec_size * 2) == 0) ? vec_size * 2 : vec_size;
+        int HW_RD     = (h * w + RD_BLCK - 1) / RD_BLCK;
+        size_t MAP_RD = HW_RD * (trans ? c : (c_vec / vec_size));
+
+        std::string READ_TYPE =
+            (RD_BLCK == vec_size) ? "uint" : "uint" + std::to_string(RD_BLCK / vec_size);
+        int WR_BLCK            = RD_BLCK * vec_size;
+        std::string WRITE_TYPE = "uint" + std::to_string(WR_BLCK / vec_size);
+
+        std::string params;
+        params += " -DFORWARD=" + std::to_string(static_cast<int>(forward));
+        params += " -DN=" + std::to_string(n);
+        params += " -DC=" + std::to_string(c);
+        params += " -DH=" + std::to_string(h);
+        params += " -DW=" + std::to_string(w);
+        params += " -DHW=" + std::to_string(h * w);
+        params += " -DCHW=" + std::to_string(c * h * w);
+        params += " -DVEC_SIZE=" + std::to_string(vec_size);
+        params += vec_size == 4 ? " -DDATA_TYPE=char" : " -DDATA_TYPE=ushort";
+
+        params += " -DTRANS=" + std::to_string(static_cast<int>(trans));
+        if(trans)
+        {
+            params += " -DNHW_OUT=" + std::to_string(n_vec * h * w);
+            params += " -DN_OUT=" + std::to_string(n_vec);
+            params += " -DIS_N_ODD=" + std::to_string(static_cast<int>((n % vec_size) != 0));
+        }
+        else
+        {
+            params += " -DCHW_OUT=" + std::to_string(c_vec * h * w);
+            params += " -DIS_C_ODD=" + std::to_string(static_cast<int>((c % vec_size) != 0));
+        }
+
+        params += " -DIS_HW_ODD=" + std::to_string(static_cast<int>(((h * w) % vec_size) != 0));
+        params += " -DRD_BLCK=" + std::to_string(RD_BLCK);
+        params += " -DWR_BLCK=" + std::to_string(WR_BLCK);
+        params += " -DHW_RD=" + std::to_string(HW_RD);
+        params += " -DMAP_RD=" + std::to_string(MAP_RD);
+        params += " -DREAD_TYPE=" + READ_TYPE;
+        params += " -DWRITE_TYPE=" + WRITE_TYPE;
+
+        vgd[0] = MAP_RD;
+
+        uint gd1 = trans ? static_cast<size_t>(n_vec / vec_size) : static_cast<size_t>(n);
+
+        /// disable iteration of n due to perf degrade
+        /// \to-do fix the perf issue
+        // if(vgd[0] < MAX_ACTIVE_THREADS)
+        {
+            vgd[1] = gd1;
+            params += " -DIS_2D_WG=1";
+        }
+        // else
+        //{
+        // params += " -DIS_2D_WG=0";
+        // params += " -DGD_1=" + std::to_string(gd1);
+        //}
+
+        handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, params)(
+            in, out);
+    }
+
+    return handle.GetKernelTime();
+}
+
 } // namespace miopen
