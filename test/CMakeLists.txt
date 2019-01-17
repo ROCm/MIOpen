@@ -51,7 +51,7 @@ if(MIOPEN_TEST_HALF)
 endif()
 
 if(MIOPEN_TEST_INT8)
-    set(SKIP_ALL_EXCEPT_TESTS test_tensor_cast test_tensor_trans test_tensor_copy test_tensor_set test_tensor_transform)
+    set(SKIP_ALL_EXCEPT_TESTS test_tensor_vec test_tensor_cast test_tensor_trans test_tensor_copy test_tensor_set test_tensor_transform)
     set(MIOPEN_TEST_FLOAT_ARG --int8)
 endif()
 

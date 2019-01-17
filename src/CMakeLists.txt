@@ -187,6 +187,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenUtilKernels2.cl
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
+        kernels/MIOpenUtilKernels5.cl
         kernels/MIOpenConvBwdWrWS2.cl
         kernels/MIOpenGroupConvBwdWrWS2.cl
         kernels/MIOpenConvBwdWrW_LxG_P53.cl
