@@ -193,15 +193,20 @@ SoftmaxForward(global _FLOAT* y, const int c, const int grid_size, const int spa
 
     _FLOAT t_helper = (_FLOAT)-MAX_VAL; // thread_local helper var
 
-    // stores all the values touched by one thread so that we do not have load
-    // again as the CSR-Vector approach
-    _FLOAT value[U_BATCH_SIZE];
-    GPtr Uvalue;
-    Uvalue.f = value;
-    for(int i = 0; i < U_BATCH_SIZE / 2; i++)
+// stores all the values touched by one thread so that we do not have load
+// again as the CSR-Vector approach
+
+// Comment1: Local memory is used for fp16 to get around the compiler issue reported
+// in rocm2.0 in SWDEV-175176 JIRA ticket
+#if MIOPEN_USE_FP16 == 1
+    local _FLOAT values[U_BATCH_SIZE * 256];
+#else
+    _FLOAT values[U_BATCH_SIZE];
+    for(int i = 0; i < U_BATCH_SIZE; i++)
     {
-        Uvalue.fv[i] = (_FLOAT2)(-MAX_VAL);
+        values[i] = (_FLOAT)(-MAX_VAL);
     }
+#endif
 
     // Compute max per channel
     // BATCH_SIZE threads iterate over the channels
@@ -211,8 +216,15 @@ SoftmaxForward(global _FLOAT* y, const int c, const int grid_size, const int spa
     {
         if(mad24(batch_n, c, i) * spatial_dim + batch_s < c * grid_size)
         {
-            Uvalue.f[index] = y[mad24(batch_n, c, i) * spatial_dim + batch_s];
-            t_helper        = max(Uvalue.f[index], t_helper);
+
+#if MIOPEN_USE_FP16 == 1 // Refer to Comment1 above for different fp16 and fp32 impl
+            _FLOAT tmp                         = y[mad24(batch_n, c, i) * spatial_dim + batch_s];
+            t_helper                           = max(tmp, t_helper);
+            values[lid * U_BATCH_SIZE + index] = tmp;
+#else
+            values[index] = y[mad24(batch_n, c, i) * spatial_dim + batch_s];
+            t_helper      = max(values[index], t_helper);
+#endif
         }
     }
 
@@ -237,12 +249,17 @@ SoftmaxForward(global _FLOAT* y, const int c, const int grid_size, const int spa
     index = index0;
     for(int i = batch_lid; i < c; i += BATCH_SIZE, index++)
     {
-
-        // Compute exponent of each value
-        // Then sum all the values touched by this thread
-        _FLOAT tmp = exp(Uvalue.f[index] - channel_max);
+// Compute exponent of each value
+// Then sum all the values touched by this thread
+#if MIOPEN_USE_FP16 == 1
+        _FLOAT tmp = exp(values[lid * U_BATCH_SIZE + index] - channel_max);
         t_helper += tmp;
-        value[index] = tmp;
+        values[lid * U_BATCH_SIZE + index] = tmp;
+#else
+        _FLOAT tmp        = exp(values[index] - channel_max);
+        t_helper += tmp;
+        values[index] = tmp;
+#endif
     }
 
     l_helper[lid] = t_helper;
@@ -265,9 +282,15 @@ SoftmaxForward(global _FLOAT* y, const int c, const int grid_size, const int spa
     index = index0;
     for(int i = batch_lid; i < c; i += BATCH_SIZE, index++)
     {
-
         if(mad24(batch_n, c, i) * spatial_dim + batch_s < c * grid_size)
-            y[mad24(batch_n, c, i) * spatial_dim + batch_s] = Uvalue.f[index] / channel_sum;
+        {
+#if MIOPEN_USE_FP16 == 1
+            y[mad24(batch_n, c, i) * spatial_dim + batch_s] =
+                values[lid * U_BATCH_SIZE + index] / channel_sum;
+#else
+            y[mad24(batch_n, c, i) * spatial_dim + batch_s] = values[index] / channel_sum;
+#endif
+        }
     }
 
 #endif // CSR-Vector vs CSR-Stream
@@ -343,17 +366,25 @@ __kernel void SoftmaxBackward(
 
     _FLOAT channel_dot = (_FLOAT)(0); // thread_local helper var
 
-    // stores all the values touched by one thread so that we do not have load
-    // again as the CSR-Vector approach
+// stores all the values touched by one thread so that we do not have load
+// again as the CSR-Vector approach
+#if MIOPEN_USE_FP16 == 1
+    local _FLOAT y_value[U_BATCH_SIZE * 256];
+    local _FLOAT dx_value[U_BATCH_SIZE * 256];
+#else
     _FLOAT y_value[U_BATCH_SIZE];
     _FLOAT dx_value[U_BATCH_SIZE];
-    GPtr Uy_value, Udx_value;
-    Uy_value.f  = y_value;
-    Udx_value.f = dx_value;
-    for(int i = 0; i < U_BATCH_SIZE / 2; i++)
+#endif
+
+    for(int i = 0; i < U_BATCH_SIZE; i++)
     {
-        Uy_value.fv[i]  = (_FLOAT2)(0);
-        Udx_value.fv[i] = (_FLOAT2)(0);
+#if MIOPEN_USE_FP16 == 1 // Refer to Comment1 above for different fp16 and fp32 impl
+        y_value[lid * U_BATCH_SIZE + i] = 0;
+        dx_value[lid * U_BATCH_SIZE + i] = 0;
+#else
+        y_value[i]          = 0;
+        dx_value[i]         = 0;
+#endif
     }
 
     // Compute dot product per channel
@@ -364,10 +395,18 @@ __kernel void SoftmaxBackward(
     {
         if(mad24(batch_n, c, i) * spatial_dim + batch_s < c * grid_size)
         {
-            Uy_value.f[index]  = y[mad24(batch_n, c, i) * spatial_dim + batch_s];
-            Udx_value.f[index] = dx[mad24(batch_n, c, i) * spatial_dim + batch_s];
+#if MIOPEN_USE_FP16 == 1
+            _FLOAT tmp1                          = y[mad24(batch_n, c, i) * spatial_dim + batch_s];
+            y_value[lid * U_BATCH_SIZE + index]  = tmp1;
+            _FLOAT tmp2                          = dx[mad24(batch_n, c, i) * spatial_dim + batch_s];
+            dx_value[lid * U_BATCH_SIZE + index] = tmp2;
+            channel_dot += tmp1 * tmp2;
+#else
+            y_value[index]  = y[mad24(batch_n, c, i) * spatial_dim + batch_s];
+            dx_value[index] = dx[mad24(batch_n, c, i) * spatial_dim + batch_s];
+            channel_dot += y_value[index] * dx_value[index];
+#endif
         }
-        channel_dot += Uy_value.f[index] * Udx_value.f[index];
     }
 
     // Now we have to compute the sum from 256 values (one per each thread)
@@ -390,11 +429,16 @@ __kernel void SoftmaxBackward(
     index = index0;
     for(int i = batch_lid; i < c; i += BATCH_SIZE, index++)
     {
-        Udx_value.f[index] -= channel_dot;
-
+#if MIOPEN_USE_FP16 == 1
+        dx_value[lid * U_BATCH_SIZE + index] -= channel_dot;
         if(mad24(batch_n, c, i) * spatial_dim + batch_s < c * grid_size)
             dx[mad24(batch_n, c, i) * spatial_dim + batch_s] =
-                Uy_value.f[index] * Udx_value.f[index];
+                y_value[lid * U_BATCH_SIZE + index] * dx_value[lid * U_BATCH_SIZE + index];
+#else
+        dx_value[index] -= channel_dot;
+        if(mad24(batch_n, c, i) * spatial_dim + batch_s < c * grid_size)
+            dx[mad24(batch_n, c, i) * spatial_dim + batch_s] = y_value[index] * dx_value[index];
+#endif
     }
 
 #endif // CSR-Vector vs CSR-Stream
