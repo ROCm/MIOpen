@@ -72,6 +72,7 @@ double CalcErr( _T c_val, _T g_val)
 #define MLO_POOLING_OP_MAX 0
 #define MLO_POOLING_OP_AVE 1
 #define MLO_POOLING_OP_STC 2
+#define MLO_POOLING_OP_AVE_INCLUSIVE 3
 #endif
 
 template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
@@ -124,7 +125,8 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                     {
                         res = -MAX_VAL;
                     }
-                    else if(pooling_method == MLO_POOLING_OP_AVE)
+                    else if(pooling_method == MLO_POOLING_OP_AVE ||
+                            pooling_method == MLO_POOLING_OP_AVE_INCLUSIVE)
                     {
                         res = static_cast<_Tcheck>(0);
                     }
@@ -136,7 +138,11 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                     hstart     = std::max(hstart, 0);
                     wstart     = std::max(wstart, 0);
 
-                    int pool_size        = (hend - hstart) * (wend - wstart);
+                    int pool_size;
+                    if(pooling_method == MLO_POOLING_OP_AVE)
+                        pool_size = (hend - hstart) * (wend - wstart);
+                    else
+                        pool_size        = kernel_size0 * kernel_size1;
                     pool_size            = (pool_size == 0) ? 1 : pool_size;
                     size_t res_index     = 0;
                     size_t res_index_gpu = 0;
@@ -158,7 +164,8 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                                     found = true;
                                 }
                             }
-                            else if(pooling_method == MLO_POOLING_OP_AVE)
+                            else if(pooling_method == MLO_POOLING_OP_AVE ||
+                                    pooling_method == MLO_POOLING_OP_AVE_INCLUSIVE)
                             {
 
                                 res += static_cast<_Tcheck>(
@@ -199,7 +206,8 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                             }
                         }
                     }
-                    if(pooling_method == MLO_POOLING_OP_AVE)
+                    if(pooling_method == MLO_POOLING_OP_AVE ||
+                       pooling_method == MLO_POOLING_OP_AVE_INCLUSIVE)
                     {
                         res /= pool_size;
                     }
@@ -286,7 +294,8 @@ int mloPoolingBackwardRunHost(
                     }
                 }
             }
-            else if(pooling_method == MLO_POOLING_OP_AVE)
+            else if(pooling_method == MLO_POOLING_OP_AVE ||
+                    pooling_method == MLO_POOLING_OP_AVE_INCLUSIVE)
             {
 
                 for(int j = 0; j < bot_height; j++)
@@ -315,9 +324,15 @@ int mloPoolingBackwardRunHost(
                                 hstart     = std::max(hstart, 0);
                                 wstart     = std::max(wstart, 0);
 
-                                int pool_size = ((hend - hstart) * (wend - wstart) == 0)
+                                int pool_size;
+                                if(pooling_method == MLO_POOLING_OP_AVE)
+                                    pool_size = ((hend - hstart) * (wend - wstart) == 0)
                                                     ? 1
                                                     : (hend - hstart) * (wend - wstart);
+                                else
+                                    pool_size = (kernel_size0 * kernel_size1 == 0)
+                                                    ? 1
+                                                    : kernel_size0 * kernel_size1;
                                 gradient += static_cast<_Tcheck>(
                                                 top_df_ptr[top_df_off + ph * top_df_stride + pw]) /
                                             static_cast<_Tcheck>(pool_size);

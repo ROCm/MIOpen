@@ -217,6 +217,9 @@ int mlo_construct_pooling2D::mloConstructBwd()
 
                     + getGeneralCompOptions();
 
+    if(_pooling_method == MLO_POOLING_OP_AVE_INCLUSIVE)
+        _comp_options = std::string(" -DMLO_POOLING_OP_AVE_INCLUSIVE") + _comp_options;
+
     int g_wk_width = ((_search_params.in_width + _grp_tile0 * _out_pix_tile0 - 1) /
                       (_grp_tile0 * _out_pix_tile0));
     int g_wk_height = ((_search_params.in_height + _grp_tile1 * _out_pix_tile1 - 1) /
@@ -237,7 +240,8 @@ int mlo_construct_pooling2D::mloConstructBwd()
     {
         _kernel_name = "mloPoolingMaxBwd";
     }
-    else if(_pooling_method == MLO_POOLING_OP_AVE)
+    else if(_pooling_method == MLO_POOLING_OP_AVE ||
+            _pooling_method == MLO_POOLING_OP_AVE_INCLUSIVE)
     {
         _kernel_name = "mloPoolingAveBwd";
     }

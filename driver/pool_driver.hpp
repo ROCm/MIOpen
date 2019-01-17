@@ -168,7 +168,8 @@ int PoolDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag(
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
     inflags.AddInputFlag("print", 'P', "1", "Print Pooling Dimensions (Default=1)", "int");
-    inflags.AddInputFlag("mode", 'm', "max", "Pooling Mode (max, avg) (Default=max)", "str");
+    inflags.AddInputFlag(
+        "mode", 'm', "max", "Pooling Mode (max, avg, avg_in) (Default=max)", "str");
     inflags.AddInputFlag(
         "pad_mode", 'z', "default", "Padding Mode (same, valid, default) (Default=default)", "str");
 
@@ -206,6 +207,11 @@ int PoolDriver<Tgpu, Tref>::SetPoolDescriptorFromCmdLineArgs()
     else if((inflags.GetValueStr("mode")) == "avg")
     {
         mode  = miopenPoolingAverage;
+        pmode = miopenPaddingDefault;
+    }
+    else if((inflags.GetValueStr("mode")) == "avg_in")
+    {
+        mode  = miopenPoolingAverageInclusive;
         pmode = miopenPaddingDefault;
     }
     else
@@ -474,7 +480,10 @@ int PoolDriver<Tgpu, Tref>::VerifyForward()
     if(hOut <= 0 || wOut <= 0)
         throw std::runtime_error("Invalid Test Case: Check Output Dimension.");
 
-    int pooling_method = (mode == miopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
+    int pooling_method =
+        (mode == miopenPoolingMax)
+            ? MLO_POOLING_OP_MAX
+            : ((mode == miopenPoolingAverage) ? MLO_POOLING_OP_AVE : MLO_POOLING_OP_AVE_INCLUSIVE);
 
     const Tref tolerance = (sizeof(Tgpu) == 4 || sizeof(Tgpu) == 8) ? 1e-6 : 1e-3;
     bool match           = mloPoolingForwardRunHostAndVerify<Tgpu, Tref>(pooling_method,
@@ -564,7 +573,10 @@ int PoolDriver<Tgpu, Tref>::VerifyBackward()
         pad_h = 0;
         pad_w = 0;
     }
-    int pooling_method = (mode == miopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
+    int pooling_method =
+        (mode == miopenPoolingMax)
+            ? MLO_POOLING_OP_MAX
+            : ((mode == miopenPoolingAverage) ? MLO_POOLING_OP_AVE : MLO_POOLING_OP_AVE_INCLUSIVE);
 
     mloPoolingBackwardRunHost<Tgpu, Tref>(pooling_method,
                                           windowHeight,
