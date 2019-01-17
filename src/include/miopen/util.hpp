@@ -104,6 +104,17 @@ float transpose_CNHW2NCHW(Handle& handle,
                           int w_stride,
                           miopenDataType_t type);
 
+float transpose_NCHW2Vec(Handle& handle,
+                         int n,
+                         int c,
+                         int h,
+                         int w,
+                         ConstData_t in,
+                         Data_t out,
+                         int vec_size,
+                         bool trans,
+                         bool forward);
+
 } // namespace miopen
 
 #endif // _MIOPEN_UTIL_HPP_
