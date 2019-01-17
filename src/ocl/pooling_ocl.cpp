@@ -104,7 +104,10 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
         throw std::invalid_argument(
             "workSpace cannot be NULL in Forward Pooling MAX mode when backward pass is requested");
     }
-    int pooling_method = (mode == miopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
+    int pooling_method =
+        (mode == miopenPoolingMax)
+            ? MLO_POOLING_OP_MAX
+            : ((mode == miopenPoolingAverage) ? MLO_POOLING_OP_AVE : MLO_POOLING_OP_AVE_INCLUSIVE);
     construct_params.setPoolingDescr(
         pooling_method, lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
 
@@ -247,7 +250,10 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     {
         throw std::invalid_argument("workSpace cannot be NULL in Backward Pooling MAX mode");
     }
-    int pooling_method = (mode == miopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
+    int pooling_method =
+        (mode == miopenPoolingMax)
+            ? MLO_POOLING_OP_MAX
+            : ((mode == miopenPoolingAverage) ? MLO_POOLING_OP_AVE : MLO_POOLING_OP_AVE_INCLUSIVE);
     construct_params.setPoolingDescr(
         pooling_method, lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
 

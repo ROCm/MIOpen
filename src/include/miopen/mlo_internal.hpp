@@ -735,6 +735,7 @@ struct mlo_construct_winograd : mlo_construct_direct2D
 #define MLO_POOLING_OP_AVE 0
 #define MLO_POOLING_OP_MAX 1
 #define MLO_POOLING_OP_STC 2
+#define MLO_POOLING_OP_AVE_INCLUSIVE 3
 
 struct mlo_construct_pooling2D : mlo_construct_direct2D, mlo_construct_activ_lrn_pooling_common
 {

@@ -205,7 +205,10 @@ extern "C" miopenStatus_t miopenPoolingForward(miopenHandle_t handle,
                   << " -p " << miopen::deref(poolDesc).pads[0] << " -q "
                   << miopen::deref(poolDesc).pads[1] << " -u " << miopen::deref(poolDesc).strides[0]
                   << " -v " << miopen::deref(poolDesc).strides[1] << " -m "
-                  << (miopen::deref(poolDesc).mode == 1 ? "avg" : "max") << " -t "
+                  << (miopen::deref(poolDesc).mode == 0
+                          ? "max"
+                          : (miopen::deref(poolDesc).mode == 1 ? "avg" : "avg_in"))
+                  << " -t "
                   << "1"
                   << "\n";
     }
@@ -264,7 +267,10 @@ extern "C" miopenStatus_t miopenPoolingBackward(miopenHandle_t handle,
                   << " -p " << miopen::deref(poolDesc).pads[0] << " -q "
                   << miopen::deref(poolDesc).pads[1] << " -u " << miopen::deref(poolDesc).strides[0]
                   << " -v " << miopen::deref(poolDesc).strides[1] << " -m "
-                  << (miopen::deref(poolDesc).mode == 1 ? "avg" : "max") << " -t "
+                  << (miopen::deref(poolDesc).mode == 0
+                          ? "max"
+                          : (miopen::deref(poolDesc).mode == 1 ? "avg" : "avg_in"))
+                  << " -t "
                   << "1"
                   << "\n";
     }

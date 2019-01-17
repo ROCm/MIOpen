@@ -333,8 +333,9 @@ typedef enum {
  * Pooling layer mode
 */
 typedef enum {
-    miopenPoolingMax     = 0, /*!< Maximum pooling */
-    miopenPoolingAverage = 1, /*!< Average pooling */
+    miopenPoolingMax              = 0, /*!< Maximum pooling */
+    miopenPoolingAverage          = 1, /*!< Average pooling */
+    miopenPoolingAverageInclusive = 2, /*!< Inclusive Average pooling */
 } miopenPoolingMode_t;
 
 /*! @ingroup LRN
