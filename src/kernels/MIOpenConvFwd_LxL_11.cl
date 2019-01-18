@@ -157,17 +157,7 @@ uint getLocalId(uint wave_id, uint wave_lcl_id)
     return (lcl_id);
 }
 
-uint iDiv(uint v, uint d)
-{
-    uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
-    return (r);
-}
-
-uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24(u, d);
-    return (r);
-}
+#include "math_ops.h"
 
 void ReduceKernel(__local _FLOAT* lcl_blob,
                   _FLOAT* weights_accum,
@@ -205,7 +195,7 @@ void fetchWeights(uint c,
     // read weights by stride
     for(uint w = lcl_id; w < (wei_read / MLO_FILTER_SIZE0) * MLO_N_LCL_OUT_MAPS; w += MLO_GRP_SZ)
     {
-        uint k = iDiv(w, (wei_read / MLO_FILTER_SIZE0));
+        uint k = iDiv_legacy(w, (wei_read / MLO_FILTER_SIZE0));
         uint j = iMod(w, k, (wei_read / MLO_FILTER_SIZE0));
         int wei_off =
             ((j * MLO_FILTER_STRIDE1 + f_s) < MLO_FILTER_SIZE1 && k_idx + k < MLO_N_OUTPUTS)
@@ -264,11 +254,11 @@ void fetchData(uint f_s,
         uint b  = 0;
         uint t0 = p4;
 #if MLO_N_LCL_BATCHS > 1
-        b  = iDiv(p4, MLO_N_IN_HORIZ_READS * n_reads);
+        b  = iDiv_legacy(p4, MLO_N_IN_HORIZ_READS * n_reads);
         t0 = iMod(p4, b, MLO_N_IN_HORIZ_READS * n_reads);
 #endif
 #if MLO_N_IN_HORIZ_READS & (MLO_N_IN_HORIZ_READS - 1)
-        c_scan      = iDiv(t0, MLO_N_IN_HORIZ_READS);
+        c_scan      = iDiv_legacy(t0, MLO_N_IN_HORIZ_READS);
         uint c_pix4 = iMod(t0, c_scan, MLO_N_IN_HORIZ_READS);
 #else
         c_scan      = t0 / MLO_N_IN_HORIZ_READS;
@@ -448,7 +438,7 @@ MIOpenCvFwd11x11(const __global _FLOAT* __restrict bot,
 
 // processing arrangement
 #if MLO_PROCESSING_WIDTH & (MLO_PROCESSING_WIDTH - 1)
-    uint ex_row = iDiv(lcl_id, MLO_PROCESSING_WIDTH);
+    uint ex_row = iDiv_legacy(lcl_id, MLO_PROCESSING_WIDTH);
     uint ex_col = iMod(lcl_id, ex_row, MLO_PROCESSING_WIDTH);
 #else
     uint ex_row     = lcl_id / MLO_PROCESSING_WIDTH;
@@ -661,11 +651,11 @@ void fetchData2(uint ib,
         uint b  = 0;
         uint t0 = p4;
 #if MLO_N_LCL_BATCHS > 1
-        b  = iDiv(p4, MLO_N_IN_HORIZ_READS * n_reads);
+        b  = iDiv_legacy(p4, MLO_N_IN_HORIZ_READS * n_reads);
         t0 = iMod(p4, b, MLO_N_IN_HORIZ_READS * n_reads);
 #endif
 #if MLO_N_IN_HORIZ_READS & (MLO_N_IN_HORIZ_READS - 1)
-        c_scan      = iDiv(t0, MLO_N_IN_HORIZ_READS);
+        c_scan      = iDiv_legacy(t0, MLO_N_IN_HORIZ_READS);
         uint c_pix4 = iMod(t0, c_scan, MLO_N_IN_HORIZ_READS);
 #else
         c_scan      = t0 / MLO_N_IN_HORIZ_READS;
@@ -844,7 +834,7 @@ MIOpenCvFwd11x11_2(const __global _FLOAT* __restrict bot,
 // processing arrangement
 // batch
 #if(MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1) & (MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1 - 1)
-    uint bb = iDiv(lcl_id, (MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1));
+    uint bb = iDiv_legacy(lcl_id, (MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1));
     uint t0 = iMod(lcl_id, bb, (MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1));
 #elif(MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1) != 0
     uint bb         = lcl_id / (MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1);
@@ -857,7 +847,7 @@ MIOpenCvFwd11x11_2(const __global _FLOAT* __restrict bot,
     uint t0 = 0;
 #endif
 #if MLO_PROCESSING_WIDTH & (MLO_PROCESSING_WIDTH - 1)
-    uint ex_row = iDiv(t0, MLO_PROCESSING_WIDTH);
+    uint ex_row = iDiv_legacy(t0, MLO_PROCESSING_WIDTH);
     uint ex_col = iMod(t0, ex_row, MLO_PROCESSING_WIDTH);
 #else
     uint ex_row     = t0 / MLO_PROCESSING_WIDTH;
