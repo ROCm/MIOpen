@@ -137,17 +137,7 @@
 #define MLO_LCL_SZ (MLO_WEI_BLKS_LCL_SZ)
 #endif
 
-uint iDiv(uint v, uint d)
-{
-    uint r = v / d;
-    return (r);
-}
-
-uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24((uint)u, (uint)d);
-    return (r);
-}
+#include "math_ops.h"
 
 /*********************************************************************************************************
 // wrw algorithm for large filters

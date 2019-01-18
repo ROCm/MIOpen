@@ -239,19 +239,7 @@
 #define INLINE
 #define DBG_OUT_OF_RNGE 0
 
-INLINE
-uint iDiv(uint v, uint d)
-{
-    uint r = (uint)((float)v * (1.0f / (float)d) + 0.000001f);
-    return (r);
-}
-
-INLINE
-uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24(u, d);
-    return (r);
-}
+#include "math_ops.h"
 
 // top_df        ==> out        in [Batch][output][out_H][out_W]
 // bot           ==> gard_input in [Batch][inputs][IN_H][IN_W]
@@ -323,7 +311,7 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
         uint faked_off2 =
             iMod(faked_off, batch_id, ((MLO_OUT_PAD_WIDTH / MLO_READ_UNIT) * MLO_OUT_PAD_HEIGHT));
 
-        uint out_y_off = iDiv(faked_off2, (MLO_OUT_PAD_WIDTH / MLO_READ_UNIT));
+        uint out_y_off = iDiv_legacy(faked_off2, (MLO_OUT_PAD_WIDTH / MLO_READ_UNIT));
         uint out_x_off =
             iMod(faked_off2, out_y_off, (MLO_OUT_PAD_WIDTH / MLO_READ_UNIT)) * MLO_READ_UNIT;
 
@@ -576,7 +564,7 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
         uint faked_off2 =
             iMod(faked_off, batch_id, ((MLO_OUT_PAD_WIDTH / MLO_READ_UNIT) * MLO_OUT_PAD_HEIGHT));
 
-        uint out_y_off = iDiv(faked_off2, (MLO_OUT_PAD_WIDTH / MLO_READ_UNIT));
+        uint out_y_off = iDiv_legacy(faked_off2, (MLO_OUT_PAD_WIDTH / MLO_READ_UNIT));
         uint out_x_off =
             iMod(faked_off2, out_y_off, (MLO_OUT_PAD_WIDTH / MLO_READ_UNIT)) * MLO_READ_UNIT;
 
@@ -589,7 +577,7 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
         uint in_image_off = in_y_off * MLO_IN_STRIDE + in_x_off;
 #endif
 #if 0 // PER_ROW which will be enabled after SGPR offset is enabled.
-        uint batch_id   = iDiv( faked_off,  (MLO_OUT_PAD_WIDTH ));
+        uint batch_id   = iDiv_legacy( faked_off,  (MLO_OUT_PAD_WIDTH ));
         uint faked_off2 = iMod( faked_off,  batch_id, (MLO_OUT_PAD_WIDTH ));
 
         uint out_x_off = 0;

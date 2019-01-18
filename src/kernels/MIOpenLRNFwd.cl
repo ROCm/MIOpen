@@ -69,17 +69,7 @@ struct LRNForwardParam
     _FLOAT K;
 };
 
-static inline int iDiv(int v, int d)
-{
-    int r = (int)((float)v / d + 0.00001f);
-    return (r);
-}
-
-static inline int iMod(int v, int u, int d)
-{
-    int r = v - mul24((int)u, (int)d);
-    return (r);
-}
+#include "math_ops.h"
 __attribute__((reqd_work_group_size(MLO_LRN_GROUP_SZ0, MLO_LRN_GROUP_SZ1, MLO_LRN_GROUP_SZ2)))
 __kernel void
 MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
@@ -99,7 +89,7 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
     int lcl_id0 = get_local_id(0);
     int lcl_id1 = get_local_id(1);
     int ob      = get_global_id(2); // output * batch_sz
-    int o       = iDiv(ob, MLO_LRN_BATCH_SZ);
+    int o       = iDiv_legacy(ob, MLO_LRN_BATCH_SZ);
     int b       = iMod(ob, o, MLO_LRN_BATCH_SZ);
     int bot_x   = x;
     int bot_y   = y;

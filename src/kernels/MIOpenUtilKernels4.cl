@@ -47,17 +47,7 @@ typedef short data_t;
 typedef float data_t;
 #endif
 
-uint iDiv(uint v, uint d)
-{
-    uint r = v / d;
-    return (r);
-}
-
-uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24(u, d);
-    return (r);
-}
+#include "math_ops.h"
 
 #ifndef NC_TRANS_NCHW_OPT
 #define NC_TRANS_NCHW_OPT 0
