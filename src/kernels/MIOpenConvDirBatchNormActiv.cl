@@ -168,171 +168,8 @@ extern uint __llvm_amdgcn_readfirstlane(uint) __asm("llvm.amdgcn.readfirstlane")
 #define uniform(x) (x)
 #endif
 
-static inline uint iDiv(uint v, uint d)
-{
-    uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
-    return (r);
-}
-
-static inline uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24((uint)u, (uint)d);
-    return (r);
-}
-
-static inline void calculateXYPos(uint linPos, uint width, uint* __restrict x, uint* __restrict y)
-{
-    (*y) = (uint)((float)linPos * (1.0f / (float)width) + 0.00001f);
-    (*x) = linPos - mul24((*y), width);
-}
-
-static inline uint calculateOffset(uint stride, uint x, uint y)
-{
-    uint ret = y * stride + x;
-    return (ret);
-}
-
-static inline void readDataElem(uint linPos,
-                                __local _FLOAT* lcl_data,
-                                uint lcl_base,
-                                UNUSED uint lcl_height,
-                                uint lcl_width,
-                                uint lcl_stride,
-                                uint lcl_y,
-                                uint lcl_x,
-                                const __global _FLOAT* gbl_data,
-                                uint gbl_base,
-                                uint gbl_height,
-                                uint gbl_width,
-                                uint gbl_stride,
-                                uint gbl_y,
-                                uint gbl_x,
-                                bool vis,
-                                UNUSED bool debug)
-{
-    uint x, y;
-    calculateXYPos(linPos, lcl_width, &x, &y);
-    uint g_x      = x + gbl_x;
-    uint g_y      = y + gbl_y;
-    uint gbl_off0 = calculateOffset(gbl_stride, g_x, g_y);
-    uint gbl_off  = gbl_off0 + gbl_base;
-
-#if MLO_LARGE_MAP == 1
-    uint lcl_off = lcl_base + linPos;
-    (void)lcl_stride;
-    (void)lcl_x;
-    (void)lcl_y;
-#else
-    uint l_x     = x + lcl_x;
-    uint l_y     = y + lcl_y;
-    uint lcl_off = lcl_base + mad24(l_y, lcl_stride, l_x);
-#endif
-
-#if MLO_LARGE_MAP == 1
-    //	vis &= (g_x >= 0 && g_x < gbl_width && g_y >= 0 && g_y < gbl_height);
-    vis &= (g_x < gbl_width && g_y < gbl_height);
-#else
-    (void)gbl_width;
-    (void)gbl_height;
-#endif
-    gbl_off        = (vis) ? gbl_off : 0;
-    _FLOAT gbl_val = gbl_data[gbl_off];
-    gbl_val        = (vis) ? gbl_val : 0;
-
-    lcl_data[lcl_off] = gbl_val;
-}
-
-static inline void readData(uint lcl_id,
-                            uint size,
-                            uint lcl_p_stride,
-                            __local _FLOAT* lcl_data,
-                            uint lcl_base,
-                            uint lcl_height,
-                            uint lcl_width,
-                            uint lcl_stride,
-                            uint lcl_y,
-                            uint lcl_x,
-                            const __global _FLOAT* gbl_data,
-                            uint gbl_base,
-                            uint gbl_height,
-                            uint gbl_width,
-                            uint gbl_stride,
-                            uint gbl_y,
-                            uint gbl_x,
-                            bool vis,
-                            bool debug)
-{
-
-    for(uint i = lcl_id; i < size; i += lcl_p_stride)
-    {
-        readDataElem(i,
-                     lcl_data,
-                     lcl_base,
-                     lcl_height,
-                     lcl_width,
-                     lcl_stride,
-                     lcl_y,
-                     lcl_x,
-                     gbl_data,
-                     gbl_base,
-                     gbl_height,
-                     gbl_width,
-                     gbl_stride,
-                     gbl_y,
-                     gbl_x,
-                     vis,
-                     debug);
-    }
-}
-
-static inline void loadData(uint lcl_id,
-                            uint lcl_p_stride,
-                            __local _FLOAT* lcl_data,
-                            uint lcl_off,
-                            uint lcl_size,
-                            uint lcl_height,
-                            uint lcl_width,
-                            uint lcl_stride,
-                            uint lcl_bot_y,
-                            uint lcl_bot_x,
-                            const __global _FLOAT* gbl_data,
-                            uint gbl_off,
-                            uint gbl_size,
-                            uint gbl_height,
-                            uint glb_width,
-                            uint gbl_stride,
-                            uint gbl_bot_y,
-                            uint gbl_bot_x,
-                            uint buf_block_ind,
-                            uint max_n_bufs,
-                            uint lcl_n_bufs,
-                            bool debug)
-{
-
-    for(uint c = 0; c < lcl_n_bufs; ++c, lcl_off += lcl_size, gbl_off += gbl_size)
-    {
-        bool vis = (buf_block_ind + c < max_n_bufs);
-        readData(lcl_id,
-                 lcl_size,
-                 lcl_p_stride,
-                 lcl_data,
-                 lcl_off,
-                 lcl_height,
-                 lcl_width,
-                 lcl_stride,
-                 lcl_bot_y,
-                 lcl_bot_x,
-                 gbl_data,
-                 gbl_off,
-                 gbl_height,
-                 glb_width,
-                 gbl_stride,
-                 gbl_bot_y,
-                 gbl_bot_x,
-                 vis,
-                 (debug));
-    }
-}
+#include "math_ops.h"
+#include "data_ops.h"
 
 static inline void Conv(uint o_map_base,
                         uint in_stg_off,
@@ -787,7 +624,7 @@ MIOpenConvUniBatchNormActiv(
 
     uint grp_id0 = get_group_id(0);
 #if MLO_N_OUT_TILE_BLOCKS0 & (MLO_N_OUT_TILE_BLOCKS0 - 1)
-    uint y_tile_blk = iDiv(grp_id0, MLO_N_OUT_TILE_BLOCKS0);
+    uint y_tile_blk = iDiv_legacy(grp_id0, MLO_N_OUT_TILE_BLOCKS0);
     uint x_tile_blk = iMod(grp_id0, y_tile_blk, MLO_N_OUT_TILE_BLOCKS0);
 #else
     uint y_tile_blk       = grp_id0 / MLO_N_OUT_TILE_BLOCKS0;
@@ -801,7 +638,7 @@ MIOpenConvUniBatchNormActiv(
     uint stack        = 0;
     uint alu_stack_id = lcl_id;
 #elif MLO_ALUTILES_STACK_SZ & (MLO_ALUTILES_STACK_SZ - 1)
-    uint stack            = iDiv(lcl_id, MLO_ALUTILES_STACK_SZ);        // stack
+    uint stack            = iDiv_legacy(lcl_id, MLO_ALUTILES_STACK_SZ); // stack
     uint alu_stack_id     = iMod(lcl_id, stack, MLO_ALUTILES_STACK_SZ); // alu index in stack
 #else
     uint stack = lcl_id / MLO_ALUTILES_STACK_SZ; // stack
@@ -812,7 +649,7 @@ MIOpenConvUniBatchNormActiv(
 #endif
 // ALU plane inside stack
 #if MLO_ALU_TILE_SZ & (MLO_ALU_TILE_SZ - 1)
-    uint alu_out_plane_id = iDiv(alu_stack_id, MLO_ALU_TILE_SZ); // alu output plane index
+    uint alu_out_plane_id = iDiv_legacy(alu_stack_id, MLO_ALU_TILE_SZ); // alu output plane index
     uint alu_out_id       = iMod(
         alu_stack_id, alu_out_plane_id, MLO_ALU_TILE_SZ); // alu index inside an ALU output plane
 #else
@@ -821,7 +658,7 @@ MIOpenConvUniBatchNormActiv(
 #endif
 // pos inside ALU tile
 #if MLO_ALU_VTILE0 & (MLO_ALU_VTILE0 - 1)
-    uint alu_tl1 = iDiv(alu_out_id, MLO_ALU_VTILE0);
+    uint alu_tl1 = iDiv_legacy(alu_out_id, MLO_ALU_VTILE0);
     uint alu_tl0 = iMod(alu_out_id, alu_tl1, MLO_ALU_VTILE0);
 #else
     uint alu_tl1          = alu_out_id / MLO_ALU_VTILE0;
@@ -839,7 +676,7 @@ MIOpenConvUniBatchNormActiv(
     uint wave_id     = 0;
     uint wave_lcl_id = lcl_id;
 #elif MLO_N_READ_PROCS & (MLO_N_READ_PROCS - 1)
-    uint wave_id     = iDiv(lcl_id, MLO_N_READ_PROCS);
+    uint wave_id     = iDiv_legacy(lcl_id, MLO_N_READ_PROCS);
     uint wave_lcl_id = iMod(lcl_id, wave_id, MLO_N_READ_PROCS);
 #else
     uint wave_id     = lcl_id / MLO_N_READ_PROCS;
@@ -956,14 +793,14 @@ MIOpenConvUniBatchNormActiv(
                          y_in_grp,
                          x_in_grp,
                          vis,
-                         true);
+                         false);
             }
         }
 #else
         for(uint i = wave_id; i < MLO_N_IN_TILES_TOTAL; i += MLO_N_PROC_WAVES)
         {
 #if MLO_N_IN_TILES_PERSTACK & (MLO_N_IN_TILES_PERSTACK - 1)
-            uint i_b = iDiv(i, MLO_N_IN_TILES_PERSTACK);
+            uint i_b = iDiv_legacy(i, MLO_N_IN_TILES_PERSTACK);
             uint i_c = iMod(i, i_b, MLO_N_IN_TILES_PERSTACK);
 #else
             uint i_b   = i / MLO_N_IN_TILES_PERSTACK;
@@ -1012,7 +849,7 @@ MIOpenConvUniBatchNormActiv(
                      y_grp,
                      x_grp,
                      vis,
-                     true);
+                     false);
         }
 #endif
 
@@ -1026,7 +863,7 @@ MIOpenConvUniBatchNormActiv(
 #if MLO_DIR_FORWARD == 1
 // here is [tops][bottoms]
 #if(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ) & ((MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ) - 1)
-            uint lcl_o = iDiv(i, (MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ));
+            uint lcl_o = iDiv_legacy(i, (MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ));
             uint gbl_i = iMod(i, lcl_o, (MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ));
 #else
             uint lcl_o = i / (MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ);
@@ -1043,14 +880,14 @@ MIOpenConvUniBatchNormActiv(
 // outputs are botoms(inputs))
 // inputs are tops(outputs)
 #if(MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ) & ((MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ) - 1)
-            uint lcl_o = iDiv(i, (MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ));
+            uint lcl_o = iDiv_legacy(i, (MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ));
             uint gbl_i = iMod(i, lcl_o, (MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ));
 #else
             uint lcl_o = i / (MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ);
             uint gbl_i = i & ((MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ) - 1);
 #endif
 #if MLO_FILTER_SZ & (MLO_FILTER_SZ - 1)
-            uint lcl_c = iDiv(gbl_i, MLO_FILTER_SZ);
+            uint lcl_c = iDiv_legacy(gbl_i, MLO_FILTER_SZ);
             uint lcl_i = iMod(gbl_i, lcl_c, MLO_FILTER_SZ);
 #else
             uint lcl_c = gbl_i / MLO_FILTER_SZ;

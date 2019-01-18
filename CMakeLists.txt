@@ -277,6 +277,7 @@ enable_cppcheck(
         # Ignore initializer lists in the tests
         useInitializationList:*test/*.cpp
         *:*.cl
+        *:*src/kernels/*.h
     FORCE
     SOURCES
         addkernels/

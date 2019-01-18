@@ -80,17 +80,7 @@
 #define MLO_LCL_SZ (MLO_WEI_LCL_SZ)
 #endif
 
-int iDiv(int v, int d)
-{
-    int r = (int)((float)v / d + 0.00001f);
-    return (r);
-}
-
-int iMod(int v, int u, int d)
-{
-    int r = v - mul24((int)u, (int)d);
-    return (r);
-}
+#include "math_ops.h"
 
 /*
         group cooperative read
@@ -110,7 +100,7 @@ void readInput(int lcl_id,
         __private _FLOAT in_rd_data[MLO_READ_UNIT];
         // TODO : more than 1 input
         int c      = 0;
-        int c_scan = iDiv(p4, (MLO_N_IN_HORIZ_READS));
+        int c_scan = iDiv_legacy(p4, (MLO_N_IN_HORIZ_READS));
 
         int c_pix4 = iMod(p4, c_scan, (MLO_N_IN_HORIZ_READS));
 
@@ -283,7 +273,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
     int gbl_out_off = o_idx * MLO_OUT_CHANNEL_STRIDE + ib * MLO_OUT_BATCH_STRIDE;
     // 1 span per wk_item, total scanline with MLO_N_SPANS_PER_SCAN spans
     // TODO: more than 1 input
-    int o = iDiv(lcl_id, MLO_N_SPANS_PER_SCAN);
+    int o = iDiv_legacy(lcl_id, MLO_N_SPANS_PER_SCAN);
     //	bool scan_lead = (o*MLO_N_SPANS_PER_SCAN == lcl_id);
     int spn = iMod(lcl_id, o, MLO_N_SPANS_PER_SCAN);
 
@@ -524,7 +514,7 @@ MIOpenCvBwdWrW_rdc(const __global _FLOAT* weight_df_tmp, __global _FLOAT* weight
     int gbl_id   = get_global_id(0);
     int wei_idx0 = gbl_id * MLO_UT_READ_UNIT;
 
-    int wei_blk_idx = iDiv(wei_idx0, MLO_WEI_CHANNEL_STRIDE);
+    int wei_blk_idx = iDiv_legacy(wei_idx0, MLO_WEI_CHANNEL_STRIDE);
     int wei_idx     = iMod(wei_idx0, wei_blk_idx, MLO_WEI_CHANNEL_STRIDE);
 
     _FLOAT pvt_accum_wei[MLO_UT_READ_UNIT];

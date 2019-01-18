@@ -93,17 +93,7 @@
 // if to read all of the number of MLO_N_LCL_IN_MAPS input channel or not
 #define MLO_READ_PARTIAL_N_LCL_IN_MAPS (MLO_N_INPUTS % MLO_N_LCL_IN_MAPS != 0)
 
-uint iDiv(uint v, uint d)
-{
-    uint r = v / d;
-    return (r);
-}
-
-uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24((uint)u, (uint)d);
-    return (r);
-}
+#include "math_ops.h"
 
 #if 0
 // This function is for log-reduction of content in LDS,

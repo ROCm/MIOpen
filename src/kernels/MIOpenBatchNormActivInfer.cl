@@ -80,17 +80,7 @@
 //#define MIOPEN_NEURON_SQR 11         // sqr(x)
 #define MIOPEN_NEURON_TOTAL 10
 
-uint iDiv(uint v, uint d)
-{
-    uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
-    return (r);
-}
-
-uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24(u, d);
-    return (r);
-}
+#include "math_ops.h"
 
 static __constant _FLOAT_PREC kBNLL_THRESHOLD = (_FLOAT_PREC)50.;
 

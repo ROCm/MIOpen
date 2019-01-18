@@ -41,17 +41,7 @@
 #define _FLOAT4 PPCAT(_FLOAT, FOUR)
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
-static inline int iDiv(int v, int d)
-{
-    int r = v / d;
-    return (r);
-}
-
-static inline int iMod(int v, int u, int d)
-{
-    int r = v - mul24((int)u, (int)d);
-    return (r);
-}
+#include "math_ops.h"
 
 static inline void ReduceKernel(__local float* lcl_mem, int sum_stride, int unit_id, int unit_len)
 {

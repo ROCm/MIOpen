@@ -131,8 +131,8 @@
 #if MLO_DIR_FORWARD == 1
 #define MLO_IN_LCL_WIDTH \
     ((MLO_IN_TILE0 - 1) * MLO_FILTER_STRIDE0 + MLO_FILTER_SIZE0) // here we use kernel size. it's
-                                                                 // important when padding == 0  2*
-                                                                 // MLO_FILTER_PAD0
+// important when padding == 0  2*
+// MLO_FILTER_PAD0
 #define MLO_IN_LCL_HEIGHT ((MLO_IN_TILE1 - 1) * MLO_FILTER_STRIDE1 + MLO_FILTER_SIZE1)
 #else
 #define MLO_IN_LCL_WIDTH                                              \
@@ -178,118 +178,8 @@ extern uint __llvm_amdgcn_readfirstlane(uint) __asm("llvm.amdgcn.readfirstlane")
 #define MLO_GRPWISE_N_INPUTS (MLO_N_INPUTS / MLO_GROUP_COUNTS)
 #endif
 
-static inline uint iDiv(uint v, uint d)
-{
-    uint r = v / d;
-    return (r);
-}
-
-static inline uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24((uint)u, (uint)d);
-    return (r);
-}
-
-static inline void calculateXYPos(uint linPos, uint width, uint* __restrict x, uint* __restrict y)
-{
-    (*y) = linPos / width;
-    (*x) = linPos - mul24((*y), width);
-}
-
-static inline uint calculateOffset(uint stride, uint x, uint y)
-{
-    uint ret = y * stride + x;
-    return (ret);
-}
-
-static inline void readDataElem(uint linPos,
-                                __local _FLOAT* lcl_data,
-                                uint lcl_base,
-                                UNUSED uint lcl_height,
-                                uint lcl_width,
-                                uint lcl_stride,
-                                uint lcl_y,
-                                uint lcl_x,
-                                const __global _FLOAT* gbl_data,
-                                uint gbl_base,
-                                uint gbl_height,
-                                uint gbl_width,
-                                uint gbl_stride,
-                                uint gbl_y,
-                                uint gbl_x,
-                                bool vis)
-{
-    uint x, y;
-    calculateXYPos(linPos, lcl_width, &x, &y);
-    uint g_x      = x + gbl_x;
-    uint g_y      = y + gbl_y;
-    uint gbl_off0 = calculateOffset(gbl_stride, g_x, g_y);
-    uint gbl_off  = gbl_off0 + gbl_base;
-
-#if MLO_LARGE_MAP == 1
-    uint lcl_off = lcl_base + linPos;
-    (void)lcl_stride;
-    (void)lcl_x;
-    (void)lcl_y;
-#else
-    uint l_x     = x + lcl_x;
-    uint l_y     = y + lcl_y;
-    uint lcl_off = lcl_base + mad24(l_y, lcl_stride, l_x);
-#endif
-
-#if MLO_LARGE_MAP == 1
-    //	vis &= (g_x >= 0 && g_x < gbl_width && g_y >= 0 && g_y < gbl_height);
-    vis &= (g_x < gbl_width && g_y < gbl_height);
-#else
-    (void)gbl_width;
-    (void)gbl_height;
-#endif
-    gbl_off        = (vis) ? gbl_off : 0;
-    _FLOAT gbl_val = gbl_data[gbl_off];
-    gbl_val        = (vis) ? gbl_val : 0;
-
-    lcl_data[lcl_off] = gbl_val;
-}
-
-static inline void readData(uint lcl_id,
-                            uint size,
-                            uint lcl_p_stride,
-                            __local _FLOAT* lcl_data,
-                            uint lcl_base,
-                            uint lcl_height,
-                            uint lcl_width,
-                            uint lcl_stride,
-                            uint lcl_y,
-                            uint lcl_x,
-                            const __global _FLOAT* gbl_data,
-                            uint gbl_base,
-                            uint gbl_height,
-                            uint gbl_width,
-                            uint gbl_stride,
-                            uint gbl_y,
-                            uint gbl_x,
-                            bool vis)
-{
-    for(uint i = lcl_id; i < size; i += lcl_p_stride)
-    {
-        readDataElem(i,
-                     lcl_data,
-                     lcl_base,
-                     lcl_height,
-                     lcl_width,
-                     lcl_stride,
-                     lcl_y,
-                     lcl_x,
-                     gbl_data,
-                     gbl_base,
-                     gbl_height,
-                     gbl_width,
-                     gbl_stride,
-                     gbl_y,
-                     gbl_x,
-                     vis);
-    }
-}
+#include "math_ops.h"
+#include "data_ops.h"
 
 static inline void Conv(uint o_map_base,
                         uint in_stg_off,
@@ -436,7 +326,7 @@ static inline void Conv(uint o_map_base,
         } // for(uint k = 0; k < MLO_FILER_SIZE1; ++k,in_stg_off2+=MLO_IN_LCL_WIDTH)
 
     } // for(uint i_c = 0; i_c < MLO_N_IN_TILES_PERSTACK; ++i_c, in_stg_off1 +=
-      // MLO_IN_LCL_PERSTACK_SZ)
+    // MLO_IN_LCL_PERSTACK_SZ)
 }
 
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2))) __kernel void
@@ -668,7 +558,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
                          MLO_IN_STRIDE,
                          y_in_grp,
                          x_in_grp,
-                         vis);
+                         vis,
+                         false);
             }
         }
 #else
@@ -730,7 +621,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
                      MLO_IN_STRIDE,
                      y_grp,
                      x_grp,
-                     vis);
+                     vis,
+                     false);
         }
 #endif
 
