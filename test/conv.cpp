@@ -203,8 +203,8 @@ struct verify_forward_conv : conv_base<T>
 
                 double acc = bias;
                 ford(wei_c, wei_h, wei_w)([&](int k, int x, int y) {
-                    const int in_x  = start_x + x;
-                    const int in_y  = start_y + y;
+                    const int in_x  = start_x + x * filter.dilation_h;
+                    const int in_y  = start_y + y * filter.dilation_w;
                     const int in_ch = group_id * wei_c + k;
                     if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
                     {
