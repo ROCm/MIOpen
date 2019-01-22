@@ -316,6 +316,8 @@ typedef enum {
 typedef enum {
     miopenConvolution = 0, /*!< Cross-Correlation convolution */
     miopenTranspose   = 1, /*!< Transpose convolutions -- deconvolution */
+    miopenGroupConv   = 2, /*!< Group convolution legacy */
+    miopenDepthwise   = 3, /*!< Depthwise convolution legacy */
 } miopenConvolutionMode_t;
 
 /*! @ingroup padding

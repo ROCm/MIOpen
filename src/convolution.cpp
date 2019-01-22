@@ -84,7 +84,14 @@ ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t c_mode,
     }
     if(!(mode == miopenConvolution || mode == miopenTranspose))
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Convolution mode not supported");
+        if(mode == miopenGroupConv || mode == miopenDepthwise)
+        {
+            mode = miopenConvolution;
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Convolution mode not supported");
+        }
     }
     if(!(paddingMode == miopenPaddingSame || paddingMode == miopenPaddingValid ||
          paddingMode == miopenPaddingDefault))
