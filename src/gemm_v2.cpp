@@ -824,7 +824,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
     case GemmBackend_t::miopengemm: {
 #if MIOPEN_USE_MIOPENGEMM
         if(gemm_desc.dataType != miopenFloat)
-            return miopenStatusNotImplemented;
+            MIOPEN_THROW(miopenStatusNotImplemented, "fp16 is not implemented in MIOPENGEMM");
 
         MIOPEN_LOG_FUNCTION("MIOpenGEMM");
 

@@ -317,9 +317,9 @@ RNNDescriptor::RNNDescriptor(int hsz,
     {
         MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN bias type not supported");
     }
-    if(dType != miopenFloat)
+    if(dType != miopenFloat && dType != miopenHalf)
     {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Only float datatype is supported");
+        MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN datatype is not supported");
     }
     else
     {

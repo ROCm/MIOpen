@@ -45,8 +45,10 @@ add_custom_target(tests)
 set(SKIP_TESTS)
 set(MIOPEN_TEST_FLOAT_ARG)
 
-if(MIOPEN_TEST_HALF)
-    set(SKIP_TESTS test_gru test_rnn_vanilla test_lstm)
+if(MIOPEN_TEST_HALF)   
+    if(MIOPEN_BACKEND_OPENCL)
+        set(SKIP_TESTS test_gru test_rnn_vanilla test_lstm)
+    endif()
     set(MIOPEN_TEST_FLOAT_ARG --half)
 endif()
 
