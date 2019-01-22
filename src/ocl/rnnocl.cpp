@@ -270,8 +270,17 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                                   1, // beta
                                                                   xDesc[0].GetType()};
 
-                miopenStatus_t gemm_status =
-                    CallGemm(handle, gemm_desc, x, 0, w, 0, workSpace, hid_shift, nullptr, false);
+                miopenStatus_t gemm_status = CallGemm(handle,
+                                                      gemm_desc,
+                                                      x,
+                                                      0,
+                                                      w,
+                                                      0,
+                                                      workSpace,
+                                                      hid_shift,
+                                                      nullptr,
+                                                      false,
+                                                      GemmBackend_t::miopengemm);
 
                 if(gemm_status != miopenStatusSuccess)
                 {
@@ -311,7 +320,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                   workSpace,
                                                   hid_shift,
                                                   nullptr,
-                                                  false);
+                                                  false,
+                                                  GemmBackend_t::miopengemm);
 
             if(gemm_status != miopenStatusSuccess)
             {
@@ -566,7 +576,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          workSpace,
                                          offset + ri * wei_len,
                                          nullptr,
-                                         false);
+                                         false,
+                                         GemmBackend_t::miopengemm);
 
                             if(gemm_status != miopenStatusSuccess)
                             {
@@ -607,7 +618,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          workSpace,
                                          offset + ri * wei_len + in_n.at(use_time) * hy_stride,
                                          nullptr,
-                                         false);
+                                         false,
+                                         GemmBackend_t::miopengemm);
 
                             if(gemm_status != miopenStatusSuccess)
                             {
@@ -646,7 +658,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          workSpace,
                                          offset + ri * wei_len,
                                          nullptr,
-                                         false);
+                                         false,
+                                         GemmBackend_t::miopengemm);
 
                             if(gemm_status != miopenStatusSuccess)
                             {
@@ -1419,8 +1432,17 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                                   1, // beta
                                                                   xDesc[0].GetType()};
 
-                miopenStatus_t gemm_status = CallGemm(
-                    handle, gemm_desc, x, 0, w, 0, reserveSpace, hid_shift, nullptr, false);
+                miopenStatus_t gemm_status = CallGemm(handle,
+                                                      gemm_desc,
+                                                      x,
+                                                      0,
+                                                      w,
+                                                      0,
+                                                      reserveSpace,
+                                                      hid_shift,
+                                                      nullptr,
+                                                      false,
+                                                      GemmBackend_t::miopengemm);
 
                 if(gemm_status != miopenStatusSuccess)
                 {
@@ -1461,7 +1483,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                   reserveSpace,
                                                   hid_shift,
                                                   nullptr,
-                                                  false);
+                                                  false,
+                                                  GemmBackend_t::miopengemm);
 
             if(gemm_status != miopenStatusSuccess)
             {
@@ -1716,7 +1739,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          reserveSpace,
                                          offset + ri * wei_len,
                                          nullptr,
-                                         false);
+                                         false,
+                                         GemmBackend_t::miopengemm);
 
                             if(gemm_status != miopenStatusSuccess)
                             {
@@ -1758,7 +1782,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          reserveSpace,
                                          offset + ri * wei_len + in_n.at(use_time) * hy_stride,
                                          nullptr,
-                                         false);
+                                         false,
+                                         GemmBackend_t::miopengemm);
 
                             if(gemm_status != miopenStatusSuccess)
                             {
@@ -1797,7 +1822,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          reserveSpace,
                                          offset + ri * wei_len,
                                          nullptr,
-                                         false);
+                                         false,
+                                         GemmBackend_t::miopengemm);
 
                             if(gemm_status != miopenStatusSuccess)
                             {
@@ -2614,7 +2640,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                   workSpace,
                                                   hid_shift + dhd_off,
                                                   nullptr,
-                                                  false);
+                                                  false,
+                                                  GemmBackend_t::miopengemm);
 
             if(gemm_status != miopenStatusSuccess)
             {
@@ -2802,7 +2829,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          workSpace,
                                          offset + dhd_off + ri * hy_h,
                                          nullptr,
-                                         false);
+                                         false,
+                                         GemmBackend_t::miopengemm);
 
                             if(gemm_status != miopenStatusSuccess)
                             {
@@ -3535,7 +3563,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                     dhx,
                                     hx_shift + ri * hy_n * hy_h + use_batch * hy_h,
                                     nullptr,
-                                    false);
+                                    false,
+                                    GemmBackend_t::miopengemm);
 
                                 if(gemm_status != miopenStatusSuccess)
                                 {
@@ -3594,7 +3623,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          dhx,
                                          hx_shift + ri * hy_n * hy_h + use_batch * hy_h,
                                          nullptr,
-                                         false);
+                                         false,
+                                         GemmBackend_t::miopengemm);
 
                             if(gemm_status != miopenStatusSuccess)
                             {
@@ -3688,8 +3718,17 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                           1, // alpha
                                                           0, // beta
                                                           yDesc[0].GetType()};
-        miopenStatus_t gemm_status =
-            CallGemm(handle, gemm_desc, workSpace, 0, w, 0, dx, 0, nullptr, false);
+        miopenStatus_t gemm_status = CallGemm(handle,
+                                              gemm_desc,
+                                              workSpace,
+                                              0,
+                                              w,
+                                              0,
+                                              dx,
+                                              0,
+                                              nullptr,
+                                              false,
+                                              GemmBackend_t::miopengemm);
         if(gemm_status != miopenStatusSuccess)
         {
             MIOPEN_LOG_E("GEMM failed");
@@ -3884,8 +3923,17 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                                   1, // beta
                                                                   xDesc[0].GetType()};
 
-                miopenStatus_t gemm_status =
-                    CallGemm(handle, gemm_desc, workSpace, 0, x, 0, dw, 0, nullptr, false);
+                miopenStatus_t gemm_status = CallGemm(handle,
+                                                      gemm_desc,
+                                                      workSpace,
+                                                      0,
+                                                      x,
+                                                      0,
+                                                      dw,
+                                                      0,
+                                                      nullptr,
+                                                      false,
+                                                      GemmBackend_t::miopengemm);
 
                 if(gemm_status != miopenStatusSuccess)
                 {
@@ -3924,7 +3972,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                   dw,
                                                   wei_shift,
                                                   nullptr,
-                                                  false);
+                                                  false,
+                                                  GemmBackend_t::miopengemm);
 
             if(gemm_status != miopenStatusSuccess)
             {
@@ -4166,7 +4215,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                           dw,
                                                           wei_shift + ri * wei_len * uni_stride,
                                                           nullptr,
-                                                          false);
+                                                          false,
+                                                          GemmBackend_t::miopengemm);
 
                     if(gemm_status != miopenStatusSuccess)
                     {
@@ -4213,7 +4263,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                      dw,
                                      wei_shift + ri * wei_len * uni_stride,
                                      nullptr,
-                                     false);
+                                     false,
+                                     GemmBackend_t::miopengemm);
 
                         if(gemm_status != miopenStatusSuccess)
                         {
@@ -4256,7 +4307,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                           dw,
                                                           wei_shift + ri * wei_len * uni_stride,
                                                           nullptr,
-                                                          false);
+                                                          false,
+                                                          GemmBackend_t::miopengemm);
 
                     if(gemm_status != miopenStatusSuccess)
                     {
@@ -4327,7 +4379,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                              dw,
                                              wei_shift + ri * wei_len * uni_stride,
                                              nullptr,
-                                             false);
+                                             false,
+                                             GemmBackend_t::miopengemm);
 
                                 if(gemm_status != miopenStatusSuccess)
                                 {
@@ -4372,7 +4425,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                     dw,
                                     wei_shift + ri * wei_len * uni_stride,
                                     nullptr,
-                                    false);
+                                    false,
+                                    GemmBackend_t::miopengemm);
 
                                 if(gemm_status != miopenStatusSuccess)
                                 {
@@ -4415,7 +4469,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                              dw,
                                              wei_shift + ri * wei_len * uni_stride,
                                              nullptr,
-                                             false);
+                                             false,
+                                             GemmBackend_t::miopengemm);
 
                                 if(gemm_status != miopenStatusSuccess)
                                 {
