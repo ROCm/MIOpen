@@ -240,18 +240,19 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 
 std::string LoggingParseFunction(const char* func, const char* pretty_func);
 
-#define MIOPEN_LOG(level, ...)                                                              \
-    do                                                                                      \
-    {                                                                                       \
-        if(miopen::IsLogging(level))                                                        \
-        {                                                                                   \
-            std::stringstream miopen_log_ss;                                                \
-            miopen_log_ss << miopen::PlatformName() << ": " << LoggingLevelToCString(level) \
-                          << " [" << miopen::LoggingParseFunction(                          \
-                                         __func__, __PRETTY_FUNCTION__) /* NOLINT */        \
-                          << "] " << __VA_ARGS__ << std::endl;                              \
-            std::cerr << miopen_log_ss.str();                                               \
-        }                                                                                   \
+#define MIOPEN_LOG(level, ...)                                                                     \
+    do                                                                                             \
+    {                                                                                              \
+        if(miopen::IsLogging(level))                                                               \
+        {                                                                                          \
+            std::stringstream miopen_log_ss;                                                       \
+            miopen_log_ss << miopen::PlatformName() << ": " << LoggingLevelToCString(level)        \
+                          << " [" << __FILE__ << ": "                                              \
+                          << miopen::LoggingParseFunction(__func__,                                \
+                                                          __PRETTY_FUNCTION__) /* NOLINT */        \
+                          << ": " << std::to_string(__LINE__) << "] " << __VA_ARGS__ << std::endl; \
+            std::cerr << miopen_log_ss.str();                                                      \
+        }                                                                                          \
     } while(false)
 
 #define MIOPEN_LOG_E(...) MIOPEN_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)

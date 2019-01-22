@@ -152,7 +152,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     sp_size[2]   = workSpaceSize / GetTypeSize(wDesc.GetType());
     sp_stride[0] = sp_size[2];
     sp_stride[1] = sp_size[2];
-    sp_desc      = miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+    sp_desc      = miopen::TensorDescriptor(wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
     SetTensor(handle, sp_desc, workSpace, &beta);
     // Update time
     profileRNNkernels(handle, 0, ctime);
@@ -170,7 +170,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
         hx_size[2]   = hy_d * hy_n * hy_h;
         hx_stride[0] = hx_size[2];
         hx_stride[1] = hx_size[2];
-        hx_desc      = miopen::TensorDescriptor(miopenFloat, hx_size.data(), hx_stride.data(), 3);
+        hx_desc = miopen::TensorDescriptor(wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
         if(hy != nullptr)
         {
             SetTensor(handle, hx_desc, hy, &beta);
@@ -240,9 +240,10 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                 x_size[2]  = hy_h;
                 sp_size[1] = batch_n;
                 sp_size[2] = hy_h;
-                x_desc = miopen::TensorDescriptor(miopenFloat, x_size.data(), x_stride.data(), 3);
+                x_desc =
+                    miopen::TensorDescriptor(wDesc.GetType(), x_size.data(), x_stride.data(), 3);
                 sp_desc =
-                    miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                    miopen::TensorDescriptor(wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                 for(int gi = 0; gi < nHiddenTensorsPerLayer * bi; gi++)
                 {
@@ -284,7 +285,14 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 
                 if(gemm_status != miopenStatusSuccess)
                 {
-                    MIOPEN_LOG_E("GEMM failed");
+                    if(gemm_status == miopenStatusNotImplemented)
+                    {
+                        MIOPEN_LOG_E("GEMM not implemented");
+                    }
+                    else
+                    {
+                        MIOPEN_LOG_E("GEMM failed");
+                    }
                 }
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
@@ -325,7 +333,14 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 
             if(gemm_status != miopenStatusSuccess)
             {
-                MIOPEN_LOG_E("GEMM failed");
+                if(gemm_status == miopenStatusNotImplemented)
+                {
+                    MIOPEN_LOG_E("GEMM not implemented");
+                }
+                else
+                {
+                    MIOPEN_LOG_E("GEMM failed");
+                }
             }
             // Update time
             profileRNNkernels(handle, 1, ctime);
@@ -341,8 +356,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
             w_size[2]  = wei_stride;
             sp_size[1] = batch_n;
             sp_size[2] = wei_stride;
-            w_desc     = miopen::TensorDescriptor(miopenFloat, w_size.data(), w_stride.data(), 3);
-            sp_desc    = miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+            w_desc = miopen::TensorDescriptor(wDesc.GetType(), w_size.data(), w_stride.data(), 3);
+            sp_desc =
+                miopen::TensorDescriptor(wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
             OpTensor(handle,
                      miopenTensorOpAdd,
@@ -366,7 +382,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
         {
             sp_size[1] = batch_n;
             sp_size[2] = hy_h;
-            sp_desc    = miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+            sp_desc =
+                miopen::TensorDescriptor(wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
             alpha0 = 0;
             alpha1 = 0;
@@ -415,7 +432,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                 sp_size[1] = batch_n;
                 sp_size[2] = wei_stride;
                 sp_desc =
-                    miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                    miopen::TensorDescriptor(wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                 OpTensor(handle,
                          miopenTensorOpAdd,
@@ -439,10 +456,11 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                 sp_size[1] = batch_n - in_n.at(0);
                 sp_size[2] = wei_len;
                 sp_desc =
-                    miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                    miopen::TensorDescriptor(wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                 w_size[1] = 1;
                 w_size[2] = wei_len;
-                w_desc = miopen::TensorDescriptor(miopenFloat, w_size.data(), w_stride.data(), 3);
+                w_desc =
+                    miopen::TensorDescriptor(wDesc.GetType(), w_size.data(), w_stride.data(), 3);
 
                 OpTensor(handle,
                          miopenTensorOpAdd,
@@ -494,7 +512,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                 sp_size[1] = in_n.at(ti + 1);
                                 sp_size[2] = wei_len;
                                 sp_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                    wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                                 OpTensor(handle,
                                          miopenTensorOpAdd,
@@ -581,7 +599,14 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 
                             if(gemm_status != miopenStatusSuccess)
                             {
-                                MIOPEN_LOG_E("GEMM failed");
+                                if(gemm_status == miopenStatusNotImplemented)
+                                {
+                                    MIOPEN_LOG_E("GEMM not implemented");
+                                }
+                                else
+                                {
+                                    MIOPEN_LOG_E("GEMM failed");
+                                }
                             }
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
@@ -623,7 +648,14 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 
                             if(gemm_status != miopenStatusSuccess)
                             {
-                                MIOPEN_LOG_E("GEMM failed");
+                                if(gemm_status == miopenStatusNotImplemented)
+                                {
+                                    MIOPEN_LOG_E("GEMM not implemented");
+                                }
+                                else
+                                {
+                                    MIOPEN_LOG_E("GEMM failed");
+                                }
                             }
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
@@ -663,7 +695,14 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 
                             if(gemm_status != miopenStatusSuccess)
                             {
-                                MIOPEN_LOG_E("GEMM failed");
+                                if(gemm_status == miopenStatusNotImplemented)
+                                {
+                                    MIOPEN_LOG_E("GEMM not implemented");
+                                }
+                                else
+                                {
+                                    MIOPEN_LOG_E("GEMM failed");
+                                }
                             }
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
@@ -676,7 +715,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                     {
                         sp_size[2] = hy_h;
                         sp_desc    = miopen::TensorDescriptor(
-                            miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                            wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                         activDesc.Forward(handle,
                                           &alpha,
@@ -695,7 +734,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                         // active gate i, f, o
                         sp_size[2] = hy_h * 3;
                         sp_desc    = miopen::TensorDescriptor(
-                            miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                            wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                         sigDesc.Forward(handle,
                                         &alpha,
@@ -712,7 +751,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                         // active gate c
                         sp_size[2] = hy_h;
                         sp_desc    = miopen::TensorDescriptor(
-                            miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                            wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                         tanhDesc.Forward(handle,
                                          &alpha,
@@ -755,7 +794,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                 hx_size[1] = in_n.at(cur_time);
                                 hx_size[2] = hy_h;
                                 hx_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, hx_size.data(), hx_stride.data(), 3);
+                                    wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
 
                                 OpTensor(handle,
                                          miopenTensorOpMul,
@@ -782,11 +821,11 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                 hx_size[1] = in_n.at(cur_time) - in_n.at(use_time);
                                 hx_size[2] = hy_h;
                                 hx_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, hx_size.data(), hx_stride.data(), 3);
+                                    wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
 
                                 sp_size[1] = in_n.at(cur_time) - in_n.at(use_time);
                                 sp_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                    wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                                 OpTensor(handle,
                                          miopenTensorOpMul,
@@ -809,7 +848,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 
                                 sp_size[1] = in_n.at(cur_time);
                                 sp_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                    wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                             }
 
                             if(in_n.at(use_time) > 0)
@@ -818,7 +857,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                 {
                                     sp_size[1] = in_n.at(use_time);
                                     sp_desc    = miopen::TensorDescriptor(
-                                        miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                        wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                                 }
 
                                 OpTensor(handle,
@@ -842,7 +881,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                 {
                                     sp_size[1] = in_n.at(cur_time);
                                     sp_desc    = miopen::TensorDescriptor(
-                                        miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                        wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                                 }
                             }
                         }
@@ -884,7 +923,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                         // active z, r gate
                         sp_size[2] = 2 * hy_h;
                         sp_desc    = miopen::TensorDescriptor(
-                            miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                            wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                         sigDesc.Forward(handle,
                                         &alpha,
@@ -901,7 +940,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                         // calculate c gate
                         sp_size[2] = hy_h;
                         sp_desc    = miopen::TensorDescriptor(
-                            miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                            wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                         alpha0 = 1;
                         alpha1 = 1;
@@ -1006,7 +1045,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                 hx_size[1] = in_n.at(cur_time);
                                 hx_size[2] = hy_h;
                                 hx_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, hx_size.data(), hx_stride.data(), 3);
+                                    wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
 
                                 OpTensor(handle,
                                          miopenTensorOpMul,
@@ -1033,11 +1072,11 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                 hx_size[1] = in_n.at(cur_time) - in_n.at(use_time);
                                 hx_size[2] = hy_h;
                                 hx_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, hx_size.data(), hx_stride.data(), 3);
+                                    wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
 
                                 sp_size[1] = in_n.at(cur_time) - in_n.at(use_time);
                                 sp_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                    wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                                 OpTensor(handle,
                                          miopenTensorOpMul,
@@ -1059,7 +1098,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 
                                 sp_size[1] = in_n.at(cur_time);
                                 sp_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                    wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                             }
 
                             if(in_n.at(use_time) > 0)
@@ -1068,7 +1107,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                 {
                                     sp_size[1] = in_n.at(use_time);
                                     sp_desc    = miopen::TensorDescriptor(
-                                        miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                        wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                                 }
 
                                 OpTensor(handle,
@@ -1125,11 +1164,11 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 
                         sp_size[1] = in_n.at(cur_time) - use_batch;
                         sp_desc    = miopen::TensorDescriptor(
-                            miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                            wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                         hx_size[1] = sp_size[1];
                         hx_desc    = miopen::TensorDescriptor(
-                            miopenFloat, hx_size.data(), hx_stride.data(), 3);
+                            wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
 
                         if(hy != nullptr)
                         {
@@ -1170,8 +1209,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     sp_size[2] = hy_h * bi;
     y_size[1]  = batch_n;
     y_size[2]  = out_h;
-    y_desc     = miopen::TensorDescriptor(miopenFloat, y_size.data(), y_stride.data(), 3);
-    sp_desc    = miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+    y_desc     = miopen::TensorDescriptor(wDesc.GetType(), y_size.data(), y_stride.data(), 3);
+    sp_desc    = miopen::TensorDescriptor(wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
     CopyTensor(handle, sp_desc, workSpace, y_desc, y, prelayer_shift, 0);
     // Update time
@@ -1314,7 +1353,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     sp_size[2]   = reserveSpaceSize / GetTypeSize(wDesc.GetType());
     sp_stride[0] = sp_size[2];
     sp_stride[1] = sp_size[2];
-    sp_desc      = miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+    sp_desc      = miopen::TensorDescriptor(wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
     SetTensor(handle, sp_desc, reserveSpace, &beta);
     // Update time
     profileRNNkernels(handle, 0, ctime);
@@ -1332,7 +1371,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         hx_size[2]   = hy_d * hy_n * hy_h;
         hx_stride[0] = hx_size[2];
         hx_stride[1] = hx_size[2];
-        hx_desc      = miopen::TensorDescriptor(miopenFloat, hx_size.data(), hx_stride.data(), 3);
+        hx_desc = miopen::TensorDescriptor(wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
         if(hy != nullptr)
         {
             SetTensor(handle, hx_desc, hy, &beta);
@@ -1402,9 +1441,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 x_size[2]  = hy_h;
                 sp_size[1] = batch_n;
                 sp_size[2] = hy_h;
-                x_desc = miopen::TensorDescriptor(miopenFloat, x_size.data(), x_stride.data(), 3);
+                x_desc =
+                    miopen::TensorDescriptor(wDesc.GetType(), x_size.data(), x_stride.data(), 3);
                 sp_desc =
-                    miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                    miopen::TensorDescriptor(wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                 for(int gi = 0; gi < nHiddenTensorsPerLayer * bi; gi++)
                 {
@@ -1446,7 +1486,14 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                 if(gemm_status != miopenStatusSuccess)
                 {
-                    MIOPEN_LOG_E("GEMM failed");
+                    if(gemm_status == miopenStatusNotImplemented)
+                    {
+                        MIOPEN_LOG_E("GEMM not implemented");
+                    }
+                    else
+                    {
+                        MIOPEN_LOG_E("GEMM failed");
+                    }
                 }
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
@@ -1488,7 +1535,14 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
             if(gemm_status != miopenStatusSuccess)
             {
-                MIOPEN_LOG_E("GEMM failed");
+                if(gemm_status == miopenStatusNotImplemented)
+                {
+                    MIOPEN_LOG_E("GEMM not implemented");
+                }
+                else
+                {
+                    MIOPEN_LOG_E("GEMM failed");
+                }
             }
             // Update time
             profileRNNkernels(handle, 1, ctime);
@@ -1504,8 +1558,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             w_size[2]  = wei_stride;
             sp_size[1] = batch_n;
             sp_size[2] = wei_stride;
-            w_desc     = miopen::TensorDescriptor(miopenFloat, w_size.data(), w_stride.data(), 3);
-            sp_desc    = miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+            w_desc = miopen::TensorDescriptor(wDesc.GetType(), w_size.data(), w_stride.data(), 3);
+            sp_desc =
+                miopen::TensorDescriptor(wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
             OpTensor(handle,
                      miopenTensorOpAdd,
@@ -1529,7 +1584,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         {
             sp_size[1] = batch_n;
             sp_size[2] = hy_h;
-            sp_desc    = miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+            sp_desc =
+                miopen::TensorDescriptor(wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
             alpha0 = 0;
             alpha1 = 0;
@@ -1578,7 +1634,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 sp_size[1] = batch_n;
                 sp_size[2] = wei_stride;
                 sp_desc =
-                    miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                    miopen::TensorDescriptor(wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                 OpTensor(handle,
                          miopenTensorOpAdd,
@@ -1602,10 +1658,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 sp_size[1] = batch_n - in_n.at(0);
                 sp_size[2] = wei_len;
                 sp_desc =
-                    miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                    miopen::TensorDescriptor(wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                 w_size[1] = 1;
                 w_size[2] = wei_len;
-                w_desc = miopen::TensorDescriptor(miopenFloat, w_size.data(), w_stride.data(), 3);
+                w_desc =
+                    miopen::TensorDescriptor(wDesc.GetType(), w_size.data(), w_stride.data(), 3);
 
                 OpTensor(handle,
                          miopenTensorOpAdd,
@@ -1657,7 +1714,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                 sp_size[1] = in_n.at(ti + 1);
                                 sp_size[2] = wei_len;
                                 sp_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                    wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                                 OpTensor(handle,
                                          miopenTensorOpAdd,
@@ -1744,7 +1801,14 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                             if(gemm_status != miopenStatusSuccess)
                             {
-                                MIOPEN_LOG_E("GEMM failed");
+                                if(gemm_status == miopenStatusNotImplemented)
+                                {
+                                    MIOPEN_LOG_E("GEMM not implemented");
+                                }
+                                else
+                                {
+                                    MIOPEN_LOG_E("GEMM failed");
+                                }
                             }
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
@@ -1787,7 +1851,14 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                             if(gemm_status != miopenStatusSuccess)
                             {
-                                MIOPEN_LOG_E("GEMM failed");
+                                if(gemm_status == miopenStatusNotImplemented)
+                                {
+                                    MIOPEN_LOG_E("GEMM not implemented");
+                                }
+                                else
+                                {
+                                    MIOPEN_LOG_E("GEMM failed");
+                                }
                             }
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
@@ -1827,7 +1898,14 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                             if(gemm_status != miopenStatusSuccess)
                             {
-                                MIOPEN_LOG_E("GEMM failed");
+                                if(gemm_status == miopenStatusNotImplemented)
+                                {
+                                    MIOPEN_LOG_E("GEMM not implemented");
+                                }
+                                else
+                                {
+                                    MIOPEN_LOG_E("GEMM failed");
+                                }
                             }
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
@@ -1840,7 +1918,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     {
                         sp_size[2] = hy_h;
                         sp_desc    = miopen::TensorDescriptor(
-                            miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                            wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                         activDesc.Forward(handle,
                                           &alpha,
@@ -1859,7 +1937,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                         // active gate i, f, o
                         sp_size[2] = hy_h * 3;
                         sp_desc    = miopen::TensorDescriptor(
-                            miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                            wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                         sigDesc.Forward(handle,
                                         &alpha,
@@ -1876,7 +1954,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                         // active gate c
                         sp_size[2] = hy_h;
                         sp_desc    = miopen::TensorDescriptor(
-                            miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                            wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                         tanhDesc.Forward(handle,
                                          &alpha,
@@ -1920,7 +1998,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                 hx_size[1] = in_n.at(cur_time);
                                 hx_size[2] = hy_h;
                                 hx_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, hx_size.data(), hx_stride.data(), 3);
+                                    wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
 
                                 OpTensor(handle,
                                          miopenTensorOpMul,
@@ -1948,11 +2026,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                 hx_size[1] = in_n.at(cur_time) - in_n.at(use_time);
                                 hx_size[2] = hy_h;
                                 hx_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, hx_size.data(), hx_stride.data(), 3);
+                                    wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
 
                                 sp_size[1] = in_n.at(cur_time) - in_n.at(use_time);
                                 sp_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                    wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                                 OpTensor(handle,
                                          miopenTensorOpMul,
@@ -1976,7 +2054,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                                 sp_size[1] = in_n.at(cur_time);
                                 sp_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                    wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                             }
 
                             if(in_n.at(use_time) > 0)
@@ -1985,7 +2063,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                 {
                                     sp_size[1] = in_n.at(use_time);
                                     sp_desc    = miopen::TensorDescriptor(
-                                        miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                        wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                                 }
 
                                 OpTensor(handle,
@@ -2010,7 +2088,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                 {
                                     sp_size[1] = in_n.at(cur_time);
                                     sp_desc    = miopen::TensorDescriptor(
-                                        miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                        wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                                 }
                             }
                         }
@@ -2052,7 +2130,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                         // active z, r gate
                         sp_size[2] = 2 * hy_h;
                         sp_desc    = miopen::TensorDescriptor(
-                            miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                            wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                         sigDesc.Forward(handle,
                                         &alpha,
@@ -2069,7 +2147,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                         // calculate c gate
                         sp_size[2] = hy_h;
                         sp_desc    = miopen::TensorDescriptor(
-                            miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                            wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                         CopyTensor(handle,
                                    sp_desc,
@@ -2187,7 +2265,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                 hx_size[1] = in_n.at(cur_time);
                                 hx_size[2] = hy_h;
                                 hx_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, hx_size.data(), hx_stride.data(), 3);
+                                    wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
 
                                 OpTensor(handle,
                                          miopenTensorOpMul,
@@ -2214,11 +2292,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                 hx_size[1] = in_n.at(cur_time) - in_n.at(use_time);
                                 hx_size[2] = hy_h;
                                 hx_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, hx_size.data(), hx_stride.data(), 3);
+                                    wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
 
                                 sp_size[1] = in_n.at(cur_time) - in_n.at(use_time);
                                 sp_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                    wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                                 OpTensor(handle,
                                          miopenTensorOpMul,
@@ -2241,7 +2319,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                                 sp_size[1] = in_n.at(cur_time);
                                 sp_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                    wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                             }
 
                             if(in_n.at(use_time) > 0)
@@ -2250,7 +2328,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                 {
                                     sp_size[1] = in_n.at(use_time);
                                     sp_desc    = miopen::TensorDescriptor(
-                                        miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                        wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                                 }
 
                                 OpTensor(handle,
@@ -2307,11 +2385,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                         sp_size[1] = in_n.at(cur_time) - use_batch;
                         sp_desc    = miopen::TensorDescriptor(
-                            miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                            wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                         hx_size[1] = sp_size[1];
                         hx_desc    = miopen::TensorDescriptor(
-                            miopenFloat, hx_size.data(), hx_stride.data(), 3);
+                            wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
 
                         if(hy != nullptr)
                         {
@@ -2352,8 +2430,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     sp_size[2] = hy_h * bi;
     y_size[1]  = batch_n;
     y_size[2]  = out_h;
-    y_desc     = miopen::TensorDescriptor(miopenFloat, y_size.data(), y_stride.data(), 3);
-    sp_desc    = miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+    y_desc     = miopen::TensorDescriptor(wDesc.GetType(), y_size.data(), y_stride.data(), 3);
+    sp_desc    = miopen::TensorDescriptor(wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
     CopyTensor(handle, sp_desc, reserveSpace, y_desc, y, prelayer_shift, 0);
     // Update time
@@ -2511,7 +2589,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     sp_size[2]   = workSpaceSize / GetTypeSize(wDesc.GetType());
     sp_stride[0] = sp_size[2];
     sp_stride[1] = sp_size[2];
-    sp_desc      = miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+    sp_desc      = miopen::TensorDescriptor(wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
     SetTensor(handle, sp_desc, workSpace, &beta);
     // Update time
     profileRNNkernels(handle, 0, ctime);
@@ -2527,7 +2605,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         hx_size[2]   = hy_d * hy_n * hy_h;
         hx_stride[0] = hx_size[2];
         hx_stride[1] = hx_size[2];
-        hx_desc      = miopen::TensorDescriptor(miopenFloat, hx_size.data(), hx_stride.data(), 3);
+        hx_desc = miopen::TensorDescriptor(wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
         if(dhx != nullptr)
         {
             SetTensor(handle, hx_desc, dhx, &beta);
@@ -2604,8 +2682,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             y_size[2]  = out_h;
             sp_size[1] = batch_n;
             sp_size[2] = hy_h * bi;
-            y_desc     = miopen::TensorDescriptor(miopenFloat, y_size.data(), y_stride.data(), 3);
-            sp_desc    = miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+            y_desc = miopen::TensorDescriptor(wDesc.GetType(), y_size.data(), y_stride.data(), 3);
+            sp_desc =
+                miopen::TensorDescriptor(wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
             CopyTensor(handle, y_desc, dy, sp_desc, workSpace, 0, hid_shift + dhd_off);
             // Update time
@@ -2645,7 +2724,14 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
             if(gemm_status != miopenStatusSuccess)
             {
-                MIOPEN_LOG_E("GEMM failed");
+                if(gemm_status == miopenStatusNotImplemented)
+                {
+                    MIOPEN_LOG_E("GEMM not implemented");
+                }
+                else
+                {
+                    MIOPEN_LOG_E("GEMM failed");
+                }
             }
             // Update time
             profileRNNkernels(handle, 1, ctime);
@@ -2691,9 +2777,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                             sp_size[1] = in_n.at(cur_time);
                             sp_size[2] = hy_h;
                             hx_desc    = miopen::TensorDescriptor(
-                                miopenFloat, hx_size.data(), hx_stride.data(), 3);
+                                wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
                             sp_desc = miopen::TensorDescriptor(
-                                miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                             OpTensor(handle,
                                      miopenTensorOpAdd,
@@ -2726,9 +2812,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                             sp_size[1] = in_n.at(cur_time) - in_n.at(use_time);
                             sp_size[2] = hy_h;
                             hx_desc    = miopen::TensorDescriptor(
-                                miopenFloat, hx_size.data(), hx_stride.data(), 3);
+                                wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
                             sp_desc = miopen::TensorDescriptor(
-                                miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                             OpTensor(handle,
                                      miopenTensorOpAdd,
@@ -2758,7 +2844,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                 sp_size[1] = in_n.at(use_time);
                                 sp_size[2] = hy_h;
                                 sp_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                    wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                                 alpha0 = 1;
                                 alpha1 = 1;
@@ -2834,7 +2920,14 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
                             if(gemm_status != miopenStatusSuccess)
                             {
-                                MIOPEN_LOG_E("GEMM failed");
+                                if(gemm_status == miopenStatusNotImplemented)
+                                {
+                                    MIOPEN_LOG_E("GEMM not implemented");
+                                }
+                                else
+                                {
+                                    MIOPEN_LOG_E("GEMM failed");
+                                }
                             }
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
@@ -2857,8 +2950,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                     // update hidden status
                     sp_size[1] = in_n.at(cur_time);
                     sp_size[2] = hy_h;
-                    sp_desc =
-                        miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                    sp_desc    = miopen::TensorDescriptor(
+                        wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                     if(rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
                     {
@@ -2931,7 +3024,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                 hx_size[1] = in_n.at(cur_time);
                                 hx_size[2] = hy_h;
                                 hx_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, hx_size.data(), hx_stride.data(), 3);
+                                    wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
 
                                 OpTensor(handle,
                                          miopenTensorOpAdd,
@@ -2960,9 +3053,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                 sp_size[1] = in_n.at(cur_time) - in_n.at(use_time);
                                 sp_size[2] = hy_h;
                                 hx_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, hx_size.data(), hx_stride.data(), 3);
+                                    wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
                                 sp_desc = miopen::TensorDescriptor(
-                                    miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                    wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                                 OpTensor(handle,
                                          miopenTensorOpAdd,
@@ -2985,7 +3078,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
                                 sp_size[1] = in_n.at(cur_time);
                                 sp_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                    wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                             }
 
                             pretime_shift = li * batch_n * hy_stride + pre_batch * hy_stride;
@@ -2997,7 +3090,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                             {
                                 sp_size[1] = in_n.at(use_time);
                                 sp_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                    wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                             }
 
                             OpTensor(handle,
@@ -3022,7 +3115,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                             {
                                 sp_size[1] = in_n.at(cur_time);
                                 sp_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                    wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                             }
                         }
 
@@ -3038,7 +3131,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                 hx_size[1] = in_n.at(cur_time);
                                 hx_size[2] = hy_h;
                                 hx_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, hx_size.data(), hx_stride.data(), 3);
+                                    wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
 
                                 OpTensor(handle,
                                          miopenTensorOpMul,
@@ -3065,9 +3158,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                 sp_size[1] = in_n.at(cur_time) - in_n.at(use_time2);
                                 sp_size[2] = hy_h;
                                 hx_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, hx_size.data(), hx_stride.data(), 3);
+                                    wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
                                 sp_desc = miopen::TensorDescriptor(
-                                    miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                    wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                                 OpTensor(handle,
                                          miopenTensorOpMul,
@@ -3088,7 +3181,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
                                 sp_size[1] = in_n.at(cur_time);
                                 sp_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                    wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                             }
 
                             if(in_n.at(use_time2) > 0)
@@ -3099,7 +3192,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                 {
                                     sp_size[1] = in_n.at(use_time2);
                                     sp_desc    = miopen::TensorDescriptor(
-                                        miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                        wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                                 }
 
                                 OpTensor(handle,
@@ -3123,7 +3216,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                 {
                                     sp_size[1] = in_n.at(cur_time);
                                     sp_desc    = miopen::TensorDescriptor(
-                                        miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                        wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                                 }
                             }
                         }
@@ -3203,7 +3296,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
                         sp_size[2] = 3 * hy_h;
                         sp_desc    = miopen::TensorDescriptor(
-                            miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                            wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                         sigDesc.Backward(handle,
                                          &alpha,
@@ -3330,7 +3423,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                 hx_size[1] = in_n.at(cur_time);
                                 hx_size[2] = hy_h;
                                 hx_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, hx_size.data(), hx_stride.data(), 3);
+                                    wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
 
                                 OpTensor(handle,
                                          miopenTensorOpMul,
@@ -3358,9 +3451,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                 hx_size[2] = hy_h;
                                 sp_size[1] = in_n.at(cur_time) - in_n.at(use_time2);
                                 hx_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, hx_size.data(), hx_stride.data(), 3);
+                                    wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
                                 sp_desc = miopen::TensorDescriptor(
-                                    miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                    wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                                 OpTensor(handle,
                                          miopenTensorOpMul,
@@ -3382,7 +3475,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
                                 sp_size[1] = in_n.at(cur_time);
                                 sp_desc    = miopen::TensorDescriptor(
-                                    miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                    wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                             }
 
                             if(in_n.at(use_time2) > 0)
@@ -3391,7 +3484,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                 {
                                     sp_size[1] = in_n.at(use_time2);
                                     sp_desc    = miopen::TensorDescriptor(
-                                        miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                        wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                                 }
 
                                 OpTensor(handle,
@@ -3415,7 +3508,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                 {
                                     sp_size[1] = in_n.at(cur_time);
                                     sp_desc    = miopen::TensorDescriptor(
-                                        miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                        wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                                 }
                             }
                         }
@@ -3443,7 +3536,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
                         sp_size[2] = 2 * hy_h;
                         sp_desc    = miopen::TensorDescriptor(
-                            miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                            wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                         sigDesc.Backward(handle,
                                          &alpha,
                                          sp_desc,
@@ -3501,9 +3594,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                             sp_size[1] = in_n.at(cur_time) - use_batch;
                             hx_size[1] = in_n.at(cur_time) - use_batch;
                             hx_desc    = miopen::TensorDescriptor(
-                                miopenFloat, hx_size.data(), hx_stride.data(), 3);
+                                wDesc.GetType(), hx_size.data(), hx_stride.data(), 3);
                             sp_desc = miopen::TensorDescriptor(
-                                miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                                wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
                         }
 
                         if(dhx != nullptr)
@@ -3568,7 +3661,14 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
                                 if(gemm_status != miopenStatusSuccess)
                                 {
-                                    MIOPEN_LOG_E("GEMM failed");
+                                    if(gemm_status == miopenStatusNotImplemented)
+                                    {
+                                        MIOPEN_LOG_E("GEMM not implemented");
+                                    }
+                                    else
+                                    {
+                                        MIOPEN_LOG_E("GEMM failed");
+                                    }
                                 }
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
@@ -3628,7 +3728,14 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
                             if(gemm_status != miopenStatusSuccess)
                             {
-                                MIOPEN_LOG_E("GEMM failed");
+                                if(gemm_status == miopenStatusNotImplemented)
+                                {
+                                    MIOPEN_LOG_E("GEMM not implemented");
+                                }
+                                else
+                                {
+                                    MIOPEN_LOG_E("GEMM failed");
+                                }
                             }
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
@@ -3673,8 +3780,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         sp_size[2] = hy_h;
         x_size[1]  = batch_n;
         x_size[2]  = hy_h;
-        x_desc     = miopen::TensorDescriptor(miopenFloat, x_size.data(), x_stride.data(), 3);
-        sp_desc    = miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+        x_desc     = miopen::TensorDescriptor(wDesc.GetType(), x_size.data(), x_stride.data(), 3);
+        sp_desc    = miopen::TensorDescriptor(wDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
         alpha0 = 1;
         alpha1 = 1;
@@ -3731,7 +3838,14 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                               GemmBackend_t::miopengemm);
         if(gemm_status != miopenStatusSuccess)
         {
-            MIOPEN_LOG_E("GEMM failed");
+            if(gemm_status == miopenStatusNotImplemented)
+            {
+                MIOPEN_LOG_E("GEMM not implemented");
+            }
+            else
+            {
+                MIOPEN_LOG_E("GEMM failed");
+            }
         }
         // Update time
         profileRNNkernels(handle, 2, ctime);
@@ -3861,7 +3975,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     w_size[2]    = dwDesc.GetElementSize();
     w_stride[0]  = w_size[2];
     w_stride[1]  = w_size[2];
-    w_desc       = miopen::TensorDescriptor(miopenFloat, w_size.data(), w_stride.data(), 3);
+    w_desc       = miopen::TensorDescriptor(dwDesc.GetType(), w_size.data(), w_stride.data(), 3);
     SetTensor(handle, w_desc, dw, &beta_t);
     // Update time
     profileRNNkernels(handle, 0, ctime);
@@ -3937,7 +4051,14 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                 if(gemm_status != miopenStatusSuccess)
                 {
-                    MIOPEN_LOG_E("GEMM failed");
+                    if(gemm_status == miopenStatusNotImplemented)
+                    {
+                        MIOPEN_LOG_E("GEMM not implemented");
+                    }
+                    else
+                    {
+                        MIOPEN_LOG_E("GEMM failed");
+                    }
                 }
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
@@ -3977,7 +4098,14 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
             if(gemm_status != miopenStatusSuccess)
             {
-                MIOPEN_LOG_E("GEMM failed");
+                if(gemm_status == miopenStatusNotImplemented)
+                {
+                    MIOPEN_LOG_E("GEMM not implemented");
+                }
+                else
+                {
+                    MIOPEN_LOG_E("GEMM failed");
+                }
             }
             // Update time
             profileRNNkernels(handle, 1, ctime);
@@ -3991,8 +4119,9 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
             sp_size[2] = wei_stride;
             w_size[1]  = 1;
             w_size[2]  = wei_stride;
-            w_desc     = miopen::TensorDescriptor(miopenFloat, w_size.data(), w_stride.data(), 3);
-            sp_desc    = miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+            w_desc = miopen::TensorDescriptor(dwDesc.GetType(), w_size.data(), w_stride.data(), 3);
+            sp_desc =
+                miopen::TensorDescriptor(dwDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
             alpha0 = 1;
             alpha1 = 0;
@@ -4026,7 +4155,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         {
             sp_size[1] = batch_n;
             sp_size[2] = hy_h;
-            sp_desc    = miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+            sp_desc =
+                miopen::TensorDescriptor(dwDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
             for(int ri = 0; ri < bi; ri++)
             {
@@ -4058,10 +4188,10 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     sp_size[2] = wei_stride;
                     w_size[1]  = 1;
                     w_size[2]  = wei_stride;
-                    w_desc =
-                        miopen::TensorDescriptor(miopenFloat, w_size.data(), w_stride.data(), 3);
-                    sp_desc =
-                        miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                    w_desc     = miopen::TensorDescriptor(
+                        dwDesc.GetType(), w_size.data(), w_stride.data(), 3);
+                    sp_desc = miopen::TensorDescriptor(
+                        dwDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                     for(int bs = 0; bs < batch_n; bs++)
                     {
@@ -4097,9 +4227,10 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 sp_size[2] = wei_len;
                 w_size[1]  = 1;
                 w_size[2]  = wei_len;
-                w_desc = miopen::TensorDescriptor(miopenFloat, w_size.data(), w_stride.data(), 3);
+                w_desc =
+                    miopen::TensorDescriptor(dwDesc.GetType(), w_size.data(), w_stride.data(), 3);
                 sp_desc =
-                    miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                    miopen::TensorDescriptor(dwDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                 for(int bs = 0; bs < batch_n; bs++)
                 {
@@ -4131,10 +4262,10 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     sp_size[2] = wei_len;
                     w_size[1]  = 1;
                     w_size[2]  = wei_len;
-                    w_desc =
-                        miopen::TensorDescriptor(miopenFloat, w_size.data(), w_stride.data(), 3);
-                    sp_desc =
-                        miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                    w_desc     = miopen::TensorDescriptor(
+                        dwDesc.GetType(), w_size.data(), w_stride.data(), 3);
+                    sp_desc = miopen::TensorDescriptor(
+                        dwDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
                     int cur_batch = 0;
                     for(int ti = 0; ti < seqLen - 1; ti++)
@@ -4220,7 +4351,14 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                     if(gemm_status != miopenStatusSuccess)
                     {
-                        MIOPEN_LOG_E("GEMM failed");
+                        if(gemm_status == miopenStatusNotImplemented)
+                        {
+                            MIOPEN_LOG_E("GEMM not implemented");
+                        }
+                        else
+                        {
+                            MIOPEN_LOG_E("GEMM failed");
+                        }
                     }
 
                     // Update time
@@ -4268,7 +4406,14 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                         if(gemm_status != miopenStatusSuccess)
                         {
-                            MIOPEN_LOG_E("GEMM failed");
+                            if(gemm_status == miopenStatusNotImplemented)
+                            {
+                                MIOPEN_LOG_E("GEMM not implemented");
+                            }
+                            else
+                            {
+                                MIOPEN_LOG_E("GEMM failed");
+                            }
                         }
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
@@ -4312,7 +4457,14 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                     if(gemm_status != miopenStatusSuccess)
                     {
-                        MIOPEN_LOG_E("GEMM failed");
+                        if(gemm_status == miopenStatusNotImplemented)
+                        {
+                            MIOPEN_LOG_E("GEMM not implemented");
+                        }
+                        else
+                        {
+                            MIOPEN_LOG_E("GEMM failed");
+                        }
                     }
                     // Update time
                     if(li == nLayers - 1 && ri == bi - 1)
@@ -4384,7 +4536,14 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                                 if(gemm_status != miopenStatusSuccess)
                                 {
-                                    MIOPEN_LOG_E("GEMM failed");
+                                    if(gemm_status == miopenStatusNotImplemented)
+                                    {
+                                        MIOPEN_LOG_E("GEMM not implemented");
+                                    }
+                                    else
+                                    {
+                                        MIOPEN_LOG_E("GEMM failed");
+                                    }
                                 }
                                 // Update time
                                 if(li == nLayers - 1 && ti == seqLen - 1 && ri == bi - 1)
@@ -4430,7 +4589,14 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                                 if(gemm_status != miopenStatusSuccess)
                                 {
-                                    MIOPEN_LOG_E("GEMM failed");
+                                    if(gemm_status == miopenStatusNotImplemented)
+                                    {
+                                        MIOPEN_LOG_E("GEMM not implemented");
+                                    }
+                                    else
+                                    {
+                                        MIOPEN_LOG_E("GEMM failed");
+                                    }
                                 }
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
@@ -4474,7 +4640,14 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                                 if(gemm_status != miopenStatusSuccess)
                                 {
-                                    MIOPEN_LOG_E("GEMM failed");
+                                    if(gemm_status == miopenStatusNotImplemented)
+                                    {
+                                        MIOPEN_LOG_E("GEMM not implemented");
+                                    }
+                                    else
+                                    {
+                                        MIOPEN_LOG_E("GEMM failed");
+                                    }
                                 }
                                 // Update time
                                 if(li == nLayers - 1 && ti == seqLen - 1 && ri == bi - 1)
