@@ -382,7 +382,27 @@ static void DirConvFindCore(Handle& handle,
                                         xDesc.GetType());
                     time_gemm = handle.GetKernelTime();
 
-                    int x_t_size = in_n * in_c * out_h * out_w;
+                    int x_t_size    = in_n * in_c * out_h * out_w;
+                    int wksp_offset = 0;
+                    if(wDesc.GetType() == miopenInt8)
+                    {
+                        wksp_offset = x_t_size;
+                        transpose_packed_MN2NM(handle,
+                                               in_c,
+                                               in_n * out_h * out_w,
+                                               0,
+                                               wksp_offset,
+                                               workSpace,
+                                               workSpace,
+                                               xDesc.GetType());
+
+                        time_gemm += handle.GetKernelTime();
+
+                        x_t_size *= 2;
+                        if(yDesc.GetType() == miopenInt32 || yDesc.GetType() == miopenFloat)
+                            x_t_size /= 4;
+                    }
+
                     std::string kcache_key;
 
                     GemmDescriptor gemm_desc =
@@ -397,7 +417,7 @@ static void DirConvFindCore(Handle& handle,
                         w,
                         0,
                         workSpace,
-                        0,
+                        wksp_offset,
                         workSpace,
                         x_t_size,
                         &kcache_key,
@@ -419,8 +439,26 @@ static void DirConvFindCore(Handle& handle,
                                         0,
                                         1,
                                         1,
-                                        xDesc.GetType());
+                                        yDesc.GetType());
                     time_gemm += handle.GetKernelTime();
+
+                    if(wDesc.GetType() == miopenInt8)
+                    {
+                        miopen::TensorDescriptor ygemmDesc;
+                        std::vector<int> ylen(yDesc.GetLengths().begin(), yDesc.GetLengths().end());
+                        std::vector<int> ystr(yDesc.GetStrides().begin(), yDesc.GetStrides().end());
+                        ygemmDesc =
+                            miopen::TensorDescriptor(miopenInt32, ylen.data(), ystr.data(), 4);
+                        CastTensor(handle,
+                                   &conv.lowp_quant,
+                                   ygemmDesc,
+                                   tmp_y.get(),
+                                   yDesc,
+                                   tmp_y.get(),
+                                   0,
+                                   0);
+                        time_gemm += handle.GetKernelTime();
+                    }
 
                     if(gemm_status == miopenStatusSuccess)
                         record.SetValues("miopenConvolutionFwdAlgoGEMM",
@@ -445,27 +483,65 @@ static void DirConvFindCore(Handle& handle,
 
                 // y = w * x
                 std::string kcache_key;
+                miopenStatus_t gemm_status = miopenStatusNotInitialized;
 
-                GemmDescriptor gemm_desc =
-                    conv.group_count >= 2
-                        ? CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, conv.group_count)
-                        : CreateGemmStridedBatchedDescriptorConv1x1Fwd(wDesc, xDesc, yDesc);
+                if(wDesc.GetType() == miopenInt8)
+                {
+                    GemmDescriptor gemm_desc = CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
 
-                miopenStatus_t gemm_status = CallGemmTimeMeasure(handle,
-                                                                 gemm_desc,
-                                                                 w,
-                                                                 0,
-                                                                 x,
-                                                                 0,
-                                                                 tmp_y.get(),
-                                                                 0,
-                                                                 &kcache_key,
-                                                                 time_precision,
-                                                                 callGemmStridedBatched);
+                    int out_offset = 0;
+                    int in_offset  = 0;
+                    transpose_packed_MN2NM(
+                        handle, in_c, in_h * in_w, in_offset, 0, x, workSpace, xDesc.GetType());
 
-                time_gemm = handle.GetKernelTime();
-                if(conv.group_count >= 2)
-                    time_gemm *= in_n;
+                    time_gemm += (in_n * handle.GetKernelTime());
+
+                    gemm_status = CallGemmTimeMeasure(handle,
+                                                      gemm_desc,
+                                                      w,
+                                                      0,
+                                                      workSpace,
+                                                      0,
+                                                      tmp_y.get(),
+                                                      out_offset,
+                                                      &kcache_key,
+                                                      time_precision,
+                                                      callGemm);
+
+                    time_gemm += (in_n * handle.GetKernelTime());
+
+                    miopen::TensorDescriptor ygemmDesc;
+                    std::vector<int> ylen(yDesc.GetLengths().begin(), yDesc.GetLengths().end());
+                    std::vector<int> ystr(yDesc.GetStrides().begin(), yDesc.GetStrides().end());
+                    ygemmDesc = miopen::TensorDescriptor(miopenInt32, ylen.data(), ystr.data(), 4);
+                    CastTensor(
+                        handle, &conv.lowp_quant, ygemmDesc, tmp_y.get(), yDesc, tmp_y.get(), 0, 0);
+                    time_gemm += handle.GetKernelTime();
+                }
+                else
+                {
+                    GemmDescriptor gemm_desc =
+                        conv.group_count >= 2
+                            ? CreateGemmDescriptorGroupConvFwd(
+                                  wDesc, xDesc, yDesc, conv.group_count)
+                            : CreateGemmStridedBatchedDescriptorConv1x1Fwd(wDesc, xDesc, yDesc);
+
+                    gemm_status = CallGemmTimeMeasure(handle,
+                                                      gemm_desc,
+                                                      w,
+                                                      0,
+                                                      x,
+                                                      0,
+                                                      tmp_y.get(),
+                                                      0,
+                                                      &kcache_key,
+                                                      time_precision,
+                                                      callGemmStridedBatched);
+
+                    time_gemm = handle.GetKernelTime();
+                    if(conv.group_count >= 2)
+                        time_gemm *= in_n;
+                }
 
                 if(gemm_status == miopenStatusSuccess)
                     record.SetValues(
@@ -508,6 +584,22 @@ static void DirConvFindCore(Handle& handle,
                                         workSpace,
                                         xDesc.GetType());
 
+                int wksp_offset = 0;
+                if(wDesc.GetType() == miopenInt8)
+                {
+                    wksp_offset = in_c * wei_h * wei_w * out_h * out_w;
+
+                    transpose_packed_MN2NM(handle,
+                                           in_c * wei_h * wei_w,
+                                           out_h * out_w,
+                                           0,
+                                           wksp_offset,
+                                           workSpace,
+                                           workSpace,
+                                           xDesc.GetType());
+                    time_gemm += (in_n * handle.GetKernelTime());
+                }
+
                 std::string kcache_key;
 
                 GemmDescriptor gemm_desc =
@@ -515,21 +607,34 @@ static void DirConvFindCore(Handle& handle,
                         ? CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, conv.group_count)
                         : CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
 
-                miopenStatus_t gemm_status = CallGemmTimeMeasure(
-                    handle,
-                    gemm_desc,
-                    w,
-                    0,
-                    workSpace,
-                    0,
-                    tmp_y.get(),
-                    0,
-                    &kcache_key,
-                    time_precision,
-                    conv.group_count >= 2 ? callGemmStridedBatched : callGemm,
-                    conv.group_count >= 2 ? GemmBackend_t::rocblas : GemmBackend_t::miopengemm);
+                miopenStatus_t gemm_status =
+                    CallGemmTimeMeasure(handle,
+                                        gemm_desc,
+                                        w,
+                                        0,
+                                        workSpace,
+                                        wksp_offset,
+                                        tmp_y.get(),
+                                        0,
+                                        &kcache_key,
+                                        time_precision,
+                                        conv.group_count >= 2 ? callGemmStridedBatched : callGemm,
+                                        (conv.group_count >= 2 || wDesc.GetType() == miopenInt8)
+                                            ? GemmBackend_t::rocblas
+                                            : GemmBackend_t::miopengemm);
 
-                time_gemm = in_n * (time_im2col + handle.GetKernelTime());
+                time_gemm += (in_n * (time_im2col + handle.GetKernelTime()));
+
+                if(wDesc.GetType() == miopenInt8)
+                {
+                    miopen::TensorDescriptor ygemmDesc;
+                    std::vector<int> ylen(yDesc.GetLengths().begin(), yDesc.GetLengths().end());
+                    std::vector<int> ystr(yDesc.GetStrides().begin(), yDesc.GetStrides().end());
+                    ygemmDesc = miopen::TensorDescriptor(miopenInt32, ylen.data(), ystr.data(), 4);
+                    CastTensor(
+                        handle, &conv.lowp_quant, ygemmDesc, tmp_y.get(), yDesc, tmp_y.get(), 0, 0);
+                    time_gemm += handle.GetKernelTime();
+                }
 
                 if(gemm_status == miopenStatusSuccess)
                     record.SetValues(
@@ -544,7 +649,7 @@ static void DirConvFindCore(Handle& handle,
         (void)workSpace;     // Suppress warning
         (void)workSpaceSize; // Suppress warning
 #endif
-        if(conv.dilation_h == 1 && conv.dilation_w == 1)
+        if(conv.dilation_h == 1 && conv.dilation_w == 1 && wDesc.GetType() != miopenInt8)
         {
             // Winograd algo
             WinogradKernelParams k_p;
@@ -647,7 +752,8 @@ static void DirConvFindCore(Handle& handle,
                     FindDbData{selected.solver_id, best, selected.workspce_sz, network_config});
             }
         }
-        if(conv.dilation_h == 1 && conv.dilation_w == 1 && conv.group_count < 2)
+        if(conv.dilation_h == 1 && conv.dilation_w == 1 && conv.group_count < 2 &&
+           wDesc.GetType() != miopenInt8)
         {
             // FFT algo
             std::string network_config;
@@ -803,7 +909,12 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(xDesc.GetType() != yDesc.GetType() || xDesc.GetType() != wDesc.GetType())
+    if((xDesc.GetType() != yDesc.GetType() && xDesc.GetType() != miopenInt8) ||
+       xDesc.GetType() != wDesc.GetType())
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+    if(algo != miopenConvolutionFwdAlgoGEMM && xDesc.GetType() == miopenInt8)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -1027,7 +1138,28 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 if(handle.IsProfilingEnabled())
                     t1 = handle.GetKernelTime();
 
-                int x_t_size = in_n * in_c * out_h * out_w;
+                int x_t_size    = in_n * in_c * out_h * out_w;
+                int wksp_offset = 0;
+                if(wDesc.GetType() == miopenInt8)
+                {
+                    wksp_offset = x_t_size;
+
+                    transpose_packed_MN2NM(handle,
+                                           in_c,
+                                           in_n * out_h * out_w,
+                                           0,
+                                           wksp_offset,
+                                           workSpace,
+                                           workSpace,
+                                           xDesc.GetType());
+                    if(handle.IsProfilingEnabled())
+                        t1 += handle.GetKernelTime();
+
+                    x_t_size *= 2;
+                    if(GetTypeSize(yDesc.GetType()) != 0 && GetTypeSize(xDesc.GetType()) != 0)
+                        x_t_size /= (GetTypeSize(yDesc.GetType()) / GetTypeSize(xDesc.GetType()));
+                }
+
                 if(group_count >= 2)
                 {
                     GemmDescriptor gemm_desc =
@@ -1042,8 +1174,16 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     GemmDescriptor gemm_desc = CreateGemmDescriptorConvCNHWFwd(wDesc, xDesc, yDesc);
 
                     // y = CNHW2NCHW(w * NCHW2CNHW(x))
-                    CallGemm(
-                        handle, gemm_desc, w, 0, workSpace, 0, workSpace, x_t_size, nullptr, false);
+                    CallGemm(handle,
+                             gemm_desc,
+                             w,
+                             0,
+                             workSpace,
+                             wksp_offset,
+                             workSpace,
+                             x_t_size,
+                             nullptr,
+                             false);
                 }
                 if(handle.IsProfilingEnabled())
                     t1 += handle.GetKernelTime();
@@ -1061,9 +1201,20 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                                     0,
                                     1,
                                     1,
-                                    xDesc.GetType());
+                                    yDesc.GetType());
                 if(handle.IsProfilingEnabled())
                     t1 += handle.GetKernelTime();
+
+                if(wDesc.GetType() == miopenInt8)
+                {
+                    miopen::TensorDescriptor ygemmDesc;
+                    std::vector<int> ylen(yDesc.GetLengths().begin(), yDesc.GetLengths().end());
+                    std::vector<int> ystr(yDesc.GetStrides().begin(), yDesc.GetStrides().end());
+                    ygemmDesc = miopen::TensorDescriptor(miopenInt32, ylen.data(), ystr.data(), 4);
+                    CastTensor(handle, &lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
+                    if(handle.IsProfilingEnabled())
+                        t1 += handle.GetKernelTime();
+                }
 
                 if(handle.IsProfilingEnabled())
                 {
@@ -1099,12 +1250,59 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 {
                     MIOPEN_LOG_FUNCTION("convolution, 1x1");
 
-                    // y = w * x
-                    GemmDescriptor gemm_desc =
-                        CreateGemmStridedBatchedDescriptorConv1x1Fwd(wDesc, xDesc, yDesc);
+                    if(wDesc.GetType() == miopenInt8)
+                    {
+                        float time_0             = 0;
+                        float t1                 = 0;
+                        GemmDescriptor gemm_desc = CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
 
-                    // y = w * x
-                    CallGemmStridedBatched(handle, gemm_desc, w, 0, x, 0, y, 0, nullptr, false);
+                        for(int i = 0; i < in_n; i++)
+                        {
+                            int out_offset = i * wei_n * out_h * out_w;
+                            int in_offset  = i * in_c * in_h * in_w;
+                            transpose_packed_MN2NM(handle,
+                                                   in_c,
+                                                   in_h * in_w,
+                                                   in_offset,
+                                                   0,
+                                                   x,
+                                                   workSpace,
+                                                   xDesc.GetType());
+                            if(handle.IsProfilingEnabled())
+                                t1 += handle.GetKernelTime();
+
+                            CallGemm(handle,
+                                     gemm_desc,
+                                     w,
+                                     0,
+                                     workSpace,
+                                     0,
+                                     y,
+                                     out_offset,
+                                     nullptr,
+                                     false);
+                            if(handle.IsProfilingEnabled())
+                                time_0 += handle.GetKernelTime();
+                        }
+
+                        miopen::TensorDescriptor ygemmDesc;
+                        std::vector<int> ylen(yDesc.GetLengths().begin(), yDesc.GetLengths().end());
+                        std::vector<int> ystr(yDesc.GetStrides().begin(), yDesc.GetStrides().end());
+                        ygemmDesc =
+                            miopen::TensorDescriptor(miopenInt32, ylen.data(), ystr.data(), 4);
+                        CastTensor(handle, &lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
+                        if(handle.IsProfilingEnabled())
+                            handle.AccumKernelTime(t1 + time_0);
+                    }
+                    else
+                    {
+                        // y = w * x
+                        GemmDescriptor gemm_desc =
+                            CreateGemmStridedBatchedDescriptorConv1x1Fwd(wDesc, xDesc, yDesc);
+
+                        // y = w * x
+                        CallGemmStridedBatched(handle, gemm_desc, w, 0, x, 0, y, 0, nullptr, false);
+                    }
                 }
             }
             // if not 1x1
@@ -1157,6 +1355,24 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     if(handle.IsProfilingEnabled())
                         t1 = handle.GetKernelTime();
 
+                    int wksp_offset = 0;
+                    if(wDesc.GetType() == miopenInt8)
+                    {
+                        wksp_offset = in_c * wei_h * wei_w * out_h * out_w;
+
+                        transpose_packed_MN2NM(handle,
+                                               in_c * wei_h * wei_w,
+                                               out_h * out_w,
+                                               0,
+                                               wksp_offset,
+                                               workSpace,
+                                               workSpace,
+                                               xDesc.GetType());
+
+                        if(handle.IsProfilingEnabled())
+                            t1 += handle.GetKernelTime();
+                    }
+
                     // y = w * Im2Col(x)
                     if(group_count >= 2)
                         CallGemmStridedBatched(
@@ -1167,22 +1383,39 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                                  w,
                                  0,
                                  workSpace,
-                                 0,
+                                 wksp_offset,
                                  y,
                                  out_offset,
                                  nullptr,
                                  false,
-                                 GemmBackend_t::miopengemm);
+                                 wDesc.GetType() == miopenInt8 ? GemmBackend_t::rocblas
+                                                               : GemmBackend_t::miopengemm);
 
                     // Update times for both the kernels
                     if(handle.IsProfilingEnabled())
                     {
                         if(i == in_n - 1)
+                        {
                             handle.AccumKernelTime(t1 + time_0);
+                            time_0 = handle.GetKernelTime();
+                        }
                         else
+                        {
                             handle.AccumKernelTime(t1);
-                        time_0 += handle.GetKernelTime();
+                            time_0 += handle.GetKernelTime();
+                        }
                     }
+                }
+
+                if(wDesc.GetType() == miopenInt8)
+                {
+                    miopen::TensorDescriptor ygemmDesc;
+                    std::vector<int> ylen(yDesc.GetLengths().begin(), yDesc.GetLengths().end());
+                    std::vector<int> ystr(yDesc.GetStrides().begin(), yDesc.GetStrides().end());
+                    ygemmDesc = miopen::TensorDescriptor(miopenInt32, ylen.data(), ystr.data(), 4);
+                    CastTensor(handle, &lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
+                    if(handle.IsProfilingEnabled())
+                        handle.AccumKernelTime(time_0);
                 }
             }
         }
@@ -1246,6 +1479,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "perfResults cannot be nullptr");
     if(requestAlgoCount < 1)
         MIOPEN_THROW(miopenStatusBadParm, "requestAlgoCount cannot be < 1");
+    if(wDesc.GetType() == miopenInt8)
+        MIOPEN_THROW(miopenStatusBadParm);
 
     *returnedAlgoCount = 0;
 
@@ -1660,6 +1895,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
+    if(wDesc.GetType() == miopenInt8)
+        MIOPEN_THROW(miopenStatusBadParm);
     //    if(dyDesc.GetLengths()[1] != wDesc.GetLengths()[0]) {
     //       MIOPEN_THROW(miopenStatusBadParm);
     //    }
@@ -2184,6 +2421,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "perfResults cannot be nullptr");
     if(requestAlgoCount < 1)
         MIOPEN_THROW(miopenStatusBadParm, "requestAlgoCount cannot be < 1");
+    if(xDesc.GetType() == miopenInt8)
+        MIOPEN_THROW(miopenStatusBadParm);
 
     *returnedAlgoCount = 0;
 
@@ -2414,6 +2653,10 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
     }
     if(dyDesc.GetType() != dwDesc.GetType() || dyDesc.GetType() != xDesc.GetType())
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+    if(xDesc.GetType() == miopenInt8)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }

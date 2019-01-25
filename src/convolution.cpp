@@ -43,6 +43,7 @@ ConvolutionDescriptor::ConvolutionDescriptor(
       dilation_h(p_dilation_h),
       dilation_w(p_dilation_w),
       group_count(1),
+      lowp_quant(float(1)),
       trans_output_pad_h(0),
       trans_output_pad_w(0)
 {
@@ -72,6 +73,7 @@ ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t c_mode,
       dilation_h(p_dilation_h),
       dilation_w(p_dilation_w),
       group_count(1),
+      lowp_quant(float(1)),
       trans_output_pad_h(0),
       trans_output_pad_w(0)
 {
@@ -209,18 +211,21 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(Handle& handle,
     int wei_c, wei_h, wei_w;
     std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(wDesc.GetLengths());
 
-    size_t workspace_size = wei_c * wei_h * wei_w * out_h * out_w * GetTypeSize(yDesc.GetType());
+    size_t workspace_size = wei_c * wei_h * wei_w * out_h * out_w * GetTypeSize(wDesc.GetType());
 
     // No workspace is needed for 1x1_stride=1 convolutions
     if(wei_h == 1 && wei_w == 1 && u == 1 && v == 1 && pad_h == 0 && pad_w == 0)
     {
-        return 0;
+        if(wDesc.GetType() == miopenInt8)
+            return workspace_size;
+        else
+            return 0;
     }
 
     if(workspace_size > handle.GetMaxMemoryAllocSize())
         return 0;
 
-    return workspace_size;
+    return (wDesc.GetType() == miopenInt8 ? 2 * workspace_size : workspace_size);
 }
 
 size_t
@@ -235,6 +240,8 @@ ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMMTranspose(const TensorDescript
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
 
     size_t x_t_size = in_n * in_c * out_h * out_w * GetTypeSize(xDesc.GetType());
+    if(xDesc.GetType() == miopenInt8)
+        x_t_size *= 2;
 
     size_t y_t_size = yDesc.GetElementSize() * GetTypeSize(yDesc.GetType());
 
@@ -322,6 +329,10 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
         int in_c, in_h, in_w;
         std::tie(std::ignore, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
+
+        if(wDesc.GetType() == miopenInt8)
+            return std::max(ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc),
+                            (group_count * ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc)));
 
         const size_t direct_workspace =
             ForwardBackwardDataGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc, 1);
@@ -491,7 +502,7 @@ ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescriptor& inputTenso
 {
     auto dims = this->GetForwardOutputDim(inputTensorDesc, filterDesc);
     return TensorDescriptor(
-        inputTensorDesc.GetType(),
+        (inputTensorDesc.GetType() == miopenInt8 ? miopenFloat : inputTensorDesc.GetType()),
         {std::get<0>(dims), std::get<1>(dims), std::get<2>(dims), std::get<3>(dims)});
 }
 

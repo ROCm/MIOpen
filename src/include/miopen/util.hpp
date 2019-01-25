@@ -115,6 +115,14 @@ float transpose_NCHW2Vec(Handle& handle,
                          bool trans,
                          bool forward);
 
+float transpose_packed_MN2NM(Handle& handle,
+                             int m,
+                             int n,
+                             int in_offset,
+                             int out_offset,
+                             ConstData_t in,
+                             Data_t out,
+                             miopenDataType_t type);
 } // namespace miopen
 
 #endif // _MIOPEN_UTIL_HPP_

@@ -1985,11 +1985,6 @@ void CastTensor(Handle& handle,
                                          ? 1
                                          : dstDesc_flat.GetType() == miopenHalf ? 2 : 3);
 
-            if(!float_equal(miopen_alpha, 1.0))
-            {
-                parms += " -DALPHA";
-            }
-
             for(int i = 0; i < srcDim_flat; ++i)
             {
                 parms +=
