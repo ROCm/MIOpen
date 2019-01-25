@@ -59,7 +59,15 @@ dummy_memset(Handle& handle, Data_t mem, std::size_t mem_len, miopenDataType_t d
     switch(data_type)
     {
     case miopenInt8:
-    case miopenInt32: break;
+    {
+        data_size = sizeof(int8_t);
+        break;
+    }
+    case miopenInt32:
+    {
+        data_size = sizeof(int);
+        break;
+    }
     case miopenHalf:
     {
         data_size = sizeof(half_float::half);
@@ -282,7 +290,10 @@ miopenStatus_t CallGemm(Handle& handle,
         {
             if(enqueue_dummy_kernel)
             {
-                dummy_memset(handle, C, gemm_desc.m * gemm_desc.n, gemm_desc.dataType);
+                dummy_memset(handle,
+                             C,
+                             gemm_desc.m * gemm_desc.n,
+                             (gemm_desc.dataType == miopenInt8 ? miopenInt32 : gemm_desc.dataType));
             }
 
             start = make_hip_event();
@@ -295,6 +306,43 @@ miopenStatus_t CallGemm(Handle& handle,
         switch(gemm_desc.dataType)
         {
         case miopenInt8:
+        {
+            assert(gemm_desc.k % 4 == 0);
+
+            auto alpha = int(gemm_desc.alpha);
+            auto beta  = int(gemm_desc.beta);
+
+            std::size_t zero = 0;
+            rb_status        = rocblas_gemm_ex(
+                handle.rhandle.get(),
+                gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
+                gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
+                gemm_desc.m,
+                gemm_desc.n,
+                gemm_desc.k,
+                &alpha,
+                static_cast<const int8_t*>(A) + a_offset,
+                rocblas_datatype::rocblas_datatype_i8_r,
+                gemm_desc.lda,
+                static_cast<const int8_t*>(B) + b_offset,
+                rocblas_datatype::rocblas_datatype_i8_r,
+                gemm_desc.ldb,
+                &beta,
+                static_cast<const rocblas_int*>(C) + c_offset,
+                rocblas_datatype::rocblas_datatype_i32_r,
+                gemm_desc.ldc,
+                static_cast<rocblas_int*>(C) + c_offset,
+                rocblas_datatype::rocblas_datatype_i32_r,
+                gemm_desc.ldc,
+                rocblas_datatype::rocblas_datatype_i32_r,
+                rocblas_gemm_algo::rocblas_gemm_algo_standard,
+                0,
+                0,
+                &zero,
+                nullptr);
+        }
+        break;
+
         case miopenInt32: break;
         case miopenHalf:
         {
@@ -522,7 +570,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                 dummy_memset(handle,
                              C,
                              gemm_desc.m * gemm_desc.n * gemm_desc.batch_count,
-                             gemm_desc.dataType);
+                             (gemm_desc.dataType == miopenInt8 ? miopenInt32 : gemm_desc.dataType));
             }
 
             start = make_hip_event();
@@ -535,6 +583,48 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
         switch(gemm_desc.dataType)
         {
         case miopenInt8:
+        {
+            assert(gemm_desc.k % 4 == 0);
+
+            auto alpha = int(gemm_desc.alpha);
+            auto beta  = int(gemm_desc.beta);
+
+            std::size_t zero = 0;
+            rb_status        = rocblas_gemm_strided_batched_ex(
+                handle.rhandle.get(),
+                gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
+                gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
+                gemm_desc.m,
+                gemm_desc.n,
+                gemm_desc.k,
+                &alpha,
+                static_cast<const int8_t*>(A) + a_offset,
+                rocblas_datatype::rocblas_datatype_i8_r,
+                gemm_desc.lda,
+                gemm_desc.strideA,
+                static_cast<const int8_t*>(B) + b_offset,
+                rocblas_datatype::rocblas_datatype_i8_r,
+                gemm_desc.ldb,
+                gemm_desc.strideB,
+                &beta,
+                static_cast<const rocblas_int*>(C) + c_offset,
+                rocblas_datatype::rocblas_datatype_i32_r,
+                gemm_desc.ldc,
+                gemm_desc.strideC,
+                static_cast<rocblas_int*>(C) + c_offset,
+                rocblas_datatype::rocblas_datatype_i32_r,
+                gemm_desc.ldc,
+                gemm_desc.strideC,
+                gemm_desc.batch_count,
+                rocblas_datatype::rocblas_datatype_i32_r,
+                rocblas_gemm_algo::rocblas_gemm_algo_standard,
+                0,
+                0,
+                &zero,
+                nullptr);
+        }
+        break;
+
         case miopenInt32: break;
         case miopenHalf:
         {
@@ -706,7 +796,10 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
         {
             if(enqueue_dummy_kernel)
             {
-                dummy_memset(handle, C, gemm_desc.m * gemm_desc.n, gemm_desc.dataType);
+                dummy_memset(handle,
+                             C,
+                             gemm_desc.m * gemm_desc.n,
+                             (gemm_desc.dataType == miopenInt8 ? miopenInt32 : gemm_desc.dataType));
             }
 
             start = make_hip_event();
@@ -719,6 +812,46 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
         switch(gemm_desc.dataType)
         {
         case miopenInt8:
+        {
+            assert(gemm_desc.k % 4 == 0);
+
+            auto alpha = int(gemm_desc.alpha);
+            auto beta  = int(gemm_desc.beta);
+
+            std::size_t zero = 0;
+            for(int i = 0; i < gemm_desc.batch_count; ++i)
+            {
+                rb_status = rocblas_gemm_ex(
+                    handle.rhandle.get(),
+                    gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
+                    gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
+                    gemm_desc.m,
+                    gemm_desc.n,
+                    gemm_desc.k,
+                    &alpha,
+                    static_cast<const int8_t*>(A) + a_offset + i * gemm_desc.strideA,
+                    rocblas_datatype::rocblas_datatype_i8_r,
+                    gemm_desc.lda,
+                    static_cast<const int8_t*>(B) + b_offset + i * gemm_desc.strideB,
+                    rocblas_datatype::rocblas_datatype_i8_r,
+                    gemm_desc.ldb,
+                    &beta,
+                    static_cast<const rocblas_int*>(C) + c_offset + i * gemm_desc.strideC,
+                    rocblas_datatype::rocblas_datatype_i32_r,
+                    gemm_desc.ldc,
+                    static_cast<rocblas_int*>(C) + c_offset + i * gemm_desc.strideC,
+                    rocblas_datatype::rocblas_datatype_i32_r,
+                    gemm_desc.ldc,
+                    rocblas_datatype::rocblas_datatype_i32_r,
+                    rocblas_gemm_algo::rocblas_gemm_algo_standard,
+                    0,
+                    0,
+                    &zero,
+                    nullptr);
+            }
+        }
+        break;
+
         case miopenInt32: break;
         case miopenHalf:
         {
@@ -938,7 +1071,9 @@ GemmDescriptor CreateGemmDescriptorConvFwd(const TensorDescriptor& wDesc,
                                            const TensorDescriptor& yDesc)
 {
 #ifndef NDEBUG
-    assert(wDesc.GetType() == xDesc.GetType() && wDesc.GetType() == yDesc.GetType());
+    assert(wDesc.GetType() == xDesc.GetType());
+    if(wDesc.GetType() != miopenInt8)
+        assert(wDesc.GetType() == yDesc.GetType());
 #endif
 
     int in_c;
@@ -952,12 +1087,12 @@ GemmDescriptor CreateGemmDescriptorConvFwd(const TensorDescriptor& wDesc,
 
     bool isColMajor       = false;
     bool transA           = false;
-    bool transB           = false;
+    bool transB           = (wDesc.GetType() == miopenInt8);
     int m                 = wei_n;
     int n                 = out_h * out_w;
     int k                 = in_c * wei_h * wei_w;
     int lda               = k;
-    int ldb               = n;
+    int ldb               = wDesc.GetType() == miopenInt8 ? k : n;
     int ldc               = n;
     int batch_count       = 1;
     long long int strideA = 0;
@@ -1094,7 +1229,9 @@ GemmDescriptor CreateGemmDescriptorConvCNHWFwd(const TensorDescriptor& wDesc,
                                                const TensorDescriptor& yDesc)
 {
 #ifndef NDEBUG
-    assert(wDesc.GetType() == xDesc.GetType() && wDesc.GetType() == yDesc.GetType());
+    assert(wDesc.GetType() == xDesc.GetType());
+    if(wDesc.GetType() != miopenInt8)
+        assert(wDesc.GetType() == yDesc.GetType());
 #endif
 
     int in_n, in_c;
@@ -1108,12 +1245,12 @@ GemmDescriptor CreateGemmDescriptorConvCNHWFwd(const TensorDescriptor& wDesc,
 
     bool isColMajor       = false;
     bool transA           = false;
-    bool transB           = false;
+    bool transB           = (wDesc.GetType() == miopenInt8);
     int m                 = wei_n;
     int n                 = in_n * out_h * out_w;
     int k                 = in_c;
     int lda               = k;
-    int ldb               = n;
+    int ldb               = wDesc.GetType() == miopenInt8 ? k : n;
     int ldc               = n;
     int batch_count       = 1;
     long long int strideA = 0;
@@ -1198,7 +1335,9 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1Fwd(const TensorDescript
                                                             const TensorDescriptor& yDesc)
 {
 #ifndef NDEBUG
-    assert(wDesc.GetType() == xDesc.GetType() && wDesc.GetType() == yDesc.GetType());
+    assert(wDesc.GetType() == xDesc.GetType());
+    if(wDesc.GetType() != miopenInt8)
+        assert(wDesc.GetType() == yDesc.GetType());
 #else
     (void)yDesc;
 #endif
@@ -1211,12 +1350,12 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1Fwd(const TensorDescript
 
     bool isColMajor       = false;
     bool transA           = false;
-    bool transB           = false;
+    bool transB           = (wDesc.GetType() == miopenInt8);
     int m                 = wei_n;
     int n                 = in_h * in_w;
     int k                 = in_c;
     int lda               = k;
-    int ldb               = n;
+    int ldb               = wDesc.GetType() == miopenInt8 ? k : n;
     int ldc               = n;
     int batch_count       = in_n;
     long long int strideA = 0;

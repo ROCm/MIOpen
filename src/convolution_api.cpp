@@ -210,6 +210,10 @@ extern "C" miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
         {
             std::cerr << MIOPEN_DRIVER_CMD("convfp16");
         }
+        else if(miopen::deref(xDesc).GetType() == miopenInt8)
+        {
+            std::cerr << MIOPEN_DRIVER_CMD("convint8");
+        }
         else
         {
             std::cerr << MIOPEN_DRIVER_CMD("conv");

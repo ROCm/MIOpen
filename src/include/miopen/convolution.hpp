@@ -308,6 +308,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     int dilation_h;
     int dilation_w;
     int group_count;
+    float lowp_quant; // quantization factor for low precision
     int trans_output_pad_h;
     int trans_output_pad_w;
 };
