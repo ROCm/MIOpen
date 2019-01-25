@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include <cassert>
 #include <miopen/fusion.hpp>
+#include <miopen/md_graph.hpp>
 #include <miopen/fusion_plan.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
@@ -956,40 +957,104 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     }
     else
     {
+        MIOPEN_LOG_I2("Precompiled kernel does not exist, compiling fused-kernel");
         std::string compile_config;
-        auto dType = input_desc.GetType();
-        if(kernel_source_type == OpenclText)
+        auto success = true;
+        // lu.cur_vertex is sorted according to the weights from MDGraph::Advance method
+        std::vector<std::pair<MDGraph_vertex_ptr, cur_vertex_map>> new_list;
+        for(auto& kinder : lu.cur_vertex)
         {
-            if(dType == miopenFloat)
+            if(kinder.first == nullptr)
             {
-                compile_config += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+                MIOPEN_LOG_I2("Invalid FusionPlan");
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+
+            success = true;
+            solver::AnySolver sol;
+            if(kinder.second.find("solver") != kinder.second.end())
+            {
+                sol = boost::any_cast<solver::AnySolver>(kinder.second.at("solver"));
+            }
+            program_name = kinder.first->vertex_data.at("program");
+            auto d       = handle.GetDeviceName();
+            std::transform(d.begin(), d.end(), d.begin(), ::tolower);
+            find_replace_first(program_name, "GFX*", d);
+
+            kernel_name    = kinder.first->vertex_data.at("kernel");
+            algorithm_name = kinder.first->vertex_data.at("algorithm");
+            if(miopen::EndsWith(program_name, ".s"))
+                kernel_source_type = AsmText;
+            else if(miopen::EndsWith(program_name, ".so"))
+                kernel_source_type = Binary;
+            else
+                kernel_source_type = OpenclText;
+            // MIOPEN_LOG_I2("Trying solver: " << *sol);
+            std::vector<solver::AnySolver> sol_vec = {sol};
+            for(auto&& op : op_map)
+            {
+                MIOPEN_LOG_I2("GetCompileParms, " << *op);
+                if(op->GetCompileParms(compile_config, handle, kernel_source_type, sol_vec) ==
+                   miopenStatusSuccess)
+                    continue;
+                else
+                {
+                    success = false;
+                    break;
+                }
+            }
+            if(success)
+            {
+                new_list.emplace_back(kinder.first, kinder.second);
+                break;
+            }
+        }
+        if(success)
+        {
+            lu.cur_vertex   = new_list;
+            auto&& kernels2 = handle.GetKernels(algorithm_name, network_config);
+            if(!kernels2.empty())
+            {
+                status = miopenStatusSuccess;
             }
             else
             {
-                compile_config += " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
-            }
-        }
-        for(auto&& op : op_map)
-        {
-            MIOPEN_LOG_I2("GetCompileParms, " << *op);
-            if(op->GetCompileParms(compile_config, handle, kernel_source_type, lu.GetSolvers()) !=
-               miopenStatusSuccess)
-            {
-                MIOPEN_LOG_I2("Unsupported fusion plan");
-                MIOPEN_THROW(miopenStatusInternalError);
-            }
-        }
-        // TODO: This true for inference but might not be true in general
-        // This is sill an open question
-        // Must be preceded by GetCompileParms
-        const auto& vld = ops_head->GetLocalWGSz(handle, algorithm_name);
-        const auto& vgd = ops_head->GetGlobalWGSz(handle, algorithm_name);
-        MIOPEN_LOG_I2("Program: " << program_name << ", kernel: " << kernel_name);
-        MIOPEN_LOG_I2("Build options: " << compile_config);
-        handle.AddKernel(
-            algorithm_name, network_config, program_name, kernel_name, vld, vgd, compile_config);
+                auto dType = input_desc.GetType();
+                if(kernel_source_type == OpenclText)
+                {
+                    if(dType == miopenFloat)
+                    {
+                        compile_config += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+                    }
+                    else
+                    {
+                        compile_config += " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
+                    }
+                }
+                // TODO: This true for inference but might not be true in general
+                // This is sill an open question
+                // Must be preceded by GetCompileParms
+                const auto& vld = ops_head->GetLocalWGSz(handle, algorithm_name);
+                const auto& vgd = ops_head->GetGlobalWGSz(handle, algorithm_name);
+                MIOPEN_LOG_I2("Program: " << program_name << ", kernel: " << kernel_name);
+                MIOPEN_LOG_I2("Build options: " << compile_config);
+                handle.AddKernel(algorithm_name,
+                                 network_config,
+                                 program_name,
+                                 kernel_name,
+                                 vld,
+                                 vgd,
+                                 compile_config);
 
-        status = miopenStatusSuccess;
+                status = miopenStatusSuccess;
+            }
+        }
+        else
+        {
+            MIOPEN_LOG_I("No viable kernel found to execute the fusion plan");
+            status = miopenStatusInternalError;
+            return status;
+        }
     }
     arg_list = CalcArgOrder(handle);
     return status;
