@@ -65,6 +65,10 @@ typedef float data_t;
 #define NC_TRANS_CNHW 0
 #endif
 
+#ifndef NC_TRANS_MN2NM
+#define NC_TRANS_MN2NM 0
+#endif
+
 #ifndef IS_2D_WG
 #define IS_2D_WG 0
 #endif
@@ -185,5 +189,26 @@ __kernel void transpose_CNHW2NCHW(const global data_t* in, global data_t* out)
         cout[C * HW_IN * n_i] = cin[HW_OUT * n_i];
     }
 #endif
+}
+#endif
+
+#if NC_TRANS_MN2NM
+__kernel void transpose_packed_MN2NM(const global data_t* in, global data_t* out)
+{
+    uint i = get_global_id(0);
+
+    if(i < M * N)
+    {
+        uint m_i = iDiv(i, N);
+        uint n_i = iMod(i, m_i, N);
+
+        uint in_off  = m_i * N + n_i + IN_OFF;
+        uint out_off = n_i * M + m_i + OUT_OFF;
+
+        const global data_t* cin = (const global data_t*)(in + in_off);
+        global data_t* cout      = (global data_t*)(out + out_off);
+
+        *cout = *cin;
+    }
 }
 #endif
