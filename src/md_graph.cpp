@@ -741,19 +741,21 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                         "gcnAsmConv1x1U",
                                                         "miopenConvolutionDirectBiasActivAsm",
                                                         true);
+        FusionMDGraph_Edge_Map map_asm_conv;
+        map_asm_conv["constraints"] = {
+            EdgeOp(std::string("pad_h == 0"), true, OpEqual),
+            EdgeOp(std::string("pad_w == 0"), true, OpEqual),
+            EdgeOp(std::string("u == 1"), true, OpEqual),
+            EdgeOp(std::string("v == 1"), true, OpEqual),
+            EdgeOp(std::string("dilation_h == 1"), true, OpEqual),
+            EdgeOp(std::string("dilation_w == 1"), true, OpEqual),
+            EdgeOp(std::string("x == 1"), true, OpEqual),
+            EdgeOp(std::string("y == 1"), true, OpEqual),
+            EdgeOp(std::string("c <= (2^16)"), true, OpEqual),
+            EdgeOp(std::string("k <= (2^16)"), true, OpEqual),
+            EdgeOp(std::string("(c * iH * iW * 4) <= (2^24)"), true, OpEqual),
+            EdgeOp(std::string("(k * iH * iW * 4) <= (2^24)"), true, OpEqual)};
         // populate the graph
-        auto map_asm_conv = ConvForwardOpDescriptor::MDGraphKey(miopenConvolution,
-                                                                miopenPaddingDefault,
-                                                                /*pad_h*/ 0,
-                                                                /*pad_w*/ 0,
-                                                                /* u */ 1,
-                                                                /* v */ 1,
-                                                                /*dilation_h*/ 1,
-                                                                /*dilation_w*/ 1,
-                                                                /*k any*/ 0,
-                                                                /*c any*/ 0,
-                                                                /* x */ 1,
-                                                                /* y */ 1);
         map_emplace(map_asm_conv, "weight", EdgeOp(50, true, OpAny));
         map_emplace(map_asm_conv, "algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpAny));
         map_emplace(map_asm_conv, "precision", EdgeOp(miopenFloat, true, OpEqual));
@@ -1198,6 +1200,14 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op,
     {
         conv_algo_set.clear();
     }
+    // sort according to the edge weight
+    std::sort(cur_vertex.begin(),
+              cur_vertex.end(),
+              [&](const std::pair<MDGraph_vertex_ptr, cur_vertex_map>& a,
+                  const std::pair<MDGraph_vertex_ptr, cur_vertex_map>& b) {
+                  return boost::any_cast<int>(a.second.at("weight")) >
+                         boost::any_cast<int>(b.second.at("weight"));
+              });
 
     return (!cur_vertex.empty());
 }

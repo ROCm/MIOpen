@@ -79,10 +79,10 @@ struct MDGraph_vertex
 };
 
 using MDGraph_vertex_ptr = std::shared_ptr<MDGraph_vertex>;
+using cur_vertex_map     = std::unordered_map<std::string, boost::any>;
 
 struct FusionMDGraph
 {
-    using cur_vertex_map = std::unordered_map<std::string, boost::any>;
     FusionMDGraph() { Reset(); }
     static void Init(FusionMDGraph& g, miopenFusionOp_t op);
     static void InitConv(FusionMDGraph& g);
@@ -113,7 +113,6 @@ struct FusionMDGraph
     std::vector<solver::AnySolver> GetSolvers();
     void WriteToFile(std::string filename = "");
 
-    protected:
     std::vector<std::pair<MDGraph_vertex_ptr, cur_vertex_map>> cur_vertex;
     std::set<miopenConvFwdAlgorithm_t> conv_algo_set;
 
