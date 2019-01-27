@@ -2,6 +2,7 @@
 
 # Scripts for building MIOpen packages
 
+Important: Users should run these scripts from the `tools` directory.
 
 ## Preparing the ToolChain
 The first set creates "prepares" the cget environment. You give it what directory you want to install the dependencies. If that directory does not exist, then it will create it. The scripts also installs cget if you don't already have it. 
@@ -11,6 +12,8 @@ You should have installed on your system already:
 * RadeonOpenCompute/rocm-cmake
 * ROCmSoftwarePlatform/rocBLAS
 * RadeonOpenCompute/clang-ocl
+* ROCmSoftwarePlatform/MIOpenGEMM
+
 
 Example usage of the prepare script for the OpenCL backend:
 ```
