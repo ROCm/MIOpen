@@ -55,6 +55,9 @@ $cg ignore RadeonOpenCompute/rocm-cmake
 $cg ignore ROCmSoftwarePlatform/rocBLAS
 $cg ignore ROCmSoftwarePlatform/MIOpen
 $cg ignore RadeonOpenCompute/clang-ocl
+$cg ignore ROCmSoftwarePlatform/MIOpenGEMM
+
+
  
 # Skip cppcheck since we wont run analysis
 $cg ignore danmar/cppcheck
