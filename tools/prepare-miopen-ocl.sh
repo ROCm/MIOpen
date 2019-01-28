@@ -47,7 +47,7 @@ cg="cget -p ${1}"
 cd ../
 # For the OpenCL backend
 echo "Init OpenCL cget"
-$cg init -DMIOPEN_BACKEND=OpenCL
+$cg init
 
 echo "Setting up dependencies"
 $cg ignore ROCm-Developer-Tools/HIP

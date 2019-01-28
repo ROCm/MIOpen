@@ -37,8 +37,9 @@ if [ "$#" -ne 2 ]; then
     exit 1
 fi
 
+wdir=$PWD
 mkdir -p ${2}
 cd ${2}
-cmake -DCMAKE_TOOLCHAIN_FILE=${1}/cget/cget.cmake ..
+cmake -DCMAKE_TOOLCHAIN_FILE=${1}/cget/cget.cmake $wdir/..
 make -j package
 
