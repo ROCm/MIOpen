@@ -2591,7 +2591,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                                   workSpaceSize,
                                                                   as_float(0.0f));
                         MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
-                                         << best);
+                                         << best
+                                         << ", workspce_sz = "
+                                         << sol.workspce_sz);
                         if(elapsed < best)
                         {
                             best     = elapsed;
@@ -2881,12 +2883,14 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 else
                 {
                     assert(kernels.size() == 2);
+
                     // this pointer needed here as a workaround in gcc 5
                     assert(workSpace != nullptr &&
                            ((workSpaceSize >= this->BackwardWeightsGetWorkSpaceSizeDirect(
                                                   handle, dyDesc, xDesc, dwDesc) &&
                              group_count == 1) ||
                             group_count >= 2));
+
                     if(kernel.GetName() == "SubSample")
                     {
                         // subsampling kernel
