@@ -85,6 +85,7 @@ set( MIOpen_Source
     rnn_api.cpp
     temp_file.cpp
     problem_description.cpp
+    kernel_build_params.cpp
     include/miopen/temp_file.hpp
     include/miopen/db.hpp
     include/miopen/db_record.hpp
@@ -115,6 +116,7 @@ set( MIOpen_Source
     include/miopen/fusion_ops.hpp
     include/miopen/fusion.hpp
     include/miopen/mdg_expr.hpp
+    include/miopen/kernel_build_params.hpp
     md_graph.cpp
     mdg_expr.cpp
     tensor.cpp
