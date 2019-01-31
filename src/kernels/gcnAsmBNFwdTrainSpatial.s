@@ -356,7 +356,7 @@ bn_ldsgcn_size_loop:
  // increment loop count...
   v_add_u32 v3, 4, v3   
  // compare loop count with MIO_BN_LDSGCN_SIZE...
-        v_cmp_eq_u32 vcc, MIO_BN_LDSGCN_SIZE*4, v3      
+        v_cmp_eq_u32 vcc, 0+MIO_BN_LDSGCN_SIZE*4, v3      
 //  v_cmp_eq_u32 vcc, 64, v3      
   s_and_b64 vcc, exec, vcc     
   s_waitcnt lgkmcnt(0)    
