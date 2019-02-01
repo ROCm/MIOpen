@@ -88,8 +88,8 @@ void miopen::ProblemDescription::setConvDescr(const ConvolutionDescriptor& conv)
 {
     pad1             = conv.pad_h;
     pad0             = conv.pad_w;
-    kernel_stride0   = conv.u;
-    kernel_stride1   = conv.v;
+    kernel_stride1   = conv.u;
+    kernel_stride0   = conv.v;
     kernel_dilation0 = conv.dilation_h;
     kernel_dilation1 = conv.dilation_w;
     group_counts     = conv.group_count;
