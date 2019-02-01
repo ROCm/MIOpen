@@ -143,17 +143,11 @@ int main(int argc, char* argv[])
     bool bnFwdInVer = (fargval == 2 && (base_arg == "bnorm"));
     bool verifyarg  = (drv->GetInputFlags().GetValueInt("verify") == 1);
 
-    if((fargval != 2) || bnFwdInVer)
+    if(fargval & 1 || fargval == 0 || bnFwdInVer)
     {
         drv->RunForwardGPU();
-    }
-
-    if(verifyarg)
-    {
-        if(fargval != 2 || bnFwdInVer)
-        {
+        if(verifyarg)
             drv->VerifyForward();
-        }
     }
 
     if(fargval != 1)

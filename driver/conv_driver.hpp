@@ -229,6 +229,8 @@ class ConvDriver : public Driver
 
     miopenConvolutionDescriptor_t convDesc;
 
+    bool wrw_allowed = 1, bwd_allowed = 1, forward_allowed = 1;
+
     std::string GetVerificationCacheFileName() const;
     std::string GetVCacheFwdOutBasename() const;
     std::string GetVCacheBwdDataBasename() const;
@@ -248,6 +250,11 @@ int ConvDriver<Tgpu, Tref, Tfile>::ParseCmdLineArgs(int argc, char* argv[])
     {
         miopenEnableProfiling(GetHandle(), true);
     }
+
+    forward_allowed = (inflags.GetValueInt("forw") == 0 || inflags.GetValueInt("forw") & 1);
+    bwd_allowed     = (inflags.GetValueInt("forw") == 0 || inflags.GetValueInt("forw") & 2);
+    wrw_allowed     = (inflags.GetValueInt("forw") == 0 || inflags.GetValueInt("forw") & 4);
+
     return 0;
 }
 
@@ -285,7 +292,18 @@ int ConvDriver<Tgpu, Tref, Tfile>::GetandSetData()
 template <typename Tgpu, typename Tref, typename Tfile>
 int ConvDriver<Tgpu, Tref, Tfile>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw", 'F', "0", "Run only Forward Convolution (Default=0)", "int");
+    inflags.AddInputFlag("forw",
+                         'F',
+                         "0",
+                         "Flag enables fwd, bwd, wrw convolutions"
+                         "\n0 fwd+bwd+wrw (default)"
+                         "\n1 fwd only"
+                         "\n2 bwd only"
+                         "\n4 wrw only"
+                         "\n3 fwd+bwd"
+                         "\n5 fwd+wrw"
+                         "\n6 bwd+wrw",
+                         "int");
     inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
     inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
     inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
@@ -508,30 +526,33 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     size_t workSpaceSize_fwd    = 0;
     size_t workSpaceSize_bwd_wt = 0;
     size_t workSpaceSize_bwd_dt = 0;
-    miopenConvolutionBackwardWeightsGetWorkSpaceSize(
-        GetHandle(),
-        (inflags.GetValueStr("mode")) == "trans" ? inputTensor : outputTensor,
-        (inflags.GetValueStr("mode")) == "trans" ? outputTensor : inputTensor,
-        convDesc,
-        weightTensor,
-        &workSpaceSize_bwd_wt);
-    miopenConvolutionBackwardDataGetWorkSpaceSize(
-        GetHandle(),
-        (inflags.GetValueStr("mode")) == "trans" ? inputTensor : outputTensor,
-        weightTensor,
-        convDesc,
-        (inflags.GetValueStr("mode")) == "trans" ? outputTensor : inputTensor,
-        (inflags.GetValueStr("mode")) == "trans" ? &workSpaceSize_fwd : &workSpaceSize_bwd_dt);
 
-    miopenConvolutionForwardGetWorkSpaceSize(
-        GetHandle(),
-        (is_int8_pad4 ? weightTensor_int8pad4 : weightTensor),
-        (inflags.GetValueStr("mode")) == "trans"
-            ? outputTensor
-            : (is_int8_pad4 ? inputTensor_int8pad4 : inputTensor),
-        convDesc,
-        (inflags.GetValueStr("mode")) == "trans" ? inputTensor : outputTensor,
-        (inflags.GetValueStr("mode")) == "trans" ? &workSpaceSize_bwd_dt : &workSpaceSize_fwd);
+    if(wrw_allowed)
+        miopenConvolutionBackwardWeightsGetWorkSpaceSize(
+            GetHandle(),
+            (inflags.GetValueStr("mode")) == "trans" ? inputTensor : outputTensor,
+            (inflags.GetValueStr("mode")) == "trans" ? outputTensor : inputTensor,
+            convDesc,
+            weightTensor,
+            &workSpaceSize_bwd_wt);
+    if(bwd_allowed)
+        miopenConvolutionBackwardDataGetWorkSpaceSize(
+            GetHandle(),
+            (inflags.GetValueStr("mode")) == "trans" ? inputTensor : outputTensor,
+            weightTensor,
+            convDesc,
+            (inflags.GetValueStr("mode")) == "trans" ? outputTensor : inputTensor,
+            (inflags.GetValueStr("mode")) == "trans" ? &workSpaceSize_fwd : &workSpaceSize_bwd_dt);
+    if(forward_allowed)
+        miopenConvolutionForwardGetWorkSpaceSize(
+            GetHandle(),
+            (is_int8_pad4 ? weightTensor_int8pad4 : weightTensor),
+            (inflags.GetValueStr("mode")) == "trans"
+                ? outputTensor
+                : (is_int8_pad4 ? inputTensor_int8pad4 : inputTensor),
+            convDesc,
+            (inflags.GetValueStr("mode")) == "trans" ? inputTensor : outputTensor,
+            (inflags.GetValueStr("mode")) == "trans" ? &workSpaceSize_bwd_dt : &workSpaceSize_fwd);
 
     // Workaround: Pad buffers allocations to be a multiple of 2M
     if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
@@ -812,6 +833,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::FindForward(int& ret_algo_count,
 template <typename Tgpu, typename Tref, typename Tfile>
 int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
 {
+    if(!forward_allowed)
+        return 0;
 
     int ret_algo_count;
     int request_algo_count = 2;
@@ -1261,225 +1284,245 @@ int ConvDriver<Tgpu, Tref, Tfile>::FindBackwardWeights(
 template <typename Tgpu, typename Tref, typename Tfile>
 int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
 {
+    if(!(bwd_allowed || wrw_allowed))
+        return 0;
 
     int ret_algo_count;
     int request_algo_count = 2;
     std::vector<miopenConvAlgoPerf_t> perf_results_data(request_algo_count);
 
-    FindBackwardData(ret_algo_count, request_algo_count, perf_results_data);
-
-    if(ret_algo_count == 0)
-        throw std::runtime_error("Find Backward Data Conv. ret_algo_count == 0");
+    float kernel_total_time = 0.0;
+    float kernel_first_time = 0.0;
 
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
     int ret = 0;
 
-    float kernel_total_time = 0.0;
-    float kernel_first_time = 0.0;
-
     Timer t;
     START_TIME;
 
-    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+    if(bwd_allowed)
     {
-        if(miopen::deref(convDesc).mode == miopenTranspose)
-            miopenConvolutionForward(
+        FindBackwardData(ret_algo_count, request_algo_count, perf_results_data);
+
+        if(ret_algo_count == 0)
+            throw std::runtime_error("Find Backward Data Conv. ret_algo_count == 0");
+
+        for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+        {
+            if(miopen::deref(convDesc).mode == miopenTranspose)
+                miopenConvolutionForward(GetHandle(),
+                                         &alpha,
+                                         outputTensor,
+                                         dout_dev->GetMem(),
+                                         weightTensor,
+                                         wei_dev->GetMem(),
+                                         convDesc,
+                                         perf_results_data[0].fwd_algo, // use the fastest algo
+                                         &beta,
+                                         inputTensor,
+                                         din_dev->GetMem(),
+                                         (workspace_bwd_data_dev != nullptr)
+                                             ? workspace_bwd_data_dev->GetMem()
+                                             : nullptr,
+                                         perf_results_data[0].memory);
+            else
+                ret = miopenConvolutionBackwardData(GetHandle(),
+                                                    &alpha,
+                                                    outputTensor,
+                                                    dout_dev->GetMem(),
+                                                    weightTensor,
+                                                    wei_dev->GetMem(),
+                                                    convDesc,
+                                                    perf_results_data[0].bwd_data_algo,
+                                                    &beta,
+                                                    inputTensor,
+                                                    din_dev->GetMem(),
+                                                    (workspace_bwd_data_dev != nullptr)
+                                                        ? workspace_bwd_data_dev->GetMem()
+                                                        : nullptr,
+                                                    perf_results_data[0].memory);
+
+            float time = 0.0;
+            miopenGetKernelTime(GetHandle(), &time);
+            kernel_total_time += time;
+            if(i == 0)
+                kernel_first_time = time;
+        }
+
+        if(inflags.GetValueInt("time") == 1)
+        {
+            STOP_TIME;
+            if(WALL_CLOCK)
+                printf("Wall-clock Time Backward Data Conv. Elapsed: %f ms\n",
+                       t.gettime_ms() / inflags.GetValueInt("iter"));
+
+            int iter = inflags.GetValueInt("iter");
+            float kernel_average_time =
+                iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
+
+            printf("MIOpen Backward Data Conv. Algorithm: %d\n",
+                   perf_results_data[0].bwd_data_algo);
+            printf("GPU Kernel Time Backward Data Conv. Elapsed: %f ms (average)\n",
+                   kernel_average_time);
+
+            int in_n, in_c, in_h, in_w;
+            std::tie(in_n, in_c, in_h, in_w) =
+                miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
+            int wei_c, wei_n, wei_h, wei_w;
+            std::tie(wei_c, wei_n, wei_h, wei_w) =
+                miopen::tien<4>(miopen::deref(weightTensor).GetLengths());
+            int out_n, out_c, out_h, out_w;
+            std::tie(out_n, out_c, out_h, out_w) =
+                miopen::tien<4>(miopen::deref(outputTensor).GetLengths());
+
+            size_t flopCnt     = 2L * in_n * in_c * in_h * in_w * wei_h * wei_w * out_c;
+            size_t weightBytes = wei_n * wei_c * wei_h * wei_w *
+                                 miopen::GetTypeSize(miopen::deref(weightTensor).GetType());
+            size_t inputBytes =
+                in_n * in_c * out_c * miopen::GetTypeSize(miopen::deref(inputTensor).GetType());
+            size_t readBytes = inputBytes + weightBytes;
+
+            size_t outputBytes = 1.0 * out_n * out_c * out_h * out_w *
+                                 miopen::GetTypeSize(miopen::deref(outputTensor).GetType());
+
+            printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
+                   "GB/s, timeMs\n");
+            printf(
+                "stats: %s%dx%du%d, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
+                "bwdd-conv",
+                wei_h,
+                wei_w,
+                miopen::deref(convDesc).u,
+                in_n,
+                in_c,
+                wei_h,
+                wei_w,
+                out_c,
+                out_h,
+                out_w,
+                flopCnt,
+                readBytes,
+                outputBytes,
+                flopCnt / kernel_average_time / 1e6,
+                (readBytes + outputBytes) / kernel_average_time / 1e6,
+                kernel_average_time);
+        }
+
+        din_dev->FromGPU(GetStream(), din.data());
+    }
+
+    if(wrw_allowed)
+    {
+        std::vector<miopenConvAlgoPerf_t> perf_results_weights(request_algo_count);
+
+        FindBackwardWeights(ret_algo_count, request_algo_count, perf_results_weights);
+
+        if(ret_algo_count == 0)
+            throw std::runtime_error("Find Backward Weights Conv. ret_algo_count == 0");
+
+        kernel_total_time = 0.0;
+        kernel_first_time = 0.0;
+
+        START_TIME;
+        for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+        {
+            ret = miopenConvolutionBackwardWeights(
                 GetHandle(),
                 &alpha,
-                outputTensor,
-                dout_dev->GetMem(),
-                weightTensor,
-                wei_dev->GetMem(),
+                miopen::deref(convDesc).mode == miopenTranspose ? inputTensor : outputTensor,
+                miopen::deref(convDesc).mode == miopenTranspose ? in_dev->GetMem()
+                                                                : dout_dev->GetMem(),
+                miopen::deref(convDesc).mode == miopenTranspose ? outputTensor : inputTensor,
+                miopen::deref(convDesc).mode == miopenTranspose ? dout_dev->GetMem()
+                                                                : in_dev->GetMem(),
                 convDesc,
-                perf_results_data[0].fwd_algo, // use the fastest algo
+                perf_results_weights[0].bwd_weights_algo,
                 &beta,
-                inputTensor,
-                din_dev->GetMem(),
-                (workspace_bwd_data_dev != nullptr) ? workspace_bwd_data_dev->GetMem() : nullptr,
-                perf_results_data[0].memory);
-        else
-            ret = miopenConvolutionBackwardData(
-                GetHandle(),
-                &alpha,
-                outputTensor,
-                dout_dev->GetMem(),
                 weightTensor,
-                wei_dev->GetMem(),
-                convDesc,
-                perf_results_data[0].bwd_data_algo,
-                &beta,
-                inputTensor,
-                din_dev->GetMem(),
-                (workspace_bwd_data_dev != nullptr) ? workspace_bwd_data_dev->GetMem() : nullptr,
-                perf_results_data[0].memory);
+                dwei_dev->GetMem(),
+                (workspace_bwd_weights_dev != nullptr) ? workspace_bwd_weights_dev->GetMem()
+                                                       : nullptr,
+                perf_results_weights[0].memory);
 
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-        kernel_total_time += time;
-        if(i == 0)
-            kernel_first_time = time;
-    }
+            float time = 0.0;
+            miopenGetKernelTime(GetHandle(), &time);
+            kernel_total_time += time;
+            if(i == 0)
+                kernel_first_time = time;
+        }
 
-    if(inflags.GetValueInt("time") == 1)
-    {
-        STOP_TIME;
-        if(WALL_CLOCK)
-            printf("Wall-clock Time Backward Data Conv. Elapsed: %f ms\n",
-                   t.gettime_ms() / inflags.GetValueInt("iter"));
+        if(inflags.GetValueInt("time") == 1)
+        {
+            float time = 0.0;
+            miopenGetKernelTime(GetHandle(), &time);
 
-        int iter = inflags.GetValueInt("iter");
-        float kernel_average_time =
-            iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
+            STOP_TIME;
+            if(WALL_CLOCK)
+                printf("Wall-clock Time Backward Weights Conv. Elapsed: %f ms\n",
+                       t.gettime_ms() / inflags.GetValueInt("iter"));
 
-        printf("MIOpen Backward Data Conv. Algorithm: %d\n", perf_results_data[0].bwd_data_algo);
-        printf("GPU Kernel Time Backward Data Conv. Elapsed: %f ms (average)\n",
-               kernel_average_time);
+            int iter = inflags.GetValueInt("iter");
+            float kernel_average_time =
+                iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
 
-        int in_n, in_c, in_h, in_w;
-        std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
-        int wei_c, wei_n, wei_h, wei_w;
-        std::tie(wei_c, wei_n, wei_h, wei_w) =
-            miopen::tien<4>(miopen::deref(weightTensor).GetLengths());
-        int out_n, out_c, out_h, out_w;
-        std::tie(out_n, out_c, out_h, out_w) =
-            miopen::tien<4>(miopen::deref(outputTensor).GetLengths());
+            printf("MIOpen Backward Weights Conv. Algorithm: %d\n",
+                   perf_results_weights[0].bwd_weights_algo);
+            printf("GPU Kernel Time Backward Weights Conv. Elapsed: %f ms (average)\n",
+                   kernel_average_time);
 
-        size_t flopCnt     = 2L * in_n * in_c * in_h * in_w * wei_h * wei_w * out_c;
-        size_t weightBytes = wei_n * wei_c * wei_h * wei_w *
-                             miopen::GetTypeSize(miopen::deref(weightTensor).GetType());
-        size_t inputBytes =
-            in_n * in_c * out_c * miopen::GetTypeSize(miopen::deref(inputTensor).GetType());
-        size_t readBytes = inputBytes + weightBytes;
+            int in_n, in_c, in_h, in_w;
+            std::tie(in_n, in_c, in_h, in_w) =
+                miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
+            int wei_c, wei_n, wei_h, wei_w;
+            std::tie(wei_c, wei_n, wei_h, wei_w) =
+                miopen::tien<4>(miopen::deref(weightTensor).GetLengths());
+            int out_n, out_c, out_h, out_w;
+            std::tie(out_n, out_c, out_h, out_w) =
+                miopen::tien<4>(miopen::deref(outputTensor).GetLengths());
 
-        size_t outputBytes = 1.0 * out_n * out_c * out_h * out_w *
-                             miopen::GetTypeSize(miopen::deref(outputTensor).GetType());
+            size_t flopCnt     = 2L * in_n * in_c * in_h * in_w * wei_h * wei_w * out_c;
+            size_t readBytes   = 0;
+            size_t outputBytes = 0;
 
-        printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
-               "GB/s, timeMs\n");
-        printf("stats: %s%dx%du%d, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
-               "bwdd-conv",
-               wei_h,
-               wei_w,
-               miopen::deref(convDesc).u,
-               in_n,
-               in_c,
-               wei_h,
-               wei_w,
-               out_c,
-               out_h,
-               out_w,
-               flopCnt,
-               readBytes,
-               outputBytes,
-               flopCnt / kernel_average_time / 1e6,
-               (readBytes + outputBytes) / kernel_average_time / 1e6,
-               kernel_average_time);
-    }
+            printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
+                   "GB/s, timeMs\n");
+            printf(
+                "stats: %s%dx%du%d, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
+                "bwdw-conv",
+                wei_h,
+                wei_w,
+                miopen::deref(convDesc).u,
+                in_n,
+                in_c,
+                out_h,
+                out_w,
+                wei_h,
+                wei_w,
+                out_c,
+                flopCnt,
+                readBytes,
+                outputBytes,
+                flopCnt / kernel_average_time / 1e6,
+                (readBytes + outputBytes) / kernel_average_time / 1e6,
+                kernel_average_time);
+        }
+        dwei_dev->FromGPU(GetStream(), dwei.data());
 
-    din_dev->FromGPU(GetStream(), din.data());
-
-    std::vector<miopenConvAlgoPerf_t> perf_results_weights(request_algo_count);
-
-    FindBackwardWeights(ret_algo_count, request_algo_count, perf_results_weights);
-
-    if(ret_algo_count == 0)
-        throw std::runtime_error("Find Backward Weights Conv. ret_algo_count == 0");
-
-    kernel_total_time = 0.0;
-    kernel_first_time = 0.0;
-
-    START_TIME;
-    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
-    {
-        ret = miopenConvolutionBackwardWeights(
-            GetHandle(),
-            &alpha,
-            miopen::deref(convDesc).mode == miopenTranspose ? inputTensor : outputTensor,
-            miopen::deref(convDesc).mode == miopenTranspose ? in_dev->GetMem() : dout_dev->GetMem(),
-            miopen::deref(convDesc).mode == miopenTranspose ? outputTensor : inputTensor,
-            miopen::deref(convDesc).mode == miopenTranspose ? dout_dev->GetMem() : in_dev->GetMem(),
-            convDesc,
-            perf_results_weights[0].bwd_weights_algo,
-            &beta,
-            weightTensor,
-            dwei_dev->GetMem(),
-            (workspace_bwd_weights_dev != nullptr) ? workspace_bwd_weights_dev->GetMem() : nullptr,
-            perf_results_weights[0].memory);
-
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-        kernel_total_time += time;
-        if(i == 0)
-            kernel_first_time = time;
-    }
-
-    if(inflags.GetValueInt("time") == 1)
-    {
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-
-        STOP_TIME;
-        if(WALL_CLOCK)
-            printf("Wall-clock Time Backward Weights Conv. Elapsed: %f ms\n",
-                   t.gettime_ms() / inflags.GetValueInt("iter"));
-
-        int iter = inflags.GetValueInt("iter");
-        float kernel_average_time =
-            iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-
-        printf("MIOpen Backward Weights Conv. Algorithm: %d\n",
-               perf_results_weights[0].bwd_weights_algo);
-        printf("GPU Kernel Time Backward Weights Conv. Elapsed: %f ms (average)\n",
-               kernel_average_time);
-
-        int in_n, in_c, in_h, in_w;
-        std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
-        int wei_c, wei_n, wei_h, wei_w;
-        std::tie(wei_c, wei_n, wei_h, wei_w) =
-            miopen::tien<4>(miopen::deref(weightTensor).GetLengths());
-        int out_n, out_c, out_h, out_w;
-        std::tie(out_n, out_c, out_h, out_w) =
-            miopen::tien<4>(miopen::deref(outputTensor).GetLengths());
-
-        size_t flopCnt     = 2L * in_n * in_c * in_h * in_w * wei_h * wei_w * out_c;
-        size_t readBytes   = 0;
-        size_t outputBytes = 0;
-
-        printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
-               "GB/s, timeMs\n");
-        printf("stats: %s%dx%du%d, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
-               "bwdw-conv",
-               wei_h,
-               wei_w,
-               miopen::deref(convDesc).u,
-               in_n,
-               in_c,
-               out_h,
-               out_w,
-               wei_h,
-               wei_w,
-               out_c,
-               flopCnt,
-               readBytes,
-               outputBytes,
-               flopCnt / kernel_average_time / 1e6,
-               (readBytes + outputBytes) / kernel_average_time / 1e6,
-               kernel_average_time);
-    }
-    dwei_dev->FromGPU(GetStream(), dwei.data());
-
-    if(workspace_bwd_weights_dev != nullptr)
-    {
-        if(perf_results_weights[0].bwd_weights_algo == 0)
-        { // miopenConvolutionBwdWeightsAlgoGEMM
-            workspace_bwd_weights_dev->FromGPU(GetStream(), workspace_bwd_weights.data());
+        if(workspace_bwd_weights_dev != nullptr)
+        {
+            if(perf_results_weights[0].bwd_weights_algo == 0)
+            { // miopenConvolutionBwdWeightsAlgoGEMM
+                workspace_bwd_weights_dev->FromGPU(GetStream(), workspace_bwd_weights.data());
+            }
         }
     }
 
     if(inflags.GetValueInt("dump_output"))
     {
-        dumpBufferToFile<Tgpu>("dump_bwd_din_gpu.bin", din.data(), din.size());
-        dumpBufferToFile<Tgpu>("dump_bwd_dwei_gpu.bin", dwei.data(), dwei.size());
+        if(bwd_allowed)
+            dumpBufferToFile<Tgpu>("dump_bwd_din_gpu.bin", din.data(), din.size());
+        if(wrw_allowed)
+            dumpBufferToFile<Tgpu>("dump_bwd_dwei_gpu.bin", dwei.data(), dwei.size());
     }
 
     if(inflags.GetValueInt("bias") != 0)
@@ -2021,6 +2064,9 @@ std::string ConvDriver<Tgpu, Tref, Tfile>::GetVCacheBwdDataBasename() const
 template <typename Tgpu, typename Tref, typename Tfile>
 int ConvDriver<Tgpu, Tref, Tfile>::VerifyForward()
 {
+    if(!forward_allowed)
+        return 0;
+
     if(!TryReadVerificationCache(GetVCacheFwdOutBasename(), outputTensor, outhost.data()))
     {
         RunForwardCPU();
@@ -2047,40 +2093,50 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyForward()
 template <typename Tgpu, typename Tref, typename Tfile>
 int ConvDriver<Tgpu, Tref, Tfile>::VerifyBackward()
 {
+
+    if(!(bwd_allowed || wrw_allowed))
+        return 0;
+
     const Tref tolerance =
         ((sizeof(Tgpu) == 4) ? static_cast<Tref>(1e-6) : static_cast<Tref>(7e-2));
 
-    if(!TryReadVerificationCache(GetVCacheBwdDataBasename(), inputTensor, din_host.data()))
+    if(bwd_allowed)
     {
-        RunBackwardDataCPU();
+        if(!TryReadVerificationCache(GetVCacheBwdDataBasename(), inputTensor, din_host.data()))
+        {
+            RunBackwardDataCPU();
+        }
+
+        auto error_data = miopen::rms_range(din_host, din);
+
+        if(!(error_data < tolerance))
+        {
+            std::cout << "Backward Convolution Data Failed: " << error_data << std::endl;
+        }
+        else
+        {
+            std::cout << "Backward Convolution Data Verifies on CPU and GPU (" << error_data << ')'
+                      << std::endl;
+        }
     }
 
-    auto error_data = miopen::rms_range(din_host, din);
+    if(wrw_allowed)
+    {
+        if(!TryReadVerificationCache("bwd_wei", weightTensor, dwei_host.data()))
+        {
+            RunBackwardWeightsCPU();
+        }
 
-    if(!(error_data < tolerance))
-    {
-        std::cout << "Backward Convolution Data Failed: " << error_data << std::endl;
-    }
-    else
-    {
-        std::cout << "Backward Convolution Data Verifies on CPU and GPU (" << error_data << ')'
-                  << std::endl;
-    }
-
-    if(!TryReadVerificationCache("bwd_wei", weightTensor, dwei_host.data()))
-    {
-        RunBackwardWeightsCPU();
-    }
-
-    auto error_weights = miopen::rms_range(dwei_host, dwei);
-    if(!(error_weights < tolerance))
-    {
-        std::cout << "Backward Convolution Weights Failed: " << error_weights << std::endl;
-    }
-    else
-    {
-        std::cout << "Backward Convolution Weights Verifies on CPU and GPU (" << error_weights
-                  << ')' << std::endl;
+        auto error_weights = miopen::rms_range(dwei_host, dwei);
+        if(!(error_weights < tolerance))
+        {
+            std::cout << "Backward Convolution Weights Failed: " << error_weights << std::endl;
+        }
+        else
+        {
+            std::cout << "Backward Convolution Weights Verifies on CPU and GPU (" << error_weights
+                      << ')' << std::endl;
+        }
     }
 
     if(inflags.GetValueInt("bias") != 0)
