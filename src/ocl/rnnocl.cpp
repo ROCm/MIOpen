@@ -3863,6 +3863,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     (void)dhy;
     (void)dcy;
     (void)reserveSpace;
+    (void)in_h;
     MIOPEN_THROW("GEMM is not supported");
 #endif
 };

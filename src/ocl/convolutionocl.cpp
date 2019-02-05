@@ -27,6 +27,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/db.hpp>
 #include <miopen/env.hpp>
+#include <miopen/find_db.hpp>
 #include <miopen/util.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/float_equal.hpp>
@@ -42,7 +43,6 @@ namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_FIND_DB)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 
 struct AutoEnableProfiling
@@ -814,15 +814,10 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
     ProblemDescription problem(xDesc, wDesc, yDesc, *this, 1);
 
-    const auto find_db_path = GetFindDbPath() + "/" + handle.GetDbPathFilename() + ".cd.fdb.txt";
-    (void)find_db_path;
-    auto record =
-        boost::optional<DbRecord>{boost::none}; // Db{find_db_path, false}.FindRecord(problem);
-    auto loaded = record.is_initialized();
+    std::string network_config;
+    std::ignore = problem.mloBuildConf_Key(network_config);
 
-    if(!loaded)
-    {
-        record = DbRecord(problem);
+    std::vector<PerfField> perf_db = FindDb::TryLoad(handle, problem, [&](DbRecord& record) {
         DirConvFindCore(handle,
                         xDesc,
                         x,
@@ -833,40 +828,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                         workSpaceSize,
                         *this,
                         exhaustiveSearch,
-                        *record);
-    }
-
-    std::vector<PerfField> perf_db;
-    std::string network_config;
-    std::ignore = problem.mloBuildConf_Key(network_config);
-
-    for(const auto& pair : record->As<FindDbData>())
-    {
-        perf_db.push_back({pair.first, pair.second.time, pair.second.workspace});
-
-        if(loaded && (pair.second.kchache_key == FindDbData::GetUnusedKCacheKey() ||
-                      !handle.HasKernel(pair.first, pair.second.kchache_key)))
-        {
-            DirConvFindCore(handle,
-                            xDesc,
-                            x,
-                            wDesc,
-                            w,
-                            yDesc,
-                            workSpace,
-                            workSpaceSize,
-                            *this,
-                            exhaustiveSearch,
-                            *record);
-            loaded = false;
-        }
-    }
-
-    if(IsEnabled(MIOPEN_DEBUG_ENABLE_FIND_DB{}) && !loaded)
-    {
-        if(!Db{find_db_path, false}.StoreRecord(record.get()))
-            MIOPEN_LOG_W("Failed to store record to find-db at <" << find_db_path << ">");
-    }
+                        record);
+    });
 
     if(perf_db.empty())
         MIOPEN_THROW("Fwd Convolution cannot be executed due to incorrect params");
