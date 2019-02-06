@@ -257,9 +257,14 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
         {
             int out_width = params.in_width; // out is in, in is out
 
-            int wei_blk_sz0   = ((params.kernel_size0 + WEI_WKITEM - 1) / WEI_WKITEM);
-            int wei_blk_sz    = params.kernel_size1 * wei_blk_sz0;
-            int n_wei_blk     = GRP_SZ / wei_blk_sz;
+            int wei_blk_sz0 = ((params.kernel_size0 + WEI_WKITEM - 1) / WEI_WKITEM);
+            int wei_blk_sz  = params.kernel_size1 * wei_blk_sz0;
+            int n_wei_blk   = GRP_SZ / wei_blk_sz;
+            if(n_wei_blk == 0)
+            { /// \todo This is quickfix for DIV/0, see ROCmSoftwarePlatform/MIOpen/issues/70.
+                MIOPEN_LOG_I2("ConvOClBwdWrW2: GRP_SZ < wei_blk_sz, not applicable?");
+                return ConvSolution(miopenStatusNotInitialized);
+            }
             out_wei_scan_loop = (out_width + n_wei_blk - 1) / n_wei_blk;
             max_wei_blk =
                 std::min(n_wei_blk, (out_width + out_wei_scan_loop - 1) / out_wei_scan_loop);
