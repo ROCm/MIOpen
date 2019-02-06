@@ -2,6 +2,30 @@
 ## MIOpen Release notes
 
 
+### 02/06/2019 [ 1.7.1 ]
+
+- This release contains minor bug fixes and performance improvements.
+  
+
+Changes:
+
+- Fixed corrupt and obsolete performance database entries
+- Fixed issue #70, "SIGFPE (DIV/0) in ConvOclBwdWrW2::GetSolution()"
+- Fixed issue #72, "workSpaceSize check assertion fails in ConvolutionBackwardWeights() - DEBUG builds only"
+- Fixed issue #77, "Results of ConvBwdWeightsAlgoDirect and ConvBwdWeightsAlgoGEMM mismatch for some specific parameters"
+- Removed default dependency of RNNs on rocBLAS
+- Added a workaround for softmax fp16 correctness issue
+- Added check to only make MIOpen with static boost libraries
+- Improved performance database coverage
+
+Known Issues:
+
+- RNNs do not support fp16
+- OpenCL backend does not support GEMM convolutions in fp16
+- Layer fusions for convolution 1x1 fp16 are not supported
+- Layer fusions for large image 1x1 convolutions may cause an exception instead of a warning during compile phase if plan is not supported
+
+
 ### 12/19/2018 [ 1.7.0 ]
 
 - This release contains general bug fixes and an updated performance database

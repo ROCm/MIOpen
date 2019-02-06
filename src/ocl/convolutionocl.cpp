@@ -650,7 +650,9 @@ static void DirConvFindCore(Handle& handle,
                         else
                         {
                             MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
-                                             << best);
+                                             << best
+                                             << ", workspce_sz = "
+                                             << sol.workspce_sz);
                             if(elapsed < best)
                             {
                                 best     = elapsed;
@@ -988,7 +990,9 @@ static void DirConvFindCore(Handle& handle,
                         else
                         {
                             MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
-                                             << best);
+                                             << best
+                                             << ", workspce_sz = "
+                                             << sol.workspce_sz);
                             if(elapsed < best)
                             {
                                 best     = elapsed;
@@ -2193,7 +2197,9 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                         else
                         {
                             MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
-                                             << best);
+                                             << best
+                                             << ", workspce_sz = "
+                                             << sol.workspce_sz);
                             if(elapsed < best)
                             {
                                 best     = elapsed;
@@ -2325,7 +2331,9 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                         else
                         {
                             MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
-                                             << best);
+                                             << best
+                                             << ", workspce_sz = "
+                                             << sol.workspce_sz);
                             if(elapsed < best)
                             {
                                 best     = elapsed;
@@ -3645,7 +3653,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                                   workSpaceSize,
                                                                   as_float(0.0f));
                         MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
-                                         << best);
+                                         << best
+                                         << ", workspce_sz = "
+                                         << sol.workspce_sz);
                         if(elapsed < best)
                         {
                             best     = elapsed;
@@ -3854,7 +3864,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                                   workSpaceSize,
                                                                   as_float(0.0f));
                         MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
-                                         << best);
+                                         << best
+                                         << ", workspce_sz = "
+                                         << sol.workspce_sz);
                         if(elapsed < best)
                         {
                             best     = elapsed;
@@ -4104,10 +4116,13 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 else
                 {
                     assert(kernels.size() == 2);
-                    // this pointer needed here as a workaround in gcc 5
-                    assert(workSpace != nullptr &&
-                           workSpaceSize >= this->BackwardWeightsGetWorkSpaceSizeDirect(
-                                                handle, dyDesc, xDesc, dwDesc));
+                    /// We can't use BackwardWeightsGetWorkSpaceSizeDirect() to check if enough
+                    /// workspace is provided by the user, because the function returns max of
+                    /// all available Solutions, but we do not know how much workspace is
+                    /// required for the specific Solution (which is reduced to a vector of
+                    /// kernels here) we are going to invoke. So let's check against 0 for now.
+                    /// \todo Implement full ws size check. See #1127.
+                    assert(workSpace != nullptr && workSpaceSize > 0);
                     if(kernel.GetName() == "SubSample")
                     {
                         // subsampling kernel
