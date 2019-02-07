@@ -65,6 +65,7 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     auto GetLocalWGSz();
     auto GetGlobalWGSz();
     std::vector<Exec_arg_t> CalcArgOrder(Handle& handle);
+    bool GetEnumVal(const std::string& sym, int& val) const;
     OpKernelArg GetDevAttribute(const std::string& k, Handle& handle) const;
     OpKernelArg GetTensorAttr(const std::string& sym) const;
     bool GetTensorAttr(const std::string& sym, int& val) const;
