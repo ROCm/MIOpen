@@ -646,16 +646,38 @@ std::string BatchNormFwdTrainFusionOpDescriptor::GetArgKey(const std::string& k)
 {
     return k + std::to_string(GetIdx());
 }
+bool BatchNormFwdTrainFusionOpDescriptor::GetOpAttr(const std::string& sym, int& val) const
+{
+    if(sym == "bn_mode")
+    {
+        val = mode;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
 OpKernelArg BatchNormFwdTrainFusionOpDescriptor::GetOpAttr(const std::string& k) const
 {
-    if(k == "iNHW")
+    int v;
+    if(GetOpAttr(k, v))
+    {
+        return OpKernelArg(v);
+    }
+    else if(k == "diff_scale")
+    {
+        return OpKernelArg(static_cast<float>(0.0));
+    }
+    else if(k == "iNHW")
     {
         int n, h, w;
         std::tie(n, std::ignore, h, w) = tien<4>(input_desc.GetLengths());
-        return OpKernelArg(1.0f / static_cast<float>(n * h * w));
+        float nhw = n * h * w;
+        return OpKernelArg(static_cast<float>(1.0f / nhw));
     }
     else
-        MIOPEN_THROW("BatchNormBwdTrainFusionOpDescriptor does not support attribute: " + k);
+        MIOPEN_THROW("BatchNormFwdTrainFusionOpDescriptor does not support attribute: " + k);
 }
 /// END BN traing forward
 

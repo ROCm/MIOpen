@@ -95,8 +95,8 @@ struct FusionMDGraph
     void AddEdge(MDGraph_vertex_ptr src, MDGraph_vertex_ptr dst, FusionMDGraph_Edge_Map& map);
 
     bool CmpOpKey(const FusionMDGraph_Edge_Map& edge_val,
-                  const std::shared_ptr<FusionOpDescriptor>& op,
-                  std::function<bool(const std::string& sym, int& val)> attr_fun) const;
+                  std::function<bool(const std::string& sym, int& val)> attr_fun,
+                  std::unordered_map<std::string, int>& syms) const;
     MDGraph_vertex_ptr GetCurVertex(Handle& handle);
     std::string GetProgramName(Handle& handle);
     std::string GetKernelName(Handle& handle);
@@ -104,12 +104,6 @@ struct FusionMDGraph
     std::vector<DefaultKernelArg> GetKernelArgs(Handle& handle);
     std::vector<miopenConvFwdAlgorithm_t> GetConvAlgos();
     bool SetConvAlgo(miopenConvFwdAlgorithm_t algo);
-    static FusionMDGraph_Edge_Map EmptyEdgeMap(int weight = 0, MDGraph_op_t op = OpAny);
-    static bool ExecEdgeOp(const EdgeOp& edg_op, const EdgeOp& op_val);
-    static bool ExecOpEqual(const EdgeOp& edg_op, const EdgeOp& op_val);
-    static bool ExecOpModulo(const EdgeOp& edg_op, const EdgeOp& op_val);
-    static bool ExecOpGTE(const EdgeOp& edg_op, const EdgeOp& op_val);
-    static bool ExecOpLTE(const EdgeOp& edg_op, const EdgeOp& op_val);
     std::vector<solver::AnySolver> GetSolvers();
     void WriteToFile(std::string filename = "");
 
