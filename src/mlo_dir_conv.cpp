@@ -92,7 +92,6 @@ std::vector<miopen::solver::ConvSolution> mlo_construct_direct2D::FindAllSolutio
         miopen::solver::ConvOclDirectFwdGen,
         miopen::solver::ConvOclDirectFwd3x3,
         miopen::solver::ConvOclDirectFwd1x1,
-        miopen::solver::GroupConvOclDirectFwd,
         miopen::solver::ConvOclDirectFwd
     >(_search_params, this->GetDb());
     // clang-format on
