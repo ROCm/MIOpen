@@ -40,6 +40,7 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     if((params.n_inputs & 0xF) > 0 || (params.n_outputs & 0xF) > 0)
         result = false;
 
+    MIOPEN_LOG_I("ConvOclBwdWrW1x1::IsApplicable " << result);
     return result;
 }
 

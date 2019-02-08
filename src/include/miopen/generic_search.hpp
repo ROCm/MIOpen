@@ -258,6 +258,7 @@ enum class SearchTweak
     // when the 2x subsampling kernel is used at the dx input of
     // the WrW convolution, but we are skipping it during auto-tune.
     OverrideXBufferSizeByWorkspaceSize,
+    OverrideWeightBufferSizeByWorkspaceSize
 };
 
 /// Solver member function requirements:
@@ -296,10 +297,11 @@ auto GenericSearch(const Solver s,
     const auto default_solution = s.GetSolution(context, s.GetPerformanceConfig(context));
 
     // Allocate buffers, init input buffers.
-    size_t top_size  = context.top_sz / sizeof(float);
-    size_t bot_size  = context.bot_sz / sizeof(float);
-    size_t wei_size  = context.weights_sz / sizeof(float);
-    size_t bias_size = context.bias_sz / sizeof(float);
+    size_t top_size           = context.top_sz / sizeof(float);
+    size_t bot_size           = context.bot_sz / sizeof(float);
+    size_t wei_size           = context.weights_sz / sizeof(float);
+    size_t bias_size          = context.bias_sz / sizeof(float);
+    size_t max_workspace_size = s.GetMaxWorkspaceSize(context) / sizeof(float);
 
     if(tweak == SearchTweak::OverrideXBufferSizeByWorkspaceSize)
     {
@@ -309,11 +311,27 @@ auto GenericSearch(const Solver s,
         else
             top_size = default_solution.workspce_sz;
     }
+    else if(tweak == SearchTweak::OverrideWeightBufferSizeByWorkspaceSize)
+    {
+        if(context.direction.IsBackwardWrW())
+        {
+            // Reusing of buffers across kernel invocations to preserve precious memory
+            if(max_workspace_size != 0)
+            {
+                // bottom buffer is reused for weight buffer
+                bot_size = std::max(bot_size, wei_size);
+
+                // weight buffer is reused for workspace buffer
+                wei_size = std::max(wei_size, max_workspace_size);
+            }
+        }
+    }
 
     std::vector<float> top(top_size);
     std::vector<float> bot(bot_size);
     std::vector<float> wei(wei_size);
     std::vector<float> bias(bias_size);
+
     InitRandomly(bot);
     if(!(context.direction.IsBackwardData() || context.direction.IsForward()))
         InitRandomly(top);
@@ -357,6 +375,7 @@ auto GenericSearch(const Solver s,
                           << current_config);
 
         const auto current_solution = s.GetSolution(context, current_config, true);
+
         if(tweak == SearchTweak::OverrideXBufferSizeByWorkspaceSize &&
            default_solution.workspce_sz != current_solution.workspce_sz)
         {
@@ -376,7 +395,7 @@ auto GenericSearch(const Solver s,
                                           wei_ocl_buf.get(),
                                           context.bias ? bias_ocl_buf.get() : nullptr,
                                           context,
-                                          s.GetSolution(context, current_config, true),
+                                          current_solution,
                                           elapsed_time);
         }
 
@@ -399,7 +418,7 @@ auto GenericSearch(const Solver s,
                                                   wei_ocl_buf.get(),
                                                   context.bias ? bias_ocl_buf.get() : nullptr,
                                                   context,
-                                                  s.GetSolution(context, current_config, true),
+                                                  current_solution,
                                                   temp);
                     if(ret != 0)
                     {
