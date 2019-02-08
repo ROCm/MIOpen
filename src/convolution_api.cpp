@@ -130,10 +130,15 @@ miopenConvolutionForwardGetWorkSpaceSize(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(wDesc, yDesc, convDesc, workSpaceSize);
     miopen::try_([&] {
         miopen::deref(workSpaceSize) =
-            miopen::deref(convDesc).ForwardGetWorkSpaceSize(miopen::deref(handle),
-                                                            miopen::deref(wDesc),
-                                                            miopen::deref(xDesc),
-                                                            miopen::deref(yDesc));
+            miopen::deref(convDesc).mode == miopenTranspose
+                ? miopen::deref(convDesc).BackwardDataGetWorkSpaceSize(miopen::deref(handle),
+                                                                       miopen::deref(wDesc),
+                                                                       miopen::deref(xDesc),
+                                                                       miopen::deref(yDesc))
+                : miopen::deref(convDesc).ForwardGetWorkSpaceSize(miopen::deref(handle),
+                                                                  miopen::deref(wDesc),
+                                                                  miopen::deref(xDesc),
+                                                                  miopen::deref(yDesc));
     });
 
     return (miopenStatusSuccess);
@@ -169,6 +174,43 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
                         workSpace,
                         workSpaceSize,
                         exhaustiveSearch);
+
+    /// workaround for previous trans conv logic
+    if(miopen::deref(convDesc).mode == miopenTranspose)
+        return miopen::try_([&] {
+            std::vector<miopenConvAlgoPerf_t> perfResults_trans(requestAlgoCount);
+            miopen::deref(convDesc).FindConvBwdDataAlgorithm(miopen::deref(handle),
+                                                             miopen::deref(xDesc),
+                                                             DataCast(x),
+                                                             miopen::deref(wDesc),
+                                                             DataCast(w),
+                                                             miopen::deref(yDesc),
+                                                             DataCast(y),
+                                                             requestAlgoCount,
+                                                             returnedAlgoCount,
+                                                             perfResults_trans.data(),
+                                                             DataCast(workSpace),
+                                                             workSpaceSize,
+                                                             exhaustiveSearch);
+
+            int i = 0;
+            for(auto perfResults_temp : perfResults_trans)
+            {
+                perfResults_temp.fwd_algo =
+                    perfResults_temp.bwd_data_algo == miopenConvBwdDataAlgorithm_t(1)
+                        ? miopenConvFwdAlgorithm_t(1)
+                        : (perfResults_temp.bwd_data_algo == miopenConvBwdDataAlgorithm_t(3)
+                               ? miopenConvFwdAlgorithm_t(3)
+                               : (perfResults_temp.bwd_data_algo == miopenConvBwdDataAlgorithm_t(0)
+                                      ? miopenConvFwdAlgorithm_t(0)
+                                      : (perfResults_temp.bwd_data_algo ==
+                                                 miopenConvBwdDataAlgorithm_t(2)
+                                             ? miopenConvFwdAlgorithm_t(2)
+                                             : miopenConvFwdAlgorithm_t(4))));
+                *(perfResults + (i++)) = perfResults_temp;
+            }
+        });
+
     return miopen::try_([&] {
         miopen::deref(convDesc).FindConvFwdAlgorithm(miopen::deref(handle),
                                                      miopen::deref(xDesc),
@@ -236,6 +278,33 @@ extern "C" miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
                   << "1"
                   << "\n";
     }
+
+    /// workaround for previous trans conv logic
+    if(miopen::deref(convDesc).mode == miopenTranspose)
+        return miopen::try_([&] {
+            auto algo_trans = algo == miopenConvFwdAlgorithm_t(1)
+                                  ? miopenConvBwdDataAlgorithm_t(1)
+                                  : (algo == miopenConvFwdAlgorithm_t(3)
+                                         ? miopenConvBwdDataAlgorithm_t(3)
+                                         : (algo == miopenConvFwdAlgorithm_t(0)
+                                                ? miopenConvBwdDataAlgorithm_t(0)
+                                                : (algo == miopenConvFwdAlgorithm_t(2)
+                                                       ? miopenConvBwdDataAlgorithm_t(2)
+                                                       : miopenConvBwdDataAlgorithm_t(4))));
+
+            miopen::deref(convDesc).ConvolutionBackwardData(miopen::deref(handle),
+                                                            alpha,
+                                                            miopen::deref(xDesc),
+                                                            DataCast(x),
+                                                            miopen::deref(wDesc),
+                                                            DataCast(w),
+                                                            algo_trans,
+                                                            beta,
+                                                            miopen::deref(yDesc),
+                                                            DataCast(y),
+                                                            DataCast(workSpace),
+                                                            workSpaceSize);
+        });
 
     return miopen::try_([&] {
         miopen::deref(convDesc).ConvolutionForward(miopen::deref(handle),
@@ -309,6 +378,42 @@ miopenFindConvolutionBackwardDataAlgorithm(miopenHandle_t handle,
                         workSpace,
                         workSpaceSize,
                         exhaustiveSearch);
+
+    /// workaround for previous trans conv logic
+    if(miopen::deref(convDesc).mode == miopenTranspose)
+        return miopen::try_([&] {
+            std::vector<miopenConvAlgoPerf_t> perfResults_trans(requestAlgoCount);
+            miopen::deref(convDesc).FindConvFwdAlgorithm(miopen::deref(handle),
+                                                         miopen::deref(dyDesc),
+                                                         DataCast(dy),
+                                                         miopen::deref(wDesc),
+                                                         DataCast(w),
+                                                         miopen::deref(dxDesc),
+                                                         DataCast(dx),
+                                                         requestAlgoCount,
+                                                         returnedAlgoCount,
+                                                         perfResults_trans.data(),
+                                                         DataCast(workSpace),
+                                                         workSpaceSize,
+                                                         exhaustiveSearch);
+
+            int i = 0;
+            for(auto perfResults_temp : perfResults_trans)
+            {
+                perfResults_temp.bwd_data_algo =
+                    perfResults_temp.fwd_algo == miopenConvFwdAlgorithm_t(1)
+                        ? miopenConvBwdDataAlgorithm_t(1)
+                        : (perfResults_temp.fwd_algo == miopenConvFwdAlgorithm_t(3)
+                               ? miopenConvBwdDataAlgorithm_t(3)
+                               : (perfResults_temp.fwd_algo == miopenConvFwdAlgorithm_t(0)
+                                      ? miopenConvBwdDataAlgorithm_t(0)
+                                      : (perfResults_temp.fwd_algo == miopenConvFwdAlgorithm_t(2)
+                                             ? miopenConvBwdDataAlgorithm_t(2)
+                                             : miopenConvBwdDataAlgorithm_t(4))));
+                *(perfResults + (i++)) = perfResults_temp;
+            }
+        });
+
     return miopen::try_([&] {
         miopen::deref(convDesc).FindConvBwdDataAlgorithm(miopen::deref(handle),
                                                          miopen::deref(dyDesc),
@@ -374,6 +479,33 @@ miopenConvolutionBackwardData(miopenHandle_t handle,
                   << "\n";
     }
 
+    /// workaround for previous trans conv logic
+    if(miopen::deref(convDesc).mode == miopenTranspose)
+        return miopen::try_([&] {
+            auto algo_trans = algo == miopenConvBwdDataAlgorithm_t(1)
+                                  ? miopenConvFwdAlgorithm_t(1)
+                                  : (algo == miopenConvBwdDataAlgorithm_t(3)
+                                         ? miopenConvFwdAlgorithm_t(3)
+                                         : (algo == miopenConvBwdDataAlgorithm_t(0)
+                                                ? miopenConvFwdAlgorithm_t(0)
+                                                : (algo == miopenConvBwdDataAlgorithm_t(2)
+                                                       ? miopenConvFwdAlgorithm_t(2)
+                                                       : miopenConvFwdAlgorithm_t(4))));
+
+            miopen::deref(convDesc).ConvolutionForward(miopen::deref(handle),
+                                                       alpha,
+                                                       miopen::deref(dyDesc),
+                                                       DataCast(dy),
+                                                       miopen::deref(wDesc),
+                                                       DataCast(w),
+                                                       algo_trans,
+                                                       beta,
+                                                       miopen::deref(dxDesc),
+                                                       DataCast(dx),
+                                                       DataCast(workSpace),
+                                                       workSpaceSize);
+        });
+
     return miopen::try_([&] {
         miopen::deref(convDesc).ConvolutionBackwardData(miopen::deref(handle),
                                                         alpha,
@@ -402,10 +534,15 @@ miopenConvolutionBackwardDataGetWorkSpaceSize(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(dyDesc, wDesc, convDesc, dxDesc, workSpaceSize);
     return miopen::try_([&] {
         miopen::deref(workSpaceSize) =
-            miopen::deref(convDesc).BackwardDataGetWorkSpaceSize(miopen::deref(handle),
-                                                                 miopen::deref(wDesc),
-                                                                 miopen::deref(dyDesc),
-                                                                 miopen::deref(dxDesc));
+            miopen::deref(convDesc).mode == miopenTranspose
+                ? miopen::deref(convDesc).ForwardGetWorkSpaceSize(miopen::deref(handle),
+                                                                  miopen::deref(wDesc),
+                                                                  miopen::deref(dyDesc),
+                                                                  miopen::deref(dxDesc))
+                : miopen::deref(convDesc).BackwardDataGetWorkSpaceSize(miopen::deref(handle),
+                                                                       miopen::deref(wDesc),
+                                                                       miopen::deref(dyDesc),
+                                                                       miopen::deref(dxDesc));
     });
 }
 
@@ -423,8 +560,10 @@ miopenConvolutionBackwardWeightsGetWorkSpaceSize(miopenHandle_t handle,
         miopen::deref(workSpaceSize) =
             miopen::deref(convDesc).ConvolutionBackwardWeightsGetWorkSpaceSize(
                 miopen::deref(handle),
-                miopen::deref(dyDesc),
-                miopen::deref(xDesc),
+                miopen::deref(convDesc).mode == miopenTranspose ? miopen::deref(xDesc)
+                                                                : miopen::deref(dyDesc),
+                miopen::deref(convDesc).mode == miopenTranspose ? miopen::deref(dyDesc)
+                                                                : miopen::deref(xDesc),
                 miopen::deref(dwDesc));
     });
 }
@@ -490,19 +629,23 @@ miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
     }
 
     return miopen::try_([&] {
-        miopen::deref(convDesc).FindConvBwdWeightsAlgorithm(miopen::deref(handle),
-                                                            miopen::deref(dyDesc),
-                                                            DataCast(dy),
-                                                            miopen::deref(xDesc),
-                                                            DataCast(x),
-                                                            miopen::deref(dwDesc),
-                                                            DataCast(dw),
-                                                            requestAlgoCount,
-                                                            returnedAlgoCount,
-                                                            perfResults,
-                                                            DataCast(workSpace),
-                                                            workSpaceSize,
-                                                            exhaustiveSearch);
+        miopen::deref(convDesc).FindConvBwdWeightsAlgorithm(
+            miopen::deref(handle),
+            /// workaround for previous trans conv logic
+            miopen::deref(convDesc).mode == miopenTranspose ? miopen::deref(xDesc)
+                                                            : miopen::deref(dyDesc),
+            miopen::deref(convDesc).mode == miopenTranspose ? DataCast(x) : DataCast(dy),
+            miopen::deref(convDesc).mode == miopenTranspose ? miopen::deref(dyDesc)
+                                                            : miopen::deref(xDesc),
+            miopen::deref(convDesc).mode == miopenTranspose ? DataCast(dy) : DataCast(x),
+            miopen::deref(dwDesc),
+            DataCast(dw),
+            requestAlgoCount,
+            returnedAlgoCount,
+            perfResults,
+            DataCast(workSpace),
+            workSpaceSize,
+            exhaustiveSearch);
     });
 }
 
@@ -525,18 +668,22 @@ miopenConvolutionBackwardWeights(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(
         alpha, dyDesc, dy, xDesc, x, convDesc, algo, beta, dwDesc, dw, workSpace, workSpaceSize);
     return miopen::try_([&] {
-        miopen::deref(convDesc).ConvolutionBackwardWeights(miopen::deref(handle),
-                                                           alpha,
-                                                           miopen::deref(dyDesc),
-                                                           DataCast(dy),
-                                                           miopen::deref(xDesc),
-                                                           DataCast(x),
-                                                           algo,
-                                                           beta,
-                                                           miopen::deref(dwDesc),
-                                                           DataCast(dw),
-                                                           DataCast(workSpace),
-                                                           workSpaceSize);
+        miopen::deref(convDesc).ConvolutionBackwardWeights(
+            miopen::deref(handle),
+            alpha,
+            /// workaround for previous trans conv logic
+            miopen::deref(convDesc).mode == miopenTranspose ? miopen::deref(xDesc)
+                                                            : miopen::deref(dyDesc),
+            miopen::deref(convDesc).mode == miopenTranspose ? DataCast(x) : DataCast(dy),
+            miopen::deref(convDesc).mode == miopenTranspose ? miopen::deref(dyDesc)
+                                                            : miopen::deref(xDesc),
+            miopen::deref(convDesc).mode == miopenTranspose ? DataCast(dy) : DataCast(x),
+            algo,
+            beta,
+            miopen::deref(dwDesc),
+            DataCast(dw),
+            DataCast(workSpace),
+            workSpaceSize);
     });
 }
 
