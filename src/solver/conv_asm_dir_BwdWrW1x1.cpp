@@ -498,6 +498,9 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
          && n_c_h_w < std::pow(2, 29)
          && n_k_h_w < std::pow(2, 29)
          && c_k_r_s < std::pow(2, 29); // clang-format on
+
+    MIOPEN_LOG_I("ConvAsmBwdWrW1x1::IsApplicable " << ok);
+
     return ok;
 }
 
@@ -754,6 +757,7 @@ int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
 {
     assert(bias_ocl_buf == nullptr);
     (void)bias_ocl_buf;
+
     /// \note This is used during auto-tune process.
     /// Elapsed time of the subsampling kernel
     /// does not depend on the PerformanceConfig, and thus
