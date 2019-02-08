@@ -2280,6 +2280,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             }
         }
         break;
+
+        case miopenTransposeBwdDataAlgoGEMM: break;
         }
     }
 
