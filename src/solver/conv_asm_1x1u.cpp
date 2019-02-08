@@ -725,6 +725,7 @@ int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
 {
     assert(bias_ocl_buf == nullptr);
     (void)bias_ocl_buf;
+
     KernelInfo k_info;
 
     if(UseSubsample(params))

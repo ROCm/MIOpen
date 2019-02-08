@@ -408,6 +408,10 @@ struct SolverBase
     ///                          const ConvolutionContext& params,
     ///                          const ConvSolution& solution,
     ///                          float& elapsed_time) const;
+
+    // The max workspace size considering the max values of tunable params
+    // so that workspace doesn't need to resized with each new perf config.
+    size_t GetMaxWorkspaceSize(const Context&) const { return 0; }
 };
 
 struct PerformanceConfigConvAsm3x3U : Serializable<PerformanceConfigConvAsm3x3U>
@@ -427,7 +431,6 @@ struct PerformanceConfigConvAsm3x3U : Serializable<PerformanceConfigConvAsm3x3U>
         f(self.filters_per_wave, "filters_per_wave");
         f(self.output_lines_per_wave, "output_lines_per_wave");
     }
-
     void EuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
     bool SetNextValue();
@@ -870,10 +873,93 @@ struct ConvAsmBwdWrW1x1 : SolverBase<ConvolutionContext>
                               float& elapsed_time) const;
 };
 
+struct PerformanceConfigConvOclBwdWrw2 : Serializable<PerformanceConfigConvOclBwdWrw2>
+{
+    int n_batch_loops = 1; // How many batches are processed in single workitem? (N_BATCH_LOOPS)
+    int n_waves       = 1; // How many waves involved a workgroup?
+    int read_size     = 6; // How many values to read in a workitem? (read_unit)
+    int n_out_channels_per_tile =
+        1; // How many output (top/bottom layer in forward/backward direction)
+    // channels are processed in single workgroup that shares the same input channel
+    // Also represents number of output channels in single tile .
+    int n_out_channels_tiles = 1; // How many tiles of output channels are processed in a single
+                                  // workgroup?
+                                  // n_out_channels_in_lcl * n_out_channels_tiles = total number of
+                                  // output channels processed in single workgroup.
+
+    int n_out_rows_in_lcl = 2; // How many output rows are processed in a single iteration of loop
+                               // in a workitem? // (N_ALIGNED_OUT_SCAN_BLK)
+    bool use_spare_set;
+
+    PerformanceConfigConvOclBwdWrw2() { use_spare_set = false; }
+
+    PerformanceConfigConvOclBwdWrw2(bool spare) { use_spare_set = spare; }
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.n_batch_loops, "n_batch_loops");
+        f(self.n_waves, "n_waves");
+        f(self.read_size, "read_size");
+        f(self.n_out_channels_per_tile, "n_out_channels_per_tile");
+        f(self.n_out_channels_tiles, "n_out_channels_tiles");
+        f(self.n_out_rows_in_lcl, "n_out_rows_in_lcl");
+    }
+
+    // clang-format off
+    int GetNumBatchLoops() const { return n_batch_loops; }
+    int GetNumWaves() const { return n_waves; }
+    int GetReadSize() const { return read_size; }
+    int GetNumOutChannelsPerTile() const { return n_out_channels_per_tile; }
+    int GetNumOutChannelTiles() const { return n_out_channels_tiles; }
+    int GetNumOutRowsPerIterPerWork() const { return n_out_rows_in_lcl; }
+
+    void EuristicInit(const ConvolutionContext& params);
+    bool IsValidValue() const;
+    bool SetNextValue();
+    bool IsValid(const ConvolutionContext& params) const;
+    bool operator==(const PerformanceConfigConvOclBwdWrw2& other) const;
+    std::string ToString() const;
+};
+
+
 struct ConvOclBwdWrW2 : SolverBase<ConvolutionContext>
+{
+    PerformanceConfigConvOclBwdWrw2 GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConfigConvOclBwdWrw2&) const;
+    PerformanceConfigConvOclBwdWrw2 Search(const ConvolutionContext&) const;
+    bool IsApplicable(const ConvolutionContext& params) const;
+    bool IsApplicableBase(const ConvolutionContext& params) const;
+    size_t GetMaxWorkspaceSize(const ConvolutionContext&) const;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfigConvOclBwdWrw2& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+    int RunAndMeasureSolution(miopen::Handle& profile_h,
+                              Data_t bot_ocl_buf,
+                              Data_t top_ocl_buf,
+                              Data_t wei_ocl_buf,
+                              Data_t bias_ocl_buf,
+                              const ConvolutionContext& params,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;    
+};
+
+// A separate solver from ConvOclBwdWrW2 to disable auto-tuning for
+// certain configs. This solver handles non-group cases with filters 3x3 and 1x1.
+// They are not searchable/tunable as the tuning doesn't beat 3x3 and 1x1
+// assembly kernels.
+struct ConvOclBwdWrW23NonTunableFilters : ConvOclBwdWrW2
 {
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
+
+private:    
+    // This function dervied from ConvOclBwdWrW2 is declared private
+    // so that this solver is not marked searchable/tunable.
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfigConvOclBwdWrw2& config,
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct ConvOclBwdWrW53 : SolverBase<ConvolutionContext>
