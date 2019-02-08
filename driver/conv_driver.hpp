@@ -529,30 +529,18 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
 
     if(wrw_allowed)
         miopenConvolutionBackwardWeightsGetWorkSpaceSize(
-            GetHandle(),
-            (inflags.GetValueStr("mode")) == "trans" ? inputTensor : outputTensor,
-            (inflags.GetValueStr("mode")) == "trans" ? outputTensor : inputTensor,
-            convDesc,
-            weightTensor,
-            &workSpaceSize_bwd_wt);
+            GetHandle(), outputTensor, inputTensor, convDesc, weightTensor, &workSpaceSize_bwd_wt);
     if(bwd_allowed)
         miopenConvolutionBackwardDataGetWorkSpaceSize(
-            GetHandle(),
-            (inflags.GetValueStr("mode")) == "trans" ? inputTensor : outputTensor,
-            weightTensor,
-            convDesc,
-            (inflags.GetValueStr("mode")) == "trans" ? outputTensor : inputTensor,
-            (inflags.GetValueStr("mode")) == "trans" ? &workSpaceSize_fwd : &workSpaceSize_bwd_dt);
+            GetHandle(), outputTensor, weightTensor, convDesc, inputTensor, &workSpaceSize_bwd_dt);
     if(forward_allowed)
         miopenConvolutionForwardGetWorkSpaceSize(
             GetHandle(),
             (is_int8_pad4 ? weightTensor_int8pad4 : weightTensor),
-            (inflags.GetValueStr("mode")) == "trans"
-                ? outputTensor
-                : (is_int8_pad4 ? inputTensor_int8pad4 : inputTensor),
+            (is_int8_pad4 ? inputTensor_int8pad4 : inputTensor),
             convDesc,
-            (inflags.GetValueStr("mode")) == "trans" ? inputTensor : outputTensor,
-            (inflags.GetValueStr("mode")) == "trans" ? &workSpaceSize_bwd_dt : &workSpaceSize_fwd);
+            outputTensor,
+            &workSpaceSize_fwd);
 
     // Workaround: Pad buffers allocations to be a multiple of 2M
     if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
@@ -796,23 +784,6 @@ int ConvDriver<Tgpu, Tref, Tfile>::FindForward(int& ret_algo_count,
     bool is_int8_pad4 =
         (data_type == miopenInt8 && ((inflags.GetValueInt("in_channels")) % 4 != 0));
 
-    if(miopen::deref(convDesc).mode == miopenTranspose)
-        return miopenFindConvolutionBackwardDataAlgorithm(
-            GetHandle(),
-            inputTensor,
-            in_dev->GetMem(),
-            weightTensor,
-            wei_dev->GetMem(),
-            convDesc,
-            outputTensor,
-            out_dev->GetMem(),
-            request_algo_count,
-            &ret_algo_count,
-            perf_results.data(),
-            (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetMem() : nullptr,
-            (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetSize() : 0,
-            (inflags.GetValueInt("search") == 1) ? true : false);
-
     return miopenFindConvolutionForwardAlgorithm(
         GetHandle(),
         (is_int8_pad4 ? inputTensor_int8pad4 : inputTensor),
@@ -878,36 +849,20 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        if(miopen::deref(convDesc).mode == miopenTranspose)
-            miopenConvolutionBackwardData(
-                GetHandle(),
-                &alpha,
-                inputTensor,
-                in_dev->GetMem(),
-                weightTensor,
-                wei_dev->GetMem(),
-                convDesc,
-                perf_results[0].bwd_data_algo,
-                &beta,
-                outputTensor,
-                out_dev->GetMem(),
-                (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetMem() : nullptr,
-                perf_results[0].memory);
-        else
-            miopenConvolutionForward(
-                GetHandle(),
-                &alpha,
-                (is_int8_pad4 ? inputTensor_int8pad4 : inputTensor),
-                (is_int8_pad4 ? in_int8pad4_dev->GetMem() : in_dev->GetMem()),
-                (is_int8_pad4 ? weightTensor_int8pad4 : weightTensor),
-                (is_int8_pad4 ? wei_int8pad4_dev->GetMem() : wei_dev->GetMem()),
-                convDesc,
-                perf_results[0].fwd_algo, // use the fastest algo
-                &beta,
-                outputTensor,
-                out_dev->GetMem(),
-                (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetMem() : nullptr,
-                perf_results[0].memory);
+        miopenConvolutionForward(GetHandle(),
+                                 &alpha,
+                                 (is_int8_pad4 ? inputTensor_int8pad4 : inputTensor),
+                                 (is_int8_pad4 ? in_int8pad4_dev->GetMem() : in_dev->GetMem()),
+                                 (is_int8_pad4 ? weightTensor_int8pad4 : weightTensor),
+                                 (is_int8_pad4 ? wei_int8pad4_dev->GetMem() : wei_dev->GetMem()),
+                                 convDesc,
+                                 perf_results[0].fwd_algo, // use the fastest algo
+                                 &beta,
+                                 outputTensor,
+                                 out_dev->GetMem(),
+                                 (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetMem()
+                                                                : nullptr,
+                                 perf_results[0].memory);
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -1223,23 +1178,6 @@ int ConvDriver<Tgpu, Tref, Tfile>::FindBackwardData(int& ret_algo_count,
                                                     int request_algo_count,
                                                     std::vector<miopenConvAlgoPerf_t>& perf_results)
 {
-    if(miopen::deref(convDesc).mode == miopenTranspose)
-        return miopenFindConvolutionForwardAlgorithm(
-            GetHandle(),
-            outputTensor,
-            dout_dev->GetMem(),
-            weightTensor,
-            wei_dev->GetMem(),
-            convDesc,
-            inputTensor,
-            din_dev->GetMem(),
-            request_algo_count,
-            &ret_algo_count,
-            perf_results.data(),
-            (workspace_bwd_data_dev != nullptr) ? workspace_bwd_data_dev->GetMem() : nullptr,
-            (workspace_bwd_data_dev != nullptr) ? workspace_bwd_data_dev->GetSize() : 0,
-            (inflags.GetValueInt("search") == 1) ? true : false);
-
     return miopenFindConvolutionBackwardDataAlgorithm(
         GetHandle(),
         outputTensor,
@@ -1264,10 +1202,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::FindBackwardWeights(
 
     miopenFindConvolutionBackwardWeightsAlgorithm(
         GetHandle(),
-        miopen::deref(convDesc).mode == miopenTranspose ? inputTensor : outputTensor,
-        miopen::deref(convDesc).mode == miopenTranspose ? in_dev->GetMem() : dout_dev->GetMem(),
-        miopen::deref(convDesc).mode == miopenTranspose ? outputTensor : inputTensor,
-        miopen::deref(convDesc).mode == miopenTranspose ? dout_dev->GetMem() : in_dev->GetMem(),
+        outputTensor,
+        dout_dev->GetMem(),
+        inputTensor,
+        in_dev->GetMem(),
         convDesc,
         weightTensor,
         wei_dev->GetMem(),
@@ -1309,38 +1247,20 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
 
         for(int i = 0; i < inflags.GetValueInt("iter"); i++)
         {
-            if(miopen::deref(convDesc).mode == miopenTranspose)
-                miopenConvolutionForward(GetHandle(),
-                                         &alpha,
-                                         outputTensor,
-                                         dout_dev->GetMem(),
-                                         weightTensor,
-                                         wei_dev->GetMem(),
-                                         convDesc,
-                                         perf_results_data[0].fwd_algo, // use the fastest algo
-                                         &beta,
-                                         inputTensor,
-                                         din_dev->GetMem(),
-                                         (workspace_bwd_data_dev != nullptr)
-                                             ? workspace_bwd_data_dev->GetMem()
-                                             : nullptr,
-                                         perf_results_data[0].memory);
-            else
-                ret = miopenConvolutionBackwardData(GetHandle(),
-                                                    &alpha,
-                                                    outputTensor,
-                                                    dout_dev->GetMem(),
-                                                    weightTensor,
-                                                    wei_dev->GetMem(),
-                                                    convDesc,
-                                                    perf_results_data[0].bwd_data_algo,
-                                                    &beta,
-                                                    inputTensor,
-                                                    din_dev->GetMem(),
-                                                    (workspace_bwd_data_dev != nullptr)
-                                                        ? workspace_bwd_data_dev->GetMem()
-                                                        : nullptr,
-                                                    perf_results_data[0].memory);
+            ret = miopenConvolutionBackwardData(
+                GetHandle(),
+                &alpha,
+                outputTensor,
+                dout_dev->GetMem(),
+                weightTensor,
+                wei_dev->GetMem(),
+                convDesc,
+                perf_results_data[0].bwd_data_algo,
+                &beta,
+                inputTensor,
+                din_dev->GetMem(),
+                (workspace_bwd_data_dev != nullptr) ? workspace_bwd_data_dev->GetMem() : nullptr,
+                perf_results_data[0].memory);
 
             float time = 0.0;
             miopenGetKernelTime(GetHandle(), &time);
@@ -1426,23 +1346,21 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
         START_TIME;
         for(int i = 0; i < inflags.GetValueInt("iter"); i++)
         {
-            ret = miopenConvolutionBackwardWeights(
-                GetHandle(),
-                &alpha,
-                miopen::deref(convDesc).mode == miopenTranspose ? inputTensor : outputTensor,
-                miopen::deref(convDesc).mode == miopenTranspose ? in_dev->GetMem()
-                                                                : dout_dev->GetMem(),
-                miopen::deref(convDesc).mode == miopenTranspose ? outputTensor : inputTensor,
-                miopen::deref(convDesc).mode == miopenTranspose ? dout_dev->GetMem()
-                                                                : in_dev->GetMem(),
-                convDesc,
-                perf_results_weights[0].bwd_weights_algo,
-                &beta,
-                weightTensor,
-                dwei_dev->GetMem(),
-                (workspace_bwd_weights_dev != nullptr) ? workspace_bwd_weights_dev->GetMem()
+            ret = miopenConvolutionBackwardWeights(GetHandle(),
+                                                   &alpha,
+                                                   outputTensor,
+                                                   dout_dev->GetMem(),
+                                                   inputTensor,
+                                                   in_dev->GetMem(),
+                                                   convDesc,
+                                                   perf_results_weights[0].bwd_weights_algo,
+                                                   &beta,
+                                                   weightTensor,
+                                                   dwei_dev->GetMem(),
+                                                   (workspace_bwd_weights_dev != nullptr)
+                                                       ? workspace_bwd_weights_dev->GetMem()
                                                        : nullptr,
-                perf_results_weights[0].memory);
+                                                   perf_results_weights[0].memory);
 
             float time = 0.0;
             miopenGetKernelTime(GetHandle(), &time);

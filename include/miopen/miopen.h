@@ -316,8 +316,8 @@ typedef enum {
 typedef enum {
     miopenConvolution = 0, /*!< Cross-Correlation convolution */
     miopenTranspose   = 1, /*!< Transpose convolutions -- deconvolution */
-    miopenGroupConv   = 2, /*!< Group convolution legacy */
-    miopenDepthwise   = 3, /*!< Depthwise convolution legacy */
+    miopenGroupConv   = 2, /*!< Deprecated Group convolution legacy, ToBe Removed */
+    miopenDepthwise   = 3, /*!< Deprecated Depthwise convolution legacy, ToBe Removed */
 } miopenConvolutionMode_t;
 
 /*! @ingroup padding
@@ -722,6 +722,8 @@ typedef enum {
     miopenConvolutionBwdDataAlgoDirect   = 1, /*!< Direct convolutions */
     miopenConvolutionBwdDataAlgoFFT      = 2, /*!< Fast Fourier Transform indirect convolutions */
     miopenConvolutionBwdDataAlgoWinograd = 3, /*!< Winograd indirect convolutions */
+    miopenTransposeBwdDataAlgoGEMM =
+        4, /*!< Deprecated Transpose GEMM variant legacy, ToBe Removed */
 } miopenConvBwdDataAlgorithm_t;
 
 /*! @struct miopenConvAlgoPerf_t
