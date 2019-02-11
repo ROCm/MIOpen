@@ -592,8 +592,8 @@ miopenCreateConvolutionDescriptor(miopenConvolutionDescriptor_t* convDesc);
  * @param c_mode     Convolutional mode (input)
  * @param pad_h      Height input data padding (input)
  * @param pad_w      Width input data padding (input)
- * @param u          Stride for the height of input data (input)
- * @param v          Stride for the width of input data (input)
+ * @param stride_h   Stride for the height of input data (input)
+ * @param stride_w   Stride for the width of input data (input)
  * @param dilation_h Dilation height (input)
  * @param dilation_w Dilation width (input)
  * @return           miopenStatus_t
@@ -602,8 +602,8 @@ MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDe
                                                              miopenConvolutionMode_t c_mode,
                                                              int pad_h,
                                                              int pad_w,
-                                                             int u,
-                                                             int v,
+                                                             int stride_h,
+                                                             int stride_w,
                                                              int dilation_h,
                                                              int dilation_w);
 
@@ -616,8 +616,8 @@ MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDe
  * @param c_mode     Convolutional mode (output)
  * @param pad_h      Height input data padding (output)
  * @param pad_w      Width input data padding (output)
- * @param u          Stride for the height of input data (output)
- * @param v          Stride for the width of input data (output)
+ * @param stride_h   Stride for the height of input data (output)
+ * @param stride_w   Stride for the width of input data (output)
  * @param dilation_h Dilation height (output)
  * @param dilation_w Dilation width (output)
  * @return           miopenStatus_t
@@ -626,8 +626,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDes
                                                             miopenConvolutionMode_t* c_mode,
                                                             int* pad_h,
                                                             int* pad_w,
-                                                            int* u,
-                                                            int* v,
+                                                            int* stride_h,
+                                                            int* stride_w,
                                                             int* dilation_h,
                                                             int* dilation_w);
 
@@ -1182,8 +1182,8 @@ MIOPEN_EXPORT miopenStatus_t miopenCreatePoolingDescriptor(miopenPoolingDescript
  * @param windowWidth    Input window width dimension (input)
  * @param pad_h          Number of elements to pad height (input)
  * @param pad_w          Number of elements to pad width (input)
- * @param u              Vertical stride (input)
- * @param v              Horizontal stride (input)
+ * @param stride_h       Vertical stride (input)
+ * @param stride_w       Horizontal stride (input)
  * @return               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenSet2dPoolingDescriptor(miopenPoolingDescriptor_t poolDesc,
@@ -1192,8 +1192,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSet2dPoolingDescriptor(miopenPoolingDescripto
                                                           int windowWidth,
                                                           int pad_h,
                                                           int pad_w,
-                                                          int u,
-                                                          int v);
+                                                          int stride_h,
+                                                          int stride_w);
 
 /*! @brief Gets a 2-D pooling layer descriptor details
  *
@@ -1205,8 +1205,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSet2dPoolingDescriptor(miopenPoolingDescripto
  * @param windowWidth    Input window width dimension (output)
  * @param pad_h          Number of elements to pad height (output)
  * @param pad_w          Number of elements to pad width (output)
- * @param u              Vertical stride (output)
- * @param v              Horizontal stride (output)
+ * @param stride_h       Vertical stride (output)
+ * @param stride_w       Horizontal stride (output)
  * @return               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGet2dPoolingDescriptor(const miopenPoolingDescriptor_t poolDesc,
@@ -1215,8 +1215,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGet2dPoolingDescriptor(const miopenPoolingDes
                                                           int* windowWidth,
                                                           int* pad_h,
                                                           int* pad_w,
-                                                          int* u,
-                                                          int* v);
+                                                          int* stride_h,
+                                                          int* stride_w);
 
 /*! @brief Gets the shape of the output tensor for 2-D pooling
  *

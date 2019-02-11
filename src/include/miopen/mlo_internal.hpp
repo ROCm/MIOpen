@@ -310,21 +310,21 @@ struct mlo_construct_direct2D
     mlo_construct_direct2D(int dir, bool do_bias = false)
     {
         _search_params.direction.Set(dir);
-        _search_params.bias             = (do_bias) ? 1 : 0;
-        _search_params.pad0             = 1;
-        _search_params.pad1             = 1;
-        _search_params.kernel_size0     = 3;
-        _search_params.kernel_size1     = 3;
-        _search_params.kernel_stride0   = 1;
-        _search_params.kernel_stride1   = 1;
-        _search_params.kernel_dilation0 = 1;
-        _search_params.kernel_dilation1 = 1;
-        _search_params.deconvolution    = 0;
-        _search_params.bot_sz           = 0; // bytes
-        _search_params.top_sz           = 0; // bytes
-        _search_params.weights_sz       = 0; // bytes
-        _search_params.bias_sz          = 0; // bytes
-        _search_params.group_counts     = 1;
+        _search_params.bias              = (do_bias) ? 1 : 0;
+        _search_params.pad_w             = 1;
+        _search_params.pad_h             = 1;
+        _search_params.kernel_size_w     = 3;
+        _search_params.kernel_size_h     = 3;
+        _search_params.kernel_stride_w   = 1;
+        _search_params.kernel_stride_h   = 1;
+        _search_params.kernel_dilation_w = 1;
+        _search_params.kernel_dilation_h = 1;
+        _search_params.deconvolution     = 0;
+        _search_params.bot_sz            = 0; // bytes
+        _search_params.top_sz            = 0; // bytes
+        _search_params.weights_sz        = 0; // bytes
+        _search_params.bias_sz           = 0; // bytes
+        _search_params.group_counts      = 1;
     }
 
     mlo_construct_direct2D(const miopen::TensorDescriptor& in,
@@ -400,19 +400,19 @@ struct mlo_construct_direct2D
                                         int* const n_groups,
                                         int* const out_H,
                                         int* const out_W,
-                                        int* const R,
-                                        int* const S,
+                                        int* const filter_size_H,
+                                        int* const filter_size_W,
                                         int* const pad_H,
                                         int* const pad_W) const
     {
         getCompiledInParameters(N, C, H, W, K, n_groups, out_H, out_W);
-        assert(R && S && pad_H && pad_W);
-        *R     = _search_params.kernel_size1;
-        *S     = _search_params.kernel_size0;
-        *pad_H = _search_params.direction.IsForward() ? _search_params.pad1
-                                                      : _search_params.GetBackwardPad1();
-        *pad_W = _search_params.direction.IsForward() ? _search_params.pad0
-                                                      : _search_params.GetBackwardPad0();
+        assert(filter_size_H && filter_size_W && pad_H && pad_W);
+        *filter_size_H = _search_params.kernel_size_h;
+        *filter_size_W = _search_params.kernel_size_w;
+        *pad_H         = _search_params.direction.IsForward() ? _search_params.pad_h
+                                                      : _search_params.GetBackwardPadH();
+        *pad_W = _search_params.direction.IsForward() ? _search_params.pad_w
+                                                      : _search_params.GetBackwardPadW();
     }
 
     /*
@@ -748,37 +748,37 @@ struct mlo_construct_pooling2D : mlo_construct_direct2D, mlo_construct_activ_lrn
     inline void setPoolingDescr(int pooling_method = MLO_POOLING_OP_MAX,
                                 int windowHeight   = 3,
                                 int windowWidth    = 3,
-                                int padding_v      = 0,
                                 int padding_h      = 0,
-                                int stride_v       = 2,
+                                int padding_w      = 0,
                                 int stride_h       = 2,
+                                int stride_w       = 2,
                                 int NAN_opt        = 0)
     {
-        _pooling_method               = pooling_method;
-        _search_params.pad1           = padding_v;
-        _search_params.pad0           = padding_h;
-        _search_params.kernel_size1   = windowHeight;
-        _search_params.kernel_size0   = windowWidth;
-        _search_params.kernel_stride1 = stride_v;
-        _search_params.kernel_stride0 = stride_h;
-        _NAN_option                   = NAN_opt;
+        _pooling_method                = pooling_method;
+        _search_params.pad_h           = padding_h;
+        _search_params.pad_w           = padding_w;
+        _search_params.kernel_size_h   = windowHeight;
+        _search_params.kernel_size_w   = windowWidth;
+        _search_params.kernel_stride_h = stride_h;
+        _search_params.kernel_stride_w = stride_w;
+        _NAN_option                    = NAN_opt;
     }
 
     inline void getPoolingDescr(int& /*pooling_method*/,
                                 int& windowHeight,
                                 int& windowWidth,
-                                int& padding_v,
                                 int& padding_h,
-                                int& stride_v,
+                                int& padding_w,
                                 int& stride_h,
+                                int& stride_w,
                                 int& NAN_opt) const
     {
-        padding_v    = _search_params.pad1;
-        padding_h    = _search_params.pad0;
-        windowHeight = _search_params.kernel_size1;
-        windowWidth  = _search_params.kernel_size0;
-        stride_v     = _search_params.kernel_stride1;
-        stride_h     = _search_params.kernel_stride0;
+        padding_h    = _search_params.pad_h;
+        padding_w    = _search_params.pad_w;
+        windowHeight = _search_params.kernel_size_h;
+        windowWidth  = _search_params.kernel_size_w;
+        stride_h     = _search_params.kernel_stride_h;
+        stride_w     = _search_params.kernel_stride_w;
         NAN_opt      = _NAN_option;
     }
 

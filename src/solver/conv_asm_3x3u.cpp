@@ -176,12 +176,12 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
     }
     assert(params.weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
     // clang-format off
-    return params.pad0 == 1
-        && params.pad1 == 1
-        && params.kernel_stride0 == 1
-        && params.kernel_stride1 == 1
-        && params.kernel_size0 == 3
-        && params.kernel_size1 == 3
+    return params.pad_w == 1
+        && params.pad_h == 1
+        && params.kernel_stride_w == 1
+        && params.kernel_stride_h == 1
+        && params.kernel_size_w == 3
+        && params.kernel_size_h == 3
         && params.n_inputs > 0
         && params.n_inputs % 4 == 0
         && params.in_width > 3

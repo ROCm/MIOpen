@@ -40,8 +40,8 @@ void Im2ColCPU(std::vector<Tin>& in,
                const int out_w,
                const int pad_h,
                const int pad_w,
-               const int u,
-               const int v,
+               const int stride_h,
+               const int stride_w,
                std::vector<Tout>& col)
 {
     int col_m = in_c * wei_h * wei_w;
@@ -58,8 +58,8 @@ void Im2ColCPU(std::vector<Tin>& in,
         {
             for(int w = 0; w < out_w; w++)
             {
-                int in_off_h = h * u - pad_h + y;
-                int in_off_w = w * v - pad_w + x;
+                int in_off_h = h * stride_h - pad_h + y;
+                int in_off_w = w * stride_w - pad_w + x;
 
                 if(in_off_h >= 0 && in_off_h < in_h && in_off_w >= 0 && in_off_w < in_w)
                     col[n * out_h * out_w + h * out_w + w] =

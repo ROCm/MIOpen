@@ -57,22 +57,22 @@ struct ConvolutionDescriptor;
 
 struct ProblemDescription
 {
-    int n_inputs         = 0;
-    int in_height        = 0;
-    int in_width         = 0;
-    int kernel_size1     = 0;
-    int kernel_size0     = 0;
-    int n_outputs        = 0;
-    int out_height       = 0;
-    int out_width        = 0;
-    int batch_sz         = 0;
-    int pad0             = 0;
-    int pad1             = 0;
-    int kernel_stride0   = 0;
-    int kernel_stride1   = 0;
-    int kernel_dilation0 = 0;
-    int kernel_dilation1 = 0;
-    int bias             = 0;
+    int n_inputs          = 0;
+    int in_height         = 0;
+    int in_width          = 0;
+    int kernel_size_h     = 0;
+    int kernel_size_w     = 0;
+    int n_outputs         = 0;
+    int out_height        = 0;
+    int out_width         = 0;
+    int batch_sz          = 0;
+    int pad_h             = 0;
+    int pad_w             = 0;
+    int kernel_stride_h   = 0;
+    int kernel_stride_w   = 0;
+    int kernel_dilation_h = 0;
+    int kernel_dilation_w = 0;
+    int bias              = 0;
     std::string in_layout;
     std::string in_data_type;
     std::string weights_layout;
@@ -118,8 +118,8 @@ struct ProblemDescription
         void Set(T) = delete;
         void SetBackwardWrW() { v = Value::BackwardWrW; }
     } direction;
-    int GetBackwardPad0() const { return kernel_size0 - pad0 - 1; }
-    int GetBackwardPad1() const { return kernel_size1 - pad1 - 1; }
+    int GetBackwardPadW() const { return kernel_size_w - pad_w - 1; }
+    int GetBackwardPadH() const { return kernel_size_h - pad_h - 1; }
 
     ProblemDescription() = default;
 
@@ -139,12 +139,12 @@ struct ProblemDescription
         // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NCHW-FP32-F
         stream
             << n_inputs << sep << in_height << sep << in_width
-            << sep << kernel_size1 << 'x' << kernel_size0
+            << sep << kernel_size_h << 'x' << kernel_size_w
             << sep << n_outputs << sep << out_height << sep << out_width
             << sep << batch_sz
-            << sep << pad1 << 'x' << pad0
-            << sep << kernel_stride1 << 'x' << kernel_stride0
-            << sep << kernel_dilation1 << 'x' << kernel_dilation0
+            << sep << pad_h << 'x' << pad_w
+            << sep << kernel_stride_h << 'x' << kernel_stride_w
+            << sep << kernel_dilation_h << 'x' << kernel_dilation_h
             << sep << bias
             << sep << in_layout
             << sep << in_data_type
@@ -298,11 +298,11 @@ struct ProblemDescription
                          int stride,
                          int w_stride)
     {
-        kernel_size0 = width;
-        kernel_size1 = height;
-        int data_len = (data_type == "FP16") ? 2 : (data_type == "FP32") ? 4 : 8;
-        float_size   = (data_type == "FP32" ? 32 : 16);
-        size_t size  = (layout == "NCHW")
+        kernel_size_w = width;
+        kernel_size_h = height;
+        int data_len  = (data_type == "FP16") ? 2 : (data_type == "FP32") ? 4 : 8;
+        float_size    = (data_type == "FP32" ? 32 : 16);
+        size_t size   = (layout == "NCHW")
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
         weights_sz = size;

@@ -96,16 +96,16 @@ struct verify_forward_pooling
         int in_h, in_w;
         std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
-        int u, v, pad_h, pad_w, window_h, window_w;
-        std::tie(u, v)               = miopen::tien<2>(filter.GetStrides());
+        int stride_h, stride_w, pad_h, pad_w, window_h, window_w;
+        std::tie(stride_h, stride_w) = miopen::tien<2>(filter.GetStrides());
         std::tie(pad_h, pad_w)       = miopen::tien<2>(filter.GetPads());
         std::tie(window_h, window_w) = miopen::tien<2>(filter.GetLengths());
 
         auto op = pooling_operators<T>{filter};
 
         out.par_for_each([&](int o, int w, int i, int j) {
-            const int start_x0 = i * v - pad_h;
-            const int start_y0 = j * u - pad_w;
+            const int start_x0 = i * stride_h - pad_h;
+            const int start_y0 = j * stride_w - pad_w;
 
             const int hend = std::min(start_x0 + window_h, in_h);
             const int wend = std::min(start_y0 + window_w, in_w);
@@ -205,8 +205,8 @@ struct verify_backward_pooling
         int in_h, in_w;
         std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(dinput.desc.GetLengths());
 
-        int u, v, pad_h, pad_w, window_h, window_w;
-        std::tie(u, v)               = miopen::tien<2>(filter.GetStrides());
+        int stride_h, stride_w, pad_h, pad_w, window_h, window_w;
+        std::tie(stride_h, stride_w) = miopen::tien<2>(filter.GetStrides());
         std::tie(pad_h, pad_w)       = miopen::tien<2>(filter.GetPads());
         std::tie(window_h, window_w) = miopen::tien<2>(filter.GetLengths());
 
@@ -220,8 +220,8 @@ struct verify_backward_pooling
                     auto idx   = indices.at(dout.desc.GetIndex(o, w, i, j));
                     auto idx_h = idx / window_w;
                     auto idx_w = idx % window_w;
-                    auto in_y  = i * v - pad_h + idx_h;
-                    auto in_x  = j * u - pad_w + idx_w;
+                    auto in_y  = i * stride_h - pad_h + idx_h;
+                    auto in_x  = j * stride_w - pad_w + idx_w;
                     if(in_y >= 0 && in_x >= 0 && in_y < in_h && in_x < in_w)
                     {
                         CHECK(miopen::float_equal(input(o, w, in_y, in_x), out(o, w, i, j)));
@@ -232,8 +232,8 @@ struct verify_backward_pooling
             else
             {
                 ford(out_h, out_w, window_h, window_w)([&](int i, int j, int x, int y) {
-                    const int start_x0 = i * v - pad_h;
-                    const int start_y0 = j * u - pad_w;
+                    const int start_x0 = i * stride_h - pad_h;
+                    const int start_y0 = j * stride_w - pad_w;
 
                     const int hend    = std::min(start_x0 + window_h, in_h);
                     const int wend    = std::min(start_y0 + window_w, in_w);
@@ -387,8 +387,8 @@ struct pooling_driver : test_driver
                               ? (std::max((window_w - filter.strides[1]), 0))
                               : (std::max((window_w - (in_w % filter.strides[1])), 0));
 
-            filter.pads[0] = _pad_w / 2;
-            filter.pads[1] = _pad_h / 2;
+            filter.pads[0] = _pad_h / 2;
+            filter.pads[1] = _pad_w / 2;
 
             out_h = std::ceil(static_cast<double>(in_h) / filter.strides[0]);
             out_w = std::ceil(static_cast<double>(in_w) / filter.strides[1]);

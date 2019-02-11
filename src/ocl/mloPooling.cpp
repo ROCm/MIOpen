@@ -76,8 +76,8 @@ int mlo_construct_pooling2D::mloConstructFwd()
     _grp_tile0 = 8;
     _grp_tile1 = 8;
 
-    _out_pix_tile0 = std::max(1, 8 / _search_params.kernel_stride0);
-    _out_pix_tile1 = std::max(1, 8 / _search_params.kernel_stride1);
+    _out_pix_tile0 = std::max(1, 8 / _search_params.kernel_stride_w);
+    _out_pix_tile1 = std::max(1, 8 / _search_params.kernel_stride_h);
 
     while(_out_pix_tile0 * _grp_tile0 > _search_params.out_width * 2 && _out_pix_tile0 > 1)
     {
@@ -92,17 +92,17 @@ int mlo_construct_pooling2D::mloConstructFwd()
     _comp_options = std::string(" -DMLO_POOLING_OP_ID=") +
                     std::to_string(static_cast<long long>(_pooling_method)) +
                     std::string(" -DMLO_POOLING_KERNEL_SZ1=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_size1)) +
+                    std::to_string(static_cast<long long>(_search_params.kernel_size_h)) +
                     std::string(" -DMLO_POOLING_PAD1=") +
-                    std::to_string(static_cast<long long>(_search_params.pad1)) +
+                    std::to_string(static_cast<long long>(_search_params.pad_h)) +
                     std::string(" -DMLO_POOLING_STRIDE1=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_stride1)) +
+                    std::to_string(static_cast<long long>(_search_params.kernel_stride_h)) +
                     std::string(" -DMLO_POOLING_KERNEL_SZ0=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_size0)) +
+                    std::to_string(static_cast<long long>(_search_params.kernel_size_w)) +
                     std::string(" -DMLO_POOLING_PAD0=") +
-                    std::to_string(static_cast<long long>(_search_params.pad0)) +
+                    std::to_string(static_cast<long long>(_search_params.pad_w)) +
                     std::string(" -DMLO_POOLING_STRIDE0=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_stride0)) +
+                    std::to_string(static_cast<long long>(_search_params.kernel_stride_w)) +
                     std::string(" -DMLO_POOLING_N_OUTPUTS=") +
                     std::to_string(static_cast<long long>(_search_params.n_outputs)) +
                     std::string(" -DMLO_POOLING_N_CHANNELS=") +
@@ -173,17 +173,17 @@ int mlo_construct_pooling2D::mloConstructBwd()
     _out_pix_tile1 = (_search_params.out_height < _grp_tile1 * 2) ? 1 : 2;
 
     _comp_options = std::string(" -DMLO_POOLING_KERNEL_SZ1=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_size1)) +
+                    std::to_string(static_cast<long long>(_search_params.kernel_size_h)) +
                     std::string(" -DMLO_POOLING_PAD1=") +
-                    std::to_string(static_cast<long long>(_search_params.pad1)) +
+                    std::to_string(static_cast<long long>(_search_params.pad_h)) +
                     std::string(" -DMLO_POOLING_STRIDE1=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_stride1)) +
+                    std::to_string(static_cast<long long>(_search_params.kernel_stride_h)) +
                     std::string(" -DMLO_POOLING_KERNEL_SZ0=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_size0)) +
+                    std::to_string(static_cast<long long>(_search_params.kernel_size_w)) +
                     std::string(" -DMLO_POOLING_PAD0=") +
-                    std::to_string(static_cast<long long>(_search_params.pad0)) +
+                    std::to_string(static_cast<long long>(_search_params.pad_w)) +
                     std::string(" -DMLO_POOLING_STRIDE0=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_stride0)) +
+                    std::to_string(static_cast<long long>(_search_params.kernel_stride_w)) +
                     std::string(" -DMLO_POOLING_N_OUTPUTS=") +
                     std::to_string(static_cast<long long>(_search_params.n_outputs)) +
                     std::string(" -DMLO_POOLBWD_N_HORIZ_OUT_PIX=") +

@@ -62,9 +62,9 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
                                                         : 32; // size of input data per ALU plane
 
     result.out_pix_tile0 =
-        std::max(params.kernel_stride0,
+        std::max(params.kernel_stride_w,
                  ((result.in_tile0 == 8) ? 1 : 2)); // size of ouptput tile per wk-item (ALU))
-    result.out_pix_tile1 = std::max(params.kernel_stride1, ((result.in_tile1 == 8) ? 1 : 2)); //
+    result.out_pix_tile1 = std::max(params.kernel_stride_h, ((result.in_tile1 == 8) ? 1 : 2)); //
 
     result.grp_tile0 = std::max(8, (result.in_tile0 / result.out_pix_tile0));
     result.grp_tile1 = std::max(8, (result.in_tile1 / result.out_pix_tile1));
@@ -76,7 +76,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
 
     result.n_stacks = 1; // # of diff stacks (part of batch).
 
-    if(params.kernel_size0 == 1 && params.kernel_size1 == 1 &&
+    if(params.kernel_size_w == 1 && params.kernel_size_h == 1 &&
        params.group_counts == 1) // Group conv: None 1x1 version yet, fallback to universal kernel.
     {
 
@@ -99,7 +99,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
             int i_sz             = params.out_height * params.out_width;
             result.out_pix_tile0 = (i_sz & 1) != 0 ? 1 : 2;
 
-            if(params.pad0 > 0 || params.kernel_stride0 > 1)
+            if(params.pad_w > 0 || params.kernel_stride_w > 1)
             {
                 if(params.direction.IsForward())
                 {
@@ -366,7 +366,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
 
     long long runs_left = 0;
 
-    if(params.kernel_size0 == 1 && params.kernel_size1 == 1 &&
+    if(params.kernel_size_w == 1 && params.kernel_size_h == 1 &&
        params.group_counts == 1) // Group conv: None 1x1 version yet, fallback to universal kernel.
     {
         MIOPEN_LOG_W("Searching the best solution in the 4 dim space. Please, be patient...");
@@ -406,7 +406,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
         else
         {
             int i_sz = params.in_width * params.in_height;
-            if(params.kernel_stride0 == 1)
+            if(params.kernel_stride_w == 1)
             {
                 out_pix_tl_cnt = (i_sz & 1) != 0 ? 1 : (i_sz & 0x3) != 0 ? 2 : 3;
             }
@@ -674,7 +674,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
         int ret                   = -1;
         double default_time       = std::numeric_limits<double>::max();
         const auto default_config = GetPerformanceConfig(params);
-        if(params.kernel_size0 == 1 && params.kernel_size1 == 1 &&
+        if(params.kernel_size_w == 1 && params.kernel_size_h == 1 &&
            params.group_counts ==
                1) // Group conv: None 1x1 version yet, fallback to universal kernel.
         {

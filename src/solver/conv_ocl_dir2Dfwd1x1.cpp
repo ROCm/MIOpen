@@ -33,10 +33,10 @@ namespace solver {
 
 bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
 {
-    return params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1 &&
-           params.kernel_size0 == 1 && params.kernel_size1 == 1 && params.group_counts == 1 &&
+    return params.kernel_dilation_w == 1 && params.kernel_dilation_h == 1 &&
+           params.kernel_size_w == 1 && params.kernel_size_h == 1 && params.group_counts == 1 &&
            // TODO: update 1x1 fwd kernel to support padding
-           params.pad0 == 0 && params.pad1 == 0;
+           params.pad_w == 0 && params.pad_h == 0;
 }
 
 ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
@@ -117,7 +117,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             int N_IN_GROUPS        = (C + N_LCL_IN_MAPS - 1) / N_LCL_IN_MAPS;
             int N_LCL_IN_MAPS_ONCE = 8;
 
-            if(params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
+            if(params.kernel_stride_w > 1 || params.kernel_stride_h > 1)
                 N_LCL_IN_MAPS_ONCE = 4;
 
             int CLOOP0 = N_LCL_IN_MAPS / N_LCL_IN_MAPS_ONCE;
@@ -145,14 +145,14 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
                 params.general_compile_options;
 
             kernel.comp_options = std::string(" -DMLO_FILTER_STRIDE0=") +
-                                  std::to_string(params.kernel_stride0) +
+                                  std::to_string(params.kernel_stride_w) +
                                   std::string(" -DMLO_FILTER_STRIDE1=") +
-                                  std::to_string(params.kernel_stride1) + kernel.comp_options;
+                                  std::to_string(params.kernel_stride_h) + kernel.comp_options;
 
             // std::cout << "compile options:\n"<< _comp_options << std::endl;
 
             // 1x1_Stride: FIX ME!!! NO padding support
-            if(params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
+            if(params.kernel_stride_w > 1 || params.kernel_stride_h > 1)
             {
                 int FIXED_WORKGROUP_SIZE = 64;
 
@@ -237,7 +237,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             //	_n_in_data_tiles = 4;
             //	_grp_tile0 = 64;
 
-            int wei_cstride = params.kernel_size0 * params.kernel_size1;
+            int wei_cstride = params.kernel_size_w * params.kernel_size_h;
             // backward: inputs are forward outputs
             const bool is_forward = params.direction.IsForward();
             int wei_bstride       = (is_forward ? params.n_inputs : params.n_outputs) * wei_cstride;
@@ -245,14 +245,14 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             int OUT_WIDTH4 = params.out_width;
             int MAP_SZ4    = (OUT_WIDTH4 * params.out_height + read_unit - 1) / (read_unit);
             // stride > 1 and/or apdding
-            if(params.pad0 > 0 || params.kernel_stride0 > 1 || params.pad1 > 0 ||
-               params.kernel_stride1 > 1)
+            if(params.pad_w > 0 || params.kernel_stride_w > 1 || params.pad_h > 0 ||
+               params.kernel_stride_h > 1)
             {
-                int step        = is_forward ? read_unit : read_unit * params.kernel_stride0;
+                int step        = is_forward ? read_unit : read_unit * params.kernel_stride_w;
                 OUT_WIDTH4      = (params.out_width + step - 1) / (step);
                 int OUT_HEIGHT4 = is_forward ? params.out_height
-                                             : (params.out_height + params.kernel_stride1 - 1) /
-                                                   params.kernel_stride1;
+                                             : (params.out_height + params.kernel_stride_h - 1) /
+                                                   params.kernel_stride_h;
                 MAP_SZ4 = (OUT_WIDTH4 * OUT_HEIGHT4);
             }
 
@@ -261,9 +261,9 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             if(!is_forward)
             {
                 VERT_ALIGNED =
-                    (params.out_height / params.kernel_stride1 == params.in_height) ? 1 : 0;
+                    (params.out_height / params.kernel_stride_h == params.in_height) ? 1 : 0;
                 HORIZ_ALIGNED =
-                    (params.out_width / params.kernel_stride0 == params.in_width) ? 1 : 0;
+                    (params.out_width / params.kernel_stride_w == params.in_width) ? 1 : 0;
             }
 
             int GRP_SZ = result.grp_tile0;
@@ -288,12 +288,12 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
 
             kernel.comp_options =
                 std::string(" -DMLO_DIR_FORWARD=") + (is_forward ? "1" : "0") +
-                std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(params.kernel_size0) +
-                std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(params.kernel_size1) +
-                std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(params.kernel_stride0) +
-                std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(params.kernel_stride1) +
-                std::string(" -DMLO_FILTER_PAD0=") + std::to_string(params.pad0) +
-                std::string(" -DMLO_FILTER_PAD1=") + std::to_string(params.pad1) +
+                std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(params.kernel_size_w) +
+                std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(params.kernel_size_h) +
+                std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(params.kernel_stride_w) +
+                std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(params.kernel_stride_h) +
+                std::string(" -DMLO_FILTER_PAD0=") + std::to_string(params.pad_w) +
+                std::string(" -DMLO_FILTER_PAD1=") + std::to_string(params.pad_h) +
                 std::string(" -DMLO_IN_WIDTH=") + std::to_string(params.in_width) +
                 std::string(" -DMLO_IN_HEIGHT=") + std::to_string(params.in_height) +
                 std::string(" -DMLO_OUT_WIDTH=") + std::to_string(params.out_width) +
@@ -350,7 +350,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             kernel.g_wk.push_back(gbl_wk2);
 
             kernel.kernel_file = "MIOpenConv1x1S.cl";
-            kernel.kernel_name = (params.kernel_stride0 == 1 && params.kernel_stride1 == 1)
+            kernel.kernel_name = (params.kernel_stride_w == 1 && params.kernel_stride_h == 1)
                                      ? "MIOpenConv1x1"
                                      : "MIOpenConv1x1pquv";
             result.construction_params.push_back(kernel);

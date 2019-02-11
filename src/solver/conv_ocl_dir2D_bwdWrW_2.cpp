@@ -88,8 +88,8 @@ bool ConvOclBwdWrW23NonTunableFilters::IsApplicable(const ConvolutionContext& pa
     // dominates.
     // Thus, this solver is used for non-group 3x3 and 1x1 filters only.
     bool ok = (params.group_counts == 1) &&
-              ((params.kernel_size0 == 3 && params.kernel_size1 == 3) ||
-               (params.kernel_size0 == 1 && params.kernel_size1 == 1)) &&
+              ((params.kernel_size_h == 3 && params.kernel_size_w == 3) ||
+               (params.kernel_size_h == 1 && params.kernel_size_w == 1)) &&
               ConvOclBwdWrW2::IsApplicableBase(params);
 
     MIOPEN_LOG_I("ConvOclBwdWrW23NonTunableFilters::IsApplicable " << ok);
@@ -164,7 +164,7 @@ bool PerformanceConfigConvOclBwdWrw2::IsValid(const ConvolutionContext& params) 
     // Check 1: n_back_loops
     // Ensure that the total amount of system memory used by intermediate object
     // that holds the weights of x number of batches doesn't exceed system memory
-    size_t wei_cstride = params.kernel_size0 * params.kernel_size1;
+    size_t wei_cstride = params.kernel_size_h * params.kernel_size_w;
     size_t wei_bstride = (params.n_outputs / params.group_counts) * wei_cstride;
 
     // number  of batch iterations
@@ -242,13 +242,13 @@ bool PerformanceConfigConvOclBwdWrw2::IsValid(const ConvolutionContext& params) 
         return false;
     }
 
-    if(n_out_rows_in_lcl < params.kernel_size1)
+    if(n_out_rows_in_lcl < params.kernel_size_h)
     {
         return false;
     }
 
     // Check 5: n_out_rows_in_lcl  should exceed LDS limit
-    size_t in_lcl_height = (n_out_rows_in_lcl - 1) * params.kernel_stride1 + params.kernel_size1;
+    size_t in_lcl_height = (n_out_rows_in_lcl - 1) * params.kernel_stride_h + params.kernel_size_h;
     size_t in_lcl_sz     = 0;
     {
         // Chao: Reserve space in LDS for left padding, it also reserve
@@ -262,14 +262,14 @@ bool PerformanceConfigConvOclBwdWrw2::IsValid(const ConvolutionContext& params) 
         size_t out_width    = params.in_width;
 
         size_t in_lcl_width_effective =
-            std::max(in_width + 2 * params.pad0,
-                     std::max(params.pad0 + ((in_width + read_size - 1) / read_size) * read_size,
-                              params.kernel_size0 + (out_width - 1) * params.kernel_stride0));
+            std::max(in_width + 2 * params.pad_w,
+                     std::max(params.pad_w + ((in_width + read_size - 1) / read_size) * read_size,
+                              params.kernel_size_w + (out_width - 1) * params.kernel_stride_w));
 
         size_t in_lcl_width_right_buffer =
-            std::max(static_cast<int>(in_lcl_width_effective - (in_width + 2 * params.pad0)), 0);
+            std::max(static_cast<int>(in_lcl_width_effective - (in_width + 2 * params.pad_w)), 0);
 
-        in_lcl_width = params.pad0 + in_width + in_lcl_width_right_buffer;
+        in_lcl_width = params.pad_w + in_width + in_lcl_width_right_buffer;
 
         // Chao: attempt to reduce LDS bank conflict during reading input image from LDS
         // Revisit this if performance regress
@@ -279,14 +279,14 @@ bool PerformanceConfigConvOclBwdWrw2::IsValid(const ConvolutionContext& params) 
         }
 
         // make enough room for right padding and buffer for the last row in LDS
-        in_lcl_sz = in_lcl_width * in_lcl_height + params.pad0 + in_lcl_width_right_buffer;
+        in_lcl_sz = in_lcl_width * in_lcl_height + params.pad_w + in_lcl_width_right_buffer;
     }
 
     // check LDS consumption
     size_t wei_per_wkitem =
-        (params.kernel_size0 <= 7 || (((params.kernel_size0 / 2) * 2) != params.kernel_size0))
-            ? params.kernel_size0
-            : params.kernel_size0 / 2;
+        (params.kernel_size_w <= 7 || (((params.kernel_size_w / 2) * 2) != params.kernel_size_w))
+            ? params.kernel_size_w
+            : params.kernel_size_w / 2;
 
     {
         size_t n_lcl_batchs   = result.n_stacks;
@@ -309,8 +309,8 @@ bool PerformanceConfigConvOclBwdWrw2::IsValid(const ConvolutionContext& params) 
             if(wei_per_wkitem == 0)
                 return false;
             size_t wei_blk_sz0 =
-                std::ceil(static_cast<float>(params.kernel_size0) / wei_per_wkitem);
-            size_t wei_blk_sz = params.kernel_size1 * wei_blk_sz0;
+                std::ceil(static_cast<float>(params.kernel_size_w) / wei_per_wkitem);
+            size_t wei_blk_sz = params.kernel_size_h * wei_blk_sz0;
             if(wei_blk_sz == 0)
                 return false;
             size_t n_wei_blk = workgroup_size / wei_blk_sz;
@@ -382,7 +382,7 @@ void PerformanceConfigConvOclBwdWrw2::EuristicInit(const ConvolutionContext& par
     else
         n_out_channels_per_tile = 1;
     n_out_channels_tiles        = 1;
-    n_out_rows_in_lcl           = params.kernel_size1;
+    n_out_rows_in_lcl           = params.kernel_size_h;
 }
 
 std::string PerformanceConfigConvOclBwdWrw2::ToString() const
@@ -400,7 +400,7 @@ bool ConvOclBwdWrW2::IsValidPerformanceConfig(
 
 bool ConvOclBwdWrW2::IsApplicableBase(const ConvolutionContext& params) const
 {
-    return (params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1) &&
+    return (params.kernel_dilation_w == 1 && params.kernel_dilation_h == 1) &&
 #if 0
            // There is a stronger restriction than this one, which make this one unnecessary.
            // The kernel read stripes (in height direction, one stripe at a time) of input into LDS,
@@ -409,13 +409,13 @@ bool ConvOclBwdWrW2::IsApplicableBase(const ConvolutionContext& params) const
            // previous read, (MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_FILTER_STRIDE1) of it is fresh read
            // from device memory. So (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1) need no less than 0.
            // TODO: chao: revisit this if failure is encountered.
-           (params.kernel_size1 - params.kernel_stride1 >= 0) &&
+           (params.kernel_size_h - params.kernel_stride_h >= 0) &&
 #endif
 
            // The first scan of stripe of the input into LDS will read a strip of height
-           // (kernel_size1 - kernel_stride1), this stripe should include the whole lower bound
+           // (kernel_size_h - kernel_stride_h), this stripe should include the whole lower bound
            // padding, as well as some or none of the input.
-           (params.kernel_size1 - params.kernel_stride1 >= params.pad1) &&
+           (params.kernel_size_h - params.kernel_stride_h >= params.pad_h) &&
 
            // Avoid LDS over-allocation
            IsValidPerformanceConfig(params, GetPerformanceConfig(params));
@@ -423,9 +423,10 @@ bool ConvOclBwdWrW2::IsApplicableBase(const ConvolutionContext& params) const
 
 bool ConvOclBwdWrW2::IsApplicable(const ConvolutionContext& params) const
 {
-    bool ok = !(params.group_counts == 1 && params.kernel_size0 == 3 && params.kernel_size1 == 3) &&
-              !(params.group_counts == 1 && params.kernel_size0 == 1 && params.kernel_size1 == 1) &&
-              IsApplicableBase(params);
+    bool ok =
+        !(params.group_counts == 1 && params.kernel_size_w == 3 && params.kernel_size_h == 3) &&
+        !(params.group_counts == 1 && params.kernel_size_w == 1 && params.kernel_size_h == 1) &&
+        IsApplicableBase(params);
 
     MIOPEN_LOG_I("ConvOclBwdWrW2::IsApplicable " << ok);
     return ok;
@@ -441,7 +442,7 @@ ConvOclBwdWrW2::GetPerformanceConfig(const ConvolutionContext& params) const
 
 size_t ConvOclBwdWrW2::GetMaxWorkspaceSize(const ConvolutionContext& params) const
 {
-    size_t wei_cstride = params.kernel_size0 * params.kernel_size1;
+    size_t wei_cstride = params.kernel_size_w * params.kernel_size_h;
     size_t wei_bstride = (params.n_outputs / params.group_counts) * wei_cstride;
     size_t data_len = (params.out_data_type == "FP16" ? 2 : params.out_data_type == "FP32" ? 4 : 8);
     size_t n_batch_blks = params.batch_sz;
@@ -459,7 +460,7 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params,
 
     const auto n_input_channels_per_group  = params.n_outputs / params.group_counts;
     const auto n_output_channels_per_group = params.n_inputs / params.group_counts;
-    const auto wei_cstride                 = params.kernel_size0 * params.kernel_size1;
+    const auto wei_cstride                 = params.kernel_size_w * params.kernel_size_h;
     const auto wei_bstride                 = n_input_channels_per_group * wei_cstride;
 
     result.n_stacks        = 1;
@@ -469,9 +470,9 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params,
         std::ceil(static_cast<float>(params.batch_sz) / (config.n_batch_loops * result.n_stacks));
     size_t total_out_maps = config.n_out_channels_per_tile * config.n_out_channels_tiles;
     size_t wei_per_wkitem =
-        (params.kernel_size0 <= 7 || (((params.kernel_size0 / 2) * 2) != params.kernel_size0))
-            ? params.kernel_size0
-            : params.kernel_size0 / 2;
+        (params.kernel_size_w <= 7 || (((params.kernel_size_w / 2) * 2) != params.kernel_size_w))
+            ? params.kernel_size_w
+            : params.kernel_size_w / 2;
 
     // each wave is a filter row
     std::string READ_TYPE =
@@ -480,7 +481,7 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params,
         std::ceil(static_cast<float>(params.in_width) / config.read_size); // image aligned scan
     size_t n_out_blk = std::ceil(static_cast<float>(params.in_height) / config.n_out_rows_in_lcl);
     size_t in_lcl_height =
-        (config.n_out_rows_in_lcl - 1) * params.kernel_stride1 + params.kernel_size1;
+        (config.n_out_rows_in_lcl - 1) * params.kernel_stride_h + params.kernel_size_h;
     size_t in_lcl_width = 0;
     size_t in_lcl_sz    = 0;
     {
@@ -494,18 +495,18 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params,
         size_t out_width = params.in_width;
 
         size_t in_lcl_width_effective =
-            std::max(in_width + 2 * static_cast<size_t>(params.pad0),
-                     std::max(static_cast<size_t>(params.pad0) +
+            std::max(in_width + 2 * static_cast<size_t>(params.pad_w),
+                     std::max(static_cast<size_t>(params.pad_w) +
                                   static_cast<size_t>(
                                       std::ceil(static_cast<float>(in_width) / config.read_size) *
                                       config.read_size),
-                              static_cast<size_t>(params.kernel_size0) +
-                                  (out_width - 1) * params.kernel_stride0));
+                              static_cast<size_t>(params.kernel_size_w) +
+                                  (out_width - 1) * params.kernel_stride_w));
 
         size_t in_lcl_width_right_buffer =
-            std::max(static_cast<int>(in_lcl_width_effective - (in_width + 2 * params.pad0)), 0);
+            std::max(static_cast<int>(in_lcl_width_effective - (in_width + 2 * params.pad_w)), 0);
 
-        in_lcl_width = params.pad0 + in_width + in_lcl_width_right_buffer;
+        in_lcl_width = params.pad_w + in_width + in_lcl_width_right_buffer;
 
         // Chao: attempt to reduce LDS bank conflict during reading input image from LDS
         // Revisit this if performance regress
@@ -515,7 +516,7 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params,
         }
 
         // make enough room for right padding and buffer for the last row in LDS
-        in_lcl_sz = in_lcl_width * in_lcl_height + params.pad0 + in_lcl_width_right_buffer;
+        in_lcl_sz = in_lcl_width * in_lcl_height + params.pad_w + in_lcl_width_right_buffer;
     }
 
     size_t out_n_pixels_off =
@@ -542,12 +543,12 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params,
         std::to_string((result.grp_tile0)) + std::string(" -DMLO_GRP_SZ1=") +
         std::to_string((result.grp_tile1)) + std::string(" -DMLO_GRP_SZ2=") +
         std::to_string((grp_tile2)) + std::string(" -DMLO_FILTER_SIZE0=") +
-        std::to_string(params.kernel_size0) + std::string(" -DMLO_FILTER_SIZE1=") +
-        std::to_string(params.kernel_size1) + std::string(" -DMLO_FILTER_PAD0=") +
-        std::to_string(params.pad0) + std::string(" -DMLO_FILTER_PAD1=") +
-        std::to_string(params.pad1) + std::string(" -DMLO_FILTER_STRIDE0=") +
-        std::to_string(params.kernel_stride0) + std::string(" -DMLO_FILTER_STRIDE1=") +
-        std::to_string(params.kernel_stride1) + std::string(" -DMLO_N_OUTPUTS=") +
+        std::to_string(params.kernel_size_w) + std::string(" -DMLO_FILTER_SIZE1=") +
+        std::to_string(params.kernel_size_h) + std::string(" -DMLO_FILTER_PAD0=") +
+        std::to_string(params.pad_w) + std::string(" -DMLO_FILTER_PAD1=") +
+        std::to_string(params.pad_h) + std::string(" -DMLO_FILTER_STRIDE0=") +
+        std::to_string(params.kernel_stride_w) + std::string(" -DMLO_FILTER_STRIDE1=") +
+        std::to_string(params.kernel_stride_h) + std::string(" -DMLO_N_OUTPUTS=") +
         std::to_string(params.n_inputs) + std::string(" -DMLO_N_INPUTS=") +
         std::to_string(params.n_outputs) + std::string(" -DMLO_BATCH_SZ=") +
         std::to_string(params.batch_sz) + std::string(" -DMLO_N_BATCH_LOOPS=") +

@@ -283,16 +283,18 @@ int ConvForwardCPU(const std::vector<Tref>& in,
                                 &out_hstride,
                                 &out_wstride);
 
-    int u, v, pad_h, pad_w, dilation_h, dilation_w;
+    int stride_h, stride_w, pad_h, pad_w, dilation_h, dilation_w;
     miopenConvolutionMode_t mode;
     miopenPaddingMode_t pmode = miopen::deref(convDesc).paddingMode;
     miopenGetConvolutionDescriptor(
-        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+        convDesc, &mode, &pad_h, &pad_w, &stride_h, &stride_w, &dilation_h, &dilation_w);
 
     if(pmode == miopenPaddingSame)
     {
-        pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
-        pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
+        pad_h = (in_h % stride_h == 0) ? (std::max((wei_h - stride_h), 0))
+                                       : (std::max((wei_h - (in_h % stride_h)), 0));
+        pad_w = (in_w % stride_w == 0) ? (std::max((wei_w - stride_w), 0))
+                                       : (std::max((wei_w - (in_w % stride_w)), 0));
         pad_h /= 2;
         pad_w /= 2;
     }
@@ -322,11 +324,11 @@ int ConvForwardCPU(const std::vector<Tref>& in,
         { // out_channels (num filters)
             for(int i = 0; i < out_h; i++)
             { // output_height (from getforwardoutputdim())
-                int in_off_h = i * u;
+                int in_off_h = i * stride_h;
                 for(int j = 0; j < out_w; j++)
                 { // output_width (from getforwardoutputdim())
                     Tgpu acc     = static_cast<Tgpu>(0.);
-                    int in_off_w = j * v;
+                    int in_off_w = j * stride_w;
                     for(int k = 0; k < in_c; k++)
                     { // in_channels (RGB)
                         for(int x = 0; x < wei_h; x++)

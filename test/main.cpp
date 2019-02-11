@@ -121,15 +121,15 @@ struct conv_filter_fixture : virtual handle_fixture
     {
         // TODO: Update API to not require mode by pointer
         miopenConvolutionMode_t lcmode = c_mode;
-        int pad_w, pad_h, u, v, upx, upy;
-        STATUS(
-            miopenGetConvolutionDescriptor(convDesc, &lcmode, &pad_h, &pad_w, &u, &v, &upx, &upy));
+        int pad_w, pad_h, stride_h, stride_w, upx, upy;
+        STATUS(miopenGetConvolutionDescriptor(
+            convDesc, &lcmode, &pad_h, &pad_w, &stride_h, &stride_w, &upx, &upy));
 
         EXPECT(lcmode == 0);
         EXPECT(pad_h == 0);
         EXPECT(pad_w == 0);
-        EXPECT(u == 1);
-        EXPECT(v == 1);
+        EXPECT(stride_h == 1);
+        EXPECT(stride_w == 1);
         EXPECT(upx == 1);
         EXPECT(upy == 1);
     }

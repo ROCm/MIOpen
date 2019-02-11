@@ -43,12 +43,12 @@ namespace solver {
 
 static inline bool UseSubsample(const ConvolutionContext& c)
 {
-    return (c.kernel_stride0 > 1 || c.kernel_stride1 > 1) && c.direction.IsForward();
+    return (c.kernel_stride_w > 1 || c.kernel_stride_h > 1) && c.direction.IsForward();
 }
 
 static inline bool UseUpsample(const ConvolutionContext& c)
 {
-    return (c.kernel_stride0 > 1 || c.kernel_stride1 > 1) && c.direction.IsBackwardData();
+    return (c.kernel_stride_w > 1 || c.kernel_stride_h > 1) && c.direction.IsBackwardData();
 }
 
 /// After 2x subsampling kernel, image size on asm kernel input becomes 4x (2*2) smaller.
@@ -330,14 +330,14 @@ bool ConvActivAsm1x1U::IsApplicable(const ConvolutionContext& params) const
     }
     assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
     // clang-format off
-    bool ok = (params.pad0 == 0         // -q  pad_w
-        && params.pad1 == 0             // -p  pad_h
-        && params.kernel_stride0 <= 2   // -u  stride_w
-        && params.kernel_stride0 == params.kernel_stride1
-        && params.kernel_size0 == 1     // -x  S wei_w
-        && params.kernel_size1 == 1     // -y  R wei_h
-        && params.kernel_dilation0 == 1
-        && params.kernel_dilation1 == 1
+    bool ok = (params.pad_w == 0         // -q  pad_w
+        && params.pad_h == 0             // -p  pad_h
+        && params.kernel_stride_w <= 2   // -u  stride_w
+        && params.kernel_stride_w == params.kernel_stride_h
+        && params.kernel_size_w == 1     // -x  S wei_w
+        && params.kernel_size_h == 1     // -y  R wei_h
+        && params.kernel_dilation_w == 1
+        && params.kernel_dilation_h == 1
         && params.bias == 0
         && params.float_size == 32
         && params.group_counts == 1
@@ -347,7 +347,7 @@ bool ConvActivAsm1x1U::IsApplicable(const ConvolutionContext& params) const
         return false; // Early exit to speed up the check.
     }
     if (miopen::IsEnabled(MIOPEN_DEBUG_FIND_FIRST_CONV{})
-        && params.kernel_stride0 > 1)
+        && params.kernel_stride_w > 1)
     {
         /// Disabled asm_1x1u for stride=2 due to the overhead of
         /// Up/Subsampler and SetTensor for UpSampler. (Refer to issue #940).
@@ -370,7 +370,7 @@ bool ConvActivAsm1x1U::IsApplicable(const ConvolutionContext& params) const
     }
     // Check limits:
     auto h_w = static_cast<long>(AsmImgHeight(params)) * AsmImgWidth(params);
-    const auto r_s     = static_cast<long>(params.kernel_size1) * params.kernel_size0;
+    const auto r_s     = static_cast<long>(params.kernel_size_h) * params.kernel_size_w;
     const auto c_h_w   = static_cast<long>(params.n_inputs) * h_w;    // C*H*W
     const auto k_h_w   = static_cast<long>(params.n_outputs) * h_w;   // K*H*W
     const auto n_c_h_w = static_cast<long>(params.batch_sz) * c_h_w;  // N*C*H*W
@@ -415,8 +415,8 @@ ConvSolution ConvActivAsm1x1U::GetSolution(const ConvolutionContext& params,
         const auto subsample_kernel_compilation_options =
             " -DUPSAMPLE" + std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
             std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
-            std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(params.kernel_stride0) +
-            std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(params.kernel_stride1) +
+            std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(params.kernel_stride_w) +
+            std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(params.kernel_stride_h) +
             std::string(" -DMLO_WRITE_UNIT=") + std::to_string(write_unit) +
             std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(params.out_channel_stride) +
             std::string(" -DMLO_OUT_STRIDE=") + std::to_string(params.out_stride) +
@@ -464,10 +464,10 @@ ConvSolution ConvActivAsm1x1U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "batch_size", params.batch_sz);       // N
     GenerateClangDefsym(options, "input_channels", params.n_inputs);   // C
     GenerateClangDefsym(options, "output_channels", params.n_outputs); // K
-    GenerateClangDefsym(options, "wei_h", params.kernel_size1);        // R
-    GenerateClangDefsym(options, "wei_w", params.kernel_size0);        // S
-    GenerateClangDefsym(options, "pad_h", params.pad1);
-    GenerateClangDefsym(options, "pad_w", params.pad0);
+    GenerateClangDefsym(options, "wei_h", params.kernel_size_h);       // R
+    GenerateClangDefsym(options, "wei_w", params.kernel_size_w);       // S
+    GenerateClangDefsym(options, "pad_h", params.pad_h);
+    GenerateClangDefsym(options, "pad_w", params.pad_w);
     GenerateClangDefsym(options, "weights_layout", params.direction.IsForward() ? 0 : 1);
     GenerateClangDefsym(
         options, "ROCM_METADATA_VERSION", (params.rmv == rocm_meta_version::V3) ? 3 : 4);

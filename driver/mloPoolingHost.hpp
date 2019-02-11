@@ -78,12 +78,12 @@ double CalcErr( _T c_val, _T g_val)
 template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
           typename _Tcheck /* the data type used in CPU checkings (usually double) */>
 bool mloPoolingForwardRunHostAndVerify(int pooling_method,
-                                       int pad1,
-                                       int stride1,
-                                       int kernel_size1,
-                                       int pad0,
-                                       int stride0,
-                                       int kernel_size0,
+                                       int pad_h,
+                                       int pool_stride_h,
+                                       int filter_size_h,
+                                       int pad_w,
+                                       int pool_stride_w,
+                                       int filter_size_w,
                                        int n_batchs,
                                        int n_outputs,
                                        int bot_height,
@@ -131,10 +131,10 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                         res = static_cast<_Tcheck>(0);
                     }
 
-                    int hstart = j * stride1 - pad1;
-                    int wstart = i * stride0 - pad0;
-                    int hend   = std::min(hstart + kernel_size1, bot_height);
-                    int wend   = std::min(wstart + kernel_size0, bot_width);
+                    int hstart = j * pool_stride_h - pad_h;
+                    int wstart = i * pool_stride_w - pad_w;
+                    int hend   = std::min(hstart + filter_size_h, bot_height);
+                    int wend   = std::min(wstart + filter_size_w, bot_width);
                     hstart     = std::max(hstart, 0);
                     wstart     = std::max(wstart, 0);
 
@@ -142,7 +142,7 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                     if(pooling_method == MLO_POOLING_OP_AVE)
                         pool_size = (hend - hstart) * (wend - wstart);
                     else
-                        pool_size        = kernel_size0 * kernel_size1;
+                        pool_size        = filter_size_w * filter_size_h;
                     pool_size            = (pool_size == 0) ? 1 : pool_size;
                     size_t res_index     = 0;
                     size_t res_index_gpu = 0;
@@ -157,10 +157,11 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                                                    h * bot_stride + w;
                                 if(static_cast<_Tcheck>(bot_ptr[bot_index]) > res)
                                 {
-                                    res           = static_cast<_Tcheck>(bot_ptr[bot_index]);
-                                    res_index     = bot_index;
-                                    res_index_gpu = ((h - j * stride1 + pad1) * kernel_size0) +
-                                                    (w - i * stride0 + pad0);
+                                    res       = static_cast<_Tcheck>(bot_ptr[bot_index]);
+                                    res_index = bot_index;
+                                    res_index_gpu =
+                                        ((h - j * pool_stride_h + pad_h) * filter_size_w) +
+                                        (w - i * pool_stride_w + pad_w);
                                     found = true;
                                 }
                             }
@@ -244,12 +245,12 @@ template <typename _Tgpu /* the data type used in GPU computations (usually half
           typename _Tcheck /* the data type used in CPU checkings (usually double) */>
 int mloPoolingBackwardRunHost(
     int pooling_method,
-    int kernel_size1,
-    int pad1,
-    int stride1,
-    int kernel_size0,
-    int pad0,
-    int stride0,
+    int filter_size_h,
+    int pad_h,
+    int pool_stride_h,
+    int filter_size_w,
+    int pad_w,
+    int pool_stride_w,
 
     _Tcheck* bot_df_v_ptr, // the code assumes that bot_df_v_ptr was zeroed
     const _Tgpu* top_df_ptr,
@@ -305,22 +306,24 @@ int mloPoolingBackwardRunHost(
                         // c-emulator
                         bot_df_v_ptr[bot_df_v_off + j * bot_df_v_stride + i] =
                             static_cast<_Tcheck>(0);
-                        int h       = j + pad1;
-                        int w       = i + pad0;
-                        int phstart = (h < kernel_size1) ? 0 : (h - kernel_size1) / stride1 + 1;
-                        int phend   = std::min(h / stride1 + 1, top_height);
-                        int pwstart = (w < kernel_size0) ? 0 : (w - kernel_size0) / stride0 + 1;
-                        int pwend   = std::min(w / stride0 + 1, top_width);
+                        int h = j + pad_h;
+                        int w = i + pad_w;
+                        int phstart =
+                            (h < filter_size_h) ? 0 : (h - filter_size_h) / pool_stride_h + 1;
+                        int phend = std::min(h / pool_stride_h + 1, top_height);
+                        int pwstart =
+                            (w < filter_size_w) ? 0 : (w - filter_size_w) / pool_stride_w + 1;
+                        int pwend        = std::min(w / pool_stride_w + 1, top_width);
                         _Tcheck gradient = static_cast<_Tcheck>(0);
                         for(int ph = phstart; ph < phend; ++ph)
                         {
                             for(int pw = pwstart; pw < pwend; ++pw)
                             {
                                 // figure out the pooling size
-                                int hstart = ph * stride1 - pad1;
-                                int wstart = pw * stride0 - pad0;
-                                int hend   = std::min(hstart + kernel_size1, bot_height);
-                                int wend   = std::min(wstart + kernel_size0, bot_width);
+                                int hstart = ph * pool_stride_h - pad_h;
+                                int wstart = pw * pool_stride_w - pad_w;
+                                int hend   = std::min(hstart + filter_size_h, bot_height);
+                                int wend   = std::min(wstart + filter_size_w, bot_width);
                                 hstart     = std::max(hstart, 0);
                                 wstart     = std::max(wstart, 0);
 
@@ -330,9 +333,9 @@ int mloPoolingBackwardRunHost(
                                                     ? 1
                                                     : (hend - hstart) * (wend - wstart);
                                 else
-                                    pool_size = (kernel_size0 * kernel_size1 == 0)
+                                    pool_size = (filter_size_w * filter_size_h == 0)
                                                     ? 1
-                                                    : kernel_size0 * kernel_size1;
+                                                    : filter_size_w * filter_size_h;
                                 gradient += static_cast<_Tcheck>(
                                                 top_df_ptr[top_df_off + ph * top_df_stride + pw]) /
                                             static_cast<_Tcheck>(pool_size);

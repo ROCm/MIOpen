@@ -62,21 +62,29 @@ using ExtraKernelArgs = std::tuple<int /*N*/,
 
 struct ConvolutionDescriptor : miopenConvolutionDescriptor
 {
-
-    ConvolutionDescriptor(int p_pad_h      = 0,
-                          int p_pad_w      = 0,
-                          int p_u          = 1,
-                          int p_v          = 1,
-                          int p_dilation_h = 1,
-                          int p_dilation_w = 1);
     ConvolutionDescriptor(miopenConvolutionMode_t c_mode,
                           miopenPaddingMode_t p_mode,
-                          int p_pad_h      = 0,
-                          int p_pad_w      = 0,
-                          int p_u          = 1,
-                          int p_v          = 1,
-                          int p_dilation_h = 1,
-                          int p_dilation_w = 1);
+                          const std::vector<int>& p_pads              = {0, 0},
+                          const std::vector<int>& p_strides           = {1, 1},
+                          const std::vector<int>& p_dilations         = {1, 1},
+                          const std::vector<int>& p_trans_output_pads = {0, 0},
+                          int p_group_count                           = 1,
+                          float p_lowp_quant                          = float(1));
+
+    ConvolutionDescriptor(const std::vector<int>& p_pads              = {0, 0},
+                          const std::vector<int>& p_strides           = {1, 1},
+                          const std::vector<int>& p_dilations         = {1, 1},
+                          const std::vector<int>& p_trans_output_pads = {0, 0},
+                          int p_group_count                           = 1,
+                          float p_lowp_quant                          = float(1));
+
+    const std::vector<int>& GetConvPads() const;
+
+    const std::vector<int>& GetConvStrides() const;
+
+    const std::vector<int>& GetConvDilations() const;
+
+    const std::vector<int>& GetTransposeConvPads() const;
 
     std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>
     GetForwardOutputDim(const TensorDescriptor& inputTensorDesc,
@@ -301,16 +309,12 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
 
     miopenConvolutionMode_t mode;
     miopenPaddingMode_t paddingMode;
-    int pad_h;
-    int pad_w;
-    int u;
-    int v;
-    int dilation_h;
-    int dilation_w;
+    std::vector<int> pads;
+    std::vector<int> strides;
+    std::vector<int> dilations;
+    std::vector<int> trans_output_pads;
     int group_count;
     float lowp_quant; // quantization factor for low precision
-    int trans_output_pad_h;
-    int trans_output_pad_w;
 };
 
 void ConvolutionBackwardBias(Handle& handle,

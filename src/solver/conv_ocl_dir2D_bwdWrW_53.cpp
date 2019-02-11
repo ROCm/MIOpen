@@ -45,34 +45,35 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
     bool workaround = false;
 
 #if WORKAROUND_ISSUE_1173
-    workaround = workaround ||
-                 (params.out_data_type == "FP16" &&
-                  ((params.kernel_size0 == 7 && params.kernel_size1 == 7 && params.pad0 == 3) ||
-                   (params.kernel_size0 == 7 && params.kernel_size1 == 7 && params.pad0 == 2) ||
-                   (params.kernel_size0 == 11 && params.kernel_size1 == 11 && params.pad0 == 5) ||
-                   (params.kernel_size0 == 11 && params.kernel_size1 == 11 && params.pad0 == 2) ||
-                   (params.kernel_size0 == 11 && params.kernel_size1 == 11 && params.pad0 == 1)));
+    workaround =
+        workaround ||
+        (params.out_data_type == "FP16" &&
+         ((params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 3) ||
+          (params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 2) ||
+          (params.kernel_size_w == 11 && params.kernel_size_h == 11 && params.pad_w == 5) ||
+          (params.kernel_size_w == 11 && params.kernel_size_h == 11 && params.pad_w == 2) ||
+          (params.kernel_size_w == 11 && params.kernel_size_h == 11 && params.pad_w == 1)));
 #endif
 
 #if WORKAROUND_ISSUE_1242
     workaround = workaround ||
                  (params.out_data_type == "FP32" &&
-                  ((params.kernel_size0 == 7 && params.kernel_size1 == 7 && params.pad0 == 3) ||
-                   (params.kernel_size0 == 7 && params.kernel_size1 == 7 && params.pad0 == 1)) &&
+                  ((params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 3) ||
+                   (params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 1)) &&
                   (params.out_height % 112 == 0 || params.out_width % 112 == 0));
 #endif
     bool ok =
-        (params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1) &&
-        (params.kernel_stride0 == 1 && params.kernel_stride1 == 1) &&
+        (params.kernel_dilation_w == 1 && params.kernel_dilation_h == 1) &&
+        (params.kernel_stride_w == 1 && params.kernel_stride_h == 1) &&
 
         // This limitation is because of the way the kernel process data at lower vertical
         // boundary (including padding).
-        (params.kernel_size1 - params.pad1 - params.kernel_stride1 >= 0) &&
+        (params.kernel_size_h >= params.pad_h + params.kernel_stride_h) &&
 
         // Input image height plus vertical paddings should be no less than filter vertical size.
         // TODO: chao: revisit this to make sure this is the actual limitation.
         // Remind that input is output, output is input.
-        (params.kernel_size1 <= params.out_height + 2 * params.pad1) &&
+        (params.kernel_size_h <= params.out_height + 2 * params.pad_h) &&
 
         // Input and output width and height need to match exactly,
         // meaning, filter's moving range should be the same as input plus padding.
@@ -80,8 +81,8 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
         // right padding, when reading an input row into LDS. Also need to rewrite the vertical
         // loop.
         // Remind that input is output, output is input.
-        (params.in_height == params.out_height + 2 * params.pad1 - params.kernel_size1 + 1) &&
-        (params.in_width == params.out_width + 2 * params.pad0 - params.kernel_size0 + 1) &&
+        (params.in_height == params.out_height + 2 * params.pad_h - params.kernel_size_h + 1) &&
+        (params.in_width == params.out_width + 2 * params.pad_w - params.kernel_size_w + 1) &&
 
         // Avoid LDS over-allocation
         GetSolution(params).Succeeded() &&
@@ -119,7 +120,7 @@ static inline miopenStatus_t ComputeInputParams(
 
     // As each width chunk starts to get split,
     // it should include complete kernel filter in horizontal span.
-    const uint filter_adjustment = params.kernel_size0 - 1;
+    const uint filter_adjustment = params.kernel_size_w - 1;
 
     const auto lds_size         = 64 * 1024; /// TBD Obtain this from device info.
     const auto max_lds_elements = lds_size / (2 * (params.float_size / 8));
@@ -132,11 +133,11 @@ static inline miopenStatus_t ComputeInputParams(
             out_n_vert_reads = params.in_height;
             num_out_channels = std::ceil(static_cast<float>(num_out_channels) / 2);
         }
-        else if(out_n_vert_reads >= params.kernel_size1 * 2)
+        else if(out_n_vert_reads >= params.kernel_size_h * 2)
         {
             out_n_vert_reads = std::ceil(static_cast<float>(out_n_vert_reads) / 2);
         }
-        else if(out_n_vert_reads >= params.kernel_size1 && out_n_horizon_reads > 2)
+        else if(out_n_vert_reads >= params.kernel_size_h && out_n_horizon_reads > 2)
         {
             out_n_horizon_reads = std::ceil(static_cast<float>(out_n_horizon_reads) / 2);
         }
@@ -256,7 +257,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
 
     const auto hw_wave_sz = 64;
     // inpout are outputs
-    int wei_cstride = params.kernel_size0 * params.kernel_size1;
+    int wei_cstride = params.kernel_size_w * params.kernel_size_h;
 
     // At convolutionocl level, the assertion is present to ensure output channels are
     // in multiple of group counts
@@ -275,8 +276,8 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     int n_batch_blks =
         (params.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) / (N_BATCH_LOOPS * result.n_stacks);
 
-    result.out_pix_tile0 = params.kernel_size0;
-    result.out_pix_tile1 = params.kernel_size1;
+    result.out_pix_tile0 = params.kernel_size_w;
+    result.out_pix_tile1 = params.kernel_size_h;
 
     // n of wavefronts per group
     int n_waves = ((result.out_pix_tile0 * result.out_pix_tile1) <= 16 && (params.in_width > 8))
@@ -299,7 +300,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
 
     // calculate number of input scans in the input block
     int out_lcl_width =
-        ((params.out_width + read_unit - 1) / read_unit) * read_unit + 2 * params.pad0;
+        ((params.out_width + read_unit - 1) / read_unit) * read_unit + 2 * params.pad_w;
 
     // number of input map blocks being process at once
     int out_n_vert_reads = (params.out_height > 32 && params.out_width <= 64 &&
@@ -324,17 +325,17 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     // horizontal dir
     out_n_horizon_reads = (out_n_horizon_reads == out_lcl_width)
                               ? out_lcl_width
-                              : (out_n_horizon_reads + params.kernel_size0 - 1);
+                              : (out_n_horizon_reads + params.kernel_size_w - 1);
 
     int out_n_horizon_read_loops            = 1;
     int out_horizon_last_chunk_valid_pixels = 0;
     ComputeNumInputWidthLoops(out_lcl_width,
-                              params.pad0,
+                              params.pad_w,
                               out_n_horizon_reads,
-                              params.kernel_size0,
+                              params.kernel_size_w,
                               out_n_horizon_read_loops,
                               out_horizon_last_chunk_valid_pixels);
-    if(out_n_horizon_read_loops > 2 && params.pad0 != 0)
+    if(out_n_horizon_read_loops > 2 && params.pad_w != 0)
     {
         MIOPEN_LOG_I("Padding where split is more than 2 ways is not supported.");
         return ConvSolution(miopenStatusNotInitialized);
@@ -355,7 +356,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     // Compute in -> out in kernel i.e. dy
     int in_width_chunk = (out_n_horizon_read_loops == 1)
                              ? params.in_width
-                             : (out_n_horizon_reads + params.pad0 - params.kernel_size0 + 1);
+                             : (out_n_horizon_reads + params.pad_w - params.kernel_size_w + 1);
     int in_width_last_chunk_valid_pixels =
         (out_n_horizon_read_loops == 1) ? 0 : (params.in_width % in_width_chunk);
 
@@ -411,14 +412,14 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         std::to_string(GRP_SZ) + std::string(" -DMLO_GRP_SZ0=") + std::to_string(result.grp_tile0) +
         std::string(" -DMLO_GRP_SZ1=") + std::to_string(result.grp_tile1) +
         std::string(" -DMLO_GRP_SZ2=") + std::to_string(grp_tile2) +
-        std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(params.kernel_size0) +
-        std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(params.kernel_size1) +
-        std::string(" -DMLO_FILTER_PAD0=") + std::to_string(params.pad0) +
-        std::string(" -DMLO_FILTER_PAD1=") + std::to_string(params.pad1) +
-        std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(params.kernel_stride0) +
-        std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(params.kernel_stride1) +
-        std::string(" -DSTRIDE_W=") + std::to_string(params.kernel_stride0) +
-        std::string(" -DSTRIDE_H=") + std::to_string(params.kernel_stride1) +
+        std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(params.kernel_size_w) +
+        std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(params.kernel_size_h) +
+        std::string(" -DMLO_FILTER_PAD0=") + std::to_string(params.pad_w) +
+        std::string(" -DMLO_FILTER_PAD1=") + std::to_string(params.pad_h) +
+        std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(params.kernel_stride_w) +
+        std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(params.kernel_stride_h) +
+        std::string(" -DSTRIDE_W=") + std::to_string(params.kernel_stride_w) +
+        std::string(" -DSTRIDE_H=") + std::to_string(params.kernel_stride_h) +
         std::string(" -DMLO_N_OUTPUTS=") + std::to_string(params.n_inputs) +
         std::string(" -DMLO_N_INPUTS=") + std::to_string(params.n_outputs) +
         std::string(" -DMLO_GROUP_COUNTS=") + std::to_string(params.group_counts) +

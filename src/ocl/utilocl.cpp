@@ -422,8 +422,8 @@ float transpose_CNHW2NCHW(Handle& handle,
     std::string network_config = "n" + std::to_string(n) + "c" + std::to_string(c) + "h" +
                                  std::to_string(h_in) + "w" + std::to_string(w_in) + "inoff" +
                                  std::to_string(in_offset) + "otoff" + std::to_string(out_offset) +
-                                 "u" + std::to_string(h_stride) + "v" + std::to_string(w_stride) +
-                                 "t" + std::to_string(type);
+                                 "h_stride" + std::to_string(h_stride) + "w_stride" +
+                                 std::to_string(w_stride) + "t" + std::to_string(type);
 
     std::string kernel_name = "transpose_CNHW2NCHW";
 

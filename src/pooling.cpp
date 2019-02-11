@@ -94,31 +94,35 @@ PoolingDescriptor::GetForwardOutputDim(const TensorDescriptor& tensorDesc) const
 
     std::tie(input_n, input_c, input_h, input_w) = miopen::tien<4>(tensorDesc.GetLengths());
 
-    int u, v, pad_h, pad_w, window_h, window_w;
-    std::tie(u, v)               = miopen::tien<2>(GetStrides());
+    int stride_h, stride_w, pad_h, pad_w, window_h, window_w;
+    std::tie(stride_h, stride_w) = miopen::tien<2>(GetStrides());
     std::tie(pad_h, pad_w)       = miopen::tien<2>(GetPads());
     std::tie(window_h, window_w) = miopen::tien<2>(GetLengths());
     miopenPaddingMode_t _pMode = GetPaddingMode();
 
-    assert(u > 0);
-    assert(v > 0);
+    assert(stride_h > 0);
+    assert(stride_w > 0);
     assert(window_h < (input_h + 2 * pad_h));
     assert(window_w < (input_w + 2 * pad_w));
 
     auto output_h = std::max<std::ptrdiff_t>(
-        1, std::ptrdiff_t(std::ceil((input_h + 2 * pad_h - window_h) / static_cast<float>(u)) + 1));
+        1,
+        std::ptrdiff_t(std::ceil((input_h + 2 * pad_h - window_h) / static_cast<float>(stride_h)) +
+                       1));
     auto output_w = std::max<std::ptrdiff_t>(
-        1, std::ptrdiff_t(std::ceil((input_w + 2 * pad_w - window_w) / static_cast<float>(v)) + 1));
+        1,
+        std::ptrdiff_t(std::ceil((input_w + 2 * pad_w - window_w) / static_cast<float>(stride_w)) +
+                       1));
 
     if(_pMode == miopenPaddingSame)
     {
-        output_h = std::ceil(static_cast<double>(input_h) / u);
-        output_w = std::ceil(static_cast<double>(input_w) / v);
+        output_h = std::ceil(static_cast<double>(input_h) / stride_h);
+        output_w = std::ceil(static_cast<double>(input_w) / stride_w);
     }
     else if(_pMode == miopenPaddingValid)
     {
-        output_h = std::ceil(static_cast<double>(input_h - window_h + 1) / u);
-        output_w = std::ceil(static_cast<double>(input_w - window_w + 1) / v);
+        output_h = std::ceil(static_cast<double>(input_h - window_h + 1) / stride_h);
+        output_w = std::ceil(static_cast<double>(input_w - window_w + 1) / stride_w);
     }
 
     return std::make_tuple(input_n, input_c, output_h, output_w);
