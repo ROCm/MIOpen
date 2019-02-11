@@ -98,10 +98,10 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
             return false;
     }
 
-    if (! (params.kernel_stride0 <= 2 // -u inp_u 1 or 2
-        && params.kernel_stride0 == params.kernel_stride1
-        && params.kernel_dilation0 == 1
-        && params.kernel_dilation1 == 1
+    if (! (params.kernel_stride_w <= 2 // -u inp_u 1 or 2
+        && params.kernel_stride_w == params.kernel_stride_h
+        && params.kernel_dilation_w == 1
+        && params.kernel_dilation_h == 1
         && params.bias == 0
         && params.group_counts == 1
         && params.in_layout == "NCHW"))
@@ -109,12 +109,12 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     // clang-format on
 
     // Aliases to ease programming.
-    const auto& shader_R  = params.kernel_size1; // -x wei_w
-    const auto& shader_S  = params.kernel_size0; // -y wei_h
-    const auto& shader_C  = params.n_inputs;     // -c   wei_c
-    const auto& shader_K  = params.n_outputs;    // -k   wei_k
-    const auto& shader_H  = params.in_height;    // -H   inp_h
-    const auto& shader_W  = params.in_width;     // -W   inp_w
+    const auto& shader_R  = params.kernel_size_h; // -x wei_w
+    const auto& shader_S  = params.kernel_size_w; // -y wei_h
+    const auto& shader_C  = params.n_inputs;      // -c   wei_c
+    const auto& shader_K  = params.n_outputs;     // -k   wei_k
+    const auto& shader_H  = params.in_height;     // -H   inp_h
+    const auto& shader_W  = params.in_width;      // -W   inp_w
     const auto& shader_OH = params.out_height;
     const auto& shader_OW = params.out_width;
 
@@ -123,7 +123,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     // otherwise S is padded to smallest 6*n for some integer n
     // If stride = 2: S is always padded to smallest 6*n for some integer n
     int padded_S = 0;
-    if(params.kernel_stride0 == 1)
+    if(params.kernel_stride_w == 1)
     {
         if(shader_S <= 3)
         {
@@ -142,7 +142,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     // If stride = 2: if R % 6 ==1 then R is padded to smallest 3*m for some
     // integer m, otherwise R is padded to smallest 6*m for some integer m
     int padded_R = 0;
-    if(params.kernel_stride1 == 1)
+    if(params.kernel_stride_h == 1)
     {
         padded_R = Ceiling(shader_R, 3);
     }
@@ -165,12 +165,12 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
     // If stride == 1 and S <= 3 then C needs to be even, otherwise not
-    if(params.kernel_stride0 == 1 && shader_S <= 3 && shader_C % (fp16 ? 4 : 2) != 0)
+    if(params.kernel_stride_w == 1 && shader_S <= 3 && shader_C % (fp16 ? 4 : 2) != 0)
     {
         return false;
     }
     const bool is_dilated_stride_2 =
-        (params.direction.IsBackwardData() && params.kernel_stride0 != 1);
+        (params.direction.IsBackwardData() && params.kernel_stride_w != 1);
     if(fp16)
     {
         if(is_dilated_stride_2)
@@ -209,7 +209,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     // Padding for bwd data shall not be negative.
     if(params.direction.IsBackwardData())
     {
-        if(params.GetBackwardPad0() < 0 || params.GetBackwardPad1() < 0)
+        if(params.GetBackwardPadW() < 0 || params.GetBackwardPadH() < 0)
         {
             return false;
         }
@@ -225,8 +225,8 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         && shader_W < std::pow(2, 16)
         && shader_OH < std::pow(2, 16)
         && shader_OW < std::pow(2, 16)
-        && params.pad0 < std::pow(2, 16) // -q pad_w
-        && params.pad1 < std::pow(2, 16) // -p pad_h
+        && params.pad_w < std::pow(2, 16) // -q pad_w
+        && params.pad_h < std::pow(2, 16) // -p pad_h
         && shader_S < std::pow(2, 16)
         && shader_R < std::pow(2, 16)
         && grid_workgroup_count_x < std::pow(2, 16)
@@ -262,7 +262,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
             kernel.kernel_file += "v14_3_3";
         kernel.kernel_file += "_fp16dot_stride";
 
-        if(params.kernel_stride0 == 2)
+        if(params.kernel_stride_w == 2)
         {
             if(params.direction.IsForward())
                 kernel.kernel_file += "2_dec";
@@ -283,7 +283,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
         kernel.kernel_name = "sp3AsmConvRxSU";
         kernel.kernel_file = "conv_3x3_wheel_alpha_v9_0_15";
 
-        if(params.kernel_stride0 == 2)
+        if(params.kernel_stride_w == 2)
         {
             if(params.direction.IsForward())
                 kernel.kernel_file += "_stride_2_dec";

@@ -41,16 +41,19 @@ extern "C" miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDescr
                                                           miopenConvolutionMode_t c_mode,
                                                           int pad_h,
                                                           int pad_w,
-                                                          int u,
-                                                          int v,
+                                                          int stride_h,
+                                                          int stride_w,
                                                           int dilation_h,
                                                           int dilation_w)
 {
 
-    MIOPEN_LOG_FUNCTION(convDesc, c_mode, pad_h, pad_w, u, v, dilation_h, dilation_w);
+    MIOPEN_LOG_FUNCTION(convDesc, c_mode, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w);
     return miopen::try_([&] {
-        miopen::deref(convDesc) = miopen::ConvolutionDescriptor(
-            c_mode, miopenPaddingDefault, pad_h, pad_w, u, v, dilation_h, dilation_w);
+        miopen::deref(convDesc) = miopen::ConvolutionDescriptor(c_mode,
+                                                                miopenPaddingDefault,
+                                                                {pad_h, pad_w},
+                                                                {stride_h, stride_w},
+                                                                {dilation_h, dilation_w});
     });
 }
 
@@ -68,8 +71,8 @@ miopenSetTransposeConvOutputPadding(miopenConvolutionDescriptor_t convDesc, int 
 
     MIOPEN_LOG_FUNCTION(convDesc, adj_h, adj_w);
     return miopen::try_([&] {
-        miopen::deref(convDesc).trans_output_pad_h = adj_h;
-        miopen::deref(convDesc).trans_output_pad_w = adj_w;
+        miopen::deref(convDesc).trans_output_pads[0] = adj_h;
+        miopen::deref(convDesc).trans_output_pads[1] = adj_w;
     });
 }
 
@@ -77,21 +80,21 @@ extern "C" miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDescri
                                                          miopenConvolutionMode_t* c_mode,
                                                          int* pad_h,
                                                          int* pad_w,
-                                                         int* u,
-                                                         int* v,
+                                                         int* stride_h,
+                                                         int* stride_w,
                                                          int* dilation_h,
                                                          int* dilation_w)
 {
 
-    MIOPEN_LOG_FUNCTION(convDesc, c_mode, pad_h, pad_w, u, v, dilation_h, dilation_w);
+    MIOPEN_LOG_FUNCTION(convDesc, c_mode, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w);
     return miopen::try_([&] {
         miopen::deref(c_mode)     = miopen::deref(convDesc).mode;
-        miopen::deref(pad_h)      = miopen::deref(convDesc).pad_h;
-        miopen::deref(pad_w)      = miopen::deref(convDesc).pad_w;
-        miopen::deref(u)          = miopen::deref(convDesc).u;
-        miopen::deref(v)          = miopen::deref(convDesc).v;
-        miopen::deref(dilation_h) = miopen::deref(convDesc).dilation_h;
-        miopen::deref(dilation_w) = miopen::deref(convDesc).dilation_w;
+        miopen::deref(pad_h)      = miopen::deref(convDesc).GetConvPads()[0];
+        miopen::deref(pad_w)      = miopen::deref(convDesc).GetConvPads()[1];
+        miopen::deref(stride_h)   = miopen::deref(convDesc).GetConvStrides()[0];
+        miopen::deref(stride_w)   = miopen::deref(convDesc).GetConvStrides()[1];
+        miopen::deref(dilation_h) = miopen::deref(convDesc).GetConvDilations()[0];
+        miopen::deref(dilation_w) = miopen::deref(convDesc).GetConvDilations()[1];
     });
 }
 
@@ -269,10 +272,12 @@ extern "C" miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
                   << miopen::deref(wDesc).GetLengths()[2] << " -x "
                   << miopen::deref(wDesc).GetLengths()[3]
 
-                  << " -p " << miopen::deref(convDesc).pad_h << " -q "
-                  << miopen::deref(convDesc).pad_w << " -u " << miopen::deref(convDesc).u << " -v "
-                  << miopen::deref(convDesc).v << " -l " << miopen::deref(convDesc).dilation_h
-                  << " -j " << miopen::deref(convDesc).dilation_w << " -m "
+                  << " -p " << miopen::deref(convDesc).GetConvPads()[0] << " -q "
+                  << miopen::deref(convDesc).GetConvPads()[1] << " -u "
+                  << miopen::deref(convDesc).GetConvStrides()[0] << " -v "
+                  << miopen::deref(convDesc).GetConvStrides()[1] << " -l "
+                  << miopen::deref(convDesc).GetConvDilations()[0] << " -j "
+                  << miopen::deref(convDesc).GetConvDilations()[1] << " -m "
                   << (miopen::deref(convDesc).mode == 1 ? "trans" : "conv") << " -g "
                   << miopen::deref(convDesc).group_count << " -t "
                   << "1"
@@ -469,10 +474,12 @@ miopenConvolutionBackwardData(miopenHandle_t handle,
                   << miopen::deref(wDesc).GetLengths()[2] << " -x "
                   << miopen::deref(wDesc).GetLengths()[3]
 
-                  << " -p " << miopen::deref(convDesc).pad_h << " -q "
-                  << miopen::deref(convDesc).pad_w << " -u " << miopen::deref(convDesc).u << " -v "
-                  << miopen::deref(convDesc).v << " -l " << miopen::deref(convDesc).dilation_h
-                  << " -j " << miopen::deref(convDesc).dilation_w << " -m "
+                  << " -p " << miopen::deref(convDesc).GetConvPads()[0] << " -q "
+                  << miopen::deref(convDesc).GetConvPads()[1] << " -u "
+                  << miopen::deref(convDesc).GetConvStrides()[0] << " -v "
+                  << miopen::deref(convDesc).GetConvStrides()[1] << " -l "
+                  << miopen::deref(convDesc).GetConvDilations()[0] << " -j "
+                  << miopen::deref(convDesc).GetConvDilations()[1] << " -m "
                   << (miopen::deref(convDesc).mode == 1 ? "trans" : "conv") << " -g "
                   << miopen::deref(convDesc).group_count << " -t "
                   << "1"
@@ -618,10 +625,12 @@ miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
                   << miopen::deref(dwDesc).GetLengths()[2] << " -x "
                   << miopen::deref(dwDesc).GetLengths()[3]
 
-                  << " -p " << miopen::deref(convDesc).pad_h << " -q "
-                  << miopen::deref(convDesc).pad_w << " -u " << miopen::deref(convDesc).u << " -v "
-                  << miopen::deref(convDesc).v << " -l " << miopen::deref(convDesc).dilation_h
-                  << " -j " << miopen::deref(convDesc).dilation_w << " -m "
+                  << " -p " << miopen::deref(convDesc).GetConvPads()[0] << " -q "
+                  << miopen::deref(convDesc).GetConvPads()[1] << " -u "
+                  << miopen::deref(convDesc).GetConvStrides()[0] << " -v "
+                  << miopen::deref(convDesc).GetConvStrides()[1] << " -l "
+                  << miopen::deref(convDesc).GetConvDilations()[0] << " -j "
+                  << miopen::deref(convDesc).GetConvDilations()[1] << " -m "
                   << (miopen::deref(convDesc).mode == 1 ? "trans" : "conv") << " -g "
                   << miopen::deref(convDesc).group_count << " -t "
                   << "1"

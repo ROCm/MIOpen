@@ -338,11 +338,12 @@ void GenerateClangDefsym<const std::string&>(std::ostream& stream,
     stream << " -Wa,-defsym," << name << "=" << value;
 }
 
-std::string MakeLutKey(int w, int h, int c, int n, int k, int u, int v, int dir, int CUs)
+std::string MakeLutKey(
+    int w, int h, int c, int n, int k, int conv_stride_h, int conv_stride_w, int dir, int CUs)
 {
     std::ostringstream ss;
-    ss << w << ";" << h << ";" << c << ";" << n << ";" << k << ";" << u << ";" << v << ";" << dir
-       << ";" << CUs;
+    ss << w << ";" << h << ";" << c << ";" << n << ";" << k << ";" << conv_stride_h << ";"
+       << conv_stride_w << ";" << dir << ";" << CUs;
     return ss.str();
 }
 

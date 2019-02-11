@@ -157,8 +157,8 @@ int PoolDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
     inflags.AddInputFlag("win_h", 'y', "3", "Window Height (Default=3)", "int");
     inflags.AddInputFlag("win_w", 'x', "3", "Window Width (Default=3)", "int");
-    inflags.AddInputFlag("pool_stride_0", 'u', "1", "Pooling Stride Vertical (Default=1)", "int");
-    inflags.AddInputFlag("pool_stride_1", 'v', "1", "Pooling Stride Horizontal (Default=1)", "int");
+    inflags.AddInputFlag("pool_stride_1", 'v', "1", "Pooling Stride Vertical (Default=1)", "int");
+    inflags.AddInputFlag("pool_stride_0", 'u', "1", "Pooling Stride Horizontal (Default=1)", "int");
     inflags.AddInputFlag("pad_h", 'p', "0", "Zero Padding Height (Default=0)", "int");
     inflags.AddInputFlag("pad_w", 'q', "0", "Zero Padding Width (Default=0)", "int");
     inflags.AddInputFlag("pad_val", 'r', "0", "Padding Value (Default=0)", "int");
@@ -195,8 +195,8 @@ int PoolDriver<Tgpu, Tref>::SetPoolDescriptorFromCmdLineArgs()
     miopenPaddingMode_t pmode = miopenPaddingDefault;
     int pad_h                 = inflags.GetValueInt("pad_h");
     int pad_w                 = inflags.GetValueInt("pad_w");
-    int u                     = inflags.GetValueInt("pool_stride_0");
-    int v                     = inflags.GetValueInt("pool_stride_1");
+    int stride_h              = inflags.GetValueInt("pool_stride_1");
+    int stride_w              = inflags.GetValueInt("pool_stride_0");
     int win_h                 = inflags.GetValueInt("win_h");
     int win_w                 = inflags.GetValueInt("win_w");
     if((inflags.GetValueStr("mode")) == "max")
@@ -239,7 +239,7 @@ int PoolDriver<Tgpu, Tref>::SetPoolDescriptorFromCmdLineArgs()
     }
     std::initializer_list<int> lens    = {win_h, win_w};
     std::initializer_list<int> pads    = {pad_h, pad_w};
-    std::initializer_list<int> strides = {u, v};
+    std::initializer_list<int> strides = {stride_h, stride_w};
     miopen::deref(poolDesc) =
         miopen::PoolingDescriptor(mode, pmode, lens.begin(), pads.begin(), strides.begin(), 2);
     return miopenStatusSuccess;
@@ -456,17 +456,17 @@ int PoolDriver<Tgpu, Tref>::VerifyForward()
     int windowWidth;
     int pad_h;
     int pad_w;
-    int u;
-    int v;
+    int stride_h;
+    int stride_w;
     miopenGet2dPoolingDescriptor(
-        poolDesc, &mode, &windowHeight, &windowWidth, &pad_h, &pad_w, &u, &v);
+        poolDesc, &mode, &windowHeight, &windowWidth, &pad_h, &pad_w, &stride_h, &stride_w);
 
     if(pmode == miopenPaddingSame)
     {
-        pad_h = (hIn % u == 0) ? (std::max((windowHeight - u), 0))
-                               : (std::max((windowHeight - (hIn % u)), 0));
-        pad_w = (wIn % v == 0) ? (std::max((windowWidth - v), 0))
-                               : (std::max((windowWidth - (wIn % v)), 0));
+        pad_h = (hIn % stride_h == 0) ? (std::max((windowHeight - stride_h), 0))
+                                      : (std::max((windowHeight - (hIn % stride_h)), 0));
+        pad_w = (wIn % stride_w == 0) ? (std::max((windowWidth - stride_w), 0))
+                                      : (std::max((windowWidth - (wIn % stride_w)), 0));
 
         pad_h /= 2;
         pad_w /= 2;
@@ -488,10 +488,10 @@ int PoolDriver<Tgpu, Tref>::VerifyForward()
     const Tref tolerance = (sizeof(Tgpu) == 4 || sizeof(Tgpu) == 8) ? 1e-6 : 5e-3;
     bool match           = mloPoolingForwardRunHostAndVerify<Tgpu, Tref>(pooling_method,
                                                                pad_h,
-                                                               u,
+                                                               stride_h,
                                                                windowHeight,
                                                                pad_w,
-                                                               v,
+                                                               stride_w,
                                                                windowWidth,
                                                                nIn,
                                                                cOut,
@@ -551,20 +551,20 @@ int PoolDriver<Tgpu, Tref>::VerifyBackward()
     int windowWidth;
     int pad_h;
     int pad_w;
-    int u;
-    int v;
+    int stride_h;
+    int stride_w;
     miopenGet2dPoolingDescriptor(
-        poolDesc, &mode, &windowHeight, &windowWidth, &pad_h, &pad_w, &u, &v);
+        poolDesc, &mode, &windowHeight, &windowWidth, &pad_h, &pad_w, &stride_h, &stride_w);
 
     if(hOut <= 0 || wOut <= 0)
         throw std::runtime_error("Invalid Test Case: Check Output Dimension.");
 
     if(pmode == miopenPaddingSame)
     {
-        pad_h = (hIn % u == 0) ? (std::max((windowHeight - u), 0))
-                               : (std::max((windowHeight - (hIn % u)), 0));
-        pad_w = (wIn % v == 0) ? (std::max((windowWidth - v), 0))
-                               : (std::max((windowWidth - (wIn % v)), 0));
+        pad_h = (hIn % stride_h == 0) ? (std::max((windowHeight - stride_h), 0))
+                                      : (std::max((windowHeight - (hIn % stride_h)), 0));
+        pad_w = (wIn % stride_w == 0) ? (std::max((windowWidth - stride_w), 0))
+                                      : (std::max((windowWidth - (wIn % stride_w)), 0));
         pad_h /= 2;
         pad_w /= 2;
     }
@@ -581,10 +581,10 @@ int PoolDriver<Tgpu, Tref>::VerifyBackward()
     mloPoolingBackwardRunHost<Tgpu, Tref>(pooling_method,
                                           windowHeight,
                                           pad_h,
-                                          u,
+                                          stride_h,
                                           windowWidth,
                                           pad_w,
-                                          v,
+                                          stride_w,
                                           // host output
                                           dinhost.data(),
                                           dout.data(),

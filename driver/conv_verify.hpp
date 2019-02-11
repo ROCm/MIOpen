@@ -33,36 +33,36 @@ template <typename _Tgpu /* the data type used in GPU computations (usually half
 void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
                                  std::vector<_Tgpu>& in,
                                  std::vector<_Tgpu>& dout,
-                                 int in_n,
-                                 int in_c,
-                                 int in_h,
-                                 int in_w,
-                                 int in_nstride,
-                                 int in_cstride,
-                                 int in_hstride,
-                                 int in_wstride,
-                                 int wei_n,
-                                 int wei_c,
-                                 int wei_h,
-                                 int wei_w,
-                                 int wei_nstride,
-                                 int wei_cstride,
-                                 int wei_hstride,
-                                 int wei_wstride,
-                                 int out_n,
-                                 int out_c,
-                                 int out_h,
-                                 int out_w,
-                                 int out_nstride,
-                                 int out_cstride,
-                                 int out_hstride,
-                                 int out_wstride,
-                                 int u,
-                                 int v,
-                                 int pad_h,
-                                 int pad_w,
-                                 int dilation_h,
-                                 int dilation_w
+                                 const int in_n,
+                                 const int in_c,
+                                 const int in_h,
+                                 const int in_w,
+                                 const int in_nstride,
+                                 const int in_cstride,
+                                 const int in_hstride,
+                                 const int in_wstride,
+                                 const int wei_n,
+                                 const int wei_c,
+                                 const int wei_h,
+                                 const int wei_w,
+                                 const int wei_nstride,
+                                 const int wei_cstride,
+                                 const int wei_hstride,
+                                 const int wei_wstride,
+                                 const int out_n,
+                                 const int out_c,
+                                 const int out_h,
+                                 const int out_w,
+                                 const int out_nstride,
+                                 const int out_cstride,
+                                 const int out_hstride,
+                                 const int out_wstride,
+                                 const int stride_h,
+                                 const int stride_w,
+                                 const int pad_h,
+                                 const int pad_w,
+                                 const int dilation_h,
+                                 const int dilation_w
                                  //	, miopenConvolutionMode_t mode
                                  )
 {
@@ -89,8 +89,8 @@ void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
                         {
                             for(int j = 0; j < out_w; j++) // output width
                             {
-                                int in_i = x * dilation_h + i * u - pad_h; // vertical
-                                int in_j = y * dilation_w + j * v - pad_w; // horizontal
+                                int in_i = x * dilation_h + i * stride_h - pad_h; // vertical
+                                int in_j = y * dilation_w + j * stride_w - pad_w; // horizontal
 
                                 if((in_i >= 0) && (in_i < in_h) && (in_j >= 0) && (in_j < in_w))
                                 {
@@ -116,13 +116,11 @@ void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
 #ifdef BACKWARD_WRW_VERIFY_DIRECT_2
 
     {
-        assert(u == 1);
-        assert(v == 1);
+        assert(stride_h == 1);
+        assert(stride_w == 1);
 
         std::fill(dwei_host.begin(), dwei_host.end(), (static_cast<_Tcheck>(0));
 
-        int pad0                  = pad_w;
-        int pad1                  = pad_h;
         int batch_sz              = out_n;
         int outputs               = out_c;
         int inputs                = in_c;
@@ -134,9 +132,9 @@ void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
         int weights_df_v2_stride  = wei_nstride;
         int bot_stride            = in_hstride;
 
-        int kernel_size0 = wei_w;
-        int kernel_size1 = wei_h;
-        int kernel_sz    = kernel_size0 * kernel_size1;
+        int filter_size_w = wei_w;
+        int filter_size_h = wei_h;
+        int kernel_sz    = filter_size_w * filter_size_h;
 
         int top_height = out_h;
         int top_width  = out_w;
@@ -153,18 +151,18 @@ void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
                     int bot_off    = b * bot_batch_stride + c * bot_channel_stride;
                     int we_off     = o * weights_df_v2_stride + c * kernel_sz;
 
-                    for(int j = 0, c_j = j - pad1; j < top_height; ++j, ++c_j)
+                    for(int j = 0, c_j = j - pad_h; j < top_height; ++j, ++c_j)
                     {
 
-                        for(int i = 0, c_i = i - pad0; i < top_width; i++, ++c_i)
+                        for(int i = 0, c_i = i - pad_w; i < top_width; i++, ++c_i)
                         {
                             _Tcheck top_val =
                                 static_cast<_Tcheck>(dout[top_df_off + j * top_df_stride + i]);
 
-                            for(int k = 0, c_j = j - pad1; k < kernel_size1; ++k, ++c_j)
+                            for(int k = 0, c_j = j - pad_h; k < filter_size_h; ++k, ++c_j)
                             {
 
-                                for(int l = 0, c_i = i - pad0; l < kernel_size0; ++l, ++c_i)
+                                for(int l = 0, c_i = i - pad_w; l < filter_size_w; ++l, ++c_i)
                                 {
 
                                     _Tcheck bot_val =
@@ -174,7 +172,7 @@ void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
                                                   in[bot_off + c_j * bot_stride + c_i])
                                             : static_cast<_Tcheck>(0);
 
-                                    dwei_host[we_off + k * kernel_size0 + l] += bot_val * top_val;
+                                    dwei_host[we_off + k * filter_size_w + l] += bot_val * top_val;
                                 }
                             }
                         }
@@ -189,7 +187,7 @@ void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
 //#ifdef BACKWARD_WRW_VERIFY_GEMM
 #if 0
     {
-        assert(u == v);
+        assert(stride_h == stride_w);
         assert(pad_h == pad_w);
 
         std::fill(dwei_host.begin(), dwei_host.end(), static_cast<_Tcheck>(0));
@@ -215,7 +213,7 @@ void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
 //        int kernel_size = wei_w;
 
         int pad = pad_w;
-        int stride = v;
+        int stride = stride_w;
 
         // allocate raw data for in, dout, dwei for using im2col/gemm aDNN functions
         _Tcheck * weights_df_v_ptr = new _Tcheck[weights_width * weights_height];

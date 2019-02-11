@@ -58,19 +58,19 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ConvolutionContext& params) const
     assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet.
 
     // Min image + padding shall be not smaller than filter matrix.
-    const int min_in_width  = params.kernel_size0 - params.pad0 * 2;
-    const int min_in_height = params.kernel_size1 - params.pad1 * 2;
+    const int min_in_width  = params.kernel_size_w - params.pad_w * 2;
+    const int min_in_height = params.kernel_size_h - params.pad_h * 2;
     // These two found experimentally.
     const int max_in_width  = 8192 - 1;
     const int max_in_height = 131077 - 1;
 
     // clang-format off
-    return 0 <= params.pad0 && params.pad0 <= 5 // -q   pad_w   // [0..5] for now FIXME
-        && 0 <= params.pad1 && params.pad1 <= 5 // -p   pad_h   // [0..5] for now FIXME
-        && params.kernel_stride0 == 2           // -u   inp_u   fixed
-        && params.kernel_stride1 == 2           // -v   inp_v   fixed
-        && params.kernel_size0 == 10            // -x   wei_w   fixed
-        && params.kernel_size1 == 5             // -y   wei_h   fixed
+    return 0 <= params.pad_w && params.pad_w <= 5 // -q   pad_w   // [0..5] for now FIXME
+        && 0 <= params.pad_h && params.pad_h <= 5 // -p   pad_h   // [0..5] for now FIXME
+        && params.kernel_stride_w == 2           // -v   inp_v   fixed
+        && params.kernel_stride_h == 2           // -u   inp_u   fixed
+        && params.kernel_size_w == 10            // -x   wei_w   fixed
+        && params.kernel_size_h == 5             // -y   wei_h   fixed
         && params.n_inputs >= 1                 // -c   wei_c   no upper limit
         && params.n_outputs % 16 == 0           // -k   wei_k   no upper limit
         && params.n_outputs >= 1
@@ -95,11 +95,11 @@ ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ConvolutionContext& params) co
 {
     ConvSolution result;
     const int out_w =
-        (params.in_width + params.pad0 * 2 + params.kernel_stride0 - params.kernel_size0) /
-        params.kernel_stride0; // (inp_w + 2*pad_w + inp_u - wei_w) / inp_u
+        (params.in_width + params.pad_w * 2 + params.kernel_stride_w - params.kernel_size_w) /
+        params.kernel_stride_w; // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
     const int out_h =
-        (params.in_height + params.pad1 * 2 + params.kernel_stride1 - params.kernel_size1) /
-        params.kernel_stride1; // (inp_h + 2*pad_h + inp_v - wei_h) / inp_v
+        (params.in_height + params.pad_h * 2 + params.kernel_stride_h - params.kernel_size_h) /
+        params.kernel_stride_h; // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
 
     std::ostringstream options;
     GenerateClangDefsym(options, "inp_h", params.in_height);
@@ -107,8 +107,8 @@ ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ConvolutionContext& params) co
     GenerateClangDefsym(options, "wei_c", params.n_inputs);
     GenerateClangDefsym(options, "wei_k", params.n_outputs);
     GenerateClangDefsym(options, "wei_layout", 0); // 0: KCHW, 1: CKHW
-    GenerateClangDefsym(options, "pad_w", params.pad0);
-    GenerateClangDefsym(options, "pad_h", params.pad1);
+    GenerateClangDefsym(options, "pad_w", params.pad_w);
+    GenerateClangDefsym(options, "pad_h", params.pad_h);
     GenerateClangDefsym(options,
                         "ROCM_METADATA_VERSION",
                         (params.rmv == rocm_meta_version::V1)

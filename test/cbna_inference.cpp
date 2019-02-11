@@ -250,6 +250,7 @@ struct cbna_fusion_driver : test_driver
     tensor<T> estVariance;
     tensor<T> bias;
     miopen::ConvolutionDescriptor filter;
+    std::vector<int> pads_strides_dilations;
     ptr_ActivationDesc ptr_activdesc  = nullptr;
     miopenActivationMode_t activ_mode = miopenActivationRELU;
     int amode                         = 3;
@@ -278,7 +279,9 @@ struct cbna_fusion_driver : test_driver
     cbna_fusion_driver()
     {
         add(input, "input", get_input_tensor(tensor_elem_gen_integer{max_value}));
-        add(filter, "filter", generate_data(get_filters()));
+        add(pads_strides_dilations,
+            "pads_strides_dilations",
+            generate_data(get_pads_strides_dilations()));
         add(alpha, "alpha", generate_data({/*1. , */ 0.5}));
         add(beta, "beta", generate_data({/*0. , */ 0.5}));
         add(gamma, "gamma", generate_data({/*1. ,*/ 0.5}));
@@ -296,15 +299,15 @@ struct cbna_fusion_driver : test_driver
         std::cout << "Successful Test Count: " << successfull_cnt << std::endl;
     }
 
-    std::vector<miopen::ConvolutionDescriptor> get_filters()
+    std::vector<std::vector<int>> get_pads_strides_dilations()
     {
-        return {miopen::ConvolutionDescriptor{0, 0, 1, 1},
-                miopen::ConvolutionDescriptor{0, 0, 2, 2},
-                miopen::ConvolutionDescriptor{1, 1, 1, 1},
-                miopen::ConvolutionDescriptor{1, 1, 2, 2},
-                miopen::ConvolutionDescriptor{2, 2, 1, 1},
-                miopen::ConvolutionDescriptor{2, 2, 2, 2},
-                miopen::ConvolutionDescriptor{3, 3, 2, 2}};
+        return {{0, 0, 1, 1, 1, 1},
+                {0, 0, 2, 2, 1, 1},
+                {1, 1, 1, 1, 1, 1},
+                {1, 1, 2, 2, 1, 1},
+                {2, 2, 1, 1, 1, 1},
+                {2, 2, 2, 2, 1, 1},
+                {3, 3, 2, 2, 1, 1}};
     };
 
     void run()
@@ -337,13 +340,19 @@ struct cbna_fusion_driver : test_driver
         auto&& handle       = get_handle();
         auto ptr_fusionplan = GetManagedFusionPlanDesc(&input.desc);
 
-        filter.mode        = cmode_lookup[miopen::ToUpper(conv_mode)];
-        filter.paddingMode = pmode_lookup[miopen::ToUpper(pad_mode)];
+        filter.mode         = cmode_lookup[miopen::ToUpper(conv_mode)];
+        filter.paddingMode  = pmode_lookup[miopen::ToUpper(pad_mode)];
+        filter.pads[0]      = pads_strides_dilations[0];
+        filter.pads[1]      = pads_strides_dilations[1];
+        filter.strides[0]   = pads_strides_dilations[2];
+        filter.strides[1]   = pads_strides_dilations[3];
+        filter.dilations[0] = pads_strides_dilations[4];
+        filter.dilations[1] = pads_strides_dilations[5];
 
-        auto u            = filter.u;
-        auto v            = filter.v;
-        auto fpad_h       = filter.pad_h;
-        auto fpad_w       = filter.pad_w;
+        auto stride_h     = filter.strides[1];
+        auto stride_w     = filter.strides[0];
+        auto fpad_h       = filter.pads[1];
+        auto fpad_w       = filter.pads[0];
         auto fpaddingMode = filter.paddingMode;
 
         if(input_c != wei_c)
@@ -354,33 +363,33 @@ struct cbna_fusion_driver : test_driver
         if(fpaddingMode == miopenPaddingSame)
         {
 
-            if(u == 0 || v == 0)
+            if(stride_h == 0 || stride_w == 0)
                 return;
-            auto _pad_h = (input_h % u == 0)
-                              ? (std::max(static_cast<int>(wei_h - u), 0))
-                              : (std::max(static_cast<int>(wei_h - (input_h % u)), 0));
-            auto _pad_w = (input_w % v == 0)
-                              ? (std::max(static_cast<int>(wei_w - v), 0))
-                              : (std::max(static_cast<int>(wei_w - (input_w % v)), 0));
+            auto _pad_h = (input_h % stride_h == 0)
+                              ? (std::max(static_cast<int>(wei_h - stride_h), 0))
+                              : (std::max(static_cast<int>(wei_h - (input_h % stride_h)), 0));
+            auto _pad_w = (input_w % stride_w == 0)
+                              ? (std::max(static_cast<int>(wei_w - stride_w), 0))
+                              : (std::max(static_cast<int>(wei_w - (input_w % stride_w)), 0));
 
-            filter.pad_h = _pad_h / 2;
-            filter.pad_w = _pad_w / 2;
+            filter.pads[1] = _pad_h / 2;
+            filter.pads[0] = _pad_w / 2;
 
-            int out_h = std::ceil(static_cast<double>(input_h) / u);
-            int out_w = std::ceil(static_cast<double>(input_w) / v);
+            int out_h = std::ceil(static_cast<double>(input_h) / stride_h);
+            int out_w = std::ceil(static_cast<double>(input_w) / stride_w);
 
             if(out_h <= 0 || out_w <= 0)
                 return;
         }
         else if(fpaddingMode == miopenPaddingValid)
         {
-            if(u == 0 || v == 0)
+            if(stride_h == 0 || stride_w == 0)
                 return;
-            filter.pad_h = 0;
-            filter.pad_w = 0;
+            filter.pads[1] = 0;
+            filter.pads[0] = 0;
 
-            int out_h = std::ceil(static_cast<double>(input_h - wei_h + 1) / u);
-            int out_w = std::ceil(static_cast<double>(input_w - wei_w + 1) / v);
+            int out_h = std::ceil(static_cast<double>(input_h - wei_h + 1) / stride_h);
+            int out_w = std::ceil(static_cast<double>(input_w - wei_w + 1) / stride_w);
 
             if(out_h <= 0 || out_w <= 0)
                 return;
