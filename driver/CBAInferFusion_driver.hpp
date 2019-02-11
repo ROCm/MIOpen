@@ -390,9 +390,9 @@ int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("fil_h", 'y', "3", "Filter Height (Default=3)", "int");
     inflags.AddInputFlag("fil_w", 'x', "3", "Filter Width (Default=3)", "int");
     inflags.AddInputFlag(
-        "conv_stride_0", 'u', "1", "Convolution Stride Vertical (Default=1)", "int");
+        "conv_stride_h", 'u', "1", "Convolution Stride Vertical (Default=1)", "int");
     inflags.AddInputFlag(
-        "conv_stride_1", 'v', "1", "Convolution Stride Horizontal (Default=1)", "int");
+        "conv_stride_w", 'v', "1", "Convolution Stride Horizontal (Default=1)", "int");
     inflags.AddInputFlag("pad_h", 'p', "0", "Zero Padding Height (Default=0)", "int");
     inflags.AddInputFlag("pad_w", 'q', "0", "Zero Padding Width (Default=0)", "int");
     inflags.AddInputFlag("pad_val", 'r', "0", "Padding Value (Default=0)", "int");
@@ -482,8 +482,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
     int wei_w                 = inflags.GetValueInt("fil_w");
     int pad_h                 = inflags.GetValueInt("pad_h");
     int pad_w                 = inflags.GetValueInt("pad_w");
-    int u                     = inflags.GetValueInt("conv_stride_0");
-    int v                     = inflags.GetValueInt("conv_stride_1");
+    int stride_h              = inflags.GetValueInt("conv_stride_h");
+    int stride_w              = inflags.GetValueInt("conv_stride_w");
     int dilation_h            = inflags.GetValueInt("dilation_h");
     int dilation_w            = inflags.GetValueInt("dilation_w");
 
@@ -494,8 +494,10 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
     {
         mode  = miopenConvolution;
         pmode = miopenPaddingSame;
-        pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
-        pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
+        pad_h = (in_h % stride_h == 0) ? (std::max((wei_h - stride_h), 0))
+                                       : (std::max((wei_h - (in_h % stride_h)), 0));
+        pad_w = (in_w % stride_w == 0) ? (std::max((wei_w - stride_w), 0))
+                                       : (std::max((wei_w - (in_w % stride_w)), 0));
         pad_h /= 2;
         pad_w /= 2;
     }
@@ -507,8 +509,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
         pad_w = 0;
     }
 
-    miopen::deref(convDesc) =
-        miopen::ConvolutionDescriptor(mode, pmode, pad_h, pad_w, u, v, dilation_h, dilation_w);
+    miopen::deref(convDesc) = miopen::ConvolutionDescriptor(
+        mode, pmode, {pad_h, pad_w}, {stride_h, stride_w}, {dilation_h, dilation_w});
     return miopenStatusSuccess;
 }
 
@@ -778,10 +780,10 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
     double epsilon = static_cast<double>(EPSILON);
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
-    int u, v, pad_h, pad_w, dilation_h, dilation_w;
+    int stride_h, stride_w, pad_h, pad_w, dilation_h, dilation_w;
     miopenConvolutionMode_t mode;
     miopenGetConvolutionDescriptor(
-        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+        convDesc, &mode, &pad_h, &pad_w, &stride_h, &stride_w, &dilation_h, &dilation_w);
 
     miopenCreateOpConvForward(fusePlanDesc, &convoOp, convDesc, weightTensor);
 
@@ -852,10 +854,10 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
     miopenGetActivationDescriptor(activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
-    int u, v, pad_h, pad_w, dilation_h, dilation_w;
+    int stride_h, stride_w, pad_h, pad_w, dilation_h, dilation_w;
     miopenConvolutionMode_t mode;
     miopenGetConvolutionDescriptor(
-        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+        convDesc, &mode, &pad_h, &pad_w, &stride_h, &stride_w, &dilation_h, &dilation_w);
 
     miopenCreateOpConvForward(fusePlanDesc, &convoOp, convDesc, weightTensor);
 
@@ -984,10 +986,10 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUFusedConvBiasInference()
 
     miopenError = miopenStatusSuccess;
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
-    int u, v, pad_h, pad_w, dilation_h, dilation_w;
+    int stride_h, stride_w, pad_h, pad_w, dilation_h, dilation_w;
     miopenConvolutionMode_t mode;
     miopenGetConvolutionDescriptor(
-        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+        convDesc, &mode, &pad_h, &pad_w, &stride_h, &stride_w, &dilation_h, &dilation_w);
     miopenCreateOpConvForward(fusePlanDesc, &convoOp, convDesc, weightTensor);
     miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasTensor);
     miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev->GetMem());

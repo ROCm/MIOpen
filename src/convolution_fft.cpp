@@ -97,14 +97,26 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeFFT(const TensorDescriptor&
                                                          const TensorDescriptor& xDesc,
                                                          const TensorDescriptor& yDesc) const
 {
-    return GetWorkSpaceSizeFFT(wDesc, xDesc, yDesc, std::make_tuple(pad_h, pad_w, u, v), true);
+    return GetWorkSpaceSizeFFT(
+        wDesc,
+        xDesc,
+        yDesc,
+        std::make_tuple(
+            GetConvPads()[0], GetConvPads()[1], GetConvStrides()[0], GetConvStrides()[1]),
+        true);
 }
 
 size_t ConvolutionDescriptor::BackwardGetWorkSpaceSizeFFT(const TensorDescriptor& wDesc,
                                                           const TensorDescriptor& dyDesc,
                                                           const TensorDescriptor& dxDesc) const
 {
-    return GetWorkSpaceSizeFFT(wDesc, dxDesc, dyDesc, std::make_tuple(pad_h, pad_w, u, v), false);
+    return GetWorkSpaceSizeFFT(
+        wDesc,
+        dxDesc,
+        dyDesc,
+        std::make_tuple(
+            GetConvPads()[0], GetConvPads()[1], GetConvStrides()[0], GetConvStrides()[1]),
+        false);
 }
 
 } // namespace miopen

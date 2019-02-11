@@ -235,32 +235,32 @@ bool ConvForwardOpDescriptor::GetOpAttr(const std::string& sym, int& val) const
     }
     else if(sym == "pad_h")
     {
-        val = base_desc.pad_h;
+        val = base_desc.GetConvPads()[0];
         return true;
     }
     else if(sym == "pad_w")
     {
-        val = base_desc.pad_w;
+        val = base_desc.GetConvPads()[1];
         return true;
     }
     else if(sym == "dilation_h")
     {
-        val = base_desc.dilation_h;
+        val = base_desc.GetConvDilations()[0];
         return true;
     }
     else if(sym == "dilation_w")
     {
-        val = base_desc.dilation_w;
+        val = base_desc.GetConvDilations()[1];
         return true;
     }
-    else if(sym == "u")
+    else if(sym == "stride_h")
     {
-        val = base_desc.u;
+        val = base_desc.GetConvStrides()[0];
         return true;
     }
-    else if(sym == "v")
+    else if(sym == "stride_w")
     {
-        val = base_desc.v;
+        val = base_desc.GetConvStrides()[1];
         return true;
     }
     else if(sym == "k")

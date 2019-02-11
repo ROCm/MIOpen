@@ -1,4 +1,4 @@
-/*******************************************************************************
+/**************************************************kernel_size_w*****************************
  *
  * MIT License
  *
@@ -32,8 +32,8 @@ namespace solver {
 
 bool ConvOclDirectFwd3x3::IsApplicable(const ConvolutionContext& params) const
 {
-    return (params.kernel_size0 == 3 && params.kernel_size1 == 3 && params.pad1 == 1 &&
-            params.pad0 == 1 && params.kernel_stride0 == 1 && params.kernel_stride1 == 1 &&
+    return (params.kernel_size_w == 3 && params.kernel_size_h == 3 && params.pad_w == 1 &&
+            params.pad_h == 1 && params.kernel_stride_w == 1 && params.kernel_stride_h == 1 &&
             params.group_counts == 1 && params.direction.IsForward()) &&
            (params.out_width == 512 || params.out_width == 64 || params.out_width == 128 ||
             params.out_width == 256);
@@ -47,7 +47,7 @@ ConvSolution ConvOclDirectFwd3x3::GetSolution(const ConvolutionContext& params) 
     // auto dev_local_mem_sz = localMemSize; // in bytes
     int n_waves = 4;
 
-    int wei_cstride = params.kernel_size0 * params.kernel_size1;
+    int wei_cstride = params.kernel_size_w * params.kernel_size_h;
     int wei_bstride = params.n_inputs * wei_cstride;
 
     result.out_pix_tile0   = 4;
@@ -114,11 +114,11 @@ ConvSolution ConvOclDirectFwd3x3::GetSolution(const ConvolutionContext& params) 
         std::string(" -DMLO_GRP_SZ1=") + std::to_string(static_cast<long long>(result.grp_tile1)) +
         std::string(" -DMLO_GRP_SZ2=") + std::to_string(static_cast<long long>(grp_tile2)) +
         std::string(" -DMLO_FILTER_SIZE0=") +
-        std::to_string(static_cast<long long>(params.kernel_size0)) +
+        std::to_string(static_cast<long long>(params.kernel_size_w)) +
         std::string(" -DMLO_FILTER_SIZE1=") +
-        std::to_string(static_cast<long long>(params.kernel_size1)) +
-        std::string(" -DMLO_FILTER_PAD0=") + std::to_string(static_cast<long long>(params.pad0)) +
-        std::string(" -DMLO_FILTER_PAD1=") + std::to_string(static_cast<long long>(params.pad1)) +
+        std::to_string(static_cast<long long>(params.kernel_size_h)) +
+        std::string(" -DMLO_FILTER_PAD0=") + std::to_string(static_cast<long long>(params.pad_w)) +
+        std::string(" -DMLO_FILTER_PAD1=") + std::to_string(static_cast<long long>(params.pad_h)) +
         std::string(" -DMLO_N_OUTPUTS=") +
         std::to_string(static_cast<long long>(params.n_outputs)) + std::string(" -DMLO_N_INPUTS=") +
         std::to_string(static_cast<long long>(params.n_inputs)) + std::string(" -DMLO_BATCH_SZ=") +

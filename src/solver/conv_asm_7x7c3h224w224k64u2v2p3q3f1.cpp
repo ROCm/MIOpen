@@ -56,16 +56,16 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& p
     assert(params.weights_layout.length() == 0); // weights_layout is not supported yet.
 
     // clang-format off
-    return params.pad0 == 3            // -q
-        && params.pad1 == 3            // -p
-        && params.kernel_stride0 == 2  // -u
-        && params.kernel_stride1 == 2  // -v
-        && params.kernel_size0 == 7    // -x
-        && params.kernel_size1 == 7    // -y
-        && params.n_inputs == 3        // -c
-        && params.n_outputs == 64      // -k
-        && params.in_width == 224      // -W
-        && params.in_height == 224     // -H
+    return params.pad_w == 3            // -q
+        && params.pad_h == 3            // -p
+        && params.kernel_stride_w == 2    // -v
+        && params.kernel_stride_h == 2    // -u
+        && params.kernel_size_w == 7    // -x
+        && params.kernel_size_h == 7    // -y
+        && params.n_inputs == 3         // -c
+        && params.n_outputs == 64       // -k
+        && params.in_width == 224       // -W
+        && params.in_height == 224      // -H
         && params.float_size == 32
         && params.group_counts == 1
         && params.in_layout == "NCHW";
@@ -77,11 +77,11 @@ ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ConvolutionCon
 {
     ConvSolution result;
     const int out_w =
-        (params.in_width + params.pad0 * 2 + params.kernel_stride0 - params.kernel_size0) /
-        params.kernel_stride0; // (inp_w + 2*pad_w + inp_u - wei_w) / inp_u
+        (params.in_width + params.pad_w * 2 + params.kernel_stride_w - params.kernel_size_w) /
+        params.kernel_stride_w; // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
     const int out_h =
-        (params.in_height + params.pad1 * 2 + params.kernel_stride1 - params.kernel_size1) /
-        params.kernel_stride1; // (inp_h + 2*pad_h + inp_v - wei_h) / inp_v
+        (params.in_height + params.pad_h * 2 + params.kernel_stride_h - params.kernel_size_h) /
+        params.kernel_stride_h; // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
 
     std::ostringstream options;
     GenerateClangDefsym(

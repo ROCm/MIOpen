@@ -43,15 +43,16 @@ extern "C" miopenStatus_t miopenSet2dPoolingDescriptor(miopenPoolingDescriptor_t
                                                        int windowWidth,
                                                        int pad_h,
                                                        int pad_w,
-                                                       int u,
-                                                       int v)
+                                                       int stride_h,
+                                                       int stride_w)
 {
 
-    MIOPEN_LOG_FUNCTION(poolDesc, mode, windowHeight, windowWidth, pad_h, pad_w, u, v);
+    MIOPEN_LOG_FUNCTION(
+        poolDesc, mode, windowHeight, windowWidth, pad_h, pad_w, stride_h, stride_w);
     return miopen::try_([&] {
         std::initializer_list<int> lens    = {windowHeight, windowWidth};
         std::initializer_list<int> pads    = {pad_h, pad_w};
-        std::initializer_list<int> strides = {u, v};
+        std::initializer_list<int> strides = {stride_h, stride_w};
         miopen::deref(poolDesc)            = miopen::PoolingDescriptor(
             mode, miopenPaddingDefault, lens.begin(), pads.begin(), strides.begin(), 2);
     });
@@ -63,16 +64,17 @@ extern "C" miopenStatus_t miopenGet2dPoolingDescriptor(const miopenPoolingDescri
                                                        int* windowWidth,
                                                        int* pad_h,
                                                        int* pad_w,
-                                                       int* u,
-                                                       int* v)
+                                                       int* stride_h,
+                                                       int* stride_w)
 {
 
-    MIOPEN_LOG_FUNCTION(poolDesc, mode, windowHeight, windowWidth, pad_h, pad_w, u, v);
+    MIOPEN_LOG_FUNCTION(
+        poolDesc, mode, windowHeight, windowWidth, pad_h, pad_w, stride_h, stride_w);
     return miopen::try_([&] {
         miopen::deref(mode) = miopen::deref(poolDesc).mode;
         std::tie(miopen::deref(windowHeight), miopen::deref(windowWidth)) =
             miopen::tien<2>(miopen::deref(poolDesc).GetLengths());
-        std::tie(miopen::deref(u), miopen::deref(v)) =
+        std::tie(miopen::deref(stride_h), miopen::deref(stride_w)) =
             miopen::tien<2>(miopen::deref(poolDesc).GetStrides());
         std::tie(miopen::deref(pad_h), miopen::deref(pad_w)) =
             miopen::tien<2>(miopen::deref(poolDesc).GetPads());

@@ -33,9 +33,9 @@ namespace solver {
 bool ConvOclDirectFwd11x11::IsApplicable(const ConvolutionContext& params) const
 {
     return params.direction.IsForward() &&
-           (params.kernel_stride0 > 1 || params.kernel_stride1 > 1) && params.kernel_size1 == 11 &&
-           params.kernel_size0 == 11 && params.kernel_stride1 == 4 && params.kernel_stride0 == 4 &&
-           params.group_counts == 1;
+           (params.kernel_stride_w > 1 || params.kernel_stride_h > 1) &&
+           params.kernel_size_h == 11 && params.kernel_size_w == 11 &&
+           params.kernel_stride_h == 4 && params.kernel_stride_w == 4 && params.group_counts == 1;
 }
 
 ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params) const
@@ -47,7 +47,7 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
     // auto dev_local_mem_sz = localMemSize; // in bytes
     // major parameters
     int LG2_WAVE_SZ = mloLg2(hw_wave_sz);
-    int wei_cstride = params.kernel_size0 * params.kernel_size1;
+    int wei_cstride = params.kernel_size_w * params.kernel_size_h;
     int wei_bstride = (is_forward ? params.n_inputs : params.n_outputs) * wei_cstride;
 
     // number  of batch iterations
@@ -61,9 +61,9 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
         (params.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) / (N_BATCH_LOOPS * result.n_stacks);
 
     int N_FILTER_SPLITS0 =
-        ((params.kernel_size0 + params.kernel_stride0 - 1) / params.kernel_stride0);
+        ((params.kernel_size_w + params.kernel_stride_w - 1) / params.kernel_stride_w);
     int N_FILTER_SPLITS1 =
-        ((params.kernel_size1 + params.kernel_stride1 - 1) / params.kernel_stride1);
+        ((params.kernel_size_h + params.kernel_stride_h - 1) / params.kernel_stride_h);
 
     static const int data_multiplier0 =
 // win runs Catalyst right now
@@ -77,13 +77,13 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
     static const int data_multiplier1 = 1;
 
     result.out_pix_tile0 =
-        (is_forward) ? N_FILTER_SPLITS0 : data_multiplier0 * params.kernel_stride0;
-    result.out_pix_tile1 = (is_forward) ? 1 : data_multiplier1 * params.kernel_stride1;
+        (is_forward) ? N_FILTER_SPLITS0 : data_multiplier0 * params.kernel_stride_w;
+    result.out_pix_tile1 = (is_forward) ? 1 : data_multiplier1 * params.kernel_stride_h;
 
     int in_pix_tile0 =
-        (is_forward) ? 1 : (result.out_pix_tile0 / params.kernel_stride0 - 1) + N_FILTER_SPLITS0;
+        (is_forward) ? 1 : (result.out_pix_tile0 / params.kernel_stride_w - 1) + N_FILTER_SPLITS0;
     int in_pix_tile1 =
-        (is_forward) ? 1 : (result.out_pix_tile1 / params.kernel_stride1 - 1) + N_FILTER_SPLITS1;
+        (is_forward) ? 1 : (result.out_pix_tile1 / params.kernel_stride_h - 1) + N_FILTER_SPLITS1;
 
     result.in_tile1 = 1;
     result.in_tile0 = 1;
@@ -160,18 +160,18 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
 
     // calc bwd grid
     int n_out_pix_tiles1 =
-        (params.out_height + result.out_pix_tile1 - 1 + 2 * params.pad1) / result.out_pix_tile1;
+        (params.out_height + result.out_pix_tile1 - 1 + 2 * params.pad_h) / result.out_pix_tile1;
     int n_out_pix_tiles0 =
-        (params.out_width + result.out_pix_tile0 - 1 + 2 * params.pad0) / result.out_pix_tile0;
+        (params.out_width + result.out_pix_tile0 - 1 + 2 * params.pad_w) / result.out_pix_tile0;
     int n_out_pix_tiles = n_out_pix_tiles1 * n_out_pix_tiles0;
 
     // calculate lcl mem size for backward data
     int n_out_tiles_rows_pgrp =
         std::min(n_out_pix_tiles1, (GRP_SZ + n_out_pix_tiles0 - 1) / n_out_pix_tiles0);
     int n_out_tiles_cols_pgrp = std::min(GRP_SZ, n_out_pix_tiles0);
-    int in_data1 = ((n_out_tiles_rows_pgrp * result.out_pix_tile1) / params.kernel_stride1 - 1) +
+    int in_data1 = ((n_out_tiles_rows_pgrp * result.out_pix_tile1) / params.kernel_stride_h - 1) +
                    N_FILTER_SPLITS1 + 1;
-    int in_data0 = ((n_out_tiles_cols_pgrp * result.out_pix_tile0) / params.kernel_stride0 - 1) +
+    int in_data0 = ((n_out_tiles_cols_pgrp * result.out_pix_tile0) / params.kernel_stride_w - 1) +
                    N_FILTER_SPLITS0;
 
     int lcl_wei_sz = wei_cstride * result.n_out_pix_tiles;
@@ -191,14 +191,14 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
         std::to_string(result.grp_tile0) + std::string(" -DMLO_GRP_SZ1=") +
         std::to_string(result.grp_tile1) + std::string(" -DMLO_GRP_SZ2=") +
         std::to_string(grp_tile2) + std::string(" -DMLO_FILTER_SIZE0=") +
-        std::to_string(params.kernel_size0) + std::string(" -DMLO_FILTER_SIZE1=") +
-        std::to_string(params.kernel_size1) + std::string(" -DMLO_FILTER_PAD0=") +
-        std::to_string(params.pad0) + std::string(" -DMLO_FILTER_PAD1=") +
-        std::to_string(params.pad1) + std::string(" -DMLO_FILTER_STRIDE0=") +
-        std::to_string(params.kernel_stride0) + std::string(" -DMLO_FILTER_STRIDE1=") +
-        std::to_string(params.kernel_stride1) + std::string(" -DSTRIDE_W=") +
-        std::to_string(params.kernel_stride0) + std::string(" -DSTRIDE_H=") +
-        std::to_string(params.kernel_stride1) + std::string(" -DMLO_N_OUTPUTS=") +
+        std::to_string(params.kernel_size_w) + std::string(" -DMLO_FILTER_SIZE1=") +
+        std::to_string(params.kernel_size_h) + std::string(" -DMLO_FILTER_PAD0=") +
+        std::to_string(params.pad_w) + std::string(" -DMLO_FILTER_PAD1=") +
+        std::to_string(params.pad_h) + std::string(" -DMLO_FILTER_STRIDE0=") +
+        std::to_string(params.kernel_stride_w) + std::string(" -DMLO_FILTER_STRIDE1=") +
+        std::to_string(params.kernel_stride_h) + std::string(" -DSTRIDE_W=") +
+        std::to_string(params.kernel_stride_w) + std::string(" -DSTRIDE_H=") +
+        std::to_string(params.kernel_stride_h) + std::string(" -DMLO_N_OUTPUTS=") +
         std::to_string(params.n_outputs) + std::string(" -DMLO_N_INPUTS=") +
         std::to_string(params.n_inputs) + std::string(" -DMLO_BATCH_SZ=") +
         std::to_string(params.batch_sz) + std::string(" -DMLO_N_BATCH_LOOPS=") +

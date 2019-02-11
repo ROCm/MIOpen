@@ -50,19 +50,19 @@ int miopen::ProblemDescription::mloBuildConf_Key(std::string& conf_key) const
     conf_key = std::to_string(static_cast<long long>(n_inputs)) + std::string("x") +
                std::to_string(static_cast<long long>(in_height)) + std::string("x") +
                std::to_string(static_cast<long long>(in_width)) + std::string("x") +
-               std::to_string(static_cast<long long>(kernel_size1)) + std::string("x") +
-               std::to_string(static_cast<long long>(kernel_size0)) + std::string("x") +
+               std::to_string(static_cast<long long>(kernel_size_h)) + std::string("x") +
+               std::to_string(static_cast<long long>(kernel_size_w)) + std::string("x") +
                std::to_string(static_cast<long long>(n_outputs)) + std::string("x") +
                std::to_string(static_cast<long long>(out_height)) + std::string("x") +
                std::to_string(static_cast<long long>(out_width)) + std::string("x") +
                std::to_string(static_cast<long long>(batch_sz)) + std::string("x") + in_layout +
                std::string("x") + in_data_type + std::string("x") +
-               std::to_string(static_cast<long long>(pad1)) + std::string("x") +
-               std::to_string(static_cast<long long>(pad0)) + std::string("x") +
-               std::to_string(static_cast<long long>(kernel_stride0)) + std::string("x") +
-               std::to_string(static_cast<long long>(kernel_stride1)) + std::string("x") +
-               std::to_string(static_cast<long long>(kernel_dilation0)) + std::string("x") +
-               std::to_string(static_cast<long long>(kernel_dilation1)) + std::string("x") +
+               std::to_string(static_cast<long long>(pad_h)) + std::string("x") +
+               std::to_string(static_cast<long long>(pad_w)) + std::string("x") +
+               std::to_string(static_cast<long long>(kernel_stride_h)) + std::string("x") +
+               std::to_string(static_cast<long long>(kernel_stride_w)) + std::string("x") +
+               std::to_string(static_cast<long long>(kernel_dilation_h)) + std::string("x") +
+               std::to_string(static_cast<long long>(kernel_dilation_w)) + std::string("x") +
                std::to_string(static_cast<long long>(group_counts)) + std::string("x") +
                (direction.IsForward() ? "1" : "0");
     return (0);
@@ -86,11 +86,11 @@ miopen::ProblemDescription::ProblemDescription(const TensorDescriptor& in,
 
 void miopen::ProblemDescription::setConvDescr(const ConvolutionDescriptor& conv)
 {
-    pad1             = conv.pad_h;
-    pad0             = conv.pad_w;
-    kernel_stride1   = conv.u;
-    kernel_stride0   = conv.v;
-    kernel_dilation0 = conv.dilation_h;
-    kernel_dilation1 = conv.dilation_w;
-    group_counts     = conv.group_count;
+    pad_h             = conv.GetConvPads()[0];
+    pad_w             = conv.GetConvPads()[1];
+    kernel_stride_h   = conv.GetConvStrides()[0];
+    kernel_stride_w   = conv.GetConvStrides()[1];
+    kernel_dilation_h = conv.GetConvDilations()[0];
+    kernel_dilation_w = conv.GetConvDilations()[1];
+    group_counts      = conv.group_count;
 }

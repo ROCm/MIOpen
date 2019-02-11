@@ -475,7 +475,7 @@ static std::vector<DefaultKernelArg> WinogradNodeArgs()
 void FusionMDGraph::InitConv(FusionMDGraph& g)
 {
     const auto common_constr = {
-        "u == v",
+        "stride_h == stride_w",
         "dilation_h == 1",
         "dilation_w == 1",
         "c * x * y <= (2^28)",
@@ -511,7 +511,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         vc_s1->supported_arch = {"gfx803", "gfx900", "gfx906"};
 
         FusionMDGraph_Edge_Map map_wino_conv_s1;
-        map_wino_conv_s1["constraints"] = {"u == 1",
+        map_wino_conv_s1["constraints"] = {"stride_h == 1",
                                            "y <= 3",
                                            "padded_y === 3",
                                            "padded_x === (x ~ 3)",
@@ -524,7 +524,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         g.AddEdge(nullptr, vc_s1, map_wino_conv_s1);
 
         FusionMDGraph_Edge_Map map_wino_conv_s1_xgt3;
-        map_wino_conv_s1_xgt3["constraints"] = {"u == 1",
+        map_wino_conv_s1_xgt3["constraints"] = {"stride_h == 1",
                                                 "y > 3",
                                                 "padded_y === (y ~ 6)",
                                                 "padded_x === (x ~ 3)",
@@ -537,7 +537,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
 
         // add 3x3 with higher priority since its the fastest case
         FusionMDGraph_Edge_Map map_wino_conv_xe3;
-        map_wino_conv_xe3["constraints"] = {"u == 1",
+        map_wino_conv_xe3["constraints"] = {"stride_h == 1",
                                             "(y == 3) & (x == 3)",
                                             "padded_y === 3",
                                             "padded_x === (x ~ 3)",
@@ -623,7 +623,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
 
             FusionMDGraph_Edge_Map map_wino_conv_s2;
             map_wino_conv_s2["constraints"] = {
-                "u == 2", "padded_y === (y ~ 6)", "(x % 6) == 1", "padded_x === (x ~ 3)",
+                "stride_h == 2", "padded_y === (y ~ 6)", "(x % 6) == 1", "padded_x === (x ~ 3)",
             };
 
             add_meta_wino(map_wino_conv_s2, 5);
@@ -631,7 +631,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
 
             FusionMDGraph_Edge_Map map_wino_conv_s2_modd;
             map_wino_conv_s2_modd["constraints"] = {
-                "u == 2", "padded_y === (y ~ 6)", "(x % 6) != 1", "padded_x === (x ~ 6)",
+                "stride_h == 2", "padded_y === (y ~ 6)", "(x % 6) != 1", "padded_x === (x ~ 6)",
             };
 
             add_meta_wino(map_wino_conv_s2_modd, 5);
@@ -640,7 +640,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
             // high priority edge for 3x3 kernels
             FusionMDGraph_Edge_Map map_wino_conv_s2_modd_xe3;
             map_wino_conv_s2_modd_xe3["constraints"] = {
-                "u == 2",
+                "stride == 2",
                 "(x == 3) & (y == 3)",
                 "padded_y === (y ~ 6)",
                 "(x % 6) != 1",
@@ -714,8 +714,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         FusionMDGraph_Edge_Map map_asm_conv;
         map_asm_conv["constraints"] = {"pad_h == 0",
                                        "pad_w == 0",
-                                       "u == 1",
-                                       "v == 1",
+                                       "stride_h == 1",
+                                       "stride_w == 1",
                                        "dilation_h == 1",
                                        "dilation_w == 1",
                                        "x == 1",
@@ -759,8 +759,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
             {
                 map_conv_bias["constraints"].emplace_back("pad_h <= 2");
                 map_conv_bias["constraints"].emplace_back("pad_w <= 2");
-                map_conv_bias["constraints"].emplace_back("((u == 1) | (u == 2))");
-                map_conv_bias["constraints"].emplace_back("((v == 1) | (v == 2))");
+                map_conv_bias["constraints"].emplace_back("((stride_h == 1) | (stride_h == 2))");
+                map_conv_bias["constraints"].emplace_back("((stride_w == 1) | (stride_w == 2))");
             }
             else
             {
@@ -819,8 +819,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                             "algo === miopenConvolutionFwdAlgoDirect",
                                             "pad_h <= 2",
                                             "pad_w <= 2",
-                                            "((u == 1) | (u == 2))",
-                                            "((v == 1) | (v == 2))"};
+                                            "((stride_h == 1) | (stride_h == 2))",
+                                            "((stride_w == 1) | (stride_w == 2))"};
 
             g.AddEdge(nullptr, conv_v, map_conv_bias);
         }

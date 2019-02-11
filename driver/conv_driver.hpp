@@ -313,9 +313,9 @@ int ConvDriver<Tgpu, Tref, Tfile>::AddCmdLineArgs()
     inflags.AddInputFlag("fil_h", 'y', "3", "Filter Height (Default=3)", "int");
     inflags.AddInputFlag("fil_w", 'x', "3", "Filter Width (Default=3)", "int");
     inflags.AddInputFlag(
-        "conv_stride_0", 'u', "1", "Convolution Stride Vertical (Default=1)", "int");
+        "conv_stride_h", 'u', "1", "Convolution Stride Vertical (Default=1)", "int");
     inflags.AddInputFlag(
-        "conv_stride_1", 'v', "1", "Convolution Stride Horizontal (Default=1)", "int");
+        "conv_stride_w", 'v', "1", "Convolution Stride Horizontal (Default=1)", "int");
     inflags.AddInputFlag("pad_h", 'p', "0", "Zero Padding Height (Default=0)", "int");
     inflags.AddInputFlag("pad_w", 'q', "0", "Zero Padding Width (Default=0)", "int");
     inflags.AddInputFlag("pad_val", 'r', "0", "Padding Value (Default=0)", "int");
@@ -420,8 +420,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::SetConvDescriptorFromCmdLineArgs()
     int wei_w                 = inflags.GetValueInt("fil_w");
     int pad_h                 = inflags.GetValueInt("pad_h");
     int pad_w                 = inflags.GetValueInt("pad_w");
-    int u                     = inflags.GetValueInt("conv_stride_0");
-    int v                     = inflags.GetValueInt("conv_stride_1");
+    int conv_stride_h         = inflags.GetValueInt("conv_stride_h");
+    int conv_stride_w         = inflags.GetValueInt("conv_stride_w");
     int dilation_h            = inflags.GetValueInt("dilation_h");
     int dilation_w            = inflags.GetValueInt("dilation_w");
     int out_c                 = inflags.GetValueInt("out_channels");
@@ -462,10 +462,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::SetConvDescriptorFromCmdLineArgs()
         {
             mode  = miopenConvolution;
             pmode = miopenPaddingSame;
-            pad_h =
-                (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
-            pad_w =
-                (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
+            pad_h = (in_h % conv_stride_h == 0) ? (std::max((wei_h - conv_stride_h), 0))
+                                                : (std::max((wei_h - (in_h % conv_stride_h)), 0));
+            pad_w = (in_w % conv_stride_w == 0) ? (std::max((wei_w - conv_stride_w), 0))
+                                                : (std::max((wei_w - (in_w % conv_stride_w)), 0));
             pad_h /= 2;
             pad_w /= 2;
         }
@@ -477,8 +477,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::SetConvDescriptorFromCmdLineArgs()
             pad_w = 0;
         }
     }
-    miopen::deref(convDesc) =
-        miopen::ConvolutionDescriptor(mode, pmode, pad_h, pad_w, u, v, dilation_h, dilation_w);
+    miopen::deref(convDesc) = miopen::ConvolutionDescriptor(
+        mode, pmode, {pad_h, pad_w}, {conv_stride_h, conv_stride_w}, {dilation_h, dilation_w});
     miopenSetConvolutionGroupCount(convDesc, group_count);
     if(mode == miopenTranspose)
         miopenSetTransposeConvOutputPadding(convDesc, trans_output_pad_h, trans_output_pad_w);
@@ -908,7 +908,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
                "fwd-conv",
                wei_h,
                wei_w,
-               miopen::deref(convDesc).u,
+               miopen::deref(convDesc).GetConvStrides()[0],
                in_n,
                in_c,
                out_h,
@@ -1004,11 +1004,11 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardCPU()
                                 &out_hstride,
                                 &out_wstride);
 
-    int u, v, pad_h, pad_w, dilation_h, dilation_w, group_count;
+    int conv_stride_h, conv_stride_w, pad_h, pad_w, dilation_h, dilation_w, group_count;
     miopenConvolutionMode_t mode;
     miopenPaddingMode_t pmode = miopen::deref(convDesc).paddingMode;
     miopenGetConvolutionDescriptor(
-        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+        convDesc, &mode, &pad_h, &pad_w, &conv_stride_h, &conv_stride_w, &dilation_h, &dilation_w);
     group_count = miopen::deref(convDesc).group_count;
 
     if(mode == miopenConvolution &&
@@ -1016,10 +1016,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardCPU()
     {
         if(pmode == miopenPaddingSame)
         {
-            pad_h =
-                (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
-            pad_w =
-                (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
+            pad_h = (in_h % conv_stride_h == 0) ? (std::max((wei_h - conv_stride_h), 0))
+                                                : (std::max((wei_h - (in_h % conv_stride_h)), 0));
+            pad_w = (in_w % conv_stride_w == 0) ? (std::max((wei_w - conv_stride_w), 0))
+                                                : (std::max((wei_w - (in_w % conv_stride_w)), 0));
             pad_h /= 2;
             pad_w /= 2;
         }
@@ -1055,10 +1055,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardCPU()
                     { // in_channels (num filters)
                         for(int i = 0; i < in_h; i++)
                         { // input_height
-                            int out_off_h = i * u;
+                            int out_off_h = i * conv_stride_h;
                             for(int j = 0; j < in_w; j++)
                             { // input_width
-                                int out_off_w = j * v;
+                                int out_off_w = j * conv_stride_w;
                                 for(int x = 0; x < wei_h; x++)
                                 {
                                     int out_x = out_off_h - pad_h + x * dilation_h;
@@ -1120,11 +1120,11 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardCPU()
                 { // out_channels (num filters)
                     for(int i = 0; i < out_h; i++)
                     { // output_height (from getforwardoutputdim())
-                        int in_off_h = i * u;
+                        int in_off_h = i * conv_stride_h;
                         for(int j = 0; j < out_w; j++)
                         { // output_width (from getforwardoutputdim())
                             Tref acc     = static_cast<Tref>(0);
-                            int in_off_w = j * v;
+                            int in_off_w = j * conv_stride_w;
                             for(int k = 0; k < in_c / group_count; k++)
                             { // in_channels (RGB)
                                 for(int x = 0; x < wei_h; x++)
@@ -1312,7 +1312,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
                 "bwdd-conv",
                 wei_h,
                 wei_w,
-                miopen::deref(convDesc).u,
+                miopen::deref(convDesc).GetConvStrides()[0],
                 in_n,
                 in_c,
                 wei_h,
@@ -1409,7 +1409,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
                 "bwdw-conv",
                 wei_h,
                 wei_w,
-                miopen::deref(convDesc).u,
+                miopen::deref(convDesc).GetConvStrides()[0],
                 in_n,
                 in_c,
                 out_h,
@@ -1514,11 +1514,11 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardWeightsCPU()
                                 &out_hstride,
                                 &out_wstride);
 
-    int u, v, pad_h, pad_w, dilation_h, dilation_w, group_count;
+    int conv_stride_h, conv_stride_w, pad_h, pad_w, dilation_h, dilation_w, group_count;
     miopenConvolutionMode_t mode;
     miopenPaddingMode_t pmode = miopen::deref(convDesc).paddingMode;
     miopenGetConvolutionDescriptor(
-        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+        convDesc, &mode, &pad_h, &pad_w, &conv_stride_h, &conv_stride_w, &dilation_h, &dilation_w);
     group_count = miopen::deref(convDesc).group_count;
 
     if(mode == miopenConvolution &&
@@ -1526,10 +1526,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardWeightsCPU()
     {
         if(pmode == miopenPaddingSame)
         {
-            pad_h =
-                (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
-            pad_w =
-                (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
+            pad_h = (in_h % conv_stride_h == 0) ? (std::max((wei_h - conv_stride_h), 0))
+                                                : (std::max((wei_h - (in_h % conv_stride_h)), 0));
+            pad_w = (in_w % conv_stride_w == 0) ? (std::max((wei_w - conv_stride_w), 0))
+                                                : (std::max((wei_w - (in_w % conv_stride_w)), 0));
             pad_h /= 2;
             pad_w /= 2;
         }
@@ -1572,8 +1572,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardWeightsCPU()
                                 {
                                     for(int j = 0; j < in_w; j++) // input width
                                     {
-                                        int out_i = x * dilation_h + i * u - pad_h; // vertical
-                                        int out_j = y * dilation_w + j * v - pad_w; // horizontal
+                                        int out_i =
+                                            x * dilation_h + i * conv_stride_h - pad_h; // vertical
+                                        int out_j = y * dilation_w + j * conv_stride_w -
+                                                    pad_w; // horizontal
 
                                         if((out_i >= 0) && (out_i < out_h) && (out_j >= 0) &&
                                            (out_j < out_w))
@@ -1618,8 +1620,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardWeightsCPU()
                                 {
                                     for(int j = 0; j < out_w; j++) // output width
                                     {
-                                        int in_i = x * dilation_h + i * u - pad_h; // vertical
-                                        int in_j = y * dilation_w + j * v - pad_w; // horizontal
+                                        int in_i =
+                                            x * dilation_h + i * conv_stride_h - pad_h; // vertical
+                                        int in_j = y * dilation_w + j * conv_stride_w -
+                                                   pad_w; // horizontal
 
                                         if((in_i >= 0) && (in_i < in_h) && (in_j >= 0) &&
                                            (in_j < in_w))
@@ -1700,11 +1704,11 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardDataCPU()
                                 &out_hstride,
                                 &out_wstride);
 
-    int u, v, pad_h, pad_w, dilation_h, dilation_w, group_count;
+    int conv_stride_h, conv_stride_w, pad_h, pad_w, dilation_h, dilation_w, group_count;
     miopenConvolutionMode_t mode;
     miopenPaddingMode_t pmode = miopen::deref(convDesc).paddingMode;
     miopenGetConvolutionDescriptor(
-        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+        convDesc, &mode, &pad_h, &pad_w, &conv_stride_h, &conv_stride_w, &dilation_h, &dilation_w);
     group_count = miopen::deref(convDesc).group_count;
 
     if(out_h <= 0 || out_w <= 0)
@@ -1715,10 +1719,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardDataCPU()
     {
         if(pmode == miopenPaddingSame)
         {
-            pad_h =
-                (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
-            pad_w =
-                (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
+            pad_h = (in_h % conv_stride_h == 0) ? (std::max((wei_h - conv_stride_h), 0))
+                                                : (std::max((wei_h - (in_h % conv_stride_h)), 0));
+            pad_w = (in_w % conv_stride_w == 0) ? (std::max((wei_w - conv_stride_w), 0))
+                                                : (std::max((wei_w - (in_w % conv_stride_w)), 0));
             pad_h /= 2;
             pad_w /= 2;
         }
@@ -1750,11 +1754,11 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardDataCPU()
                 { // in_channels (num filters)
                     for(int i = 0; i < in_h; i++)
                     { // input_height (from getforwardoutputdim())
-                        int out_off_h = i * u;
+                        int out_off_h = i * conv_stride_h;
                         for(int j = 0; j < in_w; j++)
                         { // input_width (from getforwardoutputdim())
                             Tref acc      = static_cast<Tref>(0);
-                            int out_off_w = j * v;
+                            int out_off_w = j * conv_stride_w;
                             for(int k = 0; k < out_c / group_count; k++)
                             { // out_channels (RGB)
                                 for(int x = 0; x < wei_h; x++)
@@ -1802,10 +1806,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardDataCPU()
                     { // out_channels (num filters)
                         for(int i = 0; i < out_h; i++)
                         { // output_height (from getforwardoutputdim())
-                            int in_off_h = i * u;
+                            int in_off_h = i * conv_stride_h;
                             for(int j = 0; j < out_w; j++)
                             { // output_width (from getforwardoutputdim())
-                                int in_off_w = j * v;
+                                int in_off_w = j * conv_stride_w;
                                 for(int x = 0; x < wei_h; x++)
                                 {
                                     int in_x = in_off_h - pad_h + x * dilation_h;
@@ -1899,8 +1903,9 @@ std::string ConvDriver<Tgpu, Tref, Tfile>::GetVerificationCacheFileName() const
     std::ostringstream ss;
 
     miopenConvolutionMode_t mode;
-    int pad_h, pad_w, u, v, sx, sy;
-    miopenGetConvolutionDescriptor(convDesc, &mode, &pad_h, &pad_w, &u, &v, &sx, &sy);
+    int pad_h, pad_w, conv_stride_h, conv_stride_w, sx, sy;
+    miopenGetConvolutionDescriptor(
+        convDesc, &mode, &pad_h, &pad_w, &conv_stride_h, &conv_stride_w, &sx, &sy);
 
     const auto inputDesc = GetTensorLengths(const_cast<miopenTensorDescriptor_t&>(inputTensor));
     const auto weiDesc   = GetTensorLengths(const_cast<miopenTensorDescriptor_t&>(weightTensor));
@@ -1915,8 +1920,8 @@ std::string ConvDriver<Tgpu, Tref, Tfile>::GetVerificationCacheFileName() const
        << "x" << outDesc[2]   //_out_height
        << "x" << outDesc[3]   //_out_width
        << "x" << inputDesc[0] //_batch_sz
-       << "_" << weiDesc[1] << "x" << pad_h << "x" << pad_w << "x" << u << "x" << v << "x" << sx
-       << "x" << sy << "x" << inflags.GetValueInt("pad_val");
+       << "_" << weiDesc[1] << "x" << pad_h << "x" << pad_w << "x" << conv_stride_h << "x"
+       << conv_stride_w << "x" << sx << "x" << sy << "x" << inflags.GetValueInt("pad_val");
 
     assert(sizeof(Tfile) == 8 || sizeof(Tfile) == 4 || sizeof(Tfile) == 2);
     // Legacy files contain floats and have no prefix.

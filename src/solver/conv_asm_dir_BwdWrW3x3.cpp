@@ -132,7 +132,7 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValidValue() const
 
 static bool IsReverseInOutAllowed(const ConvolutionContext& config)
 {
-    return config.kernel_stride0 == 1 && config.kernel_stride1 == 1;
+    return config.kernel_stride_w == 1 && config.kernel_stride_h == 1;
 }
 
 inline int elements_in_dword(const ConvolutionContext& config)
@@ -160,28 +160,28 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config)
     if((reverse_inout != 0) && !IsReverseInOutAllowed(config))
         return false;
     {
-        const int accums_cnt =
-            (config.kernel_size0 * config.kernel_size1 * GetCPerWave() * k_per_wave * chunk_size) /
-            64;
+        const int accums_cnt = (config.kernel_size_w * config.kernel_size_h * GetCPerWave() *
+                                k_per_wave * chunk_size) /
+                               64;
         assert(chunk_size);
         const int out_w_vec =
             (config.out_width + elements_in_dword(config) - 1) / elements_in_dword(config);
         int gprs_per_line_in = (out_w_vec + chunk_size - 1) / chunk_size;
         if(chunk_size != 16)
         {
-            assert(chunk_size - config.pad0);
+            assert(chunk_size - config.pad_w);
             gprs_per_line_in =
-                (out_w_vec + chunk_size - config.pad0 - 1) / (chunk_size - config.pad0);
+                (out_w_vec + chunk_size - config.pad_w - 1) / (chunk_size - config.pad_w);
         }
-        assert(config.kernel_stride0);
-        gprs_per_line_in += gprs_per_line_in % config.kernel_stride0;
+        assert(config.kernel_stride_w);
+        gprs_per_line_in += gprs_per_line_in % config.kernel_stride_w;
         const int gprs_per_line_out =
-            (gprs_per_line_in > 1) ? gprs_per_line_in / config.kernel_stride0 : 1;
+            (gprs_per_line_in > 1) ? gprs_per_line_in / config.kernel_stride_w : 1;
 
-        const int lines_in = pipe_lines_depth + config.kernel_size1 - 1;
-        assert(config.kernel_stride1);
+        const int lines_in = pipe_lines_depth + config.kernel_size_h - 1;
+        assert(config.kernel_stride_h);
         const int lines_out =
-            (pipe_lines_depth + config.kernel_stride1 - 1) / config.kernel_stride1;
+            (pipe_lines_depth + config.kernel_stride_h - 1) / config.kernel_stride_h;
         const int vgprs = accums_cnt +
                           (lines_in * gprs_per_line_in + lines_out * gprs_per_line_out) *
                               elements_in_dword(config) +
@@ -207,8 +207,8 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config)
         /// information here and in all similar places across other Solvers.
         const bool dot2_inst_avail = name >= "gfx906";
         const bool dot2_emulate    = (!dot2_inst_avail) && (elements_in_dword(config) == 2);
-        const int v_instr          = (k_per_wave * config.kernel_size1 * gprs_per_line_out *
-                             config.kernel_size0 * 4 * (dot2_emulate ? 2 : 1)) /
+        const int v_instr          = (k_per_wave * config.kernel_size_h * gprs_per_line_out *
+                             config.kernel_size_w * 4 * (dot2_emulate ? 2 : 1)) /
                             3 * elements_in_dword(config);
         const int exch_instr = elements_in_dword(config) == 2 ? 3 * m_instr : 0;
         const int total =
@@ -334,14 +334,14 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
     }
     assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
     // clang-format off
-    bool ok = params.pad0 == 1           // -q  pad_w
-        && params.pad1 == 1              // -p  pad_h
-        && params.kernel_stride0 <= 2    // -u  stride_w
-        && params.kernel_stride1 <= 2    // -v  stride_h
-        && params.kernel_size0 == 3      // -x  S wei_w
-        && params.kernel_size1 == 3      // -y  R wei_h
-        && params.kernel_dilation0 == 1
-        && params.kernel_dilation1 == 1
+    bool ok = params.pad_w == 1           // -q  pad_w
+        && params.pad_h == 1              // -p  pad_h
+        && params.kernel_stride_w <= 2      // -v  stride_w
+        && params.kernel_stride_h <= 2      // -u  stride_h
+        && params.kernel_size_w == 3      // -x  S wei_w
+        && params.kernel_size_h == 3      // -y  R wei_h
+        && params.kernel_dilation_w == 1
+        && params.kernel_dilation_h == 1
         && params.bias == 0
         && (params.float_size == 32 || params.float_size == 16)
         && params.group_counts == 1
@@ -354,15 +354,15 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
     if(params.float_size == 16
           && (name.find("gfx8") != std::string::npos // Not supported.
              || params.batch_sz % 2 != 0 /// \todo Initial version.
-             || params.kernel_stride0 != 1 /// \todo Initial version.
-             || params.kernel_stride1 != 1))
+             || params.kernel_stride_w != 1 /// \todo Initial version.
+             || params.kernel_stride_h != 1))
     {
        return false;
     }
 
     // Check limits:
     const auto h_w     = static_cast<long>(params.out_height) * params.out_width;
-    const auto r_s     = static_cast<long>(params.kernel_size1) * params.kernel_size0;
+    const auto r_s     = static_cast<long>(params.kernel_size_h) * params.kernel_size_w;
     const auto c_h_w   = static_cast<long>(params.n_outputs) * h_w;   // C*H*W
     const auto k_h_w   = static_cast<long>(params.n_inputs) * h_w;    // K*H*W
     const auto c_r_s   = static_cast<long>(params.n_outputs) * r_s;   // C*R*S
@@ -406,12 +406,12 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     // Note that params.n_outputs and params.n_inputs are swapped for backward convolutions.
     GenerateClangDefsym(options, "input_channels", params.n_outputs); // C
     GenerateClangDefsym(options, "output_channels", params.n_inputs); // K
-    GenerateClangDefsym(options, "wei_h", params.kernel_size1);       // R
-    GenerateClangDefsym(options, "wei_w", params.kernel_size0);       // S
-    GenerateClangDefsym(options, "pad_h", params.pad1);
-    GenerateClangDefsym(options, "pad_w", params.pad0);
-    GenerateClangDefsym(options, "stride_h", params.kernel_stride1);
-    GenerateClangDefsym(options, "stride_w", params.kernel_stride0);
+    GenerateClangDefsym(options, "wei_h", params.kernel_size_h);      // R
+    GenerateClangDefsym(options, "wei_w", params.kernel_size_w);      // S
+    GenerateClangDefsym(options, "pad_h", params.pad_h);
+    GenerateClangDefsym(options, "pad_w", params.pad_w);
+    GenerateClangDefsym(options, "stride_h", params.kernel_stride_h);
+    GenerateClangDefsym(options, "stride_w", params.kernel_stride_w);
     GenerateClangDefsym(options, "weights_layout", 0);
     GenerateClangDefsym(options, "reverse_weights", 0);
     GenerateClangDefsym(
