@@ -659,7 +659,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
 
             if(!biasFileName.empty())
             {
-                readBufferFromFile<Tgpu>(b.data(), b_sz, biasFileName.c_str());
+                readBufferFromFile<float>(b_int8.data(), b_sz, biasFileName.c_str());
             }
 
             b_dev->ToGPU(q, b_int8.data());
@@ -684,15 +684,6 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
             doutRead = readBufferFromFile<Tgpu>(dout.data(), out_sz, doutFileName.c_str());
         }
 
-        if(!doutRead)
-        {
-            for(int i = 0; i < out_sz; i++)
-            {
-                dout[i] =
-                    Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            }
-        }
-
         if(!dataRead)
         {
             for(int i = 0; i < in_sz; i++)
@@ -701,9 +692,13 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
             }
         }
 
-        for(int i = 0; i < out_sz; i++)
+        if(!doutRead)
         {
-            dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            for(int i = 0; i < out_sz; i++)
+            {
+                dout[i] =
+                    Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            }
         }
 
         if(inflags.GetValueInt("bias") != 0)
@@ -1923,10 +1918,13 @@ std::string ConvDriver<Tgpu, Tref, Tfile>::GetVerificationCacheFileName() const
        << "_" << weiDesc[1] << "x" << pad_h << "x" << pad_w << "x" << conv_stride_h << "x"
        << conv_stride_w << "x" << sx << "x" << sy << "x" << inflags.GetValueInt("pad_val");
 
-    assert(sizeof(Tfile) == 8 || sizeof(Tfile) == 4 || sizeof(Tfile) == 2);
+    assert(sizeof(Tfile) == 8 || sizeof(Tfile) == 4);
+    //  Uses different distribution of random data inputs
+    if(std::is_same<Tgpu, int8_t>::value)
+        ss << "_TgpuINT8";
     // Legacy files contain floats and have no prefix.
     if(sizeof(Tfile) != 4)
-        ss << "_FPref" << (sizeof(Tfile) == 2 ? "16" : "64");
+        ss << "_FPref64";
 
     return ss.str();
 }
@@ -1999,8 +1997,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyForward()
     if(data_type == miopenInt8)
         error = miopen::rms_range(outhost, out_int8);
 
-    const Tref tolerance =
-        ((sizeof(Tgpu) == 4) ? static_cast<Tref>(1e-6) : static_cast<Tref>(7e-2));
+    const Tref tolerance = ((sizeof(Tgpu) == 4 || sizeof(Tgpu) == 1) ? static_cast<Tref>(1e-6)
+                                                                     : static_cast<Tref>(7e-2));
     if(!(error < tolerance))
     {
         std::cout << "Forward Convolution Failed: " << error << std::endl;
