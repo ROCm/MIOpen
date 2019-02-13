@@ -78,6 +78,7 @@ RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc --std=c++14
 # Install dependencies
 ADD dev-requirements.txt /dev-requirements.txt
 ADD requirements.txt /requirements.txt
+ADD min-requirements.txt /min-requirements.txt
 RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /dev-requirements.txt
 
 # Install doc requirements
