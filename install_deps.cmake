@@ -7,7 +7,7 @@ endforeach()
 
 include(CMakeParseArguments)
 
-set(options help)
+set(options help --minimum)
 set(oneValueArgs --prefix)
 set(multiValueArgs)
 
@@ -21,6 +21,8 @@ message("  --prefix               Set the prefix to install the dependencies.")
 message("")
 message("Commands:")
 message("  help                   Show this message and exit.")
+message("")
+message("  --minimum                  Install minimum dependencies.")
 message("")
 return()
 endif()
@@ -58,4 +60,13 @@ if(NOT DEFINED ENV{CXX} AND NOT DEFINED CMAKE_CXX_COMPILER AND NOT DEFINED CMAKE
 endif()
 
 cmake_get(pfultz2/rocm-recipes PREFIX ${PREFIX} CMAKE_ARGS ${PARSE_UNPARSED_ARGUMENTS})
-cmake_get_from(${CMAKE_CURRENT_LIST_DIR}/requirements.txt PREFIX ${PREFIX} CMAKE_ARGS -DCMAKE_INSTALL_RPATH=${PREFIX}/lib ${PARSE_UNPARSED_ARGUMENTS})
+
+if(PARSE_--minimum)
+    message(STATUS "MIOpen minimum dependency install.")
+    set(REQFILE ${CMAKE_CURRENT_LIST_DIR}/min-requirements.txt)
+else()
+    message(STATUS "MIOpen normal dependency install.")
+    set(REQFILE ${CMAKE_CURRENT_LIST_DIR}/requirements.txt)
+endif()
+
+cmake_get_from(${REQFILE} PREFIX ${PREFIX} CMAKE_ARGS -DCMAKE_INSTALL_RPATH=${PREFIX}/lib ${PARSE_UNPARSED_ARGUMENTS})
