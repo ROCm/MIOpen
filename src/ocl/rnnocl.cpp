@@ -24,15 +24,19 @@
  *
  *******************************************************************************/
 
-#include <miopen/activ.hpp>
 #include <miopen/rnn.hpp>
+
+#include <miopen/activ.hpp>
 #include <miopen/env.hpp>
-#include <miopen/util.hpp>
 #include <miopen/float_equal.hpp>
+#include <miopen/gemm_v2.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/util.hpp>
+
 #include <vector>
 #include <numeric>
 #include <algorithm>
-#include <miopen/gemm_v2.hpp>
+
 namespace miopen {
 
 // Assuming sequence length is set to > 0 otherwise throw exception.

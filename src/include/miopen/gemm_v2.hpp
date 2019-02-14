@@ -26,11 +26,15 @@
 #ifndef GUARD_MIOPEN_GEMM_V2_HPP_
 #define GUARD_MIOPEN_GEMM_V2_HPP_
 
+#include <string>
+
+#include <miopen/common.hpp>
 #include <miopen/miopen.h>
-#include <miopen/handle.hpp>
-#include <miopen/tensor.hpp>
 
 namespace miopen {
+
+struct Handle;
+struct TensorDescriptor;
 
 enum GemmBackend_t
 {

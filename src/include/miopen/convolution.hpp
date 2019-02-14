@@ -26,16 +26,24 @@
 #ifndef GUARD_MIOPEN_CONVOLUTION_HPP_
 #define GUARD_MIOPEN_CONVOLUTION_HPP_
 
-#include <functional>
 #include <miopen/common.hpp>
-#include <miopen/conv_algo_name.hpp>
-#include <miopen/handle.hpp>
+#include <miopen/kernel.hpp>
 #include <miopen/miopen.h>
-#include <miopen/perf_field.hpp>
+#include <miopen/object.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/solver.hpp>
+
+#include <cstddef>
+#include <iosfwd>
+#include <string>
+#include <tuple>
+#include <vector>
 
 namespace miopen {
+
+namespace solver {
+struct ConvSolution;
+} // namespace solver
+struct Handle;
 
 using WinogradKernelParams = std::tuple<int /*N*/,
                                         int /*C*/,

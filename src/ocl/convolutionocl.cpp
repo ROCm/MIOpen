@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include <miopen/config.h>
 #include <miopen/convolution.hpp>
+#include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
 #include <miopen/env.hpp>
 #include <miopen/find_db.hpp>
@@ -2830,7 +2831,6 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             construct_params.setStream(&handle);
 
             visit_float(dyDesc.GetType(), [&](auto as_float) {
-
                 std::string network_config;
                 construct_params.mloBuildConf_Key(network_config);
 

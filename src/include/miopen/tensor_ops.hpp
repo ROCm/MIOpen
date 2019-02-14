@@ -31,6 +31,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
+#include <miopen/tensor.hpp>
 #include <miopen/functional.hpp>
 #include <vector>
 #include <boost/range/combine.hpp>

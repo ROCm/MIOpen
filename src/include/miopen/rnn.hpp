@@ -27,18 +27,20 @@
 #ifndef GUARD_MIOPEN_RNN_HPP_
 #define GUARD_MIOPEN_RNN_HPP_
 
-#include <miopen/miopen.h>
-#include <miopen/handle.hpp>
-#include <miopen/tensor.hpp>
 #include <miopen/common.hpp>
-#include <miopen/perf_field.hpp>
-#include <miopen/tensor_ops.hpp>
-#include <miopen/mlo_internal.hpp>
-#include <functional>
-#include <numeric>
-#include <map>
+#include <miopen/errors.hpp>
+#include <miopen/miopen.h>
+#include <miopen/object.hpp>
+
+#include <cstddef>
+#include <iosfwd>
+#include <type_traits>
+#include <vector>
 
 namespace miopen {
+
+struct Handle;
+struct TensorDescriptor;
 
 template <class T>
 struct c_array_view
