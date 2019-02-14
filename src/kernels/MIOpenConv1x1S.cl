@@ -383,7 +383,7 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
             q1 += i
 #if MLO_DIR_FORWARD == 0
 
-                  * MLO_FILTER_STRIDE0;
+                  * MLO_FILTER_STRIDE0
 #endif
             ;
             *q1 = accum[o][i];
