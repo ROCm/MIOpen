@@ -23,10 +23,22 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/config.h>
 #include <miopen/convolution.hpp>
-#include <miopen/solver.hpp>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/miopen.h>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/solver.hpp>
+#include <miopen/tensor.hpp>
+
+#include <cassert>
+#include <cstddef>
+#include <algorithm>
+#include <cmath>
+#include <ostream>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
 

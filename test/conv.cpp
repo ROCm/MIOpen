@@ -33,6 +33,8 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/solver.hpp>
 #include <utility>
 
 #include "driver.hpp"
