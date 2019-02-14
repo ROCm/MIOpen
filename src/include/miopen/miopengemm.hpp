@@ -27,6 +27,7 @@
 #define GUARD_MIOPEN_MIOPENGEMM_HPP_
 
 #include <miopen/config.h>
+#include <miopen/handle.hpp>
 
 #if MIOPEN_USE_MIOPENGEMM
 #include <miopengemm/miogemm.hpp>

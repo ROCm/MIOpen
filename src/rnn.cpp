@@ -24,9 +24,18 @@
  *
  *******************************************************************************/
 
-#include <miopen/rnn.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/env.hpp>
+#include <miopen/common.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/miopen.h>
+#include <miopen/rnn.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/tensor_ops.hpp>
+
+#include <cassert>
+#include <cstddef>
+#include <numeric>
+#include <ostream>
 
 // MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 // MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)

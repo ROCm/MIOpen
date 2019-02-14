@@ -2,9 +2,11 @@
 #define GUARD_MIOPEN_CHECK_NUMERICS_HPP
 
 #include <miopen/common.hpp>
-#include <miopen/util.hpp>
 
 namespace miopen {
+
+struct Handle;
+struct TensorDescriptor;
 
 struct CheckNumerics
 {

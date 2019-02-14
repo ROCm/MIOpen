@@ -29,9 +29,11 @@
 #include <algorithm>
 #include <array>
 #include <iostream>
-#include <miopen/each_args.hpp>
 #include <sstream>
 #include <type_traits>
+
+#include <miopen/each_args.hpp>
+#include <miopen/object.hpp>
 
 // Helper macros to output a cmdline argument for the driver
 #define MIOPEN_DRIVER_CMD(op) \
