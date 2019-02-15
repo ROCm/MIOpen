@@ -62,35 +62,31 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
                    (params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 1)) &&
                   (params.out_height % 112 == 0 || params.out_width % 112 == 0));
 #endif
-    bool ok =
-        (params.kernel_dilation_w == 1 && params.kernel_dilation_h == 1) &&
-        (params.kernel_stride_w == 1 && params.kernel_stride_h == 1) &&
+    return (params.kernel_dilation_w == 1 && params.kernel_dilation_h == 1) &&
+           (params.kernel_stride_w == 1 && params.kernel_stride_h == 1) &&
 
-        // This limitation is because of the way the kernel process data at lower vertical
-        // boundary (including padding).
-        (params.kernel_size_h >= params.pad_h + params.kernel_stride_h) &&
+           // This limitation is because of the way the kernel process data at lower vertical
+           // boundary (including padding).
+           (params.kernel_size_h >= params.pad_h + params.kernel_stride_h) &&
 
-        // Input image height plus vertical paddings should be no less than filter vertical size.
-        // TODO: chao: revisit this to make sure this is the actual limitation.
-        // Remind that input is output, output is input.
-        (params.kernel_size_h <= params.out_height + 2 * params.pad_h) &&
+           // Input image height plus vertical paddings should be no less than filter vertical size.
+           // TODO: chao: revisit this to make sure this is the actual limitation.
+           // Remind that input is output, output is input.
+           (params.kernel_size_h <= params.out_height + 2 * params.pad_h) &&
 
-        // Input and output width and height need to match exactly,
-        // meaning, filter's moving range should be the same as input plus padding.
-        // TODO: chao: in order to remove this limitation, need to rewrite how kernel handle
-        // right padding, when reading an input row into LDS. Also need to rewrite the vertical
-        // loop.
-        // Remind that input is output, output is input.
-        (params.in_height == params.out_height + 2 * params.pad_h - params.kernel_size_h + 1) &&
-        (params.in_width == params.out_width + 2 * params.pad_w - params.kernel_size_w + 1) &&
+           // Input and output width and height need to match exactly,
+           // meaning, filter's moving range should be the same as input plus padding.
+           // TODO: chao: in order to remove this limitation, need to rewrite how kernel handle
+           // right padding, when reading an input row into LDS. Also need to rewrite the vertical
+           // loop.
+           // Remind that input is output, output is input.
+           (params.in_height == params.out_height + 2 * params.pad_h - params.kernel_size_h + 1) &&
+           (params.in_width == params.out_width + 2 * params.pad_w - params.kernel_size_w + 1) &&
 
-        // Avoid LDS over-allocation
-        GetSolution(params).Succeeded() &&
-        // workaround
-        !workaround;
-
-    MIOPEN_LOG_I("ConvOclBwdWrW53::IsApplicable " << ok);
-    return ok;
+           // Avoid LDS over-allocation
+           GetSolution(params).Succeeded() &&
+           // workaround
+           !workaround;
 }
 
 /*! @brief ComputeInputParams

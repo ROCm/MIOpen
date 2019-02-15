@@ -29,31 +29,28 @@
 #include <miopen/generic_search.hpp>
 #include <algorithm>
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_OCL_WRW2_SEARCH_OPTIMIZED)
+
 namespace miopen {
 namespace solver {
 
-// Only positive numbers > 0
-inline static bool Is_Power_Of_2(const int& v) { return (v & (v - 1)) == 0; }
-
-inline static bool Is_1_2_4_8(const int& v)
+inline static bool Is_1__8(const int& v)
 {
-    if(v > 8 || v <= 0)
-        return false;
-    else
-        return Is_Power_Of_2(v);
+    // full: {1,2,4,8}, optimized: {1,3,8}
+    switch(v)
+    {
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 8: return true;
+    default: return false;
+    }
 }
 
-inline static bool Is_1_2_4_8_16(const int& v)
+inline static bool Inc_1__8(int& v)
 {
-    if(v > 16 || v <= 0)
-        return false;
-    else
-        return Is_Power_Of_2(v);
-}
-
-inline static bool Inc_1_2_4_8(int& v)
-{
-    assert(v == 1 || v == 2 || v == 4 || v == 8);
+    assert(Is_1__8(v));
     if(v == 8)
     {
         v = 1;
@@ -63,16 +60,64 @@ inline static bool Inc_1_2_4_8(int& v)
     return false;
 }
 
-inline static bool Inc_1_2_4_8_16(int& v)
+inline static bool Inc_1__8_optimized(int& v)
 {
-    assert(v == 1 || v == 2 || v == 4 || v == 8 || v == 16);
-    if(v == 16)
+    assert(Is_1__8(v));
+    switch(v)
     {
-        v = 1;
-        return true;
+    case 1: v = 3; return false;
+    case 3: v = 8; return false;
+    default:
+    case 8: v = 1; return true;
     }
-    v = v * 2;
-    return false;
+}
+
+inline static bool Is_6__12(const int& v) { return 6 <= v && v <= 12; }
+
+inline static bool Inc_6__12(int& v)
+{
+    assert(Is_6__12(v));
+    if(++v <= 12)
+        return false;
+    v = 6;
+    return true;
+}
+
+inline static bool Inc_6__12_optimized(int& v)
+{
+    assert(Is_6__12(v));
+    // {6,8,10,12}, {7,9,11}...
+    switch(v)
+    {
+    case 12: v = 7; return true;
+    case 11: v = 6; return true;
+    default:
+        v += 2;
+        return false; // 6,8,10,7,9
+    }
+}
+
+inline static bool Is_2__11(const int& v) { return 2 <= v && v <= 11; }
+
+inline static bool Inc_2__11(int& v)
+{
+    assert(Is_2__11(v));
+    if(++v <= 11)
+        return false;
+    v = 2;
+    return true;
+}
+
+inline static bool Inc_2__11_optimized(int& v)
+{
+    // {2 3 5 7 9 11}
+    assert(Is_2__11(v));
+    switch(v)
+    {
+    case 2: v = 3; return false;
+    default: v += 2; return false;
+    case 11: v = 2; return true;
+    }
 }
 
 // Workaround for issue 1185.
@@ -81,77 +126,103 @@ inline static bool Inc_1_2_4_8_16(int& v)
 // in issue 1289
 #define WORKAROUND_ISSUE_1185 1
 
-bool ConvOclBwdWrW23NonTunableFilters::IsApplicable(const ConvolutionContext& params) const
+static bool IsTunable(const ConvolutionContext& params)
+{
+    return !(params.group_counts == 1 &&
+             ((params.kernel_size_w == 3 && params.kernel_size_h == 3) ||
+              (params.kernel_size_w == 1 && params.kernel_size_h == 1)));
+}
+
+bool ConvOclBwdWrW2NonTunable::IsApplicable(const ConvolutionContext& params) const
 {
     // At present, auto-tuning is disabled for non-group 3x3 and 1x1 filters for multiple
     // reasons: after tuning ocl kernel for 3x3 and 1x1 filters, assembly kernel still
     // dominates.
     // Thus, this solver is used for non-group 3x3 and 1x1 filters only.
-    bool ok = (params.group_counts == 1) &&
-              ((params.kernel_size_h == 3 && params.kernel_size_w == 3) ||
-               (params.kernel_size_h == 1 && params.kernel_size_w == 1)) &&
-              ConvOclBwdWrW2::IsApplicableBase(params);
-
-    MIOPEN_LOG_I("ConvOclBwdWrW23NonTunableFilters::IsApplicable " << ok);
-    return ok;
+    return !IsTunable(params) && ConvOclBwdWrW2<1>::IsApplicableBase(params);
 }
 
-ConvSolution ConvOclBwdWrW23NonTunableFilters::GetSolution(const ConvolutionContext& params) const
+ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ConvolutionContext& params) const
 {
     // Invoking base class GetSolution with default values for params obtained
     // from GetPerformanceConfig(params)
-    return ConvOclBwdWrW2::GetSolution(params, GetPerformanceConfig(params));
+    return ConvOclBwdWrW2<1>::GetSolution(params, GetPerformanceConfig(params));
 }
 
-inline bool PerformanceConfigConvOclBwdWrw2::
-operator==(const PerformanceConfigConvOclBwdWrw2& other) const
+template <int N_BATCH_LOOPS>
+inline bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::
+operator==(const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const
 {
     // clang-format off
-    return n_batch_loops == other.n_batch_loops
-        && n_waves == other.n_waves
+    return n_waves == other.n_waves
         && read_size == other.read_size
         && n_out_channels_per_tile == other.n_out_channels_per_tile
         && n_out_channels_tiles == other.n_out_channels_tiles
         && n_out_rows_in_lcl == other.n_out_rows_in_lcl; // clang-format on
 }
 
-bool PerformanceConfigConvOclBwdWrw2::SetNextValue()
+template <int N_BATCH_LOOPS>
+bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::SetNextValue()
 {
     // Increment with wrap-around:
-    do
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_OCL_WRW2_SEARCH_OPTIMIZED{}))
     {
-        if(!Inc_1_2_4_8_16(n_batch_loops))
-            break;
-        if(!Inc_1_2_4_8(n_waves))
-            break;
-        if(++read_size <= 12)
-            break;
-        read_size = 6;
-        if(!Inc_1_2_4_8(n_out_channels_per_tile))
-            break;
-        if(!Inc_1_2_4_8(n_out_channels_tiles))
-            break;
-        if(++n_out_rows_in_lcl <= 11)
-            break;
-        n_out_rows_in_lcl = 2;
-        return false;
-    } while(false);
-
+        do
+        {
+            if(!Inc_1__8(n_waves))
+                break;
+            if(!Inc_6__12(read_size))
+                break;
+            if(!Inc_1__8(n_out_channels_per_tile))
+                break;
+            if(!Inc_1__8(n_out_channels_tiles))
+                break;
+            if(!Inc_2__11(n_out_rows_in_lcl))
+                break;
+            return false;
+        } while(false);
+    }
+    else
+    {
+        do
+        {
+            if(!Inc_1__8_optimized(n_waves))
+                break;
+            if(!Inc_6__12_optimized(read_size))
+                break;
+            if(!Inc_1__8_optimized(n_out_channels_per_tile))
+                break;
+            if(!Inc_1__8_optimized(n_out_channels_tiles))
+                break;
+            if(!Inc_2__11_optimized(n_out_rows_in_lcl))
+                break;
+            return false;
+        } while(false);
+    }
     return true;
 }
 
-bool PerformanceConfigConvOclBwdWrw2::IsValidValue() const
+template <int N_BATCH_LOOPS>
+bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValidValue() const
 {
     // clang-format off
-    return Is_1_2_4_8_16(n_batch_loops)
-        && Is_1_2_4_8(n_waves)
-        && (6 <= read_size && read_size <= 12)
-        && (1 <= n_out_channels_per_tile && n_out_channels_per_tile <= 8)
-        && (1 <= n_out_channels_tiles && n_out_channels_tiles <= 8)
-        && (2 <= n_out_rows_in_lcl && n_out_rows_in_lcl <= 11); // clang-format on
+    return Is_1__8(n_waves)
+        && Is_6__12(read_size)
+        && Is_1__8(n_out_channels_per_tile)
+        && Is_1__8(n_out_channels_tiles)
+        && Is_2__11(n_out_rows_in_lcl); // clang-format on
 }
 
-bool PerformanceConfigConvOclBwdWrw2::IsValid(const ConvolutionContext& params) const
+static const int N_STACKS = 1; // number  of batch iterations
+
+template <int N_BATCH_LOOPS>
+size_t GetNBatchBlks(const ConvolutionContext& params)
+{
+    return std::ceil(static_cast<float>(params.batch_sz) / (N_BATCH_LOOPS * N_STACKS));
+}
+
+template <int N_BATCH_LOOPS>
+bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionContext& params) const
 {
     if(!IsValidValue())
     {
@@ -168,20 +239,7 @@ bool PerformanceConfigConvOclBwdWrw2::IsValid(const ConvolutionContext& params) 
     size_t wei_bstride = (params.n_outputs / params.group_counts) * wei_cstride;
 
     // number  of batch iterations
-    result.n_stacks = 1;
-    result.n_stacks = std::min(params.batch_sz, result.n_stacks);
-    if(n_batch_loops * result.n_stacks == 0)
-    {
-        return false;
-    }
-
-    if(n_batch_loops > params.batch_sz)
-    {
-        return false;
-    }
-
-    size_t n_batch_blks =
-        std::ceil(static_cast<float>(params.batch_sz) / (n_batch_loops * result.n_stacks));
+    const size_t n_batch_blks = GetNBatchBlks<N_BATCH_LOOPS>(params);
 
     // guard not to grab too much system memory
     if(n_batch_blks < 1 ||
@@ -289,7 +347,7 @@ bool PerformanceConfigConvOclBwdWrw2::IsValid(const ConvolutionContext& params) 
             : params.kernel_size_w / 2;
 
     {
-        size_t n_lcl_batchs   = result.n_stacks;
+        size_t n_lcl_batchs   = N_STACKS;
         size_t n_lcl_in_maps  = result.n_in_data_tiles;
         size_t n_lcl_out_maps = n_out_channels_tiles;
 
@@ -351,9 +409,9 @@ bool PerformanceConfigConvOclBwdWrw2::IsValid(const ConvolutionContext& params) 
     {
         size_t data_len =
             (params.out_data_type == "FP16" ? 2 : params.out_data_type == "FP32" ? 4 : 8);
-        result.workspce_sz =
-            static_cast<std::size_t>(wei_bstride) * static_cast<std::size_t>(params.n_inputs) *
-            static_cast<std::size_t>(n_batch_blks) * static_cast<std::size_t>(data_len);
+        result.workspce_sz = static_cast<std::size_t>(wei_bstride) *
+                             static_cast<std::size_t>(params.n_inputs) * n_batch_blks *
+                             static_cast<std::size_t>(data_len);
 
 #if WORKAROUND_ISSUE_1185
         if(result.workspce_sz >
@@ -367,12 +425,12 @@ bool PerformanceConfigConvOclBwdWrw2::IsValid(const ConvolutionContext& params) 
     return true;
 }
 
-void PerformanceConfigConvOclBwdWrw2::EuristicInit(const ConvolutionContext& params)
+template <int N_BATCH_LOOPS>
+void PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::EuristicInit(const ConvolutionContext& params)
 {
-    n_batch_loops                      = 1;
-    n_waves                            = 1;
-    read_size                          = 6;
-    size_t n_output_channels_per_group = params.n_inputs / params.group_counts;
+    n_waves                                = 1;
+    read_size                              = 6;
+    const auto n_output_channels_per_group = params.n_inputs / params.group_counts;
     if(n_output_channels_per_group % 4 == 0)
         n_out_channels_per_tile = 4;
     else if(n_output_channels_per_group % 3 == 0)
@@ -385,22 +443,26 @@ void PerformanceConfigConvOclBwdWrw2::EuristicInit(const ConvolutionContext& par
     n_out_rows_in_lcl           = params.kernel_size_h;
 }
 
-std::string PerformanceConfigConvOclBwdWrw2::ToString() const
+template <int N_BATCH_LOOPS>
+std::string PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::ToString() const
 {
     std::ostringstream ss;
-    Serialize(ss);
+    ss << (*this);
     return ss.str();
 }
 
-bool ConvOclBwdWrW2::IsValidPerformanceConfig(
-    const ConvolutionContext& params, const PerformanceConfigConvOclBwdWrw2& perfConfig) const
+template <int N_BATCH_LOOPS>
+bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsValidPerformanceConfig(
+    const ConvolutionContext& params,
+    const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& perfConfig) const
 {
     return perfConfig.IsValidValue() && perfConfig.IsValid(params);
 }
 
-bool ConvOclBwdWrW2::IsApplicableBase(const ConvolutionContext& params) const
+template <int N_BATCH_LOOPS>
+bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& params) const
 {
-    return (params.kernel_dilation_w == 1 && params.kernel_dilation_h == 1) &&
+    return params.kernel_dilation_w == 1 && params.kernel_dilation_h == 1 &&
 #if 0
            // There is a stronger restriction than this one, which make this one unnecessary.
            // The kernel read stripes (in height direction, one stripe at a time) of input into LDS,
@@ -409,50 +471,42 @@ bool ConvOclBwdWrW2::IsApplicableBase(const ConvolutionContext& params) const
            // previous read, (MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_FILTER_STRIDE1) of it is fresh read
            // from device memory. So (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1) need no less than 0.
            // TODO: chao: revisit this if failure is encountered.
-           (params.kernel_size_h - params.kernel_stride_h >= 0) &&
+           params.kernel_size_h - params.kernel_stride_h >= 0 &&
 #endif
 
            // The first scan of stripe of the input into LDS will read a strip of height
            // (kernel_size_h - kernel_stride_h), this stripe should include the whole lower bound
            // padding, as well as some or none of the input.
-           (params.kernel_size_h - params.kernel_stride_h >= params.pad_h) &&
-
-           // Avoid LDS over-allocation
+           params.kernel_size_h - params.kernel_stride_h >= params.pad_h &&
+           params.batch_sz >= N_BATCH_LOOPS &&
+           /// Avoid LDS & Workspace over-allocation.
+           /// \note Required LDS depends on PerformanceConfig.
+           /// We use the default PerformanceConfig here. This guarantees that at least
+           /// one config will pass the LDS constraint check during auto-tuning.
+           /// This works also for non-tunable solver.
            IsValidPerformanceConfig(params, GetPerformanceConfig(params));
 }
 
-bool ConvOclBwdWrW2::IsApplicable(const ConvolutionContext& params) const
+template <int N_BATCH_LOOPS>
+bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ConvolutionContext& params) const
 {
-    bool ok =
-        !(params.group_counts == 1 && params.kernel_size_w == 3 && params.kernel_size_h == 3) &&
-        !(params.group_counts == 1 && params.kernel_size_w == 1 && params.kernel_size_h == 1) &&
-        IsApplicableBase(params);
-
-    MIOPEN_LOG_I("ConvOclBwdWrW2::IsApplicable " << ok);
-    return ok;
+    return IsTunable(params) && IsApplicableBase(params);
 }
 
-PerformanceConfigConvOclBwdWrw2
-ConvOclBwdWrW2::GetPerformanceConfig(const ConvolutionContext& params) const
+template <int N_BATCH_LOOPS>
+PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
+ConvOclBwdWrW2<N_BATCH_LOOPS>::GetPerformanceConfig(const ConvolutionContext& params) const
 {
-    PerformanceConfigConvOclBwdWrw2 pp;
+    PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS> pp;
     pp.EuristicInit(params);
     return pp;
 }
 
-size_t ConvOclBwdWrW2::GetMaxWorkspaceSize(const ConvolutionContext& params) const
-{
-    size_t wei_cstride = params.kernel_size_w * params.kernel_size_h;
-    size_t wei_bstride = (params.n_outputs / params.group_counts) * wei_cstride;
-    size_t data_len = (params.out_data_type == "FP16" ? 2 : params.out_data_type == "FP32" ? 4 : 8);
-    size_t n_batch_blks = params.batch_sz;
-
-    return wei_bstride * params.n_inputs * n_batch_blks * data_len;
-}
-
-ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params,
-                                         const PerformanceConfigConvOclBwdWrw2& config,
-                                         bool) const
+template <int N_BATCH_LOOPS>
+ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
+    const ConvolutionContext& params,
+    const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config,
+    bool) const
 {
     ConvSolution result;
     const auto hw_wave_size   = 64;
@@ -463,12 +517,9 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params,
     const auto wei_cstride                 = params.kernel_size_w * params.kernel_size_h;
     const auto wei_bstride                 = n_input_channels_per_group * wei_cstride;
 
-    result.n_stacks        = 1;
-    result.n_in_data_tiles = 1;
-
-    size_t n_batch_blks =
-        std::ceil(static_cast<float>(params.batch_sz) / (config.n_batch_loops * result.n_stacks));
-    size_t total_out_maps = config.n_out_channels_per_tile * config.n_out_channels_tiles;
+    result.n_in_data_tiles    = 1;
+    const size_t n_batch_blks = GetNBatchBlks<N_BATCH_LOOPS>(params);
+    size_t total_out_maps     = config.n_out_channels_per_tile * config.n_out_channels_tiles;
     size_t wei_per_wkitem =
         (params.kernel_size_w <= 7 || (((params.kernel_size_w / 2) * 2) != params.kernel_size_w))
             ? params.kernel_size_w
@@ -552,7 +603,7 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params,
         std::to_string(params.n_inputs) + std::string(" -DMLO_N_INPUTS=") +
         std::to_string(params.n_outputs) + std::string(" -DMLO_BATCH_SZ=") +
         std::to_string(params.batch_sz) + std::string(" -DMLO_N_BATCH_LOOPS=") +
-        std::to_string(config.n_batch_loops) + std::string(" -DMLO_N_BATCH_BLKS=") +
+        std::to_string(N_BATCH_LOOPS) + std::string(" -DMLO_N_BATCH_BLKS=") +
         std::to_string(n_batch_blks) + std::string(" -DMLO_OUT_BATCH_STRIDE=") +
         std::to_string((params.in_batch_stride)) + std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
         std::to_string((params.in_channel_stride)) + std::string(" -DMLO_OUT_STRIDE=") +
@@ -651,43 +702,33 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params,
         result.workspce_sz =
             static_cast<std::size_t>(wei_bstride) * static_cast<std::size_t>(params.n_inputs) *
             static_cast<std::size_t>(n_batch_blks) * static_cast<std::size_t>(data_len);
-
-#if WORKAROUND_ISSUE_1185
-        if(result.workspce_sz >
-           (std::size_t(6) * std::size_t(1024) * std::size_t(1024) * std::size_t(1024)))
-        {
-            MIOPEN_LOG_I2("ConvOclBwdWrW2: limiting allocation of a single workspace to 6GB, need "
-                          << result.workspce_sz
-                          << " byte");
-            return ConvSolution(miopenStatusNotInitialized);
-        }
-#endif
     }
 
     return result;
 }
 
-int ConvOclBwdWrW2::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                          Data_t bot_ocl_buf,
-                                          Data_t top_ocl_buf,
-                                          Data_t wei_ocl_buf,
-                                          Data_t bias_ocl_buf,
-                                          const ConvolutionContext&,
-                                          const ConvSolution& solution,
-                                          float& elapsed_time) const
+template <int N_BATCH_LOOPS>
+template <typename Tgpu>
+int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolutionImpl(miopen::Handle& profile_h,
+                                                             Data_t bot_ocl_buf,
+                                                             Data_t top_ocl_buf,
+                                                             Data_t wei_ocl_buf,
+                                                             Data_t bias_ocl_buf,
+                                                             const ConvolutionContext&,
+                                                             const ConvSolution& solution,
+                                                             float& elapsed_time) const
 {
     assert(bias_ocl_buf == nullptr);
     (void)bias_ocl_buf;
-
-    assert(bot_ocl_buf != nullptr);
-    assert(top_ocl_buf != nullptr);
-    assert(wei_ocl_buf != nullptr);
-//    assert(workspace_ocl_buf != nullptr);
 
 #ifdef NDEBUG
     try
 #endif
     {
+        /// \note This is used during auto-tune process.
+        /// The performance of the 2nd kernel does not depend on the PerformanceConfig
+        /// (provided that n_batch_loops is constant), and thus considered constant
+        /// for all available Solutions. Therefore we do not need to benchmark the 2nd kernel here.
         elapsed_time = std::numeric_limits<float>::max();
 
         KernelInfo k_info = solution.construction_params[0];
@@ -701,32 +742,8 @@ int ConvOclBwdWrW2::RunAndMeasureSolution(miopen::Handle& profile_h,
                                           k_info.g_wk,
                                           k_info.comp_options);
 
-        float padding_val = 0;
-        if(solution.workspce_sz != 0)
-        {
-            kernel(bot_ocl_buf, top_ocl_buf, wei_ocl_buf, padding_val);
-        }
-        else
-        {
-            kernel(bot_ocl_buf, top_ocl_buf, wei_ocl_buf, padding_val);
-        }
-
-        if(solution.workspce_sz != 0)
-        {
-            float time0 = profile_h.GetKernelTime();
-            k_info      = solution.construction_params[1];
-            kernel      = profile_h.AddKernel("",
-                                         "",
-                                         k_info.kernel_file,
-                                         k_info.kernel_name,
-                                         k_info.l_wk,
-                                         k_info.g_wk,
-                                         k_info.comp_options);
-            kernel(wei_ocl_buf, bot_ocl_buf);
-
-            profile_h.AccumKernelTime(time0);
-        }
-
+        Tgpu padding_val = static_cast<Tgpu>(0);
+        kernel(bot_ocl_buf, top_ocl_buf, wei_ocl_buf, padding_val);
         elapsed_time = profile_h.GetKernelTime();
     }
 #ifdef NDEBUG
@@ -738,10 +755,58 @@ int ConvOclBwdWrW2::RunAndMeasureSolution(miopen::Handle& profile_h,
     return 0;
 }
 
-PerformanceConfigConvOclBwdWrw2 ConvOclBwdWrW2::Search(const ConvolutionContext& context) const
+template <int N_BATCH_LOOPS>
+int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolution(miopen::Handle& profile_h,
+                                                         Data_t bot_ocl_buf,
+                                                         Data_t top_ocl_buf,
+                                                         Data_t wei_ocl_buf,
+                                                         Data_t bias_ocl_buf,
+                                                         const ConvolutionContext& context,
+                                                         const ConvSolution& solution,
+                                                         float& elapsed_time) const
 {
-    return GenericSearch(*this, context, SearchTweak::OverrideWeightBufferSizeByWorkspaceSize);
+    if(context.float_size == 16)
+        return RunAndMeasureSolutionImpl<half_float::half>(profile_h,
+                                                           bot_ocl_buf,
+                                                           top_ocl_buf,
+                                                           wei_ocl_buf,
+                                                           bias_ocl_buf,
+                                                           context,
+                                                           solution,
+                                                           elapsed_time);
+    else if(context.float_size == 32)
+        return RunAndMeasureSolutionImpl<float>(profile_h,
+                                                bot_ocl_buf,
+                                                top_ocl_buf,
+                                                wei_ocl_buf,
+                                                bias_ocl_buf,
+                                                context,
+                                                solution,
+                                                elapsed_time);
+    else
+    {
+        MIOPEN_THROW("Unsupported float_size");
+    }
 }
+
+template <int N_BATCH_LOOPS>
+PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
+ConvOclBwdWrW2<N_BATCH_LOOPS>::Search(const ConvolutionContext& context) const
+{
+    if(GetNBatchBlks<N_BATCH_LOOPS>(context) > 1)
+        return GenericSearch(*this, context, SearchTweak::OverrideWeightBufferSizeByWorkspaceSize);
+    else
+        return GenericSearch(*this, context);
+}
+
+/// We need to instantiate required classes implicitly.
+/// The reason is that we do not define the whole template class
+/// in the header, only declaring it there.
+template struct ConvOclBwdWrW2<1>;
+template struct ConvOclBwdWrW2<2>;
+template struct ConvOclBwdWrW2<4>;
+template struct ConvOclBwdWrW2<8>;
+template struct ConvOclBwdWrW2<16>;
 
 } // namespace solver
 } // namespace miopen
