@@ -386,8 +386,6 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
          && n_c_h_w < std::pow(2, 29)
          && n_k_h_w < std::pow(2, 29)
          && c_k_r_s < std::pow(2, 29);               // clang-format on
-
-    MIOPEN_LOG_I("ConvAsmBwdWrW3x3::IsApplicable " << ok);
     return ok;
 }
 
@@ -494,7 +492,6 @@ int ConvAsmBwdWrW3x3::RunAndMeasureSolution(miopen::Handle& profile_h,
 {
     assert(bias_ocl_buf == nullptr);
     (void)bias_ocl_buf;
-
     const KernelInfo k_info = solution.construction_params.back();
 #ifdef NDEBUG
     try

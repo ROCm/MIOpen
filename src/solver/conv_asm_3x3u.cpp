@@ -284,7 +284,6 @@ int ConvAsm3x3U::RunAndMeasureSolution(miopen::Handle& profile_h,
 {
     assert(bias_ocl_buf == nullptr);
     (void)bias_ocl_buf;
-
     const KernelInfo k_info = solution.construction_params.back();
 #ifdef NDEBUG
     try

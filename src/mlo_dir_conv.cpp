@@ -113,8 +113,12 @@ std::vector<miopen::solver::ConvSolution> mlo_construct_BwdWrW2D::FindAllSolutio
     return miopen::solver::SearchForAllSolutions<
         miopen::solver::ConvAsmBwdWrW1x1,
         miopen::solver::ConvAsmBwdWrW3x3,
-        miopen::solver::ConvOclBwdWrW2,
-        miopen::solver::ConvOclBwdWrW23NonTunableFilters,
+        miopen::solver::ConvOclBwdWrW2<1>,
+        miopen::solver::ConvOclBwdWrW2<2>,
+        miopen::solver::ConvOclBwdWrW2<4>,
+        miopen::solver::ConvOclBwdWrW2<8>,
+        miopen::solver::ConvOclBwdWrW2<16>,
+        miopen::solver::ConvOclBwdWrW2NonTunable,
         miopen::solver::ConvOclBwdWrW53,
         miopen::solver::ConvOclBwdWrW1x1
     >(_search_params, this->GetDb());
