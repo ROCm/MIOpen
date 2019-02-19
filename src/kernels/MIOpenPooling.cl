@@ -67,10 +67,10 @@
 #endif
 // max
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-#define MLO_POOLING_OP(A, B) fmax(A, B);
+#define MLO_POOLING_OP(A, B) (fmax((A), (B)))
 #elif(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || \
     (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
-#define MLO_POOLING_OP(A, B) (A + B);
+#define MLO_POOLING_OP(A, B) ((A) + (B))
 #endif
 
 /*********************************************************************************
