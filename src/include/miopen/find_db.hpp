@@ -62,7 +62,8 @@ class FindDb
 
         for(const auto& pair : find_db.record->As<FindDbData>())
             // cppcheck-suppress useStlAlgorithm
-            ret.push_back({pair.first, pair.second.time, pair.second.workspace});
+            ret.push_back(
+                {pair.first, pair.second.solver_id, pair.second.time, pair.second.workspace});
 
         return ret;
     }
@@ -107,7 +108,8 @@ class FindDb
         for(const auto& pair : record->As<FindDbData>())
         {
             any = true;
-            to.push_back({pair.first, pair.second.time, pair.second.workspace});
+            to.push_back(
+                {pair.first, pair.second.solver_id, pair.second.time, pair.second.workspace});
 
             if(loaded && (pair.second.kchache_key == FindDbData::GetUnusedKCacheKey() ||
                           !handle.HasKernel(pair.first, pair.second.kchache_key)))
