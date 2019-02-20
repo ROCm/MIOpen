@@ -852,6 +852,10 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         perfResults[i].time   = perf_db[i].time;
         perfResults[i].memory = perf_db[i].workspace;
     }
+
+    MIOPEN_LOG_I("FW Chosen Algorithm: " << perf_db[0].solver_id << " , " << perf_db[0].workspace
+                                         << ", "
+                                         << perf_db[0].time);
 }
 
 void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
@@ -1550,7 +1554,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                         N, C, H, W, K, n_groups, flags, reserved, dy, w, tmp_dx.get(), return_addr);
                 }
                 time_wino = handle.GetKernelTime();
-                perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoWinograd", time_wino, 0});
+                perf_db.push_back(
+                    PerfField{"miopenConvolutionBwdDataAlgoWinograd", solver, time_wino, 0});
             }
 
             // Direct algo
@@ -1596,7 +1601,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 AddKernels(handle, algorithm_name, network_config, selected, nullptr);
                 MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
                                           << selected.workspce_sz);
-                perf_db.push_back(PerfField{algorithm_name, best, selected.workspce_sz});
+                perf_db.push_back(
+                    PerfField{algorithm_name, selected.solver_id, best, selected.workspce_sz});
             }
         }
         if(GetConvDilations()[0] == 1 && GetConvDilations()[1] == 1 && group_count < 2)
@@ -1619,8 +1625,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                                          workSpace,
                                                          workSpaceSize,
                                                          true);
-                    perf_db.push_back(
-                        PerfField{"miopenConvolutionBwdDataAlgoFFT", time_fft, workspace_fft});
+                    perf_db.push_back(PerfField{
+                        "miopenConvolutionBwdDataAlgoFFT", "FFT", time_fft, workspace_fft});
                 }
             }
         }
@@ -1709,6 +1715,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 if(gemm_status == miopenStatusSuccess)
                     perf_db.push_back(
                         PerfField{"miopenConvolutionBwdDataAlgoGEMM",
+                                  "GEMM",
                                   time_gemm,
                                   BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc)});
             }
@@ -1747,7 +1754,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     time_gemm *= in_n;
 
                 if(gemm_status == miopenStatusSuccess)
-                    perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoGEMM", time_gemm, 0});
+                    perf_db.push_back(
+                        PerfField{"miopenConvolutionBwdDataAlgoGEMM", "GEMM", time_gemm, 0});
             }
             // if not 1x1
             else if(workSpace != nullptr &&
@@ -1810,6 +1818,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 if(gemm_status == miopenStatusSuccess)
                     perf_db.push_back(
                         PerfField{"miopenConvolutionBwdDataAlgoGEMM",
+                                  "GEMM",
                                   time_gemm,
                                   BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc)});
             }
@@ -1837,6 +1846,10 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         perfResults[i].time   = perf_db[i].time;
         perfResults[i].memory = perf_db[i].workspace;
     }
+
+    MIOPEN_LOG_I("BWD Chosen Algorithm: " << perf_db[0].solver_id << " , " << perf_db[0].workspace
+                                          << ", "
+                                          << perf_db[0].time);
 }
 
 // BackwardDataAlgorithm()
@@ -2489,8 +2502,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 time_gemm = in_n * (time_im2col + handle.GetKernelTime());
 
                 if(gemm_status == miopenStatusSuccess)
-                    perf_db.push_back(
-                        PerfField{"miopenConvolutionBwdWeightsAlgoGEMM", time_gemm, workspace_req});
+                    perf_db.push_back(PerfField{
+                        "miopenConvolutionBwdWeightsAlgoGEMM", "GEMM", time_gemm, workspace_req});
             }
             // 1x1 does not require im2col or workspace
             else if(wei_h == 1 && wei_w == 1 && GetConvPads()[0] == 0 && GetConvPads()[1] == 0 &&
@@ -2531,7 +2544,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
                 if(gemm_status == miopenStatusSuccess)
                     perf_db.push_back(
-                        PerfField{"miopenConvolutionBwdWeightsAlgoGEMM", time_gemm, 0});
+                        PerfField{"miopenConvolutionBwdWeightsAlgoGEMM", "GEMM", time_gemm, 0});
             }
         }
 #endif
@@ -2568,9 +2581,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                                   workSpaceSize,
                                                                   as_float(0.0f));
                         MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
-                                         << best
-                                         << ", workspce_sz = "
-                                         << sol.workspce_sz);
+                                         << best);
                         if(elapsed < best)
                         {
                             best     = elapsed;
@@ -2583,7 +2594,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     AddKernels(handle, algorithm_name, network_config, selected, nullptr);
                     MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
                                               << selected.workspce_sz);
-                    perf_db.push_back(PerfField{algorithm_name, best, selected.workspce_sz});
+                    perf_db.push_back(
+                        PerfField{algorithm_name, selected.solver_id, best, selected.workspce_sz});
                 }
             }
         }
@@ -2606,6 +2618,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         perfResults[i].time   = perf_db[i].time;
         perfResults[i].memory = perf_db[i].workspace;
     }
+    MIOPEN_LOG_I("BWrW Chosen Algorithm: " << perf_db[0].solver_id << " , " << perf_db[0].workspace
+                                           << ", "
+                                           << perf_db[0].time);
 }
 
 // BackwardWeightsAlgorithm()
