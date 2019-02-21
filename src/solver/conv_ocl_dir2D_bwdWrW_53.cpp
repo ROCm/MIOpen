@@ -30,38 +30,50 @@
 namespace miopen {
 namespace solver {
 
-// Workaround for issue 1173. These FP16 configs would cause clang-ocl compiler to crash
-// during kernel compilation, due to compiler bug
-#define WORKAROUND_ISSUE_1173 1
-
-// Workaround for issue 1242. These FP32 configs produce wrong result if compiled with
-// OpenCL 1.2.0-2018090737 that comes with rocm 1.9, using -O2 flag or higher.
-// However, when compiled with older OpenCL that comes with rocm 1.8, this config
-// would pass
-#define WORKAROUND_ISSUE_1242 1
+// Once the compiler fix (SWDEV-168168) is available, that version of compiler needs to be
+// checked to skip workarounds. Till then, true is returned in all cases so as to skip
+// problematic configs.
+static bool WorkaroundSwdev168168() { return true; }
 
 bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 {
     bool workaround = false;
 
-#if WORKAROUND_ISSUE_1173
-    workaround =
-        workaround ||
-        (params.out_data_type == "FP16" &&
-         ((params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 3) ||
-          (params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 2) ||
-          (params.kernel_size_w == 11 && params.kernel_size_h == 11 && params.pad_w == 5) ||
-          (params.kernel_size_w == 11 && params.kernel_size_h == 11 && params.pad_w == 2) ||
-          (params.kernel_size_w == 11 && params.kernel_size_h == 11 && params.pad_w == 1)));
-#endif
+    if(WorkaroundSwdev168168())
+    {
+        // Workaround for issue 1173. These FP16 configs would cause clang-ocl compiler to crash
+        // during kernel compilation, due to compiler bug
+        workaround =
+            workaround ||
+            (params.out_data_type == "FP16" &&
+             ((params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 3) ||
+              (params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 2) ||
+              (params.kernel_size_w == 11 && params.kernel_size_h == 11 && params.pad_w == 5) ||
+              (params.kernel_size_w == 11 && params.kernel_size_h == 11 && params.pad_w == 2) ||
+              (params.kernel_size_w == 11 && params.kernel_size_h == 11 && params.pad_w == 1)));
 
-#if WORKAROUND_ISSUE_1242
-    workaround = workaround ||
-                 (params.out_data_type == "FP32" &&
-                  ((params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 3) ||
-                   (params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 1)) &&
-                  (params.out_height % 112 == 0 || params.out_width % 112 == 0));
-#endif
+        // Workaround for issue 1242. These FP32 configs produce wrong result if compiled with
+        // OpenCL 1.2.0-2018090737 that comes with rocm 1.9, using -O2 flag or higher.
+        // However, when compiled with older OpenCL that comes with rocm 1.8, this config
+        // would pass
+        workaround =
+            workaround ||
+            (params.out_data_type == "FP32" &&
+             ((params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 3) ||
+              (params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 1)) &&
+             (params.out_height % 112 == 0 || params.out_width % 112 == 0));
+
+        // Workaround for issue 1479
+        // The compiler issue causes the correctness failure of particular config
+        // --input 1, 64, n, 1024 --weights 1, 64, 3, 3 -filter 2 2 1 1 1 1 --group-count 1
+        // Disabling compiler optimization i.e. #pragma unroll in MIOpenConvBwdWrW_LxG_P53.cl
+        // restores the correctness. Until, the compiler issue is fixed, all configs with width 1024
+        // is skipped
+        workaround = workaround || (params.out_data_type == "FP32" && params.kernel_size_w == 3 &&
+                                    params.kernel_size_h == 3 && params.pad_h == 2 &&
+                                    params.pad_w == 2 && params.out_width == 1024);
+    }
+
     return (params.kernel_dilation_w == 1 && params.kernel_dilation_h == 1) &&
            (params.kernel_stride_w == 1 && params.kernel_stride_h == 1) &&
 
@@ -85,7 +97,7 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 
            // Avoid LDS over-allocation
            GetSolution(params).Succeeded() &&
-           // workaround
+
            !workaround;
 }
 
