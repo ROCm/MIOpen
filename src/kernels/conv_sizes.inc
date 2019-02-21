@@ -29,12 +29,12 @@ nbytes = 4 / vec_size
 weights_per_filter = wei_w * wei_h
 .if weights_layout == 0 // KCHW
 	.set filter_c_stride, nbytes * weights_per_filter
-	.set filter_k_stride, nbytes * weights_per_filter * input_channels
+	.set filter_k_stride, nbytes * weights_per_filter * input_channels / group_counts
 .else // CKHW
-	.set filter_c_stride, nbytes * weights_per_filter * output_channels
+	.set filter_c_stride, nbytes * weights_per_filter * output_channels / group_counts
 	.set filter_k_stride, nbytes * weights_per_filter
 .endif
-filters_size = nbytes * weights_per_filter * input_channels * output_channels
+filters_size = nbytes * weights_per_filter * input_channels * output_channels / group_counts
 
 // input/output
 img_hw = img_h * img_w
