@@ -306,10 +306,10 @@ void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config
     const int elements_in_dword = 4 / GetTypeSize(config.in_data_type);
     read_size                   = 4;
     k_mult                      = 16;
-    chunks_per_wave             = 1;
+    chunks_per_wave             = read_size * elements_in_dword;
     chunk_size                  = 16;
-    n_mult                      = 1;
-    c_mult                      = 1;
+    n_mult                      = 2;
+    c_mult                      = elements_in_dword;
     waves_c_in_group            = 1;
     waves_k_in_group            = 1;
 
@@ -317,33 +317,26 @@ void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config
     {
         MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
         read_size  = 1;
-        k_mult     = 1;
+        k_mult     = 4;
         chunk_size = 1;
+        n_mult     = 1;
     }
     if(!IsValid(config))
     {
         MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
-        k_mult = 2;
+        k_mult = (elements_in_dword == 1) ? 1 : 4;
         c_mult = 2;
     }
     if(!IsValid(config))
     {
         MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
-        k_mult          = 1;
         chunks_per_wave = 2;
-        c_mult          = 1;
+        c_mult          = elements_in_dword;
     }
     if(!IsValid(config))
     {
         MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
-        read_size        = 1;
-        k_mult           = (elements_in_dword == 1) ? 1 : 4;
-        chunks_per_wave  = elements_in_dword;
-        chunk_size       = 1;
-        n_mult           = 1;
-        c_mult           = elements_in_dword;
-        waves_c_in_group = 1;
-        waves_k_in_group = 1;
+        chunks_per_wave = elements_in_dword;
     }
     if(!IsValid(config))
     {
