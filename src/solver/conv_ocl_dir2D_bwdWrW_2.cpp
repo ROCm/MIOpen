@@ -135,6 +135,9 @@ static bool IsTunable(const ConvolutionContext& params)
 
 bool ConvOclBwdWrW2NonTunable::IsApplicable(const ConvolutionContext& params) const
 {
+    if(!(params.IsFp32() || params.IsFp16()))
+        return false;
+
     // At present, auto-tuning is disabled for non-group 3x3 and 1x1 filters for multiple
     // reasons: after tuning ocl kernel for 3x3 and 1x1 filters, assembly kernel still
     // dominates.
@@ -331,7 +334,7 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionCo
 
         // Chao: attempt to reduce LDS bank conflict during reading input image from LDS
         // Revisit this if performance regress
-        if(params.out_data_type == "FP32")
+        if(params.out_data_type == miopenFloat)
         {
             in_lcl_width = (in_lcl_width / 2) * 2 + 1;
         }
@@ -394,9 +397,8 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionCo
         size_t total_out_lcl_sz =
             (n_out_rows_in_lcl * out_horiz_pix_ext_sz) * n_lcl_batchs * n_lcl_out_maps;
 
-        size_t total_lcl_mem_sz =
-            std::max(total_in_lcl_sz + total_out_lcl_sz, total_wei_lcl_sz) *
-            ((params.out_data_type == "FP32" ? 4 : (params.out_data_type == "FP16" ? 2 : 8)));
+        size_t total_lcl_mem_sz = std::max(total_in_lcl_sz + total_out_lcl_sz, total_wei_lcl_sz) *
+                                  GetTypeSize(params.out_data_type);
 
         const auto lds_size = 64 * 1024; // TBD Obtain this from handle.
         if(total_lcl_mem_sz > lds_size)
@@ -407,8 +409,7 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionCo
 
     if(n_batch_blks > 1)
     {
-        size_t data_len =
-            (params.out_data_type == "FP16" ? 2 : params.out_data_type == "FP32" ? 4 : 8);
+        size_t data_len    = GetTypeSize(params.out_data_type);
         result.workspce_sz = static_cast<std::size_t>(wei_bstride) *
                              static_cast<std::size_t>(params.n_inputs) * n_batch_blks *
                              static_cast<std::size_t>(data_len);
@@ -490,6 +491,9 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& p
 template <int N_BATCH_LOOPS>
 bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ConvolutionContext& params) const
 {
+    if(!params.IsFp32() && !params.IsFp16())
+        return false;
+
     return IsTunable(params) && IsApplicableBase(params);
 }
 
@@ -561,7 +565,7 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
 
         // Chao: attempt to reduce LDS bank conflict during reading input image from LDS
         // Revisit this if performance regress
-        if(params.out_data_type == "FP32")
+        if(params.out_data_type == miopenFloat)
         {
             in_lcl_width = (in_lcl_width / 2) * 2 + 1;
         }
@@ -697,8 +701,7 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
         kernel.g_wk.push_back(1);
         result.construction_params.push_back(kernel);
 
-        int data_len =
-            (params.out_data_type == "FP16" ? 2 : params.out_data_type == "FP32" ? 4 : 8);
+        int data_len = GetTypeSize(params.out_data_type);
         result.workspce_sz =
             static_cast<std::size_t>(wei_bstride) * static_cast<std::size_t>(params.n_inputs) *
             static_cast<std::size_t>(n_batch_blks) * static_cast<std::size_t>(data_len);
@@ -765,7 +768,7 @@ int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolution(miopen::Handle& profile
                                                          const ConvSolution& solution,
                                                          float& elapsed_time) const
 {
-    if(context.float_size == 16)
+    if(context.IsFp16())
         return RunAndMeasureSolutionImpl<half_float::half>(profile_h,
                                                            bot_ocl_buf,
                                                            top_ocl_buf,
@@ -774,7 +777,7 @@ int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolution(miopen::Handle& profile
                                                            context,
                                                            solution,
                                                            elapsed_time);
-    else if(context.float_size == 32)
+    else if(context.IsFp32())
         return RunAndMeasureSolutionImpl<float>(profile_h,
                                                 bot_ocl_buf,
                                                 top_ocl_buf,

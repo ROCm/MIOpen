@@ -2,70 +2,78 @@
 
 #include <miopen/convolution.hpp>
 
-/***********************************************************************************************************
+#include <sstream>
 
- * Internal implementation of the direct conv configuration search
-
- ************************************************************************************************************/
-
-/*
-   the search db is a text file with the name defined by the device characteristics.
-   each line is a key/value pair, separated by a space:
-   32x16x16x3x3x64x16x16x100xNCHWxFP32x1 16.16.16.16.1.4.8.4.1
-   or
-   64x8x8x5x5x32x8x8x100xNCHWxFP32x0 16.16.8.8.2.4.1.1.4
-
-   key format (all values are separted by x):
-   n input maps
-   input height
-   input width
-   filter height
-   filter width
-   n output maps
-   output height
-   output width
-   batch size
-   tensors' layout
-   tensprs' data type
-   direction (1 - forward, 0 - backward)
-
-Note:
-for backward direction - input and output are reversed.
-
-value format (all values are separated by .):
-vertical group size
-horizontal group size
-input block vertical size
-input block horizontal size
-output tile vertical size
-output tile horizaontal size
-n of output tiles
-n of input blocks
-n batchs (stacks) processed by the group
-*/
+static std::string
+EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataType_t out)
+{
+    if(in == weights && in == out)
+        return miopen::GetDataTypeName(in);
+    return miopen::GetDataTypeName(in) + miopen::GetDataTypeName(weights) +
+           miopen::GetDataTypeName(out);
+}
 
 int miopen::ProblemDescription::mloBuildConf_Key(std::string& conf_key) const
 {
+    std::ostringstream ss;
 
-    conf_key = std::to_string(static_cast<long long>(n_inputs)) + std::string("x") +
-               std::to_string(static_cast<long long>(in_height)) + std::string("x") +
-               std::to_string(static_cast<long long>(in_width)) + std::string("x") +
-               std::to_string(static_cast<long long>(kernel_size_h)) + std::string("x") +
-               std::to_string(static_cast<long long>(kernel_size_w)) + std::string("x") +
-               std::to_string(static_cast<long long>(n_outputs)) + std::string("x") +
-               std::to_string(static_cast<long long>(out_height)) + std::string("x") +
-               std::to_string(static_cast<long long>(out_width)) + std::string("x") +
-               std::to_string(static_cast<long long>(batch_sz)) + std::string("x") + in_layout +
-               std::string("x") + in_data_type + std::string("x") +
-               std::to_string(static_cast<long long>(pad_h)) + std::string("x") +
-               std::to_string(static_cast<long long>(pad_w)) + std::string("x") +
-               std::to_string(static_cast<long long>(kernel_stride_h)) + std::string("x") +
-               std::to_string(static_cast<long long>(kernel_stride_w)) + std::string("x") +
-               std::to_string(static_cast<long long>(kernel_dilation_h)) + std::string("x") +
-               std::to_string(static_cast<long long>(kernel_dilation_w)) + std::string("x") +
-               std::to_string(static_cast<long long>(group_counts)) + std::string("x") +
-               (direction.IsForward() ? "1" : "0");
+    ss << n_inputs << 'x';
+    ss << in_height << 'x';
+    ss << in_width << 'x';
+    ss << kernel_size_h << 'x';
+    ss << kernel_size_w << 'x';
+    ss << n_outputs << 'x';
+    ss << out_height << 'x';
+    ss << out_width << 'x';
+    ss << batch_sz << 'x';
+    ss << in_layout << 'x';
+    ss << EncodeDataTypesForKey(in_data_type, weights_data_type, out_data_type) << 'x';
+    ss << pad_h << 'x';
+    ss << pad_w << 'x';
+    ss << kernel_stride_h << 'x';
+    ss << kernel_stride_w << 'x';
+    ss << kernel_dilation_h << 'x';
+    ss << kernel_dilation_w << 'x';
+    ss << group_counts << 'x';
+    ss << (direction.IsForward() ? "1" : "0");
+
+    conf_key = ss.str();
+
     return (0);
+}
+
+void miopen::ProblemDescription::Serialize(std::ostream& stream) const
+{
+    if(!direction.IsKnown())
+        MIOPEN_THROW("!direction.IsKnown()");
+    const auto sep = '-';
+    // clang-format off
+        // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NCHW-FP32-F
+        stream
+            << n_inputs << sep << in_height << sep << in_width
+            << sep << kernel_size_h << 'x' << kernel_size_w
+            << sep << n_outputs << sep << out_height << sep << out_width
+            << sep << batch_sz
+            << sep << pad_h << 'x' << pad_w
+            << sep << kernel_stride_h << 'x' << kernel_stride_w
+            << sep << kernel_dilation_h << 'x' << kernel_dilation_h
+            << sep << bias
+            << sep << in_layout
+            << sep << EncodeDataTypesForKey(in_data_type, weights_data_type, out_data_type)
+            << sep << (direction.IsForward() ? "F"
+                     : direction.IsBackwardData() ? "B" : "W"); // clang-format on
+    // New performance config entries shall come into variable/optional part of db key.
+    // This is to support backward compatibility with previous versions of databases.
+    std::ostringstream optional;
+    {
+        // Group count > 1 identifies Group/Depthwise modes.
+        if(group_counts != 1)
+            optional << 'g' << group_counts;
+    }
+    if(!optional.str().empty())
+    {
+        stream << '_' << optional.str();
+    }
 }
 
 miopen::ProblemDescription::ProblemDescription(const TensorDescriptor& in,

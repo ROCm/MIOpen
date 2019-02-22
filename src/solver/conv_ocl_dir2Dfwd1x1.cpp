@@ -33,6 +33,9 @@ namespace solver {
 
 bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
 {
+    if(!(params.IsFp32() || params.IsFp16()))
+        return false;
+
     return params.kernel_dilation_w == 1 && params.kernel_dilation_h == 1 &&
            params.kernel_size_w == 1 && params.kernel_size_h == 1 && params.group_counts == 1 &&
            // TODO: update 1x1 fwd kernel to support padding
@@ -51,7 +54,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
 
         if((params.direction.IsForward() && params.n_inputs % 16 == 0 &&
             params.n_outputs % 16 == 0) &&
-           (params.in_data_type == "FP32"))
+           (params.in_data_type == miopenFloat))
         {
 
             int N_LCL_IN_MAPS = result.n_in_data_tiles;

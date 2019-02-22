@@ -80,7 +80,7 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
         && (params.n_inputs * params.kernel_size_w * params.kernel_size_h) <= std::pow(2, 28)
         && (params.n_outputs * params.kernel_size_w * params.kernel_size_h) <= std::pow(2, 28)
         && params.n_inputs % 2 == 0 && params.n_inputs >= (device_is_gfx8 ? 16 : 18)
-        && params.float_size == 32
+        && params.IsFp32()
         && params.group_counts == 1
         && params.in_layout == "NCHW";
         /// \todo _n_inputs > 18 is a requirement of the v7 shader and NOT a dependency on gfx9

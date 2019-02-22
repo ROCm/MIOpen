@@ -81,7 +81,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
     {
 
         // version
-        if(params.in_data_type == "FP32" && params.direction.IsForward() &&
+        if(params.in_data_type == miopenFloat && params.direction.IsForward() &&
            params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
         {
             result.n_in_data_tiles = 128;
@@ -245,9 +245,9 @@ static int MeasurePerfConfig(Handle* profile_h,
 LegacyPerformanceConfig
 ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params) const
 {
-    if(params.float_size == 16)
+    if(params.IsFp16())
         return SearchImpl<half_float::half>(params);
-    else if(params.float_size == 32)
+    else if(params.IsFp32())
         return SearchImpl<float>(params);
     else
     {
@@ -377,7 +377,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
         report_inteval   = 5;
 
         // Add 1x1_stride : no padding support yet
-        if(params.in_data_type == "FP32" && params.direction.IsForward() &&
+        if(params.in_data_type == miopenFloat && params.direction.IsForward() &&
            params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
         {
 

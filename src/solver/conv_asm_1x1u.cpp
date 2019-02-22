@@ -250,7 +250,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidValue() const
 
 bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) const
 {
-    const int elements_in_dword = 32 / config.float_size;
+    const int elements_in_dword = 4 / GetTypeSize(config.in_data_type);
 
     if(!IsValidValue())
         return false;
@@ -303,7 +303,7 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
 
 void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config)
 {
-    const int elements_in_dword = (config.in_data_type == "FP16" ? 2 : 1);
+    const int elements_in_dword = 4 / GetTypeSize(config.in_data_type);
     read_size                   = 4;
     k_mult                      = 16;
     chunks_per_wave             = 1;
@@ -385,13 +385,17 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
+    if(!(params.IsFp32() || params.IsFp16()))
+    {
+        return false;
+    }
     const std::string name = params.GetStream().GetDeviceName();
     if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
     {
         return false;
     }
     assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
-    const int elements_in_dword = 32 / params.float_size;
+    const int elements_in_dword = 4 / GetTypeSize(params.in_data_type);
     // clang-format off
     const int img_hw = params.out_height * params.out_width;
     bool ok = (params.pad_w == 0         // -q  pad_w
@@ -475,7 +479,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     result.workspce_sz = 0;
 
     KernelInfo kernel;
-    int data_len = (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
+    int data_len = GetTypeSize(params.out_data_type);
     if(UseSubsample(params) || UseUpsample(params))
     {
         // subsampled input, in_height equals to image size after downsampling
@@ -489,7 +493,8 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         int n_grp0_size0 = 256;
 
         const auto subsample_kernel_compilation_options =
-            std::string(" -DDATA_TYPE=") + (params.in_data_type == "FP16" ? "ushort" : "float") +
+            std::string(" -DDATA_TYPE=") +
+            (params.in_data_type == miopenHalf ? "ushort" : "float") +
             std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
             std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
             std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(params.kernel_stride_w) +
@@ -526,8 +531,6 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 
         kernel.comp_options = subsample_kernel_compilation_options;
 
-        assert(params.out_data_type == "FP16" || params.out_data_type == "FP32" ||
-               params.out_data_type == "FP64");
         result.workspce_sz = in_batch_stride * params.batch_sz * data_len;
     }
 
