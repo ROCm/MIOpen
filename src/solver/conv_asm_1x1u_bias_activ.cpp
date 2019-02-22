@@ -339,7 +339,7 @@ bool ConvActivAsm1x1U::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_dilation_w == 1
         && params.kernel_dilation_h == 1
         && params.bias == 0
-        && params.float_size == 32
+        && params.IsFp32()
         && params.group_counts == 1
         && params.in_layout == "NCHW");
     if(!ok)
@@ -448,10 +448,7 @@ ConvSolution ConvActivAsm1x1U::GetSolution(const ConvolutionContext& params,
 
         kernel.comp_options = subsample_kernel_compilation_options;
 
-        assert(params.out_data_type == "FP16" || params.out_data_type == "FP32" ||
-               params.out_data_type == "FP64");
-        int data_len =
-            (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
+        int data_len       = GetTypeSize(params.out_data_type);
         result.workspce_sz = in_batch_stride * params.batch_sz * data_len;
     }
 

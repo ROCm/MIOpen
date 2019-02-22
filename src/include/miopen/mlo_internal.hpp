@@ -263,48 +263,6 @@ auto FindAllSolutions(T& x) -> decltype(x.FindAllSolutions())
     return x.FindAllSolutions();
 }
 
-/// \todo Move this into respective Solution objects. --atamazov
-struct mlo_construct_activ_lrn_pooling_common
-{
-    std::string _comp_options;
-    std::string _kernel_file;
-    std::string _kernel_name;
-    std::vector<size_t> _l_wk;
-    std::vector<size_t> _g_wk;
-
-    /*
-     * returns kernel file name without location
-     */
-    inline std::string getKernelFile() const { return (_kernel_file); }
-    /*
-     * retuns kerner/shader name
-     */
-    inline std::string getKernelName() const { return (_kernel_name); }
-    /*
-     * return set of compile options
-     */
-    inline const std::string& getCompilerOptions() const { return (_comp_options); }
-    /*
-     *  return a local working configuration
-     */
-    inline const std::vector<size_t>& getLocalWkSize() const { return (_l_wk); }
-    /*
-     * return a global working configuration
-     */
-    inline const std::vector<size_t>& getGlobalWkSize() const { return (_g_wk); }
-
-    int _grp_tile0      = 8; // total number ALUs per group
-    int _grp_tile1      = 8; // total number ALUs per group
-    int _out_pix_tile0  = 2; // # of generated pixels per output per wk-item  (ALU)
-    int _out_pix_tile1  = 4; // # of generated pixels per output per wk-item  (ALU)
-    size_t _workspce_sz = 0;
-
-    /*
-     * get workspace size
-     */
-    inline size_t getWorkSpaceSzBytes() const { return (_workspce_sz); }
-};
-
 struct mlo_construct_direct2D
 {
     mlo_construct_direct2D(int dir, bool do_bias = false)
@@ -447,7 +405,7 @@ struct mlo_construct_direct2D
      * set top tensor
      */
     void setTopDescr(const std::string& layout,
-                     const std::string& data_type,
+                     miopenDataType_t data_type,
                      int batch,
                      int depth,
                      int height,
@@ -474,7 +432,7 @@ struct mlo_construct_direct2D
      */
 
     void setBotDescr(const std::string& layout,
-                     const std::string& data_type,
+                     miopenDataType_t data_type,
                      int batch,
                      int depth,
                      int height,
@@ -499,7 +457,7 @@ struct mlo_construct_direct2D
      * set top df tensor
      */
     void setTopDfDescr(const std::string& layout,
-                       const std::string& data_type,
+                       miopenDataType_t data_type,
                        int batch,
                        int depth,
                        int height,
@@ -520,7 +478,7 @@ struct mlo_construct_direct2D
                                      stride,
                                      w_stride);
 
-        int data_len = (data_type == "FP16") ? 2 : (data_type == "FP32") ? 4 : 8;
+        int data_len = miopen::GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
@@ -532,7 +490,7 @@ struct mlo_construct_direct2D
         _out_df_stride         = stride;
         _top_df_sz             = size;
         _out_df_layout         = layout;
-        _out_df_data_type      = data_type;
+        _out_df_data_type      = miopen::GetDataTypeName(data_type);
     }
 
     /*
@@ -540,7 +498,7 @@ struct mlo_construct_direct2D
      */
 
     void setBotDfDescr(const std::string& layout,
-                       const std::string& data_type,
+                       miopenDataType_t data_type,
                        int batch,
                        int depth,
                        int height,
@@ -561,7 +519,7 @@ struct mlo_construct_direct2D
                                      stride,
                                      w_stride);
 
-        int data_len = (data_type == "FP16") ? 2 : (data_type == "FP32") ? 4 : 8;
+        int data_len = miopen::GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
@@ -573,7 +531,7 @@ struct mlo_construct_direct2D
         _in_df_stride         = stride;
         _bot_df_sz            = size;
         _in_df_layout         = layout;
-        _in_df_data_type      = data_type;
+        _in_df_data_type      = miopen::GetDataTypeName(data_type);
     }
 
     /*
@@ -737,9 +695,55 @@ struct mlo_construct_winograd : mlo_construct_direct2D
 #define MLO_POOLING_OP_STC 2
 #define MLO_POOLING_OP_AVE_INCLUSIVE 3
 
-struct mlo_construct_pooling2D : mlo_construct_direct2D, mlo_construct_activ_lrn_pooling_common
+/// \todo Move this into respective Solution objects. --atamazov
+struct mlo_construct_activ_lrn_pooling_common : mlo_construct_direct2D
 {
-    mlo_construct_pooling2D(int dir) : mlo_construct_direct2D(dir)
+    std::string _comp_options;
+    std::string _kernel_file;
+    std::string _kernel_name;
+    std::vector<size_t> _l_wk;
+    std::vector<size_t> _g_wk;
+
+    mlo_construct_activ_lrn_pooling_common(int dir) : mlo_construct_direct2D(dir) {}
+
+    /*
+     * returns kernel file name without location
+     */
+    inline std::string getKernelFile() const { return (_kernel_file); }
+    /*
+     * retuns kerner/shader name
+     */
+    inline std::string getKernelName() const { return (_kernel_name); }
+    /*
+     * return set of compile options
+     */
+    inline const std::string& getCompilerOptions() const { return (_comp_options); }
+    /*
+     *  return a local working configuration
+     */
+    inline const std::vector<size_t>& getLocalWkSize() const { return (_l_wk); }
+    /*
+     * return a global working configuration
+     */
+    inline const std::vector<size_t>& getGlobalWkSize() const { return (_g_wk); }
+
+    int _grp_tile0      = 8; // total number ALUs per group
+    int _grp_tile1      = 8; // total number ALUs per group
+    int _out_pix_tile0  = 2; // # of generated pixels per output per wk-item  (ALU)
+    int _out_pix_tile1  = 4; // # of generated pixels per output per wk-item  (ALU)
+    size_t _workspce_sz = 0;
+
+    /*
+     * get workspace size
+     */
+    inline size_t getWorkSpaceSzBytes() const { return (_workspce_sz); }
+
+    void setupFloats();
+};
+
+struct mlo_construct_pooling2D : mlo_construct_activ_lrn_pooling_common
+{
+    mlo_construct_pooling2D(int dir) : mlo_construct_activ_lrn_pooling_common(dir)
     {
         _pooling_method = MLO_POOLING_OP_MAX;
         _NAN_option     = 0;
@@ -795,9 +799,9 @@ struct mlo_construct_pooling2D : mlo_construct_direct2D, mlo_construct_activ_lrn
 #define MLO_LRN_WITHIN_CHANNEL 0
 #define MLO_LRN_ACROSS_CHANNELS 1
 
-struct mlo_construct_norm : mlo_construct_direct2D, mlo_construct_activ_lrn_pooling_common
+struct mlo_construct_norm : mlo_construct_activ_lrn_pooling_common
 {
-    mlo_construct_norm(int dir) : mlo_construct_direct2D(dir) {}
+    mlo_construct_norm(int dir) : mlo_construct_activ_lrn_pooling_common(dir) {}
 
     inline void setNormDescr(
         int norm_region, int norm_area, double normAlpha, double normBeta, double normK = 1.)
@@ -838,9 +842,9 @@ struct mlo_construct_norm : mlo_construct_direct2D, mlo_construct_activ_lrn_pool
     double _normK     = 0.0;
 };
 
-struct mlo_construct_neuron : mlo_construct_direct2D, mlo_construct_activ_lrn_pooling_common
+struct mlo_construct_neuron : mlo_construct_activ_lrn_pooling_common
 {
-    mlo_construct_neuron(int dir) : mlo_construct_direct2D(dir)
+    mlo_construct_neuron(int dir) : mlo_construct_activ_lrn_pooling_common(dir)
     {
         _neuron_type = 0;
         _gamma       = 0;

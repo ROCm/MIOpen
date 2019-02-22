@@ -317,7 +317,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
 
     if(!(c_per_gpr * n_per_gpr * GetHWPerGpr() * chunk_size == wave_size))
         return false;
-    if(config.out_data_type == "FP16")
+    if(config.out_data_type == miopenHalf)
     {
         if((short_store == 0) && ((c_mult % 2) != 0 || (config.n_inputs % 2) != 0))
             return false;
@@ -345,7 +345,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
 
 void PerformanceConfigConvAsmBwdWrW1x1::EuristicInit(const ConvolutionContext& config)
 {
-    short_store = (config.out_data_type == "FP16") ? 1 : 0;
+    short_store = (config.out_data_type == miopenHalf) ? 1 : 0;
     read_size   = 4;
     n_per_gpr =
         (config.batch_sz >= 4 && (AsmImgHeight(config) * AsmImgWidth(config)) <= 128) ? 4 : 1;
@@ -475,7 +475,7 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_dilation_w == 1
         && params.kernel_dilation_h == 1
         && params.bias == 0
-        && (params.float_size == 32 || params.float_size == 16) 
+        && (params.IsFp32() || params.IsFp16())
         && params.in_layout == "NCHW"
         && params.group_counts == 1);
     if(!ok)
@@ -521,7 +521,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 
     assert(params.pad_h == 0 && params.pad_w == 0);
     result.workspce_sz = 0;
-    int data_len = (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
+    int data_len       = GetTypeSize(params.out_data_type);
     if(UseSubsample(params))
     {
         // subsampled input, in_height equals to image size after downsampling
@@ -566,9 +566,6 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
         kernel.comp_options = subsample_kernel_compilation_options;
 
         result.construction_params.push_back(kernel);
-
-        assert(params.out_data_type == "FP16" || params.out_data_type == "FP32" ||
-               params.out_data_type == "FP64");
 
         result.workspce_sz = in_batch_stride * params.batch_sz * data_len;
     }

@@ -33,6 +33,9 @@ namespace solver {
 
 bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
+    if(!(params.IsFp32() || params.IsFp16()))
+        return false;
+
     bool result =
         (params.kernel_size_w == 1) && (params.kernel_size_h == 1) && params.group_counts == 1;
 

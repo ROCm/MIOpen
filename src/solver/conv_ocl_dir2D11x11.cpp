@@ -32,6 +32,9 @@ namespace solver {
 
 bool ConvOclDirectFwd11x11::IsApplicable(const ConvolutionContext& params) const
 {
+    if(!(params.IsFp32() || params.IsFp16()))
+        return false;
+
     return params.direction.IsForward() &&
            (params.kernel_stride_w > 1 || params.kernel_stride_h > 1) &&
            params.kernel_size_h == 11 && params.kernel_size_w == 11 &&

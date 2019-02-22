@@ -37,6 +37,9 @@ static bool WorkaroundSwdev168168() { return true; }
 
 bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 {
+    if(!(params.IsFp32() || params.IsFp16()))
+        return false;
+
     bool workaround = false;
 
     if(WorkaroundSwdev168168())
@@ -45,7 +48,7 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
         // during kernel compilation, due to compiler bug
         workaround =
             workaround ||
-            (params.out_data_type == "FP16" &&
+            (params.out_data_type == miopenHalf &&
              ((params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 3) ||
               (params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 2) ||
               (params.kernel_size_w == 11 && params.kernel_size_h == 11 && params.pad_w == 5) ||
@@ -58,7 +61,7 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
         // would pass
         workaround =
             workaround ||
-            (params.out_data_type == "FP32" &&
+            (params.out_data_type == miopenFloat &&
              ((params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 3) ||
               (params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 1)) &&
              (params.out_height % 112 == 0 || params.out_width % 112 == 0));
@@ -69,9 +72,9 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
         // Disabling compiler optimization i.e. #pragma unroll in MIOpenConvBwdWrW_LxG_P53.cl
         // restores the correctness. Until, the compiler issue is fixed, all configs with width 1024
         // is skipped
-        workaround = workaround || (params.out_data_type == "FP32" && params.kernel_size_w == 3 &&
-                                    params.kernel_size_h == 3 && params.pad_h == 2 &&
-                                    params.pad_w == 2 && params.out_width == 1024);
+        workaround = workaround ||
+                     (params.IsFp32() && params.kernel_size_w == 3 && params.kernel_size_h == 3 &&
+                      params.pad_h == 2 && params.pad_w == 2 && params.out_width == 1024);
     }
 
     return (params.kernel_dilation_w == 1 && params.kernel_dilation_h == 1) &&
@@ -96,9 +99,7 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
            (params.in_width == params.out_width + 2 * params.pad_w - params.kernel_size_w + 1) &&
 
            // Avoid LDS over-allocation
-           GetSolution(params).Succeeded() &&
-
-           !workaround;
+           GetSolution(params).Succeeded() && !workaround;
 }
 
 /*! @brief ComputeInputParams
@@ -131,7 +132,7 @@ static inline miopenStatus_t ComputeInputParams(
     const uint filter_adjustment = params.kernel_size_w - 1;
 
     const auto lds_size         = 64 * 1024; /// TBD Obtain this from device info.
-    const auto max_lds_elements = lds_size / (2 * (params.float_size / 8));
+    const auto max_lds_elements = lds_size / (2 * GetTypeSize(params.in_data_type));
 
     while(num_out_channels * out_n_vert_reads * (out_n_horizon_reads + filter_adjustment) >
           max_lds_elements)
@@ -543,8 +544,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         kernel.g_wk.push_back(1);
         kernel.g_wk.push_back(1);
 
-        int data_len =
-            (params.out_data_type == "FP32" ? 4 : (params.out_data_type == "FP16" ? 2 : 8));
+        int data_len = GetTypeSize(params.out_data_type);
 
         result.construction_params.push_back(kernel);
         result.workspce_sz = wei_bstride * params.n_inputs * n_batch_blks * data_len;
