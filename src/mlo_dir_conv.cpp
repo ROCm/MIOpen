@@ -236,13 +236,41 @@ static bool mloIsAmdRocmOpencl(miopen::ConvolutionContext& context)
 
 void mlo_construct_direct2D::setupFloats()
 {
-    if(_search_params.float_size == 32)
+    if(_search_params.IsFp32())
     {
         _search_params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
     }
-    else if(_search_params.float_size == 16)
+    else if(_search_params.IsFp16())
     {
         _search_params.general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1";
+    }
+    else
+    {
+        MIOPEN_LOG_W("Unsupported data types configuration: "
+                     << miopen::GetDataTypeName(_search_params.in_data_type)
+                     << "x"
+                     << miopen::GetDataTypeName(_search_params.weights_data_type)
+                     << "x"
+                     << miopen::GetDataTypeName(_search_params.out_data_type));
+    }
+}
+
+void mlo_construct_activ_lrn_pooling_common::setupFloats()
+{
+    if(_search_params.in_data_type == miopenFloat && _search_params.out_data_type == miopenFloat)
+    {
+        _search_params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
+    }
+    else if(_search_params.in_data_type == miopenHalf && _search_params.out_data_type == miopenHalf)
+    {
+        _search_params.general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1";
+    }
+    else
+    {
+        MIOPEN_LOG_W("Unsupported data types configuration: "
+                     << miopen::GetDataTypeName(_search_params.in_data_type)
+                     << "x"
+                     << miopen::GetDataTypeName(_search_params.out_data_type));
     }
 }
 

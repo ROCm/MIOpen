@@ -33,6 +33,9 @@ namespace solver {
 
 bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
 {
+    if(!(params.IsFp32() || params.IsFp16()))
+        return false;
+
     // clang-format off
     // Cases when dy has negative padding are not supported (issue 918)
     if(params.direction.IsBackwardData()
@@ -49,7 +52,7 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
         && !(params.group_counts == 1 && params.kernel_size_h == 1 && params.kernel_size_w == 1)
         /// We have optimized 1x1 kernel for normal conv.
         && !(params.direction.IsForward()
-            && params.float_size == 16
+            && params.IsFp16()
             && params.kernel_stride_w == 2)
         && IsValidPerformanceConfig(params, GetPerformanceConfig(params));
     // clang-format on
@@ -205,7 +208,7 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(
     const auto mlo_filter_sz          = (mlo_filter_size1 * mlo_filter_size0);
     const auto mlo_weights_sz =
         (mlo_n_out_tiles_perstack * mlo_n_in_tiles_perstack * mlo_filter_sz);
-    const auto sizeof_float     = params.float_size / 8; // 32 -> 4
+    const auto sizeof_float     = GetTypeSize(params.in_data_type);
     const auto mlo_lds_max_size = 65536;
     //    MIOPEN_LOG_I("((mlo_in_lcl_sz + mlo_weights_sz) * sizeof_float)=" << ((mlo_in_lcl_sz +
     //    mlo_weights_sz) * sizeof_float));

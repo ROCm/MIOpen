@@ -64,14 +64,15 @@ namespace solver {
 
 bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!(params.float_size == 32 || params.float_size == 16))
+    const bool fp16 = params.IsFp16();
+
+    if(!(params.IsFp32() || fp16))
         return false;
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}))
         return false;
     if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
         return false;
 
-    const bool fp16 = (params.float_size == 16);
     if(fp16)
     { // These are supplied in asm source format.
         if(!params.use_asm_kernels)
@@ -252,7 +253,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    if(params.float_size == 16)
+    if(params.IsFp16())
     {
         kernel.kernel_name = "sp3AsmConvRxSU";
         kernel.kernel_file = "Conv_Winograd_";

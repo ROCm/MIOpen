@@ -135,10 +135,7 @@ static bool IsReverseInOutAllowed(const ConvolutionContext& config)
     return config.kernel_stride_w == 1 && config.kernel_stride_h == 1;
 }
 
-inline int elements_in_dword(const ConvolutionContext& config)
-{
-    return config.float_size == 16 ? 2 : 1;
-}
+inline int elements_in_dword(const ConvolutionContext& config) { return config.IsFp16() ? 2 : 1; }
 
 bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config) const
 {
@@ -363,14 +360,14 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_dilation_w == 1
         && params.kernel_dilation_h == 1
         && params.bias == 0
-        && (params.float_size == 32 || params.float_size == 16)
+        && (params.IsFp32() || params.IsFp16())
         && params.in_layout == "NCHW";
     if(!ok)
     {
         return false; // Early exit to speed up the check.
     }
 
-    if(params.float_size == 16
+    if(params.IsFp16()
           && (name.find("gfx8") != std::string::npos // Not supported.
              || params.batch_sz % 2 != 0 /// \todo Initial version.
              || params.kernel_stride_w != 1 /// \todo Initial version.
@@ -417,7 +414,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
 {
     ConvSolution result;
     std::ostringstream options;
-    GenerateClangDefsym(options, "elements_in_dword", (params.float_size == 16) ? 2 : 1);
+    GenerateClangDefsym(options, "elements_in_dword", (params.IsFp16()) ? 2 : 1);
     GenerateClangDefsym(options, "batch_size", params.batch_sz); // N
     GenerateClangDefsym(options, "img_h", params.out_height);    // H
     GenerateClangDefsym(options, "img_w", params.out_width);     // W
