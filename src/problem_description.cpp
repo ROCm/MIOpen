@@ -56,7 +56,7 @@ void miopen::ProblemDescription::Serialize(std::ostream& stream) const
             << sep << batch_sz
             << sep << pad_h << 'x' << pad_w
             << sep << kernel_stride_h << 'x' << kernel_stride_w
-            << sep << kernel_dilation_h << 'x' << kernel_dilation_h
+            << sep << kernel_dilation_h << 'x' << kernel_dilation_w
             << sep << bias
             << sep << in_layout
             << sep << EncodeDataTypesForKey(in_data_type, weights_data_type, out_data_type)
