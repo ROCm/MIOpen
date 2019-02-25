@@ -72,7 +72,6 @@ default reverse_weights, 0
 default elements_in_dword, 1
 static_assert(elements_in_dword == 1 || elements_in_dword == 2)
 .if elements_in_dword == 2
-   static_assert (stride_h == 1 && stride_w == 1)
    static_assert ((batch_size % elements_in_dword) == 0)
    static_assert (.option.machine_version_major >= 9)
 .endif
@@ -512,6 +511,14 @@ gcnAsmConv3x3WrW:
       .endif
    .endm
 
+   .if stride_w == 2
+      line_adjust = gprs_per_batch_in
+      line_adjust_1 = gprs_per_batch_in
+   .else
+      line_adjust = 0
+      line_adjust_1 = 1
+   .endif
+
    .macro conv_line in_line, out_line, acc_line, acc_batch, sync=0, swizzle=0
       in_base = lines_in + gprs_per_line_in * \in_line
       out_base = lines_out + gprs_per_line_out * \out_line
@@ -533,15 +540,19 @@ gcnAsmConv3x3WrW:
                .if elements_in_dword == 2
                   v_mov_b32 v[shfl], v[in_base + gprs_per_line_in - 1 + gprs_per_batch_in] row_shr:1 bound_ctrl:0
                   v_dot2  acc_base + acc_off, shfl, out_base + out_x
-                  v_dot2  acc_base + acc_off, in_base, out_base + out_x + gprs_per_batch_out
+                  v_dot2  acc_base + acc_off, in_base + line_adjust, out_base + out_x + gprs_per_batch_out
                .else
                   v_mac_f32 v[acc_base + acc_off], v[in_base+gprs_per_line_in-1], v[out_base + out_x] row_shr:1 bound_ctrl:0
                .endif
             .elseif in_x >= gprs_per_line_in
-               .if elements_in_dword == 2
-                  v_dot2  acc_base + acc_off, in_base + gprs_per_line_in - 1 + gprs_per_batch_in, out_base + out_x
-                  v_mov_b32 v[shfl], v[in_base] row_shl:1 bound_ctrl:0
-                  v_dot2  acc_base + acc_off, shfl, out_base + out_x + gprs_per_batch_out
+                  .if elements_in_dword == 2
+                     v_dot2  acc_base + acc_off, in_base + gprs_per_line_in - 1 + gprs_per_batch_in, out_base + out_x
+                     .if gprs_per_line_in == 1
+                         v_mov_b32 v[shfl], v[in_base + line_adjust] row_shl:1 bound_ctrl:0
+                     .else
+                         v_mov_b32 v[shfl], v[in_base] row_shl:1 bound_ctrl:0
+                     .endif
+                     v_dot2  acc_base + acc_off, shfl, out_base + out_x + gprs_per_batch_out
                .else
                   v_mac_f32 v[acc_base + acc_off], v[in_base], v[out_base + out_x] row_shl:1 bound_ctrl:0
                .endif
@@ -549,13 +560,18 @@ gcnAsmConv3x3WrW:
                .if elements_in_dword == 2
                   .if acc_x == 1
                      v_dot2  acc_base + acc_off, in_base + in_x, out_base + out_x
-                     v_dot2  acc_base + acc_off, in_base + in_x + gprs_per_batch_in, out_base + out_x + gprs_per_batch_out
+                     .if gprs_per_line_in == 1
+                        v_mov_b32 v[shfl], v[in_base] row_shl:1 bound_ctrl:0
+                        v_dot2  acc_base + acc_off, shfl, out_base + out_x + gprs_per_batch_out
+                     .else
+                         v_dot2 acc_base + acc_off, in_base + in_x + line_adjust_1, out_base + out_x + gprs_per_batch_out
+                     .endif
                   .elseif acc_x == 0
                      v_dot2  acc_base + acc_off, in_base + in_x + gprs_per_batch_in, out_base + out_x
-                     v_dot2  acc_base + acc_off, in_base + in_x + 1, out_base + out_x + gprs_per_batch_out
+                     v_dot2  acc_base + acc_off, in_base + in_x + 1 + line_adjust, out_base + out_x + gprs_per_batch_out
                   .elseif acc_x == 2
                      v_dot2  acc_base + acc_off, in_base + in_x - 1 + gprs_per_batch_in, out_base + out_x
-                     v_dot2  acc_base + acc_off, in_base + in_x, out_base + out_x + gprs_per_batch_out
+                     v_dot2  acc_base + acc_off, in_base + in_x + line_adjust, out_base + out_x + gprs_per_batch_out
                   .else
                      static_assert(0)
                   .endif

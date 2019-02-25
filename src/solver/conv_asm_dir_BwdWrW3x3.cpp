@@ -369,9 +369,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
 
     if(params.IsFp16()
           && (name.find("gfx8") != std::string::npos // Not supported.
-             || params.batch_sz % 2 != 0 /// \todo Initial version.
-             || params.kernel_stride_w != 1 /// \todo Initial version.
-             || params.kernel_stride_h != 1))
+             || params.batch_sz % 2 != 0)) /// \todo Initial version.
     {
        return false;
     }
