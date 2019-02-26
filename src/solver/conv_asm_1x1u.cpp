@@ -406,6 +406,8 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
         && params.group_counts == 1
         && img_hw >= elements_in_dword
         && (elements_in_dword == 1 || params.n_outputs >= 4));
+    if(params.direction.IsBackwardData() && elements_in_dword != 1)
+        ok = ok && (params.n_outputs % 4 == 0);
     if(!ok)
     {
         return false; // Early exit to speed up the check.
