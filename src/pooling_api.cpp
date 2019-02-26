@@ -23,13 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/pooling.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/tensor.hpp>
+
+#include <numeric>
 #include <algorithm>
 #include <array>
 #include <initializer_list>
-#include <miopen/errors.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/pooling.hpp>
-#include <numeric>
 
 extern "C" miopenStatus_t miopenCreatePoolingDescriptor(miopenPoolingDescriptor_t* poolDesc)
 {

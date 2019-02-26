@@ -26,14 +26,10 @@
 #ifndef GUARD_MIOPEN_BATCHNORMALIZATION_HPP_
 #define GUARD_MIOPEN_BATCHNORMALIZATION_HPP_
 
-#include <chrono>
-#include <cmath>
 #include <miopen/common.hpp>
-#include <miopen/handle.hpp>
 #include <miopen/miopen.h>
-#include <miopen/mlo_internal.hpp>
-#include <miopen/tensor.hpp>
-#include <miopen/visit_float.hpp>
+
+#include <vector>
 
 #define MIO_BN_CPP_PROF 0
 #define MIOPEN_BN_CPP_DEBUG 0
@@ -41,6 +37,9 @@
 #define MIO_BN_TIME_EVERYTHING 0
 
 namespace miopen {
+
+struct Handle;
+struct TensorDescriptor;
 
 void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
                               const TensorDescriptor& xDesc,

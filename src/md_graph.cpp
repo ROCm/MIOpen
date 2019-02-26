@@ -28,6 +28,7 @@
 #include <miopen/solver.hpp>
 #include <miopen/env.hpp>
 #include <miopen/mdg_expr.hpp>
+#include <miopen/db.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)

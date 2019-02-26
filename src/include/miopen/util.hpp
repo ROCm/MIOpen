@@ -26,14 +26,12 @@
 #ifndef MIOPEN_UTIL_HPP_
 #define MIOPEN_UTIL_HPP_
 
-#include "miopen/common.hpp"
-#include <miopen/errors.hpp>
-#include <miopen/handle.hpp>
+#include <miopen/common.hpp>
 #include <miopen/miopen.h>
-#include <miopen/tensor.hpp>
-#include <miopen/tensor_ops.hpp>
 
 namespace miopen {
+
+struct Handle;
 
 float Im2ColGPU(Handle& handle,
                 int data_size,

@@ -23,9 +23,12 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/errors.hpp>
-#include <miopen/logger.hpp>
 #include <miopen/softmax.hpp>
+#include <miopen/errors.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/tensor_ops.hpp>
 
 extern "C" miopenStatus_t miopenSoftmaxForward(miopenHandle_t handle,
                                                const void* alpha,

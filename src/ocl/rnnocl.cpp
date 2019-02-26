@@ -28,9 +28,12 @@
 
 #include <miopen/activ.hpp>
 #include <miopen/env.hpp>
+#include <miopen/errors.hpp>
 #include <miopen/float_equal.hpp>
 #include <miopen/gemm_v2.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/tensor_ops.hpp>
+#include <miopen/tensor.hpp>
 #include <miopen/util.hpp>
 
 #include <vector>

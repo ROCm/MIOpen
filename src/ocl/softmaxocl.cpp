@@ -27,6 +27,7 @@
 #include <miopen/softmax.hpp>
 #include <miopen/float_equal.hpp>
 #include <miopen/check_numerics.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
 

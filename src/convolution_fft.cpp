@@ -27,6 +27,9 @@
 #include <miopen/convolution_fft.hpp>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/tensor_ops.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
 

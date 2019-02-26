@@ -23,13 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <array>
-#include <initializer_list>
 #include <miopen/batch_norm.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
+
+#include <array>
+#include <initializer_list>
 
 extern "C" miopenStatus_t miopenDeriveBNTensorDescriptor(miopenTensorDescriptor_t derivedBnDesc,
                                                          const miopenTensorDescriptor_t xDesc,

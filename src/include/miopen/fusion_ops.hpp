@@ -25,8 +25,6 @@
  *******************************************************************************/
 
 #pragma once
-#include <miopen/logger.hpp>
-
 #include <string>
 #include <unordered_map>
 #include <vector>

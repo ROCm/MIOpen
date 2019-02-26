@@ -27,13 +27,15 @@
 #define MIOPEN_POOLING_HPP_
 
 #include "miopen/common.hpp"
-#include <miopen/errors.hpp>
-#include <miopen/handle.hpp>
+#include <miopen/object.hpp>
 #include <miopen/miopen.h>
-#include <miopen/tensor.hpp>
+
 #include <vector>
 
 namespace miopen {
+
+struct Handle;
+struct TensorDescriptor;
 
 struct PoolingDescriptor : miopenPoolingDescriptor
 {

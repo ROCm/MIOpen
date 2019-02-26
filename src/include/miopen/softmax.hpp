@@ -26,14 +26,13 @@
 #ifndef MIOPEN_SOFTMAX_HPP_
 #define MIOPEN_SOFTMAX_HPP_
 
-#include "miopen/common.hpp"
-#include <miopen/errors.hpp>
-#include <miopen/handle.hpp>
+#include <miopen/common.hpp>
 #include <miopen/miopen.h>
-#include <miopen/tensor.hpp>
-#include <miopen/tensor_ops.hpp>
 
 namespace miopen {
+
+struct Handle;
+struct TensorDescriptor;
 
 miopenStatus_t SoftmaxForward(
     Handle& handle, const void* alpha, const void* beta, const TensorDescriptor& yDesc, Data_t y);

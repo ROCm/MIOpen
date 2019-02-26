@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define MIOPEN
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
+#include <miopen/logger.hpp>
 
 int mlo_construct_pooling2D::mloConstruct()
 {
