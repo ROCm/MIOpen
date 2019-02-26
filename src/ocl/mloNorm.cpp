@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define MIOPEN
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
+#include <miopen/logger.hpp>
 
 // KNOWN ISSUES:
 // backward propogagation has a bug in cross map normalization when numper of maps less than

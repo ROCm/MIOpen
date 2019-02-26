@@ -26,17 +26,15 @@
 #ifndef GUARD_MIOPEN_TENSOR_HPP_
 #define GUARD_MIOPEN_TENSOR_HPP_
 
-#include <cassert>
-#include <iostream>
 #include <miopen/common.hpp>
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
 #include <miopen/each_args.hpp>
 #include <miopen/returns.hpp>
 #include <miopen/errors.hpp>
+
+#include <cassert>
 #include <vector>
-// TODO(paul): remove this include later
-#include <cstdio>
 
 namespace miopen {
 

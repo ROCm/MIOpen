@@ -23,13 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cassert>
-#include <algorithm>
-#include <miopen/errors.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/tensor_ops.hpp>
+#include <miopen/errors.hpp>
 #include <miopen/float_equal.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/tensor_ops.hpp>
 #include <miopen/visit_float.hpp>
+
+#include <algorithm>
+#include <cassert>
 #include <numeric>
 
 #define MIO_TENSOROCL_DEBUG 0

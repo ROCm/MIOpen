@@ -24,10 +24,13 @@
  *
  *******************************************************************************/
 
-#include <miopen/errors.hpp>
 #include <miopen/batch_norm.hpp>
-#include <cassert>
+#include <miopen/errors.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/visit_float.hpp>
 
+#include <cassert>
 #include <chrono>
 #include <iostream>
 

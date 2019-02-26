@@ -27,11 +27,8 @@
 #define MIOPEN_FUSION_HPP_
 
 #include <miopen/common.hpp>
-#include <miopen/errors.hpp>
-#include <miopen/handle.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
-#include <miopen/activ.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/op_kernel_args.hpp>
@@ -42,6 +39,8 @@
 #include <unordered_map>
 
 namespace miopen {
+
+struct Handle;
 
 enum FusionKernelSourceType
 {

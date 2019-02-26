@@ -3,6 +3,7 @@
 
 #include <miopen/common.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/logger.hpp>
 
 #include <cassert>
 #include <memory>

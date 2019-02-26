@@ -23,11 +23,13 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/pooling.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/tensor.hpp>
+
 #include <cassert>
 #include <cmath>
 #include <cmath>
-#include <miopen/logger.hpp>
-#include <miopen/pooling.hpp>
 
 namespace miopen {
 

@@ -24,11 +24,16 @@
  *
  *******************************************************************************/
 #include <miopen/batch_norm.hpp>
-#include <miopen/util.hpp>
-#include <miopen/float_equal.hpp>
+
 #include <miopen/check_numerics.hpp>
-#include <miopen/visit_float.hpp>
+#include <miopen/errors.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/float_equal.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/util.hpp>
+#include <miopen/visit_float.hpp>
+
 #include <chrono>
 
 namespace miopen {
