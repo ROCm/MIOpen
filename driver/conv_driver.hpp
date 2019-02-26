@@ -230,6 +230,7 @@ class ConvDriver : public Driver
     miopenConvolutionDescriptor_t convDesc;
 
     bool wrw_allowed = 1, bwd_allowed = 1, forward_allowed = 1;
+    bool is_wrw_winograd = false;
 
     std::string GetVerificationCacheFileName() const;
     std::string GetVCacheFwdOutBasename() const;
@@ -1338,6 +1339,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
         kernel_total_time = 0.0;
         kernel_first_time = 0.0;
 
+        const auto wrw_algo      = perf_results_weights[0].bwd_weights_algo;
+        const auto wrw_workspace = perf_results_weights[0].memory;
+        is_wrw_winograd          = (wrw_algo == miopenConvolutionBwdWeightsAlgoWinograd);
+
         START_TIME;
         for(int i = 0; i < inflags.GetValueInt("iter"); i++)
         {
@@ -1348,14 +1353,14 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
                                                    inputTensor,
                                                    in_dev->GetMem(),
                                                    convDesc,
-                                                   perf_results_weights[0].bwd_weights_algo,
+                                                   wrw_algo,
                                                    &beta,
                                                    weightTensor,
                                                    dwei_dev->GetMem(),
                                                    (workspace_bwd_weights_dev != nullptr)
                                                        ? workspace_bwd_weights_dev->GetMem()
                                                        : nullptr,
-                                                   perf_results_weights[0].memory);
+                                                   wrw_workspace);
 
             float time = 0.0;
             miopenGetKernelTime(GetHandle(), &time);
@@ -1378,8 +1383,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
             float kernel_average_time =
                 iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
 
-            printf("MIOpen Backward Weights Conv. Algorithm: %d\n",
-                   perf_results_weights[0].bwd_weights_algo);
+            printf("MIOpen Backward Weights Conv. Algorithm: %d\n", wrw_algo);
             printf("GPU Kernel Time Backward Weights Conv. Elapsed: %f ms (average)\n",
                    kernel_average_time);
 
@@ -1423,8 +1427,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
 
         if(workspace_bwd_weights_dev != nullptr)
         {
-            if(perf_results_weights[0].bwd_weights_algo == 0)
-            { // miopenConvolutionBwdWeightsAlgoGEMM
+            if(wrw_algo == miopenConvolutionBwdWeightsAlgoGEMM)
+            {
                 workspace_bwd_weights_dev->FromGPU(GetStream(), workspace_bwd_weights.data());
             }
         }
@@ -2048,8 +2052,15 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyBackward()
             RunBackwardWeightsCPU();
         }
 
+        // Winograd algorithm has worse precision than Direct and Gemm.
+        // Winograd-specific precision loss is roughly 2+2 bits.
+        // Affects only WrW FP32 for now.
+        auto tolerance_wrw = tolerance;
+        if(is_wrw_winograd && std::is_same<Tgpu, float>::value)
+            tolerance_wrw *= 16;
+
         auto error_weights = miopen::rms_range(dwei_host, dwei);
-        if(!(error_weights < tolerance))
+        if(!(error_weights < tolerance_wrw))
         {
             std::cout << "Backward Convolution Weights Failed: " << error_weights << std::endl;
         }

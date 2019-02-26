@@ -41,6 +41,9 @@
 #include <miopen/gemm_v2.hpp>
 #endif
 
+#include <cassert>
+#include <type_traits>
+
 namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
@@ -212,6 +215,7 @@ inline int EvaluateDataDirectSolution(Handle& handle,
     return 0;
 }
 
+template <typename T>
 int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
                                               const TensorDescriptor& xDesc,
                                               const TensorDescriptor& wDesc,
@@ -222,9 +226,11 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
                                               int direction,
                                               std::string* kcache_key) const
 {
+    assert((std::is_same<T, mlo_construct_winograd>::value ||
+            std::is_same<T, mlo_construct_winograd_wrw>::value));
     try
     {
-        mlo_construct_winograd construct_params(xDesc, wDesc, yDesc, *this, direction);
+        T construct_params(xDesc, wDesc, yDesc, *this, direction);
         construct_params.setStream(&handle);
 
         const auto solution = FindFirstSolution(construct_params);
@@ -240,8 +246,12 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
         if(kcache_key != nullptr)
             *kcache_key = network_config;
 
-        std::string algorithm = (direction == 1) ? "miopenConvolutionFwdAlgoWinograd"
-                                                 : "miopenConvolutionBwdDataAlgoWinograd";
+        const bool is_wrw = std::is_same<T, mlo_construct_winograd_wrw>::value;
+
+        const std::string algorithm = is_wrw ? "miopenConvolutionBwdWeightsAlgoWinograd"
+                                             : (direction == 1)
+                                                   ? "miopenConvolutionFwdAlgoWinograd"
+                                                   : "miopenConvolutionBwdDataAlgoWinograd";
         handle.ClearKernels(algorithm, network_config);
         kernel = handle.AddKernel(algorithm,
                                   network_config,
@@ -662,7 +672,7 @@ static void DirConvFindCore(Handle& handle,
             KernelInvoke kernel_wino;
             std::string network_config;
             std::string solver_id;
-            if(conv.FindWinogradKernel(
+            if(conv.FindWinogradKernel<mlo_construct_winograd>(
                    handle, xDesc, wDesc, yDesc, k_p, kernel_wino, solver_id, 1, &network_config) ==
                0)
             { // TODO: be more graceful
@@ -1484,7 +1494,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             WinogradKernelParams k_p;
             KernelInvoke kernel_wino;
             std::string solver;
-            if(FindWinogradKernel(handle, dxDesc, wDesc, dyDesc, k_p, kernel_wino, solver, 0) == 0)
+            if(FindWinogradKernel<mlo_construct_winograd>(
+                   handle, dxDesc, wDesc, dyDesc, k_p, kernel_wino, solver, 0) == 0)
             { // TODO: be more graceful
                 float time_wino = 0;
                 /// \todo Move Flags into Solution.
@@ -1528,7 +1539,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                     << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
-                    << " pad_H=" << pad_W << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W); // clang-format on
+                    << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W); // clang-format on
                 if(isRxS)
                 {
                     kernel_wino(N,
@@ -2432,7 +2443,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     int out_h, out_w;
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
-    std::string network_config;
     {
 #if MIOPEN_USE_GEMM
         if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
@@ -2560,6 +2570,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 construct_params.setDoSearch(exhaustiveSearch);
                 construct_params.setStream(&handle);
 
+                std::string network_config;
                 construct_params.mloBuildConf_Key(network_config);
                 const std::string algorithm_name = "miopenConvolutionBwdWeightsAlgoDirect";
 
@@ -2600,6 +2611,85 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         PerfField{algorithm_name, selected.solver_id, best, selected.workspce_sz});
                 }
             }
+        }
+
+        try
+        {
+            WinogradKernelParams k_p;
+            KernelInvoke kernel_wino;
+            std::string network_config;
+            std::string solver_id;
+            if(FindWinogradKernel<mlo_construct_winograd_wrw>(handle,
+                                                              xDesc,
+                                                              dwDesc,
+                                                              dyDesc,
+                                                              k_p,
+                                                              kernel_wino,
+                                                              solver_id,
+                                                              0,
+                                                              &network_config) == 0)
+            {
+                float time_wino                = 0;
+                static const int F_FLIP_K_C    = 1 << 2;
+                static const int F_NKC_STRIDES = 1 << 9;
+                int flags                      = F_FLIP_K_C + F_NKC_STRIDES;
+                int reserved                   = 0;
+                int* reserved_ptr              = nullptr;
+                bool isRxS;
+                int pad_H = GetConvPads()[0];
+                int pad_W = GetConvPads()[1];
+                int N, C, H, W, K, n_groups, out_H, out_W, R, S, unused;
+                // For bwd & wrw inputs and outputs reside in k_p in reversed order.
+                std::tie(N, K, out_H, out_W, C, n_groups, H, W, R, S, unused, unused, isRxS) = k_p;
+                assert(isRxS);
+                using dataType = float;
+                int d_N_stride = H * W * sizeof(dataType);
+                int d_C_stride = C * d_N_stride;
+                int f_K_stride = out_H * out_W * sizeof(dataType);
+                int f_C_stride = K * f_K_stride;
+                int o_N_stride = R * S * sizeof(dataType);
+                int o_K_stride = C * o_N_stride;
+                // clang-format off
+                MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
+                        << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
+                        << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
+                        << " d_N_stride=" << d_N_stride << " d_C_stride=" << d_C_stride
+                        << " f_K_stride=" << f_K_stride << " f_C_stride=" << f_C_stride
+                        << " o_N_stride=" << o_N_stride << " o_K_stride=" << o_K_stride); // clang-format on
+                kernel_wino(C,
+                            N,
+                            H,
+                            W,
+                            K,
+                            n_groups,
+                            flags,
+                            reserved,
+                            x,
+                            dy,
+                            tmp_dw.get(),
+                            reserved_ptr, // Unused return_addr.
+                            out_H,
+                            out_W,
+                            pad_H, // Like Fwd wino.
+                            pad_W,
+                            R,
+                            S,
+                            reserved_ptr, // Unused bias_addr.
+                            reserved,     // Unused relu_alpha.
+                            d_N_stride,
+                            d_C_stride,
+                            f_K_stride,
+                            f_C_stride,
+                            o_N_stride,
+                            o_K_stride);
+                time_wino = handle.GetKernelTime();
+                perf_db.push_back(
+                    PerfField{"miopenConvolutionBwdWeightsAlgoWinograd", solver_id, time_wino, 0});
+            }
+        }
+        catch(const miopen::Exception& ex)
+        {
+            MIOPEN_LOG_W("Find Winograd WrW failed:" << ex.what());
         }
     }
 
@@ -2936,6 +3026,73 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     }
                 }
             });
+        }
+        break;
+        case miopenConvolutionBwdWeightsAlgoWinograd:
+        {
+            mlo_construct_winograd_wrw construct_params(xDesc, dwDesc, dyDesc, *this, 0);
+            construct_params.setStream(&handle);
+
+            std::string network_config;
+            construct_params.mloBuildConf_Key(network_config);
+
+            auto&& kernels =
+                handle.GetKernels("miopenConvolutionBwdWeightsAlgoWinograd", network_config);
+            if(kernels.size() != 1)
+                MIOPEN_THROW("Error running Winograd WrW. Was Find() run previously?");
+            auto kernel = kernels[0];
+
+            static const int F_FLIP_K_C    = 1 << 2;
+            static const int F_NKC_STRIDES = 1 << 9;
+            int flags                      = F_FLIP_K_C + F_NKC_STRIDES;
+            int reserved                   = 0;
+            int* reserved_ptr              = nullptr;
+            int pad_H                      = GetConvPads()[0];
+            int pad_W                      = GetConvPads()[1];
+            int N, C, H, W, K, n_groups, out_H, out_W, R, S, unused;
+            // For bwd & wrw inputs and outputs reside in k_p in reversed order.
+            construct_params.getCompiledInParameters(
+                &N, &K, &out_H, &out_W, &C, &n_groups, &H, &W, &R, &S, &unused, &unused);
+            using dataType = float;
+            int d_N_stride = H * W * sizeof(dataType);
+            int d_C_stride = C * d_N_stride;
+            int f_K_stride = out_H * out_W * sizeof(dataType);
+            int f_C_stride = K * f_K_stride;
+            int o_N_stride = R * S * sizeof(dataType);
+            int o_K_stride = C * o_N_stride;
+            // clang-format off
+            MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
+                    << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
+                    << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
+                    << " d_N_stride=" << d_N_stride << " d_C_stride=" << d_C_stride
+                    << " f_K_stride=" << f_K_stride << " f_C_stride=" << f_C_stride
+                    << " o_N_stride=" << o_N_stride << " o_K_stride=" << o_K_stride ); // clang-format on
+            kernel(C,
+                   N,
+                   H,
+                   W,
+                   K,
+                   n_groups,
+                   flags,
+                   reserved,
+                   x,
+                   dy,
+                   dw,
+                   reserved_ptr,
+                   out_H,
+                   out_W,
+                   pad_H,
+                   pad_W,
+                   R,
+                   S,
+                   reserved_ptr,
+                   reserved,
+                   d_N_stride,
+                   d_C_stride,
+                   f_K_stride,
+                   f_C_stride,
+                   o_N_stride,
+                   o_K_stride);
         }
         break;
         };
