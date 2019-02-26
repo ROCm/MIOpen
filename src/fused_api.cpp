@@ -53,7 +53,7 @@ extern "C" miopenStatus_t miopenCreateFusionPlan(miopenFusionPlanDescriptor_t* f
 extern "C" miopenStatus_t miopenDestroyFusionPlan(miopenFusionPlanDescriptor_t fusePlanDesc)
 {
 
-    MIOPEN_LOG_FUNCTION(fusePlanDesc)
+    MIOPEN_LOG_FUNCTION(fusePlanDesc);
     return miopen::try_([&] { miopen_destroy_object(fusePlanDesc); });
 }
 
