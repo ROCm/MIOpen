@@ -253,15 +253,27 @@ auto SearchForSolution(const Context& search_params, Db db) ->
 
     miopen::each_args(
         [&](auto solver) {
-            if(!solution.Succeeded() && solver.IsApplicable(search_params) &&
+            if(solver.IsApplicable(search_params) &&
                (no_perf_filtering || solver.IsFast(search_params)))
             {
-                solution = FindSolution(solver, search_params, db);
-                if(solution.Succeeded() && solution.construction_params.empty())
+                if(!solution.Succeeded())
                 {
-                    MIOPEN_THROW(std::string("Internal error in solver: ") + SolverDbId(solver));
+                    solution = FindSolution(solver, search_params, db);
+                    if(solution.Succeeded())
+                    {
+                        MIOPEN_LOG_I2(SolverDbId(solver) << ": Success.");
+                        if(solution.construction_params.empty())
+                        {
+                            MIOPEN_THROW(std::string("Internal error in solver: ") +
+                                         SolverDbId(solver));
+                        }
+                    }
                 }
+                else
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped");
             }
+            else
+                MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
         },
         Solvers{}...);
 
