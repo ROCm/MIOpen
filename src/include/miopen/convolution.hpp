@@ -159,6 +159,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               size_t workSpaceSize,
                               bool exhaustiveSearch) const;
 
+    template <typename T>
     int FindWinogradKernel(Handle& handle,
                            const TensorDescriptor& xDesc,
                            const TensorDescriptor& wDesc,

@@ -691,6 +691,22 @@ struct mlo_construct_winograd : mlo_construct_direct2D
     miopen::solver::ConvSolution FindSolution();
 };
 
+struct mlo_construct_winograd_wrw : mlo_construct_winograd
+{
+    mlo_construct_winograd_wrw(const miopen::TensorDescriptor& in,
+                               const miopen::TensorDescriptor& weights,
+                               const miopen::TensorDescriptor& out,
+                               const miopen::ConvolutionDescriptor& conv,
+                               int, // dir unused, fixed to 0 (backward)
+                               bool do_bias = false)
+        : mlo_construct_winograd(in, weights, out, conv, 0, do_bias)
+    {
+        _search_params.direction.SetBackwardWrW();
+    }
+
+    miopen::solver::ConvSolution FindSolution();
+};
+
 #define MLO_POOLING_OP_AVE 0
 #define MLO_POOLING_OP_MAX 1
 #define MLO_POOLING_OP_STC 2

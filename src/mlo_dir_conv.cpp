@@ -107,6 +107,15 @@ miopen::solver::ConvSolution mlo_construct_winograd::FindSolution()
     // clang-format on
 }
 
+miopen::solver::ConvSolution mlo_construct_winograd_wrw::FindSolution()
+{
+    // clang-format off
+    return miopen::solver::SearchForSolution<
+        miopen::solver::ConvBinWinogradRxS
+    >(_search_params, this->GetDb());
+    // clang-format on
+}
+
 std::vector<miopen::solver::ConvSolution> mlo_construct_BwdWrW2D::FindAllSolutions()
 {
     // clang-format off
