@@ -124,7 +124,11 @@ int main(int argc, char* argv[])
     }
     else if(base_arg == "rnn")
     {
-        drv = new RNNDriver<float>();
+        drv = new RNNDriver<float, double>();
+    }
+    else if(base_arg == "rnnfp16")
+    {
+        drv = new RNNDriver<float16, double>();
     }
     else
     {
