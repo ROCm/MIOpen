@@ -27,6 +27,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/handle.hpp>
 
 #if MIOPEN_USE_ROCBLAS
 #include <half.hpp>

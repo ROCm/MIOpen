@@ -30,10 +30,7 @@
 #include <miopen/kernel.hpp>
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
-#include <miopen/tensor.hpp>
 
-#include <cstddef>
-#include <iosfwd>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -44,6 +41,7 @@ namespace solver {
 struct ConvSolution;
 } // namespace solver
 struct Handle;
+struct TensorDescriptor;
 
 using WinogradKernelParams = std::tuple<int /*N*/,
                                         int /*C*/,

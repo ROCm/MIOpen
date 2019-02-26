@@ -27,7 +27,6 @@
 #ifndef GUARD_PROBLEM_DESCRIPTION_HPP_
 #define GUARD_PROBLEM_DESCRIPTION_HPP_
 
-#include <miopen/errors.hpp>
 #include <miopen/tensor.hpp>
 
 #include <cassert>
