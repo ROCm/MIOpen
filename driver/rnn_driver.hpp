@@ -49,7 +49,7 @@
 #include <vector>
 #include <array>
 
-template <typename T>
+template <typename Tgpu, typename Tref>
 class RNNDriver : public Driver
 {
     public:
@@ -63,6 +63,7 @@ class RNNDriver : public Driver
         miopenCreateRNNDescriptor(&rnnDesc);
         workspace_dev    = nullptr;
         reservespace_dev = nullptr;
+        data_type        = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
     int AddCmdLineArgs();
@@ -122,31 +123,31 @@ class RNNDriver : public Driver
     std::unique_ptr<GPUMem> workspace_dev;
     std::unique_ptr<GPUMem> reservespace_dev;
 
-    std::vector<T> in;
-    std::vector<T> din;
-    std::vector<T> wei;
-    std::vector<T> dwei;
-    std::vector<T> out;
-    std::vector<T> dout;
-    std::vector<T> hx;
-    std::vector<T> cx;
-    std::vector<T> hy;
-    std::vector<T> cy;
-    std::vector<T> dhx;
-    std::vector<T> dcx;
-    std::vector<T> dhy;
-    std::vector<T> dcy;
-    std::vector<T> workspace;
-    std::vector<T> reservespace;
-    std::vector<T> outhost;
-    std::vector<T> workspace_host;
-    std::vector<T> reservespace_host;
-    std::vector<T> din_host;
-    std::vector<T> dwei_host;
-    std::vector<T> hy_host;
-    std::vector<T> cy_host;
-    std::vector<T> dhx_host;
-    std::vector<T> dcx_host;
+    std::vector<Tgpu> in;
+    std::vector<Tgpu> din;
+    std::vector<Tgpu> wei;
+    std::vector<Tgpu> dwei;
+    std::vector<Tgpu> out;
+    std::vector<Tgpu> dout;
+    std::vector<Tgpu> hx;
+    std::vector<Tgpu> cx;
+    std::vector<Tgpu> hy;
+    std::vector<Tgpu> cy;
+    std::vector<Tgpu> dhx;
+    std::vector<Tgpu> dcx;
+    std::vector<Tgpu> dhy;
+    std::vector<Tgpu> dcy;
+    std::vector<Tgpu> workspace;
+    std::vector<Tgpu> reservespace;
+    std::vector<Tref> outhost;
+    std::vector<Tref> workspace_host;
+    std::vector<Tref> reservespace_host;
+    std::vector<Tref> din_host;
+    std::vector<Tref> dwei_host;
+    std::vector<Tref> hy_host;
+    std::vector<Tref> cy_host;
+    std::vector<Tref> dhx_host;
+    std::vector<Tref> dcx_host;
 
     miopenRNNDescriptor_t rnnDesc;
 
@@ -157,8 +158,9 @@ class RNNDriver : public Driver
     //    std::string GetVerificationCacheFileName() const;
     //    bool TryReadVerificationCache(const std::string& file_name,
     //                                  miopenTensorDescriptor_t& tensorDesc,
-    //                                  T* data) const;
-    //    void TrySaveVerificationCache(const std::string& file_name, std::vector<T>& data) const;
+    //                                  Tgpu* data) const;
+    //    void TrySaveVerificationCache(const std::string& file_name, std::vector<Tgpu>& data)
+    //    const;
 };
 
 static inline bool CheckGuard(const int& in_h,
@@ -173,8 +175,8 @@ static inline bool CheckGuard(const int& in_h,
             out_h != ((dirMode + 1) * hy_h) || (inputMode == miopenRNNskip && in_h != hy_h));
 }
 
-template <typename T>
-int RNNDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
+template <typename Tgpu, typename Tref>
+int RNNDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
@@ -185,8 +187,8 @@ int RNNDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int RNNDriver<T>::GetandSetData()
+template <typename Tgpu, typename Tref>
+int RNNDriver<Tgpu, Tref>::GetandSetData()
 {
     std::vector<int> in_len  = GetInputTensorLengthsFromCmdLine();
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
@@ -197,26 +199,26 @@ int RNNDriver<T>::GetandSetData()
     {
         std::array<int, 2> in_lens = {{in_len[i], in_len.back()}};
         miopenCreateTensorDescriptor(&inputTensor);
-        miopenSetTensorDescriptor(inputTensor, miopenFloat, 2, in_lens.data(), nullptr);
+        miopenSetTensorDescriptor(inputTensor, data_type, 2, in_lens.data(), nullptr);
         inputTensors.push_back(inputTensor);
 
         std::array<int, 2> out_lens = {{in_len[i], out_len[0]}};
         miopenCreateTensorDescriptor(&outputTensor);
-        miopenSetTensorDescriptor(outputTensor, miopenFloat, 2, out_lens.data(), nullptr);
+        miopenSetTensorDescriptor(outputTensor, data_type, 2, out_lens.data(), nullptr);
         outputTensors.push_back(outputTensor);
     }
 
     std::array<int, 3> hid_lens = {{hid_len[0], in_len[0], hid_len[1]}};
-    miopenSetTensorDescriptor(hiddenTensor, miopenFloat, 3, hid_lens.data(), nullptr);
+    miopenSetTensorDescriptor(hiddenTensor, data_type, 3, hid_lens.data(), nullptr);
 
     SetRNNDescriptorFromCmdLineArgs();
-    miopenGetRNNParamsDescriptor(handle, rnnDesc, inputTensor, weightTensor, miopenFloat);
+    miopenGetRNNParamsDescriptor(handle, rnnDesc, inputTensor, weightTensor, data_type);
 
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int RNNDriver<T>::AddCmdLineArgs()
+template <typename Tgpu, typename Tref>
+int RNNDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag(
         "forw",
@@ -265,8 +267,8 @@ int RNNDriver<T>::AddCmdLineArgs()
     return 0;
 }
 
-template <typename T>
-std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
+template <typename Tgpu, typename Tref>
+std::vector<int> RNNDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
     int nseq = inflags.GetValueInt("seq_len");
     int in_h = inflags.GetValueInt("in_h");
@@ -324,8 +326,8 @@ std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
     return in_n;
 }
 
-template <typename T>
-std::vector<int> RNNDriver<T>::GetHiddenTensorLengthsFromCmdLine()
+template <typename Tgpu, typename Tref>
+std::vector<int> RNNDriver<Tgpu, Tref>::GetHiddenTensorLengthsFromCmdLine()
 {
     int hid_h = inflags.GetValueInt("hid_h");
     int hid_l = inflags.GetValueInt("num_layer");
@@ -335,8 +337,8 @@ std::vector<int> RNNDriver<T>::GetHiddenTensorLengthsFromCmdLine()
     return std::vector<int>({hid_l, hid_h});
 }
 
-template <typename T>
-std::vector<int> RNNDriver<T>::GetWeightTensorLengthsFromCmdLine()
+template <typename Tgpu, typename Tref>
+std::vector<int> RNNDriver<Tgpu, Tref>::GetWeightTensorLengthsFromCmdLine()
 {
     int wei_ih = inflags.GetValueInt("in_h");
     int wei_hh = inflags.GetValueInt("hid_h");
@@ -356,8 +358,8 @@ std::vector<int> RNNDriver<T>::GetWeightTensorLengthsFromCmdLine()
     return std::vector<int>({wei_bi, wei_l, wei_ih, wei_hh, wei_oh, wei_sc});
 }
 
-template <typename T>
-int RNNDriver<T>::SetRNNDescriptorFromCmdLineArgs()
+template <typename Tgpu, typename Tref>
+int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
 {
 
     int layer  = inflags.GetValueInt("num_layer");
@@ -443,29 +445,14 @@ int RNNDriver<T>::SetRNNDescriptorFromCmdLineArgs()
         exit(0);
     }
 
-    miopenDataType_t dataType;
-    if((inflags.GetValueInt("datatype")) == 0)
-    {
-        dataType = miopenHalf;
-    }
-    else if((inflags.GetValueInt("datatype")) == 1)
-    {
-        dataType = miopenFloat;
-    }
-    else
-    {
-        printf("Incorrect Data Type\n");
-        exit(0);
-    }
-
     miopenSetRNNDescriptor(
-        rnnDesc, wei_hh, layer, inMode, directionMode, mode, biasMode, algo, dataType);
+        rnnDesc, wei_hh, layer, inMode, directionMode, mode, biasMode, algo, data_type);
 
     return miopenStatusSuccess;
 }
 
-template <typename T>
-std::vector<int> RNNDriver<T>::GetOutputTensorLengthsFromCmdLine()
+template <typename Tgpu, typename Tref>
+std::vector<int> RNNDriver<Tgpu, Tref>::GetOutputTensorLengthsFromCmdLine()
 {
     int hid_h = inflags.GetValueInt("hid_h");
     int bi    = (inflags.GetValueInt("bidirection") == 1) ? 2 : 1;
@@ -474,31 +461,33 @@ std::vector<int> RNNDriver<T>::GetOutputTensorLengthsFromCmdLine()
     return std::vector<int>({out_h});
 }
 
-template <typename T>
-int RNNDriver<T>::AllocateBuffersAndCopy()
+template <typename Tgpu, typename Tref>
+int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
 
     size_t in_sz  = 0;
     size_t out_sz = 0;
     size_t wei_sz = 0;
     size_t hy_sz  = 0;
-    size_t workSpaceSize;
-    size_t reserveSpaceSize;
+    size_t workSpace_sz;
+    size_t reserveSpace_sz;
 
     miopenGetRNNInputTensorSize(GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &in_sz);
     miopenGetRNNInputTensorSize(
         GetHandle(), rnnDesc, adjustedSeqLen, outputTensors.data(), &out_sz);
     miopenGetRNNHiddenTensorSize(GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &hy_sz);
     miopenGetRNNWorkspaceSize(
-        GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &workSpaceSize);
+        GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &workSpace_sz);
     miopenGetRNNTrainingReserveSize(
-        GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &reserveSpaceSize);
-    miopenGetRNNParamsSize(GetHandle(), rnnDesc, inputTensors[0], &wei_sz, miopenFloat);
+        GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &reserveSpace_sz);
+    miopenGetRNNParamsSize(GetHandle(), rnnDesc, inputTensors[0], &wei_sz, data_type);
 
-    in_sz /= sizeof(T);
-    out_sz /= sizeof(T);
-    hy_sz /= sizeof(T);
-    wei_sz /= sizeof(T);
+    in_sz /= sizeof(Tgpu);
+    out_sz /= sizeof(Tgpu);
+    hy_sz /= sizeof(Tgpu);
+    wei_sz /= sizeof(Tgpu);
+    workSpace_sz /= sizeof(Tgpu);
+    reserveSpace_sz /= sizeof(Tgpu);
 
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
@@ -508,65 +497,64 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
     uint32_t ctx = 0;
 #endif
 
-    in_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(T)));
-    hx_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(T)));
-    out_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(T)));
-    wei_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(T)));
-    cx_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(T)));
-    workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize / sizeof(T), sizeof(T)));
-    reservespace_dev =
-        std::unique_ptr<GPUMem>(new GPUMem(ctx, reserveSpaceSize / sizeof(T), sizeof(T)));
+    in_dev           = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    hx_dev           = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(Tgpu)));
+    out_dev          = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+    wei_dev          = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(Tgpu)));
+    cx_dev           = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(Tgpu)));
+    workspace_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpace_sz, sizeof(Tgpu)));
+    reservespace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, reserveSpace_sz, sizeof(Tgpu)));
 
     if(inflags.GetValueInt("forw") != 2)
     {
-        hy_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(T)));
-        cy_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(T)));
+        hy_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(Tgpu)));
+        cy_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(Tgpu)));
     }
 
     if(inflags.GetValueInt("forw") != 1)
     {
-        din_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(T)));
-        dwei_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(T)));
-        dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(T)));
-        dhx_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(T)));
-        dcx_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(T)));
-        dhy_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(T)));
-        dcy_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(T)));
+        din_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+        dwei_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(Tgpu)));
+        dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+        dhx_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(Tgpu)));
+        dcx_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(Tgpu)));
+        dhy_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(Tgpu)));
+        dcy_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, hy_sz, sizeof(Tgpu)));
     }
 
-    in  = std::vector<T>(in_sz);
-    hx  = std::vector<T>(hy_sz, 0);
-    wei = std::vector<T>(wei_sz);
-    out = std::vector<T>(out_sz, 0);
-    cx  = std::vector<T>(hy_sz, 0);
+    in  = std::vector<Tgpu>(in_sz);
+    hx  = std::vector<Tgpu>(hy_sz, static_cast<Tgpu>(0));
+    wei = std::vector<Tgpu>(wei_sz);
+    out = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    cx  = std::vector<Tgpu>(hy_sz, static_cast<Tgpu>(0));
 
     if(inflags.GetValueInt("forw") != 2)
     {
-        hy      = std::vector<T>(hy_sz, 0);
-        cy      = std::vector<T>(hy_sz, 0);
-        hy_host = std::vector<T>(hy_sz, 0);
-        cy_host = std::vector<T>(hy_sz, 0);
+        hy      = std::vector<Tgpu>(hy_sz, static_cast<Tgpu>(0));
+        cy      = std::vector<Tgpu>(hy_sz, static_cast<Tgpu>(0));
+        hy_host = std::vector<Tref>(hy_sz, static_cast<Tref>(0));
+        cy_host = std::vector<Tref>(hy_sz, static_cast<Tref>(0));
     }
 
-    workspace         = std::vector<T>(workSpaceSize / sizeof(T), 0);
-    reservespace      = std::vector<T>(reserveSpaceSize / sizeof(T), 0);
-    outhost           = std::vector<T>(out_sz, 0);
-    workspace_host    = std::vector<T>(workSpaceSize / sizeof(T), 0);
-    reservespace_host = std::vector<T>(reserveSpaceSize / sizeof(T), 0);
+    workspace         = std::vector<Tgpu>(workSpace_sz, static_cast<Tgpu>(0));
+    reservespace      = std::vector<Tgpu>(reserveSpace_sz, static_cast<Tgpu>(0));
+    outhost           = std::vector<Tref>(out_sz, static_cast<Tref>(0));
+    workspace_host    = std::vector<Tref>(workSpace_sz, static_cast<Tref>(0));
+    reservespace_host = std::vector<Tref>(reserveSpace_sz, static_cast<Tref>(0));
 
     if(inflags.GetValueInt("forw") != 1)
     {
-        din       = std::vector<T>(in_sz, 0);
-        dwei      = std::vector<T>(wei_sz, 0);
-        dout      = std::vector<T>(out_sz, 0);
-        dhx       = std::vector<T>(hy_sz, 0);
-        dcx       = std::vector<T>(hy_sz, 0);
-        dhy       = std::vector<T>(hy_sz, 0);
-        dcy       = std::vector<T>(hy_sz, 0);
-        din_host  = std::vector<T>(in_sz, 0);
-        dwei_host = std::vector<T>(wei_sz, 0);
-        dhx_host  = std::vector<T>(hy_sz, 0);
-        dcx_host  = std::vector<T>(hy_sz, 0);
+        din       = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+        dwei      = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
+        dout      = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+        dhx       = std::vector<Tgpu>(hy_sz, static_cast<Tgpu>(0));
+        dcx       = std::vector<Tgpu>(hy_sz, static_cast<Tgpu>(0));
+        dhy       = std::vector<Tgpu>(hy_sz, static_cast<Tgpu>(0));
+        dcy       = std::vector<Tgpu>(hy_sz, static_cast<Tgpu>(0));
+        din_host  = std::vector<Tref>(in_sz, static_cast<Tref>(0));
+        dwei_host = std::vector<Tref>(wei_sz, static_cast<Tref>(0));
+        dhx_host  = std::vector<Tref>(hy_sz, static_cast<Tref>(0));
+        dcx_host  = std::vector<Tref>(hy_sz, static_cast<Tref>(0));
     }
 
     /*  // Not implemented.
@@ -590,19 +578,19 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = static_cast<T>((static_cast<double>(scale * rand()) * (1.0 / RAND_MAX)));
+        in[i] = static_cast<Tgpu>((static_cast<double>(scale * rand()) * (1.0 / RAND_MAX)));
     }
 
     for(int i = 0; i < hy_sz; i++)
     {
-        hx[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+        hx[i] = static_cast<Tgpu>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
     }
 
     if((inflags.GetValueStr("mode")) == "lstm")
     {
         for(int i = 0; i < hy_sz; i++)
         {
-            cx[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+            cx[i] = static_cast<Tgpu>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
         }
     }
 
@@ -610,19 +598,20 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < out_sz; i++)
         {
-            dout[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+            dout[i] = static_cast<Tgpu>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
         }
 
         for(int i = 0; i < hy_sz; i++)
         {
-            dhy[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+            dhy[i] = static_cast<Tgpu>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
         }
 
         if((inflags.GetValueStr("mode")) == "lstm")
         {
             for(int i = 0; i < hy_sz; i++)
             {
-                dcy[i] = static_cast<T>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+                dcy[i] =
+                    static_cast<Tgpu>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
             }
         }
     }
@@ -639,7 +628,8 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < wei_sz; i++)
     {
-        wei[i] = static_cast<T>((scale * static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5)));
+        wei[i] =
+            static_cast<Tgpu>((scale * static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5)));
     }
 
     if(inflags.GetValueInt("dump_output"))
@@ -699,8 +689,8 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
 
-template <typename T>
-int RNNDriver<T>::RunForwardGPU()
+template <typename Tgpu, typename Tref>
+int RNNDriver<Tgpu, Tref>::RunForwardGPU()
 {
 
     Timer t;
@@ -709,7 +699,7 @@ int RNNDriver<T>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        std::fill(out.begin(), out.end(), 0);
+        std::fill(out.begin(), out.end(), static_cast<Tgpu>(0));
         out_dev->ToGPU(GetStream(), out.data());
 
         if(i > 0)
@@ -815,8 +805,8 @@ int RNNDriver<T>::RunForwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int RNNDriver<T>::RunForwardCPU()
+template <typename Tgpu, typename Tref>
+int RNNDriver<Tgpu, Tref>::RunForwardCPU()
 {
     std::vector<int> in_n    = GetInputTensorLengthsFromCmdLine();
     std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
@@ -926,8 +916,8 @@ int RNNDriver<T>::RunForwardCPU()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int RNNDriver<T>::RunBackwardGPU()
+template <typename Tgpu, typename Tref>
+int RNNDriver<Tgpu, Tref>::RunBackwardGPU()
 {
     int ret = 0;
 
@@ -1064,8 +1054,8 @@ int RNNDriver<T>::RunBackwardGPU()
     return ret;
 }
 
-template <typename T>
-int RNNDriver<T>::RunBackwardWeightsCPU()
+template <typename Tgpu, typename Tref>
+int RNNDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
 {
     std::vector<int> in_n    = GetInputTensorLengthsFromCmdLine();
     std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
@@ -1173,8 +1163,8 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int RNNDriver<T>::RunBackwardDataCPU()
+template <typename Tgpu, typename Tref>
+int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
 {
     std::vector<int> in_n    = GetInputTensorLengthsFromCmdLine();
     std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
@@ -1295,8 +1285,8 @@ int RNNDriver<T>::RunBackwardDataCPU()
 }
 
 /*
-template <typename T>
-std::string RNNDriver<T>::GetVerificationCacheFileName() const
+template <typename Tgpu, typename Tref>
+std::string RNNDriver<Tgpu, Tref>::GetVerificationCacheFileName() const
 {
     std::ostringstream ss;
 
@@ -1324,10 +1314,10 @@ std::string RNNDriver<T>::GetVerificationCacheFileName() const
     return ss.str();
 }
 
-template <typename T>
-bool RNNDriver<T>::TryReadVerificationCache(const std::string& file_name,
+template <typename Tgpu, typename Tref>
+bool RNNDriver<Tgpu, Tref>::TryReadVerificationCache(const std::string& file_name,
                                              miopenTensorDescriptor_t& tensorDesc,
-                                             T* data) const
+                                             Tgpu* data) const
 {
     const auto verification_cache_path = inflags.GetValueStr("verification_cache");
 
@@ -1347,9 +1337,9 @@ bool RNNDriver<T>::TryReadVerificationCache(const std::string& file_name,
     return false;
 }
 
-template <typename T>
-void RNNDriver<T>::TrySaveVerificationCache(const std::string& file_name,
-                                             std::vector<T>& data) const
+template <typename Tgpu, typename Tref>
+void RNNDriver<Tgpu, Tref>::TrySaveVerificationCache(const std::string& file_name,
+                                             std::vector<Tgpu>& data) const
 {
     const auto verification_cache_path = inflags.GetValueStr("verification_cache");
     if(!verification_cache_path.empty())
@@ -1361,8 +1351,8 @@ void RNNDriver<T>::TrySaveVerificationCache(const std::string& file_name,
 }
 */
 
-template <typename T>
-int RNNDriver<T>::VerifyForward()
+template <typename Tgpu, typename Tref>
+int RNNDriver<Tgpu, Tref>::VerifyForward()
 {
     std::vector<int> in_n    = GetInputTensorLengthsFromCmdLine();
     std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
@@ -1395,7 +1385,8 @@ int RNNDriver<T>::VerifyForward()
 
     auto error = miopen::rms_range(outhost, out);
 
-    const double tolerance = 1e-6;
+    Tref tolerance = (sizeof(Tgpu) == 4 ? static_cast<Tref>(1e-6) : static_cast<Tref>(5e-2));
+
     if(!(error < tolerance))
     {
         std::cout << std::string("Forward RNN Failed: ") << error << "\n";
@@ -1433,8 +1424,8 @@ int RNNDriver<T>::VerifyForward()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int RNNDriver<T>::VerifyBackward()
+template <typename Tgpu, typename Tref>
+int RNNDriver<Tgpu, Tref>::VerifyBackward()
 {
     std::vector<int> in_n    = GetInputTensorLengthsFromCmdLine();
     std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
@@ -1465,7 +1456,7 @@ int RNNDriver<T>::VerifyBackward()
         return miopenStatusSuccess;
     }
 
-    const double tolerance = 1e-6;
+    Tref tolerance = (sizeof(Tgpu) == 4 ? static_cast<Tref>(1e-6) : static_cast<Tref>(5e-2));
 
     //   if(!TryReadVerificationCache("bwd_dat", inputTensor, din_host.data()))
     {

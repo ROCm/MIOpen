@@ -150,8 +150,8 @@ std::string ParseBaseArg(int argc, char* argv[])
     if(arg != "conv" && arg != "convfp16" && arg != "convint8" && arg != "CBAInfer" &&
        arg != "CBAInferfp16" && arg != "pool" && arg != "poolfp16" && arg != "lrn" &&
        arg != "lrnfp16" && arg != "activ" && arg != "activfp16" && arg != "softmax" &&
-       arg != "softmaxfp16" && arg != "bnorm" && arg != "bnormfp16" &&
-       arg != "rnn" /*&& arg != "rnnfp16" */ && arg != "gemm" /*&& arg != "gemmfp16"*/)
+       arg != "softmaxfp16" && arg != "bnorm" && arg != "bnormfp16" && arg != "rnn" &&
+       arg != "rnnfp16" && arg != "gemm" /*&& arg != "gemmfp16"*/)
 
     {
         printf("Invalid Base Input Argument\n");
