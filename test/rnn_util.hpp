@@ -111,32 +111,34 @@ inline std::vector<std::vector<int>> generate_batchSeq(const int batchSize, cons
 
 inline int sumvc(const std::vector<int>& x) { return std::accumulate(x.begin(), x.end(), 0); }
 
-inline float activfunc(float x, int actvf)
+template <typename T>
+inline T activfunc(T x, int actvf)
 {
-    float alpha = 1, beta0 = 0, beta1 = 1;
+    T alpha = static_cast<T>(1), beta0 = static_cast<T>(0), beta1 = static_cast<T>(1);
     if(actvf == 0)
     {
         return (x > 0) ? x : x * beta0;
     }
     else if(actvf == 2)
     {
-        return 1 / (1 + std::exp(-x));
+        return static_cast<T>(1 / (1 + std::exp(-x)));
     }
-    return alpha * std::tanh(beta1 * x);
+    return static_cast<T>(alpha * std::tanh(beta1 * x));
 }
 
-inline float dervactivfunc(float x, int actvf)
+template <typename T>
+inline T dervactivfunc(T x, int actvf)
 {
     if(actvf == 0)
     {
-        return (x > 0 ? 1 : 0);
+        return static_cast<T>(x > 0 ? 1 : 0);
     }
     else if(actvf == 2)
     {
-        return std::exp(-x) / (1 + std::exp(-x)) / (1 + std::exp(-x));
+        return static_cast<T>(std::exp(-x) / (1 + std::exp(-x)) / (1 + std::exp(-x)));
     }
 
-    return 1 / std::cosh(x) / std::cosh(x);
+    return static_cast<T>(1 / std::cosh(x) / std::cosh(x));
 }
 
 template <typename Dtype>
