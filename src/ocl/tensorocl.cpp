@@ -760,14 +760,11 @@ void OpTensor4d(Handle& handle,
         {
             parms += " -DUSE_4D_TENSOR_LITE";
             // for naive tensor ops
-            size_t RD_BLCK              = (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
             const std::string data_type = GetDataType(bTensorDesc.GetType());
 
-            size_t MAP_RD   = clens[2] / RD_BLCK;
             size_t TENS_LEN = cTensorDesc.GetElementSize();
-            RD_BLCK =
-                (TENS_LEN % 4 == 0) ? 4 : (TENS_LEN % 3 == 0) ? 3 : (TENS_LEN % 2 == 0) ? 2 : 1;
-            MAP_RD = TENS_LEN / RD_BLCK;
+            size_t RD_BLCK  = (TENS_LEN % 4 == 0) ? 4 : (TENS_LEN % 2 == 0) ? 2 : 1;
+            size_t MAP_RD   = TENS_LEN / RD_BLCK;
 
             const std::string READ_TYPE =
                 (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
