@@ -110,8 +110,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     TensorDescriptor GetBackwardOutputTensor(const TensorDescriptor& outputTensorDesc,
                                              const TensorDescriptor& filterDesc) const;
 
-    size_t ForwardGetWorkSpaceSizeGEMM(Handle& handle,
-                                       const TensorDescriptor& wDesc,
+    size_t ForwardGetWorkSpaceSizeGEMM(const TensorDescriptor& wDesc,
                                        const TensorDescriptor& yDesc) const;
 
     size_t ForwardGetWorkSpaceSizeGEMMTranspose(const TensorDescriptor& xDesc,
@@ -230,8 +229,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                             Data_t workSpace,
                             size_t workSpaceSize) const;
 
-    size_t BackwardDataGetWorkSpaceSizeGEMM(Handle& handle,
-                                            const TensorDescriptor& wDesc,
+    size_t BackwardDataGetWorkSpaceSizeGEMM(const TensorDescriptor& wDesc,
                                             const TensorDescriptor& dyDesc) const;
 
     size_t BackwardDataGetWorkSpaceSizeGEMMTranspose(const TensorDescriptor& dyDesc,
@@ -278,8 +276,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                                       const TensorDescriptor& xDesc,
                                                       const TensorDescriptor& dwDesc) const;
 
-    size_t BackwardWeightsGetWorkSpaceSizeGEMM(Handle& handle,
-                                               const TensorDescriptor& dyDesc,
+    size_t BackwardWeightsGetWorkSpaceSizeGEMM(const TensorDescriptor& dyDesc,
                                                const TensorDescriptor& dwDesc) const;
 
     size_t BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,

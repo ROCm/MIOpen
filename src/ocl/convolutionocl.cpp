@@ -565,7 +565,8 @@ static void DirConvFindCore(Handle& handle,
             }
             // if not 1x1
             else if(workSpace != nullptr &&
-                    workSpaceSize >= conv.ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc))
+                    workSpaceSize >=
+                        (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc) * conv.group_count))
             {
                 if(conv.group_count >= 2)
                 {
@@ -652,12 +653,12 @@ static void DirConvFindCore(Handle& handle,
                 }
 
                 if(gemm_status == miopenStatusSuccess)
-                    record.SetValues(
-                        "miopenConvolutionFwdAlgoGEMM",
-                        FindDbData{"gemm",
-                                   time_gemm,
-                                   conv.ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc),
-                                   kcache_key}); // Todo: gemm solver id?
+                    record.SetValues("miopenConvolutionFwdAlgoGEMM",
+                                     FindDbData{"gemm",
+                                                time_gemm,
+                                                (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc) *
+                                                 conv.group_count),
+                                                kcache_key}); // Todo: gemm solver id?
             }
         }
 #else
@@ -1303,7 +1304,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     MIOPEN_LOG_FUNCTION("convolution, non 1x1");
                 }
                 assert(workSpace != nullptr &&
-                       workSpaceSize >= ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc));
+                       workSpaceSize >= (ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc) * group_count));
 
                 // y = w * Im2Col(x)
                 GemmDescriptor gemm_desc{};
@@ -1773,7 +1774,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             // if not 1x1
             else if(workSpace != nullptr &&
                     workSpaceSize >=
-                        (group_count * BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc)))
+                        (BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc) * group_count))
             {
                 if(group_count >= 2)
                 {
@@ -1833,7 +1834,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                         PerfField{"miopenConvolutionBwdDataAlgoGEMM",
                                   "GEMM",
                                   time_gemm,
-                                  BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc)});
+                                  (BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc) * group_count)});
             }
         }
 #else
@@ -2221,7 +2222,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 }
                 assert(workSpace != nullptr &&
                        workSpaceSize >=
-                           (group_count * BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc)));
+                           (BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc) * group_count));
 
                 // dx = transpose(w) * dy
                 GemmDescriptor gemm_desc{};
@@ -2453,7 +2454,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             ValidateGroupCount(xDesc, dwDesc, *this);
 
             size_t workspace_req =
-                group_count * BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc);
+                BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc) * group_count;
             float time_gemm = 0;
 
             // if not 1x1
@@ -2809,8 +2810,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     MIOPEN_LOG_FUNCTION("convolution, non 1x1");
                 }
                 assert(workSpace != nullptr &&
-                       workSpaceSize >= (group_count * BackwardWeightsGetWorkSpaceSizeGEMM(
-                                                           handle, dyDesc, dwDesc)));
+                       workSpaceSize >=
+                           (BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc) * group_count));
 
                 float t1 = 0;
 
