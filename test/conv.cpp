@@ -79,20 +79,15 @@ static bool is_int8_workspace_valid(miopen::Handle& handle,
                                     const miopen::TensorDescriptor& wDesc,
                                     const miopen::TensorDescriptor& yDesc)
 {
-    if((wDesc.GetLengths().at(2) == 1 && wDesc.GetLengths().at(3) == 1 &&
-        convDesc.GetConvPads()[0] == 0 && convDesc.GetConvPads()[1] == 0) &&
-       ((xDesc.GetLengths().at(2) <= 14 && xDesc.GetLengths().at(3) <= 14 &&
-         convDesc.GetConvStrides()[0] == 1 && convDesc.GetConvStrides()[1] == 1) ||
-        (convDesc.GetConvStrides()[0] == 2 && convDesc.GetConvStrides()[1] == 2)) &&
-       (convDesc.ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc) == 0))
-    {
-        return false;
-    }
-    else if(convDesc.ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc) == 0)
-    {
-        return false;
-    }
-    return true;
+    return !(((wDesc.GetLengths().at(2) == 1 && wDesc.GetLengths().at(3) == 1 &&
+               convDesc.GetConvPads()[0] == 0 && convDesc.GetConvPads()[1] == 0) &&
+              ((xDesc.GetLengths().at(2) <= 14 && xDesc.GetLengths().at(3) <= 14 &&
+                convDesc.GetConvStrides()[0] == 1 && convDesc.GetConvStrides()[1] == 1) ||
+               (convDesc.GetConvStrides()[0] == 2 && convDesc.GetConvStrides()[1] == 2)) &&
+              (convDesc.ForwardGetWorkSpaceSize(handle, wDesc, xDesc, yDesc) <
+               convDesc.ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc))) ||
+             (convDesc.ForwardGetWorkSpaceSize(handle, wDesc, xDesc, yDesc) <
+              convDesc.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)));
 }
 
 struct scalar_gen_random_float
