@@ -2970,12 +2970,14 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 {
                     assert(kernels.size() == 2);
 
-                    // this pointer needed here as a workaround in gcc 5
-                    assert(workSpace != nullptr &&
-                           ((workSpaceSize >= this->BackwardWeightsGetWorkSpaceSizeDirect(
-                                                  handle, dyDesc, xDesc, dwDesc) &&
-                             group_count == 1) ||
-                            group_count >= 2));
+                    // Relaxed the workspace size assertion as
+                    // it is possible to receive the workspace size from perf db
+                    // that matches with the best chosen solver but less than
+                    // the worst workspace required among all solvers.
+                    // ConvOclBwdWrW2<n> solvers are the examples.
+                    // With the relaxed workspace size assertion, need to
+                    // distinguish group vs non-group case vanishes.
+                    assert(workSpace != nullptr && workSpaceSize > 0);
 
                     if(kernel.GetName() == "SubSample")
                     {
