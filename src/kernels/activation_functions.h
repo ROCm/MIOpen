@@ -1,3 +1,5 @@
+
+
 #define MIOPEN_NEURON_PASTHRU 0      // x
 #define MIOPEN_NEURON_LOGISTIC 1     // 1 / (1 + e^-x)  //Sigmoid
 #define MIOPEN_NEURON_TANH 2         // beta * tanh(alpha * x)
@@ -172,7 +174,7 @@ void ActivationFunction_Clipped_ReLU(const uint n,
 {
     for(uint i = 0; i < n; ++i)
     {
-        res[i] = fmin(alpha, fmax(data[i], 0));
+        res[i] = fmin((_FLOAT_PREC)alpha, fmax((_FLOAT_PREC)data[i], 0));
     }
 }
 
@@ -363,7 +365,7 @@ void ActivationFunction_BNLL_Diff(const uint n,
     {
         // y = (log(1 + exp(x)))
         // dy/dx = 1/ (1 + exp(-x))
-        _FLOAT_PREC expval = exp(fmin(bot_data[i], kBNLL_THRESHOLD));
+        _FLOAT_PREC expval = exp(fmin((_FLOAT_PREC)bot_data[i], (_FLOAT_PREC)kBNLL_THRESHOLD));
         bot_diff[i]        = top_diff[i] * expval / (expval + (_FLOAT_PREC)1.f);
     }
 }
