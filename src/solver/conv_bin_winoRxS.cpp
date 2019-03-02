@@ -219,24 +219,33 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
             return false;
     }
     else
-    { // fp32 kernels are in binary format.
+    { // fp32 Fwd/Bwd tile=3 kernels are in binary format.
         if(!params.use_binaries)
             return false;
     }
 
     const auto name = params.GetStream().GetDeviceName();
     // clang-format off
-    if (fp16 || params.direction.IsBackwardWrW())
+    if (fp16)
     {
-        if (! ((name == "gfx906" || name == "gfx900") && params.rmv == rocm_meta_version::AMDHSA_1_0))
+        if (! (name == "gfx906" && params.rmv == rocm_meta_version::AMDHSA_1_0))
             return false;
     }
     else
     {
-        if (! ((name == "gfx803" && (params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
-            || (name == "gfx900" && (params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
-            || (name == "gfx906" && params.rmv == rocm_meta_version::AMDHSA_1_0)))
-            return false;
+        if (params.direction.IsBackwardWrW())
+        {
+            if (! ((name == "gfx900" && params.rmv == rocm_meta_version::AMDHSA_1_0)
+                || (name == "gfx906" && params.rmv == rocm_meta_version::AMDHSA_1_0)))
+                return false;
+        }
+        else
+        {
+            if (! ((name == "gfx803" && (params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
+                || (name == "gfx900" && (params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
+                || (name == "gfx906" && params.rmv == rocm_meta_version::AMDHSA_1_0)))
+                return false;
+        }
     }
 
     if (! (params.kernel_stride_w <= 2 // -u inp_u 1 or 2
