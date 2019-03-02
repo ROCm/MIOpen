@@ -305,11 +305,6 @@ struct cba_fusion_driver : test_driver
         int input_c, input_h, input_w, wei_c, wei_k, wei_h, wei_w;
         std::tie(wei_k, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
 
-        // Workaround to bypass issue #1428
-        if(wei_h == 1 && wei_w == 1)
-            return;
-        // ---------------------------------
-
         std::tie(std::ignore, input_c, input_h, input_w) = miopen::tien<4>(input.desc.GetLengths());
 
         filter.mode         = cmode_lookup[miopen::ToUpper(conv_mode)];
