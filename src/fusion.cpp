@@ -1117,7 +1117,7 @@ std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder(Handle& handle)
             {
                 if(arg_keys[idx - 1].size != arg_keys[idx].size)
                 {
-                    auto padding = running_sz % arg_keys[idx].size;
+                    auto padding = arg_keys[idx].size - running_sz % arg_keys[idx].size;
                     if(padding != 0)
                     {
                         MIOPEN_LOG_I("*** Padding: " << padding);
