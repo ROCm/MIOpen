@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2018 Advanced Micro Devices, Inc.
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -697,43 +697,91 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
     // first path (asm kernel)
     if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}))
     { // Conv -> Bias -> Activ // Conv -> Activ
-        auto conv_v = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
-                                                       "conv1x1u_bias_activ.s",
-                                                       "gcnAsmConv1x1U",
-                                                       "miopenConvolutionDirectBiasActivAsm");
-        conv_v->solver = solver::ConvActivAsm1x1U{};
+        // single precision
+        {
+            auto conv_v = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
+                                                           "conv1x1u_bias_activ.s",
+                                                           "gcnAsmConv1x1U",
+                                                           "miopenConvolutionDirectBiasActivAsm");
+            conv_v->solver = solver::ConvBiasActivAsm1x1U{};
 
-        auto bias_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
-                                                       "conv1x1u_bias_activ.s",
-                                                       "gcnAsmConv1x1U",
-                                                       "miopenConvolutionDirectBiasActivAsm");
-        auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
-                                                        "conv1x1u_bias_activ.s",
-                                                        "gcnAsmConv1x1U",
-                                                        "miopenConvolutionDirectBiasActivAsm",
-                                                        true);
-        FusionMDGraph_Edge_Map map_asm_conv;
-        map_asm_conv["constraints"] = {"pad_h == 0",
-                                       "pad_w == 0",
-                                       "stride_h == 1",
-                                       "stride_w == 1",
-                                       "dilation_h == 1",
-                                       "dilation_w == 1",
-                                       "x == 1",
-                                       "y == 1",
-                                       "c <= (2^16)",
-                                       "k <= (2^16)",
-                                       "(c * iH * iW * 4) <= (2^24)",
-                                       "(k * oH * oW * 4) <= (2^24)",
-                                       "precision == miopenFloat",
-                                       "weight === 50",
-                                       "algo === miopenConvolutionFwdAlgoDirect"};
+            auto bias_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
+                                                           "conv1x1u_bias_activ.s",
+                                                           "gcnAsmConv1x1U",
+                                                           "miopenConvolutionDirectBiasActivAsm");
+            auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
+                                                            "conv1x1u_bias_activ.s",
+                                                            "gcnAsmConv1x1U",
+                                                            "miopenConvolutionDirectBiasActivAsm",
+                                                            true);
+            FusionMDGraph_Edge_Map map_asm_conv;
 
-        g.AddEdge(nullptr, conv_v, map_asm_conv);
-        g.AddEdge(conv_v, bias_v, empty_map);
-        g.AddEdge(bias_v, activ_v, empty_map);
+            map_asm_conv["constraints"] = {"pad_h == 0",
+                                           "pad_w == 0",
+                                           "stride_h == 1",
+                                           "stride_w == 1",
+                                           "dilation_h == 1",
+                                           "dilation_w == 1",
+                                           "x == 1",
+                                           "y == 1",
+                                           "c <= (2^16)",
+                                           "k <= (2^16)",
+                                           "(c * iH * iW * 4) <= (2^24)",
+                                           "(k * oH * oW * 4) <= (2^24)",
+                                           "precision == miopenFloat",
+                                           "weight === 50",
+                                           "algo === miopenConvolutionFwdAlgoDirect"};
 
-        g.AddEdge(conv_v, activ_v, empty_map);
+            g.AddEdge(nullptr, conv_v, map_asm_conv);
+            g.AddEdge(conv_v, bias_v, empty_map);
+            g.AddEdge(bias_v, activ_v, empty_map);
+
+            g.AddEdge(conv_v, activ_v, empty_map);
+        }
+        // half precision
+        {
+            auto conv_v = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
+                                                           "conv1x1u_bias_activ.s",
+                                                           "gcnAsmConv1x1U",
+                                                           "miopenConvolutionDirectBiasActivAsm");
+            conv_v->solver         = solver::ConvBiasActivAsm1x1U{};
+            conv_v->supported_arch = {"gfx900", "gfx906"};
+
+            auto bias_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
+                                                           "conv1x1u_bias_activ.s",
+                                                           "gcnAsmConv1x1U",
+                                                           "miopenConvolutionDirectBiasActivAsm");
+            auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
+                                                            "conv1x1u_bias_activ.s",
+                                                            "gcnAsmConv1x1U",
+                                                            "miopenConvolutionDirectBiasActivAsm",
+                                                            true);
+            FusionMDGraph_Edge_Map map_asm_conv;
+
+            map_asm_conv["constraints"] = {"pad_h == 0",
+                                           "pad_w == 0",
+                                           "stride_h == 1",
+                                           "stride_w == 1",
+                                           "dilation_h == 1",
+                                           "dilation_w == 1",
+                                           "x == 1",
+                                           "y == 1",
+                                           "c <= (2^16)",
+                                           "k <= (2^16)",
+                                           "(c * iH * iW * 4) <= (2^24)",
+                                           "(k * oH * oW * 4) <= (2^24)",
+                                           "precision == miopenHalf",
+                                           "(c % 2) == 0",
+                                           "(k % 2) == 0",
+                                           "weight === 50",
+                                           "algo === miopenConvolutionFwdAlgoDirect"};
+
+            g.AddEdge(nullptr, conv_v, map_asm_conv);
+            g.AddEdge(conv_v, bias_v, empty_map);
+            g.AddEdge(bias_v, activ_v, empty_map);
+
+            g.AddEdge(conv_v, activ_v, empty_map);
+        }
     }
 
     // second path (ocl kernel)

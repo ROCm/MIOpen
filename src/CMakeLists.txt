@@ -160,6 +160,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v16_3_0_stride1.inc
         kernels/inst_wrappers.inc
         kernels/common.inc
+        kernels/neuron.inc
         kernels/conv_sizes.inc
         kernels/gpr_alloc.inc)
 
