@@ -60,6 +60,7 @@ dummy_memset(Handle& handle, Data_t mem, std::size_t mem_len, miopenDataType_t d
 
     switch(data_type)
     {
+    case miopenInt8x4:
     case miopenInt8:
     {
         data_size = sizeof(int8_t);
@@ -292,10 +293,13 @@ miopenStatus_t CallGemm(Handle& handle,
         {
             if(enqueue_dummy_kernel)
             {
-                dummy_memset(handle,
-                             C,
-                             gemm_desc.m * gemm_desc.n,
-                             (gemm_desc.dataType == miopenInt8 ? miopenInt32 : gemm_desc.dataType));
+                dummy_memset(
+                    handle,
+                    C,
+                    gemm_desc.m * gemm_desc.n,
+                    ((gemm_desc.dataType == miopenInt8 || gemm_desc.dataType == miopenInt8x4)
+                         ? miopenInt32
+                         : gemm_desc.dataType));
             }
 
             start = make_hip_event();
@@ -307,6 +311,7 @@ miopenStatus_t CallGemm(Handle& handle,
 
         switch(gemm_desc.dataType)
         {
+        case miopenInt8x4:
         case miopenInt8:
         {
             assert(gemm_desc.k % 4 == 0);
@@ -569,10 +574,13 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
         {
             if(enqueue_dummy_kernel)
             {
-                dummy_memset(handle,
-                             C,
-                             gemm_desc.m * gemm_desc.n * gemm_desc.batch_count,
-                             (gemm_desc.dataType == miopenInt8 ? miopenInt32 : gemm_desc.dataType));
+                dummy_memset(
+                    handle,
+                    C,
+                    gemm_desc.m * gemm_desc.n * gemm_desc.batch_count,
+                    ((gemm_desc.dataType == miopenInt8 || gemm_desc.dataType == miopenInt8x4)
+                         ? miopenInt32
+                         : gemm_desc.dataType));
             }
 
             start = make_hip_event();
@@ -584,6 +592,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
 
         switch(gemm_desc.dataType)
         {
+        case miopenInt8x4:
         case miopenInt8:
         {
             assert(gemm_desc.k % 4 == 0);
@@ -798,10 +807,13 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
         {
             if(enqueue_dummy_kernel)
             {
-                dummy_memset(handle,
-                             C,
-                             gemm_desc.m * gemm_desc.n,
-                             (gemm_desc.dataType == miopenInt8 ? miopenInt32 : gemm_desc.dataType));
+                dummy_memset(
+                    handle,
+                    C,
+                    gemm_desc.m * gemm_desc.n,
+                    ((gemm_desc.dataType == miopenInt8 || gemm_desc.dataType == miopenInt8x4)
+                         ? miopenInt32
+                         : gemm_desc.dataType));
             }
 
             start = make_hip_event();
@@ -813,6 +825,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
 
         switch(gemm_desc.dataType)
         {
+        case miopenInt8x4:
         case miopenInt8:
         {
             assert(gemm_desc.k % 4 == 0);
@@ -1074,7 +1087,7 @@ GemmDescriptor CreateGemmDescriptorConvFwd(const TensorDescriptor& wDesc,
 {
 #ifndef NDEBUG
     assert(wDesc.GetType() == xDesc.GetType());
-    if(wDesc.GetType() != miopenInt8)
+    if(wDesc.GetType() != miopenInt8 && wDesc.GetType() != miopenInt8x4)
         assert(wDesc.GetType() == yDesc.GetType());
 #endif
 
@@ -1232,7 +1245,7 @@ GemmDescriptor CreateGemmDescriptorConvCNHWFwd(const TensorDescriptor& wDesc,
 {
 #ifndef NDEBUG
     assert(wDesc.GetType() == xDesc.GetType());
-    if(wDesc.GetType() != miopenInt8)
+    if(wDesc.GetType() != miopenInt8 && wDesc.GetType() != miopenInt8x4)
         assert(wDesc.GetType() == yDesc.GetType());
 #endif
 
@@ -1338,7 +1351,7 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1Fwd(const TensorDescript
 {
 #ifndef NDEBUG
     assert(wDesc.GetType() == xDesc.GetType());
-    if(wDesc.GetType() != miopenInt8)
+    if(wDesc.GetType() != miopenInt8 && wDesc.GetType() != miopenInt8x4)
         assert(wDesc.GetType() == yDesc.GetType());
 #else
     (void)yDesc;

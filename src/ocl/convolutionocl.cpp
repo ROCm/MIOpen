@@ -413,9 +413,10 @@ static void DirConvFindCore(Handle& handle,
                         time_gemm += handle.GetKernelTime();
 
                         x_t_size *= 2;
-                        if(yDesc.GetType() == miopenInt32 || yDesc.GetType() == miopenFloat)
-                            x_t_size /= 4;
                     }
+                    if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
+                       (yDesc.GetType() == miopenInt32 || yDesc.GetType() == miopenFloat))
+                        x_t_size /= 4;
 
                     std::string kcache_key;
 
@@ -456,7 +457,7 @@ static void DirConvFindCore(Handle& handle,
                                         yDesc.GetType());
                     time_gemm += handle.GetKernelTime();
 
-                    if(wDesc.GetType() == miopenInt8)
+                    if(wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4)
                     {
                         miopen::TensorDescriptor ygemmDesc;
                         std::vector<int> ylen(yDesc.GetLengths().begin(), yDesc.GetLengths().end());
@@ -524,14 +525,6 @@ static void DirConvFindCore(Handle& handle,
                                                       callGemm);
 
                     time_gemm += (in_n * handle.GetKernelTime());
-
-                    miopen::TensorDescriptor ygemmDesc;
-                    std::vector<int> ylen(yDesc.GetLengths().begin(), yDesc.GetLengths().end());
-                    std::vector<int> ystr(yDesc.GetStrides().begin(), yDesc.GetStrides().end());
-                    ygemmDesc = miopen::TensorDescriptor(miopenInt32, ylen.data(), ystr.data(), 4);
-                    CastTensor(
-                        handle, &conv.lowp_quant, ygemmDesc, tmp_y.get(), yDesc, tmp_y.get(), 0, 0);
-                    time_gemm += handle.GetKernelTime();
                 }
                 else
                 {
@@ -556,6 +549,17 @@ static void DirConvFindCore(Handle& handle,
                     time_gemm = handle.GetKernelTime();
                     if(conv.group_count >= 2)
                         time_gemm *= in_n;
+                }
+
+                if(wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4)
+                {
+                    miopen::TensorDescriptor ygemmDesc;
+                    std::vector<int> ylen(yDesc.GetLengths().begin(), yDesc.GetLengths().end());
+                    std::vector<int> ystr(yDesc.GetStrides().begin(), yDesc.GetStrides().end());
+                    ygemmDesc = miopen::TensorDescriptor(miopenInt32, ylen.data(), ystr.data(), 4);
+                    CastTensor(
+                        handle, &conv.lowp_quant, ygemmDesc, tmp_y.get(), yDesc, tmp_y.get(), 0, 0);
+                    time_gemm += handle.GetKernelTime();
                 }
 
                 if(gemm_status == miopenStatusSuccess)
@@ -635,13 +639,14 @@ static void DirConvFindCore(Handle& handle,
                                         &kcache_key,
                                         time_precision,
                                         conv.group_count >= 2 ? callGemmStridedBatched : callGemm,
-                                        (conv.group_count >= 2 || wDesc.GetType() == miopenInt8)
+                                        (conv.group_count >= 2 || wDesc.GetType() == miopenInt8 ||
+                                         wDesc.GetType() == miopenInt8x4)
                                             ? GemmBackend_t::rocblas
                                             : GemmBackend_t::miopengemm);
 
                 time_gemm += (in_n * (time_im2col + handle.GetKernelTime()));
 
-                if(wDesc.GetType() == miopenInt8)
+                if(wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4)
                 {
                     miopen::TensorDescriptor ygemmDesc;
                     std::vector<int> ylen(yDesc.GetLengths().begin(), yDesc.GetLengths().end());
@@ -666,7 +671,7 @@ static void DirConvFindCore(Handle& handle,
         (void)workSpaceSize; // Suppress warning
 #endif
         if(conv.GetConvDilations()[0] == 1 && conv.GetConvDilations()[1] == 1 &&
-           wDesc.GetType() != miopenInt8)
+           wDesc.GetType() != miopenInt8 && wDesc.GetType() != miopenInt8x4)
         {
             // Winograd algo
             WinogradKernelParams k_p;
@@ -770,7 +775,7 @@ static void DirConvFindCore(Handle& handle,
             }
         }
         if(conv.GetConvDilations()[0] == 1 && conv.GetConvDilations()[1] == 1 &&
-           conv.group_count < 2 && wDesc.GetType() != miopenInt8)
+           conv.group_count < 2 && wDesc.GetType() != miopenInt8 && wDesc.GetType() != miopenInt8x4)
         {
             // FFT algo
             std::string network_config;
@@ -893,12 +898,14 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if((xDesc.GetType() != yDesc.GetType() && xDesc.GetType() != miopenInt8) ||
+    if((xDesc.GetType() != yDesc.GetType() && xDesc.GetType() != miopenInt8 &&
+        xDesc.GetType() != miopenInt8x4) ||
        xDesc.GetType() != wDesc.GetType())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(algo != miopenConvolutionFwdAlgoGEMM && xDesc.GetType() == miopenInt8)
+    if(algo != miopenConvolutionFwdAlgoGEMM &&
+       (xDesc.GetType() == miopenInt8 || xDesc.GetType() == miopenInt8x4))
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -1142,9 +1149,11 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                         t1 += handle.GetKernelTime();
 
                     x_t_size *= 2;
-                    if(GetTypeSize(yDesc.GetType()) != 0 && GetTypeSize(xDesc.GetType()) != 0)
-                        x_t_size /= (GetTypeSize(yDesc.GetType()) / GetTypeSize(xDesc.GetType()));
                 }
+                if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
+                   GetTypeSize(xDesc.GetType()) > 0 &&
+                   GetTypeSize(yDesc.GetType()) >= GetTypeSize(xDesc.GetType()))
+                    x_t_size /= GetTypeSize(yDesc.GetType()) / GetTypeSize(xDesc.GetType());
 
                 if(group_count >= 2)
                 {
@@ -1191,7 +1200,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 if(handle.IsProfilingEnabled())
                     t1 += handle.GetKernelTime();
 
-                if(wDesc.GetType() == miopenInt8)
+                if(wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4)
                 {
                     miopen::TensorDescriptor ygemmDesc;
                     std::vector<int> ylen(yDesc.GetLengths().begin(), yDesc.GetLengths().end());
@@ -1236,11 +1245,11 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 else
                 {
                     MIOPEN_LOG_FUNCTION("convolution, 1x1");
+                    float time_0 = 0;
+                    float t1     = 0;
 
                     if(wDesc.GetType() == miopenInt8)
                     {
-                        float time_0             = 0;
-                        float t1                 = 0;
                         GemmDescriptor gemm_desc = CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
 
                         for(int i = 0; i < in_n; i++)
@@ -1271,15 +1280,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                             if(handle.IsProfilingEnabled())
                                 time_0 += handle.GetKernelTime();
                         }
-
-                        miopen::TensorDescriptor ygemmDesc;
-                        std::vector<int> ylen(yDesc.GetLengths().begin(), yDesc.GetLengths().end());
-                        std::vector<int> ystr(yDesc.GetStrides().begin(), yDesc.GetStrides().end());
-                        ygemmDesc =
-                            miopen::TensorDescriptor(miopenInt32, ylen.data(), ystr.data(), 4);
-                        CastTensor(handle, &lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
-                        if(handle.IsProfilingEnabled())
-                            handle.AccumKernelTime(t1 + time_0);
                     }
                     else
                     {
@@ -1289,6 +1289,20 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
                         // y = w * x
                         CallGemmStridedBatched(handle, gemm_desc, w, 0, x, 0, y, 0, nullptr, false);
+                        if(handle.IsProfilingEnabled())
+                            time_0 += handle.GetKernelTime();
+                    }
+
+                    if(wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4)
+                    {
+                        miopen::TensorDescriptor ygemmDesc;
+                        std::vector<int> ylen(yDesc.GetLengths().begin(), yDesc.GetLengths().end());
+                        std::vector<int> ystr(yDesc.GetStrides().begin(), yDesc.GetStrides().end());
+                        ygemmDesc =
+                            miopen::TensorDescriptor(miopenInt32, ylen.data(), ystr.data(), 4);
+                        CastTensor(handle, &lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
+                        if(handle.IsProfilingEnabled())
+                            handle.AccumKernelTime(t1 + time_0);
                     }
                 }
             }
@@ -1375,8 +1389,9 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                                  out_offset,
                                  nullptr,
                                  false,
-                                 wDesc.GetType() == miopenInt8 ? GemmBackend_t::rocblas
-                                                               : GemmBackend_t::miopengemm);
+                                 (wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4)
+                                     ? GemmBackend_t::rocblas
+                                     : GemmBackend_t::miopengemm);
 
                     // Update times for both the kernels
                     if(handle.IsProfilingEnabled())
@@ -1394,7 +1409,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     }
                 }
 
-                if(wDesc.GetType() == miopenInt8)
+                if(wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4)
                 {
                     miopen::TensorDescriptor ygemmDesc;
                     std::vector<int> ylen(yDesc.GetLengths().begin(), yDesc.GetLengths().end());
