@@ -29,7 +29,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/visit_float.hpp>
-
+#include <miopen/util.hpp>
 #include <algorithm>
 #include <cassert>
 #include <numeric>
@@ -1323,6 +1323,11 @@ static std::string parms_half_or_float(const miopenDataType_t t)
         s = " -DMIOPEN_USE_INTE8=1";
         break;
     }
+    case miopenInt8x4:
+    {
+        s = " -DMIOPEN_USE_INTE8x4=1";
+        break;
+    }
     case miopenInt32: break;
     }
 
@@ -1556,7 +1561,7 @@ void ScaleTensor(
     assert(yDim_flat > 0 && yDim_flat <= 5);
 
     const miopenDataType_t dataType = yDesc_flat.GetType();
-    if(dataType == miopenInt8)
+    if(dataType == miopenInt8 || dataType == miopenInt8x4)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -1909,6 +1914,11 @@ void CastTensor(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
     }
 
+    if(srcDesc.GetType() == miopenInt8x4 || dstDesc.GetType() == miopenInt8x4)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
     auto flat_descriptors = GetConsistentFlattenedTensorDescriptors(srcDesc, dstDesc);
     const TensorDescriptor& srcDesc_flat = std::get<0>(flat_descriptors);
     const TensorDescriptor& dstDesc_flat = std::get<1>(flat_descriptors);
@@ -2129,13 +2139,13 @@ void TransformTensor(Handle& handle,
         MIOPEN_THROW("Tensor x and y batch sizes do not match");
     }
 
+    if(x_len[2] != y_len[2] || x_len[3] != y_len[3])
+    {
+        MIOPEN_THROW("Tensor x and y height or width sizes do not match");
+    }
+
     if(xDesc.GetType() == miopenInt8 && yDesc.GetType() == miopenInt8)
     {
-        if(x_len[2] != y_len[2] || x_len[3] != y_len[3])
-        {
-            MIOPEN_THROW("Tensor x and y height or width sizes do not match");
-        }
-
         if(x_len[1] <= y_len[1])
         {
             if(x_len[1] <= (y_len[1] - 4) || y_len[1] % 4 != 0)
@@ -2176,10 +2186,28 @@ void TransformTensor(Handle& handle,
                        x_offset,
                        y_offset);
         }
-
-        (void)alpha;
-        (void)beta;
     }
+    else if(xDesc.GetType() == miopenInt8 && yDesc.GetType() == miopenInt8x4)
+    {
+        if(x_len[1] <= (y_len[1] - 4) || y_len[1] % 4 != 0)
+        {
+            MIOPEN_THROW("Invalid y channel size");
+        }
+
+        transpose_NCHW2Vec(handle, x_len[0], x_len[1], x_len[2], x_len[3], x, y, 4, false, true);
+    }
+    else if(xDesc.GetType() == miopenInt8x4 && yDesc.GetType() == miopenInt8)
+    {
+        if(y_len[1] <= (x_len[1] - 4) || x_len[1] % 4 != 0)
+        {
+            MIOPEN_THROW("Invalid x channel size");
+        }
+
+        transpose_NCHW2Vec(handle, y_len[0], y_len[1], y_len[2], y_len[3], x, y, 4, false, false);
+    }
+
+    (void)alpha;
+    (void)beta;
 }
 
 } // namespace miopen

@@ -36,8 +36,14 @@
 #define MIOPEN_USE_INTE8 0
 #endif
 
+#ifndef MIOPEN_USE_INTE8x4
+#define MIOPEN_USE_INTE8x4 0
+#endif
+
 #if MIOPEN_USE_INTE8
 typedef char data_t;
+#elif MIOPEN_USE_INTE8x4
+typedef uint data_t;
 #elif MIOPEN_USE_FP16
 // As the half type degrades the performance, use short instead of half in
 // transpose kernels, which have no match op. May change back to half when

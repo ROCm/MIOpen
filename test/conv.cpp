@@ -73,7 +73,7 @@ static bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
 }
 #endif
 
-static bool is_int8_workspace_valid(miopen::Handle& handle,
+static bool is_gemm_workspace_valid(miopen::Handle& handle,
                                     const miopen::ConvolutionDescriptor convDesc,
                                     const miopen::TensorDescriptor& xDesc,
                                     const miopen::TensorDescriptor& wDesc,
@@ -350,18 +350,21 @@ struct verify_forward_conv_int8 : conv_base<T>
     using conv_base<T>::filter;
     using conv_base<T>::bias;
     using conv_base<T>::search;
+    bool is_vect;
 
     verify_forward_conv_int8(const tensor<T>& pinput,
                              const tensor<T>& pweights,
                              const miopen::ConvolutionDescriptor& pfilter,
                              int pbias   = 0,
-                             int psearch = 0)
+                             int psearch = 0,
+                             bool pvect  = false)
     {
         input   = pinput;
         weights = pweights;
         filter  = pfilter;
         bias    = pbias;
         search  = psearch;
+        is_vect = pvect;
     }
 
     tensor<float> cpu() const
@@ -406,48 +409,45 @@ struct verify_forward_conv_int8 : conv_base<T>
         auto wei_dev = handle.Write(weights.data);
         auto out_dev = handle.Write(rout.data);
 
-        bool is_int8_pad4 = ((input.desc.GetLengths()[1]) % 4 != 0);
+        bool is_transform = (input.desc.GetLengths()[1] % 4 != 0 || is_vect);
 
         std::vector<int> in_len(input.desc.GetLengths().begin(), input.desc.GetLengths().end()),
             wei_len(weights.desc.GetLengths().begin(), weights.desc.GetLengths().end());
         in_len[1]  = ((in_len[1] + 3) / 4) * 4;
         wei_len[1] = ((wei_len[1] + 3) / 4) * 4;
 
-        miopen::TensorDescriptor input_int8pad4_desc;
-        miopen::TensorDescriptor weight_int8pad4_desc;
-        input_int8pad4_desc  = miopen::TensorDescriptor(miopenInt8, in_len.data(), in_len.size());
-        weight_int8pad4_desc = miopen::TensorDescriptor(miopenInt8, wei_len.data(), wei_len.size());
+        miopen::TensorDescriptor input_vpad_desc;
+        miopen::TensorDescriptor weight_vpad_desc;
+        input_vpad_desc = miopen::TensorDescriptor(
+            is_vect ? miopenInt8x4 : miopenInt8, in_len.data(), in_len.size());
+        weight_vpad_desc = miopen::TensorDescriptor(
+            is_vect ? miopenInt8x4 : miopenInt8, wei_len.data(), wei_len.size());
 
-        auto input_int8pad4   = tensor<T>{in_len};
-        auto weights_int8pad4 = tensor<T>{wei_len};
-        auto in_int8pad4_dev  = handle.Write(input_int8pad4.data);
-        auto wei_int8pad4_dev = handle.Write(weights_int8pad4.data);
+        auto input_vpad   = tensor<T>{in_len};
+        auto weights_vpad = tensor<T>{wei_len};
+        auto in_vpad_dev  = handle.Write(input_vpad.data);
+        auto wei_vpad_dev = handle.Write(weights_vpad.data);
 
-        if(is_int8_pad4)
+        if(is_transform)
         {
             float aph = 1.0;
             float bta = 0.0;
-            miopen::TransformTensor(handle,
-                                    &aph,
-                                    input.desc,
-                                    in_dev.get(),
-                                    &bta,
-                                    input_int8pad4_desc,
-                                    in_int8pad4_dev.get());
+            miopen::TransformTensor(
+                handle, &aph, input.desc, in_dev.get(), &bta, input_vpad_desc, in_vpad_dev.get());
 
             miopen::TransformTensor(handle,
                                     &aph,
                                     weights.desc,
                                     wei_dev.get(),
                                     &bta,
-                                    weight_int8pad4_desc,
-                                    wei_int8pad4_dev.get());
+                                    weight_vpad_desc,
+                                    wei_vpad_dev.get());
         }
 
         size_t workspace_size =
             filter.ForwardGetWorkSpaceSize(handle,
-                                           (is_int8_pad4 ? weight_int8pad4_desc : weights.desc),
-                                           (is_int8_pad4 ? input_int8pad4_desc : input.desc),
+                                           (is_transform ? weight_vpad_desc : weights.desc),
+                                           (is_transform ? input_vpad_desc : input.desc),
                                            rout.desc);
 
         std::vector<char> workspace(workspace_size);
@@ -459,10 +459,10 @@ struct verify_forward_conv_int8 : conv_base<T>
         float alpha = 1, beta = 0;
 
         filter.FindConvFwdAlgorithm(handle,
-                                    (is_int8_pad4 ? input_int8pad4_desc : input.desc),
-                                    (is_int8_pad4 ? in_int8pad4_dev.get() : in_dev.get()),
-                                    (is_int8_pad4 ? weight_int8pad4_desc : weights.desc),
-                                    (is_int8_pad4 ? wei_int8pad4_dev.get() : wei_dev.get()),
+                                    (is_transform ? input_vpad_desc : input.desc),
+                                    (is_transform ? in_vpad_dev.get() : in_dev.get()),
+                                    (is_transform ? weight_vpad_desc : weights.desc),
+                                    (is_transform ? wei_vpad_dev.get() : wei_dev.get()),
                                     rout.desc,
                                     out_dev.get(),
                                     1,
@@ -474,10 +474,10 @@ struct verify_forward_conv_int8 : conv_base<T>
 
         filter.ConvolutionForward(handle,
                                   &alpha,
-                                  (is_int8_pad4 ? input_int8pad4_desc : input.desc),
-                                  (is_int8_pad4 ? in_int8pad4_dev.get() : in_dev.get()),
-                                  (is_int8_pad4 ? weight_int8pad4_desc : weights.desc),
-                                  (is_int8_pad4 ? wei_int8pad4_dev.get() : wei_dev.get()),
+                                  (is_transform ? input_vpad_desc : input.desc),
+                                  (is_transform ? in_vpad_dev.get() : in_dev.get()),
+                                  (is_transform ? weight_vpad_desc : weights.desc),
+                                  (is_transform ? wei_vpad_dev.get() : wei_dev.get()),
                                   perf.fwd_algo,
                                   &beta,
                                   rout.desc,
@@ -889,10 +889,10 @@ struct conv_driver : test_driver
         filter.dilations[0] = pads_strides_dilations[4];
         filter.dilations[1] = pads_strides_dilations[5];
         filter.group_count  = std::max(static_cast<int>(groupCount), 1);
+        bool is_int8 = (input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4);
 
         // lack of transposeConv or groupConv for int8 type
-        if(input.desc.GetType() == miopenInt8 &&
-           (filter.mode == miopenTranspose || filter.group_count >= 2))
+        if(is_int8 && (filter.mode == miopenTranspose || filter.group_count >= 2))
         {
             return;
         }
@@ -981,33 +981,34 @@ struct conv_driver : test_driver
                 auto output = get_output_tensor(filter, input, weights);
 
                 auto gen_positive_value = [=](auto, auto, auto, auto) {
-                    if(input.desc.GetType() == miopenInt8)
-                        return scalar_gen_random_integer{0, 127}();
-                    else
-                        return gen_float ? scalar_gen_random_float{0, 1}()
-                                         : scalar_gen_random_integer{
-                                               1, miopen_type<T>{} == miopenHalf ? 4 : 16}();
+                    return is_int8
+                               ? scalar_gen_random_integer{0, 127}()
+                               : (gen_float ? scalar_gen_random_float{0, 1}()
+                                            : scalar_gen_random_integer{
+                                                  1, miopen_type<T>{} == miopenHalf ? 4 : 16}());
                 };
 
                 auto gen_sign_value = [=](auto n, auto c, auto h, auto w) {
-                    if(input.desc.GetType() == miopenInt8)
-                        return (scalar_gen_random_integer{0, 127}() *
-                                tensor_elem_gen_checkboard_sign{}(n, c, h, w));
-                    else
-                        return gen_float ? scalar_gen_random_float{-1, 1}()
-                                         : scalar_gen_random_integer{1,
-                                                                     miopen_type<T>{} == miopenHalf
-                                                                         ? 4
-                                                                         : 16}() *
-                                               tensor_elem_gen_checkboard_sign{}(n, c, h, w);
+                    return is_int8 ? (scalar_gen_random_integer{0, 127}() *
+                                      tensor_elem_gen_checkboard_sign{}(n, c, h, w))
+                                   : (gen_float
+                                          ? scalar_gen_random_float{-1, 1}()
+                                          : scalar_gen_random_integer{1,
+                                                                      miopen_type<T>{} == miopenHalf
+                                                                          ? 4
+                                                                          : 16}() *
+                                                tensor_elem_gen_checkboard_sign{}(n, c, h, w));
                 };
 
-                bool skip_forward          = false;
-                bool skip_backward_data    = false;
-                bool skip_backward_weights = false;
+                bool skip_forward =
+                    is_int8 &&
+                    !is_gemm_workspace_valid(
+                        get_handle(), filter, input.desc, weights.desc, output.desc);
+                bool skip_backward_data    = is_int8;
+                bool skip_backward_weights = is_int8;
 
 #if TEST_DIRECT_SUPPORTED_CONFIG_ONLY
-                if(input.desc.GetType() == miopenInt8)
+                if(input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4)
                 {
                     return;
                 }
@@ -1033,33 +1034,28 @@ struct conv_driver : test_driver
                     return;
                 }
 
-                // ToDo: workaround for workspace exceeding upperlimit issue
-                if(input.desc.GetType() == miopenInt8 &&
-                   !is_int8_workspace_valid(
-                       get_handle(), filter, input.desc, weights.desc, output.desc))
-                {
-                    return;
-                }
-
                 input.generate(gen_positive_value);
                 output.generate(gen_positive_value);
                 weights.generate(gen_sign_value);
 
                 if(do_forward && !skip_forward)
                 {
-                    if(input.desc.GetType() == miopenInt8)
+                    if(is_int8)
+                    {
                         verify(verify_forward_conv_int8<T>{input, weights, filter, 0, search});
+                        verify(
+                            verify_forward_conv_int8<T>{input, weights, filter, 0, search, true});
+                    }
                     else
                         verify(verify_forward_conv<T>{input, weights, filter, 0, search});
                 }
 
-                if(do_backward_data && !skip_backward_data && input.desc.GetType() != miopenInt8)
+                if(do_backward_data && !skip_backward_data)
                 {
                     verify(verify_backward_conv<T>{input, weights, output, filter, 0, search});
                 }
 
-                if(do_backward_weights && !skip_backward_weights &&
-                   input.desc.GetType() != miopenInt8)
+                if(do_backward_weights && !skip_backward_weights)
                 {
                     output.generate(gen_sign_value);
 

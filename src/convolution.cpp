@@ -361,9 +361,10 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         int in_c, in_h, in_w;
         std::tie(std::ignore, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
 
+        bool is_datatype_int8 = (wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4);
+
         const size_t direct_workspace =
-            (GetConvDilations()[0] == 1 && GetConvDilations()[1] == 1 &&
-             wDesc.GetType() != miopenInt8)
+            (GetConvDilations()[0] == 1 && GetConvDilations()[1] == 1 && !is_datatype_int8)
                 ? ForwardBackwardDataGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc, 1)
                 : 0;
 
@@ -397,16 +398,16 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         // If Winograd is present, there is no advantage in letting
         // the user run another algorithm as those both slower and
         // use more workspace.
-        if(IsWinograd3x3Supported(handle, true, wDesc, xDesc) && wDesc.GetType() != miopenInt8)
+        if(IsWinograd3x3Supported(handle, true, wDesc, xDesc) && !is_datatype_int8)
         {
             return 0;
         }
         else
         {
-            size_t workspace_size_fft = (GetConvDilations()[0] == 1 && GetConvDilations()[1] == 1 &&
-                                         wDesc.GetType() != miopenInt8)
-                                            ? ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc)
-                                            : 0;
+            size_t workspace_size_fft =
+                (GetConvDilations()[0] == 1 && GetConvDilations()[1] == 1 && !is_datatype_int8)
+                    ? ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc)
+                    : 0;
 
             return std::max(std::max(workspace_size_fft, workspace_size_gemm), direct_workspace);
         }
@@ -557,7 +558,9 @@ ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescriptor& inputTenso
 {
     auto dims = this->GetForwardOutputDim(inputTensorDesc, filterDesc);
     return TensorDescriptor(
-        (inputTensorDesc.GetType() == miopenInt8 ? miopenFloat : inputTensorDesc.GetType()),
+        ((inputTensorDesc.GetType() == miopenInt8 || inputTensorDesc.GetType() == miopenInt8x4)
+             ? miopenFloat
+             : inputTensorDesc.GetType()),
         {std::get<0>(dims), std::get<1>(dims), std::get<2>(dims), std::get<3>(dims)});
 }
 

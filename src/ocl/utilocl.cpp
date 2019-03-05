@@ -64,15 +64,17 @@ float Im2ColGPU(Handle& handle,
                                  std::to_string(stride_w) + "l" + std::to_string(dilation_h) + "j" +
                                  std::to_string(dilation_w) + "t" + std::to_string(type);
 
-    auto&& kernels = handle.GetKernels("miopenIm2Col", network_config);
+    auto&& kernels           = handle.GetKernels("miopenIm2Col", network_config);
+    const int data_size_pack = type == miopenInt8x4 ? data_size * 4 : data_size;
+    const int im_offset_pack = type == miopenInt8x4 ? im_offset / 4 : im_offset;
 
     if(!kernels.empty())
     {
-        int data_size_off = data_size - im_offset;
+        int data_size_off = data_size_pack - im_offset_pack;
         auto kernel       = kernels.front();
         kernel(data_size_off,
                im,
-               im_offset,
+               im_offset_pack,
                h,
                w,
                wei_h,
@@ -89,9 +91,11 @@ float Im2ColGPU(Handle& handle,
     }
     else
     {
+        const int c_pack = type == miopenInt8x4 ? c / 4 : c;
+
         std::string params;
         int num_ch_per_wg;
-        if((out_h <= 8 && out_w <= 8) && (stride_h == 1 && stride_w == 1) && (c % 4 == 0))
+        if((out_h <= 8 && out_w <= 8) && (stride_h == 1 && stride_w == 1) && (c_pack % 4 == 0))
             num_ch_per_wg = 4;
         else
             num_ch_per_wg = 1;
@@ -121,7 +125,7 @@ float Im2ColGPU(Handle& handle,
         if(extreme_case > MAX_LOCAL_MEM)
         {
             params += " -DEXTREME_LARGE";
-            params += " -DNUM_CH_TOTAL=" + std::to_string(c);
+            params += " -DNUM_CH_TOTAL=" + std::to_string(c_pack);
         }
         else
         {
@@ -149,7 +153,7 @@ float Im2ColGPU(Handle& handle,
             }
         }
 
-        int data_size_off = data_size - im_offset;
+        int data_size_off = data_size_pack - im_offset_pack;
 
         params += " -DNUM_CH_PER_WG=" + std::to_string(num_ch_per_wg);
         params += " -DNUM_IM_BLKS_X=" + std::to_string(num_blks_x);
@@ -162,20 +166,22 @@ float Im2ColGPU(Handle& handle,
 
         if(type == miopenInt8)
             params += " -DMIOPEN_USE_INTE8=1";
+        else if(type == miopenInt8x4)
+            params += " -DMIOPEN_USE_INTE8x4=1";
         else if(type == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
         else
             params += " -DMIOPEN_USE_FP32=1";
 
         const std::vector<size_t> vld{256, 1, 1};
-        size_t global_threads = 256 * std::max(1, (c / num_ch_per_wg)) * num_blks;
+        size_t global_threads = 256 * std::max(1, (c_pack / num_ch_per_wg)) * num_blks;
         const std::vector<size_t> vgd{global_threads, 1, 1};
 
         handle.AddKernel(
             "miopenIm2Col", network_config, program_name, kernel_name, vld, vgd, params)(
             data_size_off,
             im,
-            im_offset,
+            im_offset_pack,
             h,
             w,
             wei_h,
@@ -318,6 +324,13 @@ float transpose_NCHW2CNHW(Handle& handle,
 
         if(type == miopenInt8)
             params += " -DMIOPEN_USE_INTE8=1";
+        else if(type == miopenInt8x4)
+        {
+            c /= 4;
+            in_offset /= 4;
+            out_offset /= 4;
+            params += " -DMIOPEN_USE_INTE8x4=1";
+        }
         else if(type == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
         else
@@ -443,6 +456,13 @@ float transpose_CNHW2NCHW(Handle& handle,
 
         if(type == miopenInt8)
             params += " -DMIOPEN_USE_INTE8=1";
+        else if(type == miopenInt8x4)
+        {
+            c /= 4;
+            in_offset /= 4;
+            out_offset /= 4;
+            params += " -DMIOPEN_USE_INTE8x4=1";
+        }
         else if(type == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
         else
@@ -664,6 +684,13 @@ float transpose_packed_MN2NM(Handle& handle,
 
         if(type == miopenInt8)
             params += " -DMIOPEN_USE_INTE8=1";
+        else if(type == miopenInt8x4)
+        {
+            m /= 4;
+            in_offset /= 4;
+            out_offset /= 4;
+            params += " -DMIOPEN_USE_INTE8x4=1";
+        }
         else if(type == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
         else
