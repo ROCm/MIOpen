@@ -295,7 +295,9 @@ typedef enum {
     miopenHalf  = 0, /*!< 16-bit floating point (Not supported) */
     miopenFloat = 1, /*!< 32-bit floating point (Fully supported) */
     miopenInt32 = 2, /*!< 32-bit int point (Not supported) */
-    miopenInt8  = 3, /*!< 8-bit int point (Not supported) */
+    miopenInt8  = 3, /*!< 8-bit int point (Partially supported) */
+    miopenInt8x4 =
+        4, /*!< Pack of four 8-bit int points in NCHW_VECT_C format (Partially supported) */
 } miopenDataType_t;
 
 /*! @ingroup tensor

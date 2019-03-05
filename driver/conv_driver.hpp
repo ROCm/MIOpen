@@ -122,8 +122,8 @@ class ConvDriver : public Driver
         miopenCreateTensorDescriptor(&weightTensor);
         miopenCreateTensorDescriptor(&outputTensor);
         miopenCreateTensorDescriptor(&biasTensor);
-        miopenCreateTensorDescriptor(&inputTensor_int8pad4);
-        miopenCreateTensorDescriptor(&weightTensor_int8pad4);
+        miopenCreateTensorDescriptor(&inputTensor_vect4);
+        miopenCreateTensorDescriptor(&weightTensor_vect4);
 
         miopenCreateConvolutionDescriptor(&convDesc);
 
@@ -176,8 +176,8 @@ class ConvDriver : public Driver
         miopenDestroyTensorDescriptor(outputTensor);
         miopenDestroyTensorDescriptor(weightTensor);
         miopenDestroyTensorDescriptor(inputTensor);
-        miopenDestroyTensorDescriptor(inputTensor_int8pad4);
-        miopenDestroyTensorDescriptor(weightTensor_int8pad4);
+        miopenDestroyTensorDescriptor(inputTensor_vect4);
+        miopenDestroyTensorDescriptor(weightTensor_vect4);
 
         miopenDestroyConvolutionDescriptor(convDesc);
     }
@@ -189,14 +189,14 @@ class ConvDriver : public Driver
     miopenTensorDescriptor_t weightTensor;
     miopenTensorDescriptor_t outputTensor;
     miopenTensorDescriptor_t biasTensor;
-    miopenTensorDescriptor_t inputTensor_int8pad4;
-    miopenTensorDescriptor_t weightTensor_int8pad4;
+    miopenTensorDescriptor_t inputTensor_vect4;
+    miopenTensorDescriptor_t weightTensor_vect4;
 
     std::unique_ptr<GPUMem> in_dev;
-    std::unique_ptr<GPUMem> in_int8pad4_dev;
+    std::unique_ptr<GPUMem> in_vect4_dev;
     std::unique_ptr<GPUMem> din_dev;
     std::unique_ptr<GPUMem> wei_dev;
-    std::unique_ptr<GPUMem> wei_int8pad4_dev;
+    std::unique_ptr<GPUMem> wei_vect4_dev;
     std::unique_ptr<GPUMem> dwei_dev;
     std::unique_ptr<GPUMem> out_dev;
     std::unique_ptr<GPUMem> dout_dev;
@@ -235,12 +235,22 @@ class ConvDriver : public Driver
     std::string GetVerificationCacheFileName() const;
     std::string GetVCacheFwdOutBasename() const;
     std::string GetVCacheBwdDataBasename() const;
+    bool IsInputTensorTransform() const;
 
     bool TryReadVerificationCache(const std::string& file_name,
                                   miopenTensorDescriptor_t& tensorDesc,
                                   Tref* data) const;
     void TrySaveVerificationCache(const std::string& file_name, std::vector<Tref>& data) const;
 };
+
+// Check if int8 type tensor x and w need to be transformed to a pack of 4 elements along channel
+// (NCHW_VECT_C format)
+template <typename Tgpu, typename Tref, typename Tfile>
+bool ConvDriver<Tgpu, Tref, Tfile>::IsInputTensorTransform() const
+{
+    return (data_type == miopenInt8 && inflags.GetValueInt("in_channels") % 4 != 0) ||
+           data_type == miopenInt8x4;
+}
 
 template <typename Tgpu, typename Tref, typename Tfile>
 int ConvDriver<Tgpu, Tref, Tfile>::ParseCmdLineArgs(int argc, char* argv[])
@@ -267,20 +277,28 @@ int ConvDriver<Tgpu, Tref, Tfile>::GetandSetData()
 
     SetTensor4d(inputTensor, in_len, data_type);
     SetTensor4d(weightTensor, wei_len, data_type);
-    if(data_type == miopenInt8 && (in_len[1] % 4 != 0))
+
+    if(inflags.GetValueInt("tensor_vect") == 1 && data_type == miopenInt8)
     {
-        std::vector<int> in_len_int8pad4(in_len.begin(), in_len.end()),
-            wei_len_int8pad4(wei_len.begin(), wei_len.end());
-        in_len_int8pad4[1] = ((in_len[1] + 3) / 4) * 4;
-        SetTensor4d(inputTensor_int8pad4, in_len_int8pad4, data_type);
-        wei_len_int8pad4[1] = ((wei_len[1] + 3) / 4) * 4;
-        SetTensor4d(weightTensor_int8pad4, wei_len_int8pad4, data_type);
+        data_type = miopenInt8x4;
+    }
+
+    if(IsInputTensorTransform())
+    {
+        std::vector<int> in_len_vect4(in_len.begin(), in_len.end()),
+            wei_len_vect4(wei_len.begin(), wei_len.end());
+        in_len_vect4[1] = ((in_len[1] + 3) / 4) * 4;
+        SetTensor4d(inputTensor_vect4, in_len_vect4, data_type);
+        wei_len_vect4[1] = ((wei_len[1] + 3) / 4) * 4;
+        SetTensor4d(weightTensor_vect4, wei_len_vect4, data_type);
     }
     SetConvDescriptorFromCmdLineArgs();
 
     std::vector<int> out_len = GetOutputTensorLengths();
 
-    SetTensor4d(outputTensor, out_len, data_type == miopenInt8 ? miopenFloat : data_type);
+    miopenDataType_t y_type =
+        (data_type == miopenInt8 || data_type == miopenInt8x4) ? miopenFloat : data_type;
+    SetTensor4d(outputTensor, out_len, y_type);
 
     if(inflags.GetValueInt("bias") != 0)
     {
@@ -345,7 +363,11 @@ int ConvDriver<Tgpu, Tref, Tfile>::AddCmdLineArgs()
 
     inflags.AddInputFlag(
         "pad_mode", 'z', "default", "Padding Mode (same, valid, default) (Default=default)", "str");
-
+    inflags.AddInputFlag("tensor_vect",
+                         'Z',
+                         "0",
+                         "tensor vectorization type (none, vect_c, vect_n) (Default=0)",
+                         "int");
     inflags.AddInputFlag("dilation_h", 'l', "1", "Dilation of Filter Height (Default=1)", "int");
     inflags.AddInputFlag("dilation_w", 'j', "1", "Dilation of Filter Width (Default=1)", "int");
     inflags.AddInputFlag("in_bias", 'a', "", "Input bias filename (Default=)", "string");
@@ -518,9 +540,8 @@ float16 RanGenWeights()
 template <typename Tgpu, typename Tref, typename Tfile>
 int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
 {
-    bool is_int8_pad4 =
-        (data_type == miopenInt8 && ((inflags.GetValueInt("in_channels")) % 4 != 0));
-
+    bool is_transform           = IsInputTensorTransform();
+    bool is_int8                = data_type == miopenInt8 || data_type == miopenInt8x4;
     size_t in_sz                = GetTensorSize(inputTensor);
     size_t wei_sz               = GetTensorSize(weightTensor);
     size_t out_sz               = GetTensorSize(outputTensor);
@@ -535,13 +556,12 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
         miopenConvolutionBackwardDataGetWorkSpaceSize(
             GetHandle(), outputTensor, weightTensor, convDesc, inputTensor, &workSpaceSize_bwd_dt);
     if(forward_allowed)
-        miopenConvolutionForwardGetWorkSpaceSize(
-            GetHandle(),
-            (is_int8_pad4 ? weightTensor_int8pad4 : weightTensor),
-            (is_int8_pad4 ? inputTensor_int8pad4 : inputTensor),
-            convDesc,
-            outputTensor,
-            &workSpaceSize_fwd);
+        miopenConvolutionForwardGetWorkSpaceSize(GetHandle(),
+                                                 (is_transform ? weightTensor_vect4 : weightTensor),
+                                                 (is_transform ? inputTensor_vect4 : inputTensor),
+                                                 convDesc,
+                                                 outputTensor,
+                                                 &workSpaceSize_fwd);
 
     // Workaround: Pad buffers allocations to be a multiple of 2M
     if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
@@ -567,8 +587,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     wei_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(Tgpu)));
     dwei_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(Tgpu)));
     dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-    out_dev  = std::unique_ptr<GPUMem>(
-        new GPUMem(ctx, out_sz, data_type == miopenInt8 ? sizeof(float) : sizeof(Tgpu)));
+    out_dev =
+        std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, is_int8 ? sizeof(float) : sizeof(Tgpu)));
     if(workSpaceSize_bwd_dt != 0)
     {
         workspace_bwd_data_dev =
@@ -597,14 +617,14 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     dwei = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
     dout = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
     out  = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    if(data_type == miopenInt8)
+    if(is_int8)
         out_int8 = std::vector<float>(out_sz, static_cast<float>(0));
-    if(is_int8_pad4)
+    if(is_transform)
     {
-        in_int8pad4_dev = std::unique_ptr<GPUMem>(
-            new GPUMem(ctx, GetTensorSize(inputTensor_int8pad4), sizeof(Tgpu)));
-        wei_int8pad4_dev = std::unique_ptr<GPUMem>(
-            new GPUMem(ctx, GetTensorSize(weightTensor_int8pad4), sizeof(Tgpu)));
+        in_vect4_dev = std::unique_ptr<GPUMem>(
+            new GPUMem(ctx, GetTensorSize(inputTensor_vect4), sizeof(Tgpu)));
+        wei_vect4_dev = std::unique_ptr<GPUMem>(
+            new GPUMem(ctx, GetTensorSize(weightTensor_vect4), sizeof(Tgpu)));
     }
 
     outhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
@@ -633,7 +653,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
         weiRead = readBufferFromFile<Tgpu>(wei.data(), wei_sz, weiFileName.c_str());
     }
 
-    if(data_type == miopenInt8)
+    if(is_int8)
     {
         float Data_scale = 127.0;
 
@@ -757,8 +777,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     status |= wei_dev->ToGPU(q, wei.data());
     status |= dwei_dev->ToGPU(q, dwei.data());
     status |= dout_dev->ToGPU(q, dout.data());
-    status |= (data_type == miopenInt8 ? out_dev->ToGPU(q, out_int8.data())
-                                       : out_dev->ToGPU(q, out.data()));
+    status |= (is_int8 ? out_dev->ToGPU(q, out_int8.data()) : out_dev->ToGPU(q, out.data()));
     if(workSpaceSize_bwd_dt != 0)
         status |= workspace_bwd_data_dev->ToGPU(q, workspace_bwd_data.data());
     if(workSpaceSize_bwd_wt != 0)
@@ -777,15 +796,14 @@ int ConvDriver<Tgpu, Tref, Tfile>::FindForward(int& ret_algo_count,
                                                int request_algo_count,
                                                std::vector<miopenConvAlgoPerf_t>& perf_results)
 {
-    bool is_int8_pad4 =
-        (data_type == miopenInt8 && ((inflags.GetValueInt("in_channels")) % 4 != 0));
+    bool is_transform = IsInputTensorTransform();
 
     return miopenFindConvolutionForwardAlgorithm(
         GetHandle(),
-        (is_int8_pad4 ? inputTensor_int8pad4 : inputTensor),
-        (is_int8_pad4 ? in_int8pad4_dev->GetMem() : in_dev->GetMem()),
-        (is_int8_pad4 ? weightTensor_int8pad4 : weightTensor),
-        (is_int8_pad4 ? wei_int8pad4_dev->GetMem() : wei_dev->GetMem()),
+        (is_transform ? inputTensor_vect4 : inputTensor),
+        (is_transform ? in_vect4_dev->GetMem() : in_dev->GetMem()),
+        (is_transform ? weightTensor_vect4 : weightTensor),
+        (is_transform ? wei_vect4_dev->GetMem() : wei_dev->GetMem()),
         convDesc,
         outputTensor,
         out_dev->GetMem(),
@@ -807,9 +825,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
     int request_algo_count = 2;
     std::vector<miopenConvAlgoPerf_t> perf_results(request_algo_count);
 
-    bool is_int8_pad4 =
-        (data_type == miopenInt8 && ((inflags.GetValueInt("in_channels")) % 4 != 0));
-    if(is_int8_pad4)
+    bool is_transform = IsInputTensorTransform();
+    if(is_transform)
     {
         float aph = 1.0;
         float bta = 0.0;
@@ -818,16 +835,16 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
                               inputTensor,
                               in_dev->GetMem(),
                               &bta,
-                              inputTensor_int8pad4,
-                              in_int8pad4_dev->GetMem());
+                              inputTensor_vect4,
+                              in_vect4_dev->GetMem());
 
         miopenTransformTensor(GetHandle(),
                               &aph,
                               weightTensor,
                               wei_dev->GetMem(),
                               &bta,
-                              weightTensor_int8pad4,
-                              wei_int8pad4_dev->GetMem());
+                              weightTensor_vect4,
+                              wei_vect4_dev->GetMem());
     }
 
     FindForward(ret_algo_count, request_algo_count, perf_results);
@@ -847,10 +864,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
     {
         miopenConvolutionForward(GetHandle(),
                                  &alpha,
-                                 (is_int8_pad4 ? inputTensor_int8pad4 : inputTensor),
-                                 (is_int8_pad4 ? in_int8pad4_dev->GetMem() : in_dev->GetMem()),
-                                 (is_int8_pad4 ? weightTensor_int8pad4 : weightTensor),
-                                 (is_int8_pad4 ? wei_int8pad4_dev->GetMem() : wei_dev->GetMem()),
+                                 (is_transform ? inputTensor_vect4 : inputTensor),
+                                 (is_transform ? in_vect4_dev->GetMem() : in_dev->GetMem()),
+                                 (is_transform ? weightTensor_vect4 : weightTensor),
+                                 (is_transform ? wei_vect4_dev->GetMem() : wei_dev->GetMem()),
                                  convDesc,
                                  perf_results[0].fwd_algo, // use the fastest algo
                                  &beta,
@@ -939,14 +956,15 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
         }
     }
 
-    if(data_type == miopenInt8)
+    bool is_int8 = data_type == miopenInt8 || data_type == miopenInt8x4;
+    if(is_int8)
         out_dev->FromGPU(GetStream(), out_int8.data());
     else
         out_dev->FromGPU(GetStream(), out.data());
 
     if(inflags.GetValueInt("dump_output"))
     {
-        if(data_type == miopenInt8)
+        if(is_int8)
             dumpBufferToFile<float>("dump_fwd_out_gpu.bin", out_int8.data(), out_int8.size());
         else
             dumpBufferToFile<Tgpu>("dump_fwd_out_gpu.bin", out.data(), out.size());
@@ -1998,7 +2016,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyForward()
     }
 
     auto error = miopen::rms_range(outhost, out);
-    if(data_type == miopenInt8)
+    if(data_type == miopenInt8 || data_type == miopenInt8x4)
         error = miopen::rms_range(outhost, out_int8);
 
     const Tref tolerance = ((sizeof(Tgpu) == 4 || sizeof(Tgpu) == 1) ? static_cast<Tref>(1e-6)

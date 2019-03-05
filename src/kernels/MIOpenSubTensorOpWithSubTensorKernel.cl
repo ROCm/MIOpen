@@ -42,7 +42,11 @@
 #define MIOPEN_USE_INTE8 0
 #endif
 
-#if MIOPEN_USE_INTE8 == 1
+#ifndef MIOPEN_USE_INTE8x4
+#define MIOPEN_USE_INTE8x4 0
+#endif
+
+#if MIOPEN_USE_INTE8 == 1 || MIOPEN_USE_INTE8x4 == 1
 #define _FLOAT char
 #ifndef FLT_MAX
 #define MAX_VAL 127 /* max value */

@@ -256,7 +256,8 @@ extern "C" miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
         {
             std::cerr << MIOPEN_DRIVER_CMD("convfp16");
         }
-        else if(miopen::deref(xDesc).GetType() == miopenInt8)
+        else if(miopen::deref(xDesc).GetType() == miopenInt8 ||
+                miopen::deref(xDesc).GetType() == miopenInt8x4)
         {
             std::cerr << MIOPEN_DRIVER_CMD("convint8");
         }
@@ -281,8 +282,11 @@ extern "C" miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
                   << miopen::deref(convDesc).GetConvDilations()[1] << " -m "
                   << (miopen::deref(convDesc).mode == 1 ? "trans" : "conv") << " -g "
                   << miopen::deref(convDesc).group_count << " -t "
-                  << "1"
-                  << "\n";
+                  << "1";
+        if(miopen::deref(xDesc).GetType() == miopenInt8x4)
+            std::cerr << " -Z "
+                      << "1";
+        std::cerr << "\n";
     }
 
     /// workaround for previous trans conv logic
