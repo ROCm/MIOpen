@@ -513,10 +513,10 @@ gcnAsmConv3x3WrW:
 
    .if stride_w == 2
       line_adjust = gprs_per_batch_in
-      line_adjust_1 = gprs_per_batch_in
+      line_adjust_1 = 1
    .else
       line_adjust = 0
-      line_adjust_1 = 1
+      line_adjust_1 = gprs_per_batch_in
    .endif
 
    .macro conv_line in_line, out_line, acc_line, acc_batch, sync=0, swizzle=0
@@ -560,11 +560,11 @@ gcnAsmConv3x3WrW:
                .if elements_in_dword == 2
                   .if acc_x == 1
                      v_dot2  acc_base + acc_off, in_base + in_x, out_base + out_x
-                     .if gprs_per_line_in == 1
+                     .if stride_w == 2 && gprs_per_line_in == 1
                         v_mov_b32 v[shfl], v[in_base] row_shl:1 bound_ctrl:0
                         v_dot2  acc_base + acc_off, shfl, out_base + out_x + gprs_per_batch_out
                      .else
-                         v_dot2 acc_base + acc_off, in_base + in_x + line_adjust_1, out_base + out_x + gprs_per_batch_out
+                        v_dot2 acc_base + acc_off, in_base + in_x + line_adjust_1, out_base + out_x + gprs_per_batch_out
                      .endif
                   .elseif acc_x == 0
                      v_dot2  acc_base + acc_off, in_base + in_x + gprs_per_batch_in, out_base + out_x
