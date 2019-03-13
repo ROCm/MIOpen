@@ -343,6 +343,12 @@ struct test_driver
         return lazy_generate_tensor<F, std::vector<X>, G>(f, single, g);
     }
 
+    template <class F, class G>
+    generate_tensor_t<std::vector<int>, G> get_tensor(F gen_shapes, G gen_value)
+    {
+        return lazy_generate_tensor([=] { return gen_shapes(batch_factor); }, gen_value);
+    }
+
     template <class G = tensor_elem_gen_integer>
     generate_tensor_t<std::vector<int>, G>
     get_bn_spatial_input_tensor(G tensor_elem_gen = tensor_elem_gen_integer{})

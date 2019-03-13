@@ -114,6 +114,18 @@ struct cast_to
     }
 };
 
+template <class F>
+auto unpacker(F f)
+{
+    return [=](auto xs) { return miopen::unpack(f, xs); };
+};
+
+template <class F, class... Xs>
+auto prepender(F f, Xs... xs)
+{
+    return [=](auto... ys) { return f(xs..., ys...); };
+}
+
 } // namespace miopen
 
 #endif

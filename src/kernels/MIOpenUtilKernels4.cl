@@ -32,17 +32,17 @@
 #define MIOPEN_USE_FP16 0
 #endif
 
-#ifndef MIOPEN_USE_INTE8
-#define MIOPEN_USE_INTE8 0
+#ifndef MIOPEN_USE_INT8
+#define MIOPEN_USE_INT8 0
 #endif
 
-#ifndef MIOPEN_USE_INTE8x4
-#define MIOPEN_USE_INTE8x4 0
+#ifndef MIOPEN_USE_INT8x4
+#define MIOPEN_USE_INT8x4 0
 #endif
 
-#if MIOPEN_USE_INTE8
+#if MIOPEN_USE_INT8
 typedef char data_t;
-#elif MIOPEN_USE_INTE8x4
+#elif MIOPEN_USE_INT8x4
 typedef uint data_t;
 #elif MIOPEN_USE_FP16
 // As the half type degrades the performance, use short instead of half in
