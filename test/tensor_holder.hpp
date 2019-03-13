@@ -31,6 +31,7 @@
 #include <miopen/tensor.hpp>
 #include <miopen/functional.hpp>
 #include <miopen/type_name.hpp>
+#include <miopen/each_args.hpp>
 
 #include <half.hpp>
 #include <iomanip>
@@ -249,6 +250,14 @@ struct tensor
     {
         assert(this->desc.GetIndex(xs...) < data.size());
         return this->data[this->desc.GetIndex(xs...)];
+    }
+
+    template <class Integer, Integer N>
+    const T& operator()(const std::array<Integer, N>& multi_id) const
+    {
+        auto f = [&](auto... is) { return this->desc.GetIndex(is...); };
+        assert(miopen::unpack(f, multi_id) < data.size());
+        return this->data[miopen::unpack(f, multi_id)];
     }
 
     T& operator[](std::size_t i) { return data.at(i); }

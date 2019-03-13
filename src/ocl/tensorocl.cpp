@@ -33,6 +33,7 @@
 #include <algorithm>
 #include <cassert>
 #include <numeric>
+#include <boost/range/combine.hpp>
 
 #define MIO_TENSOROCL_DEBUG 0
 
@@ -1320,12 +1321,12 @@ static std::string parms_half_or_float(const miopenDataType_t t)
     }
     case miopenInt8:
     {
-        s = " -DMIOPEN_USE_INTE8=1";
+        s = " -DMIOPEN_USE_INT8=1";
         break;
     }
     case miopenInt8x4:
     {
-        s = " -DMIOPEN_USE_INTE8x4=1";
+        s = " -DMIOPEN_USE_INT8x4=1";
         break;
     }
     case miopenInt32: break;
@@ -2124,14 +2125,12 @@ void TransformTensor(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    std::vector<int> x_len(4);
-    std::vector<int> y_len(4);
-    std::tie(x_len[0], x_len[1], x_len[2], x_len[3]) = tien<4>(xDesc.GetLengths());
-    std::tie(y_len[0], y_len[1], y_len[2], y_len[3]) = tien<4>(yDesc.GetLengths());
+    auto x_len = xDesc.GetLengths();
+    auto y_len = yDesc.GetLengths();
 
-    if(x_len.size() != 4 || y_len.size() != 4)
+    if(x_len.size() != y_len.size())
     {
-        MIOPEN_THROW("Tensor dimension must be 4");
+        MIOPEN_THROW("Tensor dimension must be the same");
     }
 
     if(x_len[0] != y_len[0])
@@ -2139,9 +2138,14 @@ void TransformTensor(Handle& handle,
         MIOPEN_THROW("Tensor x and y batch sizes do not match");
     }
 
-    if(x_len[2] != y_len[2] || x_len[3] != y_len[3])
+    auto x_y_len          = boost::combine(x_len, y_len);
+    bool same_spatial_len = std::all_of(x_y_len.begin() + 2, x_y_len.end(), [](auto v) {
+        return boost::get<0>(v) == boost::get<1>(v);
+    });
+
+    if(!same_spatial_len)
     {
-        MIOPEN_THROW("Tensor x and y height or width sizes do not match");
+        MIOPEN_THROW("Tensor x and y spatial sizes do not match");
     }
 
     if(xDesc.GetType() == miopenInt8 && yDesc.GetType() == miopenInt8)
@@ -2167,8 +2171,8 @@ void TransformTensor(Handle& handle,
         y_len[0] = 1;
 
         miopen::TensorDescriptor x_batch_desc, y_batch_desc;
-        x_batch_desc = miopen::TensorDescriptor(miopenInt8, x_len.data(), 4);
-        y_batch_desc = miopen::TensorDescriptor(miopenInt8, y_len.data(), 4);
+        x_batch_desc = miopen::TensorDescriptor(miopenInt8, x_len);
+        y_batch_desc = miopen::TensorDescriptor(miopenInt8, y_len);
 
         size_t x_batch_sz = x_batch_desc.GetElementSize();
         size_t y_batch_sz = y_batch_desc.GetElementSize();
@@ -2194,7 +2198,7 @@ void TransformTensor(Handle& handle,
             MIOPEN_THROW("Invalid y channel size");
         }
 
-        transpose_NCHW2Vec(handle, x_len[0], x_len[1], x_len[2], x_len[3], x, y, 4, false, true);
+        transpose_NCHW2Vec(handle, x_len, x, y, 4, false, true);
     }
     else if(xDesc.GetType() == miopenInt8x4 && yDesc.GetType() == miopenInt8)
     {
@@ -2203,7 +2207,7 @@ void TransformTensor(Handle& handle,
             MIOPEN_THROW("Invalid x channel size");
         }
 
-        transpose_NCHW2Vec(handle, y_len[0], y_len[1], y_len[2], y_len[3], x, y, 4, false, false);
+        transpose_NCHW2Vec(handle, y_len, x, y, 4, false, false);
     }
 
     (void)alpha;

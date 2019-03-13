@@ -171,11 +171,9 @@ struct verify_tensor_vec_forward
         auto&& handle = get_handle();
         auto src_dev  = handle.Write(src.data);
         auto dst_dev  = handle.Write(r.data);
-        int n, c, h, w;
-        std::tie(n, c, h, w) = miopen::tien<4>(src.desc.GetLengths());
-        int vec_size = 4 / sizeof(T);
+        int vec_size  = 4 / sizeof(T);
         miopen::transpose_NCHW2Vec(
-            handle, n, c, h, w, src_dev.get(), dst_dev.get(), vec_size, trans, true);
+            handle, src.desc.GetLengths(), src_dev.get(), dst_dev.get(), vec_size, trans, true);
         r.data = handle.Read<T>(dst_dev, dst.data.size());
         return r;
     }
@@ -216,11 +214,9 @@ struct verify_tensor_vec_backward
         auto r        = dst;
         auto src_dev  = handle.Write(src.data);
         auto dst_dev  = handle.Write(r.data);
-        int n, c, h, w;
-        std::tie(n, c, h, w) = miopen::tien<4>(dst.desc.GetLengths());
-        int vec_size = 4 / sizeof(T);
+        int vec_size  = 4 / sizeof(T);
         miopen::transpose_NCHW2Vec(
-            handle, n, c, h, w, src_dev.get(), dst_dev.get(), vec_size, trans, false);
+            handle, dst.desc.GetLengths(), src_dev.get(), dst_dev.get(), vec_size, trans, false);
         r.data = handle.Read<T>(dst_dev, r.data.size());
 
         return r;

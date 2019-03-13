@@ -183,11 +183,8 @@ std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& fpd)
 // Conv Forward
 miopenStatus_t ConvForwardOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
 {
-    std::size_t n, c, h, w;
-    std::tie(n, c, h, w) = base_desc.GetForwardOutputDim(input_desc, filter_desc);
-    TensorDescriptor desc(input_desc.GetType(), {n, c, h, w});
-    output_desc = desc;
-    return miopenStatusSuccess;
+    return miopen::try_(
+        [&]() { output_desc = base_desc.GetForwardOutputTensor(input_desc, filter_desc); });
 }
 
 miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
