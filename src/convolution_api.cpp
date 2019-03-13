@@ -50,7 +50,8 @@ extern "C" miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDescr
 
     MIOPEN_LOG_FUNCTION(convDesc, c_mode, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w);
     return miopen::try_([&] {
-        miopen::deref(convDesc) = miopen::ConvolutionDescriptor(c_mode,
+        miopen::deref(convDesc) = miopen::ConvolutionDescriptor(2,
+                                                                c_mode,
                                                                 miopenPaddingDefault,
                                                                 {pad_h, pad_w},
                                                                 {stride_h, stride_w},
@@ -111,8 +112,10 @@ miopenGetConvolutionForwardOutputDim(miopenConvolutionDescriptor_t convDesc,
 
     MIOPEN_LOG_FUNCTION(convDesc, inputTensorDesc, filterDesc, n, c, h, w);
     return miopen::try_([&] {
-        miopen::tie_deref(n, c, h, w) = miopen::deref(convDesc).GetForwardOutputDim(
-            miopen::deref(inputTensorDesc), miopen::deref(filterDesc));
+        miopen::tie_deref(n, c, h, w) = miopen::tien<4>(
+            miopen::deref(convDesc)
+                .GetForwardOutputTensor(miopen::deref(inputTensorDesc), miopen::deref(filterDesc))
+                .GetLengths());
     });
 }
 

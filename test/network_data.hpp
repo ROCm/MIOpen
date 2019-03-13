@@ -256,6 +256,46 @@ inline std::set<std::vector<int>> get_weights(int n = MIOPEN_TEST_DEFAULT_BATCH_
 }
 
 inline std::set<std::vector<int>>
+get_3d_conv_input_shapes(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+{
+    // clang-format off
+    return 
+    {
+        { pick_batch_size(128, n),   1,   1,   2,   2},
+        { pick_batch_size(128, n),  64,   1,   1,   1},
+        { pick_batch_size(128, n),  64,   3,   4,   4},
+        { pick_batch_size(352, n),  32,   4,   9,   9},
+        { pick_batch_size(192, n), 512,   3,  14,  14},
+        { pick_batch_size(352, n), 512,   4,  28,  28},
+        { pick_batch_size(256, n), 512,   4,  56,  56},
+        { pick_batch_size(192, n),   3,   4, 227, 227},
+        { pick_batch_size(128, n),   4,   4, 161, 700}
+    };
+    // clang-format on
+}
+
+inline std::set<std::vector<int>>
+get_3d_conv_weight_shapes(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+{
+    // clang-format off
+    return 
+    {
+        { pick_batch_size( 128, n),   1,   1,   1,   1},
+        { pick_batch_size( 352, n), 128,   1,   1,   1},
+        { pick_batch_size( 256, n), 128,   1,   1,   1},
+        { pick_batch_size( 352, n),  32,   3,   3,   3},
+        { pick_batch_size( 352, n),   4,   3,   3,   3},
+        { pick_batch_size( 160, n),   4,   3,   5,   5},
+        { pick_batch_size( 128, n),  64,   5,   7,   7},
+        { pick_batch_size( 192, n),   4,   3,  11,  11},
+        { pick_batch_size( 128, n),   1,   3,   1,   7},
+        { pick_batch_size( 128, n),   1,   3,   7,   1},
+        { pick_batch_size( 128, n),   1,   3,   5,  20}
+    };
+    // clang-format on
+}
+
+inline std::set<std::vector<int>>
 get_bn_peract_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
     // clang-format off

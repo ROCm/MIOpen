@@ -58,6 +58,22 @@ template <std::size_t N, class T, class U>
 auto tien(T&& x, U y)
     MIOPEN_RETURNS(tie_impl(std::forward<T>(x), y, typename detail::gens<N>::type{}));
 
+template <class T, std::size_t... Ns>
+auto tie_pick_impl(T&& x, detail::seq<Ns...>)
+{
+#ifndef NDEBUG
+    each_args([&](auto i) { assert(i < x.size()); }, Ns...);
+#endif
+    return std::tie(x[Ns]...);
+}
+
+template <std::size_t... Ns>
+struct tie_pick
+{
+    template <class T>
+    auto operator()(T&& x) MIOPEN_RETURNS(tie_pick_impl(std::forward<T>(x), detail::seq<Ns...>{}))
+};
+
 template <typename F, std::size_t... Ns>
 auto create_tuple_impl(F f, detail::seq<Ns...>)
 {
@@ -81,6 +97,20 @@ inline std::size_t GetTypeSize(miopenDataType_t d)
     case miopenInt8: return 1;
     }
     MIOPEN_THROW("Unknown data type");
+}
+
+template <class X, class Y>
+std::ptrdiff_t integer_division_ceil(X x, Y y)
+{
+    std::ptrdiff_t tx = static_cast<std::ptrdiff_t>(x);
+    std::ptrdiff_t ty = static_cast<std::ptrdiff_t>(y);
+
+    if(ty < 1)
+    {
+        MIOPEN_THROW("integer_division_ceil: y < 1");
+    }
+
+    return (tx + ty - 1) / ty;
 }
 
 struct TensorDescriptor : miopenTensorDescriptor

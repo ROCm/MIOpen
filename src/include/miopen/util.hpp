@@ -29,48 +29,41 @@
 #include <miopen/common.hpp>
 #include <miopen/miopen.h>
 
+#include <boost/range/adaptors.hpp>
+
 namespace miopen {
 
 struct Handle;
 
-float Im2ColGPU(Handle& handle,
-                int data_size,
-                ConstData_t im,
-                int im_offset,
-                int c,
-                int h,
-                int w,
-                int wei_h,
-                int wei_w,
-                int out_h,
-                int out_w,
-                int pad_h,
-                int pad_w,
-                int stride_h,
-                int stride_w,
-                int dilation_h,
-                int dilation_w,
-                Data_t col,
-                miopenDataType_t type);
+float Im2ColGPU(
+    Handle& handle,
+    std::size_t conv_dim,
+    ConstData_t im,
+    std::size_t im_offset,
+    std::size_t in_c,
+    const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& in_spatial,
+    const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& wei_spatial,
+    const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& out_spatial,
+    const std::vector<int>& pad_spatial,
+    const std::vector<int>& stride_spatial,
+    const std::vector<int>& dilation_spatial,
+    Data_t col,
+    miopenDataType_t type);
 
-float Col2ImGPU(Handle& handle,
-                ConstData_t col,
-                int col_h,
-                int col_w,
-                int wei_h,
-                int wei_w,
-                int pad_h,
-                int pad_w,
-                int stride_h,
-                int stride_w,
-                int dilation_h,
-                int dilation_w,
-                int c,
-                int h,
-                int w,
-                Data_t im,
-                int im_offset,
-                miopenDataType_t type);
+float Col2ImGPU(
+    Handle& handle,
+    std::size_t conv_dim,
+    ConstData_t col,
+    const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& out_spatial,
+    const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& wei_spatial,
+    const std::vector<int>& pad_spatial,
+    const std::vector<int>& stride_spatial,
+    const std::vector<int>& dilation_spatial,
+    std::size_t in_c,
+    const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& in_spatial,
+    Data_t im,
+    std::size_t im_offset,
+    miopenDataType_t type);
 
 float transpose_NCHW2CNHW(Handle& handle,
                           int n,
@@ -103,13 +96,10 @@ float transpose_CNHW2NCHW(Handle& handle,
                           miopenDataType_t type);
 
 float transpose_NCHW2Vec(Handle& handle,
-                         int n,
-                         int c,
-                         int h,
-                         int w,
+                         const std::vector<std::size_t>& lens,
                          ConstData_t in,
                          Data_t out,
-                         int vec_size,
+                         std::size_t vec_size,
                          bool trans,
                          bool forward);
 

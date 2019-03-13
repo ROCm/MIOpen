@@ -40,6 +40,8 @@
 #include <miopen/miopengemm.hpp>
 #endif
 
+#include <boost/range/adaptors.hpp>
+
 #if MIOPEN_USE_ROCBLAS
 #define ROCBLAS_TIMING_MEMSET_SIZE (10 * 1024 * 1024)
 #endif
@@ -47,6 +49,27 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_GEMM_ENFORCE_BACKEND)
 
 namespace miopen {
+
+std::ostream& operator<<(std::ostream& stream, const GemmDescriptor& gemm_desc)
+{
+    return stream << "{"
+                  << "isColMajor " << gemm_desc.isColMajor << ", "
+                  << "transA " << gemm_desc.transA << ", "
+                  << "transB " << gemm_desc.transB << ", "
+                  << "m " << gemm_desc.m << ", "
+                  << "n " << gemm_desc.n << ", "
+                  << "k " << gemm_desc.k << ", "
+                  << "lda " << gemm_desc.lda << ", "
+                  << "ldb " << gemm_desc.ldb << ", "
+                  << "ldc " << gemm_desc.ldc << ", "
+                  << "batch_count " << gemm_desc.batch_count << ", "
+                  << "strideA " << gemm_desc.strideA << ", "
+                  << "strideB " << gemm_desc.strideB << ", "
+                  << "strideC " << gemm_desc.strideC << ", "
+                  << "alpha " << gemm_desc.alpha << ", "
+                  << "beta " << gemm_desc.beta << ", "
+                  << "dataType " << gemm_desc.dataType << "} ";
+}
 
 #if MIOPEN_USE_ROCBLAS
 // Enqueue gpu memset for rocblas kernel timing purpose
@@ -266,6 +289,8 @@ miopenStatus_t CallGemm(Handle& handle,
 #if !MIOPEN_USE_ROCBLAS
     (void)enqueue_dummy_kernel;
 #endif
+
+    MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
     gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
 
@@ -547,6 +572,8 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
     (void)enqueue_dummy_kernel;
 #endif
 
+    MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
+
     gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
 
     // do row-to-column major conversion here
@@ -779,6 +806,8 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
 #if !MIOPEN_USE_ROCBLAS
     (void)enqueue_dummy_kernel;
 #endif
+
+    MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
     gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
 
@@ -1091,21 +1120,19 @@ GemmDescriptor CreateGemmDescriptorConvFwd(const TensorDescriptor& wDesc,
         assert(wDesc.GetType() == yDesc.GetType());
 #endif
 
-    int in_c;
-    std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+    int in_c  = xDesc.GetLengths()[1];
+    int wei_k = wDesc.GetLengths()[0];
 
-    int wei_n, wei_h, wei_w;
-    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+    auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, wDesc.GetLengths().size());
+    auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, yDesc.GetLengths().size());
 
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
-
-    bool isColMajor       = false;
-    bool transA           = false;
-    bool transB           = (wDesc.GetType() == miopenInt8);
-    int m                 = wei_n;
-    int n                 = out_h * out_w;
-    int k                 = in_c * wei_h * wei_w;
+    bool isColMajor = false;
+    bool transA     = false;
+    bool transB     = (wDesc.GetType() == miopenInt8);
+    int m           = wei_k;
+    int n = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
+    int k =
+        in_c * std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
     int lda               = k;
     int ldb               = wDesc.GetType() == miopenInt8 ? k : n;
     int ldc               = n;
@@ -1143,24 +1170,22 @@ GemmDescriptor CreateGemmDescriptorConvBwdData(const TensorDescriptor& wDesc,
     assert(wDesc.GetType() == dxDesc.GetType() && wDesc.GetType() == dyDesc.GetType());
 #endif
 
-    int in_c;
-    std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
+    int in_c  = dxDesc.GetLengths()[1];
+    int wei_k = wDesc.GetLengths()[0];
 
-    int wei_n, wei_h, wei_w;
-    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+    auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, wDesc.GetLengths().size());
+    auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, dyDesc.GetLengths().size());
 
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
-
-    bool isColMajor       = false;
-    bool transA           = true;
-    bool transB           = false;
-    int m                 = in_c * wei_h * wei_w;
-    int n                 = out_h * out_w;
-    int k                 = wei_n;
-    int lda               = m;
-    int ldb               = n;
-    int ldc               = n;
+    bool isColMajor = false;
+    bool transA     = true;
+    bool transB     = false;
+    int m =
+        in_c * std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
+    int n   = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
+    int k   = wei_k;
+    int lda = m;
+    int ldb = n;
+    int ldc = n;
     int batch_count       = 1;
     long long int strideA = 0;
     long long int strideB = 0;
@@ -1195,24 +1220,22 @@ GemmDescriptor CreateGemmDescriptorConvBwdWeight(const TensorDescriptor& dyDesc,
     assert(dwDesc.GetType() == xDesc.GetType() && dwDesc.GetType() == dyDesc.GetType());
 #endif
 
-    int in_c;
-    std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+    std::size_t in_c  = xDesc.GetLengths()[1];
+    std::size_t wei_k = dwDesc.GetLengths()[0];
 
-    int wei_n, wei_h, wei_w;
-    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
+    auto wei_spatial = boost::adaptors::slice(dwDesc.GetLengths(), 2, dwDesc.GetLengths().size());
+    auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, dyDesc.GetLengths().size());
 
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
-
-    bool isColMajor       = false;
-    bool transA           = false;
-    bool transB           = true;
-    int m                 = wei_n;
-    int n                 = in_c * wei_h * wei_w;
-    int k                 = out_h * out_w;
-    int lda               = k;
-    int ldb               = k;
-    int ldc               = n;
+    bool isColMajor = false;
+    bool transA     = false;
+    bool transB     = true;
+    int m           = wei_k;
+    int n =
+        in_c * std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
+    int k   = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
+    int lda = k;
+    int ldb = k;
+    int ldc = n;
     int batch_count       = 1;
     long long int strideA = 0;
     long long int strideB = 0;
@@ -1249,20 +1272,18 @@ GemmDescriptor CreateGemmDescriptorConvCNHWFwd(const TensorDescriptor& wDesc,
         assert(wDesc.GetType() == yDesc.GetType());
 #endif
 
-    int in_n, in_c;
-    std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+    int in_n  = xDesc.GetLengths()[0];
+    int in_c  = xDesc.GetLengths()[1];
+    int wei_k = wDesc.GetLengths()[0];
 
-    int wei_n;
-    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(wDesc.GetLengths());
+    auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, yDesc.GetLengths().size());
 
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
-
-    bool isColMajor       = false;
-    bool transA           = false;
-    bool transB           = (wDesc.GetType() == miopenInt8);
-    int m                 = wei_n;
-    int n                 = in_n * out_h * out_w;
+    bool isColMajor = false;
+    bool transA     = false;
+    bool transB     = (wDesc.GetType() == miopenInt8);
+    int m           = wei_k;
+    int n =
+        in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
     int k                 = in_c;
     int lda               = k;
     int ldb               = wDesc.GetType() == miopenInt8 ? k : n;
@@ -1301,21 +1322,19 @@ GemmDescriptor CreateGemmDescriptorConvCNHWBwdData(const TensorDescriptor& wDesc
     assert(wDesc.GetType() == dxDesc.GetType() && wDesc.GetType() == dyDesc.GetType());
 #endif
 
-    int in_n, in_c;
-    std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
+    int in_n  = dxDesc.GetLengths()[0];
+    int in_c  = dxDesc.GetLengths()[1];
+    int wei_k = wDesc.GetLengths()[0];
 
-    int wei_n;
-    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(wDesc.GetLengths());
+    auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, dyDesc.GetLengths().size());
 
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
-
-    bool isColMajor       = false;
-    bool transA           = true;
-    bool transB           = false;
-    int m                 = in_c;
-    int n                 = in_n * out_h * out_w;
-    int k                 = wei_n;
+    bool isColMajor = false;
+    bool transA     = true;
+    bool transB     = false;
+    int m           = in_c;
+    int n =
+        in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
+    int k                 = wei_k;
     int lda               = m;
     int ldb               = n;
     int ldc               = n;
@@ -1357,21 +1376,21 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1Fwd(const TensorDescript
     (void)yDesc;
 #endif
 
-    int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
+    int in_n  = xDesc.GetLengths()[0];
+    int in_c  = xDesc.GetLengths()[1];
+    int wei_k = wDesc.GetLengths()[0];
 
-    int wei_n;
-    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(wDesc.GetLengths());
+    auto in_spatial = boost::adaptors::slice(xDesc.GetLengths(), 2, xDesc.GetLengths().size());
 
-    bool isColMajor       = false;
-    bool transA           = false;
-    bool transB           = (wDesc.GetType() == miopenInt8);
-    int m                 = wei_n;
-    int n                 = in_h * in_w;
-    int k                 = in_c;
-    int lda               = k;
-    int ldb               = wDesc.GetType() == miopenInt8 ? k : n;
-    int ldc               = n;
+    bool isColMajor = false;
+    bool transA     = false;
+    bool transB     = (wDesc.GetType() == miopenInt8);
+    int m           = wei_k;
+    int n   = std::accumulate(in_spatial.begin(), in_spatial.end(), 1, std::multiplies<int>());
+    int k   = in_c;
+    int lda = k;
+    int ldb = wDesc.GetType() == miopenInt8 ? k : n;
+    int ldc = n;
     int batch_count       = in_n;
     long long int strideA = 0;
     long long int strideB = k * n;
@@ -1408,21 +1427,21 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdData(const TensorDesc
     (void)dyDesc;
 #endif
 
-    int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
+    int in_n  = dxDesc.GetLengths()[0];
+    int in_c  = dxDesc.GetLengths()[1];
+    int wei_k = wDesc.GetLengths()[0];
 
-    int wei_n;
-    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(wDesc.GetLengths());
+    auto in_spatial = boost::adaptors::slice(dxDesc.GetLengths(), 2, dxDesc.GetLengths().size());
 
-    bool isColMajor       = false;
-    bool transA           = true;
-    bool transB           = false;
-    int m                 = in_c;
-    int n                 = in_h * in_w;
-    int k                 = wei_n;
-    int lda               = m;
-    int ldb               = n;
-    int ldc               = n;
+    bool isColMajor = false;
+    bool transA     = true;
+    bool transB     = false;
+    int m           = in_c;
+    int n   = std::accumulate(in_spatial.begin(), in_spatial.end(), 1, std::multiplies<int>());
+    int k   = wei_k;
+    int lda = m;
+    int ldb = n;
+    int ldc = n;
     int batch_count       = in_n;
     long long int strideA = 0;
     long long int strideB = k * n;
@@ -1459,21 +1478,21 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(const TensorDe
     (void)dyDesc;
 #endif
 
-    int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
+    int in_n  = xDesc.GetLengths()[0];
+    int in_c  = xDesc.GetLengths()[1];
+    int wei_k = dwDesc.GetLengths()[0];
 
-    int wei_n;
-    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(dwDesc.GetLengths());
+    auto in_spatial = boost::adaptors::slice(xDesc.GetLengths(), 2, xDesc.GetLengths().size());
 
-    bool isColMajor       = false;
-    bool transA           = false;
-    bool transB           = true;
-    int m                 = wei_n;
-    int n                 = in_c;
-    int k                 = in_h * in_w;
-    int lda               = k;
-    int ldb               = k;
-    int ldc               = n;
+    bool isColMajor = false;
+    bool transA     = false;
+    bool transB     = true;
+    int m           = wei_k;
+    int n           = in_c;
+    int k   = std::accumulate(in_spatial.begin(), in_spatial.end(), 1, std::multiplies<int>());
+    int lda = k;
+    int ldb = k;
+    int ldc = n;
     int batch_count       = in_n;
     long long int strideA = m * k;
     long long int strideB = k * n;
@@ -1509,21 +1528,19 @@ GemmDescriptor CreateGemmDescriptorGroupConvFwd(const TensorDescriptor& wDesc,
     assert(wDesc.GetType() == xDesc.GetType() && wDesc.GetType() == yDesc.GetType());
 #endif
 
-    int in_c;
-    std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+    int in_c  = xDesc.GetLengths()[1];
+    int wei_k = wDesc.GetLengths()[0];
 
-    int wei_n, wei_h, wei_w;
-    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+    auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, wDesc.GetLengths().size());
+    auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, yDesc.GetLengths().size());
 
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
-
-    bool isColMajor       = false;
-    bool transA           = false;
-    bool transB           = false;
-    int m                 = wei_n / groupCount;
-    int n                 = out_h * out_w;
-    int k                 = (in_c / groupCount) * wei_h * wei_w;
+    bool isColMajor = false;
+    bool transA     = false;
+    bool transB     = false;
+    int m           = wei_k / groupCount;
+    int n = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
+    int k = (in_c / groupCount) *
+            std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
     int lda               = k;
     int ldb               = n;
     int ldc               = n;
@@ -1562,24 +1579,22 @@ GemmDescriptor CreateGemmDescriptorGroupConvBwdData(const TensorDescriptor& wDes
     assert(wDesc.GetType() == dxDesc.GetType() && wDesc.GetType() == dyDesc.GetType());
 #endif
 
-    int in_c;
-    std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
+    int in_c  = dxDesc.GetLengths()[1];
+    int wei_k = wDesc.GetLengths()[0];
 
-    int wei_n, wei_h, wei_w;
-    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+    auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, wDesc.GetLengths().size());
+    auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, dyDesc.GetLengths().size());
 
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
-
-    bool isColMajor       = false;
-    bool transA           = true;
-    bool transB           = false;
-    int m                 = (in_c / groupCount) * wei_h * wei_w;
-    int n                 = out_h * out_w;
-    int k                 = wei_n / groupCount;
-    int lda               = m;
-    int ldb               = n;
-    int ldc               = n;
+    bool isColMajor = false;
+    bool transA     = true;
+    bool transB     = false;
+    int m           = (in_c / groupCount) *
+            std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
+    int n   = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
+    int k   = wei_k / groupCount;
+    int lda = m;
+    int ldb = n;
+    int ldc = n;
     int batch_count       = groupCount;
     long long int strideA = m * k;
     long long int strideB = k * n;
@@ -1615,24 +1630,22 @@ GemmDescriptor CreateGemmDescriptorGroupConvBwdWeight(const TensorDescriptor& dy
     assert(dwDesc.GetType() == xDesc.GetType() && dwDesc.GetType() == dyDesc.GetType());
 #endif
 
-    int in_c;
-    std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+    int in_c  = xDesc.GetLengths()[1];
+    int wei_k = dwDesc.GetLengths()[0];
 
-    int wei_n, wei_h, wei_w;
-    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
+    auto wei_spatial = boost::adaptors::slice(dwDesc.GetLengths(), 2, dwDesc.GetLengths().size());
+    auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, dyDesc.GetLengths().size());
 
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
-
-    bool isColMajor       = false;
-    bool transA           = false;
-    bool transB           = true;
-    int m                 = wei_n / groupCount;
-    int n                 = (in_c / groupCount) * wei_h * wei_w;
-    int k                 = out_h * out_w;
-    int lda               = k;
-    int ldb               = k;
-    int ldc               = n;
+    bool isColMajor = false;
+    bool transA     = false;
+    bool transB     = true;
+    int m           = wei_k / groupCount;
+    int n           = (in_c / groupCount) *
+            std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
+    int k   = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
+    int lda = k;
+    int ldb = k;
+    int ldc = n;
     int batch_count       = groupCount;
     long long int strideA = m * k;
     long long int strideB = k * n;
@@ -1668,20 +1681,18 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWFwd(const TensorDescriptor& wDes
     assert(wDesc.GetType() == xDesc.GetType() && wDesc.GetType() == yDesc.GetType());
 #endif
 
-    int in_n, in_c;
-    std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+    int in_n  = xDesc.GetLengths()[0];
+    int in_c  = xDesc.GetLengths()[1];
+    int wei_k = wDesc.GetLengths()[0];
 
-    int wei_n;
-    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(wDesc.GetLengths());
+    auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, yDesc.GetLengths().size());
 
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
-
-    bool isColMajor       = false;
-    bool transA           = false;
-    bool transB           = false;
-    int m                 = wei_n / groupCount;
-    int n                 = in_n * out_h * out_w;
+    bool isColMajor = false;
+    bool transA     = false;
+    bool transB     = false;
+    int m           = wei_k / groupCount;
+    int n =
+        in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
     int k                 = in_c / groupCount;
     int lda               = k;
     int ldb               = n;
@@ -1721,21 +1732,19 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWBwdData(const TensorDescriptor& 
     assert(wDesc.GetType() == dxDesc.GetType() && wDesc.GetType() == dyDesc.GetType());
 #endif
 
-    int in_n, in_c;
-    std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
+    int in_n  = dxDesc.GetLengths()[0];
+    int in_c  = dxDesc.GetLengths()[1];
+    int wei_k = wDesc.GetLengths()[0];
 
-    int wei_n;
-    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(wDesc.GetLengths());
+    auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, dyDesc.GetLengths().size());
 
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
-
-    bool isColMajor       = false;
-    bool transA           = true;
-    bool transB           = false;
-    int m                 = in_c / groupCount;
-    int n                 = in_n * out_h * out_w;
-    int k                 = wei_n / groupCount;
+    bool isColMajor = false;
+    bool transA     = true;
+    bool transB     = false;
+    int m           = in_c / groupCount;
+    int n =
+        in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
+    int k                 = wei_k / groupCount;
     int lda               = m;
     int ldb               = n;
     int ldc               = n;

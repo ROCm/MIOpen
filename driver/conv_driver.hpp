@@ -501,7 +501,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::SetConvDescriptorFromCmdLineArgs()
         }
     }
     miopen::deref(convDesc) = miopen::ConvolutionDescriptor(
-        mode, pmode, {pad_h, pad_w}, {conv_stride_h, conv_stride_w}, {dilation_h, dilation_w});
+        2, mode, pmode, {pad_h, pad_w}, {conv_stride_h, conv_stride_w}, {dilation_h, dilation_w});
     miopenSetConvolutionGroupCount(convDesc, group_count);
     if(mode == miopenTranspose)
         miopenSetTransposeConvOutputPadding(convDesc, trans_output_pad_h, trans_output_pad_w);

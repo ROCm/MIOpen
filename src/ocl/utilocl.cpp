@@ -28,55 +28,67 @@
 #include <miopen/util.hpp>
 #include <miopen/logger.hpp>
 
+#include <boost/range/adaptors.hpp>
+
 #define WG_SIZE 256
 #define MAX_ACTIVE_THREADS (64 * 4 * 64)
 #define MAX_LOCAL_MEM 65536
 
 namespace miopen {
 
-float Im2ColGPU(Handle& handle,
-                const int data_size,
-                ConstData_t im,
-                const int im_offset,
-                const int c,
-                const int h,
-                const int w,
-                const int wei_h,
-                const int wei_w,
-                const int out_h,
-                const int out_w,
-                const int pad_h,
-                const int pad_w,
-                const int stride_h,
-                const int stride_w,
-                const int dilation_h,
-                const int dilation_w,
-                Data_t col,
-                miopenDataType_t type)
+float Im2d2ColGPU(Handle& handle,
+                  ConstData_t im,
+                  const int im_offset,
+                  const int c,
+                  const int in_h,
+                  const int in_w,
+                  const int wei_h,
+                  const int wei_w,
+                  const int out_h,
+                  const int out_w,
+                  const int pad_h,
+                  const int pad_w,
+                  const int stride_h,
+                  const int stride_w,
+                  const int dilation_h,
+                  const int dilation_w,
+                  Data_t col,
+                  miopenDataType_t type)
 {
-    std::string program_name = "MIOpenUtilKernels.cl";
-    std::string kernel_name  = "Im2Col";
+    std::string program_name = "MIOpenIm2d2Col.cl";
+    std::string kernel_name  = "Im2d2Col";
 
-    std::string network_config = "c" + std::to_string(c) + "h" + std::to_string(h) + "w" +
-                                 std::to_string(w) + "y" + std::to_string(wei_h) + "x" +
-                                 std::to_string(wei_w) + "p" + std::to_string(pad_h) + "q" +
-                                 std::to_string(pad_w) + "u" + std::to_string(stride_h) + "v" +
-                                 std::to_string(stride_w) + "l" + std::to_string(dilation_h) + "j" +
-                                 std::to_string(dilation_w) + "t" + std::to_string(type);
+    // clang-format off
+    std::string network_config =
+        "c" + std::to_string(c) + 
+        "i" + std::to_string(in_h) + 
+        "_" + std::to_string(in_w) + 
+        "w" + std::to_string(wei_h) + 
+        "_" + std::to_string(wei_w) + 
+        "p" + std::to_string(pad_h) + 
+        "_" + std::to_string(pad_w) + 
+        "s" + std::to_string(stride_h) + 
+        "_" + std::to_string(stride_w) + 
+        "d" + std::to_string(dilation_h) + 
+        "_" + std::to_string(dilation_w) + 
+        "t" + std::to_string(type);
+    // clang-format on
 
-    auto&& kernels           = handle.GetKernels("miopenIm2Col", network_config);
-    const int data_size_pack = type == miopenInt8x4 ? data_size * 4 : data_size;
-    const int im_offset_pack = type == miopenInt8x4 ? im_offset / 4 : im_offset;
+    auto&& kernels = handle.GetKernels("miopenIm2d2Col", network_config);
+
+    int data_size_bound = c * in_h * in_w;
+
+    int data_size_bound_pack = type == miopenInt8x4 ? data_size_bound * 4 : data_size_bound;
+    int im_offset_pack       = type == miopenInt8x4 ? im_offset / 4 : im_offset;
 
     if(!kernels.empty())
     {
-        int data_size_off = data_size_pack - im_offset_pack;
-        auto kernel       = kernels.front();
-        kernel(data_size_off,
+        auto kernel = kernels.front();
+        kernel(data_size_bound_pack,
                im,
                im_offset_pack,
-               h,
-               w,
+               in_h,
+               in_w,
                wei_h,
                wei_w,
                out_h,
@@ -153,8 +165,6 @@ float Im2ColGPU(Handle& handle,
             }
         }
 
-        int data_size_off = data_size_pack - im_offset_pack;
-
         params += " -DNUM_CH_PER_WG=" + std::to_string(num_ch_per_wg);
         params += " -DNUM_IM_BLKS_X=" + std::to_string(num_blks_x);
         params += " -DNUM_IM_BLKS=" + std::to_string(num_blks);
@@ -165,9 +175,9 @@ float Im2ColGPU(Handle& handle,
         params += " -DUSE_IM_OFF_GUARD=1";
 
         if(type == miopenInt8)
-            params += " -DMIOPEN_USE_INTE8=1";
+            params += " -DMIOPEN_USE_INT8=1";
         else if(type == miopenInt8x4)
-            params += " -DMIOPEN_USE_INTE8x4=1";
+            params += " -DMIOPEN_USE_INT8x4=1";
         else if(type == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
         else
@@ -179,11 +189,11 @@ float Im2ColGPU(Handle& handle,
 
         handle.AddKernel(
             "miopenIm2Col", network_config, program_name, kernel_name, vld, vgd, params)(
-            data_size_off,
+            data_size_bound_pack,
             im,
             im_offset_pack,
-            h,
-            w,
+            in_h,
+            in_w,
             wei_h,
             wei_w,
             out_h,
@@ -200,43 +210,182 @@ float Im2ColGPU(Handle& handle,
     return handle.GetKernelTime();
 }
 
-float Col2ImGPU(Handle& handle,
-                ConstData_t col,
-                const int col_h,
-                const int col_w,
-                const int wei_h,
-                const int wei_w,
-                const int pad_h,
-                const int pad_w,
-                const int stride_h,
-                const int stride_w,
-                const int dilation_h,
-                const int dilation_w,
-                const int c,
-                const int h,
-                const int w,
-                Data_t im,
-                int im_offset,
-                miopenDataType_t type)
+float Im3d2ColGPU(Handle& handle,
+                  ConstData_t im,
+                  const int im_offset,
+                  const int im_c,
+                  const int im_d,
+                  const int im_h,
+                  const int im_w,
+                  const int wei_d,
+                  const int wei_h,
+                  const int wei_w,
+                  const int out_d,
+                  const int out_h,
+                  const int out_w,
+                  const int pad_d,
+                  const int pad_h,
+                  const int pad_w,
+                  const int stride_d,
+                  const int stride_h,
+                  const int stride_w,
+                  const int dilation_d,
+                  const int dilation_h,
+                  const int dilation_w,
+                  Data_t col,
+                  miopenDataType_t type)
 {
-    std::string program_name = "MIOpenUtilKernels2.cl";
-    std::string kernel_name  = "Col2Im";
+    std::string program_name = "MIOpenIm3d2Col.cl";
+    std::string kernel_name  = "Im3d2Col";
 
-    std::string network_config = "c" + std::to_string(c) + "h" + std::to_string(h) + "w" +
-                                 std::to_string(w) + "y" + std::to_string(wei_h) + "x" +
-                                 std::to_string(wei_w) + "p" + std::to_string(pad_h) + "q" +
-                                 std::to_string(pad_w) + "u" + std::to_string(stride_h) + "v" +
-                                 std::to_string(stride_w) + "l" + std::to_string(dilation_h) + "j" +
-                                 std::to_string(dilation_w) + "t" + std::to_string(type);
+    // clang-format off
+    std::string network_config =
+        "c" + std::to_string(im_c) + 
+        "i" + std::to_string(im_d) + 
+        "_" + std::to_string(im_h) + 
+        "_" + std::to_string(im_w) + 
+        "w" + std::to_string(wei_d) + 
+        "_" + std::to_string(wei_h) + 
+        "_" + std::to_string(wei_w) + 
+        "p" + std::to_string(pad_d) + 
+        "_" + std::to_string(pad_h) + 
+        "_" + std::to_string(pad_w) + 
+        "s" + std::to_string(stride_d) + 
+        "_" + std::to_string(stride_h) +
+        "_" + std::to_string(stride_w) + 
+        "d" + std::to_string(dilation_d) + 
+        "_" + std::to_string(dilation_h) + 
+        "_" + std::to_string(dilation_w) + 
+        "t" + std::to_string(type);
+    // clang-format on
 
-    auto&& kernels = handle.GetKernels("miopenCol2Im", network_config);
+    auto&& kernels = handle.GetKernels("miopenIm3d2Col", network_config);
+
+    // int8x4 vectorize-c format
+    int im_offset_pack = type == miopenInt8x4 ? im_offset / 4 : im_offset;
+    int im_c_pack      = type == miopenInt8x4 ? im_c / 4 : im_c;
+
+    if(!kernels.empty())
+    {
+        auto kernel = kernels.front();
+        kernel(im,
+               im_offset_pack,
+               im_c_pack,
+               im_d,
+               im_h,
+               im_w,
+               wei_d,
+               wei_h,
+               wei_w,
+               out_d,
+               out_h,
+               out_w,
+               pad_d,
+               pad_h,
+               pad_w,
+               stride_d,
+               stride_h,
+               stride_w,
+               dilation_d,
+               dilation_h,
+               dilation_w,
+               col);
+    }
+    else
+    {
+        std::string params;
+
+        if(type == miopenInt8)
+            params += " -DMIOPEN_USE_INT8=1";
+        else if(type == miopenInt8x4)
+            params += " -DMIOPEN_USE_INT8x4=1";
+        else if(type == miopenHalf)
+            params += " -DMIOPEN_USE_FP16=1";
+        else
+            params += " -DMIOPEN_USE_FP32=1";
+
+        const std::vector<size_t> vld{256, 1, 1};
+        size_t global_threads = std::min(
+            256 * static_cast<std::size_t>(out_d * out_h * out_w * im_c * wei_d * wei_h * wei_w) /
+                8,
+            static_cast<std::size_t>(256) * 1024);
+        const std::vector<size_t> vgd{global_threads, 1, 1};
+
+        handle.AddKernel(
+            "miopenIm3d2Col", network_config, program_name, kernel_name, vld, vgd, params)(
+            im,
+            im_offset_pack,
+            im_c_pack,
+            im_d,
+            im_h,
+            im_w,
+            wei_d,
+            wei_h,
+            wei_w,
+            out_d,
+            out_h,
+            out_w,
+            pad_d,
+            pad_h,
+            pad_w,
+            stride_d,
+            stride_h,
+            stride_w,
+            dilation_d,
+            dilation_h,
+            dilation_w,
+            col);
+    }
+
+    return handle.GetKernelTime();
+}
+
+float Col2Im2dGPU(Handle& handle,
+                  ConstData_t col,
+                  const int out_h,
+                  const int out_w,
+                  const int wei_h,
+                  const int wei_w,
+                  const int pad_h,
+                  const int pad_w,
+                  const int stride_h,
+                  const int stride_w,
+                  const int dilation_h,
+                  const int dilation_w,
+                  const int in_c,
+                  const int in_h,
+                  const int in_w,
+                  Data_t im,
+                  int im_offset,
+                  miopenDataType_t type)
+{
+    std::string program_name = "MIOpenCol2Im2d.cl";
+    std::string kernel_name  = "Col2Im2d";
+
+    // clang-format off
+    std::string network_config =
+        "c" + std::to_string(in_c) + 
+        "in_h" + std::to_string(in_h) +
+        "in_w" + std::to_string(in_w) + 
+        "y" + std::to_string(wei_h) + 
+        "x" + std::to_string(wei_w) + 
+        "p" + std::to_string(pad_h) + 
+        "q" + std::to_string(pad_w) + 
+        "u" + std::to_string(stride_h) + 
+        "v" + std::to_string(stride_w) + 
+        "l" + std::to_string(dilation_h) + 
+        "j" + std::to_string(dilation_w) + 
+        "t" + std::to_string(type);
+    // clang-format on
+
+    auto&& kernels = handle.GetKernels("miopenCol2Im2d", network_config);
 
     if(!kernels.empty())
     {
         auto kernel = kernels.front();
         kernel(col,
-               col_h,
-               col_w,
+               out_h,
+               out_w,
                wei_h,
                wei_w,
                pad_h,
@@ -245,8 +394,8 @@ float Col2ImGPU(Handle& handle,
                stride_w,
                dilation_h,
                dilation_w,
-               h,
-               w,
+               in_h,
+               in_w,
                im,
                im_offset);
     }
@@ -259,27 +408,285 @@ float Col2ImGPU(Handle& handle,
             params += "-DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
 
         const std::vector<size_t> vld{256, 1, 1};
-        size_t global_threads = c * h * w;
+        size_t global_threads = in_c * in_h * in_w;
         const std::vector<size_t> vgd{global_threads, 1, 1};
 
         handle.AddKernel(
-            "miopenCol2Im", network_config, program_name, kernel_name, vld, vgd, params)(col,
-                                                                                         col_h,
-                                                                                         col_w,
-                                                                                         wei_h,
-                                                                                         wei_w,
-                                                                                         pad_h,
-                                                                                         pad_w,
-                                                                                         stride_h,
-                                                                                         stride_w,
-                                                                                         dilation_h,
-                                                                                         dilation_w,
-                                                                                         h,
-                                                                                         w,
-                                                                                         im,
-                                                                                         im_offset);
+            "miopenCol2Im2d", network_config, program_name, kernel_name, vld, vgd, params)(
+            col,
+            out_h,
+            out_w,
+            wei_h,
+            wei_w,
+            pad_h,
+            pad_w,
+            stride_h,
+            stride_w,
+            dilation_h,
+            dilation_w,
+            in_h,
+            in_w,
+            im,
+            im_offset);
     }
     return handle.GetKernelTime();
+}
+
+float Col2Im3dGPU(Handle& handle,
+                  ConstData_t col,
+                  const int out_d,
+                  const int out_h,
+                  const int out_w,
+                  const int wei_d,
+                  const int wei_h,
+                  const int wei_w,
+                  const int pad_d,
+                  const int pad_h,
+                  const int pad_w,
+                  const int stride_d,
+                  const int stride_h,
+                  const int stride_w,
+                  const int dilation_d,
+                  const int dilation_h,
+                  const int dilation_w,
+                  const int in_c,
+                  const int in_d,
+                  const int in_h,
+                  const int in_w,
+                  Data_t im,
+                  int im_offset,
+                  miopenDataType_t type)
+{
+    std::string program_name = "MIOpenCol2Im3d.cl";
+    std::string kernel_name  = "Col2Im3d";
+
+    // clang-format off
+    std::string network_config =
+        "c" + std::to_string(in_c) + 
+        "i" + std::to_string(in_d) + 
+        "_" + std::to_string(in_h) + 
+        "_" + std::to_string(in_w) + 
+        "w" + std::to_string(wei_d) + 
+        "_" + std::to_string(wei_h) + 
+        "_" + std::to_string(wei_w) + 
+        "p" + std::to_string(pad_d) + 
+        "_" + std::to_string(pad_h) + 
+        "_" + std::to_string(pad_w) + 
+        "s" + std::to_string(stride_d) + 
+        "_" + std::to_string(stride_h) +
+        "_" + std::to_string(stride_w) + 
+        "d" + std::to_string(dilation_d) + 
+        "_" + std::to_string(dilation_h) + 
+        "_" + std::to_string(dilation_w) + 
+        "t" + std::to_string(type);
+    // clang-format on
+
+    auto&& kernels = handle.GetKernels("miopenCol2Im3d", network_config);
+
+    if(!kernels.empty())
+    {
+        auto kernel = kernels.front();
+        kernel(col,
+               out_d,
+               out_h,
+               out_w,
+               wei_d,
+               wei_h,
+               wei_w,
+               pad_d,
+               pad_h,
+               pad_w,
+               stride_d,
+               stride_h,
+               stride_w,
+               dilation_d,
+               dilation_h,
+               dilation_w,
+               in_d,
+               in_h,
+               in_w,
+               im,
+               im_offset);
+    }
+    else
+    {
+        std::string params;
+        if(type == miopenFloat)
+            params += "-DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+        else
+            params += "-DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
+
+        const std::vector<size_t> vld{256, 1, 1};
+        size_t global_threads = in_c * in_d * in_h * in_w;
+        const std::vector<size_t> vgd{global_threads, 1, 1};
+
+        handle.AddKernel(
+            "miopenCol2Im3d", network_config, program_name, kernel_name, vld, vgd, params)(
+            col,
+            out_d,
+            out_h,
+            out_w,
+            wei_d,
+            wei_h,
+            wei_w,
+            pad_d,
+            pad_h,
+            pad_w,
+            stride_d,
+            stride_h,
+            stride_w,
+            dilation_d,
+            dilation_h,
+            dilation_w,
+            in_d,
+            in_h,
+            in_w,
+            im,
+            im_offset);
+    }
+    return handle.GetKernelTime();
+}
+
+float Im2ColGPU(
+    Handle& handle,
+    std::size_t conv_dim,
+    ConstData_t im,
+    std::size_t im_offset,
+    std::size_t in_c,
+    const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& in_spatial,
+    const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& wei_spatial,
+    const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& out_spatial,
+    const std::vector<int>& pad_spatial,
+    const std::vector<int>& stride_spatial,
+    const std::vector<int>& dilation_spatial,
+    Data_t col,
+    miopenDataType_t type)
+{
+    switch(conv_dim)
+    {
+    case 2:
+    {
+        return Im2d2ColGPU(handle,
+                           im,
+                           im_offset,
+                           in_c,
+                           in_spatial[0],
+                           in_spatial[1],
+                           wei_spatial[0],
+                           wei_spatial[1],
+                           out_spatial[0],
+                           out_spatial[1],
+                           pad_spatial[0],
+                           pad_spatial[1],
+                           stride_spatial[0],
+                           stride_spatial[1],
+                           dilation_spatial[0],
+                           dilation_spatial[1],
+                           col,
+                           type);
+    }
+    case 3:
+    {
+        return Im3d2ColGPU(handle,
+                           im,
+                           im_offset,
+                           in_c,
+                           in_spatial[0],
+                           in_spatial[1],
+                           in_spatial[2],
+                           wei_spatial[0],
+                           wei_spatial[1],
+                           wei_spatial[2],
+                           out_spatial[0],
+                           out_spatial[1],
+                           out_spatial[2],
+                           pad_spatial[0],
+                           pad_spatial[1],
+                           pad_spatial[2],
+                           stride_spatial[0],
+                           stride_spatial[1],
+                           stride_spatial[2],
+                           dilation_spatial[0],
+                           dilation_spatial[1],
+                           dilation_spatial[2],
+                           col,
+                           type);
+    }
+    default: { MIOPEN_THROW("unsupported convolution dimension");
+    }
+    }
+}
+
+float Col2ImGPU(
+    Handle& handle,
+    std::size_t conv_dim,
+    ConstData_t col,
+    const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& out_spatial,
+    const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& wei_spatial,
+    const std::vector<int>& pad_spatial,
+    const std::vector<int>& stride_spatial,
+    const std::vector<int>& dilation_spatial,
+    std::size_t in_c,
+    const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& in_spatial,
+    Data_t im,
+    std::size_t im_offset,
+    miopenDataType_t type)
+{
+    switch(conv_dim)
+    {
+    case 2:
+    {
+        return Col2Im2dGPU(handle,
+                           col,
+                           out_spatial[0],
+                           out_spatial[1],
+                           wei_spatial[0],
+                           wei_spatial[1],
+                           pad_spatial[0],
+                           pad_spatial[1],
+                           stride_spatial[0],
+                           stride_spatial[1],
+                           dilation_spatial[0],
+                           dilation_spatial[1],
+                           in_c,
+                           in_spatial[0],
+                           in_spatial[1],
+                           im,
+                           im_offset,
+                           type);
+    }
+    case 3:
+    {
+        return Col2Im3dGPU(handle,
+                           col,
+                           out_spatial[0],
+                           out_spatial[1],
+                           out_spatial[2],
+                           wei_spatial[0],
+                           wei_spatial[1],
+                           wei_spatial[2],
+                           pad_spatial[0],
+                           pad_spatial[1],
+                           pad_spatial[2],
+                           stride_spatial[0],
+                           stride_spatial[1],
+                           stride_spatial[2],
+                           dilation_spatial[0],
+                           dilation_spatial[1],
+                           dilation_spatial[2],
+                           in_c,
+                           in_spatial[0],
+                           in_spatial[1],
+                           in_spatial[2],
+                           im,
+                           im_offset,
+                           type);
+    }
+    default: { MIOPEN_THROW("unsupported convolution dimension");
+    }
+    }
+
+    MIOPEN_THROW("unsupported convolution dimension");
 }
 
 float transpose_NCHW2CNHW(Handle& handle,
@@ -323,13 +730,13 @@ float transpose_NCHW2CNHW(Handle& handle,
         std::string params;
 
         if(type == miopenInt8)
-            params += " -DMIOPEN_USE_INTE8=1";
+            params += " -DMIOPEN_USE_INT8=1";
         else if(type == miopenInt8x4)
         {
             c /= 4;
             in_offset /= 4;
             out_offset /= 4;
-            params += " -DMIOPEN_USE_INTE8x4=1";
+            params += " -DMIOPEN_USE_INT8x4=1";
         }
         else if(type == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
@@ -455,13 +862,13 @@ float transpose_CNHW2NCHW(Handle& handle,
         std::string params;
 
         if(type == miopenInt8)
-            params += " -DMIOPEN_USE_INTE8=1";
+            params += " -DMIOPEN_USE_INT8=1";
         else if(type == miopenInt8x4)
         {
             c /= 4;
             in_offset /= 4;
             out_offset /= 4;
-            params += " -DMIOPEN_USE_INTE8x4=1";
+            params += " -DMIOPEN_USE_INT8x4=1";
         }
         else if(type == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
@@ -546,14 +953,12 @@ float transpose_CNHW2NCHW(Handle& handle,
     return handle.GetKernelTime();
 }
 
+// NCHW (or NCDHW) to NCHW_C4 (or NCDHW_C4)
 float transpose_NCHW2Vec(Handle& handle,
-                         int n,
-                         int c,
-                         int h,
-                         int w,
+                         const std::vector<std::size_t>& lens,
                          ConstData_t in,
                          Data_t out,
-                         int vec_size,
+                         std::size_t vec_size,
                          bool trans,
                          bool forward)
 {
@@ -564,10 +969,22 @@ float transpose_NCHW2Vec(Handle& handle,
         MIOPEN_THROW("Only support type half and int8!");
     }
 
-    std::string network_config = std::to_string(n) + std::to_string(c) + std::to_string(h) +
-                                 std::to_string(w) + std::to_string(static_cast<int>(trans)) +
-                                 std::to_string(vec_size) +
-                                 std::to_string(static_cast<int>(forward));
+    const std::size_t n = lens[0];
+    const std::size_t c = lens[1];
+
+    // "hw" is for any-D spatial data
+    const std::size_t hw = std::accumulate(
+        lens.begin() + 2, lens.end(), std::size_t(1), std::multiplies<std::size_t>());
+
+    // clang-format off
+    std::string network_config = 
+        "n" + std::to_string(n) +
+        "c" + std::to_string(c) +
+        "hw" + std::to_string(hw) +
+        "t" + std::to_string(static_cast<int>(trans)) +
+        "v" + std::to_string(vec_size) +
+        "f" + std::to_string(static_cast<int>(forward));
+    // clang-format on
 
     std::string algo_name = "transpose_NCHWVecForward";
 
@@ -588,8 +1005,8 @@ float transpose_NCHW2Vec(Handle& handle,
         const std::vector<size_t> vld{WG_SIZE, 1, 1};
         std::vector<size_t> vgd{1, 1, 1};
 
-        int RD_BLCK   = ((h * w) % (vec_size * 2) == 0) ? vec_size * 2 : vec_size;
-        int HW_RD     = (h * w + RD_BLCK - 1) / RD_BLCK;
+        int RD_BLCK   = ((hw) % (vec_size * 2) == 0) ? vec_size * 2 : vec_size;
+        int HW_RD     = (hw + RD_BLCK - 1) / RD_BLCK;
         size_t MAP_RD = HW_RD * (trans ? c : (c_vec / vec_size));
 
         std::string READ_TYPE =
@@ -601,27 +1018,25 @@ float transpose_NCHW2Vec(Handle& handle,
         params += " -DFORWARD=" + std::to_string(static_cast<int>(forward));
         params += " -DN=" + std::to_string(n);
         params += " -DC=" + std::to_string(c);
-        params += " -DH=" + std::to_string(h);
-        params += " -DW=" + std::to_string(w);
-        params += " -DHW=" + std::to_string(h * w);
-        params += " -DCHW=" + std::to_string(c * h * w);
+        params += " -DHW=" + std::to_string(hw);
+        params += " -DCHW=" + std::to_string(c * hw);
         params += " -DVEC_SIZE=" + std::to_string(vec_size);
         params += vec_size == 4 ? " -DDATA_TYPE=char" : " -DDATA_TYPE=ushort";
 
         params += " -DTRANS=" + std::to_string(static_cast<int>(trans));
         if(trans)
         {
-            params += " -DNHW_OUT=" + std::to_string(n_vec * h * w);
+            params += " -DNHW_OUT=" + std::to_string(n_vec * hw);
             params += " -DN_OUT=" + std::to_string(n_vec);
             params += " -DIS_N_ODD=" + std::to_string(static_cast<int>((n % vec_size) != 0));
         }
         else
         {
-            params += " -DCHW_OUT=" + std::to_string(c_vec * h * w);
+            params += " -DCHW_OUT=" + std::to_string(c_vec * hw);
             params += " -DIS_C_ODD=" + std::to_string(static_cast<int>((c % vec_size) != 0));
         }
 
-        params += " -DIS_HW_ODD=" + std::to_string(static_cast<int>(((h * w) % vec_size) != 0));
+        params += " -DIS_HW_ODD=" + std::to_string(static_cast<int>(((hw) % vec_size) != 0));
         params += " -DRD_BLCK=" + std::to_string(RD_BLCK);
         params += " -DWR_BLCK=" + std::to_string(WR_BLCK);
         params += " -DHW_RD=" + std::to_string(HW_RD);
@@ -683,13 +1098,13 @@ float transpose_packed_MN2NM(Handle& handle,
         std::string params;
 
         if(type == miopenInt8)
-            params += " -DMIOPEN_USE_INTE8=1";
+            params += " -DMIOPEN_USE_INT8=1";
         else if(type == miopenInt8x4)
         {
             m /= 4;
             in_offset /= 4;
             out_offset /= 4;
-            params += " -DMIOPEN_USE_INTE8x4=1";
+            params += " -DMIOPEN_USE_INT8x4=1";
         }
         else if(type == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";

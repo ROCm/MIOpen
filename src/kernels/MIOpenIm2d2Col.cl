@@ -32,17 +32,17 @@
 #define MIOPEN_USE_FP16 0
 #endif
 
-#ifndef MIOPEN_USE_INTE8
-#define MIOPEN_USE_INTE8 0
+#ifndef MIOPEN_USE_INT8
+#define MIOPEN_USE_INT8 0
 #endif
 
-#ifndef MIOPEN_USE_INTE8x4
-#define MIOPEN_USE_INTE8x4 0
+#ifndef MIOPEN_USE_INT8x4
+#define MIOPEN_USE_INT8x4 0
 #endif
 
-#if MIOPEN_USE_INTE8
+#if MIOPEN_USE_INT8
 typedef char data_t;
-#elif MIOPEN_USE_INTE8x4
+#elif MIOPEN_USE_INT8x4
 typedef uint data_t;
 #elif MIOPEN_USE_FP16
 // As the half type degrades the performance, use short instead of half in the
@@ -93,22 +93,22 @@ typedef float data_t;
  * }
  */
 
-kernel void Im2Col(const int data_size_off,
-                   global data_t* im,
-                   const int im_offset,
-                   const int h,
-                   const int w,
-                   const int wei_h,
-                   const int wei_w,
-                   const int out_h,
-                   const int out_w,
-                   const int pad_h,
-                   const int pad_w,
-                   const int stride_h,
-                   const int stride_w,
-                   const int dilation_h,
-                   const int dilation_w,
-                   global data_t* col)
+kernel void Im2d2Col(const int data_size_off,
+                     global data_t* im,
+                     const int im_offset,
+                     const int h,
+                     const int w,
+                     const int wei_h,
+                     const int wei_w,
+                     const int out_h,
+                     const int out_w,
+                     const int pad_h,
+                     const int pad_w,
+                     const int stride_h,
+                     const int stride_w,
+                     const int dilation_h,
+                     const int dilation_w,
+                     global data_t* col)
 {
 #define THREADS_PER_CH (256 / NUM_CH_PER_WG)
 

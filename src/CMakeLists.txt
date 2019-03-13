@@ -117,6 +117,7 @@ set( MIOpen_Source
     include/miopen/fusion.hpp
     include/miopen/mdg_expr.hpp
     include/miopen/kernel_build_params.hpp
+    include/miopen/algorithm.hpp
     md_graph.cpp
     mdg_expr.cpp
     tensor.cpp
@@ -189,11 +190,13 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1J1_stride.cl
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenConvD3x3.cl
-        kernels/MIOpenUtilKernels.cl
-        kernels/MIOpenUtilKernels2.cl
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
         kernels/MIOpenUtilKernels5.cl
+        kernels/MIOpenIm2d2Col.cl
+        kernels/MIOpenIm3d2Col.cl
+        kernels/MIOpenCol2Im2d.cl
+        kernels/MIOpenCol2Im3d.cl
         kernels/MIOpenConvBwdWrWS2.cl
         kernels/MIOpenGroupConvBwdWrWS2.cl
         kernels/MIOpenConvBwdWrW_LxG_P53.cl
