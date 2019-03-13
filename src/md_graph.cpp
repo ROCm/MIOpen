@@ -724,10 +724,14 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                            "dilation_w == 1",
                                            "x == 1",
                                            "y == 1",
-                                           "c <= (2^16)",
-                                           "k <= (2^16)",
-                                           "(c * iH * iW * 4) <= (2^24)",
-                                           "(k * oH * oW * 4) <= (2^24)",
+                                           "c < (2^16)",
+                                           "k < (2^16)",
+                                           "iN < (2^16)",
+                                           "(c * iH * iW * 4) < (2^24)",
+                                           "(k * oH * oW * 4) < (2^24)",
+                                           "(iN * c * iH * iW) < (2^29)",
+                                           "(iN * k * oH * oW) < (2^29)",
+                                           "(c * k) < (2^29)",
                                            "precision == miopenFloat",
                                            "weight === 50",
                                            "algo === miopenConvolutionFwdAlgoDirect"};
@@ -758,23 +762,30 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                             true);
             FusionMDGraph_Edge_Map map_asm_conv;
 
-            map_asm_conv["constraints"] = {"pad_h == 0",
-                                           "pad_w == 0",
-                                           "stride_h == 1",
-                                           "stride_w == 1",
-                                           "dilation_h == 1",
-                                           "dilation_w == 1",
-                                           "x == 1",
-                                           "y == 1",
-                                           "c <= (2^16)",
-                                           "k <= (2^16)",
-                                           "(c * iH * iW * 4) <= (2^24)",
-                                           "(k * oH * oW * 4) <= (2^24)",
-                                           "precision == miopenHalf",
-                                           "(c % 2) == 0",
-                                           "(k % 2) == 0",
-                                           "weight === 50",
-                                           "algo === miopenConvolutionFwdAlgoDirect"};
+            map_asm_conv["constraints"] = {
+                "pad_h == 0",
+                "pad_w == 0",
+                "stride_h == 1",
+                "stride_w == 1",
+                "dilation_h == 1",
+                "dilation_w == 1",
+                "x == 1",
+                "y == 1",
+                "c < (2^16)",
+                "k < (2^16)",
+                "iN < (2^16)",
+                "k >= 4",
+                "(oH * oW) >= 2", // (4 / elements_in_dword); elements_in_dword = 2
+                "(c * iH * iW * 4) < (2^24)",
+                "(k * oH * oW * 4) < (2^24)",
+                "(iN * c * iH * iW) < (2^29)",
+                "(iN * k * oH * oW) < (2^29)",
+                "(c * k) < (2^29)",
+                "precision == miopenHalf",
+                "(c % 2) == 0",
+                "(k % 2) == 0",
+                "weight === 50",
+                "algo === miopenConvolutionFwdAlgoDirect"};
 
             g.AddEdge(nullptr, conv_v, map_asm_conv);
             g.AddEdge(conv_v, bias_v, empty_map);
