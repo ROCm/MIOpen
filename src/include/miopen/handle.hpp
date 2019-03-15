@@ -169,17 +169,18 @@ struct Handle : miopenHandle
         // clang-format on
     }
 
-#if MIOPEN_USE_ROCBLAS
-    rocblas_handle_ptr CreateRocblasHandle() const;
-#endif
-
     std::unique_ptr<HandleImpl> impl;
 #if MIOPEN_USE_MIOPENGEMM
     std::unordered_map<GemmKey, std::unique_ptr<GemmGeometry>, SimpleHash> geo_map;
 #endif
 
 #if MIOPEN_USE_ROCBLAS
-    rocblas_handle_ptr rhandle;
+    rocblas_handle_ptr& rhandle() { return rhandle_; }
+
+    private:
+    rocblas_handle_ptr CreateRocblasHandle() const;
+
+    rocblas_handle_ptr rhandle_;
 #endif
 };
 } // namespace miopen

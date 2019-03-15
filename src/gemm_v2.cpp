@@ -346,7 +346,7 @@ miopenStatus_t CallGemm(Handle& handle,
 
             std::size_t zero = 0;
             rb_status        = rocblas_gemm_ex(
-                handle.rhandle.get(),
+                handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.m,
@@ -383,7 +383,7 @@ miopenStatus_t CallGemm(Handle& handle,
 
             std::size_t zero = 0;
             rb_status        = rocblas_gemm_ex(
-                handle.rhandle.get(),
+                handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.m,
@@ -419,7 +419,7 @@ miopenStatus_t CallGemm(Handle& handle,
 
             std::size_t zero = 0;
             rb_status        = rocblas_gemm_ex(
-                handle.rhandle.get(),
+                handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.m,
@@ -629,7 +629,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
 
             std::size_t zero = 0;
             rb_status        = rocblas_gemm_strided_batched_ex(
-                handle.rhandle.get(),
+                handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.m,
@@ -671,7 +671,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
 
             std::size_t zero = 0;
             rb_status        = rocblas_gemm_strided_batched_ex(
-                handle.rhandle.get(),
+                handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.m,
@@ -712,7 +712,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
 
             std::size_t zero = 0;
             rb_status        = rocblas_gemm_strided_batched_ex(
-                handle.rhandle.get(),
+                handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.m,
@@ -866,7 +866,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
             for(int i = 0; i < gemm_desc.batch_count; ++i)
             {
                 rb_status = rocblas_gemm_ex(
-                    handle.rhandle.get(),
+                    handle.rhandle().get(),
                     gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                     gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
                     gemm_desc.m,
@@ -906,7 +906,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
             for(int i = 0; i < gemm_desc.batch_count; ++i)
             {
                 rb_status = rocblas_gemm_ex(
-                    handle.rhandle.get(),
+                    handle.rhandle().get(),
                     gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                     gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
                     gemm_desc.m,
@@ -945,7 +945,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
             for(int i = 0; i < gemm_desc.batch_count; ++i)
             {
                 rb_status = rocblas_gemm_ex(
-                    handle.rhandle.get(),
+                    handle.rhandle().get(),
                     gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                     gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
                     gemm_desc.m,
