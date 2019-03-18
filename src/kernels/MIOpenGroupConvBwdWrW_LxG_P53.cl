@@ -254,7 +254,7 @@ void Processing(UNUSED uint sc,
 
                         pvt_accum[pvt_accum_off]
                             // each wk-it process an input
-                            += (_FLOAT_ACCUM)(bot_val * top_val);
+                            += (_FLOAT_ACCUM)bot_val * (_FLOAT_ACCUM)top_val;
                     }
                 }
             }
