@@ -585,7 +585,7 @@ MIOPEN_EXPORT miopenStatus_t miopenTransformTensor(miopenHandle_t handle,
 MIOPEN_EXPORT miopenStatus_t
 miopenCreateConvolutionDescriptor(miopenConvolutionDescriptor_t* convDesc);
 
-/*! @brief Creates a convolution layer descriptor
+/*! @brief Creates a 2-D convolution layer descriptor
  *
  * For group/depthwise convolution dilation height and width, only a dilation value of 1 is
  * supported.
@@ -609,7 +609,25 @@ MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDe
                                                              int dilation_h,
                                                              int dilation_w);
 
-/*! @brief Retrieves a convolution layer descriptor's details
+/*! @brief Creates a N-dimensional convolution layer descriptor
+ *
+ * @param convDesc   Convolution layer descriptor (output)
+ * @param c_mode     Convolutional mode (input)
+ * @param convDim    Convolutional dimension (input)
+ * @param padA       Array of input data padding (input)
+ * @param strideA    Array of convolution stride (input)
+ * @param dilationA  Array of convolution dilation (input)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenInitConvolutionNdDescriptor(miopenConvolutionDescriptor_t convDesc,
+                                  miopenConvolutionMode_t c_mode,
+                                  int convDim,
+                                  int* padA,
+                                  int* strideA,
+                                  int* dilationA);
+
+/*! @brief Retrieves a 2-D convolution layer descriptor's details
  *
  * For group/depthwise convolution dilation height and width, only a dilation value of 1 is
  * supported.
@@ -633,6 +651,24 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDes
                                                             int* dilation_h,
                                                             int* dilation_w);
 
+/*! @brief Retrieves a N-dimensional convolution layer descriptor's details
+ *
+ * @param convDesc   Convolution layer descriptor (input)
+ * @param c_mode     Convolutional mode (output)
+ * @param convDim    Convolutional dimension (output)
+ * @param padA       Array of input data padding (output)
+ * @param strideA    Array of convolution stride (output)
+ * @param dilationA  Array of convolution dilation (output)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetConvolutionNdDescriptor(miopenConvolutionDescriptor_t convDesc,
+                                 miopenConvolutionMode_t* c_mode,
+                                 int* convDim,
+                                 int* padA,
+                                 int* strideA,
+                                 int* dilationA);
+
 /*! @brief Set the number of groups to be used in Group/Depthwise convolution
 *
 * Must be called before all computational APIs of group/depthwise convolution, it is preferable to
@@ -649,7 +685,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDes
 MIOPEN_EXPORT miopenStatus_t miopenSetConvolutionGroupCount(miopenConvolutionDescriptor_t convDesc,
                                                             int groupCount);
 
-/*! @brief Set the output padding to be used in Transpose convolution
+/*! @brief Set the output padding to be used in 2-D Transpose convolution
 *
 * This function is optional for initialization of Transpose convolution. If applicable, it must be
 * called before all computational APIs of Transpose convolution. It is preferable to call
@@ -663,6 +699,21 @@ MIOPEN_EXPORT miopenStatus_t miopenSetConvolutionGroupCount(miopenConvolutionDes
 */
 MIOPEN_EXPORT miopenStatus_t
 miopenSetTransposeConvOutputPadding(miopenConvolutionDescriptor_t convDesc, int adj_h, int adj_w);
+
+/*! @brief Set the output padding to be used in N-dimensional Transpose convolution
+*
+* This function is optional for initialization of Transpose convolution. If applicable, it must be
+* called before all computational APIs of Transpose convolution. It is preferable to call
+* miopenInitConvolutionNdDescriptor() first, then miopenSetTransposeConvNdOutputPadding() to fully
+* initialize transpose convolutions.
+*
+* @param convDesc   Convolution layer descriptor (output)
+* @param convDim    Convolutional dimension (input)
+* @param adjA       array of output padding for output data (input)
+* @return           miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetTransposeConvNdOutputPadding(
+    miopenConvolutionDescriptor_t convDesc, int convDim, int* adjA);
 
 /*! @brief Get the shape of a resulting 4-D tensor from a 2-D convolution
  *
@@ -689,6 +740,27 @@ miopenGetConvolutionForwardOutputDim(miopenConvolutionDescriptor_t convDesc,
                                      int* c,
                                      int* h,
                                      int* w);
+
+/*! @brief Get the shape of a resulting N-dimensional tensor from a (N-2)-dimensional convolution
+ *
+ * This function returns the dimensions of the resulting N-dimensional tensor of a (N-2)-dimensional
+ * convolution, given the convolution descriptor, the input tensor descriptor
+ * and the filter descriptor. This function can help to setup the output tensor
+ * and allocate the proper amount of memory prior to launch the actual
+ * convolution.
+ *
+ * @param convDesc          Convolution layer descriptor (input)
+ * @param inputTensorDesc   Input data tensor descriptor (input)
+ * @param filterDesc        Weight descriptor (input)
+ * @param nDim              Pointer to Output data tensor dimension (output)
+ * @param outputTensorDimA  Array of Output data tensor length (output)
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetConvolutionNdForwardOutputDim(miopenConvolutionDescriptor_t convDesc,
+                                       const miopenTensorDescriptor_t inputTensorDesc,
+                                       const miopenTensorDescriptor_t filterDesc,
+                                       int* nDim,
+                                       int* outputTensorDimA);
 
 /*! @brief Destroys the tensor descriptor object
  *

@@ -51,17 +51,18 @@ int main(int argc, char* argv[])
     Driver* drv;
     if(base_arg == "conv")
     {
-        // Maintain compatibility with legacy verification cache files (computed in doubles, stored
-        // as floats).
-        drv = new ConvDriver<float, double, float>();
+        // CPU result saved in float, but calculation is done in double
+        drv = new ConvDriver<float, float>();
     }
     else if(base_arg == "convfp16")
     {
-        drv = new ConvDriver<float16, double>();
+        // CPU result saved in float, but calculation is done in double
+        drv = new ConvDriver<float16, float>();
     }
     else if(base_arg == "convint8")
     {
-        drv = new ConvDriver<int8_t, double>();
+        // CPU result saved in float, but calculation is done in double
+        drv = new ConvDriver<int8_t, float>();
     }
     else if(base_arg == "CBAInfer")
     {
