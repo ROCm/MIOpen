@@ -28,6 +28,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
+#include <algorithm>
 
 // TODO: Make miopenConvAlgoPerf_t loggable
 inline std::ostream& operator<<(std::ostream& os, miopenConvAlgoPerf_t) { return os; }
@@ -47,7 +48,6 @@ extern "C" miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDescr
                                                           int dilation_h,
                                                           int dilation_w)
 {
-
     MIOPEN_LOG_FUNCTION(convDesc, c_mode, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w);
     return miopen::try_([&] {
         miopen::deref(convDesc) = miopen::ConvolutionDescriptor(2,
@@ -59,10 +59,31 @@ extern "C" miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDescr
     });
 }
 
+extern "C" miopenStatus_t miopenInitConvolutionNdDescriptor(miopenConvolutionDescriptor_t convDesc,
+                                                            miopenConvolutionMode_t c_mode,
+                                                            int convDim,
+                                                            int* padA,
+                                                            int* strideA,
+                                                            int* dilationA)
+{
+    MIOPEN_LOG_FUNCTION(convDesc, c_mode, convDim, padA, strideA, dilationA);
+    return miopen::try_([&] {
+        miopen::deref(convDesc) =
+            miopen::ConvolutionDescriptor(convDim,
+                                          c_mode,
+                                          miopenPaddingDefault,
+                                          std::vector<int>(padA, padA + convDim),
+                                          std::vector<int>(strideA, strideA + convDim),
+                                          std::vector<int>(dilationA, dilationA + convDim),
+                                          std::vector<int>(convDim, 0),
+                                          1,
+                                          1.0);
+    });
+}
+
 extern "C" miopenStatus_t miopenSetConvolutionGroupCount(miopenConvolutionDescriptor_t convDesc,
                                                          int groupCount)
 {
-
     MIOPEN_LOG_FUNCTION(convDesc, groupCount);
     return miopen::try_([&] { miopen::deref(convDesc).group_count = groupCount; });
 }
@@ -70,11 +91,29 @@ extern "C" miopenStatus_t miopenSetConvolutionGroupCount(miopenConvolutionDescri
 extern "C" miopenStatus_t
 miopenSetTransposeConvOutputPadding(miopenConvolutionDescriptor_t convDesc, int adj_h, int adj_w)
 {
-
     MIOPEN_LOG_FUNCTION(convDesc, adj_h, adj_w);
     return miopen::try_([&] {
+        if(miopen::deref(convDesc).GetConvDimension() != 2)
+        {
+            MIOPEN_THROW("this API only deals with 2-D convolution");
+        }
+
         miopen::deref(convDesc).trans_output_pads[0] = adj_h;
         miopen::deref(convDesc).trans_output_pads[1] = adj_w;
+    });
+}
+
+extern "C" miopenStatus_t miopenSetTransposeConvNdOutputPadding(
+    miopenConvolutionDescriptor_t convDesc, int convDim, int* adjA)
+{
+    MIOPEN_LOG_FUNCTION(convDesc, convDim, adjA);
+    return miopen::try_([&] {
+        if(convDim != miopen::deref(convDesc).GetConvDimension())
+        {
+            MIOPEN_THROW("convDim not consistent with convolution descriptor");
+        }
+
+        std::copy_n(adjA, convDim, miopen::deref(convDesc).trans_output_pads.begin());
     });
 }
 
@@ -87,9 +126,13 @@ extern "C" miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDescri
                                                          int* dilation_h,
                                                          int* dilation_w)
 {
-
     MIOPEN_LOG_FUNCTION(convDesc, c_mode, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w);
     return miopen::try_([&] {
+        if(miopen::deref(convDesc).GetConvDimension() != 2)
+        {
+            MIOPEN_THROW("this API only deals with 2-D convolution");
+        }
+
         miopen::deref(c_mode)     = miopen::deref(convDesc).mode;
         miopen::deref(pad_h)      = miopen::deref(convDesc).GetConvPads()[0];
         miopen::deref(pad_w)      = miopen::deref(convDesc).GetConvPads()[1];
@@ -97,6 +140,24 @@ extern "C" miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDescri
         miopen::deref(stride_w)   = miopen::deref(convDesc).GetConvStrides()[1];
         miopen::deref(dilation_h) = miopen::deref(convDesc).GetConvDilations()[0];
         miopen::deref(dilation_w) = miopen::deref(convDesc).GetConvDilations()[1];
+    });
+}
+
+extern "C" miopenStatus_t miopenGetConvolutionNdDescriptor(miopenConvolutionDescriptor_t convDesc,
+                                                           miopenConvolutionMode_t* c_mode,
+                                                           int* convDim,
+                                                           int* padA,
+                                                           int* strideA,
+                                                           int* dilationA)
+{
+    MIOPEN_LOG_FUNCTION(convDesc, c_mode, convDim, padA, strideA, dilationA);
+    return miopen::try_([&] {
+        miopen::deref(c_mode)  = miopen::deref(convDesc).mode;
+        int conv_dim           = miopen::deref(convDesc).GetConvDimension();
+        miopen::deref(convDim) = conv_dim;
+        std::copy_n(miopen::deref(convDesc).GetConvPads().begin(), conv_dim, padA);
+        std::copy_n(miopen::deref(convDesc).GetConvStrides().begin(), conv_dim, strideA);
+        std::copy_n(miopen::deref(convDesc).GetConvDilations().begin(), conv_dim, dilationA);
     });
 }
 
@@ -109,13 +170,38 @@ miopenGetConvolutionForwardOutputDim(miopenConvolutionDescriptor_t convDesc,
                                      int* h,
                                      int* w)
 {
-
     MIOPEN_LOG_FUNCTION(convDesc, inputTensorDesc, filterDesc, n, c, h, w);
     return miopen::try_([&] {
+        if(miopen::deref(convDesc).GetConvDimension() != 2)
+        {
+            MIOPEN_THROW("this API only deals with 2-D convolution");
+        }
+
         miopen::tie_deref(n, c, h, w) = miopen::tien<4>(
             miopen::deref(convDesc)
                 .GetForwardOutputTensor(miopen::deref(inputTensorDesc), miopen::deref(filterDesc))
                 .GetLengths());
+    });
+}
+
+extern "C" miopenStatus_t
+miopenGetConvolutionNdForwardOutputDim(miopenConvolutionDescriptor_t convDesc,
+                                       const miopenTensorDescriptor_t inputTensorDesc,
+                                       const miopenTensorDescriptor_t filterDesc,
+                                       int* nDim,
+                                       int* outputTensorDimA)
+{
+    MIOPEN_LOG_FUNCTION(convDesc, inputTensorDesc, filterDesc, nDim, outputTensorDimA);
+    return miopen::try_([&] {
+        auto out_desc = miopen::deref(convDesc).GetForwardOutputTensor(
+            miopen::deref(inputTensorDesc), miopen::deref(filterDesc));
+
+        miopen::deref(nDim) = out_desc.GetSize();
+
+        for(int i = 0; i < out_desc.GetSize(); ++i)
+        {
+            outputTensorDimA[i] = out_desc.GetLengths()[i];
+        }
     });
 }
 
