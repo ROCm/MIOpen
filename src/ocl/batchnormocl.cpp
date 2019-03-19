@@ -240,9 +240,7 @@ void BatchNormForwardTraining(Handle& handle,
                 std::string program_name;
                 std::string parms;
 
-                // const std::string name = params.GetStream().GetDeviceName();
-                // if ((variant == 3)&&(bfpmixparm == true)&&(name == "gfx906"))
-                if((variant == 3) && (bfpmixparm) && (n < 65))
+                if((variant == 3) && (bfpmixparm) && (n <= 64) && (n % 2 == 0))
                 {
                     kernel_name  = "gcnAsmBNFwdTrainSpatial";
                     program_name = "gcnAsmBNFwdTrainSpatial.s";
@@ -421,8 +419,7 @@ void BatchNormForwardTraining(Handle& handle,
                 std::string kernel_name;
                 std::string program_name;
                 std::string parms;
-                // if ((variant == 3)&&(bfpmixparm == true)&&(name == "gfx906"))
-                if((variant == 3) && (bfpmixparm) && (n < 65))
+                if((variant == 3) && (bfpmixparm) && (n <= 64) && (n % 2 == 0))
                 {
                     kernel_name  = "gcnAsmBNFwdTrainSpatial";
                     program_name = "gcnAsmBNFwdTrainSpatial.s";
