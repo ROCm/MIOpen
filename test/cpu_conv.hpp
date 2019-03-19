@@ -46,13 +46,13 @@ static constexpr auto make_array(T x, Ts... xs)
     return std::array<T, 1 + sizeof...(Ts)>{{x, xs...}};
 }
 
-template <std::size_t ConvDim, typename Tin, typename Twei, typename Tout, typename Integer>
+template <std::size_t ConvDim, typename Tin, typename Twei, typename Tout, typename Range>
 void cpu_convolution_forward_impl(const tensor<Tin>& in,
                                   const tensor<Twei>& wei,
                                   tensor<Tout>& out,
-                                  const std::vector<Integer>& pads,
-                                  const std::vector<Integer>& strides,
-                                  const std::vector<Integer>& dilations,
+                                  const Range& pads,
+                                  const Range& strides,
+                                  const Range& dilations,
                                   std::size_t group_count)
 {
     static_assert(ConvDim > 0, "wrong! convolution dim should be larger than 0");
@@ -129,13 +129,13 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
     });
 }
 
-template <std::size_t ConvDim, typename Tin, typename Twei, typename Tout, typename Integer>
+template <std::size_t ConvDim, typename Tin, typename Twei, typename Tout, typename Range>
 void cpu_convolution_backward_data_impl(tensor<Tin>& in,
                                         const tensor<Twei>& wei,
                                         const tensor<Tout>& out,
-                                        const std::vector<Integer>& pads,
-                                        const std::vector<Integer>& strides,
-                                        const std::vector<Integer>& dilations,
+                                        const Range& pads,
+                                        const Range& strides,
+                                        const Range& dilations,
                                         std::size_t group_count)
 {
     static_assert(ConvDim > 0, "wrong! convolution dim should be larger than 0");
@@ -214,13 +214,13 @@ void cpu_convolution_backward_data_impl(tensor<Tin>& in,
     });
 }
 
-template <std::size_t ConvDim, typename Tin, typename Twei, typename Tout, typename Integer>
+template <std::size_t ConvDim, typename Tin, typename Twei, typename Tout, typename Range>
 void cpu_convolution_backward_weight_impl(const tensor<Tin>& in,
                                           tensor<Twei>& wei,
                                           const tensor<Tout>& out,
-                                          const std::vector<Integer>& pads,
-                                          const std::vector<Integer>& strides,
-                                          const std::vector<Integer>& dilations,
+                                          const Range& pads,
+                                          const Range& strides,
+                                          const Range& dilations,
                                           std::size_t group_count)
 {
     static_assert(ConvDim > 0, "wrong! convolution dim should be larger than 0");
@@ -294,14 +294,14 @@ void cpu_convolution_backward_weight_impl(const tensor<Tin>& in,
     });
 }
 
-template <typename Tin, typename Twei, typename Tout, typename Integer>
+template <typename Tin, typename Twei, typename Tout, typename Range>
 void cpu_convolution_forward(std::size_t conv_dim,
                              const tensor<Tin>& in,
                              const tensor<Twei>& wei,
                              tensor<Tout>& out,
-                             const std::vector<Integer>& pads,
-                             const std::vector<Integer>& strides,
-                             const std::vector<Integer>& dilations,
+                             const Range& pads,
+                             const Range& strides,
+                             const Range& dilations,
                              std::size_t group_count)
 {
     switch(conv_dim)
@@ -331,14 +331,14 @@ void cpu_convolution_forward(std::size_t conv_dim,
     }
 }
 
-template <typename Tin, typename Twei, typename Tout, typename Integer>
+template <typename Tin, typename Twei, typename Tout, typename Range>
 void cpu_convolution_backward_data(std::size_t conv_dim,
                                    tensor<Tin>& in,
                                    const tensor<Twei>& wei,
                                    const tensor<Tout>& out,
-                                   const std::vector<Integer>& pads,
-                                   const std::vector<Integer>& strides,
-                                   const std::vector<Integer>& dilations,
+                                   const Range& pads,
+                                   const Range& strides,
+                                   const Range& dilations,
                                    std::size_t group_count)
 {
     switch(conv_dim)
@@ -368,14 +368,14 @@ void cpu_convolution_backward_data(std::size_t conv_dim,
     }
 }
 
-template <typename Tin, typename Twei, typename Tout, typename Integer>
+template <typename Tin, typename Twei, typename Tout, typename Range>
 void cpu_convolution_backward_weight(std::size_t conv_dim,
                                      const tensor<Tin>& in,
                                      tensor<Twei>& wei,
                                      const tensor<Tout>& out,
-                                     const std::vector<Integer>& pads,
-                                     const std::vector<Integer>& strides,
-                                     const std::vector<Integer>& dilations,
+                                     const Range& pads,
+                                     const Range& strides,
+                                     const Range& dilations,
                                      std::size_t group_count)
 {
     switch(conv_dim)
