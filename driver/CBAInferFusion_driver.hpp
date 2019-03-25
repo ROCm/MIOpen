@@ -160,7 +160,7 @@ class CBAInferFusionDriver : public Driver
 
     void startTiming()
     {
-        START_TIME;
+        START_TIME
         return;
     }
 
@@ -176,7 +176,7 @@ class CBAInferFusionDriver : public Driver
         }
 
         miopen::deref(GetHandle()).Finish();
-        STOP_TIME;
+        STOP_TIME
 
         if(WALL_CLOCK)
         {

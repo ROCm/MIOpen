@@ -261,7 +261,7 @@ struct na_fusion_driver : test_driver
             ssn, ssc, ssh, ssw}; //.generate(                tensor_elem_gen_integer{max_value});;
 
         srand(0);
-        for(int i = 0; i < scale.desc.GetElementSize(); i++)
+        for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
         {
 
             scale[i]       = (((rand() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(rand() % 100);
@@ -269,7 +269,7 @@ struct na_fusion_driver : test_driver
             estMean[i]     = (((rand() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(rand() % 100);
             estVariance[i] = (1e-2 * (PREC_TYPE(rand() % 100) + 1));
         }
-        for(int i = 0; i < input.desc.GetElementSize(); i++)
+        for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
         {
             input[i] = 1e-2 * (((rand() % 2) == 1) ? -1 : 1) * T(rand() % 100);
         }

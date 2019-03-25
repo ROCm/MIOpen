@@ -75,8 +75,8 @@ static inline bool IsShaderContraintsMet(const int R,
                                          const bool fp16,
                                          const unsigned filter_tile_size)
 {
-    static const unsigned TILE    = filter_tile_size;
-    static const unsigned TILE_X2 = TILE * 2;
+    static const auto TILE   = static_cast<int>(filter_tile_size);
+    static const int TILE_X2 = TILE * 2;
     // Calculate padded filter size first.
     // If stride = 1: if S <= 3 it is padded to 3,
     // otherwise S is padded to smallest 6*n for some integer n
@@ -137,8 +137,8 @@ static inline bool IsShaderContraintsMet(const int R,
                 return false;
             // In dilation mode with stride== 2 the following should be satisfied:
             // C * (ceil(R/6) + floor((R+4)/6)) * ceil(S/6) >= 18*2 (fp16)
-            const int k = CeilDiv(R, TILE_X2) + FloorDiv((R + TILE + 1), TILE_X2);
-            const int l = CeilDiv(S, TILE_X2);
+            const auto k = CeilDiv(R, TILE_X2) + FloorDiv((R + TILE + 1), TILE_X2);
+            const auto l = CeilDiv(S, TILE_X2);
             if(C * k * l < 18 * 2)
                 return false;
         }
