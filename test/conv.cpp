@@ -117,7 +117,10 @@ struct scalar_gen_random_integer
     unsigned long min_val = 1;
     unsigned long max_val = 16;
 
-    double operator()() const { return min_val + std::rand() % (max_val - min_val + 1); }
+    double operator()() const
+    {
+        return static_cast<double>(min_val + std::rand() % (max_val - min_val + 1));
+    }
 };
 
 struct tensor_elem_gen_one
@@ -836,7 +839,7 @@ struct conv_driver : test_driver
                     std::vector<std::size_t> pads_(conv_dim);
                     std::vector<std::ptrdiff_t> out_spatial_len(conv_dim);
 
-                    for(int i = 0; i < conv_dim; ++i)
+                    for(std::size_t i = 0; i < conv_dim; ++i)
                     {
                         pads_[i] =
                             (in_spatial_len[i] % filter.GetConvStrides()[i] == 0)
@@ -867,7 +870,7 @@ struct conv_driver : test_driver
 
                     std::vector<ptrdiff_t> out_spatial_len(conv_dim);
 
-                    for(int i = 0; i < conv_dim; ++i)
+                    for(std::size_t i = 0; i < conv_dim; ++i)
                     {
                         filter.pads[i] = 0;
 
@@ -885,7 +888,7 @@ struct conv_driver : test_driver
             }
             if(filter.mode == miopenTranspose)
             {
-                for(int i = 0; i < conv_dim; ++i)
+                for(std::size_t i = 0; i < conv_dim; ++i)
                 {
                     filter.pads[i] = filter.GetConvStrides()[i] - 1;
                 }

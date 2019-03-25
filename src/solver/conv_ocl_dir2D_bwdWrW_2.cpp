@@ -694,7 +694,8 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
         kernel.l_wk.push_back(1);
 
         assert(utility_read_unit != 0);
-        int gbl_ut_wk0 = wei_bstride * params.n_inputs / utility_read_unit;
+        int gbl_ut_wk0 =
+            static_cast<int>(static_cast<int>(wei_bstride) * params.n_inputs / utility_read_unit);
 
         kernel.g_wk.push_back(gbl_ut_wk0);
         kernel.g_wk.push_back(1);

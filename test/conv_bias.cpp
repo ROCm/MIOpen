@@ -47,7 +47,10 @@ struct scalar_gen_random_integer
     unsigned long min_val = 1;
     unsigned long max_val = 16;
 
-    double operator()() const { return min_val + std::rand() % (max_val - min_val + 1); }
+    double operator()() const
+    {
+        return static_cast<double>(min_val + std::rand() % (max_val - min_val + 1));
+    }
 };
 
 template <class T>
