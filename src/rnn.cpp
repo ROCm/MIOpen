@@ -581,7 +581,7 @@ void RNNDescriptor::GetLayerBias(Handle& handle,
     }
 
     // Calculate the location of the matrix via layerID, bidirection setting, and params
-    int x        = (dirMode == miopenRNNbidirection) ? nLayers * 2 : nLayers;
+    int x        = static_cast<int>((dirMode == miopenRNNbidirection) ? nLayers * 2 : nLayers);
     auto poffset = paramsOffsetCalculation(xDesc, x, 0);
     auto boffset = biasOffsetCalculation(xDesc, layer, biasID) + poffset;
 
@@ -673,7 +673,7 @@ void RNNDescriptor::SetLayerBias(Handle& handle,
     }
 
     // 1. Calculate the location of the matrix via layerID, bidirection setting, and params
-    int x        = (dirMode == miopenRNNbidirection) ? nLayers * 2 : nLayers;
+    int x        = static_cast<int>((dirMode == miopenRNNbidirection) ? nLayers * 2 : nLayers);
     auto poffset = paramsOffsetCalculation(xDesc, x, 0);
     auto boffset = biasOffsetCalculation(xDesc, layer, biasID) + poffset;
 
@@ -757,7 +757,7 @@ void RNNDescriptor::GetLayerBiasOffset(const int layer,
         return;
     }
 
-    int x        = (dirMode == miopenRNNbidirection) ? nLayers * 2 : nLayers;
+    int x        = static_cast<int>((dirMode == miopenRNNbidirection) ? nLayers * 2 : nLayers);
     auto poffset = paramsOffsetCalculation(xDesc, x, 0);
     *biasOffset  = biasOffsetCalculation(xDesc, layer, biasID) + poffset;
 

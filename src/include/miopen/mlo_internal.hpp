@@ -118,8 +118,8 @@ inline int mloLg2(int v)
 
 inline int AlignUp(int val, unsigned step)
 {
-    assert(step > 0);
-    return ((val + step - 1) / step) * step;
+    assert(val >= 0);
+    return static_cast<int>(((static_cast<unsigned>(val) + step - 1) / step) * step);
 }
 
 enum class rocm_meta_version

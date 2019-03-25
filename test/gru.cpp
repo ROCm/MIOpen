@@ -2904,7 +2904,7 @@ struct gru_driver : test_driver
         std::size_t in_sz = inVecReal * batch_n;
         std::vector<T> input(in_sz);
         srand(0);
-        for(int i = 0; i < in_sz; i++)
+        for(std::size_t i = 0; i < in_sz; i++)
         {
             input[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
         }
@@ -2921,9 +2921,9 @@ struct gru_driver : test_driver
             miopen::TensorDescriptor(miopen::deref(rnnDesc).dataType, inlens.data(), 2);
         miopenGetRNNParamsSize(
             &handle, rnnDesc, &firstInputDesc, &wei_bytes, miopen::deref(rnnDesc).dataType);
-        auto wei_sz = int(wei_bytes / sizeof(T));
+        auto wei_sz = wei_bytes / sizeof(T);
         std::vector<T> weights(wei_sz);
-        for(int i = 0; i < wei_sz; i++)
+        for(std::size_t i = 0; i < wei_sz; i++)
         {
             weights[i] = (((rand() % 2) == 1) ? -1 : 1) * 0.001 * float(rand() % 100);
         }
@@ -2940,7 +2940,7 @@ struct gru_driver : test_driver
 
         if(!nohx)
         {
-            for(int i = 0; i < hx_sz; i++)
+            for(std::size_t i = 0; i < hx_sz; i++)
             {
                 hx[i] = 0.001 * float(rand() % 100);
             }
@@ -2948,7 +2948,7 @@ struct gru_driver : test_driver
 
         if(!nodhy)
         {
-            for(int i = 0; i < hx_sz; i++)
+            for(std::size_t i = 0; i < hx_sz; i++)
             {
                 dhyin[i] = 0.001 * float(rand() % 100);
             }
@@ -2976,7 +2976,7 @@ struct gru_driver : test_driver
         auto reserveSpaceFwdTrain = std::get<2>(fwdTrainOutputPair.second);
 
         std::vector<T> dyin(yin.size());
-        for(int i = 0; i < yin.size(); i++)
+        for(std::size_t i = 0; i < yin.size(); i++)
         {
             dyin[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
         }
@@ -3000,7 +3000,7 @@ struct gru_driver : test_driver
                                                                    workSpaceBwdData,
                                                                    batchSeq,
                                                                    hiddenSize,
-                                                                   wei_sz,
+                                                                   static_cast<int>(wei_sz),
                                                                    batch_n,
                                                                    seqLength,
                                                                    numLayers,

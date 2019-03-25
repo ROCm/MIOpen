@@ -711,7 +711,7 @@ int RNNDriver<Tgpu, Tref>::RunForwardGPU()
             reservespace_dev->ToGPU(q, reservespace.data());
         }
 
-        START_TIME;
+        START_TIME
         if(inflags.GetValueInt("fwdtype") == 0)
         {
             miopenRNNForwardTraining(GetHandle(),
@@ -764,7 +764,7 @@ int RNNDriver<Tgpu, Tref>::RunForwardGPU()
                                       workspace_dev->GetSize());
         }
         miopen::deref(GetHandle()).Finish();
-        STOP_TIME;
+        STOP_TIME
 
         if(i > 0 || inflags.GetValueInt("iter") == 1)
         {
@@ -934,7 +934,7 @@ int RNNDriver<Tgpu, Tref>::RunBackwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        START_TIME;
+        START_TIME
         ret = miopenRNNBackwardData(GetHandle(),
                                     rnnDesc,
                                     adjustedSeqLen,
@@ -963,7 +963,7 @@ int RNNDriver<Tgpu, Tref>::RunBackwardGPU()
                                     reservespace_dev->GetMem(),
                                     reservespace_dev->GetSize());
         miopen::deref(GetHandle()).Finish();
-        STOP_TIME;
+        STOP_TIME
         if(i > 0 || inflags.GetValueInt("iter") == 1)
         {
             float time = 0.0;
@@ -999,7 +999,7 @@ int RNNDriver<Tgpu, Tref>::RunBackwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        START_TIME;
+        START_TIME
         ret = miopenRNNBackwardWeights(GetHandle(),
                                        rnnDesc,
                                        adjustedSeqLen,
@@ -1016,7 +1016,7 @@ int RNNDriver<Tgpu, Tref>::RunBackwardGPU()
                                        reservespace_dev->GetMem(),
                                        reservespace_dev->GetSize());
         miopen::deref(GetHandle()).Finish();
-        STOP_TIME;
+        STOP_TIME
         if(i > 0 || inflags.GetValueInt("iter") == 1)
         {
             float time = 0.0;

@@ -381,7 +381,7 @@ struct cba_fusion_driver : test_driver
                 {
                     bias = tensor<T>{1, output.desc.GetLengths()[1], 1, 1};
                     srand(0);
-                    for(int i = 0; i < bias.desc.GetElementSize(); i++)
+                    for(std::size_t i = 0; i < bias.desc.GetElementSize(); i++)
                     {
                         bias[i] = (((rand() % 2) == 1) ? -1 : 1) * (0.1 * T(rand() % 100));
                     }

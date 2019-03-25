@@ -103,7 +103,8 @@ void IncludeInliner::ProcessCore(std::istream& input,
 
     while(!input.eof())
     {
-        std::string line, word;
+        std::string line;
+        std::string word;
         std::getline(input, line);
         std::istringstream line_parser(line);
         line_parser >> word;

@@ -87,8 +87,7 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ConvolutionContext& params) const
 
 static inline int AlignUp(int val, unsigned step)
 {
-    assert(step > 0);
-    return ((val + step - 1) / step) * step;
+    return static_cast<int>(((static_cast<unsigned>(val) + step - 1) / step) * step);
 }
 
 ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ConvolutionContext& params) const

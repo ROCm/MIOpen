@@ -250,7 +250,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidValue() const
 
 bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) const
 {
-    const int elements_in_dword = 4 / GetTypeSize(config.in_data_type);
+    const auto elements_in_dword = 4 / GetTypeSize(config.in_data_type);
 
     if(!IsValidValue())
         return false;
@@ -268,21 +268,21 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
         return false;
     if(chunks_per_wave % elements_in_dword != 0)
         return false;
-    const int in_gprs =
+    const auto in_gprs =
         (chunks_per_wave * n_mult * c_mult + elements_in_dword - 1) / elements_in_dword;
-    const int acc_gprs = chunks_per_wave * n_mult * k_mult;
-    const int img_hw   = config.out_height * config.out_width;
+    const auto acc_gprs = chunks_per_wave * n_mult * k_mult;
+    const auto img_hw   = config.out_height * config.out_width;
     // TODO last vgpr only for old card.
     // ADD if(option.machine_version_major == 9)
     // vgprs  = 4 + 2 * in_gprs + acc_gprs + (img_hw % elements_in_dword != 0 ? 1: 0);
     // else
-    const int vgprs = 4 + 2 * in_gprs + acc_gprs + (img_hw % elements_in_dword != 0 ? 1 : 0) + 1;
+    const auto vgprs = 4 + 2 * in_gprs + acc_gprs + (img_hw % elements_in_dword != 0 ? 1 : 0) + 1;
     if(!(vgprs < 256))
         return false;
-    const int max_waves_per_CU = (256 / vgprs) * 4;
+    const auto max_waves_per_CU = (256 / vgprs) * 4;
     if(!(max_waves_per_CU >= waves_c_in_group * waves_k_in_group))
         return false;
-    const int sgprs = 25 + 2 * k_mult * c_mult;
+    const auto sgprs = 25 + 2 * k_mult * c_mult;
     if(!(sgprs < 102)) /// \todo This is valid for Gfx8 and Gfx9. Check for newer parts.
         return false;
     const int total_n_blocks = (config.batch_sz + GetNPerGpr() - 1) / GetNPerGpr();
@@ -303,15 +303,15 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
 
 void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config)
 {
-    const int elements_in_dword = 4 / GetTypeSize(config.in_data_type);
-    read_size                   = 4;
-    k_mult                      = 16;
-    chunks_per_wave             = read_size * elements_in_dword;
-    chunk_size                  = 16;
-    n_mult                      = 2;
-    c_mult                      = elements_in_dword;
-    waves_c_in_group            = 1;
-    waves_k_in_group            = 1;
+    const auto elements_in_dword = 4 / GetTypeSize(config.in_data_type);
+    read_size                    = 4;
+    k_mult                       = 16;
+    chunks_per_wave              = static_cast<int>(read_size * elements_in_dword);
+    chunk_size                   = 16;
+    n_mult                       = 2;
+    c_mult                       = elements_in_dword;
+    waves_c_in_group             = 1;
+    waves_k_in_group             = 1;
 
     if(!IsValid(config))
     {
@@ -388,7 +388,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
     assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
-    const int elements_in_dword = 4 / GetTypeSize(params.in_data_type);
+    const auto elements_in_dword = 4 / GetTypeSize(params.in_data_type);
     // clang-format off
     const int img_hw = params.out_height * params.out_width;
     bool ok = (params.pad_w == 0         // -q  pad_w

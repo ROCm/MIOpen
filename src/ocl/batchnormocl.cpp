@@ -255,7 +255,7 @@ void BatchNormForwardTraining(Handle& handle,
                             f32 = 0;
                         }
                     } NHW_value;
-                    NHW_value.f32 = in_nhw / (in_nhw - 1.0);
+                    NHW_value.f32 = static_cast<float>(in_nhw / (in_nhw - 1.0));
 
                     parms = "-Wa,-defsym,MIOPEN_USE_FP16=" +
                             std::to_string(static_cast<int>(bfp16parm)) +
@@ -435,7 +435,7 @@ void BatchNormForwardTraining(Handle& handle,
                         }
                     } NHW_value;
 
-                    NHW_value.f32 = in_nhw / (in_nhw - 1.0);
+                    NHW_value.f32 = static_cast<float>(in_nhw / (in_nhw - 1.0));
 
                     parms = "-Wa,-defsym,MIOPEN_USE_FP16=" +
                             std::to_string(static_cast<int>(bfp16parm)) +

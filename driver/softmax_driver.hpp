@@ -228,7 +228,7 @@ int SoftmaxDriver<Tgpu, Tref>::RunForwardGPU()
         GetHandle(), &alpha, inputTensor, in_dev->GetMem(), &beta, outputTensor, out_dev->GetMem());
 
     Timer t;
-    START_TIME;
+    START_TIME
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
@@ -246,7 +246,7 @@ int SoftmaxDriver<Tgpu, Tref>::RunForwardGPU()
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
 
-        STOP_TIME;
+        STOP_TIME
         if(WALL_CLOCK)
             printf("Wall-clock Time Forward Softmax Elapsed: %f ms\n",
                    t.gettime_ms() / inflags.GetValueInt("iter"));
@@ -280,7 +280,7 @@ int SoftmaxDriver<Tgpu, Tref>::RunBackwardGPU()
                           din_dev->GetMem());
 
     Timer t;
-    START_TIME;
+    START_TIME
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
@@ -300,7 +300,7 @@ int SoftmaxDriver<Tgpu, Tref>::RunBackwardGPU()
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
 
-        STOP_TIME;
+        STOP_TIME
         if(WALL_CLOCK)
             printf("Wall-clock Time Backward Softmax Elapsed: %f ms\n",
                    t.gettime_ms() / inflags.GetValueInt("iter"));
