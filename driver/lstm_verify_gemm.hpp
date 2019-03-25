@@ -97,7 +97,6 @@ void RunLSTMForwardGEMMCPUVerify(
 
     // initial weights
     std::vector<Tref> wei_state(wei_len, static_cast<Tref>(0));
-    ;
     for(int h = 0; h < wei_len; h++)
     {
         wei_state.at(h) = wei.at(h);

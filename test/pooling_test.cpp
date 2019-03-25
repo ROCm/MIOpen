@@ -421,8 +421,9 @@ struct pooling_driver : test_driver
                 auto x = static_cast<std::size_t>(std::max<double>(
                              out.first(n, c, h, w), std::numeric_limits<int>::max())) %
                          2503;
-                double y = (877 * n) % 2503 + (547 * c) % 2503 + (701 * h) % 2503 +
-                           (1049 * w) % 2503 + (769 * x) % 2503;
+                double y =
+                    static_cast<double>((877 * n) % 2503 + (547 * c) % 2503 + (701 * h) % 2503 +
+                                        (1049 * w) % 2503 + (769 * x) % 2503);
                 return ((x * y) / (2503.0 * 2503.0));
             });
             verify(verify_backward_pooling{}, input, dout, out.first, filter, indices);

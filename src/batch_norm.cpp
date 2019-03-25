@@ -81,7 +81,7 @@ TensorDescriptor BuildReshaped4DTensorDescriptor(const miopen::TensorDescriptor&
 void profileSequence(Handle& handle, unsigned char select, float* ctime)
 {
 
-    double ktime = 0.;
+    float ktime = 0.;
     assert((select < 3) && "profileSequence case incorrect");
     switch(select)
     {

@@ -114,21 +114,29 @@ float Im2d2ColGPU(Handle& handle,
 
         int tile_sz_x  = 32;
         int tile_sz_y  = 8;
-        int num_blks_x = std::ceil(static_cast<float>(out_w) / tile_sz_x);
-        int num_blks   = num_blks_x * int(std::ceil(static_cast<float>(out_h) / tile_sz_y));
+        int num_blks_x = std::ceil(static_cast<float>(out_w) / static_cast<float>(tile_sz_x));
+        int num_blks =
+            num_blks_x *
+            static_cast<int>(std::ceil(static_cast<float>(out_h) / static_cast<float>(tile_sz_y)));
         int local_mem_sz;
         if(num_ch_per_wg == 1)
+        {
             local_mem_sz = ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
                            ((tile_sz_y - 1) * stride_h + (wei_h - 1) * dilation_h + 1);
+        }
         else
-            local_mem_sz = int(std::max(
-                num_ch_per_wg *
-                    ((std::ceil(static_cast<float>(tile_sz_x) / num_ch_per_wg) - 1) * stride_w +
-                     (wei_w - 1) * dilation_w + 1) *
-                    ((tile_sz_y - 1) * stride_h + (wei_h - 1) * dilation_h + 1),
-                num_ch_per_wg * ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
-                    ((std::ceil(static_cast<float>(tile_sz_y) / num_ch_per_wg) - 1) * stride_h +
-                     (wei_h - 1) * dilation_h + 1)));
+        {
+            auto uprdTileX = static_cast<int>(
+                std::ceil(static_cast<float>(tile_sz_x) / static_cast<float>(num_ch_per_wg)) - 1);
+            auto uprdTileY = static_cast<int>(
+                std::ceil(static_cast<float>(tile_sz_y) / static_cast<float>(num_ch_per_wg)) - 1);
+            auto memXsize = (num_ch_per_wg * uprdTileX * stride_w + (wei_w - 1) * dilation_w + 1) *
+                            ((tile_sz_y - 1) * stride_h + (wei_h - 1) * dilation_h + 1);
+            auto memYsize = num_ch_per_wg *
+                            ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
+                            (uprdTileY * stride_h + (wei_h - 1) * dilation_h + 1);
+            local_mem_sz = static_cast<int>(std::max(memXsize, memYsize));
+        }
 
         // adjust mapping for large kernel
         int type_size    = 4; // Need to adjust for fp16, int8
@@ -145,23 +153,30 @@ float Im2d2ColGPU(Handle& handle,
             {
                 tile_sz_x  = tile_sz_x == 1 ? 1 : (tile_sz_y == 1 ? (tile_sz_x / 2) : tile_sz_x);
                 tile_sz_y  = tile_sz_y == 1 ? 1 : (tile_sz_y / 2);
-                num_blks_x = std::ceil(static_cast<float>(out_w) / tile_sz_x);
-                num_blks   = num_blks_x * int(std::ceil(static_cast<float>(out_h) / tile_sz_y));
+                num_blks_x = std::ceil(static_cast<float>(out_w) / static_cast<float>(tile_sz_x));
+                num_blks   = num_blks_x * static_cast<int>(std::ceil(static_cast<float>(out_h) /
+                                                                   static_cast<float>(tile_sz_y)));
                 if(num_ch_per_wg == 1)
+                {
                     local_mem_sz = ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
                                    ((tile_sz_y - 1) * stride_h + (wei_h - 1) * dilation_h + 1);
+                }
                 else
-                    local_mem_sz = int(std::max(
-                        num_ch_per_wg *
-                            ((std::ceil(static_cast<float>(tile_sz_x) / num_ch_per_wg) - 1) *
-                                 stride_w +
-                             (wei_w - 1) * dilation_w + 1) *
-                            ((tile_sz_y - 1) * stride_h + (wei_h - 1) * dilation_h + 1),
-                        num_ch_per_wg *
-                            ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
-                            ((std::ceil(static_cast<float>(tile_sz_y) / num_ch_per_wg) - 1) *
-                                 stride_h +
-                             (wei_h - 1) * dilation_h + 1)));
+                {
+                    auto uprdTileX = static_cast<int>(std::ceil(static_cast<float>(tile_sz_x) /
+                                                                static_cast<float>(num_ch_per_wg)) -
+                                                      1);
+                    auto uprdTileY = static_cast<int>(std::ceil(static_cast<float>(tile_sz_y) /
+                                                                static_cast<float>(num_ch_per_wg)) -
+                                                      1);
+                    auto memXsize =
+                        (num_ch_per_wg * uprdTileX * stride_w + (wei_w - 1) * dilation_w + 1) *
+                        ((tile_sz_y - 1) * stride_h + (wei_h - 1) * dilation_h + 1);
+                    auto memYsize = num_ch_per_wg *
+                                    ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
+                                    (uprdTileY * stride_h + (wei_h - 1) * dilation_h + 1);
+                    local_mem_sz = static_cast<int>(std::max(memXsize, memYsize));
+                }
             }
         }
 
@@ -969,11 +984,11 @@ float transpose_NCHW2Vec(Handle& handle,
         MIOPEN_THROW("Only support type half and int8!");
     }
 
-    const std::size_t n = lens[0];
-    const std::size_t c = lens[1];
+    const auto n = lens[0];
+    const auto c = lens[1];
 
     // "hw" is for any-D spatial data
-    const std::size_t hw = std::accumulate(
+    const auto hw = std::accumulate(
         lens.begin() + 2, lens.end(), std::size_t(1), std::multiplies<std::size_t>());
 
     // clang-format off
@@ -997,21 +1012,22 @@ float transpose_NCHW2Vec(Handle& handle,
     }
     else
     {
-        int n_vec = (trans && (n % vec_size != 0)) ? (n + (vec_size - n % vec_size)) : n;
-        int c_vec = (!trans && (c % vec_size != 0)) ? (c + (vec_size - c % vec_size)) : c;
+        auto n_vec = (trans && (n % vec_size != 0)) ? (n + (vec_size - n % vec_size)) : n;
+        auto c_vec = (!trans && (c % vec_size != 0)) ? (c + (vec_size - c % vec_size)) : c;
 
         std::string kernel_name = "transpose_NCHW2Vec";
 
         const std::vector<size_t> vld{WG_SIZE, 1, 1};
         std::vector<size_t> vgd{1, 1, 1};
 
-        int RD_BLCK   = ((hw) % (vec_size * 2) == 0) ? vec_size * 2 : vec_size;
-        int HW_RD     = (hw + RD_BLCK - 1) / RD_BLCK;
+        int RD_BLCK = ((hw) % (vec_size * 2) == 0) ? static_cast<int>(vec_size) * 2
+                                                   : static_cast<int>(vec_size);
+        int HW_RD     = (static_cast<int>(hw) + RD_BLCK - 1) / RD_BLCK;
         size_t MAP_RD = HW_RD * (trans ? c : (c_vec / vec_size));
 
         std::string READ_TYPE =
             (RD_BLCK == vec_size) ? "uint" : "uint" + std::to_string(RD_BLCK / vec_size);
-        int WR_BLCK            = RD_BLCK * vec_size;
+        int WR_BLCK            = RD_BLCK * static_cast<int>(vec_size);
         std::string WRITE_TYPE = "uint" + std::to_string(WR_BLCK / vec_size);
 
         std::string params;

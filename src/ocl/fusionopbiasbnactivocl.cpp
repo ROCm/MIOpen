@@ -673,7 +673,7 @@ OpKernelArg BatchNormFwdTrainFusionOpDescriptor::GetOpAttr(const std::string& k)
     {
         int n, h, w;
         std::tie(n, std::ignore, h, w) = tien<4>(input_desc.GetLengths());
-        float nhw = n * h * w;
+        auto nhw = static_cast<float>(n * h * w);
         return OpKernelArg(static_cast<float>(1.0f / nhw));
     }
     else

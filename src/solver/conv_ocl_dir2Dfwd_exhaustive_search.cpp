@@ -283,7 +283,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     size_t bot_sz = params.bot_sz / sizeof(Tgpu);
     std::vector<Tgpu> bot_sys_buf(bot_sz);
 
-    for(int i = 0; i < bot_sz; i++)
+    for(size_t i = 0; i < bot_sz; i++)
     {
         bot_sys_buf[i] = static_cast<Tgpu>(rand() * (1.0 / RAND_MAX));
     }
@@ -296,14 +296,14 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     auto top_ocl_buf = profile_h.Write(top_sys_buf);
 
     std::vector<Tgpu> random_top_sys_buf(top_sz);
-    for(int i = 0; i < top_sz; i++)
+    for(size_t i = 0; i < top_sz; i++)
     {
         random_top_sys_buf[i] = static_cast<Tgpu>(rand() * (1.0 / RAND_MAX));
     }
 
     size_t weights_sz = params.weights_sz / sizeof(Tgpu);
     std::vector<Tgpu> wei_sys_buf(weights_sz);
-    for(int i = 0; i < weights_sz; i++)
+    for(size_t i = 0; i < weights_sz; i++)
     {
         wei_sys_buf[i] = static_cast<Tgpu>((rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
     }
@@ -317,7 +317,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     {
         size_t bias_sz = params.bias_sz / sizeof(Tgpu);
         bias_sys_buf   = std::vector<Tgpu>(bias_sz);
-        for(int i = 0; i < bias_sz; i++)
+        for(size_t i = 0; i < bias_sz; i++)
         {
             bias_sys_buf[i] = static_cast<Tgpu>(rand() * (1.0 / RAND_MAX));
         }

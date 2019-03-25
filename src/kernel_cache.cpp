@@ -80,7 +80,7 @@ static void AddKernelDumpKernelParams(const std::string& program_name,
         if(q == nullptr)
             break;
         q++;
-        for(int i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)
+        for(unsigned long i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)
         {
             if(strncmp(p, keys[i], strlen(keys[i])) == 0)
             {

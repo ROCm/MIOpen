@@ -99,7 +99,7 @@ struct verify_forward_train_3d_bn_spatial
             srand(0);
             runMean = tensor<U>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width};
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width};
-            for(int i = 0; i < runMean.desc.GetElementSize(); i++)
+            for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
             {
                 runMean[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * U(rand() % 100);
                 runVar[i]  = 1e-3 * U(rand() % 100);
@@ -130,13 +130,13 @@ struct verify_forward_train_3d_bn_spatial
 
 #if(MIO_HEIRARCH_SEL == 0)
             // process the batch per channel
-            for(int bidx = 0; bidx < n_batch; bidx++)
+            for(std::size_t bidx = 0; bidx < n_batch; bidx++)
             { // via mini_batch
-                for(int didx = 0; didx < depth; ++didx)
+                for(std::size_t didx = 0; didx < depth; ++didx)
                 { // via depth
-                    for(int row = 0; row < height; row++)
+                    for(std::size_t row = 0; row < height; row++)
                     { // via rows
-                        for(int column = 0; column < width; column++)
+                        for(std::size_t column = 0; column < width; column++)
                         { // via columns
                             // #1 calculate the mean
                             // iterating through the stack of images in the mini_batch
@@ -146,17 +146,17 @@ struct verify_forward_train_3d_bn_spatial
                 }         // end for (depth)
             }             // end for (n)
 #else
-            for(int didx = 0; didx < depth; ++didx)
+            for(std::size_t didx = 0; didx < depth; ++didx)
             { // via depth            
-                for (int row = 0; row < height; row++){ //via rows
-                    for(int column = 0; column < width; column++){// via columns
-                        for (int bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
+                for(std::size_t row = 0; row < height; row++){ //via rows
+                    for(std::size_t column = 0; column < width; column++){// via columns
+                        for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                             mean_accum_arr[row] += input(bidx,cidx,didx, row,column);
                         }	
                     }// for (column)
                 }// for (row)  
             } // for (depth)
-            for(int i = 0; i<height; i++) mean_accum += mean_accum_arr[i];
+            for(std::size_t i = 0; i<height; i++) mean_accum += mean_accum_arr[i];
 #endif
             mean_accum /= ndhw;
 
@@ -166,13 +166,13 @@ struct verify_forward_train_3d_bn_spatial
 #if(MIO_HEIRARCH_SEL == 0)
             // #2 calculate the variances
             // sigma^2 = (1/batch_mean) * sum( (x_i - batch_mean)^2 )
-            for(int bidx = 0; bidx < n_batch; bidx++)
+            for(std::size_t bidx = 0; bidx < n_batch; bidx++)
             { // via mini_batch
-                for(int didx = 0; didx < depth; ++didx)
+                for(std::size_t didx = 0; didx < depth; ++didx)
                 { // via depth
-                    for(int row = 0; row < height; row++)
+                    for(std::size_t row = 0; row < height; row++)
                     { // via rows
-                        for(int column = 0; column < width; column++)
+                        for(std::size_t column = 0; column < width; column++)
                         { // via columns
                             // using out buffer as scratchpad
                             out(bidx, cidx, didx, row, column) = elemStd =
@@ -184,18 +184,18 @@ struct verify_forward_train_3d_bn_spatial
             }                                                      // end for(n)
 
 #else
-            for(int didx = 0; didx < depth; ++didx) // via depth                
+            for(std::size_t didx = 0; didx < depth; ++didx) // via depth                
             {    
-                for (int row = 0; row < height; row++){ //via rows
-                    for(int column = 0; column < width; column++){// via columns
-                        for (int bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
+                for(std::size_t row = 0; row < height; row++){ //via rows
+                    for(std::size_t column = 0; column < width; column++){// via columns
+                        for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                             out(bidx,cidx,didx,row,column) = elemStd = input(bidx,cidx,didx,row,column) - mean_accum;
                             variance_accum_arr[row] += elemStd*elemStd;
                         }	
                     }// for (column)
                 }// for (row)  
             }
-            for(int i = 0; i<height; i++) variance_accum += variance_accum_arr[i];
+            for(std::size_t i = 0; i<height; i++) variance_accum += variance_accum_arr[i];
 #endif
             variance_accum /= ndhw; // (1/N)*sum{ (x_i - mean)^2 }
             // #3 add epsilon for numeric stability, sqr_root, and invert
@@ -203,13 +203,13 @@ struct verify_forward_train_3d_bn_spatial
 
             // #4 apply the normalization
             // x_hat = (x_i - mean) / sqrt(variance_accum + epsilon)
-            for(int bidx = 0; bidx < n_batch; bidx++)
+            for(std::size_t bidx = 0; bidx < n_batch; bidx++)
             { // via mini_batch
-                for(int didx = 0; didx < depth; ++didx)
+                for(std::size_t didx = 0; didx < depth; ++didx)
                 { // via depth
-                    for(int row = 0; row < height; row++)
+                    for(std::size_t row = 0; row < height; row++)
                     { // via rows
-                        for(int column = 0; column < width; column++)
+                        for(std::size_t column = 0; column < width; column++)
                         { // via columns
                             // #5 Gamma and Beta adjust
                             // y_i = gamma*x_hat + beta
@@ -284,7 +284,7 @@ struct verify_forward_train_3d_bn_spatial
             srand(0);
             runMean = tensor<U>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width};
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width};
-            for(int i = 0; i < runMean.desc.GetElementSize(); i++)
+            for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
             {
                 runMean[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * U(rand() % 100);
                 runVar[i]  = 1e-3 * U(rand() % 100);
@@ -404,14 +404,14 @@ struct verify_forward_infer_3d_bn_spatial_recalc
             double invVar         = 0.;
 
             // process the batch per channel
-            for(int didx = 0; didx < depth; ++didx)
+            for(std::size_t didx = 0; didx < depth; ++didx)
             { // via rows
-                for(int row = 0; row < height; row++)
+                for(std::size_t row = 0; row < height; row++)
                 { // via rows
-                    for(int column = 0; column < width; column++)
+                    for(std::size_t column = 0; column < width; column++)
                     { // via columns
                         // #1 calculate the mean
-                        for(int bidx = 0; bidx < n_batch; bidx++)
+                        for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                         { // via mini_batch
                             // iterating through the stack of images in the mini_batch
                             mean_accum += input(bidx, cidx, didx, row, column);
@@ -425,13 +425,13 @@ struct verify_forward_infer_3d_bn_spatial_recalc
             variance_accum = 0.;
             // #2 calculate the variances
             // sigma^2 = (1/batch_mean) * sum( (x_i - batch_mean)^2 )
-            for(int didx = 0; didx < depth; ++didx)
+            for(std::size_t didx = 0; didx < depth; ++didx)
             { // via depth
-                for(int row = 0; row < height; row++)
+                for(std::size_t row = 0; row < height; row++)
                 { // via rows
-                    for(int column = 0; column < width; column++)
+                    for(std::size_t column = 0; column < width; column++)
                     { // via columns
-                        for(int bidx = 0; bidx < n_batch; bidx++)
+                        for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                         { // via mini_batch
                             // using out buffer as scratchpad
                             out(bidx, cidx, didx, row, column) = elemStd =
@@ -448,13 +448,13 @@ struct verify_forward_infer_3d_bn_spatial_recalc
 
             // #4 apply the normalization
             // x_hat = (x_i - mean) / sqrt(variance_accum - epsilon)
-            for(int didx = 0; didx < depth; ++didx)
+            for(std::size_t didx = 0; didx < depth; ++didx)
             { // via depth
-                for(int row = 0; row < height; row++)
+                for(std::size_t row = 0; row < height; row++)
                 { // via rows
-                    for(int column = 0; column < width; column++)
+                    for(std::size_t column = 0; column < width; column++)
                     { // via columns
-                        for(int bidx = 0; bidx < n_batch; bidx++)
+                        for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                         { // via mini_batch
                             elemStd = out(bidx,
                                           cidx,
@@ -567,13 +567,13 @@ struct verify_forward_infer_3d_bn_spatial_use_est
             double invVar   = 1.0 / sqrt(variance + epsilon);
 
             // process the batch per channel
-            for(int bidx = 0; bidx < n_batch; bidx++)
+            for(std::size_t bidx = 0; bidx < n_batch; bidx++)
             { // via mini_batch
-                for(int didx = 0; didx < depth; ++didx)
+                for(std::size_t didx = 0; didx < depth; ++didx)
                 { // via depth
-                    for(int row = 0; row < height; row++)
+                    for(std::size_t row = 0; row < height; row++)
                     { // via rows
-                        for(int column = 0; column < width; column++)
+                        for(std::size_t column = 0; column < width; column++)
                         { // via columns
 
                             elemStd = input(bidx, cidx, didx, row, column) - mean;
@@ -710,13 +710,13 @@ struct verify_backward_3d_bn_spatial_recalc
 
 // process the batch per channel
 #if(MIO_HEIRARCH_SEL == 0)
-            for(int didx = 0; didx < depth; ++didx)
+            for(std::size_t didx = 0; didx < depth; ++didx)
             { // via depth
-                for(int row = 0; row < height; row++)
+                for(std::size_t row = 0; row < height; row++)
                 { // via rows
-                    for(int column = 0; column < width; column++)
+                    for(std::size_t column = 0; column < width; column++)
                     { // via columns
-                        for(int bidx = 0; bidx < n_batch; bidx++)
+                        for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                         { // via mini_batch
                             // #1 calculate the mean
                             mean += x_input(bidx, cidx, didx, row, column);
@@ -725,32 +725,32 @@ struct verify_backward_3d_bn_spatial_recalc
                 }     // for (row)
             }         // for (depth)
 #else
-            for(int didx = 0; didx < depth; ++didx)
+            for(std::size_t didx = 0; didx < depth; ++didx)
             { // via depth                  
-                for (int row = 0; row < height; row++){ //via rows
-                    for(int column = 0; column < width; column++){// via columns
-                        for (int bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
+                for(std::size_t row = 0; row < height; row++){ //via rows
+                    for(std::size_t column = 0; column < width; column++){// via columns
+                        for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                             mean_accum_arr[row] += x_input(bidx,cidx,didx,row,column);
                         }	
                     }// for (column)
                 }// for (row)  
             }    
-            for(int i = 0; i<height; i++) mean += mean_accum_arr[i];
+            for(std::size_t i = 0; i<height; i++) mean += mean_accum_arr[i];
 #endif
             mean /= ndhw;
 
             elemStd  = 0.;
             variance = 0.;
 #if(MIO_HEIRARCH_SEL == 0)
-            for(int didx = 0; didx < depth; ++didx)
+            for(std::size_t didx = 0; didx < depth; ++didx)
             { // via depth
-                for(int row = 0; row < height; row++)
+                for(std::size_t row = 0; row < height; row++)
                 { // via rows
-                    for(int column = 0; column < width; column++)
+                    for(std::size_t column = 0; column < width; column++)
                     { // via columns
                         // #2 calculate the variances
                         // sigma^2 = (1/batch_mean) * sum( (x_i - batch_mean)^2 )
-                        for(int bidx = 0; bidx < n_batch; bidx++)
+                        for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                         { // via mini_batch
                             // per (x-dims) channel load a block of data into LDS
                             elemStd = x_input(bidx, cidx, didx, row, column) - mean; // (x_i - mean)
@@ -760,18 +760,18 @@ struct verify_backward_3d_bn_spatial_recalc
                 }                                          // for (row)
             }
 #else
-            for(int didx = 0; didx < depth; ++didx)
+            for(std::size_t didx = 0; didx < depth; ++didx)
             { //
-                for (int row = 0; row < height; row++){ //via rows
-                    for(int column = 0; column < width; column++){// via columns
-                        for (int bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
+                for(std::size_t row = 0; row < height; row++){ //via rows
+                    for(std::size_t column = 0; column < width; column++){// via columns
+                        for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                             elemStd = x_input(bidx,cidx,didx,row,column) - mean;
                             variance_accum_arr[row] += elemStd*elemStd;
                         }	
                     }// for (column)
                 }// for (row)  
             }
-            for(int i = 0; i<height; i++) variance += variance_accum_arr[i];
+            for(std::size_t i = 0; i<height; i++) variance += variance_accum_arr[i];
 #endif
             variance /= ndhw; // (1/(N*H*W))*sum{ (x_i - mean)^2 }
             invVar = 1. / double(sqrt(variance + epsilon));
@@ -779,13 +779,13 @@ struct verify_backward_3d_bn_spatial_recalc
             dscale(0, cidx, 0, 0, 0) = 0.;
 
 #if(MIO_HEIRARCH_SEL == 0)
-            for(int didx = 0; didx < depth; ++didx)
+            for(std::size_t didx = 0; didx < depth; ++didx)
             { //
-                for(int row = 0; row < height; row++)
+                for(std::size_t row = 0; row < height; row++)
                 { // via rows
-                    for(int column = 0; column < width; column++)
+                    for(std::size_t column = 0; column < width; column++)
                     { // via columns
-                        for(int bidx = 0; bidx < n_batch; bidx++)
+                        for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                         { // via mini_batch
                             xhat_index =
                                 in_cstride * bidx + in_dstride * didx + width * row + column;
@@ -800,11 +800,11 @@ struct verify_backward_3d_bn_spatial_recalc
                 }         // for (row)
             }
 #else   
-            for(int didx = 0; didx < depth; ++didx)
+            for(std::size_t didx = 0; didx < depth; ++didx)
             {
-                for (int row = 0; row < height; row++){ //via rows
-                    for(int column = 0; column < width; column++){// via columns
-                        for (int bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
+                for(std::size_t row = 0; row < height; row++){ //via rows
+                    for(std::size_t column = 0; column < width; column++){// via columns
+                        for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                             xhat_index = in_cstride*bidx + in_dstride*didx + width*row + column;
                             //per (x-dims) channel load a block of data into LDS
                             elemStd             = x_input(bidx,cidx,didx,row,column) - mean;// (x_i - mean)
@@ -818,18 +818,18 @@ struct verify_backward_3d_bn_spatial_recalc
                     }// for (column)
                 }// for (row)  
             }
-            for(int i = 0; i<height; i++) {
+            for(std::size_t i = 0; i<height; i++) {
                 dshift(0,cidx,0,0,0) += dshift_accum_arr[i];    
                 dscale(0,cidx,0,0,0) += dscale_accum_arr[i];    
             }
 #endif
-            for(int didx = 0; didx < depth; ++didx)
+            for(std::size_t didx = 0; didx < depth; ++didx)
             { //
-                for(int row = 0; row < height; row++)
+                for(std::size_t row = 0; row < height; row++)
                 { // via rows
-                    for(int column = 0; column < width; column++)
+                    for(std::size_t column = 0; column < width; column++)
                     { // via columns
-                        for(int bidx = 0; bidx < n_batch; bidx++)
+                        for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                         { // via mini_batch
                             xhat_index =
                                 in_cstride * bidx + in_dstride * didx + width * row + column;
@@ -1002,13 +1002,13 @@ struct verify_backward_3d_bn_spatial_use_saved
             dscale(0, cidx, 0, 0, 0) = 0.;
 
 #if(MIO_HEIRARCH_SEL == 0)
-            for(int didx = 0; didx < depth; ++didx)
+            for(std::size_t didx = 0; didx < depth; ++didx)
             { // via depth
-                for(int row = 0; row < height; row++)
+                for(std::size_t row = 0; row < height; row++)
                 { // via rows
-                    for(int column = 0; column < width; column++)
+                    for(std::size_t column = 0; column < width; column++)
                     { // via columns
-                        for(int bidx = 0; bidx < n_batch; bidx++)
+                        for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                         { // via mini_batch
                             xhat_index =
                                 in_cstride * bidx + in_dstride * didx + width * row + column;
@@ -1023,11 +1023,11 @@ struct verify_backward_3d_bn_spatial_use_saved
                 }         // for (row)
             }
 #else   
-            for(int didx = 0; didx < depth; ++didx)
+            for(std::size_t didx = 0; didx < depth; ++didx)
             { // via depth
-                for (int row = 0; row < height; row++){ //via rows
-                    for(int column = 0; column < width; column++){// via columns
-                        for (int bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
+                for(std::size_t row = 0; row < height; row++){ //via rows
+                    for(std::size_t column = 0; column < width; column++){// via columns
+                        for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                             xhat_index = in_cstride*bidx + in_dstride*didx + width*row + column;
                             //per (x-dims) channel load a block of data into LDS
                             elemStd             = x_input(bidx,cidx,didx,row,column) - mean;// (x_i - mean)
@@ -1042,18 +1042,18 @@ struct verify_backward_3d_bn_spatial_use_saved
                 }// for (row)  
             }
 
-            for(int i = 0; i<height; i++) {
+            for(std::size_t i = 0; i<height; i++) {
                 dshift(0,cidx,0,0,0) += dshift_accum_arr[i];    
                 dscale(0,cidx,0,0,0) += dscale_accum_arr[i];    
             }
 #endif
-            for(int didx = 0; didx < depth; ++didx)
+            for(std::size_t didx = 0; didx < depth; ++didx)
             { // via depth
-                for(int row = 0; row < height; row++)
+                for(std::size_t row = 0; row < height; row++)
                 { // via rows
-                    for(int column = 0; column < width; column++)
+                    for(std::size_t column = 0; column < width; column++)
                     { // via columns
-                        for(int bidx = 0; bidx < n_batch; bidx++)
+                        for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                         { // via mini_batch
                             xhat_index =
                                 in_cstride * bidx + in_dstride * didx + width * row + column;
@@ -1232,12 +1232,12 @@ struct batch_norm_3d_spatial_driver : test_driver
             srand(0);
             scale = tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw};
             shift = tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw};
-            for(int i = 0; i < scale.desc.GetElementSize(); i++)
+            for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
             {
                 scale[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * PREC_TYPE(rand() % 100);
                 shift[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * PREC_TYPE(rand() % 100);
             }
-            for(int i = 0; i < input.desc.GetElementSize(); i++)
+            for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
             {
                 input[i] = (((rand() % 2) == 1) ? -1 : 1) * (1e-5 * T(rand() % 100));
             }
@@ -1273,15 +1273,15 @@ struct batch_norm_3d_spatial_driver : test_driver
 
         // backprop recalc
         auto dy_input = std::get<0>(outpair.second);
-        for(int bidx = 0; bidx < n; bidx++)
+        for(std::size_t bidx = 0; bidx < n; bidx++)
         { // via mini_batch
-            for(int cidx = 0; cidx < c; cidx++)
+            for(std::size_t cidx = 0; cidx < c; cidx++)
             { // via mini_batch
-                for(int didx = 0; didx < d; didx++)
+                for(std::size_t didx = 0; didx < d; didx++)
                 { // via depth
-                    for(int row = 0; row < h; row++)
+                    for(std::size_t row = 0; row < h; row++)
                     { // via rows
-                        for(int column = 0; column < w; column++)
+                        for(std::size_t column = 0; column < w; column++)
                         {
                             dy_input(bidx, cidx, didx, row, column) *= 0.1;
                         }
@@ -1301,15 +1301,15 @@ struct batch_norm_3d_spatial_driver : test_driver
         int mh         = 0;
         int mw         = 0;
 
-        for(int bidx = 0; bidx < n; bidx++)
+        for(std::size_t bidx = 0; bidx < n; bidx++)
         { // via mini_batch
-            for(int cidx = 0; cidx < c; cidx++)
+            for(std::size_t cidx = 0; cidx < c; cidx++)
             { // via mini_batch
-                for(int didx = 0; didx < d; didx++)
+                for(std::size_t didx = 0; didx < d; didx++)
                 {
-                    for(int row = 0; row < h; row++)
+                    for(std::size_t row = 0; row < h; row++)
                     { // via rows
-                        for(int column = 0; column < w; column++)
+                        for(std::size_t column = 0; column < w; column++)
                         { // via columns
                             double diff = fabs(gpuout(bidx, cidx, didx, row, column) -
                                                cpuout(bidx, cidx, didx, row, column));
@@ -1371,15 +1371,15 @@ struct batch_norm_3d_spatial_driver : test_driver
         int mh         = 0;
         int mw         = 0;
 
-        for(int bidx = 0; bidx < n; bidx++)
+        for(std::size_t bidx = 0; bidx < n; bidx++)
         { // via mini_batch
-            for(int cidx = 0; cidx < c; cidx++)
+            for(std::size_t cidx = 0; cidx < c; cidx++)
             { // via mini_batch
-                for(int didx = 0; didx < d; didx++)
+                for(std::size_t didx = 0; didx < d; didx++)
                 { // via mini_batch
-                    for(int row = 0; row < h; row++)
+                    for(std::size_t row = 0; row < h; row++)
                     { // via rows
-                        for(int column = 0; column < w; column++)
+                        for(std::size_t column = 0; column < w; column++)
                         { // via columns
                             double diff = fabs(gpuout(bidx, cidx, didx, row, column) -
                                                cpuout(bidx, cidx, didx, row, column));

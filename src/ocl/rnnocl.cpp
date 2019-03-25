@@ -130,9 +130,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 
     float ctime    = 0.;
     int in_stride  = in_h;
-    int hy_stride  = hy_h * bi * workspaceScale;
+    int hy_stride  = hy_h * bi * static_cast<int>(workspaceScale);
     int out_stride = out_h;
-    int wei_stride = hy_h * bi * nHiddenTensorsPerLayer;
+    int wei_stride = hy_h * bi * static_cast<int>(nHiddenTensorsPerLayer);
     int uni_stride = hy_h;
     int bi_stride  = hy_h * bi;
 
@@ -236,7 +236,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     {
         int hid_shift           = li * batch_n * hy_stride;
         int hx_shift            = li * hy_n * bi_stride;
-        int wei_shift_bias_temp = wei_shift_bias + li * 2 * wei_stride;
+        int wei_shift_bias_temp = static_cast<int>(wei_shift_bias) + li * 2 * wei_stride;
 
         // from input
         if(li == 0)
@@ -599,7 +599,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          w,
                                          wei_shift + ri * wei_len * uni_stride,
                                          workSpace,
-                                         offset + ri * wei_len,
+                                         static_cast<int>(offset) + ri * wei_len,
                                          nullptr,
                                          false,
                                          GemmBackend_t::miopengemm);
@@ -648,7 +648,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          w,
                                          wei_shift + ri * wei_len * uni_stride,
                                          workSpace,
-                                         offset + ri * wei_len + in_n.at(use_time) * hy_stride,
+                                         static_cast<int>(offset) + ri * wei_len +
+                                             in_n.at(use_time) * hy_stride,
                                          nullptr,
                                          false,
                                          GemmBackend_t::miopengemm);
@@ -695,7 +696,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          w,
                                          wei_shift + ri * wei_len * uni_stride,
                                          workSpace,
-                                         offset + ri * wei_len,
+                                         static_cast<int>(offset) + ri * wei_len,
                                          nullptr,
                                          false,
                                          GemmBackend_t::miopengemm);
@@ -1184,7 +1185,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        workSpace,
                                        hx_desc,
                                        hy,
-                                       offset + hid_off + ri * hy_h + use_batch * hy_stride,
+                                       static_cast<int>(offset) + hid_off + ri * hy_h +
+                                           use_batch * hy_stride,
                                        hx_shift + ri * hy_n * hy_h + use_batch * hy_h);
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
@@ -1197,7 +1199,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        workSpace,
                                        hx_desc,
                                        cy,
-                                       offset + bi * wei_len + ri * hy_h + use_batch * hy_stride,
+                                       static_cast<int>(offset) + bi * wei_len + ri * hy_h +
+                                           use_batch * hy_stride,
                                        hx_shift + ri * hy_n * hy_h + use_batch * hy_h);
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
@@ -1210,7 +1213,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     }
 
     // output
-    prelayer_shift = (nLayers - 1) * batch_n * hy_stride + hid_off;
+    prelayer_shift = (static_cast<int>(nLayers) - 1) * batch_n * hy_stride + hid_off;
 
     sp_size[1] = batch_n;
     sp_size[2] = hy_h * bi;
@@ -1331,9 +1334,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
     float ctime    = 0.;
     int in_stride  = in_h;
-    int hy_stride  = hy_h * bi * workspaceScale;
+    int hy_stride  = hy_h * bi * static_cast<int>(workspaceScale);
     int out_stride = out_h;
-    int wei_stride = hy_h * bi * nHiddenTensorsPerLayer;
+    int wei_stride = hy_h * bi * static_cast<int>(nHiddenTensorsPerLayer);
     int uni_stride = hy_h;
     int bi_stride  = hy_h * bi;
 
@@ -1407,7 +1410,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     case miopenRNNTANH:
         // printf("run rnn gpu fwd \n");
         wei_len = hy_h;
-        hid_off = nLayers * batch_n * hy_stride;
+        hid_off = static_cast<int>(nLayers) * batch_n * hy_stride;
         break;
     case miopenLSTM:
         // printf("run lstm gpu fwd \n");
@@ -1437,7 +1440,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     {
         int hid_shift           = li * batch_n * hy_stride;
         int hx_shift            = li * hy_n * bi_stride;
-        int wei_shift_bias_temp = wei_shift_bias + li * 2 * wei_stride;
+        int wei_shift_bias_temp = static_cast<int>(wei_shift_bias) + li * 2 * wei_stride;
 
         // from input
         if(li == 0)
@@ -1734,9 +1737,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          &beta_t,
                                          sp_desc,
                                          reserveSpace,
-                                         offset + wei_len,
+                                         static_cast<int>(offset) + wei_len,
                                          wei_shift_bias_temp + wei_len,
-                                         offset + wei_len);
+                                         static_cast<int>(offset) + wei_len);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
                             }
@@ -1801,7 +1804,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          w,
                                          wei_shift + ri * wei_len * uni_stride,
                                          reserveSpace,
-                                         offset + ri * wei_len,
+                                         static_cast<int>(offset) + ri * wei_len,
                                          nullptr,
                                          false,
                                          GemmBackend_t::miopengemm);
@@ -1851,7 +1854,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          w,
                                          wei_shift + ri * wei_len * uni_stride,
                                          reserveSpace,
-                                         offset + ri * wei_len + in_n.at(use_time) * hy_stride,
+                                         static_cast<int>(offset) + ri * wei_len +
+                                             in_n.at(use_time) * hy_stride,
                                          nullptr,
                                          false,
                                          GemmBackend_t::miopengemm);
@@ -1898,7 +1902,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          w,
                                          wei_shift + ri * wei_len * uni_stride,
                                          reserveSpace,
-                                         offset + ri * wei_len,
+                                         static_cast<int>(offset) + ri * wei_len,
                                          nullptr,
                                          false,
                                          GemmBackend_t::miopengemm);
@@ -2161,8 +2165,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    reserveSpace,
                                    sp_desc,
                                    reserveSpace,
-                                   offset + 2 * hy_h + ri * wei_len,
-                                   offset + hid_off + ri * hy_h + nLayers * batch_n * hy_stride);
+                                   static_cast<int>(offset) + 2 * hy_h + ri * wei_len,
+                                   static_cast<int>(offset) + hid_off + ri * hy_h +
+                                       static_cast<int>(nLayers) * batch_n * hy_stride);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -2405,7 +2410,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        reserveSpace,
                                        hx_desc,
                                        hy,
-                                       offset + hid_off + ri * hy_h + use_batch * hy_stride,
+                                       static_cast<int>(offset) + hid_off + ri * hy_h +
+                                           use_batch * hy_stride,
                                        hx_shift + ri * hy_n * hy_h + use_batch * hy_h);
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
@@ -2418,7 +2424,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        reserveSpace,
                                        hx_desc,
                                        cy,
-                                       offset + bi * wei_len + ri * hy_h + use_batch * hy_stride,
+                                       static_cast<int>(offset) + bi * wei_len + ri * hy_h +
+                                           use_batch * hy_stride,
                                        hx_shift + ri * hy_n * hy_h + use_batch * hy_h);
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
@@ -2431,7 +2438,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     }
 
     // output
-    prelayer_shift = (nLayers - 1) * batch_n * hy_stride + hid_off;
+    prelayer_shift = (static_cast<int>(nLayers) - 1) * batch_n * hy_stride + hid_off;
 
     sp_size[1] = batch_n;
     sp_size[2] = hy_h * bi;
@@ -2568,9 +2575,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
     float ctime    = 0.;
     int in_stride  = in_h;
-    int hy_stride  = hy_h * bi * workspaceScale;
+    int hy_stride  = hy_h * bi * static_cast<int>(workspaceScale);
     int out_stride = out_h;
-    int wei_stride = hy_h * bi * nHiddenTensorsPerLayer;
+    int wei_stride = hy_h * bi * static_cast<int>(nHiddenTensorsPerLayer);
     int uni_stride = hy_h;
     int bi_stride  = hy_h * bi;
 
@@ -2675,7 +2682,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         activDesc = {miopenActivationTANH, 1, 1, 1};
     }
 
-    for(int li = nLayers - 1; li >= 0; li--)
+    for(int li = static_cast<int>(nLayers) - 1; li >= 0; li--)
     {
         int wei_shift     = (in_h + hy_h) * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
         int hid_shift     = li * batch_n * hy_stride;
@@ -2880,7 +2887,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                            sp_desc,
                                            workSpace,
                                            pretime_shift + 2 * hy_h,
-                                           offset + ri * wei_len + 2 * hy_h);
+                                           static_cast<int>(offset) + ri * wei_len + 2 * hy_h);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
 
@@ -2890,7 +2897,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                            sp_desc,
                                            workSpace,
                                            pretime_shift - ri * 2 * hy_h + dhd_off +
-                                               nLayers * batch_n * hy_stride,
+                                               static_cast<int>(nLayers) * batch_n * hy_stride,
                                            pretime_shift + 2 * hy_h);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
@@ -2920,7 +2927,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          w,
                                          weitime_shift + ri * wei_len * uni_stride,
                                          workSpace,
-                                         offset + dhd_off + ri * hy_h,
+                                         static_cast<int>(offset) + dhd_off + ri * hy_h,
                                          nullptr,
                                          false,
                                          GemmBackend_t::miopengemm);
@@ -2946,7 +2953,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                            workSpace,
                                            sp_desc,
                                            workSpace,
-                                           offset + ri * wei_len + 2 * hy_h,
+                                           static_cast<int>(offset) + ri * wei_len + 2 * hy_h,
                                            pretime_shift + 2 * hy_h);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
@@ -3656,7 +3663,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                     gemm_desc,
                                     reserveSpace,
                                     pretime_shift + dhd_off + ri * hy_h + use_batch * hy_stride +
-                                        nLayers * batch_n * hy_stride,
+                                        static_cast<int>(nLayers) * batch_n * hy_stride,
                                     w,
                                     weitime_shift + 2 * hy_h * uni_stride +
                                         ri * wei_len * uni_stride,
@@ -3955,8 +3962,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
     float ctime    = 0.;
     int in_stride  = in_h;
-    int hy_stride  = hy_h * bi * workspaceScale;
-    int wei_stride = hy_h * bi * nHiddenTensorsPerLayer;
+    int hy_stride  = hy_h * bi * static_cast<int>(workspaceScale);
+    int wei_stride = hy_h * bi * static_cast<int>(nHiddenTensorsPerLayer);
     int uni_stride = hy_h;
     int bi_stride  = hy_h * bi;
 
@@ -4004,7 +4011,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     case miopenRNNTANH:
         // printf("run rnn gpu bwd weights \n");
         wei_len = hy_h;
-        hid_off = nLayers * batch_n * hy_stride;
+        hid_off = static_cast<int>(nLayers) * batch_n * hy_stride;
         break;
     case miopenLSTM:
         // printf("run lstm gpu bwd weights \n");
@@ -4121,7 +4128,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
         if(biasMode != 0u)
         {
-            wei_shift = wei_shift_bias + li * 2 * wei_stride;
+            wei_shift = static_cast<int>(wei_shift_bias) + li * 2 * wei_stride;
 
             sp_size[1] = 1;
             sp_size[2] = wei_stride;
@@ -4173,7 +4180,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                            reserveSpace,
                            sp_desc,
                            workSpace,
-                           hid_shift + hid_off + ri * hy_h + nLayers * batch_n * hy_stride,
+                           hid_shift + hid_off + ri * hy_h +
+                               static_cast<int>(nLayers) * batch_n * hy_stride,
                            hid_shift + 2 * hy_h + ri * wei_len);
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
@@ -4182,7 +4190,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
         if(biasMode != 0u)
         {
-            wei_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
+            wei_shift = static_cast<int>(wei_shift_bias) + li * 2 * wei_stride + wei_stride;
 
             alpha0 = 1;
             alpha1 = 1;

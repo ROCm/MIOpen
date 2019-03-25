@@ -337,7 +337,7 @@ int PoolDriver<Tgpu, Tref>::RunForwardGPU()
                          0);
 
     Timer t;
-    START_TIME;
+    START_TIME
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
@@ -358,7 +358,7 @@ int PoolDriver<Tgpu, Tref>::RunForwardGPU()
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
 
-        STOP_TIME;
+        STOP_TIME
         if(WALL_CLOCK)
             printf("Wall-clock Time Forward Pooling Elapsed: %f ms\n",
                    t.gettime_ms() / inflags.GetValueInt("iter"));
@@ -398,7 +398,7 @@ int PoolDriver<Tgpu, Tref>::RunBackwardGPU()
                           mask_dev->GetMem());
 
     Timer t;
-    START_TIME;
+    START_TIME
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
@@ -421,7 +421,7 @@ int PoolDriver<Tgpu, Tref>::RunBackwardGPU()
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
 
-        STOP_TIME;
+        STOP_TIME
         if(WALL_CLOCK)
             printf("Wall-clock Time Backward Pooling Elapsed: %f ms\n",
                    t.gettime_ms() / inflags.GetValueInt("iter"));
