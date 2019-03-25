@@ -105,7 +105,7 @@ struct verify_forward_train_bn_per_activation
             srand(0);
             runMean = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
-            for(int i = 0; i < runMean.desc.GetElementSize(); i++)
+            for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
             {
                 runMean[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * U(rand() % 100);
                 runVar[i]  = 1e-3 * U(rand() % 100);
@@ -127,13 +127,13 @@ struct verify_forward_train_bn_per_activation
             double adjust         = 0.;
 
             // process the batch per channel
-            for(int row = 0; row < height; row++)
+            for(std::size_t row = 0; row < height; row++)
             { // via rows
-                for(int column = 0; column < width; column++)
+                for(std::size_t column = 0; column < width; column++)
                 { // via columns
 
                     mean_accum = 0.;
-                    for(int bidx = 0; bidx < n_batch; bidx++)
+                    for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                     { // via mini_batch
                         // #1 calculate the mean :: iterating through the stack of images in the
                         // mini_batch
@@ -144,7 +144,7 @@ struct verify_forward_train_bn_per_activation
                     elemStd = variance_accum = 0.;
                     // #2 calculate the variances :: sigma^2 = (1/batch_mean) * sum( (x_i -
                     // batch_mean)^2 )
-                    for(int bidx = 0; bidx < n_batch; bidx++)
+                    for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                     { // via mini_batch
                         elemStd = (input(bidx, cidx, row, column) -
                                    mean_accum); // (x_i - mean) //this is reused but needs recalc
@@ -157,7 +157,7 @@ struct verify_forward_train_bn_per_activation
 
                     // #4 apply the normalization :: x_hat = (x_i - mean) / sqrt(variance_accum -
                     // epsilon)
-                    for(int bidx = 0; bidx < n_batch; bidx++)
+                    for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                     {                                                            // via mini_batch
                         elemStd = (input(bidx, cidx, row, column) - mean_accum); // (x_i - mean)
                         inhat   = elemStd * elemInvVar;
@@ -230,7 +230,7 @@ struct verify_forward_train_bn_per_activation
             srand(0);
             runMean = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
-            for(int i = 0; i < runMean.desc.GetElementSize(); i++)
+            for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
             {
                 runMean[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * U(rand() % 100);
                 runVar[i]  = 1e-3 * U(rand() % 100);
@@ -348,14 +348,14 @@ struct verify_forward_infer_bn_per_activation_recalc
             double inhat          = 0.;
 
             // process the batch per channel
-            for(int row = 0; row < height; row++)
+            for(std::size_t row = 0; row < height; row++)
             { // via rows
-                for(int column = 0; column < width; column++)
+                for(std::size_t column = 0; column < width; column++)
                 { // via columns
                     mean_accum = 0.;
 
                     // #1 calculate the mean
-                    for(int bidx = 0; bidx < n_batch; bidx++)
+                    for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                     { // via mini_batch
                         // iterating through the stack of images in the mini_batch
                         mean_accum += input(bidx, cidx, row, column);
@@ -366,7 +366,7 @@ struct verify_forward_infer_bn_per_activation_recalc
                     variance_accum = 0.;
                     // #2 calculate the variances
                     // sigma^2 = (1/batch_mean) * sum( (x_i - batch_mean)^2 )
-                    for(int bidx = 0; bidx < n_batch; bidx++)
+                    for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                     {                                                          // via mini_batch
                         elemStd = input(bidx, cidx, row, column) - mean_accum; // (x_i - mean)
                         variance_accum += elemStd * elemStd; // sum{ (x_i - mean)^2 }
@@ -378,7 +378,7 @@ struct verify_forward_infer_bn_per_activation_recalc
 
                     // #4 apply the normalization
                     // x_hat = (x_i - mean) / sqrt(variance_accum - epsilon)
-                    for(int bidx = 0; bidx < n_batch; bidx++)
+                    for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                     { // via mini_batch
                         // per (x-dims) channel load a block of data into LDS
                         elemStd = input(bidx, cidx, row, column) - mean_accum; // (x_i - mean)
@@ -487,14 +487,14 @@ struct verify_forward_infer_bn_per_activation_use_est
             double elemInvVar = 0.;
 
             // process the batch per channel
-            for(int row = 0; row < height; row++)
+            for(std::size_t row = 0; row < height; row++)
             { // via rows
-                for(int column = 0; column < width; column++)
+                for(std::size_t column = 0; column < width; column++)
                 { // via columns
                     mean       = estMean(0, cidx, row, column);
                     variance   = estVar(0, cidx, row, column);
                     elemInvVar = 1.0 / double(sqrt(variance + epsilon));
-                    for(int bidx = 0; bidx < n_batch; bidx++)
+                    for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                     {                                                    // via mini_batch
                         elemStd = input(bidx, cidx, row, column) - mean; // (x_i - mean)
                         inhat   = elemStd * elemInvVar;
@@ -619,9 +619,9 @@ struct verify_backward_bn_per_activation_use_saved
             std::vector<double> xhat(n_batch * in_cstride);
 
             // process the batch per channel
-            for(int row = 0; row < height; row++)
+            for(std::size_t row = 0; row < height; row++)
             { // via rows
-                for(int column = 0; column < width; column++)
+                for(std::size_t column = 0; column < width; column++)
                 { // via columns
                     dxhat    = 0.;
                     dxhathat = 0.;
@@ -629,7 +629,7 @@ struct verify_backward_bn_per_activation_use_saved
                     mean       = savedMean(0, cidx, row, column);   // HxW elements
                     elemInvVar = savedInvVar(0, cidx, row, column); // HxW elements
 
-                    for(int bidx = 0; bidx < n_batch; bidx++)
+                    for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                     { // via mini_batch
                         xhat_index = in_cstride * bidx + (width * row + column);
                         // per (x-dims) channel load a block of data into LDS
@@ -644,7 +644,7 @@ struct verify_backward_bn_per_activation_use_saved
 
                     } // end for(n_batchs)
 
-                    for(int bidx = 0; bidx < n_batch; bidx++)
+                    for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                     { // via mini_batch
                         xhat_index  = in_cstride * bidx + (width * row + column);
                         tmp1        = xhat[xhat_index] * dxhathat + dxhat;
@@ -794,12 +794,12 @@ struct verify_backward_bn_per_activation_recalc
             std::vector<double> xhat(n_batch * in_cstride);
 
             // process the batch per channel
-            for(int row = 0; row < height; row++)
+            for(std::size_t row = 0; row < height; row++)
             { // via rows
-                for(int column = 0; column < width; column++)
+                for(std::size_t column = 0; column < width; column++)
                 { // via columns
                     mean = 0.;
-                    for(int bidx = 0; bidx < n_batch; bidx++)
+                    for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                     { // via mini_batch
                         // #1 calculate the mean
                         mean += x_input(bidx, cidx, row, column);
@@ -810,7 +810,7 @@ struct verify_backward_bn_per_activation_recalc
                     variance = 0.;
                     // #2 calculate the variances
                     // sigma^2 = (1/batch_mean) * sum( (x_i - batch_mean)^2 )
-                    for(int bidx = 0; bidx < n_batch; bidx++)
+                    for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                     { // via mini_batch
                         // per (x-dims) channel load a block of data into LDS
                         elemStd = x_input(bidx, cidx, row, column) - mean; // (x_i - mean)
@@ -824,7 +824,7 @@ struct verify_backward_bn_per_activation_recalc
                     dxhat    = 0.;
                     dxhathat = 0.;
 
-                    for(int bidx = 0; bidx < n_batch; bidx++)
+                    for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                     { // via mini_batch
                         xhat_index = in_cstride * bidx + (width * row + column);
                         // per (x-dims) channel load a block of data into LDS
@@ -839,7 +839,7 @@ struct verify_backward_bn_per_activation_recalc
 
                     } // end for(n_batchs)
 
-                    for(int bidx = 0; bidx < n_batch; bidx++)
+                    for(std::size_t bidx = 0; bidx < n_batch; bidx++)
                     { // via mini_batch
                         xhat_index  = in_cstride * bidx + (width * row + column);
                         tmp1        = xhat[xhat_index] * dxhathat + dxhat;
@@ -986,12 +986,12 @@ struct batch_norm_per_activation_driver : test_driver
             srand(0);
             scale = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
             shift = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
-            for(int i = 0; i < scale.desc.GetElementSize(); i++)
+            for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
             {
                 scale[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * PREC_TYPE(rand() % 100);
                 shift[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * PREC_TYPE(rand() % 100);
             }
-            for(int i = 0; i < input.desc.GetElementSize(); i++)
+            for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
             {
                 input[i] = (((rand() % 2) == 1) ? -1 : 1) * (1e-4 * T(rand() % 100));
             }

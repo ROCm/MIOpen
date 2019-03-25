@@ -414,7 +414,7 @@ static void DirConvFindCore(Handle& handle,
                         wksp_offset = x_t_size;
                         transpose_packed_MN2NM(handle,
                                                in_c,
-                                               in_n * out_spatial_size,
+                                               static_cast<int>(in_n * out_spatial_size),
                                                0,
                                                wksp_offset,
                                                workSpace,
@@ -624,7 +624,7 @@ static void DirConvFindCore(Handle& handle,
                     wksp_offset = in_c * wei_spatial_size * out_spatial_size;
 
                     transpose_packed_MN2NM(handle,
-                                           in_c * wei_spatial_size,
+                                           static_cast<int>(in_c * wei_spatial_size),
                                            out_spatial_size,
                                            0,
                                            wksp_offset,
@@ -1164,7 +1164,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
                     transpose_packed_MN2NM(handle,
                                            in_c,
-                                           in_n * out_spatial_size,
+                                           static_cast<int>(in_n * out_spatial_size),
                                            0,
                                            wksp_offset,
                                            workSpace,
@@ -1262,7 +1262,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                                                                   std::size_t(1),
                                                                   std::multiplies<std::size_t>());
 
-                    for(int i = 0; i < in_n; i++)
+                    for(std::size_t i = 0; i < in_n; i++)
                     {
                         std::size_t out_offset = i * wei_k * out_spatial_size;
 
@@ -1300,7 +1300,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                                             std::size_t(1),
                                             std::multiplies<std::size_t>());
 
-                        for(int i = 0; i < in_n; i++)
+                        for(std::size_t i = 0; i < in_n; i++)
                         {
                             std::size_t out_offset = i * wei_k * out_spatial_size;
 
@@ -1387,7 +1387,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
                 float time_0 = 0;
                 float t1     = 0;
-                for(int i = 0; i < in_n; i++)
+                for(std::size_t i = 0; i < in_n; i++)
                 {
                     std::size_t out_offset = i * wei_k * out_spatial_size;
 
@@ -1422,7 +1422,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                         wksp_offset = in_c * wei_spatial_size * out_spatial_size;
 
                         transpose_packed_MN2NM(handle,
-                                               in_c * wei_spatial_size,
+                                               static_cast<int>(in_c * wei_spatial_size),
                                                out_spatial_size,
                                                0,
                                                wksp_offset,
@@ -2264,7 +2264,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                         CreateGemmDescriptorGroupConvBwdData(wDesc, dyDesc, dxDesc, group_count);
 
                     float time_0 = 0;
-                    for(int i = 0; i < in_n; i++)
+                    for(std::size_t i = 0; i < in_n; i++)
                     {
                         std::size_t out_spatial_size =
                             std::accumulate(out_spatial.begin(),
@@ -2342,7 +2342,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
                 float time_0 = 0;
                 float t1     = 0;
-                for(int i = 0; i < in_n; i++)
+                for(std::size_t i = 0; i < in_n; i++)
                 {
                     std::size_t out_offset = i * wei_k * out_spatial_size;
                     std::size_t in_offset  = i * in_c * in_spatial_size;
@@ -2746,11 +2746,11 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         k_p;
                     assert(isRxS);
                     using dataType = float;
-                    int d_N_stride = H * W * sizeof(dataType);
+                    int d_N_stride = H * W * static_cast<int>(sizeof(dataType));
                     int d_C_stride = C * d_N_stride;
-                    int f_K_stride = out_H * out_W * sizeof(dataType);
+                    int f_K_stride = out_H * out_W * static_cast<int>(sizeof(dataType));
                     int f_C_stride = K * f_K_stride;
-                    int o_N_stride = R * S * sizeof(dataType);
+                    int o_N_stride = R * S * static_cast<int>(sizeof(dataType));
                     int o_K_stride = C * o_N_stride;
                     // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
@@ -2931,7 +2931,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
                 float t1 = 0;
 
-                for(int i = 0; i < in_n; i++)
+                for(std::size_t i = 0; i < in_n; i++)
                 {
                     std::size_t out_offset = i * wei_k * out_spatial_size;
 
@@ -3012,7 +3012,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                                                                   std::size_t(1),
                                                                   std::multiplies<std::size_t>());
 
-                    for(int i = 0; i < in_n; i++)
+                    for(std::size_t i = 0; i < in_n; i++)
                     {
                         std::size_t out_offset = i * wei_k * out_spatial_size;
 
@@ -3182,11 +3182,11 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             construct_params.getCompiledInParameters(
                 &N, &K, &out_H, &out_W, &C, &n_groups, &H, &W, &R, &S, &unused, &unused);
             using dataType = float;
-            int d_N_stride = H * W * sizeof(dataType);
+            int d_N_stride = H * W * static_cast<int>(sizeof(dataType));
             int d_C_stride = C * d_N_stride;
-            int f_K_stride = out_H * out_W * sizeof(dataType);
+            int f_K_stride = out_H * out_W * static_cast<int>(sizeof(dataType));
             int f_C_stride = K * f_K_stride;
-            int o_N_stride = R * S * sizeof(dataType);
+            int o_N_stride = R * S * static_cast<int>(sizeof(dataType));
             int o_K_stride = C * o_N_stride;
             // clang-format off
             MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K

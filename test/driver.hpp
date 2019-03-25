@@ -62,7 +62,7 @@ struct tensor_elem_gen_integer
         std::array<unsigned long, sizeof...(Ts)> left = {{Xs...}};
         std::array<unsigned long, 5> right            = {{613, 547, 701, 877, 1049}};
         unsigned long dot = std::inner_product(left.begin(), left.end(), right.begin(), 173ul);
-        return dot % max_value;
+        return static_cast<double>(dot % max_value);
     }
 };
 

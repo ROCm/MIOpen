@@ -140,8 +140,8 @@ class ComputedContainer
         : problem(problem_), spare(spare_)
     {
     }
-    const const_iterator begin() const { return {problem, spare}; }
-    const const_iterator end() const { return {}; }
+    const_iterator begin() const { return {problem, spare}; }
+    const_iterator end() const { return {}; }
 };
 
 class Timer
@@ -231,14 +231,14 @@ class HeartBeat
 inline void InitRandomly(std::vector<float>& vec, const double offset, const double factor)
 {
     float* p = vec.data();
-    for(int i = 0; i < vec.size(); ++i)
+    for(unsigned long i = 0; i < vec.size(); ++i)
         *p++ = static_cast<float>((rand() * (1.0 / RAND_MAX) + offset) * factor);
 }
 
 inline void InitRandomly(std::vector<float>& vec)
 {
     float* p = vec.data();
-    for(int i = 0; i < vec.size(); ++i)
+    for(unsigned long i = 0; i < vec.size(); ++i)
         *p++ = static_cast<float>(rand() * (1.0 / RAND_MAX));
 }
 

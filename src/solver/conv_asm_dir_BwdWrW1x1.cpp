@@ -336,7 +336,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
     }
     if(n_part_cnt > 1)
     {
-        int lds_size = ((n_part_cnt - 1) * solver::wave_size * sizeof(float) * acc_gprs);
+        auto lds_size = ((n_part_cnt - 1) * solver::wave_size * sizeof(float) * acc_gprs);
         if(!(lds_size <= (1 << 16)))
             return false;
     }
