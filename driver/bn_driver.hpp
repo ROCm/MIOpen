@@ -816,7 +816,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardGPU()
     for(int i = 0; i < iters; i++)
     {
 
-        START_TIME;
+        START_TIME
 
         // if run fwd train
         if(forw == 1)
@@ -840,7 +840,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardGPU()
         }
 
         miopen::deref(GetHandle()).Finish();
-        STOP_TIME;
+        STOP_TIME
         if(WALL_CLOCK)
         {
             if(iters > 1 && i > 0)
@@ -1054,7 +1054,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardGPU()
 
     for(int i = 0; i < iters; i++)
     {
-        START_TIME;
+        START_TIME
 
         if(saveMeanVar)
         {
@@ -1102,7 +1102,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardGPU()
         }
 
         miopen::deref(GetHandle()).Finish();
-        STOP_TIME;
+        STOP_TIME
         if(WALL_CLOCK)
         {
             if(iters > 1 && i > 0)

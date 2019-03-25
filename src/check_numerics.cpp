@@ -34,7 +34,10 @@ namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_CHECK_NUMERICS)
 
-int CheckNumericsEnabled(int bitMask) { return (miopen::Value(MIOPEN_CHECK_NUMERICS{})) & bitMask; }
+int CheckNumericsEnabled(int bitMask)
+{
+    return static_cast<int>((miopen::Value(MIOPEN_CHECK_NUMERICS{}))) & bitMask;
+}
 
 // Must keep this structure synchronized with one in MIOpenCheckNumerics
 struct CheckNumericsResult
@@ -56,7 +59,7 @@ bool checkNumericsImpl(
 
     // TODO - some constants we should get from the device:
     const int blockSize             = 256;
-    const int numBlocks             = handle.GetMaxComputeUnits() * 6;
+    const auto numBlocks            = handle.GetMaxComputeUnits() * 6;
     const size_t numGlobalWorkItems = blockSize * numBlocks;
 
     const int computeStats = (mode & CheckNumerics::ComputeStats);
@@ -132,7 +135,8 @@ bool checkNumericsImpl(
 // Returns: 1 if abnormal value (inf or nan) detected in specified data, 0 otherwise
 bool checkNumericsInput(Handle& handle, const TensorDescriptor& dDesc, ConstData_t data)
 {
-    return checkNumericsImpl(handle, miopen::Value(MIOPEN_CHECK_NUMERICS{}), dDesc, data, true);
+    return checkNumericsImpl(
+        handle, static_cast<int>(miopen::Value(MIOPEN_CHECK_NUMERICS{})), dDesc, data, true);
 }
 
 // Synchronizes to wait for kernel to finish, then checks data for output:
@@ -141,7 +145,8 @@ bool checkNumericsOutput(Handle& handle, const TensorDescriptor& dDesc, ConstDat
 {
     handle.Finish();
 
-    return checkNumericsImpl(handle, miopen::Value(MIOPEN_CHECK_NUMERICS{}), dDesc, data, false);
+    return checkNumericsImpl(
+        handle, static_cast<int>(miopen::Value(MIOPEN_CHECK_NUMERICS{})), dDesc, data, false);
 }
 
 } // namespace miopen

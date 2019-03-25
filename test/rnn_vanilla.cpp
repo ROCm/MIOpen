@@ -2321,7 +2321,7 @@ struct rnn_vanilla_driver : test_driver
         std::size_t in_sz = inVecReal * batch_n;
         std::vector<T> input(in_sz);
         srand(0);
-        for(int i = 0; i < in_sz; i++)
+        for(std::size_t i = 0; i < in_sz; i++)
         {
             input[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
         }
@@ -2345,7 +2345,7 @@ struct rnn_vanilla_driver : test_driver
             &handle, rnnDesc, &firstInputDesc, &wei_bytes, miopen::deref(rnnDesc).dataType);
         auto wei_sz = int(wei_bytes / sizeof(T));
         std::vector<T> weights(wei_sz);
-        for(int i = 0; i < wei_sz; i++)
+        for(std::size_t i = 0; i < wei_sz; i++)
         {
             weights[i] = (((rand() % 2) == 1) ? -1 : 1) * 0.001 * float(rand() % 100);
         }
@@ -2368,7 +2368,7 @@ struct rnn_vanilla_driver : test_driver
 
         if(!nohx)
         {
-            for(int i = 0; i < hx_sz; i++)
+            for(std::size_t i = 0; i < hx_sz; i++)
             {
                 hx[i] = 0.001 * float(rand() % 100);
             }
@@ -2376,7 +2376,7 @@ struct rnn_vanilla_driver : test_driver
 
         if(!nodhy)
         {
-            for(int i = 0; i < hx_sz; i++)
+            for(std::size_t i = 0; i < hx_sz; i++)
             {
                 dhyin[i] = 0.001 * float(rand() % 100);
             }
@@ -2406,7 +2406,7 @@ struct rnn_vanilla_driver : test_driver
         auto yin                  = std::get<0>(fwdTrainOutputPair.second);
 
         std::vector<T> dyin(yin.size());
-        for(int i = 0; i < yin.size(); i++)
+        for(std::size_t i = 0; i < yin.size(); i++)
         {
             dyin[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
         }

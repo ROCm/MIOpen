@@ -985,7 +985,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
     float kernel_first_time = 0.0;
 
     Timer t;
-    START_TIME;
+    START_TIME
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
@@ -1031,7 +1031,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
         size_t outputBytes = 1.0 * out_n * out_c * out_h * out_w *
                              miopen::GetTypeSize(miopen::deref(outputTensor).GetType());
 
-        STOP_TIME;
+        STOP_TIME
         if(WALL_CLOCK)
             printf("Wall-clock Time Forward Conv. Elapsed: %f ms\n",
                    t.gettime_ms() / inflags.GetValueInt("iter"));
@@ -1212,7 +1212,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
     int ret = 0;
 
     Timer t;
-    START_TIME;
+    START_TIME
 
     if(bwd_allowed)
     {
@@ -1247,7 +1247,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
 
         if(inflags.GetValueInt("time") == 1)
         {
-            STOP_TIME;
+            STOP_TIME
             if(WALL_CLOCK)
                 printf("Wall-clock Time Backward Data Conv. Elapsed: %f ms\n",
                        t.gettime_ms() / inflags.GetValueInt("iter"));
@@ -1323,7 +1323,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
         const auto wrw_workspace = perf_results_weights[0].memory;
         is_wrw_winograd          = (wrw_algo == miopenConvolutionBwdWeightsAlgoWinograd);
 
-        START_TIME;
+        START_TIME
         for(int i = 0; i < inflags.GetValueInt("iter"); i++)
         {
             ret = miopenConvolutionBackwardWeights(GetHandle(),
@@ -1354,7 +1354,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
             float time = 0.0;
             miopenGetKernelTime(GetHandle(), &time);
 
-            STOP_TIME;
+            STOP_TIME
             if(WALL_CLOCK)
                 printf("Wall-clock Time Backward Weights Conv. Elapsed: %f ms\n",
                        t.gettime_ms() / inflags.GetValueInt("iter"));

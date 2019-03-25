@@ -192,11 +192,11 @@ struct conv_forward : output_tensor_fixture
         std::vector<float> out(sz_out);
         std::vector<float> fwd_workspace(sz_fwd_workspace / 4);
 
-        for(int i = 0; i < sz_in; i++)
+        for(size_t i = 0; i < sz_in; i++)
         {
             in[i] = rand() * (1.0 / RAND_MAX);
         }
-        for(int i = 0; i < sz_wei; i++)
+        for(size_t i = 0; i < sz_wei; i++)
         {
             wei[i] = static_cast<double>(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
         }

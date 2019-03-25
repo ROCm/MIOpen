@@ -166,7 +166,7 @@ struct verify_backwards_activation
 struct select_first
 {
     template <class T>
-    auto operator()(const T& x) MIOPEN_RETURNS(x.first);
+    auto operator()(const T& x) MIOPEN_RETURNS(x.first); // NOLINT (readability-const-return-type)
 };
 
 template <class T>

@@ -186,7 +186,7 @@ static inline void ComputeOutputParams(int output_width,
     assert(workgroup_size != 0);
 
     size_t out_pixels_per_wkitem_by_wkgrp =
-        std::ceil(static_cast<float>(output_width_chunk) / workgroup_size);
+        std::ceil(static_cast<float>(output_width_chunk) / static_cast<float>(workgroup_size));
 
     // work item in a group should cover at least 1 row of output image
     out_tile0 = std::max(out_pixels_per_wkitem_by_wkgrp, out_pixels_per_wkitem_by_mod);
@@ -194,7 +194,8 @@ static inline void ComputeOutputParams(int output_width,
     if(output_width == output_width_chunk)
     {
         // span size
-        int n_spans = std::ceil(static_cast<float>(output_width_chunk) / out_tile0);
+        int n_spans =
+            std::ceil(static_cast<float>(output_width_chunk) / static_cast<float>(out_tile0));
 
         // Only process 1 output channel in workgroup when group is specified
         // TBD: To support more than output channels in workgroup, more changes are required in
@@ -242,7 +243,7 @@ static inline void ComputeNumInputWidthLoops(
     }
     else
     {
-        size_t unpadded_width = width - 2 * padding;
+        int unpadded_width = width - 2 * padding;
         // # of pixels read fresh in each iteration except 1st iteration
         int n_fresh_horizon_reads = n_horizon_reads - filter_width + 1;
         if(n_fresh_horizon_reads <= 0)
@@ -253,7 +254,7 @@ static inline void ComputeNumInputWidthLoops(
         }
         out_n_horizon_read_loops =
             static_cast<int>(std::ceil(static_cast<float>(unpadded_width - n_horizon_reads) /
-                                       n_fresh_horizon_reads)) +
+                                       static_cast<float>(n_fresh_horizon_reads))) +
             1;
         out_horizon_last_chunk_valid_pixels =
             (unpadded_width - n_horizon_reads) % n_fresh_horizon_reads + (filter_width - 1);
@@ -327,8 +328,8 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         return ConvSolution(miopenStatusNotInitialized);
     }
 
-    int out_n_vert_read_loops =
-        static_cast<int>(std::ceil(static_cast<float>(params.out_height) / out_n_vert_reads));
+    int out_n_vert_read_loops = static_cast<int>(
+        std::ceil(static_cast<float>(params.out_height) / static_cast<float>(out_n_vert_reads)));
 
     // When a row is split into chunks, each chunk should fully cover the entire filter in
     // horizontal dir
@@ -355,8 +356,8 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         return ConvSolution(miopenStatusNotInitialized);
     }
 
-    int out_horizon_last_chunk_valid_read_units =
-        std::ceil(static_cast<float>(out_horizon_last_chunk_valid_pixels) / read_unit);
+    int out_horizon_last_chunk_valid_read_units = std::ceil(
+        static_cast<float>(out_horizon_last_chunk_valid_pixels) / static_cast<float>(read_unit));
     int out_horizon_last_chunk_valid_pixels_in_last_read_unit =
         (out_horizon_last_chunk_valid_pixels % read_unit != 0)
             ? out_horizon_last_chunk_valid_pixels % read_unit
@@ -385,8 +386,8 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         MIOPEN_THROW(miopenStatusBadParm, "Looks like tile size is set <=0.");
     }
 
-    int in_width_last_chunk_valid_spans =
-        std::ceil(static_cast<float>(in_width_last_chunk_valid_pixels) / result.in_tile0);
+    int in_width_last_chunk_valid_spans = std::ceil(
+        static_cast<float>(in_width_last_chunk_valid_pixels) / static_cast<float>(result.in_tile0));
     int in_width_last_chunk_valid_pixels_in_last_span =
         (in_width_last_chunk_valid_pixels % result.in_tile0 != 0)
             ? in_width_last_chunk_valid_pixels % result.in_tile0

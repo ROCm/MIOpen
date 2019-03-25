@@ -1056,12 +1056,12 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
                                       new_kernels,
                                       gemm_desc.alpha,
                                       A,
-                                      a_offset + i * gemm_desc.strideA,
+                                      a_offset + i * static_cast<int>(gemm_desc.strideA),
                                       B,
-                                      b_offset + i * gemm_desc.strideB,
+                                      b_offset + i * static_cast<int>(gemm_desc.strideB),
                                       gemm_desc.beta,
                                       C,
-                                      c_offset + i * gemm_desc.strideC);
+                                      c_offset + i * static_cast<int>(gemm_desc.strideC));
 
                 if(handle.IsProfilingEnabled())
                 {
@@ -1082,12 +1082,12 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
                                       old_kernels,
                                       gemm_desc.alpha,
                                       A,
-                                      a_offset + i * gemm_desc.strideA,
+                                      a_offset + i * static_cast<int>(gemm_desc.strideA),
                                       B,
-                                      b_offset + i * gemm_desc.strideB,
+                                      b_offset + i * static_cast<int>(gemm_desc.strideB),
                                       gemm_desc.beta,
                                       C,
-                                      c_offset + i * gemm_desc.strideC);
+                                      c_offset + i * static_cast<int>(gemm_desc.strideC));
 
                 if(handle.IsProfilingEnabled())
                 {
@@ -1230,8 +1230,8 @@ GemmDescriptor CreateGemmDescriptorConvBwdWeight(const TensorDescriptor& dyDesc,
     bool transA     = false;
     bool transB     = true;
     int m           = wei_k;
-    int n =
-        in_c * std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
+    int n           = static_cast<int>(in_c) *
+            std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
     int k   = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
     int lda = k;
     int ldb = k;

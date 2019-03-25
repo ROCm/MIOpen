@@ -285,8 +285,7 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
     int n_alus_perstack = (n_alus_total + result.n_stacks - 1) / result.n_stacks;
 
     int n_read_procs;
-    if((result.grp_tile1 * result.grp_tile0) <=
-       static_cast<float>(result.in_tile1 * result.in_tile0))
+    if((result.grp_tile1 * result.grp_tile0) <= (result.in_tile1 * result.in_tile0))
     {
         n_read_procs = result.grp_tile1 * result.grp_tile0;
     }

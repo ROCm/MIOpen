@@ -252,6 +252,21 @@ enable_clang_tidy(
         -readability-named-parameter
         -hicpp-use-auto
 	    -modernize-use-auto
+        -cppcoreguidelines-avoid-magic-numbers
+        -readability-magic-numbers
+        -cppcoreguidelines-macro-usage
+        -misc-non-private-member-variables-in-classes
+        -cppcoreguidelines-non-private-member-variables-in-classes
+        -readability-isolate-declaration
+        -cppcoreguidelines-avoid-c-arrays
+        -hicpp-avoid-c-arrays
+        -modernize-avoid-c-arrays
+        -readability-uppercase-literal-suffix
+        -hicpp-uppercase-literal-suffix
+        -cert-msc32-c
+        -cert-msc51-cpp
+        -bugprone-exception-escape
+        
         ${CLANG_TIDY_CHECKS}
     ERRORS
         *

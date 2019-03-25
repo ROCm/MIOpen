@@ -99,14 +99,14 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
 
                 std::array<std::ptrdiff_t, ConvDim> in_spatial_id{};
 
-                for(int i = 0; i < ConvDim; ++i)
+                for(std::size_t i = 0; i < ConvDim; ++i)
                 {
                     in_spatial_id[i] =
                         out_spatial_id[i] * strides[i] + wei_spatial_id[i] * dilations[i] - pads[i];
                 }
 
                 bool out_of_bound = false;
-                for(int i = 0; i < ConvDim; ++i)
+                for(std::size_t i = 0; i < ConvDim; ++i)
                 {
                     out_of_bound = out_of_bound or
                                    (in_spatial_id[i] < 0 or in_spatial_id[i] >= in_spatial_len[i]);
@@ -180,7 +180,7 @@ void cpu_convolution_backward_data_impl(tensor<Tin>& in,
                 std::array<ptrdiff_t, ConvDim> out_spatial_id_{};
                 std::array<ptrdiff_t, ConvDim> out_spatial_id{};
 
-                for(int i = 0; i < ConvDim; ++i)
+                for(std::size_t i = 0; i < ConvDim; ++i)
                 {
                     out_spatial_id_[i] =
                         pads[i] + in_spatial_id[i] - wei_spatial_id[i] * dilations[i];
@@ -188,7 +188,7 @@ void cpu_convolution_backward_data_impl(tensor<Tin>& in,
                 }
 
                 bool use = true;
-                for(int i = 0; i < ConvDim; ++i)
+                for(std::size_t i = 0; i < ConvDim; ++i)
                 {
                     use &= out_spatial_id_[i] % strides[i] == 0 and out_spatial_id[i] >= 0 and
                            out_spatial_id[i] < out_spatial_len[i];
@@ -264,14 +264,14 @@ void cpu_convolution_backward_weight_impl(const tensor<Tin>& in,
 
                 std::array<std::ptrdiff_t, ConvDim> in_spatial_id{};
 
-                for(int i = 0; i < ConvDim; ++i)
+                for(std::size_t i = 0; i < ConvDim; ++i)
                 {
                     in_spatial_id[i] =
                         out_spatial_id[i] * strides[i] + wei_spatial_id[i] * dilations[i] - pads[i];
                 }
 
                 bool out_of_bound = false;
-                for(int i = 0; i < ConvDim; ++i)
+                for(std::size_t i = 0; i < ConvDim; ++i)
                 {
                     out_of_bound = out_of_bound or
                                    (in_spatial_id[i] < 0 or in_spatial_id[i] >= in_spatial_len[i]);

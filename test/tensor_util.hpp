@@ -53,8 +53,8 @@ void operate_over_subtensor_impl(const data_operator_t<T>& r_data_operator,
                                  const uint current_dim,
                                  const int offset)
 {
-    const int max_dim        = rSubDesc.GetLengths().size() - 1;
-    const int current_stride = rSubDesc.GetStrides()[current_dim];
+    auto max_dim        = static_cast<int>(rSubDesc.GetLengths().size() - 1);
+    auto current_stride = static_cast<int>(rSubDesc.GetStrides()[current_dim]);
 
     int index = offset;
 

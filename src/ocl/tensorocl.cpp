@@ -146,7 +146,9 @@ void OpTensor3d(Handle& handle,
     auto d             = std::distance(blens.begin(), first_not_one.base());
 
     // quick fix
-    int num_wg = first_not_one != blens.rend() ? (*first_not_one == 0 ? 1 : *first_not_one) : 1;
+    int num_wg = first_not_one != blens.rend()
+                     ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
+                     : 1;
     int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;
@@ -156,7 +158,7 @@ void OpTensor3d(Handle& handle,
     // (d-2) is because distance starts from 1 and 0
     // also, we need to go past the "first_not_one" as that is already
     // accounted for in the bitmap
-    CreateBitmapAndGrid(bitmap, blens, clens, num_wg, work_per_wg, (d - 2));
+    CreateBitmapAndGrid(bitmap, blens, clens, num_wg, work_per_wg, static_cast<int>(d - 2));
 
 #if(MIO_TENSOROCL_DEBUG == 1)
     printf("bitmap: %u\n", bitmap);
@@ -394,7 +396,9 @@ void OpTensor4d(Handle& handle,
     auto d             = std::distance(blens.begin(), first_not_one.base());
 
     // quick fix
-    int num_wg = first_not_one != blens.rend() ? (*first_not_one == 0 ? 1 : *first_not_one) : 1;
+    int num_wg = first_not_one != blens.rend()
+                     ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
+                     : 1;
     int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;
@@ -404,7 +408,7 @@ void OpTensor4d(Handle& handle,
     // (d-2) is because distance starts from 1 and 0
     // also, we need to go past the "first_not_one" as that is already
     // accounted for in the bitmap
-    CreateBitmapAndGrid(bitmap, blens, clens, num_wg, work_per_wg, (d - 2));
+    CreateBitmapAndGrid(bitmap, blens, clens, num_wg, work_per_wg, static_cast<int>(d - 2));
 
     // quick fix for btensor = <1, 1, 1, 1>
     if(bTensorDesc.GetElementSize() == 1)
@@ -437,7 +441,7 @@ void OpTensor4d(Handle& handle,
 
     // Does the bitmap contain leading ones, i.e. 1,1,1,0 or 1,1,0,0
     // or 1,1,1,1 or 1,0,0,0
-    bool leading_ones = IsBitmapLeadingOnes(bitmap, dims, (d - 2));
+    bool leading_ones = IsBitmapLeadingOnes(bitmap, dims, static_cast<int>(d - 2));
     if(leading_ones && work_per_wg < 64)
     {
         local_threads = 64;
@@ -926,7 +930,9 @@ void OpTensorOther(Handle& handle,
     auto d             = std::distance(blens.begin(), first_not_one.base());
 
     // quick fix
-    int num_wg = first_not_one != blens.rend() ? (*first_not_one == 0 ? 1 : *first_not_one) : 1;
+    int num_wg = first_not_one != blens.rend()
+                     ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
+                     : 1;
     int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;
@@ -936,7 +942,7 @@ void OpTensorOther(Handle& handle,
     // (d-2) is because distance starts from 1 and 0
     // also, we need to go past the "first_not_one" as that is already
     // accounted for in the bitmap
-    CreateBitmapAndGrid(bitmap, blens, clens, num_wg, work_per_wg, (d - 2));
+    CreateBitmapAndGrid(bitmap, blens, clens, num_wg, work_per_wg, static_cast<int>(d - 2));
 
 #if(MIO_TENSOROCL_DEBUG == 1)
     printf("bitmap: %u\n", bitmap);
@@ -1241,7 +1247,7 @@ void OpTensor(Handle& handle,
                      std::to_string(blens.size()) + ", " + std::to_string(clens.size()));
     }
 
-    for(auto i = 0; i < clens.size(); i++)
+    for(unsigned long i = 0; i < clens.size(); i++)
     {
         if(blens[i] != 1 && blens[i] != clens[i])
         {
@@ -1780,7 +1786,7 @@ void CopyTensor(Handle& handle,
 
             std::string parms = "-DSUBTENSOR_OP_WITH_SUBTENSOR=SUBTENSOR_OP_WITH_SUBTENSOR_COPY" +
                                 parms_half_or_float(srcDesc_flat.GetType());
-            for(int i = 0; i < srcDim_flat; ++i)
+            for(unsigned long i = 0; i < srcDim_flat; ++i)
             {
                 parms +=
                     " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
@@ -1995,7 +2001,7 @@ void CastTensor(Handle& handle,
                                          ? 1
                                          : dstDesc_flat.GetType() == miopenHalf ? 2 : 3);
 
-            for(int i = 0; i < srcDim_flat; ++i)
+            for(unsigned long i = 0; i < srcDim_flat; ++i)
             {
                 parms +=
                     " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
@@ -2177,7 +2183,7 @@ void TransformTensor(Handle& handle,
         size_t x_batch_sz = x_batch_desc.GetElementSize();
         size_t y_batch_sz = y_batch_desc.GetElementSize();
 
-        for(int i = 0; i < batch_n; i++)
+        for(unsigned long i = 0; i < batch_n; i++)
         {
             size_t x_offset = i * x_batch_sz;
             size_t y_offset = i * y_batch_sz;

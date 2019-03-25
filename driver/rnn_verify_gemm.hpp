@@ -582,7 +582,6 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
 
     // initial dout
     std::vector<Tref> dout_state(batch_n * out_h, static_cast<Tref>(0));
-    ;
     for(int h = 0; h < batch_n; h++)
     {
         for(int w = 0; w < out_h; w++)
@@ -593,9 +592,7 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
 
     // initial hidden states
     std::vector<Tref> dhx_state(hy_d * hy_n * hy_h, static_cast<Tref>(0));
-
     std::vector<Tref> dhy_state(hy_d * hy_n * hy_h, static_cast<Tref>(0));
-    ;
     for(int h = 0; h < hy_d * hy_n * hy_h; h++)
     {
         dhy_state.at(h) = dhy.at(h);
@@ -621,7 +618,6 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
     }
 
     std::vector<Tref> wei_state(wei_len, static_cast<Tref>(0));
-    ;
     for(int h = 0; h < wei_len; h++)
     {
         wei_state.at(h) = wei.at(h);
@@ -920,7 +916,6 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<Tgpu>& in,
 
     // initial input
     std::vector<Tref> in_state(batch_n * in_h, static_cast<Tref>(0));
-    ;
     for(int h = 0; h < batch_n; h++)
     {
         for(int w = 0; w < in_h; w++)
