@@ -71,6 +71,8 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_stride_h == 2           // -u   inp_u   fixed
         && params.kernel_size_w == 10            // -x   wei_w   fixed
         && params.kernel_size_h == 5             // -y   wei_h   fixed
+        && params.kernel_dilation_w == 1
+        && params.kernel_dilation_h == 1
         && params.n_inputs >= 1                 // -c   wei_c   no upper limit
         && params.n_outputs % 16 == 0           // -k   wei_k   no upper limit
         && params.n_outputs >= 1
