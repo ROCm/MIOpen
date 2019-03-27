@@ -62,6 +62,8 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& p
         && params.kernel_stride_h == 2    // -u
         && params.kernel_size_w == 7    // -x
         && params.kernel_size_h == 7    // -y
+        && params.kernel_dilation_w == 1
+        && params.kernel_dilation_h == 1
         && params.n_inputs == 3         // -c
         && params.n_outputs == 64       // -k
         && params.in_width == 224       // -W
