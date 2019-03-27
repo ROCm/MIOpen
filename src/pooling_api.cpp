@@ -39,6 +39,20 @@ extern "C" miopenStatus_t miopenCreatePoolingDescriptor(miopenPoolingDescriptor_
     return miopen::try_([&] { miopen::deref(poolDesc) = new miopen::PoolingDescriptor(); });
 }
 
+extern "C" miopenStatus_t miopenSetPoolingIndexType(miopenPoolingDescriptor_t poolDesc,
+                                                    miopenIndexType_t index_type)
+{
+    MIOPEN_LOG_FUNCTION(poolDesc, index_type);
+    return miopen::try_([&] { miopen::deref(poolDesc).SetIndexType(index_type); });
+}
+
+extern "C" miopenStatus_t miopenGetPoolingIndexType(miopenPoolingDescriptor_t poolDesc,
+                                                    miopenIndexType_t* index_type)
+{
+    MIOPEN_LOG_FUNCTION(poolDesc, index_type);
+    return miopen::try_([&] { *index_type = miopen::deref(poolDesc).GetIndexType(); });
+}
+
 extern "C" miopenStatus_t miopenSet2dPoolingDescriptor(miopenPoolingDescriptor_t poolDesc,
                                                        miopenPoolingMode_t mode,
                                                        int windowHeight,
@@ -159,6 +173,7 @@ miopenGetPoolingForwardOutputDim(const miopenPoolingDescriptor_t poolDesc,
     });
 }
 
+// this should deprecate because it assume we are always using uint8_t for max pooling indexing
 extern "C" miopenStatus_t miopenPoolingGetWorkSpaceSize(const miopenTensorDescriptor_t yDesc,
                                                         size_t* workSpaceSize)
 {
@@ -169,6 +184,16 @@ extern "C" miopenStatus_t miopenPoolingGetWorkSpaceSize(const miopenTensorDescri
         size_t sz = std::accumulate(len.begin(), len.end(), 1, std::multiplies<int>());
         miopen::deref(workSpaceSize) = sz * sizeof(uint8_t);
     });
+}
+
+extern "C" miopenStatus_t miopenPoolingGetWorkSpaceSizeV2(const miopenPoolingDescriptor_t poolDesc,
+                                                          const miopenTensorDescriptor_t yDesc,
+                                                          size_t* workSpaceSize)
+{
+
+    MIOPEN_LOG_FUNCTION(poolDesc, yDesc, workSpaceSize);
+    return miopen::try_(
+        [&] { *workSpaceSize = miopen::deref(poolDesc).GetWorkSpaceSize(miopen::deref(yDesc)); });
 }
 
 extern "C" miopenStatus_t miopenPoolingForward(miopenHandle_t handle,

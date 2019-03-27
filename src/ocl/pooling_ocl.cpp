@@ -28,13 +28,9 @@
 #include <miopen/pooling.hpp>
 #include <miopen/float_equal.hpp>
 #include <miopen/check_numerics.hpp>
+#include <miopen/datatype.hpp>
 
 namespace miopen {
-
-std::size_t PoolingDescriptor::GetWorkSpaceSize(const TensorDescriptor& tensorDesc) const
-{
-    return tensorDesc.GetElementSize() * sizeof(uint8_t);
-}
 
 miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
                                           const void* alpha,
@@ -43,7 +39,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
                                           const void* beta,
                                           const TensorDescriptor& yDesc,
                                           Data_t y,
-                                          bool do_backward,
+                                          bool save_index,
                                           Data_t workSpace,
                                           size_t /*workSpaceSize*/) const
 {
@@ -92,14 +88,18 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     std::tie(nIn, cIn, hIn, wIn)                         = tien<4>(xDesc.GetLengths());
     std::tie(nInStride, cInStride, hInStride, wInStride) = tien<4>(xDesc.GetStrides());
 
-    if(((lens[0] * lens[1]) >= std::numeric_limits<uint16_t>::max()) && do_backward)
+    auto index_max = get_index_max(GetIndexType());
+
+    // for kernel implementation max pooling backward pass,
+    //   "index_max" means ghost, and thus should not be reached
+    if(save_index && GetMode() == miopenPoolingMax && !(index_max >= lens[0] * lens[1]))
     {
-        MIOPEN_THROW("Pooling window too large to do backwards");
+        MIOPEN_THROW("Index range not enough for max pooling bwd");
     }
 
     construct_params.setBotDescFromMLDesc(xDesc);
 
-    if(mode == miopenPoolingMax && do_backward && workSpace == nullptr)
+    if(mode == miopenPoolingMax && save_index && workSpace == nullptr)
     {
         throw std::invalid_argument(
             "workSpace cannot be NULL in Forward Pooling MAX mode when backward pass is requested");
@@ -109,17 +109,18 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
             ? MLO_POOLING_OP_MAX
             : ((mode == miopenPoolingAverage) ? MLO_POOLING_OP_AVE : MLO_POOLING_OP_AVE_INCLUSIVE);
     construct_params.setPoolingDescr(
-        pooling_method, lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
+        pooling_method, GetIndexType(), lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
 
     std::string network_config =
-        std::to_string(pooling_method) + std::to_string(static_cast<int>(do_backward)) +
+        std::to_string(pooling_method) + std::to_string(static_cast<int>(save_index)) +
         std::to_string(xDesc.GetType()) + std::to_string(nInStride) + std::to_string(nOutStride) +
         std::to_string(nIn) + std::to_string(nOut) + std::to_string(nInStride) +
         std::to_string(nOutStride) + std::to_string(cIn) + std::to_string(cOut) +
         std::to_string(cInStride) + std::to_string(cOutStride) + std::to_string(hIn) +
         std::to_string(hOut) + std::to_string(hInStride) + std::to_string(hOutStride) +
         std::to_string(lens[0]) + std::to_string(lens[1]) + std::to_string(strides[0]) +
-        std::to_string(strides[1]) + std::to_string(pads[0]) + std::to_string(pads[1]);
+        std::to_string(strides[1]) + std::to_string(pads[0]) + std::to_string(pads[1]) +
+        std::to_string(GetIndexType());
 
     std::string algo_name = "miopenPooling2dForward";
     // printf("Pooling forward network_config: %s\n", network_config.c_str());
@@ -130,7 +131,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     }
     else
     {
-        construct_params.doBackward(do_backward);
+        construct_params.doBackward(save_index);
 
         mloConstruct(construct_params);
         std::string parms              = construct_params.getCompilerOptions(); // kernel parameters
@@ -239,9 +240,13 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     std::tie(nIn, cIn, hIn, wIn)                         = tien<4>(xDesc.GetLengths());
     std::tie(nInStride, cInStride, hInStride, wInStride) = tien<4>(xDesc.GetStrides());
 
-    if(((lens[0] * lens[1]) >= std::numeric_limits<uint16_t>::max()))
+    auto index_max = get_index_max(GetIndexType());
+
+    // for kernel implementation max pooling backward pass,
+    //   "index_max" means ghost, and thus should not be reached
+    if(GetMode() == miopenPoolingMax && !(index_max >= lens[0] * lens[1]))
     {
-        MIOPEN_THROW("Pooling window too large to do backwards");
+        MIOPEN_THROW("Index range not enough for max pooling bwd");
     }
 
     construct_params.setBotDescFromMLDesc(xDesc);
@@ -255,7 +260,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
             ? MLO_POOLING_OP_MAX
             : ((mode == miopenPoolingAverage) ? MLO_POOLING_OP_AVE : MLO_POOLING_OP_AVE_INCLUSIVE);
     construct_params.setPoolingDescr(
-        pooling_method, lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
+        pooling_method, GetIndexType(), lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
 
     std::string network_config =
         std::to_string(pooling_method) + std::to_string(xDesc.GetType()) +
@@ -265,7 +270,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
         std::to_string(cOutStride) + std::to_string(hIn) + std::to_string(hOut) +
         std::to_string(hInStride) + std::to_string(hOutStride) + std::to_string(lens[0]) +
         std::to_string(lens[1]) + std::to_string(strides[0]) + std::to_string(strides[1]) +
-        std::to_string(pads[0]) + std::to_string(pads[1]);
+        std::to_string(pads[0]) + std::to_string(pads[1]) + std::to_string(GetIndexType());
     // printf("Pooling backward network_config: %s\n", network_config.c_str());
     std::string algo_name = "miopenPooling2dBackward";
 
@@ -295,7 +300,6 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
 
         if(mode == miopenPoolingMax)
         {
-
             k(dy, dx, workSpace);
         }
         else

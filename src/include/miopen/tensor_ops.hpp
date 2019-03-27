@@ -27,7 +27,6 @@
 #define GUARD_MIOPEN_TENSOR_OPPS_HPP_
 
 #include <miopen/common.hpp>
-#include <miopen/datatype.hpp>
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
 #include <miopen/tensor.hpp>
