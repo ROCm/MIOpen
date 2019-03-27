@@ -50,10 +50,14 @@
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
 #define _FLOAT4 PPCAT(_FLOAT, FOUR)
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
-#define _INT_MASK_GLOBAL uchar
-#define _INT_MASK_LOCAL uchar
 
 #define UNUSED __attribute__((__unused__))
+
+#ifndef MLO_POOLING_INDEX_TYPE
+#error "MLO_POOLING_INDEX_TYPE not defined"
+#else
+typedef MLO_POOLING_INDEX_TYPE index_t;
+#endif
 
 #define MLO_POOLING_OP_AVE 0
 #define MLO_POOLING_OP_MAX 1
@@ -87,10 +91,10 @@ __attribute__((reqd_work_group_size(MLO_POOLING_GROUP_SZ0,
                                     MLO_POOLING_GROUP_SZ2))) __kernel void
 mloPoolingG(const __global _FLOAT* bot,
             __global _FLOAT* top,
-#if !defined(MLO_POOLING_DO_BACKWARD) || MLO_POOLING_OP_ID != MLO_POOLING_OP_MAX
+#if !defined(MLO_POOLING_SAVE_INDEX) || MLO_POOLING_OP_ID != MLO_POOLING_OP_MAX
             UNUSED
 #endif
-                __global _INT_MASK_GLOBAL* mask)
+                __global index_t* mask)
 {
 
     uint x       = get_group_id(0) * MLO_POOLING_GROUP_SZ0 * MLO_POOLING_N_HORIZ_OUT_PIX;
@@ -107,8 +111,8 @@ mloPoolingG(const __global _FLOAT* bot,
 
     _FLOAT bot_data[MLO_BOT_DATA_SZ1][MLO_BOT_DATA_SZ0];
     _FLOAT res[MLO_POOLING_N_VERT_OUT_PIX][MLO_POOLING_N_HORIZ_OUT_PIX];
-#if defined(MLO_POOLING_DO_BACKWARD) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-    _INT_MASK_LOCAL mask_private[MLO_POOLING_N_VERT_OUT_PIX][MLO_POOLING_N_HORIZ_OUT_PIX];
+#if defined(MLO_POOLING_SAVE_INDEX) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
+    index_t mask_private[MLO_POOLING_N_VERT_OUT_PIX][MLO_POOLING_N_HORIZ_OUT_PIX];
 #endif
     for(int k = 0; k < MLO_POOLING_N_VERT_OUT_PIX; k++)
     {
@@ -173,8 +177,8 @@ mloPoolingG(const __global _FLOAT* bot,
 #endif
             pool_size = (pool_size == 0) ? 1 : pool_size;
 #endif
-#if defined(MLO_POOLING_DO_BACKWARD) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-            mask_private[k][l] = 0xFF;
+#if defined(MLO_POOLING_SAVE_INDEX) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
+            mask_private[k][l] = 0;
 #endif
 
             for(uint j = 0; j < MLO_POOLING_KERNEL_SZ1; j++)
@@ -185,7 +189,7 @@ mloPoolingG(const __global _FLOAT* bot,
                     _FLOAT bot_val =
                         bot_data[j + k * MLO_POOLING_STRIDE1][i + l * MLO_POOLING_STRIDE0];
 
-#if defined(MLO_POOLING_DO_BACKWARD) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
+#if defined(MLO_POOLING_SAVE_INDEX) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
                     if(bot_val > res[k][l])
                     {
                         res[k][l]          = bot_val;
@@ -214,7 +218,7 @@ mloPoolingG(const __global _FLOAT* bot,
             if(top_y + k < MLO_POOLING_TOP_HEIGHT && top_x + l < MLO_POOLING_TOP_WIDTH)
             {
                 top[top_off + k * MLO_POOLING_TOP_STRIDE + l] = res[k][l];
-#if defined(MLO_POOLING_DO_BACKWARD) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
+#if defined(MLO_POOLING_SAVE_INDEX) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
                 mask[top_off + k * MLO_POOLING_TOP_STRIDE + l] = mask_private[k][l];
 #endif
             }

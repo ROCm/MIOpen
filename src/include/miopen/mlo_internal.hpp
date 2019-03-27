@@ -763,19 +763,22 @@ struct mlo_construct_pooling2D : mlo_construct_activ_lrn_pooling_common
     mlo_construct_pooling2D(int dir) : mlo_construct_activ_lrn_pooling_common(dir)
     {
         _pooling_method = MLO_POOLING_OP_MAX;
+        _index_type     = miopenIndexUint8;
         _NAN_option     = 0;
     }
 
-    inline void setPoolingDescr(int pooling_method = MLO_POOLING_OP_MAX,
-                                int windowHeight   = 3,
-                                int windowWidth    = 3,
-                                int padding_h      = 0,
-                                int padding_w      = 0,
-                                int stride_h       = 2,
-                                int stride_w       = 2,
-                                int NAN_opt        = 0)
+    inline void setPoolingDescr(int pooling_method           = MLO_POOLING_OP_MAX,
+                                miopenIndexType_t index_type = miopenIndexUint8,
+                                int windowHeight             = 3,
+                                int windowWidth              = 3,
+                                int padding_h                = 0,
+                                int padding_w                = 0,
+                                int stride_h                 = 2,
+                                int stride_w                 = 2,
+                                int NAN_opt                  = 0)
     {
         _pooling_method                = pooling_method;
+        _index_type                    = index_type;
         _search_params.pad_h           = padding_h;
         _search_params.pad_w           = padding_w;
         _search_params.kernel_size_h   = windowHeight;
@@ -786,6 +789,7 @@ struct mlo_construct_pooling2D : mlo_construct_activ_lrn_pooling_common
     }
 
     inline void getPoolingDescr(int& /*pooling_method*/,
+                                miopenIndexType_t& index_type,
                                 int& windowHeight,
                                 int& windowWidth,
                                 int& padding_h,
@@ -794,6 +798,7 @@ struct mlo_construct_pooling2D : mlo_construct_activ_lrn_pooling_common
                                 int& stride_w,
                                 int& NAN_opt) const
     {
+        index_type   = _index_type;
         padding_h    = _search_params.pad_h;
         padding_w    = _search_params.pad_w;
         windowHeight = _search_params.kernel_size_h;
@@ -808,6 +813,7 @@ struct mlo_construct_pooling2D : mlo_construct_activ_lrn_pooling_common
 
     protected:
     int _pooling_method;
+    miopenIndexType_t _index_type;
     int _NAN_option;
     int mloConstructFwd();
     int mloConstructBwd();
