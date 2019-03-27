@@ -127,8 +127,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                 const TensorDescriptor& wDesc,
                                 const TensorDescriptor& xDesc) const;
 
-    bool IsDirectSupported(const TensorDescriptor& wDesc) const;
-
     std::size_t ForwardGetWorkSpaceSize(Handle& handle,
                                         const TensorDescriptor& wDesc,
                                         const TensorDescriptor& xDesc,

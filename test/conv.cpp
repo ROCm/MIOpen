@@ -50,14 +50,28 @@
 #define TEST_DIRECT_SUPPORTED_CONFIG_ONLY (!MIOPEN_USE_ROCBLAS)
 
 #if TEST_DIRECT_SUPPORTED_CONFIG_ONLY
-static bool is_direct_fwd_bwd_data_supported(miopen::Handle&,
+static bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
                                              const miopen::ConvolutionDescriptor convDesc,
-                                             const miopen::TensorDescriptor&,
+                                             const miopen::TensorDescriptor& xDesc,
                                              const miopen::TensorDescriptor& wDesc,
-                                             const miopen::TensorDescriptor&)
+                                             const miopen::TensorDescriptor& yDesc)
 {
-    return convDesc.IsDirectSupported(wDesc) &&
-           (convDesc.GetConvDilations()[0] == 1 && convDesc.GetConvDilations()[1] == 1);
+    if(convDesc.GetConvDimension() != 2)
+        return false;
+
+    // Both Fwd and Bwd shall be supported by Direct. Return false otherwise.
+    for(int direction = 1; direction >= 0; --direction)
+    {
+        mlo_construct_direct2D construct(xDesc, wDesc, yDesc, convDesc, direction);
+        construct.setDoSearch(false);
+        construct.saveSearchRequest(false);
+        construct.setWorkaroundDisableSearchEnforce(true);
+        construct.setGeneralCompOptions("");
+        construct.setStream(&handle);
+        if(FindAllSolutions(construct).empty())
+            return false;
+    }
+    return true;
 }
 
 static bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
@@ -72,6 +86,7 @@ static bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
     mlo_construct_BwdWrW2D construct_params(xDesc, wDesc, yDesc, convDesc, 0);
     construct_params.setDoSearch(false);
     construct_params.saveSearchRequest(false);
+    construct_params.setWorkaroundDisableSearchEnforce(true);
     construct_params.setGeneralCompOptions("");
     construct_params.setStream(&handle);
 

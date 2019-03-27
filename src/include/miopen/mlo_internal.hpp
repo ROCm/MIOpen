@@ -243,7 +243,7 @@ auto mloConstruct(T& x) -> decltype(x.mloConstruct(), void())
 template <class T>
 auto FindFirstSolution(T& x) -> decltype(x.FindSolution())
 {
-    x.setupRocm();
+    x.detectRocm();
     x.setupFloats();
     return x.FindSolution();
 }
@@ -251,7 +251,7 @@ auto FindFirstSolution(T& x) -> decltype(x.FindSolution())
 template <class T, class U>
 auto FindFirstSolution(T& x, U& solvers) -> decltype(x.FindSolution(solvers))
 {
-    x.setupRocm();
+    x.detectRocm();
     x.setupFloats();
     return x.FindSolution(solvers);
 }
@@ -259,7 +259,7 @@ auto FindFirstSolution(T& x, U& solvers) -> decltype(x.FindSolution(solvers))
 template <class T>
 auto FindAllSolutions(T& x) -> decltype(x.FindAllSolutions())
 {
-    x.setupRocm();
+    x.detectRocm();
     x.setupFloats();
     return x.FindAllSolutions();
 }
@@ -297,7 +297,7 @@ struct mlo_construct_direct2D
         _search_params.deconvolution = 0;
     }
 
-    void setupRocm();
+    void detectRocm();
     void setupFloats();
 
     /*
