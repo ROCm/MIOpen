@@ -292,13 +292,24 @@ MIOPEN_DECLARE_OBJECT(miopenRNNDescriptor);
  * MIOpen floating point datatypes. Both 32-bit and 16-bit floats are supported in MIOpen.
 */
 typedef enum {
-    miopenHalf  = 0, /*!< 16-bit floating point (Not supported) */
+    miopenHalf  = 0, /*!< 16-bit floating point (Fully supported) */
     miopenFloat = 1, /*!< 32-bit floating point (Fully supported) */
     miopenInt32 = 2, /*!< 32-bit int point (Not supported) */
     miopenInt8  = 3, /*!< 8-bit int point (Partially supported) */
     miopenInt8x4 =
         4, /*!< Pack of four 8-bit int points in NCHW_VECT_C format (Partially supported) */
 } miopenDataType_t;
+
+/*! @ingroup tensor
+ * @enum miopenIndexType_t
+ * MIOpen index datatypes.
+*/
+typedef enum {
+    miopenIndexUint8  = 0, /*!<  8-bit unsigned */
+    miopenIndexUint16 = 1, /*!< 16-bit unsigned */
+    miopenIndexUint32 = 2, /*!< 32-bit unsigned */
+    miopenIndexUint64 = 3, /*!< 64-bit unsigned */
+} miopenIndexType_t;
 
 /*! @ingroup tensor
  * @enum miopenTensorOp_t
@@ -1248,6 +1259,24 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionBackwardBias(miopenHandle_t handle
  */
 MIOPEN_EXPORT miopenStatus_t miopenCreatePoolingDescriptor(miopenPoolingDescriptor_t* poolDesc);
 
+/*! @brief Set index data type for pooling layer
+ *
+ * @param poolDesc     Pointer to a pooling layer descriptor (input)
+ * @param index_type   Index type (input)
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetPoolingIndexType(miopenPoolingDescriptor_t poolDesc,
+                                                       miopenIndexType_t index_type);
+
+/*! @brief Get index data type for pooling layer
+ *
+ * @param poolDesc     Pointer to a pooling layer descriptor (input)
+ * @param index_type   Index type (output)
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetPoolingIndexType(miopenPoolingDescriptor_t poolDesc,
+                                                       miopenIndexType_t* index_type);
+
 /*! @brief Sets a 2-D pooling layer descriptor details
  *
  * Sets the window shape, padding, and stride for a previously created 2-D pooling descriptor
@@ -1319,7 +1348,8 @@ miopenGetPoolingForwardOutputDim(const miopenPoolingDescriptor_t poolDesc,
 /*! @brief Get the amount of GPU memory required for pooling
  *
  * Retrieves the amount of workspace in bytes require for pooling. This call is required to
- * determine the amount of GPU memory needed for the backwards pooling algorithms.
+ * determine the amount of GPU memory needed for the backwards pooling algorithms. For max-
+ * pooling, an assumption is that index data type is uint8_t
  *
  * @param yDesc          Descriptor for pooling layer (input)
  * @param workSpaceSize  Pointer to workSpaceSize (output)
@@ -1327,6 +1357,22 @@ miopenGetPoolingForwardOutputDim(const miopenPoolingDescriptor_t poolDesc,
  */
 MIOPEN_EXPORT miopenStatus_t miopenPoolingGetWorkSpaceSize(const miopenTensorDescriptor_t yDesc,
                                                            size_t* workSpaceSize);
+
+/*! @brief Get the amount of GPU memory required for pooling
+ *
+ * Retrieves the amount of workspace in bytes require for pooling. This call is required to
+ * determine the amount of GPU memory needed for the backwards pooling algorithms. For max-
+ * pooling, there is no assumption on index data type
+ *
+ * @param poolDesc       Pointer to a pooling layer descriptor (input)
+ * @param yDesc          Descriptor for pooling layer (input)
+ * @param workSpaceSize  Pointer to workSpaceSize (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenPoolingGetWorkSpaceSizeV2(const miopenPoolingDescriptor_t poolDesc,
+                                const miopenTensorDescriptor_t yDesc,
+                                size_t* workSpaceSize);
 
 /*! @brief Execute a forward pooling layer
  *

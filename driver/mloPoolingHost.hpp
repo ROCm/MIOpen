@@ -76,7 +76,8 @@ double CalcErr( _T c_val, _T g_val)
 #endif
 
 template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
-          typename _Tcheck /* the data type used in CPU checkings (usually double) */>
+          typename _Tcheck /* the data type used in CPU checkings (usually double) */,
+          typename Index>
 bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                                        int pad_h,
                                        int pool_stride_h,
@@ -100,7 +101,7 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                                        const _Tgpu* top_ptr,
                                        bool do_backward,
                                        size_t* mask_ptr,
-                                       uint8_t* mask_gpu,
+                                       Index* mask_gpu,
                                        _Tcheck allowedEps)
 {
 
