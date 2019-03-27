@@ -40,11 +40,13 @@ struct TensorDescriptor;
 struct PoolingDescriptor : miopenPoolingDescriptor
 {
     PoolingDescriptor();
+
     PoolingDescriptor(miopenPoolingMode_t m,
                       miopenPaddingMode_t pm,
-                      std::vector<int> plens,
-                      std::vector<int> pstrides,
-                      std::vector<int> ppads);
+                      const std::vector<int>& plens,
+                      const std::vector<int>& pstrides,
+                      const std::vector<int>& ppads);
+
     PoolingDescriptor(miopenPoolingMode_t m,
                       miopenPaddingMode_t pm,
                       const int* plens,
@@ -52,19 +54,30 @@ struct PoolingDescriptor : miopenPoolingDescriptor
                       const int* pstrides,
                       int size);
 
+    void SetIndexType(miopenIndexType_t index_type);
+
     miopenPoolingMode_t GetMode() const;
+
     miopenPaddingMode_t GetPaddingMode() const;
+
+    miopenIndexType_t GetIndexType() const;
+
     const std::vector<int>& GetLengths() const;
+
     const std::vector<int>& GetStrides() const;
+
     const std::vector<int>& GetPads() const;
+
     miopenPoolingMode_t GetMode();
+
     int GetSize() const;
 
     std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>
-    GetForwardOutputDim(const TensorDescriptor& tensorDesc) const;
-    TensorDescriptor GetForwardOutputTensor(const TensorDescriptor& tensorDesc) const;
+    GetForwardOutputDim(const TensorDescriptor& xDesc) const;
 
-    std::size_t GetWorkSpaceSize(const TensorDescriptor& tensorDesc) const;
+    TensorDescriptor GetForwardOutputTensor(const TensorDescriptor& xDesc) const;
+
+    std::size_t GetWorkSpaceSize(const TensorDescriptor& yDesc) const;
 
     miopenStatus_t Forward(Handle& handle,
                            const void* alpha,
@@ -73,7 +86,7 @@ struct PoolingDescriptor : miopenPoolingDescriptor
                            const void* beta,
                            const TensorDescriptor& yDesc,
                            Data_t y,
-                           bool do_backward,
+                           bool save_index,
                            Data_t workSpace,
                            size_t workSpaceSize) const;
 
@@ -98,6 +111,8 @@ struct PoolingDescriptor : miopenPoolingDescriptor
 
     miopenPoolingMode_t mode  = miopenPoolingMax;
     miopenPaddingMode_t pmode = miopenPaddingDefault;
+
+    miopenIndexType_t indexType = miopenIndexUint8;
 };
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenPoolingDescriptor, miopen::PoolingDescriptor);

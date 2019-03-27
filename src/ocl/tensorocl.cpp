@@ -28,6 +28,7 @@
 #include <miopen/float_equal.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/tensor_ops.hpp>
+#include <miopen/datatype.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/util.hpp>
 #include <algorithm>
