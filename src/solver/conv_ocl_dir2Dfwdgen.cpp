@@ -35,11 +35,38 @@ bool ConvOclDirectFwdGen::IsApplicable(const ConvolutionContext& params) const
     if(!(params.IsFp32() || params.IsFp16()))
         return false;
 
-    return params.direction.IsForward() && params.kernel_stride_w == params.kernel_stride_h &&
-           params.pad_w == params.pad_h && params.group_counts == 1 &&
-           (params.kernel_size_w > 11 || params.kernel_size_h > 11 ||
-            ((params.kernel_stride_w > 1 || params.kernel_stride_h > 1) &&
-             !(params.kernel_size_w == 1 && params.kernel_size_h == 1)));
+    if(params.group_counts > 1)
+        return false;
+
+    // clang-format off
+    { // Factored out from ConvolutionDescriptor::IsDirectSupported(), which is now dissmissed.
+        const auto& p = params; // alias
+        const bool supported =
+            ((p.kernel_size_h == p.kernel_size_w)
+              && ((p.kernel_size_h == 3 && p.kernel_stride_h <= 2 && p.kernel_stride_w <= 2)
+                || p.kernel_size_h == 5
+                || p.kernel_size_h == 7
+                || p.kernel_size_h == 9
+                || p.kernel_size_h == 11))
+          || (p.kernel_size_h == 5
+              && (p.kernel_size_w == 10 || p.kernel_size_w == 20)
+              && p.kernel_stride_h == 2
+              && p.kernel_stride_w == 2
+              && p.pad_h == 0
+              && p.pad_w == 0);
+
+        if(!supported)
+            return false;
+    }
+    return params.direction.IsForward()
+        && params.kernel_stride_w == params.kernel_stride_h
+        && params.pad_w == params.pad_h
+        && params.kernel_dilation_w == 1
+        && params.kernel_dilation_h == 1
+        && (params.kernel_size_w > 11
+            || params.kernel_size_h > 11
+            || (!(params.kernel_size_w == 1 && params.kernel_size_h == 1)
+                && (params.kernel_stride_w > 1 || params.kernel_stride_h > 1))); // clang-format on
 }
 
 ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& params) const
