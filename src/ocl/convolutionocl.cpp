@@ -298,7 +298,7 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
                                                ExtraKernelArgs& extraArgs) const
 {
 
-    if(!IsDirectSupported(wDesc) || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+    if(GetConvDimension() != 2 || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
         return {};
 
     mlo_construct_direct2D construct_params(xDesc, wDesc, yDesc, *this, isForward ? 1 : 0);
@@ -306,7 +306,7 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
     construct_params.saveSearchRequest(true);
     construct_params.setGeneralCompOptions("");
     construct_params.setStream(&handle);
-    construct_params.setupRocm();
+    construct_params.detectRocm();
 
     if(IsWinograd3x3Supported(handle, isForward, wDesc, (isForward ? xDesc : yDesc)) &&
        construct_params.mloIsFastBinaryWinograd3x3U() && construct_params.usesBinaryKernel())
@@ -683,9 +683,7 @@ static void DirConvFindCore(Handle& handle,
         (void)workSpaceSize; // Suppress warning
 #endif
 
-        if(conv.GetConvDimension() == 2 &&
-           miopen::all_of(conv.GetConvDilations(), [](auto v) { return v == 1; }) &&
-           wDesc.GetType() != miopenInt8 && wDesc.GetType() != miopenInt8x4)
+        if(conv.GetConvDimension() == 2)
         {
             // Winograd algo
             WinogradKernelParams k_p;
