@@ -53,6 +53,40 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <miopen/mlo_utils.hpp>
 #include <miopen/logger.hpp>
 
+static std::string get_pooling_index_type_name(miopenIndexType_t index_type)
+{
+    switch(index_type)
+    {
+    case miopenIndexUint8: { return "uchar";
+    }
+    case miopenIndexUint16: { return "ushort";
+    }
+    case miopenIndexUint32: { return "uint";
+    }
+    case miopenIndexUint64: { return "ulong";
+    }
+    }
+
+    MIOPEN_THROW("not belong to any case");
+}
+
+static std::string get_pooling_index_type_max_name(miopenIndexType_t index_type)
+{
+    switch(index_type)
+    {
+    case miopenIndexUint8: { return "UCHAR_MAX";
+    }
+    case miopenIndexUint16: { return "USHRT_MAX";
+    }
+    case miopenIndexUint32: { return "UINT_MAX";
+    }
+    case miopenIndexUint64: { return "ULONG_MAX";
+    }
+    }
+
+    MIOPEN_THROW("not belong to any case");
+}
+
 int mlo_construct_pooling2D::mloConstruct()
 {
     int ret = 0;
@@ -136,8 +170,11 @@ int mlo_construct_pooling2D::mloConstructFwd()
                     std::to_string(static_cast<long long>(_search_params.out_width)) +
                     std::string(" -DMLO_POOLING_TOP_HEIGHT=") +
                     std::to_string(static_cast<long long>(_search_params.out_height)) +
-                    std::string(_do_backward ? " -DMLO_POOLING_DO_BACKWARD" : "") +
-                    getGeneralCompOptions();
+                    std::string(_do_backward ? " -DMLO_POOLING_SAVE_INDEX" : "") +
+                    std::string(" -DMLO_POOLING_INDEX_TYPE=") +
+                    get_pooling_index_type_name(_index_type) +
+                    std::string(" -DMLO_POOLING_INDEX_MAX=") +
+                    get_pooling_index_type_max_name(_index_type) + getGeneralCompOptions();
 
     int g_wk_width = ((_search_params.out_width + _grp_tile0 * _out_pix_tile0 - 1) /
                       (_grp_tile0 * _out_pix_tile0));
@@ -214,9 +251,11 @@ int mlo_construct_pooling2D::mloConstructBwd()
                     std::string(" -DMLO_POOLBWD_TOPDF_CHANNEL_STRIDE=") +
                     std::to_string(static_cast<long long>(_out_df_channel_stride)) +
                     std::string(" -DMLO_POOLBWD_TOPDF_STRIDE=") +
-                    std::to_string(static_cast<long long>(_out_df_stride))
-
-                    + getGeneralCompOptions();
+                    std::to_string(static_cast<long long>(_out_df_stride)) +
+                    std::string(" -DMLO_POOLING_INDEX_TYPE=") +
+                    get_pooling_index_type_name(_index_type) +
+                    std::string(" -DMLO_POOLING_INDEX_MAX=") +
+                    get_pooling_index_type_max_name(_index_type) + getGeneralCompOptions();
 
     if(_pooling_method == MLO_POOLING_OP_AVE_INCLUSIVE)
         _comp_options = std::string(" -DMLO_POOLING_OP_AVE_INCLUSIVE") + _comp_options;
