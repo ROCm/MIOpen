@@ -35,9 +35,10 @@ bool ConvOclDirectFwd3x3::IsApplicable(const ConvolutionContext& params) const
     if(!(params.IsFp32() || params.IsFp16()))
         return false;
 
-    return (params.kernel_size_w == 3 && params.kernel_size_h == 3 && params.pad_w == 1 &&
-            params.pad_h == 1 && params.kernel_stride_w == 1 && params.kernel_stride_h == 1 &&
-            params.group_counts == 1 && params.direction.IsForward()) &&
+    return params.kernel_size_w == 3 && params.kernel_size_h == 3 && params.pad_w == 1 &&
+           params.pad_h == 1 && params.kernel_stride_w == 1 && params.kernel_stride_h == 1 &&
+           params.kernel_dilation_w == 1 && params.kernel_dilation_h == 1 &&
+           params.group_counts == 1 && params.direction.IsForward() &&
            (params.out_width == 512 || params.out_width == 64 || params.out_width == 128 ||
             params.out_width == 256);
 }

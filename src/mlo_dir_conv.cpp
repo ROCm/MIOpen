@@ -283,7 +283,7 @@ void mlo_construct_activ_lrn_pooling_common::setupFloats()
     }
 }
 
-void mlo_construct_direct2D::setupRocm()
+void mlo_construct_direct2D::detectRocm()
 {
     // Detect assembly kernels
     _search_params.use_binaries    = false;

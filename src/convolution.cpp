@@ -363,38 +363,6 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
            GetConvDilations()[1] == 1;
 }
 
-/// \todo GET RID OF THIS FUNCTION. --atamazov
-/// At least, this function must be re-implemented by leveraging
-/// IsApplicable() from respective Solvers.
-bool ConvolutionDescriptor::IsDirectSupported(const TensorDescriptor& wDesc) const
-{
-    if(GetConvDimension() != 2)
-    {
-        return false;
-    }
-
-    int k, c, _kernel_size0, _kernel_size1;
-    std::tie(k, c, _kernel_size0, _kernel_size1) = tien<4>(wDesc.GetLengths());
-
-    bool supported_filters =
-        ((_kernel_size0 == 1 && _kernel_size1 == 1) || (_kernel_size0 == 3 && _kernel_size1 == 3) ||
-         (_kernel_size0 == 5 && _kernel_size1 == 5) || (_kernel_size0 == 7 && _kernel_size1 == 7) ||
-         (_kernel_size0 == 9 && _kernel_size1 == 9) ||
-         (_kernel_size0 == 11 && _kernel_size1 == 11) ||
-         (_kernel_size0 == 5 && _kernel_size1 == 10 && GetConvStrides()[0] == 2 &&
-          GetConvStrides()[1] == 2 && GetConvPads()[0] == 0 && GetConvPads()[1] == 0) ||
-         (_kernel_size0 == 5 && _kernel_size1 == 20 && GetConvStrides()[0] == 2 &&
-          GetConvStrides()[1] == 2 && GetConvPads()[0] == 0 && GetConvPads()[1] == 0));
-
-    bool workarounds = ((_kernel_size0 == 3 && _kernel_size1 == 3 &&
-                         (GetConvStrides()[0] > 2 || GetConvStrides()[1] > 2)) ||
-                        (_kernel_size0 == 1 && _kernel_size1 == 1 &&
-                         (GetConvPads()[0] > 0 || GetConvPads()[1] > 0)) ||
-                        (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0));
-
-    return (supported_filters && !workarounds) || group_count > 1;
-}
-
 std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
                                                            const TensorDescriptor& wDesc,
                                                            const TensorDescriptor& xDesc,
@@ -620,11 +588,16 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
     const TensorDescriptor& wDesc,
     int direction) const // 1: Forward, 0: BackwardData
 {
-    if(!IsDirectSupported(wDesc) || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
     {
         return 0;
     }
 
+    /// \todo See issue #1587
+    /// This must be handled in uniform way everywhere.
+    /// Number of dimensions to be added to problem description.
+    /// Non-2D problems to be filtered out in IsApplicable() methods.
+    /// 3D problems to be properly serialized.
     if(GetConvDimension() != 2)
     {
         return 0;

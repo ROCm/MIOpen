@@ -180,6 +180,8 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         && params.pad_h == 1
         && params.kernel_stride_w == 1
         && params.kernel_stride_h == 1
+        && params.kernel_dilation_w == 1
+        && params.kernel_dilation_h == 1
         && params.kernel_size_w == 3
         && params.kernel_size_h == 3
         && params.n_inputs > 0
