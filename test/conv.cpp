@@ -56,7 +56,7 @@ static bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
                                              const miopen::TensorDescriptor& wDesc,
                                              const miopen::TensorDescriptor& yDesc)
 {
-    if(convDesc.GetConvDimension() != 2)
+    if(convDesc.GetSpatialDimension() != 2)
         return false;
 
     // Both Fwd and Bwd shall be supported by Direct. Return false otherwise.
@@ -80,7 +80,7 @@ static bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
                                         const miopen::TensorDescriptor& wDesc,
                                         const miopen::TensorDescriptor& yDesc)
 {
-    if(convDesc.GetConvDimension() != 2)
+    if(convDesc.GetSpatialDimension() != 2)
         return false;
 
     mlo_construct_BwdWrW2D construct_params(xDesc, wDesc, yDesc, convDesc, 0);
@@ -211,7 +211,7 @@ struct verify_forward_conv : conv_base<T>
         if(filter.mode == miopenTranspose)
         {
             std::fill(rout.begin(), rout.end(), 0);
-            cpu_convolution_backward_data(filter.GetConvDimension(),
+            cpu_convolution_backward_data(filter.GetSpatialDimension(),
                                           rout,
                                           weights,
                                           input,
@@ -222,7 +222,7 @@ struct verify_forward_conv : conv_base<T>
         }
         else
         {
-            cpu_convolution_forward(filter.GetConvDimension(),
+            cpu_convolution_forward(filter.GetSpatialDimension(),
                                     input,
                                     weights,
                                     rout,
@@ -362,7 +362,7 @@ struct verify_forward_conv_int8 : conv_base<T>
 
         if(filter.mode == miopenConvolution)
         {
-            cpu_convolution_forward(filter.GetConvDimension(),
+            cpu_convolution_forward(filter.GetSpatialDimension(),
                                     input,
                                     weights,
                                     rout,
@@ -505,7 +505,7 @@ struct verify_backward_conv : conv_base<T>
 
         if(filter.mode == miopenTranspose)
         {
-            cpu_convolution_forward(filter.GetConvDimension(),
+            cpu_convolution_forward(filter.GetSpatialDimension(),
                                     out,
                                     weights,
                                     rinput,
@@ -516,7 +516,7 @@ struct verify_backward_conv : conv_base<T>
         }
         else
         {
-            cpu_convolution_backward_data(filter.GetConvDimension(),
+            cpu_convolution_backward_data(filter.GetSpatialDimension(),
                                           rinput,
                                           weights,
                                           out,
@@ -653,7 +653,7 @@ struct verify_backward_weights_conv : conv_base<T>
 
         if(filter.mode == miopenTranspose)
         {
-            cpu_convolution_backward_weight(filter.GetConvDimension(),
+            cpu_convolution_backward_weight(filter.GetSpatialDimension(),
                                             out,
                                             rweights,
                                             input,
@@ -664,7 +664,7 @@ struct verify_backward_weights_conv : conv_base<T>
         }
         else
         {
-            cpu_convolution_backward_weight(filter.GetConvDimension(),
+            cpu_convolution_backward_weight(filter.GetSpatialDimension(),
                                             input,
                                             rweights,
                                             out,
@@ -784,14 +784,15 @@ struct conv_driver : test_driver
 
     void run()
     {
-        filter.convDim     = conv_dim_lookup[miopen::ToUpper(conv_dim_type)];
+        filter.spatialDim  = conv_dim_lookup[miopen::ToUpper(conv_dim_type)];
         filter.mode        = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode = pmode_lookup[miopen::ToUpper(pad_mode)];
 
-        std::size_t conv_dim = filter.GetConvDimension();
+        std::size_t spatial_dim = filter.GetSpatialDimension();
 
-        if(input.desc.GetSize() != 2 + conv_dim || weights.desc.GetSize() != 2 + conv_dim ||
-           pads_strides_dilations.size() != 3 * conv_dim || trans_output_pads.size() != conv_dim)
+        if(input.desc.GetSize() != 2 + spatial_dim || weights.desc.GetSize() != 2 + spatial_dim ||
+           pads_strides_dilations.size() != 3 * spatial_dim ||
+           trans_output_pads.size() != spatial_dim)
         {
             MIOPEN_LOG_E("dimension is wrong!");
         }
@@ -804,16 +805,18 @@ struct conv_driver : test_driver
             return;
         }
 
-        filter.pads.resize(conv_dim);
-        filter.strides.resize(conv_dim);
-        filter.dilations.resize(conv_dim);
-        filter.trans_output_pads.resize(conv_dim);
+        filter.pads.resize(spatial_dim);
+        filter.strides.resize(spatial_dim);
+        filter.dilations.resize(spatial_dim);
+        filter.trans_output_pads.resize(spatial_dim);
 
-        std::copy_n(pads_strides_dilations.begin(), conv_dim, filter.pads.begin());
-        std::copy_n(pads_strides_dilations.begin() + conv_dim, conv_dim, filter.strides.begin());
+        std::copy_n(pads_strides_dilations.begin(), spatial_dim, filter.pads.begin());
         std::copy_n(
-            pads_strides_dilations.begin() + 2 * conv_dim, conv_dim, filter.dilations.begin());
-        std::copy_n(trans_output_pads.begin(), conv_dim, filter.trans_output_pads.begin());
+            pads_strides_dilations.begin() + spatial_dim, spatial_dim, filter.strides.begin());
+        std::copy_n(pads_strides_dilations.begin() + 2 * spatial_dim,
+                    spatial_dim,
+                    filter.dilations.begin());
+        std::copy_n(trans_output_pads.begin(), spatial_dim, filter.trans_output_pads.begin());
 
         filter.group_count = std::max(static_cast<int>(groupCount), 1);
 
@@ -851,10 +854,10 @@ struct conv_driver : test_driver
                         return;
                     }
 
-                    std::vector<std::size_t> pads_(conv_dim);
-                    std::vector<std::ptrdiff_t> out_spatial_len(conv_dim);
+                    std::vector<std::size_t> pads_(spatial_dim);
+                    std::vector<std::ptrdiff_t> out_spatial_len(spatial_dim);
 
-                    for(std::size_t i = 0; i < conv_dim; ++i)
+                    for(std::size_t i = 0; i < spatial_dim; ++i)
                     {
                         pads_[i] =
                             (in_spatial_len[i] % filter.GetConvStrides()[i] == 0)
@@ -883,9 +886,9 @@ struct conv_driver : test_driver
                     if(miopen::any_of(filter.GetConvStrides(), [](auto v) { return v == 0; }))
                         return;
 
-                    std::vector<ptrdiff_t> out_spatial_len(conv_dim);
+                    std::vector<ptrdiff_t> out_spatial_len(spatial_dim);
 
-                    for(std::size_t i = 0; i < conv_dim; ++i)
+                    for(std::size_t i = 0; i < spatial_dim; ++i)
                     {
                         filter.pads[i] = 0;
 
@@ -903,7 +906,7 @@ struct conv_driver : test_driver
             }
             if(filter.mode == miopenTranspose)
             {
-                for(std::size_t i = 0; i < conv_dim; ++i)
+                for(std::size_t i = 0; i < spatial_dim; ++i)
                 {
                     filter.pads[i] = filter.GetConvStrides()[i] - 1;
                 }
@@ -965,7 +968,7 @@ struct conv_driver : test_driver
 
                 // bwd53 kernel (large images supported) doesnt support stride !=1 and dialation and
                 // pad.
-                if(filter.GetConvDimension() == 2 && in_spatial_len[1] >= 2048 &&
+                if(filter.GetSpatialDimension() == 2 && in_spatial_len[1] >= 2048 &&
                    ((filter.GetConvStrides()[0] != 1) || (filter.GetConvStrides()[1] != 1) ||
                     (filter.GetConvDilations()[0] != 1) || (filter.GetConvDilations()[1] != 1) ||
                     (filter.GetConvPads()[1] != 0) || (filter.GetConvPads()[0] != 0)))

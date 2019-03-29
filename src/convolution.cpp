@@ -53,7 +53,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
 
 namespace miopen {
 
-ConvolutionDescriptor::ConvolutionDescriptor(std::size_t conv_dim,
+ConvolutionDescriptor::ConvolutionDescriptor(std::size_t spatial_dim,
                                              miopenConvolutionMode_t c_mode,
                                              miopenPaddingMode_t p_mode,
                                              const std::vector<int>& p_pads,
@@ -62,7 +62,7 @@ ConvolutionDescriptor::ConvolutionDescriptor(std::size_t conv_dim,
                                              const std::vector<int>& p_trans_output_pads,
                                              int p_group_count,
                                              float p_lowp_quant)
-    : convDim(conv_dim),
+    : spatialDim(spatial_dim),
       mode(c_mode),
       paddingMode(p_mode),
       pads(p_pads),
@@ -72,8 +72,9 @@ ConvolutionDescriptor::ConvolutionDescriptor(std::size_t conv_dim,
       group_count(p_group_count),
       lowp_quant(p_lowp_quant)
 {
-    if(pads.size() != conv_dim || strides.size() != conv_dim || dilations.size() != conv_dim ||
-       trans_output_pads.size() != conv_dim || miopen::any_of(pads, [](auto v) { return v < 0; }) ||
+    if(pads.size() != spatial_dim || strides.size() != spatial_dim ||
+       dilations.size() != spatial_dim || trans_output_pads.size() != spatial_dim ||
+       miopen::any_of(pads, [](auto v) { return v < 0; }) ||
        miopen::any_of(strides, [](auto v) { return v < 1; }) ||
        miopen::any_of(dilations, [](auto v) { return v < 1; }))
     {
@@ -118,7 +119,7 @@ ConvolutionDescriptor::ConvolutionDescriptor(const std::vector<int>& p_pads,
 {
 }
 
-std::size_t ConvolutionDescriptor::GetConvDimension() const { return convDim; }
+std::size_t ConvolutionDescriptor::GetSpatialDimension() const { return spatialDim; }
 
 const std::vector<int>& ConvolutionDescriptor::GetConvPads() const { return pads; }
 
@@ -136,10 +137,10 @@ int ConvolutionDescriptor::GetGroupCount() const { return group_count; }
 TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescriptor& xDesc,
                                                                const TensorDescriptor& wDesc) const
 {
-    const std::size_t conv_dim = GetConvDimension();
+    const std::size_t spatial_dim = GetSpatialDimension();
 
-    assert(xDesc.GetLengths().size() == conv_dim + 2);
-    assert(wDesc.GetLengths().size() == conv_dim + 2);
+    assert(xDesc.GetLengths().size() == spatial_dim + 2);
+    assert(wDesc.GetLengths().size() == spatial_dim + 2);
 
     if(xDesc.GetType() != wDesc.GetType())
     {
@@ -149,12 +150,12 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
     std::size_t in_n, in_c;
     std::tie(in_n, in_c) = miopen::tie_pick<0, 1>{}(xDesc.GetLengths());
 
-    auto in_spatial = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + conv_dim);
+    auto in_spatial = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
 
     std::size_t wei_k, wei_c;
     std::tie(wei_k, wei_c) = miopen::tie_pick<0, 1>{}(wDesc.GetLengths());
 
-    auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + conv_dim);
+    auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
     if(mode == miopenConvolution)
     {
@@ -184,16 +185,16 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
     }
 
     std::size_t out_c;
-    std::vector<std::size_t> out_lens(conv_dim + 2);
+    std::vector<std::size_t> out_lens(spatial_dim + 2);
 
-    auto out_spatial = boost::adaptors::slice(out_lens, 2, 2 + conv_dim);
+    auto out_spatial = boost::adaptors::slice(out_lens, 2, 2 + spatial_dim);
 
     if(paddingMode == miopenPaddingSame && mode == miopenConvolution &&
        miopen::all_of(GetConvDilations(), [](auto v) { return v == 1; }))
     {
         out_c = wei_k;
 
-        for(int i = 0; i < conv_dim; ++i)
+        for(int i = 0; i < spatial_dim; ++i)
         {
             out_spatial[i] = miopen::integer_division_ceil(in_spatial[i], GetConvStrides()[i]);
         }
@@ -203,7 +204,7 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
     {
         out_c = wei_k;
 
-        for(int i = 0; i < conv_dim; ++i)
+        for(int i = 0; i < spatial_dim; ++i)
         {
             out_spatial[i] = miopen::integer_division_ceil(
                 std::ptrdiff_t(in_spatial[i]) - wei_spatial[i] + 1, GetConvStrides()[i]);
@@ -216,7 +217,7 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
         {
             out_c = wei_c * group_count;
 
-            for(int i = 0; i < conv_dim; ++i)
+            for(int i = 0; i < spatial_dim; ++i)
             {
                 out_spatial[i] = std::max<std::ptrdiff_t>(
                     1,
@@ -229,7 +230,7 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
         {
             out_c = wei_k;
 
-            for(int i = 0; i < conv_dim; ++i)
+            for(int i = 0; i < spatial_dim; ++i)
             {
                 out_spatial[i] = std::max<std::ptrdiff_t>(
                     1,
@@ -256,10 +257,10 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
 std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(const TensorDescriptor& wDesc,
                                                                const TensorDescriptor& yDesc) const
 {
-    const std::size_t conv_dim = GetConvDimension();
+    const std::size_t spatial_dim = GetSpatialDimension();
 
-    auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + conv_dim);
-    auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + conv_dim);
+    auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+    auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
 
     const std::size_t wei_c = wDesc.GetLengths()[1];
 
@@ -294,7 +295,7 @@ ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMMTranspose(const TensorDescript
     std::size_t in_n, in_c;
     std::tie(in_n, in_c) = miopen::tie_pick<0, 1>{}(xDesc.GetLengths());
 
-    auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + GetConvDimension());
+    auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + GetSpatialDimension());
 
     std::size_t x_t_size = in_n * in_c * std::accumulate(out_spatial.begin(),
                                                          out_spatial.end(),
@@ -326,7 +327,7 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
         return false;
     }
 
-    if(GetConvDimension() != 2)
+    if(GetSpatialDimension() != 2)
     {
         return false;
     }
@@ -370,15 +371,15 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
 {
     MIOPEN_LOG_I2("");
     {
-        const std::size_t conv_dim = GetConvDimension();
+        const std::size_t spatial_dim = GetSpatialDimension();
 
-        auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + conv_dim);
-        auto in_spatial  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + conv_dim);
+        auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+        auto in_spatial  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
 
         bool is_datatype_int8 = (wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4);
 
         const size_t direct_workspace =
-            (GetConvDimension() == 2 &&
+            (GetSpatialDimension() == 2 &&
              miopen::all_of(GetConvDilations(), [](auto v) { return v == 1; }) && !is_datatype_int8)
                 ? ForwardBackwardDataGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc, 1)
                 : 0;
@@ -395,7 +396,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
 #if MIOPEN_USE_GEMM
         // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
         // 1x1_stride=2
-        if(GetConvDimension() == 2 &&
+        if(GetSpatialDimension() == 2 &&
            (miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
             miopen::all_of(GetConvPads(), [](auto v) { return v == 0; })) &&
            ((miopen::all_of(in_spatial, [](auto v) { return v <= 14; }) &&
@@ -426,7 +427,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         else
         {
             size_t workspace_size_fft =
-                (GetConvDimension() == 2 &&
+                (GetSpatialDimension() == 2 &&
                  miopen::all_of(GetConvDilations(), [](auto v) { return v == 1; }) &&
                  !is_datatype_int8)
                     ? ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc)
@@ -445,10 +446,10 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
 {
     MIOPEN_LOG_I2("");
     {
-        auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + GetConvDimension());
+        auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + GetSpatialDimension());
 
         const size_t direct_workspace =
-            (GetConvDimension() == 2 &&
+            (GetSpatialDimension() == 2 &&
              miopen::all_of(GetConvDilations(), [](auto v) { return v == 1; }) &&
              wDesc.GetType() != miopenInt8)
                 ? ForwardBackwardDataGetWorkSpaceSizeDirect(handle, dxDesc, dyDesc, wDesc, 0)
@@ -489,7 +490,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         else
         {
             const size_t workspace_size_fft =
-                (GetConvDimension() == 2 &&
+                (GetSpatialDimension() == 2 &&
                  miopen::all_of(GetConvDilations(), [](auto v) { return v == 1; }) &&
                  wDesc.GetType() != miopenInt8)
                     ? BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc)
@@ -504,10 +505,10 @@ std::size_t
 ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMM(const TensorDescriptor& wDesc,
                                                         const TensorDescriptor& dyDesc) const
 {
-    const std::size_t conv_dim = GetConvDimension();
+    const std::size_t spatial_dim = GetSpatialDimension();
 
-    auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + conv_dim);
-    auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + conv_dim);
+    auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+    auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + spatial_dim);
 
     const std::size_t wei_c = wDesc.GetLengths()[1];
 
@@ -538,7 +539,7 @@ std::size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMMTranspose(
     std::size_t in_n, in_c;
     std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
 
-    auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + GetConvDimension());
+    auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + GetSpatialDimension());
 
     const std::size_t dx_t_size = in_n * in_c * std::accumulate(out_spatial.begin(),
                                                                 out_spatial.end(),
@@ -555,10 +556,10 @@ std::size_t
 ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(const TensorDescriptor& dyDesc,
                                                            const TensorDescriptor& dwDesc) const
 {
-    const std::size_t conv_dim = GetConvDimension();
+    const std::size_t spatial_dim = GetSpatialDimension();
 
-    auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + conv_dim);
-    auto wei_spatial = boost::adaptors::slice(dwDesc.GetLengths(), 2, 2 + conv_dim);
+    auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + spatial_dim);
+    auto wei_spatial = boost::adaptors::slice(dwDesc.GetLengths(), 2, 2 + spatial_dim);
 
     const std::size_t wei_c = dwDesc.GetLengths()[1];
 
@@ -598,7 +599,7 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
     /// Number of dimensions to be added to problem description.
     /// Non-2D problems to be filtered out in IsApplicable() methods.
     /// 3D problems to be properly serialized.
-    if(GetConvDimension() != 2)
+    if(GetSpatialDimension() != 2)
     {
         return 0;
     }
@@ -634,7 +635,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
                                                              const TensorDescriptor& xDesc,
                                                              const TensorDescriptor& dwDesc) const
 {
-    if(GetConvDimension() != 2)
+    if(GetSpatialDimension() != 2)
     {
         return 0;
     }
@@ -684,7 +685,7 @@ std::size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
                 0;
 
         size_t direct_workspace =
-            (GetConvDimension() == 2 &&
+            (GetSpatialDimension() == 2 &&
              miopen::all_of(GetConvDilations(), [](auto v) { return v == 1; }) &&
              dwDesc.GetType() != miopenInt8)
                 ? BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc)
@@ -698,7 +699,7 @@ std::size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
 
 std::ostream& operator<<(std::ostream& stream, const ConvolutionDescriptor& c)
 {
-    stream << "conv" << c.convDim << "d, ";
+    stream << "conv" << c.spatialDim << "d, ";
     MIOPEN_LOG_ENUM(stream, c.mode, miopenConvolution, miopenTranspose) << ", ";
     MIOPEN_LOG_ENUM(
         stream, c.paddingMode, miopenPaddingDefault, miopenPaddingSame, miopenPaddingValid)

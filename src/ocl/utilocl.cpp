@@ -564,7 +564,7 @@ float Col2Im3dGPU(Handle& handle,
 
 float Im2ColGPU(
     Handle& handle,
-    std::size_t conv_dim,
+    std::size_t spatial_dim,
     ConstData_t im,
     std::size_t im_offset,
     std::size_t in_c,
@@ -577,7 +577,7 @@ float Im2ColGPU(
     Data_t col,
     miopenDataType_t type)
 {
-    switch(conv_dim)
+    switch(spatial_dim)
     {
     case 2:
     {
@@ -634,7 +634,7 @@ float Im2ColGPU(
 
 float Col2ImGPU(
     Handle& handle,
-    std::size_t conv_dim,
+    std::size_t spatial_dim,
     ConstData_t col,
     const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& out_spatial,
     const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& wei_spatial,
@@ -647,7 +647,7 @@ float Col2ImGPU(
     std::size_t im_offset,
     miopenDataType_t type)
 {
-    switch(conv_dim)
+    switch(spatial_dim)
     {
     case 2:
     {
