@@ -68,7 +68,7 @@ using ExtraKernelArgs = std::tuple<int /*N*/,
 
 struct ConvolutionDescriptor : miopenConvolutionDescriptor
 {
-    ConvolutionDescriptor(std::size_t conv_dim,
+    ConvolutionDescriptor(std::size_t spatial_dim,
                           miopenConvolutionMode_t c_mode,
                           miopenPaddingMode_t p_mode,
                           const std::vector<int>& p_pads              = {0, 0},
@@ -85,7 +85,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                           int p_group_count                           = 1,
                           float p_lowp_quant                          = float(1));
 
-    std::size_t GetConvDimension() const;
+    std::size_t GetSpatialDimension() const;
 
     const std::vector<int>& GetConvPads() const;
 
@@ -299,7 +299,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                     Data_t workSpace,
                                     std::size_t workSpaceSize) const;
 
-    std::size_t convDim;
+    std::size_t spatialDim;
     miopenConvolutionMode_t mode;
     miopenPaddingMode_t paddingMode;
     std::vector<int> pads;
