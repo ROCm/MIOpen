@@ -100,7 +100,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeFFT(const TensorDescriptor&
                                                          const TensorDescriptor& xDesc,
                                                          const TensorDescriptor& yDesc) const
 {
-    if(GetConvDimension() != 2)
+    if(GetSpatialDimension() != 2)
         return 0;
     return GetWorkSpaceSizeFFT(
         wDesc,
@@ -115,7 +115,7 @@ size_t ConvolutionDescriptor::BackwardGetWorkSpaceSizeFFT(const TensorDescriptor
                                                           const TensorDescriptor& dyDesc,
                                                           const TensorDescriptor& dxDesc) const
 {
-    if(GetConvDimension() != 2)
+    if(GetSpatialDimension() != 2)
         return 0;
     return GetWorkSpaceSizeFFT(
         wDesc,

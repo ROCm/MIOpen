@@ -295,7 +295,7 @@ void cpu_convolution_backward_weight_impl(const tensor<Tin>& in,
 }
 
 template <typename Tin, typename Twei, typename Tout, typename Range>
-void cpu_convolution_forward(std::size_t conv_dim,
+void cpu_convolution_forward(std::size_t spatial_dim,
                              const tensor<Tin>& in,
                              const tensor<Twei>& wei,
                              tensor<Tout>& out,
@@ -304,7 +304,7 @@ void cpu_convolution_forward(std::size_t conv_dim,
                              const Range& dilations,
                              std::size_t group_count)
 {
-    switch(conv_dim)
+    switch(spatial_dim)
     {
     case 1:
     {
@@ -332,7 +332,7 @@ void cpu_convolution_forward(std::size_t conv_dim,
 }
 
 template <typename Tin, typename Twei, typename Tout, typename Range>
-void cpu_convolution_backward_data(std::size_t conv_dim,
+void cpu_convolution_backward_data(std::size_t spatial_dim,
                                    tensor<Tin>& in,
                                    const tensor<Twei>& wei,
                                    const tensor<Tout>& out,
@@ -341,7 +341,7 @@ void cpu_convolution_backward_data(std::size_t conv_dim,
                                    const Range& dilations,
                                    std::size_t group_count)
 {
-    switch(conv_dim)
+    switch(spatial_dim)
     {
     case 1:
     {
@@ -369,7 +369,7 @@ void cpu_convolution_backward_data(std::size_t conv_dim,
 }
 
 template <typename Tin, typename Twei, typename Tout, typename Range>
-void cpu_convolution_backward_weight(std::size_t conv_dim,
+void cpu_convolution_backward_weight(std::size_t spatial_dim,
                                      const tensor<Tin>& in,
                                      tensor<Twei>& wei,
                                      const tensor<Tout>& out,
@@ -378,7 +378,7 @@ void cpu_convolution_backward_weight(std::size_t conv_dim,
                                      const Range& dilations,
                                      std::size_t group_count)
 {
-    switch(conv_dim)
+    switch(spatial_dim)
     {
     case 1:
     {

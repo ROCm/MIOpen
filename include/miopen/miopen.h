@@ -622,21 +622,21 @@ MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDe
 
 /*! @brief Creates a N-dimensional convolution layer descriptor
  *
- * @param convDesc   Convolution layer descriptor (output)
- * @param c_mode     Convolutional mode (input)
- * @param convDim    Convolutional dimension (input)
- * @param padA       Array of input data padding (input)
- * @param strideA    Array of convolution stride (input)
- * @param dilationA  Array of convolution dilation (input)
- * @return           miopenStatus_t
+ * @param convDesc      Convolution layer descriptor (output)
+ * @param spatialDim    Convolutional spatial dimension (input)
+ * @param padA          Array of input data padding (input)
+ * @param strideA       Array of convolution stride (input)
+ * @param dilationA     Array of convolution dilation (input)
+ * @param c_mode        Convolutional mode (input)
+ * @return              miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenInitConvolutionNdDescriptor(miopenConvolutionDescriptor_t convDesc,
-                                  miopenConvolutionMode_t c_mode,
-                                  int convDim,
+                                  int spatialDim,
                                   int* padA,
                                   int* strideA,
-                                  int* dilationA);
+                                  int* dilationA,
+                                  miopenConvolutionMode_t c_mode);
 
 /*! @brief Retrieves a 2-D convolution layer descriptor's details
  *
@@ -664,21 +664,23 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDes
 
 /*! @brief Retrieves a N-dimensional convolution layer descriptor's details
  *
- * @param convDesc   Convolution layer descriptor (input)
- * @param c_mode     Convolutional mode (output)
- * @param convDim    Convolutional dimension (output)
- * @param padA       Array of input data padding (output)
- * @param strideA    Array of convolution stride (output)
- * @param dilationA  Array of convolution dilation (output)
- * @return           miopenStatus_t
+ * @param convDesc               Convolution layer descriptor (input)
+ * @param requestedSpatialDim    Expected convolution spatial dimension (intput)
+ * @param spatialDim             Convolutional spatial dimension (output)
+ * @param padA                   Array of input data padding (output)
+ * @param strideA                Array of convolution stride (output)
+ * @param dilationA              Array of convolution dilation (output)
+ * @param c_mode                 Convolutional mode (output)
+ * @return                       miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenGetConvolutionNdDescriptor(miopenConvolutionDescriptor_t convDesc,
-                                 miopenConvolutionMode_t* c_mode,
-                                 int* convDim,
+                                 int requestedSpatialDim,
+                                 int* spatialDim,
                                  int* padA,
                                  int* strideA,
-                                 int* dilationA);
+                                 int* dilationA,
+                                 miopenConvolutionMode_t* c_mode);
 
 /*! @brief Set the number of groups to be used in Group/Depthwise convolution
 *
@@ -718,13 +720,13 @@ miopenSetTransposeConvOutputPadding(miopenConvolutionDescriptor_t convDesc, int 
 * miopenInitConvolutionNdDescriptor() first, then miopenSetTransposeConvNdOutputPadding() to fully
 * initialize transpose convolutions.
 *
-* @param convDesc   Convolution layer descriptor (output)
-* @param convDim    Convolutional dimension (input)
-* @param adjA       array of output padding for output data (input)
-* @return           miopenStatus_t
+* @param convDesc      Convolution layer descriptor (output)
+* @param spatialDim    Convolutional spatial dimension (input)
+* @param adjA          array of output padding for output data (input)
+* @return              miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenSetTransposeConvNdOutputPadding(
-    miopenConvolutionDescriptor_t convDesc, int convDim, int* adjA);
+    miopenConvolutionDescriptor_t convDesc, int spatialDim, int* adjA);
 
 /*! @brief Get the shape of a resulting 4-D tensor from a 2-D convolution
  *
