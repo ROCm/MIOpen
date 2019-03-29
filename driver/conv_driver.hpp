@@ -320,7 +320,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::GetandSetData()
 template <typename Tgpu, typename Tref, typename Tfile>
 int ConvDriver<Tgpu, Tref, Tfile>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("conv_dim", '_', "2", "convolution dimension (Default-2)", "int");
+    inflags.AddInputFlag(
+        "spatial_dim", '_', "2", "convolution spatial dimension (Default-2)", "int");
     inflags.AddInputFlag("forw",
                          'F',
                          "0",
@@ -404,20 +405,20 @@ std::vector<int> ConvDriver<Tgpu, Tref, Tfile>::GetInputTensorLengthsFromCmdLine
 {
     std::vector<int> in_lens;
 
-    int conv_dim = inflags.GetValueInt("conv_dim");
-    in_lens.resize(2 + conv_dim);
+    int spatial_dim = inflags.GetValueInt("spatial_dim");
+    in_lens.resize(2 + spatial_dim);
 
     in_lens[0] = inflags.GetValueInt("batchsize");
     in_lens[1] = inflags.GetValueInt("in_channels");
 
-    auto in_spatial_lens = boost::adaptors::slice(in_lens, 2, 2 + conv_dim);
+    auto in_spatial_lens = boost::adaptors::slice(in_lens, 2, 2 + spatial_dim);
 
-    if(conv_dim == 2)
+    if(spatial_dim == 2)
     {
         in_spatial_lens[0] = inflags.GetValueInt("in_h");
         in_spatial_lens[1] = inflags.GetValueInt("in_w");
     }
-    else if(conv_dim == 3)
+    else if(spatial_dim == 3)
     {
         in_spatial_lens[0] = inflags.GetValueInt("in_d");
         in_spatial_lens[1] = inflags.GetValueInt("in_h");
@@ -436,22 +437,22 @@ std::vector<int> ConvDriver<Tgpu, Tref, Tfile>::GetWeightTensorLengthsFromCmdLin
 {
     std::vector<int> wei_lens;
 
-    int conv_dim = inflags.GetValueInt("conv_dim");
-    wei_lens.resize(2 + conv_dim);
+    int spatial_dim = inflags.GetValueInt("spatial_dim");
+    wei_lens.resize(2 + spatial_dim);
 
-    auto wei_spatial_lens = boost::adaptors::slice(wei_lens, 2, 2 + conv_dim);
+    auto wei_spatial_lens = boost::adaptors::slice(wei_lens, 2, 2 + spatial_dim);
 
     int group_count = std::max(inflags.GetValueInt("group_count"), 1);
 
     int wei_k_len = inflags.GetValueInt("out_channels");
     int wei_c_len = inflags.GetValueInt("in_channels");
 
-    if(conv_dim == 2)
+    if(spatial_dim == 2)
     {
         wei_spatial_lens[0] = inflags.GetValueInt("fil_h");
         wei_spatial_lens[1] = inflags.GetValueInt("fil_w");
     }
-    else if(conv_dim == 3)
+    else if(spatial_dim == 3)
     {
         wei_spatial_lens[0] = inflags.GetValueInt("fil_d");
         wei_spatial_lens[1] = inflags.GetValueInt("fil_h");
@@ -502,9 +503,9 @@ std::vector<int> ConvDriver<Tgpu, Tref, Tfile>::GetWeightTensorLengthsFromCmdLin
 template <typename Tgpu, typename Tref, typename Tfile>
 std::vector<int> ConvDriver<Tgpu, Tref, Tfile>::GetBiasTensorLengthsFromCmdLine()
 {
-    int conv_dim = inflags.GetValueInt("conv_dim");
+    int spatial_dim = inflags.GetValueInt("spatial_dim");
 
-    std::vector<int> bias_lens(2 + conv_dim, 1);
+    std::vector<int> bias_lens(2 + spatial_dim, 1);
 
     bias_lens[1] = inflags.GetValueInt("out_channels");
 
@@ -514,16 +515,16 @@ std::vector<int> ConvDriver<Tgpu, Tref, Tfile>::GetBiasTensorLengthsFromCmdLine(
 template <typename Tgpu, typename Tref, typename Tfile>
 int ConvDriver<Tgpu, Tref, Tfile>::SetConvDescriptorFromCmdLineArgs()
 {
-    int conv_dim = inflags.GetValueInt("conv_dim");
+    int spatial_dim = inflags.GetValueInt("spatial_dim");
 
-    std::vector<int> in_spatial_lens(conv_dim);
-    std::vector<int> wei_spatial_lens(conv_dim);
-    std::vector<int> pads(conv_dim);
-    std::vector<int> conv_strides(conv_dim);
-    std::vector<int> conv_dilations(conv_dim);
-    std::vector<int> trans_output_pads(conv_dim);
+    std::vector<int> in_spatial_lens(spatial_dim);
+    std::vector<int> wei_spatial_lens(spatial_dim);
+    std::vector<int> pads(spatial_dim);
+    std::vector<int> conv_strides(spatial_dim);
+    std::vector<int> conv_dilations(spatial_dim);
+    std::vector<int> trans_output_pads(spatial_dim);
 
-    if(conv_dim == 2)
+    if(spatial_dim == 2)
     {
         in_spatial_lens[0]   = inflags.GetValueInt("in_h");
         in_spatial_lens[1]   = inflags.GetValueInt("in_w");
@@ -538,7 +539,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::SetConvDescriptorFromCmdLineArgs()
         trans_output_pads[0] = inflags.GetValueInt("trans_output_pad_h");
         trans_output_pads[1] = inflags.GetValueInt("trans_output_pad_w");
     }
-    else if(conv_dim == 3)
+    else if(spatial_dim == 3)
     {
         in_spatial_lens[0]   = inflags.GetValueInt("in_d");
         in_spatial_lens[1]   = inflags.GetValueInt("in_h");
@@ -600,7 +601,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::SetConvDescriptorFromCmdLineArgs()
     {
         if((inflags.GetValueStr("pad_mode")) == "same")
         {
-            for(int i = 0; i < conv_dim; ++i)
+            for(int i = 0; i < spatial_dim; ++i)
             {
                 pads[i] =
                     (in_spatial_lens[i] % conv_strides[i] == 0)
@@ -612,7 +613,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::SetConvDescriptorFromCmdLineArgs()
         }
         else if((inflags.GetValueStr("pad_mode")) == "valid")
         {
-            for(int i = 0; i < conv_dim; ++i)
+            for(int i = 0; i < spatial_dim; ++i)
             {
                 pads[i] = 0;
             }
@@ -620,13 +621,13 @@ int ConvDriver<Tgpu, Tref, Tfile>::SetConvDescriptorFromCmdLineArgs()
     }
 
     miopenInitConvolutionNdDescriptor(
-        convDesc, mode, conv_dim, pads.data(), conv_strides.data(), conv_dilations.data());
+        convDesc, spatial_dim, pads.data(), conv_strides.data(), conv_dilations.data(), mode);
 
     miopenSetConvolutionGroupCount(convDesc, group_count);
 
     if(mode == miopenTranspose)
     {
-        miopenSetTransposeConvNdOutputPadding(convDesc, conv_dim, trans_output_pads.data());
+        miopenSetTransposeConvNdOutputPadding(convDesc, spatial_dim, trans_output_pads.data());
     }
 
     return miopenStatusSuccess;
@@ -1105,7 +1106,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardCPU()
 {
     if(miopen::deref(convDesc).mode == miopenTranspose)
     {
-        cpu_convolution_backward_data(miopen::deref(convDesc).GetConvDimension(),
+        cpu_convolution_backward_data(miopen::deref(convDesc).GetSpatialDimension(),
                                       outhost,
                                       wei,
                                       in,
@@ -1121,7 +1122,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardCPU()
     }
     else
     {
-        cpu_convolution_forward(miopen::deref(convDesc).GetConvDimension(),
+        cpu_convolution_forward(miopen::deref(convDesc).GetSpatialDimension(),
                                 in,
                                 wei,
                                 outhost,
@@ -1453,7 +1454,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardWeightsCPU()
 {
     if(miopen::deref(convDesc).mode == miopenTranspose)
     {
-        cpu_convolution_backward_weight(miopen::deref(convDesc).GetConvDimension(),
+        cpu_convolution_backward_weight(miopen::deref(convDesc).GetSpatialDimension(),
                                         dout,
                                         dwei_host,
                                         in,
@@ -1464,7 +1465,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardWeightsCPU()
     }
     else
     {
-        cpu_convolution_backward_weight(miopen::deref(convDesc).GetConvDimension(),
+        cpu_convolution_backward_weight(miopen::deref(convDesc).GetSpatialDimension(),
                                         in,
                                         dwei_host,
                                         dout,
@@ -1489,7 +1490,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardDataCPU()
 {
     if(miopen::deref(convDesc).mode == miopenTranspose)
     {
-        cpu_convolution_forward(miopen::deref(convDesc).GetConvDimension(),
+        cpu_convolution_forward(miopen::deref(convDesc).GetSpatialDimension(),
                                 dout,
                                 wei,
                                 din_host,
@@ -1500,7 +1501,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardDataCPU()
     }
     else
     {
-        cpu_convolution_backward_data(miopen::deref(convDesc).GetConvDimension(),
+        cpu_convolution_backward_data(miopen::deref(convDesc).GetSpatialDimension(),
                                       din_host,
                                       wei,
                                       dout,
@@ -1540,18 +1541,23 @@ std::string ConvDriver<Tgpu, Tref, Tfile>::GetVerificationCacheFileName() const
 
     miopenConvolutionMode_t mode;
 
-    int conv_dim = inflags.GetValueInt("conv_dim");
+    int spatial_dim = inflags.GetValueInt("spatial_dim");
 
-    std::vector<int> pads(conv_dim);
-    std::vector<int> conv_strides(conv_dim);
-    std::vector<int> conv_dilations(conv_dim);
-    std::vector<int> trans_output_pads(conv_dim);
+    std::vector<int> pads(spatial_dim);
+    std::vector<int> conv_strides(spatial_dim);
+    std::vector<int> conv_dilations(spatial_dim);
+    std::vector<int> trans_output_pads(spatial_dim);
 
-    miopenGetConvolutionNdDescriptor(
-        convDesc, &mode, &conv_dim, pads.data(), conv_strides.data(), conv_dilations.data());
+    miopenGetConvolutionNdDescriptor(convDesc,
+                                     spatial_dim,
+                                     &spatial_dim,
+                                     pads.data(),
+                                     conv_strides.data(),
+                                     conv_dilations.data(),
+                                     &mode);
 
     ss << mode;
-    ss << "x" << conv_dim;
+    ss << "x" << spatial_dim;
     ss << "x" << miopen::deref(convDesc).paddingMode;
     ss << "x" << miopen::deref(convDesc).GetGroupCount();
     miopen::LogRange(ss << "x", miopen::deref(inputTensor).GetLengths(), "_");
