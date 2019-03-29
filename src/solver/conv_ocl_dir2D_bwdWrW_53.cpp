@@ -395,8 +395,20 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
 
     // select output mapping
     int total_out_maps = result.n_out_pix_tiles * n_out_stacks;
+    total_out_maps     = (total_out_maps > params.n_inputs) ? params.n_inputs : total_out_maps;
 
-    total_out_maps = (total_out_maps > params.n_inputs) ? params.n_inputs : total_out_maps;
+    // LDS check based on weight blob
+    // Kernel uses LDS for storing input data and weight accumulation
+    // Div by 2 to allow atleast 2 waves on CU.
+    const auto lds_size         = (64 * 1024) / 2;
+    const auto max_lds_elements = lds_size / (GetTypeSize(params.in_data_type));
+    if(GRP_SZ * params.kernel_size_w > max_lds_elements)
+    {
+        MIOPEN_LOG_I("For large filter size " << params.kernel_size_w
+                                              << ", running out of LDS size (bytes) "
+                                              << lds_size);
+        return ConvSolution(miopenStatusNotInitialized);
+    }
 
     result.grp_tile0 = GRP_SZ;
     result.grp_tile1 = 1;
