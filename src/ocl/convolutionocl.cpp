@@ -298,7 +298,7 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
                                                ExtraKernelArgs& extraArgs) const
 {
 
-    if(GetConvDimension() != 2 || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+    if(GetSpatialDimension() != 2 || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
         return {};
 
     mlo_construct_direct2D construct_params(xDesc, wDesc, yDesc, *this, isForward ? 1 : 0);
@@ -355,17 +355,17 @@ static void DirConvFindCore(Handle& handle,
 
             std::size_t wei_k = wDesc.GetLengths()[0];
 
-            std::size_t conv_dim = conv.GetConvDimension();
+            std::size_t spatial_dim = conv.GetSpatialDimension();
 
-            auto in_spatial  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + conv_dim);
-            auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + conv_dim);
-            auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + conv_dim);
+            auto in_spatial  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
+            auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+            auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
 
             float time_gemm           = 0;
             const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
             // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR
             // for 1x1_stride=2
-            if(conv.GetConvDimension() == 2 &&
+            if(conv.GetSpatialDimension() == 2 &&
                (miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
                 miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; })) &&
                ((miopen::all_of(in_spatial, [](auto v) { return v <= 14; }) &&
@@ -595,7 +595,7 @@ static void DirConvFindCore(Handle& handle,
                 float time_im2col = 0;
                 int in_offset     = 0;
                 time_im2col       = Im2ColGPU(handle,
-                                        conv.GetConvDimension(),
+                                        conv.GetSpatialDimension(),
                                         x,
                                         in_offset,
                                         in_c,
@@ -683,7 +683,7 @@ static void DirConvFindCore(Handle& handle,
         (void)workSpaceSize; // Suppress warning
 #endif
 
-        if(conv.GetConvDimension() == 2)
+        if(conv.GetSpatialDimension() == 2)
         {
             // Winograd algo
             WinogradKernelParams k_p;
@@ -788,7 +788,7 @@ static void DirConvFindCore(Handle& handle,
         }
 
         // FFT algo
-        if(conv.GetConvDimension() == 2 &&
+        if(conv.GetSpatialDimension() == 2 &&
            miopen::all_of(conv.GetConvDilations(), [](auto v) { return v == 1; }) &&
            conv.group_count == 1 && wDesc.GetType() != miopenInt8 &&
            wDesc.GetType() != miopenInt8x4)
@@ -1103,15 +1103,15 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
             std::size_t wei_k = wDesc.GetLengths()[0];
 
-            std::size_t conv_dim = GetConvDimension();
+            std::size_t spatial_dim = GetSpatialDimension();
 
-            auto in_spatial  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + conv_dim);
-            auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + conv_dim);
-            auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + conv_dim);
+            auto in_spatial  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
+            auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+            auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
 
             // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
             // 1x1_stride=2
-            if(GetConvDimension() == 2 &&
+            if(GetSpatialDimension() == 2 &&
                (miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
                 miopen::all_of(GetConvPads(), [](auto v) { return v == 0; })) &&
                ((miopen::all_of(in_spatial, [](auto v) { return v <= 14; }) &&
@@ -1392,7 +1392,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     std::size_t in_offset = i * in_c * in_spatial_size;
 
                     Im2ColGPU(handle,
-                              GetConvDimension(),
+                              GetSpatialDimension(),
                               x,
                               in_offset,
                               in_c,
@@ -1553,7 +1553,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
     std::string network_config;
     {
-        if(GetConvDimension() == 2 && GetConvDilations()[0] == 1 && GetConvDilations()[1] == 1)
+        if(GetSpatialDimension() == 2 && GetConvDilations()[0] == 1 && GetConvDilations()[1] == 1)
         {
             // Winograd algo
             WinogradKernelParams k_p;
@@ -1683,7 +1683,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     PerfField{algorithm_name, selected.solver_id, best, selected.workspce_sz});
             }
         }
-        if(GetConvDimension() == 2 && GetConvDilations()[0] == 1 && GetConvDilations()[1] == 1 &&
+        if(GetSpatialDimension() == 2 && GetConvDilations()[0] == 1 && GetConvDilations()[1] == 1 &&
            group_count == 1)
         {
             // FFT algo
@@ -1722,14 +1722,14 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
             std::size_t wei_k = wDesc.GetLengths()[0];
 
-            std::size_t conv_dim = GetConvDimension();
+            std::size_t spatial_dim = GetSpatialDimension();
 
-            auto in_spatial  = boost::adaptors::slice(dxDesc.GetLengths(), 2, 2 + conv_dim);
-            auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + conv_dim);
-            auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + conv_dim);
+            auto in_spatial  = boost::adaptors::slice(dxDesc.GetLengths(), 2, 2 + spatial_dim);
+            auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+            auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + spatial_dim);
 
             // 1x1 does not require col2im
-            if(GetConvDimension() == 2 &&
+            if(GetSpatialDimension() == 2 &&
                miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
                miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
                miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; }) &&
@@ -1888,7 +1888,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
                 float time_gemm = in_n * handle.GetKernelTime();
                 time_col2im     = Col2ImGPU(handle,
-                                        GetConvDimension(),
+                                        GetSpatialDimension(),
                                         workSpace,
                                         out_spatial,
                                         wei_spatial,
@@ -2142,13 +2142,13 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
             std::size_t wei_k = wDesc.GetLengths()[0];
 
-            std::size_t conv_dim = GetConvDimension();
+            std::size_t spatial_dim = GetSpatialDimension();
 
-            auto in_spatial  = boost::adaptors::slice(dxDesc.GetLengths(), 2, 2 + conv_dim);
-            auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + conv_dim);
-            auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + conv_dim);
+            auto in_spatial  = boost::adaptors::slice(dxDesc.GetLengths(), 2, 2 + spatial_dim);
+            auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+            auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + spatial_dim);
 
-            if(GetConvDimension() == 2 &&
+            if(GetSpatialDimension() == 2 &&
                miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
                miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
                miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; }))
@@ -2366,7 +2366,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                         t1 = handle.GetKernelTime();
 
                     Col2ImGPU(handle,
-                              GetConvDimension(),
+                              GetSpatialDimension(),
                               workSpace,
                               out_spatial,
                               wei_spatial,
@@ -2547,11 +2547,12 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             std::size_t in_n, in_c;
             std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
 
-            auto in_spatial = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + GetConvDimension());
+            auto in_spatial =
+                boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + GetSpatialDimension());
             auto wei_spatial =
-                boost::adaptors::slice(dwDesc.GetLengths(), 2, 2 + GetConvDimension());
+                boost::adaptors::slice(dwDesc.GetLengths(), 2, 2 + GetSpatialDimension());
             auto out_spatial =
-                boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + GetConvDimension());
+                boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + GetSpatialDimension());
 
             size_t workspace_req =
                 BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc) * group_count;
@@ -2575,7 +2576,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 float time_im2col = 0;
                 int in_offset     = 0;
                 time_im2col       = Im2ColGPU(handle,
-                                        GetConvDimension(),
+                                        GetSpatialDimension(),
                                         x,
                                         in_offset,
                                         in_c,
@@ -2661,7 +2662,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
         // direct convolution
         {
-            if(GetConvDimension() == 2 && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+            if(GetSpatialDimension() == 2 && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
             {
                 mlo_construct_BwdWrW2D construct_params(
                     xDesc, dwDesc, dyDesc, *this, 0); // backward with regards to weights
@@ -2711,7 +2712,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             }
         }
 
-        if(GetConvDimension() == 2)
+        if(GetSpatialDimension() == 2)
         {
             try
             {
@@ -2889,11 +2890,12 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
             std::size_t wei_k = dwDesc.GetLengths()[0];
 
-            auto in_spatial = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + GetConvDimension());
+            auto in_spatial =
+                boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + GetSpatialDimension());
             auto wei_spatial =
-                boost::adaptors::slice(dwDesc.GetLengths(), 2, 2 + GetConvDimension());
+                boost::adaptors::slice(dwDesc.GetLengths(), 2, 2 + GetSpatialDimension());
             auto out_spatial =
-                boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + GetConvDimension());
+                boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + GetSpatialDimension());
 
             // Zeroing out the output buffer
             float zero = 0.0f;
@@ -2936,7 +2938,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     std::size_t in_offset = i * in_c * in_spatial_size;
 
                     Im2ColGPU(handle,
-                              GetConvDimension(),
+                              GetSpatialDimension(),
                               x,
                               in_offset,
                               in_c,
