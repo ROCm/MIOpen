@@ -70,20 +70,23 @@ miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> d
     desc->GetOutputDesc(output_desc);
     op_map.emplace_back(desc);
     op_count++;
-    is_valid = lu.Advance(desc, [&](const std::string& sym, int& val) -> bool {
-        // check tensor attr
-        if(GetTensorAttr(sym, val))
-            return true;
-        // check op attr
-        if(desc->GetOpAttr(sym, val))
-            return true;
-        // check the values of enum types
-        if(GetEnumVal(sym, val))
-            return true;
-        // check dev attr
-        // if(GetDevAttribute(sym, val, handle))
-        //     return true;
-        return false;
+    is_valid = false;
+    miopen::try_([&] {
+        is_valid = lu.Advance(desc, [&](const std::string& sym, int& val) -> bool {
+            // check tensor attr
+            if(GetTensorAttr(sym, val))
+                return true;
+            // check op attr
+            if(desc->GetOpAttr(sym, val))
+                return true;
+            // check the values of enum types
+            if(GetEnumVal(sym, val))
+                return true;
+            // check dev attr
+            // if(GetDevAttribute(sym, val, handle))
+            //     return true;
+            return false;
+        });
     });
     if(is_valid)
         return miopenStatusSuccess;
@@ -339,8 +342,23 @@ std::vector<std::pair<std::string, OpKernelArg>> ActivFwdFusionOpDescriptor::Get
     return keys;
 }
 
-OpKernelArg ActivFwdFusionOpDescriptor::GetOpAttr(const std::string& /* k */) const
+bool ActivFwdFusionOpDescriptor::GetOpAttr(const std::string& sym, int& val) const
 {
+    if(sym == "activ_mode")
+    {
+        val = activMode;
+        return true;
+    }
+    return false;
+}
+
+OpKernelArg ActivFwdFusionOpDescriptor::GetOpAttr(const std::string& k) const
+{
+    int v;
+    if(GetOpAttr(k, v))
+    {
+        return OpKernelArg(v);
+    }
     MIOPEN_THROW(miopenStatusInternalError, "Unknown Activation Op Attribute");
 }
 

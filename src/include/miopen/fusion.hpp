@@ -125,6 +125,7 @@ struct ActivFwdFusionOpDescriptor : FusionOpDescriptor
                            double activGamma);
     std::vector<std::pair<std::string, OpKernelArg>> GetArgs() const override;
     std::string GetArgKey(const std::string& k) const override;
+    bool GetOpAttr(const std::string& sym, int& val) const override;
     OpKernelArg GetOpAttr(const std::string& k) const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpActivForward; };
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
