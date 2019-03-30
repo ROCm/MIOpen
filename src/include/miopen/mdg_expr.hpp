@@ -122,11 +122,8 @@ struct tree_visit
             {
                 r.res = tabl.at(sym);
             }
-            // else
-            // {
-            //     MIOPEN_THROW("Symbol: " + sym + " accessed before being assigned in constaint");
-            // }
-            r.sym = sym;
+            else
+                r.sym = sym;
         }
         return r;
     }
@@ -187,6 +184,12 @@ struct tree_visit
         lhs_res = boost::spirit::utree::visit(v[1], *this);
         rhs_res = boost::spirit::utree::visit(v[2], *this);
 
+        if(op_res.op != OpAssign && !lhs_res.sym.empty())
+        {
+            std::string sym = lhs_res.sym;
+            MIOPEN_THROW("Invalid variable access: " + sym);
+        }
+
         switch(op_res.op)
         {
         // Arith ops
@@ -205,6 +208,9 @@ struct tree_visit
         }
         case OpAssign:
         {
+            int val = 0;
+            if(var_lookup(lhs_res.sym, val))
+                MIOPEN_THROW("Invalid variable assignment: " + lhs_res.sym);
             MIOPEN_LOG_I2(" Adding variable: " + lhs_res.sym);
             r.tabl[lhs_res.sym] = rhs_res.res;
             r.b_res             = true;
