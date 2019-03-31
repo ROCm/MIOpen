@@ -68,7 +68,8 @@ elements_in_dword = 1
 
 static_assert(!fusion_mode || buf_type == TYPE_FP16 || buf_type == TYPE_FP32)
 
-// kernarg layout:
+// Kernarg layout & size.
+// KERNEL_ARGUMENTS_SIZE and KernargSegmentSize in the metadata must match.
 .if fusion_mode && enable_activ && bias_mode
     .if elements_in_dword == 2
         .set alpha_off, 0x0
@@ -79,6 +80,7 @@ static_assert(!fusion_mode || buf_type == TYPE_FP16 || buf_type == TYPE_FP32)
         .set out_ptr_off, 0x10
         .set wei_ptr_off, 0x18
         .set bias_ptr_off, 0x20
+        .set KERNEL_ARGUMENTS_SIZE, bias_ptr_off + 8
     .else
         .set alpha_off, 0x0
         .set beta_off, 0x4
@@ -88,6 +90,7 @@ static_assert(!fusion_mode || buf_type == TYPE_FP16 || buf_type == TYPE_FP32)
         .set out_ptr_off, 0x18
         .set wei_ptr_off, 0x20
         .set bias_ptr_off, 0x28
+        .set KERNEL_ARGUMENTS_SIZE, bias_ptr_off + 8
     .endif
 .elseif fusion_mode && enable_activ
     .if elements_in_dword == 2
@@ -98,6 +101,7 @@ static_assert(!fusion_mode || buf_type == TYPE_FP16 || buf_type == TYPE_FP32)
         .set in_ptr_off, 0x8
         .set out_ptr_off, 0x10
         .set wei_ptr_off, 0x18
+        .set KERNEL_ARGUMENTS_SIZE, wei_ptr_off + 8
     .else
         .set alpha_off, 0x0
         .set beta_off, 0x4
@@ -106,12 +110,14 @@ static_assert(!fusion_mode || buf_type == TYPE_FP16 || buf_type == TYPE_FP32)
         .set in_ptr_off, 0x10
         .set out_ptr_off, 0x18
         .set wei_ptr_off, 0x20
+        .set KERNEL_ARGUMENTS_SIZE, wei_ptr_off + 8
     .endif
 .elseif fusion_mode && bias_mode
     .set in_ptr_off, 0x0
     .set out_ptr_off, 0x8
     .set wei_ptr_off, 0x10
     .set bias_ptr_off, 0x18
+    .set KERNEL_ARGUMENTS_SIZE, bias_ptr_off + 8
 .else
 // kernarg layout:
 // dwords 0:4 - n, c, H, W, k
@@ -123,6 +129,7 @@ static_assert(!fusion_mode || buf_type == TYPE_FP16 || buf_type == TYPE_FP32)
     .set wei_ptr_off, 0x28
     .set out_ptr_off, 0x30
     .set dbg_ptr_off, 0x38
+    .set KERNEL_ARGUMENTS_SIZE, dbg_ptr_off + 8
 .endif
 
 
@@ -397,7 +404,7 @@ gcnAsmConv1x1U:
      granulated_wavefront_sgpr_count = .AUTO_SGPR_GRANULATED_COUNT
      enable_vgpr_workitem_id = 1
      user_sgpr_count = 2
-     kernarg_segment_byte_size = 64
+     kernarg_segment_byte_size = KERNEL_ARGUMENTS_SIZE
      wavefront_sgpr_count = .AUTO_SGPR_COUNT
      workitem_vgpr_count = .AUTO_VGPR_COUNT
      float_mode = 192
