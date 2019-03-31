@@ -1152,17 +1152,11 @@ void InvPass1b(uint me,
     barrier(CLK_LOCAL_MEM_FENCE);
 
     bufOut[outOffset + (12 - (3 * me + 1))] = (float2)((*R0).x + (*R3).y, -(*R0).y + (*R3).x);
-    ;
     bufOut[outOffset + (12 - (3 * me + 2))] = (float2)((*R1).x + (*R4).y, -(*R1).y + (*R4).x);
-    ;
     bufOut[outOffset + (12 - (3 * me + 3))] = (float2)((*R2).x + (*R5).y, -(*R2).y + (*R5).x);
-    ;
-    bufOut[outOffset + (3 * me + 1)] = (float2)((*R0).x - (*R3).y, (*R0).y + (*R3).x);
-    ;
-    bufOut[outOffset + (3 * me + 2)] = (float2)((*R1).x - (*R4).y, (*R1).y + (*R4).x);
-    ;
-    bufOut[outOffset + (3 * me + 3)] = (float2)((*R2).x - (*R5).y, (*R2).y + (*R5).x);
-    ;
+    bufOut[outOffset + (3 * me + 1)]        = (float2)((*R0).x - (*R3).y, (*R0).y + (*R3).x);
+    bufOut[outOffset + (3 * me + 2)]        = (float2)((*R1).x - (*R4).y, (*R1).y + (*R4).x);
+    bufOut[outOffset + (3 * me + 3)]        = (float2)((*R2).x - (*R5).y, (*R2).y + (*R5).x);
 
     if(me < 1)
     {
@@ -2312,17 +2306,11 @@ void InvPass1b(uint me,
     barrier(CLK_LOCAL_MEM_FENCE);
 
     bufOut[outOffset + (18 - (3 * me + 1))] = (float2)((*R0).x + (*R3).y, -(*R0).y + (*R3).x);
-    ;
     bufOut[outOffset + (18 - (3 * me + 2))] = (float2)((*R1).x + (*R4).y, -(*R1).y + (*R4).x);
-    ;
     bufOut[outOffset + (18 - (3 * me + 3))] = (float2)((*R2).x + (*R5).y, -(*R2).y + (*R5).x);
-    ;
-    bufOut[outOffset + (3 * me + 1)] = (float2)((*R0).x - (*R3).y, (*R0).y + (*R3).x);
-    ;
-    bufOut[outOffset + (3 * me + 2)] = (float2)((*R1).x - (*R4).y, (*R1).y + (*R4).x);
-    ;
-    bufOut[outOffset + (3 * me + 3)] = (float2)((*R2).x - (*R5).y, (*R2).y + (*R5).x);
-    ;
+    bufOut[outOffset + (3 * me + 1)]        = (float2)((*R0).x - (*R3).y, (*R0).y + (*R3).x);
+    bufOut[outOffset + (3 * me + 2)]        = (float2)((*R1).x - (*R4).y, (*R1).y + (*R4).x);
+    bufOut[outOffset + (3 * me + 3)]        = (float2)((*R2).x - (*R5).y, (*R2).y + (*R5).x);
 
     if(me < 1)
     {
