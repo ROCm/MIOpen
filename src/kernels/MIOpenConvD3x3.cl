@@ -98,7 +98,6 @@ static inline int getWaveId()
 static inline int getWaveLocalId()
 {
     int lcl_wave_id = get_local_id(0) - ((get_local_id(0) >> MLO_LG2_WAVE_SZ) << MLO_LG2_WAVE_SZ);
-    ;
     return (lcl_wave_id);
 }
 
