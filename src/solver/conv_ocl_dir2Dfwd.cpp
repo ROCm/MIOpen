@@ -58,6 +58,13 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
                 && p.kernel_stride_h == 2
                 && p.kernel_stride_w == 2
                 && p.pad_h == 0
+                && p.pad_w == 0)
+            /// The following is for #1594. Most likely we can open more configs,
+            /// but that would require thorough testing.
+            || (p.IsFp16()
+                && p.kernel_size_h == 4
+                && p.kernel_size_w == 4
+                && p.pad_h == 0
                 && p.pad_w == 0);
 
         if (!supported)
