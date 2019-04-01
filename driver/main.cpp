@@ -51,17 +51,14 @@ int main(int argc, char* argv[])
     Driver* drv;
     if(base_arg == "conv")
     {
-        // CPU result saved in float, but calculation is done in double
         drv = new ConvDriver<float, float>();
     }
     else if(base_arg == "convfp16")
     {
-        // CPU result saved in float, but calculation is done in double
         drv = new ConvDriver<float16, float>();
     }
     else if(base_arg == "convint8")
     {
-        // CPU result saved in float, but calculation is done in double
         drv = new ConvDriver<int8_t, float>();
     }
     else if(base_arg == "CBAInfer")
