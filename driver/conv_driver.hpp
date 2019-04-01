@@ -67,22 +67,13 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
 
-template <typename T, typename Tfile = T>
+template <typename T>
 void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
 {
     std::ofstream outFile(fileName, std::ios::binary);
     if(outFile)
     {
-        if(std::is_same<T, Tfile>{})
-        {
-            outFile.write(reinterpret_cast<char*>(data), dataNumItems * sizeof(T));
-        }
-        else
-        {
-            std::vector<Tfile> buffer(data, data + dataNumItems);
-            outFile.write(reinterpret_cast<char*>(buffer.data()), dataNumItems * sizeof(Tfile));
-        }
-
+        outFile.write(reinterpret_cast<char*>(data), dataNumItems * sizeof(T));
         outFile.close();
         printf("Wrote output to file %s\n", fileName);
     }
@@ -92,22 +83,13 @@ void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
     }
 }
 
-template <typename T, typename Tfile = T>
+template <typename T>
 bool readBufferFromFile(T* data, size_t dataNumItems, const char* fileName)
 {
     std::ifstream infile(fileName, std::ios::binary);
     if(infile)
     {
-        if(std::is_same<T, Tfile>{})
-        {
-            infile.read(reinterpret_cast<char*>(data), dataNumItems * sizeof(T));
-        }
-        else
-        {
-            std::vector<Tfile> buffer(dataNumItems);
-            infile.read(reinterpret_cast<char*>(buffer.data()), dataNumItems * sizeof(Tfile));
-            std::copy(buffer.begin(), buffer.end(), data);
-        }
+        infile.read(reinterpret_cast<char*>(data), dataNumItems * sizeof(T));
         infile.close();
         printf("Read data from input file %s\n", fileName);
         return true;
@@ -119,7 +101,9 @@ bool readBufferFromFile(T* data, size_t dataNumItems, const char* fileName)
     }
 }
 
-template <typename Tgpu, typename Tref, typename Tfile = Tref>
+// Tgpu and Tref are the data-type in GPU memory and CPU memory respectively.
+// They are not necessarily the same as the computation type on GPU or CPU
+template <typename Tgpu, typename Tref>
 class ConvDriver : public Driver
 {
     public:
@@ -244,6 +228,8 @@ class ConvDriver : public Driver
     std::string GetVerificationCacheFileName() const;
     std::string GetVCacheFwdOutBasename() const;
     std::string GetVCacheBwdDataBasename() const;
+    std::string GetVCacheBwdWeightBasename() const;
+    std::string GetVCacheBiasBwdDataBasename() const;
     bool IsInputTensorTransform() const;
 
     bool TryReadVerificationCache(const std::string& file_name,
@@ -254,15 +240,15 @@ class ConvDriver : public Driver
 
 // Check if int8 type tensor x and w need to be transformed to a pack of 4 elements along channel
 // (NCHW_VECT_C format)
-template <typename Tgpu, typename Tref, typename Tfile>
-bool ConvDriver<Tgpu, Tref, Tfile>::IsInputTensorTransform() const
+template <typename Tgpu, typename Tref>
+bool ConvDriver<Tgpu, Tref>::IsInputTensorTransform() const
 {
     return (data_type == miopenInt8 && inflags.GetValueInt("in_channels") % 4 != 0) ||
            data_type == miopenInt8x4;
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-int ConvDriver<Tgpu, Tref, Tfile>::ParseCmdLineArgs(int argc, char* argv[])
+template <typename Tgpu, typename Tref>
+int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
@@ -278,8 +264,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::ParseCmdLineArgs(int argc, char* argv[])
     return 0;
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-int ConvDriver<Tgpu, Tref, Tfile>::GetandSetData()
+template <typename Tgpu, typename Tref>
+int ConvDriver<Tgpu, Tref>::GetandSetData()
 {
     std::vector<int> in_len  = GetInputTensorLengthsFromCmdLine();
     std::vector<int> wei_len = GetWeightTensorLengthsFromCmdLine();
@@ -317,8 +303,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::GetandSetData()
     return (0);
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-int ConvDriver<Tgpu, Tref, Tfile>::AddCmdLineArgs()
+template <typename Tgpu, typename Tref>
+int ConvDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag(
         "spatial_dim", '_', "2", "convolution spatial dimension (Default-2)", "int");
@@ -400,8 +386,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::AddCmdLineArgs()
     return 0;
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-std::vector<int> ConvDriver<Tgpu, Tref, Tfile>::GetInputTensorLengthsFromCmdLine()
+template <typename Tgpu, typename Tref>
+std::vector<int> ConvDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
     std::vector<int> in_lens;
 
@@ -432,8 +418,8 @@ std::vector<int> ConvDriver<Tgpu, Tref, Tfile>::GetInputTensorLengthsFromCmdLine
     return in_lens;
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-std::vector<int> ConvDriver<Tgpu, Tref, Tfile>::GetWeightTensorLengthsFromCmdLine()
+template <typename Tgpu, typename Tref>
+std::vector<int> ConvDriver<Tgpu, Tref>::GetWeightTensorLengthsFromCmdLine()
 {
     std::vector<int> wei_lens;
 
@@ -500,8 +486,8 @@ std::vector<int> ConvDriver<Tgpu, Tref, Tfile>::GetWeightTensorLengthsFromCmdLin
     return wei_lens;
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-std::vector<int> ConvDriver<Tgpu, Tref, Tfile>::GetBiasTensorLengthsFromCmdLine()
+template <typename Tgpu, typename Tref>
+std::vector<int> ConvDriver<Tgpu, Tref>::GetBiasTensorLengthsFromCmdLine()
 {
     int spatial_dim = inflags.GetValueInt("spatial_dim");
 
@@ -512,8 +498,8 @@ std::vector<int> ConvDriver<Tgpu, Tref, Tfile>::GetBiasTensorLengthsFromCmdLine(
     return bias_lens;
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-int ConvDriver<Tgpu, Tref, Tfile>::SetConvDescriptorFromCmdLineArgs()
+template <typename Tgpu, typename Tref>
+int ConvDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
 {
     int spatial_dim = inflags.GetValueInt("spatial_dim");
 
@@ -633,8 +619,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::SetConvDescriptorFromCmdLineArgs()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-std::vector<int> ConvDriver<Tgpu, Tref, Tfile>::GetOutputTensorLengths()
+template <typename Tgpu, typename Tref>
+std::vector<int> ConvDriver<Tgpu, Tref>::GetOutputTensorLengths()
 {
     int ndim = miopen::deref(inputTensor).GetSize();
 
@@ -664,8 +650,8 @@ float16 RanGenWeights()
 
 } // namespace detail
 
-template <typename Tgpu, typename Tref, typename Tfile>
-int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
+template <typename Tgpu, typename Tref>
+int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
     bool is_transform           = IsInputTensorTransform();
     bool is_int8                = data_type == miopenInt8 || data_type == miopenInt8x4;
@@ -919,10 +905,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-int ConvDriver<Tgpu, Tref, Tfile>::FindForward(int& ret_algo_count,
-                                               int request_algo_count,
-                                               std::vector<miopenConvAlgoPerf_t>& perf_results)
+template <typename Tgpu, typename Tref>
+int ConvDriver<Tgpu, Tref>::FindForward(int& ret_algo_count,
+                                        int request_algo_count,
+                                        std::vector<miopenConvAlgoPerf_t>& perf_results)
 {
     bool is_transform = IsInputTensorTransform();
 
@@ -943,8 +929,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::FindForward(int& ret_algo_count,
         (inflags.GetValueInt("search") == 1) ? true : false);
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
+template <typename Tgpu, typename Tref>
+int ConvDriver<Tgpu, Tref>::RunForwardGPU()
 {
     if(!forward_allowed)
         return 0;
@@ -1101,8 +1087,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-int ConvDriver<Tgpu, Tref, Tfile>::RunForwardCPU()
+template <typename Tgpu, typename Tref>
+int ConvDriver<Tgpu, Tref>::RunForwardCPU()
 {
     if(miopen::deref(convDesc).mode == miopenTranspose)
     {
@@ -1150,10 +1136,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardCPU()
     return 0;
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-int ConvDriver<Tgpu, Tref, Tfile>::FindBackwardData(int& ret_algo_count,
-                                                    int request_algo_count,
-                                                    std::vector<miopenConvAlgoPerf_t>& perf_results)
+template <typename Tgpu, typename Tref>
+int ConvDriver<Tgpu, Tref>::FindBackwardData(int& ret_algo_count,
+                                             int request_algo_count,
+                                             std::vector<miopenConvAlgoPerf_t>& perf_results)
 {
     return miopenFindConvolutionBackwardDataAlgorithm(
         GetHandle(),
@@ -1172,9 +1158,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::FindBackwardData(int& ret_algo_count,
         (inflags.GetValueInt("search") == 1) ? true : false);
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-int ConvDriver<Tgpu, Tref, Tfile>::FindBackwardWeights(
-    int& ret_algo_count, int request_algo_count, std::vector<miopenConvAlgoPerf_t>& perf_results)
+template <typename Tgpu, typename Tref>
+int ConvDriver<Tgpu, Tref>::FindBackwardWeights(int& ret_algo_count,
+                                                int request_algo_count,
+                                                std::vector<miopenConvAlgoPerf_t>& perf_results)
 {
 
     miopenFindConvolutionBackwardWeightsAlgorithm(
@@ -1196,8 +1183,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::FindBackwardWeights(
     return 0;
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
+template <typename Tgpu, typename Tref>
+int ConvDriver<Tgpu, Tref>::RunBackwardGPU()
 {
     if(!(bwd_allowed || wrw_allowed))
         return 0;
@@ -1449,8 +1436,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
     return ret;
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardWeightsCPU()
+template <typename Tgpu, typename Tref>
+int ConvDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
 {
     if(miopen::deref(convDesc).mode == miopenTranspose)
     {
@@ -1481,12 +1468,12 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardWeightsCPU()
             "dump_bwd_dwei_cpu.bin", dwei_host.data.data(), dwei_host.data.size());
     }
 
-    TrySaveVerificationCache("bwd_wei", dwei_host.data);
+    TrySaveVerificationCache(GetVCacheBwdWeightBasename(), dwei_host.data);
     return 0;
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardDataCPU()
+template <typename Tgpu, typename Tref>
+int ConvDriver<Tgpu, Tref>::RunBackwardDataCPU()
 {
     if(miopen::deref(convDesc).mode == miopenTranspose)
     {
@@ -1520,8 +1507,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardDataCPU()
     return 0;
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardBiasCPU()
+template <typename Tgpu, typename Tref>
+int ConvDriver<Tgpu, Tref>::RunBackwardBiasCPU()
 {
     cpu_bias_backward_data(dout, db_host);
 
@@ -1530,12 +1517,12 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardBiasCPU()
         dumpBufferToFile<Tref>("dump_bwd_db_cpu.bin", db_host.data.data(), db_host.data.size());
     }
 
-    TrySaveVerificationCache("bwd_bai", db_host.data);
+    TrySaveVerificationCache(GetVCacheBiasBwdDataBasename(), db_host.data);
     return 0;
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-std::string ConvDriver<Tgpu, Tref, Tfile>::GetVerificationCacheFileName() const
+template <typename Tgpu, typename Tref>
+std::string ConvDriver<Tgpu, Tref>::GetVerificationCacheFileName() const
 {
     std::ostringstream ss;
 
@@ -1556,34 +1543,53 @@ std::string ConvDriver<Tgpu, Tref, Tfile>::GetVerificationCacheFileName() const
                                      conv_dilations.data(),
                                      &mode);
 
-    ss << mode;
-    ss << "x" << spatial_dim;
-    ss << "x" << miopen::deref(convDesc).paddingMode;
-    ss << "x" << miopen::deref(convDesc).GetGroupCount();
-    miopen::LogRange(ss << "x", miopen::deref(inputTensor).GetLengths(), "_");
-    miopen::LogRange(ss << "x", miopen::deref(weightTensor).GetLengths(), "_");
-    miopen::LogRange(ss << "x", pads, "_");
-    miopen::LogRange(ss << "x", conv_strides, "_");
-    miopen::LogRange(ss << "x", conv_dilations, "_");
-    miopen::LogRange(ss << "x", trans_output_pads, "_");
-    ss << "x" << inflags.GetValueInt("pad_val");
-    ss << "x" << inflags.GetValueInt("bias");
+    auto get_datatype_string = [](auto type) {
+        if(std::is_same<decltype(type), int8_t>::value)
+        {
+            return "int8";
+        }
+        else if(std::is_same<decltype(type), float16>::value)
+        {
+            return "float16";
+        }
+        else if(std::is_same<decltype(type), float>::value)
+        {
+            return "float";
+        }
+        else if(std::is_same<decltype(type), double>::value)
+        {
+            return "double";
+        }
+        else
+        {
+            MIOPEN_THROW("unknown data type");
+        }
+    };
 
-    assert(sizeof(Tfile) == 8 || sizeof(Tfile) == 4);
-    //  Uses different distribution of random data inputs
-    if(std::is_same<Tgpu, int8_t>::value)
-        ss << "_TgpuINT8";
-    // Legacy files contain floats and have no prefix.
-    if(sizeof(Tfile) != 4)
-        ss << "_FPref64";
+    ss << mode;
+    ss << "_" << spatial_dim;
+    ss << "_" << miopen::deref(convDesc).paddingMode;
+    ss << "_" << miopen::deref(convDesc).GetGroupCount();
+    miopen::LogRange(ss << "_", miopen::deref(inputTensor).GetLengths(), "x");
+    miopen::LogRange(ss << "_", miopen::deref(weightTensor).GetLengths(), "x");
+    miopen::LogRange(ss << "_", pads, "x");
+    miopen::LogRange(ss << "_", conv_strides, "x");
+    miopen::LogRange(ss << "_", conv_dilations, "x");
+    miopen::LogRange(ss << "_", trans_output_pads, "x");
+    ss << "_" << inflags.GetValueInt("pad_val");
+    ss << "_" << inflags.GetValueInt("bias");
+    ss << "_"
+       << "GPU" << get_datatype_string(Tgpu{});
+    ss << "_"
+       << "REF" << get_datatype_string(Tref{});
 
     return ss.str();
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-bool ConvDriver<Tgpu, Tref, Tfile>::TryReadVerificationCache(const std::string& file_name,
-                                                             miopenTensorDescriptor_t& tensorDesc,
-                                                             Tref* data) const
+template <typename Tgpu, typename Tref>
+bool ConvDriver<Tgpu, Tref>::TryReadVerificationCache(const std::string& file_name,
+                                                      miopenTensorDescriptor_t& tensorDesc,
+                                                      Tref* data) const
 {
     const auto verification_cache_path = inflags.GetValueStr("verification_cache");
 
@@ -1594,7 +1600,7 @@ bool ConvDriver<Tgpu, Tref, Tfile>::TryReadVerificationCache(const std::string& 
 
         if(std::ifstream(file_path).good())
         {
-            if(readBufferFromFile<Tref, Tfile>(data, GetTensorSize(tensorDesc), file_path.c_str()))
+            if(readBufferFromFile<Tref>(data, GetTensorSize(tensorDesc), file_path.c_str()))
             {
                 return true;
             }
@@ -1604,37 +1610,45 @@ bool ConvDriver<Tgpu, Tref, Tfile>::TryReadVerificationCache(const std::string& 
     return false;
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-void ConvDriver<Tgpu, Tref, Tfile>::TrySaveVerificationCache(const std::string& file_name,
-                                                             std::vector<Tref>& data) const
+template <typename Tgpu, typename Tref>
+void ConvDriver<Tgpu, Tref>::TrySaveVerificationCache(const std::string& file_name,
+                                                      std::vector<Tref>& data) const
 {
     const auto verification_cache_path = inflags.GetValueStr("verification_cache");
     if(!verification_cache_path.empty())
     {
         const auto file_path =
             verification_cache_path + "/" + file_name + "_" + GetVerificationCacheFileName();
-        dumpBufferToFile<Tref, Tfile>(file_path.c_str(), data.data(), data.size());
+        dumpBufferToFile<Tref>(file_path.c_str(), data.data(), data.size());
     }
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-std::string ConvDriver<Tgpu, Tref, Tfile>::GetVCacheFwdOutBasename() const
+template <typename Tgpu, typename Tref>
+std::string ConvDriver<Tgpu, Tref>::GetVCacheFwdOutBasename() const
 {
-    // "_v2" is to ensure compatibility of verification cache. After this commit fp16 weights buffer
-    // will have different data (due to change of random-distribution).
-    return {std::string("fwd_out") + (std::is_same<float16, Tgpu>::value ? "_v2" : "")};
+    return "conv_fwd_out";
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-std::string ConvDriver<Tgpu, Tref, Tfile>::GetVCacheBwdDataBasename() const
+template <typename Tgpu, typename Tref>
+std::string ConvDriver<Tgpu, Tref>::GetVCacheBwdDataBasename() const
 {
-    // Ensure compatibility of verification cache. After this commit fp16 weights buffer
-    // will have different data (due to change of random-distribution).
-    return {std::string("bwd_dat") + (std::is_same<float16, Tgpu>::value ? "_v2" : "")};
+    return "conv_bwd_dat";
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-int ConvDriver<Tgpu, Tref, Tfile>::VerifyForward()
+template <typename Tgpu, typename Tref>
+std::string ConvDriver<Tgpu, Tref>::GetVCacheBwdWeightBasename() const
+{
+    return "conv_bwd_wei";
+}
+
+template <typename Tgpu, typename Tref>
+std::string ConvDriver<Tgpu, Tref>::GetVCacheBiasBwdDataBasename() const
+{
+    return "bias_bwd_dat";
+}
+
+template <typename Tgpu, typename Tref>
+int ConvDriver<Tgpu, Tref>::VerifyForward()
 {
     if(!forward_allowed)
         return 0;
@@ -1662,8 +1676,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyForward()
     return 0;
 }
 
-template <typename Tgpu, typename Tref, typename Tfile>
-int ConvDriver<Tgpu, Tref, Tfile>::VerifyBackward()
+template <typename Tgpu, typename Tref>
+int ConvDriver<Tgpu, Tref>::VerifyBackward()
 {
 
     if(!(bwd_allowed || wrw_allowed))
@@ -1694,7 +1708,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyBackward()
 
     if(wrw_allowed)
     {
-        if(!TryReadVerificationCache("bwd_wei", weightTensor, dwei_host.data.data()))
+        if(!TryReadVerificationCache(
+               GetVCacheBwdWeightBasename(), weightTensor, dwei_host.data.data()))
         {
             RunBackwardWeightsCPU();
         }
@@ -1720,7 +1735,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyBackward()
 
     if(inflags.GetValueInt("bias") != 0)
     {
-        if(!TryReadVerificationCache("bwd_bai", biasTensor, db_host.data.data()))
+        if(!TryReadVerificationCache(
+               GetVCacheBiasBwdDataBasename(), biasTensor, db_host.data.data()))
         {
             RunBackwardBiasCPU();
         }
