@@ -157,6 +157,7 @@ struct tensor_cast_driver : test_driver
 
     tensor_cast_driver()
     {
+        disabled_cache            = true;
         std::vector<int> src_lens = {32, 16, 32, 16, 16};
         std::vector<int> dst_lens = {32, 32, 16, 16, 16};
 
