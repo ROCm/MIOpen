@@ -193,6 +193,7 @@ struct activation_driver : test_driver
 
     activation_driver()
     {
+        disabled_cache = true;
         add_mode(miopenActivationPASTHRU,
                  [=](double x) { return x; },
                  [=](double dy, double, double) { return dy; });
