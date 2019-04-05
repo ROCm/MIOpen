@@ -113,6 +113,7 @@ struct tensor_scale_driver : test_driver
 
     tensor_scale_driver()
     {
+        disabled_cache        = true;
         std::vector<int> lens = {32, 32, 16, 16, 16};
 
         add(superLens, "superLens", generate_data({lens}, lens));

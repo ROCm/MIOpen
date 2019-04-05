@@ -285,7 +285,7 @@ struct tensor_ops_driver : test_driver
 
     tensor_ops_driver()
     {
-
+        disabled_cache         = true;
         std::vector<int> alens = {{32, 16, 20, 16, 8}};
         std::vector<int> blens = {{32, 16, 20, 16, 8}};
         std::vector<int> clens = {{32, 16, 20, 16, 8}};
