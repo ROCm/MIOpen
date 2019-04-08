@@ -186,7 +186,7 @@ enum class LoggingLevel
     Warning = 4, // All errors and warnings.
     Info    = 5, // All above plus information for debugging purposes.
     Info2   = 6, // All above  plus more detailed information for debugging.
-    Trace   = 7  // The most detailed debugging messages (not used so far).
+    Trace   = 7  // The most detailed debugging messages
 };
 
 const char* LoggingLevelToCString(LoggingLevel level);
@@ -263,6 +263,7 @@ std::string LoggingParseFunction(const char* func, const char* pretty_func);
 #define MIOPEN_LOG_W(...) MIOPEN_LOG(miopen::LoggingLevel::Warning, __VA_ARGS__)
 #define MIOPEN_LOG_I(...) MIOPEN_LOG(miopen::LoggingLevel::Info, __VA_ARGS__)
 #define MIOPEN_LOG_I2(...) MIOPEN_LOG(miopen::LoggingLevel::Info2, __VA_ARGS__)
+#define MIOPEN_LOG_T(...) MIOPEN_LOG(miopen::LoggingLevel::Trace, __VA_ARGS__)
 
 } // namespace miopen
 
