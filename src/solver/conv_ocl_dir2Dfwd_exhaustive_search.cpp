@@ -337,7 +337,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
 
     double min_proc_time = std::numeric_limits<double>::max();
 
-    size_t run_counter = 0;
+    size_t run_counter = 0, failed_counter = 0;
 
     int out_pix_tl_cnt = 3; // out_pix_tile_sz[1];
     int n_out_tls      = 4;
@@ -364,7 +364,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
 
     size_t report_inteval = 25;
 
-    long long runs_left = 0;
+    long long runs_left = 0, total_runs = 0;
 
     if(params.kernel_size_w == 1 && params.kernel_size_h == 1 &&
        params.group_counts == 1) // Group conv: None 1x1 version yet, fallback to universal kernel.
@@ -399,7 +399,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
             n_grp_tiles0       = 1;
             grp_tl_ln[0]       = 64;
 
-            runs_left = out_pix_tl_cnt * n_out_tls * n_in_tls * (n_grp_tiles0 + 1);
+            runs_left  = out_pix_tl_cnt * n_out_tls * n_in_tls * (n_grp_tiles0 + 1);
+            total_runs = runs_left;
 
             result.out_pix_tile1 = 1;
         }
@@ -443,6 +444,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
             n_out_tls       = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
             n_in_tls        = 2;
             runs_left       = n_grp_tiles * out_pix_tl_cnt * n_out_tls * n_in_tls;
+            total_runs      = runs_left;
 
             result.out_pix_tile1 = 0;
         }
@@ -490,10 +492,22 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
                         --runs_left;
                         if(ret != 0)
                         {
+                            ++failed_counter;
                             continue;
                         }
 
                         is_passed = true;
+                        MIOPEN_LOG_T("##(n_current, n_failed, n_runs_total): " << run_counter
+                                                                               << " / "
+                                                                               << failed_counter
+                                                                               << " / "
+                                                                               << total_runs
+                                                                               << " elapsed_time: "
+                                                                               << processing_time
+                                                                               << " best_time: "
+                                                                               << processing_time
+                                                                               << ", "
+                                                                               << result);
 
                         if(processing_time < min_proc_time)
                         {
@@ -527,6 +541,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
         MIOPEN_LOG_W("Searching the best solution in the 9 dim space. Please, be patient...");
         runs_left = /*n_grp_tiles * */ n_tiles_cnt * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls *
                     n_in_tls * stack_cnt;
+        total_runs = runs_left;
 
         // tile1
         for(int j = 0; j < n_tile1_sz; ++j)
@@ -633,10 +648,23 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
                                     --runs_left;
                                     if(ret != 0)
                                     {
+                                        ++failed_counter;
                                         continue;
                                     }
 
                                     is_passed = true;
+                                    MIOPEN_LOG_T("##(n_current, n_failed, n_runs_total): "
+                                                 << run_counter
+                                                 << " / "
+                                                 << failed_counter
+                                                 << " / "
+                                                 << total_runs
+                                                 << " elapsed_time: "
+                                                 << processing_time
+                                                 << " best_time: "
+                                                 << processing_time
+                                                 << ", "
+                                                 << result);
 
                                     if(processing_time < min_proc_time)
                                     {
