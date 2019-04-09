@@ -1,19 +1,19 @@
 /*******************************************************************************
- * 
+ *
  * MIT License
- * 
+ *
  * Copyright (c) 2017 Advanced Micro Devices, Inc.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,7 +21,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  *******************************************************************************/
 
 .set __auto_gpr_count_guard, 1
@@ -42,8 +42,10 @@
 	.set .AUTO_VGPR_COUNT, 0
 	.set .AUTO_SGPR_COUNT, 0
 	.set .AUTO_LDS_BYTE_SIZE, 0
+.ifnotdef EXPERIMENTAL_COv3	
 	.set .AUTO_VGPR_GRANULATED_COUNT, 0
 	.set .AUTO_SGPR_GRANULATED_COUNT, 0
+.endif	
 	.set __sgpr_reserve_vcc, 0
 	.set __sgpr_reserve_xnack, 0
 	.set __sgpr_reserve_flatscr, 0
@@ -146,8 +148,10 @@
 	.if .AUTO_SGPR_COUNT < (.SGPR_NEXT_FREE + __sgpr_additional_count)
 	    .AUTO_SGPR_COUNT = (.SGPR_NEXT_FREE + __sgpr_additional_count)
 	.endif
+.ifnotdef EXPERIMENTAL_COv3	
 	.AUTO_VGPR_GRANULATED_COUNT = (.AUTO_VGPR_COUNT - 1)/4
 	.AUTO_SGPR_GRANULATED_COUNT = (.AUTO_SGPR_COUNT - 1)/8
+.endif	
 	.AUTO_LDS_BYTE_SIZE = .LDS_NEXT_FREE
     __auto_gpr_count_guard = 1
 .endm

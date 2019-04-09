@@ -24,6 +24,14 @@
  *
  *******************************************************************************/
 
+.ifdef EXPERIMENTAL_COv3
+    .ifdef .option.machine_version_major
+        .error ".option.machine_version_major already defined"
+        .end
+    .endif
+    .set .option.machine_version_major, .amdgcn.gfx_generation_number
+.endif
+
 LAYOUT_DATA_NCHW = 0
 LAYOUT_DATA_CNHW = 1
 LAYOUT_DATA_NHWC = 2

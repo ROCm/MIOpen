@@ -1,19 +1,19 @@
 /*******************************************************************************
- * 
+ *
  * MIT License
- * 
+ *
  * Copyright (c) 2017 Advanced Micro Devices, Inc.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,18 +21,22 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  *******************************************************************************/
 
+.ifnotdef EXPERIMENTAL_COv3
 .hsa_code_object_version 2,1
 .hsa_code_object_isa
+.endif
 
 .text
 .globl gcnAsmConv3x3U
 .p2align 8
 .type gcnAsmConv3x3U,@function
-.amdgpu_hsa_kernel gcnAsmConv3x3U
 
+.ifnotdef EXPERIMENTAL_COv3
+.amdgpu_hsa_kernel gcnAsmConv3x3U
+.endif
 
 .include "gpr_alloc.inc"
 .include "common.inc"
@@ -562,6 +566,7 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
 //.p2align 8
 gcnAsmConv3x3U:
 
+.ifnotdef EXPERIMENTAL_COv3
   .amd_kernel_code_t
      enable_sgpr_kernarg_segment_ptr = 1
      compute_pgm_rsrc2_tgid_x_en = 1
@@ -579,6 +584,7 @@ gcnAsmConv3x3U:
      float_mode = 192
      //workgroup_group_segment_byte_size = 8192
   .end_amd_kernel_code_t
+.endif
 
 .if accums < linesA || accums < linesB || linesA == linesB
     .error "Error: check vgpr allocation"
@@ -656,7 +662,7 @@ gcnAsmConv3x3U:
         s_xor_b32 exec_lo, exec_lo, last_active_lane_mask
     .endif
     .if enable_zero_line_padding_on_read
-       _v_add_nc_u32 v[in_off_p], v[in_off_p], v[in_off] 
+       _v_add_nc_u32 v[in_off_p], v[in_off_p], v[in_off]
     .else
        _v_add_nc_u32 v[in_off_p], v[in_off_p], v[voffset]
     .endif
@@ -920,6 +926,89 @@ loop_end:
 .Lfunc_end0:
     .size gcnAsmConv3x3U, .Lfunc_end0 - gcnAsmConv3x3U
 
+.ifdef EXPERIMENTAL_COv3
+.rodata
+.p2align 6
+.amdhsa_kernel gcnAsmConv3x3U
+    //enable_sgpr_kernarg_segment_ptr = 1
+    .amdhsa_user_sgpr_kernarg_segment_ptr 1
+
+    // compute_pgm_rsrc2_tgid_x_en = 1
+    // compute_pgm_rsrc2_tgid_y_en = 1
+    // compute_pgm_rsrc2_tgid_z_en = 1
+    .amdhsa_system_sgpr_workgroup_id_x 1
+    .amdhsa_system_sgpr_workgroup_id_y 1
+    .amdhsa_system_sgpr_workgroup_id_z 1
+
+    // is_ptr64 = 1
+    // -> FIXME_COV3
+
+    // compute_pgm_rsrc1_vgprs = .AUTO_VGPR_GRANULATED_COUNT
+    // compute_pgm_rsrc1_sgprs = .AUTO_SGPR_GRANULATED_COUNT
+    .amdhsa_next_free_vgpr .AUTO_VGPR_COUNT
+    .amdhsa_next_free_sgpr .AUTO_SGPR_COUNT
+
+    // compute_pgm_rsrc2_tidig_comp_cnt = 1
+    .amdhsa_system_vgpr_workitem_id 1
+
+    // compute_pgm_rsrc2_user_sgpr = 2
+    // -> FIXME_COV3
+
+    // kernarg_segment_byte_size = 56
+    // -> metadata kernarg_segment_size
+
+    // wavefront_sgpr_count = .AUTO_SGPR_COUNT
+    // -> metadata sgpr_count
+
+    // workitem_vgpr_count = .AUTO_VGPR_COUNT
+    // -> metadata, vgpr_count
+
+    // float_mode = 192
+    // -> defaults are just the same
+.end_amdhsa_kernel
+
+// Workaround.
+// When YAML text is being processed, assembly-time constant expressions
+// are not computed, but we need to expand some symbols into text.
+// That is why we need METADATA and METADATA_WRAPPER macros.
+.macro METADATA sc,wc
+.amdgpu_metadata
+---
+amdhsa.version: [ 1, 0 ]
+amdhsa.kernels:
+  - .name: gcnAsmConv3x3U
+    .symbol: gcnAsmConv3x3U@kd
+    .sgpr_count: \sc
+    .vgpr_count: \wc
+    .language: "OpenCL C"
+    .language_version: [ 1, 2 ]
+    .kernarg_segment_size: 56
+    .group_segment_fixed_size: 0
+    .private_segment_fixed_size: 0
+    .kernarg_segment_align: 8
+    .wavefront_size: 64
+    .max_flat_workgroup_size: 512
+    .args:
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32, .name: in,      .address_space: global, .is_const: true }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32, .name: weights, .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 16, .value_kind: global_buffer, .value_type: f32, .name: out,     .address_space: global, .is_const: false }
+    - { .size: 4, .offset: 24, .value_kind: by_value,      .value_type: f32, .name: padding_val }
+    - { .size: 8, .offset: 32, .value_kind: hidden_global_offset_x, .value_type: i64 }
+    - { .size: 8, .offset: 40, .value_kind: hidden_global_offset_y, .value_type: i64 }
+    - { .size: 8, .offset: 48, .value_kind: hidden_global_offset_z, .value_type: i64 }
+...
+.end_amdgpu_metadata
+.endm // METADATA
+
+.altmacro
+.macro METADATA_WRAPPER sc,wc
+    METADATA %\sc, %\wc
+.endm
+
+METADATA_WRAPPER .AUTO_SGPR_COUNT,.AUTO_VGPR_COUNT
+.endif // .ifdef EXPERIMENTAL_COv3
+
+.ifnotdef EXPERIMENTAL_COv3
 .ifndef ROCM_METADATA_VERSION
 .error "ROCM_METADATA_VERSION must be defined"
 .end
@@ -1226,3 +1315,4 @@ loop_end:
     .Lmeta_end:
     .p2align 2
 .endif
+.endif //.ifnotdef EXPERIMENTAL_COv3
