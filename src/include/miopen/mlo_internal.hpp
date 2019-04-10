@@ -149,27 +149,27 @@ class StaticContainer
 };
 
 template <class TTo>
-size_t setTopDescFromMLDesc(TTo& to, const TensorDescriptor& tensor)
+size_t setTopDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor)
 {
-    return SetDescFromMLDesc(to, tensor, &TTo::setTopDescr);
+    return SetDescFromMLDesc(spatial_dims, to, tensor, &TTo::setTopDescr);
 }
 
 template <class TTo>
-size_t setBotDescFromMLDesc(TTo& to, const TensorDescriptor& tensor)
+size_t setBotDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor)
 {
-    return SetDescFromMLDesc(to, tensor, &TTo::setBotDescr);
+    return SetDescFromMLDesc(spatial_dims, to, tensor, &TTo::setBotDescr);
 }
 
 template <class TTo>
-size_t setTopDfDescFromMLDesc(TTo& to, const TensorDescriptor& tensor)
+size_t setTopDfDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor)
 {
-    return SetDescFromMLDesc(to, tensor, &TTo::setTopDfDescr);
+    return SetDescFromMLDesc(spatial_dims, to, tensor, &TTo::setTopDfDescr);
 }
 
 template <class TTo>
-size_t setBotDfDescFromMLDesc(TTo& to, const TensorDescriptor& tensor)
+size_t setBotDfDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor)
 {
-    return SetDescFromMLDesc(to, tensor, &TTo::setBotDfDescr);
+    return SetDescFromMLDesc(spatial_dims, to, tensor, &TTo::setBotDfDescr);
 }
 
 /// A leftover of the legacy design, houses problem config,
@@ -408,6 +408,7 @@ struct mlo_construct_direct2D
     void setTopDescr(const std::string& layout,
                      miopenDataType_t data_type,
                      int batch,
+                     int channels,
                      int depth,
                      int height,
                      int width,
@@ -419,6 +420,7 @@ struct mlo_construct_direct2D
         _search_params.setTopDescr(layout,
                                    data_type,
                                    batch,
+                                   channels,
                                    depth,
                                    height,
                                    width,
@@ -435,6 +437,7 @@ struct mlo_construct_direct2D
     void setBotDescr(const std::string& layout,
                      miopenDataType_t data_type,
                      int batch,
+                     int channels,
                      int depth,
                      int height,
                      int width,
@@ -446,6 +449,7 @@ struct mlo_construct_direct2D
         _search_params.setBotDescr(layout,
                                    data_type,
                                    batch,
+                                   channels,
                                    depth,
                                    height,
                                    width,
@@ -460,6 +464,7 @@ struct mlo_construct_direct2D
     void setTopDfDescr(const std::string& layout,
                        miopenDataType_t data_type,
                        int batch,
+                       int channels,
                        int depth,
                        int height,
                        int width,
@@ -471,6 +476,7 @@ struct mlo_construct_direct2D
         _search_params.setTopDfDescr(layout,
                                      data_type,
                                      batch,
+                                     channels,
                                      depth,
                                      height,
                                      width,
@@ -481,7 +487,7 @@ struct mlo_construct_direct2D
 
         int data_len = miopen::GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
-                          ? batch * depth * height * width * data_len
+                          ? batch * channels * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
         _out_df_width          = width;
@@ -501,6 +507,7 @@ struct mlo_construct_direct2D
     void setBotDfDescr(const std::string& layout,
                        miopenDataType_t data_type,
                        int batch,
+                       int channels,
                        int depth,
                        int height,
                        int width,
@@ -512,6 +519,7 @@ struct mlo_construct_direct2D
         _search_params.setBotDfDescr(layout,
                                      data_type,
                                      batch,
+                                     channels,
                                      depth,
                                      height,
                                      width,
@@ -522,7 +530,7 @@ struct mlo_construct_direct2D
 
         int data_len = miopen::GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
-                          ? batch * depth * height * width * data_len
+                          ? batch * channels * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
         _in_df_width          = width;
@@ -588,22 +596,22 @@ struct mlo_construct_direct2D
 
     size_t setTopDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setTopDescFromMLDesc(*this, tensor);
+        return miopen::setTopDescFromMLDesc(_search_params.spatial_dims, *this, tensor);
     }
 
     size_t setBotDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setBotDescFromMLDesc(*this, tensor);
+        return miopen::setBotDescFromMLDesc(_search_params.spatial_dims, *this, tensor);
     }
 
     size_t setTopDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setTopDfDescFromMLDesc(*this, tensor);
+        return miopen::setTopDfDescFromMLDesc(_search_params.spatial_dims, *this, tensor);
     }
 
     size_t setBotDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setBotDfDescFromMLDesc(*this, tensor);
+        return miopen::setBotDfDescFromMLDesc(_search_params.spatial_dims, *this, tensor);
     }
 
     bool mloIsFastBinaryWinograd3x3U() const;
