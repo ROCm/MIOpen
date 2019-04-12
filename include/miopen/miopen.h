@@ -758,7 +758,7 @@ miopenGetConvolutionForwardOutputDim(miopenConvolutionDescriptor_t convDesc,
  *
  * This function returns the dimensions of the resulting N-dimensional tensor of a (N-2)-dimensional
  * convolution, given the convolution descriptor, the input tensor descriptor
- * and the filter descriptor. It is used to setup the output tensor descriptor prior to executing 
+ * and the filter descriptor. It is used to setup the output tensor descriptor prior to executing
  * the convolution layer.
  *
  * @param convDesc          Convolution layer descriptor (input)
@@ -1261,7 +1261,7 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionBackwardBias(miopenHandle_t handle
 MIOPEN_EXPORT miopenStatus_t miopenCreatePoolingDescriptor(miopenPoolingDescriptor_t* poolDesc);
 
 /*! @brief Set index data type for pooling layer. The default indexing type is uint8_t.
- * Users can set the index type to any of the miopenIndexType_t sizes; 8, 16, 32, or 64 bit 
+ * Users can set the index type to any of the miopenIndexType_t sizes; 8, 16, 32, or 64 bit
  * unsigned integers.
  *
  * @param poolDesc     Pointer to a pooling layer descriptor (input)
@@ -1271,7 +1271,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreatePoolingDescriptor(miopenPoolingDescript
 MIOPEN_EXPORT miopenStatus_t miopenSetPoolingIndexType(miopenPoolingDescriptor_t poolDesc,
                                                        miopenIndexType_t index_type);
 
-/*! @brief Get the index data type for pooling layer. The index type to any of the 
+/*! @brief Get the index data type for pooling layer. The index type to any of the
  * miopenIndexType_t sizes; 8, 16, 32, or 64 bit unsigned integers.
  *
  * @param poolDesc     Pointer to a pooling layer descriptor (input)
@@ -1353,7 +1353,7 @@ miopenGetPoolingForwardOutputDim(const miopenPoolingDescriptor_t poolDesc,
  *
  * Retrieves the amount of workspace in bytes require for pooling. This call is required to
  * determine the amount of GPU memory needed for the backwards pooling algorithms. For max-
- * pooling, an assumption is that index data type is uint8_t, therefore the returned 
+ * pooling, an assumption is that index data type is uint8_t, therefore the returned
  * workspace size will be based on this assumption even if the user sets the index type with
  * miopenSetPoolingIndexType().
  *
