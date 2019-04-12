@@ -70,6 +70,7 @@ void visit_float(miopenDataType_t t, F f)
         f(as_float<half_float::half>{});
         break;
     }
+    case miopenInt8x4:
     case miopenInt8:
     {
         f(as_float<int8_t>{});

@@ -51,6 +51,41 @@ POSSIBILITY OF SUCH DAMAGE.
 #define MIOPEN
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
+#include <miopen/logger.hpp>
+
+static std::string get_pooling_index_type_name(miopenIndexType_t index_type)
+{
+    switch(index_type)
+    {
+    case miopenIndexUint8: { return "uchar";
+    }
+    case miopenIndexUint16: { return "ushort";
+    }
+    case miopenIndexUint32: { return "uint";
+    }
+    case miopenIndexUint64: { return "ulong";
+    }
+    }
+
+    MIOPEN_THROW("not belong to any case");
+}
+
+static std::string get_pooling_index_type_max_name(miopenIndexType_t index_type)
+{
+    switch(index_type)
+    {
+    case miopenIndexUint8: { return "UCHAR_MAX";
+    }
+    case miopenIndexUint16: { return "USHRT_MAX";
+    }
+    case miopenIndexUint32: { return "UINT_MAX";
+    }
+    case miopenIndexUint64: { return "ULONG_MAX";
+    }
+    }
+
+    MIOPEN_THROW("not belong to any case");
+}
 
 int mlo_construct_pooling2D::mloConstruct()
 {
@@ -76,8 +111,8 @@ int mlo_construct_pooling2D::mloConstructFwd()
     _grp_tile0 = 8;
     _grp_tile1 = 8;
 
-    _out_pix_tile0 = std::max(1, 8 / _search_params.kernel_stride0);
-    _out_pix_tile1 = std::max(1, 8 / _search_params.kernel_stride1);
+    _out_pix_tile0 = std::max(1, 8 / _search_params.kernel_stride_w);
+    _out_pix_tile1 = std::max(1, 8 / _search_params.kernel_stride_h);
 
     while(_out_pix_tile0 * _grp_tile0 > _search_params.out_width * 2 && _out_pix_tile0 > 1)
     {
@@ -92,17 +127,17 @@ int mlo_construct_pooling2D::mloConstructFwd()
     _comp_options = std::string(" -DMLO_POOLING_OP_ID=") +
                     std::to_string(static_cast<long long>(_pooling_method)) +
                     std::string(" -DMLO_POOLING_KERNEL_SZ1=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_size1)) +
+                    std::to_string(static_cast<long long>(_search_params.kernel_size_h)) +
                     std::string(" -DMLO_POOLING_PAD1=") +
-                    std::to_string(static_cast<long long>(_search_params.pad1)) +
+                    std::to_string(static_cast<long long>(_search_params.pad_h)) +
                     std::string(" -DMLO_POOLING_STRIDE1=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_stride1)) +
+                    std::to_string(static_cast<long long>(_search_params.kernel_stride_h)) +
                     std::string(" -DMLO_POOLING_KERNEL_SZ0=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_size0)) +
+                    std::to_string(static_cast<long long>(_search_params.kernel_size_w)) +
                     std::string(" -DMLO_POOLING_PAD0=") +
-                    std::to_string(static_cast<long long>(_search_params.pad0)) +
+                    std::to_string(static_cast<long long>(_search_params.pad_w)) +
                     std::string(" -DMLO_POOLING_STRIDE0=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_stride0)) +
+                    std::to_string(static_cast<long long>(_search_params.kernel_stride_w)) +
                     std::string(" -DMLO_POOLING_N_OUTPUTS=") +
                     std::to_string(static_cast<long long>(_search_params.n_outputs)) +
                     std::string(" -DMLO_POOLING_N_CHANNELS=") +
@@ -135,8 +170,11 @@ int mlo_construct_pooling2D::mloConstructFwd()
                     std::to_string(static_cast<long long>(_search_params.out_width)) +
                     std::string(" -DMLO_POOLING_TOP_HEIGHT=") +
                     std::to_string(static_cast<long long>(_search_params.out_height)) +
-                    std::string(_do_backward ? " -DMLO_POOLING_DO_BACKWARD" : "") +
-                    getGeneralCompOptions();
+                    std::string(_do_backward ? " -DMLO_POOLING_SAVE_INDEX" : "") +
+                    std::string(" -DMLO_POOLING_INDEX_TYPE=") +
+                    get_pooling_index_type_name(_index_type) +
+                    std::string(" -DMLO_POOLING_INDEX_MAX=") +
+                    get_pooling_index_type_max_name(_index_type) + getGeneralCompOptions();
 
     int g_wk_width = ((_search_params.out_width + _grp_tile0 * _out_pix_tile0 - 1) /
                       (_grp_tile0 * _out_pix_tile0));
@@ -173,17 +211,17 @@ int mlo_construct_pooling2D::mloConstructBwd()
     _out_pix_tile1 = (_search_params.out_height < _grp_tile1 * 2) ? 1 : 2;
 
     _comp_options = std::string(" -DMLO_POOLING_KERNEL_SZ1=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_size1)) +
+                    std::to_string(static_cast<long long>(_search_params.kernel_size_h)) +
                     std::string(" -DMLO_POOLING_PAD1=") +
-                    std::to_string(static_cast<long long>(_search_params.pad1)) +
+                    std::to_string(static_cast<long long>(_search_params.pad_h)) +
                     std::string(" -DMLO_POOLING_STRIDE1=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_stride1)) +
+                    std::to_string(static_cast<long long>(_search_params.kernel_stride_h)) +
                     std::string(" -DMLO_POOLING_KERNEL_SZ0=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_size0)) +
+                    std::to_string(static_cast<long long>(_search_params.kernel_size_w)) +
                     std::string(" -DMLO_POOLING_PAD0=") +
-                    std::to_string(static_cast<long long>(_search_params.pad0)) +
+                    std::to_string(static_cast<long long>(_search_params.pad_w)) +
                     std::string(" -DMLO_POOLING_STRIDE0=") +
-                    std::to_string(static_cast<long long>(_search_params.kernel_stride0)) +
+                    std::to_string(static_cast<long long>(_search_params.kernel_stride_w)) +
                     std::string(" -DMLO_POOLING_N_OUTPUTS=") +
                     std::to_string(static_cast<long long>(_search_params.n_outputs)) +
                     std::string(" -DMLO_POOLBWD_N_HORIZ_OUT_PIX=") +
@@ -213,9 +251,14 @@ int mlo_construct_pooling2D::mloConstructBwd()
                     std::string(" -DMLO_POOLBWD_TOPDF_CHANNEL_STRIDE=") +
                     std::to_string(static_cast<long long>(_out_df_channel_stride)) +
                     std::string(" -DMLO_POOLBWD_TOPDF_STRIDE=") +
-                    std::to_string(static_cast<long long>(_out_df_stride))
+                    std::to_string(static_cast<long long>(_out_df_stride)) +
+                    std::string(" -DMLO_POOLING_INDEX_TYPE=") +
+                    get_pooling_index_type_name(_index_type) +
+                    std::string(" -DMLO_POOLING_INDEX_MAX=") +
+                    get_pooling_index_type_max_name(_index_type) + getGeneralCompOptions();
 
-                    + getGeneralCompOptions();
+    if(_pooling_method == MLO_POOLING_OP_AVE_INCLUSIVE)
+        _comp_options = std::string(" -DMLO_POOLING_OP_AVE_INCLUSIVE") + _comp_options;
 
     int g_wk_width = ((_search_params.in_width + _grp_tile0 * _out_pix_tile0 - 1) /
                       (_grp_tile0 * _out_pix_tile0));
@@ -237,7 +280,8 @@ int mlo_construct_pooling2D::mloConstructBwd()
     {
         _kernel_name = "mloPoolingMaxBwd";
     }
-    else if(_pooling_method == MLO_POOLING_OP_AVE)
+    else if(_pooling_method == MLO_POOLING_OP_AVE ||
+            _pooling_method == MLO_POOLING_OP_AVE_INCLUSIVE)
     {
         _kernel_name = "mloPoolingAveBwd";
     }

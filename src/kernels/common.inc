@@ -137,3 +137,31 @@ log2 wave_size_log2, wave_size
         buffer_store_short v[\src], v[\off],  s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
     .endif
 .endm
+
+.macro u32_div numer, denom, uquo, v_tmp, s_tmp
+    v_cvt_f32_u32 v[\v_tmp+0], v[\denom]
+    v_rcp_f32     v[\v_tmp+0], v[\v_tmp+0]
+    v_mul_f32     v[\v_tmp+0], 0x4f800000, v[\v_tmp+0]
+    v_cvt_u32_f32 v[\v_tmp+0], v[\v_tmp+0]
+    v_mul_lo_u32  v[\v_tmp+1], v[\denom], v[\v_tmp+0]
+    v_mul_hi_u32  v[\v_tmp+2], v[\denom], v[\v_tmp+0]
+   _v_sub_co_u32  v[\v_tmp+3], vcc, 0, v[\v_tmp+1]
+    v_cmp_ne_i32  s[\s_tmp:\s_tmp+1], 0, v[\v_tmp+2]
+    v_cndmask_b32 v[\v_tmp+1], v[\v_tmp+3], v[\v_tmp+1], s[\s_tmp:\s_tmp+1]
+    v_mul_hi_u32  v[\v_tmp+1], v[\v_tmp+1], v[\v_tmp+0]
+   _v_sub_co_u32  v[\v_tmp+2], vcc, v[\v_tmp+0], v[\v_tmp+1]
+   _v_add_co_u32  v[\v_tmp+0], vcc, v[\v_tmp+0], v[\v_tmp+1]
+    v_cndmask_b32 v[\v_tmp+0], v[\v_tmp+0], v[\v_tmp+2], s[\s_tmp:\s_tmp+1]
+    v_mul_hi_u32  v[\v_tmp+0], v[\v_tmp+0], v[\numer]
+    v_mul_lo_u32  v[\v_tmp+1], v[\v_tmp+0], v[\denom]
+   _v_sub_co_u32  v[\v_tmp+2], vcc, v[\numer], v[\v_tmp+1]
+    v_cmp_ge_u32  s[\s_tmp:\s_tmp+1], v[\numer], v[\v_tmp+1]
+    v_cmp_ge_u32  s[\s_tmp+2:\s_tmp+3], v[\v_tmp+2], v[\denom]
+   _v_add_co_u32  v[\v_tmp+2], vcc, 1, v[\v_tmp+0]
+    s_and_b64     s[\s_tmp+2:\s_tmp+3], s[\s_tmp:\s_tmp+1], s[\s_tmp+2:\s_tmp+3]
+   _v_add_co_u32  v[\v_tmp+1], vcc, -1, v[\v_tmp+0]
+    v_cndmask_b32 v[\v_tmp+2], v[\v_tmp+0], v[\v_tmp+2], s[\s_tmp+2:\s_tmp+3]
+    v_cndmask_b32 v[\v_tmp+2], v[\v_tmp+1], v[\v_tmp+2], s[\s_tmp:\s_tmp+1]
+    v_cmp_ne_i32  vcc, 0, v[\denom]
+    v_cndmask_b32 v[\uquo], -1,  v[\v_tmp+2], vcc
+.endm

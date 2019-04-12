@@ -23,18 +23,34 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/pooling.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/tensor.hpp>
+
+#include <numeric>
 #include <algorithm>
 #include <array>
 #include <initializer_list>
-#include <miopen/errors.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/pooling.hpp>
-#include <numeric>
 
 extern "C" miopenStatus_t miopenCreatePoolingDescriptor(miopenPoolingDescriptor_t* poolDesc)
 {
     MIOPEN_LOG_FUNCTION(poolDesc);
     return miopen::try_([&] { miopen::deref(poolDesc) = new miopen::PoolingDescriptor(); });
+}
+
+extern "C" miopenStatus_t miopenSetPoolingIndexType(miopenPoolingDescriptor_t poolDesc,
+                                                    miopenIndexType_t index_type)
+{
+    MIOPEN_LOG_FUNCTION(poolDesc, index_type);
+    return miopen::try_([&] { miopen::deref(poolDesc).SetIndexType(index_type); });
+}
+
+extern "C" miopenStatus_t miopenGetPoolingIndexType(miopenPoolingDescriptor_t poolDesc,
+                                                    miopenIndexType_t* index_type)
+{
+    MIOPEN_LOG_FUNCTION(poolDesc, index_type);
+    return miopen::try_([&] { *index_type = miopen::deref(poolDesc).GetIndexType(); });
 }
 
 extern "C" miopenStatus_t miopenSet2dPoolingDescriptor(miopenPoolingDescriptor_t poolDesc,
@@ -43,15 +59,16 @@ extern "C" miopenStatus_t miopenSet2dPoolingDescriptor(miopenPoolingDescriptor_t
                                                        int windowWidth,
                                                        int pad_h,
                                                        int pad_w,
-                                                       int u,
-                                                       int v)
+                                                       int stride_h,
+                                                       int stride_w)
 {
 
-    MIOPEN_LOG_FUNCTION(poolDesc, mode, windowHeight, windowWidth, pad_h, pad_w, u, v);
+    MIOPEN_LOG_FUNCTION(
+        poolDesc, mode, windowHeight, windowWidth, pad_h, pad_w, stride_h, stride_w);
     return miopen::try_([&] {
         std::initializer_list<int> lens    = {windowHeight, windowWidth};
         std::initializer_list<int> pads    = {pad_h, pad_w};
-        std::initializer_list<int> strides = {u, v};
+        std::initializer_list<int> strides = {stride_h, stride_w};
         miopen::deref(poolDesc)            = miopen::PoolingDescriptor(
             mode, miopenPaddingDefault, lens.begin(), pads.begin(), strides.begin(), 2);
     });
@@ -63,16 +80,17 @@ extern "C" miopenStatus_t miopenGet2dPoolingDescriptor(const miopenPoolingDescri
                                                        int* windowWidth,
                                                        int* pad_h,
                                                        int* pad_w,
-                                                       int* u,
-                                                       int* v)
+                                                       int* stride_h,
+                                                       int* stride_w)
 {
 
-    MIOPEN_LOG_FUNCTION(poolDesc, mode, windowHeight, windowWidth, pad_h, pad_w, u, v);
+    MIOPEN_LOG_FUNCTION(
+        poolDesc, mode, windowHeight, windowWidth, pad_h, pad_w, stride_h, stride_w);
     return miopen::try_([&] {
         miopen::deref(mode) = miopen::deref(poolDesc).mode;
         std::tie(miopen::deref(windowHeight), miopen::deref(windowWidth)) =
             miopen::tien<2>(miopen::deref(poolDesc).GetLengths());
-        std::tie(miopen::deref(u), miopen::deref(v)) =
+        std::tie(miopen::deref(stride_h), miopen::deref(stride_w)) =
             miopen::tien<2>(miopen::deref(poolDesc).GetStrides());
         std::tie(miopen::deref(pad_h), miopen::deref(pad_w)) =
             miopen::tien<2>(miopen::deref(poolDesc).GetPads());
@@ -155,6 +173,7 @@ miopenGetPoolingForwardOutputDim(const miopenPoolingDescriptor_t poolDesc,
     });
 }
 
+// this should deprecate because it assume we are always using uint8_t for max pooling indexing
 extern "C" miopenStatus_t miopenPoolingGetWorkSpaceSize(const miopenTensorDescriptor_t yDesc,
                                                         size_t* workSpaceSize)
 {
@@ -165,6 +184,16 @@ extern "C" miopenStatus_t miopenPoolingGetWorkSpaceSize(const miopenTensorDescri
         size_t sz = std::accumulate(len.begin(), len.end(), 1, std::multiplies<int>());
         miopen::deref(workSpaceSize) = sz * sizeof(uint8_t);
     });
+}
+
+extern "C" miopenStatus_t miopenPoolingGetWorkSpaceSizeV2(const miopenPoolingDescriptor_t poolDesc,
+                                                          const miopenTensorDescriptor_t yDesc,
+                                                          size_t* workSpaceSize)
+{
+
+    MIOPEN_LOG_FUNCTION(poolDesc, yDesc, workSpaceSize);
+    return miopen::try_(
+        [&] { *workSpaceSize = miopen::deref(poolDesc).GetWorkSpaceSize(miopen::deref(yDesc)); });
 }
 
 extern "C" miopenStatus_t miopenPoolingForward(miopenHandle_t handle,
@@ -205,7 +234,10 @@ extern "C" miopenStatus_t miopenPoolingForward(miopenHandle_t handle,
                   << " -p " << miopen::deref(poolDesc).pads[0] << " -q "
                   << miopen::deref(poolDesc).pads[1] << " -u " << miopen::deref(poolDesc).strides[0]
                   << " -v " << miopen::deref(poolDesc).strides[1] << " -m "
-                  << (miopen::deref(poolDesc).mode == 1 ? "avg" : "max") << " -t "
+                  << (miopen::deref(poolDesc).mode == 0
+                          ? "max"
+                          : (miopen::deref(poolDesc).mode == 1 ? "avg" : "avg_in"))
+                  << " -t "
                   << "1"
                   << "\n";
     }
@@ -264,7 +296,10 @@ extern "C" miopenStatus_t miopenPoolingBackward(miopenHandle_t handle,
                   << " -p " << miopen::deref(poolDesc).pads[0] << " -q "
                   << miopen::deref(poolDesc).pads[1] << " -u " << miopen::deref(poolDesc).strides[0]
                   << " -v " << miopen::deref(poolDesc).strides[1] << " -m "
-                  << (miopen::deref(poolDesc).mode == 1 ? "avg" : "max") << " -t "
+                  << (miopen::deref(poolDesc).mode == 0
+                          ? "max"
+                          : (miopen::deref(poolDesc).mode == 1 ? "avg" : "avg_in"))
+                  << " -t "
                   << "1"
                   << "\n";
     }

@@ -1,12 +1,43 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
 #include <miopen/check_numerics.hpp>
-#include <miopen/logger.hpp>
 #include <miopen/env.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_CHECK_NUMERICS)
 
-int CheckNumericsEnabled(int bitMask) { return (miopen::Value(MIOPEN_CHECK_NUMERICS{})) & bitMask; }
+int CheckNumericsEnabled(int bitMask)
+{
+    return static_cast<int>((miopen::Value(MIOPEN_CHECK_NUMERICS{}))) & bitMask;
+}
 
 // Must keep this structure synchronized with one in MIOpenCheckNumerics
 struct CheckNumericsResult
@@ -28,7 +59,7 @@ bool checkNumericsImpl(
 
     // TODO - some constants we should get from the device:
     const int blockSize             = 256;
-    const int numBlocks             = handle.GetMaxComputeUnits() * 6;
+    const auto numBlocks            = handle.GetMaxComputeUnits() * 6;
     const size_t numGlobalWorkItems = blockSize * numBlocks;
 
     const int computeStats = (mode & CheckNumerics::ComputeStats);
@@ -104,7 +135,8 @@ bool checkNumericsImpl(
 // Returns: 1 if abnormal value (inf or nan) detected in specified data, 0 otherwise
 bool checkNumericsInput(Handle& handle, const TensorDescriptor& dDesc, ConstData_t data)
 {
-    return checkNumericsImpl(handle, miopen::Value(MIOPEN_CHECK_NUMERICS{}), dDesc, data, true);
+    return checkNumericsImpl(
+        handle, static_cast<int>(miopen::Value(MIOPEN_CHECK_NUMERICS{})), dDesc, data, true);
 }
 
 // Synchronizes to wait for kernel to finish, then checks data for output:
@@ -113,7 +145,8 @@ bool checkNumericsOutput(Handle& handle, const TensorDescriptor& dDesc, ConstDat
 {
     handle.Finish();
 
-    return checkNumericsImpl(handle, miopen::Value(MIOPEN_CHECK_NUMERICS{}), dDesc, data, false);
+    return checkNumericsImpl(
+        handle, static_cast<int>(miopen::Value(MIOPEN_CHECK_NUMERICS{})), dDesc, data, false);
 }
 
 } // namespace miopen

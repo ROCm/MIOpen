@@ -92,7 +92,7 @@ void ADNN_mm_cpu(const Dtype* a_ptr,
         {
             for(size_t k = 0; k < c_cols; ++k)
             {
-                Dtype mm_e = 0;
+                Dtype mm_e = static_cast<Dtype>(0);
                 for(size_t m = 0; m < inner_loop; ++m)
                 {
                     mm_e += a_ptr[n * a_stride + m] * b_ptr[m * b_stride + k];
@@ -108,7 +108,7 @@ void ADNN_mm_cpu(const Dtype* a_ptr,
             for(size_t k = 0; k < c_cols; ++k)
             {
 
-                Dtype mm_e = 0;
+                Dtype mm_e = static_cast<Dtype>(0);
                 for(size_t m = 0; m < inner_loop; ++m)
                 {
                     mm_e += a_ptr[m * a_stride + n] * b_ptr[m * b_stride + k];
@@ -139,7 +139,7 @@ void ADNN_mm_cpu(const Dtype* a_ptr,
         {
             for(size_t k = 0; k < c_cols; ++k)
             {
-                Dtype mm_e = 0;
+                Dtype mm_e = static_cast<Dtype>(0);
 
                 for(size_t m = 0; m < inner_loop; ++m)
                 {
@@ -161,7 +161,7 @@ void ADNN_mm_cpu(const Dtype* a_ptr,
         {
             for(size_t k = 0; k < c_cols; ++k)
             {
-                Dtype mm_e = 0;
+                Dtype mm_e = static_cast<Dtype>(0);
                 for(size_t m = 0; m < inner_loop; ++m)
                 {
                     c_ptr[n * c_stride + k] += a_ptr[m * a_stride + n] * b_ptr[k * b_stride + m];
@@ -261,13 +261,13 @@ void ADNN_col2im_cpu(const Dtype* data_col,
 
 template <typename _T>
 int mloConvForwarDirectOnHost(
-    _T padding_value, // padding value
-    int kernel_size1, // kernel 1 dim
-    int pad1,         // padding size
-    int stride1,      // scale factor
-    int kernel_size0, // kernel 1 dim
-    int pad0,         // padding size
-    int stride0,      // scale factor
+    _T padding_value,  // padding value
+    int filter_size_h, // kernel 1 dim
+    int pad_h,         // padding size
+    int conv_stride_h, // scale factor
+    int filter_size_w, // kernel 1 dim
+    int pad_w,         // padding size
+    int conv_stride_w, // scale factor
     int n_batchs,
     int n_outputs,
     int n_inputs,
@@ -316,13 +316,13 @@ int mloConvForwarDirectOnHost(
                     {
                         // do convolution with kernel kernel_size x kerenl_size
                         // with padding - left, right, top, bottom = pad, and value = 0
-                        for(int k_j = 0; k_j < kernel_size1; k_j++)
+                        for(int k_j = 0; k_j < filter_size_h; k_j++)
                         {
 
-                            int in_y = (j * stride1 + k_j - pad1);
-                            for(int k_i = 0; k_i < kernel_size0; k_i++)
+                            int in_y = (j * conv_stride_h + k_j - pad_h);
+                            for(int k_i = 0; k_i < filter_size_w; k_i++)
                             {
-                                int in_x    = (i * stride0 + k_i - pad0);
+                                int in_x    = (i * conv_stride_w + k_i - pad_w);
                                 _T data_val = padding_value;
                                 if(!(in_y < 0 || in_x < 0 || in_y >= bot_height ||
                                      in_x >= bot_width))
@@ -333,8 +333,8 @@ int mloConvForwarDirectOnHost(
                                 }
 
                                 _T wei_val = run_weights_ptr[o * weights_stride +
-                                                             c * kernel_size1 * kernel_size0 +
-                                                             k_j * kernel_size0 + k_i];
+                                                             c * filter_size_h * filter_size_w +
+                                                             k_j * filter_size_w + k_i];
 
                                 accum += data_val * wei_val;
 #if 0
@@ -439,12 +439,12 @@ template <typename _T>
 int mloBackwardDirectOnHost(
     _T /*padding_value*/, // padding value
     // TO DO: check top, bot dim are equal
-    int kernel_size1, // kernel 1 dim
-    int pad1,         // padding size
-    int stride1,      // scale factor
-    int kernel_size0, // kernel 1 dim
-    int pad0,         // padding size
-    int stride0,      // scale factor
+    int filter_size_h, // kernel 1 dim
+    int pad_h,         // padding size
+    int conv_stride_h, // scale factor
+    int filter_size_w, // kernel 1 dim
+    int pad_w,         // padding size
+    int conv_stride_w, // scale factor
     int n_batchs,
     int n_outputs,
     int n_inputs,
@@ -496,20 +496,20 @@ int mloBackwardDirectOnHost(
                         _T accum = 0;
                         // do convolution with kernel kernel_size x kerenl_size
                         // with padding - left, right, top, bottom = pad, and value = 0
-                        for(int k_j = 0; k_j < kernel_size1; ++k_j)
+                        for(int k_j = 0; k_j < filter_size_h; ++k_j)
                         {
-                            int bot_y = (j * stride1 + k_j - pad1);
-                            //	int top_y = (j + kernel_size1 - 1 - k_j);
-                            for(int k_i = 0; k_i < kernel_size0; ++k_i)
+                            int bot_y = (j * conv_stride_h + k_j - pad_h);
+                            //	int top_y = (j + filter_size_h - 1 - k_j);
+                            for(int k_i = 0; k_i < filter_size_w; ++k_i)
                             {
-                                // int top_x = (i + kernel_size0 - 1 - k_i);
-                                int bot_x = (i * stride0 + k_i - pad0);
+                                // int top_x = (i + filter_size_w - 1 - k_i);
+                                int bot_x = (i * conv_stride_w + k_i - pad_w);
                                 if(!(bot_y < 0 || bot_x < 0 || bot_y >= bot_height ||
                                      bot_x >= bot_width))
                                 {
                                     _T wei_val = run_weights_ptr[o * weights_stride +
-                                                                 c * kernel_size1 * kernel_size0 +
-                                                                 k_j * kernel_size0 + k_i];
+                                                                 c * filter_size_h * filter_size_w +
+                                                                 k_j * filter_size_w + k_i];
 
                                     int bot_data_off =
                                         c * bot_channel_stride + bot_y * bot_stride + bot_x;
@@ -549,8 +549,8 @@ void mloPrepad(int o,
                int j,
                int i,
                _T padding_value, // padding value
-               int pad0,         // padding size
-               int pad1,         // padding size
+               int pad_w,        // padding size
+               int pad_h,        // padding size
                int bot_batch_stride,
                int bot_channel_stride,
                int bot_stride,
@@ -566,8 +566,8 @@ void mloPrepad(int o,
                                  // slices) x width x height
                )
 {
-    int src_j   = j - pad1;
-    int src_i   = i - pad0;
+    int src_j   = j - pad_h;
+    int src_i   = i - pad_w;
     int src_off = o * bot_batch_stride + c * bot_channel_stride + src_j * bot_stride + src_i;
     int dst_off = o * new_bot_batch_stride + c * new_bot_channel_stride + j * new_bot_stride + i;
 
@@ -583,8 +583,8 @@ void mloPrepad(int o,
 
 template <typename _T>
 int mloDirectSPHostPrepad(_T padding_value, // padding value
-                          int pad0,         // padding size
-                          int pad1,         // padding size
+                          int pad_w,        // padding size
+                          int pad_h,        // padding size
                           int n_batchs,
                           int n_inputs,
                           int bot_batch_stride,
@@ -616,8 +616,8 @@ int mloDirectSPHostPrepad(_T padding_value, // padding value
                                   j,
                                   i,
                                   padding_value, // padding value
-                                  pad0,          // padding size
-                                  pad1,          // padding size
+                                  pad_w,         // padding size
+                                  pad_h,         // padding size
                                   bot_batch_stride,
                                   bot_channel_stride,
                                   bot_stride,
@@ -653,26 +653,26 @@ void mloInterleavelWeightsInOutputs(int c,
                                     int o,
                                     int k_j,
                                     int k_i,
-                                    int kernel_size0, // kernel 1 dim
-                                    int kernel_size1, // kernel 1 dim
+                                    int filter_size_w, // kernel 1 dim
+                                    int filter_size_h, // kernel 1 dim
                                     int n_outputs,
                                     int MLO_N_OUT_TILES,
                                     int n_inputs,
                                     const _T* wei_ptr,
                                     _T* new_wei_ptr)
 {
-    int src_off = (o_block * MLO_N_OUT_TILES + o) * n_inputs * kernel_size1 * kernel_size0 +
-                  c * kernel_size1 * kernel_size0 + k_j * kernel_size0 + k_i;
-    int dst_off = c * n_outputs * kernel_size1 * kernel_size0 +
-                  o_block * MLO_N_OUT_TILES * kernel_size1 * kernel_size0 +
-                  MLO_N_OUT_TILES * k_j * kernel_size0 + o * kernel_size0 + k_i;
+    int src_off = (o_block * MLO_N_OUT_TILES + o) * n_inputs * filter_size_h * filter_size_w +
+                  c * filter_size_h * filter_size_w + k_j * filter_size_w + k_i;
+    int dst_off = c * n_outputs * filter_size_h * filter_size_w +
+                  o_block * MLO_N_OUT_TILES * filter_size_h * filter_size_w +
+                  MLO_N_OUT_TILES * k_j * filter_size_w + o * filter_size_w + k_i;
     new_wei_ptr[dst_off] = wei_ptr[src_off];
 }
 
 template <typename _T>
-void mloDirectSPHostIntlWeights(bool forward,     // forwad = 1, backward = 0
-                                int kernel_size0, // kernel 1 dim
-                                int kernel_size1, // kernel 1 dim
+void mloDirectSPHostIntlWeights(bool forward,      // forwad = 1, backward = 0
+                                int filter_size_w, // kernel 1 dim
+                                int filter_size_h, // kernel 1 dim
                                 int n_outputs,
                                 int n_inputs,
                                 int MLO_N_OUT_TILES,
@@ -692,17 +692,17 @@ void mloDirectSPHostIntlWeights(bool forward,     // forwad = 1, backward = 0
                 for(int o = 0; o < MLO_N_OUT_TILES && o_block * MLO_N_OUT_TILES + o < n_outputs;
                     ++o)
                 {
-                    for(int k_j = 0; k_j < kernel_size1; ++k_j)
+                    for(int k_j = 0; k_j < filter_size_h; ++k_j)
                     {
-                        for(int k_i = 0; k_i < kernel_size0; ++k_i)
+                        for(int k_i = 0; k_i < filter_size_w; ++k_i)
                         {
                             mloInterleavelWeightsInOutputs(c,
                                                            o_block,
                                                            o,
                                                            k_j,
                                                            k_i,
-                                                           kernel_size0, // kernel 1 dim
-                                                           kernel_size1, // kernel 1 dim
+                                                           filter_size_w, // kernel 1 dim
+                                                           filter_size_h, // kernel 1 dim
                                                            n_outputs,
                                                            MLO_N_OUT_TILES,
                                                            n_inputs,
@@ -919,12 +919,12 @@ int mloDirectSPHost(
     bool do_input_copy,
     _T padding_value, // padding value
     // TO DO: check top, bot dim are equal
-    int kernel_size0, // kernel 1 dim
-    int pad0,         // padding size
-    int /*stride0*/,  // scale factor
-    int kernel_size1, // kernel 1 dim
-    int pad1,         // padding size
-    int /*stride1*/,  // scale factor
+    int filter_size_w,     // kernel 1 dim
+    int pad_w,             // padding size
+    int /*conv_stride_w*/, // scale factor
+    int filter_size_h,     // kernel 1 dim
+    int pad_h,             // padding size
+    int /*conv_stride_h*/, // scale factor
     int n_batchs,
     int n_outputs,
     int top_batch_stride,
@@ -960,8 +960,8 @@ int mloDirectSPHost(
     if(do_input_copy)
     {
         mloDirectSPHostPrepad<_T>(padding_value, // padding value
-                                  pad0,          // padding size
-                                  pad1,          // padding size
+                                  pad_w,         // padding size
+                                  pad_h,         // padding size
                                   n_batchs,
                                   n_inputs,
                                   bot_batch_stride,
@@ -980,9 +980,9 @@ int mloDirectSPHost(
                                   );
     }
 
-    mloDirectSPHostIntlWeights<_T>(forward,      // forwad = 1, backward = 0
-                                   kernel_size0, // kernel 1 dim
-                                   kernel_size1, // kernel 1 dim
+    mloDirectSPHostIntlWeights<_T>(forward,       // forwad = 1, backward = 0
+                                   filter_size_w, // kernel 1 dim
+                                   filter_size_h, // kernel 1 dim
                                    n_outputs,
                                    n_inputs,
                                    MLO_N_OUT_TILES,
@@ -994,8 +994,8 @@ int mloDirectSPHost(
                                MLO_OUT_TILE1,
                                MLO_OUT_TILE0,
                                MLO_N_OUT_TILES,
-                               kernel_size1,
-                               kernel_size0,
+                               filter_size_h,
+                               filter_size_w,
                                n_batchs,
                                n_outputs,
                                top_batch_stride,

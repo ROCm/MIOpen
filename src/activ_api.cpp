@@ -23,11 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <array>
-#include <initializer_list>
 #include <miopen/activ.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/tensor.hpp>
+
+#include <array>
+#include <initializer_list>
 
 extern "C" miopenStatus_t miopenCreateActivationDescriptor(miopenActivationDescriptor_t* activDesc)
 {
@@ -101,7 +104,7 @@ extern "C" miopenStatus_t miopenActivationBackward(miopenHandle_t handle,
                                                    const miopenTensorDescriptor_t dxDesc,
                                                    void* dx)
 {
-    MIOPEN_LOG_FUNCTION(activDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx)
+    MIOPEN_LOG_FUNCTION(activDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx);
 
     return miopen::try_([&] {
         miopen::deref(activDesc).Backward(miopen::deref(handle),
@@ -121,6 +124,6 @@ extern "C" miopenStatus_t miopenActivationBackward(miopenHandle_t handle,
 extern "C" miopenStatus_t miopenDestroyActivationDescriptor(miopenActivationDescriptor_t activDesc)
 {
 
-    MIOPEN_LOG_FUNCTION(activDesc)
+    MIOPEN_LOG_FUNCTION(activDesc);
     return miopen::try_([&] { miopen_destroy_object(activDesc); });
 }

@@ -92,7 +92,6 @@ std::vector<miopen::solver::ConvSolution> mlo_construct_direct2D::FindAllSolutio
         miopen::solver::ConvOclDirectFwdGen,
         miopen::solver::ConvOclDirectFwd3x3,
         miopen::solver::ConvOclDirectFwd1x1,
-        miopen::solver::GroupConvOclDirectFwd,
         miopen::solver::ConvOclDirectFwd
     >(_search_params, this->GetDb());
     // clang-format on
@@ -108,13 +107,27 @@ miopen::solver::ConvSolution mlo_construct_winograd::FindSolution()
     // clang-format on
 }
 
+miopen::solver::ConvSolution mlo_construct_winograd_wrw::FindSolution()
+{
+    // clang-format off
+    return miopen::solver::SearchForSolution<
+        miopen::solver::ConvBinWinogradRxS
+    >(_search_params, this->GetDb());
+    // clang-format on
+}
+
 std::vector<miopen::solver::ConvSolution> mlo_construct_BwdWrW2D::FindAllSolutions()
 {
     // clang-format off
     return miopen::solver::SearchForAllSolutions<
         miopen::solver::ConvAsmBwdWrW1x1,
         miopen::solver::ConvAsmBwdWrW3x3,
-        miopen::solver::ConvOclBwdWrW2,
+        miopen::solver::ConvOclBwdWrW2<1>,
+        miopen::solver::ConvOclBwdWrW2<2>,
+        miopen::solver::ConvOclBwdWrW2<4>,
+        miopen::solver::ConvOclBwdWrW2<8>,
+        miopen::solver::ConvOclBwdWrW2<16>,
+        miopen::solver::ConvOclBwdWrW2NonTunable,
         miopen::solver::ConvOclBwdWrW53,
         miopen::solver::ConvOclBwdWrW1x1
     >(_search_params, this->GetDb());
@@ -232,17 +245,45 @@ static bool mloIsAmdRocmOpencl(miopen::ConvolutionContext& context)
 
 void mlo_construct_direct2D::setupFloats()
 {
-    if(_search_params.float_size == 32)
+    if(_search_params.IsFp32())
     {
         _search_params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
     }
-    else if(_search_params.float_size == 16)
+    else if(_search_params.IsFp16())
     {
         _search_params.general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1";
     }
+    else
+    {
+        MIOPEN_LOG_W("Unsupported data types configuration: "
+                     << miopen::GetDataTypeName(_search_params.in_data_type)
+                     << "x"
+                     << miopen::GetDataTypeName(_search_params.weights_data_type)
+                     << "x"
+                     << miopen::GetDataTypeName(_search_params.out_data_type));
+    }
 }
 
-void mlo_construct_direct2D::setupRocm()
+void mlo_construct_activ_lrn_pooling_common::setupFloats()
+{
+    if(_search_params.in_data_type == miopenFloat && _search_params.out_data_type == miopenFloat)
+    {
+        _search_params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
+    }
+    else if(_search_params.in_data_type == miopenHalf && _search_params.out_data_type == miopenHalf)
+    {
+        _search_params.general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1";
+    }
+    else
+    {
+        MIOPEN_LOG_W("Unsupported data types configuration: "
+                     << miopen::GetDataTypeName(_search_params.in_data_type)
+                     << "x"
+                     << miopen::GetDataTypeName(_search_params.out_data_type));
+    }
+}
+
+void mlo_construct_direct2D::detectRocm()
 {
     // Detect assembly kernels
     _search_params.use_binaries    = false;

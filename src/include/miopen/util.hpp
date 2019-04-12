@@ -26,53 +26,44 @@
 #ifndef MIOPEN_UTIL_HPP_
 #define MIOPEN_UTIL_HPP_
 
-#include "miopen/common.hpp"
-#include <miopen/errors.hpp>
-#include <miopen/handle.hpp>
+#include <miopen/common.hpp>
 #include <miopen/miopen.h>
-#include <miopen/tensor.hpp>
-#include <miopen/tensor_ops.hpp>
+
+#include <boost/range/adaptors.hpp>
 
 namespace miopen {
 
-float Im2ColGPU(Handle& handle,
-                int data_size,
-                ConstData_t im,
-                int im_offset,
-                int c,
-                int h,
-                int w,
-                int wei_h,
-                int wei_w,
-                int out_h,
-                int out_w,
-                int pad_h,
-                int pad_w,
-                int stride_h,
-                int stride_w,
-                int dilation_h,
-                int dilation_w,
-                Data_t col,
-                miopenDataType_t type);
+struct Handle;
 
-float Col2ImGPU(Handle& handle,
-                ConstData_t col,
-                int col_h,
-                int col_w,
-                int wei_h,
-                int wei_w,
-                int pad_h,
-                int pad_w,
-                int stride_h,
-                int stride_w,
-                int dilation_h,
-                int dilation_w,
-                int c,
-                int h,
-                int w,
-                Data_t im,
-                int im_offset,
-                miopenDataType_t type);
+float Im2ColGPU(
+    Handle& handle,
+    std::size_t spatial_dim,
+    ConstData_t im,
+    std::size_t im_offset,
+    std::size_t in_c,
+    const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& in_spatial,
+    const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& wei_spatial,
+    const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& out_spatial,
+    const std::vector<int>& pad_spatial,
+    const std::vector<int>& stride_spatial,
+    const std::vector<int>& dilation_spatial,
+    Data_t col,
+    miopenDataType_t type);
+
+float Col2ImGPU(
+    Handle& handle,
+    std::size_t spatial_dim,
+    ConstData_t col,
+    const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& out_spatial,
+    const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& wei_spatial,
+    const std::vector<int>& pad_spatial,
+    const std::vector<int>& stride_spatial,
+    const std::vector<int>& dilation_spatial,
+    std::size_t in_c,
+    const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& in_spatial,
+    Data_t im,
+    std::size_t im_offset,
+    miopenDataType_t type);
 
 float transpose_NCHW2CNHW(Handle& handle,
                           int n,
@@ -104,6 +95,22 @@ float transpose_CNHW2NCHW(Handle& handle,
                           int w_stride,
                           miopenDataType_t type);
 
+float transpose_NCHW2Vec(Handle& handle,
+                         const std::vector<std::size_t>& lens,
+                         ConstData_t in,
+                         Data_t out,
+                         std::size_t vec_size,
+                         bool trans,
+                         bool forward);
+
+float transpose_packed_MN2NM(Handle& handle,
+                             int m,
+                             int n,
+                             int in_offset,
+                             int out_offset,
+                             ConstData_t in,
+                             Data_t out,
+                             miopenDataType_t type);
 } // namespace miopen
 
 #endif // _MIOPEN_UTIL_HPP_

@@ -30,14 +30,10 @@
 #define FOUR 4
 #define EIGHT 8
 
-// For FP16 cases, this kernel use FP16 accumulator, because using FP32
-// accumulator will results in substantial performance drop.
-// Please refer to PR 1245 for details
-// TODO: Revisit this if FP16 case failure occurs
 #if MIOPEN_USE_FP16 == 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
-#define _FLOAT_ACCUM half
+#define _FLOAT_ACCUM float
 #ifndef HALF_MAX
 #define MAX_VAL 65504 /* max value */
 #else
@@ -137,17 +133,7 @@
 #define MLO_LCL_SZ (MLO_WEI_BLKS_LCL_SZ)
 #endif
 
-__attribute__((always_inline)) uint iDiv(uint v, uint d)
-{
-    uint r = v / d;
-    return (r);
-}
-
-__attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24((uint)u, (uint)d);
-    return (r);
-}
+#include "math_ops.h"
 
 /*********************************************************************************************************
 // wrw algorithm for large filters
@@ -544,7 +530,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                                 _FLOAT i_val = i_vals[w];
 
                                 pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] +=
-                                    i_val * o_val;
+                                    (_FLOAT_ACCUM)i_val * (_FLOAT_ACCUM)o_val;
                             } // for (/*uint w = 0*/; w < MLO_WEI_WKITEM; ++w)
                         }     // for (uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
 

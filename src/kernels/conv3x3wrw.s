@@ -58,29 +58,7 @@ gid_z = 4
 .set out_ptr_off, 0x30
 .set dbg_ptr_off, 0x38
 
-
-.macro default symbol, value
-   .ifnotdef \symbol
-      \symbol = \value
-   .endif
-   .if \symbol < 0
-      .error "\symbol is negative"
-      // reset to default - quiet further error messages
-      \symbol = \value
-   .endif
-.endm
-
-.macro static_assert fufufu
-   .if !\fufufu
-      .error "\fufufu is false"
-   .endif
-.endm
-
-.macro swap a, b
-   __tmp = \a
-   \a = \b
-   \b = __tmp
-.endm
+.include "common.inc"
 
 default c_per_wave, 4
 default k_per_wave, 4
@@ -94,7 +72,6 @@ default reverse_weights, 0
 default elements_in_dword, 1
 static_assert(elements_in_dword == 1 || elements_in_dword == 2)
 .if elements_in_dword == 2
-   static_assert (stride_h == 1 && stride_w == 1)
    static_assert ((batch_size % elements_in_dword) == 0)
    static_assert (.option.machine_version_major >= 9)
 .endif
@@ -126,17 +103,6 @@ static_assert (n_per_group <= batch_size)
 static_assert (c_per_wave * chunk_size == 64)
 static_assert (k_per_wave * chunk_size <= 64)
 
-.macro log2 lg2, num, max_bits=8
-   \lg2 = 0
-   lg_i = \num
-   .rept \max_bits
-      lg_i = lg_i / 2
-      .if lg_i > 0
-         \lg2 = \lg2 + 1
-      .endif
-   .endr
-.endm
-
 log2 c_per_wave_log2, c_per_wave
 log2 k_per_wave_log2, k_per_wave
 
@@ -150,8 +116,8 @@ static_assert (output_feature_map_size < maxU24)
 
 w_half_in = img_w % elements_in_dword
 w_half_out = out_w % elements_in_dword
-img_w_vec = (img_w + elements_in_dword - 1) / elements_in_dword 
-out_w_vec = (out_w + elements_in_dword - 1) / elements_in_dword 
+img_w_vec = (img_w + elements_in_dword - 1) / elements_in_dword
+out_w_vec = (out_w + elements_in_dword - 1) / elements_in_dword
 
 // chunk parameters
 log2 chunk_size_log2, chunk_size
@@ -186,8 +152,8 @@ partial_chunks_in = chunks_in - full_chunks_in
 partial_chunks_out = chunks_out - full_chunks_out
 mbufs_per_line_in = (full_chunks_in + 3) / 4 + (partial_chunks_in + 3) / 4 // memory buffer instructions per line
 mbufs_per_line_out = (full_chunks_out + 3) / 4 + (partial_chunks_out + 3) / 4 // memory buffer instructions per line
-mbufs_per_line_in = mbufs_per_line_in + w_half_in 
-mbufs_per_line_out = mbufs_per_line_out + w_half_out 
+mbufs_per_line_in = mbufs_per_line_in + w_half_in
+mbufs_per_line_out = mbufs_per_line_out + w_half_out
 gprs_per_line_in = full_chunks_in + partial_chunks_in
 gprs_per_line_out = full_chunks_out + partial_chunks_out
 gprs_per_batch_in = gprs_per_line_in * lines_cnt_in
@@ -217,22 +183,6 @@ output_buffer_size = output_stack_size * batch_size
    .set max_hw_vctn, 63
 .endif
 max_hw_lcnt = 15
-.macro s_wait vmcnt=max_hw_vctn, lgkmcnt=max_hw_lcnt
-   vm_cnt = \vmcnt
-   lgkm_cnt = \lgkmcnt
-   .if vm_cnt > max_hw_vctn
-      vm_cnt = max_hw_vctn
-   .elseif vm_cnt < 0
-      vm_cnt = 0
-   .endif
-   .if lgkm_cnt > max_hw_lcnt
-      lgkm_cnt = max_hw_lcnt
-   .elseif lgkm_cnt < 0
-      lgkm_cnt = 0
-   .endif
-   s_waitcnt vmcnt(0 + vm_cnt) & lgkmcnt(0 + lgkm_cnt)
-.endm
-
 
 .GPR_ALLOC_BEGIN
 .if limit_wave_cnt
@@ -246,10 +196,14 @@ max_hw_lcnt = 15
 .SGPR_ALLOC desc_in, 4 // input buffer descriptor
 .SGPR_ALLOC desc_out, 4   // weights buffer descriptor
 .SGPR_ALLOC desc_wei, 4   // output buffer descriptor
+.if k_group_size_is_power_of_two
+    .SGPR_ALLOC stmp
+.else
+    .SGPR_ALLOC stmp, 4
+.endif
 .SGPR_ALLOC loop_n_cnt
 .SGPR_ALLOC loop_h_cnt
 .SGPR_ALLOC wave_id // wave_id in group
-.SGPR_ALLOC stmp
 .SGPR_RESERVE_XNACK
 
 
@@ -269,6 +223,22 @@ lines_cnt_out = (pipe_lines_depth + stride_h - 1) / stride_h
 .VGPR_ALLOC permute_addr
 .if elements_in_dword == 2
    .VGPR_ALLOC shfl
+.endif
+
+.if k_group_size_is_power_of_two || gprs_per_line_in * lines_cnt_in * elements_in_dword >= 4
+    vtmp_udiv = lines_in
+.else
+    .VGPR_ALLOC vtmp_udiv, 4
+.endif
+
+.if k_group_size_is_power_of_two || gprs_per_line_out * lines_cnt_out * elements_in_dword >= 3
+    gid = lines_out
+    group_id = lines_out + 1
+    group_size = lines_out + 2
+.else
+    .VGPR_ALLOC gid
+    .VGPR_ALLOC group_id
+    .VGPR_ALLOC group_size
 .endif
 
 .LDS_ALLOC_FROM 0
@@ -383,6 +353,44 @@ gcnAsmConv3x3WrW:
    s_mul_i32 s[stmp], s[gid_z], k_per_wave * filter_k_stride
    s_add_u32 s[soffset_wei], s[soffset_wei], s[stmp]
 
+   // calculate group offsets
+   static_assert(output_channels % (k_per_wave * group_counts) == 0)
+   static_assert(input_channels % (c_per_wave * group_counts) == 0)
+   .if reverse_inout
+       c_group_size = output_channels / k_per_wave / group_counts
+       k_group_size = input_channels / c_per_wave / group_counts
+       .if k_group_size_is_power_of_two
+           log2 k_group_size_log2, k_group_size
+           s_lshr_b32 s[stmp], s[gid_y], 0 + k_group_size_log2 // group_id
+       .else
+           v_mov_b32 v[gid], s[gid_y]
+           v_mov_b32 v[group_size], 0 + k_group_size
+           u32_div gid, group_size, group_id, vtmp_udiv, stmp
+           v_readfirstlane_b32 s[stmp], v[group_id]
+       .endif
+       s_mul_i32 s[stmp], s[stmp], c_group_size * k_per_wave * output_feature_map_size // k_group_offset
+       s_add_u32 s[soffset_out], s[soffset_out], s[stmp]
+   .else
+       k_group_size = output_channels / k_per_wave / group_counts
+       c_group_size = input_channels / c_per_wave / group_counts
+       .if k_group_size_is_power_of_two
+           log2 k_group_size_log2, k_group_size
+           s_lshr_b32 s[stmp], s[gid_z], 0 + k_group_size_log2 // group_id
+       .else
+           v_mov_b32 v[gid], s[gid_z]
+           v_mov_b32 v[group_size], 0 + k_group_size
+           u32_div gid, group_size, group_id, vtmp_udiv, stmp
+           v_readfirstlane_b32 s[stmp], v[group_id]
+       .endif
+       s_mul_i32 s[stmp], s[stmp], c_group_size * c_per_wave * input_feature_map_size // c_group_offset
+       s_add_u32 s[soffset_in], s[soffset_in], s[stmp]
+   .endif
+
+   .GPR_INVALIDATE gid
+   .GPR_INVALIDATE group_size
+   .GPR_INVALIDATE group_id
+   .GPR_INVALIDATE vtmp_udiv
+
    s_mov_b32 s[loop_n_cnt], 0
 
    .macro .single_vload base, v_offset, s_offset, desc, mbufs_inflight, count
@@ -390,7 +398,7 @@ gcnAsmConv3x3WrW:
          .if imm_off >= (1 << 12)
             .error "Error: Immediate offset is too large for buffer_load instruction"
          .endif
-         
+
          .if \count == 1
             buffer_load_dword v[\base+vals_loaded], v[\v_offset], s[\desc:\desc+3], s[\s_offset] offen offset:0+imm_off
          .else
@@ -503,6 +511,14 @@ gcnAsmConv3x3WrW:
       .endif
    .endm
 
+   .if stride_w == 2
+      line_adjust = gprs_per_batch_in
+      line_adjust_1 = 1
+   .else
+      line_adjust = 0
+      line_adjust_1 = gprs_per_batch_in
+   .endif
+
    .macro conv_line in_line, out_line, acc_line, acc_batch, sync=0, swizzle=0
       in_base = lines_in + gprs_per_line_in * \in_line
       out_base = lines_out + gprs_per_line_out * \out_line
@@ -524,15 +540,19 @@ gcnAsmConv3x3WrW:
                .if elements_in_dword == 2
                   v_mov_b32 v[shfl], v[in_base + gprs_per_line_in - 1 + gprs_per_batch_in] row_shr:1 bound_ctrl:0
                   v_dot2  acc_base + acc_off, shfl, out_base + out_x
-                  v_dot2  acc_base + acc_off, in_base, out_base + out_x + gprs_per_batch_out
+                  v_dot2  acc_base + acc_off, in_base + line_adjust, out_base + out_x + gprs_per_batch_out
                .else
                   v_mac_f32 v[acc_base + acc_off], v[in_base+gprs_per_line_in-1], v[out_base + out_x] row_shr:1 bound_ctrl:0
                .endif
             .elseif in_x >= gprs_per_line_in
-               .if elements_in_dword == 2
-                  v_dot2  acc_base + acc_off, in_base + gprs_per_line_in - 1 + gprs_per_batch_in, out_base + out_x
-                  v_mov_b32 v[shfl], v[in_base] row_shl:1 bound_ctrl:0
-                  v_dot2  acc_base + acc_off, shfl, out_base + out_x + gprs_per_batch_out
+                  .if elements_in_dword == 2
+                     v_dot2  acc_base + acc_off, in_base + gprs_per_line_in - 1 + gprs_per_batch_in, out_base + out_x
+                     .if gprs_per_line_in == 1
+                         v_mov_b32 v[shfl], v[in_base + line_adjust] row_shl:1 bound_ctrl:0
+                     .else
+                         v_mov_b32 v[shfl], v[in_base] row_shl:1 bound_ctrl:0
+                     .endif
+                     v_dot2  acc_base + acc_off, shfl, out_base + out_x + gprs_per_batch_out
                .else
                   v_mac_f32 v[acc_base + acc_off], v[in_base], v[out_base + out_x] row_shl:1 bound_ctrl:0
                .endif
@@ -540,13 +560,18 @@ gcnAsmConv3x3WrW:
                .if elements_in_dword == 2
                   .if acc_x == 1
                      v_dot2  acc_base + acc_off, in_base + in_x, out_base + out_x
-                     v_dot2  acc_base + acc_off, in_base + in_x + gprs_per_batch_in, out_base + out_x + gprs_per_batch_out
+                     .if stride_w == 2 && gprs_per_line_in == 1
+                        v_mov_b32 v[shfl], v[in_base] row_shl:1 bound_ctrl:0
+                        v_dot2  acc_base + acc_off, shfl, out_base + out_x + gprs_per_batch_out
+                     .else
+                        v_dot2 acc_base + acc_off, in_base + in_x + line_adjust_1, out_base + out_x + gprs_per_batch_out
+                     .endif
                   .elseif acc_x == 0
                      v_dot2  acc_base + acc_off, in_base + in_x + gprs_per_batch_in, out_base + out_x
-                     v_dot2  acc_base + acc_off, in_base + in_x + 1, out_base + out_x + gprs_per_batch_out
+                     v_dot2  acc_base + acc_off, in_base + in_x + 1 + line_adjust, out_base + out_x + gprs_per_batch_out
                   .elseif acc_x == 2
                      v_dot2  acc_base + acc_off, in_base + in_x - 1 + gprs_per_batch_in, out_base + out_x
-                     v_dot2  acc_base + acc_off, in_base + in_x, out_base + out_x + gprs_per_batch_out
+                     v_dot2  acc_base + acc_off, in_base + in_x + line_adjust, out_base + out_x + gprs_per_batch_out
                   .else
                      static_assert(0)
                   .endif

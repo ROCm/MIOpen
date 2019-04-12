@@ -27,12 +27,10 @@
 #ifndef GUARD_PROBLEM_DESCRIPTION_HPP_
 #define GUARD_PROBLEM_DESCRIPTION_HPP_
 
-#include <miopen/errors.hpp>
 #include <miopen/tensor.hpp>
 
 #include <cassert>
 #include <string>
-#include <sstream>
 
 namespace miopen {
 
@@ -46,59 +44,64 @@ size_t SetDescFromMLDesc(TTo& to, const TensorDescriptor& tensor, const TFunc me
 
     std::tie(n, c, h, w)     = miopen::tien<4>(tensor.GetLengths(), 1);
     std::tie(ns, cs, hs, ws) = miopen::tien<4>(tensor.GetStrides(), 0);
-    const auto data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
-    (to.*method)("NCHW", data_type, n, c, h, w, ns, cs, hs, ws);
+    (to.*method)("NCHW", tensor.GetType(), n, c, h, w, ns, cs, hs, ws);
 
     return tensor.GetElementSpace();
 }
 
 struct ConvolutionDescriptor;
 
+inline std::string GetDataTypeName(miopenDataType_t data_type)
+{
+    switch(data_type)
+    {
+    case miopenFloat: return "FP32";
+    case miopenHalf: return "FP16";
+    case miopenInt8: return "INT8";
+    case miopenInt8x4: return "INT8x4";
+    case miopenInt32: return "INT32";
+    }
+
+    return "Unknown(" + std::to_string(data_type) + ")";
+}
+
 struct ProblemDescription
 {
-    int n_inputs         = 0;
-    int in_height        = 0;
-    int in_width         = 0;
-    int kernel_size1     = 0;
-    int kernel_size0     = 0;
-    int n_outputs        = 0;
-    int out_height       = 0;
-    int out_width        = 0;
-    int batch_sz         = 0;
-    int pad0             = 0;
-    int pad1             = 0;
-    int kernel_stride0   = 0;
-    int kernel_stride1   = 0;
-    int kernel_dilation0 = 0;
-    int kernel_dilation1 = 0;
-    int bias             = 0;
+    int n_inputs          = 0;
+    int in_height         = 0;
+    int in_width          = 0;
+    int kernel_size_h     = 0;
+    int kernel_size_w     = 0;
+    int n_outputs         = 0;
+    int out_height        = 0;
+    int out_width         = 0;
+    int batch_sz          = 0;
+    int pad_h             = 0;
+    int pad_w             = 0;
+    int kernel_stride_h   = 0;
+    int kernel_stride_w   = 0;
+    int kernel_dilation_h = 0;
+    int kernel_dilation_w = 0;
+    int bias              = 0;
     std::string in_layout;
-    std::string in_data_type;
     std::string weights_layout;
-    std::string out_data_type;
     std::string out_layout;
-    int float_size         = 32;
-    size_t bot_sz          = 0;
-    size_t top_sz          = 0;
-    size_t weights_sz      = 0;
-    size_t bias_sz         = 0;
-    int deconvolution      = 0;
-    int in_stride          = 0;
-    int out_stride         = 0;
-    int in_channel_stride  = 0;
-    int in_batch_stride    = 0;
-    int out_channel_stride = 0;
-    int out_batch_stride   = 0;
-    int group_counts       = 0;
-    struct Mode
-    {
-        miopenConvolutionMode_t val = miopenConvolution;
-        // Helper functions for use in Solvers.
-        bool IsNormal() const { return val == miopenConvolution; }
-        bool IsTranspose() const { return val == miopenTranspose; }
-        bool IsGroup() const { return val == miopenGroupConv || val == miopenDepthwise; }
-    } mode;
+    miopenDataType_t in_data_type      = static_cast<miopenDataType_t>(-1);
+    miopenDataType_t weights_data_type = static_cast<miopenDataType_t>(-1);
+    miopenDataType_t out_data_type     = static_cast<miopenDataType_t>(-1);
+    size_t bot_sz                      = 0;
+    size_t top_sz                      = 0;
+    size_t weights_sz                  = 0;
+    size_t bias_sz                     = 0;
+    int deconvolution                  = 0;
+    int in_stride                      = 0;
+    int out_stride                     = 0;
+    int in_channel_stride              = 0;
+    int in_batch_stride                = 0;
+    int out_channel_stride             = 0;
+    int out_batch_stride               = 0;
+    int group_counts                   = 0;
     struct Direction
     {
         enum class Value
@@ -126,8 +129,19 @@ struct ProblemDescription
         void Set(T) = delete;
         void SetBackwardWrW() { v = Value::BackwardWrW; }
     } direction;
-    int GetBackwardPad0() const { return kernel_size0 - pad0 - 1; }
-    int GetBackwardPad1() const { return kernel_size1 - pad1 - 1; }
+    int GetBackwardPadW() const { return kernel_size_w - pad_w - 1; }
+    int GetBackwardPadH() const { return kernel_size_h - pad_h - 1; }
+
+    bool IsFp32() const
+    {
+        return in_data_type == miopenFloat && weights_data_type == miopenFloat &&
+               out_data_type == miopenFloat;
+    }
+    bool IsFp16() const
+    {
+        return in_data_type == miopenHalf && weights_data_type == miopenHalf &&
+               out_data_type == miopenHalf;
+    }
 
     ProblemDescription() = default;
 
@@ -138,41 +152,7 @@ struct ProblemDescription
                        int dir,
                        int bias_ = 0);
 
-    void Serialize(std::ostream& stream) const
-    {
-        if(!direction.IsKnown())
-            MIOPEN_THROW("!direction.IsKnown()");
-        const auto sep = '-';
-        // clang-format off
-        // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NCHW-FP32-F
-        stream
-            << n_inputs << sep << in_height << sep << in_width
-            << sep << kernel_size1 << 'x' << kernel_size0
-            << sep << n_outputs << sep << out_height << sep << out_width
-            << sep << batch_sz
-            << sep << pad1 << 'x' << pad0
-            << sep << kernel_stride1 << 'x' << kernel_stride0
-            << sep << kernel_dilation1 << 'x' << kernel_dilation1
-            << sep << bias
-            << sep << in_layout
-            << sep << in_data_type
-            << sep << (direction.IsForward() ? "F"
-                     : direction.IsBackwardData() ? "B" : "W"); // clang-format on
-        // New performance config entries shall come into variable/optional part of db key.
-        // This is to support backward compatibility with previous versions of databases.
-        std::ostringstream optional;
-        {
-            if(mode.IsTranspose())
-                optional << "mT";
-            // Group count > 1 identifies Group/Depthwise modes.
-            if(group_counts != 1)
-                optional << 'g' << group_counts;
-        }
-        if(!optional.str().empty())
-        {
-            stream << '_' << optional.str();
-        }
-    }
+    void Serialize(std::ostream& stream) const;
 
     friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
     {
@@ -184,7 +164,7 @@ struct ProblemDescription
      * set top tensor
      */
     void setTopDescr(const std::string& layout,
-                     const std::string& data_type,
+                     miopenDataType_t data_type,
                      int batch,
                      int depth,
                      int height,
@@ -195,8 +175,7 @@ struct ProblemDescription
                      int w_stride)
     {
         batch_sz     = batch;
-        int data_len = (data_type == "FP16") ? 2 : (data_type == "FP32") ? 4 : 8;
-        float_size   = (data_type == "FP32" ? 32 : 16);
+        int data_len = GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
@@ -218,7 +197,7 @@ struct ProblemDescription
      */
 
     void setBotDescr(const std::string& layout,
-                     const std::string& data_type,
+                     miopenDataType_t data_type,
                      int batch,
                      int depth,
                      int height,
@@ -229,8 +208,7 @@ struct ProblemDescription
                      int w_stride)
     {
         batch_sz     = batch;
-        int data_len = (data_type == "FP16") ? 2 : (data_type == "FP32") ? 4 : 8;
-        float_size   = (data_type == "FP32" ? 32 : 16);
+        int data_len = GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
@@ -251,7 +229,7 @@ struct ProblemDescription
      * set top df tensor
      */
     void setTopDfDescr(const std::string& /*layout*/,
-                       const std::string& data_type,
+                       miopenDataType_t /*data_type*/,
                        int batch,
                        int depth,
                        int /*height*/,
@@ -261,9 +239,8 @@ struct ProblemDescription
                        int /*stride*/,
                        int /*w_stride*/)
     {
-        batch_sz   = batch;
-        float_size = (data_type == "FP32" ? 32 : 16);
-        n_outputs  = depth;
+        batch_sz  = batch;
+        n_outputs = depth;
     }
 
     /*
@@ -271,7 +248,7 @@ struct ProblemDescription
      */
 
     void setBotDfDescr(const std::string& /*layout*/,
-                       const std::string& data_type,
+                       miopenDataType_t /*data_type*/,
                        int batch,
                        int depth,
                        int /*height*/,
@@ -281,9 +258,8 @@ struct ProblemDescription
                        int /*stride*/,
                        int /*w_stride*/)
     {
-        batch_sz   = batch;
-        float_size = (data_type == "FP32" ? 32 : 16);
-        n_inputs   = depth;
+        batch_sz = batch;
+        n_inputs = depth;
     }
 
     int mloBuildConf_Key(std::string& conf_key) const;
@@ -298,7 +274,7 @@ struct ProblemDescription
      * set weights tensor
      */
     void setWeightsDescr(const std::string& layout,
-                         const std::string& data_type,
+                         miopenDataType_t data_type,
                          int batch,
                          int depth,
                          int height,
@@ -308,11 +284,11 @@ struct ProblemDescription
                          int stride,
                          int w_stride)
     {
-        kernel_size0 = width;
-        kernel_size1 = height;
-        int data_len = (data_type == "FP16") ? 2 : (data_type == "FP32") ? 4 : 8;
-        float_size   = (data_type == "FP32" ? 32 : 16);
-        size_t size  = (layout == "NCHW")
+        kernel_size_w     = width;
+        kernel_size_h     = height;
+        weights_data_type = data_type;
+        int data_len      = GetTypeSize(data_type);
+        size_t size       = (layout == "NCHW")
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
         weights_sz = size;
@@ -322,7 +298,7 @@ struct ProblemDescription
      * set output tensor
      */
     void setOutputDescr(const std::string& layout,
-                        const std::string& data_type,
+                        miopenDataType_t data_type,
                         int batch,
                         int depth,
                         int height,
@@ -333,8 +309,7 @@ struct ProblemDescription
                         int w_stride)
     {
         batch_sz     = batch;
-        int data_len = (data_type == "FP16") ? 2 : (data_type == "FP32") ? 4 : 8;
-        float_size   = (data_type == "FP32" ? 32 : 16);
+        int data_len = GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
@@ -372,7 +347,7 @@ struct ProblemDescription
      */
 
     void setInputDescr(const std::string& layout,
-                       const std::string& data_type,
+                       miopenDataType_t data_type,
                        int batch,
                        int depth,
                        int height,
@@ -383,8 +358,7 @@ struct ProblemDescription
                        int w_stride)
     {
         batch_sz     = batch;
-        int data_len = (data_type == "FP16") ? 2 : (data_type == "FP32") ? 4 : 8;
-        float_size   = (data_type == "FP32" ? 32 : 16);
+        int data_len = GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;

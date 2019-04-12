@@ -25,8 +25,6 @@
  *******************************************************************************/
 
 #pragma once
-#include <miopen/logger.hpp>
-
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -71,30 +69,7 @@ enum MDGraph_op_t
 std::ostream& operator<<(std::ostream& stream, const MDGraph_op_t& o);
 std::ostream& operator<<(std::ostream& stream, const boost::any& a);
 
-struct EdgeOp
-{
-    template <class U, class V>
-    EdgeOp(U v, V r = true, MDGraph_op_t o = OpAny) : val(v), result(r), op(o){};
-    boost::any val;
-    boost::any result;
-    MDGraph_op_t op = OpAny;
-    std::string member;
-    friend std::ostream& operator<<(std::ostream& stream, const EdgeOp& o)
-    {
-        stream << "val: " << o.val << " op: " << o.op;
-        return stream;
-    }
-};
-
-using FusionMDGraph_Op_Map       = std::unordered_map<std::string, EdgeOp>;
-using FusionMDGraph_Edge_Map     = std::unordered_map<std::string, std::vector<EdgeOp>>;
+// using FusionMDGraph_Op_Map       = std::unordered_map<std::string, EdgeOp>;
+using FusionMDGraph_Edge_Map     = std::unordered_map<std::string, std::vector<std::string>>;
 using FusionMDGraph_Edge_Map_Vec = std::vector<FusionMDGraph_Edge_Map>;
-
-template <class M, class K, class... Ts>
-void map_emplace(M& m, const K& k, Ts&&... objs)
-{
-    auto tmp = {objs...};
-    m.emplace(k, tmp);
-}
-
 } // namespace miopen

@@ -41,14 +41,14 @@ std::string GetKernelSrc(std::string name)
 {
     // Use the base name of the string
     int start  = 0;
-    auto slash = name.find_last_of("/\\");
+    auto slash = static_cast<int>(name.find_last_of("/\\"));
     if(slash != std::string::npos)
     {
         start = slash + 1;
     }
 
     int len = name.size();
-    auto ex = name.rfind('.');
+    auto ex = static_cast<int>(name.rfind('.'));
     if(ex != std::string::npos)
     {
         len = ex - start;

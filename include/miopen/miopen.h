@@ -292,11 +292,24 @@ MIOPEN_DECLARE_OBJECT(miopenRNNDescriptor);
  * MIOpen floating point datatypes. Both 32-bit and 16-bit floats are supported in MIOpen.
 */
 typedef enum {
-    miopenHalf  = 0, /*!< 16-bit floating point (Not supported) */
+    miopenHalf  = 0, /*!< 16-bit floating point (Fully supported) */
     miopenFloat = 1, /*!< 32-bit floating point (Fully supported) */
     miopenInt32 = 2, /*!< 32-bit int point (Not supported) */
-    miopenInt8  = 3, /*!< 8-bit int point (Not supported) */
+    miopenInt8  = 3, /*!< 8-bit int point (Partially supported) */
+    miopenInt8x4 =
+        4, /*!< Pack of four 8-bit int points in NCHW_VECT_C format (Partially supported) */
 } miopenDataType_t;
+
+/*! @ingroup pooling
+ * @enum miopenIndexType_t
+ * MIOpen index datatypes.
+*/
+typedef enum {
+    miopenIndexUint8  = 0, /*!<  8-bit unsigned */
+    miopenIndexUint16 = 1, /*!< 16-bit unsigned */
+    miopenIndexUint32 = 2, /*!< 32-bit unsigned */
+    miopenIndexUint64 = 3, /*!< 64-bit unsigned */
+} miopenIndexType_t;
 
 /*! @ingroup tensor
  * @enum miopenTensorOp_t
@@ -316,8 +329,8 @@ typedef enum {
 typedef enum {
     miopenConvolution = 0, /*!< Cross-Correlation convolution */
     miopenTranspose   = 1, /*!< Transpose convolutions -- deconvolution */
-    miopenGroupConv   = 2, /*!< Group convolution */
-    miopenDepthwise   = 3, /*!< Depthwise convolution */
+    miopenGroupConv   = 2, /*!< Deprecated Group convolution legacy, ToBe Removed */
+    miopenDepthwise   = 3, /*!< Deprecated Depthwise convolution legacy, ToBe Removed */
 } miopenConvolutionMode_t;
 
 /*! @ingroup padding
@@ -335,8 +348,9 @@ typedef enum {
  * Pooling layer mode
 */
 typedef enum {
-    miopenPoolingMax     = 0, /*!< Maximum pooling */
-    miopenPoolingAverage = 1, /*!< Average pooling */
+    miopenPoolingMax              = 0, /*!< Maximum pooling */
+    miopenPoolingAverage          = 1, /*!< Average pooling */
+    miopenPoolingAverageInclusive = 2, /*!< Inclusive Average pooling */
 } miopenPoolingMode_t;
 
 /*! @ingroup LRN
@@ -582,7 +596,7 @@ MIOPEN_EXPORT miopenStatus_t miopenTransformTensor(miopenHandle_t handle,
 MIOPEN_EXPORT miopenStatus_t
 miopenCreateConvolutionDescriptor(miopenConvolutionDescriptor_t* convDesc);
 
-/*! @brief Creates a convolution layer descriptor
+/*! @brief Creates a 2-D convolution layer descriptor
  *
  * For group/depthwise convolution dilation height and width, only a dilation value of 1 is
  * supported.
@@ -591,8 +605,8 @@ miopenCreateConvolutionDescriptor(miopenConvolutionDescriptor_t* convDesc);
  * @param c_mode     Convolutional mode (input)
  * @param pad_h      Height input data padding (input)
  * @param pad_w      Width input data padding (input)
- * @param u          Stride for the height of input data (input)
- * @param v          Stride for the width of input data (input)
+ * @param stride_h   Stride for the height of input data (input)
+ * @param stride_w   Stride for the width of input data (input)
  * @param dilation_h Dilation height (input)
  * @param dilation_w Dilation width (input)
  * @return           miopenStatus_t
@@ -601,12 +615,30 @@ MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDe
                                                              miopenConvolutionMode_t c_mode,
                                                              int pad_h,
                                                              int pad_w,
-                                                             int u,
-                                                             int v,
+                                                             int stride_h,
+                                                             int stride_w,
                                                              int dilation_h,
                                                              int dilation_w);
 
-/*! @brief Retrieves a convolution layer descriptor's details
+/*! @brief Creates a N-dimensional convolution layer descriptor
+ *
+ * @param convDesc      Convolution layer descriptor (output)
+ * @param spatialDim    Convolutional spatial dimension (input)
+ * @param padA          Array of input data padding (input)
+ * @param strideA       Array of convolution stride (input)
+ * @param dilationA     Array of convolution dilation (input)
+ * @param c_mode        Convolutional mode (input)
+ * @return              miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenInitConvolutionNdDescriptor(miopenConvolutionDescriptor_t convDesc,
+                                  int spatialDim,
+                                  int* padA,
+                                  int* strideA,
+                                  int* dilationA,
+                                  miopenConvolutionMode_t c_mode);
+
+/*! @brief Retrieves a 2-D convolution layer descriptor's details
  *
  * For group/depthwise convolution dilation height and width, only a dilation value of 1 is
  * supported.
@@ -615,8 +647,8 @@ MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDe
  * @param c_mode     Convolutional mode (output)
  * @param pad_h      Height input data padding (output)
  * @param pad_w      Width input data padding (output)
- * @param u          Stride for the height of input data (output)
- * @param v          Stride for the width of input data (output)
+ * @param stride_h   Stride for the height of input data (output)
+ * @param stride_w   Stride for the width of input data (output)
  * @param dilation_h Dilation height (output)
  * @param dilation_w Dilation width (output)
  * @return           miopenStatus_t
@@ -625,17 +657,38 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDes
                                                             miopenConvolutionMode_t* c_mode,
                                                             int* pad_h,
                                                             int* pad_w,
-                                                            int* u,
-                                                            int* v,
+                                                            int* stride_h,
+                                                            int* stride_w,
                                                             int* dilation_h,
                                                             int* dilation_w);
 
+/*! @brief Retrieves a N-dimensional convolution layer descriptor's details
+ *
+ * @param convDesc               Convolution layer descriptor (input)
+ * @param requestedSpatialDim    Expected convolution spatial dimension (intput)
+ * @param spatialDim             Convolutional spatial dimension (output)
+ * @param padA                   Array of input data padding (output)
+ * @param strideA                Array of convolution stride (output)
+ * @param dilationA              Array of convolution dilation (output)
+ * @param c_mode                 Convolutional mode (output)
+ * @return                       miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetConvolutionNdDescriptor(miopenConvolutionDescriptor_t convDesc,
+                                 int requestedSpatialDim,
+                                 int* spatialDim,
+                                 int* padA,
+                                 int* strideA,
+                                 int* dilationA,
+                                 miopenConvolutionMode_t* c_mode);
+
 /*! @brief Set the number of groups to be used in Group/Depthwise convolution
 *
-* Must be called before all computational APIs of Group/Depthwise convolution, it is preferable to
+* Must be called before all computational APIs of group/depthwise convolution, it is preferable to
 * call miopenInitConvolutionDescriptor() first, then miopenSetConvolutionGroupCount() to fully
-* initialize
-* group convolutions.
+* initialize group convolutions. Both Convolution Mode and Transpose Convolution Mode support
+* group/depthwise convolution. To run depthwise convolution, set groupCount value equal to number of
+* channels.
 *
 * @param convDesc   Convolution layer descriptor (output)
 * @param groupCount      number of groups, in depthwise conv using filter_number/channel_multiplier
@@ -644,6 +697,36 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDes
 */
 MIOPEN_EXPORT miopenStatus_t miopenSetConvolutionGroupCount(miopenConvolutionDescriptor_t convDesc,
                                                             int groupCount);
+
+/*! @brief Set the output padding to be used in 2-D Transpose convolution
+*
+* This function is optional for initialization of Transpose convolution. If applicable, it must be
+* called before all computational APIs of Transpose convolution. It is preferable to call
+* miopenInitConvolutionDescriptor() first, then miopenSetTransposeConvOutputPadding() to fully
+* initialize transpose convolutions.
+*
+* @param convDesc   Convolution layer descriptor (output)
+* @param adj_h      output padding for the height of output data (input)
+* @param adj_w      output padding for the width of output data (input)
+* @return           miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenSetTransposeConvOutputPadding(miopenConvolutionDescriptor_t convDesc, int adj_h, int adj_w);
+
+/*! @brief Set the output padding to be used in N-dimensional Transpose convolution
+*
+* This function is optional for initialization of Transpose convolution. If applicable, it must be
+* called before all computational APIs of Transpose convolution. It is preferable to call
+* miopenInitConvolutionNdDescriptor() first, then miopenSetTransposeConvNdOutputPadding() to fully
+* initialize transpose convolutions. Currently, 2-D and 3-D convolutions are supported.
+*
+* @param convDesc      Convolution layer descriptor (output)
+* @param spatialDim    Convolutional spatial dimension (input)
+* @param adjA          array of output padding for output data (input)
+* @return              miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetTransposeConvNdOutputPadding(
+    miopenConvolutionDescriptor_t convDesc, int spatialDim, int* adjA);
 
 /*! @brief Get the shape of a resulting 4-D tensor from a 2-D convolution
  *
@@ -671,6 +754,26 @@ miopenGetConvolutionForwardOutputDim(miopenConvolutionDescriptor_t convDesc,
                                      int* h,
                                      int* w);
 
+/*! @brief Get the shape of a resulting N-dimensional tensor from a (N-2)-dimensional convolution
+ *
+ * This function returns the dimensions of the resulting N-dimensional tensor of a (N-2)-dimensional
+ * convolution, given the convolution descriptor, the input tensor descriptor
+ * and the filter descriptor. It is used to setup the output tensor descriptor prior to executing 
+ * the convolution layer.
+ *
+ * @param convDesc          Convolution layer descriptor (input)
+ * @param inputTensorDesc   Input data tensor descriptor (input)
+ * @param filterDesc        Weight descriptor (input)
+ * @param nDim              Pointer to Output data tensor dimension (output)
+ * @param outputTensorDimA  Array of Output data tensor length (output)
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetConvolutionNdForwardOutputDim(miopenConvolutionDescriptor_t convDesc,
+                                       const miopenTensorDescriptor_t inputTensorDesc,
+                                       const miopenTensorDescriptor_t filterDesc,
+                                       int* nDim,
+                                       int* outputTensorDimA);
+
 /*! @brief Destroys the tensor descriptor object
  *
  * @param convDesc Convolution tensor descriptor type (input)
@@ -694,8 +797,9 @@ typedef enum {
  * Convolutional algorithm mode for back propagation on weights.
  */
 typedef enum {
-    miopenConvolutionBwdWeightsAlgoGEMM   = 0, /*!< GEMM variant */
-    miopenConvolutionBwdWeightsAlgoDirect = 1, /*!< Direct convolution algorithm */
+    miopenConvolutionBwdWeightsAlgoGEMM     = 0, /*!< GEMM variant */
+    miopenConvolutionBwdWeightsAlgoDirect   = 1, /*!< Direct convolution algorithm */
+    miopenConvolutionBwdWeightsAlgoWinograd = 3, /*!< Winograd convolutions */
 } miopenConvBwdWeightsAlgorithm_t;
 
 /*! @enum miopenConvBwdDataAlgorithm_t
@@ -706,7 +810,8 @@ typedef enum {
     miopenConvolutionBwdDataAlgoDirect   = 1, /*!< Direct convolutions */
     miopenConvolutionBwdDataAlgoFFT      = 2, /*!< Fast Fourier Transform indirect convolutions */
     miopenConvolutionBwdDataAlgoWinograd = 3, /*!< Winograd indirect convolutions */
-    miopenTransposeBwdDataAlgoGEMM       = 4, /*!< Transpose GEMM variant */
+    miopenTransposeBwdDataAlgoGEMM =
+        4, /*!< Deprecated Transpose GEMM variant legacy, ToBe Removed */
 } miopenConvBwdDataAlgorithm_t;
 
 /*! @struct miopenConvAlgoPerf_t
@@ -1155,9 +1260,30 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionBackwardBias(miopenHandle_t handle
  */
 MIOPEN_EXPORT miopenStatus_t miopenCreatePoolingDescriptor(miopenPoolingDescriptor_t* poolDesc);
 
-/*! @brief Sets a 2-D pooling layer descriptor details
+/*! @brief Set index data type for pooling layer. The default indexing type is uint8_t.
+ * Users can set the index type to any of the miopenIndexType_t sizes; 8, 16, 32, or 64 bit 
+ * unsigned integers.
  *
- * Sets the window shape, padding, and stride for a previously created 2-D pooling descriptor
+ * @param poolDesc     Pointer to a pooling layer descriptor (input)
+ * @param index_type   Index type (input)
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetPoolingIndexType(miopenPoolingDescriptor_t poolDesc,
+                                                       miopenIndexType_t index_type);
+
+/*! @brief Get the index data type for pooling layer. The index type to any of the 
+ * miopenIndexType_t sizes; 8, 16, 32, or 64 bit unsigned integers.
+ *
+ * @param poolDesc     Pointer to a pooling layer descriptor (input)
+ * @param index_type   Index type (output)
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetPoolingIndexType(miopenPoolingDescriptor_t poolDesc,
+                                                       miopenIndexType_t* index_type);
+
+/*! @brief Sets a 2-D pooling layer descriptor details.
+ *
+ * Sets the window shape, padding, and stride for a previously created 2-D pooling descriptor.
  *
  * @param poolDesc       Pointer to a pooling layer descriptor (output)
  * @param mode           Pooling mode enum (input)
@@ -1165,8 +1291,8 @@ MIOPEN_EXPORT miopenStatus_t miopenCreatePoolingDescriptor(miopenPoolingDescript
  * @param windowWidth    Input window width dimension (input)
  * @param pad_h          Number of elements to pad height (input)
  * @param pad_w          Number of elements to pad width (input)
- * @param u              Vertical stride (input)
- * @param v              Horizontal stride (input)
+ * @param stride_h       Vertical stride (input)
+ * @param stride_w       Horizontal stride (input)
  * @return               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenSet2dPoolingDescriptor(miopenPoolingDescriptor_t poolDesc,
@@ -1175,12 +1301,12 @@ MIOPEN_EXPORT miopenStatus_t miopenSet2dPoolingDescriptor(miopenPoolingDescripto
                                                           int windowWidth,
                                                           int pad_h,
                                                           int pad_w,
-                                                          int u,
-                                                          int v);
+                                                          int stride_h,
+                                                          int stride_w);
 
 /*! @brief Gets a 2-D pooling layer descriptor details
  *
- * Gets the window shape, padding, and stride for a previously created 2-D pooling descriptor
+ * Gets the window shape, padding, and stride for a previously created 2-D pooling descriptor.
  *
  * @param poolDesc       Pointer to a pooling layer descriptor (input)
  * @param mode           Pooling mode enum (output)
@@ -1188,8 +1314,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSet2dPoolingDescriptor(miopenPoolingDescripto
  * @param windowWidth    Input window width dimension (output)
  * @param pad_h          Number of elements to pad height (output)
  * @param pad_w          Number of elements to pad width (output)
- * @param u              Vertical stride (output)
- * @param v              Horizontal stride (output)
+ * @param stride_h       Vertical stride (output)
+ * @param stride_w       Horizontal stride (output)
  * @return               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGet2dPoolingDescriptor(const miopenPoolingDescriptor_t poolDesc,
@@ -1198,8 +1324,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGet2dPoolingDescriptor(const miopenPoolingDes
                                                           int* windowWidth,
                                                           int* pad_h,
                                                           int* pad_w,
-                                                          int* u,
-                                                          int* v);
+                                                          int* stride_h,
+                                                          int* stride_w);
 
 /*! @brief Gets the shape of the output tensor for 2-D pooling
  *
@@ -1226,7 +1352,10 @@ miopenGetPoolingForwardOutputDim(const miopenPoolingDescriptor_t poolDesc,
 /*! @brief Get the amount of GPU memory required for pooling
  *
  * Retrieves the amount of workspace in bytes require for pooling. This call is required to
- * determine the amount of GPU memory needed for the backwards pooling algorithms.
+ * determine the amount of GPU memory needed for the backwards pooling algorithms. For max-
+ * pooling, an assumption is that index data type is uint8_t, therefore the returned 
+ * workspace size will be based on this assumption even if the user sets the index type with
+ * miopenSetPoolingIndexType().
  *
  * @param yDesc          Descriptor for pooling layer (input)
  * @param workSpaceSize  Pointer to workSpaceSize (output)
@@ -1234,6 +1363,23 @@ miopenGetPoolingForwardOutputDim(const miopenPoolingDescriptor_t poolDesc,
  */
 MIOPEN_EXPORT miopenStatus_t miopenPoolingGetWorkSpaceSize(const miopenTensorDescriptor_t yDesc,
                                                            size_t* workSpaceSize);
+
+/*! @brief Get the amount of GPU memory required for pooling
+ *
+ * Retrieves the amount of workspace in bytes require for pooling. This call is required to
+ * determine the amount of GPU memory needed for the backwards pooling algorithms. For max-
+ * pooling, there is no assumption on index data type. As the user can set the index datatype
+ * size using miopenSetPoolingIndexType().
+ *
+ * @param poolDesc       Pointer to a pooling layer descriptor (input)
+ * @param yDesc          Descriptor for pooling layer (input)
+ * @param workSpaceSize  Pointer to workSpaceSize (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenPoolingGetWorkSpaceSizeV2(const miopenPoolingDescriptor_t poolDesc,
+                                const miopenTensorDescriptor_t yDesc,
+                                size_t* workSpaceSize);
 
 /*! @brief Execute a forward pooling layer
  *

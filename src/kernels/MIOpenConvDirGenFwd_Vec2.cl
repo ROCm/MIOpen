@@ -52,7 +52,7 @@
 #define _FLOAT4 PPCAT(_FLOAT, FOUR)
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
-#define INLINE __attribute__((always_inline))
+#define INLINE
 #ifndef MLO_OUT_ALIGNED
 #define MLO_OUT_ALIGNED 0
 #endif
@@ -100,53 +100,7 @@
 #define MLO_PVT_OUT_DATA_HEIGHT MLO_N_OUT_PIX_SZ1* MLO_LCL_N_OUT_CHNLS
 #define MLO_PVT_OUT_DATA_SZ MLO_PVT_OUT_DATA_HEIGHT* MLO_N_OUT_PIX_SZ0
 
-INLINE
-void readDataTileVec2(__local _FLOAT2* lcl_data,
-                      const __global _FLOAT* gbl_data,
-                      int tile_y,
-                      int tile_x,
-                      uint gbl_stride,
-                      uint2 gbl_base, //
-                      uint lcl_stride,
-                      uint lcl_base,
-                      uint gbl_height,
-                      uint gbl_width,
-                      uint lcl_height,
-                      uint lcl_width,
-                      uint lcl_id1,
-                      uint lcl_id0,
-                      uint lcl_grp_sz1,
-                      uint lcl_grp_sz0,
-                      uint fltr_pad1,
-                      uint fltr_pad0,
-#if MLO_N_IN_CHNLS % 2 == 1
-                      bool IsLast,
-#endif
-                      _FLOAT padding_val)
-{
-    for(uint j = lcl_id1; j < lcl_height; j += lcl_grp_sz1)
-    {
-        int y_act          = (j - fltr_pad1);
-        bool invisibleY    = (tile_y + y_act < 0) || (tile_y + y_act >= gbl_height);
-        uint2 y_gbl_off_v2 = (uint2)(y_act * gbl_stride) + gbl_base;
-        uint y_lcl_off     = j * lcl_stride + lcl_base;
-        for(uint i = lcl_id0; i < lcl_width; i += lcl_grp_sz0)
-        {
-            int x_act       = (i - fltr_pad0);
-            bool invisibleX = (tile_x + x_act < 0) || (tile_x + x_act >= gbl_width);
-            bool invis      = invisibleX || invisibleY;
-            uint2 g_off     = (invis) ? (uint2)(0) : y_gbl_off_v2 + (uint2)(x_act);
-#if MLO_N_IN_CHNLS % 2 == 0
-            lcl_data[y_lcl_off + i] =
-                (invis) ? (_FLOAT2)(padding_val) : (_FLOAT2)(gbl_data[g_off.x], gbl_data[g_off.y]);
-#else
-            lcl_data[y_lcl_off + i].x = (invis) ? padding_val : gbl_data[g_off.x];
-            lcl_data[y_lcl_off + i].y =
-                (IsLast) ? (_FLOAT)0 : (invis) ? padding_val : gbl_data[g_off.y];
-#endif
-        }
-    }
-}
+#include "data_ops.h"
 
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2))) __kernel void
 MIOpenCDFGen(const __global _FLOAT* __restrict bot,

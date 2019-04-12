@@ -90,7 +90,10 @@ class DbRecord
             return *this;
         }
 
-        const Iterator operator++(int) { return Iterator{it++}; }
+        const Iterator operator++(int) // NOLINT (readability-const-return-type)
+        {
+            return Iterator{it++};
+        }
 
         bool operator==(const Iterator& other) const { return it == other.it; }
         bool operator!=(const Iterator& other) const { return it != other.it; }

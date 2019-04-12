@@ -99,52 +99,7 @@
 #define MLO_PVT_OUT_DATA_HEIGHT MLO_N_OUT_PIX_SZ1* MLO_LCL_N_OUT_CHNLS
 #define MLO_PVT_OUT_DATA_SZ MLO_PVT_OUT_DATA_HEIGHT* MLO_N_OUT_PIX_SZ0
 
-__attribute__((always_inline)) void readDataTile(__local _FLOAT* lcl_data,
-                                                 const __global _FLOAT* gbl_data,
-                                                 int tile_y,
-                                                 int tile_x,
-                                                 uint gbl_stride,
-                                                 uint gbl_base,
-                                                 uint lcl_stride,
-                                                 uint lcl_base,
-                                                 uint gbl_height,
-                                                 uint gbl_width,
-                                                 uint lcl_height,
-                                                 uint lcl_width,
-                                                 uint lcl_id1,
-                                                 uint lcl_id0,
-                                                 uint lcl_grp_sz1,
-                                                 uint lcl_grp_sz0,
-                                                 uint fltr_pad1,
-                                                 uint fltr_pad0,
-                                                 _FLOAT padding_val)
-{
-    for(uint j = lcl_id1; j < lcl_height; j += lcl_grp_sz1)
-    {
-        int y_act       = (j - fltr_pad1);
-        bool invisibleY = (tile_y + y_act < 0) || (tile_y + y_act >= gbl_height);
-
-        uint y_gbl_off = y_act * gbl_stride + gbl_base;
-
-        uint y_lcl_off = j * lcl_stride + lcl_base;
-
-        for(uint i = lcl_id0; i < lcl_width; i += lcl_grp_sz0)
-        {
-            int x_act       = (i - fltr_pad0);
-            bool invisibleX = (tile_x + x_act < 0) || (tile_x + x_act >= gbl_width);
-
-            bool invis = invisibleX || invisibleY;
-
-            uint g_off = (invis) ? 0 : y_gbl_off + x_act;
-
-            _FLOAT val = gbl_data[g_off];
-
-            val = (invis) ? padding_val : val;
-
-            lcl_data[y_lcl_off + i] = val;
-        }
-    }
-}
+#include "data_ops.h"
 
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2))) __kernel void
 MIOpenCDFGen(const __global _FLOAT* __restrict bot,

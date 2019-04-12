@@ -26,6 +26,9 @@
 #include <miopen/convolution.hpp>
 #include <miopen/convolution_fft.hpp>
 #include <miopen/env.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/tensor_ops.hpp>
+#include <miopen/tensor.hpp>
 #include <miopen/util.hpp>
 
 namespace miopen {
@@ -394,7 +397,7 @@ static float ExecuteFFTKernel(Handle& handle,
     (void)wDesc; // suppress warning
     (void)fwd;   // suppress warning
 
-    int halfw = static_cast<int>(workSpaceSize) / (2 * 2 * sizeof(float));
+    int halfw = static_cast<int>(workSpaceSize) / (2 * 2 * static_cast<int>(sizeof(float)));
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(xDesc.GetLengths());
 

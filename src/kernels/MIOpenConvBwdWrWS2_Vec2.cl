@@ -53,11 +53,7 @@
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #define UNUSED __attribute__((__unused__))
-#define INLINE __attribute__((always_inline))
-#define IDIV(A, B) (iDiv(A, B))
-#define IMOD(A, B, C) (iMod(A, B, C))
-//#define IDIV(A,B) ((uint)((float)A * (1.0f / (float) B) + 0.00001f))
-//#define IMOD(A,B,C) (A - mul24(B, (uint)C))
+#define INLINE
 
 #define DBG_OUT_OF_RNGE 0
 // number of filter taps in the processing wk_item
@@ -132,19 +128,7 @@
 #define MLO_LCL_SZ (MLO_WEI_BLKS_LCL_SZ)
 #endif
 
-INLINE
-uint iDiv(uint v, uint d)
-{
-    uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
-    return (r);
-}
-
-INLINE
-uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24(u, d);
-    return (r);
-}
+#include "math_ops.h"
 
 /*********************************************************************************************************
 // wrw algorithm for large filters
@@ -226,7 +210,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
 // weight tile id
 #if MLO_WEI_BLK_SZ & (MLO_WEI_BLK_SZ - 1)
-    uint w_blk_idx = iDiv(lcl_id, MLO_WEI_BLK_SZ);
+    uint w_blk_idx = iDiv_legacy(lcl_id, MLO_WEI_BLK_SZ);
     uint w_idx     = iMod(lcl_id, w_blk_idx, MLO_WEI_BLK_SZ);
 #else
     uint w_blk_idx                          = lcl_id / MLO_WEI_BLK_SZ;
@@ -234,7 +218,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 #endif
 #if MLO_WEI_BLK_SZ0 & (MLO_WEI_BLK_SZ0 - 1)
     // weight y
-    uint w_y = iDiv(w_idx, MLO_WEI_BLK_SZ0);
+    uint w_y = iDiv_legacy(w_idx, MLO_WEI_BLK_SZ0);
     // weight starting x
     uint w_x0 = iMod(w_idx, w_y, MLO_WEI_BLK_SZ0);
 #else
@@ -285,7 +269,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             p4 += MLO_GRP_SZ)
         {
 #if MLO_N_IN_HORIZ_READS & (MLO_N_IN_HORIZ_READS - 1)
-            c_scan      = iDiv(p4, MLO_N_IN_HORIZ_READS);
+            c_scan      = iDiv_legacy(p4, MLO_N_IN_HORIZ_READS);
             uint c_pix4 = iMod(p4, c_scan, MLO_N_IN_HORIZ_READS);
 #else
             c_scan                          = p4 / MLO_N_IN_HORIZ_READS;
@@ -373,7 +357,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 p4 += MLO_GRP_SZ)
             {
 #if MLO_N_IN_HORIZ_READS & (MLO_N_IN_HORIZ_READS - 1)
-                c_scan2     = iDiv(p4, MLO_N_IN_HORIZ_READS);
+                c_scan2     = iDiv_legacy(p4, MLO_N_IN_HORIZ_READS);
                 uint c_pix4 = iMod(p4, c_scan2, MLO_N_IN_HORIZ_READS);
 #else
                 c_scan2                     = p4 / MLO_N_IN_HORIZ_READS;
@@ -469,7 +453,8 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 {
 #if(MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_N_OUT_HORIZ_READS) & \
     ((MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_N_OUT_HORIZ_READS) - 1)
-                    uint o = iDiv(oo_p4, (MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_N_OUT_HORIZ_READS));
+                    uint o =
+                        iDiv_legacy(oo_p4, (MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_N_OUT_HORIZ_READS));
                     uint o_pX4 =
                         iMod(oo_p4, o, (MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_N_OUT_HORIZ_READS));
 #else
@@ -477,7 +462,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                     uint o_pX4  = oo_p4 & ((MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_N_OUT_HORIZ_READS) - 1);
 #endif
 #if MLO_N_OUT_HORIZ_READS & (MLO_N_OUT_HORIZ_READS - 1)
-                    uint o_scan = iDiv(o_pX4, MLO_N_OUT_HORIZ_READS);
+                    uint o_scan = iDiv_legacy(o_pX4, MLO_N_OUT_HORIZ_READS);
                     uint o_pix4 = iMod(o_pX4, o_scan, MLO_N_OUT_HORIZ_READS);
 #else
                     uint o_scan = o_pX4 / MLO_N_OUT_HORIZ_READS;
@@ -704,14 +689,14 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         for(uint l = lcl_id; l < (MLO_N_LCL_OUT_MAPS * MLO_WEI_CHANNEL_STRIDE); l += MLO_GRP_SZ)
         {
 #if MLO_WEI_CHANNEL_STRIDE & (MLO_WEI_CHANNEL_STRIDE - 1)
-            uint oo    = iDiv(l, MLO_WEI_CHANNEL_STRIDE);
+            uint oo    = iDiv_legacy(l, MLO_WEI_CHANNEL_STRIDE);
             uint wei_i = iMod(l, oo, MLO_WEI_CHANNEL_STRIDE);
 #else
             uint oo                              = l / MLO_WEI_CHANNEL_STRIDE;
             uint wei_i                           = l & MLO_WEI_CHANNEL_STRIDE - 1;
 #endif
 #if(MLO_FILTER_SIZE0) & ((MLO_FILTER_SIZE0)-1)
-            uint wei_i_y = iDiv(wei_i, (MLO_FILTER_SIZE0));
+            uint wei_i_y = iDiv_legacy(wei_i, (MLO_FILTER_SIZE0));
             uint wei_i_x = iMod(wei_i, wei_i_y, (MLO_FILTER_SIZE0));
 #else
             uint wei_i_y                         = wei_i / (MLO_FILTER_SIZE0);
@@ -758,8 +743,8 @@ MIOpenCvBwdWrW_rdc(const __global _FLOAT* __restrict weight_df_tmp,
     uint wei_idx0 = gbl_id * MLO_UT_READ_UNIT;
 
 #if MLO_WEI_CHANNEL_STRIDE & (MLO_WEI_CHANNEL_STRIDE - 1)
-    uint wei_blk_idx = IDIV(wei_idx0, MLO_WEI_CHANNEL_STRIDE);
-    uint wei_idx     = IMOD(wei_idx0, wei_blk_idx, MLO_WEI_CHANNEL_STRIDE);
+    uint wei_blk_idx = iDiv_legacy(wei_idx0, MLO_WEI_CHANNEL_STRIDE);
+    uint wei_idx     = iMod(wei_idx0, wei_blk_idx, MLO_WEI_CHANNEL_STRIDE);
 #else
     uint wei_blk_idx                             = wei_idx0 / MLO_WEI_CHANNEL_STRIDE;
     uint wei_idx                                 = wei_idx0 & (MLO_WEI_CHANNEL_STRIDE - 1);

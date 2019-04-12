@@ -26,17 +26,28 @@
 #ifndef GUARD_MIOPEN_GEMM_V2_HPP_
 #define GUARD_MIOPEN_GEMM_V2_HPP_
 
+#include <string>
+
+#include <miopen/common.hpp>
 #include <miopen/miopen.h>
-#include <miopen/handle.hpp>
-#include <miopen/tensor.hpp>
 
 namespace miopen {
+
+struct Handle;
+struct TensorDescriptor;
 
 enum GemmBackend_t
 {
     nogemmbackend = 0,
     rocblas       = 1,
     miopengemm    = 2,
+};
+
+enum CallGemmType_t
+{
+    callGemm                         = 0,
+    callGemmStridedBatched           = 1,
+    callGemmStridedBatchedSequential = 2,
 };
 
 // GEMM operation: C = alpha * op(A) * op(B) + beta * C.
@@ -63,7 +74,22 @@ struct GemmDescriptor
     long long int strideA, strideB, strideC;
     float alpha, beta;
     miopenDataType_t dataType;
+
+    friend std::ostream& operator<<(std::ostream& stream, const GemmDescriptor& gemm_desc);
 };
+
+miopenStatus_t CallGemmTimeMeasure(Handle& handle,
+                                   GemmDescriptor gemm_desc,
+                                   ConstData_t A,
+                                   int a_offset,
+                                   ConstData_t B,
+                                   int b_offset,
+                                   Data_t C,
+                                   int c_offset,
+                                   std::string* kcache_key,
+                                   bool time_precision,
+                                   CallGemmType_t call_gemm_type,
+                                   GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
 
 miopenStatus_t CallGemm(Handle& handle,
                         GemmDescriptor gemm_desc,

@@ -27,16 +27,17 @@
 #define GUARD_MIOPEN_TENSOR_OPPS_HPP_
 
 #include <miopen/common.hpp>
-#include <miopen/datatype.hpp>
-#include <miopen/handle.hpp>
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
+#include <miopen/tensor.hpp>
 #include <miopen/functional.hpp>
 #include <vector>
 #include <boost/range/combine.hpp>
 #include <boost/range/adaptor/filtered.hpp>
 
 namespace miopen {
+
+struct Handle;
 
 struct f_length_is_not_1_t
 {

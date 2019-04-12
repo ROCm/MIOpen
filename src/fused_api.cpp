@@ -53,7 +53,7 @@ extern "C" miopenStatus_t miopenCreateFusionPlan(miopenFusionPlanDescriptor_t* f
 extern "C" miopenStatus_t miopenDestroyFusionPlan(miopenFusionPlanDescriptor_t fusePlanDesc)
 {
 
-    MIOPEN_LOG_FUNCTION(fusePlanDesc)
+    MIOPEN_LOG_FUNCTION(fusePlanDesc);
     return miopen::try_([&] { miopen_destroy_object(fusePlanDesc); });
 }
 
@@ -76,7 +76,9 @@ extern "C" miopenStatus_t miopenCompileFusionPlan(miopenHandle_t handle,
                                                   miopenFusionPlanDescriptor_t fusePlanDesc)
 {
     MIOPEN_LOG_FUNCTION(/*handle,*/ fusePlanDesc);
-    return miopen::try_([&] { miopen::deref(fusePlanDesc).Compile(miopen::deref(handle)); });
+    miopenStatus_t res = miopenStatusUnknownError;
+    miopen::try_([&] { res = miopen::deref(fusePlanDesc).Compile(miopen::deref(handle)); });
+    return res;
 }
 
 extern "C" miopenStatus_t

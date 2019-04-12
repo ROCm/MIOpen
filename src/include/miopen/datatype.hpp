@@ -27,10 +27,11 @@
 #define GUARD_MIOPEN_DATATYPE_HPP
 
 #include <string>
+#include <limits>
 
 namespace miopen {
 
-std::string inline GetDataType(miopenDataType_t type)
+inline std::string GetDataType(miopenDataType_t type)
 {
     std::string type_str;
     switch(type)
@@ -41,6 +42,7 @@ std::string inline GetDataType(miopenDataType_t type)
     case miopenHalf: { type_str = "half";
     }
     break;
+    case miopenInt8x4:
     case miopenInt8: { type_str = "int8_t";
     }
     break;
@@ -49,6 +51,44 @@ std::string inline GetDataType(miopenDataType_t type)
     break;
     }
     return type_str;
+}
+
+inline std::size_t get_data_size(miopenDataType_t) { MIOPEN_THROW("not implemented"); }
+
+inline std::size_t get_data_size(miopenIndexType_t index_type)
+{
+    switch(index_type)
+    {
+    case miopenIndexUint8: { return sizeof(uint8_t);
+    }
+    case miopenIndexUint16: { return sizeof(uint16_t);
+    }
+    case miopenIndexUint32: { return sizeof(uint32_t);
+    }
+    case miopenIndexUint64: { return sizeof(uint64_t);
+    }
+    }
+
+    MIOPEN_THROW("not belong to any case");
+}
+
+inline std::size_t get_index_max(miopenIndexType_t index_type)
+{
+    // Basically, constants defined in cl.h, like CL_UCHAR_MAX, shall be used here.
+    //    However, these are not available for HIP backend.
+    switch(index_type)
+    {
+    case miopenIndexUint8: { return std::numeric_limits<uint8_t>::max();
+    }
+    case miopenIndexUint16: { return std::numeric_limits<uint16_t>::max();
+    }
+    case miopenIndexUint32: { return std::numeric_limits<uint32_t>::max();
+    }
+    case miopenIndexUint64: { return std::numeric_limits<uint64_t>::max();
+    }
+    }
+
+    MIOPEN_THROW("not belong to any case");
 }
 
 } // namespace miopen

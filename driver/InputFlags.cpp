@@ -54,9 +54,31 @@ void InputFlags::AddInputFlag(const std::string& _long_name,
     printf("MIOpen Driver Input Flags: \n\n");
 
     for(auto& content : MapInputs)
+    {
+        std::vector<std::string> help_text_lines;
+        size_t pos = 0;
+        for(size_t next_pos = content.second.help_text.find('\n', pos);
+            next_pos != std::string::npos;)
+        {
+            help_text_lines.push_back(std::string(content.second.help_text.begin() + pos,
+                                                  content.second.help_text.begin() + next_pos++));
+            pos      = next_pos;
+            next_pos = content.second.help_text.find('\n', pos);
+        }
+        help_text_lines.push_back(
+            std::string(content.second.help_text.begin() + pos, content.second.help_text.end()));
+
         std::cout << std::setw(8) << "--" << content.second.long_name
                   << std::setw(20 - content.second.long_name.length()) << "-" << content.first
-                  << std::setw(8) << " " << content.second.help_text << "\n";
+                  << std::setw(8) << " " << help_text_lines[0] << std::endl;
+
+        for(auto help_next_line = std::next(help_text_lines.begin());
+            help_next_line != help_text_lines.end();
+            ++help_next_line)
+        {
+            std::cout << std::setw(37) << " " << *help_next_line << std::endl;
+        }
+    }
     exit(0);
 }
 

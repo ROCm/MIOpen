@@ -58,17 +58,7 @@
 
 // calculating the size of the area for weights prefetch
 
-__attribute__((always_inline)) uint iDiv(uint v, uint d)
-{
-    uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
-    return (r);
-}
-
-__attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24(u, d);
-    return (r);
-}
+#include "math_ops.h"
 
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2))) __kernel void
 MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
@@ -406,9 +396,9 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
             q1 += i
 #if MLO_DIR_FORWARD == 0
 
-                  * MLO_FILTER_STRIDE0;
+                  * MLO_FILTER_STRIDE0
 #endif
-            ;
+                ;
             *q1 = accum[o][i];
 
 #if MLO_DIR_FORWARD == 0

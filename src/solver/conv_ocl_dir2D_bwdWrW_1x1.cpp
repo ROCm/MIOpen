@@ -33,8 +33,11 @@ namespace solver {
 
 bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
+    if(!(params.IsFp32() || params.IsFp16()))
+        return false;
+
     bool result =
-        (params.kernel_size0 == 1) && (params.kernel_size1 == 1) && params.mode.IsNormal();
+        (params.kernel_size_w == 1) && (params.kernel_size_h == 1) && params.group_counts == 1;
 
     // Does not support strides > 1 if not multiple of 16
     if((params.n_inputs & 0xF) > 0 || (params.n_outputs & 0xF) > 0)
@@ -48,8 +51,8 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
     ConvSolution result;
     const int n_passes =
 #if TWO_PASSES
-        ((params.batch_sz >= 16 || 2 * params.n_outputs > params.n_inputs) && params.pad1 == 0 &&
-         params.pad0 == 0 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
+        ((params.batch_sz >= 16 || 2 * params.n_outputs > params.n_inputs) && params.pad_h == 0 &&
+         params.pad_w == 0 && (params.kernel_stride_w > 1 || params.kernel_stride_h > 1))
             ? 2
             :
 #endif
@@ -169,8 +172,8 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
         int out_channel_stride = params.in_channel_stride;
         int out_stride         = params.in_stride;
         int wei_batch_stride =
-            params.n_inputs * params.n_outputs * params.kernel_size0 * params.kernel_size1;
-        int wei_channel_stride     = params.n_outputs * params.kernel_size0 * params.kernel_size1;
+            params.n_inputs * params.n_outputs * params.kernel_size_w * params.kernel_size_h;
+        int wei_channel_stride     = params.n_outputs * params.kernel_size_w * params.kernel_size_h;
         int max_loads_per_readunit = (out_channel_stride / read_unit) * params.batch_sz;
 
         // limited shape size shows better performance with ead_uint == 3
@@ -190,29 +193,29 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
         int in_pad_min_x = 0;
         int in_pad_min_y = 0;
 
-        if(params.pad0 > 0)
+        if(params.pad_w > 0)
         {
-            in_pad_min_x = params.kernel_stride0 - (params.pad0 % params.kernel_stride0);
+            in_pad_min_x = params.kernel_stride_w - (params.pad_w % params.kernel_stride_w);
             // In case PAD == STRIDE
-            in_pad_min_x = in_pad_min_x % params.kernel_stride0;
+            in_pad_min_x = in_pad_min_x % params.kernel_stride_w;
 
-            out_pad_min_x = (params.pad0 + params.kernel_stride0 - 1) / params.kernel_stride0;
-            out_pad_width = (params.out_width - in_pad_min_x + params.kernel_stride0 - 1) /
-                            params.kernel_stride0;
+            out_pad_min_x = (params.pad_w + params.kernel_stride_w - 1) / params.kernel_stride_w;
+            out_pad_width = (params.out_width - in_pad_min_x + params.kernel_stride_w - 1) /
+                            params.kernel_stride_w;
         }
-        if(params.pad1 > 0)
+        if(params.pad_h > 0)
         {
-            in_pad_min_y = params.kernel_stride1 - (params.pad1 % params.kernel_stride1);
+            in_pad_min_y = params.kernel_stride_h - (params.pad_h % params.kernel_stride_h);
             // In case PAD == STRIDE
-            in_pad_min_y = in_pad_min_y % params.kernel_stride1;
+            in_pad_min_y = in_pad_min_y % params.kernel_stride_h;
 
-            out_pad_min_y  = (params.pad1 + params.kernel_stride1 - 1) / params.kernel_stride1;
-            out_pad_height = (params.out_height - in_pad_min_y + params.kernel_stride1 - 1) /
-                             params.kernel_stride1;
+            out_pad_min_y  = (params.pad_h + params.kernel_stride_h - 1) / params.kernel_stride_h;
+            out_pad_height = (params.out_height - in_pad_min_y + params.kernel_stride_h - 1) /
+                             params.kernel_stride_h;
         }
 
-        if(params.pad0 > 0 || params.pad1 > 0 ||
-           (n_passes == 1 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1)))
+        if(params.pad_w > 0 || params.pad_h > 0 ||
+           (n_passes == 1 && (params.kernel_stride_w > 1 || params.kernel_stride_h > 1)))
         {
             read_unit = (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0)
                                                            ? 3
@@ -223,14 +226,14 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
             max_loads_per_readunit = (out_pad_width / read_unit) * out_pad_height * params.batch_sz;
         }
 
-        int kernel_stride0 = params.kernel_stride0;
-        int kernel_stride1 = params.kernel_stride1;
+        int kernel_stride_w = params.kernel_stride_w;
+        int kernel_stride_h = params.kernel_stride_h;
 
-        if(n_passes > 1 && params.pad1 == 0 && params.pad0 == 0 &&
-           (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
+        if(n_passes > 1 && params.pad_h == 0 && params.pad_w == 0 &&
+           (params.kernel_stride_w > 1 || params.kernel_stride_h > 1))
         {
-            kernel_stride0 = 1;
-            kernel_stride1 = 1;
+            kernel_stride_w = 1;
+            kernel_stride_h = 1;
         }
 
         int out_read_sz         = n_lcl_out_maps * read_unit;
@@ -249,20 +252,20 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
         int in0_stride         = params.out_stride;
         int in0_channel_stride = params.out_channel_stride;
         int in0_batch_stride   = params.out_batch_stride;
-        int kernel0_stride0    = params.kernel_stride0;
-        int kernel0_stride1    = params.kernel_stride1;
+        int kernel0_stride0    = params.kernel_stride_w;
+        int kernel0_stride1    = params.kernel_stride_h;
 
         const auto comp_options =
             std::string(" -DMLO_GRP_SZ0=") + std::to_string(n_grp_size0) +
             std::string(" -DMLO_GRP_SZ1=1 ") + std::string(" -DMLO_GRP_SZ2=1 ") +
             std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
             std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
-            std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(params.kernel_size0) +
-            std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(params.kernel_size1) +
-            std::string(" -DMLO_FILTER_PAD0=") + std::to_string(params.pad0) +
-            std::string(" -DMLO_FILTER_PAD1=") + std::to_string(params.pad1) +
-            std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(kernel_stride0) +
-            std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(kernel_stride1) +
+            std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(params.kernel_size_w) +
+            std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(params.kernel_size_h) +
+            std::string(" -DMLO_FILTER_PAD0=") + std::to_string(params.pad_w) +
+            std::string(" -DMLO_FILTER_PAD1=") + std::to_string(params.pad_h) +
+            std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(kernel_stride_w) +
+            std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(kernel_stride_h) +
             std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(kernel0_stride0) +
             std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(kernel0_stride1) +
             std::string(" -DMLO_N_OUTPUTS=") + std::to_string(params.n_inputs) +
@@ -307,8 +310,8 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 
         result.workspce_sz = 0;
 
-        if(n_passes > 1 && params.pad1 == 0 && params.pad0 == 0 &&
-           (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
+        if(n_passes > 1 && params.pad_h == 0 && params.pad_w == 0 &&
+           (params.kernel_stride_w > 1 || params.kernel_stride_h > 1))
         {
             KernelInfo kernel;
 

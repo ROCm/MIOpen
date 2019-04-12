@@ -26,14 +26,19 @@
 #ifndef GUARD_MIOPEN_LOCK_FILE_HPP_
 #define GUARD_MIOPEN_LOCK_FILE_HPP_
 
-#include <boost/filesystem.hpp>
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/date_time/posix_time/ptime.hpp>
+#include <boost/date_time/time.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/interprocess/sync/file_lock.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <chrono>
 #include <fstream>
 #include <shared_mutex>
+#include <map>
 #include <mutex>
+#include <string>
 
 namespace miopen {
 // LockFile class is a wrapper around boost::interprocess::file_lock providing MT-safety.

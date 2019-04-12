@@ -27,6 +27,9 @@
 #include <miopen/convolution_fft.hpp>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/tensor_ops.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
 
@@ -97,14 +100,30 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeFFT(const TensorDescriptor&
                                                          const TensorDescriptor& xDesc,
                                                          const TensorDescriptor& yDesc) const
 {
-    return GetWorkSpaceSizeFFT(wDesc, xDesc, yDesc, std::make_tuple(pad_h, pad_w, u, v), true);
+    if(GetSpatialDimension() != 2)
+        return 0;
+    return GetWorkSpaceSizeFFT(
+        wDesc,
+        xDesc,
+        yDesc,
+        std::make_tuple(
+            GetConvPads()[0], GetConvPads()[1], GetConvStrides()[0], GetConvStrides()[1]),
+        true);
 }
 
 size_t ConvolutionDescriptor::BackwardGetWorkSpaceSizeFFT(const TensorDescriptor& wDesc,
                                                           const TensorDescriptor& dyDesc,
                                                           const TensorDescriptor& dxDesc) const
 {
-    return GetWorkSpaceSizeFFT(wDesc, dxDesc, dyDesc, std::make_tuple(pad_h, pad_w, u, v), false);
+    if(GetSpatialDimension() != 2)
+        return 0;
+    return GetWorkSpaceSizeFFT(
+        wDesc,
+        dxDesc,
+        dyDesc,
+        std::make_tuple(
+            GetConvPads()[0], GetConvPads()[1], GetConvStrides()[0], GetConvStrides()[1]),
+        false);
 }
 
 } // namespace miopen

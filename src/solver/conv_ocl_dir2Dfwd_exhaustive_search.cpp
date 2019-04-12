@@ -62,9 +62,9 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
                                                         : 32; // size of input data per ALU plane
 
     result.out_pix_tile0 =
-        std::max(params.kernel_stride0,
+        std::max(params.kernel_stride_w,
                  ((result.in_tile0 == 8) ? 1 : 2)); // size of ouptput tile per wk-item (ALU))
-    result.out_pix_tile1 = std::max(params.kernel_stride1, ((result.in_tile1 == 8) ? 1 : 2)); //
+    result.out_pix_tile1 = std::max(params.kernel_stride_h, ((result.in_tile1 == 8) ? 1 : 2)); //
 
     result.grp_tile0 = std::max(8, (result.in_tile0 / result.out_pix_tile0));
     result.grp_tile1 = std::max(8, (result.in_tile1 / result.out_pix_tile1));
@@ -76,12 +76,12 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
 
     result.n_stacks = 1; // # of diff stacks (part of batch).
 
-    if(params.kernel_size0 == 1 && params.kernel_size1 == 1 &&
-       params.mode.IsNormal()) // Group conv: None 1x1 version yet, fallback to universal kernel.
+    if(params.kernel_size_w == 1 && params.kernel_size_h == 1 &&
+       params.group_counts == 1) // Group conv: None 1x1 version yet, fallback to universal kernel.
     {
 
         // version
-        if(params.in_data_type == "FP32" && params.direction.IsForward() &&
+        if(params.in_data_type == miopenFloat && params.direction.IsForward() &&
            params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
         {
             result.n_in_data_tiles = 128;
@@ -99,7 +99,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
             int i_sz             = params.out_height * params.out_width;
             result.out_pix_tile0 = (i_sz & 1) != 0 ? 1 : 2;
 
-            if(params.pad0 > 0 || params.kernel_stride0 > 1)
+            if(params.pad_w > 0 || params.kernel_stride_w > 1)
             {
                 if(params.direction.IsForward())
                 {
@@ -245,9 +245,9 @@ static int MeasurePerfConfig(Handle* profile_h,
 LegacyPerformanceConfig
 ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params) const
 {
-    if(params.float_size == 16)
+    if(params.IsFp16())
         return SearchImpl<half_float::half>(params);
-    else if(params.float_size == 32)
+    else if(params.IsFp32())
         return SearchImpl<float>(params);
     else
     {
@@ -283,7 +283,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     size_t bot_sz = params.bot_sz / sizeof(Tgpu);
     std::vector<Tgpu> bot_sys_buf(bot_sz);
 
-    for(int i = 0; i < bot_sz; i++)
+    for(size_t i = 0; i < bot_sz; i++)
     {
         bot_sys_buf[i] = static_cast<Tgpu>(rand() * (1.0 / RAND_MAX));
     }
@@ -296,14 +296,14 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     auto top_ocl_buf = profile_h.Write(top_sys_buf);
 
     std::vector<Tgpu> random_top_sys_buf(top_sz);
-    for(int i = 0; i < top_sz; i++)
+    for(size_t i = 0; i < top_sz; i++)
     {
         random_top_sys_buf[i] = static_cast<Tgpu>(rand() * (1.0 / RAND_MAX));
     }
 
     size_t weights_sz = params.weights_sz / sizeof(Tgpu);
     std::vector<Tgpu> wei_sys_buf(weights_sz);
-    for(int i = 0; i < weights_sz; i++)
+    for(size_t i = 0; i < weights_sz; i++)
     {
         wei_sys_buf[i] = static_cast<Tgpu>((rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
     }
@@ -317,7 +317,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     {
         size_t bias_sz = params.bias_sz / sizeof(Tgpu);
         bias_sys_buf   = std::vector<Tgpu>(bias_sz);
-        for(int i = 0; i < bias_sz; i++)
+        for(size_t i = 0; i < bias_sz; i++)
         {
             bias_sys_buf[i] = static_cast<Tgpu>(rand() * (1.0 / RAND_MAX));
         }
@@ -366,8 +366,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
 
     long long runs_left = 0;
 
-    if(params.kernel_size0 == 1 && params.kernel_size1 == 1 &&
-       params.mode.IsNormal()) // Group conv: None 1x1 version yet, fallback to universal kernel.
+    if(params.kernel_size_w == 1 && params.kernel_size_h == 1 &&
+       params.group_counts == 1) // Group conv: None 1x1 version yet, fallback to universal kernel.
     {
         MIOPEN_LOG_W("Searching the best solution in the 4 dim space. Please, be patient...");
         int n_grp_tiles0 = 3;
@@ -377,7 +377,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
         report_inteval   = 5;
 
         // Add 1x1_stride : no padding support yet
-        if(params.in_data_type == "FP32" && params.direction.IsForward() &&
+        if(params.in_data_type == miopenFloat && params.direction.IsForward() &&
            params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
         {
 
@@ -406,7 +406,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
         else
         {
             int i_sz = params.in_width * params.in_height;
-            if(params.kernel_stride0 == 1)
+            if(params.kernel_stride_w == 1)
             {
                 out_pix_tl_cnt = (i_sz & 1) != 0 ? 1 : (i_sz & 0x3) != 0 ? 2 : 3;
             }
@@ -674,9 +674,9 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
         int ret                   = -1;
         double default_time       = std::numeric_limits<double>::max();
         const auto default_config = GetPerformanceConfig(params);
-        if(params.kernel_size0 == 1 && params.kernel_size1 == 1 &&
-           params.mode
-               .IsNormal()) // Group conv: None 1x1 version yet, fallback to universal kernel.
+        if(params.kernel_size_w == 1 && params.kernel_size_h == 1 &&
+           params.group_counts ==
+               1) // Group conv: None 1x1 version yet, fallback to universal kernel.
         {
             ret = MeasurePerfConfig<Tgpu, ConvOclDirectFwd1x1>(&profile_h,
                                                                bot_ocl_buf.get(),

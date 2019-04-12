@@ -28,6 +28,7 @@
 #include "miopen/env.hpp"
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW)
 /// \todo Detect at runtime and remove this var:
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 
@@ -59,26 +60,166 @@ static inline int FloorDiv(const int x, const int y)
     return x / y;
 }
 
+static inline bool IsShaderContraintsMet(const int R,
+                                         const int S,
+                                         const int R_stride,
+                                         const int S_stride,
+                                         const int C,
+                                         const int K,
+                                         const int H,
+                                         const int W,
+                                         const int OH,
+                                         const int OW,
+                                         const int N,
+                                         const miopen::ConvolutionContext& params,
+                                         const bool fp16,
+                                         const unsigned filter_tile_size)
+{
+    static const auto TILE   = static_cast<int>(filter_tile_size);
+    static const int TILE_X2 = TILE * 2;
+    // Calculate padded filter size first.
+    // If stride = 1: if S <= 3 it is padded to 3,
+    // otherwise S is padded to smallest 6*n for some integer n
+    // If stride = 2: S is always padded to smallest 6*n for some integer n
+    int padded_S = 0;
+    if(S_stride == 1)
+    {
+        if(S <= TILE)
+        {
+            padded_S = TILE;
+        }
+        else
+        {
+            padded_S = Ceiling(S, TILE_X2);
+        }
+    }
+    else
+    {
+        padded_S = Ceiling(S, TILE_X2);
+    }
+    // If stride = 1: R is always padded to smallest 3*m for some integer m
+    // If stride = 2: if R % 6 ==1 then R is padded to smallest 3*m for some
+    // integer m, otherwise R is padded to smallest 6*m for some integer m
+    int padded_R = 0;
+    if(R_stride == 1)
+    {
+        padded_R = Ceiling(R, TILE);
+    }
+    else
+    {
+        if(R % TILE_X2 == 1)
+        {
+            padded_R = Ceiling(R, TILE);
+        }
+        else
+        {
+            padded_R = Ceiling(R, TILE_X2);
+        }
+    }
+    // Check C restrictions:
+    // For FP16, all C restrictions shall be multipled by 2.
+    // This implicitly introduces restriction that C must be even.
+    if(fp16 && C % 2 != 0)
+    {
+        return false;
+    }
+    // If stride == 1 and S <= 3 then C needs to be even, otherwise not
+    if(S_stride == 1 && S <= TILE && C % (fp16 ? 4 : 2) != 0)
+    {
+        return false;
+    }
+    const bool is_dilated_stride_2 = (params.direction.IsBackwardData() && S_stride != 1);
+    if(fp16)
+    {
+        if(is_dilated_stride_2)
+        {
+            if(C % 4 != 0)
+                return false;
+            // In dilation mode with stride== 2 the following should be satisfied:
+            // C * (ceil(R/6) + floor((R+4)/6)) * ceil(S/6) >= 18*2 (fp16)
+            const auto k = CeilDiv(R, TILE_X2) + FloorDiv((R + TILE + 1), TILE_X2);
+            const auto l = CeilDiv(S, TILE_X2);
+            if(C * k * l < 18 * 2)
+                return false;
+        }
+        if(padded_R * padded_S * C < TILE * TILE * 18 * 2)
+            return false;
+    }
+    else
+    {
+        // 9_0_14 readme: Additional limitations in the dilated case are R> 1 and  C %2==0
+        if(is_dilated_stride_2)
+        {
+            if(!(R > 1))
+                return false;
+            if(!(C % 2 == 0))
+                return false;
+        }
+        // If the padded_R x padded_S filter size from above is 3*k x 3*l
+        // or (special case for dilated with stride 2) 3*k x 6*l, then
+        // it should be that k*l*C  >=18
+        assert(padded_R % TILE == 0 && padded_S % (is_dilated_stride_2 ? TILE_X2 : TILE) == 0);
+        const int k = padded_R / TILE;
+        const int l = padded_S / (is_dilated_stride_2 ? TILE_X2 : TILE);
+        if(k * l * C < 18)
+            return false;
+    }
+    // Padding for bwd data shall not be negative.
+    if(params.direction.IsBackwardData() || params.direction.IsBackwardWrW())
+    {
+        if(!(0 <= params.GetBackwardPadW() && params.GetBackwardPadW() < std::pow(2, 16)))
+            return false;
+        if(!(0 <= params.GetBackwardPadH() && params.GetBackwardPadH() < std::pow(2, 16)))
+            return false;
+    }
+    const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
+    assert(params.weights_layout.length() == 0);
+    // clang-format off
+    // Check implementation limits.
+    return N < std::pow(2, 16)
+        && C < std::pow(2, 16)
+        && K < std::pow(2, 16)
+        && H < std::pow(2, 16)
+        && W < std::pow(2, 16)
+        && OH < std::pow(2, 16)
+        && OW < std::pow(2, 16)
+        && params.pad_w < std::pow(2, 16)
+        && params.pad_h < std::pow(2, 16)
+        && S < std::pow(2, 16)
+        && R < std::pow(2, 16)
+        && grid_workgroup_count_x < std::pow(2, 16)
+        && (C * H * W) <= std::pow(2, 28)
+        && (K * OH * OW) <= std::pow(2, 28)
+        && (K * R * S) <= std::pow(2, 28)
+        && (C * R * S) <= std::pow(2, 28);
+    // clang-format on
+}
+
 namespace miopen {
 namespace solver {
 
 bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!(params.float_size == 32 || params.float_size == 16))
+    if(!(params.IsFp32() || params.IsFp16()))
         return false;
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}))
         return false;
-    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
-        return false;
+    if(params.direction.IsBackwardWrW())
+    {
+        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW{}))
+            return false;
+        if(!(params.IsFp32() && params.kernel_stride_w == 1 && params.kernel_stride_h == 1))
+            return false; // WrW is only for fp32 and no stride for now.
+    }
 
-    const bool fp16 = (params.float_size == 16);
-    if(fp16)
+    const bool fp16 = params.IsFp16();
+    if(fp16 || params.direction.IsBackwardWrW())
     { // These are supplied in asm source format.
         if(!params.use_asm_kernels)
             return false;
     }
     else
-    { // fp32 kernels are in binary format.
+    { // fp32 Fwd/Bwd tile=3 kernels are in binary format.
         if(!params.use_binaries)
             return false;
     }
@@ -92,149 +233,65 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     }
     else
     {
-        if (! ((name == "gfx803" && (params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
-            || (name == "gfx900" && (params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
-            || (name == "gfx906" && params.rmv == rocm_meta_version::AMDHSA_1_0)))
-            return false;
+        if (params.direction.IsBackwardWrW())
+        {
+            if (! ((name == "gfx900" && params.rmv == rocm_meta_version::AMDHSA_1_0)
+                || (name == "gfx906" && params.rmv == rocm_meta_version::AMDHSA_1_0)))
+                return false;
+        }
+        else
+        {
+            if (! ((name == "gfx803" && (params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
+                || (name == "gfx900" && (params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
+                || (name == "gfx906" && params.rmv == rocm_meta_version::AMDHSA_1_0)))
+                return false;
+        }
     }
 
-    if (! (params.kernel_stride0 <= 2 // -u inp_u 1 or 2
-        && params.kernel_stride0 == params.kernel_stride1
-        && params.kernel_dilation0 == 1
-        && params.kernel_dilation1 == 1
+    if (! (params.kernel_stride_w <= 2 // -u inp_u 1 or 2
+        && params.kernel_stride_w == params.kernel_stride_h
+        && params.kernel_dilation_w == 1
+        && params.kernel_dilation_h == 1
         && params.bias == 0
-        && params.mode.IsNormal()
+        && params.group_counts == 1
         && params.in_layout == "NCHW"))
         return false;
     // clang-format on
 
-    // Aliases to ease programming.
-    const auto& shader_R  = params.kernel_size1; // -x wei_w
-    const auto& shader_S  = params.kernel_size0; // -y wei_h
-    const auto& shader_C  = params.n_inputs;     // -c   wei_c
-    const auto& shader_K  = params.n_outputs;    // -k   wei_k
-    const auto& shader_H  = params.in_height;    // -H   inp_h
-    const auto& shader_W  = params.in_width;     // -W   inp_w
-    const auto& shader_OH = params.out_height;
-    const auto& shader_OW = params.out_width;
-
-    // Calculate padded filter size first.
-    // If stride = 1: if S <= 3 it is padded to 3,
-    // otherwise S is padded to smallest 6*n for some integer n
-    // If stride = 2: S is always padded to smallest 6*n for some integer n
-    int padded_S = 0;
-    if(params.kernel_stride0 == 1)
+    if(params.direction.IsBackwardWrW())
     {
-        if(shader_S <= 3)
-        {
-            padded_S = 3;
-        }
-        else
-        {
-            padded_S = Ceiling(shader_S, 6);
-        }
+        return IsShaderContraintsMet(params.in_height,
+                                     params.in_width,
+                                     params.kernel_dilation_h,
+                                     params.kernel_dilation_w,
+                                     params.batch_sz, // N
+                                     params.n_inputs, // K
+                                     params.out_height,
+                                     params.out_width,
+                                     params.kernel_size_h,
+                                     params.kernel_size_w,
+                                     params.n_outputs, // C
+                                     params,
+                                     fp16,
+                                     2);
     }
     else
     {
-        padded_S = Ceiling(shader_S, 6);
+        return IsShaderContraintsMet(params.kernel_size_h, // RxS
+                                     params.kernel_size_w,
+                                     params.kernel_stride_h,
+                                     params.kernel_stride_w,
+                                     params.n_inputs,  // C
+                                     params.n_outputs, // K
+                                     params.in_height, // HxW
+                                     params.in_width,
+                                     params.out_height, // OHxOW
+                                     params.out_width,
+                                     params.batch_sz, // N
+                                     params,
+                                     fp16,
+                                     3);
     }
-    // If stride = 1: R is always padded to smallest 3*m for some integer m
-    // If stride = 2: if R % 6 ==1 then R is padded to smallest 3*m for some
-    // integer m, otherwise R is padded to smallest 6*m for some integer m
-    int padded_R = 0;
-    if(params.kernel_stride1 == 1)
-    {
-        padded_R = Ceiling(shader_R, 3);
-    }
-    else
-    {
-        if(shader_R % 6 == 1)
-        {
-            padded_R = Ceiling(shader_R, 3);
-        }
-        else
-        {
-            padded_R = Ceiling(shader_R, 6);
-        }
-    }
-    // Check C restrictions:
-    // For FP16, all C restrictions shall be multipled by 2.
-    // This implicitly introduces restriction that C must be even.
-    if(fp16 && shader_C % 2 != 0)
-    {
-        return false;
-    }
-    // If stride == 1 and S <= 3 then C needs to be even, otherwise not
-    if(params.kernel_stride0 == 1 && shader_S <= 3 && shader_C % (fp16 ? 4 : 2) != 0)
-    {
-        return false;
-    }
-    const bool is_dilated_stride_2 =
-        (params.direction.IsBackwardData() && params.kernel_stride0 != 1);
-    if(fp16)
-    {
-        if(is_dilated_stride_2)
-        {
-            if(shader_C % 4 != 0)
-                return false;
-            // In dilation mode with stride== 2 the following should be satisfied:
-            // C * (ceil(R/6) + floor((R+4)/6)) * ceil(S/6) >= 18*2 (fp16)
-            const int k = CeilDiv(shader_R, 6) + FloorDiv((shader_R + 4), 6);
-            const int l = CeilDiv(shader_S, 6);
-            if(shader_C * k * l < 18 * 2)
-                return false;
-        }
-        if(padded_R * padded_S * shader_C < 3 * 3 * 18 * 2)
-            return false;
-    }
-    else
-    {
-        // 9_0_14 readme: Additional limitations in the dilated case are R> 1 and  C %2==0
-        if(is_dilated_stride_2)
-        {
-            if(!(shader_R > 1))
-                return false;
-            if(!(shader_C % 2 == 0))
-                return false;
-        }
-        // If the padded_R x padded_S filter size from above is 3*k x 3*l
-        // or (special case for dilated with stride 2) 3*k x 6*l, then
-        // it should be that k*l*C  >=18
-        assert(padded_R % 3 == 0 && padded_S % (is_dilated_stride_2 ? 6 : 3) == 0);
-        const int k = padded_R / 3;
-        const int l = padded_S / (is_dilated_stride_2 ? 6 : 3);
-        if(k * l * shader_C < 18)
-            return false;
-    }
-    // Padding for bwd data shall not be negative.
-    if(params.direction.IsBackwardData())
-    {
-        if(params.GetBackwardPad0() < 0 || params.GetBackwardPad1() < 0)
-        {
-            return false;
-        }
-    }
-    const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
-    assert(params.weights_layout.length() == 0);
-    // clang-format off
-    // Check implementation limits.
-    return params.batch_sz < std::pow(2, 16)
-        && shader_C < std::pow(2, 16)
-        && shader_K < std::pow(2, 16)
-        && shader_H < std::pow(2, 16)
-        && shader_W < std::pow(2, 16)
-        && shader_OH < std::pow(2, 16)
-        && shader_OW < std::pow(2, 16)
-        && params.pad0 < std::pow(2, 16) // -q pad_w
-        && params.pad1 < std::pow(2, 16) // -p pad_h
-        && shader_S < std::pow(2, 16)
-        && shader_R < std::pow(2, 16)
-        && grid_workgroup_count_x < std::pow(2, 16)
-        && (shader_C * shader_H * shader_W) <= std::pow(2, 28)
-        && (shader_K * shader_OH * shader_OW) <= std::pow(2, 28)
-        && (shader_K * shader_R * shader_S) <= std::pow(2, 28)
-        && (shader_C * shader_R * shader_S) <= std::pow(2, 28);
-    // clang-format on
 }
 
 ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) const
@@ -252,7 +309,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    if(params.float_size == 16)
+    if(params.IsFp16())
     {
         kernel.kernel_name = "sp3AsmConvRxSU";
         kernel.kernel_file = "Conv_Winograd_";
@@ -262,7 +319,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
             kernel.kernel_file += "v14_3_3";
         kernel.kernel_file += "_fp16dot_stride";
 
-        if(params.kernel_stride0 == 2)
+        if(params.kernel_stride_w == 2)
         {
             if(params.direction.IsForward())
                 kernel.kernel_file += "2_dec";
@@ -274,16 +331,18 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
             kernel.kernel_file += "1";
         }
         kernel.kernel_file += ".s";
-
-        if(params.rmv != rocm_meta_version::AMDHSA_1_0)
-            MIOPEN_THROW("ConvBinWinogradRxS: Unsupported metadata version.");
+    }
+    else if(params.direction.IsBackwardWrW())
+    {
+        kernel.kernel_name = "sp3AsmConvRxSU";
+        kernel.kernel_file = "Conv_Winograd_v16_3_0_stride1.s";
     }
     else
     {
         kernel.kernel_name = "sp3AsmConvRxSU";
         kernel.kernel_file = "conv_3x3_wheel_alpha_v9_0_15";
 
-        if(params.kernel_stride0 == 2)
+        if(params.kernel_stride_w == 2)
         {
             if(params.direction.IsForward())
                 kernel.kernel_file += "_stride_2_dec";

@@ -31,43 +31,62 @@
 namespace miopen {
 namespace solver {
 
-bool GroupConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
+bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
 {
-    return IsApplicableBase(params) && params.mode.IsGroup();
-}
+    if(!(params.IsFp32() || params.IsFp16()))
+        return false;
 
-ConvSolution GroupConvOclDirectFwd::GetSolution(const ConvolutionContext& params) const
-{
-    return ConvOclDirectFwd::GetSolution(params, GetPerformanceConfig(params));
-}
-
-bool ConvOclDirectFwd::IsApplicableBase(const ConvolutionContext& params) const
-{
     // clang-format off
     // Cases when dy has negative padding are not supported (issue 918)
     if(params.direction.IsBackwardData()
-        && (params.GetBackwardPad0() < 0 || params.GetBackwardPad1() < 0))
+        && (params.GetBackwardPadW() < 0 || params.GetBackwardPadH() < 0))
         return false;
 
-    return params.kernel_stride0 == params.kernel_stride1
-        && params.pad0 == params.pad1
+    // Factored out from ConvolutionDescriptor::IsDirectSupported(), which is now dissmissed:
+    if (params.group_counts == 1)
+    {
+        const auto& p = params; //alias
+        const bool supported =
+            ((p.kernel_size_h == p.kernel_size_w)
+              && (p.kernel_size_h == 3
+                  || p.kernel_size_h == 5
+                  || p.kernel_size_h == 7
+                  || p.kernel_size_h == 9
+                  || p.kernel_size_h == 11))
+            || ((p.kernel_size_w == 10 || p.kernel_size_w == 20)
+                && p.kernel_size_h == 5
+                && p.kernel_stride_h == 2
+                && p.kernel_stride_w == 2
+                && p.pad_h == 0
+                && p.pad_w == 0)
+            /// The following is for #1594. Most likely we can open more configs,
+            /// but that would require thorough testing.
+            || (p.IsFp16()
+                && p.kernel_size_h == 4
+                && p.kernel_size_w == 4
+                && p.pad_h == 0
+                && p.pad_w == 0);
+
+        if (!supported)
+            return false;
+    }
+    return params.kernel_stride_w == params.kernel_stride_h
+        && params.pad_w == params.pad_h
+        && params.kernel_dilation_w == 1
+        && params.kernel_dilation_h == 1
         /// \todo need to make sure support stride > 2, should support but not tested
-        && !(params.kernel_stride0 > 2 || params.kernel_stride1 > 2)
+        && !(params.kernel_stride_w > 2 || params.kernel_stride_h > 2)
+        /// We have optimized 1x1 kernel for normal conv.
+        && !(params.group_counts == 1 && params.kernel_size_h == 1 && params.kernel_size_w == 1)
         /// \todo Workaround to avoid FP16 precision issue:
         /// While MIOpenConvUni is up to 4x faster than MIOpenCDFGen (even not auto-tuned),
         /// it seems that is has 4x..20x worse precision, and some "test_conv --half" tests fail.
+        /// See issue #1626.
         && !(params.direction.IsForward()
-            && params.float_size == 16
-            && params.kernel_stride0 == 2)
+            && params.IsFp16()
+            && params.kernel_stride_w == 2)
         && IsValidPerformanceConfig(params, GetPerformanceConfig(params));
     // clang-format on
-}
-
-bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
-{
-    return IsApplicableBase(params) && params.mode.IsNormal() &&
-           !(params.kernel_size0 == 1 &&
-             params.kernel_size1 == 1); // We have optimized 1x1 kernel for normal conv.
 }
 
 /// This prevents errors in ConvOclDirectFwd::GetSolution(),
@@ -81,14 +100,14 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(
     ConvSolution result;
 
     searched_params.CopyTo(result);
-    // auto pad0 = params.pad0;
-    // auto pad1 = params.pad1;
+    // auto pad_w = params.pad_w;
+    // auto pad_h = params.pad_h;
     // auto hw_wave_sz = 64;
     // if(!params.direction.IsForward())
     // {
     //     // backward
-    //     pad0 = params.kernel_size0 - 1 - pad0;
-    //     pad1 = params.kernel_size1 - 1 - pad1;
+    //     pad_w = params.kernel_size_w - 1 - pad_w;
+    //     pad_h = params.kernel_size_h - 1 - pad_h;
     // }
     auto group_counts = params.group_counts;
     result.n_in_data_tiles =
@@ -97,11 +116,11 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(
         std::min(params.n_outputs / group_counts, searched_params.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
-    result.out_pix_tile1 = (!params.direction.IsForward() && params.kernel_stride1 > 1)
-                               ? params.kernel_stride1
+    result.out_pix_tile1 = (!params.direction.IsForward() && params.kernel_stride_h > 1)
+                               ? params.kernel_stride_h
                                : searched_params.out_pix_tile1;
-    result.out_pix_tile0 = (!params.direction.IsForward() && params.kernel_stride0 > 1)
-                               ? params.kernel_stride0
+    result.out_pix_tile0 = (!params.direction.IsForward() && params.kernel_stride_w > 1)
+                               ? params.kernel_stride_w
                                : searched_params.out_pix_tile0;
 
     if(result.out_pix_tile1 == 0 || result.out_pix_tile0 == 0 /* DIV/0 */)
@@ -156,12 +175,12 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(
     n_out_tiles_perstack     = std::min(n_out_tiles_perstack, params.n_outputs / group_counts);
 
     // const auto mlo_hw_wave_sz=hw_wave_sz;
-    const auto mlo_filter_size0 = static_cast<long long>(params.kernel_size0);
-    const auto mlo_filter_size1 = static_cast<long long>(params.kernel_size1);
-    // const auto mlo_filter_pad0=static_cast<long long>(pad0);
-    // const auto mlo_filter_pad1=static_cast<long long>(pad1);
-    const auto mlo_filter_stride0 = static_cast<long long>(params.kernel_stride0);
-    const auto mlo_filter_stride1 = static_cast<long long>(params.kernel_stride1);
+    const auto mlo_filter_size0 = static_cast<long long>(params.kernel_size_w);
+    const auto mlo_filter_size1 = static_cast<long long>(params.kernel_size_h);
+    // const auto mlo_filter_pad0=static_cast<long long>(pad_w);
+    // const auto mlo_filter_pad1=static_cast<long long>(pad_h);
+    const auto mlo_filter_stride0 = static_cast<long long>(params.kernel_stride_w);
+    const auto mlo_filter_stride1 = static_cast<long long>(params.kernel_stride_h);
     // const auto mlo_n_outputs=static_cast<long long>(params.n_outputs);
     // const auto mlo_n_inputs=static_cast<long long>(params.n_inputs);
     // const auto mlo_batch_sz=static_cast<long long>(params.batch_sz);
@@ -220,7 +239,7 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(
     const auto mlo_filter_sz          = (mlo_filter_size1 * mlo_filter_size0);
     const auto mlo_weights_sz =
         (mlo_n_out_tiles_perstack * mlo_n_in_tiles_perstack * mlo_filter_sz);
-    const auto sizeof_float     = params.float_size / 8; // 32 -> 4
+    const auto sizeof_float     = GetTypeSize(params.in_data_type);
     const auto mlo_lds_max_size = 65536;
     //    MIOPEN_LOG_I("((mlo_in_lcl_sz + mlo_weights_sz) * sizeof_float)=" << ((mlo_in_lcl_sz +
     //    mlo_weights_sz) * sizeof_float));
@@ -239,8 +258,8 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
     // std::size_t localMemSize = params.stream.GetLocalMemorySize();
 
     searched_params.CopyTo(result);
-    auto pad0         = params.pad0;
-    auto pad1         = params.pad1;
+    auto pad_w        = params.pad_w;
+    auto pad_h        = params.pad_h;
     auto group_counts = params.group_counts;
     auto hw_wave_sz   = 64;
     // auto dev_local_mem_sz = localMemSize; // in bytes
@@ -248,8 +267,8 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
     if(!params.direction.IsForward())
     {
         // backward
-        pad0 = params.kernel_size0 - 1 - pad0;
-        pad1 = params.kernel_size1 - 1 - pad1;
+        pad_w = params.kernel_size_w - 1 - pad_w;
+        pad_h = params.kernel_size_h - 1 - pad_h;
     }
 
     result.n_in_data_tiles =
@@ -258,11 +277,11 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
         std::min(params.n_outputs / group_counts, searched_params.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
-    result.out_pix_tile1 = (!params.direction.IsForward() && params.kernel_stride1 > 1)
-                               ? params.kernel_stride1
+    result.out_pix_tile1 = (!params.direction.IsForward() && params.kernel_stride_h > 1)
+                               ? params.kernel_stride_h
                                : searched_params.out_pix_tile1;
-    result.out_pix_tile0 = (!params.direction.IsForward() && params.kernel_stride0 > 1)
-                               ? params.kernel_stride0
+    result.out_pix_tile0 = (!params.direction.IsForward() && params.kernel_stride_w > 1)
+                               ? params.kernel_stride_w
                                : searched_params.out_pix_tile0;
 
     if(result.out_pix_tile1 == 0 || result.out_pix_tile0 == 0 /* DIV/0 */)
@@ -297,8 +316,7 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
     int n_alus_perstack = (n_alus_total + result.n_stacks - 1) / result.n_stacks;
 
     int n_read_procs;
-    if((result.grp_tile1 * result.grp_tile0) <=
-       static_cast<float>(result.in_tile1 * result.in_tile0))
+    if((result.grp_tile1 * result.grp_tile0) <= (result.in_tile1 * result.in_tile0))
     {
         n_read_procs = result.grp_tile1 * result.grp_tile0;
     }
@@ -326,15 +344,15 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
         std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(static_cast<long long>(hw_wave_sz)) +
         std::string(" -DMLO_DIR_FORWARD=") + (params.direction.IsForward() ? "1" : "0") +
         std::string(" -DMLO_FILTER_SIZE0=") +
-        std::to_string(static_cast<long long>(params.kernel_size0)) +
+        std::to_string(static_cast<long long>(params.kernel_size_w)) +
         std::string(" -DMLO_FILTER_SIZE1=") +
-        std::to_string(static_cast<long long>(params.kernel_size1)) +
-        std::string(" -DMLO_FILTER_PAD0=") + std::to_string(static_cast<long long>(pad0)) +
-        std::string(" -DMLO_FILTER_PAD1=") + std::to_string(static_cast<long long>(pad1)) +
+        std::to_string(static_cast<long long>(params.kernel_size_h)) +
+        std::string(" -DMLO_FILTER_PAD0=") + std::to_string(static_cast<long long>(pad_w)) +
+        std::string(" -DMLO_FILTER_PAD1=") + std::to_string(static_cast<long long>(pad_h)) +
         std::string(" -DMLO_FILTER_STRIDE0=") +
-        std::to_string(static_cast<long long>(params.kernel_stride0)) +
+        std::to_string(static_cast<long long>(params.kernel_stride_w)) +
         std::string(" -DMLO_FILTER_STRIDE1=") +
-        std::to_string(static_cast<long long>(params.kernel_stride1)) +
+        std::to_string(static_cast<long long>(params.kernel_stride_h)) +
         std::string(" -DMLO_N_OUTPUTS=") +
         std::to_string(static_cast<long long>(params.n_outputs)) + std::string(" -DMLO_N_INPUTS=") +
         std::to_string(static_cast<long long>(params.n_inputs)) + std::string(" -DMLO_BATCH_SZ=") +
@@ -396,6 +414,7 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
              std::to_string(static_cast<long long>(
                  (params.n_outputs / group_counts + n_out_tiles_perstack - 1) /
                  n_out_tiles_perstack)));
+        kernel_params.comp_options += std::string(" -DGRP_MOD_ENABLE");
     }
 
     kernel_params.l_wk.push_back(result.grp_tile1 * result.grp_tile0);
@@ -420,9 +439,8 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
     kernel_params.g_wk.push_back(gbl_wk1);
     kernel_params.g_wk.push_back(gbl_wk2);
 
-    kernel_params.kernel_file =
-        group_counts >= 2 ? "MIOpenGroupConvDirUni.cl" : "MIOpenConvDirUni.cl";
-    kernel_params.kernel_name = group_counts >= 2 ? "MIOpenGroupConvUni" : "MIOpenConvUni";
+    kernel_params.kernel_file = "MIOpenConvDirUni.cl";
+    kernel_params.kernel_name = "MIOpenConvUni";
 
     result.construction_params.push_back(kernel_params);
 

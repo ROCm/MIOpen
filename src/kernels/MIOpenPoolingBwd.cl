@@ -50,8 +50,16 @@
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
 #define _FLOAT4 PPCAT(_FLOAT, FOUR)
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
-#define _INT_MASK_GLOBAL uchar
-#define _INT_MASK_LOCAL uchar
+
+#ifndef MLO_POOLING_INDEX_TYPE
+#error "MLO_POOLING_INDEX_TYPE not defined"
+#else
+typedef MLO_POOLING_INDEX_TYPE index_t;
+#endif
+
+#ifndef MLO_POOLING_INDEX_MAX
+#error "MLO_POOLING_INDEX_MAX not defined"
+#endif
 
 #define MLO_POOLING_OP_AVE 0
 #define MLO_POOLING_OP_MAX 1
@@ -166,10 +174,17 @@ mloPoolingAveBwd(const __global _FLOAT* top_diff, __global _FLOAT* bot_diff)
                 for(int top_w = top_wstart; top_w < top_wend; ++top_w)
                 {
                     // figure out the pooling size
-                    int wstart    = top_w * MLO_POOLING_STRIDE0 - MLO_POOLING_PAD0;
-                    int wend      = min(wstart + MLO_POOLING_KERNEL_SZ0, MLO_POOLBWD_BOT_WIDTH);
-                    wstart        = max(wstart, 0);
-                    int pool_size = (hend - hstart) * (wend - wstart);
+                    int wstart = top_w * MLO_POOLING_STRIDE0 - MLO_POOLING_PAD0;
+                    int wend   = min(wstart + MLO_POOLING_KERNEL_SZ0, MLO_POOLBWD_BOT_WIDTH);
+                    wstart     = max(wstart, 0);
+                    int pool_size =
+#ifdef MLO_POOLING_OP_AVE_INCLUSIVE
+                        MLO_POOLING_KERNEL_SZ0 * MLO_POOLING_KERNEL_SZ1;
+                    (void)wend;
+                    (void)hend;
+#else
+                        (hend - hstart) * (wend - wstart);
+#endif
                     pool_size     = (pool_size == 0) ? 1 : pool_size;
                     int lcl_top_h = top_h - top_y;
                     int lcl_top_w = top_w - top_x;
@@ -211,12 +226,10 @@ mloPoolingAveBwd(const __global _FLOAT* top_diff, __global _FLOAT* bot_diff)
 __attribute__((reqd_work_group_size(MLO_POOLBWD_GROUP_SZ0,
                                     MLO_POOLBWD_GROUP_SZ1,
                                     MLO_POOLBWD_GROUP_SZ2))) __kernel void
-mloPoolingMaxBwd(const __global _FLOAT* top_df,
-                 __global _FLOAT* bot_df,
-                 __global _INT_MASK_GLOBAL* mask)
+mloPoolingMaxBwd(const __global _FLOAT* top_df, __global _FLOAT* bot_df, __global index_t* mask)
 {
     __local _FLOAT lcl_top_df[MLO_POOLBWD_LCL_DATA_WIDTH * MLO_POOLBWD_LCL_DATA_HEIGHT];
-    __local _INT_MASK_LOCAL lcl_mask[MLO_POOLBWD_LCL_DATA_WIDTH * MLO_POOLBWD_LCL_DATA_HEIGHT];
+    __local index_t lcl_mask[MLO_POOLBWD_LCL_DATA_WIDTH * MLO_POOLBWD_LCL_DATA_HEIGHT];
 
     int gid0    = get_group_id(0);
     int gid1    = get_group_id(1);
@@ -238,7 +251,7 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
 
     _FLOAT res[MLO_POOLBWD_N_VERT_OUT_PIX][MLO_POOLBWD_N_HORIZ_OUT_PIX];
     _FLOAT top_df_val;
-    _INT_MASK_LOCAL mask_val;
+    index_t mask_val;
     // load tiles
     // top df and top
     for(int tj = lcl_id1; tj < MLO_POOLBWD_LCL_DATA_HEIGHT; tj += MLO_POOLBWD_GROUP_SZ1)
@@ -252,7 +265,7 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
 
         for(int ti = lcl_id0; ti < MLO_POOLBWD_LCL_DATA_WIDTH; ti += MLO_POOLBWD_GROUP_SZ0)
         {
-            mask_val      = 0xFF;
+            mask_val      = MLO_POOLING_INDEX_MAX;
             int top_x_act = top_x + ti;
             int lcl_idx   = lcl_off_v + ti;
 

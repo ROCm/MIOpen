@@ -57,7 +57,9 @@ inline int BwdDataAlgoResolver(const std::string& s)
 inline int BwdWeightsAlgoResolver(const std::string& s)
 {
     static std::unordered_map<std::string, int> data{
-        {"miopenConvolutionBwdWeightsAlgoGEMM", 0}, {"miopenConvolutionBwdWeightsAlgoDirect", 1},
+        {"miopenConvolutionBwdWeightsAlgoGEMM", 0},
+        {"miopenConvolutionBwdWeightsAlgoDirect", 1},
+        {"miopenConvolutionBwdWeightsAlgoWinograd", 3},
     };
     return data.at(s);
 }

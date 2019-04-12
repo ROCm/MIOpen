@@ -140,8 +140,8 @@ class ComputedContainer
         : problem(problem_), spare(spare_)
     {
     }
-    const const_iterator begin() const { return {problem, spare}; }
-    const const_iterator end() const { return {}; }
+    const_iterator begin() const { return {problem, spare}; }
+    const_iterator end() const { return {}; }
 };
 
 class Timer
@@ -231,14 +231,14 @@ class HeartBeat
 inline void InitRandomly(std::vector<float>& vec, const double offset, const double factor)
 {
     float* p = vec.data();
-    for(int i = 0; i < vec.size(); ++i)
+    for(unsigned long i = 0; i < vec.size(); ++i)
         *p++ = static_cast<float>((rand() * (1.0 / RAND_MAX) + offset) * factor);
 }
 
 inline void InitRandomly(std::vector<float>& vec)
 {
     float* p = vec.data();
-    for(int i = 0; i < vec.size(); ++i)
+    for(unsigned long i = 0; i < vec.size(); ++i)
         *p++ = static_cast<float>(rand() * (1.0 / RAND_MAX));
 }
 
@@ -258,6 +258,7 @@ enum class SearchTweak
     // when the 2x subsampling kernel is used at the dx input of
     // the WrW convolution, but we are skipping it during auto-tune.
     OverrideXBufferSizeByWorkspaceSize,
+    OverrideWeightBufferSizeByWorkspaceSize,
 };
 
 /// Solver member function requirements:
@@ -309,6 +310,11 @@ auto GenericSearch(const Solver s,
         else
             top_size = default_solution.workspce_sz;
     }
+    else if(tweak == SearchTweak::OverrideWeightBufferSizeByWorkspaceSize)
+    {
+        assert(default_solution.workspce_sz != 0);
+        wei_size = default_solution.workspce_sz;
+    }
 
     std::vector<float> top(top_size);
     std::vector<float> bot(bot_size);
@@ -357,7 +363,8 @@ auto GenericSearch(const Solver s,
                           << current_config);
 
         const auto current_solution = s.GetSolution(context, current_config, true);
-        if(tweak == SearchTweak::OverrideXBufferSizeByWorkspaceSize &&
+        if((tweak == SearchTweak::OverrideXBufferSizeByWorkspaceSize ||
+            tweak == SearchTweak::OverrideWeightBufferSizeByWorkspaceSize) &&
            default_solution.workspce_sz != current_solution.workspce_sz)
         {
             ret = -2;
@@ -376,7 +383,7 @@ auto GenericSearch(const Solver s,
                                           wei_ocl_buf.get(),
                                           context.bias ? bias_ocl_buf.get() : nullptr,
                                           context,
-                                          s.GetSolution(context, current_config, true),
+                                          current_solution,
                                           elapsed_time);
         }
 
@@ -399,7 +406,7 @@ auto GenericSearch(const Solver s,
                                                   wei_ocl_buf.get(),
                                                   context.bias ? bias_ocl_buf.get() : nullptr,
                                                   context,
-                                                  s.GetSolution(context, current_config, true),
+                                                  current_solution,
                                                   temp);
                     if(ret != 0)
                     {

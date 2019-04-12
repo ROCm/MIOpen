@@ -75,7 +75,7 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
     construct_params.setBotDescFromMLDesc(xDesc);
 
     int norm_reg     = GetMode();
-    int local_area   = GetN();
+    int local_area   = static_cast<int>(GetN());
     double lrn_alpha = GetAlpha();
     double lrn_beta  = GetBeta();
     double lrn_K     = GetK();
@@ -250,7 +250,7 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
 
     int norm_reg = GetMode();
 
-    int local_area = GetN();
+    int local_area = static_cast<int>(GetN());
 
     double lrn_alpha = GetAlpha();
     double lrn_beta  = GetBeta();

@@ -26,6 +26,8 @@
 #include <miopen/gemm_v2.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/handle.hpp>
 
 #if MIOPEN_USE_ROCBLAS
 #include <half.hpp>
@@ -38,6 +40,8 @@
 #include <miopen/miopengemm.hpp>
 #endif
 
+#include <boost/range/adaptors.hpp>
+
 #if MIOPEN_USE_ROCBLAS
 #define ROCBLAS_TIMING_MEMSET_SIZE (10 * 1024 * 1024)
 #endif
@@ -45,6 +49,27 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_GEMM_ENFORCE_BACKEND)
 
 namespace miopen {
+
+std::ostream& operator<<(std::ostream& stream, const GemmDescriptor& gemm_desc)
+{
+    return stream << "{"
+                  << "isColMajor " << gemm_desc.isColMajor << ", "
+                  << "transA " << gemm_desc.transA << ", "
+                  << "transB " << gemm_desc.transB << ", "
+                  << "m " << gemm_desc.m << ", "
+                  << "n " << gemm_desc.n << ", "
+                  << "k " << gemm_desc.k << ", "
+                  << "lda " << gemm_desc.lda << ", "
+                  << "ldb " << gemm_desc.ldb << ", "
+                  << "ldc " << gemm_desc.ldc << ", "
+                  << "batch_count " << gemm_desc.batch_count << ", "
+                  << "strideA " << gemm_desc.strideA << ", "
+                  << "strideB " << gemm_desc.strideB << ", "
+                  << "strideC " << gemm_desc.strideC << ", "
+                  << "alpha " << gemm_desc.alpha << ", "
+                  << "beta " << gemm_desc.beta << ", "
+                  << "dataType " << gemm_desc.dataType << "} ";
+}
 
 #if MIOPEN_USE_ROCBLAS
 // Enqueue gpu memset for rocblas kernel timing purpose
@@ -58,8 +83,17 @@ dummy_memset(Handle& handle, Data_t mem, std::size_t mem_len, miopenDataType_t d
 
     switch(data_type)
     {
+    case miopenInt8x4:
     case miopenInt8:
-    case miopenInt32: break;
+    {
+        data_size = sizeof(int8_t);
+        break;
+    }
+    case miopenInt32:
+    {
+        data_size = sizeof(int);
+        break;
+    }
     case miopenHalf:
     {
         data_size = sizeof(half_float::half);
@@ -131,6 +165,115 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
     return gemm_backend_enforced;
 }
 
+miopenStatus_t CallGemmTimeMeasure(Handle& handle,
+                                   GemmDescriptor gemm_desc,
+                                   ConstData_t A,
+                                   int a_offset,
+                                   ConstData_t B,
+                                   int b_offset,
+                                   Data_t C,
+                                   int c_offset,
+                                   std::string* kcache_key,
+                                   bool time_precision,
+                                   CallGemmType_t call_gemm_type,
+                                   GemmBackend_t gemm_backend)
+{
+    switch(call_gemm_type)
+    {
+    case callGemm:
+    {
+        if(time_precision)
+        {
+            // rocBLAS need a warm-up call for accurate timing
+            CallGemm(handle,
+                     gemm_desc,
+                     A,
+                     a_offset,
+                     B,
+                     b_offset,
+                     C,
+                     c_offset,
+                     nullptr,
+                     false,
+                     gemm_backend);
+        }
+
+        return CallGemm(handle,
+                        gemm_desc,
+                        A,
+                        a_offset,
+                        B,
+                        b_offset,
+                        C,
+                        c_offset,
+                        kcache_key,
+                        time_precision,
+                        gemm_backend);
+    }
+    case callGemmStridedBatched:
+    {
+        if(time_precision)
+        {
+            // rocBLAS need extra warm-up call for accurate timing
+            CallGemmStridedBatched(handle,
+                                   gemm_desc,
+                                   A,
+                                   a_offset,
+                                   B,
+                                   b_offset,
+                                   C,
+                                   c_offset,
+                                   nullptr,
+                                   false,
+                                   gemm_backend);
+        }
+
+        return CallGemmStridedBatched(handle,
+                                      gemm_desc,
+                                      A,
+                                      a_offset,
+                                      B,
+                                      b_offset,
+                                      C,
+                                      c_offset,
+                                      kcache_key,
+                                      time_precision,
+                                      gemm_backend);
+    }
+    case callGemmStridedBatchedSequential:
+    {
+        if(time_precision)
+        {
+            // rocBLAS need a warm-up call for accurate timing
+            CallGemmStridedBatchedSequential(handle,
+                                             gemm_desc,
+                                             A,
+                                             a_offset,
+                                             B,
+                                             b_offset,
+                                             C,
+                                             c_offset,
+                                             nullptr,
+                                             false,
+                                             gemm_backend);
+        }
+
+        return CallGemmStridedBatchedSequential(handle,
+                                                gemm_desc,
+                                                A,
+                                                a_offset,
+                                                B,
+                                                b_offset,
+                                                C,
+                                                c_offset,
+                                                kcache_key,
+                                                time_precision,
+                                                gemm_backend);
+    }
+    }
+    return miopenStatusNotImplemented;
+}
+
 miopenStatus_t CallGemm(Handle& handle,
                         GemmDescriptor gemm_desc,
                         ConstData_t A,
@@ -146,6 +289,8 @@ miopenStatus_t CallGemm(Handle& handle,
 #if !MIOPEN_USE_ROCBLAS
     (void)enqueue_dummy_kernel;
 #endif
+
+    MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
     gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
 
@@ -173,7 +318,13 @@ miopenStatus_t CallGemm(Handle& handle,
         {
             if(enqueue_dummy_kernel)
             {
-                dummy_memset(handle, C, gemm_desc.m * gemm_desc.n, gemm_desc.dataType);
+                dummy_memset(
+                    handle,
+                    C,
+                    gemm_desc.m * gemm_desc.n,
+                    ((gemm_desc.dataType == miopenInt8 || gemm_desc.dataType == miopenInt8x4)
+                         ? miopenInt32
+                         : gemm_desc.dataType));
             }
 
             start = make_hip_event();
@@ -185,7 +336,45 @@ miopenStatus_t CallGemm(Handle& handle,
 
         switch(gemm_desc.dataType)
         {
+        case miopenInt8x4:
         case miopenInt8:
+        {
+            assert(gemm_desc.k % 4 == 0);
+
+            auto alpha = int(gemm_desc.alpha);
+            auto beta  = int(gemm_desc.beta);
+
+            std::size_t zero = 0;
+            rb_status        = rocblas_gemm_ex(
+                handle.rhandle().get(),
+                gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
+                gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
+                gemm_desc.m,
+                gemm_desc.n,
+                gemm_desc.k,
+                &alpha,
+                static_cast<const int8_t*>(A) + a_offset,
+                rocblas_datatype::rocblas_datatype_i8_r,
+                gemm_desc.lda,
+                static_cast<const int8_t*>(B) + b_offset,
+                rocblas_datatype::rocblas_datatype_i8_r,
+                gemm_desc.ldb,
+                &beta,
+                static_cast<const rocblas_int*>(C) + c_offset,
+                rocblas_datatype::rocblas_datatype_i32_r,
+                gemm_desc.ldc,
+                static_cast<rocblas_int*>(C) + c_offset,
+                rocblas_datatype::rocblas_datatype_i32_r,
+                gemm_desc.ldc,
+                rocblas_datatype::rocblas_datatype_i32_r,
+                rocblas_gemm_algo::rocblas_gemm_algo_standard,
+                0,
+                0,
+                &zero,
+                nullptr);
+        }
+        break;
+
         case miopenInt32: break;
         case miopenHalf:
         {
@@ -194,7 +383,7 @@ miopenStatus_t CallGemm(Handle& handle,
 
             std::size_t zero = 0;
             rb_status        = rocblas_gemm_ex(
-                handle.rhandle.get(),
+                handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.m,
@@ -230,7 +419,7 @@ miopenStatus_t CallGemm(Handle& handle,
 
             std::size_t zero = 0;
             rb_status        = rocblas_gemm_ex(
-                handle.rhandle.get(),
+                handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.m,
@@ -383,6 +572,8 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
     (void)enqueue_dummy_kernel;
 #endif
 
+    MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
+
     gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
 
     // do row-to-column major conversion here
@@ -410,10 +601,13 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
         {
             if(enqueue_dummy_kernel)
             {
-                dummy_memset(handle,
-                             C,
-                             gemm_desc.m * gemm_desc.n * gemm_desc.batch_count,
-                             gemm_desc.dataType);
+                dummy_memset(
+                    handle,
+                    C,
+                    gemm_desc.m * gemm_desc.n * gemm_desc.batch_count,
+                    ((gemm_desc.dataType == miopenInt8 || gemm_desc.dataType == miopenInt8x4)
+                         ? miopenInt32
+                         : gemm_desc.dataType));
             }
 
             start = make_hip_event();
@@ -425,7 +619,50 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
 
         switch(gemm_desc.dataType)
         {
+        case miopenInt8x4:
         case miopenInt8:
+        {
+            assert(gemm_desc.k % 4 == 0);
+
+            auto alpha = int(gemm_desc.alpha);
+            auto beta  = int(gemm_desc.beta);
+
+            std::size_t zero = 0;
+            rb_status        = rocblas_gemm_strided_batched_ex(
+                handle.rhandle().get(),
+                gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
+                gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
+                gemm_desc.m,
+                gemm_desc.n,
+                gemm_desc.k,
+                &alpha,
+                static_cast<const int8_t*>(A) + a_offset,
+                rocblas_datatype::rocblas_datatype_i8_r,
+                gemm_desc.lda,
+                gemm_desc.strideA,
+                static_cast<const int8_t*>(B) + b_offset,
+                rocblas_datatype::rocblas_datatype_i8_r,
+                gemm_desc.ldb,
+                gemm_desc.strideB,
+                &beta,
+                static_cast<const rocblas_int*>(C) + c_offset,
+                rocblas_datatype::rocblas_datatype_i32_r,
+                gemm_desc.ldc,
+                gemm_desc.strideC,
+                static_cast<rocblas_int*>(C) + c_offset,
+                rocblas_datatype::rocblas_datatype_i32_r,
+                gemm_desc.ldc,
+                gemm_desc.strideC,
+                gemm_desc.batch_count,
+                rocblas_datatype::rocblas_datatype_i32_r,
+                rocblas_gemm_algo::rocblas_gemm_algo_standard,
+                0,
+                0,
+                &zero,
+                nullptr);
+        }
+        break;
+
         case miopenInt32: break;
         case miopenHalf:
         {
@@ -434,7 +671,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
 
             std::size_t zero = 0;
             rb_status        = rocblas_gemm_strided_batched_ex(
-                handle.rhandle.get(),
+                handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.m,
@@ -475,7 +712,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
 
             std::size_t zero = 0;
             rb_status        = rocblas_gemm_strided_batched_ex(
-                handle.rhandle.get(),
+                handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.m,
@@ -570,6 +807,8 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
     (void)enqueue_dummy_kernel;
 #endif
 
+    MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
+
     gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
 
     // do row-to-column major conversion here
@@ -597,7 +836,13 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
         {
             if(enqueue_dummy_kernel)
             {
-                dummy_memset(handle, C, gemm_desc.m * gemm_desc.n, gemm_desc.dataType);
+                dummy_memset(
+                    handle,
+                    C,
+                    gemm_desc.m * gemm_desc.n,
+                    ((gemm_desc.dataType == miopenInt8 || gemm_desc.dataType == miopenInt8x4)
+                         ? miopenInt32
+                         : gemm_desc.dataType));
             }
 
             start = make_hip_event();
@@ -609,7 +854,48 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
 
         switch(gemm_desc.dataType)
         {
+        case miopenInt8x4:
         case miopenInt8:
+        {
+            assert(gemm_desc.k % 4 == 0);
+
+            auto alpha = int(gemm_desc.alpha);
+            auto beta  = int(gemm_desc.beta);
+
+            std::size_t zero = 0;
+            for(int i = 0; i < gemm_desc.batch_count; ++i)
+            {
+                rb_status = rocblas_gemm_ex(
+                    handle.rhandle().get(),
+                    gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
+                    gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
+                    gemm_desc.m,
+                    gemm_desc.n,
+                    gemm_desc.k,
+                    &alpha,
+                    static_cast<const int8_t*>(A) + a_offset + i * gemm_desc.strideA,
+                    rocblas_datatype::rocblas_datatype_i8_r,
+                    gemm_desc.lda,
+                    static_cast<const int8_t*>(B) + b_offset + i * gemm_desc.strideB,
+                    rocblas_datatype::rocblas_datatype_i8_r,
+                    gemm_desc.ldb,
+                    &beta,
+                    static_cast<const rocblas_int*>(C) + c_offset + i * gemm_desc.strideC,
+                    rocblas_datatype::rocblas_datatype_i32_r,
+                    gemm_desc.ldc,
+                    static_cast<rocblas_int*>(C) + c_offset + i * gemm_desc.strideC,
+                    rocblas_datatype::rocblas_datatype_i32_r,
+                    gemm_desc.ldc,
+                    rocblas_datatype::rocblas_datatype_i32_r,
+                    rocblas_gemm_algo::rocblas_gemm_algo_standard,
+                    0,
+                    0,
+                    &zero,
+                    nullptr);
+            }
+        }
+        break;
+
         case miopenInt32: break;
         case miopenHalf:
         {
@@ -620,7 +906,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
             for(int i = 0; i < gemm_desc.batch_count; ++i)
             {
                 rb_status = rocblas_gemm_ex(
-                    handle.rhandle.get(),
+                    handle.rhandle().get(),
                     gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                     gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
                     gemm_desc.m,
@@ -659,7 +945,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
             for(int i = 0; i < gemm_desc.batch_count; ++i)
             {
                 rb_status = rocblas_gemm_ex(
-                    handle.rhandle.get(),
+                    handle.rhandle().get(),
                     gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                     gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
                     gemm_desc.m,
@@ -715,7 +1001,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
     case GemmBackend_t::miopengemm: {
 #if MIOPEN_USE_MIOPENGEMM
         if(gemm_desc.dataType != miopenFloat)
-            return miopenStatusNotImplemented;
+            MIOPEN_THROW(miopenStatusNotImplemented, "fp16 is not implemented in MIOPENGEMM");
 
         MIOPEN_LOG_FUNCTION("MIOpenGEMM");
 
@@ -770,12 +1056,12 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
                                       new_kernels,
                                       gemm_desc.alpha,
                                       A,
-                                      a_offset + i * gemm_desc.strideA,
+                                      a_offset + i * static_cast<int>(gemm_desc.strideA),
                                       B,
-                                      b_offset + i * gemm_desc.strideB,
+                                      b_offset + i * static_cast<int>(gemm_desc.strideB),
                                       gemm_desc.beta,
                                       C,
-                                      c_offset + i * gemm_desc.strideC);
+                                      c_offset + i * static_cast<int>(gemm_desc.strideC));
 
                 if(handle.IsProfilingEnabled())
                 {
@@ -796,12 +1082,12 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
                                       old_kernels,
                                       gemm_desc.alpha,
                                       A,
-                                      a_offset + i * gemm_desc.strideA,
+                                      a_offset + i * static_cast<int>(gemm_desc.strideA),
                                       B,
-                                      b_offset + i * gemm_desc.strideB,
+                                      b_offset + i * static_cast<int>(gemm_desc.strideB),
                                       gemm_desc.beta,
                                       C,
-                                      c_offset + i * gemm_desc.strideC);
+                                      c_offset + i * static_cast<int>(gemm_desc.strideC));
 
                 if(handle.IsProfilingEnabled())
                 {
@@ -829,26 +1115,26 @@ GemmDescriptor CreateGemmDescriptorConvFwd(const TensorDescriptor& wDesc,
                                            const TensorDescriptor& yDesc)
 {
 #ifndef NDEBUG
-    assert(wDesc.GetType() == xDesc.GetType() && wDesc.GetType() == yDesc.GetType());
+    assert(wDesc.GetType() == xDesc.GetType());
+    if(wDesc.GetType() != miopenInt8 && wDesc.GetType() != miopenInt8x4)
+        assert(wDesc.GetType() == yDesc.GetType());
 #endif
 
-    int in_c;
-    std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+    int in_c  = xDesc.GetLengths()[1];
+    int wei_k = wDesc.GetLengths()[0];
 
-    int wei_n, wei_h, wei_w;
-    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+    auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, wDesc.GetLengths().size());
+    auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, yDesc.GetLengths().size());
 
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
-
-    bool isColMajor       = false;
-    bool transA           = false;
-    bool transB           = false;
-    int m                 = wei_n;
-    int n                 = out_h * out_w;
-    int k                 = in_c * wei_h * wei_w;
+    bool isColMajor = false;
+    bool transA     = false;
+    bool transB     = (wDesc.GetType() == miopenInt8);
+    int m           = wei_k;
+    int n = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
+    int k =
+        in_c * std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
     int lda               = k;
-    int ldb               = n;
+    int ldb               = wDesc.GetType() == miopenInt8 ? k : n;
     int ldc               = n;
     int batch_count       = 1;
     long long int strideA = 0;
@@ -884,24 +1170,22 @@ GemmDescriptor CreateGemmDescriptorConvBwdData(const TensorDescriptor& wDesc,
     assert(wDesc.GetType() == dxDesc.GetType() && wDesc.GetType() == dyDesc.GetType());
 #endif
 
-    int in_c;
-    std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
+    int in_c  = dxDesc.GetLengths()[1];
+    int wei_k = wDesc.GetLengths()[0];
 
-    int wei_n, wei_h, wei_w;
-    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+    auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, wDesc.GetLengths().size());
+    auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, dyDesc.GetLengths().size());
 
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
-
-    bool isColMajor       = false;
-    bool transA           = true;
-    bool transB           = false;
-    int m                 = in_c * wei_h * wei_w;
-    int n                 = out_h * out_w;
-    int k                 = wei_n;
-    int lda               = m;
-    int ldb               = n;
-    int ldc               = n;
+    bool isColMajor = false;
+    bool transA     = true;
+    bool transB     = false;
+    int m =
+        in_c * std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
+    int n   = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
+    int k   = wei_k;
+    int lda = m;
+    int ldb = n;
+    int ldc = n;
     int batch_count       = 1;
     long long int strideA = 0;
     long long int strideB = 0;
@@ -936,24 +1220,22 @@ GemmDescriptor CreateGemmDescriptorConvBwdWeight(const TensorDescriptor& dyDesc,
     assert(dwDesc.GetType() == xDesc.GetType() && dwDesc.GetType() == dyDesc.GetType());
 #endif
 
-    int in_c;
-    std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+    std::size_t in_c  = xDesc.GetLengths()[1];
+    std::size_t wei_k = dwDesc.GetLengths()[0];
 
-    int wei_n, wei_h, wei_w;
-    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
+    auto wei_spatial = boost::adaptors::slice(dwDesc.GetLengths(), 2, dwDesc.GetLengths().size());
+    auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, dyDesc.GetLengths().size());
 
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
-
-    bool isColMajor       = false;
-    bool transA           = false;
-    bool transB           = true;
-    int m                 = wei_n;
-    int n                 = in_c * wei_h * wei_w;
-    int k                 = out_h * out_w;
-    int lda               = k;
-    int ldb               = k;
-    int ldc               = n;
+    bool isColMajor = false;
+    bool transA     = false;
+    bool transB     = true;
+    int m           = wei_k;
+    int n           = static_cast<int>(in_c) *
+            std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
+    int k   = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
+    int lda = k;
+    int ldb = k;
+    int ldc = n;
     int batch_count       = 1;
     long long int strideA = 0;
     long long int strideB = 0;
@@ -985,26 +1267,26 @@ GemmDescriptor CreateGemmDescriptorConvCNHWFwd(const TensorDescriptor& wDesc,
                                                const TensorDescriptor& yDesc)
 {
 #ifndef NDEBUG
-    assert(wDesc.GetType() == xDesc.GetType() && wDesc.GetType() == yDesc.GetType());
+    assert(wDesc.GetType() == xDesc.GetType());
+    if(wDesc.GetType() != miopenInt8 && wDesc.GetType() != miopenInt8x4)
+        assert(wDesc.GetType() == yDesc.GetType());
 #endif
 
-    int in_n, in_c;
-    std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+    int in_n  = xDesc.GetLengths()[0];
+    int in_c  = xDesc.GetLengths()[1];
+    int wei_k = wDesc.GetLengths()[0];
 
-    int wei_n;
-    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(wDesc.GetLengths());
+    auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, yDesc.GetLengths().size());
 
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
-
-    bool isColMajor       = false;
-    bool transA           = false;
-    bool transB           = false;
-    int m                 = wei_n;
-    int n                 = in_n * out_h * out_w;
+    bool isColMajor = false;
+    bool transA     = false;
+    bool transB     = (wDesc.GetType() == miopenInt8);
+    int m           = wei_k;
+    int n =
+        in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
     int k                 = in_c;
     int lda               = k;
-    int ldb               = n;
+    int ldb               = wDesc.GetType() == miopenInt8 ? k : n;
     int ldc               = n;
     int batch_count       = 1;
     long long int strideA = 0;
@@ -1040,21 +1322,19 @@ GemmDescriptor CreateGemmDescriptorConvCNHWBwdData(const TensorDescriptor& wDesc
     assert(wDesc.GetType() == dxDesc.GetType() && wDesc.GetType() == dyDesc.GetType());
 #endif
 
-    int in_n, in_c;
-    std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
+    int in_n  = dxDesc.GetLengths()[0];
+    int in_c  = dxDesc.GetLengths()[1];
+    int wei_k = wDesc.GetLengths()[0];
 
-    int wei_n;
-    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(wDesc.GetLengths());
+    auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, dyDesc.GetLengths().size());
 
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
-
-    bool isColMajor       = false;
-    bool transA           = true;
-    bool transB           = false;
-    int m                 = in_c;
-    int n                 = in_n * out_h * out_w;
-    int k                 = wei_n;
+    bool isColMajor = false;
+    bool transA     = true;
+    bool transB     = false;
+    int m           = in_c;
+    int n =
+        in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
+    int k                 = wei_k;
     int lda               = m;
     int ldb               = n;
     int ldc               = n;
@@ -1089,26 +1369,28 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1Fwd(const TensorDescript
                                                             const TensorDescriptor& yDesc)
 {
 #ifndef NDEBUG
-    assert(wDesc.GetType() == xDesc.GetType() && wDesc.GetType() == yDesc.GetType());
+    assert(wDesc.GetType() == xDesc.GetType());
+    if(wDesc.GetType() != miopenInt8 && wDesc.GetType() != miopenInt8x4)
+        assert(wDesc.GetType() == yDesc.GetType());
 #else
     (void)yDesc;
 #endif
 
-    int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
+    int in_n  = xDesc.GetLengths()[0];
+    int in_c  = xDesc.GetLengths()[1];
+    int wei_k = wDesc.GetLengths()[0];
 
-    int wei_n;
-    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(wDesc.GetLengths());
+    auto in_spatial = boost::adaptors::slice(xDesc.GetLengths(), 2, xDesc.GetLengths().size());
 
-    bool isColMajor       = false;
-    bool transA           = false;
-    bool transB           = false;
-    int m                 = wei_n;
-    int n                 = in_h * in_w;
-    int k                 = in_c;
-    int lda               = k;
-    int ldb               = n;
-    int ldc               = n;
+    bool isColMajor = false;
+    bool transA     = false;
+    bool transB     = (wDesc.GetType() == miopenInt8);
+    int m           = wei_k;
+    int n   = std::accumulate(in_spatial.begin(), in_spatial.end(), 1, std::multiplies<int>());
+    int k   = in_c;
+    int lda = k;
+    int ldb = wDesc.GetType() == miopenInt8 ? k : n;
+    int ldc = n;
     int batch_count       = in_n;
     long long int strideA = 0;
     long long int strideB = k * n;
@@ -1145,21 +1427,21 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdData(const TensorDesc
     (void)dyDesc;
 #endif
 
-    int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
+    int in_n  = dxDesc.GetLengths()[0];
+    int in_c  = dxDesc.GetLengths()[1];
+    int wei_k = wDesc.GetLengths()[0];
 
-    int wei_n;
-    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(wDesc.GetLengths());
+    auto in_spatial = boost::adaptors::slice(dxDesc.GetLengths(), 2, dxDesc.GetLengths().size());
 
-    bool isColMajor       = false;
-    bool transA           = true;
-    bool transB           = false;
-    int m                 = in_c;
-    int n                 = in_h * in_w;
-    int k                 = wei_n;
-    int lda               = m;
-    int ldb               = n;
-    int ldc               = n;
+    bool isColMajor = false;
+    bool transA     = true;
+    bool transB     = false;
+    int m           = in_c;
+    int n   = std::accumulate(in_spatial.begin(), in_spatial.end(), 1, std::multiplies<int>());
+    int k   = wei_k;
+    int lda = m;
+    int ldb = n;
+    int ldc = n;
     int batch_count       = in_n;
     long long int strideA = 0;
     long long int strideB = k * n;
@@ -1196,21 +1478,21 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(const TensorDe
     (void)dyDesc;
 #endif
 
-    int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
+    int in_n  = xDesc.GetLengths()[0];
+    int in_c  = xDesc.GetLengths()[1];
+    int wei_k = dwDesc.GetLengths()[0];
 
-    int wei_n;
-    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(dwDesc.GetLengths());
+    auto in_spatial = boost::adaptors::slice(xDesc.GetLengths(), 2, xDesc.GetLengths().size());
 
-    bool isColMajor       = false;
-    bool transA           = false;
-    bool transB           = true;
-    int m                 = wei_n;
-    int n                 = in_c;
-    int k                 = in_h * in_w;
-    int lda               = k;
-    int ldb               = k;
-    int ldc               = n;
+    bool isColMajor = false;
+    bool transA     = false;
+    bool transB     = true;
+    int m           = wei_k;
+    int n           = in_c;
+    int k   = std::accumulate(in_spatial.begin(), in_spatial.end(), 1, std::multiplies<int>());
+    int lda = k;
+    int ldb = k;
+    int ldc = n;
     int batch_count       = in_n;
     long long int strideA = m * k;
     long long int strideB = k * n;
@@ -1246,21 +1528,19 @@ GemmDescriptor CreateGemmDescriptorGroupConvFwd(const TensorDescriptor& wDesc,
     assert(wDesc.GetType() == xDesc.GetType() && wDesc.GetType() == yDesc.GetType());
 #endif
 
-    int in_c;
-    std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+    int in_c  = xDesc.GetLengths()[1];
+    int wei_k = wDesc.GetLengths()[0];
 
-    int wei_n, wei_h, wei_w;
-    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+    auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, wDesc.GetLengths().size());
+    auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, yDesc.GetLengths().size());
 
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
-
-    bool isColMajor       = false;
-    bool transA           = false;
-    bool transB           = false;
-    int m                 = wei_n / groupCount;
-    int n                 = out_h * out_w;
-    int k                 = (in_c / groupCount) * wei_h * wei_w;
+    bool isColMajor = false;
+    bool transA     = false;
+    bool transB     = false;
+    int m           = wei_k / groupCount;
+    int n = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
+    int k = (in_c / groupCount) *
+            std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
     int lda               = k;
     int ldb               = n;
     int ldc               = n;
@@ -1299,24 +1579,22 @@ GemmDescriptor CreateGemmDescriptorGroupConvBwdData(const TensorDescriptor& wDes
     assert(wDesc.GetType() == dxDesc.GetType() && wDesc.GetType() == dyDesc.GetType());
 #endif
 
-    int in_c;
-    std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
+    int in_c  = dxDesc.GetLengths()[1];
+    int wei_k = wDesc.GetLengths()[0];
 
-    int wei_n, wei_h, wei_w;
-    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+    auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, wDesc.GetLengths().size());
+    auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, dyDesc.GetLengths().size());
 
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
-
-    bool isColMajor       = false;
-    bool transA           = true;
-    bool transB           = false;
-    int m                 = (in_c / groupCount) * wei_h * wei_w;
-    int n                 = out_h * out_w;
-    int k                 = wei_n / groupCount;
-    int lda               = m;
-    int ldb               = n;
-    int ldc               = n;
+    bool isColMajor = false;
+    bool transA     = true;
+    bool transB     = false;
+    int m           = (in_c / groupCount) *
+            std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
+    int n   = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
+    int k   = wei_k / groupCount;
+    int lda = m;
+    int ldb = n;
+    int ldc = n;
     int batch_count       = groupCount;
     long long int strideA = m * k;
     long long int strideB = k * n;
@@ -1352,24 +1630,22 @@ GemmDescriptor CreateGemmDescriptorGroupConvBwdWeight(const TensorDescriptor& dy
     assert(dwDesc.GetType() == xDesc.GetType() && dwDesc.GetType() == dyDesc.GetType());
 #endif
 
-    int in_c;
-    std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+    int in_c  = xDesc.GetLengths()[1];
+    int wei_k = dwDesc.GetLengths()[0];
 
-    int wei_n, wei_h, wei_w;
-    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
+    auto wei_spatial = boost::adaptors::slice(dwDesc.GetLengths(), 2, dwDesc.GetLengths().size());
+    auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, dyDesc.GetLengths().size());
 
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
-
-    bool isColMajor       = false;
-    bool transA           = false;
-    bool transB           = true;
-    int m                 = wei_n / groupCount;
-    int n                 = (in_c / groupCount) * wei_h * wei_w;
-    int k                 = out_h * out_w;
-    int lda               = k;
-    int ldb               = k;
-    int ldc               = n;
+    bool isColMajor = false;
+    bool transA     = false;
+    bool transB     = true;
+    int m           = wei_k / groupCount;
+    int n           = (in_c / groupCount) *
+            std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
+    int k   = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
+    int lda = k;
+    int ldb = k;
+    int ldc = n;
     int batch_count       = groupCount;
     long long int strideA = m * k;
     long long int strideB = k * n;
@@ -1405,20 +1681,18 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWFwd(const TensorDescriptor& wDes
     assert(wDesc.GetType() == xDesc.GetType() && wDesc.GetType() == yDesc.GetType());
 #endif
 
-    int in_n, in_c;
-    std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+    int in_n  = xDesc.GetLengths()[0];
+    int in_c  = xDesc.GetLengths()[1];
+    int wei_k = wDesc.GetLengths()[0];
 
-    int wei_n;
-    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(wDesc.GetLengths());
+    auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, yDesc.GetLengths().size());
 
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
-
-    bool isColMajor       = false;
-    bool transA           = false;
-    bool transB           = false;
-    int m                 = wei_n / groupCount;
-    int n                 = in_n * out_h * out_w;
+    bool isColMajor = false;
+    bool transA     = false;
+    bool transB     = false;
+    int m           = wei_k / groupCount;
+    int n =
+        in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
     int k                 = in_c / groupCount;
     int lda               = k;
     int ldb               = n;
@@ -1458,21 +1732,19 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWBwdData(const TensorDescriptor& 
     assert(wDesc.GetType() == dxDesc.GetType() && wDesc.GetType() == dyDesc.GetType());
 #endif
 
-    int in_n, in_c;
-    std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
+    int in_n  = dxDesc.GetLengths()[0];
+    int in_c  = dxDesc.GetLengths()[1];
+    int wei_k = wDesc.GetLengths()[0];
 
-    int wei_n;
-    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(wDesc.GetLengths());
+    auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, dyDesc.GetLengths().size());
 
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
-
-    bool isColMajor       = false;
-    bool transA           = true;
-    bool transB           = false;
-    int m                 = in_c / groupCount;
-    int n                 = in_n * out_h * out_w;
-    int k                 = wei_n / groupCount;
+    bool isColMajor = false;
+    bool transA     = true;
+    bool transB     = false;
+    int m           = in_c / groupCount;
+    int n =
+        in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
+    int k                 = wei_k / groupCount;
     int lda               = m;
     int ldb               = n;
     int ldc               = n;

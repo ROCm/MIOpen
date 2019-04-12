@@ -45,13 +45,15 @@ add_custom_target(tests)
 set(SKIP_TESTS)
 set(MIOPEN_TEST_FLOAT_ARG)
 
-if(MIOPEN_TEST_HALF)
-    set(SKIP_TESTS test_gru test_rnn_vanilla test_lstm)
+if(MIOPEN_TEST_HALF)   
+    if(MIOPEN_BACKEND_OPENCL)
+        set(SKIP_TESTS test_gru test_rnn_vanilla test_lstm)
+    endif()
     set(MIOPEN_TEST_FLOAT_ARG --half)
 endif()
 
 if(MIOPEN_TEST_INT8)
-    set(SKIP_ALL_EXCEPT_TESTS test_tensor_cast test_tensor_trans test_tensor_copy test_tensor_set test_tensor_transform)
+    set(SKIP_ALL_EXCEPT_TESTS test_tensor_vec test_tensor_cast test_tensor_trans test_tensor_copy test_tensor_set test_tensor_transform test_conv)
     set(MIOPEN_TEST_FLOAT_ARG --int8)
 endif()
 
@@ -301,168 +303,197 @@ COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 3 --batch-s
 
 
 add_custom_test(test_conv_extra ALL
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 1 1 1 --weights 1 1 2 2 --filter 0 0 3 3
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 1 161 700  --weights 4 1 5 20 --filter 0 0 2 2
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 1 161 700  --weights 4 1 5 20 --filter 0 0 2 2
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 32 79 341  --weights 4 32 5 10 --filter 0 0 2 2
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 32 79 341  --weights 4 32 5 10 --filter 0 0 2 2
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 3 227 227  --weights 4 3 11 11 --filter 0 0 4 4 --disable-backward-data
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 3 224 224  --weights 4 3 11 11 --filter 2 2 4 4
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 1 48 480 --weights 16 1 3 3 --filter 1 1 1 1 1 1
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 64 27 27 --weights 192 64 5 5 --filter 2 2 1 1
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 64 14 14 --weights 24 64 5 5 --filter 2 2 1 1 1 1
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 96 14 14 --weights 32 96 5 5 --filter 2 2 1 1 1 1
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 16 14 14 --weights  4 16 5 5 --filter 2 2 1 1 1 1
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 32 14 14 --weights  4 32 5 5 --filter 2 2 1 1 1 1
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	1	1	1	--weights	1	1	2	2	--pads_strides_dilations	0	0	3	3	1	1						
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	4	1	161	700	--weights	4	1	5	20	--pads_strides_dilations	0	0	2	2	1	1						
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	4	1	161	700	--weights	4	1	5	20	--pads_strides_dilations	0	0	2	2	1	1						
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	4	32	79	341	--weights	4	32	5	10	--pads_strides_dilations	0	0	2	2	1	1						
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	4	32	79	341	--weights	4	32	5	10	--pads_strides_dilations	0	0	2	2	1	1						
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	4	3	227	227	--weights	4	3	11	11	--pads_strides_dilations	0	0	4	4	1	1						
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	4	3	224	224	--weights	4	3	11	11	--pads_strides_dilations	2	2	4	4	1	1						
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	1	48	480	--weights	16	1	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	32	64	27	27	--weights	192	64	5	5	--pads_strides_dilations	2	2	1	1	1	1						
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	4	64	14	14	--weights	24	64	5	5	--pads_strides_dilations	2	2	1	1	1	1						
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	4	96	14	14	--weights	32	96	5	5	--pads_strides_dilations	2	2	1	1	1	1						
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	4	16	14	14	--weights	4	16	5	5	--pads_strides_dilations	2	2	1	1	1	1						
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	4	32	14	14	--weights	4	32	5	5	--pads_strides_dilations	2	2	1	1	1	1						
 )
 
 
 add_custom_test(test_conv_trans ALL
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 28 28 --weights 128 128 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode default
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 256 28 28 --weights 256 256 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode same
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 28 28 --weights 32 32 5 5 --filter 0 0 2 2 1 1  --cmode trans --pmode default
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 14 14 --weights 512 512 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode same
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 4 4 --weights 512 512 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode valid
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 56 56 --weights 64 64 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode valid
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 100 3 64 64 --weights 3 3 1 1 --filter 2 2 1 1 1 1  --cmode trans --pmode default
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 100 6 4 4 --weights 6 4 1 1 --filter 2 2 1 1 1 1  --cmode trans --pmode default
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	128	28	28	--weights	128	128	1	1	--pads_strides_dilations	0	0	1	1	1	1	--cmode	trans	--pmode	default		
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	256	28	28	--weights	256	256	1	1	--pads_strides_dilations	0	0	1	1	1	1	--cmode	trans	--pmode	same		
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	32	28	28	--weights	32	32	5	5	--pads_strides_dilations	0	0	2	2	1	1	--cmode	trans	--pmode	default		
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	512	14	14	--weights	512	512	1	1	--pads_strides_dilations	0	0	2	2	1	1	--cmode	trans	--pmode	same		
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	512	4	4	--weights	512	512	1	1	--pads_strides_dilations	0	0	1	1	1	1	--cmode	trans	--pmode	valid		
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	64	56	56	--weights	64	64	1	1	--pads_strides_dilations	0	0	2	2	1	1	--cmode	trans	--pmode	valid		
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	100	3	64	64	--weights	3	3	1	1	--pads_strides_dilations	2	2	1	1	1	1	--cmode	trans	--pmode	default		
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	100	6	4	4	--weights	6	4	1	1	--pads_strides_dilations	2	2	1	1	1	1	--cmode	trans	--pmode	default		
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	128	28	28	--weights	128	16	1	1	--pads_strides_dilations	0	0	1	1	1	1	--cmode	trans	--pmode	default	--group-count	8
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	256	28	28	--weights	256	64	1	1	--pads_strides_dilations	0	0	1	1	1	1	--cmode	trans	--pmode	same	--group-count	4
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	32	28	28	--weights	32	1	5	5	--pads_strides_dilations	0	0	2	2	1	1	--cmode	trans	--pmode	default	--group-count	32
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	512	14	14	--weights	512	16	1	1	--pads_strides_dilations	0	0	2	2	1	1	--cmode	trans	--pmode	same	--group-count	32
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	512	4	4	--weights	512	16	1	1	--pads_strides_dilations	0	0	1	1	1	1	--cmode	trans	--pmode	valid	--group-count	32
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	64	56	56	--weights	64	2	1	1	--pads_strides_dilations	0	0	2	2	1	1	--cmode	trans	--pmode	valid	--group-count	32
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	100	3	64	64	--weights	3	3	1	1	--pads_strides_dilations	2	2	1	1	1	1	--cmode	trans	--pmode	default	--group-count	3
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	100	6	4	4	--weights	6	4	1	1	--pads_strides_dilations	2	2	1	1	1	1	--cmode	trans	--pmode	default	--group-count	2
 )
 
 
 add_custom_test(test_conv_group ALL
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 128 56 56 --weights 256 4 3 3 --filter 1 1 1 1,  --group-count 32
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 256 56 56 --weights 512 8 3 3 --filter 1 1 2 2,  --group-count 32
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 256 28 28 --weights 512 8 3 3 --filter 1 1 1 1,  --group-count 32
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 512 28 28 --weights 1024 16 3 3 --filter 1 1 2 2,  --group-count 32
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 512 14 14 --weights 1024 16 3 3 --filter 1 1 1 1,  --group-count 32
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 1024 14 14 --weights 2048 32 3 3 --filter 1 1 2 2,  --group-count 32
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 1024 7 7 --weights 2048 32 3 3 --filter 1 1 1 1,  --group-count 32
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 128 56 56 --weights 256 4 3 3 --filter 1 1 1 1,  --group-count 32
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 256 56 56 --weights 512 8 3 3 --filter 1 1 2 2,  --group-count 32
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 256 28 28 --weights 512 8 3 3 --filter 1 1 1 1,  --group-count 32
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 512 28 28 --weights 1024 16 3 3 --filter 1 1 2 2,  --group-count 32
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 512 14 14 --weights 1024 16 3 3 --filter 1 1 1 1,  --group-count 32
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 1024 14 14 --weights 2048 32 3 3 --filter 1 1 2 2,  --group-count 32
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 1024 7 7 --weights 2048 32 3 3 --filter 1 1 1 1,  --group-count 32
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 4 161 700  --weights 32 1 5 20 --filter 0 0 2 2,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 2 161 700  --weights 32 1 5 20 --filter 0 0 2 2,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 4 161 700  --weights 32 1 5 20 --filter 0 0 2 2,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 2 161 700  --weights 32 1 5 20 --filter 0 0 2 2,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 32 79 341  --weights 32 16 5 10 --filter 0 0 2 2,  --group-count 2
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 79 341  --weights 32 16 5 10 --filter 0 0 2 2,  --group-count 2
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 32 79 341  --weights 32 16 5 10 --filter 0 0 2 2,  --group-count 2
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 32 79 341  --weights 32 16 5 10 --filter 0 0 2 2,  --group-count 2
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 4 48 480 --weights 16 1 3 3 --filter 1 1 1 1,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 16 24 240 --weights 32 1 3 3 --filter 1 1 1 1,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 32 12 120 --weights 64 8 3 3 --filter 1 1 1 1,  --group-count 4
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 64 6 60 --weights 128 16 3 3 --filter 1 1 1 1,  --group-count 4
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 3 108 108 --weights 63 1 3 3 --filter 1 1 2 2,  --group-count 3
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 54 54 --weights 64 8 3 3 --filter 1 1 1 1,  --group-count 8
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 27 27 --weights 128 16 3 3 --filter 1 1 1 1,  --group-count 8
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 3 224 224 --weights 63 1 3 3 --filter 1 1 1 1,  --group-count 3
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 112 112 --weights 128 32 3 3 --filter 1 1 1 1,  --group-count 2
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 9 224 224 --weights 63 3 3 3 --filter 1 1 1 1,  --group-count 3
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 64 112 112 --weights 128 16 3 3 --filter 1 1 1 1,  --group-count 4
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 3 224 224 --weights 63 1 7 7 --filter 3 3 2 2,  --group-count 3
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 192 28 28 --weights 32 12 5 5 --filter 2 2 1 1,  --group-count 16
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 832 7 7 --weights 128 52 5 5 --filter 2 2 1 1,  --group-count 16
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 192 28 28 --weights 32 24 1 1 --filter 0 0 1 1,  --group-count 8
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 832 7 7 --weights 128 104 1 1 --filter 0 0 1 1,  --group-count 8
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 11 23 161 700  --weights 46 1 7 7 --filter 1 1 2 2,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 1 1 1 1,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 0 0 1 1,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 0 0 2 2,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 1 1 2 2,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  7 224 224  --weights 63 1 3 3 --filter 2 2 2 2,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 1 1 1 1,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 0 0 1 1,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 0 0 2 2,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 1 1 2 2,  --cmode dw
-COMMAND $<TARGET_FILE:test_conv> --verbose --input 8  3 108 108  --weights 63 1 3 3 --filter 2 2 2 2,  --cmode dw
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	128	56	56	--weights	256	4	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	256	56	56	--weights	512	8	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	256	28	28	--weights	512	8	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	512	28	28	--weights	1024	16	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	512	14	14	--weights	1024	16	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	1024	14	14	--weights	2048	32	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	1024	7	7	--weights	2048	32	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	32	128	56	56	--weights	256	4	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	32	256	56	56	--weights	512	8	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	32	256	28	28	--weights	512	8	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	32	512	28	28	--weights	1024	16	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	32	512	14	14	--weights	1024	16	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	32	1024	14	14	--weights	2048	32	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	32	1024	7	7	--weights	2048	32	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	4	4	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1	--group-count	4				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	2	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1	--group-count	2				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	4	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1	--group-count	4				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	32	2	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1	--group-count	2				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	4	32	79	341	--weights	32	16	5	10	--pads_strides_dilations	0	0	2	2	1	1	--group-count	2				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	32	79	341	--weights	32	16	5	10	--pads_strides_dilations	0	0	2	2	1	1	--group-count	2				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	32	79	341	--weights	32	16	5	10	--pads_strides_dilations	0	0	2	2	1	1	--group-count	2				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	32	32	79	341	--weights	32	16	5	10	--pads_strides_dilations	0	0	2	2	1	1	--group-count	2				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	4	48	480	--weights	16	1	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	4				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	16	24	240	--weights	32	1	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	16				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	32	12	120	--weights	64	8	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	4				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	64	6	60	--weights	128	16	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	4				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	3	108	108	--weights	63	1	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	3				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	64	54	54	--weights	64	8	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	8				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	128	27	27	--weights	128	16	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	8				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	3	224	224	--weights	63	1	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	3				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	64	112	112	--weights	128	32	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	2				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	9	224	224	--weights	63	3	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	3				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	64	112	112	--weights	128	16	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	4				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	3	224	224	--weights	63	1	7	7	--pads_strides_dilations	3	3	2	2	1	1	--group-count	3				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	192	28	28	--weights	32	12	5	5	--pads_strides_dilations	2	2	1	1	1	1	--group-count	16				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	832	7	7	--weights	128	52	5	5	--pads_strides_dilations	2	2	1	1	1	1	--group-count	16				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	192	28	28	--weights	32	24	1	1	--pads_strides_dilations	0	0	1	1	1	1	--group-count	8				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	832	7	7	--weights	128	104	1	1	--pads_strides_dilations	0	0	1	1	1	1	--group-count	8				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	11	23	161	700	--weights	46	1	7	7	--pads_strides_dilations	1	1	2	2	1	1	--group-count	23				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	7	224	224	--weights	63	1	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	7				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	7	224	224	--weights	63	1	3	3	--pads_strides_dilations	0	0	1	1	1	1	--group-count	7				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	7	224	224	--weights	63	1	3	3	--pads_strides_dilations	0	0	2	2	1	1	--group-count	7				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	7	224	224	--weights	63	1	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	7				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	7	224	224	--weights	63	1	3	3	--pads_strides_dilations	2	2	2	2	1	1	--group-count	7				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	3	108	108	--weights	63	1	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	3				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	3	108	108	--weights	63	1	3	3	--pads_strides_dilations	0	0	1	1	1	1	--group-count	3				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	3	108	108	--weights	63	1	3	3	--pads_strides_dilations	0	0	2	2	1	1	--group-count	3				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	3	108	108	--weights	63	1	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	3				
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	3	108	108	--weights	63	1	3	3	--pads_strides_dilations	2	2	2	2	1	1	--group-count	3				
+)
+
+add_custom_test(test_conv_3d ALL
+COMMAND $<TARGET_FILE:test_conv> --verbose --conv_dim_type conv3d --input 16    32   4    9     9  --weights    64    32   3  3    3  --pads_strides_dilations  0  0  0    2  2   2    1   1   1  --group-count   1   --cmode conv   --pmode   default
+COMMAND $<TARGET_FILE:test_conv> --verbose --conv_dim_type conv3d --input  4     3   4  227   227  --weights     4     3   3 11   11  --pads_strides_dilations  0  0  0    1  1   1    1   1   1  --group-count   1   --cmode conv   --pmode   default
+COMMAND $<TARGET_FILE:test_conv> --verbose --conv_dim_type conv3d --input 16   128   4   56    56  --weights   256     4   3  3    3  --pads_strides_dilations  1  1  1    1  1   1    1   1   1  --group-count   32  --cmode conv   --pmode   default
+COMMAND $<TARGET_FILE:test_conv> --verbose --conv_dim_type conv3d --input 16   128  56   56    56  --weights   256     4   3  3    3  --pads_strides_dilations  1  2  3    1  1   1    1   2   3  --group-count   32  --cmode conv   --pmode   default
+COMMAND $<TARGET_FILE:test_conv> --verbose --conv_dim_type conv3d --input  4     4   4  161   700  --weights    32     1   3  5   20  --pads_strides_dilations  1  1  1    2  2   2    1   1   1  --group-count   4   --cmode conv   --pmode   default
+COMMAND $<TARGET_FILE:test_conv> --verbose --conv_dim_type conv3d --input  8   512   4   28    28  --weights   512   128   1  1    1  --pads_strides_dilations  0  0  0    1  1   1    1   1   1  --group-count   4   --cmode conv   --pmode   same
+COMMAND $<TARGET_FILE:test_conv> --verbose --conv_dim_type conv3d --input  8   512   4   56    56  --weights   512   128   1  1    1  --pads_strides_dilations  0  0  0    2  2   2    1   1   1  --group-count   4   --cmode conv   --pmode   same
+COMMAND $<TARGET_FILE:test_conv> --verbose --conv_dim_type conv3d --input  8   512   3   14    14  --weights   512   128   1  1    1  --pads_strides_dilations  0  0  0    2  2   2    1   1   1  --trans_output_pads 0 0 0 --group-count   1   --cmode trans  --pmode   same
+COMMAND $<TARGET_FILE:test_conv> --verbose --conv_dim_type conv3d --input 16    64   3    4     4  --weights    64    32   1  3    3  --pads_strides_dilations  0  0  0    2  2   2    1   1   1  --trans_output_pads 0 0 0 --group-count   4   --cmode trans  --pmode   default
+COMMAND $<TARGET_FILE:test_conv> --verbose --conv_dim_type conv3d --input 16    32   4    9     9  --weights    64    32   3  3    3  --pads_strides_dilations  0  0  0    1  2   3    1   2   3  --group-count   1   --cmode conv   --pmode   default
+COMMAND $<TARGET_FILE:test_conv> --verbose --conv_dim_type conv3d --input  4     3   4  227   227  --weights     4     3   3 11   11  --pads_strides_dilations  0  0  0    1  1   1    1   2   3  --group-count   1   --cmode conv   --pmode   default
+COMMAND $<TARGET_FILE:test_conv> --verbose --conv_dim_type conv3d --input 16   128   4   56    56  --weights   256     4   3  3    3  --pads_strides_dilations  1  2  3    1  1   1    1   2   3  --group-count   32  --cmode conv   --pmode   default
+COMMAND $<TARGET_FILE:test_conv> --verbose --conv_dim_type conv3d --input  4     4   4  161   700  --weights    32     1   3  5   20  --pads_strides_dilations  1  2  3    1  2   3    1   2   3  --group-count   4   --cmode conv   --pmode   default
+COMMAND $<TARGET_FILE:test_conv> --verbose --conv_dim_type conv3d --input  8   512   4   28    28  --weights   512   128   1  1    1  --pads_strides_dilations  0  0  0    1  1   1    1   2   3  --group-count   4   --cmode conv   --pmode   same
+COMMAND $<TARGET_FILE:test_conv> --verbose --conv_dim_type conv3d --input  8   512   4   56    56  --weights   512   128   1  1    1  --pads_strides_dilations  0  0  0    1  2   3    1   2   3  --group-count   4   --cmode conv   --pmode   same
+COMMAND $<TARGET_FILE:test_conv> --verbose --conv_dim_type conv3d --input  8   512   3   14    14  --weights   512   128   1  1    1  --pads_strides_dilations  0  0  0    1  2   3    1   2   3  --trans_output_pads 0 0 0 --group-count   1   --cmode trans  --pmode   same
+COMMAND $<TARGET_FILE:test_conv> --verbose --conv_dim_type conv3d --input 16    64   3    4     4  --weights    64    32   1  3    3  --pads_strides_dilations  0  0  0    1  2   3    1   2   3  --trans_output_pads 0 0 0 --group-count   4   --cmode trans  --pmode   default
 )
 
 
 if(MIOPEN_TEST_DEEPBENCH)
     add_custom_test(test_deepbench_conv
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 1 161 700  --weights 32 1 5 20 --filter 0 0 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 1 161 700  --weights 32 1 5 20 --filter 0 0 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 1 161 700  --weights 32 1 5 20 --filter 0 0 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 1 161 700  --weights 32 1 5 20 --filter 0 0 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 32 79 341  --weights 32 32 5 10 --filter 0 0 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 79 341  --weights 32 32 5 10 --filter 0 0 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 32 79 341  --weights 32 32 5 10 --filter 0 0 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 32 79 341  --weights 32 32 5 10 --filter 0 0 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 1 48 480 --weights 16 1 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 16 24 240 --weights 32 16 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 32 12 120 --weights 64 32 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 64 6 60 --weights 128 64 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 3 108 108 --weights 64 3 3 3 --filter 1 1 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 54 54 --weights 64 64 3 3 --filter 1 1 1 1 
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 27 27 --weights 128 128 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 14 14 --weights 256 128 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 256 7 7 --weights 512 256 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 3 224 224 --weights 64 3 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 112 112 --weights 128 64 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 56 56 --weights 256 128 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 256 28 28 --weights 512 256 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 14 14 --weights 512 512 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 7 7 --weights 512 512 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 3 224 224 --weights 64 3 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 64 112 112 --weights 128 64 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 128 56 56 --weights 256 128 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 256 28 28 --weights 512 256 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 512 14 14 --weights 512 512 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 512 7 7 --weights 512 512 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 3 224 224 --weights 64 3 7 7 --filter 3 3 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 192 28 28 --weights 32 192 5 5 --filter 2 2 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 512 14 14 --weights 48 512 5 5 --filter 2 2 1 1 
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 832 7 7 --weights 128 832 5 5 --filter 2 2 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 192 28 28 --weights 32 192 1 1 --filter 0 0 1 1 
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 512 14 14 --weights 48 512 1 1 --filter 0 0 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 832 7 7 --weights 128 832 1 1 --filter 0 0 1 1
-    )
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	4	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	32	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	4	32	79	341	--weights	32	32	5	10	--pads_strides_dilations	0	0	2	2	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	32	79	341	--weights	32	32	5	10	--pads_strides_dilations	0	0	2	2	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	32	79	341	--weights	32	32	5	10	--pads_strides_dilations	0	0	2	2	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	32	32	79	341	--weights	32	32	5	10	--pads_strides_dilations	0	0	2	2	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	1	48	480	--weights	16	1	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	16	24	240	--weights	32	16	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	32	12	120	--weights	64	32	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	64	6	60	--weights	128	64	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	3	108	108	--weights	64	3	3	3	--pads_strides_dilations	1	1	2	2	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	64	54	54	--weights	64	64	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	128	27	27	--weights	128	128	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	128	14	14	--weights	256	128	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	256	7	7	--weights	512	256	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	3	224	224	--weights	64	3	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	64	112	112	--weights	128	64	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	128	56	56	--weights	256	128	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	256	28	28	--weights	512	256	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	512	14	14	--weights	512	512	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	8	512	7	7	--weights	512	512	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	3	224	224	--weights	64	3	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	64	112	112	--weights	128	64	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	128	56	56	--weights	256	128	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	256	28	28	--weights	512	256	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	512	14	14	--weights	512	512	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	512	7	7	--weights	512	512	3	3	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	3	224	224	--weights	64	3	7	7	--pads_strides_dilations	3	3	2	2	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	192	28	28	--weights	32	192	5	5	--pads_strides_dilations	2	2	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	512	14	14	--weights	48	512	5	5	--pads_strides_dilations	2	2	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	832	7	7	--weights	128	832	5	5	--pads_strides_dilations	2	2	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	192	28	28	--weights	32	192	1	1	--pads_strides_dilations	0	0	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	512	14	14	--weights	48	512	1	1	--pads_strides_dilations	0	0	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	16	832	7	7	--weights	128	832	1	1	--pads_strides_dilations	0	0	1	1	1	1						
+)
 endif()
 
 if(MIOPEN_TEST_CONV)
-    add_test(NAME test_conv_input_1x3x32x32_weights_1x3x7x7_filter_1_1_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 32, 32 --weights 1, 3, 7, 7 --filter 1, 1, 1, 1)
-    add_test(NAME test_conv_input_1x3x227x227_weights_1x3x7x7_filter_1_1_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 227, 227 --weights 1, 3, 7, 7 --filter 1, 1, 1, 1)
-    add_test(NAME test_conv_input_1x64x56x56_weights_1x64x1x1_filter_0_0_2_2 COMMAND $<TARGET_FILE:test_conv> --input 1, 64, 56, 56 --weights 1, 64, 1, 1 --filter 0, 0, 2, 2)
-    add_test(NAME test_conv_input_1x3x32x32_weights_1x3x3x3_filter_2_2_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 32, 32 --weights 1, 3, 3, 3 --filter 2, 2, 1, 1)
-    add_test(NAME test_conv_input_1x3x224x224_weights_1x3x3x3_filter_2_2_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 224, 224 --weights 1, 3, 3, 3 --filter 2, 2, 1, 1)
-    add_test(NAME test_conv_input_1x3x227x227_weights_1x3x3x3_filter_2_2_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 227, 227 --weights 1, 3, 3, 3 --filter 2, 2, 1, 1)
-    add_test(NAME test_conv_input_1x3x231x231_weights_1x3x3x3_filter_2_2_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 231, 231 --weights 1, 3, 3, 3 --filter 2, 2, 1, 1)
-    add_test(NAME test_conv_input_1x3x224x224_weights_1x3x5x5_filter_2_2_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 224, 224 --weights 1, 3, 5, 5 --filter 2, 2, 1, 1)
-    add_test(NAME test_conv_input_1x3x227x227_weights_1x3x5x5_filter_2_2_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 227, 227 --weights 1, 3, 5, 5 --filter 2, 2, 1, 1)
-    add_test(NAME test_conv_input_1x3x231x231_weights_1x3x5x5_filter_2_2_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 231, 231 --weights 1, 3, 5, 5 --filter 2, 2, 1, 1)
-    add_test(NAME test_conv_input_1x3x32x32_weights_1x3x7x7_filter_2_2_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 32, 32 --weights 1, 3, 7, 7 --filter 2, 2, 1, 1)
-    add_test(NAME test_conv_input_1x3x224x224_weights_1x3x7x7_filter_2_2_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 224, 224 --weights 1, 3, 7, 7 --filter 2, 2, 1, 1)
-    add_test(NAME test_conv_input_1x3x227x227_weights_1x3x7x7_filter_2_2_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 227, 227 --weights 1, 3, 7, 7 --filter 2, 2, 1, 1)
-    add_test(NAME test_conv_input_1x3x231x231_weights_1x3x7x7_filter_2_2_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 231, 231 --weights 1, 3, 7, 7 --filter 2, 2, 1, 1)
-    add_test(NAME test_conv_input_1x64x56x56_weights_1x64x3x3_filter_2_2_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 64, 56, 56 --weights 1, 64, 3, 3 --filter 2, 2, 1, 1)
-    add_test(NAME test_conv_input_1x64x112x112_weights_1x64x3x3_filter_2_2_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 64, 112, 112 --weights 1, 64, 3, 3 --filter 2, 2, 1, 1)
-    add_test(NAME test_conv_input_1x64x512x1024_weights_1x64x3x3_filter_2_2_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 64, 512, 1024 --weights 1, 64, 3, 3 --filter 2, 2, 1, 1)
-    add_test(NAME test_conv_input_1x96x27x27_weights_1x96x3x3_filter_2_2_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 96, 27, 27 --weights 1, 96, 3, 3 --filter 2, 2, 1, 1)
-    add_test(NAME test_conv_input_1x96x28x28_weights_1x96x3x3_filter_2_2_1_1 COMMAND $<TARGET_FILE:test_conv> --input 1, 96, 28, 28 --weights 1, 96, 3, 3 --filter 2, 2, 1, 1)
-    add_test(NAME test_conv_input_1x3x32x32_weights_1x3x3x3_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 32, 32 --weights 1, 3, 3, 3 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_1x3x224x224_weights_1x3x3x3_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 224, 224 --weights 1, 3, 3, 3 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_1x3x227x227_weights_1x3x3x3_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 227, 227 --weights 1, 3, 3, 3 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_1x3x231x231_weights_1x3x3x3_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 231, 231 --weights 1, 3, 3, 3 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_1x3x32x32_weights_1x3x5x5_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 32, 32 --weights 1, 3, 5, 5 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_1x3x224x224_weights_1x3x5x5_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 224, 224 --weights 1, 3, 5, 5 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_1x3x227x227_weights_1x3x5x5_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 227, 227 --weights 1, 3, 5, 5 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_1x3x231x231_weights_1x3x5x5_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 231, 231 --weights 1, 3, 5, 5 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_1x3x32x32_weights_1x3x7x7_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 32, 32 --weights 1, 3, 7, 7 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_1x3x224x224_weights_1x3x7x7_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 224, 224 --weights 1, 3, 7, 7 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_1x3x227x227_weights_1x3x7x7_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 227, 227 --weights 1, 3, 7, 7 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_1x3x231x231_weights_1x3x7x7_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 3, 231, 231 --weights 1, 3, 7, 7 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_1x16x14x14_weights_1x16x5x5_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 16, 14, 14 --weights 1, 16, 5, 5 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_1x16x28x28_weights_1x16x5x5_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 16, 28, 28 --weights 1, 16, 5, 5 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_1x24x14x14_weights_1x24x5x5_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 24, 14, 14 --weights 1, 24, 5, 5 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_1x32x7x7_weights_1x32x5x5_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 32, 7, 7 --weights 1, 32, 5, 5 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_1x32x8x8_weights_1x32x5x5_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 32, 8, 8 --weights 1, 32, 5, 5 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_1x32x14x14_weights_1x32x5x5_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 32, 14, 14 --weights 1, 32, 5, 5 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_1x32x16x16_weights_1x32x5x5_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 32, 16, 16 --weights 1, 32, 5, 5 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_1x32x28x28_weights_1x32x5x5_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 32, 28, 28 --weights 1, 32, 5, 5 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_1x48x7x7_weights_1x48x5x5_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 48, 7, 7 --weights 1, 48, 5, 5 --filter 0 0 4 4)
+    add_custom_test(test_miopen_conv
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	32	32	--weights	1	3	7	7	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	227	227	--weights	1	3	7	7	--pads_strides_dilations	1	1	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	64	56	56	--weights	1	64	1	1	--pads_strides_dilations	0	0	2	2	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	32	32	--weights	1	3	3	3	--pads_strides_dilations	2	2	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	224	224	--weights	1	3	3	3	--pads_strides_dilations	2	2	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	227	227	--weights	1	3	3	3	--pads_strides_dilations	2	2	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	231	231	--weights	1	3	3	3	--pads_strides_dilations	2	2	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	224	224	--weights	1	3	5	5	--pads_strides_dilations	2	2	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	227	227	--weights	1	3	5	5	--pads_strides_dilations	2	2	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	231	231	--weights	1	3	5	5	--pads_strides_dilations	2	2	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	32	32	--weights	1	3	7	7	--pads_strides_dilations	2	2	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	224	224	--weights	1	3	7	7	--pads_strides_dilations	2	2	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	227	227	--weights	1	3	7	7	--pads_strides_dilations	2	2	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	231	231	--weights	1	3	7	7	--pads_strides_dilations	2	2	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	64	56	56	--weights	1	64	3	3	--pads_strides_dilations	2	2	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	64	112	112	--weights	1	64	3	3	--pads_strides_dilations	2	2	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	64	512	1024	--weights	1	64	3	3	--pads_strides_dilations	2	2	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	96	27	27	--weights	1	96	3	3	--pads_strides_dilations	2	2	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	96	28	28	--weights	1	96	3	3	--pads_strides_dilations	2	2	1	1	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	32	32	--weights	1	3	3	3	--pads_strides_dilations	0	0	4	4	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	224	224	--weights	1	3	3	3	--pads_strides_dilations	0	0	4	4	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	227	227	--weights	1	3	3	3	--pads_strides_dilations	0	0	4	4	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	231	231	--weights	1	3	3	3	--pads_strides_dilations	0	0	4	4	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	32	32	--weights	1	3	5	5	--pads_strides_dilations	0	0	4	4	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	224	224	--weights	1	3	5	5	--pads_strides_dilations	0	0	4	4	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	227	227	--weights	1	3	5	5	--pads_strides_dilations	0	0	4	4	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	231	231	--weights	1	3	5	5	--pads_strides_dilations	0	0	4	4	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	32	32	--weights	1	3	7	7	--pads_strides_dilations	0	0	4	4	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	224	224	--weights	1	3	7	7	--pads_strides_dilations	0	0	4	4	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	227	227	--weights	1	3	7	7	--pads_strides_dilations	0	0	4	4	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	3	231	231	--weights	1	3	7	7	--pads_strides_dilations	0	0	4	4	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	16	14	14	--weights	1	16	5	5	--pads_strides_dilations	0	0	4	4	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	16	28	28	--weights	1	16	5	5	--pads_strides_dilations	0	0	4	4	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	24	14	14	--weights	1	24	5	5	--pads_strides_dilations	0	0	4	4	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	32	7	7	--weights	1	32	5	5	--pads_strides_dilations	0	0	4	4	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	32	8	8	--weights	1	32	5	5	--pads_strides_dilations	0	0	4	4	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	32	14	14	--weights	1	32	5	5	--pads_strides_dilations	0	0	4	4	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	32	16	16	--weights	1	32	5	5	--pads_strides_dilations	0	0	4	4	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	32	28	28	--weights	1	32	5	5	--pads_strides_dilations	0	0	4	4	1	1						
+    COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	1	48	7	7	--weights	1	48	5	5	--pads_strides_dilations	0	0	4	4	1	1						
+)
 endif()
-

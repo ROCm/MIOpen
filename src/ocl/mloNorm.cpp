@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define MIOPEN
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
+#include <miopen/logger.hpp>
 
 // KNOWN ISSUES:
 // backward propogagation has a bug in cross map normalization when numper of maps less than
@@ -134,13 +135,14 @@ int mlo_construct_norm::mloConstructFwd()
     }
 
     // Workaround for ROCm 1.8.2 compiler issue (#1057).
-    if(_search_params.in_data_type == "FP16" && read_unit > 1 &&
+    if(_search_params.in_data_type == miopenHalf && read_unit > 1 &&
        _kernel_name == "MIOpenLRNAcrossChannels4")
     {
         const std::string name = _search_params.GetStream().GetDeviceName();
         if(name.find("gfx9") != std::string::npos) // Any gfx9 device.
         {
-            MIOPEN_LOG_I("Workaround for #1057: " << name << ',' << _search_params.in_data_type
+            MIOPEN_LOG_I("Workaround for #1057: " << name << ',' << miopen::GetDataTypeName(
+                                                                        _search_params.in_data_type)
                                                   << ','
                                                   << MAP_SZ4
                                                   << ','
@@ -270,9 +272,7 @@ int mlo_construct_norm::mloConstructFwd()
         _g_wk.push_back(g_wk_height * _grp_tile1);
         _g_wk.push_back(_search_params.n_outputs * _search_params.batch_sz);
     }
-    int data_len = (_search_params.out_data_type == "FP32")
-                       ? 4
-                       : (_search_params.out_data_type == "FP16") ? 2 : 8;
+    int data_len = miopen::GetTypeSize(_search_params.out_data_type);
 
     // calculate workspace
     size_t scale_sz = _search_params.batch_sz * scale_batch_stride * data_len;
@@ -298,7 +298,6 @@ int mlo_construct_norm::mloConstructBwd()
     {
         _out_pix_tile0 = (_in_df_width <= 8) ? 1 : (_in_df_width <= 16) ? 2 : 4;
         _out_pix_tile1 = (_in_df_height <= 8) ? 1 : (_in_df_height <= 16) ? 2 : 4;
-        ;
     }
     auto ocl_group_lg2sz0 = static_cast<int>(ceil(log(static_cast<double>(_grp_tile0)) / log(2.)));
     auto ocl_group_lg2sz1 = static_cast<int>(ceil(log(static_cast<double>(_grp_tile1)) / log(2.)));

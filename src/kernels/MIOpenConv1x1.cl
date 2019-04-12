@@ -95,17 +95,7 @@
 #define MLO_LCL_MEM_SZ MLO_WEIGHTS_LCL_SZ
 #endif
 
-__attribute__((always_inline)) uint iDiv(uint v, uint d)
-{
-    uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
-    return (r);
-}
-
-__attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24(u, d);
-    return (r);
-}
+#include "math_ops.h"
 
 /*
 Layout:
@@ -201,7 +191,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 
 #if(MLO_WEIGHTS_ROW) & (MLO_WEIGHTS_ROW - 1)
 
-            uint oi  = iDiv(w, MLO_WEIGHTS_ROW);
+            uint oi  = iDiv_legacy(w, MLO_WEIGHTS_ROW);
             uint lwi = iMod(w, oi, MLO_WEIGHTS_ROW);
 #else
             uint oi  = (w / MLO_WEIGHTS_ROW);

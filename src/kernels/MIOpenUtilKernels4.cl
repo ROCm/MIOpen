@@ -32,12 +32,18 @@
 #define MIOPEN_USE_FP16 0
 #endif
 
-#ifndef MIOPEN_USE_INTE8
-#define MIOPEN_USE_INTE8 0
+#ifndef MIOPEN_USE_INT8
+#define MIOPEN_USE_INT8 0
 #endif
 
-#if MIOPEN_USE_INTE8
+#ifndef MIOPEN_USE_INT8x4
+#define MIOPEN_USE_INT8x4 0
+#endif
+
+#if MIOPEN_USE_INT8
 typedef char data_t;
+#elif MIOPEN_USE_INT8x4
+typedef uint data_t;
 #elif MIOPEN_USE_FP16
 // As the half type degrades the performance, use short instead of half in
 // transpose kernels, which have no match op. May change back to half when
@@ -47,17 +53,7 @@ typedef short data_t;
 typedef float data_t;
 #endif
 
-__attribute__((always_inline)) uint iDiv(uint v, uint d)
-{
-    uint r = v / d;
-    return (r);
-}
-
-__attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24(u, d);
-    return (r);
-}
+#include "math_ops.h"
 
 #ifndef NC_TRANS_NCHW_OPT
 #define NC_TRANS_NCHW_OPT 0
@@ -73,6 +69,10 @@ __attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
 
 #ifndef NC_TRANS_CNHW
 #define NC_TRANS_CNHW 0
+#endif
+
+#ifndef NC_TRANS_MN2NM
+#define NC_TRANS_MN2NM 0
 #endif
 
 #ifndef IS_2D_WG
@@ -195,5 +195,26 @@ __kernel void transpose_CNHW2NCHW(const global data_t* in, global data_t* out)
         cout[C * HW_IN * n_i] = cin[HW_OUT * n_i];
     }
 #endif
+}
+#endif
+
+#if NC_TRANS_MN2NM
+__kernel void transpose_packed_MN2NM(const global data_t* in, global data_t* out)
+{
+    uint i = get_global_id(0);
+
+    if(i < M * N)
+    {
+        uint m_i = iDiv(i, N);
+        uint n_i = iMod(i, m_i, N);
+
+        uint in_off  = m_i * N + n_i + IN_OFF;
+        uint out_off = n_i * M + m_i + OUT_OFF;
+
+        const global data_t* cin = (const global data_t*)(in + in_off);
+        global data_t* cout      = (global data_t*)(out + out_off);
+
+        *cout = *cin;
+    }
 }
 #endif
