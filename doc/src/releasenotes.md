@@ -1,6 +1,46 @@
 
 ## MIOpen Release notes
 
+
+### 04/11/2019 [ 1.8.0 ]
+
+- This release contaings full 3-D convolution support and int8 support for interfence. 
+- Additionally, there are major updates in the performance database for major models including those found in Torchvision. 
+- An assortment of bugs have been resolved in this release.
+
+  
+Changes:
+
+- Fixed various issues in assembly kernels
+- Fixed issue #92 and #79 for miopenOpTensor
+- Fixed issue #88 for bzip2
+- Fixed issue #77 algorithm mismatch
+- Added Winograd suport for fp32 backwards weights
+- Added pooling inclusive mode
+- Added tuning for direct group convolution algorithms
+- Added additional kernel supoort for group convolutions
+- Added API for 3-D convolutions
+- Added support for int8 inference convolutions
+- Added integer selection for pooling indexing
+- Added minimum dependencies support
+- Added RNN fp16 support on the MIOpen-HIP backend
+- Added 1x1 convolution + bias + activation fusions
+- Added workaround for issue #84 GPU memory access fault
+- Added performance tuning for direct backwards weights
+- Improved performance database coverage
+- Improved internal quality by reducing redunant code
+- Improved build instructions in README.md
+- Improved performance database coverage for fusions
+- Updated Docker components and requirements
+
+
+Known Issues:
+
+- RNNs do not support fp16 on the MIOpen-OpenCL backend
+- OpenCL backend does not support GEMM convolutions in fp16
+
+
+
 ### 02/06/2019 [ 1.7.1 ]
 
 - This release contains minor bug fixes and performance improvements.
