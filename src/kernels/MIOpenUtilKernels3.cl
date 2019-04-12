@@ -51,17 +51,7 @@
 #define _FLOAT4 PPCAT(_FLOAT, FOUR)
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
-__attribute__((always_inline)) uint iDiv(uint v, uint d)
-{
-    uint r = v / d;
-    return (r);
-}
-
-__attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24(u, d);
-    return (r);
-}
+#include "math_ops.h"
 
 #define MLO_OUT_CHANNEL_STRIDE_ALIGNED (MLO_OUT_CHANNEL_STRIDE / MLO_WRITE_UNIT)
 #define MLO_OUT_STRIDE_ALIGNED (MLO_OUT_STRIDE / MLO_WRITE_UNIT)

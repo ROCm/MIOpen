@@ -53,11 +53,7 @@
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #define UNUSED __attribute__((__unused__))
-#define INLINE __attribute__((always_inline))
-#define IDIV(A, B) (iDiv(A, B))
-#define IMOD(A, B, C) (iMod(A, B, C))
-//#define IDIV(A,B) ((uint)((float)A * (1.0f / (float) B) + 0.00001f))
-//#define IMOD(A,B,C) (A - mul24(B, (uint)C))
+#define INLINE
 
 #define DBG_OUT_OF_RNGE 0
 
@@ -100,19 +96,7 @@
 #define MLO_LCL_MEM_SZ MLO_WEIGHTS_LCL_SZ
 #endif
 
-INLINE
-uint iDiv(uint v, uint d)
-{
-    uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
-    return (r);
-}
-
-INLINE
-uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24(u, d);
-    return (r);
-}
+#include "math_ops.h"
 
 /*
 Layout:
@@ -217,8 +201,8 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 
 #if(MLO_WEIGHTS_ROW) & (MLO_WEIGHTS_ROW - 1)
 
-            uint oi  = IDIV(w, MLO_WEIGHTS_ROW);
-            uint lwi = IMOD(w, oi, MLO_WEIGHTS_ROW);
+            uint oi  = iDiv_legacy(w, MLO_WEIGHTS_ROW);
+            uint lwi = iMod(w, oi, MLO_WEIGHTS_ROW);
 #else
             uint oi  = (w / MLO_WEIGHTS_ROW);
             uint lwi = (w & (MLO_WEIGHTS_ROW - 1));

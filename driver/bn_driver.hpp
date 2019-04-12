@@ -816,7 +816,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardGPU()
     for(int i = 0; i < iters; i++)
     {
 
-        START_TIME;
+        START_TIME
 
         // if run fwd train
         if(forw == 1)
@@ -840,7 +840,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardGPU()
         }
 
         miopen::deref(GetHandle()).Finish();
-        STOP_TIME;
+        STOP_TIME
         if(WALL_CLOCK)
         {
             if(iters > 1 && i > 0)
@@ -875,6 +875,26 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardGPU()
                    "iterations.\n",
                    avgtime / (iters - 1),
                    iters - 1);
+        int in_n, in_c, in_h, in_w;
+        std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
+        size_t M      = in_n * in_c * in_h * in_w;
+        size_t dataSz = (M + 2 * in_c) * miopen::GetTypeSize(miopen::deref(inputTensor).GetType());
+        float rdCnt   = -1.0;
+        float wrCnt   = 1.0;
+        if(forw == 1)
+        {
+            rdCnt = 2;
+        }
+        else if(forw == 2)
+        {
+            rdCnt = 1;
+        }
+        // layer, flopCnt, reads, writes, GFLOPS, GB/s, timeMs
+        printf("stats: bnormf, 0, %zu, %zu, 0, %f, %f\n",
+               dataSz,
+               dataSz,
+               (rdCnt * dataSz + wrCnt * dataSz) / lowtime / 1e6,
+               lowtime);
     }
     return miopenStatusSuccess;
 }
@@ -1034,7 +1054,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardGPU()
 
     for(int i = 0; i < iters; i++)
     {
-        START_TIME;
+        START_TIME
 
         if(saveMeanVar)
         {
@@ -1082,7 +1102,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardGPU()
         }
 
         miopen::deref(GetHandle()).Finish();
-        STOP_TIME;
+        STOP_TIME
         if(WALL_CLOCK)
         {
             if(iters > 1 && i > 0)
@@ -1098,6 +1118,21 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardGPU()
             lowtime = (time < lowtime) ? time : lowtime;
             if(iters > 1 && i > 0)
                 avgtime += time;
+
+            int in_n, in_c, in_h, in_w;
+            std::tie(in_n, in_c, in_h, in_w) =
+                miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
+            size_t M = in_n * in_c * in_h * in_w;
+            size_t dataSz =
+                (M + 2 * in_c) * miopen::GetTypeSize(miopen::deref(inputTensor).GetType());
+            float rdCnt = 2.0;
+            float wrCnt = 1.0;
+            // layer, flopCnt, reads, writes, GFLOPS, GB/s, timeMs
+            printf("stats: bnormb, 0, %zu, %zu, 0, %f, %f\n",
+                   dataSz,
+                   dataSz,
+                   (rdCnt * dataSz + wrCnt * dataSz) / lowtime / 1e6,
+                   lowtime);
         }
     }
 

@@ -43,7 +43,7 @@ namespace solver {
 
 static inline bool UseSubsample(const ConvolutionContext& c)
 {
-    return c.kernel_stride0 > 1 || c.kernel_stride1 > 1;
+    return c.kernel_stride_w > 1 || c.kernel_stride_h > 1;
 }
 
 /// After 2x subsampling kernel, image size on asm kernel input becomes 4x (2*2) smaller.
@@ -317,7 +317,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
 
     if(!(c_per_gpr * n_per_gpr * GetHWPerGpr() * chunk_size == wave_size))
         return false;
-    if(config.out_data_type == "FP16")
+    if(config.out_data_type == miopenHalf)
     {
         if((short_store == 0) && ((c_mult % 2) != 0 || (config.n_inputs % 2) != 0))
             return false;
@@ -336,7 +336,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
     }
     if(n_part_cnt > 1)
     {
-        int lds_size = ((n_part_cnt - 1) * solver::wave_size * sizeof(float) * acc_gprs);
+        auto lds_size = ((n_part_cnt - 1) * solver::wave_size * sizeof(float) * acc_gprs);
         if(!(lds_size <= (1 << 16)))
             return false;
     }
@@ -345,7 +345,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
 
 void PerformanceConfigConvAsmBwdWrW1x1::EuristicInit(const ConvolutionContext& config)
 {
-    short_store = (config.out_data_type == "FP16") ? 1 : 0;
+    short_store = (config.out_data_type == miopenHalf) ? 1 : 0;
     read_size   = 4;
     n_per_gpr =
         (config.batch_sz >= 4 && (AsmImgHeight(config) * AsmImgWidth(config)) <= 128) ? 4 : 1;
@@ -465,26 +465,26 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     }
     assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
     // clang-format off
-    bool ok = (params.pad0 == 0         // -q  pad_w
-        && params.pad1 == 0             // -p  pad_h
-        && params.kernel_stride0 <= 2   // -u  stride_w
-        && params.kernel_stride1 <= 2   // -v  stride_h
-        && params.kernel_stride0 == params.kernel_stride1
-        && params.kernel_size0 == 1     // -x  S wei_w
-        && params.kernel_size1 == 1     // -y  R wei_h
-        && params.kernel_dilation0 == 1
-        && params.kernel_dilation1 == 1
+    bool ok = (params.pad_w == 0         // -q  pad_w
+        && params.pad_h == 0             // -p  pad_h
+        && params.kernel_stride_w <= 2     // -v  stride_w
+        && params.kernel_stride_h <= 2     // -u  stride_h
+        && params.kernel_stride_w == params.kernel_stride_h
+        && params.kernel_size_w == 1     // -x  S wei_w
+        && params.kernel_size_h == 1     // -y  R wei_h
+        && params.kernel_dilation_w == 1
+        && params.kernel_dilation_h == 1
         && params.bias == 0
-        && (params.float_size == 32 || params.float_size == 16) 
+        && (params.IsFp32() || params.IsFp16())
         && params.in_layout == "NCHW"
-        && params.mode.IsNormal());
+        && params.group_counts == 1);
     if(!ok)
     {
         return false; // Early exit to speed up the check.
     }
     // Check limits:
     const auto h_w     = static_cast<long>(AsmImgHeight(params)) * AsmImgWidth(params);
-    const auto r_s     = static_cast<long>(params.kernel_size1) * params.kernel_size0;
+    const auto r_s     = static_cast<long>(params.kernel_size_h) * params.kernel_size_w;
     const auto c_h_w   = static_cast<long>(params.n_outputs) * h_w;   // C*H*W
     const auto k_h_w   = static_cast<long>(params.n_inputs) * h_w;    // K*H*W
     const auto n_c_h_w = static_cast<long>(params.batch_sz) * c_h_w;  // N*C*H*W
@@ -519,9 +519,9 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     ConvSolution result;
     std::ostringstream options;
 
-    assert(params.pad1 == 0 && params.pad0 == 0);
+    assert(params.pad_h == 0 && params.pad_w == 0);
     result.workspce_sz = 0;
-    int data_len = (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
+    int data_len       = GetTypeSize(params.out_data_type);
     if(UseSubsample(params))
     {
         // subsampled input, in_height equals to image size after downsampling
@@ -534,8 +534,8 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
         const auto subsample_kernel_compilation_options =
             std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
             std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
-            std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(params.kernel_stride0) +
-            std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(params.kernel_stride1) +
+            std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(params.kernel_stride_w) +
+            std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(params.kernel_stride_h) +
             std::string(" -DMLO_WRITE_UNIT=") + std::to_string(write_unit) +
             std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(params.in_channel_stride) +
             std::string(" -DMLO_OUT_STRIDE=") + std::to_string(params.in_stride) +
@@ -567,9 +567,6 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 
         result.construction_params.push_back(kernel);
 
-        assert(params.out_data_type == "FP16" || params.out_data_type == "FP32" ||
-               params.out_data_type == "FP64");
-
         result.workspce_sz = in_batch_stride * params.batch_sz * data_len;
     }
     GenerateClangDefsym(options, "stride_h", 1);
@@ -583,10 +580,10 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     // Note that params.n_outputs and params.n_inputs are swapped for backward convolutions.
     GenerateClangDefsym(options, "input_channels", params.n_outputs); // C
     GenerateClangDefsym(options, "output_channels", params.n_inputs); // K
-    GenerateClangDefsym(options, "wei_h", params.kernel_size1);       // R
-    GenerateClangDefsym(options, "wei_w", params.kernel_size0);       // S
-    GenerateClangDefsym(options, "pad_h", params.pad1);
-    GenerateClangDefsym(options, "pad_w", params.pad0);
+    GenerateClangDefsym(options, "wei_h", params.kernel_size_h);      // R
+    GenerateClangDefsym(options, "wei_w", params.kernel_size_w);      // S
+    GenerateClangDefsym(options, "pad_h", params.pad_h);
+    GenerateClangDefsym(options, "pad_w", params.pad_w);
     GenerateClangDefsym(options, "weights_layout", 0);
     GenerateClangDefsym(options, "reverse_weights", 0);
     GenerateClangDefsym(

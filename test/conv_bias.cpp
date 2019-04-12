@@ -32,33 +32,37 @@
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/stringutils.hpp>
 #include <utility>
 
-// #include "network_data.hpp"
+#include "network_data.hpp"
 #include "driver.hpp"
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
-#include <miopen/stringutils.hpp>
+#include "cpu_bias.hpp"
+
+struct scalar_gen_random_integer
+{
+    unsigned long min_val = 1;
+    unsigned long max_val = 16;
+
+    double operator()() const
+    {
+        return static_cast<double>(min_val + std::rand() % (max_val - min_val + 1));
+    }
+};
 
 template <class T>
 struct verify_backwards_bias
 {
     tensor<T> output;
     tensor<T> bias;
-    miopenConvolutionMode_t mode;
 
     tensor<T> cpu() const
     {
         auto rbias = bias;
-        int out_n, out_c, out_h, out_w;
-        std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(output.desc.GetLengths());
-
-        par_ford(out_c)([&](int c) {
-            double acc = 0;
-            ford(out_n, out_h, out_w)([&](int n, int h, int w) { acc += output(n, c, h, w); });
-            rbias[c] = acc;
-        });
+        cpu_bias_backward_data(output, rbias);
         return rbias;
     }
 
@@ -86,36 +90,81 @@ struct verify_backwards_bias
     }
 };
 
-template <class T>
+template <class T, std::size_t ConvDim>
 struct conv_bias_driver : test_driver
 {
     tensor<T> output;
-    std::string conv_mode;
-
-    std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
-        {"CONV", miopenConvolution}, {"TRANS", miopenTranspose}};
-
-    conv_bias_driver()
-    {
-        add(output,
-            "output",
-            get_input_tensor(tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}));
-    }
 
     void run()
     {
-        auto mode      = cmode_lookup[miopen::ToUpper(conv_mode)];
-        tensor<T> bias = {1, output.desc.GetLengths()[1], 1, 1};
-        int out_n, out_h, out_w;
-        std::tie(out_n, std::ignore, out_h, out_w) = miopen::tien<4>(output.desc.GetLengths());
-        if(output.desc.GetType() == miopenHalf)
-        {
-            output.par_for_each([&](int n, int c, int h, int w) {
-                output(n, c, h, w) = T(output(n, c, h, w) * 65535.0f / (4 * out_n * out_h * out_w));
-            });
-        }
-        verify(verify_backwards_bias<T>{output, bias, mode});
+        std::vector<std::size_t> bias_lens(2 + ConvDim, 1);
+        bias_lens[1] = output.desc.GetLengths()[1];
+
+        tensor<T> bias(bias_lens);
+
+        verify(verify_backwards_bias<T>{output, bias});
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<conv_bias_driver>(argc, argv); }
+template <class T>
+struct conv2d_bias_driver : public conv_bias_driver<T, 2>
+{
+    std::string conv_dim_type;
+
+    conv2d_bias_driver()
+    {
+        this->add(conv_dim_type, "conv_dim_type", this->generate_data({"conv2d"}));
+
+        auto gen_value = [](auto... is) {
+            return scalar_gen_random_integer{1, miopen_type<T>{} == miopenHalf ? 5 : 17}() *
+                   tensor_elem_gen_checkboard_sign{}(is...);
+        };
+
+        this->add(this->output, "output", this->get_tensor(get_inputs, gen_value));
+    }
+};
+
+template <class T>
+struct conv3d_bias_driver : public conv_bias_driver<T, 3>
+{
+    std::string conv_dim_type;
+
+    conv3d_bias_driver()
+    {
+        this->add(conv_dim_type, "conv_dim_type", this->generate_data({"conv3d"}));
+
+        auto gen_value = [](auto... is) {
+            return scalar_gen_random_integer{1, miopen_type<T>{} == miopenHalf ? 5 : 17}() *
+                   tensor_elem_gen_checkboard_sign{}(is...);
+        };
+
+        this->add(this->output, "output", this->get_tensor(get_3d_conv_input_shapes, gen_value));
+    }
+};
+
+int main(int argc, const char* argv[])
+{
+    std::vector<std::string> as(argv + 1, argv + argc);
+
+    bool do_conv2d = std::any_of(as.begin(), as.end(), [](auto&& arg) { return arg == "conv2d"; });
+    bool do_conv3d = std::any_of(as.begin(), as.end(), [](auto&& arg) { return arg == "conv3d"; });
+    bool do_all    = std::any_of(as.begin(), as.end(), [](auto&& arg) { return arg == "--all"; });
+
+    if(do_conv2d and !do_conv3d)
+    {
+        test_drive<conv2d_bias_driver>(argc, argv);
+    }
+    else if(!do_conv2d and do_conv3d)
+    {
+        test_drive<conv3d_bias_driver>(argc, argv);
+    }
+    else if((do_conv2d and do_conv3d) or do_all)
+    {
+        test_drive<conv2d_bias_driver>(argc, argv);
+        test_drive<conv3d_bias_driver>(argc, argv);
+    }
+    else
+    {
+        test_drive<conv2d_bias_driver>(argc, argv);
+    }
+}

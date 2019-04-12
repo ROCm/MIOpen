@@ -31,6 +31,7 @@
 #include <miopen/tensor.hpp>
 #include <miopen/functional.hpp>
 #include <miopen/type_name.hpp>
+#include <miopen/each_args.hpp>
 
 #include <half.hpp>
 #include <iomanip>
@@ -132,7 +133,9 @@ struct tensor
 
     tensor(miopen::TensorDescriptor rhs) : desc(std::move(rhs))
     {
-        assert(rhs.GetType() == miopen_type<T>{});
+        assert(rhs.GetType() == miopen_type<T>{} ||
+               ((miopen_type<T>{} == miopenInt8 || miopen_type<T>{} == miopenInt8x4) &&
+                rhs.GetType() == miopenFloat));
         data.resize(desc.GetElementSpace());
     }
 
@@ -153,6 +156,16 @@ struct tensor
     template <class G>
     void generate_impl(G g)
     {
+        auto seed = std::accumulate(desc.GetLengths().begin(),
+                                    desc.GetLengths().end(),
+                                    std::size_t{521288629},
+                                    [](auto x, auto y) {
+                                        x ^= x << 1U;
+                                        return x ^ y;
+                                    });
+        seed ^= data.size();
+        seed ^= desc.GetLengths().size();
+        std::srand(seed);
         auto iterator = data.begin();
         auto assign   = [&](T x) {
             assert(iterator < data.end());
@@ -239,6 +252,14 @@ struct tensor
         return this->data[this->desc.GetIndex(xs...)];
     }
 
+    template <class Integer, Integer N>
+    const T& operator()(const std::array<Integer, N>& multi_id) const
+    {
+        auto f = [&](auto... is) { return this->desc.GetIndex(is...); };
+        assert(miopen::unpack(f, multi_id) < data.size());
+        return this->data[miopen::unpack(f, multi_id)];
+    }
+
     T& operator[](std::size_t i) { return data.at(i); }
 
     const T& operator[](std::size_t i) const { return data.at(i); }
@@ -256,6 +277,28 @@ struct tensor
         return stream << t.desc;
     }
 };
+
+template <class T>
+void serialize(std::istream& s, tensor<T>& x)
+{
+    std::vector<std::size_t> lens;
+    serialize(s, lens);
+    std::vector<std::size_t> strides;
+    serialize(s, strides);
+    x.desc = miopen::TensorDescriptor{miopen_type<T>{}, lens, strides};
+    serialize(s, x.data);
+}
+
+template <class T>
+void serialize(std::ostream& s, const tensor<T>& x)
+{
+    std::vector<std::size_t> lens    = x.desc.GetLengths();
+    std::vector<std::size_t> strides = x.desc.GetStrides();
+    serialize(s, lens);
+    serialize(s, strides);
+    serialize(s, x.data);
+}
+
 template <class T>
 void save_tensor(tensor<T> input, std::string fn, int slice)
 {

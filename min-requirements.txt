@@ -1,0 +1,2 @@
+boost@1.58 -DCMAKE_POSITION_INDEPENDENT_CODE=On --build
+half,https://github.com/pfultz2/half/archive/1.12.0.tar.gz -X header -H sha256:0a08660b68abb176ebc2a0cdf8de46e3182a7f46c66443bb80dbfaaec98cf969 --build

@@ -132,19 +132,28 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValidValue() const
 
 static bool IsReverseInOutAllowed(const ConvolutionContext& config)
 {
-    return config.kernel_stride0 == 1 && config.kernel_stride1 == 1;
+    return config.kernel_stride_w == 1 && config.kernel_stride_h == 1;
 }
 
-inline int elements_in_dword(const ConvolutionContext& config)
-{
-    return config.float_size == 16 ? 2 : 1;
-}
+inline int elements_in_dword(const ConvolutionContext& config) { return config.IsFp16() ? 2 : 1; }
 
 bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config) const
 {
     if(!IsValidValue())
         return false;
     assert(chunk_size != 0);
+    if(reverse_inout == 0)
+    {
+        if((config.n_outputs % (GetCPerWave() * config.group_counts) != 0) ||
+           (config.n_inputs % (GetKPerWave() * config.group_counts) != 0))
+            return false;
+    }
+    else
+    {
+        if((config.n_outputs % (GetKPerWave() * config.group_counts) != 0) ||
+           (config.n_inputs % (GetCPerWave() * config.group_counts) != 0))
+            return false;
+    }
     if((config.n_outputs % (64 / chunk_size) != 0) && (config.n_inputs % (64 / chunk_size) != 0))
         return false;
     if((reverse_inout != 0 ? config.n_inputs : config.n_outputs) % GetCPerWave() != 0)
@@ -160,32 +169,40 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config)
     if((reverse_inout != 0) && !IsReverseInOutAllowed(config))
         return false;
     {
-        const int accums_cnt =
-            (config.kernel_size0 * config.kernel_size1 * GetCPerWave() * k_per_wave * chunk_size) /
-            64;
+        const int accums_cnt = (config.kernel_size_w * config.kernel_size_h * GetCPerWave() *
+                                k_per_wave * chunk_size) /
+                               64;
         assert(chunk_size);
         const int out_w_vec =
             (config.out_width + elements_in_dword(config) - 1) / elements_in_dword(config);
         int gprs_per_line_in = (out_w_vec + chunk_size - 1) / chunk_size;
         if(chunk_size != 16)
         {
-            assert(chunk_size - config.pad0);
+            assert(chunk_size - config.pad_w);
             gprs_per_line_in =
-                (out_w_vec + chunk_size - config.pad0 - 1) / (chunk_size - config.pad0);
+                (out_w_vec + chunk_size - config.pad_w - 1) / (chunk_size - config.pad_w);
         }
-        assert(config.kernel_stride0);
-        gprs_per_line_in += gprs_per_line_in % config.kernel_stride0;
+        assert(config.kernel_stride_w);
+        gprs_per_line_in += gprs_per_line_in % config.kernel_stride_w;
         const int gprs_per_line_out =
-            (gprs_per_line_in > 1) ? gprs_per_line_in / config.kernel_stride0 : 1;
+            (gprs_per_line_in > 1) ? gprs_per_line_in / config.kernel_stride_w : 1;
 
-        const int lines_in = pipe_lines_depth + config.kernel_size1 - 1;
-        assert(config.kernel_stride1);
+        const int lines_in           = pipe_lines_depth + config.kernel_size_h - 1;
+        const int vgprs_for_lines_in = lines_in * elements_in_dword(config) * gprs_per_line_in;
+        assert(config.kernel_stride_h);
         const int lines_out =
-            (pipe_lines_depth + config.kernel_stride1 - 1) / config.kernel_stride1;
-        const int vgprs = accums_cnt +
-                          (lines_in * gprs_per_line_in + lines_out * gprs_per_line_out) *
-                              elements_in_dword(config) +
-                          6 + (elements_in_dword(config) - 1);
+            (pipe_lines_depth + config.kernel_stride_h - 1) / config.kernel_stride_h;
+        const int vgprs_for_lines_out = lines_out * elements_in_dword(config) * gprs_per_line_out;
+        const int vgprs_for_division =
+            (vgprs_for_lines_in >= 4 ? 0 : 4) + (vgprs_for_lines_out >= 3 ? 0 : 3);
+
+        const int k_group_size = config.n_inputs /
+                                 (reverse_inout != 0 ? GetCPerWave() : GetKPerWave()) /
+                                 config.group_counts;
+        const bool k_group_size_is_power_of_two = ((k_group_size & (k_group_size - 1)) == 0);
+        const int vgprs = accums_cnt + vgprs_for_lines_in + vgprs_for_lines_out +
+                          (k_group_size_is_power_of_two ? 0 : vgprs_for_division) + 6 +
+                          (elements_in_dword(config) - 1);
         if(!(vgprs <= 256))
             return false;
         if(n_per_group > 4)
@@ -193,7 +210,7 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config)
                 return false;
         if(limit_wave_cnt != 0 && limit_wave_cnt * 4 < n_per_group)
             return false;
-        const int lds_size = (n_per_group - 1) * 64 /*wavesize*/ * sizeof(float) * accums_cnt;
+        const auto lds_size = (n_per_group - 1) * 64 /*wavesize*/ * sizeof(float) * accums_cnt;
         if(!(lds_size <= 65536))
             return false;
 
@@ -207,8 +224,8 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config)
         /// information here and in all similar places across other Solvers.
         const bool dot2_inst_avail = name >= "gfx906";
         const bool dot2_emulate    = (!dot2_inst_avail) && (elements_in_dword(config) == 2);
-        const int v_instr          = (k_per_wave * config.kernel_size1 * gprs_per_line_out *
-                             config.kernel_size0 * 4 * (dot2_emulate ? 2 : 1)) /
+        const int v_instr          = (k_per_wave * config.kernel_size_h * gprs_per_line_out *
+                             config.kernel_size_w * 4 * (dot2_emulate ? 2 : 1)) /
                             3 * elements_in_dword(config);
         const int exch_instr = elements_in_dword(config) == 2 ? 3 * m_instr : 0;
         const int total =
@@ -231,7 +248,7 @@ void PerformanceConfigAsmDirect3x3WrW::EuristicInit(const ConvolutionContext& co
     if(IsReverseInOutAllowed(config) && ((config.n_outputs % 4 != 0) || (config.out_width < 8)))
         reverse_inout = 1;
 
-    const auto c_k = config.n_outputs * config.n_inputs; // C*K
+    const auto c_k = config.n_outputs * config.n_inputs / config.group_counts; // C*K
     if(c_k < 256)
         k_per_wave = 1;
     else if(c_k < 16384)
@@ -270,7 +287,7 @@ void PerformanceConfigAsmDirect3x3WrW::EuristicInit(const ConvolutionContext& co
         k_per_wave       = 1;
         pipe_lines_depth = 2;
         n_per_group      = 1;
-        if(config.n_outputs % 4 != 0)
+        if(config.n_outputs % (4 * config.group_counts) != 0)
         {
             /// (1) If reverse is Off, then both (C % c_per_wave) and (K % k_per_wave) must be 0.
             /// Toggling reverse swaps C and K in the condition above.
@@ -334,35 +351,32 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
     }
     assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
     // clang-format off
-    bool ok = params.pad0 == 1           // -q  pad_w
-        && params.pad1 == 1              // -p  pad_h
-        && params.kernel_stride0 <= 2    // -u  stride_w
-        && params.kernel_stride1 <= 2    // -v  stride_h
-        && params.kernel_size0 == 3      // -x  S wei_w
-        && params.kernel_size1 == 3      // -y  R wei_h
-        && params.kernel_dilation0 == 1
-        && params.kernel_dilation1 == 1
+    bool ok = params.pad_w == 1           // -q  pad_w
+        && params.pad_h == 1              // -p  pad_h
+        && params.kernel_stride_w <= 2      // -v  stride_w
+        && params.kernel_stride_h <= 2      // -u  stride_h
+        && params.kernel_size_w == 3      // -x  S wei_w
+        && params.kernel_size_h == 3      // -y  R wei_h
+        && params.kernel_dilation_w == 1
+        && params.kernel_dilation_h == 1
         && params.bias == 0
-        && (params.float_size == 32 || params.float_size == 16)
-        && params.mode.IsNormal()
+        && (params.IsFp32() || params.IsFp16())
         && params.in_layout == "NCHW";
     if(!ok)
     {
         return false; // Early exit to speed up the check.
     }
 
-    if(params.float_size == 16
+    if(params.IsFp16()
           && (name.find("gfx8") != std::string::npos // Not supported.
-             || params.batch_sz % 2 != 0 /// \todo Initial version.
-             || params.kernel_stride0 != 1 /// \todo Initial version.
-             || params.kernel_stride1 != 1))
+             || params.batch_sz % 2 != 0)) /// \todo Initial version.
     {
        return false;
     }
 
     // Check limits:
     const auto h_w     = static_cast<long>(params.out_height) * params.out_width;
-    const auto r_s     = static_cast<long>(params.kernel_size1) * params.kernel_size0;
+    const auto r_s     = static_cast<long>(params.kernel_size_h) * params.kernel_size_w;
     const auto c_h_w   = static_cast<long>(params.n_outputs) * h_w;   // C*H*W
     const auto k_h_w   = static_cast<long>(params.n_inputs) * h_w;    // K*H*W
     const auto c_r_s   = static_cast<long>(params.n_outputs) * r_s;   // C*R*S
@@ -373,8 +387,8 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
     ok = params.out_width > 0
          && params.out_width <= 512
          && (IsReverseInOutAllowed(params)
-                ? ((params.n_outputs % 4 == 0) || (params.n_inputs % 4 == 0))
-                : (params.n_outputs % 4 == 0))
+                ? ((params.n_outputs % (4 * params.group_counts) == 0) || (params.n_inputs % (4 * params.group_counts) == 0))
+                : (params.n_outputs % (4 * params.group_counts) == 0))
          && params.out_height < std::pow(2, 16) // -H   H img_h
          && params.batch_sz < std::pow(2, 16)   // -n   N batch_size
          && params.n_outputs < std::pow(2, 16)  // -c   C input_channels
@@ -385,7 +399,8 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
          && k_r_s < std::pow(2, 22)
          && n_c_h_w < std::pow(2, 29)
          && n_k_h_w < std::pow(2, 29)
-         && c_k_r_s < std::pow(2, 29);               // clang-format on
+         && c_k_r_s < std::pow(2, 29);              // clang-format on
+
     return ok;
 }
 
@@ -397,19 +412,19 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
 {
     ConvSolution result;
     std::ostringstream options;
-    GenerateClangDefsym(options, "elements_in_dword", (params.float_size == 16) ? 2 : 1);
+    GenerateClangDefsym(options, "elements_in_dword", (params.IsFp16()) ? 2 : 1);
     GenerateClangDefsym(options, "batch_size", params.batch_sz); // N
     GenerateClangDefsym(options, "img_h", params.out_height);    // H
     GenerateClangDefsym(options, "img_w", params.out_width);     // W
     // Note that params.n_outputs and params.n_inputs are swapped for backward convolutions.
     GenerateClangDefsym(options, "input_channels", params.n_outputs); // C
     GenerateClangDefsym(options, "output_channels", params.n_inputs); // K
-    GenerateClangDefsym(options, "wei_h", params.kernel_size1);       // R
-    GenerateClangDefsym(options, "wei_w", params.kernel_size0);       // S
-    GenerateClangDefsym(options, "pad_h", params.pad1);
-    GenerateClangDefsym(options, "pad_w", params.pad0);
-    GenerateClangDefsym(options, "stride_h", params.kernel_stride1);
-    GenerateClangDefsym(options, "stride_w", params.kernel_stride0);
+    GenerateClangDefsym(options, "wei_h", params.kernel_size_h);      // R
+    GenerateClangDefsym(options, "wei_w", params.kernel_size_w);      // S
+    GenerateClangDefsym(options, "pad_h", params.pad_h);
+    GenerateClangDefsym(options, "pad_w", params.pad_w);
+    GenerateClangDefsym(options, "stride_h", params.kernel_stride_h);
+    GenerateClangDefsym(options, "stride_w", params.kernel_stride_w);
     GenerateClangDefsym(options, "weights_layout", 0);
     GenerateClangDefsym(options, "reverse_weights", 0);
     GenerateClangDefsym(
@@ -449,6 +464,13 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "reverse_inout", pcfg->GetReverseInout());
     // Debugging:
     GenerateClangDefsym(options, "enable_debug_output", 0);
+    GenerateClangDefsym(options, "group_counts", params.group_counts);
+
+    const int k_group_size =
+        params.n_inputs / (pcfg->reverse_inout != 0 ? pcfg->GetCPerWave() : pcfg->GetKPerWave()) /
+        params.group_counts;
+    const bool k_group_size_is_power_of_two = ((k_group_size & (k_group_size - 1)) == 0);
+    GenerateClangDefsym(options, "k_group_size_is_power_of_two", k_group_size_is_power_of_two);
 
     KernelInfo kernel;
 
@@ -464,12 +486,12 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
 
     if(pcfg->GetReverseInout() == 0)
     {
-        kernel.g_wk.push_back(params.n_outputs / pcfg->GetCPerWave());
+        kernel.g_wk.push_back(params.n_outputs / pcfg->GetCPerWave() / params.group_counts);
         kernel.g_wk.push_back(params.n_inputs / pcfg->GetKPerWave());
     }
     else
     {
-        kernel.g_wk.push_back(params.n_outputs / pcfg->GetKPerWave());
+        kernel.g_wk.push_back(params.n_outputs / pcfg->GetKPerWave() / params.group_counts);
         kernel.g_wk.push_back(params.n_inputs / pcfg->GetCPerWave());
     }
 

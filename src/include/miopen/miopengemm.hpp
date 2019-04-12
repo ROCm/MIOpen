@@ -33,6 +33,8 @@
 
 namespace miopen {
 
+struct Handle;
+
 void AddMiopengemmSolution(Handle& handle,
                            const std::string& algorithm_name,
                            const std::string& network_config,

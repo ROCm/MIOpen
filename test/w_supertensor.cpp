@@ -71,7 +71,7 @@ std::vector<float> generate_w_tensor(miopenRNNDescriptor_t rnnDesc,
                 int layer   = k % 2 + (k / 4) * 2;
                 int layerId = (k % 4 > 1) ? j + num_HiddenLayer : j;
 
-                size_t paramSize = 0;
+                std::size_t paramSize = 0;
                 miopenGetRNNLayerParamSize(
                     &handle, rnnDesc, layer, inputTensor, layerId, &paramSize);
 
@@ -83,7 +83,7 @@ std::vector<float> generate_w_tensor(miopenRNNDescriptor_t rnnDesc,
 
                 paramSize /= sizeof(float);
 
-                for(int i = 0; i < paramSize; i++)
+                for(std::size_t i = 0; i < paramSize; i++)
                 {
                     wei_h[offset + i] = layer * 10 + layerId;
                 }
@@ -102,12 +102,12 @@ std::vector<float> generate_w_tensor(miopenRNNDescriptor_t rnnDesc,
                     int layer   = k % 2 + (k / 4) * 2;
                     int layerID = (k % 4 > 1) ? j + num_HiddenLayer : j;
 
-                    size_t biasSize = 0;
+                    std::size_t biasSize = 0;
                     miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
 
                     biasSize /= sizeof(float);
 
-                    for(int i = 0; i < biasSize; i++)
+                    for(std::size_t i = 0; i < biasSize; i++)
                     {
                         wei_h[offset + i] = -(layer * 10 + layerID);
                     }
@@ -124,7 +124,7 @@ std::vector<float> generate_w_tensor(miopenRNNDescriptor_t rnnDesc,
 
             for(int layerID = 0; layerID < num_HiddenLayer * 2; layerID++)
             {
-                size_t paramSize = 0;
+                std::size_t paramSize = 0;
                 miopenGetRNNLayerParamSize(
                     &handle, rnnDesc, layer, inputTensor, layerID, &paramSize);
 
@@ -136,7 +136,7 @@ std::vector<float> generate_w_tensor(miopenRNNDescriptor_t rnnDesc,
 
                 paramSize /= sizeof(float);
 
-                for(int i = 0; i < paramSize; i++)
+                for(std::size_t i = 0; i < paramSize; i++)
                 {
                     wei_h[offset + i] = layer * 10 + layerID;
                 }
@@ -153,12 +153,12 @@ std::vector<float> generate_w_tensor(miopenRNNDescriptor_t rnnDesc,
 
                 for(int layerID = 0; layerID < num_HiddenLayer * 2; layerID++)
                 {
-                    size_t biasSize = 0;
+                    std::size_t biasSize = 0;
                     miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
 
                     biasSize /= sizeof(float);
 
-                    for(int i = 0; i < biasSize; i++)
+                    for(std::size_t i = 0; i < biasSize; i++)
                     {
                         wei_h[offset + i] = -(layer * 10 + layerID);
                     }
@@ -167,12 +167,6 @@ std::vector<float> generate_w_tensor(miopenRNNDescriptor_t rnnDesc,
             }
         }
     }
-
-    // for(int i = 0; i < wei_sz; i++)
-    //{
-    // printf("[%d]: %f\n", i, wei_h[i]);
-    //}
-
     return wei_h;
 }
 

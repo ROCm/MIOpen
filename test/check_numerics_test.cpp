@@ -28,6 +28,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/check_numerics.hpp>
 #include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
 
 struct check_numerics_base
 {

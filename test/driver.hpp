@@ -27,6 +27,7 @@
 #include "args.hpp"
 #include "get_handle.hpp"
 #include "network_data.hpp"
+#include "serialize.hpp"
 #include "tensor_holder.hpp"
 #include "test.hpp"
 #include "verify.hpp"
@@ -35,8 +36,12 @@
 #include <deque>
 #include <half.hpp>
 #include <type_traits>
+#include <boost/filesystem.hpp>
 #include <miopen/functional.hpp>
+#include <miopen/expanduser.hpp>
+#include <miopen/md5.hpp>
 #include <miopen/type_name.hpp>
+#include <miopen/env.hpp>
 
 template <class U, class T>
 constexpr std::is_same<T, U> is_same(const T&)
@@ -57,7 +62,7 @@ struct tensor_elem_gen_integer
         std::array<unsigned long, sizeof...(Ts)> left = {{Xs...}};
         std::array<unsigned long, 5> right            = {{613, 547, 701, 877, 1049}};
         unsigned long dot = std::inner_product(left.begin(), left.end(), right.begin(), 173ul);
-        return dot % max_value;
+        return static_cast<double>(dot % max_value);
     }
 };
 
@@ -88,6 +93,8 @@ auto cpu_async(V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
 {
     return std::async(std::launch::deferred, [&] { return v.cpu(xs...); });
 }
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_VERIFY_CACHE_PATH)
 
 struct test_driver
 {
@@ -137,18 +144,30 @@ struct test_driver
         }
     };
 
+    static std::string compute_cache_path()
+    {
+        auto e = miopen::GetStringEnv(MIOPEN_VERIFY_CACHE_PATH{});
+        if(e == nullptr)
+            return "~/.cache/miopen/tests";
+        else
+            return e;
+    }
+
     std::string program_name;
     std::deque<argument> arguments;
     std::unordered_map<std::string, std::size_t> argument_index;
-    miopenDataType_t type = miopenFloat;
-    bool full_set         = false;
-    bool verbose          = false;
-    double tolerance      = 80;
-    bool time             = false;
-    int batch_factor      = 0;
-    bool no_validate      = false;
-    int repeat            = 1;
-    bool rethrow          = false;
+    int cache_version      = 1;
+    std::string cache_path = compute_cache_path();
+    miopenDataType_t type  = miopenFloat;
+    bool full_set          = false;
+    bool verbose           = false;
+    double tolerance       = 80;
+    bool time              = false;
+    int batch_factor       = 0;
+    bool no_validate       = false;
+    int repeat             = 1;
+    bool rethrow           = false;
+    bool disabled_cache    = false;
 
     argument& get_argument(const std::string& s)
     {
@@ -171,6 +190,8 @@ struct test_driver
           "Disable cpu validation, so only gpu version is ran");
         v(repeat, {"--repeat"}, "Repeat the tests");
         v(rethrow, {"--rethrow"}, "Rethrow any exceptions found during verify");
+        v(cache_path, {"--verification-cache", "-C"}, "Path to verification cache");
+        v(disabled_cache, {"--disable-verification-cache"}, "Disable verification cache");
     }
 
     struct per_arg
@@ -227,20 +248,34 @@ struct test_driver
         std::cout << std::endl;
     }
 
-    void show_command()
+    std::string get_command_args()
     {
-        std::cout << this->program_name << " ";
+        std::stringstream ss;
+        switch(this->type)
+        {
+        case miopenHalf: ss << "--half "; break;
+        case miopenInt8x4:
+        case miopenInt8: ss << "--int8 "; break;
+        case miopenInt32: ss << "--int32 "; break;
+        case miopenFloat: ss << "--float "; break;
+        }
         for(auto&& arg : this->arguments)
         {
             std::string value = arg.read_value();
             if(not value.empty())
             {
-                std::cout << "--" << arg.name << " ";
+                ss << "--" << arg.name << " ";
                 if(value != arg.name)
-                    std::cout << value << " ";
+                    ss << value << " ";
             }
         }
-        std::cout << std::endl;
+        return ss.str();
+    }
+
+    void show_command()
+    {
+        std::cout << this->program_name << " ";
+        std::cout << get_command_args() << std::endl;
     }
 
     template <class X, class G>
@@ -306,6 +341,12 @@ struct test_driver
     lazy_generate_tensor(F f, std::initializer_list<X> single, G g)
     {
         return lazy_generate_tensor<F, std::vector<X>, G>(f, single, g);
+    }
+
+    template <class F, class G>
+    generate_tensor_t<std::vector<int>, G> get_tensor(F gen_shapes, G gen_value)
+    {
+        return lazy_generate_tensor([=] { return gen_shapes(batch_factor); }, gen_value);
     }
 
     template <class G = tensor_elem_gen_integer>
@@ -463,91 +504,126 @@ struct test_driver
 
     set_value_t<bool> flag() { return set_value(true); }
 
-    template <class CpuRange, class GpuRange, class Fail>
-    std::pair<CpuRange, GpuRange> verify_check(CpuRange out_cpu, GpuRange out_gpu, Fail fail)
+    auto verify_reporter()
     {
-        CHECK(miopen::range_distance(out_cpu) == miopen::range_distance(out_gpu));
-
-        using value_type = miopen::range_value<decltype(out_gpu)>;
-        double threshold = std::numeric_limits<value_type>::epsilon() * tolerance;
-        auto error       = miopen::rms_range(out_cpu, out_gpu);
-        if(not(error <= threshold) or verbose)
-        {
-            std::cout << (error <= threshold ? "error: " : "FAILED: ") << error << std::endl;
-            if(not verbose)
+        return [=](bool pass,
+                   std::vector<double> error,
+                   const auto& out_cpu,
+                   const auto& out_gpu,
+                   auto fail) {
+            if(not pass or verbose)
             {
+                if(not error.empty())
+                    std::cout << (pass ? "error: " : "FAILED: ") << error.front() << std::endl;
+                else if(not pass)
+                    std::cout << "FAILED: " << std::endl;
+                if(not verbose)
+                {
+                    show_command();
+                    fail(-1);
+                }
+
+                auto mxdiff = miopen::max_diff(out_cpu, out_gpu);
+                std::cout << "Max diff: " << mxdiff << std::endl;
+                //            auto max_idx = miopen::mismatch_diff(out_cpu, out_gpu, mxdiff);
+                //            std::cout << "Max diff at " << max_idx << ": " << out_cpu[max_idx] <<
+                //            " !=
+                //            " << out_gpu[max_idx] << std::endl;
+
+                if(miopen::range_zero(out_cpu))
+                    std::cout << "Cpu data is all zeros" << std::endl;
+                if(miopen::range_zero(out_gpu))
+                    std::cout << "Gpu data is all zeros" << std::endl;
+
+                auto idx = miopen::mismatch_idx(out_cpu, out_gpu, miopen::float_equal);
+                if(idx < miopen::range_distance(out_cpu))
+                {
+                    std::cout << "Mismatch at " << idx << ": " << out_cpu[idx]
+                              << " != " << out_gpu[idx] << std::endl;
+                }
+
+                auto cpu_nan_idx = find_idx(out_cpu, miopen::not_finite);
+                if(cpu_nan_idx >= 0)
+                    std::cout << "Non finite number found in cpu at " << cpu_nan_idx << ": "
+                              << out_cpu[cpu_nan_idx] << std::endl;
+
+                auto gpu_nan_idx = find_idx(out_gpu, miopen::not_finite);
+                if(gpu_nan_idx >= 0)
+                    std::cout << "Non finite number found in gpu at " << gpu_nan_idx << ": "
+                              << out_gpu[gpu_nan_idx] << std::endl;
+            }
+            else if(miopen::range_zero(out_cpu) and miopen::range_zero(out_gpu))
+            {
+                std::cout << "Warning: Both CPU and GPU data is all zero" << std::endl;
                 show_command();
                 fail(-1);
             }
-
-            auto mxdiff = miopen::max_diff(out_cpu, out_gpu);
-            std::cout << "Max diff: " << mxdiff << std::endl;
-            //            auto max_idx = miopen::mismatch_diff(out_cpu, out_gpu, mxdiff);
-            //            std::cout << "Max diff at " << max_idx << ": " << out_cpu[max_idx] << " !=
-            //            " << out_gpu[max_idx] << std::endl;
-
-            if(miopen::range_zero(out_cpu))
-                std::cout << "Cpu data is all zeros" << std::endl;
-            if(miopen::range_zero(out_gpu))
-                std::cout << "Gpu data is all zeros" << std::endl;
-
-            auto idx = miopen::mismatch_idx(out_cpu, out_gpu, miopen::float_equal);
-            if(idx < miopen::range_distance(out_cpu))
-            {
-                std::cout << "Mismatch at " << idx << ": " << out_cpu[idx] << " != " << out_gpu[idx]
-                          << std::endl;
-            }
-
-            auto cpu_nan_idx = find_idx(out_cpu, miopen::not_finite);
-            if(cpu_nan_idx >= 0)
-                std::cout << "Non finite number found in cpu at " << cpu_nan_idx << ": "
-                          << out_cpu[cpu_nan_idx] << std::endl;
-
-            auto gpu_nan_idx = find_idx(out_gpu, miopen::not_finite);
-            if(gpu_nan_idx >= 0)
-                std::cout << "Non finite number found in gpu at " << gpu_nan_idx << ": "
-                          << out_gpu[gpu_nan_idx] << std::endl;
-        }
-        else if(miopen::range_zero(out_cpu) and miopen::range_zero(out_gpu))
-        {
-            std::cout << "Warning: Both CPU and GPU data is all zero" << std::endl;
-            show_command();
-            fail(-1);
-        }
-        // std::cout << "----- END VERIFY CHECK -----\n" << std::endl;
-        return std::make_pair(std::move(out_cpu), std::move(out_gpu));
+            return true;
+        };
     }
 
-    struct verify_check_t
+    template <class CpuRange, class GpuRange, class Compare, class Report, class Fail>
+    bool compare_and_report(
+        const CpuRange& out_cpu, const GpuRange& out_gpu, Compare compare, Report report, Fail fail)
     {
-        template <class Self, class CpuRange, class GpuRange, class Fail, class I>
-        auto operator()(Self self, CpuRange out_cpu, GpuRange out_gpu, Fail fail, I i) const
-            MIOPEN_RETURNS(self->verify_check(std::get<I{}>(out_cpu),
-                                              std::get<I{}>(out_gpu),
-                                              std::bind(fail, i)))
-    };
+        std::vector<double> error;
+        bool pass = compare(error, out_cpu, out_gpu);
+        return report(pass, error, out_cpu, out_gpu, fail);
+    }
 
-    struct verify_check_make_tuples
-    {
-        template <class... Ts>
-        auto operator()(Ts... xs) const
-            MIOPEN_RETURNS(std::make_pair(std::make_tuple(std::move(xs.first)...),
-                                          std::make_tuple(std::move(xs.second)...)))
-    };
-
-    template <class... CpuRanges, class... GpuRanges, class Fail>
-    std::pair<std::tuple<CpuRanges...>, std::tuple<GpuRanges...>>
-    verify_check(std::tuple<CpuRanges...> out_cpu, std::tuple<GpuRanges...> out_gpu, Fail fail)
+    template <class... CpuRanges, class... GpuRanges, class Compare, class Report, class Fail>
+    bool compare_and_report(const std::tuple<CpuRanges...>& out_cpu,
+                            const std::tuple<GpuRanges...>& out_gpu,
+                            Compare compare,
+                            Report report,
+                            Fail fail)
     {
         static_assert(sizeof...(CpuRanges) == sizeof...(GpuRanges), "Cpu and gpu mismatch");
-        return miopen::sequence(miopen::by(verify_check_make_tuples{},
-                                           std::bind(verify_check_t{},
-                                                     this,
-                                                     std::move(out_cpu),
-                                                     std::move(out_gpu),
-                                                     fail,
-                                                     std::placeholders::_1)))(
-            std::integral_constant<std::size_t, sizeof...(CpuRanges)>{});
+        return miopen::sequence([&](auto... is) {
+            bool continue_ = true;
+            miopen::each_args(
+                [&](auto i) {
+                    // cppcheck-suppress knownConditionTrueFalse
+                    if(continue_)
+                        continue_ = this->compare_and_report(
+                            std::get<i>(out_cpu), std::get<i>(out_gpu), compare, report, [&](int) {
+                                return fail(i);
+                            });
+                },
+                is...);
+            return continue_;
+        })(std::integral_constant<std::size_t, sizeof...(CpuRanges)>{});
+    }
+
+    template <class V, class... Ts>
+    auto run_cpu(bool retry, bool& miss, V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
+    {
+        using result_type = decltype(v.cpu(xs...));
+        if(disabled_cache)
+            return cpu_async(v, xs...);
+        auto key = miopen::get_type_name<V>() + "-" + miopen::md5(get_command_args());
+        auto p =
+            boost::filesystem::path{miopen::ExpandUser(cache_path)} / std::to_string(cache_version);
+        if(!boost::filesystem::exists(p))
+            boost::filesystem::create_directories(p);
+        auto f = p / key;
+        if(boost::filesystem::exists(f) and not retry)
+        {
+            miss = false;
+            return detach_async([=] {
+                result_type result;
+                load(f.string(), result);
+                return result;
+            });
+        }
+        else
+        {
+            miss = true;
+            return then(cpu_async(v, xs...), [=](auto data) {
+                save(f.string(), data);
+                return data;
+            });
+        }
     }
 
     template <class F, class V, class... Ts>
@@ -567,9 +643,10 @@ struct test_driver
             auto&& h = get_handle();
             // Compute cpu
             std::future<decltype(v.cpu(xs...))> cpuf;
+            bool cache_miss = true;
             if(not no_validate)
             {
-                cpuf = cpu_async(v, xs...);
+                cpuf = run_cpu(false, cache_miss, v, xs...);
             }
             // Compute gpu
             if(time)
@@ -586,8 +663,35 @@ struct test_driver
             // Validate
             if(!no_validate)
             {
-                cpu = cpuf.get();
-                f(cpu, gpu);
+                cpu         = cpuf.get();
+                auto report = this->verify_reporter();
+                bool retry  = true;
+                if(not cache_miss)
+                {
+                    retry             = false;
+                    auto report_retry = [&](bool pass,
+                                            std::vector<double> error,
+                                            const auto& out_cpu,
+                                            const auto& out_gpu,
+                                            auto fail) {
+                        if(not pass)
+                        {
+                            retry = true;
+                            return false;
+                        }
+                        return report(pass, error, out_cpu, out_gpu, fail);
+                    };
+                    compare_and_report(
+                        cpu, gpu, f, report_retry, [&](int mode) { v.fail(mode, xs...); });
+                    // cppcheck-suppress knownConditionTrueFalse
+                    if(retry)
+                    {
+                        std::cout << "Warning: verify cache failed, rerunning cpu." << std::endl;
+                        cpu = run_cpu(retry, cache_miss, v, xs...).get();
+                    }
+                }
+                if(retry)
+                    compare_and_report(cpu, gpu, f, report, [&](int mode) { v.fail(mode, xs...); });
             }
         }
         catch(const std::exception& ex)
@@ -619,13 +723,14 @@ struct test_driver
     template <class V, class... Ts>
     auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
-        // Use std::function here to workaround ICE on gcc 5
-        // See: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70100
-        std::function<void(int)> fm = [&](int mode) { v.fail(mode, xs...); };
         return verify_impl(
-            [&](auto&& cpu, auto&& gpu) {
-                // Use this explictly to avoid ICE on gcc 5
-                this->verify_check(cpu, gpu, fm);
+            [&](std::vector<double>& error, auto&& cpu, auto&& gpu) {
+                CHECK(miopen::range_distance(cpu) == miopen::range_distance(gpu));
+
+                using value_type = miopen::range_value<decltype(gpu)>;
+                double threshold = std::numeric_limits<value_type>::epsilon() * tolerance;
+                error            = {miopen::rms_range(cpu, gpu)};
+                return error.front() <= threshold;
             },
             v,
             xs...);
@@ -635,28 +740,9 @@ struct test_driver
     auto verify_equals(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
         return verify_impl(
-            [&](auto&& cpu, auto&& gpu) {
-                if(miopen::range_zero(cpu))
-                {
-                    std::cout << "Cpu data is all zeros" << std::endl;
-                    v.fail(-1, xs...);
-                }
-
-                if(miopen::range_zero(gpu))
-                {
-                    std::cout << "Gpu data is all zeros" << std::endl;
-                    v.fail(-1, xs...);
-                }
-
+            [&](auto&, auto&& cpu, auto&& gpu) {
                 auto idx = miopen::mismatch_idx(cpu, gpu, miopen::float_equal);
-                if(idx < miopen::range_distance(cpu))
-                {
-                    std::cout << "FAILED" << std::endl;
-                    std::cout << "Mismatch at " << idx << ": " << cpu[idx] << " != " << gpu[idx]
-                              << std::endl;
-                    show_command();
-                    v.fail(-1, xs...);
-                }
+                return idx >= miopen::range_distance(cpu);
             },
             v,
             xs...);
@@ -819,8 +905,13 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
             data_args.push_back(&arg);
         }
     }
+    std::srand(65521);
     for(int i = 0; i < d.repeat; i++)
-        run_data(data_args.begin(), data_args.end(), [&] { d.run(); });
+        run_data(data_args.begin(), data_args.end(), [&] {
+            std::srand(65521);
+            d.run();
+            std::srand(65521);
+        });
 }
 
 template <class Driver>

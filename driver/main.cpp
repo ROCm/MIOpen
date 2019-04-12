@@ -51,13 +51,15 @@ int main(int argc, char* argv[])
     Driver* drv;
     if(base_arg == "conv")
     {
-        // Maintain compatibility with legacy verification cache files (computed in doubles, stored
-        // as floats).
-        drv = new ConvDriver<float, double, float>();
+        drv = new ConvDriver<float, float>();
     }
     else if(base_arg == "convfp16")
     {
-        drv = new ConvDriver<float16, double>();
+        drv = new ConvDriver<float16, float>();
+    }
+    else if(base_arg == "convint8")
+    {
+        drv = new ConvDriver<int8_t, float>();
     }
     else if(base_arg == "CBAInfer")
     {
@@ -120,7 +122,11 @@ int main(int argc, char* argv[])
     }
     else if(base_arg == "rnn")
     {
-        drv = new RNNDriver<float>();
+        drv = new RNNDriver<float, double>();
+    }
+    else if(base_arg == "rnnfp16")
+    {
+        drv = new RNNDriver<float16, double>();
     }
     else
     {
@@ -139,17 +145,11 @@ int main(int argc, char* argv[])
     bool bnFwdInVer = (fargval == 2 && (base_arg == "bnorm"));
     bool verifyarg  = (drv->GetInputFlags().GetValueInt("verify") == 1);
 
-    if((fargval != 2) || bnFwdInVer)
+    if(fargval & 1 || fargval == 0 || bnFwdInVer)
     {
         drv->RunForwardGPU();
-    }
-
-    if(verifyarg)
-    {
-        if(fargval != 2 || bnFwdInVer)
-        {
+        if(verifyarg)
             drv->VerifyForward();
-        }
     }
 
     if(fargval != 1)

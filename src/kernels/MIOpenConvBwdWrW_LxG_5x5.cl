@@ -80,17 +80,7 @@
 #define MLO_LCL_SZ (MLO_WEI_LCL_SZ)
 #endif
 
-__attribute__((always_inline)) int iDiv(int v, int d)
-{
-    int r = (int)((float)v / d + 0.00001f);
-    return (r);
-}
-
-__attribute__((always_inline)) int iMod(int v, int u, int d)
-{
-    int r = v - mul24((int)u, (int)d);
-    return (r);
-}
+#include "math_ops.h"
 
 /*
         group cooperative read
@@ -99,10 +89,10 @@ __attribute__((always_inline)) int iMod(int v, int u, int d)
 
         no guard against number of inputs
 */
-__attribute__((always_inline)) void readInput(int lcl_id,
-                                              int gbl_in_scan_off,
-                                              const __global _FLOAT* __restrict bot,
-                                              __local _FLOAT* __restrict lcl_bot)
+void readInput(int lcl_id,
+               int gbl_in_scan_off,
+               const __global _FLOAT* __restrict bot,
+               __local _FLOAT* __restrict lcl_bot)
 {
     for(int p4 = lcl_id; p4 < MLO_N_LCL_IN_MAPS * MLO_N_IN_HORIZ_READS * MLO_IN_VERT_READS;
         p4 += MLO_GRP_SZ)
@@ -110,7 +100,7 @@ __attribute__((always_inline)) void readInput(int lcl_id,
         __private _FLOAT in_rd_data[MLO_READ_UNIT];
         // TODO : more than 1 input
         int c      = 0;
-        int c_scan = iDiv(p4, (MLO_N_IN_HORIZ_READS));
+        int c_scan = iDiv_legacy(p4, (MLO_N_IN_HORIZ_READS));
 
         int c_pix4 = iMod(p4, c_scan, (MLO_N_IN_HORIZ_READS));
 
@@ -178,13 +168,13 @@ __attribute__((always_inline)) void readInput(int lcl_id,
         loop over filter vertical size
 
 */
-__attribute__((always_inline)) void Processing(UNUSED int sc,
-                                               int sc_lcl_off,
-                                               int top_lim,
-                                               int bot_lim,
-                                               __private _FLOAT* __restrict pvt_accum,
-                                               __local _FLOAT* __restrict lcl_bot,
-                                               __private _FLOAT* __restrict top_dat)
+void Processing(UNUSED int sc,
+                int sc_lcl_off,
+                int top_lim,
+                int bot_lim,
+                __private _FLOAT* __restrict pvt_accum,
+                __local _FLOAT* __restrict lcl_bot,
+                __private _FLOAT* __restrict top_dat)
 {
     for(int l = top_lim; l >= bot_lim; --l)
     {
@@ -215,7 +205,7 @@ __attribute__((always_inline)) void Processing(UNUSED int sc,
     }
 }
 
-__attribute__((always_inline)) void moveOutputUp(__private _FLOAT* __restrict top_dat)
+void moveOutputUp(__private _FLOAT* __restrict top_dat)
 {
     // move up output to reduce overfetch
     for(int j = 0; j < MLO_FILTER_SIZE1 - 1; ++j)
@@ -283,7 +273,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
     int gbl_out_off = o_idx * MLO_OUT_CHANNEL_STRIDE + ib * MLO_OUT_BATCH_STRIDE;
     // 1 span per wk_item, total scanline with MLO_N_SPANS_PER_SCAN spans
     // TODO: more than 1 input
-    int o = iDiv(lcl_id, MLO_N_SPANS_PER_SCAN);
+    int o = iDiv_legacy(lcl_id, MLO_N_SPANS_PER_SCAN);
     //	bool scan_lead = (o*MLO_N_SPANS_PER_SCAN == lcl_id);
     int spn = iMod(lcl_id, o, MLO_N_SPANS_PER_SCAN);
 
@@ -524,7 +514,7 @@ MIOpenCvBwdWrW_rdc(const __global _FLOAT* weight_df_tmp, __global _FLOAT* weight
     int gbl_id   = get_global_id(0);
     int wei_idx0 = gbl_id * MLO_UT_READ_UNIT;
 
-    int wei_blk_idx = iDiv(wei_idx0, MLO_WEI_CHANNEL_STRIDE);
+    int wei_blk_idx = iDiv_legacy(wei_idx0, MLO_WEI_CHANNEL_STRIDE);
     int wei_idx     = iMod(wei_idx0, wei_blk_idx, MLO_WEI_CHANNEL_STRIDE);
 
     _FLOAT pvt_accum_wei[MLO_UT_READ_UNIT];

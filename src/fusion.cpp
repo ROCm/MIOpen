@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include <cassert>
 #include <miopen/fusion.hpp>
+#include <miopen/md_graph.hpp>
 #include <miopen/fusion_plan.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
@@ -69,18 +70,23 @@ miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> d
     desc->GetOutputDesc(output_desc);
     op_map.emplace_back(desc);
     op_count++;
-    is_valid = lu.Advance(desc, [&](const std::string& sym, int& val) -> bool {
-        // check tensor attr
-        if(GetTensorAttr(sym, val))
-            return true;
-        // check op attr
-        if(desc->GetOpAttr(sym, val))
-            return true;
-        // check dev attr
-        // if(GetDevAttribute(sym, val, handle))
-        //     return true;
-        // else return false
-        return false;
+    is_valid = false;
+    miopen::try_([&] {
+        is_valid = lu.Advance(desc, [&](const std::string& sym, int& val) -> bool {
+            // check tensor attr
+            if(GetTensorAttr(sym, val))
+                return true;
+            // check op attr
+            if(desc->GetOpAttr(sym, val))
+                return true;
+            // check the values of enum types
+            if(GetEnumVal(sym, val))
+                return true;
+            // check dev attr
+            // if(GetDevAttribute(sym, val, handle))
+            //     return true;
+            return false;
+        });
     });
     if(is_valid)
         return miopenStatusSuccess;
@@ -180,11 +186,8 @@ std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& fpd)
 // Conv Forward
 miopenStatus_t ConvForwardOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
 {
-    std::size_t n, c, h, w;
-    std::tie(n, c, h, w) = base_desc.GetForwardOutputDim(input_desc, filter_desc);
-    TensorDescriptor desc(input_desc.GetType(), {n, c, h, w});
-    output_desc = desc;
-    return miopenStatusSuccess;
+    return miopen::try_(
+        [&]() { output_desc = base_desc.GetForwardOutputTensor(input_desc, filter_desc); });
 }
 
 miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
@@ -232,32 +235,32 @@ bool ConvForwardOpDescriptor::GetOpAttr(const std::string& sym, int& val) const
     }
     else if(sym == "pad_h")
     {
-        val = base_desc.pad_h;
+        val = base_desc.GetConvPads()[0];
         return true;
     }
     else if(sym == "pad_w")
     {
-        val = base_desc.pad_w;
+        val = base_desc.GetConvPads()[1];
         return true;
     }
     else if(sym == "dilation_h")
     {
-        val = base_desc.dilation_h;
+        val = base_desc.GetConvDilations()[0];
         return true;
     }
     else if(sym == "dilation_w")
     {
-        val = base_desc.dilation_w;
+        val = base_desc.GetConvDilations()[1];
         return true;
     }
-    else if(sym == "u")
+    else if(sym == "stride_h")
     {
-        val = base_desc.u;
+        val = base_desc.GetConvStrides()[0];
         return true;
     }
-    else if(sym == "v")
+    else if(sym == "stride_w")
     {
-        val = base_desc.v;
+        val = base_desc.GetConvStrides()[1];
         return true;
     }
     else if(sym == "k")
@@ -281,56 +284,6 @@ OpKernelArg ConvForwardOpDescriptor::GetOpAttr(const std::string& k) const
         MIOPEN_THROW(miopenStatusInternalError, "Unknown Convolution Op Attribute");
     }
 }
-FusionMDGraph_Edge_Map ConvForwardOpDescriptor::MDGraphKey(miopenConvolutionMode_t conv_mode,
-                                                           miopenPaddingMode_t pad_mode,
-                                                           int pad_h,
-                                                           int pad_w,
-                                                           int u,
-                                                           int v,
-                                                           int dilation_h,
-                                                           int dilation_w,
-                                                           int k,
-                                                           int c,
-                                                           int x,
-                                                           int y)
-{
-    return {
-        {"conv_mode", {EdgeOp(conv_mode, true, OpEqual)}},
-        {"pad_mode", {EdgeOp(pad_mode, true, OpEqual)}},
-        {"pad_h", {EdgeOp(pad_h, true, OpEqual)}},
-        {"pad_w", {EdgeOp(pad_w, true, OpEqual)}},
-        {"u", {EdgeOp(u, true, OpEqual)}},
-        {"v", {EdgeOp(v, true, OpEqual)}},
-        {"dilation_h", {EdgeOp(dilation_h, true, OpEqual)}},
-        {"dilation_w", {EdgeOp(dilation_w, true, OpEqual)}},
-        {"k", {EdgeOp(k, true, OpAny)}},
-        {"c", {EdgeOp(c, true, OpAny)}},
-        {"x", {EdgeOp(x, true, OpEqual)}},
-        {"y", {EdgeOp(y, true, OpEqual)}},
-    };
-}
-
-FusionMDGraph_Edge_Map ConvForwardOpDescriptor::MDGraphKey() const
-{
-    auto lens = filter_desc.GetLengths();
-    int k, c, x, y;
-    std::tie(k, c, x, y) = tien<4>(lens);
-    auto m = ConvForwardOpDescriptor::MDGraphKey(base_desc.mode,
-                                                 base_desc.paddingMode,
-                                                 base_desc.pad_h,
-                                                 base_desc.pad_w,
-                                                 base_desc.u,
-                                                 base_desc.v,
-                                                 base_desc.dilation_h,
-                                                 base_desc.dilation_w,
-                                                 k,
-                                                 c,
-                                                 x,
-                                                 y);
-    map_emplace(m, "precision", EdgeOp(input_desc.GetType(), true, OpEqual));
-    return m;
-}
-
 // Activ Forward ------------------------------------
 
 miopenStatus_t ActivFwdFusionOpDescriptor::SetArgs(OperatorArgs& args,
@@ -349,9 +302,15 @@ miopenStatus_t ActivFwdFusionOpDescriptor::SetArgs(OperatorArgs& args,
     }
     else if(input_desc.GetType() == miopenHalf)
     {
-        args.ins_arg("activAlpha" + id, OpKernelArg(static_cast<half_float::half>(activAlpha)));
-        args.ins_arg("activBeta" + id, OpKernelArg(static_cast<half_float::half>(activBeta)));
-        args.ins_arg("activGamma" + id, OpKernelArg(static_cast<half_float::half>(activGamma)));
+        args.ins_arg("activAlpha" + id,
+                     OpKernelArg(static_cast<half_float::half>(
+                         activAlpha))); // NOLINT (cppcoreguidelines-narrowing-conversions)
+        args.ins_arg("activBeta" + id,
+                     OpKernelArg(static_cast<half_float::half>(
+                         activBeta))); // NOLINT (cppcoreguidelines-narrowing-conversions)
+        args.ins_arg("activGamma" + id,
+                     OpKernelArg(static_cast<half_float::half>(
+                         activGamma))); // NOLINT (cppcoreguidelines-narrowing-conversions)
     }
     return miopenStatusSuccess;
 }
@@ -383,8 +342,23 @@ std::vector<std::pair<std::string, OpKernelArg>> ActivFwdFusionOpDescriptor::Get
     return keys;
 }
 
-OpKernelArg ActivFwdFusionOpDescriptor::GetOpAttr(const std::string& /* k */) const
+bool ActivFwdFusionOpDescriptor::GetOpAttr(const std::string& sym, int& val) const
 {
+    if(sym == "activ_mode")
+    {
+        val = activMode;
+        return true;
+    }
+    return false;
+}
+
+OpKernelArg ActivFwdFusionOpDescriptor::GetOpAttr(const std::string& k) const
+{
+    int v;
+    if(GetOpAttr(k, v))
+    {
+        return OpKernelArg(v);
+    }
     MIOPEN_THROW(miopenStatusInternalError, "Unknown Activation Op Attribute");
 }
 
@@ -394,16 +368,6 @@ miopenStatus_t ActivFwdFusionOpDescriptor::GetOutputDesc(TensorDescriptor& outpu
     output_desc = input_desc;
     return miopenStatusSuccess;
 }
-FusionMDGraph_Edge_Map ActivFwdFusionOpDescriptor::MDGraphKey(miopenActivationMode_t mode)
-{
-    return {{"activ_mode", {EdgeOp(mode, true, OpEqual)}}};
-}
-
-FusionMDGraph_Edge_Map ActivFwdFusionOpDescriptor::MDGraphKey() const
-{
-    return ActivFwdFusionOpDescriptor::MDGraphKey(activMode);
-}
-
 // Activ Backwards-----------------------------------------
 miopenStatus_t ActivBwdFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                    const void* /*alpha*/,
@@ -425,9 +389,15 @@ miopenStatus_t ActivBwdFusionOpDescriptor::SetArgs(OperatorArgs& args,
     }
     else if(input_desc.GetType() == miopenHalf)
     {
-        args.ins_arg("activAlpha" + id, OpKernelArg(static_cast<half_float::half>(activAlpha)));
-        args.ins_arg("activBeta" + id, OpKernelArg(static_cast<half_float::half>(activBeta)));
-        args.ins_arg("activGamma" + id, OpKernelArg(static_cast<half_float::half>(activGamma)));
+        args.ins_arg("activAlpha" + id,
+                     OpKernelArg(static_cast<half_float::half>(
+                         activAlpha))); // NOLINT (cppcoreguidelines-narrowing-conversions)
+        args.ins_arg("activBeta" + id,
+                     OpKernelArg(static_cast<half_float::half>(
+                         activBeta))); // NOLINT (cppcoreguidelines-narrowing-conversions)
+        args.ins_arg("activGamma" + id,
+                     OpKernelArg(static_cast<half_float::half>(
+                         activGamma))); // NOLINT (cppcoreguidelines-narrowing-conversions)
         args.ins_arg("activDiffScale" + id,
                      OpKernelArg(static_cast<half_float::half>(activDiffScale)));
     }
@@ -479,16 +449,6 @@ miopenStatus_t ActivBwdFusionOpDescriptor::GetOutputDesc(TensorDescriptor& outpu
     output_desc = input_desc;
     return miopenStatusSuccess;
 }
-FusionMDGraph_Edge_Map ActivBwdFusionOpDescriptor::MDGraphKey(miopenActivationMode_t mode)
-{
-    return {{"activ_mode", {EdgeOp(mode, true, OpEqual)}}};
-}
-
-FusionMDGraph_Edge_Map ActivBwdFusionOpDescriptor::MDGraphKey() const
-{
-    return ActivBwdFusionOpDescriptor::MDGraphKey(activMode);
-}
-
 //==============================
 
 miopenStatus_t BatchNormInferenceFusionOpDescriptor::SetArgs(OperatorArgs& args,
@@ -545,20 +505,29 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetOutputDesc(TensorDescrip
     return miopenStatusSuccess;
 }
 
-OpKernelArg BatchNormInferenceFusionOpDescriptor::GetOpAttr(const std::string& /* k */) const
+OpKernelArg BatchNormInferenceFusionOpDescriptor::GetOpAttr(const std::string& k) const
 {
-    MIOPEN_THROW(miopenStatusInternalError, "Unknown Activation Op Attribute");
+    int v;
+    if(GetOpAttr(k, v))
+    {
+        return OpKernelArg(v);
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusInternalError, "Unknown Activation Op Attribute");
+    }
 }
-
-FusionMDGraph_Edge_Map
-BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBatchNormMode_t bn_mode)
+bool BatchNormInferenceFusionOpDescriptor::GetOpAttr(const std::string& sym, int& val) const
 {
-    return {{"bn_mode", {EdgeOp(bn_mode, true, OpEqual)}}};
-}
-
-FusionMDGraph_Edge_Map BatchNormInferenceFusionOpDescriptor::MDGraphKey() const
-{
-    return BatchNormInferenceFusionOpDescriptor::MDGraphKey(mode);
+    if(sym == "bn_mode")
+    {
+        val = mode;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 // Batch Normalization Forward Training --------------
@@ -587,7 +556,7 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::SetArgs(OperatorArgs& args,
     auto epsilon_any          = OpKernelArg(static_cast<double>(epsilon));
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(input_desc.GetLengths());
-    float nhw = n * h * w;
+    auto nhw = static_cast<float>(n * h * w);
 
     auto inhw_any = static_cast<float>(1.0f / nhw);
 
@@ -645,17 +614,6 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::GetOutputDesc(TensorDescript
     return miopenStatusSuccess;
 }
 
-FusionMDGraph_Edge_Map
-BatchNormFwdTrainFusionOpDescriptor::MDGraphKey(miopenBatchNormMode_t bn_mode)
-{
-    return {{"bn_mode", {EdgeOp(bn_mode, true, OpEqual)}}};
-}
-
-FusionMDGraph_Edge_Map BatchNormFwdTrainFusionOpDescriptor::MDGraphKey() const
-{
-    return BatchNormFwdTrainFusionOpDescriptor::MDGraphKey(mode);
-}
-
 // end BN forward training -----------------------------
 
 // Batch Normalization Backward Training --------------
@@ -663,9 +621,26 @@ std::string BatchNormBwdTrainFusionOpDescriptor::GetArgKey(const std::string& k)
 {
     return k + std::to_string(GetIdx());
 }
+bool BatchNormBwdTrainFusionOpDescriptor::GetOpAttr(const std::string& sym, int& val) const
+{
+    if(sym == "bn_mode")
+    {
+        val = mode;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
 OpKernelArg BatchNormBwdTrainFusionOpDescriptor::GetOpAttr(const std::string& k) const
 {
-    if(k == "diff_scale")
+    int v;
+    if(GetOpAttr(k, v))
+    {
+        return OpKernelArg(v);
+    }
+    else if(k == "diff_scale")
     {
         return OpKernelArg(static_cast<float>(0.0));
     }
@@ -673,7 +648,7 @@ OpKernelArg BatchNormBwdTrainFusionOpDescriptor::GetOpAttr(const std::string& k)
     {
         int n, h, w;
         std::tie(n, std::ignore, h, w) = tien<4>(input_desc.GetLengths());
-        float nhw = n * h * w;
+        auto nhw = static_cast<float>(n * h * w);
         return OpKernelArg(static_cast<float>(1.0f / nhw));
     }
     else
@@ -737,17 +712,6 @@ miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::GetOutputDesc(TensorDescript
     return miopenStatusSuccess;
 }
 
-FusionMDGraph_Edge_Map
-BatchNormBwdTrainFusionOpDescriptor::MDGraphKey(miopenBatchNormMode_t bn_mode)
-{
-    return {{"bn_mode", {EdgeOp(bn_mode, true, OpEqual)}}};
-}
-
-FusionMDGraph_Edge_Map BatchNormBwdTrainFusionOpDescriptor::MDGraphKey() const
-{
-    return BatchNormBwdTrainFusionOpDescriptor::MDGraphKey(mode);
-}
-
 // end BN backwards training ---------------------------
 
 // Bias forward
@@ -783,11 +747,6 @@ std::vector<std::pair<std::string, OpKernelArg>> BiasFusionOpDescriptor::GetArgs
     std::vector<std::pair<std::string, OpKernelArg>> keys;
     keys.emplace_back("bias" + std::to_string(GetIdx()), OpKernelArg(bdata));
     return keys;
-}
-
-FusionMDGraph_Edge_Map BiasFusionOpDescriptor::MDGraphKey() const
-{
-    return FusionMDGraph::EmptyEdgeMap();
 }
 
 static inline void
@@ -841,6 +800,46 @@ std::string FusionPlanDescriptor::GetAlgorithmName(Handle& handle)
     }
 }
 
+bool FusionPlanDescriptor::GetEnumVal(const std::string& sym, int& val) const
+{
+    if(sym == "miopenFloat")
+    {
+        val = miopenFloat;
+        return true;
+    }
+    else if(sym == "miopenConvolutionFwdAlgoDirect")
+    {
+        val = miopenConvolutionFwdAlgoDirect;
+        return true;
+    }
+    else if(sym == "miopenConvolutionFwdAlgoWinograd")
+    {
+        val = miopenConvolutionFwdAlgoWinograd;
+        return true;
+    }
+    else if(sym == "miopenBNPerActivation")
+    {
+        val = miopenBNPerActivation;
+        return true;
+    }
+    else if(sym == "miopenBNSpatial")
+    {
+        val = miopenBNSpatial;
+        return true;
+    }
+    else if(sym == "miopenActivationRELU")
+    {
+        val = miopenActivationRELU;
+        return true;
+    }
+    else if(sym == "miopenActivationLEAKYRELU")
+    {
+        val = miopenActivationLEAKYRELU;
+        return true;
+    }
+    return false;
+}
+
 bool FusionPlanDescriptor::GetTensorAttr(const std::string& sym, int& val) const
 {
     int N, C, H, W, oN, K, oH, oW;
@@ -884,6 +883,12 @@ bool FusionPlanDescriptor::GetTensorAttr(const std::string& sym, int& val) const
     else if(sym == "oW")
     {
         val = oW;
+        return true;
+    }
+    else if(sym == "precision")
+    {
+        assert(input_desc.GetType() == output_desc.GetType());
+        val = input_desc.GetType();
         return true;
     }
     else
@@ -936,6 +941,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     program_name   = GetProgramName(handle);
     kernel_name    = GetKernelName(handle);
     MIOPEN_LOG_I2(program_name << ',' << kernel_name);
+
     if(program_name.empty())
     {
 
@@ -956,40 +962,104 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     }
     else
     {
+        MIOPEN_LOG_I2("Precompiled kernel does not exist, compiling fused-kernel");
         std::string compile_config;
-        auto dType = input_desc.GetType();
-        if(kernel_source_type == OpenclText)
+        auto success = true;
+        // lu.cur_vertex is sorted according to the weights from MDGraph::Advance method
+        std::vector<std::pair<MDGraph_vertex_ptr, cur_vertex_map>> new_list;
+        for(auto& kinder : lu.cur_vertex)
         {
-            if(dType == miopenFloat)
+            if(kinder.first == nullptr)
             {
-                compile_config += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+                MIOPEN_LOG_I2("Invalid FusionPlan");
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+
+            success = true;
+            solver::AnySolver sol;
+            if(kinder.second.find("solver") != kinder.second.end())
+            {
+                sol = boost::any_cast<solver::AnySolver>(kinder.second.at("solver"));
+            }
+            program_name = kinder.first->vertex_data.at("program");
+            auto d       = handle.GetDeviceName();
+            std::transform(d.begin(), d.end(), d.begin(), ::tolower);
+            find_replace_first(program_name, "GFX*", d);
+
+            kernel_name    = kinder.first->vertex_data.at("kernel");
+            algorithm_name = kinder.first->vertex_data.at("algorithm");
+            if(miopen::EndsWith(program_name, ".s"))
+                kernel_source_type = AsmText;
+            else if(miopen::EndsWith(program_name, ".so"))
+                kernel_source_type = Binary;
+            else
+                kernel_source_type = OpenclText;
+            // MIOPEN_LOG_I2("Trying solver: " << *sol);
+            std::vector<solver::AnySolver> sol_vec = {sol};
+            for(auto&& op : op_map)
+            {
+                MIOPEN_LOG_I2("GetCompileParms, " << *op);
+                if(op->GetCompileParms(compile_config, handle, kernel_source_type, sol_vec) ==
+                   miopenStatusSuccess)
+                    continue;
+                else
+                {
+                    success = false;
+                    break;
+                }
+            }
+            if(success)
+            {
+                new_list.emplace_back(kinder.first, kinder.second);
+                break;
+            }
+        }
+        if(success)
+        {
+            lu.cur_vertex   = new_list;
+            auto&& kernels2 = handle.GetKernels(algorithm_name, network_config);
+            if(!kernels2.empty())
+            {
+                status = miopenStatusSuccess;
             }
             else
             {
-                compile_config += " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
-            }
-        }
-        for(auto&& op : op_map)
-        {
-            MIOPEN_LOG_I2("GetCompileParms, " << *op);
-            if(op->GetCompileParms(compile_config, handle, kernel_source_type, lu.GetSolvers()) !=
-               miopenStatusSuccess)
-            {
-                MIOPEN_LOG_I2("Unsupported fusion plan");
-                MIOPEN_THROW(miopenStatusInternalError);
-            }
-        }
-        // TODO: This true for inference but might not be true in general
-        // This is sill an open question
-        // Must be preceded by GetCompileParms
-        const auto& vld = ops_head->GetLocalWGSz(handle, algorithm_name);
-        const auto& vgd = ops_head->GetGlobalWGSz(handle, algorithm_name);
-        MIOPEN_LOG_I2("Program: " << program_name << ", kernel: " << kernel_name);
-        MIOPEN_LOG_I2("Build options: " << compile_config);
-        handle.AddKernel(
-            algorithm_name, network_config, program_name, kernel_name, vld, vgd, compile_config);
+                auto dType = input_desc.GetType();
+                if(kernel_source_type == OpenclText)
+                {
+                    if(dType == miopenFloat)
+                    {
+                        compile_config += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+                    }
+                    else
+                    {
+                        compile_config += " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
+                    }
+                }
+                // TODO: This true for inference but might not be true in general
+                // This is sill an open question
+                // Must be preceded by GetCompileParms
+                const auto& vld = ops_head->GetLocalWGSz(handle, algorithm_name);
+                const auto& vgd = ops_head->GetGlobalWGSz(handle, algorithm_name);
+                MIOPEN_LOG_I2("Program: " << program_name << ", kernel: " << kernel_name);
+                MIOPEN_LOG_I2("Build options: " << compile_config);
+                handle.AddKernel(algorithm_name,
+                                 network_config,
+                                 program_name,
+                                 kernel_name,
+                                 vld,
+                                 vgd,
+                                 compile_config);
 
-        status = miopenStatusSuccess;
+                status = miopenStatusSuccess;
+            }
+        }
+        else
+        {
+            MIOPEN_LOG_I("No viable kernel found to execute the fusion plan");
+            status = miopenStatusInternalError;
+            return status;
+        }
     }
     arg_list = CalcArgOrder(handle);
     return status;
@@ -1031,7 +1101,7 @@ std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder(Handle& handle)
         MIOPEN_LOG_I2("Predefined kernel args order not found");
         for(auto sz : arg_sizes) // Populate args for scalars
         {
-            for(auto idx = 0; idx < op_map.size(); idx++)
+            for(std::size_t idx = 0; idx < op_map.size(); idx++)
             {
                 auto key_pair = std::make_pair(idx, sz);
                 if(size_map.count(key_pair) > 0)
@@ -1050,7 +1120,7 @@ std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder(Handle& handle)
         arg_keys.emplace_back("reserved_input_tensor_ptr", Input_Ptr, sizeof(ConstData_t));
         arg_keys.emplace_back("reserved_output_tensor_ptr", Output_Ptr, sizeof(ConstData_t));
         // add other pointers in op-order
-        for(auto idx = 0; idx < op_map.size(); idx++)
+        for(std::size_t idx = 0; idx < op_map.size(); idx++)
         {
             auto op = op_map.at(idx);
             if(ptr_map.count(idx) > 0)
@@ -1070,11 +1140,11 @@ std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder(Handle& handle)
             std::vector<Exec_arg_t> padded_args;
             size_t running_sz = arg_keys[0].size;
             padded_args.push_back(arg_keys[0]);
-            for(auto idx = 1; idx < arg_keys.size(); idx++)
+            for(std::size_t idx = 1; idx < arg_keys.size(); idx++)
             {
                 if(arg_keys[idx - 1].size != arg_keys[idx].size)
                 {
-                    auto padding = running_sz % arg_keys[idx].size;
+                    auto padding = arg_keys[idx].size - running_sz % arg_keys[idx].size;
                     if(padding != 0)
                     {
                         MIOPEN_LOG_I("*** Padding: " << padding);

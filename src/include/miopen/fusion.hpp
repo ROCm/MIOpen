@@ -27,11 +27,8 @@
 #define MIOPEN_FUSION_HPP_
 
 #include <miopen/common.hpp>
-#include <miopen/errors.hpp>
-#include <miopen/handle.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
-#include <miopen/activ.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/op_kernel_args.hpp>
@@ -42,6 +39,8 @@
 #include <unordered_map>
 
 namespace miopen {
+
+struct Handle;
 
 enum FusionKernelSourceType
 {
@@ -67,10 +66,6 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
     FusionOpDescriptor& operator=(const FusionOpDescriptor&) = delete;
     void SetIdx(int _id) { plan_idx = _id; };
     int GetIdx() const { return plan_idx; };
-    virtual FusionMDGraph_Edge_Map MDGraphKey() const
-    {
-        return {{"weight", {EdgeOp(0, true, OpAny)}}};
-    };
     virtual miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) = 0;
     virtual miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
     virtual miopenStatus_t GetCompileParms(std::string& compile_config,
@@ -108,7 +103,6 @@ struct BiasFusionOpDescriptor : FusionOpDescriptor
     std::string GetArgKey(const std::string& k) const override;
     OpKernelArg GetOpAttr(const std::string& k) const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpBiasForward; };
-    FusionMDGraph_Edge_Map MDGraphKey() const override;
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
     TensorDescriptor base_desc;
@@ -131,10 +125,9 @@ struct ActivFwdFusionOpDescriptor : FusionOpDescriptor
                            double activGamma);
     std::vector<std::pair<std::string, OpKernelArg>> GetArgs() const override;
     std::string GetArgKey(const std::string& k) const override;
+    bool GetOpAttr(const std::string& sym, int& val) const override;
     OpKernelArg GetOpAttr(const std::string& k) const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpActivForward; };
-    FusionMDGraph_Edge_Map MDGraphKey() const override;
-    static FusionMDGraph_Edge_Map MDGraphKey(miopenActivationMode_t mode);
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
     miopenActivationMode_t activMode;
@@ -161,8 +154,6 @@ struct ActivBwdFusionOpDescriptor : FusionOpDescriptor
     std::string GetArgKey(const std::string& k) const override;
     OpKernelArg GetOpAttr(const std::string& k) const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpActivBackward; };
-    FusionMDGraph_Edge_Map MDGraphKey() const override;
-    static FusionMDGraph_Edge_Map MDGraphKey(miopenActivationMode_t mode);
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
     miopenActivationMode_t activMode;
@@ -189,9 +180,8 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
     std::vector<std::pair<std::string, OpKernelArg>> GetArgs() const override;
     std::string GetArgKey(const std::string& k) const override;
     OpKernelArg GetOpAttr(const std::string& k) const override;
+    bool GetOpAttr(const std::string& sym, int& val) const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpBatchNormInference; };
-    FusionMDGraph_Edge_Map MDGraphKey() const override;
-    static FusionMDGraph_Edge_Map MDGraphKey(miopenBatchNormMode_t bn_mode);
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
 
@@ -222,10 +212,9 @@ struct BatchNormFwdTrainFusionOpDescriptor : FusionOpDescriptor
                            double epsilon);
     std::vector<std::pair<std::string, OpKernelArg>> GetArgs() const override;
     std::string GetArgKey(const std::string& k) const override;
+    bool GetOpAttr(const std::string& sym, int& val) const override;
     OpKernelArg GetOpAttr(const std::string& k) const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpBatchNormFwdTrain; };
-    FusionMDGraph_Edge_Map MDGraphKey() const override;
-    static FusionMDGraph_Edge_Map MDGraphKey(miopenBatchNormMode_t bn_mode);
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
     void calcBNParams(Handle& handle,
@@ -263,10 +252,9 @@ struct BatchNormBwdTrainFusionOpDescriptor : FusionOpDescriptor
                            ConstData_t savedInvVariance);
     std::vector<std::pair<std::string, OpKernelArg>> GetArgs() const override;
     std::string GetArgKey(const std::string& k) const override;
+    bool GetOpAttr(const std::string& sym, int& val) const override;
     OpKernelArg GetOpAttr(const std::string& k) const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpBatchNormBwdTrain; };
-    FusionMDGraph_Edge_Map MDGraphKey() const override;
-    static FusionMDGraph_Edge_Map MDGraphKey(miopenBatchNormMode_t bn_mode);
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
     void calcBNParams(Handle& handle,
@@ -303,19 +291,6 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
                                    const std::vector<solver::AnySolver>& solvers) override;
     bool isASMApplicable(Handle& handle);
     miopenFusionOp_t kind() const override { return miopenFusionOpConvForward; };
-    FusionMDGraph_Edge_Map MDGraphKey() const override;
-    static FusionMDGraph_Edge_Map MDGraphKey(miopenConvolutionMode_t conv_mode,
-                                             miopenPaddingMode_t pad_mode,
-                                             int pad_h,
-                                             int pad_w,
-                                             int u,
-                                             int v,
-                                             int dilation_h,
-                                             int dilation_w,
-                                             int k,
-                                             int c,
-                                             int x,
-                                             int y);
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
 

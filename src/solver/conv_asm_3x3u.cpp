@@ -34,6 +34,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/generic_search.hpp>
+#include <miopen/kernel_build_params.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS)
 
@@ -175,18 +176,20 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
     }
     assert(params.weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
     // clang-format off
-    return params.pad0 == 1
-        && params.pad1 == 1
-        && params.kernel_stride0 == 1
-        && params.kernel_stride1 == 1
-        && params.kernel_size0 == 3
-        && params.kernel_size1 == 3
+    return params.pad_w == 1
+        && params.pad_h == 1
+        && params.kernel_stride_w == 1
+        && params.kernel_stride_h == 1
+        && params.kernel_dilation_w == 1
+        && params.kernel_dilation_h == 1
+        && params.kernel_size_w == 3
+        && params.kernel_size_h == 3
         && params.n_inputs > 0
         && params.n_inputs % 4 == 0
         && params.in_width > 3
         && params.in_width <= 1000
-        && params.float_size == 32
-        && params.mode.IsNormal()
+        && params.IsFp32()
+        && params.group_counts == 1
         && params.in_layout == "NCHW";
         // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
     // clang-format on
@@ -199,22 +202,6 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
                                       const bool disableConfigOverrideFromEnv) const
 {
     ConvSolution result;
-    std::ostringstream options;
-    GenerateClangDefsym(options, "batch_size", params.batch_sz);
-    GenerateClangDefsym(options, "img_width", params.in_width);
-    GenerateClangDefsym(options, "img_height", params.in_height);
-    GenerateClangDefsym(options, "input_channels", params.n_inputs);
-    GenerateClangDefsym(options, "output_channels", params.n_outputs);
-    GenerateClangDefsym(options, "weights_layout", params.direction.IsForward() ? 0 : 1);
-    GenerateClangDefsym(options, "reverse_weights", params.direction.IsForward() ? 0 : 1);
-    GenerateClangDefsym(options, "no_params_file", 1);
-    GenerateClangDefsym(options,
-                        "ROCM_METADATA_VERSION",
-                        (params.rmv == rocm_meta_version::V1)
-                            ? 1
-                            : (params.rmv == rocm_meta_version::V2)
-                                  ? 2
-                                  : (params.rmv == rocm_meta_version::V3) ? 3 : 4);
     // Perf tune:
     const PerformanceConfigConvAsm3x3U* pcfg = &config;
     PerformanceConfigConvAsm3x3U fromEnv;
@@ -241,17 +228,34 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
             }
         }
     }
-    GenerateClangDefsym(options, "limit_wave_cnt", pcfg->limit_wave_cnt);
-    GenerateClangDefsym(options, "filters_per_wave", pcfg->filters_per_wave);
-    GenerateClangDefsym(options, "output_lines_per_wave", pcfg->output_lines_per_wave);
-    // Debugging:
-    GenerateClangDefsym(options, "enable_debug_output", 0);
+
+    KernelBuildParameters options{
+        {"batch_size", params.batch_sz},
+        {"img_width", params.in_width},
+        {"img_height", params.in_height},
+        {"input_channels", params.n_inputs},
+        {"output_channels", params.n_outputs},
+        {"weights_layout", params.direction.IsForward() ? 0 : 1},
+        {"reverse_weights", params.direction.IsForward() ? 0 : 1},
+        {"no_params_file", 1},
+        {"ROCM_METADATA_VERSION",
+         (params.rmv == rocm_meta_version::V1) ? 1 : (params.rmv == rocm_meta_version::V2)
+                                                         ? 2
+                                                         : (params.rmv == rocm_meta_version::V3)
+                                                               ? 3
+                                                               : 4},
+        {"limit_wave_cnt", pcfg->limit_wave_cnt},
+        {"filters_per_wave", pcfg->filters_per_wave},
+        {"output_lines_per_wave", pcfg->output_lines_per_wave},
+        // Debugging:
+        {"enable_debug_output", 0},
+    };
 
     const auto w64_chunks   = (params.in_width + 63) / 64;
     const auto active_lanes = (params.in_width + w64_chunks - 1) / w64_chunks;
 
     KernelInfo construction_params;
-    construction_params.comp_options = options.str();
+    construction_params.comp_options = options.GenerateFor(kbp::GcnAsm{});
 
     construction_params.l_wk.push_back(active_lanes);
     construction_params.l_wk.push_back(1);

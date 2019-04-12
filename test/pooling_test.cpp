@@ -42,6 +42,10 @@
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 
+static int num_uint16_case = 0;
+static int num_uint32_case = 0;
+static int num_uint64_case = 0;
+
 template <class T>
 tensor<T> get_output_tensor(const miopen::PoolingDescriptor& filter, const tensor<T>& input)
 {
@@ -86,26 +90,25 @@ struct pooling_operators
 
 struct verify_forward_pooling
 {
-    template <class T>
-    tensor<T> cpu(const tensor<T>& input,
-                  const miopen::PoolingDescriptor& filter,
-                  std::vector<uint8_t>&) const
+    template <class T, class Index>
+    tensor<T>
+    cpu(const tensor<T>& input, const miopen::PoolingDescriptor& filter, std::vector<Index>&) const
     {
         auto out = get_output_tensor(filter, input);
 
         int in_h, in_w;
         std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
-        int u, v, pad_h, pad_w, window_h, window_w;
-        std::tie(u, v)               = miopen::tien<2>(filter.GetStrides());
+        int stride_h, stride_w, pad_h, pad_w, window_h, window_w;
+        std::tie(stride_h, stride_w) = miopen::tien<2>(filter.GetStrides());
         std::tie(pad_h, pad_w)       = miopen::tien<2>(filter.GetPads());
         std::tie(window_h, window_w) = miopen::tien<2>(filter.GetLengths());
 
         auto op = pooling_operators<T>{filter};
 
         out.par_for_each([&](int o, int w, int i, int j) {
-            const int start_x0 = i * v - pad_h;
-            const int start_y0 = j * u - pad_w;
+            const int start_x0 = i * stride_h - pad_h;
+            const int start_y0 = j * stride_w - pad_w;
 
             const int hend = std::min(start_x0 + window_h, in_h);
             const int wend = std::min(start_y0 + window_w, in_w);
@@ -113,9 +116,11 @@ struct verify_forward_pooling
             const int start_x = std::max(start_x0, 0);
             const int start_y = std::max(start_y0, 0);
 
-            const int w_h       = (hend - start_x);
-            const int w_w       = (wend - start_y);
-            const int pool_size = std::max(w_h * w_w, 1);
+            const int w_h = (hend - start_x);
+            const int w_w = (wend - start_y);
+            int pool_size = std::max(w_h * w_w, 1);
+            if(filter.GetMode() == miopenPoolingAverageInclusive)
+                pool_size = window_h * window_w;
 
             double acc = op.start();
             ford(w_h, w_w)([&](int x, int y) {
@@ -131,10 +136,10 @@ struct verify_forward_pooling
         return out;
     }
 
-    template <class T>
+    template <class T, class Index>
     tensor<T> gpu(const tensor<T>& input,
                   const miopen::PoolingDescriptor& filter,
-                  std::vector<uint8_t>& indices) const
+                  std::vector<Index>& indices) const
     {
         auto&& handle = get_handle();
         auto out      = get_output_tensor(filter, input);
@@ -154,22 +159,24 @@ struct verify_forward_pooling
                        out_dev.get(),
                        true,
                        workspace_dev.get(),
-                       indices.size() * sizeof(uint8_t));
+                       indices.size() * sizeof(Index));
 
-        indices  = handle.Read<uint8_t>(workspace_dev, indices.size());
+        indices  = handle.Read<Index>(workspace_dev, indices.size());
         out.data = handle.Read<T>(out_dev, out.data.size());
         return out;
     }
 
-    template <class T>
+    template <class T, class Index>
     void fail(float,
               const tensor<T>& input,
               const miopen::PoolingDescriptor& filter,
-              const std::vector<uint8_t>&) const
+              const std::vector<Index>&) const
     {
         std::cout << "Forward pooling: ";
         if(filter.GetMode() == miopenPoolingAverage)
             std::cout << "Average";
+        else if(filter.GetMode() == miopenPoolingAverageInclusive)
+            std::cout << "AverageInclusive";
         else
             std::cout << "Max";
         std::cout << std::endl;
@@ -187,12 +194,12 @@ struct verify_forward_pooling
 
 struct verify_backward_pooling
 {
-    template <class T>
+    template <class T, class Index>
     tensor<T> cpu(const tensor<T>& input,
                   const tensor<T>& dout,
                   const tensor<T>& out,
                   const miopen::PoolingDescriptor& filter,
-                  const std::vector<uint8_t>& indices) const
+                  const std::vector<Index>& indices) const
     {
         auto dinput = input;
         CHECK(dout.desc == out.desc);
@@ -201,8 +208,8 @@ struct verify_backward_pooling
         int in_h, in_w;
         std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(dinput.desc.GetLengths());
 
-        int u, v, pad_h, pad_w, window_h, window_w;
-        std::tie(u, v)               = miopen::tien<2>(filter.GetStrides());
+        int stride_h, stride_w, pad_h, pad_w, window_h, window_w;
+        std::tie(stride_h, stride_w) = miopen::tien<2>(filter.GetStrides());
         std::tie(pad_h, pad_w)       = miopen::tien<2>(filter.GetPads());
         std::tie(window_h, window_w) = miopen::tien<2>(filter.GetLengths());
 
@@ -216,8 +223,8 @@ struct verify_backward_pooling
                     auto idx   = indices.at(dout.desc.GetIndex(o, w, i, j));
                     auto idx_h = idx / window_w;
                     auto idx_w = idx % window_w;
-                    auto in_y  = i * v - pad_h + idx_h;
-                    auto in_x  = j * u - pad_w + idx_w;
+                    auto in_y  = i * stride_h - pad_h + idx_h;
+                    auto in_x  = j * stride_w - pad_w + idx_w;
                     if(in_y >= 0 && in_x >= 0 && in_y < in_h && in_x < in_w)
                     {
                         CHECK(miopen::float_equal(input(o, w, in_y, in_x), out(o, w, i, j)));
@@ -228,16 +235,18 @@ struct verify_backward_pooling
             else
             {
                 ford(out_h, out_w, window_h, window_w)([&](int i, int j, int x, int y) {
-                    const int start_x0 = i * v - pad_h;
-                    const int start_y0 = j * u - pad_w;
+                    const int start_x0 = i * stride_h - pad_h;
+                    const int start_y0 = j * stride_w - pad_w;
 
-                    const int hend      = std::min(start_x0 + window_h, in_h);
-                    const int wend      = std::min(start_y0 + window_w, in_w);
-                    const int start_x   = std::max(start_x0, 0);
-                    const int start_y   = std::max(start_y0, 0);
-                    const int w_h       = (hend - start_x);
-                    const int w_w       = (wend - start_y);
-                    const int pool_size = std::max(w_h * w_w, 1);
+                    const int hend    = std::min(start_x0 + window_h, in_h);
+                    const int wend    = std::min(start_y0 + window_w, in_w);
+                    const int start_x = std::max(start_x0, 0);
+                    const int start_y = std::max(start_y0, 0);
+                    const int w_h     = (hend - start_x);
+                    const int w_w     = (wend - start_y);
+                    int pool_size     = std::max(w_h * w_w, 1);
+                    if(filter.GetMode() == miopenPoolingAverageInclusive)
+                        pool_size = window_h * window_w;
 
                     const int in_x = start_x0 + x;
                     const int in_y = start_y0 + y;
@@ -251,12 +260,12 @@ struct verify_backward_pooling
         return dinput;
     }
 
-    template <class T>
+    template <class T, class Index>
     tensor<T> gpu(const tensor<T>& input,
                   const tensor<T>& dout,
                   const tensor<T>& out,
                   const miopen::PoolingDescriptor& filter,
-                  const std::vector<uint8_t>& indices) const
+                  const std::vector<Index>& indices) const
     {
         auto&& handle = get_handle();
         auto dinput   = input;
@@ -292,17 +301,19 @@ struct verify_backward_pooling
         return dinput;
     }
 
-    template <class T>
+    template <class T, class Index>
     void fail(float,
               const tensor<T>& input,
               const tensor<T>&,
               const tensor<T>& out,
               const miopen::PoolingDescriptor& filter,
-              const std::vector<uint8_t>&) const
+              const std::vector<Index>&) const
     {
         std::cout << "Backward pooling: ";
         if(filter.GetMode() == miopenPoolingAverage)
             std::cout << "Average";
+        else if(filter.GetMode() == miopenPoolingAverageInclusive)
+            std::cout << "AverageInclusive";
         else
             std::cout << "Max";
         std::cout << std::endl;
@@ -320,17 +331,27 @@ struct verify_backward_pooling
 template <class T>
 struct pooling_driver : test_driver
 {
+    miopen::PoolingDescriptor filter;
     tensor<T> input;
     std::vector<int> lens;
     std::vector<int> pads;
     std::vector<int> strides;
+    std::string index_type;
     std::string mode;
     std::string pmode;
+    std::unordered_map<std::string, miopenIndexType_t> index_type_lookup = {
+        {miopen::ToUpper("miopenIndexUint8"), miopenIndexUint8},
+        {miopen::ToUpper("miopenIndexUint16"), miopenIndexUint16},
+        {miopen::ToUpper("miopenIndexUint32"), miopenIndexUint32},
+        {miopen::ToUpper("miopenIndexUint64"), miopenIndexUint64},
+    };
     std::unordered_map<std::string, miopenPoolingMode_t> mode_lookup = {
         {"MAX", miopenPoolingMax},
         {"MIOPENPOOLINGMAX", miopenPoolingMax},
         {"AVERAGE", miopenPoolingAverage},
         {"MIOPENPOOLINGAVERAGE", miopenPoolingAverage},
+        {"AVERAGEINCLUSIVE", miopenPoolingAverageInclusive},
+        {"MIOPENPOOLINGAVERAGEINCLUSIVE", miopenPoolingAverageInclusive},
     };
 
     std::unordered_map<std::string, miopenPaddingMode_t> pmode_lookup = {
@@ -347,8 +368,27 @@ struct pooling_driver : test_driver
         add(lens, "lens", generate_data({{2, 2}, {3, 3}}));
         add(strides, "strides", generate_data({{2, 2}, {1, 1}}));
         add(pads, "pads", generate_data({{0, 0}, {1, 1}}));
-        add(mode, "mode", generate_data({"miopenPoolingMax", "miopenPoolingAverage"}));
+        add(index_type,
+            "index_type",
+            generate_data({"miopenIndexUint8",
+                           "miopenIndexUint16",
+                           "miopenIndexUint32",
+                           "miopenIndexUint64"}));
+        add(mode,
+            "mode",
+            generate_data(
+                {"miopenPoolingMax", "miopenPoolingAverage", "miopenPoolingAverageInclusive"}));
         add(pmode, "pmode", generate_data({"default", "same", "valid"}));
+    }
+
+    template <class Index>
+    void run_impl()
+    {
+        std::vector<Index> indices{};
+        auto out  = verify(verify_forward_pooling{}, input, filter, indices);
+        auto dout = out.first;
+        dout.generate(tensor_elem_gen_integer{2503});
+        verify(verify_backward_pooling{}, input, dout, out.first, filter, indices);
     }
 
     void run()
@@ -356,11 +396,13 @@ struct pooling_driver : test_driver
         int in_h, in_w, window_h, window_w, out_h, out_w, pad_h, pad_w;
         std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
-        miopen::PoolingDescriptor filter{mode_lookup.at(miopen::ToUpper(mode)),
-                                         pmode_lookup.at(miopen::ToUpper(pmode)),
-                                         lens,
-                                         strides,
-                                         pads};
+        filter = miopen::PoolingDescriptor{mode_lookup.at(miopen::ToUpper(mode)),
+                                           pmode_lookup.at(miopen::ToUpper(pmode)),
+                                           lens,
+                                           strides,
+                                           pads};
+
+        filter.SetIndexType(index_type_lookup.at(miopen::ToUpper(index_type)));
 
         std::tie(window_h, window_w) = miopen::tien<2>(filter.GetLengths());
         if(filter.pmode == miopenPaddingSame)
@@ -374,8 +416,8 @@ struct pooling_driver : test_driver
                               ? (std::max((window_w - filter.strides[1]), 0))
                               : (std::max((window_w - (in_w % filter.strides[1])), 0));
 
-            filter.pads[0] = _pad_w / 2;
-            filter.pads[1] = _pad_h / 2;
+            filter.pads[0] = _pad_h / 2;
+            filter.pads[1] = _pad_w / 2;
 
             out_h = std::ceil(static_cast<double>(in_h) / filter.strides[0]);
             out_w = std::ceil(static_cast<double>(in_w) / filter.strides[1]);
@@ -401,18 +443,50 @@ struct pooling_driver : test_driver
 
         if((window_h < (in_h + 2 * pad_h)) && (window_w < (in_w + 2 * pad_w)))
         {
-            std::vector<uint8_t> indices{};
-            auto out  = verify(verify_forward_pooling{}, input, filter, indices);
-            auto dout = out.first;
-            dout.generate([&](int n, int c, int h, int w) {
-                auto x = static_cast<std::size_t>(std::max<double>(
-                             out.first(n, c, h, w), std::numeric_limits<int>::max())) %
-                         2503;
-                double y = (877 * n) % 2503 + (547 * c) % 2503 + (701 * h) % 2503 +
-                           (1049 * w) % 2503 + (769 * x) % 2503;
-                return ((x * y) / (2503.0 * 2503.0));
-            });
-            verify(verify_backward_pooling{}, input, dout, out.first, filter, indices);
+            switch(filter.GetIndexType())
+            {
+            case miopenIndexUint8:
+            {
+                run_impl<uint8_t>();
+                break;
+            }
+            case miopenIndexUint16:
+            {
+                // test_pooling_test --all only test 10 uint16 cases
+                if(num_uint16_case > 5)
+                {
+                    return;
+                }
+
+                ++num_uint16_case;
+                run_impl<uint16_t>();
+                break;
+            }
+            case miopenIndexUint32:
+            {
+                // test_pooling_test --all only test 5 uint32 cases
+                if(num_uint32_case > 5)
+                {
+                    return;
+                }
+
+                ++num_uint32_case;
+                run_impl<uint32_t>();
+                break;
+            }
+            case miopenIndexUint64:
+            {
+                // test_pooling_test --all only test 5 uint64 cases
+                if(num_uint64_case > 5)
+                {
+                    return;
+                }
+
+                ++num_uint64_case;
+                run_impl<uint64_t>();
+                break;
+            }
+            }
         }
     }
 };
