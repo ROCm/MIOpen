@@ -1,6 +1,9 @@
 # MIOpen
 
-AMD's library for high peformance machine learning primitives. MIOpen supports two programming models - 
+AMD's library for high performance machine learning primitives. 
+Sources and binaries can be found at [MIOpen's GitHub site](https://github.com/ROCmSoftwarePlatform/MIOpen).
+
+MIOpen supports two programming models - 
 1. OpenCL 
 2. [HIP](https://github.com/ROCm-Developer-Tools/HIP)
 
@@ -16,7 +19,7 @@ AMD's library for high peformance machine learning primitives. MIOpen supports t
 * [Half](http://half.sourceforge.net/) - IEEE 754-based half-precision floating point library
 * [Boost](http://www.boost.org/) at least version 1.58
   * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/master/doc/src/cache.md)
-* [rocBlas](https://github.com/ROCmSoftwarePlatform/rocBLAS) Minimum version 2.0.0 (recommended version 2.1.0)
+* [rocBlas](https://github.com/ROCmSoftwarePlatform/rocBLAS) Minimum version 2.0.0 (recommended version 2.2.0)
 
 
 ## Installing MIOpen with pre-built packages
