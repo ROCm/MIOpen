@@ -40,20 +40,47 @@ miopenInitConvolutionDescriptor
 
 .. doxygenfunction::  miopenInitConvolutionDescriptor
 
+miopenInitConvolutionNdDescriptor
+---------------------------------
+
+.. doxygenfunction::  miopenInitConvolutionNdDescriptor
+
 miopenGetConvolutionDescriptor
 ------------------------------
 
 .. doxygenfunction::  miopenGetConvolutionDescriptor
+
+miopenGetConvolutionNdDescriptor
+--------------------------------
+
+.. doxygenfunction::  miopenGetConvolutionNdDescriptor
 
 miopenSetConvolutionGroupCount
 ------------------------------
 
 .. doxygenfunction::  miopenSetConvolutionGroupCount
 
+miopenSetTransposeConvOutputPadding
+-----------------------------------
+
+.. doxygenfunction::  miopenSetTransposeConvOutputPadding
+
+
+miopenSetTransposeConvNdOutputPadding
+-------------------------------------
+
+.. doxygenfunction::  miopenSetTransposeConvNdOutputPadding
+
+
 miopenGetConvolutionForwardOutputDim
 ------------------------------------
 
 .. doxygenfunction::  miopenGetConvolutionForwardOutputDim
+
+miopenGetConvolutionNdForwardOutputDim
+--------------------------------------
+
+.. doxygenfunction::  miopenGetConvolutionNdForwardOutputDim
 
 miopenConvolutionForwardGetWorkSpaceSize
 ----------------------------------------
