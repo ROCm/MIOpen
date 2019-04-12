@@ -53,11 +53,7 @@
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #define UNUSED __attribute__((__unused__))
-#define INLINE __attribute__((always_inline))
-#define IDIV(A, B) (iDiv(A, B))
-#define IMOD(A, B, C) (iMod(A, B, C))
-//#define IDIV(A,B) ((uint)((float)A * (1.0f / (float) B) + 0.00001f))
-//#define IMOD(A,B,C) (A - mul24(B, (uint)C))
+#define INLINE
 
 #ifndef MLO_FILTER_STRIDE0
 #define MLO_FILTER_STRIDE0 1
@@ -173,93 +169,10 @@ extern uint __llvm_amdgcn_readfirstlane(uint) __asm("llvm.amdgcn.readfirstlane")
 #define uniform(x) (x)
 #endif
 
-INLINE
-uint iDiv(uint v, uint d)
-{
-    uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
-    return (r);
-}
+#define MLO_N_INPUTS_REMAINDER (MLO_N_INPUTS % (2 * MLO_N_IN_TILES_PERSTACK))
 
-INLINE
-uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24((uint)u, (uint)d);
-    return (r);
-}
-
-INLINE
-void calculateXYPos(uint linPos, uint width, uint* __restrict x, uint* __restrict y)
-{
-
-    (*y) = (uint)((float)linPos * (1.0f / (float)width) + 0.00001f);
-
-    (*x) = linPos - mul24((*y), width);
-}
-
-INLINE
-uint calculateOffset(uint stride, uint x, uint y)
-{
-    uint ret = y * stride + x;
-    return (ret);
-}
-
-INLINE
-void readDataVec2(uint lcl_id,
-                  uint size,
-                  uint lcl_p_stride,
-                  __local _FLOAT2* lcl_data,
-                  uint lcl_base,
-                  UNUSED uint lcl_height,
-                  uint lcl_width,
-#if MLO_LARGE_MAP != 1
-                  uint lcl_stride,
-                  uint lcl_y,
-                  uint lcl_x,
-#endif
-                  const __global _FLOAT* gbl_data,
-                  uint2 gbl_base,
-#if MLO_LARGE_MAP == 1
-                  uint gbl_height,
-                  uint gbl_width,
-#endif
-                  uint gbl_stride,
-                  uint gbl_y,
-                  uint gbl_x,
-                  bool visX,
-                  bool visY,
-#if MLO_N_INPUTS % (2 * MLO_N_IN_TILES_PERSTACK) <= MLO_N_IN_TILES_PERSTACK
-                  bool IsLast,
-#endif
-                  UNUSED bool debug)
-{
-
-    uint x, y;
-    for(uint i = lcl_id; i < size; i += lcl_p_stride)
-    {
-        bool lvisX = visX, lvisY = visY;
-        calculateXYPos(i, lcl_width, &x, &y);
-        uint g_x         = x + gbl_x;
-        uint g_y         = y + gbl_y;
-        uint gbl_off0    = calculateOffset(gbl_stride, g_x, g_y);
-        uint2 gbl_off_v2 = (uint2)(gbl_off0) + gbl_base;
-
-#if MLO_LARGE_MAP == 1
-        uint lcl_off = lcl_base + i;
-        lvisX &= (g_x < gbl_width && g_y < gbl_height);
-        lvisY &= (g_x < gbl_width && g_y < gbl_height);
-#else
-        uint l_x            = x + lcl_x;
-        uint l_y            = y + lcl_y;
-        uint lcl_off        = lcl_base + mad24(l_y, lcl_stride, l_x);
-#endif
-        lcl_data[lcl_off].x = (lvisX) ? gbl_data[gbl_off_v2.x] : (_FLOAT)0;
-#if MLO_N_INPUTS % (2 * MLO_N_IN_TILES_PERSTACK) <= MLO_N_IN_TILES_PERSTACK
-        lcl_data[lcl_off].y = (IsLast) ? (_FLOAT)0 : ((lvisY) ? gbl_data[gbl_off_v2.y] : (_FLOAT)0);
-#else
-        lcl_data[lcl_off].y = (lvisY) ? gbl_data[gbl_off_v2.y] : (_FLOAT)0;
-#endif
-    }
-}
+#include "math_ops.h"
+#include "data_ops.h"
 
 INLINE
 void Conv(uint o_map_base,
@@ -419,8 +332,8 @@ __kernel void MIOpenConvUni(const __global _FLOAT* __restrict in,
 
     uint grp_id0 = get_group_id(0);
 #if MLO_N_OUT_TILE_BLOCKS0 & (MLO_N_OUT_TILE_BLOCKS0 - 1)
-    uint y_tile_blk = IDIV(grp_id0, MLO_N_OUT_TILE_BLOCKS0);
-    uint x_tile_blk = IMOD(grp_id0, y_tile_blk, MLO_N_OUT_TILE_BLOCKS0);
+    uint y_tile_blk = iDiv_legacy(grp_id0, MLO_N_OUT_TILE_BLOCKS0);
+    uint x_tile_blk = iMod(grp_id0, y_tile_blk, MLO_N_OUT_TILE_BLOCKS0);
 #else
     uint y_tile_blk       = grp_id0 / MLO_N_OUT_TILE_BLOCKS0;
     uint x_tile_blk       = grp_id0 & (MLO_N_OUT_TILE_BLOCKS0 - 1);
@@ -433,8 +346,8 @@ __kernel void MIOpenConvUni(const __global _FLOAT* __restrict in,
     uint stack        = 0;
     uint alu_stack_id = lcl_id;
 #elif MLO_ALUTILES_STACK_SZ & (MLO_ALUTILES_STACK_SZ - 1)
-    uint stack            = IDIV(lcl_id, MLO_ALUTILES_STACK_SZ);        // stack
-    uint alu_stack_id     = IMOD(lcl_id, stack, MLO_ALUTILES_STACK_SZ); // alu index in stack
+    uint stack            = iDiv_legacy(lcl_id, MLO_ALUTILES_STACK_SZ); // stack
+    uint alu_stack_id     = iMod(lcl_id, stack, MLO_ALUTILES_STACK_SZ); // alu index in stack
 #else
     uint stack = lcl_id / MLO_ALUTILES_STACK_SZ; // stack
     uint alu_stack_id = lcl_id & (MLO_ALUTILES_STACK_SZ - 1); // alu index in stack
@@ -444,8 +357,8 @@ __kernel void MIOpenConvUni(const __global _FLOAT* __restrict in,
 #endif
 // ALU plane inside stack
 #if MLO_ALU_TILE_SZ & (MLO_ALU_TILE_SZ - 1)
-    uint alu_out_plane_id = IDIV(alu_stack_id, MLO_ALU_TILE_SZ); // alu output plane index
-    uint alu_out_id       = IMOD(
+    uint alu_out_plane_id = iDiv_legacy(alu_stack_id, MLO_ALU_TILE_SZ); // alu output plane index
+    uint alu_out_id       = iMod(
         alu_stack_id, alu_out_plane_id, MLO_ALU_TILE_SZ); // alu index inside an ALU output plane
 #else
     uint alu_out_plane_id = alu_stack_id / MLO_ALU_TILE_SZ;             // alu output plane index
@@ -453,8 +366,8 @@ __kernel void MIOpenConvUni(const __global _FLOAT* __restrict in,
 #endif
 // pos inside ALU tile
 #if MLO_ALU_VTILE0 & (MLO_ALU_VTILE0 - 1)
-    uint alu_tl1 = IDIV(alu_out_id, MLO_ALU_VTILE0);
-    uint alu_tl0 = IMOD(alu_out_id, alu_tl1, MLO_ALU_VTILE0);
+    uint alu_tl1 = iDiv_legacy(alu_out_id, MLO_ALU_VTILE0);
+    uint alu_tl0 = iMod(alu_out_id, alu_tl1, MLO_ALU_VTILE0);
 #else
     uint alu_tl1          = alu_out_id / MLO_ALU_VTILE0;
     uint alu_tl0          = alu_out_id & (MLO_ALU_VTILE0 - 1);
@@ -471,8 +384,8 @@ __kernel void MIOpenConvUni(const __global _FLOAT* __restrict in,
     uint wave_id     = 0;
     uint wave_lcl_id = lcl_id;
 #elif MLO_N_READ_PROCS & (MLO_N_READ_PROCS - 1)
-    uint wave_id     = IDIV(lcl_id, MLO_N_READ_PROCS);
-    uint wave_lcl_id = IMOD(lcl_id, wave_id, MLO_N_READ_PROCS);
+    uint wave_id     = iDiv_legacy(lcl_id, MLO_N_READ_PROCS);
+    uint wave_lcl_id = iMod(lcl_id, wave_id, MLO_N_READ_PROCS);
 #else
     uint wave_id     = lcl_id / MLO_N_READ_PROCS;
     uint wave_lcl_id = lcl_id & (MLO_N_READ_PROCS - 1);
@@ -542,7 +455,7 @@ __kernel void MIOpenConvUni(const __global _FLOAT* __restrict in,
     {
         barrier(CLK_LOCAL_MEM_FENCE);
 
-#if MLO_N_INPUTS % (2 * MLO_N_IN_TILES_PERSTACK) <= MLO_N_IN_TILES_PERSTACK
+#if MLO_N_INPUTS_REMAINDER <= MLO_N_IN_TILES_PERSTACK
         bool IsLast = (ic + MLO_N_IN_TILES_PERSTACK >= MLO_N_INPUTS);
 #endif
 // small map has been read in full continiously into the lDS buffer within padded rect,
@@ -590,18 +503,18 @@ __kernel void MIOpenConvUni(const __global _FLOAT* __restrict in,
                              x_in_grp,
                              visX,
                              visY,
-#if MLO_N_INPUTS % (2 * MLO_N_IN_TILES_PERSTACK) <= MLO_N_IN_TILES_PERSTACK
+#if MLO_N_INPUTS_REMAINDER <= MLO_N_IN_TILES_PERSTACK
                              IsLast,
 #endif
-                             true);
+                             false);
             }
         }
 #else
         for(uint i = wave_id; i < MLO_N_IN_TILES_TOTAL; i += MLO_N_PROC_WAVES)
         {
 #if MLO_N_IN_TILES_PERSTACK & (MLO_N_IN_TILES_PERSTACK - 1)
-            uint i_b = IDIV(i, MLO_N_IN_TILES_PERSTACK);
-            uint i_c = IMOD(i, i_b, MLO_N_IN_TILES_PERSTACK);
+            uint i_b = iDiv_legacy(i, MLO_N_IN_TILES_PERSTACK);
+            uint i_c = iMod(i, i_b, MLO_N_IN_TILES_PERSTACK);
 #else
             uint i_b = i / MLO_N_IN_TILES_PERSTACK;
             uint i_c = i & (MLO_N_IN_TILES_PERSTACK - 1);
@@ -645,10 +558,10 @@ __kernel void MIOpenConvUni(const __global _FLOAT* __restrict in,
                          x_grp,
                          visX,
                          visY,
-#if MLO_N_INPUTS % (2 * MLO_N_IN_TILES_PERSTACK) <= MLO_N_IN_TILES_PERSTACK
+#if MLO_N_INPUTS_REMAINDER <= MLO_N_IN_TILES_PERSTACK
                          IsLast,
 #endif
-                         true);
+                         false);
         }
 #endif
 
@@ -662,8 +575,8 @@ __kernel void MIOpenConvUni(const __global _FLOAT* __restrict in,
 #if MLO_DIR_FORWARD == 1
 // here is [tops][bottoms]
 #if(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ) & ((MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ) - 1)
-            uint lcl_o = IDIV(i, (MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ));
-            uint gbl_i = IMOD(i, lcl_o, (MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ));
+            uint lcl_o = iDiv_legacy(i, (MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ));
+            uint gbl_i = iMod(i, lcl_o, (MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ));
 #else
             uint lcl_o = i / (MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ);
             uint gbl_i = i & ((MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ) - 1);
@@ -683,15 +596,15 @@ __kernel void MIOpenConvUni(const __global _FLOAT* __restrict in,
 // inputs are tops(outputs)
 
 #if(MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ) & ((MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ) - 1)
-            uint lcl_o = IDIV(i, (MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ));
-            uint gbl_i = IMOD(i, lcl_o, (MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ));
+            uint lcl_o = iDiv_legacy(i, (MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ));
+            uint gbl_i = iMod(i, lcl_o, (MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ));
 #else
             uint lcl_o            = i / (MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ);
             uint gbl_i            = i & ((MLO_N_OUT_TILES_PERSTACK * MLO_FILTER_SZ) - 1);
 #endif
 #if MLO_FILTER_SZ & (MLO_FILTER_SZ - 1)
-            uint lcl_c = IDIV(gbl_i, MLO_FILTER_SZ);
-            uint lcl_i = IMOD(gbl_i, lcl_c, MLO_FILTER_SZ);
+            uint lcl_c = iDiv_legacy(gbl_i, MLO_FILTER_SZ);
+            uint lcl_i = iMod(gbl_i, lcl_c, MLO_FILTER_SZ);
 #else
             uint lcl_c            = gbl_i / MLO_FILTER_SZ;
             uint lcl_i            = gbl_i & (MLO_FILTER_SZ - 1);

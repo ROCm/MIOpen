@@ -85,6 +85,7 @@ set( MIOpen_Source
     rnn_api.cpp
     temp_file.cpp
     problem_description.cpp
+    kernel_build_params.cpp
     include/miopen/temp_file.hpp
     include/miopen/db.hpp
     include/miopen/db_record.hpp
@@ -115,6 +116,8 @@ set( MIOpen_Source
     include/miopen/fusion_ops.hpp
     include/miopen/fusion.hpp
     include/miopen/mdg_expr.hpp
+    include/miopen/kernel_build_params.hpp
+    include/miopen/algorithm.hpp
     md_graph.cpp
     mdg_expr.cpp
     tensor.cpp
@@ -153,8 +156,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v14_3_3_fp16dot_stride2_dil.inc
         kernels/Conv_Winograd_v13_3_12_epilogue.inc
         kernels/Conv_Winograd_v13_3_12_prologue.inc
+        kernels/Conv_Winograd_v16_3_0_epilogue.inc
+        kernels/Conv_Winograd_v16_3_0_prologue.inc
+        kernels/Conv_Winograd_v16_3_0_stride1.inc
         kernels/inst_wrappers.inc
         kernels/common.inc
+        kernels/neuron.inc
         kernels/conv_sizes.inc
         kernels/gpr_alloc.inc)
 
@@ -183,10 +190,13 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1J1_stride.cl
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenConvD3x3.cl
-        kernels/MIOpenUtilKernels.cl
-        kernels/MIOpenUtilKernels2.cl
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
+        kernels/MIOpenUtilKernels5.cl
+        kernels/MIOpenIm2d2Col.cl
+        kernels/MIOpenIm3d2Col.cl
+        kernels/MIOpenCol2Im2d.cl
+        kernels/MIOpenCol2Im3d.cl
         kernels/MIOpenConvBwdWrWS2.cl
         kernels/MIOpenGroupConvBwdWrWS2.cl
         kernels/MIOpenConvBwdWrW_LxG_P53.cl
@@ -195,7 +205,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvBwdWrW1x1_PAD_read4.cl
         kernels/MIOpenConvFwd_LxL_11.cl
         kernels/MIOpenConvFFT.cl
-        kernels/MIOpenGroupConvDirUni.cl
         kernels/bugzilla_34765_detect.s
         kernels/dummy_kernel.s
         kernels/conv3x3.s
@@ -206,6 +215,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv5x10u2v2f1.s
         kernels/conv5x10u2v2b1.s
         kernels/conv7x7c3h224w224k64u2v2p3q3f1.s
+        kernels/gcnAsmBNFwdTrainSpatial.s
         kernels/MIOpenTensorKernels.cl
         kernels/MIOpenSubTensorOpWithScalarKernel.cl
         kernels/MIOpenSubTensorOpWithSubTensorKernel.cl
@@ -216,6 +226,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v14_3_3_fp16dot_stride1.s
         kernels/Conv_Winograd_v14_3_3_fp16dot_stride2_dec.s
         kernels/Conv_Winograd_v14_3_3_fp16dot_stride2_dil.s
+        kernels/Conv_Winograd_v16_3_0_stride1.s
         kernels/conv_3x3_wheel_alpha_v9_2_7_gfx803_md10.so
         kernels/conv_3x3_wheel_alpha_v9_2_7_gfx900_md10.so
         kernels/conv_3x3_wheel_alpha_v9_2_7_gfx906_md10.so
@@ -456,7 +467,6 @@ install(FILES
     kernels/gfx900_56.cd.pdb.txt
     kernels/gfx906_64.cd.pdb.txt
     kernels/gfx906_60.cd.pdb.txt
-    kernels/gfx906_56.cd.pdb.txt
  DESTINATION ${DATA_INSTALL_DIR}/db)
 
 rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})

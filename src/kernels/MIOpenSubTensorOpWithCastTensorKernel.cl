@@ -122,19 +122,9 @@ __kernel void SubTensorOpWithCastTensor1d(const global _FLOAT_SRC* __restrict sr
         const uint dindex = dstStride0 * did0;
 
         _FLOAT_SRC temp_src = *(src + sindex + srcOffset);
-        bool over_flow      = (
-#ifdef ALPHA
-                             alpha *
-#endif
-                             ((float)temp_src)) >= ((float)MAX_VAL);
+        bool over_flow      = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
 
-        *(dst + dindex + dstOffset) = (_FLOAT_DST)(over_flow ? MAX_VAL :
-#ifdef ALPHA
-                                                             alpha * ((float)temp_src)
-#else
-                                                             temp_src
-#endif
-                                                       );
+        *(dst + dindex + dstOffset) = (_FLOAT_DST)(over_flow ? MAX_VAL : alpha * ((float)temp_src));
     }
 }
 
@@ -166,19 +156,10 @@ __kernel void SubTensorOpWithCastTensor2d(const global _FLOAT_SRC* __restrict sr
             const uint dindex = dstStride0 * did0 + dstStride1 * did1;
 
             _FLOAT_SRC temp_src = *(src + sindex + srcOffset);
-            bool over_flow      = (
-#ifdef ALPHA
-                                 alpha *
-#endif
-                                 ((float)temp_src)) >= ((float)MAX_VAL);
+            bool over_flow      = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
 
-            *(dst + dindex + dstOffset) = (_FLOAT_DST)(over_flow ? MAX_VAL :
-#ifdef ALPHA
-                                                                 alpha * ((float)temp_src)
-#else
-                                                                 temp_src
-#endif
-                                                           );
+            *(dst + dindex + dstOffset) =
+                (_FLOAT_DST)(over_flow ? MAX_VAL : alpha * ((float)temp_src));
         }
     }
 }
@@ -220,19 +201,10 @@ __kernel void SubTensorOpWithCastTensor3d(const global _FLOAT_SRC* __restrict sr
                 const uint dindex = dstStride0 * did0 + dstStride1 * did1 + dstStride2 * did2;
 
                 _FLOAT_SRC temp_src = *(src + sindex + srcOffset);
-                bool over_flow      = (
-#ifdef ALPHA
-                                     alpha *
-#endif
-                                     ((float)temp_src)) >= ((float)MAX_VAL);
+                bool over_flow      = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
 
-                *(dst + dindex + dstOffset) = (_FLOAT_DST)(over_flow ? MAX_VAL :
-#ifdef ALPHA
-                                                                     alpha * ((float)temp_src)
-#else
-                                                                     temp_src
-#endif
-                                                               );
+                *(dst + dindex + dstOffset) =
+                    (_FLOAT_DST)(over_flow ? MAX_VAL : alpha * ((float)temp_src));
             }
         }
     }
@@ -286,19 +258,10 @@ __kernel void SubTensorOpWithCastTensor4d(const global _FLOAT_SRC* __restrict sr
                                         dstStride3 * did3;
 
                     _FLOAT_SRC temp_src = *(src + sindex + srcOffset);
-                    bool over_flow      = (
-#ifdef ALPHA
-                                         alpha *
-#endif
-                                         ((float)temp_src)) >= ((float)MAX_VAL);
+                    bool over_flow      = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
 
-                    *(dst + dindex + dstOffset) = (_FLOAT_DST)(over_flow ? MAX_VAL :
-#ifdef ALPHA
-                                                                         alpha * ((float)temp_src)
-#else
-                                                                         temp_src
-#endif
-                                                                   );
+                    *(dst + dindex + dstOffset) =
+                        (_FLOAT_DST)(over_flow ? MAX_VAL : alpha * ((float)temp_src));
                 }
             }
         }
@@ -364,20 +327,10 @@ __kernel void SubTensorOpWithCastTensor5d(const global _FLOAT_SRC* __restrict sr
                                             dstStride4 * did4;
 
                         _FLOAT_SRC temp_src = *(src + sindex + srcOffset);
-                        bool over_flow      = (
-#ifdef ALPHA
-                                             alpha *
-#endif
-                                             ((float)temp_src)) >= ((float)MAX_VAL);
+                        bool over_flow      = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
 
                         *(dst + dindex + dstOffset) =
-                            (_FLOAT_DST)(over_flow ? MAX_VAL :
-#ifdef ALPHA
-                                                   alpha * ((float)temp_src)
-#else
-                                                   temp_src
-#endif
-                                             );
+                            (_FLOAT_DST)(over_flow ? MAX_VAL : alpha * ((float)temp_src));
                     }
                 }
             }

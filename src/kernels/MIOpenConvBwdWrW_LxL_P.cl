@@ -127,17 +127,7 @@
 #define MLO_LCL_SZ (MLO_WEI_BLKS_LCL_SZ)
 #endif
 
-__attribute__((always_inline)) uint iDiv(uint v, uint d)
-{
-    uint r = (uint)((float)v / d + 0.00001f);
-    return (r);
-}
-
-__attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24((uint)u, (uint)d);
-    return (r);
-}
+#include "math_ops.h"
 
 /*********************************************************************************************************
 // wrw algorithm for large filters
@@ -215,10 +205,10 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
     uint lcl_id = get_local_id(0);
 
     // weight tile id
-    uint w_blk_idx = iDiv(lcl_id, MLO_WEI_BLK_SZ);
+    uint w_blk_idx = iDiv_legacy(lcl_id, MLO_WEI_BLK_SZ);
     uint w_idx     = iMod(lcl_id, w_blk_idx, MLO_WEI_BLK_SZ);
     // weight y
-    uint w_y = iDiv(w_idx, MLO_WEI_BLK_SZ0);
+    uint w_y = iDiv_legacy(w_idx, MLO_WEI_BLK_SZ0);
     // weight starting x
     uint w_x0 = iMod(w_idx, w_y, MLO_WEI_BLK_SZ0);
 
@@ -262,7 +252,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             p4 += MLO_GRP_SZ)
         {
 
-            c_scan      = iDiv(p4, MLO_N_IN_HORIZ_READS);
+            c_scan      = iDiv_legacy(p4, MLO_N_IN_HORIZ_READS);
             uint c_pix4 = iMod(p4, c_scan, MLO_N_IN_HORIZ_READS);
             for(uint i = 0; i < MLO_READ_UNIT; ++i)
             {
@@ -332,7 +322,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 MLO_N_IN_HORIZ_READS * (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1);
                 p4 += MLO_GRP_SZ)
             {
-                c_scan2 = iDiv(p4, MLO_N_IN_HORIZ_READS);
+                c_scan2 = iDiv_legacy(p4, MLO_N_IN_HORIZ_READS);
 
                 uint c_pix4 = iMod(p4, c_scan2, MLO_N_IN_HORIZ_READS);
 
@@ -428,10 +418,11 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                                                   MLO_N_OUT_HORIZ_READS);
                     oo_p4 += MLO_GRP_SZ)
                 {
-                    uint o = iDiv(oo_p4, (MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_N_OUT_HORIZ_READS));
+                    uint o =
+                        iDiv_legacy(oo_p4, (MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_N_OUT_HORIZ_READS));
                     uint o_pX4 =
                         iMod(oo_p4, o, (MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_N_OUT_HORIZ_READS));
-                    uint o_scan = iDiv(o_pX4, MLO_N_OUT_HORIZ_READS);
+                    uint o_scan = iDiv_legacy(o_pX4, MLO_N_OUT_HORIZ_READS);
                     uint o_pix4 = iMod(o_pX4, o_scan, MLO_N_OUT_HORIZ_READS);
                     for(uint i = 0; i < MLO_READ_UNIT; ++i)
                     {
@@ -686,9 +677,9 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
         for(uint l = lcl_id; l < (MLO_N_LCL_OUT_MAPS * MLO_WEI_CHANNEL_STRIDE); l += MLO_GRP_SZ)
         {
-            uint oo      = iDiv(l, MLO_WEI_CHANNEL_STRIDE);
+            uint oo      = iDiv_legacy(l, MLO_WEI_CHANNEL_STRIDE);
             uint wei_i   = iMod(l, oo, MLO_WEI_CHANNEL_STRIDE);
-            uint wei_i_y = iDiv(wei_i, (MLO_FILTER_SIZE0));
+            uint wei_i_y = iDiv_legacy(wei_i, (MLO_FILTER_SIZE0));
             uint wei_i_x = iMod(wei_i, wei_i_y, (MLO_FILTER_SIZE0));
             // send it out
             // inputs are outputs
@@ -751,7 +742,7 @@ MIOpenCvBwdWrW_rdc(const __global _FLOAT* weight_df_tmp, __global _FLOAT* weight
     uint gbl_id   = get_global_id(0);
     uint wei_idx0 = gbl_id * MLO_UT_READ_UNIT;
 
-    uint wei_blk_idx = iDiv(wei_idx0, MLO_WEI_CHANNEL_STRIDE);
+    uint wei_blk_idx = iDiv_legacy(wei_idx0, MLO_WEI_CHANNEL_STRIDE);
     uint wei_idx     = iMod(wei_idx0, wei_blk_idx, MLO_WEI_CHANNEL_STRIDE);
 
     _FLOAT pvt_accum_wei[MLO_UT_READ_UNIT];

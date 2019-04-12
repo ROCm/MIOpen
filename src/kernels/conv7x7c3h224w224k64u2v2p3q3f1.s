@@ -1,19 +1,19 @@
 /*******************************************************************************
- * 
+ *
  * MIT License
- * 
+ *
  * Copyright (c) 2017 Advanced Micro Devices, Inc.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,7 +21,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  *******************************************************************************/
 .include "inst_wrappers.inc"
 .hsa_code_object_version 2,1
@@ -51,7 +51,7 @@ gcnAsmConv7x7c3h224w224k64u2v2p3q3f1:
       workitem_vgpr_count = 24
       wavefront_sgpr_count = 108
       workgroup_group_segment_byte_size = 7040
-      kernarg_segment_byte_size = 56
+      kernarg_segment_byte_size = 32
       granulated_workitem_vgpr_count = 5
       granulated_wavefront_sgpr_count = 13
   .end_amd_kernel_code_t

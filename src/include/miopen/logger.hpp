@@ -29,9 +29,11 @@
 #include <algorithm>
 #include <array>
 #include <iostream>
-#include <miopen/each_args.hpp>
 #include <sstream>
 #include <type_traits>
+
+#include <miopen/each_args.hpp>
+#include <miopen/object.hpp>
 
 // Helper macros to output a cmdline argument for the driver
 #define MIOPEN_DRIVER_CMD(op) \
@@ -227,13 +229,16 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 }
 #define MIOPEN_LOG_FUNCTION_EACH(param) miopen::LogParam(std::cerr, #param, param) << std::endl;
 
-#define MIOPEN_LOG_FUNCTION(...)                                                                \
-    if(miopen::IsLoggingTraceDetailed())                                                        \
-    {                                                                                           \
-        std::cerr << miopen::PlatformName() << ": " << __PRETTY_FUNCTION__ << "{" << std::endl; \
-        MIOPEN_PP_EACH_ARGS(MIOPEN_LOG_FUNCTION_EACH, __VA_ARGS__)                              \
-        std::cerr << "}" << std::endl;                                                          \
-    }
+#define MIOPEN_LOG_FUNCTION(...)                                                      \
+    do                                                                                \
+        if(miopen::IsLoggingTraceDetailed())                                          \
+        {                                                                             \
+            std::cerr << miopen::PlatformName() << ": " << __PRETTY_FUNCTION__ << "{" \
+                      << std::endl;                                                   \
+            MIOPEN_PP_EACH_ARGS(MIOPEN_LOG_FUNCTION_EACH, __VA_ARGS__)                \
+            std::cerr << "}" << std::endl;                                            \
+        }                                                                             \
+    while(false)
 #else
 #define MIOPEN_LOG_FUNCTION(...)
 #endif

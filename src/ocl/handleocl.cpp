@@ -283,7 +283,7 @@ struct HandleImpl
             {
                 MIOPEN_THROW("clGetPlatformIDs failed.2");
             }
-            for(int i = 0; i < numPlatforms; ++i)
+            for(cl_uint i = 0; i < numPlatforms; ++i)
             {
                 char pbuf[100];
 
@@ -342,7 +342,7 @@ struct HandleImpl
             size_t st, end;
             clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, nullptr);
             clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, nullptr);
-            profiling_result = ((end - st) * 1e-6);
+            profiling_result = static_cast<float>(end - st) * 1.0e-6; // NOLINT
         }
     }
 };

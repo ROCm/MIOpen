@@ -57,7 +57,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 1.7.1)
+rocm_setup_version(VERSION 1.8.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
@@ -252,6 +252,21 @@ enable_clang_tidy(
         -readability-named-parameter
         -hicpp-use-auto
 	    -modernize-use-auto
+        -cppcoreguidelines-avoid-magic-numbers
+        -readability-magic-numbers
+        -cppcoreguidelines-macro-usage
+        -misc-non-private-member-variables-in-classes
+        -cppcoreguidelines-non-private-member-variables-in-classes
+        -readability-isolate-declaration
+        -cppcoreguidelines-avoid-c-arrays
+        -hicpp-avoid-c-arrays
+        -modernize-avoid-c-arrays
+        -readability-uppercase-literal-suffix
+        -hicpp-uppercase-literal-suffix
+        -cert-msc32-c
+        -cert-msc51-cpp
+        -bugprone-exception-escape
+        
         ${CLANG_TIDY_CHECKS}
     ERRORS
         *
@@ -278,6 +293,7 @@ enable_cppcheck(
         # Ignore initializer lists in the tests
         useInitializationList:*test/*.cpp
         *:*.cl
+        *:*src/kernels/*.h
     FORCE
     SOURCES
         addkernels/

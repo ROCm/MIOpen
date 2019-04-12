@@ -677,6 +677,7 @@ gcnAsmConv3x3U:
   .if batch_size > 1
     s_mul_i32 s[tmp], s[gid_z], input_feature_map_stride * input_channels
     s_add_u32 s[in_desc], s[in_desc], s[tmp] // add input image batch offset
+    s_addc_u32 s[in_desc+1], s[in_desc+1], 0
   .endif
   s_mov_b32 s[in_desc+2], input_buffer_window // size
   s_mov_b32 s[in_desc+3], 0x00027000
@@ -690,6 +691,7 @@ gcnAsmConv3x3U:
     s_add_u32 s[tmp], s[tmp], s[gid_z]
   .endif
   s_add_u32 s[out_ptr], s[out_ptr], s[tmp]
+  s_addc_u32 s[out_ptr+1], s[out_ptr+1], 0 
   s_mul_i32 s[tmp], s[gid_y], output_line_stride * output_lines_per_wave // output line offset
   .GPR_REUSE tmp, out_img_off
   .GPR_INVALIDATE gid_x

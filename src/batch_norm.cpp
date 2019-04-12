@@ -24,10 +24,13 @@
  *
  *******************************************************************************/
 
-#include <miopen/errors.hpp>
 #include <miopen/batch_norm.hpp>
-#include <cassert>
+#include <miopen/errors.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/visit_float.hpp>
 
+#include <cassert>
 #include <chrono>
 #include <iostream>
 
@@ -78,7 +81,7 @@ TensorDescriptor BuildReshaped4DTensorDescriptor(const miopen::TensorDescriptor&
 void profileSequence(Handle& handle, unsigned char select, float* ctime)
 {
 
-    double ktime = 0.;
+    float ktime = 0.;
     assert((select < 3) && "profileSequence case incorrect");
     switch(select)
     {

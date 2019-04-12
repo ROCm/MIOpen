@@ -32,6 +32,9 @@
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/tensor_ops.hpp>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/solver.hpp>
 #include <utility>
 
 #include "driver.hpp"
@@ -40,18 +43,35 @@
 #include "verify.hpp"
 #include <miopen/stringutils.hpp>
 #include "tensor_util.hpp"
+#include <miopen/algorithm.hpp>
+#include "cpu_conv.hpp"
+#include "network_data.hpp"
 
 #define TEST_DIRECT_SUPPORTED_CONFIG_ONLY (!MIOPEN_USE_ROCBLAS)
 
 #if TEST_DIRECT_SUPPORTED_CONFIG_ONLY
-static bool is_direct_fwd_bwd_data_supported(miopen::Handle&,
+static bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
                                              const miopen::ConvolutionDescriptor convDesc,
-                                             const miopen::TensorDescriptor&,
+                                             const miopen::TensorDescriptor& xDesc,
                                              const miopen::TensorDescriptor& wDesc,
-                                             const miopen::TensorDescriptor&)
+                                             const miopen::TensorDescriptor& yDesc)
 {
-    return convDesc.IsDirectSupported(wDesc) &&
-           (convDesc.dilation_h == 1 && convDesc.dilation_w == 1);
+    if(convDesc.GetSpatialDimension() != 2)
+        return false;
+
+    // Both Fwd and Bwd shall be supported by Direct. Return false otherwise.
+    for(int direction = 1; direction >= 0; --direction)
+    {
+        mlo_construct_direct2D construct(xDesc, wDesc, yDesc, convDesc, direction);
+        construct.setDoSearch(false);
+        construct.saveSearchRequest(false);
+        construct.setWorkaroundDisableSearchEnforce(true);
+        construct.setGeneralCompOptions("");
+        construct.setStream(&handle);
+        if(FindAllSolutions(construct).empty())
+            return false;
+    }
+    return true;
 }
 
 static bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
@@ -60,15 +80,41 @@ static bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
                                         const miopen::TensorDescriptor& wDesc,
                                         const miopen::TensorDescriptor& yDesc)
 {
+    if(convDesc.GetSpatialDimension() != 2)
+        return false;
+
     mlo_construct_BwdWrW2D construct_params(xDesc, wDesc, yDesc, convDesc, 0);
     construct_params.setDoSearch(false);
     construct_params.saveSearchRequest(false);
+    construct_params.setWorkaroundDisableSearchEnforce(true);
     construct_params.setGeneralCompOptions("");
     construct_params.setStream(&handle);
 
     return !FindAllSolutions(construct_params).empty();
 }
 #endif
+
+static bool is_gemm_workspace_valid(miopen::Handle& handle,
+                                    const miopen::ConvolutionDescriptor convDesc,
+                                    const miopen::TensorDescriptor& xDesc,
+                                    const miopen::TensorDescriptor& wDesc,
+                                    const miopen::TensorDescriptor& yDesc)
+{
+
+    return !(((std::all_of(wDesc.GetLengths().begin() + 2,
+                           wDesc.GetLengths().end(),
+                           [](auto v) { return v == 1; }) &&
+               miopen::all_of(convDesc.GetConvPads(), [](auto v) { return v == 0; })) &&
+              ((std::all_of(xDesc.GetLengths().begin() + 2,
+                            xDesc.GetLengths().end(),
+                            [](auto v) { return v <= 14; }) &&
+                miopen::all_of(convDesc.GetConvStrides(), [](auto v) { return v == 1; })) ||
+               (miopen::all_of(convDesc.GetConvStrides(), [](auto v) { return v == 2; }))) &&
+              (convDesc.ForwardGetWorkSpaceSize(handle, wDesc, xDesc, yDesc) <
+               convDesc.ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc))) ||
+             (convDesc.ForwardGetWorkSpaceSize(handle, wDesc, xDesc, yDesc) <
+              convDesc.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)));
+}
 
 struct scalar_gen_random_float
 {
@@ -86,7 +132,10 @@ struct scalar_gen_random_integer
     unsigned long min_val = 1;
     unsigned long max_val = 16;
 
-    double operator()() const { return min_val + std::rand() % (max_val - min_val + 1); }
+    double operator()() const
+    {
+        return static_cast<double>(min_val + std::rand() % (max_val - min_val + 1));
+    }
 };
 
 struct tensor_elem_gen_one
@@ -104,6 +153,14 @@ tensor<T> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
                             const tensor<T>& weights)
 {
     return tensor<T>{filter.GetForwardOutputTensor(input.desc, weights.desc)};
+}
+
+template <class T>
+tensor<float> get_output_tensor_int8(const miopen::ConvolutionDescriptor& filter,
+                                     const tensor<T>& input,
+                                     const tensor<T>& weights)
+{
+    return tensor<float>{filter.GetForwardOutputTensor(input.desc, weights.desc)};
 }
 
 template <class T>
@@ -128,7 +185,6 @@ struct conv_base
 template <class T>
 struct verify_forward_conv : conv_base<T>
 {
-    using conv_base<T>::out;
     using conv_base<T>::input;
     using conv_base<T>::weights;
     using conv_base<T>::filter;
@@ -155,81 +211,28 @@ struct verify_forward_conv : conv_base<T>
         if(filter.mode == miopenTranspose)
         {
             std::fill(rout.begin(), rout.end(), 0);
-
-            int out_h, out_w;
-            std::tie(std::ignore, std::ignore, out_h, out_w) =
-                miopen::tien<4>(rout.desc.GetLengths());
-
-            int wei_c, wei_h, wei_w;
-            std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
-
-            int in_n, in_c, in_h, in_w;
-            std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
-
-            par_ford(in_n, wei_c)([&](int o, int k) {
-                ford(in_c, in_h, in_w, wei_h, wei_w)([&](int w, int i, int j, int x, int y) {
-                    const int start_x = i * filter.u - filter.pad_h;
-                    const int start_y = j * filter.v - filter.pad_w;
-                    const int out_x   = start_x + x * filter.dilation_h;
-                    const int out_y   = start_y + y * filter.dilation_w;
-                    if(out_x >= 0 && out_x < out_h && out_y >= 0 && out_y < out_w)
-                    {
-                        rout(o, k, out_x, out_y) += input(o, w, i, j) * weights(w, k, x, y);
-                    }
-                });
-            });
-        }
-        else if(filter.mode == miopenGroupConv || filter.mode == miopenDepthwise)
-        {
-            int in_h, in_w;
-            std::tie(std::ignore, std::ignore, in_h, in_w) =
-                miopen::tien<4>(input.desc.GetLengths());
-
-            int wei_n, wei_c, wei_h, wei_w;
-            std::tie(wei_n, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
-
-            rout.par_for_each([&](int o, int w, int i, int j) {
-                const int start_x  = i * filter.u - filter.pad_h;
-                const int start_y  = j * filter.v - filter.pad_w;
-                const int group_id = w / (wei_n / filter.group_count);
-
-                double acc = bias;
-                ford(wei_c, wei_h, wei_w)([&](int k, int x, int y) {
-                    const int in_x  = start_x + x;
-                    const int in_y  = start_y + y;
-                    const int in_ch = group_id * wei_c + k;
-                    if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
-                    {
-                        acc += input(o, in_ch, in_x, in_y) * weights(w, k, x, y);
-                    }
-                });
-                rout(o, w, i, j) = acc;
-            });
+            cpu_convolution_backward_data(filter.GetSpatialDimension(),
+                                          rout,
+                                          weights,
+                                          input,
+                                          filter.GetConvPads(),
+                                          filter.GetConvStrides(),
+                                          filter.GetConvDilations(),
+                                          filter.GetGroupCount());
         }
         else
         {
-            int in_h, in_w;
-            std::tie(std::ignore, std::ignore, in_h, in_w) =
-                miopen::tien<4>(input.desc.GetLengths());
+            cpu_convolution_forward(filter.GetSpatialDimension(),
+                                    input,
+                                    weights,
+                                    rout,
+                                    filter.GetConvPads(),
+                                    filter.GetConvStrides(),
+                                    filter.GetConvDilations(),
+                                    filter.GetGroupCount());
 
-            int wei_c, wei_h, wei_w;
-            std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
-
-            rout.par_for_each([&](int o, int w, int i, int j) {
-                const int start_x = i * filter.u - filter.pad_h;
-                const int start_y = j * filter.v - filter.pad_w;
-
-                double acc = bias;
-                ford(wei_c, wei_h, wei_w)([&](int k, int x, int y) {
-                    const int in_x = start_x + x * filter.dilation_h;
-                    const int in_y = start_y + y * filter.dilation_w;
-                    if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
-                    {
-                        acc += double(input(o, k, in_x, in_y)) * double(weights(w, k, x, y));
-                    }
-                });
-                rout(o, w, i, j) = acc;
-            });
+            rout.par_for_each(
+                [&](auto... is) { rout(is...) = double(rout(is...)) + double(this->bias); });
         }
 
         return rout;
@@ -245,7 +248,183 @@ struct verify_forward_conv : conv_base<T>
         auto out_dev = handle.Write(rout.data);
 
         size_t workspace_size =
-            filter.ForwardGetWorkSpaceSize(handle, weights.desc, input.desc, rout.desc);
+            filter.mode == miopenTranspose
+                ? filter.BackwardDataGetWorkSpaceSize(handle, weights.desc, input.desc, rout.desc)
+                : filter.ForwardGetWorkSpaceSize(handle, weights.desc, input.desc, rout.desc);
+
+        std::vector<char> workspace(workspace_size);
+        auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
+
+        int ret_algo_count;
+        miopenConvAlgoPerf_t perf;
+
+        float alpha = 1, beta = 0;
+
+        if(filter.mode == miopenTranspose)
+        {
+            filter.FindConvBwdDataAlgorithm(handle,
+                                            input.desc,
+                                            in_dev.get(),
+                                            weights.desc,
+                                            wei_dev.get(),
+                                            rout.desc,
+                                            out_dev.get(),
+                                            1,
+                                            &ret_algo_count,
+                                            &perf,
+                                            workspace_dev.get(),
+                                            workspace_size,
+                                            search);
+
+            filter.ConvolutionBackwardData(handle,
+                                           &alpha,
+                                           input.desc,
+                                           in_dev.get(),
+                                           weights.desc,
+                                           wei_dev.get(),
+                                           perf.bwd_data_algo,
+                                           &beta,
+                                           rout.desc,
+                                           out_dev.get(),
+                                           workspace_dev.get(),
+                                           workspace_size);
+        }
+        else
+        {
+            filter.FindConvFwdAlgorithm(handle,
+                                        input.desc,
+                                        in_dev.get(),
+                                        weights.desc,
+                                        wei_dev.get(),
+                                        rout.desc,
+                                        out_dev.get(),
+                                        1,
+                                        &ret_algo_count,
+                                        &perf,
+                                        workspace_dev.get(),
+                                        workspace_size,
+                                        search);
+
+            filter.ConvolutionForward(handle,
+                                      &alpha,
+                                      input.desc,
+                                      in_dev.get(),
+                                      weights.desc,
+                                      wei_dev.get(),
+                                      perf.fwd_algo,
+                                      &beta,
+                                      rout.desc,
+                                      out_dev.get(),
+                                      workspace_dev.get(),
+                                      workspace_size);
+        }
+
+        rout.data = handle.Read<T>(out_dev, rout.data.size());
+
+        return rout;
+    }
+
+    void fail(float = 0) const
+    {
+        std::cout << "Forward convolution: " << std::endl;
+        this->conv_base<T>::fail();
+    }
+};
+
+template <class T>
+struct verify_forward_conv_int8 : conv_base<T>
+{
+    using conv_base<T>::input;
+    using conv_base<T>::weights;
+    using conv_base<T>::filter;
+    using conv_base<T>::bias;
+    using conv_base<T>::search;
+    bool is_vect;
+
+    verify_forward_conv_int8(const tensor<T>& pinput,
+                             const tensor<T>& pweights,
+                             const miopen::ConvolutionDescriptor& pfilter,
+                             int pbias   = 0,
+                             int psearch = 0,
+                             bool pvect  = false)
+    {
+        input   = pinput;
+        weights = pweights;
+        filter  = pfilter;
+        bias    = pbias;
+        search  = psearch;
+        is_vect = pvect;
+    }
+
+    tensor<float> cpu() const
+    {
+        auto rout = get_output_tensor_int8(filter, input, weights);
+
+        if(filter.mode == miopenConvolution)
+        {
+            cpu_convolution_forward(filter.GetSpatialDimension(),
+                                    input,
+                                    weights,
+                                    rout,
+                                    filter.GetConvPads(),
+                                    filter.GetConvStrides(),
+                                    filter.GetConvDilations(),
+                                    filter.GetGroupCount());
+
+            rout.par_for_each(
+                [&](auto... is) { rout(is...) = double(rout(is...)) + double(this->bias); });
+        }
+
+        return rout;
+    }
+
+    tensor<float> gpu() const
+    {
+        auto&& handle = get_handle();
+        auto rout     = get_output_tensor_int8(filter, input, weights);
+
+        auto in_dev  = handle.Write(input.data);
+        auto wei_dev = handle.Write(weights.data);
+        auto out_dev = handle.Write(rout.data);
+
+        bool is_transform = (input.desc.GetLengths()[1] % 4 != 0 || is_vect);
+
+        std::vector<std::size_t> in_len(input.desc.GetLengths().begin(),
+                                        input.desc.GetLengths().end());
+        std::vector<std::size_t> wei_len(weights.desc.GetLengths().begin(),
+                                         weights.desc.GetLengths().end());
+        in_len[1]  = ((in_len[1] + 3) / 4) * 4;
+        wei_len[1] = ((wei_len[1] + 3) / 4) * 4;
+
+        miopen::TensorDescriptor input_vpad_desc(is_vect ? miopenInt8x4 : miopenInt8, in_len);
+        miopen::TensorDescriptor weight_vpad_desc(is_vect ? miopenInt8x4 : miopenInt8, wei_len);
+
+        auto input_vpad   = tensor<T>{in_len};
+        auto weights_vpad = tensor<T>{wei_len};
+        auto in_vpad_dev  = handle.Write(input_vpad.data);
+        auto wei_vpad_dev = handle.Write(weights_vpad.data);
+
+        if(is_transform)
+        {
+            float aph = 1.0;
+            float bta = 0.0;
+            miopen::TransformTensor(
+                handle, &aph, input.desc, in_dev.get(), &bta, input_vpad_desc, in_vpad_dev.get());
+
+            miopen::TransformTensor(handle,
+                                    &aph,
+                                    weights.desc,
+                                    wei_dev.get(),
+                                    &bta,
+                                    weight_vpad_desc,
+                                    wei_vpad_dev.get());
+        }
+
+        size_t workspace_size =
+            filter.ForwardGetWorkSpaceSize(handle,
+                                           (is_transform ? weight_vpad_desc : weights.desc),
+                                           (is_transform ? input_vpad_desc : input.desc),
+                                           rout.desc);
 
         std::vector<char> workspace(workspace_size);
         auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
@@ -256,10 +435,10 @@ struct verify_forward_conv : conv_base<T>
         float alpha = 1, beta = 0;
 
         filter.FindConvFwdAlgorithm(handle,
-                                    input.desc,
-                                    in_dev.get(),
-                                    weights.desc,
-                                    wei_dev.get(),
+                                    (is_transform ? input_vpad_desc : input.desc),
+                                    (is_transform ? in_vpad_dev.get() : in_dev.get()),
+                                    (is_transform ? weight_vpad_desc : weights.desc),
+                                    (is_transform ? wei_vpad_dev.get() : wei_dev.get()),
                                     rout.desc,
                                     out_dev.get(),
                                     1,
@@ -271,10 +450,10 @@ struct verify_forward_conv : conv_base<T>
 
         filter.ConvolutionForward(handle,
                                   &alpha,
-                                  input.desc,
-                                  in_dev.get(),
-                                  weights.desc,
-                                  wei_dev.get(),
+                                  (is_transform ? input_vpad_desc : input.desc),
+                                  (is_transform ? in_vpad_dev.get() : in_dev.get()),
+                                  (is_transform ? weight_vpad_desc : weights.desc),
+                                  (is_transform ? wei_vpad_dev.get() : wei_dev.get()),
                                   perf.fwd_algo,
                                   &beta,
                                   rout.desc,
@@ -282,7 +461,7 @@ struct verify_forward_conv : conv_base<T>
                                   workspace_dev.get(),
                                   workspace_size);
 
-        rout.data = handle.Read<T>(out_dev, rout.data.size());
+        rout.data = handle.Read<float>(out_dev, rout.data.size());
 
         return rout;
     }
@@ -326,87 +505,25 @@ struct verify_backward_conv : conv_base<T>
 
         if(filter.mode == miopenTranspose)
         {
-            int out_h, out_w;
-            std::tie(std::ignore, std::ignore, out_h, out_w) =
-                miopen::tien<4>(out.desc.GetLengths());
-
-            int wei_c, wei_h, wei_w;
-            std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
-
-            rinput.par_for_each([&](int o, int w, int i, int j) {
-                const int start_x = i * filter.u - filter.pad_h;
-                const int start_y = j * filter.v - filter.pad_w;
-
-                double acc = 0.0;
-                ford(wei_c, wei_h, wei_w)([&](int k, int x, int y) {
-                    const int in_x = start_x + x * filter.dilation_h;
-                    const int in_y = start_y + y * filter.dilation_w;
-                    if(in_x >= 0 && in_x < out_h && in_y >= 0 && in_y < out_w)
-                    {
-                        acc += out(o, k, in_x, in_y) * weights(w, k, x, y);
-                    }
-                });
-                rinput(o, w, i, j) = acc;
-            });
-        }
-        else if(filter.mode == miopenGroupConv || filter.mode == miopenDepthwise)
-        {
-            int in_c, in_h, in_w;
-            std::tie(std::ignore, in_c, in_h, in_w) = miopen::tien<4>(rinput.desc.GetLengths());
-
-            int wei_c, wei_h, wei_w;
-            std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
-
-            int out_n, out_c, out_h, out_w;
-            std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(out.desc.GetLengths());
-
-            par_ford(out_n, in_c)([&](int o, int k) {
-                const int group_id = k / wei_c;
-                ford(out_c / filter.group_count, out_h, out_w, wei_h, wei_w)(
-                    [&](int w, int i, int j, int x, int y) {
-                        const int start_x = i * filter.u - filter.pad_h;
-                        const int start_y = j * filter.v - filter.pad_w;
-                        const int in_x    = start_x + x;
-                        const int in_y    = start_y + y;
-                        const int out_ch  = group_id * (out_c / filter.group_count) + w;
-                        const int wei_ch  = k % wei_c;
-                        if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
-                        {
-                            rinput(o, k, in_x, in_y) +=
-                                out(o, out_ch, i, j) * weights(out_ch, wei_ch, x, y);
-                        }
-                    });
-            });
+            cpu_convolution_forward(filter.GetSpatialDimension(),
+                                    out,
+                                    weights,
+                                    rinput,
+                                    filter.GetConvPads(),
+                                    filter.GetConvStrides(),
+                                    filter.GetConvDilations(),
+                                    filter.GetGroupCount());
         }
         else
         {
-            int in_n, in_c, in_h, in_w;
-            std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(rinput.desc.GetLengths());
-
-            int wei_n, wei_h, wei_w;
-            std::tie(wei_n, std::ignore, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
-
-            int out_h, out_w;
-            std::tie(std::ignore, std::ignore, out_h, out_w) =
-                miopen::tien<4>(out.desc.GetLengths());
-
-            par_ford(in_n, in_c, in_h, in_w)([&](int n, int c, int hi, int wi) {
-                double acc = 0;
-                ford(wei_n, wei_h, wei_w)([&](int k, int y, int x) {
-                    int h_ = filter.pad_h + hi - y * filter.dilation_h;
-                    int w_ = filter.pad_w + wi - x * filter.dilation_w;
-
-                    int ho = h_ / filter.u;
-                    int wo = w_ / filter.v;
-
-                    if(((ho * filter.u == h_) and (wo * filter.v == w_)) and
-                       ((ho >= 0 and ho < out_h) and (wo >= 0 and wo < out_w)))
-                    {
-                        acc += double(out(n, k, ho, wo)) * double(weights(k, c, y, x));
-                    }
-                });
-                rinput(n, c, hi, wi) = acc;
-            });
+            cpu_convolution_backward_data(filter.GetSpatialDimension(),
+                                          rinput,
+                                          weights,
+                                          out,
+                                          filter.GetConvPads(),
+                                          filter.GetConvStrides(),
+                                          filter.GetConvDilations(),
+                                          filter.GetGroupCount());
         }
         return rinput;
     }
@@ -422,7 +539,9 @@ struct verify_backward_conv : conv_base<T>
         auto in_dev  = handle.Write(rinput.data);
 
         size_t workspace_size =
-            filter.BackwardDataGetWorkSpaceSize(handle, weights.desc, out.desc, rinput.desc);
+            filter.mode == miopenTranspose
+                ? filter.ForwardGetWorkSpaceSize(handle, weights.desc, out.desc, rinput.desc)
+                : filter.BackwardDataGetWorkSpaceSize(handle, weights.desc, out.desc, rinput.desc);
 
         std::vector<char> workspace(workspace_size);
         auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
@@ -432,7 +551,9 @@ struct verify_backward_conv : conv_base<T>
 
         float alpha = 1, beta = 0;
 
-        filter.FindConvBwdDataAlgorithm(handle,
+        if(filter.mode == miopenTranspose)
+        {
+            filter.FindConvFwdAlgorithm(handle,
                                         out.desc,
                                         out_dev.get(),
                                         weights.desc,
@@ -446,18 +567,48 @@ struct verify_backward_conv : conv_base<T>
                                         workspace_size,
                                         search);
 
-        filter.ConvolutionBackwardData(handle,
-                                       &alpha,
-                                       out.desc,
-                                       out_dev.get(),
-                                       weights.desc,
-                                       wei_dev.get(),
-                                       perf.bwd_data_algo,
-                                       &beta,
-                                       rinput.desc,
-                                       in_dev.get(),
-                                       workspace_dev.get(),
-                                       workspace_size);
+            filter.ConvolutionForward(handle,
+                                      &alpha,
+                                      out.desc,
+                                      out_dev.get(),
+                                      weights.desc,
+                                      wei_dev.get(),
+                                      perf.fwd_algo,
+                                      &beta,
+                                      rinput.desc,
+                                      in_dev.get(),
+                                      workspace_dev.get(),
+                                      workspace_size);
+        }
+        else
+        {
+            filter.FindConvBwdDataAlgorithm(handle,
+                                            out.desc,
+                                            out_dev.get(),
+                                            weights.desc,
+                                            wei_dev.get(),
+                                            rinput.desc,
+                                            in_dev.get(),
+                                            1,
+                                            &ret_algo_count,
+                                            &perf,
+                                            workspace_dev.get(),
+                                            workspace_size,
+                                            search);
+
+            filter.ConvolutionBackwardData(handle,
+                                           &alpha,
+                                           out.desc,
+                                           out_dev.get(),
+                                           weights.desc,
+                                           wei_dev.get(),
+                                           perf.bwd_data_algo,
+                                           &beta,
+                                           rinput.desc,
+                                           in_dev.get(),
+                                           workspace_dev.get(),
+                                           workspace_size);
+        }
 
         rinput.data = handle.Read<T>(in_dev, rinput.data.size());
         return rinput;
@@ -500,39 +651,28 @@ struct verify_backward_weights_conv : conv_base<T>
         auto rweights = weights;
         std::fill(rweights.begin(), rweights.end(), 0);
 
-        int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(
-            filter.mode == miopenTranspose ? out.desc.GetLengths() : input.desc.GetLengths());
-
-        int wei_c, wei_h, wei_w;
-        std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(rweights.desc.GetLengths());
-
-        int out_n, out_c, out_h, out_w;
-        std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(
-            filter.mode == miopenTranspose ? input.desc.GetLengths() : out.desc.GetLengths());
-
-        int groups = 1;
-        if(filter.mode == miopenGroupConv || filter.mode == miopenDepthwise)
-            groups = filter.group_count;
-
-        par_ford(out_c, wei_c, wei_h, wei_w)([&](int w, int k, int x, int y) {
-            double acc         = 0.0;
-            const int group_id = w / (out_c / groups);
-            const int in_ch    = group_id * wei_c + k;
-            ford(out_n, out_h, out_w)([&](int o, int i, int j) {
-                const int start_x = i * filter.u - filter.pad_h;
-                const int start_y = j * filter.v - filter.pad_w;
-                const int in_x    = start_x + x * filter.dilation_h;
-                const int in_y    = start_y + y * filter.dilation_w;
-                if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
-                {
-                    acc += (filter.mode == miopenTranspose
-                                ? double(out(o, k, in_x, in_y)) * double(input(o, w, i, j))
-                                : double(input(o, in_ch, in_x, in_y)) * double(out(o, w, i, j)));
-                }
-            });
-            rweights(w, k, x, y) = acc;
-        });
+        if(filter.mode == miopenTranspose)
+        {
+            cpu_convolution_backward_weight(filter.GetSpatialDimension(),
+                                            out,
+                                            rweights,
+                                            input,
+                                            filter.GetConvPads(),
+                                            filter.GetConvStrides(),
+                                            filter.GetConvDilations(),
+                                            filter.GetGroupCount());
+        }
+        else
+        {
+            cpu_convolution_backward_weight(filter.GetSpatialDimension(),
+                                            input,
+                                            rweights,
+                                            out,
+                                            filter.GetConvPads(),
+                                            filter.GetConvStrides(),
+                                            filter.GetConvDilations(),
+                                            filter.GetGroupCount());
+        }
         return rweights;
     }
 
@@ -547,7 +687,10 @@ struct verify_backward_weights_conv : conv_base<T>
         auto in_dev  = handle.Write(input.data);
 
         std::size_t workspace_size = filter.ConvolutionBackwardWeightsGetWorkSpaceSize(
-            handle, out.desc, input.desc, rweights.desc);
+            handle,
+            filter.mode == miopenTranspose ? input.desc : out.desc,
+            filter.mode == miopenTranspose ? out.desc : input.desc,
+            rweights.desc);
 
         std::vector<char> workspace(workspace_size);
         auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
@@ -556,32 +699,34 @@ struct verify_backward_weights_conv : conv_base<T>
         miopenConvAlgoPerf_t perf;
 
         float alpha = 1, beta = 0;
-        filter.FindConvBwdWeightsAlgorithm(handle,
-                                           out.desc,
-                                           out_dev.get(),
-                                           input.desc,
-                                           in_dev.get(),
-                                           rweights.desc,
-                                           wei_dev.get(),
-                                           1,
-                                           &ret_algo_count,
-                                           &perf,
-                                           workspace_dev.get(),
-                                           workspace_size,
-                                           search);
+        filter.FindConvBwdWeightsAlgorithm(
+            handle,
+            filter.mode == miopenTranspose ? input.desc : out.desc,
+            filter.mode == miopenTranspose ? in_dev.get() : out_dev.get(),
+            filter.mode == miopenTranspose ? out.desc : input.desc,
+            filter.mode == miopenTranspose ? out_dev.get() : in_dev.get(),
+            rweights.desc,
+            wei_dev.get(),
+            1,
+            &ret_algo_count,
+            &perf,
+            workspace_dev.get(),
+            workspace_size,
+            search);
 
-        filter.ConvolutionBackwardWeights(handle,
-                                          &alpha,
-                                          out.desc,
-                                          out_dev.get(),
-                                          input.desc,
-                                          in_dev.get(),
-                                          perf.bwd_weights_algo,
-                                          &beta,
-                                          rweights.desc,
-                                          wei_dev.get(),
-                                          workspace_dev.get(),
-                                          workspace_size);
+        filter.ConvolutionBackwardWeights(
+            handle,
+            &alpha,
+            filter.mode == miopenTranspose ? input.desc : out.desc,
+            filter.mode == miopenTranspose ? in_dev.get() : out_dev.get(),
+            filter.mode == miopenTranspose ? out.desc : input.desc,
+            filter.mode == miopenTranspose ? out_dev.get() : in_dev.get(),
+            perf.bwd_weights_algo,
+            &beta,
+            rweights.desc,
+            wei_dev.get(),
+            workspace_dev.get(),
+            workspace_size);
 
         rweights.data = handle.Read<T>(wei_dev, rweights.data.size());
         return rweights;
@@ -600,24 +745,25 @@ struct conv_driver : test_driver
     tensor<T> input;
     tensor<T> weights;
     miopen::ConvolutionDescriptor filter;
+    std::string conv_dim_type;
     std::string conv_mode;
     std::string pad_mode;
+    std::vector<int> pads_strides_dilations;
+    std::vector<int> trans_output_pads;
+    int groupCount{};
     bool do_forward          = true;
     bool do_backward_data    = true;
     bool do_backward_weights = true;
     int search               = 0;
-    int groupCount{};
-    bool gen_float = false;
+    bool gen_float           = false;
+
+    std::unordered_map<std::string, std::size_t> conv_dim_lookup = {{"CONV2D", 2}, {"CONV3D", 3}};
 
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
         {"CONV", miopenConvolution},
         {"TRANS", miopenTranspose},
-        {"GROUP", miopenGroupConv},
-        {"DW", miopenDepthwise},
         {"CONVOLUTION", miopenConvolution},
-        {"TRANSPOSE", miopenTranspose},
-        {"GROUPCONV", miopenGroupConv},
-        {"DEPTHWISE", miopenDepthwise}};
+        {"TRANSPOSE", miopenTranspose}};
 
     std::unordered_map<std::string, miopenPaddingMode_t> pmode_lookup = {
         {"SAME", miopenPaddingSame},
@@ -626,140 +772,188 @@ struct conv_driver : test_driver
 
     conv_driver()
     {
-        add(input, "input", get_input_tensor());
-        add(weights, "weights", get_weights_tensor());
-        add(filter, "filter", generate_data(get_filters()));
+        add(conv_mode, "cmode", generate_data({"conv"}));
+        add(pad_mode, "pmode", generate_data({"default", "same", "valid"}));
+        add(groupCount, "group-count", generate_data({1}));
         add(do_forward, "disable-forward", set_value(false));
         add(do_backward_data, "disable-backward-data", set_value(false));
         add(do_backward_weights, "disable-backward-weights", set_value(false));
         add(search, "search", set_value(1));
-        add(conv_mode, "cmode", generate_data({"conv"}));
-        add(pad_mode, "pmode", generate_data({"default", "same", "valid"}));
-        add(groupCount, "group-count", generate_data({1}));
         add(gen_float, "generate-float", set_value(true));
-    }
-
-    std::vector<miopen::ConvolutionDescriptor> get_filters()
-    {
-        return {miopen::ConvolutionDescriptor{0, 0, 1, 1},
-                miopen::ConvolutionDescriptor{0, 0, 2, 2},
-                miopen::ConvolutionDescriptor{1, 1, 1, 1},
-                miopen::ConvolutionDescriptor{1, 1, 2, 2},
-                miopen::ConvolutionDescriptor{2, 2, 1, 1},
-                miopen::ConvolutionDescriptor{3, 3, 2, 2},
-                miopen::ConvolutionDescriptor{0, 0, 1, 1, 2, 2},
-                miopen::ConvolutionDescriptor{1, 1, 2, 2, 3, 3},
-                miopen::ConvolutionDescriptor{3, 3, 2, 2, 4, 4},
-                miopen::ConvolutionDescriptor{0, 0, 1, 1, 1, 2},
-                miopen::ConvolutionDescriptor{1, 1, 2, 2, 2, 1},
-                miopen::ConvolutionDescriptor{2, 2, 1, 1, 4, 3},
-                miopen::ConvolutionDescriptor{3, 3, 2, 2, 3, 4}};
     }
 
     void run()
     {
-        int input_c, input_h, input_w, wei_c, wei_k, wei_h, wei_w;
-        std::tie(wei_k, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
-        std::tie(std::ignore, input_c, input_h, input_w) = miopen::tien<4>(input.desc.GetLengths());
-
+        filter.spatialDim  = conv_dim_lookup[miopen::ToUpper(conv_dim_type)];
         filter.mode        = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode = pmode_lookup[miopen::ToUpper(pad_mode)];
-        filter.group_count =
-            filter.mode == miopenDepthwise ? input_c : std::max(static_cast<int>(groupCount), 1);
-        if(filter.group_count > 1 &&
-           !(filter.mode == miopenDepthwise || filter.mode == miopenTranspose))
-            filter.mode = miopenGroupConv;
 
-        // lack of transposeConv for half type
-        // \todo enhance support of half type into transConv
-        if((input.desc.GetType() == miopenHalf) && (filter.mode == miopenTranspose))
+        std::size_t spatial_dim = filter.GetSpatialDimension();
+
+        if(input.desc.GetSize() != 2 + spatial_dim || weights.desc.GetSize() != 2 + spatial_dim ||
+           pads_strides_dilations.size() != 3 * spatial_dim ||
+           trans_output_pads.size() != spatial_dim)
+        {
+            MIOPEN_LOG_E("dimension is wrong!");
+        }
+
+        bool is_int8 = (input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4);
+
+        // lack of transposeConv or groupConv for int8 type
+        if(is_int8 && (filter.mode == miopenTranspose || filter.group_count > 1))
         {
             return;
         }
 
-        // bwd53 kernel (large images supported) doesnt support stride !=1 and dialation and pad.
-        if(input_w >= 2048 &&
-           ((filter.u != 1) || (filter.v != 1) || (filter.dilation_h != 1) ||
-            (filter.dilation_w != 1) || (filter.pad_w != 0) || (filter.pad_h != 0)))
+        filter.pads.resize(spatial_dim);
+        filter.strides.resize(spatial_dim);
+        filter.dilations.resize(spatial_dim);
+        filter.trans_output_pads.resize(spatial_dim);
+
+        std::copy_n(pads_strides_dilations.begin(), spatial_dim, filter.pads.begin());
+        std::copy_n(
+            pads_strides_dilations.begin() + spatial_dim, spatial_dim, filter.strides.begin());
+        std::copy_n(pads_strides_dilations.begin() + 2 * spatial_dim,
+                    spatial_dim,
+                    filter.dilations.begin());
+        std::copy_n(trans_output_pads.begin(), spatial_dim, filter.trans_output_pads.begin());
+
+        filter.group_count = std::max(static_cast<int>(groupCount), 1);
+
+        std::size_t in_c_len  = input.desc.GetLengths()[1];
+        std::size_t wei_k_len = weights.desc.GetLengths()[0];
+        std::size_t wei_c_len = weights.desc.GetLengths()[1];
+
+        std::vector<std::size_t> in_spatial_len(input.desc.GetLengths().begin() + 2,
+                                                input.desc.GetLengths().end());
+        std::vector<std::size_t> wei_spatial_len(weights.desc.GetLengths().begin() + 2,
+                                                 weights.desc.GetLengths().end());
+
+        // lack of transposeConv or groupConv for int8 type
+        if(input.desc.GetType() == miopenInt8 &&
+           (filter.mode == miopenTranspose || filter.group_count > 1))
         {
             return;
         }
 
-        if(((filter.mode == miopenTranspose) && (input_c == wei_k)) ||
-           ((filter.mode == miopenConvolution) && (input_c == wei_c)) ||
-           ((filter.mode == miopenGroupConv) && (input_c % wei_c == 0)) ||
-           ((filter.mode == miopenDepthwise) && (wei_c == 1)))
+        if(((filter.mode == miopenTranspose) &&
+            ((filter.group_count == 1 && in_c_len == wei_k_len) ||
+             (filter.group_count > 1 && wei_k_len % filter.group_count == 0))) ||
+           ((filter.mode == miopenConvolution) &&
+            ((filter.group_count == 1 && in_c_len == wei_c_len) ||
+             (filter.group_count > 1 && in_c_len % wei_c_len == 0))))
         {
             if(filter.mode == miopenConvolution &&
-               ((filter.dilation_h == 1 && filter.dilation_w == 1) || (wei_h == 1 && wei_w == 1)))
+               (miopen::all_of(filter.GetConvDilations(), [](auto v) { return v == 1; }) ||
+                miopen::all_of(wei_spatial_len, [](auto v) { return v == 1; })))
             {
                 if(filter.paddingMode == miopenPaddingSame)
                 {
-                    if(filter.u == 0 || filter.v == 0)
+                    if(miopen::any_of(filter.GetConvStrides(), [](auto v) { return v == 0; }))
+                    {
                         return;
-                    auto _pad_h =
-                        (input_h % filter.u == 0)
-                            ? (std::max(static_cast<int>(wei_h - filter.u), 0))
-                            : (std::max(static_cast<int>(wei_h - (input_h % filter.u)), 0));
-                    auto _pad_w =
-                        (input_w % filter.v == 0)
-                            ? (std::max(static_cast<int>(wei_w - filter.v), 0))
-                            : (std::max(static_cast<int>(wei_w - (input_w % filter.v)), 0));
+                    }
 
-                    filter.pad_h = _pad_h / 2;
-                    filter.pad_w = _pad_w / 2;
+                    std::vector<std::size_t> pads_(spatial_dim);
+                    std::vector<std::ptrdiff_t> out_spatial_len(spatial_dim);
 
-                    int out_h = std::ceil(static_cast<double>(input_h) / filter.u);
-                    int out_w = std::ceil(static_cast<double>(input_w) / filter.v);
+                    for(std::size_t i = 0; i < spatial_dim; ++i)
+                    {
+                        pads_[i] =
+                            (in_spatial_len[i] % filter.GetConvStrides()[i] == 0)
+                                ? (std::max(
+                                      static_cast<std::ptrdiff_t>(wei_spatial_len[i]) -
+                                          static_cast<std::ptrdiff_t>(filter.GetConvStrides()[i]),
+                                      static_cast<std::ptrdiff_t>(0)))
+                                : (std::max(static_cast<std::ptrdiff_t>(wei_spatial_len[i]) -
+                                                static_cast<std::ptrdiff_t>(
+                                                    in_spatial_len[i] % filter.GetConvStrides()[i]),
+                                            static_cast<std::ptrdiff_t>(0)));
 
-                    if(out_h <= 0 || out_w <= 0)
+                        filter.pads[i] = pads_[i] / 2;
+
+                        out_spatial_len[i] = miopen::integer_division_ceil(
+                            in_spatial_len[i], filter.GetConvStrides()[i]);
+                    }
+
+                    if(miopen::any_of(out_spatial_len, [](auto v) { return v <= 0; }))
+                    {
                         return;
+                    }
                 }
                 else if(filter.paddingMode == miopenPaddingValid)
                 {
-                    if(filter.u == 0 || filter.v == 0)
+                    if(miopen::any_of(filter.GetConvStrides(), [](auto v) { return v == 0; }))
                         return;
-                    filter.pad_h = 0;
-                    filter.pad_w = 0;
 
-                    int out_h = std::ceil(static_cast<double>(input_h - wei_h + 1) / filter.u);
-                    int out_w = std::ceil(static_cast<double>(input_w - wei_w + 1) / filter.v);
+                    std::vector<ptrdiff_t> out_spatial_len(spatial_dim);
 
-                    if(out_h <= 0 || out_w <= 0)
+                    for(std::size_t i = 0; i < spatial_dim; ++i)
+                    {
+                        filter.pads[i] = 0;
+
+                        out_spatial_len[i] = miopen::integer_division_ceil(
+                            static_cast<std::ptrdiff_t>(in_spatial_len[i]) -
+                                static_cast<std::ptrdiff_t>(wei_spatial_len[i]) + 1,
+                            filter.GetConvStrides()[i]);
+                    }
+
+                    if(miopen::any_of(out_spatial_len, [](auto v) { return v <= 0; }))
+                    {
                         return;
+                    }
+                }
+            }
+            if(filter.mode == miopenTranspose)
+            {
+                for(std::size_t i = 0; i < spatial_dim; ++i)
+                {
+                    filter.pads[i] = filter.GetConvStrides()[i] - 1;
                 }
             }
 
-            if(((filter.mode == miopenConvolution &&
-                 input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1)) ||
-                (filter.mode == miopenTranspose &&
-                 input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(0)) ||
-                (filter.mode == miopenGroupConv &&
-                 (input.desc.GetLengths().at(1) % weights.desc.GetLengths().at(1) == 0)) ||
-                (filter.mode == miopenDepthwise && weights.desc.GetLengths().at(1) == 1)))
+            if(((filter.mode == miopenTranspose) &&
+                ((filter.group_count == 1 &&
+                  (input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(0))) ||
+                 (filter.group_count > 1 &&
+                  (weights.desc.GetLengths().at(0) % filter.group_count == 0)))) ||
+               ((filter.mode == miopenConvolution) &&
+                ((filter.group_count == 1 &&
+                  (input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1))) ||
+                 (filter.group_count > 1 &&
+                  (input.desc.GetLengths().at(1) % weights.desc.GetLengths().at(1) == 0)))))
             {
                 auto output = get_output_tensor(filter, input, weights);
 
-                auto gen_positive_value = [=](auto, auto, auto, auto) {
+                auto gen_positive_value = [=](auto...) {
+                    auto data_type    = input.desc.GetType();
+                    std::size_t v_max = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 16;
+
                     return gen_float ? scalar_gen_random_float{0, 1}()
-                                     : scalar_gen_random_integer{
-                                           1, miopen_type<T>{} == miopenHalf ? 4 : 16}();
+                                     : scalar_gen_random_integer{1, v_max}();
                 };
 
-                auto gen_sign_value = [=](auto n, auto c, auto h, auto w) {
-                    return gen_float
-                               ? scalar_gen_random_float{-1, 1}()
-                               : scalar_gen_random_integer{1,
-                                                           miopen_type<T>{} == miopenHalf ? 4
-                                                                                          : 16}() *
-                                     tensor_elem_gen_checkboard_sign{}(n, c, h, w);
+                auto gen_sign_value = [=](auto... is) {
+                    auto data_type    = input.desc.GetType();
+                    std::size_t v_max = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 16;
+
+                    return gen_float ? scalar_gen_random_float{-1, 1}()
+                                     : scalar_gen_random_integer{1, v_max}() *
+                                           tensor_elem_gen_checkboard_sign{}(is...);
                 };
 
-                bool skip_forward          = false;
-                bool skip_backward_data    = false;
-                bool skip_backward_weights = false;
+                bool skip_forward =
+                    is_int8 &&
+                    !is_gemm_workspace_valid(
+                        get_handle(), filter, input.desc, weights.desc, output.desc);
+                bool skip_backward_data    = is_int8;
+                bool skip_backward_weights = is_int8;
 
 #if TEST_DIRECT_SUPPORTED_CONFIG_ONLY
+                if(input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4)
+                {
+                    return;
+                }
                 if(input.desc.GetType() == miopenHalf && filter.mode == miopenConvolution)
                 {
                     skip_forward = !is_direct_fwd_bwd_data_supported(
@@ -774,9 +968,10 @@ struct conv_driver : test_driver
 
                 // bwd53 kernel (large images supported) doesnt support stride !=1 and dialation and
                 // pad.
-                if(input_w >= 2048 &&
-                   ((filter.u != 1) || (filter.v != 1) || (filter.dilation_h != 1) ||
-                    (filter.dilation_w != 1) || (filter.pad_w != 0) || (filter.pad_h != 0)))
+                if(filter.GetSpatialDimension() == 2 && in_spatial_len[1] >= 2048 &&
+                   ((filter.GetConvStrides()[0] != 1) || (filter.GetConvStrides()[1] != 1) ||
+                    (filter.GetConvDilations()[0] != 1) || (filter.GetConvDilations()[1] != 1) ||
+                    (filter.GetConvPads()[1] != 0) || (filter.GetConvPads()[0] != 0)))
                 {
                     return;
                 }
@@ -787,7 +982,16 @@ struct conv_driver : test_driver
 
                 if(do_forward && !skip_forward)
                 {
-                    verify(verify_forward_conv<T>{input, weights, filter, 0, search});
+                    if(is_int8)
+                    {
+                        verify(verify_forward_conv_int8<T>{input, weights, filter, 0, search});
+                        verify(
+                            verify_forward_conv_int8<T>{input, weights, filter, 0, search, true});
+                    }
+                    else
+                    {
+                        verify(verify_forward_conv<T>{input, weights, filter, 0, search});
+                    }
                 }
 
                 if(do_backward_data && !skip_backward_data)
@@ -807,4 +1011,106 @@ struct conv_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<conv_driver>(argc, argv); }
+template <class T>
+struct conv2d_driver : conv_driver<T>
+{
+    conv2d_driver() : conv_driver<T>()
+    {
+        this->add(this->conv_dim_type, "conv_dim_type", this->generate_data({"conv2d"}));
+        this->add(this->input, "input", this->get_tensor(get_inputs, tensor_elem_gen_integer()));
+        this->add(
+            this->weights, "weights", this->get_tensor(get_weights, tensor_elem_gen_integer()));
+        this->add(this->pads_strides_dilations,
+                  "pads_strides_dilations",
+                  this->generate_data(get_2d_pads_strides_dilations()));
+        this->add(this->trans_output_pads,
+                  "trans_output_pads",
+                  this->generate_data(get_2d_trans_output_pads()));
+    }
+
+    std::vector<std::vector<int>> get_2d_pads_strides_dilations()
+    {
+        return {{0, 0, 1, 1, 1, 1},
+                {0, 0, 2, 2, 1, 1},
+                {1, 1, 1, 1, 1, 1},
+                {1, 1, 2, 2, 1, 1},
+                {2, 2, 1, 1, 1, 1},
+                {3, 3, 2, 2, 1, 1},
+                {0, 0, 1, 1, 2, 2},
+                {1, 1, 2, 2, 3, 3},
+                {3, 3, 2, 2, 4, 4},
+                {0, 0, 1, 1, 1, 2},
+                {1, 1, 2, 2, 2, 1},
+                {2, 2, 1, 1, 4, 3},
+                {3, 3, 2, 2, 3, 4}};
+    }
+
+    std::vector<std::vector<int>> get_2d_trans_output_pads() { return {{0, 0}}; }
+};
+
+template <class T>
+struct conv3d_driver : conv_driver<T>
+{
+    conv3d_driver() : conv_driver<T>()
+    {
+        this->add(this->conv_dim_type, "conv_dim_type", this->generate_data({"conv3d"}));
+        this->add(this->input,
+                  "input",
+                  this->get_tensor(get_3d_conv_input_shapes, tensor_elem_gen_integer()));
+        this->add(this->weights,
+                  "weights",
+                  this->get_tensor(get_3d_conv_weight_shapes, tensor_elem_gen_integer()));
+        this->add(this->pads_strides_dilations,
+                  "pads_strides_dilations",
+                  this->generate_data(get_3d_pads_strides_dilations()));
+        this->add(this->trans_output_pads,
+                  "trans_output_pads",
+                  this->generate_data(get_3d_trans_output_pads()));
+    }
+
+    std::vector<std::vector<int>> get_3d_pads_strides_dilations()
+    {
+        return {{0, 0, 0, 1, 1, 1, 1, 1, 1},
+                {0, 0, 0, 2, 2, 2, 1, 1, 1},
+                {1, 1, 1, 1, 1, 1, 1, 1, 1},
+                {1, 1, 1, 2, 2, 2, 1, 1, 1},
+                {2, 2, 2, 1, 1, 1, 1, 1, 1},
+                {3, 3, 3, 2, 2, 2, 1, 1, 1},
+                {0, 0, 0, 1, 1, 1, 2, 2, 2},
+                {1, 1, 0, 2, 2, 2, 3, 3, 3},
+                {3, 3, 3, 2, 2, 2, 4, 4, 4},
+                {0, 0, 0, 1, 1, 1, 1, 1, 2},
+                {1, 1, 1, 2, 2, 2, 2, 2, 1},
+                {2, 2, 2, 1, 1, 1, 4, 4, 3},
+                {3, 3, 3, 2, 2, 2, 3, 3, 4}};
+    }
+
+    std::vector<std::vector<int>> get_3d_trans_output_pads() { return {{0, 0, 0}}; }
+};
+
+int main(int argc, const char* argv[])
+{
+    std::vector<std::string> as(argv + 1, argv + argc);
+
+    bool do_conv2d = std::any_of(as.begin(), as.end(), [](auto&& arg) { return arg == "conv2d"; });
+    bool do_conv3d = std::any_of(as.begin(), as.end(), [](auto&& arg) { return arg == "conv3d"; });
+    bool do_all    = std::any_of(as.begin(), as.end(), [](auto&& arg) { return arg == "--all"; });
+
+    if(do_conv2d and !do_conv3d)
+    {
+        test_drive<conv2d_driver>(argc, argv);
+    }
+    else if(!do_conv2d and do_conv3d)
+    {
+        test_drive<conv3d_driver>(argc, argv);
+    }
+    else if((do_conv2d and do_conv3d) or do_all)
+    {
+        test_drive<conv2d_driver>(argc, argv);
+        test_drive<conv3d_driver>(argc, argv);
+    }
+    else
+    {
+        test_drive<conv2d_driver>(argc, argv);
+    }
+}

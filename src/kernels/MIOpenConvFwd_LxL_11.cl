@@ -119,7 +119,7 @@ extern uint __llvm_amdgcn_readfirstlane(uint) __asm("llvm.amdgcn.readfirstlane")
 #define uniform(x) (x)
 #endif
 
-__attribute__((always_inline)) uint getWaveId()
+uint getWaveId()
 {
     uint wave_id = 0;
 
@@ -145,37 +145,27 @@ __attribute__((always_inline)) uint getWaveId()
     return (wave_id);
 }
 
-__attribute__((always_inline)) uint getWaveLocalId()
+uint getWaveLocalId()
 {
     uint lcl_wave_id = get_local_id(0) & ((1 << MLO_LG2_WAVE_SZ) - 1);
     return (lcl_wave_id);
 }
 
-__attribute__((always_inline)) uint getLocalId(uint wave_id, uint wave_lcl_id)
+uint getLocalId(uint wave_id, uint wave_lcl_id)
 {
     uint lcl_id = (wave_id << MLO_LG2_WAVE_SZ) + wave_lcl_id;
     return (lcl_id);
 }
 
-__attribute__((always_inline)) uint iDiv(uint v, uint d)
-{
-    uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
-    return (r);
-}
+#include "math_ops.h"
 
-__attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24(u, d);
-    return (r);
-}
-
-__attribute__((always_inline)) void ReduceKernel(__local _FLOAT* lcl_blob,
-                                                 _FLOAT* weights_accum,
-                                                 uint lcl_id,
-                                                 uint scan_lcl,
-                                                 uint sum_stride,
-                                                 uint unit_len,
-                                                 UNUSED bool debug)
+void ReduceKernel(__local _FLOAT* lcl_blob,
+                  _FLOAT* weights_accum,
+                  uint lcl_id,
+                  uint scan_lcl,
+                  uint sum_stride,
+                  uint unit_len,
+                  UNUSED bool debug)
 {
     for(uint j = (sum_stride >> 1); j > scan_lcl; j >>= 1)
     {
@@ -193,19 +183,19 @@ __attribute__((always_inline)) void ReduceKernel(__local _FLOAT* lcl_blob,
 #if MLO_DIR_FORWARD == 1
 
 // TO DO: remove f_s and c from offest calculation
-__attribute__((always_inline)) void fetchWeights(uint c,
-                                                 uint k_idx,
-                                                 uint f_s,
-                                                 uint lcl_id,
-                                                 uint wei_read,
-                                                 uint gbl_wei_off,
-                                                 __local _FLOAT* wei_mem,
-                                                 const __global _FLOAT* weights)
+void fetchWeights(uint c,
+                  uint k_idx,
+                  uint f_s,
+                  uint lcl_id,
+                  uint wei_read,
+                  uint gbl_wei_off,
+                  __local _FLOAT* wei_mem,
+                  const __global _FLOAT* weights)
 {
     // read weights by stride
     for(uint w = lcl_id; w < (wei_read / MLO_FILTER_SIZE0) * MLO_N_LCL_OUT_MAPS; w += MLO_GRP_SZ)
     {
-        uint k = iDiv(w, (wei_read / MLO_FILTER_SIZE0));
+        uint k = iDiv_legacy(w, (wei_read / MLO_FILTER_SIZE0));
         uint j = iMod(w, k, (wei_read / MLO_FILTER_SIZE0));
         int wei_off =
             ((j * MLO_FILTER_STRIDE1 + f_s) < MLO_FILTER_SIZE1 && k_idx + k < MLO_N_OUTPUTS)
@@ -247,14 +237,14 @@ __attribute__((always_inline)) void fetchWeights(uint c,
     }
 }
 
-__attribute__((always_inline)) void fetchData(uint f_s,
-                                              uint lcl_id,
-                                              uint lcl_scan,
-                                              uint n_reads,
-                                              int in_y,
-                                              uint gbl_in_scan_off,
-                                              __local _FLOAT* bot_mem,
-                                              const __global _FLOAT* bot)
+void fetchData(uint f_s,
+               uint lcl_id,
+               uint lcl_scan,
+               uint n_reads,
+               int in_y,
+               uint gbl_in_scan_off,
+               __local _FLOAT* bot_mem,
+               const __global _FLOAT* bot)
 {
     __private _FLOAT in_rd_data[MLO_READ_UNIT];
 
@@ -264,11 +254,11 @@ __attribute__((always_inline)) void fetchData(uint f_s,
         uint b  = 0;
         uint t0 = p4;
 #if MLO_N_LCL_BATCHS > 1
-        b  = iDiv(p4, MLO_N_IN_HORIZ_READS * n_reads);
+        b  = iDiv_legacy(p4, MLO_N_IN_HORIZ_READS * n_reads);
         t0 = iMod(p4, b, MLO_N_IN_HORIZ_READS * n_reads);
 #endif
 #if MLO_N_IN_HORIZ_READS & (MLO_N_IN_HORIZ_READS - 1)
-        c_scan      = iDiv(t0, MLO_N_IN_HORIZ_READS);
+        c_scan      = iDiv_legacy(t0, MLO_N_IN_HORIZ_READS);
         uint c_pix4 = iMod(t0, c_scan, MLO_N_IN_HORIZ_READS);
 #else
         c_scan      = t0 / MLO_N_IN_HORIZ_READS;
@@ -324,15 +314,15 @@ __attribute__((always_inline)) void fetchData(uint f_s,
     }
 }
 
-__attribute__((always_inline)) void Convolve(uint ex_row,
-                                             uint ex_pix,
-                                             uint l,
-                                             uint m,
-                                             uint wei_h,
-                                             uint bot_h,
-                                             __local _FLOAT* __restrict wei_mem,
-                                             __local _FLOAT* __restrict bot_mem,
-                                             __private _FLOAT* pvt_accum)
+void Convolve(uint ex_row,
+              uint ex_pix,
+              uint l,
+              uint m,
+              uint wei_h,
+              uint bot_h,
+              __local _FLOAT* __restrict wei_mem,
+              __local _FLOAT* __restrict bot_mem,
+              __private _FLOAT* pvt_accum)
 {
     // only for 11
     __private _FLOAT wei_vals[MLO_N_LCL_OUT_MAPS * MLO_N_FILTER_SPLITS0];
@@ -448,7 +438,7 @@ MIOpenCvFwd11x11(const __global _FLOAT* __restrict bot,
 
 // processing arrangement
 #if MLO_PROCESSING_WIDTH & (MLO_PROCESSING_WIDTH - 1)
-    uint ex_row = iDiv(lcl_id, MLO_PROCESSING_WIDTH);
+    uint ex_row = iDiv_legacy(lcl_id, MLO_PROCESSING_WIDTH);
     uint ex_col = iMod(lcl_id, ex_row, MLO_PROCESSING_WIDTH);
 #else
     uint ex_row     = lcl_id / MLO_PROCESSING_WIDTH;
@@ -643,15 +633,15 @@ MIOpenCvFwd11x11(const __global _FLOAT* __restrict bot,
 #define MLO_TOTAL_IN_LCL_SZ (MLO_N_LCL_BATCHS * MLO_IN_LCL_SZ * MLO_N_LCL_IN_MAPS)
 #define MLO_LCL_MEM_SZ (MLO_WEI_LCL_SZ + MLO_TOTAL_IN_LCL_SZ)
 
-__attribute__((always_inline)) void fetchData2(uint ib,
-                                               uint f_s,
-                                               uint lcl_id,
-                                               uint lcl_scan,
-                                               uint n_reads,
-                                               int in_y,
-                                               int gbl_in_scan_off,
-                                               __local _FLOAT* bot_mem,
-                                               const __global _FLOAT* bot)
+void fetchData2(uint ib,
+                uint f_s,
+                uint lcl_id,
+                uint lcl_scan,
+                uint n_reads,
+                int in_y,
+                int gbl_in_scan_off,
+                __local _FLOAT* bot_mem,
+                const __global _FLOAT* bot)
 {
     __private _FLOAT in_rd_data[MLO_READ_UNIT];
 
@@ -661,11 +651,11 @@ __attribute__((always_inline)) void fetchData2(uint ib,
         uint b  = 0;
         uint t0 = p4;
 #if MLO_N_LCL_BATCHS > 1
-        b  = iDiv(p4, MLO_N_IN_HORIZ_READS * n_reads);
+        b  = iDiv_legacy(p4, MLO_N_IN_HORIZ_READS * n_reads);
         t0 = iMod(p4, b, MLO_N_IN_HORIZ_READS * n_reads);
 #endif
 #if MLO_N_IN_HORIZ_READS & (MLO_N_IN_HORIZ_READS - 1)
-        c_scan      = iDiv(t0, MLO_N_IN_HORIZ_READS);
+        c_scan      = iDiv_legacy(t0, MLO_N_IN_HORIZ_READS);
         uint c_pix4 = iMod(t0, c_scan, MLO_N_IN_HORIZ_READS);
 #else
         c_scan      = t0 / MLO_N_IN_HORIZ_READS;
@@ -726,16 +716,16 @@ __attribute__((always_inline)) void fetchData2(uint ib,
     }
 }
 
-__attribute__((always_inline)) void Convolve2(uint b,
-                                              uint ex_row,
-                                              uint ex_pix,
-                                              uint l,
-                                              uint m,
-                                              uint wei_h,
-                                              uint bot_h,
-                                              __local _FLOAT* __restrict wei_mem,
-                                              __local _FLOAT* __restrict bot_mem,
-                                              __private _FLOAT* pvt_accum)
+void Convolve2(uint b,
+               uint ex_row,
+               uint ex_pix,
+               uint l,
+               uint m,
+               uint wei_h,
+               uint bot_h,
+               __local _FLOAT* __restrict wei_mem,
+               __local _FLOAT* __restrict bot_mem,
+               __private _FLOAT* pvt_accum)
 {
     // only for 11
     __private _FLOAT wei_vals[MLO_N_LCL_OUT_MAPS * MLO_N_FILTER_SPLITS0];
@@ -844,7 +834,7 @@ MIOpenCvFwd11x11_2(const __global _FLOAT* __restrict bot,
 // processing arrangement
 // batch
 #if(MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1) & (MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1 - 1)
-    uint bb = iDiv(lcl_id, (MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1));
+    uint bb = iDiv_legacy(lcl_id, (MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1));
     uint t0 = iMod(lcl_id, bb, (MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1));
 #elif(MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1) != 0
     uint bb         = lcl_id / (MLO_PROCESSING_WIDTH * MLO_LAST_OUT_EXTENT1);
@@ -857,7 +847,7 @@ MIOpenCvFwd11x11_2(const __global _FLOAT* __restrict bot,
     uint t0 = 0;
 #endif
 #if MLO_PROCESSING_WIDTH & (MLO_PROCESSING_WIDTH - 1)
-    uint ex_row = iDiv(t0, MLO_PROCESSING_WIDTH);
+    uint ex_row = iDiv_legacy(t0, MLO_PROCESSING_WIDTH);
     uint ex_col = iMod(t0, ex_row, MLO_PROCESSING_WIDTH);
 #else
     uint ex_row     = t0 / MLO_PROCESSING_WIDTH;
@@ -1053,11 +1043,11 @@ MIOpenCvFwd11x11_2(const __global _FLOAT* __restrict bot,
 #define MLO_N_TILES0 \
     ((MLO_OUT_WIDTH + MLO_OUT_PIX_TILE0 - 1 + 2 * MLO_FILTER_PAD0) / MLO_OUT_PIX_TILE0)
 
-__attribute__((always_inline)) void MoveWeightsIn(__local _FLOAT* lcl_mem,
-                                                  uint lcl_wei_write_off,
-                                                  const __global _FLOAT* weights,
-                                                  uint gbl_wei_off,
-                                                  uint lcl_id)
+void MoveWeightsIn(__local _FLOAT* lcl_mem,
+                   uint lcl_wei_write_off,
+                   const __global _FLOAT* weights,
+                   uint gbl_wei_off,
+                   uint lcl_id)
 {
     barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -1071,14 +1061,14 @@ __attribute__((always_inline)) void MoveWeightsIn(__local _FLOAT* lcl_mem,
 
 #if defined(__AMDGCN__)
 
-__attribute__((always_inline)) void MoveDataIn(_FLOAT proc_dat[MLO_IN_PIX_TILE1][MLO_IN_PIX_TILE0],
-                                               __local _FLOAT* lcl_mem,
-                                               const __global _FLOAT* bot,
-                                               uint gbl_in_off,
-                                               int grp_in_y,
-                                               int grp_in_x,
-                                               uint lcl_in_y,
-                                               uint lcl_in_x)
+void MoveDataIn(_FLOAT proc_dat[MLO_IN_PIX_TILE1][MLO_IN_PIX_TILE0],
+                __local _FLOAT* lcl_mem,
+                const __global _FLOAT* bot,
+                uint gbl_in_off,
+                int grp_in_y,
+                int grp_in_x,
+                uint lcl_in_y,
+                uint lcl_in_x)
 {
     uint lcl_id = get_local_id(0);
 
@@ -1115,12 +1105,11 @@ __attribute__((always_inline)) void MoveDataIn(_FLOAT proc_dat[MLO_IN_PIX_TILE1]
 
 #else
 
-__attribute__((always_inline)) void MoveDataIn(_FLOAT proc_dat[MLO_IN_PIX_TILE1][MLO_IN_PIX_TILE0],
-                                               const __global _FLOAT* bot,
-                                               uint gbl_in_off,
-                                               const uint gbl_in_offs[MLO_IN_PIX_TILE1]
-                                                                     [MLO_IN_PIX_TILE0],
-                                               const _FLOAT* mask_out_of_range)
+void MoveDataIn(_FLOAT proc_dat[MLO_IN_PIX_TILE1][MLO_IN_PIX_TILE0],
+                const __global _FLOAT* bot,
+                uint gbl_in_off,
+                const uint gbl_in_offs[MLO_IN_PIX_TILE1][MLO_IN_PIX_TILE0],
+                const _FLOAT* mask_out_of_range)
 {
     for(int j = MLO_IN_PIX_TILE1 - 1; j >= 0; --j)
     {
@@ -1134,17 +1123,16 @@ __attribute__((always_inline)) void MoveDataIn(_FLOAT proc_dat[MLO_IN_PIX_TILE1]
 }
 #endif
 
-__attribute__((always_inline)) void Convolve(_FLOAT* pvt_accum,
-                                             const _FLOAT proc_dat[MLO_IN_PIX_TILE1]
-                                                                  [MLO_IN_PIX_TILE0],
-                                             const __local _FLOAT* lcl_mem,
-                                             uint lcl_wei_read_off
+void Convolve(_FLOAT* pvt_accum,
+              const _FLOAT proc_dat[MLO_IN_PIX_TILE1][MLO_IN_PIX_TILE0],
+              const __local _FLOAT* lcl_mem,
+              uint lcl_wei_read_off
 #if DBG_PRINTF == 1
-                                             ,
-                                             int map_out_y,
-                                             int map_out_x
+              ,
+              int map_out_y,
+              int map_out_x
 #endif
-                                             )
+              )
 {
     // convolve
     for(uint k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)

@@ -27,9 +27,10 @@
 #define GUARD_MIOPEN_DB_HPP_
 
 #include <miopen/db_record.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 
-#include <boost/optional.hpp>
+#include <boost/core/explicit_operator_bool.hpp>
+#include <boost/none.hpp>
+#include <boost/optional/optional.hpp>
 
 #include <string>
 

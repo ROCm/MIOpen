@@ -29,7 +29,6 @@
 
 #include <miopen/config.h>
 
-#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -254,15 +253,27 @@ auto SearchForSolution(const Context& search_params, Db db) ->
 
     miopen::each_args(
         [&](auto solver) {
-            if(!solution.Succeeded() && solver.IsApplicable(search_params) &&
+            if(solver.IsApplicable(search_params) &&
                (no_perf_filtering || solver.IsFast(search_params)))
             {
-                solution = FindSolution(solver, search_params, db);
-                if(solution.Succeeded() && solution.construction_params.empty())
+                if(!solution.Succeeded())
                 {
-                    MIOPEN_THROW(std::string("Internal error in solver: ") + SolverDbId(solver));
+                    solution = FindSolution(solver, search_params, db);
+                    if(solution.Succeeded())
+                    {
+                        MIOPEN_LOG_I2(SolverDbId(solver) << ": Success.");
+                        if(solution.construction_params.empty())
+                        {
+                            MIOPEN_THROW(std::string("Internal error in solver: ") +
+                                         SolverDbId(solver));
+                        }
+                    }
                 }
+                else
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped");
             }
+            else
+                MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
         },
         Solvers{}...);
 
@@ -457,79 +468,6 @@ struct ConvAsm3x3U : SolverBase<ConvolutionContext>
                               float& elapsed_time) const;
 };
 
-struct PerformanceConfigConvActivAsm1x1U : Serializable<PerformanceConfigConvActivAsm1x1U>
-{
-    // ------------------- // Full set          Optimized       Spare
-    // ----------------------------------------------------------------------------
-    int read_size;         // [1..4]            <same>          <same>
-    int k_mult;            // 1,[4,8,12..32]    16,32           1,4
-    int chunks_per_wave;   // [1..16]           [1..8]          <same>
-    int chunk_size;        // 2^n[1..64]        2^n[16..64]     1,4
-    int n_blocks_per_wave; // [1..8]            [1..4]          <same>
-    int waves_in_group;    // [1..8]            [1..4]          <same>
-    bool use_spare_set;
-
-    PerformanceConfigConvActivAsm1x1U(int, int, int, int, int, int, bool);
-    PerformanceConfigConvActivAsm1x1U()
-        : PerformanceConfigConvActivAsm1x1U(-1, -1, -1, -1, -1, -1, false)
-    {
-    }
-    PerformanceConfigConvActivAsm1x1U(bool spare)
-        : PerformanceConfigConvActivAsm1x1U(1, 1, 1, 1, 1, 1, spare)
-    {
-    }
-
-    template <class Self, class F>
-    static void Visit(Self&& self, F f)
-    {
-        f(self.read_size, "read_size");
-        f(self.k_mult, "k_mult");
-        f(self.chunks_per_wave, "chunks_per_wave");
-        f(self.chunk_size, "chunk_size");
-        f(self.n_blocks_per_wave, "n_blocks_per_wave");
-        f(self.waves_in_group, "waves_in_group");
-    }
-
-    // clang-format off
-    int GetReadSize() const { return read_size; }
-    int GetKMult() const { return k_mult; }
-    int GetChunksPerWave() const { return chunks_per_wave; }
-    int GetChunkSize() const { return chunk_size; }
-    int GetNBlocksPerWave() const { return n_blocks_per_wave; }
-    int GetWavesInGroup() const { return waves_in_group; }
-    int GetNPerGpr() const { assert(chunk_size); return 64 / chunk_size; }
-    // clang-format on
-
-    void EuristicInit(const ConvolutionContext& config);
-    bool IsValidValue() const;
-    bool SetNextValue();
-    bool IsValid(const ConvolutionContext& config) const;
-    bool operator==(const PerformanceConfigConvActivAsm1x1U& other) const;
-    std::string ToString() const;
-    bool IsValidForProblem(const ConvolutionContext& config) const;
-};
-
-struct ConvActivAsm1x1U : SolverBase<ConvolutionContext>
-{
-    PerformanceConfigConvActivAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const PerformanceConfigConvActivAsm1x1U&) const;
-    PerformanceConfigConvActivAsm1x1U Search(const ConvolutionContext&) const;
-    bool IsApplicable(const ConvolutionContext& params) const;
-    bool IsFast(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfigConvActivAsm1x1U& config,
-                             bool disableConfigOverrideFromEnv = false) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              Data_t bot_ocl_buf,
-                              Data_t top_ocl_buf,
-                              Data_t wei_ocl_buf,
-                              Data_t bias_ocl_buf,
-                              const ConvolutionContext& params,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
-};
-
 struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
 {
     // ----------------- // Full set          Optimized       Spare
@@ -605,6 +543,32 @@ struct ConvAsm1x1U : SolverBase<ConvolutionContext>
                               float& elapsed_time) const;
 };
 
+struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
+{
+    PerformanceConfigConvBiasActivAsm1x1U(bool spare) : PerformanceConfigConvAsm1x1U(spare) {}
+    PerformanceConfigConvBiasActivAsm1x1U()
+        : PerformanceConfigConvAsm1x1U(-1, -1, -1, -1, -1, -1, -1, -1, false)
+    {
+    }
+    bool IsValid(const ConvolutionContext& config) const;
+    bool operator==(const PerformanceConfigConvBiasActivAsm1x1U& other) const;
+};
+
+struct ConvBiasActivAsm1x1U : ConvAsm1x1U
+{
+    PerformanceConfigConvBiasActivAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const;
+    int RunAndMeasureSolution(miopen::Handle& profile_h,
+                              Data_t bot_ocl_buf,
+                              Data_t top_ocl_buf,
+                              Data_t wei_ocl_buf,
+                              Data_t bias_ocl_buf,
+                              const ConvolutionContext& params,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
+
+    PerformanceConfigConvBiasActivAsm1x1U Search(const ConvolutionContext&) const;
+};
+
 struct ConvAsm5x10u2v2f1 : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
@@ -663,19 +627,6 @@ struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
 
     protected:
     bool IsApplicableBase(const ConvolutionContext& params) const;
-};
-
-/// Disabling auto-tune/perf-db functionality requires separate Solver.
-struct GroupConvOclDirectFwd : ConvOclDirectFwd
-{
-    bool IsApplicable(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params) const;
-
-    private:
-    // The "Solution GetSolution(Context, PerfConfig)" implicitly declares Solver
-    // auto-tunable (a.k.a. searchable). We shall hide it in this Solver.
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const LegacyPerformanceConfig& searched_params) const;
 };
 
 struct ConvOclDirectFwdFused : ConvOclDirectFwd
@@ -883,10 +834,125 @@ struct ConvAsmBwdWrW1x1 : SolverBase<ConvolutionContext>
                               float& elapsed_time) const;
 };
 
+/// N_BATCH_LOOPS - {1,2,4,8,16} Num batches processed in single workitem.
+///     Required workspace size depends on it. However there is a restriction in the internal
+///     Solver API that this shouldn't be so. Therefore the family of Solvers created.
+///     Each Solver in the family has constant value of this parameter.
+template <int N_BATCH_LOOPS>
+struct PerformanceConfigConvOclBwdWrw2
+    : Serializable<PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>>
+{
+    // Num waves involved a workgroup.
+    int n_waves = -1; // {1,2,4,8}
+    // Num values to read in a workitem (read_unit).
+    int read_size = -1; // [6..12]
+    // Num of output channels (top/bottom layer in forward/backward direction)
+    // that share the same input channel in single workgroup.
+    // Also represents number of output channels in single tile.
+    int n_out_channels_per_tile = -1; // {1,2,4,8}
+    // How many tiles of output channels are processed in a single workgroup?
+    // n_out_channels_in_lcl * n_out_channels_tiles = total number of
+    // output channels processed in single workgroup.
+    int n_out_channels_tiles = -1; // {1,2,4,8}
+    // Num of output rows processed in a single iteration of loop in a workitem
+    // (N_ALIGNED_OUT_SCAN_BLK).
+    int n_out_rows_in_lcl = -1; // [2..11]
+
+    PerformanceConfigConvOclBwdWrw2(int nw, int rs, int nocpt, int noct, int noril)
+        : n_waves(nw),
+          read_size(rs),
+          n_out_channels_per_tile(nocpt),
+          n_out_channels_tiles(noct),
+          n_out_rows_in_lcl(noril)
+    {
+    }
+    PerformanceConfigConvOclBwdWrw2() {}
+    PerformanceConfigConvOclBwdWrw2(bool) : PerformanceConfigConvOclBwdWrw2(1, 6, 1, 1, 2) {}
+    // spare_set is not used in this solver.
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.n_waves, "n_waves");
+        f(self.read_size, "read_size");
+        f(self.n_out_channels_per_tile, "n_out_channels_per_tile");
+        f(self.n_out_channels_tiles, "n_out_channels_tiles");
+        f(self.n_out_rows_in_lcl, "n_out_rows_in_lcl");
+    }
+
+    // clang-format off
+    int GetNumWaves() const { return n_waves; }
+    int GetReadSize() const { return read_size; }
+    int GetNumOutChannelsPerTile() const { return n_out_channels_per_tile; }
+    int GetNumOutChannelTiles() const { return n_out_channels_tiles; }
+    int GetNumOutRowsPerIterPerWork() const { return n_out_rows_in_lcl; } // clang-format on
+
+    void EuristicInit(const ConvolutionContext& params);
+    bool IsValidValue() const;
+    bool SetNextValue();
+    bool IsValid(const ConvolutionContext& params) const;
+    bool operator==(const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const;
+    std::string ToString() const;
+};
+
+template <int N_BATCH_LOOPS>
 struct ConvOclBwdWrW2 : SolverBase<ConvolutionContext>
+{
+    PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
+    GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&) const;
+    PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS> Search(const ConvolutionContext&) const;
+    bool IsApplicable(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+    int RunAndMeasureSolution(miopen::Handle& profile_h,
+                              Data_t bot_ocl_buf,
+                              Data_t top_ocl_buf,
+                              Data_t wei_ocl_buf,
+                              Data_t bias_ocl_buf,
+                              const ConvolutionContext& context,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
+
+    protected:
+    bool IsApplicableBase(const ConvolutionContext& params) const;
+
+    private:
+    template <typename Tgpu>
+    int RunAndMeasureSolutionImpl(miopen::Handle& profile_h,
+                                  Data_t bot_ocl_buf,
+                                  Data_t top_ocl_buf,
+                                  Data_t wei_ocl_buf,
+                                  Data_t bias_ocl_buf,
+                                  const ConvolutionContext& context,
+                                  const ConvSolution& solution,
+                                  float& elapsed_time) const;
+};
+
+extern template struct ConvOclBwdWrW2<1>;
+extern template struct ConvOclBwdWrW2<2>;
+extern template struct ConvOclBwdWrW2<4>;
+extern template struct ConvOclBwdWrW2<8>;
+extern template struct ConvOclBwdWrW2<16>;
+
+/// A separate solver from ConvOclBwdWrW2 to disable auto-tuning for certain configs.
+/// Basically, this is *hack* for non-group 3x3 and 1x1 cases.
+/// It is assumed that Solutions provided by the ConvOclBwdWrW2 solver
+/// would never beat 3x3 and 1x1 assembly WrW kernels, even after tuning.
+struct ConvOclBwdWrW2NonTunable : ConvOclBwdWrW2<1>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
+
+    private:
+    // This function dervied from ConvOclBwdWrW2 is declared private
+    // so that this solver is not marked searchable/tunable.
+    template <int N_BATCH_LOOPS>
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config,
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct ConvOclBwdWrW53 : SolverBase<ConvolutionContext>

@@ -53,11 +53,7 @@
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #define UNUSED __attribute__((__unused__))
-#define INLINE __attribute__((always_inline))
-#define IDIV(A, B) (iDiv(A, B))
-#define IMOD(A, B, C) (iMod(A, B, C))
-//#define IDIV(A,B) ((uint)((float)A * (1.0f / (float) B) + 0.00001f))
-//#define IMOD(A,B,C) (A - mul24(B, (uint)C))
+#define INLINE
 
 #define DBG_OUT_OF_RNGE 0
 
@@ -85,19 +81,7 @@
 #define MLO_LCL_SZ (MLO_WEI_LCL_SZ)
 #endif
 
-INLINE
-uint iDiv(uint v, uint d)
-{
-    uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
-    return (r);
-}
-
-INLINE
-uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24(u, d);
-    return (r);
-}
+#include "math_ops.h"
 
 /*
         group cooperative read
@@ -122,8 +106,8 @@ void readInput(uint lcl_id,
         // TODO : more than 1 input
         uint c = 0;
 
-        uint c_scan = IDIV(p4, (MLO_N_IN_HORIZ_READS));
-        uint c_pix4 = IMOD(p4, c_scan, (MLO_N_IN_HORIZ_READS));
+        uint c_scan = iDiv_legacy(p4, (MLO_N_IN_HORIZ_READS));
+        uint c_pix4 = iMod(p4, c_scan, (MLO_N_IN_HORIZ_READS));
 
         //		if (c < MLO_N_INPUTS)
 
@@ -360,9 +344,9 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
     uint2 gbl_in_offv2 = (uint2)(gbl_in_off, gbl_in_off + MLO_N_LCL_BATCHS * MLO_IN_BATCH_STRIDE);
     // 1 span per wk_item, total scanline with MLO_N_SPANS_PER_SCAN spans
     // TODO: more than 1 input
-    uint o = IDIV(lcl_id, MLO_N_SPANS_PER_SCAN);
+    uint o = iDiv_legacy(lcl_id, MLO_N_SPANS_PER_SCAN);
     //	bool scan_lead = (o*MLO_N_SPANS_PER_SCAN == lcl_id);
-    uint spn = IMOD(lcl_id, o, MLO_N_SPANS_PER_SCAN);
+    uint spn = iMod(lcl_id, o, MLO_N_SPANS_PER_SCAN);
 
     uint lcl_bot_off     = spn * MLO_IN_TILE0;
     uint out_wk_item_off = o * MLO_OUT_CHANNEL_STRIDE + lcl_bot_off;
@@ -571,8 +555,8 @@ MIOpenCvBwdWrW_rdc(const __global _FLOAT* __restrict weight_df_tmp,
     uint gbl_id   = get_global_id(0);
     uint wei_idx0 = gbl_id * MLO_UT_READ_UNIT;
 
-    uint wei_blk_idx = IDIV(wei_idx0, MLO_WEI_CHANNEL_STRIDE);
-    uint wei_idx     = IMOD(wei_idx0, wei_blk_idx, MLO_WEI_CHANNEL_STRIDE);
+    uint wei_blk_idx = iDiv_legacy(wei_idx0, MLO_WEI_CHANNEL_STRIDE);
+    uint wei_idx     = iMod(wei_idx0, wei_blk_idx, MLO_WEI_CHANNEL_STRIDE);
 
     _FLOAT pvt_accum_wei[MLO_UT_READ_UNIT] = {(_FLOAT)0};
 

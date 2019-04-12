@@ -31,7 +31,7 @@
 #define C3QA 0.50000000000000000000000000000000f
 #define C3QB 0.86602540378443864676372317075294f
 
-__attribute__((always_inline)) void FwdRad3B1(float2* R0, float2* R1, float2* R2)
+void FwdRad3B1(float2* R0, float2* R1, float2* R2)
 {
 
     float TR0, TI0, TR1, TI1, TR2, TI2;
@@ -52,7 +52,7 @@ __attribute__((always_inline)) void FwdRad3B1(float2* R0, float2* R1, float2* R2
     ((*R2).y) = TI2;
 }
 
-__attribute__((always_inline)) void InvRad3B1(float2* R0, float2* R1, float2* R2)
+void InvRad3B1(float2* R0, float2* R1, float2* R2)
 {
 
     float TR0, TI0, TR1, TI1, TR2, TI2;
@@ -73,8 +73,7 @@ __attribute__((always_inline)) void InvRad3B1(float2* R0, float2* R1, float2* R2
     ((*R2).y) = TI2;
 }
 
-__attribute__((always_inline)) void
-FwdRad6B1(float2* R0, float2* R1, float2* R2, float2* R3, float2* R4, float2* R5)
+void FwdRad6B1(float2* R0, float2* R1, float2* R2, float2* R3, float2* R4, float2* R5)
 {
 
     float TR0, TI0, TR1, TI1, TR2, TI2, TR3, TI3, TR4, TI4, TR5, TI5;
@@ -112,8 +111,7 @@ FwdRad6B1(float2* R0, float2* R1, float2* R2, float2* R3, float2* R4, float2* R5
     (*R5).y = TI4 - (-C3QB * TR5 - C3QA * TI5);
 }
 
-__attribute__((always_inline)) void
-InvRad6B1(float2* R0, float2* R1, float2* R2, float2* R3, float2* R4, float2* R5)
+void InvRad6B1(float2* R0, float2* R1, float2* R2, float2* R3, float2* R4, float2* R5)
 {
 
     float TR0, TI0, TR1, TI1, TR2, TI2, TR3, TI3, TR4, TI4, TR5, TI5;
@@ -151,14 +149,14 @@ InvRad6B1(float2* R0, float2* R1, float2* R2, float2* R3, float2* R4, float2* R5
     (*R5).y = TI4 - (C3QB * TR5 - C3QA * TI5);
 }
 
-__attribute__((always_inline)) void FwdRad2B1(float2* R0, float2* R1)
+void FwdRad2B1(float2* R0, float2* R1)
 {
 
     (*R1) = (*R0) - (*R1);
     (*R0) = 2.0f * (*R0) - (*R1);
 }
 
-__attribute__((always_inline)) void InvRad2B1(float2* R0, float2* R1)
+void InvRad2B1(float2* R0, float2* R1)
 {
 
     (*R1) = (*R0) - (*R1);
@@ -167,7 +165,7 @@ __attribute__((always_inline)) void InvRad2B1(float2* R0, float2* R1)
 
 #define C8Q 0.70710678118654752440084436210485f
 
-__attribute__((always_inline)) void FwdRad4B1(float2* R0, float2* R2, float2* R1, float2* R3)
+void FwdRad4B1(float2* R0, float2* R2, float2* R1, float2* R3)
 {
 
     float2 T;
@@ -187,7 +185,7 @@ __attribute__((always_inline)) void FwdRad4B1(float2* R0, float2* R2, float2* R1
     (*R2) = T;
 }
 
-__attribute__((always_inline)) void InvRad4B1(float2* R0, float2* R2, float2* R1, float2* R3)
+void InvRad4B1(float2* R0, float2* R2, float2* R1, float2* R3)
 {
 
     float2 T;
@@ -207,7 +205,7 @@ __attribute__((always_inline)) void InvRad4B1(float2* R0, float2* R2, float2* R1
     (*R2) = T;
 }
 
-__attribute__((always_inline)) void FwdRad8B1(
+void FwdRad8B1(
     float2* R0, float2* R4, float2* R2, float2* R6, float2* R1, float2* R5, float2* R3, float2* R7)
 {
 
@@ -248,7 +246,7 @@ __attribute__((always_inline)) void FwdRad8B1(
     (*R6) = T;
 }
 
-__attribute__((always_inline)) void InvRad8B1(
+void InvRad8B1(
     float2* R0, float2* R4, float2* R2, float2* R6, float2* R1, float2* R5, float2* R3, float2* R7)
 {
 
@@ -307,17 +305,17 @@ static __constant float2 twiddles[11] = {
              -4.9999999999999994448884876874217298e-01f),
 };
 
-__attribute__((always_inline)) void FwdPassIN(uint me,
-                                              uint inOffset,
-                                              uint outOffset,
-                                              __global const float* bufIn,
-                                              __local float2* bufOut,
-                                              float2* R0,
-                                              float2* R1,
-                                              float2* R2,
-                                              float2* R3,
-                                              float2* R4,
-                                              float2* R5)
+void FwdPassIN(uint me,
+               uint inOffset,
+               uint outOffset,
+               __global const float* bufIn,
+               __local float2* bufOut,
+               float2* R0,
+               float2* R1,
+               float2* R2,
+               float2* R3,
+               float2* R4,
+               float2* R5)
 {
     uint met            = me % 48;
     __local float* ldsf = (__local float*)(bufOut + outOffset);
@@ -360,18 +358,18 @@ __attribute__((always_inline)) void FwdPassIN(uint me,
     }
 }
 
-__attribute__((always_inline)) void FwdPassWE(uint batch,
-                                              uint me,
-                                              uint inOffset,
-                                              uint outOffset,
-                                              __global const float* bufIn,
-                                              __local float2* bufOut,
-                                              float2* R0,
-                                              float2* R1,
-                                              float2* R2,
-                                              float2* R3,
-                                              float2* R4,
-                                              float2* R5)
+void FwdPassWE(uint batch,
+               uint me,
+               uint inOffset,
+               uint outOffset,
+               __global const float* bufIn,
+               __local float2* bufOut,
+               float2* R0,
+               float2* R1,
+               float2* R2,
+               float2* R3,
+               float2* R4,
+               float2* R5)
 {
     uint met            = me % 24;
     __local float* ldsf = (__local float*)(bufOut + outOffset);
@@ -436,17 +434,17 @@ __attribute__((always_inline)) void FwdPassWE(uint batch,
     }
 }
 
-__attribute__((always_inline)) void FwdPass0(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5)
+void FwdPass0(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5)
 {
 
     (*R0) = bufIn[inOffset + (me + 0)];
@@ -468,17 +466,17 @@ __attribute__((always_inline)) void FwdPass0(uint me,
     bufOut[outOffset + (me * 6 + 5)] = (*R5);
 }
 
-__attribute__((always_inline)) void FwdPass1(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5)
+void FwdPass1(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5)
 {
 
     (*R0) = bufIn[inOffset + (me * 3 + 0 + 0)];
@@ -529,17 +527,17 @@ __attribute__((always_inline)) void FwdPass1(uint me,
     bufOut[outOffset + (3 * me + 2 + 6)] = (*R5);
 }
 
-__attribute__((always_inline)) void FwdPass1b(uint me,
-                                              uint inOffset,
-                                              uint outOffset,
-                                              __local float2* bufIn,
-                                              __local float2* bufOut,
-                                              float2* R0,
-                                              float2* R1,
-                                              float2* R2,
-                                              float2* R3,
-                                              float2* R4,
-                                              float2* R5)
+void FwdPass1b(uint me,
+               uint inOffset,
+               uint outOffset,
+               __local float2* bufIn,
+               __local float2* bufOut,
+               float2* R0,
+               float2* R1,
+               float2* R2,
+               float2* R3,
+               float2* R4,
+               float2* R5)
 {
 
     (*R0) = bufIn[inOffset + (3 * me + 1)];
@@ -578,17 +576,17 @@ __attribute__((always_inline)) void FwdPass1b(uint me,
     }
 }
 
-__attribute__((always_inline)) void FwdPass2(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5)
+void FwdPass2(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5)
 {
 
     (*R0) = bufIn[inOffset + (me + 0) * 7];
@@ -610,17 +608,17 @@ __attribute__((always_inline)) void FwdPass2(uint me,
     bufOut[outOffset + (me * 6 + 5) * 7] = (*R5);
 }
 
-__attribute__((always_inline)) void FwdPass3(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5)
+void FwdPass3(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5)
 {
 
     (*R0) = bufIn[inOffset + (me * 3 + 0 + 0) * 7];
@@ -671,18 +669,18 @@ __attribute__((always_inline)) void FwdPass3(uint me,
     bufOut[outOffset + (3 * me + 2 + 6) * 7] = (*R5);
 }
 
-__attribute__((always_inline)) void FwdPass4_IN(uint me,
-                                                uint inOffset,
-                                                uint outOffset,
-                                                __local float2* bufIn,
-                                                __global float2* bufOut,
-                                                float2* R0,
-                                                float2* R1,
-                                                float2* R2,
-                                                float2* R3,
-                                                float2* R4,
-                                                float2* R5,
-                                                float2* R6)
+void FwdPass4_IN(uint me,
+                 uint inOffset,
+                 uint outOffset,
+                 __local float2* bufIn,
+                 __global float2* bufOut,
+                 float2* R0,
+                 float2* R1,
+                 float2* R2,
+                 float2* R3,
+                 float2* R4,
+                 float2* R5,
+                 float2* R6)
 {
     (*R0) = bufIn[inOffset + ((me % 16) * 84 + (me / 16) + 0 * 12)];
     (*R1) = bufIn[inOffset + ((me % 16) * 84 + (me / 16) + 1 * 12)];
@@ -710,18 +708,18 @@ __attribute__((always_inline)) void FwdPass4_IN(uint me,
         (*R6);
 }
 
-__attribute__((always_inline)) void FwdPass4_WE(uint me,
-                                                uint inOffset,
-                                                uint outOffset,
-                                                __local float2* bufIn,
-                                                __global float2* bufOut,
-                                                float2* R0,
-                                                float2* R1,
-                                                float2* R2,
-                                                float2* R3,
-                                                float2* R4,
-                                                float2* R5,
-                                                float2* R6)
+void FwdPass4_WE(uint me,
+                 uint inOffset,
+                 uint outOffset,
+                 __local float2* bufIn,
+                 __global float2* bufOut,
+                 float2* R0,
+                 float2* R1,
+                 float2* R2,
+                 float2* R3,
+                 float2* R4,
+                 float2* R5,
+                 float2* R6)
 {
     (*R0) = bufIn[inOffset + ((me % 16) * 84 + (me / 16) + 0 * 12)];
     (*R1) = bufIn[inOffset + ((me % 16) * 84 + (me / 16) + 1 * 12)];
@@ -1000,17 +998,17 @@ MIOpenConvFFT_transpose_out(__global float2* restrict gb)
     }
 }
 
-__attribute__((always_inline)) void InvPassA(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __global const float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5)
+void InvPassA(uint me,
+              uint inOffset,
+              uint outOffset,
+              __global const float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5)
 {
 
     (*R0) = bufIn[inOffset + (me + 0 * 192)];
@@ -1031,17 +1029,17 @@ __attribute__((always_inline)) void InvPassA(uint me,
     bufOut[outOffset + (me + 6 * 192)] = (*R0);
 }
 
-__attribute__((always_inline)) void InvPass0(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5)
+void InvPass0(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5)
 {
 
     (*R0) = bufIn[inOffset + (me + 0) * 7];
@@ -1063,17 +1061,17 @@ __attribute__((always_inline)) void InvPass0(uint me,
     bufOut[outOffset + (me * 6 + 5) * 7] = (*R5);
 }
 
-__attribute__((always_inline)) void InvPass1(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5)
+void InvPass1(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5)
 {
 
     (*R0) = bufIn[inOffset + (me * 3 + 0 + 0) * 7];
@@ -1124,17 +1122,17 @@ __attribute__((always_inline)) void InvPass1(uint me,
     bufOut[outOffset + (3 * me + 2 + 6) * 7] = (*R5) * 8.3333333333333329e-02f;
 }
 
-__attribute__((always_inline)) void InvPass1b(uint me,
-                                              uint inOffset,
-                                              uint outOffset,
-                                              __local float2* bufIn,
-                                              __local float2* bufOut,
-                                              float2* R0,
-                                              float2* R1,
-                                              float2* R2,
-                                              float2* R3,
-                                              float2* R4,
-                                              float2* R5)
+void InvPass1b(uint me,
+               uint inOffset,
+               uint outOffset,
+               __local float2* bufIn,
+               __local float2* bufOut,
+               float2* R0,
+               float2* R1,
+               float2* R2,
+               float2* R3,
+               float2* R4,
+               float2* R5)
 {
 
     (*R0) = bufIn[inOffset + 0 + (3 * me + 1)];
@@ -1154,17 +1152,11 @@ __attribute__((always_inline)) void InvPass1b(uint me,
     barrier(CLK_LOCAL_MEM_FENCE);
 
     bufOut[outOffset + (12 - (3 * me + 1))] = (float2)((*R0).x + (*R3).y, -(*R0).y + (*R3).x);
-    ;
     bufOut[outOffset + (12 - (3 * me + 2))] = (float2)((*R1).x + (*R4).y, -(*R1).y + (*R4).x);
-    ;
     bufOut[outOffset + (12 - (3 * me + 3))] = (float2)((*R2).x + (*R5).y, -(*R2).y + (*R5).x);
-    ;
-    bufOut[outOffset + (3 * me + 1)] = (float2)((*R0).x - (*R3).y, (*R0).y + (*R3).x);
-    ;
-    bufOut[outOffset + (3 * me + 2)] = (float2)((*R1).x - (*R4).y, (*R1).y + (*R4).x);
-    ;
-    bufOut[outOffset + (3 * me + 3)] = (float2)((*R2).x - (*R5).y, (*R2).y + (*R5).x);
-    ;
+    bufOut[outOffset + (3 * me + 1)]        = (float2)((*R0).x - (*R3).y, (*R0).y + (*R3).x);
+    bufOut[outOffset + (3 * me + 2)]        = (float2)((*R1).x - (*R4).y, (*R1).y + (*R4).x);
+    bufOut[outOffset + (3 * me + 3)]        = (float2)((*R2).x - (*R5).y, (*R2).y + (*R5).x);
 
     if(me < 1)
     {
@@ -1172,17 +1164,17 @@ __attribute__((always_inline)) void InvPass1b(uint me,
     }
 }
 
-__attribute__((always_inline)) void InvPass2(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5)
+void InvPass2(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5)
 {
 
     (*R0) = bufIn[inOffset + (me + 0)];
@@ -1204,17 +1196,17 @@ __attribute__((always_inline)) void InvPass2(uint me,
     bufOut[outOffset + (me * 6 + 5)] = (*R5);
 }
 
-__attribute__((always_inline)) void InvPass3(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5)
+void InvPass3(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5)
 {
 
     (*R0) = bufIn[inOffset + (me * 3 + 0 + 0)];
@@ -1265,16 +1257,16 @@ __attribute__((always_inline)) void InvPass3(uint me,
     bufOut[outOffset + (3 * me + 2 + 6)] = (*R5) * 8.3333333333333329e-02f;
 }
 
-__attribute__((always_inline)) void InvPassOUT(uint me,
-                                               uint inOffset,
-                                               uint outOffset,
-                                               __local float2* bufIn,
-                                               __global float* bufOut,
-                                               float2* R0,
-                                               float2* R1,
-                                               float2* R2,
-                                               float2* R3,
-                                               float2* R4)
+void InvPassOUT(uint me,
+                uint inOffset,
+                uint outOffset,
+                __local float2* bufIn,
+                __global float* bufOut,
+                float2* R0,
+                float2* R1,
+                float2* R2,
+                float2* R3,
+                float2* R4)
 {
 
     uint met            = me % 48;
@@ -1422,17 +1414,17 @@ static __constant float2 twiddles[17] = {
     (float2)(-9.3969262078590842790504211734514683e-01f, 3.4202014332566865739693184877978638e-01f),
 };
 
-__attribute__((always_inline)) void FwdPass0(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5)
+void FwdPass0(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5)
 {
 
     (*R0) = bufIn[inOffset + (me + 0)];
@@ -1454,17 +1446,17 @@ __attribute__((always_inline)) void FwdPass0(uint me,
     bufOut[outOffset + (me * 6 + 5)] = (*R5);
 }
 
-__attribute__((always_inline)) void FwdPass1(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5)
+void FwdPass1(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5)
 {
 
     (*R0) = bufIn[inOffset + (me * 2 + 0 + 0)];
@@ -1521,17 +1513,17 @@ __attribute__((always_inline)) void FwdPass1(uint me,
     bufOut[outOffset + (2 * me + 1 + 12)] = (*R5);
 }
 
-__attribute__((always_inline)) void FwdPass1b(uint me,
-                                              uint inOffset,
-                                              uint outOffset,
-                                              __local float2* bufIn,
-                                              __local float2* bufOut,
-                                              float2* R0,
-                                              float2* R1,
-                                              float2* R2,
-                                              float2* R3,
-                                              float2* R4,
-                                              float2* R5)
+void FwdPass1b(uint me,
+               uint inOffset,
+               uint outOffset,
+               __local float2* bufIn,
+               __local float2* bufOut,
+               float2* R0,
+               float2* R1,
+               float2* R2,
+               float2* R3,
+               float2* R4,
+               float2* R5)
 {
 
     (*R0) = bufIn[inOffset + (3 * me + 1)];
@@ -1570,17 +1562,17 @@ __attribute__((always_inline)) void FwdPass1b(uint me,
     }
 }
 
-__attribute__((always_inline)) void FwdPass2(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5)
+void FwdPass2(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5)
 {
 
     (*R0) = bufIn[inOffset + (me + 0) * 10];
@@ -1602,17 +1594,17 @@ __attribute__((always_inline)) void FwdPass2(uint me,
     bufOut[outOffset + (me * 6 + 5) * 10] = (*R5);
 }
 
-__attribute__((always_inline)) void FwdPass3(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5)
+void FwdPass3(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5)
 {
 
     (*R0) = bufIn[inOffset + (me * 2 + 0 + 0) * 10];
@@ -1669,17 +1661,17 @@ __attribute__((always_inline)) void FwdPass3(uint me,
     bufOut[outOffset + (2 * me + 1 + 12) * 10] = (*R5);
 }
 
-__attribute__((always_inline)) void FwdPass4(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __global float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5)
+void FwdPass4(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __global float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5)
 {
     if(me < 120)
     {
@@ -1699,17 +1691,17 @@ __attribute__((always_inline)) void FwdPass4(uint me,
     }
 }
 
-__attribute__((always_inline)) void FwdPassIN(uint me,
-                                              uint inOffset,
-                                              uint outOffset,
-                                              __global const float* bufIn,
-                                              __local float2* bufOut,
-                                              float2* R0,
-                                              float2* R1,
-                                              float2* R2,
-                                              float2* R3,
-                                              float2* R4,
-                                              float2* R5)
+void FwdPassIN(uint me,
+               uint inOffset,
+               uint outOffset,
+               __global const float* bufIn,
+               __local float2* bufOut,
+               float2* R0,
+               float2* R1,
+               float2* R2,
+               float2* R3,
+               float2* R4,
+               float2* R5)
 {
     (*R0) = (float2)(0, 0);
     (*R1) = (float2)(0, 0);
@@ -1763,18 +1755,18 @@ __attribute__((always_inline)) void FwdPassIN(uint me,
     }
 }
 
-__attribute__((always_inline)) void FwdPassWE(uint batch,
-                                              uint me,
-                                              uint inOffset,
-                                              uint outOffset,
-                                              __global const float* bufIn,
-                                              __local float2* bufOut,
-                                              float2* R0,
-                                              float2* R1,
-                                              float2* R2,
-                                              float2* R3,
-                                              float2* R4,
-                                              float2* R5)
+void FwdPassWE(uint batch,
+               uint me,
+               uint inOffset,
+               uint outOffset,
+               __global const float* bufIn,
+               __local float2* bufOut,
+               float2* R0,
+               float2* R1,
+               float2* R2,
+               float2* R3,
+               float2* R4,
+               float2* R5)
 {
     uint met = me % 32;
 
@@ -1841,15 +1833,15 @@ __attribute__((always_inline)) void FwdPassWE(uint batch,
     (*R0) = (float2)(0, 0);
 }
 
-__attribute__((always_inline)) void FwdPass(uint me,
-                                            __local float2* lds,
-                                            __global float2* lwbOut,
-                                            float2* R0,
-                                            float2* R1,
-                                            float2* R2,
-                                            float2* R3,
-                                            float2* R4,
-                                            float2* R5)
+void FwdPass(uint me,
+             __local float2* lds,
+             __global float2* lwbOut,
+             float2* R0,
+             float2* R1,
+             float2* R2,
+             float2* R3,
+             float2* R4,
+             float2* R5)
 {
     uint met = me % 32;
 
@@ -2154,17 +2146,17 @@ MIOpenConvFFT_transpose_out(__global float2* restrict gb)
     }
 }
 
-__attribute__((always_inline)) void InvPassA(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __global const float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5)
+void InvPassA(uint me,
+              uint inOffset,
+              uint outOffset,
+              __global const float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5)
 {
 
     if(me < 120)
@@ -2185,17 +2177,17 @@ __attribute__((always_inline)) void InvPassA(uint me,
     }
 }
 
-__attribute__((always_inline)) void InvPass0(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5)
+void InvPass0(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5)
 {
 
     (*R0) = bufIn[inOffset + (me + 0) * 10];
@@ -2217,17 +2209,17 @@ __attribute__((always_inline)) void InvPass0(uint me,
     bufOut[outOffset + (me * 6 + 5) * 10] = (*R5);
 }
 
-__attribute__((always_inline)) void InvPass1(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5)
+void InvPass1(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5)
 {
 
     (*R0) = bufIn[inOffset + (me * 2 + 0 + 0) * 10];
@@ -2284,17 +2276,17 @@ __attribute__((always_inline)) void InvPass1(uint me,
     bufOut[outOffset + (2 * me + 1 + 12) * 10] = (*R5) * 5.5555555555555555e-02f;
 }
 
-__attribute__((always_inline)) void InvPass1b(uint me,
-                                              uint inOffset,
-                                              uint outOffset,
-                                              __local float2* bufIn,
-                                              __local float2* bufOut,
-                                              float2* R0,
-                                              float2* R1,
-                                              float2* R2,
-                                              float2* R3,
-                                              float2* R4,
-                                              float2* R5)
+void InvPass1b(uint me,
+               uint inOffset,
+               uint outOffset,
+               __local float2* bufIn,
+               __local float2* bufOut,
+               float2* R0,
+               float2* R1,
+               float2* R2,
+               float2* R3,
+               float2* R4,
+               float2* R5)
 {
 
     (*R0) = bufIn[inOffset + 0 + (3 * me + 1)];
@@ -2314,17 +2306,11 @@ __attribute__((always_inline)) void InvPass1b(uint me,
     barrier(CLK_LOCAL_MEM_FENCE);
 
     bufOut[outOffset + (18 - (3 * me + 1))] = (float2)((*R0).x + (*R3).y, -(*R0).y + (*R3).x);
-    ;
     bufOut[outOffset + (18 - (3 * me + 2))] = (float2)((*R1).x + (*R4).y, -(*R1).y + (*R4).x);
-    ;
     bufOut[outOffset + (18 - (3 * me + 3))] = (float2)((*R2).x + (*R5).y, -(*R2).y + (*R5).x);
-    ;
-    bufOut[outOffset + (3 * me + 1)] = (float2)((*R0).x - (*R3).y, (*R0).y + (*R3).x);
-    ;
-    bufOut[outOffset + (3 * me + 2)] = (float2)((*R1).x - (*R4).y, (*R1).y + (*R4).x);
-    ;
-    bufOut[outOffset + (3 * me + 3)] = (float2)((*R2).x - (*R5).y, (*R2).y + (*R5).x);
-    ;
+    bufOut[outOffset + (3 * me + 1)]        = (float2)((*R0).x - (*R3).y, (*R0).y + (*R3).x);
+    bufOut[outOffset + (3 * me + 2)]        = (float2)((*R1).x - (*R4).y, (*R1).y + (*R4).x);
+    bufOut[outOffset + (3 * me + 3)]        = (float2)((*R2).x - (*R5).y, (*R2).y + (*R5).x);
 
     if(me < 1)
     {
@@ -2332,17 +2318,17 @@ __attribute__((always_inline)) void InvPass1b(uint me,
     }
 }
 
-__attribute__((always_inline)) void InvPass2(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5)
+void InvPass2(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5)
 {
 
     (*R0) = bufIn[inOffset + (me + 0)];
@@ -2364,17 +2350,17 @@ __attribute__((always_inline)) void InvPass2(uint me,
     bufOut[outOffset + (me * 6 + 5)] = (*R5);
 }
 
-__attribute__((always_inline)) void InvPass3(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5)
+void InvPass3(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5)
 {
 
     (*R0) = bufIn[inOffset + (me * 2 + 0 + 0)];
@@ -2431,15 +2417,15 @@ __attribute__((always_inline)) void InvPass3(uint me,
     bufOut[outOffset + (2 * me + 1 + 12)] = (*R5) * 5.5555555555555555e-02f;
 }
 
-__attribute__((always_inline)) void InvPassOUT(uint me,
-                                               uint inOffset,
-                                               uint outOffset,
-                                               __local float2* bufIn,
-                                               __global float* bufOut,
-                                               float2* R0,
-                                               float2* R1,
-                                               float2* R2,
-                                               float2* R3)
+void InvPassOUT(uint me,
+                uint inOffset,
+                uint outOffset,
+                __local float2* bufIn,
+                __global float* bufOut,
+                float2* R0,
+                float2* R1,
+                float2* R2,
+                float2* R3)
 {
 
     if((me % 16) < CFF_IMG_W)
@@ -2636,19 +2622,19 @@ static __constant float2 twiddles[31] = {
     (float2)(-5.5557023301960217764872140833176672e-01f, 8.3146961230254523567140267914510332e-01f),
 };
 
-__attribute__((always_inline)) void FwdPassIN(uint me,
-                                              uint inOffset,
-                                              uint outOffset,
-                                              __global const float* bufIn,
-                                              __local float2* bufOut,
-                                              float2* R0,
-                                              float2* R1,
-                                              float2* R2,
-                                              float2* R3,
-                                              float2* R4,
-                                              float2* R5,
-                                              float2* R6,
-                                              float2* R7)
+void FwdPassIN(uint me,
+               uint inOffset,
+               uint outOffset,
+               __global const float* bufIn,
+               __local float2* bufOut,
+               float2* R0,
+               float2* R1,
+               float2* R2,
+               float2* R3,
+               float2* R4,
+               float2* R5,
+               float2* R6,
+               float2* R7)
 {
     (*R0) = (float2)(0, 0);
     (*R1) = (float2)(0, 0);
@@ -2719,19 +2705,19 @@ __attribute__((always_inline)) void FwdPassIN(uint me,
     bufOut[outOffset + ((1 + 12 + (me / 32) * 2 + 1) % 17) * 32 + ((2 + me) % 32)] = (*R7);
 }
 
-__attribute__((always_inline)) void FwdPassWE(uint me,
-                                              uint inOffset,
-                                              uint outOffset,
-                                              __global const float* bufIn,
-                                              __local float2* bufOut,
-                                              float2* R0,
-                                              float2* R1,
-                                              float2* R2,
-                                              float2* R3,
-                                              float2* R4,
-                                              float2* R5,
-                                              float2* R6,
-                                              float2* R7)
+void FwdPassWE(uint me,
+               uint inOffset,
+               uint outOffset,
+               __global const float* bufIn,
+               __local float2* bufOut,
+               float2* R0,
+               float2* R1,
+               float2* R2,
+               float2* R3,
+               float2* R4,
+               float2* R5,
+               float2* R6,
+               float2* R7)
 {
 
     __local float* ldsf = (__local float*)bufOut;
@@ -2790,19 +2776,19 @@ __attribute__((always_inline)) void FwdPassWE(uint me,
     }
 }
 
-__attribute__((always_inline)) void FwdPass0(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5,
-                                             float2* R6,
-                                             float2* R7)
+void FwdPass0(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5,
+              float2* R6,
+              float2* R7)
 {
 
     (*R0) = bufIn[inOffset + (me + 0)];
@@ -2828,19 +2814,19 @@ __attribute__((always_inline)) void FwdPass0(uint me,
     bufOut[outOffset + (me * 8 + 7)] = (*R7);
 }
 
-__attribute__((always_inline)) void FwdPass1(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5,
-                                             float2* R6,
-                                             float2* R7)
+void FwdPass1(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5,
+              float2* R6,
+              float2* R7)
 {
 
     (*R0) = bufIn[inOffset + (me * 2 + 0 + 0)];
@@ -2921,19 +2907,19 @@ __attribute__((always_inline)) void FwdPass1(uint me,
     bufOut[outOffset + (2 * me + 1 + 24)] = (*R7);
 }
 
-__attribute__((always_inline)) void FwdPass1b(uint me,
-                                              uint inOffset,
-                                              uint outOffset,
-                                              __local float2* bufIn,
-                                              __local float2* bufOut,
-                                              float2* R0,
-                                              float2* R1,
-                                              float2* R2,
-                                              float2* R3,
-                                              float2* R4,
-                                              float2* R5,
-                                              float2* R6,
-                                              float2* R7)
+void FwdPass1b(uint me,
+               uint inOffset,
+               uint outOffset,
+               __local float2* bufIn,
+               __local float2* bufOut,
+               float2* R0,
+               float2* R1,
+               float2* R2,
+               float2* R3,
+               float2* R4,
+               float2* R5,
+               float2* R6,
+               float2* R7)
 {
     (*R0) = bufIn[inOffset + (me + 1)];
     (*R1) = bufIn[inOffset + (me + 5)];
@@ -2977,19 +2963,19 @@ __attribute__((always_inline)) void FwdPass1b(uint me,
     }
 }
 
-__attribute__((always_inline)) void FwdPass2(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5,
-                                             float2* R6,
-                                             float2* R7)
+void FwdPass2(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5,
+              float2* R6,
+              float2* R7)
 {
 
     (*R0) = bufIn[inOffset + (me + 0) * 17];
@@ -3015,19 +3001,19 @@ __attribute__((always_inline)) void FwdPass2(uint me,
     bufOut[outOffset + (me * 8 + 7) * 17] = (*R7);
 }
 
-__attribute__((always_inline)) void FwdPass3(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5,
-                                             float2* R6,
-                                             float2* R7)
+void FwdPass3(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5,
+              float2* R6,
+              float2* R7)
 {
 
     (*R0) = bufIn[inOffset + (me * 2 + 0 + 0) * 17];
@@ -3108,19 +3094,19 @@ __attribute__((always_inline)) void FwdPass3(uint me,
     bufOut[outOffset + (2 * me + 1 + 24) * 17] = (*R7);
 }
 
-__attribute__((always_inline)) void FwdPass4(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __global float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5,
-                                             float2* R6,
-                                             float2* R7)
+void FwdPass4(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __global float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5,
+              float2* R6,
+              float2* R7)
 {
 
     (*R0) = bufIn[inOffset + (me + 0 * 64)];
@@ -3482,19 +3468,19 @@ MIOpenConvFFT_transpose_out(__global float2* restrict gb)
 
 #endif
 
-__attribute__((always_inline)) void InvPassA(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __global const float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5,
-                                             float2* R6,
-                                             float2* R7)
+void InvPassA(uint me,
+              uint inOffset,
+              uint outOffset,
+              __global const float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5,
+              float2* R6,
+              float2* R7)
 {
 
     (*R0) = bufIn[inOffset + (me + 0 * 64)];
@@ -3522,19 +3508,19 @@ __attribute__((always_inline)) void InvPassA(uint me,
     }
 }
 
-__attribute__((always_inline)) void InvPass0(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5,
-                                             float2* R6,
-                                             float2* R7)
+void InvPass0(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5,
+              float2* R6,
+              float2* R7)
 {
 
     (*R0) = bufIn[inOffset + (me + 0) * 17];
@@ -3560,19 +3546,19 @@ __attribute__((always_inline)) void InvPass0(uint me,
     bufOut[outOffset + (me * 8 + 7) * 17] = (*R7);
 }
 
-__attribute__((always_inline)) void InvPass1(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5,
-                                             float2* R6,
-                                             float2* R7)
+void InvPass1(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5,
+              float2* R6,
+              float2* R7)
 {
 
     (*R0) = bufIn[inOffset + (me * 2 + 0 + 0) * 17];
@@ -3662,19 +3648,19 @@ __attribute__((always_inline)) void InvPass1(uint me,
     bufOut[outOffset + (2 * me + 1 + 24) * 17] = (*R7);
 }
 
-__attribute__((always_inline)) void InvPass1b(uint me,
-                                              uint inOffset,
-                                              uint outOffset,
-                                              __local float2* bufIn,
-                                              __local float2* bufOut,
-                                              float2* R0,
-                                              float2* R1,
-                                              float2* R2,
-                                              float2* R3,
-                                              float2* R4,
-                                              float2* R5,
-                                              float2* R6,
-                                              float2* R7)
+void InvPass1b(uint me,
+               uint inOffset,
+               uint outOffset,
+               __local float2* bufIn,
+               __local float2* bufOut,
+               float2* R0,
+               float2* R1,
+               float2* R2,
+               float2* R3,
+               float2* R4,
+               float2* R5,
+               float2* R6,
+               float2* R7)
 {
 
     (*R0) = bufIn[inOffset + 0 + (me + 1)];
@@ -3710,19 +3696,19 @@ __attribute__((always_inline)) void InvPass1b(uint me,
     }
 }
 
-__attribute__((always_inline)) void InvPass2(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5,
-                                             float2* R6,
-                                             float2* R7)
+void InvPass2(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5,
+              float2* R6,
+              float2* R7)
 {
 
     (*R0) = bufIn[inOffset + (me + 0)];
@@ -3748,19 +3734,19 @@ __attribute__((always_inline)) void InvPass2(uint me,
     bufOut[outOffset + (me * 8 + 7)] = (*R7);
 }
 
-__attribute__((always_inline)) void InvPass3(uint me,
-                                             uint inOffset,
-                                             uint outOffset,
-                                             __local float2* bufIn,
-                                             __local float2* bufOut,
-                                             float2* R0,
-                                             float2* R1,
-                                             float2* R2,
-                                             float2* R3,
-                                             float2* R4,
-                                             float2* R5,
-                                             float2* R6,
-                                             float2* R7)
+void InvPass3(uint me,
+              uint inOffset,
+              uint outOffset,
+              __local float2* bufIn,
+              __local float2* bufOut,
+              float2* R0,
+              float2* R1,
+              float2* R2,
+              float2* R3,
+              float2* R4,
+              float2* R5,
+              float2* R6,
+              float2* R7)
 {
 
     (*R0) = bufIn[inOffset + (me * 2 + 0 + 0)];
@@ -3841,19 +3827,19 @@ __attribute__((always_inline)) void InvPass3(uint me,
     bufOut[outOffset + (2 * me + 1 + 24)] = (*R7) * 3.1250000000000000e-02f;
 }
 
-__attribute__((always_inline)) void InvPassOUT(uint me,
-                                               uint inOffset,
-                                               uint outOffset,
-                                               __local float2* bufIn,
-                                               __global float* bufOut,
-                                               float2* R0,
-                                               float2* R1,
-                                               float2* R2,
-                                               float2* R3,
-                                               float2* R4,
-                                               float2* R5,
-                                               float2* R6,
-                                               float2* R7)
+void InvPassOUT(uint me,
+                uint inOffset,
+                uint outOffset,
+                __local float2* bufIn,
+                __global float* bufOut,
+                float2* R0,
+                float2* R1,
+                float2* R2,
+                float2* R3,
+                float2* R4,
+                float2* R5,
+                float2* R6,
+                float2* R7)
 {
 
     (*R0) = bufIn[inOffset + ((2 + 0 + (me / 32) * 6 + 0) % 16) * 32 + ((4 + me) % 32)];

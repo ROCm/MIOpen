@@ -54,7 +54,7 @@ bool IsLoggingTraceDetailed() { return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING{}
 
 bool IsLogging(const LoggingLevel level)
 {
-    const int enabled_level = miopen::Value(MIOPEN_LOG_LEVEL{});
+    const auto enabled_level = miopen::Value(MIOPEN_LOG_LEVEL{});
     if(enabled_level != LoggingLevel::Default)
         return enabled_level >= level;
 #ifdef NDEBUG // Simplest way.

@@ -179,7 +179,7 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
     this->SetAllocator(nullptr, nullptr, nullptr);
 
 #if MIOPEN_USE_ROCBLAS
-    rhandle = CreateRocblasHandle();
+    rhandle_ = CreateRocblasHandle();
 #endif
 }
 
@@ -197,7 +197,7 @@ Handle::Handle() : impl(new HandleImpl())
     this->SetAllocator(nullptr, nullptr, nullptr);
 
 #if MIOPEN_USE_ROCBLAS
-    rhandle = CreateRocblasHandle();
+    rhandle_ = CreateRocblasHandle();
 #endif
 }
 
@@ -206,6 +206,10 @@ Handle::~Handle() {}
 void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
 {
     this->impl->stream = HandleImpl::reference_stream(streamID);
+
+#if MIOPEN_USE_ROCBLAS
+    rocblas_set_stream(this->rhandle_.get(), this->GetStream());
+#endif
 }
 
 miopenAcceleratorQueue_t Handle::GetStream() const { return impl->stream.get(); }

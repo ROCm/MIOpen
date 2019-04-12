@@ -304,7 +304,7 @@ int LRNDriver<Tgpu, Tref>::RunForwardGPU()
                      do_backward ? scale_dev->GetMem() : nullptr);
 
     Timer t;
-    START_TIME;
+    START_TIME
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
@@ -325,7 +325,7 @@ int LRNDriver<Tgpu, Tref>::RunForwardGPU()
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
 
-        STOP_TIME;
+        STOP_TIME
         if(WALL_CLOCK)
             printf("Wall-clock Time Forward LRN Elapsed: %f ms\n",
                    t.gettime_ms() / inflags.GetValueInt("iter"));
@@ -368,7 +368,7 @@ int LRNDriver<Tgpu, Tref>::RunBackwardGPU()
                       scale_dev->GetMem());
 
     Timer t;
-    START_TIME;
+    START_TIME
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
@@ -392,7 +392,7 @@ int LRNDriver<Tgpu, Tref>::RunBackwardGPU()
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
 
-        STOP_TIME;
+        STOP_TIME
         if(WALL_CLOCK)
             printf("Wall-clock Time Backward LRN Elapsed: %f ms\n",
                    t.gettime_ms() / inflags.GetValueInt("iter"));

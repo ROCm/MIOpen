@@ -24,9 +24,18 @@
  *
  *******************************************************************************/
 
-#include <miopen/rnn.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/env.hpp>
+#include <miopen/common.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/miopen.h>
+#include <miopen/rnn.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/tensor_ops.hpp>
+
+#include <cassert>
+#include <cstddef>
+#include <numeric>
+#include <ostream>
 
 // MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 // MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
@@ -317,9 +326,9 @@ RNNDescriptor::RNNDescriptor(int hsz,
     {
         MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN bias type not supported");
     }
-    if(dType != miopenFloat)
+    if(dType != miopenFloat && dType != miopenHalf)
     {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Only float datatype is supported");
+        MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN datatype is not supported");
     }
     else
     {
@@ -572,7 +581,7 @@ void RNNDescriptor::GetLayerBias(Handle& handle,
     }
 
     // Calculate the location of the matrix via layerID, bidirection setting, and params
-    int x        = (dirMode == miopenRNNbidirection) ? nLayers * 2 : nLayers;
+    int x        = static_cast<int>((dirMode == miopenRNNbidirection) ? nLayers * 2 : nLayers);
     auto poffset = paramsOffsetCalculation(xDesc, x, 0);
     auto boffset = biasOffsetCalculation(xDesc, layer, biasID) + poffset;
 
@@ -664,7 +673,7 @@ void RNNDescriptor::SetLayerBias(Handle& handle,
     }
 
     // 1. Calculate the location of the matrix via layerID, bidirection setting, and params
-    int x        = (dirMode == miopenRNNbidirection) ? nLayers * 2 : nLayers;
+    int x        = static_cast<int>((dirMode == miopenRNNbidirection) ? nLayers * 2 : nLayers);
     auto poffset = paramsOffsetCalculation(xDesc, x, 0);
     auto boffset = biasOffsetCalculation(xDesc, layer, biasID) + poffset;
 
@@ -748,7 +757,7 @@ void RNNDescriptor::GetLayerBiasOffset(const int layer,
         return;
     }
 
-    int x        = (dirMode == miopenRNNbidirection) ? nLayers * 2 : nLayers;
+    int x        = static_cast<int>((dirMode == miopenRNNbidirection) ? nLayers * 2 : nLayers);
     auto poffset = paramsOffsetCalculation(xDesc, x, 0);
     *biasOffset  = biasOffsetCalculation(xDesc, layer, biasID) + poffset;
 

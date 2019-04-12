@@ -26,19 +26,18 @@
 #ifndef GUARD_MIOPEN_GEMM_HPP_
 #define GUARD_MIOPEN_GEMM_HPP_
 
+#include <string>
+
+#include <miopen/common.hpp>
 #include <miopen/gemm_geometry.hpp>
-#include <miopen/tensor.hpp>
 
 namespace miopen {
 
+struct Handle;
+struct TensorDescriptor;
+
 GemmGeometry
 GetGemmGeometry(Handle& handle, std::string algorithm_name, std::string network_config);
-
-GemmGeometry CreateGemmGeometryTranBwdData(const TensorDescriptor& dyDesc,
-                                           const TensorDescriptor& wDesc,
-                                           const TensorDescriptor& dxDesc,
-                                           bool isDataColMajor,
-                                           std::string& network_config);
 
 GemmGeometry CreateGemmGeometryConvBwdWeights(const TensorDescriptor& dyDesc,
                                               const TensorDescriptor& xDesc,

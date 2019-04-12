@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include <miopen/convolution.hpp>
+#include <miopen/db.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/temp_file.hpp>
