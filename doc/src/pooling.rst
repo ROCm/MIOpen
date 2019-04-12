@@ -10,6 +10,11 @@ miopenPoolingMode_t
 
 .. doxygenenum::  miopenPoolingMode_t
 
+miopenIndexType_t
+-----------------
+
+.. doxygenenum::  miopenIndexType_t
+
 miopenCreatePoolingDescriptor
 -----------------------------
 
@@ -19,6 +24,16 @@ miopenSet2dPoolingDescriptor
 ----------------------------
 
 .. doxygenfunction::  miopenSet2dPoolingDescriptor
+
+miopenSetPoolingIndexType
+-------------------------
+
+.. doxygenfunction::  miopenSetPoolingIndexType
+
+miopenGetPoolingIndexType
+-------------------------
+
+.. doxygenfunction::  miopenGetPoolingIndexType
 
 miopenGet2dPoolingDescriptor
 ----------------------------
@@ -34,6 +49,11 @@ miopenPoolingGetWorkSpaceSize
 -----------------------------
 
 .. doxygenfunction::  miopenPoolingGetWorkSpaceSize
+
+miopenPoolingGetWorkSpaceSizeV2
+-------------------------------
+
+.. doxygenfunction::  miopenPoolingGetWorkSpaceSizeV2
 
 miopenPoolingForward
 --------------------
