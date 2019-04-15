@@ -4,7 +4,7 @@
 
 ### 04/11/2019 [ 1.8.0 ]
 
-- This release contaings full 3-D convolution support and int8 support for interfence. 
+- This release contains full 3-D convolution support and int8 support for interfence. 
 - Additionally, there are major updates in the performance database for major models including those found in Torchvision. 
 - An assortment of bugs have been resolved in this release.
 
