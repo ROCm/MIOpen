@@ -3,6 +3,8 @@ Debugging and Logging
 
 ## Logging
 
+All logging messages output to standard error stream (`stderr`). The following environment variables can be used to control logging:
+
 * `MIOPEN_ENABLE_LOGGING` - Enables printing the basic layer by layer MIOpen API call information with actual parameters (configurations). Important for debugging. Disabled by default.
 
 * `MIOPEN_ENABLE_LOGGING_CMD` - A user can use this environmental variable to output the associated `MIOpenDriver` command line(s) onto console. Disabled by default.
@@ -13,26 +15,23 @@ Debugging and Logging
 > 0, no, false, disable, disabled - to disable feature
 > ```
 
-## Log Levels
-The `MIOPEN_LOG_LEVEL` environment variable controls the verbosity of the messages printed by MIOpen onto console. Allowed values are:
-* 0 - Default. Works as level 4 for Release builds, level 5 for Debug builds.
-* 1 - Quiet. No logging messages.
-* 2 - Fatal errors only (not used yet).
-* 3 - Errors and fatals.
-* 4 - All errors and warnings.
-* 5 - Info. All the above plus information for debugging purposes.
-* 6 - Detailed info. All the above plus more detailed information for debugging.
-* 7 - Trace: the most detailed debugging info plus all above (not used so far).
-
-All messages output via `stderr`.
-
-`MIOPEN_ENABLE_LOGGING` and `MIOPEN_LOG_LEVEL` are independent from each other.
+* `MIOPEN_LOG_LEVEL` - In addition to API call information and driver commands, MIOpen prints various information related to the progress of its internal operations. This information can be useful both for debugging and for understanding the principles of operation of the library. The `MIOPEN_LOG_LEVEL` environment variable controls the verbosity of these messages. Allowed values are:
+  * 0 - Default. Works as level 4 for Release builds, level 5 for Debug builds.
+  * 1 - Quiet. No logging messages.
+  * 2 - Fatal errors only (not used yet).
+  * 3 - Errors and fatals.
+  * 4 - All errors and warnings.
+  * 5 - Info. All the above plus information for debugging purposes.
+  * 6 - Detailed info. All the above plus more detailed information for debugging.
+  * 7 - Trace: the most detailed debugging info plus all above.
 
 > **_NOTE:_ When asking for technical support, please include the console log obtained with the following settings:**
 > ```
 > export MIOPEN_ENABLE_LOGGING=1
 > export MIOPEN_LOG_LEVEL=5
 > ```
+
+* `MIOPEN_ENABLE_LOGGING_MPMT` - When enabled, each log line is prefixed with information which allows the user to identify records printed from different processes and/or threads. Useful for debugging multi-process/multi-threaded apps.
 
 ## Layer Filtering
 
