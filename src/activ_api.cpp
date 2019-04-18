@@ -79,7 +79,7 @@ extern "C" miopenStatus_t miopenActivationForward(miopenHandle_t handle,
                                                   void* y)
 {
 
-    MIOPEN_LOG_FUNCTION(activDesc, alpha, xDesc, x, beta, yDesc, y);
+    MIOPEN_LOG_FUNCTION(handle, activDesc, alpha, xDesc, x, beta, yDesc, y);
     return miopen::try_([&] {
         miopen::deref(activDesc).Forward(miopen::deref(handle),
                                          alpha,
@@ -104,7 +104,7 @@ extern "C" miopenStatus_t miopenActivationBackward(miopenHandle_t handle,
                                                    const miopenTensorDescriptor_t dxDesc,
                                                    void* dx)
 {
-    MIOPEN_LOG_FUNCTION(activDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx);
+    MIOPEN_LOG_FUNCTION(handle, activDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx);
 
     return miopen::try_([&] {
         miopen::deref(activDesc).Backward(miopen::deref(handle),

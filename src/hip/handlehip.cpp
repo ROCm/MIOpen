@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <algorithm>
+#include <miopen/logger.hpp>
 #include <miopen/device_name.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
@@ -181,6 +182,7 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
 #if MIOPEN_USE_ROCBLAS
     rhandle_ = CreateRocblasHandle();
 #endif
+    MIOPEN_LOG_I(*this);
 }
 
 Handle::Handle() : impl(new HandleImpl())
@@ -199,6 +201,7 @@ Handle::Handle() : impl(new HandleImpl())
 #if MIOPEN_USE_ROCBLAS
     rhandle_ = CreateRocblasHandle();
 #endif
+    MIOPEN_LOG_I(*this);
 }
 
 Handle::~Handle() {}
@@ -401,6 +404,12 @@ std::string Handle::GetDeviceName()
     hipGetDeviceProperties(&props, this->impl->device);
     std::string n("gfx" + std::to_string(props.gcnArch));
     return GetDeviceNameFromMap(n);
+}
+
+std::ostream& Handle::Print(std::ostream& os) const
+{
+    os << "stream: " << this->impl->stream << ", device_id: " << this->impl->device;
+    return os;
 }
 
 shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::size_t)

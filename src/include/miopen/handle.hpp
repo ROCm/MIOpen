@@ -125,6 +125,7 @@ struct Handle : miopenHandle
     std::size_t GetMaxMemoryAllocSize();
 
     std::string GetDeviceName();
+    std::ostream& Print(std::ostream& os) const;
 
     void Copy(ConstData_t src, Data_t dest, std::size_t size);
 
@@ -183,6 +184,9 @@ struct Handle : miopenHandle
     rocblas_handle_ptr rhandle_;
 #endif
 };
+
+inline std::ostream& operator<<(std::ostream& os, const Handle& handle) { return handle.Print(os); }
+
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenHandle, miopen::Handle);
 

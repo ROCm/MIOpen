@@ -38,7 +38,7 @@ extern "C" miopenStatus_t miopenSoftmaxForward(miopenHandle_t handle,
                                                const miopenTensorDescriptor_t yDesc,
                                                void* y)
 {
-    MIOPEN_LOG_FUNCTION(alpha, xDesc, x, beta, yDesc, y);
+    MIOPEN_LOG_FUNCTION(handle, alpha, xDesc, x, beta, yDesc, y);
     return miopen::try_([&] {
         CopyTensor(miopen::deref(handle),
                    miopen::deref(xDesc),
@@ -62,7 +62,7 @@ miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
                                      void* dx)
 {
 
-    MIOPEN_LOG_FUNCTION(alpha, yDesc, y, dyDesc, dy, beta, dxDesc, dx);
+    MIOPEN_LOG_FUNCTION(handle, alpha, yDesc, y, dyDesc, dy, beta, dxDesc, dx);
     return miopen::try_([&] {
         CopyTensor(miopen::deref(handle),
                    miopen::deref(dyDesc),
