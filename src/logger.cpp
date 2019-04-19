@@ -28,13 +28,28 @@
 #include <miopen/logger.hpp>
 #include <miopen/config.h>
 
+#ifdef __linux__
+#include <unistd.h>
+#include <sys/syscall.h> /* For SYS_xxx definitions */
+#endif
+
 namespace miopen {
 
-/// Kept for backward compatibility for some time.
-/// Enables all logging levels at once.
+/// Enable logging of the most important function calls.
+/// Name of envvar in a bit inadequate due to historical reasons.
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING)
+
+/// Prints driver command lines into log.
+/// Works from any application which uses the library.
+/// Allows to reproduce library use cases using the driver instead of the actual application.
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_CMD)
 
+/// Prefix each log line with information which allows the user
+/// to uniquiely identify log records printed from different processes
+/// or threads. Useful for debugging multi-process/multi-threaded apps.
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_MPMT)
+
+/// See LoggingLevel in the header.
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_LOG_LEVEL)
 
 namespace {
@@ -48,9 +63,21 @@ inline bool operator>=(const int& lhs, const LoggingLevel& rhs)
     return lhs >= static_cast<int>(rhs);
 }
 
+/// Returns value which uniquiely identifies current process/thread
+/// and can be printed into logs for MP/MT environments.
+inline int GetProcessAndThreadId()
+{
+#ifdef __linux__
+    // LWP is fine for identifying both processes and threads.
+    return syscall(SYS_gettid); // NOLINT
+#else
+    return 0; // Not implemented.
+#endif
+}
+
 } // namespace
 
-bool IsLoggingTraceDetailed() { return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING{}); }
+bool IsLoggingFunctionCalls() { return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING{}); }
 
 bool IsLogging(const LoggingLevel level)
 {
@@ -89,15 +116,21 @@ const char* LoggingLevelToCString(const LoggingLevel level)
 }
 bool IsLoggingCmd() { return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING_CMD{}); }
 
-std::string PlatformName()
+std::string LoggingPrefix()
 {
+    std::stringstream ss;
+    if(miopen::IsEnabled(MIOPEN_ENABLE_LOGGING_MPMT{}))
+    {
+        ss << GetProcessAndThreadId() << ' ';
+    }
+    ss << "MIOpen";
 #if MIOPEN_BACKEND_OPENCL
-    return "MIOpen(OpenCL)";
+    ss << "(OpenCL)";
 #elif MIOPEN_BACKEND_HIP
-    return "MIOpen(HIP)";
-#else
-    return "MIOpen";
+    ss << "(HIP)";
 #endif
+    ss << ": ";
+    return ss.str();
 }
 
 /// Expected to be invoked with __func__ and __PRETTY_FUNCTION__.
