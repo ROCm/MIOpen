@@ -213,6 +213,7 @@ cl_context GetContext(cl_command_queue q)
     return context;
 }
 
+#if 0 /// \todo Dead code?
 ClAqPtr CreateQueueWithProfiling(cl_context ctx, cl_device_id dev)
 {
     cl_int status;
@@ -232,5 +233,5 @@ ClAqPtr CreateQueueWithProfiling(cl_context ctx, cl_device_id dev)
 
     return q;
 }
-
+#endif
 } // namespace miopen

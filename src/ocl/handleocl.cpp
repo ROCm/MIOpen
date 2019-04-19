@@ -26,6 +26,7 @@
 #include <miopen/config.h>
 #include <miopen/device_name.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/manage_ptr.hpp>
@@ -260,8 +261,9 @@ struct HandleImpl
                                           decltype(&clReleaseContext),
                                           &clReleaseContext>;
 
-    ContextPtr context;
-    AqPtr queue;
+    ContextPtr context  = nullptr;
+    AqPtr queue         = nullptr;
+    cl_device_id device = nullptr; // NOLINT
     Allocator allocator{};
     KernelCache cache;
     bool enable_profiling  = false;
@@ -396,19 +398,19 @@ Handle::Handle() : impl(new HandleImpl())
 
 #ifdef _WIN32
     // Just using the first device as default
-    auto device = devices.at(0);
+    impl->device = devices.at(0);
 #else
     // Pick device based on process id
     auto pid = ::getpid();
     assert(pid > 0);
-    auto device = devices.at(pid % devices.size());
+    impl->device = devices.at(pid % devices.size());
 #endif
 
-// TODO: Store device name in handle
-#ifndef NDEBUG
+#if !MIOPEN_INSTALLABLE
+    // TODO: Store device name in handle
     char deviceName[100];
-    clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(deviceName), deviceName, nullptr);
-    printf("Device Name: %s\n", deviceName);
+    clGetDeviceInfo(impl->device, CL_DEVICE_NAME, sizeof(deviceName), deviceName, nullptr);
+    MIOPEN_LOG_I("Device name: " << deviceName);
 #endif
 
     /////////////////////////////////////////////////////////////////
@@ -419,8 +421,8 @@ Handle::Handle() : impl(new HandleImpl())
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
-    impl->queue = HandleImpl::AqPtr{
-        clCreateCommandQueue(impl->context.get(), device, CL_QUEUE_PROFILING_ENABLE, &status)};
+    impl->queue = HandleImpl::AqPtr{clCreateCommandQueue(
+        impl->context.get(), impl->device, CL_QUEUE_PROFILING_ENABLE, &status)};
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
@@ -429,6 +431,7 @@ Handle::Handle() : impl(new HandleImpl())
         MIOPEN_THROW("Creating Command Queue. (clCreateCommandQueue)");
     }
     this->SetAllocator(nullptr, nullptr, nullptr);
+    MIOPEN_LOG_I(*this);
 }
 
 Handle::Handle(Handle&&) noexcept = default;
@@ -560,6 +563,12 @@ std::string Handle::GetDeviceName()
 {
     std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(miopen::GetDevice(this->GetStream()));
     return GetDeviceNameFromMap(name);
+}
+
+std::ostream& Handle::Print(std::ostream& os) const
+{
+    os << "stream: " << this->impl->queue.get() << ", device_id: " << this->impl->device;
+    return os;
 }
 
 std::size_t Handle::GetMaxMemoryAllocSize()
