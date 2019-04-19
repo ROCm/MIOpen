@@ -814,6 +814,13 @@ typedef enum {
         4, /*!< Deprecated Transpose GEMM variant legacy, ToBe Removed */
 } miopenConvBwdDataAlgorithm_t;
 
+typedef enum {
+    miopenConvolutionAlgoGEMM     = 0, /*!< GEMM variant */
+    miopenConvolutionAlgoDirect   = 1, /*!< Direct convolutions */
+    miopenConvolutionAlgoFFT      = 2, /*!< Fast Fourier Transform indirect convolutions */
+    miopenConvolutionAlgoWinograd = 3, /*!< Winograd indirect convolutions */
+} miopenConvAlgorithm_t;
+
 /*! @struct miopenConvAlgoPerf_t
 
  * @brief Perf struct for forward, backward filter, or backward data algorithms
@@ -835,6 +842,446 @@ typedef struct
     float time;    /*!< Time to exectued the selected algorithm represented in the union */
     size_t memory; /*!< Workspace required to run the selected algorithm represented in the union */
 } miopenConvAlgoPerf_t;
+
+/*! @struct miopenConvSolution_t
+
+ * @brief Performance struct for forward, backward filter, or backward data algorithms in immediate
+ mode
+ *
+ * Contains an integer identifying the solution and the algorithm for the solution,
+ * as well as the runtime, workspace size and a boolean flag indicating whether the returned
+ * solution is a heuristic or resulting from an actual run
+ *
+ */
+typedef struct
+{
+    float time; /*!< Represents the approximate time required to execute this solution on the GPU,
+                     in milliseconds. This value may either be based on an acutal kernel run or an
+                     esitmate based on a heuristic.*/
+    size_t workspace_size; /*!< Workspace required to run the selected algorithm represented in the
+                              union */
+    uint64_t solution_id;  /*!< Identifier for the returned solution */
+    miopenConvAlgorithm_t algorihtm; /*!< The algorithm used to compute the solution */
+} miopenConvSolution_t;
+
+/*! @brief Query the maximum number of solutions applicable for the given input/output and weights
+ *  tensor descriptor for Convolution in the Forward direction.
+ *
+ *  This call returns the maximum number of applicable solutions for a forward convolution problem,
+ * the number
+ *  returned may be used to allocate the memory required for the miopenConvAlgoPert2_t which is
+ * required
+ *  by miopenConvolutionGetSolution API calls.
+ *
+ * @param handle         MIOpen handle (input)
+ * @param wDesc          Tensor descriptor for weight tensor w (input)
+ * @param xDesc          Tensor descriptor for input data tensor x (input)
+ * @param convDesc       Convolution layer descriptor (input)
+ * @param yDesc          Tensor descriptor for output data tensor y (input)
+ * @param solutionCount  Pointer to memory to return number of applicable solutions (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenConvolutionForwardGetSolutionCount(miopenHandle_t handle,
+                                         const miopenTensorDescriptor_t wDesc,
+                                         const miopenTensorDescriptor_t xDesc,
+                                         const miopenConvolutionDescriptor_t convDesc,
+                                         const miopenTensorDescriptor_t yDesc,
+                                         size_t* solutionCount);
+
+/*! @brief Query the applicable solutions for a convolution configuration described by
+ *  input, output and convolution descriptors.
+ *
+ *  The returned solutions array is sorted in the order of decreasing performance. The returned
+ * solutions
+ * might be based
+ *  on heuristics and for more consistent performance results the user the advised to run the Find
+ * step.
+ *  The maximum length of the solutions array may be queried using
+ * miopenConvolutionForwardGetSolutionCount
+ *
+ * @param handle         MIOpen handle (input)
+ * @param wDesc          Tensor descriptor for weight tensor w (input)
+ * @param xDesc          Tensor descriptor for input data tensor x (input)
+ * @param convDesc       Convolution layer descriptor (input)
+ * @param yDesc          Tensor descriptor for output data tensor y (input)
+ * @param maxSolutionCount The size of the solutions array passed in below (input)
+ * @param solutionCount The size of the solutions array returned (output)
+ * @param solutions      A pointer to an array of type miopenConvSolution_t allocated by the user,
+ *                      filled in by MIOpen with applicable solutions. (output)
+ * @return               miopenStatus_t
+ *
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenConvolutionForwardGetSolution(miopenHandle_t handle,
+                                    const miopenTensorDescriptor_t wDesc,
+                                    const miopenTensorDescriptor_t xDesc,
+                                    const miopenConvolutionDescriptor_t convDesc,
+                                    const miopenTensorDescriptor_t yDesc,
+                                    const size_t maxSolutionCount,
+                                    size_t* solutionCount,
+                                    miopenConvSolution_t* solutions);
+
+/*! @brief Returns the workspace size required for a particular solution id.
+ *
+ * This is an optional call for users who may have serialized the solution id and just need the
+ * workspace
+ * size for it. The same information is returned by the miopenConvolutionForwardGetSolution as part
+ * of the
+ * miopenConvSolution_t struct.
+ *
+ * @param handle         MIOpen handle (input)
+ * @param wDesc          Tensor descriptor for weight tensor w (input)
+ * @param xDesc          Tensor descriptor for input data tensor x (input)
+ * @param convDesc       Convolution layer descriptor (input)
+ * @param yDesc          Tensor descriptor for output data tensor y (input)
+ * @param solution_id      ID of the solution for which workspace size is required (input)
+ * @param workSpaceSize  The size of the workspace (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenConvolutionForwardGetSolutionWorkspaceSize(miopenHandle_t handle,
+                                                 const miopenTensorDescriptor_t wDesc,
+                                                 const miopenTensorDescriptor_t xDesc,
+                                                 const miopenConvolutionDescriptor_t convDesc,
+                                                 const miopenTensorDescriptor_t yDesc,
+                                                 const uint64_t solution_id,
+                                                 size_t* workSpaceSize);
+
+/*! @brief Compiles the solution provided by the user, this solution may be acquired by the
+ * miopenConvolutionForwardGetSolution API call above.
+ *   Compiling the solution ensures that the first API call to miopenConvolutionForwardImmediate
+ * does
+ * not cause a compile.
+ *
+ *   This is an optional step and may be skipped if a slow first miopenConvolutionForwardImmediate
+ * invocation is acceptable.
+ *
+ * @param handle         MIOpen handle (input)
+ * @param wDesc          Tensor descriptor for weight tensor w (input)
+ * @param xDesc          Tensor descriptor for input data tensor x (input)
+ * @param convDesc       Convolution layer descriptor (input)
+ * @param yDesc          Tensor descriptor for output data tensor y (input)
+ * @param solution_id      ID of the solution to be compiled, as chosen by the user
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenConvolutionForwardCompileSolution(miopenHandle_t handle,
+                                        const miopenTensorDescriptor_t wDesc,
+                                        const miopenTensorDescriptor_t xDesc,
+                                        const miopenConvolutionDescriptor_t convDesc,
+                                        const miopenTensorDescriptor_t yDesc,
+                                        const uint64_t solution_id);
+
+/*! @brief Executes the Forward convolution operation based on the provided solution ID.
+ *
+ *
+ * @param handle         MIOpen handle (input)
+ * @param wDesc          Tensor descriptor for weight tensor w (input)
+ * @param w              Weights tensor w (input)
+ * @param xDesc          Tensor descriptor for input data tensor x (input)
+ * @param x              Data tensor x (input)
+ * @param convDesc       Convolution layer descriptor (input)
+ * @param yDesc          Tensor descriptor for output data tensor y (input)
+ * @param y              Data tensor y (output)
+ * @param workSpace      Workspace tensor (input)
+ * @param workSpaceSize  Size of the memory in bytes pointed to by workSpace above
+ * @param solution_id      ID of the solution to be compiled, as chosen by the user
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenConvolutionForwardImmediate(miopenHandle_t handle,
+                                  const miopenTensorDescriptor_t wDesc,
+                                  const void* w,
+                                  const miopenTensorDescriptor_t xDesc,
+                                  const void* x,
+                                  const miopenConvolutionDescriptor_t convDesc,
+                                  const miopenTensorDescriptor_t yDesc,
+                                  void* y,
+                                  void* workSpace,
+                                  size_t workSpaceSize,
+                                  const uint64_t solution_id);
+
+/*! @brief Query the maximum number of solutions applicable for the given input/output and weights
+ *  tensor descriptor for backward Convolution w-r-t Data.
+ *
+ *  This call returns the maximum number of applicable solutions for a the convolution problem, the
+ * number
+ *  returned may be used to allocate the memory required for the miopenConvAlgoPert2_t which is
+ * required
+ *  by miopenConvolutionBackwardDataGetSolution API calls.
+ *
+ * @param handle         MIOpen handle (input)
+ * @param dyDesc         Tensor descriptor for data input tensor dy (input)
+ * @param wDesc          Tensor descriptor for weight tensor w (input)
+ * @param convDesc       Convolution layer descriptor (input)
+ * @param dxDesc         Tensor descriptor for output data tensor dx (input)
+ * @param solutionCount  Pointer to memory to return number of applicable solutions (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenConvolutionBackwardDataGetSolutionCount(miopenHandle_t handle,
+                                              const miopenTensorDescriptor_t dyDesc,
+                                              const miopenTensorDescriptor_t wDesc,
+                                              const miopenConvolutionDescriptor_t convDesc,
+                                              const miopenTensorDescriptor_t dxDesc,
+                                              size_t* solutionCount);
+
+/*! @brief Query the applicable solutions for a backward convolution w-r-t data as described by
+ *  input, output and convolution descriptors.
+ *
+ *  The returned solutions array is sorted in the order of decreasing performance. The returned
+ * solutions
+ *  ns
+ * might be based
+ *  on heuristics and for more consistent performance results the user the advised to run the Find
+ * step.
+ *  The maximum length of the solutions array may be queried using
+ * miopenConvolutionBackwardDataGetSolutionCount
+ *
+ * @param handle           MIOpen handle (input)
+ * @param dyDesc           Tensor descriptor for data input tensor dy (input)
+ * @param wDesc            Tensor descriptor for weight tensor w (input)
+ * @param convDesc         Convolution layer descriptor (input)
+ * @param dxDesc           Tensor descriptor for output data tensor dx (input)
+ * @param maxSolutionCount The size of the solutions array passed in below (input)
+ * @param solutionCount    The size of the solutions array returned (output)
+ * @param solutions        A pointer to an array of type miopenConvSolution_t allocated by the user,
+ *                         filled in by MIOpen with applicable solutions. (output)
+ * @return                 miopenStatus_t
+ *
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenConvolutionBackwardDataGetSolution(miopenHandle_t handle,
+                                         const miopenTensorDescriptor_t dyDesc,
+                                         const miopenTensorDescriptor_t wDesc,
+                                         const miopenConvolutionDescriptor_t convDesc,
+                                         const miopenTensorDescriptor_t dxDesc,
+                                         const size_t maxSolutionCount,
+                                         size_t* solutionCount,
+                                         miopenConvSolution_t* solutions);
+
+/*! @brief Returns the workspace size required for a particular solution id.
+ *
+ * This is an optional call for users who may have serialized the solution id and just need the
+ * workspace
+ * size for it. The same information is returned by the miopenConvolutionBackwardDataGetSolution as
+ * part of the
+ * miopenConvSolution_t struct.
+ *
+ * @param handle         MIOpen handle (input)
+ * @param dyDesc           Tensor descriptor for data input tensor dy (input)
+ * @param wDesc            Tensor descriptor for weight tensor w (input)
+ * @param convDesc         Convolution layer descriptor (input)
+ * @param dxDesc           Tensor descriptor for output data tensor dx (input)
+ * @param solution_id      ID of the solution for which workspace size is required (input)
+ * @param workSpaceSize  The size of the workspace (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenConvolutionBackwardDataGetSolutionWorkspaceSize(miopenHandle_t handle,
+                                                      const miopenTensorDescriptor_t dyDesc,
+                                                      const miopenTensorDescriptor_t wDesc,
+                                                      const miopenConvolutionDescriptor_t convDesc,
+                                                      const miopenTensorDescriptor_t dxDesc,
+                                                      const uint64_t solution_id,
+                                                      size_t* workSpaceSize);
+
+/*! @brief Compiles the solution provided by the user, this solution may be acquired by the
+ * miopenConvolutionBackwardDataGetSolution API call above.
+ *   Compiling the solution ensures that the first API call to
+ * miopenConvolutionBackwardDataImmediate
+ * does not cause a compile.
+ *
+ *   This is an optional step and may be skipped if a slow first
+ * miopenConvolutionBackwardDataImmediate
+ * invocation is acceptable.
+ *
+ * @param handle         MIOpen handle (input)
+ * @param dyDesc         Tensor descriptor for data input tensor dy (input)
+ * @param wDesc          Tensor descriptor for weight tensor w (input)
+ * @param convDesc       Convolution layer descriptor (input)
+ * @param dxDesc         Tensor descriptor for output data tensor dx (input)
+ * @param solution_id      ID of the solution to be compiled, as chosen by the user
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenConvolutionBackwardDataCompileSolution(miopenHandle_t handle,
+                                             const miopenTensorDescriptor_t dyDesc,
+                                             const miopenTensorDescriptor_t wDesc,
+                                             const miopenConvolutionDescriptor_t convDesc,
+                                             const miopenTensorDescriptor_t dxDesc,
+                                             const uint64_t solution_id);
+
+/*! @brief Executes the Backward convolution w-r-t data  operation based on the provided solution
+ * ID.
+ *
+ *
+ * @param handle         MIOpen handle (input)
+ * @param dyDesc         Tensor descriptor for data input tensor dy (input)
+ * @param dy             Data delta tensor dy (input)
+ * @param wDesc          Tensor descriptor for weight tensor w (input)
+ * @param w              Weights tensor w (input)
+ * @param convDesc       Convolution layer descriptor (input)
+ * @param dxDesc         Tensor descriptor for output data tensor dx (input)
+ * @param dx             Data delta tensor dx (output)
+ * @param workSpace      Workspace tensor (input)
+ * @param workSpaceSize  Size in bytes of the workspace memory pointed to by workSpace
+ * @param solution_id      ID of the solution to be compiled, as chosen by the user
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenConvolutionBackwardDataImmediate(miopenHandle_t handle,
+                                       const miopenTensorDescriptor_t dyDesc,
+                                       const void* dy,
+                                       const miopenTensorDescriptor_t wDesc,
+                                       const void* w,
+                                       const miopenConvolutionDescriptor_t convDesc,
+                                       const miopenTensorDescriptor_t dxDesc,
+                                       const void* dx,
+                                       void* workSpace,
+                                       size_t workSpaceSize,
+                                       const uint64_t solution_id);
+
+/*! @brief Query the maximum number of solutions applicable for the given input/output and weights
+ *  tensor descriptor for backward Convolution w-r-t Weights.
+ *
+ *  This call returns the maximum number of applicable solutions for a the convolution problem, the
+ * number
+ *  returned may be used to allocate the memory required for the miopenConvAlgoPert2_t which is
+ * required
+ *  by miopenConvolutionBackwardWeightsGetSolution API calls.
+ *
+ * @param handle         MIOpen handle (input)
+ * @param dyDesc         Tensor descriptor for data tensor dy (input)
+ * @param xDesc          Tensor descriptor for data tensor x (input)
+ * @param convDesc       Convolution layer descriptor (input)
+ * @param dwDesc         Tensor descriptor for weight tensor dw (input)
+ * @param solutionCount  Pointer to memory to return number of applicable solutions (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenConvolutionBackwardWeightsGetSolutionCount(miopenHandle_t handle,
+                                                 const miopenTensorDescriptor_t dyDesc,
+                                                 const miopenTensorDescriptor_t xDesc,
+                                                 const miopenConvolutionDescriptor_t convDesc,
+                                                 const miopenTensorDescriptor_t dwDesc,
+                                                 size_t* solutionCount);
+
+/*! @brief Query the applicable solutions for a backward convolution w-r-t weights as described by
+ *  input, output and convolution descriptors.
+ *
+ *  The returned solutions array is sorted in the order of decreasing performance. The returned
+ * solutions
+ * might be based
+ *  on heuristics and for more consistent performance results the user the advised to run the Find
+ * step.
+ *  The maximum length of the solutions array may be queried using
+ * miopenConvolutionBackwardWeightsGetSolutionCount
+ *
+ * @param handle           MIOpen handle (input)
+ * @param dyDesc           Tensor descriptor for data tensor dy (input)
+ * @param xDesc            Tensor descriptor for data tensor x (input)
+ * @param convDesc         Convolution layer descriptor (input)
+ * @param dwDesc           Tensor descriptor for weight tensor dw (input)
+ * @param maxSolutionCount The size of the solutions array passed in below (input)
+ * @param solutionCount    The size of the solutions array returned (output)
+ * @param solutions        A pointer to an array of type miopenConvSolution_t allocated by the user,
+ *                         filled in by MIOpen with applicable solutions. (output)
+ * @return                 miopenStatus_t
+ *
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenConvolutionBackwardWeightsGetSolution(miopenHandle_t handle,
+                                            const miopenTensorDescriptor_t dyDesc,
+                                            const miopenTensorDescriptor_t xDesc,
+                                            const miopenConvolutionDescriptor_t convDesc,
+                                            const miopenTensorDescriptor_t dwDesc,
+                                            const size_t maxSolutionCount,
+                                            size_t* solutionCount,
+                                            miopenConvSolution_t* solutions);
+
+/*! @brief Returns the workspace size required for a particular solution id.
+ *
+ * This is an optional call for users who may have serialized the solution id and just need the
+ * workspace
+ * size for it. The same information is returned by the miopenConvolutionBackwardWeightsGetSolution
+ * as part of the
+ * miopenConvSolution_t struct.
+ *
+ * @param handle         MIOpen handle (input)
+ * @param dyDesc         Tensor descriptor for data tensor dy (input)
+ * @param xDesc          Tensor descriptor for data tensor x (input)
+ * @param convDesc       Convolution layer descriptor (input)
+ * @param dwDesc         Tensor descriptor for weight tensor dw (input)
+ * @param solution_id      ID of the solution for which workspace size is required (input)
+ * @param workSpaceSize  The size of the workspace (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenConvolutionBackwardWeightsGetSolutionWorkspaceSize(
+    miopenHandle_t handle,
+    const miopenTensorDescriptor_t dyDesc,
+    const miopenTensorDescriptor_t xDesc,
+    const miopenConvolutionDescriptor_t convDesc,
+    const miopenTensorDescriptor_t dwDesc,
+    const uint64_t solution_id,
+    size_t* workSpaceSize);
+
+/*! @brief Compiles the solution provided by the user, this solution may be acquired by the
+ * miopenConvolutionBackwardWeightsGetSolution API call above.
+ *   Compiling the solution ensures that the first API call to
+ * miopenConvolutionBackwardWeightsImmediate
+ * does not cause a compile.
+ *
+ *   This is an optional step and may be skipped if a slow first
+ * miopenConvolutionBackwardWeightsImmediate invocation is acceptable.
+ *
+ * @param handle         MIOpen handle (input)
+ * @param dyDesc         Tensor descriptor for data tensor dy (input)
+ * @param xDesc          Tensor descriptor for data tensor x (input)
+ * @param convDesc       Convolution layer descriptor (input)
+ * @param dwDesc         Tensor descriptor for weight tensor dw (input)
+ * @param solution_id      ID of the solution to be compiled, as chosen by the user
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenConvolutionBackwardWeightsCompileSolution(miopenHandle_t handle,
+                                                const miopenTensorDescriptor_t dyDesc,
+                                                const miopenTensorDescriptor_t xDesc,
+                                                const miopenConvolutionDescriptor_t convDesc,
+                                                const miopenTensorDescriptor_t dwDesc,
+                                                const uint64_t solution_id);
+
+/*! @brief Executes the Backward convolution w-r-t weights  operation based on the provided solution
+ * ID.
+ *
+ *
+ * @param handle         MIOpen handle (input)
+ * @param dyDesc         Tensor descriptor for data tensor dy (input)
+ * @param dy             Data delta tensor dy (input)
+ * @param xDesc          Tensor descriptor for data tensor x (input)
+ * @param x              Data tensor x (input)
+ * @param convDesc       Convolution layer descriptor (input)
+ * @param dwDesc         Tensor descriptor for weight tensor dw (input)
+ * @param dw             Weights delta tensor dw (output)
+ * @param workSpace      Workspace tensor (input)
+ * @param workSpaceSize  Size in bytes of the memory passed in, pointed to by workSpace pointer
+ * above
+ * @param solution_id      ID of the solution to be compiled, as chosen by the user
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenConvolutionBackwardWeightsImmediate(miopenHandle_t handle,
+                                          const miopenTensorDescriptor_t dyDesc,
+                                          const void* dy,
+                                          const miopenTensorDescriptor_t xDesc,
+                                          const void* x,
+                                          const miopenConvolutionDescriptor_t convDesc,
+                                          const miopenTensorDescriptor_t dwDesc,
+                                          void* dw,
+                                          void* workSpace,
+                                          size_t workSpaceSize,
+                                          const uint64_t solution_id);
 
 /*! @brief Query the workspace size required for a forward convolution layer
  *
