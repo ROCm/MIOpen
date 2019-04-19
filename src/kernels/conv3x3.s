@@ -1,9 +1,9 @@
 /*******************************************************************************
  *
  * MIT License
- *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
- *
+ * 
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -205,12 +205,12 @@ output_buffer_window = 4 * img_height * img_width
 .set weights_per_filter, weights_w * weights_h
 .if weights_layout == 0 // KCHW
     .set filter_c_stride, 4 * weights_per_filter
-    .set filter_k_stride, 4 * weights_per_filter * input_channels
+    .set filter_k_stride, 4 * weights_per_filter * input_channels / group_counts
 .else // CKHW
-    .set filter_c_stride, 4 * weights_per_filter * output_channels
+    .set filter_c_stride, 4 * weights_per_filter * output_channels / group_counts
     .set filter_k_stride, 4 * weights_per_filter
 .endif
-.set filters_size, 4 * weights_per_filter * input_channels * output_channels
+.set filters_size, 4 * weights_per_filter * input_channels * output_channels / group_counts
 
 
 .GPR_ALLOC_BEGIN
@@ -290,7 +290,6 @@ __sgprs_ptr = .SGPR_NEXT_FREE
 .SGPR_ALLOC_ONCE tmp
 .SGPR_ALLOC img_offset, 1 + additional_input_sgprs, 1  // img_offset[0] - offset of the first line to read
 
-
 __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
 .if sgprs_to_allocate_after_filters != __sgprs_allocated_after_filters
     .error "Error: check sgpr allocation"
@@ -327,8 +326,18 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
 .endif
 
 // input lines
-.VGPR_ALLOC linesA, gprs_per_input_line * input_lines_per_wave
-.VGPR_ALLOC linesB, gprs_per_input_line * input_lines_per_wave
+.if k_group_size_is_power_of_two || gprs_per_input_line * input_lines_per_wave >= 4
+    .VGPR_ALLOC linesA, gprs_per_input_line * input_lines_per_wave
+.else
+    .VGPR_ALLOC linesA, 4
+.endif
+
+.if k_group_size_is_power_of_two || gprs_per_input_line * input_lines_per_wave >= 3
+    .VGPR_ALLOC linesB, gprs_per_input_line * input_lines_per_wave
+.else
+    .VGPR_ALLOC linesB, 3
+.endif
+
 .if enable_dpp_zero_column_padding
     .VGPR_ALLOC in_l // part of input line shifted left with zero padding
     .VGPR_ALLOC in_r // part of input line shifted right with zero padding
@@ -617,6 +626,28 @@ gcnAsmConv3x3U:
     s_mov_b32 s[gid_z], debug_gid_z //debug image
   .endif
 
+  num_wavefronts = output_channels / filters_per_wave
+  //to-do add support of uneven_outputs into grouped conv
+  static_assert(group_counts == 1 || ((num_wavefronts % group_counts == 0) && uneven_outputs == 0))
+  static_assert(input_channels % group_counts == 0)
+  k_group_size = output_channels / filters_per_wave / group_counts
+  c_group_size = input_channels / group_counts
+  s_group_id = loop_cnt
+  .if k_group_size_is_power_of_two
+      log2 k_group_size_log2, k_group_size
+      s_lshr_b32 s[s_group_id], s[gid_x], 0 + k_group_size_log2 // group_id
+  .else
+      stmp_udiv = in_desc
+      vtmp_udiv = linesA
+      gid = linesB
+      v_group_id = linesB + 1
+      group_size = linesB + 2
+      v_mov_b32 v[gid], s[gid_x]
+      v_mov_b32 v[group_size], 0 + k_group_size
+      u32_div gid, group_size, v_group_id, vtmp_udiv, stmp_udiv
+      v_readfirstlane_b32 s[s_group_id], v[v_group_id]
+  .endif
+
   s_load_dwordx2 s[in_desc:in_desc+1], s[kernarg:kernarg+1], 0x0 + in_ptr_off
   s_load_dwordx2 s[weights_ptr:weights_ptr+1], s[kernarg:kernarg+1], 0x0 + wei_ptr_off
   s_load_dwordx2 s[out_ptr:out_ptr+1], s[kernarg:kernarg+1], 0x0 + out_ptr_off
@@ -671,12 +702,27 @@ gcnAsmConv3x3U:
   s_waitcnt 0
 
   // compute offset for weights
-  s_mul_i32 s[tmp], s[gid_x], filters_per_wave * filter_k_stride
-  s_add_u32 s[weights_ptr], s[weights_ptr], s[tmp]
-  s_addc_u32 s[weights_ptr+1], s[weights_ptr+1], 0
-  .if load_weights_using_buffer
-    .GPR_REUSE weights_ptr, wei_desc
-    s_sub_u32 s[wei_desc+2], filters_size, s[tmp]
+  .if weights_layout == 0 || group_counts == 1
+      s_mul_i32 s[tmp], s[gid_x], filters_per_wave * filter_k_stride
+      s_add_u32 s[weights_ptr], s[weights_ptr], s[tmp]
+      s_addc_u32 s[weights_ptr+1], s[weights_ptr+1], 0
+      .if load_weights_using_buffer
+        .GPR_REUSE weights_ptr, wei_desc
+        s_sub_u32 s[wei_desc+2], filters_size, s[tmp]
+      .endif
+  .else
+      s_mul_i32 s[tmp], s[s_group_id], k_group_size
+      s_sub_i32 s[tmp], s[gid_x], s[tmp]
+      s_mul_i32 s[tmp], s[tmp], filters_per_wave * filter_k_stride
+      s_add_u32 s[weights_ptr], s[weights_ptr], s[tmp]
+      s_addc_u32 s[weights_ptr+1], s[weights_ptr+1], 0
+      .if load_weights_using_buffer
+        .GPR_REUSE weights_ptr, wei_desc
+        s_sub_u32 s[wei_desc+2], filters_size, s[tmp]
+      .endif
+      s_mul_i32 s[tmp], s[s_group_id], c_group_size * filter_c_stride // c_group_offset
+      s_add_u32 s[weights_ptr], s[weights_ptr], s[tmp]
+      s_addc_u32 s[weights_ptr+1], s[weights_ptr+1], 0
   .endif
 
   // construct input buffer descriptor
@@ -687,6 +733,12 @@ gcnAsmConv3x3U:
   .endif
   s_mov_b32 s[in_desc+2], input_buffer_window // size
   s_mov_b32 s[in_desc+3], 0x00027000
+
+.if group_counts > 1
+  s_mul_i32 s[tmp], s[s_group_id], c_group_size * input_feature_map_stride // c_group_offset
+  s_add_u32 s[in_desc], s[in_desc], s[tmp]
+  s_addc_u32 s[in_desc+1], s[in_desc+1], 0
+.endif
 
   .if uneven_outputs
     s_mul_i32 s[out_k], s[gid_x], filters_per_wave
@@ -703,6 +755,12 @@ gcnAsmConv3x3U:
   .GPR_INVALIDATE gid_x
   .GPR_INVALIDATE gid_y
   .GPR_INVALIDATE gid_z
+
+  .GPR_INVALIDATE gid
+  .GPR_INVALIDATE group_size
+  .GPR_INVALIDATE s_group_id
+  .GPR_INVALIDATE v_group_id
+  .GPR_INVALIDATE vtmp_udiv
 
 
   // zeroing acc
@@ -742,7 +800,7 @@ loop_begin:
 
 loop_end:
   s_addk_i32 s[loop_cnt], 1
-  s_cmpk_ge_u32 s[loop_cnt], 0 + input_channels/2 - 1
+  s_cmpk_ge_u32 s[loop_cnt], 0 + c_group_size/2 - 1
   s_cbranch_scc0 loop_begin
 
   .load_input linesB, linesB_start_offset
@@ -787,7 +845,7 @@ loop_begin:
 
 loop_end:
   s_addk_i32 s[loop_cnt], 1
-  s_cmpk_ge_u32 s[loop_cnt], 0 + input_channels/2 - 1
+  s_cmpk_ge_u32 s[loop_cnt], 0 + c_group_size/2 - 1
   s_cbranch_scc0 loop_begin
 
 
