@@ -4,7 +4,8 @@
 
 ### 04/11/2019 [ 1.8.0 ]
 
-- This release contains full 3-D convolution support and int8 support for interfence. 
+
+- This release contains full 3-D convolution support and int8 support for inference. 
 - Additionally, there are major updates in the performance database for major models including those found in Torchvision. 
 - An assortment of bugs have been resolved in this release.
 
@@ -15,10 +16,10 @@ Changes:
 - Fixed issue #92 and #79 for miopenOpTensor
 - Fixed issue #88 for bzip2
 - Fixed issue #77 algorithm mismatch
-- Added Winograd suport for fp32 backwards weights
+- Added Winograd support for fp32 backwards weights
 - Added pooling inclusive mode
 - Added tuning for direct group convolution algorithms
-- Added additional kernel supoort for group convolutions
+- Added additional kernel support for group convolutions
 - Added API for 3-D convolutions
 - Added support for int8 inference convolutions
 - Added integer selection for pooling indexing
