@@ -39,6 +39,7 @@
 #include <numeric>
 #include <vector>
 #include "random.hpp"
+#include "timer.hpp"
 
 #ifdef MIOPEN_BACKEND_HIP
 #ifndef CL_SUCCESS
@@ -161,6 +162,8 @@ int ActivationDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
+    inflags.AddInputFlag(
+        "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 
     return miopenStatusSuccess;
 }
@@ -302,25 +305,75 @@ int ActivationDriver<Tgpu, Tref>::RunForwardGPU()
 {
 
     float alpha = 1, beta = 0;
+    double fulltime = 0.;
+    float avgtime   = 0.0f;
+    float lowtime   = 100000000.0f;
+    int iters       = inflags.GetValueInt("iter");
+    Timer t;
 
-    miopenActivationForward(GetHandle(),
-                            activDesc,
-                            &alpha,
-                            inputTensor,
-                            in_dev->GetMem(),
-                            &beta,
-                            outputTensor,
-                            out_dev->GetMem());
+    for(int i = 0; i < iters; i++)
+    {
+        START_TIME
+
+        miopenActivationForward(GetHandle(),
+                                activDesc,
+                                &alpha,
+                                inputTensor,
+                                in_dev->GetMem(),
+                                &beta,
+                                outputTensor,
+                                out_dev->GetMem());
+
+        miopen::deref(GetHandle()).Finish();
+        STOP_TIME
+        if(WALL_CLOCK)
+        {
+            if(iters > 1 && i > 0)
+                fulltime += t.gettime_ms();
+            else if(iters == 1)
+                fulltime = t.gettime_ms();
+            // else do nothing, drop the first iteration
+        }
+
+        if(inflags.GetValueInt("time") == 1)
+        {
+            float time = 0.0;
+            miopenGetKernelTime(GetHandle(), &time);
+            lowtime = (time < lowtime) ? time : lowtime;
+            if(iters > 1 && i > 0)
+                avgtime += time;
+        }
+    }
+
+    if(WALL_CLOCK)
+    {
+        printf("Wall-clock Time Forward GPU Activation Elapsed: %f ms, for %d iterations.\n",
+               (iters == 1) ? t.gettime_ms() : (fulltime / float(iters - 1)),
+               (iters > 1) ? iters - 1 : 1);
+    }
 
     if(inflags.GetValueInt("time") == 1)
     {
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-        printf("GPU Kernel Time Forward Activation Elapsed: %f ms\n", time);
+        printf("GPU Kernel Min Time Forward Activation Elapsed: %f ms\n", lowtime);
+        if(iters > 1)
+            printf("GPU Kernel Avg Time Forward Activation Elapsed: %f ms, for %d iterations.\n",
+                   avgtime / (iters - 1),
+                   iters - 1);
+        int in_n, in_c, in_h, in_w;
+        std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
+        size_t dataSz =
+            in_n * in_c * in_h * in_w * miopen::GetTypeSize(miopen::deref(inputTensor).GetType());
+
+        // layer, readbytes, writebytes, BG/s, timeMS
+        printf("stats: name, bytesRead, bytesWritten, GB/s, timeMs\n");
+        printf("stats: fwd-activ, %zu, %zu, %f, %f\n",
+               dataSz,
+               dataSz,
+               2 * dataSz / lowtime / 1e6,
+               avgtime / (iters - 1));
     }
 
     out_dev->FromGPU(GetStream(), out.data());
-
     return miopenStatusSuccess;
 }
 
@@ -334,25 +387,76 @@ template <typename Tgpu, typename Tref>
 int ActivationDriver<Tgpu, Tref>::RunBackwardGPU()
 {
     float alpha = 1, beta = 0;
+    double fulltime = 0.;
+    float avgtime   = 0.0f;
+    float lowtime   = 100000000.0f;
+    int iters       = inflags.GetValueInt("iter");
+    Timer t;
 
-    miopenActivationBackward(GetHandle(),
-                             activDesc,
-                             &alpha,
-                             outputTensor,
-                             out_dev->GetMem(),
-                             dOutputTensor,
-                             dout_dev->GetMem(),
-                             inputTensor,
-                             in_dev->GetMem(),
-                             &beta,
-                             dInputTensor,
-                             din_dev->GetMem());
+    for(int i = 0; i < iters; i++)
+    {
+        START_TIME
+
+        miopenActivationBackward(GetHandle(),
+                                 activDesc,
+                                 &alpha,
+                                 outputTensor,
+                                 out_dev->GetMem(),
+                                 dOutputTensor,
+                                 dout_dev->GetMem(),
+                                 inputTensor,
+                                 in_dev->GetMem(),
+                                 &beta,
+                                 dInputTensor,
+                                 din_dev->GetMem());
+
+        miopen::deref(GetHandle()).Finish();
+        STOP_TIME
+        if(WALL_CLOCK)
+        {
+            if(iters > 1 && i > 0)
+                fulltime += t.gettime_ms();
+            else if(iters == 1)
+                fulltime = t.gettime_ms();
+            // else do nothing, drop the first iteration
+        }
+
+        if(inflags.GetValueInt("time") == 1)
+        {
+            float time = 0.0;
+            miopenGetKernelTime(GetHandle(), &time);
+            lowtime = (time < lowtime) ? time : lowtime;
+            if(iters > 1 && i > 0)
+                avgtime += time;
+        }
+    }
+
+    if(WALL_CLOCK)
+    {
+        printf("Wall-clock Time Backward GPU Activation Elapsed: %f ms, for %d iterations.\n",
+               (iters == 1) ? t.gettime_ms() : (fulltime / float(iters - 1)),
+               (iters > 1) ? iters - 1 : 1);
+    }
 
     if(inflags.GetValueInt("time") == 1)
     {
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-        printf("GPU Kernel Time Backward Activation Elapsed: %f ms\n", time);
+        printf("GPU Kernel Min Time Backward Activation Elapsed: %f ms\n", lowtime);
+        if(iters > 1)
+            printf("GPU Kernel Avg Time Backward Activation Elapsed: %f ms, for %d iterations.\n",
+                   avgtime / (iters - 1),
+                   iters - 1);
+        int in_n, in_c, in_h, in_w;
+        std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
+        size_t dataSz =
+            in_n * in_c * in_h * in_w * miopen::GetTypeSize(miopen::deref(inputTensor).GetType());
+
+        // layer, readbytes, writebytes, BG/s, timeMS
+        printf("stats: name, bytesRead, bytesWritten, GB/s, timeMs\n");
+        printf("stats: bwd-activ, %zu, %zu, %f, %f\n",
+               dataSz,
+               dataSz,
+               2 * dataSz / lowtime / 1e6,
+               avgtime / (iters - 1));
     }
 
     din_dev->FromGPU(GetStream(), din.data());
