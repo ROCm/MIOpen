@@ -61,7 +61,8 @@ miopenBatchNormalizationForwardInference(miopenHandle_t handle,
                                          void* estimatedVariance,
                                          double epsilon)
 {
-    MIOPEN_LOG_FUNCTION(bn_mode,
+    MIOPEN_LOG_FUNCTION(handle,
+                        bn_mode,
                         xDesc,
                         x,
                         yDesc,
@@ -119,7 +120,8 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
                                         void* resultSaveInvVariance)
 {
 
-    MIOPEN_LOG_FUNCTION(bn_mode,
+    MIOPEN_LOG_FUNCTION(handle,
+                        bn_mode,
                         xDesc,
                         x,
                         yDesc,
@@ -136,30 +138,30 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
 
     if(miopen::IsLoggingCmd())
     {
+        std::stringstream ss;
         if(miopen::deref(xDesc).GetType() == miopenHalf)
         {
-            std::cerr << MIOPEN_DRIVER_CMD("bnormfp16");
+            ss << "bnormfp16";
         }
         else
         {
-            std::cerr << MIOPEN_DRIVER_CMD("bnorm");
+            ss << "bnorm";
         }
-        std::cerr << " -n " << miopen::deref(xDesc).GetLengths()[0] << " -c "
-                  << miopen::deref(xDesc).GetLengths()[1] << " -H "
-                  << miopen::deref(xDesc).GetLengths()[2] << " -W "
-                  << miopen::deref(xDesc).GetLengths()[3]
-
-                  << " -m " << bn_mode;
+        ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
+            << " -c " << miopen::deref(xDesc).GetLengths()[1]
+            << " -H " << miopen::deref(xDesc).GetLengths()[2]
+            << " -W " << miopen::deref(xDesc).GetLengths()[3]
+            << " -m " << bn_mode; // clang-format on
 
         if((resultRunningMean != nullptr) && (resultRunningVariance != nullptr))
         {
-            std::cerr << " -s " << 1;
+            ss << " -s 1";
         }
         if((resultSaveMean != nullptr) && (resultSaveInvVariance != nullptr))
         {
-            std::cerr << " -r " << 1;
+            ss << " -r 1";
         }
-        std::cerr << "\n";
+        MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 
     // In case of NxCxDxHxW
@@ -213,7 +215,8 @@ miopenBatchNormalizationBackward(miopenHandle_t handle,
                                  const void* savedInvVariance)
 {
 
-    MIOPEN_LOG_FUNCTION(bn_mode,
+    MIOPEN_LOG_FUNCTION(handle,
+                        bn_mode,
                         xDesc,
                         x,
                         dyDesc,
@@ -229,15 +232,16 @@ miopenBatchNormalizationBackward(miopenHandle_t handle,
                         savedInvVariance);
     if(miopen::IsLoggingCmd())
     {
+        std::stringstream ss;
         if(miopen::deref(xDesc).GetType() == miopenHalf)
         {
-            std::cerr << MIOPEN_DRIVER_CMD("bnormfp16");
+            ss << "bnormfp16";
         }
         else
         {
-            std::cerr << MIOPEN_DRIVER_CMD("bnorm");
+            ss << "bnorm";
         }
-        std::cerr << "\n";
+        MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 
     // In case of NxCxDxHxW
