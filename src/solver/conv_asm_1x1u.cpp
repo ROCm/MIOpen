@@ -412,13 +412,6 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
     {
         return false; // Early exit to speed up the check.
     }
-    if (miopen::IsEnabled(MIOPEN_DEBUG_FIND_FIRST_CONV{})
-        && params.kernel_stride_w > 1)
-    {
-        /// Disabled asm_1x1u for stride=2 due to the overhead of
-        /// Up/Subsampler and SetTensor for UpSampler. (Refer to issue #940).
-        return false;
-    }
     /// \todo Ilya: The checks below look adequate but needs to be double-checked.
     {
         const long input_line_size = 4 * params.in_width;
