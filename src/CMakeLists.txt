@@ -70,7 +70,7 @@ set( MIOpen_Source
     op_args.cpp
     operator.cpp
     fused_api.cpp
-	load_file.cpp
+    load_file.cpp
     pooling_api.cpp
     kernel_warnings.cpp
     logger.cpp
@@ -86,6 +86,7 @@ set( MIOpen_Source
     temp_file.cpp
     problem_description.cpp
     kernel_build_params.cpp
+    find_db.cpp
     include/miopen/temp_file.hpp
     include/miopen/db.hpp
     include/miopen/db_record.hpp
@@ -118,6 +119,7 @@ set( MIOpen_Source
     include/miopen/mdg_expr.hpp
     include/miopen/kernel_build_params.hpp
     include/miopen/algorithm.hpp
+    include/miopen/finddb_kernel_cache_key.hpp
     md_graph.cpp
     mdg_expr.cpp
     tensor.cpp

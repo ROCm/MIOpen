@@ -42,19 +42,21 @@ inline void failed(const char* msg, const char* file, int line)
     std::abort();
 }
 
-template <class TLeft, class TRight>
-inline void expect_equality(const TLeft& left,
-                            const TRight& right,
-                            const char* left_s,
-                            const char* riglt_s,
-                            const char* file,
-                            int line)
+template <class TLeft, class TOp, class TRight>
+inline void expect_op(const TLeft& left,
+                      const TOp& op,
+                      const TRight& right,
+                      const char* left_s,
+                      const char* op_s,
+                      const char* riglt_s,
+                      const char* file,
+                      int line)
 {
-    if(left == right)
+    if(op(left, right))
         return;
 
-    std::cout << "FAILED: " << left_s << "(" << left << ") == " << riglt_s << "(" << right
-              << "): " << file << ':' << line << std::endl;
+    std::cout << "FAILED: " << left_s << "(" << left << ") " << op_s << " " << riglt_s << "("
+              << right << "): " << file << ':' << line << std::endl;
     std::abort();
 }
 
@@ -74,8 +76,16 @@ inline void expect_equality(const TLeft& left,
                                                             \
     } while(false)
 
-#define EXPECT_EQUAL(LEFT, RIGHT) \
-    expect_equality((LEFT), (RIGHT), #LEFT, #RIGHT, __FILE__, __LINE__)
+#define EXPECT_OP(LEFT, OP, RIGHT)                     \
+    expect_op((LEFT),                                  \
+              [](auto& l, auto& r) { return l OP r; }, \
+              (RIGHT),                                 \
+              #LEFT,                                   \
+              #OP,                                     \
+              #RIGHT,                                  \
+              __FILE__,                                \
+              __LINE__)
+#define EXPECT_EQUAL(LEFT, RIGHT) EXPECT_OP(LEFT, ==, RIGHT)
 #define STATUS(...) EXPECT((__VA_ARGS__) == 0)
 
 #define FAIL(...) failed(__VA_ARGS__, __FILE__, __LINE__)
