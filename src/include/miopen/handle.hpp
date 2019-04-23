@@ -119,6 +119,7 @@ struct Handle : miopenHandle
     void Flush() const;
 
     std::size_t GetLocalMemorySize();
+    std::size_t GetGlobalMemorySize();
     std::size_t GetMaxComputeUnits();
 
     std::size_t m_MaxMemoryAllocSizeCached = 0;

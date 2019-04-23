@@ -393,8 +393,8 @@ struct pooling_driver : test_driver
 
     void run()
     {
-        int in_h, in_w, window_h, window_w, out_h, out_w, pad_h, pad_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
+        int in_n, in_c, in_h, in_w, window_h, window_w, out_h, out_w, pad_h, pad_w;
+        std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
         filter = miopen::PoolingDescriptor{mode_lookup.at(miopen::ToUpper(mode)),
                                            pmode_lookup.at(miopen::ToUpper(pmode)),
@@ -403,6 +403,21 @@ struct pooling_driver : test_driver
                                            pads};
 
         filter.SetIndexType(index_type_lookup.at(miopen::ToUpper(index_type)));
+
+        auto output = get_output_tensor(filter, input);
+        size_t total_mem =
+            3 * input.desc.GetNumBytes() + output.desc.GetNumBytes() +
+            (sizeof(uint8_t) * output.data.size()); // estimate based on backward pass
+
+        size_t device_mem = get_handle().GetGlobalMemorySize();
+        if(total_mem >= device_mem)
+        {
+            show_command();
+            std::cout << "Config requires " << total_mem
+                      << " Bytes to write all necessary tensors to GPU. GPU has " << device_mem
+                      << " Bytes of memory." << std::endl;
+            return;
+        }
 
         std::tie(window_h, window_w) = miopen::tien<2>(filter.GetLengths());
         if(filter.pmode == miopenPaddingSame)
