@@ -900,6 +900,8 @@ struct ConvOclBwdWrW1x1 : SolverBase<ConvolutionContext>
 
 struct AnySolver
 {
+    using Db = decltype(std::declval<mlo_construct_direct2D>().GetDb());
+
     AnySolver() : ptr_value(nullptr){};
     template <class U>
     AnySolver(U src) : ptr_value(new AnySolver_tmpl<U>(std::forward<U>(src))){};
@@ -919,7 +921,7 @@ struct AnySolver
         assert(ptr_value != nullptr);
         return ptr_value->IsFast(ctx);
     };
-    ConvSolution FindSolution(const ConvolutionContext& ctx, MultiFileDb& db) const
+    ConvSolution FindSolution(const ConvolutionContext& ctx, Db& db) const
     {
         assert(ptr_value != nullptr);
         return ptr_value->FindSolution(ctx, db);
@@ -934,7 +936,7 @@ struct AnySolver
         virtual bool IsApplicable(const ConvolutionContext& ctx) const = 0;
         virtual bool IsFast(const ConvolutionContext& ctx) const       = 0;
         virtual const std::type_info& Type() const                     = 0;
-        virtual ConvSolution FindSolution(const ConvolutionContext& ctx, MultiFileDb& db) const = 0;
+        virtual ConvSolution FindSolution(const ConvolutionContext& ctx, Db& db) const = 0;
     };
 
     // templated derived class
@@ -947,7 +949,7 @@ struct AnySolver
             return value.IsApplicable(ctx);
         };
         bool IsFast(const ConvolutionContext& ctx) const override { return value.IsFast(ctx); };
-        ConvSolution FindSolution(const ConvolutionContext& ctx, MultiFileDb& db) const override
+        ConvSolution FindSolution(const ConvolutionContext& ctx, Db& db) const override
         {
             return miopen::solver::FindSolution(value, ctx, db);
         };
