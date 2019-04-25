@@ -480,6 +480,8 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& p
            // padding, as well as some or none of the input.
            params.kernel_size_h - params.kernel_stride_h >= params.pad_h &&
            params.batch_sz >= N_BATCH_LOOPS &&
+           /// \todo Workaround for issue 1693
+           !(params.kernel_size_w >= 8 && params.kernel_size_w % 2 == 0) &&
            /// Avoid LDS & Workspace over-allocation.
            /// \note Required LDS depends on PerformanceConfig.
            /// We use the default PerformanceConfig here. This guarantees that at least
