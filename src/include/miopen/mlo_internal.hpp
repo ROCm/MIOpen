@@ -176,6 +176,57 @@ size_t setBotDfDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor&
     return SetDescFromMLDesc(spatial_dims, to, tensor, &TTo::setBotDfDescr);
 }
 
+struct ConvolutionUserBuffers
+{
+    union
+    {
+        struct Fwd
+        {
+            ConstData_t x;
+            ConstData_t w;
+            Data_t y;
+        } fwd;
+        struct Bwd
+        {
+            Data_t dx;
+            ConstData_t w;
+            ConstData_t dy;
+        } bwd;
+        struct WrW
+        {
+            ConstData_t dx;
+            Data_t dw;
+            ConstData_t dy;
+        } wrw;
+    } io;
+    Data_t workSpace;
+    size_t workSpaceSize;
+    ConstData_t bias;
+    ConvolutionUserBuffers(Data_t w, size_t s, ConstData_t b = nullptr)
+        : io({{nullptr, nullptr, nullptr}}), workSpace(w), workSpaceSize(s), bias(b)
+    {
+    }
+    ConvolutionUserBuffers() : ConvolutionUserBuffers(nullptr, 0, nullptr) {}
+    void SetFwd(ConstData_t x, ConstData_t w, Data_t y)
+    {
+        io.fwd.x = x;
+        io.fwd.y = y;
+        io.fwd.w = w;
+    }
+    void SetBwd(Data_t dx, ConstData_t w, ConstData_t dy)
+    {
+        io.bwd.dx = dx;
+        io.bwd.dy = dy;
+        io.bwd.w  = w;
+    }
+    void SetWrW(ConstData_t dx, Data_t dw, ConstData_t dy)
+    {
+        io.wrw.dx = dx;
+        io.wrw.dy = dy;
+        io.wrw.dw = dw;
+    }
+};
+
 /// A leftover of the legacy design, houses problem config,
 /// environmental context (e.g. HW/SW platform) and solver-specific state.
 ///
@@ -228,6 +279,13 @@ struct ConvolutionContext : ProblemDescription
 
     private:
     Handle* _stream = nullptr;
+
+    public:
+    inline void SetBufs(const ConvolutionUserBuffers& bufs) { _bufs = bufs; }
+    inline const ConvolutionUserBuffers& GetBufs() const { return _bufs; }
+
+    private:
+    ConvolutionUserBuffers _bufs;
 };
 
 namespace solver {
@@ -406,6 +464,10 @@ struct mlo_construct_direct2D
      */
     inline void setStream(miopen::Handle* stream) { _search_params.SetStream(stream); }
 
+    inline void setBufs(const miopen::ConvolutionUserBuffers& bufs)
+    {
+        _search_params.SetBufs(bufs);
+    }
     /*
      * set top tensor
      */

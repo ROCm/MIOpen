@@ -705,11 +705,12 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     return result;
 }
 
+template <typename B, typename T>
 int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                       Data_t bot_ocl_buf,
-                                       Data_t top_ocl_buf,
-                                       Data_t wei_ocl_buf,
-                                       Data_t bias_ocl_buf,
+                                       B bot_ocl_buf,
+                                       T top_ocl_buf,
+                                       ConstData_t wei_ocl_buf,
+                                       ConstData_t bias_ocl_buf,
                                        const ConvolutionContext& params,
                                        const ConvSolution& solution,
                                        float& elapsed_time) const
@@ -771,10 +772,20 @@ int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
 
 PerformanceConfigConvAsm1x1U ConvAsm1x1U::Search(const ConvolutionContext& context) const
 {
-    if(UseSubsample(context) || UseUpsample(context))
-        return GenericSearch(*this, context, SearchTweak::OverrideXBufferSizeByWorkspaceSize);
+    if(context.direction.IsForward())
+    {
+        if(UseSubsample(context) || UseUpsample(context))
+            return GenericSearchFwd(*this, context, SearchTweak::WorkspaceInsteadOfXBuffer);
+        else
+            return GenericSearchFwd(*this, context);
+    }
     else
-        return GenericSearch(*this, context);
+    {
+        if(UseSubsample(context) || UseUpsample(context))
+            return GenericSearchBwd(*this, context, SearchTweak::WorkspaceInsteadOfXBuffer);
+        else
+            return GenericSearchBwd(*this, context);
+    }
 }
 
 } // namespace solver
