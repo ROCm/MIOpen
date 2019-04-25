@@ -42,6 +42,7 @@ struct ConvSolution;
 } // namespace solver
 struct Handle;
 struct TensorDescriptor;
+struct ConvolutionUserBuffers;
 
 using WinogradKernelParams = std::tuple<int /*N*/,
                                         int /*C*/,
@@ -138,7 +139,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               const TensorDescriptor& wDesc,
                               ConstData_t w,
                               const TensorDescriptor& yDesc,
-                              ConstData_t y,
+                              Data_t y,
                               int requestAlgoCount,
                               int* returnedAlgoCount,
                               miopenConvAlgoPerf_t* perfResults,
@@ -202,7 +203,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                             bool exhaustiveSearch,
                             bool isForward,
                             std::string& network_config,
-                            ExtraKernelArgs& extraArgs) const;
+                            ExtraKernelArgs& extraArgs,
+                            const ConvolutionUserBuffers& bufs) const;
 
     void ConvolutionForward(Handle& handle,
                             const void* alpha,
@@ -238,7 +240,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                   const TensorDescriptor& wDesc,
                                   ConstData_t w,
                                   const TensorDescriptor& dxDesc,
-                                  ConstData_t dx,
+                                  Data_t dx,
                                   int requestAlgoCount,
                                   int* returnedAlgoCount,
                                   miopenConvAlgoPerf_t* perfResults,
@@ -278,7 +280,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                      const TensorDescriptor& xDesc,
                                      ConstData_t x,
                                      const TensorDescriptor& dwDesc,
-                                     ConstData_t dw,
+                                     Data_t dw,
                                      int requestAlgoCount,
                                      int* returnedAlgoCount,
                                      miopenConvAlgoPerf_t* perfResults,

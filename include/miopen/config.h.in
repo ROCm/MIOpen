@@ -38,7 +38,7 @@
 #cmakedefine HIP_OC_COMPILER "@HIP_OC_COMPILER@"
 #cmakedefine MIOPEN_CACHE_DIR "@MIOPEN_CACHE_DIR@"
 
-#define MIOPEN_USE_GEMM (MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS)
+#define MIOPEN_USE_GEMM (MIOPEN_USE_MIOPENGEMM || MIOPEN_USE_ROCBLAS)
 
 // Usage of "defined" operator within macro expansion is undefined behavior,
 // so "defined(NDEBUG)" cannot be used there... unlike the following macro:
@@ -51,5 +51,7 @@
 // Installable builds are those which aren't intended for debugging.
 // We damp down some diagnostic messages (Error -> Warning) etc.
 #define MIOPEN_INSTALLABLE (MIOPEN_NDEBUG && !MIOPEN_BUILD_DEV)
+
+#define MIOPEN_ALLOC_BUFFERS 0
 
 #endif

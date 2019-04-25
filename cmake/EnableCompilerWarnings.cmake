@@ -89,6 +89,7 @@ else()
                 -Wno-unknown-warning-option
                 -Wno-unused-command-line-argument
                 -Wno-weak-vtables
+                -Wno-covered-switch-default
             )
         else()
             if (CMAKE_${COMPILER}_COMPILER_ID MATCHES "GNU" AND ${COMPILER} MATCHES "CXX")

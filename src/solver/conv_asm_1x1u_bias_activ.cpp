@@ -75,23 +75,26 @@ ConvBiasActivAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) con
     return pp;
 }
 
+template <typename B, typename T>
 int ConvBiasActivAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                                Data_t bot_ocl_buf,
-                                                Data_t top_ocl_buf,
-                                                Data_t wei_ocl_buf,
-                                                Data_t bias_ocl_buf,
+                                                B bot_ocl_buf,
+                                                T top_ocl_buf,
+                                                ConstData_t wei_ocl_buf,
+                                                ConstData_t bias_ocl_buf,
                                                 const ConvolutionContext& params,
                                                 const ConvSolution& solution,
                                                 float& elapsed_time) const
 {
-    assert(bias_ocl_buf != nullptr);
-    (void)params;
     KernelInfo k_info;
     k_info = solution.construction_params[0];
 
     std::ostringstream cba_options;
     GenerateClangDefsym(cba_options, "activ_mode", 3);
     GenerateClangDefsym(cba_options, "bias_mode", 1);
+    if(bias_ocl_buf == nullptr)
+    {
+        MIOPEN_THROW("bias_ocl_buf == nullptr");
+    }
     GenerateClangDefsym(cba_options, "fusion_mode", 1);
     GenerateClangDefsym(cba_options, "enable_activ", 1);
 
@@ -104,7 +107,7 @@ int ConvBiasActivAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
         // and thus not applicable for assembly.
         auto kernel = profile_h.AddKernel("",
                                           "",
-                                          "conv1x1u_bias_activ.s",
+                                          "conv1x1u_bias_activ.s", /// \todo This is hack
                                           k_info.kernel_name,
                                           k_info.l_wk,
                                           k_info.g_wk,
@@ -142,10 +145,32 @@ PerformanceConfigConvBiasActivAsm1x1U
 ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context) const
 {
     ConvolutionContext cba_context = context;
-
-    cba_context.bias    = 1;
+    cba_context.bias               = 1;
     cba_context.bias_sz = cba_context.n_outputs * ((context.out_data_type == miopenHalf) ? 2 : 4);
-    return GenericSearch(*this, cba_context);
+    if(!context.direction.IsForward())
+        MIOPEN_THROW("Only inference supported.");
+#if !MIOPEN_ALLOC_BUFFERS
+/// Workaround: Fused conv API does not pass user-allocated buffers here,
+/// but we need these buffers for search.
+#if !MIOPEN_INSTALLABLE
+    {
+        const auto& bufs     = cba_context.GetBufs().io.fwd;
+        const auto& bias_ptr = cba_context.GetBufs().bias;
+        if(bufs.y != nullptr || bufs.x != nullptr || bufs.w != nullptr || bias_ptr != nullptr)
+            MIOPEN_THROW(
+                "If we have valid buffer(s) then we shall stop allocating additional buffers.");
+    }
+#endif
+    auto& handle  = cba_context.GetStream();
+    auto bias_buf = handle.Create(cba_context.bias_sz);
+    auto bot_buf  = handle.Create(cba_context.bot_sz);
+    auto wei_buf  = handle.Create(cba_context.weights_sz);
+    auto top_buf  = handle.Create(cba_context.top_sz);
+    ConvolutionUserBuffers bufs(nullptr, 0, bias_buf.get());
+    bufs.SetFwd(bot_buf.get(), wei_buf.get(), top_buf.get());
+    cba_context.SetBufs(bufs);
+#endif
+    return GenericSearchFwd(*this, cba_context);
 }
 
 } // namespace solver
