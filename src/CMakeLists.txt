@@ -83,6 +83,8 @@ set( MIOpen_Source
     batch_norm_api.cpp
     rnn.cpp
     rnn_api.cpp
+    ctc.cpp
+    ctc_api.cpp
     temp_file.cpp
     problem_description.cpp
     kernel_build_params.cpp
@@ -113,6 +115,7 @@ set( MIOpen_Source
     include/miopen/activ.hpp
     include/miopen/softmax.hpp
     include/miopen/rnn.hpp
+    include/miopen/ctc.hpp
     include/miopen/md_graph.hpp
     include/miopen/fusion_ops.hpp
     include/miopen/fusion.hpp
@@ -258,7 +261,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so
         kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so
         kernels/MIOpenConvBwdBias.cl
-        kernels/MIOpenBatchNormActivInfer.cl)
+        kernels/MIOpenBatchNormActivInfer.cl
+        kernels/MIOpenCTCLoss.cl)
 
     add_kernels("${MIOPEN_KERNELS}")
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
@@ -280,6 +284,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/softmaxocl.cpp
         ocl/rnnocl.cpp
         ocl/utilocl.cpp
+        ocl/ctcocl.cpp
         ocl/gcn_asm_utils.cpp
         pooling.cpp
         ocl/fusionopconvocl.cpp
