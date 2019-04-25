@@ -135,7 +135,11 @@ enum class rocm_meta_version
 namespace miopen {
 
 struct TensorDescriptor;
+
 class MultiFileDb;
+
+template <class TInnerDb>
+class DbTimer;
 
 template <class TInstance>
 class StaticContainer
@@ -314,7 +318,7 @@ struct mlo_construct_direct2D
 
     miopen::solver::ConvSolution FindSolution();
     std::vector<miopen::solver::ConvSolution> FindAllSolutions();
-    miopen::MultiFileDb GetDb() const;
+    miopen::DbTimer<miopen::MultiFileDb> GetDb() const;
 
     /*
      * returns parameter values that are compiled in legacy kernels for kernels using them as

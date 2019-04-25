@@ -51,9 +51,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
  **
  ************************************************************************************************************************/
 
-miopen::MultiFileDb mlo_construct_direct2D::GetDb() const
+miopen::DbTimer<miopen::MultiFileDb> mlo_construct_direct2D::GetDb() const
 {
-    return {db_path(), _search_params.GetUserPerfDbPath()};
+    return {{db_path(), _search_params.GetUserPerfDbPath()}};
 }
 
 miopen::solver::ConvSolution

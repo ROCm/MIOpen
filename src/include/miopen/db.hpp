@@ -2,7 +2,7 @@
 *
 * MIT License
 *
-* Copyright (c) 2017 Advanced Micro Devices, Inc.
+* Copyright (c) 2019 Advanced Micro Devices, Inc.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,7 @@
 #include <boost/none.hpp>
 #include <boost/optional/optional.hpp>
 
+#include <chrono>
 #include <string>
 
 namespace boost {
@@ -163,23 +164,6 @@ class MultiFileDb
     {
     }
 
-    boost::optional<DbRecord> FindRecord(const std::string& key)
-    {
-        auto users           = _user.FindRecord(key);
-        const auto installed = _installed.FindRecord(key);
-
-        if(users && installed)
-        {
-            users->Merge(installed.value());
-            return users;
-        }
-
-        if(users)
-            return users;
-
-        return installed;
-    }
-
     template <class T>
     boost::optional<DbRecord> FindRecord(const T& problem_config)
     {
@@ -234,6 +218,69 @@ class MultiFileDb
 
     private:
     Db _installed, _user;
+};
+
+template <class TInnerDb>
+class DbTimer
+{
+    public:
+    DbTimer(TInnerDb&& inner_) : inner(inner_) {}
+
+    template <class TProblem>
+    auto FindRecord(const TProblem& problem)
+    {
+        return Measure("FindRecord", [&]() { return inner.FindRecord(problem); });
+    }
+
+    bool StoreRecord(const DbRecord& record)
+    {
+        return Measure("StoreRecord", [&]() { return inner.StoreRecord(record); });
+    }
+
+    bool UpdateRecord(DbRecord& record)
+    {
+        return Measure("UpdateRecord", [&]() { return inner.UpdateRecord(record); });
+    }
+
+    template <class TProblem>
+    bool RemoveRecord(const TProblem& problem)
+    {
+        return Measure("RemoveRecord", [&]() { return inner.RemoveRecord(problem); });
+    }
+
+    template <class TProblem, class TValue>
+    auto Update(const TProblem& problem, const std::string& id, const TValue& value)
+    {
+        return Measure("Update", [&]() { return inner.Update(problem, id, value); });
+    }
+
+    template <class TProblem, class TValue>
+    bool Load(const TProblem& problem, const std::string& id, TValue& value)
+    {
+        return Measure("Load", [&]() { return inner.Load(problem, id, value); });
+    }
+
+    template <class TProblem>
+    bool Remove(const TProblem& problem, const std::string& id)
+    {
+        return Measure("Remove", [&]() { return inner.Remove(problem, id); });
+    }
+
+    private:
+    TInnerDb inner;
+
+    template <class TFunc>
+    static auto Measure(const std::string& funcName, TFunc&& func)
+    {
+        if(!miopen::IsLogging(LoggingLevel::Info))
+            return func();
+
+        const auto start = std::chrono::high_resolution_clock::now();
+        const auto ret   = func();
+        const auto end   = std::chrono::high_resolution_clock::now();
+        MIOPEN_LOG_I2("Db::" << funcName << " time: " << (end - start).count() * .000001f << " ms");
+        return ret;
+    }
 };
 } // namespace miopen
 

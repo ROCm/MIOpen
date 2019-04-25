@@ -37,6 +37,7 @@
 #include <miopen/visit_float.hpp>
 #include <miopen/check_numerics.hpp>
 #include <miopen/algorithm.hpp>
+#include <miopen/finddb_kernel_cache_key.hpp>
 
 #if MIOPEN_USE_GEMM
 #include <miopen/gemm_v2.hpp>
@@ -429,7 +430,7 @@ static void DirConvFindCore(Handle& handle,
                        (yDesc.GetType() == miopenInt32 || yDesc.GetType() == miopenFloat))
                         x_t_size /= 4;
 
-                    std::string kcache_key;
+                    FindDbKCacheKey kcache_key;
 
                     GemmDescriptor gemm_desc =
                         conv.group_count > 1 ? CreateGemmDescriptorGroupConvCNHWFwd(
@@ -506,7 +507,7 @@ static void DirConvFindCore(Handle& handle,
                 }
 
                 // y = w * x
-                std::string kcache_key;
+                FindDbKCacheKey kcache_key;
                 miopenStatus_t gemm_status = miopenStatusNotInitialized;
 
                 if(wDesc.GetType() == miopenInt8)
@@ -634,7 +635,7 @@ static void DirConvFindCore(Handle& handle,
                     time_gemm += (in_n * handle.GetKernelTime());
                 }
 
-                std::string kcache_key;
+                FindDbKCacheKey kcache_key;
 
                 GemmDescriptor gemm_desc =
                     conv.group_count > 1
@@ -735,7 +736,10 @@ static void DirConvFindCore(Handle& handle,
                 }
                 time_wino = handle.GetKernelTime();
                 record.SetValues("miopenConvolutionFwdAlgoWinograd",
-                                 FindDbData{solver_id, time_wino, 0, network_config});
+                                 FindDbData{solver_id,
+                                            time_wino,
+                                            0,
+                                            {"miopenConvolutionFwdAlgoWinograd", network_config}});
             }
 
             // Direct algo
@@ -781,9 +785,11 @@ static void DirConvFindCore(Handle& handle,
                 AddKernels(handle, algorithm_name, network_config, selected, nullptr);
                 MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
                                           << selected.workspce_sz);
-                record.SetValues(
-                    algorithm_name,
-                    FindDbData{selected.solver_id, best, selected.workspce_sz, network_config});
+                record.SetValues(algorithm_name,
+                                 FindDbData{selected.solver_id,
+                                            best,
+                                            selected.workspce_sz,
+                                            {algorithm_name, network_config}});
             }
         }
 
@@ -816,7 +822,8 @@ static void DirConvFindCore(Handle& handle,
                                      FindDbData{"fft",
                                                 time_fft,
                                                 workspace_fft,
-                                                network_config}); // Todo: fft solver id?
+                                                {"miopenConvolutionFwdAlgoFFT",
+                                                 network_config}}); // Todo: fft solver id?
                 }
             }
         }
