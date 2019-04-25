@@ -27,37 +27,43 @@
 #ifndef GUARD_MIOPEN_FIND_DB_HPP_
 #define GUARD_MIOPEN_FIND_DB_HPP_
 
-#include <functional>
-#include <vector>
-
-#include <boost/optional.hpp>
-
 #include <miopen/db.hpp>
 #include <miopen/db_path.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/env.hpp>
-#include <miopen/handle.hpp>
 #include <miopen/perf_field.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_FIND_DB)
+#include <boost/optional.hpp>
+
+#include <functional>
+#include <vector>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DISABLE_FIND_DB)
 
 namespace miopen {
+
+struct Handle;
 
 class FindDb
 {
     public:
+    static bool enabled; // For unit tests.
+
     template <class TProblemDescription>
     static std::vector<PerfField> TryLoad(Handle& handle,
                                           const TProblemDescription& problem,
                                           const std::function<void(DbRecord&)>& regenerator)
     {
-        std::vector<PerfField> ret;
-        FindDb find_db{handle, problem};
+        auto ret     = std::vector<PerfField>{};
+        auto find_db = FindDb{handle, problem};
 
         if(find_db.loaded && !find_db.CopyValidating(handle, ret))
             return ret;
 
-        find_db.record = DbRecord(problem);
+        MIOPEN_LOG_I("Find-db regenerating.");
+        ret.clear();
+        find_db.loaded = false;
+        find_db.record.emplace(problem);
         regenerator(*find_db.record);
 
         for(const auto& pair : find_db.record->As<FindDbData>())
@@ -69,9 +75,7 @@ class FindDb
     }
 
     FindDb(const FindDb&) = delete;
-    FindDb(FindDb&&)      = delete;
     FindDb& operator=(const FindDb&) = delete;
-    FindDb& operator=(FindDb&&) = delete;
 
     private:
     std::string path;
@@ -79,47 +83,39 @@ class FindDb
     boost::optional<DbRecord> record{boost::none};
     bool loaded = false;
 
+    FindDb(FindDb&&) = default;
+    FindDb& operator=(FindDb&&) = default;
+
     template <class TProblemDescription>
-    FindDb(Handle& handle, const TProblemDescription& /*problem*/)
-        : path(GetFindDbPath() + "/" + handle.GetDbPathFilename() + ".cd.fdb.txt"),
-          db(IsEnabled(MIOPEN_DEBUG_ENABLE_FIND_DB{}) ? boost::optional<Db>{Db{path, false}}
-                                                      : boost::none)
+    FindDb(Handle& handle, const TProblemDescription& problem)
+        : path(GetPath(handle)), db(TryLoadDb(path))
     {
         if(!db.is_initialized())
             return;
 
-        record = boost::none; // db->FindRecord(problem);
+        record = db->FindRecord(problem);
         loaded = record.is_initialized();
     }
 
     ~FindDb()
     {
-        if(db.is_initialized() && record.is_initialized() && !loaded &&
-           !db->StoreRecord(record.get()))
-            MIOPEN_LOG_W("Failed to store record to find-db at <" << path << ">");
+        if(!db.is_initialized() || !record.is_initialized() || loaded)
+            return;
+        if(!db->StoreRecord(record.get()))
+            MIOPEN_LOG_E("Failed to store record to find-db at <" << path << ">");
+    }
+
+    static std::string GetPath(Handle& handle);
+
+    static boost::optional<Db> TryLoadDb(const std::string& path)
+    {
+        if(!enabled || IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}))
+            return boost::none;
+        return boost::optional<Db>{Db{path, false}};
     }
 
     // Returns true if rebuild is required
-    bool CopyValidating(Handle& handle, std::vector<PerfField>& to)
-    {
-        auto unbuilt = false;
-        auto any     = false;
-
-        for(const auto& pair : record->As<FindDbData>())
-        {
-            any = true;
-            to.push_back(
-                {pair.first, pair.second.solver_id, pair.second.time, pair.second.workspace});
-
-            if(loaded && (pair.second.kchache_key == FindDbData::GetUnusedKCacheKey() ||
-                          !handle.HasKernel(pair.first, pair.second.kchache_key)))
-            {
-                unbuilt = true;
-            }
-        }
-
-        return !any || unbuilt;
-    }
+    bool CopyValidating(Handle& handle, std::vector<PerfField>& to) const;
 };
 
 } // namespace miopen

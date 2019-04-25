@@ -28,6 +28,7 @@
 #include <miopen/env.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/finddb_kernel_cache_key.hpp>
 
 #if MIOPEN_USE_ROCBLAS
 #include <half.hpp>
@@ -173,7 +174,7 @@ miopenStatus_t CallGemmTimeMeasure(Handle& handle,
                                    int b_offset,
                                    Data_t C,
                                    int c_offset,
-                                   std::string* kcache_key,
+                                   FindDbKCacheKey* kcache_key,
                                    bool time_precision,
                                    CallGemmType_t call_gemm_type,
                                    GemmBackend_t gemm_backend)
@@ -282,7 +283,7 @@ miopenStatus_t CallGemm(Handle& handle,
                         int b_offset,
                         Data_t C,
                         int c_offset,
-                        std::string* kcache_key,
+                        FindDbKCacheKey* kcache_key,
                         bool enqueue_dummy_kernel,
                         GemmBackend_t gemm_backend)
 {
@@ -459,11 +460,11 @@ miopenStatus_t CallGemm(Handle& handle,
             handle.AccumKernelTime(mS);
         }
 
-        if(kcache_key != nullptr)
-            *kcache_key = FindDbData::GetUnusedKCacheKey();
-
         if(rb_status != rocblas_status::rocblas_status_success)
             MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");
+
+        if(kcache_key != nullptr)
+            *kcache_key = FindDbKCacheKey::MakeUnused("rocBlas");
 
         return miopenStatusSuccess;
 #else
@@ -497,7 +498,7 @@ miopenStatus_t CallGemm(Handle& handle,
         const std::string network_config = gemm_desc_to_string();
 
         if(kcache_key != nullptr)
-            *kcache_key = network_config;
+            *kcache_key = {algorithm_name, network_config};
 
         auto&& kernels = handle.GetKernels(algorithm_name, network_config);
 
@@ -564,7 +565,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                                       int b_offset,
                                       Data_t C,
                                       int c_offset,
-                                      std::string* kcache_key,
+                                      FindDbKCacheKey* kcache_key,
                                       bool enqueue_dummy_kernel,
                                       GemmBackend_t gemm_backend)
 {
@@ -757,11 +758,11 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
             handle.AccumKernelTime(mS);
         }
 
-        if(kcache_key != nullptr)
-            *kcache_key = FindDbData::GetUnusedKCacheKey();
-
         if(rb_status != rocblas_status::rocblas_status_success)
             MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");
+
+        if(kcache_key != nullptr)
+            *kcache_key = FindDbKCacheKey::MakeUnused("rocBlas");
 
         return miopenStatusSuccess;
 #else
@@ -799,7 +800,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
                                                 int b_offset,
                                                 Data_t C,
                                                 int c_offset,
-                                                std::string* kcache_key,
+                                                FindDbKCacheKey* kcache_key,
                                                 bool enqueue_dummy_kernel,
                                                 GemmBackend_t gemm_backend)
 {
@@ -986,11 +987,11 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
             handle.AccumKernelTime(mS);
         }
 
-        if(kcache_key != nullptr)
-            *kcache_key = FindDbData::GetUnusedKCacheKey();
-
         if(rb_status != rocblas_status::rocblas_status_success)
             MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");
+
+        if(kcache_key != nullptr)
+            *kcache_key = FindDbKCacheKey::MakeUnused("rocBlas");
 
         return miopenStatusSuccess;
 #else
@@ -1024,7 +1025,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
         const std::string network_config = gemm_desc_to_string();
 
         if(kcache_key != nullptr)
-            *kcache_key = network_config;
+            *kcache_key = {algorithm_name, network_config};
 
         auto&& old_kernels = handle.GetKernels(algorithm_name, network_config);
 

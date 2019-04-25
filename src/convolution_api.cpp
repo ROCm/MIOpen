@@ -472,6 +472,211 @@ extern "C" miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
 }
 
 extern "C" miopenStatus_t
+miopenConvolutionForwardGetSolutionCount(miopenHandle_t /*handle*/,
+                                         const miopenTensorDescriptor_t wDesc,
+                                         const miopenTensorDescriptor_t xDesc,
+                                         const miopenConvolutionDescriptor_t convDesc,
+                                         const miopenTensorDescriptor_t yDesc,
+                                         size_t* /*solutionCount*/)
+{
+    MIOPEN_LOG_FUNCTION(wDesc, xDesc, convDesc, yDesc);
+    return miopenStatusNotImplemented;
+}
+
+extern "C" miopenStatus_t
+miopenConvolutionForwardGetSolution(miopenHandle_t /*handle*/,
+                                    const miopenTensorDescriptor_t wDesc,
+                                    const miopenTensorDescriptor_t xDesc,
+                                    const miopenConvolutionDescriptor_t convDesc,
+                                    const miopenTensorDescriptor_t yDesc,
+                                    const size_t maxSolutionCount,
+                                    size_t* /*solutionCount*/,
+                                    miopenConvSolution_t* /*solutions*/)
+{
+    MIOPEN_LOG_FUNCTION(wDesc, xDesc, convDesc, yDesc, maxSolutionCount);
+    return miopenStatusNotImplemented;
+}
+
+extern "C" miopenStatus_t
+miopenConvolutionForwardGetSolutionWorkspaceSize(miopenHandle_t /*handle*/,
+                                                 const miopenTensorDescriptor_t wDesc,
+                                                 const miopenTensorDescriptor_t xDesc,
+                                                 const miopenConvolutionDescriptor_t convDesc,
+                                                 const miopenTensorDescriptor_t yDesc,
+                                                 const uint64_t solution_id,
+                                                 size_t* workSpaceSize)
+{
+    MIOPEN_LOG_FUNCTION(wDesc, xDesc, convDesc, yDesc, solution_id, workSpaceSize);
+    return miopenStatusNotImplemented;
+}
+
+extern "C" miopenStatus_t
+miopenConvolutionForwardCompileSolution(miopenHandle_t /*handle*/,
+                                        const miopenTensorDescriptor_t wDesc,
+                                        const miopenTensorDescriptor_t xDesc,
+                                        const miopenConvolutionDescriptor_t convDesc,
+                                        const miopenTensorDescriptor_t yDesc,
+                                        const uint64_t solution_id)
+{
+    MIOPEN_LOG_FUNCTION(wDesc, xDesc, convDesc, yDesc, solution_id);
+    return miopenStatusNotImplemented;
+}
+
+extern "C" miopenStatus_t
+miopenConvolutionForwardImmediate(miopenHandle_t /*handle*/,
+                                  const miopenTensorDescriptor_t wDesc,
+                                  const void* w,
+                                  const miopenTensorDescriptor_t xDesc,
+                                  const void* x,
+                                  const miopenConvolutionDescriptor_t convDesc,
+                                  const miopenTensorDescriptor_t yDesc,
+                                  void* y,
+                                  void* workSpace,
+                                  size_t workSpaceSize,
+                                  const uint64_t solution_id)
+{
+    MIOPEN_LOG_FUNCTION(
+        wDesc, w, xDesc, x, convDesc, yDesc, y, workSpace, workSpaceSize, solution_id);
+    return miopenStatusNotImplemented;
+}
+
+extern "C" miopenStatus_t
+miopenConvolutionBackwardDataGetSolutionCount(miopenHandle_t /*handle*/,
+                                              const miopenTensorDescriptor_t dyDesc,
+                                              const miopenTensorDescriptor_t wDesc,
+                                              const miopenConvolutionDescriptor_t convDesc,
+                                              const miopenTensorDescriptor_t dxDesc,
+                                              size_t* solutionCount)
+{
+    MIOPEN_LOG_FUNCTION(dyDesc, wDesc, convDesc, dxDesc, solutionCount);
+    return miopenStatusNotImplemented;
+}
+
+extern "C" miopenStatus_t
+miopenConvolutionBackwardDataGetSolution(miopenHandle_t /*handle*/,
+                                         const miopenTensorDescriptor_t dyDesc,
+                                         const miopenTensorDescriptor_t wDesc,
+                                         const miopenConvolutionDescriptor_t convDesc,
+                                         const miopenTensorDescriptor_t dxDesc,
+                                         const size_t maxSolutionCount,
+                                         size_t* solutionCount,
+                                         miopenConvSolution_t* /*solutions*/)
+{
+    MIOPEN_LOG_FUNCTION(dyDesc, wDesc, convDesc, dxDesc, maxSolutionCount, solutionCount);
+    return miopenStatusNotImplemented;
+}
+
+extern "C" miopenStatus_t
+miopenConvolutionBackwardDataGetSolutionWorkspaceSize(miopenHandle_t /*handle*/,
+                                                      const miopenTensorDescriptor_t dyDesc,
+                                                      const miopenTensorDescriptor_t wDesc,
+                                                      const miopenConvolutionDescriptor_t convDesc,
+                                                      const miopenTensorDescriptor_t dxDesc,
+                                                      const uint64_t solution_id,
+                                                      size_t* workSpaceSize)
+{
+    MIOPEN_LOG_FUNCTION(dyDesc, wDesc, convDesc, dxDesc, solution_id, workSpaceSize);
+    return miopenStatusNotImplemented;
+}
+
+extern "C" miopenStatus_t
+miopenConvolutionBackwardDataCompileSolution(miopenHandle_t /*handle*/,
+                                             const miopenTensorDescriptor_t dyDesc,
+                                             const miopenTensorDescriptor_t wDesc,
+                                             const miopenConvolutionDescriptor_t convDesc,
+                                             const miopenTensorDescriptor_t dxDesc,
+                                             const uint64_t solution_id)
+{
+    MIOPEN_LOG_FUNCTION(dyDesc, wDesc, convDesc, dxDesc, solution_id);
+    return miopenStatusNotImplemented;
+}
+
+extern "C" miopenStatus_t
+miopenConvolutionBackwardDataImmediate(miopenHandle_t /*handle*/,
+                                       const miopenTensorDescriptor_t dyDesc,
+                                       const void* /*dy*/,
+                                       const miopenTensorDescriptor_t wDesc,
+                                       const void* /*w*/,
+                                       const miopenConvolutionDescriptor_t convDesc,
+                                       const miopenTensorDescriptor_t dxDesc,
+                                       const void* /*dx*/,
+                                       void* workSpace,
+                                       size_t workSpaceSize,
+                                       const uint64_t solution_id)
+{
+    MIOPEN_LOG_FUNCTION(dyDesc, wDesc, convDesc, dxDesc, workSpace, workSpaceSize, solution_id);
+    return miopenStatusNotImplemented;
+}
+extern "C" miopenStatus_t
+miopenConvolutionBackwardWeightsGetSolutionCount(miopenHandle_t /*handle*/,
+                                                 const miopenTensorDescriptor_t dyDesc,
+                                                 const miopenTensorDescriptor_t xDesc,
+                                                 const miopenConvolutionDescriptor_t convDesc,
+                                                 const miopenTensorDescriptor_t dwDesc,
+                                                 size_t* solutionCount)
+{
+    MIOPEN_LOG_FUNCTION(dyDesc, xDesc, convDesc, dwDesc, solutionCount);
+    return miopenStatusNotImplemented;
+}
+
+extern "C" miopenStatus_t
+miopenConvolutionBackwardWeightsGetSolution(miopenHandle_t /*handle*/,
+                                            const miopenTensorDescriptor_t dyDesc,
+                                            const miopenTensorDescriptor_t xDesc,
+                                            const miopenConvolutionDescriptor_t convDesc,
+                                            const miopenTensorDescriptor_t dwDesc,
+                                            const size_t maxSolutionCount,
+                                            size_t* solutionCount,
+                                            miopenConvSolution_t* /*solutions*/)
+{
+    MIOPEN_LOG_FUNCTION(dyDesc, xDesc, convDesc, dwDesc, maxSolutionCount, solutionCount);
+    return miopenStatusNotImplemented;
+}
+
+extern "C" miopenStatus_t miopenConvolutionBackwardWeightsGetSolutionWorkspaceSize(
+    miopenHandle_t /*handle*/,
+    const miopenTensorDescriptor_t dyDesc,
+    const miopenTensorDescriptor_t xDesc,
+    const miopenConvolutionDescriptor_t convDesc,
+    const miopenTensorDescriptor_t dwDesc,
+    const uint64_t solution_id,
+    size_t* workSpaceSize)
+{
+    MIOPEN_LOG_FUNCTION(dyDesc, xDesc, convDesc, dwDesc, solution_id, workSpaceSize);
+    return miopenStatusNotImplemented;
+}
+
+extern "C" miopenStatus_t
+miopenConvolutionBackwardWeightsCompileSolution(miopenHandle_t /*handle*/,
+                                                const miopenTensorDescriptor_t dyDesc,
+                                                const miopenTensorDescriptor_t xDesc,
+                                                const miopenConvolutionDescriptor_t convDesc,
+                                                const miopenTensorDescriptor_t dwDesc,
+                                                const uint64_t solution_id)
+{
+    MIOPEN_LOG_FUNCTION(dyDesc, xDesc, convDesc, dwDesc, solution_id);
+    return miopenStatusNotImplemented;
+}
+
+extern "C" miopenStatus_t
+miopenConvolutionBackwardWeightsImmediate(miopenHandle_t /*handle*/,
+                                          const miopenTensorDescriptor_t dyDesc,
+                                          const void* dy,
+                                          const miopenTensorDescriptor_t xDesc,
+                                          const void* x,
+                                          const miopenConvolutionDescriptor_t convDesc,
+                                          const miopenTensorDescriptor_t dwDesc,
+                                          void* dw,
+                                          void* workSpace,
+                                          size_t workSpaceSize,
+                                          const uint64_t solution_id)
+{
+    MIOPEN_LOG_FUNCTION(
+        dyDesc, dy, xDesc, x, convDesc, dwDesc, dw, workSpace, workSpaceSize, solution_id);
+    return miopenStatusNotImplemented;
+}
+
+extern "C" miopenStatus_t
 miopenFindConvolutionBackwardDataAlgorithm(miopenHandle_t handle,
                                            const miopenTensorDescriptor_t dyDesc,
                                            const void* dy,

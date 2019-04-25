@@ -30,6 +30,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/visit_float.hpp>
+#include <miopen/stringutils.hpp>
 #include <ostream>
 #include <ios>
 #include <algorithm>

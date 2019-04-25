@@ -371,6 +371,17 @@ std::size_t Handle::GetLocalMemorySize()
     return result;
 }
 
+std::size_t Handle::GetGlobalMemorySize()
+{
+    size_t result;
+    auto status = hipDeviceTotalMem(&result, this->impl->device);
+
+    if(status != hipSuccess)
+        MIOPEN_THROW_HIP_STATUS(status);
+
+    return result;
+}
+
 std::size_t Handle::GetMaxComputeUnits()
 {
     int result;
