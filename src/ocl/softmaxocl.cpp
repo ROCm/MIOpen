@@ -51,8 +51,13 @@ int nextPow2(int v)
     }
 }
 
-miopenStatus_t SoftmaxForward(
-    Handle& handle, const void* alpha, const void* beta, const TensorDescriptor& yDesc, Data_t y)
+miopenStatus_t SoftmaxForward(Handle& handle,
+                              const void* alpha,
+                              const void* beta,
+                              const TensorDescriptor& yDesc,
+                              Data_t y,
+                              int y_offset,
+                              bool is_sofmax_log)
 {
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
        !float_equal(*(static_cast<const float*>(beta)), 0))
@@ -109,6 +114,11 @@ miopenStatus_t SoftmaxForward(
             std::string parms = "-DNUM_BATCH=" + std::to_string(num_batch) + " -DMIOPEN_USE_FP16=" +
                                 std::to_string(static_cast<int>(usefp16)) + " -DMIOPEN_USE_FP32=" +
                                 std::to_string(static_cast<int>(usefp32));
+
+            parms += " -DOUT_OFFSET=" + std::to_string(y_offset);
+            if(is_sofmax_log)
+                parms += " -DUSE_SOFTMAX_LOG=1";
+
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 y, c, grid_size, spatial_dim);
         }
@@ -150,6 +160,10 @@ miopenStatus_t SoftmaxForward(
                                 std::to_string(u_batch_size) + " -DMIOPEN_USE_FP16=" +
                                 std::to_string(static_cast<int>(usefp16)) + " -DMIOPEN_USE_FP32=" +
                                 std::to_string(static_cast<int>(usefp32));
+
+            parms += " -DOUT_OFFSET=" + std::to_string(y_offset);
+            if(is_sofmax_log)
+                parms += " -DUSE_SOFTMAX_LOG=1";
 
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 y, c, grid_size, spatial_dim);
