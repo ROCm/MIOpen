@@ -51,11 +51,38 @@
 #define _FLOAT4 PPCAT(_FLOAT, FOUR)
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
+#ifndef NEGATIVE_INF
+#define NEGATIVE_INF (_FLOAT)(-1e20)
+#endif
+
+#ifndef USE_SOFTMAX_LOG
+#define USE_SOFTMAX_LOG 0
+#endif
+
+#ifndef OUT_OFFSET
+#define OUT_OFFSET 0
+#endif
+
 typedef union GPtr
 {
     _FLOAT* f;
     _FLOAT2* fv;
 } GPtr;
+
+static inline _FLOAT LogAddExp(const _FLOAT x, const _FLOAT y)
+{
+    _FLOAT a = max(x, y);
+    if(a <= NEGATIVE_INF)
+        return NEGATIVE_INF;
+
+    _FLOAT b = min(x, y);
+    if(b <= NEGATIVE_INF)
+        return a;
+
+    _FLOAT c = b - a;
+
+    return c <= NEGATIVE_INF ? a : (a + log(exp(c) + 1));
+}
 
 /* Steps to compute softmax:
  * 1. Compute the max per channel.
@@ -74,7 +101,7 @@ typedef union GPtr
 __kernel void
 SoftmaxForward(global _FLOAT* y, const int c, const int grid_size, const int spatial_dim)
 {
-#if NUM_BATCH == 1 // CSR-Vector like appraoch
+#if NUM_BATCH == 1 // CSR-Vector like approach
 
     /* Entire workgroup works on one spatial_dim.
      * We use logarthmic reductions to compute max and sum per channel.
@@ -105,7 +132,7 @@ SoftmaxForward(global _FLOAT* y, const int c, const int grid_size, const int spa
         // and compute max
         for(int i = lid; i < c; i += get_local_size(0))
         {
-            t_helper = max(y[mad24(n, c, i) * spatial_dim + s], t_helper);
+            t_helper = max(y[mad24(n, c, i) * spatial_dim + s + OUT_OFFSET], t_helper);
         }
 
         // Now we have to compute the max from 256 values (one per each thread)
@@ -123,16 +150,28 @@ SoftmaxForward(global _FLOAT* y, const int c, const int grid_size, const int spa
         }
 
         _FLOAT channel_max = l_helper[0];
-        t_helper           = 0.;
+        t_helper =
+#if USE_SOFTMAX_LOG == 1
+            NEGATIVE_INF
+#else
+            (_FLOAT)0.
+#endif
+            ;
 
         // Subtract channel_max from each value
         for(int i = lid; i < c; i += get_local_size(0))
         {
-            _FLOAT value = y[mad24(n, c, i) * spatial_dim + s];
+            _FLOAT value = y[mad24(n, c, i) * spatial_dim + s + OUT_OFFSET];
 
             // Compute exponent of each value
             // Then sum all the values touched by this thread
-            t_helper += exp(value - channel_max);
+            t_helper
+#if USE_SOFTMAX_LOG == 1
+                = LogAddExp(value - channel_max, t_helper)
+#else
+                += exp(value - channel_max)
+#endif
+                ;
         }
 
         l_helper[lid] = t_helper;
@@ -144,7 +183,13 @@ SoftmaxForward(global _FLOAT* y, const int c, const int grid_size, const int spa
         {
             if(lid < i)
             {
-                l_helper[lid] += l_helper[lid + i];
+                l_helper[lid]
+#if USE_SOFTMAX_LOG == 1
+                    = LogAddExp(l_helper[lid], l_helper[lid + i])
+#else
+                    += l_helper[lid + i]
+#endif
+                    ;
             }
             barrier(CLK_LOCAL_MEM_FENCE);
         }
@@ -154,14 +199,23 @@ SoftmaxForward(global _FLOAT* y, const int c, const int grid_size, const int spa
         // Normalize each value in the channel by the channel_sum
         for(int i = lid; i < c; i += get_local_size(0))
         {
-            _FLOAT value = y[mad24(n, c, i) * spatial_dim + s];
+            _FLOAT value = y[mad24(n, c, i) * spatial_dim + s + OUT_OFFSET];
 
             // Subtracting max again because we do not write the output of
             // value-max to DRAM above. Doing a subtraction again is much
             // faster than writing uncoalesced to DRAM
-            value = exp(value - channel_max);
+            value = value - channel_max;
+#if USE_SOFTMAX_LOG == 0
+            value = exp(value);
+#endif
 
-            y[mad24(n, c, i) * spatial_dim + s] = value / channel_sum;
+            y[mad24(n, c, i) * spatial_dim + s + OUT_OFFSET] = value
+#if USE_SOFTMAX_LOG == 1
+                                                               -
+#else
+                                                               /
+#endif
+                                                               channel_sum;
         }
     }
 
@@ -218,11 +272,11 @@ SoftmaxForward(global _FLOAT* y, const int c, const int grid_size, const int spa
         {
 
 #if MIOPEN_USE_FP16 == 1 // Refer to Comment1 above for different fp16 and fp32 impl
-            _FLOAT tmp                         = y[mad24(batch_n, c, i) * spatial_dim + batch_s];
-            t_helper                           = max(tmp, t_helper);
+            _FLOAT tmp = y[mad24(batch_n, c, i) * spatial_dim + batch_s + OUT_OFFSET];
+            t_helper   = max(tmp, t_helper);
             values[lid * U_BATCH_SIZE + index] = tmp;
 #else
-            values[index] = y[mad24(batch_n, c, i) * spatial_dim + batch_s];
+            values[index] = y[mad24(batch_n, c, i) * spatial_dim + batch_s + OUT_OFFSET];
             t_helper      = max(values[index], t_helper);
 #endif
         }
@@ -243,7 +297,15 @@ SoftmaxForward(global _FLOAT* y, const int c, const int grid_size, const int spa
     }
 
     _FLOAT channel_max = l_helper[batch * BATCH_SIZE];
-    t_helper           = (_FLOAT)0.;
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    t_helper =
+#if USE_SOFTMAX_LOG == 1
+        NEGATIVE_INF
+#else
+        (_FLOAT)0.
+#endif
+        ;
 
     // Subtract channel_max from each value
     index = index0;
@@ -252,12 +314,32 @@ SoftmaxForward(global _FLOAT* y, const int c, const int grid_size, const int spa
 // Compute exponent of each value
 // Then sum all the values touched by this thread
 #if MIOPEN_USE_FP16 == 1
-        _FLOAT tmp = exp(values[lid * U_BATCH_SIZE + index] - channel_max);
-        t_helper += tmp;
+        _FLOAT tmp = values[lid * U_BATCH_SIZE + index] - channel_max;
+#if USE_SOFTMAX_LOG == 0
+        tmp        = exp(tmp);
+#endif
+
+        t_helper
+#if USE_SOFTMAX_LOG == 1
+            = LogAddExp(t_helper, tmp)
+#else
+            += tmp
+#endif
+            ;
         values[lid * U_BATCH_SIZE + index] = tmp;
 #else
-        _FLOAT tmp        = exp(values[index] - channel_max);
-        t_helper += tmp;
+        _FLOAT tmp = values[index] - channel_max;
+#if USE_SOFTMAX_LOG == 0
+        tmp        = exp(tmp);
+#endif
+
+        t_helper
+#if USE_SOFTMAX_LOG == 1
+            = LogAddExp(t_helper, tmp)
+#else
+            += tmp
+#endif
+            ;
         values[index] = tmp;
 #endif
     }
@@ -271,7 +353,13 @@ SoftmaxForward(global _FLOAT* y, const int c, const int grid_size, const int spa
     {
         if(batch_lid < i)
         {
-            l_helper[lid] += l_helper[lid + i];
+            l_helper[lid]
+#if USE_SOFTMAX_LOG == 1
+                = LogAddExp(l_helper[lid], l_helper[lid + i])
+#else
+                += l_helper[lid + i]
+#endif
+                ;
         }
         barrier(CLK_LOCAL_MEM_FENCE);
     }
@@ -285,10 +373,22 @@ SoftmaxForward(global _FLOAT* y, const int c, const int grid_size, const int spa
         if(mad24(batch_n, c, i) * spatial_dim + batch_s < c * grid_size)
         {
 #if MIOPEN_USE_FP16 == 1
-            y[mad24(batch_n, c, i) * spatial_dim + batch_s] =
-                values[lid * U_BATCH_SIZE + index] / channel_sum;
+            y[mad24(batch_n, c, i) * spatial_dim + batch_s + OUT_OFFSET] =
+                values[lid * U_BATCH_SIZE + index]
+#if USE_SOFTMAX_LOG == 1
+                -
 #else
-            y[mad24(batch_n, c, i) * spatial_dim + batch_s] = values[index] / channel_sum;
+                /
+#endif
+                channel_sum;
+#else
+            y[mad24(batch_n, c, i) * spatial_dim + batch_s + OUT_OFFSET] = values[index]
+#if USE_SOFTMAX_LOG == 1
+                                                                           -
+#else
+                                                                           /
+#endif
+                                                                           channel_sum;
 #endif
         }
     }

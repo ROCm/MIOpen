@@ -296,11 +296,12 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
     return result;
 }
 
+template <typename B, typename T>
 int ConvAsm3x3U::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                       Data_t bot_ocl_buf,
-                                       Data_t top_ocl_buf,
-                                       Data_t wei_ocl_buf,
-                                       Data_t bias_ocl_buf,
+                                       B bot_ocl_buf,
+                                       T top_ocl_buf,
+                                       ConstData_t wei_ocl_buf,
+                                       ConstData_t bias_ocl_buf,
                                        const ConvolutionContext&,
                                        const ConvSolution& solution,
                                        float& elapsed_time) const
@@ -337,7 +338,10 @@ int ConvAsm3x3U::RunAndMeasureSolution(miopen::Handle& profile_h,
 
 PerformanceConfigConvAsm3x3U ConvAsm3x3U::Search(const ConvolutionContext& context) const
 {
-    return GenericSearch(*this, context);
+    if(context.direction.IsForward())
+        return GenericSearchFwd(*this, context);
+    else
+        return GenericSearchBwd(*this, context);
 }
 
 } // namespace solver

@@ -188,6 +188,25 @@ struct Handle : miopenHandle
 
 inline std::ostream& operator<<(std::ostream& os, const Handle& handle) { return handle.Print(os); }
 
+struct AutoEnableProfiling
+{
+    AutoEnableProfiling(Handle& x) : h(x)
+    {
+        prev_state = h.IsProfilingEnabled();
+        h.EnableProfiling();
+    }
+
+    ~AutoEnableProfiling()
+    {
+        h.EnableProfiling(prev_state);
+        h.ResetKernelTime();
+    }
+
+    private:
+    Handle& h;
+    bool prev_state;
+};
+
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenHandle, miopen::Handle);
 

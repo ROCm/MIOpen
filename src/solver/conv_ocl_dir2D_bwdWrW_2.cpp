@@ -480,6 +480,8 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& p
            // padding, as well as some or none of the input.
            params.kernel_size_h - params.kernel_stride_h >= params.pad_h &&
            params.batch_sz >= N_BATCH_LOOPS &&
+           /// \todo Workaround for issue 1693
+           !(params.kernel_size_w >= 8 && params.kernel_size_w % 2 == 0) &&
            /// Avoid LDS & Workspace over-allocation.
            /// \note Required LDS depends on PerformanceConfig.
            /// We use the default PerformanceConfig here. This guarantees that at least
@@ -714,10 +716,10 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
 template <int N_BATCH_LOOPS>
 template <typename Tgpu>
 int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolutionImpl(miopen::Handle& profile_h,
-                                                             Data_t bot_ocl_buf,
-                                                             Data_t top_ocl_buf,
+                                                             ConstData_t bot_ocl_buf,
+                                                             ConstData_t top_ocl_buf,
                                                              Data_t wei_ocl_buf,
-                                                             Data_t bias_ocl_buf,
+                                                             ConstData_t bias_ocl_buf,
                                                              const ConvolutionContext&,
                                                              const ConvSolution& solution,
                                                              float& elapsed_time) const
@@ -761,10 +763,10 @@ int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolutionImpl(miopen::Handle& pro
 
 template <int N_BATCH_LOOPS>
 int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                                         Data_t bot_ocl_buf,
-                                                         Data_t top_ocl_buf,
+                                                         ConstData_t bot_ocl_buf,
+                                                         ConstData_t top_ocl_buf,
                                                          Data_t wei_ocl_buf,
-                                                         Data_t bias_ocl_buf,
+                                                         ConstData_t bias_ocl_buf,
                                                          const ConvolutionContext& context,
                                                          const ConvSolution& solution,
                                                          float& elapsed_time) const
@@ -798,9 +800,9 @@ PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
 ConvOclBwdWrW2<N_BATCH_LOOPS>::Search(const ConvolutionContext& context) const
 {
     if(GetNBatchBlks<N_BATCH_LOOPS>(context) > 1)
-        return GenericSearch(*this, context, SearchTweak::OverrideWeightBufferSizeByWorkspaceSize);
+        return GenericSearchWrW(*this, context, SearchTweak::WorkspaceInsteadOfWeightsBuffer);
     else
-        return GenericSearch(*this, context);
+        return GenericSearchWrW(*this, context);
 }
 
 /// We need to instantiate required classes implicitly.
