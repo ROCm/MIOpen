@@ -741,10 +741,10 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 }
 
 int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                            Data_t bot_ocl_buf,
-                                            Data_t top_ocl_buf,
+                                            ConstData_t bot_ocl_buf,
+                                            ConstData_t top_ocl_buf,
                                             Data_t wei_ocl_buf,
-                                            Data_t bias_ocl_buf,
+                                            ConstData_t bias_ocl_buf,
                                             const ConvolutionContext& params,
                                             const ConvSolution& solution,
                                             float& elapsed_time) const
@@ -803,9 +803,9 @@ int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
 PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& context) const
 {
     if(UseSubsample(context))
-        return GenericSearch(*this, context, SearchTweak::OverrideXBufferSizeByWorkspaceSize);
+        return GenericSearchWrW(*this, context, SearchTweak::WorkspaceInsteadOfXBuffer);
     else
-        return GenericSearch(*this, context);
+        return GenericSearchWrW(*this, context);
 }
 
 } // namespace solver

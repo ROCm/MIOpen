@@ -54,25 +54,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 
-struct AutoEnableProfiling
-{
-    AutoEnableProfiling(Handle& x) : h(x)
-    {
-        prev_state = h.IsProfilingEnabled();
-        h.EnableProfiling();
-    }
-
-    ~AutoEnableProfiling()
-    {
-        h.EnableProfiling(prev_state);
-        h.ResetKernelTime();
-    }
-
-    private:
-    Handle& h;
-    bool prev_state;
-};
-
 static inline void AddKernels(Handle& handle,
                               const std::string& algorithm_name,
                               const std::string& network_config,
@@ -296,7 +277,8 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
                                                bool exhaustiveSearch,
                                                bool isForward,
                                                std::string& network_config,
-                                               ExtraKernelArgs& extraArgs) const
+                                               ExtraKernelArgs& extraArgs,
+                                               const ConvolutionUserBuffers& bufs) const
 {
 
     if(GetSpatialDimension() != 2 || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
@@ -307,6 +289,7 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
     construct_params.saveSearchRequest(true);
     construct_params.setGeneralCompOptions("");
     construct_params.setStream(&handle);
+    construct_params.setBufs(bufs);
     construct_params.detectRocm();
 
     if(IsWinograd3x3Supported(handle, isForward, wDesc, (isForward ? xDesc : yDesc)) &&
@@ -333,6 +316,7 @@ static void DirConvFindCore(Handle& handle,
                             const TensorDescriptor& wDesc,
                             ConstData_t w,
                             const TensorDescriptor& yDesc,
+                            Data_t y,
                             Data_t workSpace,
                             size_t workSpaceSize,
                             const ConvolutionDescriptor& conv,
@@ -340,10 +324,6 @@ static void DirConvFindCore(Handle& handle,
                             DbRecord& record)
 {
     AutoEnableProfiling enableProfiling{handle};
-
-    // create a dummy buffer for use as output for the kernel calls
-    // because kernels are called purely for timing purposes
-    auto tmp_y = handle.Create(yDesc.GetElementSize() * GetTypeSize(yDesc.GetType()));
 
     {
         ValidateGroupCount(xDesc, wDesc, conv);
@@ -460,7 +440,7 @@ static void DirConvFindCore(Handle& handle,
                                         out_spatial[0],
                                         out_spatial[1],
                                         workSpace,
-                                        tmp_y.get(),
+                                        y,
                                         x_t_size,
                                         0,
                                         1,
@@ -473,14 +453,7 @@ static void DirConvFindCore(Handle& handle,
                         TensorDescriptor ygemmDesc(
                             miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
 
-                        CastTensor(handle,
-                                   &conv.lowp_quant,
-                                   ygemmDesc,
-                                   tmp_y.get(),
-                                   yDesc,
-                                   tmp_y.get(),
-                                   0,
-                                   0);
+                        CastTensor(handle, &conv.lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
                         time_gemm += handle.GetKernelTime();
                     }
 
@@ -531,7 +504,7 @@ static void DirConvFindCore(Handle& handle,
                                                       0,
                                                       workSpace,
                                                       0,
-                                                      tmp_y.get(),
+                                                      y,
                                                       out_offset,
                                                       &kcache_key,
                                                       time_precision,
@@ -553,7 +526,7 @@ static void DirConvFindCore(Handle& handle,
                                                       0,
                                                       x,
                                                       0,
-                                                      tmp_y.get(),
+                                                      y,
                                                       0,
                                                       &kcache_key,
                                                       time_precision,
@@ -568,8 +541,7 @@ static void DirConvFindCore(Handle& handle,
                 {
                     TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
 
-                    CastTensor(
-                        handle, &conv.lowp_quant, ygemmDesc, tmp_y.get(), yDesc, tmp_y.get(), 0, 0);
+                    CastTensor(handle, &conv.lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
                     time_gemm += handle.GetKernelTime();
                 }
 
@@ -649,7 +621,7 @@ static void DirConvFindCore(Handle& handle,
                                         0,
                                         workSpace,
                                         wksp_offset,
-                                        tmp_y.get(),
+                                        y,
                                         0,
                                         &kcache_key,
                                         time_precision,
@@ -665,8 +637,7 @@ static void DirConvFindCore(Handle& handle,
                 {
                     TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
 
-                    CastTensor(
-                        handle, &conv.lowp_quant, ygemmDesc, tmp_y.get(), yDesc, tmp_y.get(), 0, 0);
+                    CastTensor(handle, &conv.lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
                     time_gemm += handle.GetKernelTime();
                 }
 
@@ -720,7 +691,7 @@ static void DirConvFindCore(Handle& handle,
                                 reserved,
                                 x,
                                 w,
-                                tmp_y.get(),
+                                y,
                                 return_addr,
                                 R,
                                 S,
@@ -731,8 +702,7 @@ static void DirConvFindCore(Handle& handle,
                 }
                 else
                 {
-                    kernel_wino(
-                        N, C, H, W, K, n_groups, flags, reserved, x, w, tmp_y.get(), return_addr);
+                    kernel_wino(N, C, H, W, K, n_groups, flags, reserved, x, w, y, return_addr);
                 }
                 time_wino = handle.GetKernelTime();
                 record.SetValues("miopenConvolutionFwdAlgoWinograd",
@@ -744,8 +714,10 @@ static void DirConvFindCore(Handle& handle,
 
             // Direct algo
             ExtraKernelArgs eka;
+            ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
+            bufs.SetFwd(x, w, y);
             const auto all = conv.FindDataDirectSolutions(
-                handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, network_config, eka);
+                handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, network_config, eka, bufs);
             miopen::solver::ConvSolution selected{miopenStatusUnknownError};
             float best = std::numeric_limits<float>::max();
             visit_float(xDesc.GetType(), [&](auto as_float) {
@@ -757,7 +729,7 @@ static void DirConvFindCore(Handle& handle,
                                                               eka,
                                                               x,
                                                               w,
-                                                              tmp_y.get(),
+                                                              y,
                                                               yDesc,
                                                               workSpace,
                                                               workSpaceSize,
@@ -808,16 +780,8 @@ static void DirConvFindCore(Handle& handle,
                 (void)kernels_fft; // not used now, but needed as fft coverage widens
                 if(workSpace != nullptr && workSpaceSize >= workspace_fft)
                 {
-                    float time_fft = conv.ExecuteFwdFFTKernel(handle,
-                                                              xDesc,
-                                                              x,
-                                                              wDesc,
-                                                              w,
-                                                              yDesc,
-                                                              tmp_y.get(),
-                                                              workSpace,
-                                                              workSpaceSize,
-                                                              true);
+                    float time_fft = conv.ExecuteFwdFFTKernel(
+                        handle, xDesc, x, wDesc, w, yDesc, y, workSpace, workSpaceSize, true);
                     record.SetValues("miopenConvolutionFwdAlgoFFT",
                                      FindDbData{"fft",
                                                 time_fft,
@@ -836,7 +800,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                                  const TensorDescriptor& wDesc,
                                                  ConstData_t w,
                                                  const TensorDescriptor& yDesc,
-                                                 ConstData_t y,
+                                                 Data_t y,
                                                  const int requestAlgoCount,
                                                  int* const returnedAlgoCount,
                                                  miopenConvAlgoPerf_t* perfResults,
@@ -865,6 +829,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                         wDesc,
                         w,
                         yDesc,
+                        y,
                         workSpace,
                         workSpaceSize,
                         *this,
@@ -1527,7 +1492,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                                      const TensorDescriptor& wDesc,
                                                      ConstData_t w,
                                                      const TensorDescriptor& dxDesc,
-                                                     ConstData_t dx,
+                                                     Data_t dx,
                                                      const int requestAlgoCount,
                                                      int* const returnedAlgoCount,
                                                      miopenConvAlgoPerf_t* perfResults,
@@ -1548,10 +1513,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
 
     *returnedAlgoCount = 0;
-
-    // create a dummy buffer for use as output for the kernel calls
-    // because kernels are called purely for timing purposes
-    auto tmp_dx = handle.Create(dxDesc.GetElementSize() * GetTypeSize(dxDesc.GetType()));
 
     AutoEnableProfiling enableProfiling{handle};
 
@@ -1624,7 +1585,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                 reserved,
                                 dy,
                                 w,
-                                tmp_dx.get(),
+                                dx,
                                 return_addr,
                                 R,
                                 S,
@@ -1635,8 +1596,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 }
                 else
                 {
-                    kernel_wino(
-                        N, C, H, W, K, n_groups, flags, reserved, dy, w, tmp_dx.get(), return_addr);
+                    kernel_wino(N, C, H, W, K, n_groups, flags, reserved, dy, w, dx, return_addr);
                 }
                 time_wino = handle.GetKernelTime();
                 perf_db.push_back(
@@ -1645,8 +1605,10 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
             // Direct algo
             ExtraKernelArgs eka;
+            ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
+            bufs.SetBwd(dx, w, dy);
             const auto all = FindDataDirectSolutions(
-                handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, network_config, eka);
+                handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, network_config, eka, bufs);
             miopen::solver::ConvSolution selected{miopenStatusUnknownError};
             float best = std::numeric_limits<float>::max();
             visit_float(dyDesc.GetType(), [&](auto as_float) {
@@ -1658,7 +1620,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                                               eka,
                                                               dy,
                                                               w,
-                                                              tmp_dx.get(),
+                                                              dx,
                                                               dxDesc,
                                                               workSpace,
                                                               workSpaceSize,
@@ -1701,16 +1663,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 (void)kernels_fft; // not used now, but needed as fft coverage widens
                 if(workSpace != nullptr && workSpaceSize >= workspace_fft)
                 {
-                    float time_fft = ExecuteBwdFFTKernel(handle,
-                                                         dyDesc,
-                                                         dy,
-                                                         wDesc,
-                                                         w,
-                                                         dxDesc,
-                                                         tmp_dx.get(),
-                                                         workSpace,
-                                                         workSpaceSize,
-                                                         true);
+                    float time_fft = ExecuteBwdFFTKernel(
+                        handle, dyDesc, dy, wDesc, w, dxDesc, dx, workSpace, workSpaceSize, true);
                     perf_db.push_back(PerfField{
                         "miopenConvolutionBwdDataAlgoFFT", "FFT", time_fft, workspace_fft});
                 }
@@ -1755,7 +1709,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
                 // Initialization required for upsampling in bwd direction
                 float zero = 0.f;
-                SetTensor(handle, dxDesc, tmp_dx.get(), &zero);
+                SetTensor(handle, dxDesc, dx, &zero);
                 time_gemm = handle.GetKernelTime();
 
                 // dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
@@ -1803,7 +1757,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                     in_spatial[0],
                                     in_spatial[1],
                                     workSpace,
-                                    tmp_dx.get(),
+                                    dx,
                                     dyDesc.GetElementSize(),
                                     0,
                                     GetConvStrides()[0],
@@ -1843,7 +1797,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                                                  0,
                                                                  dy,
                                                                  0,
-                                                                 tmp_dx.get(),
+                                                                 dx,
                                                                  0,
                                                                  nullptr,
                                                                  time_precision,
@@ -1904,7 +1858,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                         GetConvDilations(),
                                         in_c,
                                         in_spatial,
-                                        tmp_dx.get(),
+                                        dx,
                                         in_offset,
                                         dyDesc.GetType());
 
@@ -2512,7 +2466,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                         const TensorDescriptor& xDesc,
                                                         ConstData_t x,
                                                         const TensorDescriptor& dwDesc,
-                                                        ConstData_t dw,
+                                                        Data_t dw,
                                                         const int requestAlgoCount,
                                                         int* const returnedAlgoCount,
                                                         miopenConvAlgoPerf_t* perfResults,
@@ -2533,10 +2487,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
 
     *returnedAlgoCount = 0;
-
-    // create a dummy buffer for use as output for the kernel calls
-    // because kernels are called purely for timing purposes
-    auto tmp_dw = handle.Create(dwDesc.GetElementSize() * GetTypeSize(dwDesc.GetType()));
 
     AutoEnableProfiling enableProfiling{handle};
 
@@ -2609,7 +2559,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     0,
                     workSpace,
                     0,
-                    tmp_dw.get(),
+                    dw,
                     0,
                     nullptr,
                     time_precision,
@@ -2649,7 +2599,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     0,
                     x,
                     0,
-                    tmp_dw.get(),
+                    dw,
                     0,
                     nullptr,
                     time_precision,
@@ -2671,10 +2621,13 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         {
             if(GetSpatialDimension() == 2 && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
             {
+                ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
+                bufs.SetWrW(x, dw, dy);
                 mlo_construct_BwdWrW2D construct_params(
                     xDesc, dwDesc, dyDesc, *this, 0); // backward with regards to weights
                 construct_params.setDoSearch(exhaustiveSearch);
                 construct_params.setStream(&handle);
+                construct_params.setBufs(bufs);
 
                 std::string network_config;
                 construct_params.mloBuildConf_Key(network_config);
@@ -2695,7 +2648,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                                   sol,
                                                                   dy,
                                                                   x,
-                                                                  tmp_dw.get(),
+                                                                  dw,
                                                                   workSpace,
                                                                   workSpaceSize,
                                                                   as_float(0.0f));
@@ -2775,7 +2728,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                 reserved,
                                 x,
                                 dy,
-                                tmp_dw.get(),
+                                dw,
                                 reserved_ptr, // Unused return_addr.
                                 out_H,
                                 out_W,

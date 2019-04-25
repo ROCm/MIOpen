@@ -503,11 +503,12 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     return result;
 }
 
+template <typename B, typename T>
 int ConvAsmBwdWrW3x3::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                            Data_t bot_ocl_buf,
-                                            Data_t top_ocl_buf,
+                                            B bot_ocl_buf,
+                                            T top_ocl_buf,
                                             Data_t wei_ocl_buf,
-                                            Data_t bias_ocl_buf,
+                                            ConstData_t bias_ocl_buf,
                                             const ConvolutionContext& params,
                                             const ConvSolution& solution,
                                             float& elapsed_time) const
@@ -559,7 +560,7 @@ int ConvAsmBwdWrW3x3::RunAndMeasureSolution(miopen::Handle& profile_h,
 
 PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ConvolutionContext& context) const
 {
-    return GenericSearch(*this, context);
+    return GenericSearchWrW(*this, context);
 }
 
 } // namespace solver

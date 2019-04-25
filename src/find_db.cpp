@@ -60,7 +60,7 @@ bool FindDb::CopyValidating(Handle& handle, std::vector<PerfField>& to) const
             {
                 unbuilt = true;
 
-                MIOPEN_LOG(!is_valid ? LoggingLevel::Info2 : LoggingLevel::Error,
+                MIOPEN_LOG(is_valid ? LoggingLevel::Info2 : LoggingLevel::Error,
                            "Kernel cache entry not found for solver <"
                                << pair.first
                                << "::"
@@ -74,14 +74,14 @@ bool FindDb::CopyValidating(Handle& handle, std::vector<PerfField>& to) const
 
                 for(const auto& pair2 : record->As<FindDbData>())
                     MIOPEN_LOG(
-                        !is_valid ? LoggingLevel::Info2 : LoggingLevel::Error,
+                        is_valid ? LoggingLevel::Info2 : LoggingLevel::Error,
                         "Find-db record content: <" << pair2.first << "::" << pair2.second.solver_id
                                                     << "> at network config: "
                                                     << pair2.second.kcache_key.network_config
                                                     << " and algorithm name: "
                                                     << pair2.second.kcache_key.algorithm_name);
 
-                MIOPEN_LOG(!is_valid ? LoggingLevel::Info2 : LoggingLevel::Error,
+                MIOPEN_LOG(is_valid ? LoggingLevel::Info2 : LoggingLevel::Error,
                            "Actual network config used: " << record->GetKey());
 
                 break;
