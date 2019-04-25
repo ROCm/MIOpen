@@ -980,6 +980,63 @@ struct conv_driver : test_driver
                 output.generate(gen_positive_value);
                 weights.generate(gen_sign_value);
 
+                auto&& handle = get_handle();
+
+                size_t total_mem;
+                if(is_int8)
+                {
+                    auto output_int8      = get_output_tensor_int8(filter, input, weights);
+                    size_t workspace_size = filter.ForwardGetWorkSpaceSize(
+                        handle, weights.desc, input.desc, output_int8.desc);
+
+                    // 4x because assume type is miopenInt8x4
+                    total_mem = input.desc.GetNumBytes() + 4 * input.desc.GetNumBytes() +
+                                weights.desc.GetNumBytes() + 4 * weights.desc.GetNumBytes() +
+                                output_int8.desc.GetNumBytes() + 4 * sizeof(char) * workspace_size;
+                }
+                else
+                {
+                    size_t workspace_size_1 =
+                        filter.mode == miopenTranspose
+                            ? filter.ForwardGetWorkSpaceSize(
+                                  handle, weights.desc, output.desc, input.desc)
+                            : filter.BackwardDataGetWorkSpaceSize(
+                                  handle, weights.desc, output.desc, input.desc);
+
+                    size_t workspace_size_2 =
+                        filter.mode == miopenTranspose
+                            ? filter.BackwardDataGetWorkSpaceSize(
+                                  handle, weights.desc, input.desc, output.desc)
+                            : filter.ForwardGetWorkSpaceSize(
+                                  handle, weights.desc, input.desc, output.desc);
+
+                    size_t workspace_size_3 = filter.ConvolutionBackwardWeightsGetWorkSpaceSize(
+                        handle,
+                        filter.mode == miopenTranspose ? input.desc : output.desc,
+                        filter.mode == miopenTranspose ? output.desc : input.desc,
+                        weights.desc);
+
+                    std::vector<size_t> workspace_sizes = {
+                        workspace_size_1, workspace_size_2, workspace_size_3};
+                    size_t workspace_size =
+                        *std::max_element(workspace_sizes.begin(), workspace_sizes.end());
+
+                    total_mem = input.desc.GetNumBytes() + weights.desc.GetNumBytes() +
+                                output.desc.GetNumBytes() +
+                                sizeof(char) * workspace_size; // estimate based on backward pass
+                }
+
+                size_t device_mem = get_handle().GetGlobalMemorySize();
+
+                if(total_mem >= device_mem)
+                {
+                    show_command();
+                    std::cout << "Config requires " << total_mem
+                              << " Bytes to write all necessary tensors to GPU. GPU has "
+                              << device_mem << " Bytes of memory." << std::endl;
+                    return;
+                }
+
                 if(do_forward && !skip_forward)
                 {
                     if(is_int8)

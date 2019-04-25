@@ -150,6 +150,17 @@ struct softmax_driver : test_driver
 
     void run()
     {
+        size_t total_mem  = 2 * input.desc.GetNumBytes(); // estimate based on backward pass
+        size_t device_mem = get_handle().GetGlobalMemorySize();
+        if(total_mem >= device_mem)
+        {
+            show_command();
+            std::cout << "Config requires " << total_mem
+                      << " Bytes to write all necessary tensors to GPU. GPU has " << device_mem
+                      << " Bytes of memory." << std::endl;
+            return;
+        }
+
         auto out  = verify(verify_forward_sofmax{}, input);
         auto dout = input;
         dout.generate([&](int n, int c, int h, int w) {

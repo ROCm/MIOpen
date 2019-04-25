@@ -146,6 +146,8 @@ class DbRecord
     {
     }
 
+    const std::string& GetKey() const { return key; }
+
     /// Merges data from this record to data from that record if their keys are same.
     /// This record would contain all ID:VALUES pairs from that record that are not in this.
     /// E.g. this = {ID1:VALUE1}
