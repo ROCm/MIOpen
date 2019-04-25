@@ -58,6 +58,7 @@
  * @defgroup softmax
  * @defgroup RNN
  * @defgroup fusion
+ * @defgroup LossFunction
  *
 */
 
@@ -286,6 +287,11 @@ MIOPEN_DECLARE_OBJECT(miopenActivationDescriptor);
 * @brief Creates the miopenRNNDescriptor_t type
 */
 MIOPEN_DECLARE_OBJECT(miopenRNNDescriptor);
+
+/*! @ingroup LossFunction
+* @brief Creates the miopenCTCLossDescriptor_t type
+*/
+MIOPEN_DECLARE_OBJECT(miopenCTCLossDescriptor);
 
 /*! @ingroup tensor
  * @enum miopenDataType_t
@@ -1498,7 +1504,7 @@ miopenFindConvolutionBackwardDataAlgorithm(miopenHandle_t handle,
                                            const void* w,
                                            const miopenConvolutionDescriptor_t convDesc,
                                            const miopenTensorDescriptor_t dxDesc,
-                                           const void* dx,
+                                           void* dx,
                                            const int requestAlgoCount,
                                            int* returnedAlgoCount,
                                            miopenConvAlgoPerf_t* perfResults,
@@ -3789,6 +3795,124 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardInference(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT RNN DOXYGEN GROUP
+
+/** @addtogroup LossFunction
+*
+*  @{
+*/
+
+/*! @enum miopenCTCLossAlgo_t
+ * Algorithms available to execute the CTC loss operation
+*/
+typedef enum {
+    MIOPEN_CTC_LOSS_ALGO_DETERMINISTIC = 0, /*!< Results are guaranteed to be reproducible */
+} miopenCTCLossAlgo_t;
+
+/*! @brief Create a CTC loss function Descriptor
+ *
+ * API for creating an uninitialized CTC loss function descriptor.
+ * @param ctcLossDesc  Pointer to the CTC loss function descriptor type (output)
+ * @return             miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenCreateCTCLossDescriptor(miopenCTCLossDescriptor_t* ctcLossDesc);
+
+/*! @brief Retrieves a CTC loss function descriptor's details
+ *
+ * @param ctcLossDesc          CTC loss function descriptor (input)
+ * @param dataType             Data type used in this CTC loss operation, only fp32 currently
+ * supported (output)
+ * @param blank_label_id       User defined index for blank label (output)
+ * @param apply_softmax_layer  Boolean to toggle input layer property (output)
+ * @return                     miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenGetCTCLossDescriptor(miopenCTCLossDescriptor_t ctcLossDesc,
+                                                        miopenDataType_t* dataType,
+                                                        int* blank_label_id,
+                                                        bool* apply_softmax_layer);
+
+/*! @brief Destroys a CTC loss function descriptor object
+ *
+ * @param ctcLossDesc  CTC loss function descriptor type (input)
+ * @return             miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenDestroyCTCLossDescriptor(miopenCTCLossDescriptor_t ctcLossDesc);
+
+/*! @brief Set the details of a CTC loss function descriptor
+ *
+ * @param ctcLossDesc          CTC loss function descriptor type (input)
+ * @param dataType             Data type used in this CTC loss operation, only fp32 currently
+ * supported (input)
+ * @param blank_label_id       User defined index for blank label, default 0 (input)
+ * @param apply_softmax_layer  Boolean to toggle input layer property (input)
+ * @return             miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetCTCLossDescriptor(miopenCTCLossDescriptor_t ctcLossDesc,
+                                                        miopenDataType_t dataType,
+                                                        const int blank_label_id,
+                                                        bool apply_softmax_layer);
+
+/*! @brief Query the amount of memory required to execute miopenCTCLoss
+ *
+ * This function calculates the amount of memory required to run the CTC loss function given a CTC
+ * loss function descriptor with the specified algorithm.
+ * @param handle         MIOpen handle (input)
+ * @param probsDesc      Tensor descriptor for probabilities (input)
+ * @param gradientsDesc  Tensor descriptor for gradients (input)
+ * @param labels         Pointer to the flattened labels list (input)
+ * @param labelLengths   Pointer to the lengths list for "labels" (input)
+ * @param inputLengths   Pointer to the list of the time steps in each batch (input)
+ * @param algo           CTC loss algorithm selected (input)
+ * @param ctcLossDesc    CTC loss function descriptor type (input)
+ * @param workSpaceSize  Number of bytes of workspace required for CTC loss operation with selected
+ * algorithm (output)
+ * @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenGetCTCLossWorkspaceSize(miopenHandle_t handle,
+                              const miopenTensorDescriptor_t probsDesc,
+                              const miopenTensorDescriptor_t gradientsDesc,
+                              const int* labels,
+                              const int* labelLengths,
+                              const int* inputLengths,
+                              miopenCTCLossAlgo_t algo,
+                              const miopenCTCLossDescriptor_t ctcLossDesc,
+                              size_t* workSpaceSize);
+
+/*! @brief Execute forward inference for CTCLoss layer
+ *
+ * Interface for executing the forward inference pass on a CTCLoss.
+ * @param handle         MIOpen handle (input)
+ * @param probsDesc      Tensor descriptor for probabilities (input)
+ * @param probs          Pointer to the probabilities tensor (input)
+ * @param labels         Pointer to the flattened labels list (input)
+ * @param labelLengths   Pointer to the lengths list for "labels" (input)
+ * @param inputLengths   Pointer to the list of the time steps in each batch (input)
+ * @param losses         Pointer to the computed losses of CTC (Output)
+ * @param gradientsDesc  Tensor descriptor for gradients (input)
+ * @param gradients      Pointer to the computed gradients of CTC (Output)
+ * @param algo           CTC loss algorithm selected (input)
+ * @param ctcLossDesc    CTC loss function descriptor type (input)
+ * @param workSpace      Pointer to memory allocated for execute CTC loss operation (input)
+ * @param workSpaceSize  Number of bytes of workspace required for CTC loss operation with selected
+ * algorithm (input)
+ * @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenCTCLoss(miopenHandle_t handle,
+                                           const miopenTensorDescriptor_t probsDesc,
+                                           const void* probs,
+                                           const int* labels,
+                                           const int* labelLengths,
+                                           const int* inputLengths,
+                                           void* losses,
+                                           const miopenTensorDescriptor_t gradientsDesc,
+                                           void* gradients,
+                                           miopenCTCLossAlgo_t algo,
+                                           const miopenCTCLossDescriptor_t ctcLossDesc,
+                                           void* workSpace,
+                                           size_t workSpaceSize);
+
+/** @} */
+// CLOSEOUT LossFunction DOXYGEN GROUP
 
 #ifdef __cplusplus
 }
