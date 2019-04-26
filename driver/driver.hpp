@@ -27,10 +27,11 @@
 #define GUARD_MIOPEN_DRIVER_HPP
 
 #include "half.hpp"
+#include "bf16.hpp"
 #include "random.hpp"
 
-using half_float::half;
-typedef half float16;
+using float16 = half_float::half;
+// typedef half float16;
 
 #include "InputFlags.hpp"
 #include <algorithm>
@@ -147,11 +148,11 @@ std::string ParseBaseArg(int argc, char* argv[])
 
     std::string arg = argv[1];
 
-    if(arg != "conv" && arg != "convfp16" && arg != "convint8" && arg != "CBAInfer" &&
-       arg != "CBAInferfp16" && arg != "pool" && arg != "poolfp16" && arg != "lrn" &&
-       arg != "lrnfp16" && arg != "activ" && arg != "activfp16" && arg != "softmax" &&
-       arg != "softmaxfp16" && arg != "bnorm" && arg != "bnormfp16" && arg != "rnn" &&
-       arg != "rnnfp16" && arg != "gemm" /*&& arg != "gemmfp16"*/)
+    if(arg != "conv" && arg != "convfp16" && arg != "convint8" && arg != "convbf16" &&
+       arg != "CBAInfer" && arg != "CBAInferfp16" && arg != "pool" && arg != "poolfp16" &&
+       arg != "lrn" && arg != "lrnfp16" && arg != "activ" && arg != "activfp16" &&
+       arg != "softmax" && arg != "softmaxfp16" && arg != "bnorm" && arg != "bnormfp16" &&
+       arg != "rnn" /*&& arg != "rnnfp16" */ && arg != "gemm" /*&& arg != "gemmfp16"*/)
 
     {
         printf("Invalid Base Input Argument\n");
@@ -202,6 +203,8 @@ class Driver
     virtual int VerifyBackward()         = 0;
 
     protected:
+    template <typename Tgpu>
+    void InitDataType();
     miopenHandle_t handle;
     miopenDataType_t data_type;
 
@@ -211,6 +214,34 @@ class Driver
     hipStream_t q;
 #endif
 };
+
+template <>
+void Driver::InitDataType<int8_t>()
+{
+    data_type = miopenInt8;
+}
+template <>
+void Driver::InitDataType<float>()
+{
+    data_type = miopenFloat;
+}
+template <>
+void Driver::InitDataType<float16>()
+{
+    data_type = miopenHalf;
+}
+template <>
+void Driver::InitDataType<bfloat16>()
+{
+    data_type = miopenBFloat16;
+}
+// "std::is_same<Tgpu, float>{}" used to avoid "static_assert" compilation error,
+// which occurs when the condition does not depend in any way on the template parameters.
+template <typename Tgpu>
+void Driver::InitDataType()
+{
+    static_assert(std::is_same<Tgpu, float>{}, "unsupported Tgpu");
+}
 
 template <typename T>
 std::ostream& operator<<(std::ostream& os, const std::vector<T>& vs)
