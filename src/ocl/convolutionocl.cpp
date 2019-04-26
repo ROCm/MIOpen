@@ -208,7 +208,6 @@ inline int EvaluateDataDirectSolution(Handle& handle,
     return 0;
 }
 
-template <typename T>
 int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
                                               const TensorDescriptor& xDesc,
                                               const TensorDescriptor& wDesc,
@@ -217,16 +216,20 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
                                               KernelInvoke& kernel,
                                               std::string& solver_id,
                                               int direction,
+                                              bool is_wrw,
                                               std::string* kcache_key) const
 {
-    assert((std::is_same<T, mlo_construct_winograd>::value ||
-            std::is_same<T, mlo_construct_winograd_wrw>::value));
     try
     {
-        T construct_params(xDesc, wDesc, yDesc, *this, direction);
-        construct_params.setStream(&handle);
+        auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, direction};
+        ctx.SetStream(&handle);
+        ctx.DetectRocm();
 
-        const auto solution = FindFirstSolution(construct_params);
+        if(is_wrw)
+            ctx.direction.SetBackwardWrW();
+
+        const auto solution = is_wrw ? FindWinogradWrWSolution(ctx) : FindWinogradSolution(ctx);
+
         if(!solution.Succeeded())
             return -1;
         const auto& kernels_info = solution.construction_params;
@@ -234,12 +237,10 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
 
         solver_id = solution.solver_id;
         std::string network_config;
-        construct_params.mloBuildConf_Key(network_config);
+        ctx.mloBuildConf_Key(network_config);
 
         if(kcache_key != nullptr)
             *kcache_key = network_config;
-
-        const bool is_wrw = std::is_same<T, mlo_construct_winograd_wrw>::value;
 
         const std::string algorithm = is_wrw ? "miopenConvolutionBwdWeightsAlgoWinograd"
                                              : (direction == 1)
@@ -254,8 +255,8 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
                                   k_info.g_wk,
                                   k_info.comp_options);
         int N, C, H, W, K, n_groups, out_H, out_W, R, S, pad_H, pad_W;
-        construct_params.getCompiledInParameters(
-            &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
+        GetCompiledInParameters(
+            ctx, &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
         k_p = std::make_tuple(N,
                               C,
                               H,
@@ -292,25 +293,26 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
     if(GetSpatialDimension() != 2 || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
         return {};
 
-    mlo_construct_direct2D construct_params(xDesc, wDesc, yDesc, *this, isForward ? 1 : 0);
-    construct_params.setDoSearch(exhaustiveSearch);
-    construct_params.saveSearchRequest(true);
-    construct_params.setGeneralCompOptions("");
-    construct_params.setStream(&handle);
-    construct_params.setBufs(bufs);
-    construct_params.detectRocm();
+    auto ctx                    = ConvolutionContext{xDesc, wDesc, yDesc, *this, isForward ? 1 : 0};
+    ctx.do_search               = exhaustiveSearch;
+    ctx.save_srch_req           = true;
+    ctx.general_compile_options = "";
+    ctx.SetStream(&handle);
+    ctx.SetBufs(bufs);
+    ctx.DetectRocm();
+    ctx.SetupFloats();
 
     if(IsWinograd3x3Supported(handle, isForward, wDesc, (isForward ? xDesc : yDesc)) &&
-       construct_params.mloIsFastBinaryWinograd3x3U() && construct_params.usesBinaryKernel())
+       IsFastBinaryWinograd3x3U(ctx) && ctx.use_binaries)
         return {};
 
     try
     {
         int N, C, H, W, K, n_groups, out_H, out_W;
-        construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
+        GetCompiledInParameters(ctx, &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
         extraArgs = std::make_tuple(N, C, H, W, K, n_groups, out_H, out_W);
-        construct_params.mloBuildConf_Key(network_config);
-        return FindAllSolutions(construct_params);
+        ctx.mloBuildConf_Key(network_config);
+        return FindAllDirectSolutions(ctx);
     }
     catch(miopen::Exception&)
     {
@@ -670,9 +672,16 @@ static void DirConvFindCore(Handle& handle,
             KernelInvoke kernel_wino;
             std::string network_config;
             std::string solver_id;
-            if(conv.FindWinogradKernel<mlo_construct_winograd>(
-                   handle, xDesc, wDesc, yDesc, k_p, kernel_wino, solver_id, 1, &network_config) ==
-               0)
+            if(conv.FindWinogradKernel(handle,
+                                       xDesc,
+                                       wDesc,
+                                       yDesc,
+                                       k_p,
+                                       kernel_wino,
+                                       solver_id,
+                                       1,
+                                       false,
+                                       &network_config) == 0)
             { // TODO: be more graceful
                 // Execute the winograd kernel
                 // Invocation of winograd does not depend on input bitness (FP32 or FP16)
@@ -928,11 +937,11 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         case miopenConvolutionFwdAlgoDirect:
         {
             // TODO(paul): Replicating code for now.
-            mlo_construct_direct2D construct_params(xDesc, wDesc, yDesc, *this, 1); // forward
-            construct_params.setStream(&handle);
+            auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, 1}; // forward
+            ctx.SetStream(&handle);
 
             std::string network_config;
-            construct_params.mloBuildConf_Key(network_config);
+            ctx.mloBuildConf_Key(network_config);
 
             auto&& kernels = handle.GetKernels("miopenConvolutionFwdAlgoDirect", network_config);
 #if(!defined(__GNUC__) || defined(__clang__)) // w/a for segfault in gcc 5.4.0
@@ -971,8 +980,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     int unused       = 0;
                     int* return_addr = nullptr;
                     int N, C, H, W, K, n_groups, out_H, out_W;
-                    construct_params.getCompiledInParameters(
-                        &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
+                    GetCompiledInParameters(ctx, &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
                     kernels[1](N,
                                C,
                                out_H,
@@ -995,7 +1003,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                         int unused       = 0;
                         int* return_addr = nullptr;
                         int N, C, H, W, K, n_groups;
-                        construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+                        GetCompiledInParameters(ctx, &N, &C, &H, &W, &K, &n_groups);
                         kernel(N, C, H, W, K, n_groups, unused, unused, x, w, y, return_addr);
                     }
                     else
@@ -1023,11 +1031,11 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             if(group_count > 1)
                 MIOPEN_THROW("Winograd is not supported for group conv");
 
-            mlo_construct_winograd construct_params(xDesc, wDesc, yDesc, *this, 1); // forward
-            construct_params.setStream(&handle);
+            auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, 1}; // forward
+            ctx.SetStream(&handle);
 
             std::string network_config;
-            construct_params.mloBuildConf_Key(network_config);
+            ctx.mloBuildConf_Key(network_config);
 
             std::string algorithm_name = "miopenConvolutionFwdAlgoWinograd";
             auto kernel                = handle.GetKernel(algorithm_name, network_config);
@@ -1036,8 +1044,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             int reserved     = 0;
             int* return_addr = nullptr;
             int N, C, H, W, K, n_groups, out_H, out_W, R, S, unused;
-            construct_params.getCompiledInParameters(
-                &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S, &unused, &unused);
+            GetCompiledInParameters(
+                ctx, &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S, &unused, &unused);
             // clang-format off
             MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                 << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
@@ -1539,8 +1547,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             WinogradKernelParams k_p;
             KernelInvoke kernel_wino;
             std::string solver;
-            if(FindWinogradKernel<mlo_construct_winograd>(
-                   handle, dxDesc, wDesc, dyDesc, k_p, kernel_wino, solver, 0) == 0)
+            if(FindWinogradKernel(
+                   handle, dxDesc, wDesc, dyDesc, k_p, kernel_wino, solver, 0, false) == 0)
             { // TODO: be more graceful
                 float time_wino = 0;
                 /// \todo Move Flags into Solution.
@@ -1977,11 +1985,11 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         {
         case miopenConvolutionBwdDataAlgoDirect:
         {
-            mlo_construct_direct2D construct_params(dxDesc, wDesc, dyDesc, *this, 0); // backward
-            construct_params.setStream(&handle);
+            auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, 0}; // backward
+            ctx.SetStream(&handle);
 
             std::string network_config;
-            construct_params.mloBuildConf_Key(network_config);
+            ctx.mloBuildConf_Key(network_config);
 
             auto&& kernels =
                 handle.GetKernels("miopenConvolutionBwdDataAlgoDirect", network_config);
@@ -1995,7 +2003,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                     int* return_addr = nullptr;
 
                     int N, C, H, W, K, n_groups;
-                    construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+                    GetCompiledInParameters(ctx, &N, &C, &H, &W, &K, &n_groups);
 
                     kernels[0](N,
                                C,
@@ -2052,12 +2060,11 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             if(group_count > 1)
                 MIOPEN_THROW("Winograd is not supported for group conv");
 
-            mlo_construct_winograd construct_params(
-                dxDesc, wDesc, dyDesc, *this, 0); // backward data
+            auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, 0}; // backward data
 
-            construct_params.setStream(&handle);
+            ctx.SetStream(&handle);
             std::string network_config;
-            construct_params.mloBuildConf_Key(network_config);
+            ctx.mloBuildConf_Key(network_config);
 
             auto kernel = handle.GetKernel("miopenConvolutionBwdDataAlgoWinograd", network_config);
             /// \todo Copied from ConvolutionDescriptor::FindConvBwdDataAlgorithm()
@@ -2068,8 +2075,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             int reserved                 = 0;
             int* return_addr             = nullptr;
             int N, C, H, W, K, n_groups, out_H, out_W, R, S, pad_H, pad_W;
-            construct_params.getCompiledInParameters(
-                &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
+            GetCompiledInParameters(
+                ctx, &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
             // clang-format off
             MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                     << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
@@ -2406,8 +2413,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
 template <typename T>
 inline float EvaluateWrWDirectSolution(Handle& handle,
-                                       const mlo_construct_BwdWrW2D& construct_params,
-                                       const miopen::solver::ConvSolution& s,
+                                       const ConvolutionContext& ctx,
+                                       const solver::ConvSolution& s,
                                        ConstData_t dy,
                                        ConstData_t x,
                                        Data_t dw,
@@ -2429,7 +2436,7 @@ inline float EvaluateWrWDirectSolution(Handle& handle,
             int unused       = 0;
             int* return_addr = nullptr;
             int N, C, H, W, K, n_groups;
-            construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+            GetCompiledInParameters(ctx, &N, &C, &H, &W, &K, &n_groups);
             kernels[0](N, C, H, W, K, n_groups, unused, unused, x, dw, dy, return_addr);
         }
         else
@@ -2451,7 +2458,7 @@ inline float EvaluateWrWDirectSolution(Handle& handle,
                     int unused       = 0;
                     int* return_addr = nullptr;
                     int N, C, H, W, K, n_groups;
-                    construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+                    GetCompiledInParameters(ctx, &N, &C, &H, &W, &K, &n_groups);
                     kernels[1](
                         N, C, H, W, K, n_groups, unused, unused, workSpace, dw, dy, return_addr);
                 }
@@ -2639,19 +2646,21 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             {
                 ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
                 bufs.SetWrW(x, dw, dy);
-                mlo_construct_BwdWrW2D construct_params(
-                    xDesc, dwDesc, dyDesc, *this, 0); // backward with regards to weights
-                construct_params.setDoSearch(exhaustiveSearch);
-                construct_params.setStream(&handle);
-                construct_params.setBufs(bufs);
+                auto ctx = ConvolutionContext{xDesc, dwDesc, dyDesc, *this, 0};
+                ctx.direction.SetBackwardWrW();
+                ctx.do_search = exhaustiveSearch;
+                ctx.SetStream(&handle);
+                ctx.SetBufs(bufs);
+                ctx.SetupFloats();
+                ctx.DetectRocm();
 
                 std::string network_config;
-                construct_params.mloBuildConf_Key(network_config);
+                ctx.mloBuildConf_Key(network_config);
                 const std::string algorithm_name = "miopenConvolutionBwdWeightsAlgoDirect";
 
                 miopen::solver::ConvSolution selected{miopenStatusUnknownError};
                 float best     = std::numeric_limits<float>::max();
-                const auto all = FindAllSolutions(construct_params);
+                const auto all = FindAllBwdWrW2DSolutions(ctx);
 
                 visit_float(dyDesc.GetType(), [&](auto as_float) {
                     for(const auto& sol : all)
@@ -2659,15 +2668,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         /// \todo If there is only one solution available,
                         /// we can avoid wasting time for building kernels with empty
                         /// algorithm_name and network_config.
-                        float elapsed = EvaluateWrWDirectSolution(handle,
-                                                                  construct_params,
-                                                                  sol,
-                                                                  dy,
-                                                                  x,
-                                                                  dw,
-                                                                  workSpace,
-                                                                  workSpaceSize,
-                                                                  as_float(0.0f));
+                        float elapsed = EvaluateWrWDirectSolution(
+                            handle, ctx, sol, dy, x, dw, workSpace, workSpaceSize, as_float(0.0f));
                         MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
                                          << best);
                         if(elapsed < best)
@@ -2696,15 +2698,16 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 KernelInvoke kernel_wino;
                 std::string network_config;
                 std::string solver_id;
-                if(FindWinogradKernel<mlo_construct_winograd_wrw>(handle,
-                                                                  xDesc,
-                                                                  dwDesc,
-                                                                  dyDesc,
-                                                                  k_p,
-                                                                  kernel_wino,
-                                                                  solver_id,
-                                                                  0,
-                                                                  &network_config) == 0)
+                if(FindWinogradKernel(handle,
+                                      xDesc,
+                                      dwDesc,
+                                      dyDesc,
+                                      k_p,
+                                      kernel_wino,
+                                      solver_id,
+                                      0,
+                                      true,
+                                      &network_config) == 0)
                 {
                     float time_wino                = 0;
                     static const int F_FLIP_K_C    = 1 << 2;
@@ -3039,13 +3042,13 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
         case miopenConvolutionBwdWeightsAlgoDirect:
         {
-            mlo_construct_BwdWrW2D construct_params(
-                xDesc, dwDesc, dyDesc, *this, 0); // backward with regards to weights
-            construct_params.setStream(&handle);
+            auto ctx = ConvolutionContext{xDesc, dwDesc, dyDesc, *this, 0};
+            ctx.direction.SetBackwardWrW();
+            ctx.SetStream(&handle);
 
             visit_float(dyDesc.GetType(), [&](auto as_float) {
                 std::string network_config;
-                construct_params.mloBuildConf_Key(network_config);
+                ctx.mloBuildConf_Key(network_config);
 
                 auto&& kernels =
                     handle.GetKernels("miopenConvolutionBwdWeightsAlgoDirect", network_config);
@@ -3063,7 +3066,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     int unused       = 0;
                     int* return_addr = nullptr;
                     int N, C, H, W, K, n_groups;
-                    construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+                    GetCompiledInParameters(ctx, &N, &C, &H, &W, &K, &n_groups);
                     kernel(N, C, H, W, K, n_groups, unused, unused, x, dw, dy, return_addr);
                 }
                 else if(kernels.size() == 1)
@@ -3096,8 +3099,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                             int unused       = 0;
                             int* return_addr = nullptr;
                             int N, C, H, W, K, n_groups, out_H, out_W;
-                            construct_params.getCompiledInParameters(
-                                &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
+                            GetCompiledInParameters(
+                                ctx, &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
                             // out_H/W are used instead of H/W; see comment in
                             // AsmImgHeight(), conv_asm_dir_BwdWrW1x1.cpp.
                             kernels[1](N,
@@ -3138,11 +3141,12 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         break;
         case miopenConvolutionBwdWeightsAlgoWinograd:
         {
-            mlo_construct_winograd_wrw construct_params(xDesc, dwDesc, dyDesc, *this, 0);
-            construct_params.setStream(&handle);
+            auto ctx = ConvolutionContext{xDesc, dwDesc, dyDesc, *this, 0};
+            ctx.direction.SetBackwardWrW();
+            ctx.SetStream(&handle);
 
             std::string network_config;
-            construct_params.mloBuildConf_Key(network_config);
+            ctx.mloBuildConf_Key(network_config);
 
             auto&& kernels =
                 handle.GetKernels("miopenConvolutionBwdWeightsAlgoWinograd", network_config);
@@ -3159,8 +3163,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             int pad_W                      = GetConvPads()[1];
             int N, C, H, W, K, n_groups, out_H, out_W, R, S, unused;
             // For bwd & wrw inputs and outputs reside in k_p in reversed order.
-            construct_params.getCompiledInParameters(
-                &N, &K, &out_H, &out_W, &C, &n_groups, &H, &W, &R, &S, &unused, &unused);
+            GetCompiledInParameters(
+                ctx, &N, &K, &out_H, &out_W, &C, &n_groups, &H, &W, &R, &S, &unused, &unused);
             using dataType = float;
             int d_N_stride = H * W * static_cast<int>(sizeof(dataType));
             int d_C_stride = C * d_N_stride;
