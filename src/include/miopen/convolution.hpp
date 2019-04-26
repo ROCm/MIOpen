@@ -147,7 +147,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               std::size_t workSpaceSize,
                               bool exhaustiveSearch) const;
 
-    template <typename T>
     int FindWinogradKernel(Handle& handle,
                            const TensorDescriptor& xDesc,
                            const TensorDescriptor& wDesc,
@@ -156,6 +155,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                            KernelInvoke& kernel,
                            std::string& solver_id,
                            int direction,
+                           bool is_wrw,
                            std::string* kcache_key = nullptr) const;
 
     int FindFwdFFTKernel(Handle& handle,

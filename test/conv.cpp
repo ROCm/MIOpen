@@ -62,13 +62,15 @@ static bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
     // Both Fwd and Bwd shall be supported by Direct. Return false otherwise.
     for(int direction = 1; direction >= 0; --direction)
     {
-        mlo_construct_direct2D construct(xDesc, wDesc, yDesc, convDesc, direction);
-        construct.setDoSearch(false);
-        construct.saveSearchRequest(false);
-        construct.setWorkaroundDisableSearchEnforce(true);
-        construct.setGeneralCompOptions("");
-        construct.setStream(&handle);
-        if(FindAllSolutions(construct).empty())
+        auto ctx          = miopen::ConvolutionContext{xDesc, wDesc, yDesc, convDesc, direction};
+        ctx.do_search     = false;
+        ctx.save_srch_req = false;
+        ctx.workaround_disable_search_enforce = true;
+        ctx.general_compile_options           = "";
+        ctx.SetStream(&handle);
+        ctx.SetupFloats();
+        ctx.DetectRocm();
+        if(FindAllDirectSolutions(ctx).empty())
             return false;
     }
     return true;
@@ -83,14 +85,18 @@ static bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
     if(convDesc.GetSpatialDimension() != 2)
         return false;
 
-    mlo_construct_BwdWrW2D construct_params(xDesc, wDesc, yDesc, convDesc, 0);
-    construct_params.setDoSearch(false);
-    construct_params.saveSearchRequest(false);
-    construct_params.setWorkaroundDisableSearchEnforce(true);
-    construct_params.setGeneralCompOptions("");
-    construct_params.setStream(&handle);
+    auto ctx = miopen::ConvolutionContext{xDesc, wDesc, yDesc, convDesc, 0};
 
-    return !FindAllSolutions(construct_params).empty();
+    ctx.direction.SetBackwardWrW();
+    ctx.do_search                         = false;
+    ctx.save_srch_req                     = false;
+    ctx.general_compile_options           = "";
+    ctx.workaround_disable_search_enforce = true;
+    ctx.SetStream(&handle);
+    ctx.SetupFloats();
+    ctx.DetectRocm();
+
+    return !FindAllBwdWrW2DSolutions(ctx).empty();
 }
 #endif
 

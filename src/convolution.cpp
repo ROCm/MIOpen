@@ -604,14 +604,17 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
         return 0;
     }
 
-    mlo_construct_direct2D construct_params(xDesc, wDesc, yDesc, *this, direction);
-    construct_params.setDoSearch(false);
-    construct_params.setStream(&handle);
-    construct_params.setWorkaroundDisableSearchEnforce(true);
+    auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, direction};
+
+    ctx.do_search = false;
+    ctx.SetStream(&handle);
+    ctx.workaround_disable_search_enforce = true;
+    ctx.DetectRocm();
+    ctx.SetupFloats();
 
     try
     {
-        const auto ss  = FindAllSolutions(construct_params);
+        const auto ss  = FindAllDirectSolutions(ctx);
         std::size_t sz = 0;
         for(const auto& solution : ss)
         {
@@ -640,14 +643,17 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
         return 0;
     }
 
-    mlo_construct_BwdWrW2D construct_params(
-        xDesc, dwDesc, dyDesc, *this, 0); // backward with regards to weights
-    construct_params.setDoSearch(false);
-    construct_params.setStream(&handle);
-    construct_params.setWorkaroundDisableSearchEnforce(true);
+    auto ctx = ConvolutionContext(xDesc, dwDesc, dyDesc, *this, 0);
+    ctx.direction.SetBackwardWrW();
+    ctx.do_search = false;
+    ctx.SetStream(&handle);
+    ctx.workaround_disable_search_enforce = true;
+    ctx.SetupFloats();
+    ctx.DetectRocm();
+
     try
     {
-        const auto ss  = FindAllSolutions(construct_params);
+        const auto ss  = FindAllBwdWrW2DSolutions(ctx);
         std::size_t sz = 0;
         for(const auto& solution : ss)
         {
