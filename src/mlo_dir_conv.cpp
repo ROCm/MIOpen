@@ -182,9 +182,6 @@ static std::ostream& operator<<(std::ostream& os, const rocm_meta_version& rmv)
     switch(rmv)
     {
     case rocm_meta_version::Unknown: return os << "Unknown";
-    case rocm_meta_version::V1: return os << "V1";
-    case rocm_meta_version::V2: return os << "V2";
-    case rocm_meta_version::V3: return os << "V3";
     case rocm_meta_version::AMDHSA_1_0: return os << "AMDHSA_1_0";
     }
     return os << "<Error>";
@@ -201,27 +198,13 @@ static rocm_meta_version DetectAmdRocmMetadataVersion(const miopen::ConvolutionC
     rocm_meta_version rmv = rocm_meta_version::Unknown;
     if(num_begin != std::string::npos)
     {
-        int num = std::stoi(platform_version.substr(num_begin + 1));
-        if(num < 2338) // Switched to V2 somewhere within [2337,2338]
-            rmv = rocm_meta_version::V1;
-        else if(num < 2389) // Switched to V3 somewhere within [2388,2389]
-            rmv = rocm_meta_version::V2;
-        else if(num < 2535) // Switched to newer version at 2535 for sure.
-            rmv = rocm_meta_version::V3;
-        else
-            rmv = rocm_meta_version::AMDHSA_1_0;
+        // int num = std::stoi(platform_version.substr(num_begin + 1));
+        rmv = rocm_meta_version::AMDHSA_1_0;
     }
 #else
     /// \todo Rework this using clang-ocl.
     (void)context;
     rocm_meta_version rmv = rocm_meta_version::Default;
-    // Assembler is always available for HIP backend.
-    // ROCm 1.7, which uses AMDHSA_1_0 metadata, does not have bug 34765 in
-    // the assembler. Previous ROCm versions have this bug.
-    if(!GcnAssemblerHasBug34765())
-    {
-        rmv = rocm_meta_version::AMDHSA_1_0;
-    }
 #endif // MIOPEN_BACKEND_OPENCL
     MIOPEN_LOG_I(rmv);
     return rmv;
