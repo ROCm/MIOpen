@@ -1336,6 +1336,7 @@ static std::string parms_half_or_float(const miopenDataType_t t)
         s = " -DMIOPEN_USE_INT8x4=1";
         break;
     }
+    case miopenBFloat16:
     case miopenInt32: break;
     }
 

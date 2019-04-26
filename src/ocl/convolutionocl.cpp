@@ -54,6 +54,14 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 
+static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
+                                   const TensorDescriptor& yDesc,
+                                   const TensorDescriptor& wDesc)
+{
+    return xDesc.GetType() == miopenBFloat16 || yDesc.GetType() == miopenBFloat16 ||
+           wDesc.GetType() == miopenBFloat16;
+}
+
 static inline void AddKernels(Handle& handle,
                               const std::string& algorithm_name,
                               const std::string& network_config,
@@ -329,7 +337,7 @@ static void DirConvFindCore(Handle& handle,
         ValidateGroupCount(xDesc, wDesc, conv);
 
 #if MIOPEN_USE_GEMM
-        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
+        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) && !IsAnyBufferBF16(xDesc, yDesc, wDesc))
         { // GEMM algo
             std::size_t in_n, in_c;
             std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
@@ -1069,6 +1077,10 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             {
                 MIOPEN_THROW("GEMM convolution is disabled");
             }
+            if(IsAnyBufferBF16(xDesc, yDesc, wDesc))
+            {
+                MIOPEN_THROW("GEMM convolution is unsupported");
+            }
 
             std::size_t in_n, in_c;
             std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
@@ -1672,7 +1684,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         }
 
 #if MIOPEN_USE_GEMM
-        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
+        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) && !IsAnyBufferBF16(dxDesc, dyDesc, wDesc))
         { // GEMM based
             ValidateGroupCount(dxDesc, wDesc, *this);
 
@@ -2097,6 +2109,10 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             {
                 MIOPEN_THROW("GEMM convolution is disabled");
             }
+            if(IsAnyBufferBF16(dxDesc, dyDesc, wDesc))
+            {
+                MIOPEN_THROW("GEMM convolution is unsupported");
+            }
 
             std::size_t in_n, in_c;
             std::tie(in_n, in_c) = tie_pick<0, 1>()(dxDesc.GetLengths());
@@ -2495,7 +2511,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
     {
 #if MIOPEN_USE_GEMM
-        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
+        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) && !IsAnyBufferBF16(xDesc, dyDesc, dwDesc))
         { // GEMM based
             const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
@@ -2843,6 +2859,10 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
             {
                 MIOPEN_THROW("GEMM convolution is disabled");
+            }
+            if(IsAnyBufferBF16(xDesc, dyDesc, dwDesc))
+            {
+                MIOPEN_THROW("GEMM convolution is unsupported");
             }
 
             std::size_t in_n, in_c;

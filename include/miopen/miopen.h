@@ -304,6 +304,8 @@ typedef enum {
     miopenInt8  = 3, /*!< 8-bit int point (Partially supported) */
     miopenInt8x4 =
         4, /*!< Pack of four 8-bit int points in NCHW_VECT_C format (Partially supported) */
+    miopenBFloat16 = 5, /*!< 16-bit binary floating point (8-bit exponent, 7-bit fraction)
+                           (Partially supported) */
 } miopenDataType_t;
 
 /*! @ingroup pooling

@@ -122,9 +122,7 @@ class ConvDriver : public Driver
         workspace_bwd_weights_dev = nullptr;
         workspace_fwd_dev         = nullptr;
         // the variable name is implementation dependent, checking size instead
-        data_type = std::is_same<Tgpu, int8_t>::value
-                        ? miopenInt8
-                        : std::is_same<Tgpu, float16>::value ? miopenHalf : miopenFloat;
+        InitDataType<Tgpu>();
     }
 
     int AddCmdLineArgs();
@@ -1560,6 +1558,10 @@ std::string ConvDriver<Tgpu, Tref>::GetVerificationCacheFileName() const
         {
             return "double";
         }
+        else if(std::is_same<decltype(type), bfloat16>::value)
+        {
+            return "bfloat16";
+        }
         else
         {
             MIOPEN_THROW("unknown data type");
@@ -1683,8 +1685,7 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
     if(!(bwd_allowed || wrw_allowed))
         return 0;
 
-    const Tref tolerance =
-        ((sizeof(Tgpu) == 4) ? static_cast<Tref>(1e-6) : static_cast<Tref>(7e-2));
+    const double tolerance = sizeof(Tgpu) == 4 ? 1e-6 : 7e-2;
 
     if(bwd_allowed)
     {
@@ -1719,7 +1720,7 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         // Affects only WrW FP32 for now.
         auto tolerance_wrw = tolerance;
         if(is_wrw_winograd && std::is_same<Tgpu, float>::value)
-            tolerance_wrw *= 16;
+            tolerance_wrw *= 16.0;
 
         auto error_weights = miopen::rms_range(dwei_host.data, dwei);
         if(!(error_weights < tolerance_wrw))
