@@ -66,6 +66,7 @@ inline std::string GetDataTypeName(miopenDataType_t data_type)
     case miopenInt8: return "INT8";
     case miopenInt8x4: return "INT8x4";
     case miopenInt32: return "INT32";
+    case miopenBFloat16: return "BF16";
     }
 
     return "Unknown(" + std::to_string(data_type) + ")";
@@ -153,6 +154,11 @@ struct ProblemDescription
     {
         return in_data_type == miopenHalf && weights_data_type == miopenHalf &&
                out_data_type == miopenHalf;
+    }
+    bool IsBF16() const
+    {
+        return in_data_type == miopenBFloat16 && weights_data_type == miopenBFloat16 &&
+               out_data_type == miopenBFloat16;
     }
 
     ProblemDescription() = default;
