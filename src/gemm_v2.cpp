@@ -95,6 +95,8 @@ dummy_memset(Handle& handle, Data_t mem, std::size_t mem_len, miopenDataType_t d
         data_size = sizeof(int);
         break;
     }
+    case miopenBFloat16: { break;
+    }
     case miopenHalf:
     {
         data_size = sizeof(half_float::half);
@@ -375,7 +377,7 @@ miopenStatus_t CallGemm(Handle& handle,
                 nullptr);
         }
         break;
-
+        case miopenBFloat16: break;
         case miopenInt32: break;
         case miopenHalf:
         {
@@ -663,7 +665,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                 nullptr);
         }
         break;
-
+        case miopenBFloat16: break;
         case miopenInt32: break;
         case miopenHalf:
         {
@@ -896,7 +898,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
             }
         }
         break;
-
+        case miopenBFloat16: break;
         case miopenInt32: break;
         case miopenHalf:
         {

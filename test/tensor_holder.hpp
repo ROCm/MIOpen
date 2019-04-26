@@ -34,6 +34,7 @@
 #include <miopen/each_args.hpp>
 
 #include <half.hpp>
+#include <bf16.hpp>
 #include <iomanip>
 #include <fstream>
 
@@ -86,6 +87,10 @@ struct miopen_type<float> : std::integral_constant<miopenDataType_t, miopenFloat
 
 template <>
 struct miopen_type<half_float::half> : std::integral_constant<miopenDataType_t, miopenHalf>
+{
+};
+template <>
+struct miopen_type<bfloat16> : std::integral_constant<miopenDataType_t, miopenBFloat16>
 {
 };
 

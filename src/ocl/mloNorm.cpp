@@ -73,11 +73,9 @@ int mlo_construct_norm::mloConstructFwd()
 {
     int ret = 0;
 
-    size_t localMemSize    = _search_params.GetStream().GetLocalMemorySize();
     size_t maxComputeUnits = _search_params.GetStream().GetMaxComputeUnits();
 
-    _hw_wave_sz       = 64;
-    _dev_local_mem_sz = localMemSize; // in bytes
+    _hw_wave_sz = 64;
 
     int pre_pad = (_norm_area - 1) / 2;
     int pad     = _norm_area - pre_pad - 1;

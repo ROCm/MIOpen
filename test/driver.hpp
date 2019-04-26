@@ -254,6 +254,7 @@ struct test_driver
         switch(this->type)
         {
         case miopenHalf: ss << "--half "; break;
+        case miopenBFloat16: ss << "--bf16 "; break;
         case miopenInt8x4:
         case miopenInt8: ss << "--int8 "; break;
         case miopenInt32: ss << "--int32 "; break;
