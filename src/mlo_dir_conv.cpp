@@ -51,9 +51,14 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
  **
  ************************************************************************************************************************/
 
-miopen::DbTimer<miopen::MultiFileDb> mlo_construct_direct2D::GetDb() const
+miopen::DbTimer<miopen::MultiFileDb> mlo_construct_base::GetDb() const
 {
     return {{db_path(), _search_params.GetUserPerfDbPath()}};
+}
+
+static miopen::DbTimer<miopen::MultiFileDb> GetDb(const miopen::ConvolutionContext& ctx)
+{
+    return {{ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath()}};
 }
 
 miopen::solver::ConvSolution
@@ -79,59 +84,65 @@ mlo_construct_direct2D_fusion::FindSolution(std::vector<miopen::solver::AnySolve
     return solution;
 }
 
-std::vector<miopen::solver::ConvSolution> mlo_construct_direct2D::FindAllSolutions()
+static auto GetDirectSolvers()
 {
-    // clang-format off
-    return miopen::solver::SearchForAllSolutions<
-        miopen::solver::ConvAsm3x3U,
-        miopen::solver::ConvAsm1x1U,
-        miopen::solver::ConvAsm5x10u2v2f1,
-        miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1,
-        miopen::solver::ConvAsm5x10u2v2b1,
-        miopen::solver::ConvOclDirectFwd11x11,
-        miopen::solver::ConvOclDirectFwdGen,
-        miopen::solver::ConvOclDirectFwd3x3,
-        miopen::solver::ConvOclDirectFwd1x1,
-        miopen::solver::ConvOclDirectFwd
-    >(_search_params, this->GetDb());
-    // clang-format on
+    return miopen::solver::SolverContainer<miopen::solver::ConvAsm3x3U,
+                                           miopen::solver::ConvAsm1x1U,
+                                           miopen::solver::ConvAsm5x10u2v2f1,
+                                           miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1,
+                                           miopen::solver::ConvAsm5x10u2v2b1,
+                                           miopen::solver::ConvOclDirectFwd11x11,
+                                           miopen::solver::ConvOclDirectFwdGen,
+                                           miopen::solver::ConvOclDirectFwd3x3,
+                                           miopen::solver::ConvOclDirectFwd1x1,
+                                           miopen::solver::ConvOclDirectFwd>{};
 }
 
-miopen::solver::ConvSolution mlo_construct_winograd::FindSolution()
+static auto GetWindogradSolvers()
 {
-    // clang-format off
-    return miopen::solver::SearchForSolution<
-        miopen::solver::ConvBinWinograd3x3U,
-        miopen::solver::ConvBinWinogradRxS
-    >(_search_params, this->GetDb());
-    // clang-format on
+    return miopen::solver::SolverContainer<miopen::solver::ConvBinWinograd3x3U,
+                                           miopen::solver::ConvBinWinogradRxS>{};
 }
 
-miopen::solver::ConvSolution mlo_construct_winograd_wrw::FindSolution()
+static auto GetWindogradWrWSolvers()
 {
-    // clang-format off
-    return miopen::solver::SearchForSolution<
-        miopen::solver::ConvBinWinogradRxS
-    >(_search_params, this->GetDb());
-    // clang-format on
+    return miopen::solver::SolverContainer<miopen::solver::ConvBinWinogradRxS>{};
 }
 
-std::vector<miopen::solver::ConvSolution> mlo_construct_BwdWrW2D::FindAllSolutions()
+static auto GetBwdWrW2DSolvers()
 {
-    // clang-format off
-    return miopen::solver::SearchForAllSolutions<
-        miopen::solver::ConvAsmBwdWrW1x1,
-        miopen::solver::ConvAsmBwdWrW3x3,
-        miopen::solver::ConvOclBwdWrW2<1>,
-        miopen::solver::ConvOclBwdWrW2<2>,
-        miopen::solver::ConvOclBwdWrW2<4>,
-        miopen::solver::ConvOclBwdWrW2<8>,
-        miopen::solver::ConvOclBwdWrW2<16>,
-        miopen::solver::ConvOclBwdWrW2NonTunable,
-        miopen::solver::ConvOclBwdWrW53,
-        miopen::solver::ConvOclBwdWrW1x1
-    >(_search_params, this->GetDb());
-    // clang-format on
+    return miopen::solver::SolverContainer<miopen::solver::ConvAsmBwdWrW1x1,
+                                           miopen::solver::ConvAsmBwdWrW3x3,
+                                           miopen::solver::ConvOclBwdWrW2<1>,
+                                           miopen::solver::ConvOclBwdWrW2<2>,
+                                           miopen::solver::ConvOclBwdWrW2<4>,
+                                           miopen::solver::ConvOclBwdWrW2<8>,
+                                           miopen::solver::ConvOclBwdWrW2<16>,
+                                           miopen::solver::ConvOclBwdWrW2NonTunable,
+                                           miopen::solver::ConvOclBwdWrW53,
+                                           miopen::solver::ConvOclBwdWrW1x1>{};
+}
+
+std::vector<miopen::solver::ConvSolution>
+FindAllDirectSolutions(const miopen::ConvolutionContext& ctx)
+{
+    return GetDirectSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+}
+
+miopen::solver::ConvSolution FindWinogradSolution(const miopen::ConvolutionContext& ctx)
+{
+    return GetWindogradSolvers().SearchForSolution(ctx, GetDb(ctx));
+}
+
+miopen::solver::ConvSolution FindWinogradWrWSolution(const miopen::ConvolutionContext& ctx)
+{
+    return GetWindogradWrWSolvers().SearchForSolution(ctx, GetDb(ctx));
+}
+
+std::vector<miopen::solver::ConvSolution>
+FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx)
+{
+    return GetBwdWrW2DSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
 }
 
 #if MIOPEN_BACKEND_OPENCL
@@ -226,24 +237,23 @@ static bool mloIsAmdRocmOpencl(miopen::ConvolutionContext& context)
     return ret_bool;
 }
 
-void mlo_construct_direct2D::setupFloats()
+void miopen::ConvolutionContext::SetupFloats()
 {
-    if(_search_params.IsFp32())
+    if(IsFp32())
     {
-        _search_params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
+        general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
     }
-    else if(_search_params.IsFp16())
+    else if(IsFp16())
     {
-        _search_params.general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1";
+        general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1";
     }
     else
     {
-        MIOPEN_LOG_W("Unsupported data types configuration: "
-                     << miopen::GetDataTypeName(_search_params.in_data_type)
-                     << "x"
-                     << miopen::GetDataTypeName(_search_params.weights_data_type)
-                     << "x"
-                     << miopen::GetDataTypeName(_search_params.out_data_type));
+        MIOPEN_LOG_W(
+            "Unsupported data types configuration: " << miopen::GetDataTypeName(in_data_type) << "x"
+                                                     << miopen::GetDataTypeName(weights_data_type)
+                                                     << "x"
+                                                     << miopen::GetDataTypeName(out_data_type));
     }
 }
 
@@ -266,24 +276,23 @@ void mlo_construct_activ_lrn_pooling_common::setupFloats()
     }
 }
 
-void mlo_construct_direct2D::detectRocm()
+void miopen::ConvolutionContext::DetectRocm()
 {
     // Detect assembly kernels
-    _search_params.use_binaries    = false;
-    _search_params.use_asm_kernels = false;
-    _search_params.rmv             = rocm_meta_version::Default;
-    if(mloIsAmdRocmOpencl(_search_params))
+    use_binaries    = false;
+    use_asm_kernels = false;
+    rmv             = rocm_meta_version::Default;
+    if(mloIsAmdRocmOpencl(*this))
     {
-        _search_params.use_asm_kernels =
+        use_asm_kernels =
             !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
 #ifndef HIP_OC_FINALIZER
-        _search_params.use_binaries =
-            !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
+        use_binaries = !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
 #endif
     }
 }
 
-bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3U() const
+bool IsFastBinaryWinograd3x3U(const miopen::ConvolutionContext& ctx)
 {
-    return (_search_params.n_outputs >= 16 && _search_params.n_outputs % 2 == 0);
+    return (ctx.n_outputs >= 16 && ctx.n_outputs % 2 == 0);
 }
