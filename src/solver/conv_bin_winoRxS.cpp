@@ -241,8 +241,8 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         }
         else
         {
-            if (! ((name == "gfx803" && (params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
-                || (name == "gfx900" && (params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
+            if (! ((name == "gfx803" && params.rmv == rocm_meta_version::AMDHSA_1_0)
+                || (name == "gfx900" && params.rmv == rocm_meta_version::AMDHSA_1_0)
                 || (name == "gfx906" && params.rmv == rocm_meta_version::AMDHSA_1_0)))
                 return false;
         }
@@ -352,9 +352,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
 
         kernel.kernel_file += ("_" + name);
 
-        if(params.rmv == rocm_meta_version::V3)
-            kernel.kernel_file += "_m30";
-        else if(params.rmv == rocm_meta_version::AMDHSA_1_0)
+        if(params.rmv == rocm_meta_version::AMDHSA_1_0)
             kernel.kernel_file += "_md10";
         else
             MIOPEN_THROW("ConvBinWinogradRxS: Unsupported metadata version.");

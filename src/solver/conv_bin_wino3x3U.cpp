@@ -47,12 +47,8 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
     // Check if device is able to run this kernel.
     const auto name = params.GetStream().GetDeviceName();
     // clang-format off
-    if (! ((name == "gfx803" && (params.rmv == rocm_meta_version::V1
-                              || params.rmv == rocm_meta_version::V2
-                              || params.rmv == rocm_meta_version::V3
-                              || params.rmv == rocm_meta_version::AMDHSA_1_0 ))
-        || (name == "gfx900" && (params.rmv == rocm_meta_version::V3
-                              || params.rmv == rocm_meta_version::AMDHSA_1_0))
+    if (! ((name == "gfx803" && params.rmv == rocm_meta_version::AMDHSA_1_0)
+        || (name == "gfx900" && params.rmv == rocm_meta_version::AMDHSA_1_0)
         || (name == "gfx906" && params.rmv == rocm_meta_version::AMDHSA_1_0)))
         return false;
     // clang-format on
@@ -115,22 +111,14 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params) 
     kernel.kernel_name = "sp3AsmConv3x3F";
     if(name == "gfx803")
     {
-        if(params.rmv == rocm_meta_version::V1)
-            kernel.kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so";
-        else if(params.rmv == rocm_meta_version::V2)
-            kernel.kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so";
-        else if(params.rmv == rocm_meta_version::V3)
-            kernel.kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_m30.so";
-        else if(params.rmv == rocm_meta_version::AMDHSA_1_0)
+        if(params.rmv == rocm_meta_version::AMDHSA_1_0)
             kernel.kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_md10.so";
         else
             MIOPEN_THROW("conv_3x3_wheel_alpha_v3_0b_gfx803: Unsupported metadata version.");
     }
     else if(name == "gfx900")
     {
-        if(params.rmv == rocm_meta_version::V3)
-            kernel.kernel_file = "conv_3x3_wheel_alpha_v7_0_3b_gfx900.so";
-        else if(params.rmv == rocm_meta_version::AMDHSA_1_0)
+        if(params.rmv == rocm_meta_version::AMDHSA_1_0)
             kernel.kernel_file = "conv_3x3_wheel_alpha_v7_0_3b_gfx900_md10.so";
         else
             MIOPEN_THROW("conv_3x3_wheel_alpha_v7_0_3b_gfx900: Unsupported metadata version.");
