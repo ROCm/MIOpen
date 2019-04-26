@@ -178,14 +178,9 @@ bool ConvAsm3x3U::IsValidPerformanceConfig(const ConvolutionContext& problem,
 bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
 {
     if(!params.use_asm_kernels)
-    {
         return false;
-    }
-    if(!(params.rmv == rocm_meta_version::V1 || params.rmv == rocm_meta_version::V2 ||
-         params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
-    {
+    if(params.rmv != rocm_meta_version::AMDHSA_1_0)
         return false;
-    }
 
     const std::string name = params.GetStream().GetDeviceName();
     if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
@@ -258,12 +253,7 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
         {"weights_layout", params.direction.IsForward() ? 0 : 1},
         {"reverse_weights", params.direction.IsForward() ? 0 : 1},
         {"no_params_file", 1},
-        {"ROCM_METADATA_VERSION",
-         (params.rmv == rocm_meta_version::V1) ? 1 : (params.rmv == rocm_meta_version::V2)
-                                                         ? 2
-                                                         : (params.rmv == rocm_meta_version::V3)
-                                                               ? 3
-                                                               : 4},
+        {"ROCM_METADATA_VERSION", 4},
         {"limit_wave_cnt", pcfg->limit_wave_cnt},
         {"filters_per_wave", pcfg->filters_per_wave},
         {"output_lines_per_wave", pcfg->output_lines_per_wave},

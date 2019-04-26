@@ -371,17 +371,12 @@ bool ConvAsm1x1U::IsValidPerformanceConfig(const ConvolutionContext& problem,
 bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
 {
     if(!params.use_asm_kernels)
-    {
         return false;
-    }
-    if(!(params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
-    {
+    if(params.rmv != rocm_meta_version::AMDHSA_1_0)
         return false;
-    }
     if(!(params.IsFp32() || params.IsFp16()))
-    {
         return false;
-    }
+
     const std::string name = params.GetStream().GetDeviceName();
     if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
     {
@@ -633,8 +628,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "filter_buffer_size", fbuf.total_byte_size);
     GenerateClangDefsym(options, "output_buffer_size", obuf.total_byte_size);
 
-    GenerateClangDefsym(
-        options, "ROCM_METADATA_VERSION", (params.rmv == rocm_meta_version::V3) ? 3 : 4);
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 4);
 
     const PerformanceConfigConvAsm1x1U* pcfg = &config;
     PerformanceConfigConvAsm1x1U fromEnv;
