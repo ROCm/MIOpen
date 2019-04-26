@@ -57,6 +57,10 @@ int main(int argc, char* argv[])
     {
         drv = new ConvDriver<float16, float>();
     }
+    else if(base_arg == "convbfp16")
+    {
+        drv = new ConvDriver<bfloat16, bfloat16>();
+    }
     else if(base_arg == "convint8")
     {
         drv = new ConvDriver<int8_t, float>();

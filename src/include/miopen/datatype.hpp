@@ -42,6 +42,9 @@ inline std::string GetDataType(miopenDataType_t type)
     case miopenHalf: { type_str = "half";
     }
     break;
+    case miopenBFloat16: { type_str = "bf16";
+    }
+    break;
     case miopenInt8x4:
     case miopenInt8: { type_str = "int8_t";
     }
