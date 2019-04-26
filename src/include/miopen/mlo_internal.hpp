@@ -125,11 +125,8 @@ inline int AlignUp(int val, unsigned step)
 enum class rocm_meta_version
 {
     Unknown,
-    V1,
-    V2,
-    V3,
-    AMDHSA_1_0,   // 1.0, see https://llvm.org/docs/AMDGPUUsage.html#code-object-metadata
-    Default = V3, // Assumption for HIP backend. To be updated together with ROCm release.
+    AMDHSA_1_0,           // 1.0, see https://llvm.org/docs/AMDGPUUsage.html#code-object-metadata
+    Default = AMDHSA_1_0, // Assumption for HIP backend. To be updated together with ROCm release.
 };
 
 namespace miopen {
