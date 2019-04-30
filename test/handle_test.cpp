@@ -61,10 +61,20 @@ void test_warnings()
 #endif
 }
 
+void test_arch_name()
+{
+    auto&& h        = get_handle();
+    auto known_arch = {"gfx906", "gfx900", "gfx803"};
+    auto this_arch  = h.GetDeviceName();
+    EXPECT(std::any_of(
+        known_arch.begin(), known_arch.end(), [&](std::string arch) { return arch == this_arch; }));
+}
+
 int main()
 {
     test_multithreads();
     test_errors();
+    test_arch_name();
 // Warnings currently dont work in opencl
 #if !MIOPEN_BACKEND_OPENCL
     test_warnings();
