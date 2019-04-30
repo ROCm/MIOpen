@@ -559,6 +559,9 @@ std::size_t Handle::GetLocalMemorySize()
 std::string Handle::GetDeviceName()
 {
     std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(miopen::GetDevice(this->GetStream()));
+    auto loc_p       = name.find('+');
+    if(loc_p != std::string::npos)
+        name = name.substr(0, loc_p);
     return GetDeviceNameFromMap(name);
 }
 
