@@ -153,8 +153,9 @@ static inline miopenStatus_t ComputeInputParams(
         }
         else
         {
-            MIOPEN_LOG_E("Can't fit input data into LDS of size " << lds_size
-                                                                  << "bytes despite row splitting");
+            MIOPEN_LOG_I2("Can't fit input data into LDS of size "
+                          << lds_size
+                          << " bytes despite row splitting");
             return miopenStatusNotInitialized;
         }
     }
@@ -163,9 +164,9 @@ static inline miopenStatus_t ComputeInputParams(
     // Kernel uses LDS for storing input data and weight accumulation
     if(workgroup_size * params.kernel_size_w > max_lds_elements)
     {
-        MIOPEN_LOG_I("For large filter size " << params.kernel_size_w
-                                              << ", running out of LDS size (bytes) "
-                                              << lds_size);
+        MIOPEN_LOG_I2("For large filter size " << params.kernel_size_w
+                                               << ", running out of LDS size (bytes) "
+                                               << lds_size);
         return miopenStatusNotInitialized;
     }
 
@@ -362,12 +363,12 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
                               out_horizon_last_chunk_valid_pixels);
     if(out_n_horizon_read_loops > 2 && params.pad_w != 0)
     {
-        MIOPEN_LOG_I("Padding where split is more than 2 ways is not supported.");
+        MIOPEN_LOG_I2("Padding where split is more than 2 ways is not supported.");
         return ConvSolution(miopenStatusNotInitialized);
     }
     if(out_n_horizon_read_loops > 1 && params.group_counts > 1)
     {
-        MIOPEN_LOG_I("For large images, group support is missing.");
+        MIOPEN_LOG_I2("For large images, group support is missing.");
         return ConvSolution(miopenStatusNotInitialized);
     }
 
