@@ -404,11 +404,12 @@ Handle::Handle() : impl(new HandleImpl())
     auto device = devices.at(pid % devices.size());
 #endif
 
-// TODO: Store device name in handle
-#ifndef NDEBUG
-    char deviceName[100];
-    clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(deviceName), deviceName, nullptr);
-    printf("Device Name: %s\n", deviceName);
+
+#if !MIOPEN_INSTALLABLE
+    // TODO: Store device name in handle
+    std::string deviceName = miopen::GetDeviceInfo<CL_DEVICE_NAME>(impl->device);
+    ParseDevName(deviceName);
+    MIOPEN_LOG_I("Device name: " << deviceName);
 #endif
 
     /////////////////////////////////////////////////////////////////
@@ -559,9 +560,7 @@ std::size_t Handle::GetLocalMemorySize()
 std::string Handle::GetDeviceName()
 {
     std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(miopen::GetDevice(this->GetStream()));
-    auto loc_p       = name.find('+');
-    if(loc_p != std::string::npos)
-        name = name.substr(0, loc_p);
+    ParseDevName(name);
     return GetDeviceNameFromMap(name);
 }
 

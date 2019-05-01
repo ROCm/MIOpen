@@ -559,5 +559,7 @@ template <int N>
 auto GetPlatformInfo(cl_platform_id platform) MIOPEN_RETURNS(
     detail::GetPlatformInfoImpl<detail::PlatformAttributeReturnType<N>>::apply(N, platform));
 
+void ParseDevName(std::string& name);
+
 } // namespace miopen
 #endif // GUARD_MIOPEN_OCLDEVICE_HPP
