@@ -481,7 +481,13 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& p
            params.kernel_size_h - params.kernel_stride_h >= params.pad_h &&
            params.batch_sz >= N_BATCH_LOOPS &&
            /// \todo Workaround for issue 1693
-           !(params.kernel_size_w >= 8 && params.kernel_size_w % 2 == 0) &&
+           !(params.kernel_size_w >= 8 && params.kernel_size_w % 2 == 0 &&
+             !( // Allow these configs to avoid perf drops:
+                 (params.kernel_stride_h == 2 && params.kernel_stride_w == 2) &&
+                 (params.kernel_size_h == 5 &&
+                  (params.kernel_size_w == 10 || params.kernel_size_w == 20)) &&
+                 ((params.out_height == 79 && params.out_width == 341) ||
+                  (params.out_height == 161 && params.out_width == 700)))) &&
            /// Avoid LDS & Workspace over-allocation.
            /// \note Required LDS depends on PerformanceConfig.
            /// We use the default PerformanceConfig here. This guarantees that at least
