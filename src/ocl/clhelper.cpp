@@ -32,10 +32,18 @@
 #include <miopen/kernel.hpp>
 #include <miopen/kernel_warnings.hpp>
 #include <miopen/stringutils.hpp>
+#include <miopen/ocldeviceinfo.hpp>
 #include <string>
 #include <vector>
 
 namespace miopen {
+
+void ParseDevName(std::string& name)
+{
+    auto loc_p = name.find('+');
+    if(loc_p != std::string::npos)
+        name = name.substr(0, loc_p);
+}
 
 static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t size)
 {
@@ -54,11 +62,8 @@ static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t 
 static void ClAssemble(cl_device_id device, std::string& source, const std::string& params)
 {
     // Add device nmae
-    char name[64] = {0};
-    if(CL_SUCCESS != clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(name), name, nullptr))
-    {
-        MIOPEN_THROW("Error: X-AMDGCN-ASM: clGetDeviceInfo()");
-    }
+    std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(device);
+    ParseDevName(name);
     AmdgcnAssemble(source, std::string("-mcpu=") + name + " " + params);
 }
 
