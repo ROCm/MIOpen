@@ -407,8 +407,9 @@ Handle::Handle() : impl(new HandleImpl())
 #ifndef NDEBUG
     char deviceName[100];
     clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(deviceName), deviceName, nullptr);
-    ParseDevName(deviceName);
-    printf("Device Name: %s\n", deviceName);
+    std::string parsedName(deviceName);
+    ParseDevName(parsedName);
+    printf("Device Name: %s\n", parsedName);
 #endif
 
     /////////////////////////////////////////////////////////////////
