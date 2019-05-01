@@ -409,7 +409,7 @@ Handle::Handle() : impl(new HandleImpl())
     clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(deviceName), deviceName, nullptr);
     std::string parsedName(deviceName);
     ParseDevName(parsedName);
-    printf("Device Name: %s\n", parsedName);
+    printf("Device Name: %s\n", parsedName.c_str());
 #endif
 
     /////////////////////////////////////////////////////////////////
