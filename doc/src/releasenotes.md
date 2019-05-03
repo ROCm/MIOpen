@@ -2,10 +2,23 @@
 ## MIOpen Release notes
 
 
+### 05/03/2019 [ 1.8.1 ]
+
+- This release contains minor bug fixes and additional performance database improvements.
+
+Changes:
+
+- Fixed accuracy issue with backwards weights
+- Fixed issue with name parsing for newer architectures
+- Added narrow workaround for 5x10 and 5x20 filter performance regression
+- Improved support in performance database for Radeon VII
+
+
+
 ### 04/11/2019 [ 1.8.0 ]
 
-- This release contaings full 3-D convolution support and int8 support for interfence. 
-- Additionally, there are major updates in the performance database for major models including those found in Torchvision. 
+- This release contains full 3-D convolution support and int8 support for inference. 
+- Additionally, there are updates in the performance database for major models including those found in Torchvision. 
 - An assortment of bugs have been resolved in this release.
 
   
@@ -15,10 +28,10 @@ Changes:
 - Fixed issue #92 and #79 for miopenOpTensor
 - Fixed issue #88 for bzip2
 - Fixed issue #77 algorithm mismatch
-- Added Winograd suport for fp32 backwards weights
+- Added Winograd support for fp32 backwards weights
 - Added pooling inclusive mode
 - Added tuning for direct group convolution algorithms
-- Added additional kernel supoort for group convolutions
+- Added additional kernel support for group convolutions
 - Added API for 3-D convolutions
 - Added support for int8 inference convolutions
 - Added integer selection for pooling indexing
