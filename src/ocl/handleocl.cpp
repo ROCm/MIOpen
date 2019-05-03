@@ -404,11 +404,12 @@ Handle::Handle() : impl(new HandleImpl())
     auto device = devices.at(pid % devices.size());
 #endif
 
-// TODO: Store device name in handle
 #ifndef NDEBUG
     char deviceName[100];
     clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(deviceName), deviceName, nullptr);
-    printf("Device Name: %s\n", deviceName);
+    std::string parsedName(deviceName);
+    ParseDevName(parsedName);
+    printf("Device Name: %s\n", parsedName.c_str());
 #endif
 
     /////////////////////////////////////////////////////////////////
@@ -559,6 +560,7 @@ std::size_t Handle::GetLocalMemorySize()
 std::string Handle::GetDeviceName()
 {
     std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(miopen::GetDevice(this->GetStream()));
+    ParseDevName(name);
     return GetDeviceNameFromMap(name);
 }
 
