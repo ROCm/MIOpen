@@ -48,36 +48,70 @@ static auto Duration(const std::function<void()>& func)
 struct FindDbTest : test_driver
 {
     Handle handle{};
-    tensor<float> input;
-    tensor<float> weights;
-    Allocator::ManageDataPtr in_dev;
-    Allocator::ManageDataPtr wei_dev;
-    miopen::ConvolutionDescriptor filter = {2, miopenConvolution, miopenPaddingDefault};
+    tensor<float> x;
+    tensor<float> w;
+    tensor<float> y;
+    Allocator::ManageDataPtr x_dev;
+    Allocator::ManageDataPtr w_dev;
+    Allocator::ManageDataPtr y_dev;
+    // --input 16,192,28,28 --weights 32,192,5,5 --filter 2,2,1,1,1,1,
+    miopen::ConvolutionDescriptor filter = {
+        2, miopenConvolution, miopenPaddingDefault, {1, 1}, {1, 1}, {1, 1}};
 
     FindDbTest()
     {
-        input   = {16, 32, 8, 8};
-        weights = {64, 32, 5, 5};
+        x = {16, 192, 28, 28};
+        w = {32, 192, 5, 5};
+        y = tensor<float>{filter.GetForwardOutputTensor(x.desc, w.desc)};
     }
 
     void run()
     {
-        in_dev  = handle.Write(input.data);
-        wei_dev = handle.Write(weights.data);
+        x_dev = handle.Write(x.data);
+        w_dev = handle.Write(w.data);
+        y_dev = handle.Write(y.data);
 
         TestForward();
+        TestBwdData();
     }
 
     private:
+    void TestBwdData()
+    {
+        MIOPEN_LOG_I("Starting backward find-db test.");
+
+        auto workspace_size = filter.BackwardDataGetWorkSpaceSize(handle, w.desc, y.desc, x.desc);
+
+        auto workspace     = std::vector<char>(workspace_size);
+        auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
+
+        auto filterCall = [&]() {
+            int ret_algo_count;
+            miopenConvAlgoPerf_t perf[1];
+
+            filter.FindConvBwdDataAlgorithm(handle,
+                                            y.desc,
+                                            y_dev.get(),
+                                            w.desc,
+                                            w_dev.get(),
+                                            x.desc,
+                                            x_dev.get(),
+                                            1,
+                                            &ret_algo_count,
+                                            perf,
+                                            workspace_dev.get(),
+                                            workspace_size,
+                                            false);
+        };
+
+        Test(filterCall);
+    }
+
     void TestForward()
     {
         std::cout << "Starting forward find-db test." << std::endl;
 
-        auto rout    = tensor<float>{filter.GetForwardOutputTensor(input.desc, weights.desc)};
-        auto out_dev = handle.Write(rout.data);
-
-        auto workspace_size =
-            filter.ForwardGetWorkSpaceSize(handle, weights.desc, input.desc, rout.desc);
+        auto workspace_size = filter.ForwardGetWorkSpaceSize(handle, w.desc, x.desc, y.desc);
 
         auto workspace     = std::vector<char>(workspace_size);
         auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
@@ -87,12 +121,12 @@ struct FindDbTest : test_driver
             miopenConvAlgoPerf_t perf[1];
 
             filter.FindConvFwdAlgorithm(handle,
-                                        input.desc,
-                                        in_dev.get(),
-                                        weights.desc,
-                                        wei_dev.get(),
-                                        rout.desc,
-                                        out_dev.get(),
+                                        x.desc,
+                                        x_dev.get(),
+                                        w.desc,
+                                        w_dev.get(),
+                                        y.desc,
+                                        y_dev.get(),
                                         1,
                                         &ret_algo_count,
                                         perf,

@@ -182,7 +182,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                          const TensorDescriptor& wDesc,
                          const TensorDescriptor& dxDesc,
                          std::size_t workSpaceSize,
-                         std::vector<KernelInvoke>& kernels) const;
+                         std::vector<KernelInvoke>& kernels,
+                         std::string& kcache_key) const;
 
     float ExecuteBwdFFTKernel(Handle& handle,
                               const TensorDescriptor& dyDesc,
