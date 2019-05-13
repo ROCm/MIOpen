@@ -375,10 +375,11 @@ int ConvolutionDescriptor::FindBwdFFTKernel(Handle& handle,
                                             const TensorDescriptor& wDesc,
                                             const TensorDescriptor& dxDesc,
                                             size_t workSpaceSize,
-                                            std::vector<KernelInvoke>& kernels) const
+                                            std::vector<KernelInvoke>& kernels,
+                                            std::string& kcache_key) const
 {
 
-    return FindFFTKernel(handle, dyDesc, wDesc, dxDesc, workSpaceSize, kernels, false);
+    return FindFFTKernel(handle, dyDesc, wDesc, dxDesc, workSpaceSize, kernels, false, &kcache_key);
 }
 
 static float ExecuteFFTKernel(Handle& handle,
