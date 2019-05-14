@@ -38,6 +38,12 @@ namespace miopen {
 
 bool FindDb::enabled = true;
 
+boost::optional<std::string>& FindDb::path_override()
+{
+    static boost::optional<std::string> data = boost::none;
+    return data;
+}
+
 std::string FindDb::GetPath(Handle& handle)
 {
     return GetFindDbPath() + "/" + handle.GetDbPathFilename() + ".cd.fdb.txt";

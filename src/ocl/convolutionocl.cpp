@@ -2549,10 +2549,15 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
     AutoEnableProfiling enableProfiling{handle};
 
-    // < algorith_name, <time, workspace_size> >
-    std::vector<PerfField> perf_db;
+    auto problem = ProblemDescription{xDesc, dwDesc, dyDesc, *this, 0};
+    problem.direction.SetBackwardWrW();
 
-    {
+    // < algorith_name, <time, workspace_size> >
+    auto perf_db = FindDb::TryLoad(handle, problem, [&](DbRecord& record) {
+        // GEMM based
+        int out_h, out_w;
+        std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
+
 #if MIOPEN_USE_GEMM
         if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) && !IsAnyBufferBF16(xDesc, dyDesc, dwDesc))
         { // GEMM based
@@ -2611,6 +2616,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         ? CreateGemmDescriptorGroupConvBwdWeight(dyDesc, xDesc, dwDesc, group_count)
                         : CreateGemmDescriptorConvBwdWeight(dyDesc, xDesc, dwDesc);
 
+                auto kcache_key = FindDbKCacheKey{};
+
                 miopenStatus_t gemm_status = CallGemmTimeMeasure(
                     handle,
                     gemm_desc,
@@ -2620,7 +2627,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     0,
                     dw,
                     0,
-                    nullptr,
+                    &kcache_key,
                     time_precision,
                     group_count > 1 ? callGemmStridedBatched : callGemm,
                     group_count > 1 ? GemmBackend_t::rocblas : GemmBackend_t::miopengemm);
@@ -2628,8 +2635,10 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 time_gemm = in_n * (time_im2col + handle.GetKernelTime());
 
                 if(gemm_status == miopenStatusSuccess)
-                    perf_db.push_back(PerfField{
-                        "miopenConvolutionBwdWeightsAlgoGEMM", "GEMM", time_gemm, workspace_req});
+                    record.SetValues("miopenConvolutionBwdWeightsAlgoGEMM",
+                                     FindDbData{
+                                         "gemm", time_gemm, workspace_req, kcache_key,
+                                     });
             }
             // 1x1 does not require im2col or workspace
             else if(miopen::any_of(wei_spatial, [](auto v) { return v == 1; }) &&
@@ -2651,6 +2660,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         ? CreateGemmDescriptorGroupConvBwdWeight(dyDesc, xDesc, dwDesc, group_count)
                         : CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(dyDesc, xDesc, dwDesc);
 
+                auto kcache_key = FindDbKCacheKey{};
+
                 miopenStatus_t gemm_status = CallGemmTimeMeasure(
                     handle,
                     gemm_desc,
@@ -2660,7 +2671,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     0,
                     dw,
                     0,
-                    nullptr,
+                    &kcache_key,
                     time_precision,
                     group_count > 1 ? callGemmStridedBatched : callGemmStridedBatchedSequential,
                     group_count > 1 ? GemmBackend_t::rocblas : GemmBackend_t::miopengemm);
@@ -2670,8 +2681,10 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     time_gemm *= in_n;
 
                 if(gemm_status == miopenStatusSuccess)
-                    perf_db.push_back(
-                        PerfField{"miopenConvolutionBwdWeightsAlgoGEMM", "GEMM", time_gemm, 0});
+                    record.SetValues("miopenConvolutionBwdWeightsAlgoGEMM",
+                                     FindDbData{
+                                         "gemm", time_gemm, 0, kcache_key,
+                                     });
             }
         }
 #endif
@@ -2720,8 +2733,13 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     AddKernels(handle, algorithm_name, network_config, selected, nullptr);
                     MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
                                               << selected.workspce_sz);
-                    perf_db.push_back(
-                        PerfField{algorithm_name, selected.solver_id, best, selected.workspce_sz});
+                    record.SetValues(algorithm_name,
+                                     FindDbData{
+                                         selected.solver_id,
+                                         best,
+                                         selected.workspce_sz,
+                                         {algorithm_name, network_config},
+                                     });
                 }
             }
         }
@@ -2767,12 +2785,12 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     int o_N_stride = R * S * static_cast<int>(sizeof(dataType));
                     int o_K_stride = C * o_N_stride;
                     // clang-format off
-                MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
-                        << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
-                        << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
-                        << " d_N_stride=" << d_N_stride << " d_C_stride=" << d_C_stride
-                        << " f_K_stride=" << f_K_stride << " f_C_stride=" << f_C_stride
-                        << " o_N_stride=" << o_N_stride << " o_K_stride=" << o_K_stride); // clang-format on
+				MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
+						<< " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
+						<< " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
+						<< " d_N_stride=" << d_N_stride << " d_C_stride=" << d_C_stride
+						<< " f_K_stride=" << f_K_stride << " f_C_stride=" << f_C_stride
+						<< " o_N_stride=" << o_N_stride << " o_K_stride=" << o_K_stride); // clang-format on
                     kernel_wino(C,
                                 N,
                                 H,
@@ -2800,8 +2818,14 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                 o_N_stride,
                                 o_K_stride);
                     time_wino = handle.GetKernelTime();
-                    perf_db.push_back(PerfField{
-                        "miopenConvolutionBwdWeightsAlgoWinograd", solver_id, time_wino, 0});
+                    record.SetValues(
+                        "miopenConvolutionBwdWeightsAlgoWinograd",
+                        FindDbData{
+                            solver_id,
+                            time_wino,
+                            0,
+                            {"miopenConvolutionBwdWeightsAlgoWinograd", network_config},
+                        });
                 }
             }
             catch(const miopen::Exception& ex)
@@ -2809,7 +2833,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 MIOPEN_LOG_W("Find Winograd WrW failed:" << ex.what());
             }
         }
-    }
+    });
 
     if(perf_db.empty())
         MIOPEN_THROW("Bwd Weights Convolution cannot be executed due to incorrect params");
