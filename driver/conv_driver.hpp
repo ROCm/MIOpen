@@ -1257,7 +1257,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardGPU()
             std::tie(out_n, out_c, out_h, out_w) =
                 miopen::tien<4>(miopen::deref(outputTensor).GetLengths());
 
-            size_t flopCnt     = 2L * in_n * in_c * in_h * in_w * wei_h * wei_w * out_c;
+            size_t flopCnt     = 2L * in_n * in_c * out_h * out_w * wei_h * wei_w * out_c;
             size_t weightBytes = wei_n * wei_c * wei_h * wei_w *
                                  miopen::GetTypeSize(miopen::deref(weightTensor).GetType());
             size_t inputBytes =
@@ -1363,7 +1363,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardGPU()
             std::tie(out_n, out_c, out_h, out_w) =
                 miopen::tien<4>(miopen::deref(outputTensor).GetLengths());
 
-            size_t flopCnt     = 2L * in_n * in_c * in_h * in_w * wei_h * wei_w * out_c;
+            size_t flopCnt     = 2L * in_n * in_c * out_h * out_w * wei_h * wei_w * out_c;
             size_t readBytes   = 0;
             size_t outputBytes = 0;
 
