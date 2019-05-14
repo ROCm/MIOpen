@@ -31,11 +31,11 @@
 #include <miopen/convolution.hpp>
 #include <miopen/find_db.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/temp_file.hpp>
 
 #include <chrono>
-#include <functional>
-
 #include <cstdlib>
+#include <functional>
 
 namespace miopen {
 static auto Duration(const std::function<void()>& func)
@@ -71,8 +71,12 @@ struct FindDbTest : test_driver
         w_dev = handle.Write(w.data);
         y_dev = handle.Write(y.data);
 
+        const TempFile temp_file{"miopen.test.find_db"};
+        FindDb::path_override() = temp_file;
+
         TestForward();
         TestBwdData();
+        TestWeights();
     }
 
     private:
@@ -138,28 +142,58 @@ struct FindDbTest : test_driver
         Test(filterCall);
     }
 
+    void TestWeights()
+    {
+        MIOPEN_LOG_I("Starting wrw find-db test.");
+
+        auto workspace_size =
+            filter.ConvolutionBackwardWeightsGetWorkSpaceSize(handle, y.desc, x.desc, w.desc);
+
+        auto workspace     = std::vector<char>(workspace_size);
+        auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
+
+        auto filterCall = [&]() {
+            int ret_algo_count;
+            miopenConvAlgoPerf_t perf[1];
+
+            filter.FindConvBwdWeightsAlgorithm(handle,
+                                               y.desc,
+                                               y_dev.get(),
+                                               x.desc,
+                                               x_dev.get(),
+                                               w.desc,
+                                               w_dev.get(),
+                                               1,
+                                               &ret_algo_count,
+                                               perf,
+                                               workspace_dev.get(),
+                                               workspace_size,
+                                               false);
+        };
+
+        Test(filterCall);
+    }
+
     void Test(const std::function<void()>& func)
     {
-        using microseconds = std::chrono::microseconds;
+        using mSeconds = std::chrono::duration<double, std::ratio<1, 1000>>;
 
         const auto time0   = Duration(func);
-        const auto time0us = std::chrono::duration_cast<microseconds>(time0);
-        MIOPEN_LOG_I("Noncached call: " << time0us.count() << " us");
+        const auto time0ms = std::chrono::duration_cast<mSeconds>(time0);
+        MIOPEN_LOG_I("Find(), 1st call (populating kcache, updating find-db): " << time0ms.count());
 
-        FindDb::enabled = false;
-
+        FindDb::enabled    = false;
         const auto time1   = Duration(func);
-        const auto time1us = std::chrono::duration_cast<microseconds>(time1);
-        MIOPEN_LOG_I("No find db call: " << time1us.count() << " us");
+        const auto time1ms = std::chrono::duration_cast<mSeconds>(time1);
+        MIOPEN_LOG_I("Find(), find-db disabled: " << time1ms.count());
 
-        FindDb::enabled = true;
-
+        FindDb::enabled    = true;
         const auto time2   = Duration(func);
-        const auto time2us = std::chrono::duration_cast<microseconds>(time2);
-        MIOPEN_LOG_I("Find db call: " << time2us.count() << " us");
+        const auto time2ms = std::chrono::duration_cast<mSeconds>(time2);
+        MIOPEN_LOG_I("Find(), find-db enabled: " << time2ms.count());
 
-        const auto find_db_speedup = time1 / time2;
-        MIOPEN_LOG_I("Speedup: " << find_db_speedup << "x");
+        const auto find_db_speedup = time1ms / time2ms;
+        MIOPEN_LOG_I("Speedup: " << find_db_speedup);
 
         EXPECT_OP(find_db_speedup, >=, 3);
     }
