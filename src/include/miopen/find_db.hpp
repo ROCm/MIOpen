@@ -47,7 +47,8 @@ struct Handle;
 class FindDb
 {
     public:
-    static bool enabled; // For unit tests.
+    static bool enabled;                                  // For unit tests.
+    static boost::optional<std::string>& path_override(); /// \todo Remove when #1723 is resolved.
 
     template <class TProblemDescription>
     static std::vector<PerfField> TryLoad(Handle& handle,
@@ -79,7 +80,7 @@ class FindDb
 
     private:
     std::string path;
-    boost::optional<Db> db;
+    boost::optional<DbTimer<Db>> db;
     boost::optional<DbRecord> record{boost::none};
     bool loaded = false;
 
@@ -88,7 +89,7 @@ class FindDb
 
     template <class TProblemDescription>
     FindDb(Handle& handle, const TProblemDescription& problem)
-        : path(GetPath(handle)), db(TryLoadDb(path))
+        : path(path_override() ? *path_override() : GetPath(handle)), db(TryLoadDb(path))
     {
         if(!db.is_initialized())
             return;
@@ -107,11 +108,11 @@ class FindDb
 
     static std::string GetPath(Handle& handle);
 
-    static boost::optional<Db> TryLoadDb(const std::string& path)
+    static boost::optional<DbTimer<Db>> TryLoadDb(const std::string& path)
     {
         if(!enabled || IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}))
             return boost::none;
-        return boost::optional<Db>{Db{path, false}};
+        return DbTimer<Db>{{path, false}};
     }
 
     // Returns true if rebuild is required
