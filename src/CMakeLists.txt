@@ -284,12 +284,10 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         )
 endif()
 
-if(miopengemm_FOUND)
+if(miopengemm_FOUND OR MIOPEN_USE_ROCBLAS)
     list(APPEND MIOpen_Source
-        gemm.cpp
         gemm_v2.cpp
         miopengemm.cpp
-        gemm_geometry.cpp
     )
 endif()
 
