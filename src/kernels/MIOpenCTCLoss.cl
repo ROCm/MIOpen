@@ -78,8 +78,8 @@
 #endif
 #endif
 
-#ifndef NEGATIVE_INF
-#define NEGATIVE_INF (_FLOAT)(-1e20)
+#ifndef NEGATIVE_CUTOFF_VAL
+#define NEGATIVE_CUTOFF_VAL (_FLOAT)(-1e20)
 #endif
 
 #ifndef SOFTMAX_LEN
@@ -146,7 +146,8 @@ static inline _FLOAT LogAddExp(const _FLOAT* x, const _FLOAT* y)
     _FLOAT b = min(*x, *y);
     _FLOAT c = b - a;
 
-    return c <= NEGATIVE_INF ? max(a, NEGATIVE_INF) : max(a + log(exp(b - a) + 1), NEGATIVE_INF);
+    return c <= NEGATIVE_CUTOFF_VAL ? max(a, NEGATIVE_CUTOFF_VAL)
+                                    : max(a + log(exp(b - a) + 1), NEGATIVE_CUTOFF_VAL);
 }
 
 inline void AtomicLogAddExp(volatile ADDRSPACE_GRAD float* addr, const float operand)
@@ -165,9 +166,9 @@ inline void AtomicLogAddExp(volatile ADDRSPACE_GRAD float* addr, const float ope
         a.fval      = max(prevVal.fval, operand);
         b.fval      = min(prevVal.fval, operand);
         c.fval      = b.fval - a.fval;
-        newVal.fval = c.fval <= NEGATIVE_INF
-                          ? max(a.fval, NEGATIVE_INF)
-                          : max(a.fval + log(exp(b.fval - a.fval) + 1), NEGATIVE_INF);
+        newVal.fval = c.fval <= NEGATIVE_CUTOFF_VAL
+                          ? max(a.fval, NEGATIVE_CUTOFF_VAL)
+                          : max(a.fval + log(exp(b.fval - a.fval) + 1), NEGATIVE_CUTOFF_VAL);
 
         curVal.uval =
 #ifdef ATOM64
@@ -226,7 +227,7 @@ static inline void CTCAlpha(const global _FLOAT* probs_logits,
                 }
 
             alpha_ts += *((global _FLOAT*)(probs_logits + pidx));
-            *((global _FLOAT*)(alpha + aidx_ts)) = max(alpha_ts, NEGATIVE_INF);
+            *((global _FLOAT*)(alpha + aidx_ts)) = max(alpha_ts, NEGATIVE_CUTOFF_VAL);
         }
         barrier(CLK_LOCAL_MEM_FENCE);
     }
@@ -270,7 +271,7 @@ static inline void CTCGradient(const global _FLOAT* probs_logits,
         for(uint i = lid; i < CLASS_SZ; i += WORK_PER_GRP)
         {
             *((global _FLOAT*)(gradients + j * GRADS_STRIDE0 + batch_id * GRADS_STRIDE1 + i)) =
-                NEGATIVE_INF;
+                NEGATIVE_CUTOFF_VAL;
         }
     barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -289,7 +290,7 @@ static inline void CTCGradient(const global _FLOAT* probs_logits,
 
         _FLOAT alpha_temp = *((global _FLOAT*)(alpha_log + bidx_ts));
         alpha_temp += probs_logits_pidx;
-        _FLOAT grad_temp = NEGATIVE_INF;
+        _FLOAT grad_temp = NEGATIVE_CUTOFF_VAL;
 
 #ifdef OPT_LCL_MEM_GRAD
         gradtmp[lb_cur]
@@ -318,7 +319,7 @@ static inline void CTCGradient(const global _FLOAT* probs_logits,
 #endif
             ;
         grad_temp -= prob_lx_log;
-        grad_temp = grad_temp <= NEGATIVE_INF ? 0 : exp(grad_temp);
+        grad_temp = grad_temp <= NEGATIVE_CUTOFF_VAL ? 0 : exp(grad_temp);
 
         *((global _FLOAT*)(gradients + gidx)) =
 #if SOFTMAX_APPLIED == 1
@@ -327,7 +328,7 @@ static inline void CTCGradient(const global _FLOAT* probs_logits,
             - grad_temp;
 
 #ifdef OPT_LCL_MEM_GRAD
-        gradtmp[i] = NEGATIVE_INF;
+        gradtmp[i] = NEGATIVE_CUTOFF_VAL;
 #endif
     }
     barrier(CLK_LOCAL_MEM_FENCE);
@@ -364,7 +365,7 @@ static inline void CTCGradient(const global _FLOAT* probs_logits,
                 }
 
             beta_temp += *((const global _FLOAT*)(probs_logits + pidx));
-            beta_temp = max(beta_temp, NEGATIVE_INF);
+            beta_temp = max(beta_temp, NEGATIVE_CUTOFF_VAL);
             if(j % 2 == 0)
                 *((ADDRSPACE_BETA _FLOAT*)(beta_buff0 + k1)) = beta_temp;
             else
@@ -469,7 +470,7 @@ static inline void CTCGradient(const global _FLOAT* probs_logits,
 #endif
                 ;
             grad_temp -= prob_lx_log;
-            grad_temp = grad_temp <= NEGATIVE_INF ? 0 : exp(grad_temp);
+            grad_temp = grad_temp <= NEGATIVE_CUTOFF_VAL ? 0 : exp(grad_temp);
 
             *((global _FLOAT*)(gradients + gidx)) =
 #if SOFTMAX_APPLIED == 1
@@ -478,7 +479,7 @@ static inline void CTCGradient(const global _FLOAT* probs_logits,
                 - grad_temp;
 
 #ifdef OPT_LCL_MEM_GRAD
-            *((local _FLOAT*)(gradtmp + i)) = NEGATIVE_INF;
+            *((local _FLOAT*)(gradtmp + i)) = NEGATIVE_CUTOFF_VAL;
 #endif
         }
         barrier(CLK_LOCAL_MEM_FENCE);
@@ -527,11 +528,12 @@ kernel void CTCLossGPU(const global _FLOAT* probs,
 
         for(uint i = lid; i < MAX_TSTEP * MAX_S_LEN; i += WORK_PER_GRP)
             *((global _FLOAT*)(workSpace + ALPHA_OFFSET + bid * MAX_TSTEP * MAX_S_LEN + i)) =
-                NEGATIVE_INF;
+                NEGATIVE_CUTOFF_VAL;
 
 #ifndef OPT_LCL_MEM_BETA
         for(uint i = lid; i < 2 * MAX_S_LEN; i += WORK_PER_GRP)
-            *((global _FLOAT*)(workSpace + BETA_OFFSET + bid * 2 * MAX_S_LEN + i)) = NEGATIVE_INF;
+            *((global _FLOAT*)(workSpace + BETA_OFFSET + bid * 2 * MAX_S_LEN + i)) =
+                NEGATIVE_CUTOFF_VAL;
 #endif
 
         barrier(CLK_LOCAL_MEM_FENCE);
@@ -558,14 +560,14 @@ kernel void CTCLossGPU(const global _FLOAT* probs,
 
 #ifdef OPT_LCL_MEM_GRAD
         for(uint i                          = lid; i < CLASS_SZ; i += WORK_PER_GRP)
-            *((local _FLOAT*)(gradtmp + i)) = NEGATIVE_INF;
+            *((local _FLOAT*)(gradtmp + i)) = NEGATIVE_CUTOFF_VAL;
 #endif
 
 #ifdef OPT_LCL_MEM_BETA
         for(uint i = lid; i < MAX_S_LEN; i += WORK_PER_GRP)
         {
-            *((local _FLOAT*)(beta0 + i)) = NEGATIVE_INF;
-            *((local _FLOAT*)(beta1 + i)) = NEGATIVE_INF;
+            *((local _FLOAT*)(beta0 + i)) = NEGATIVE_CUTOFF_VAL;
+            *((local _FLOAT*)(beta1 + i)) = NEGATIVE_CUTOFF_VAL;
         }
 #endif
 

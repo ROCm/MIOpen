@@ -36,6 +36,7 @@
 #include "pool_driver.hpp"
 #include "softmax_driver.hpp"
 #include "rnn_driver.hpp"
+#include "ctc_driver.hpp"
 #include "miopen/config.h"
 
 int main(int argc, char* argv[])
@@ -131,6 +132,10 @@ int main(int argc, char* argv[])
     else if(base_arg == "rnnfp16")
     {
         drv = new RNNDriver<float16, double>();
+    }
+    else if(base_arg == "ctc")
+    {
+        drv = new CTCDriver<float>();
     }
     else
     {
