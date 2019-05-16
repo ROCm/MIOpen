@@ -30,7 +30,6 @@
 #include "test.hpp"
 #include "verify.hpp"
 #include "rnn_util.hpp"
-#include "gemm.hpp"
 #include <array>
 #include <cmath>
 #include <ctime>
