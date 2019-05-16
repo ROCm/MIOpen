@@ -145,6 +145,7 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
         break;
     }
 #elif MIOPEN_USE_ROCBLAS
+    (void)data_type;
     switch(gemm_backend_env)
     {
     case GemmBackend_t::nogemmbackend: gemm_backend_enforced = GemmBackend_t::nogemmbackend; break;

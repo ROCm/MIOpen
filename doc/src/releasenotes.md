@@ -310,4 +310,5 @@ Changes:
 - Removed GEMM interface from the MIOpen API
 
 
-### 06/30/2017 [ 1.0.0 ] Initial release  
+### 06/30/2017 [ 1.0.0 ] Initial release 
+ 
