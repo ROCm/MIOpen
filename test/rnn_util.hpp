@@ -34,8 +34,6 @@
 #include <vector>
 #include <cstdlib>
 
-#include "gemm.hpp"
-
 #define RNN_MM_TRANSPOSE 1
 #define RNN_MM_USEPARAGEMM 0
 
