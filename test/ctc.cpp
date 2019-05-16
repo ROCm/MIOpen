@@ -45,7 +45,7 @@
 #include <cfloat>
 #include <algorithm>
 
-#define NEGATIVE_INF (-1e20)
+#define NEGATIVE_CUTOFF_VAL (-1e20)
 
 template <typename T>
 T logaddexp_cpu(T* x, T* y)
@@ -54,9 +54,9 @@ T logaddexp_cpu(T* x, T* y)
     T b = std::min(*x, *y);
     T c = b - a;
 
-    return c <= T(NEGATIVE_INF)
-               ? std::max(a, T(NEGATIVE_INF))
-               : std::max(T(a + std::log(T(1) + std::exp(b - a))), T(NEGATIVE_INF));
+    return c <= T(NEGATIVE_CUTOFF_VAL)
+               ? std::max(a, T(NEGATIVE_CUTOFF_VAL))
+               : std::max(T(a + std::log(T(1) + std::exp(b - a))), T(NEGATIVE_CUTOFF_VAL));
 }
 
 template <typename T>
@@ -83,7 +83,7 @@ void subvec_logsoftmax_cpu(Tgpu* in, Tref* out, size_t in_offset, size_t out_off
 
     Tref sum = logsumexp_cpu(itr_out, length);
     for(size_t i       = 0; i < length; i++)
-        *(itr_out + i) = std::max(*(itr_out + i) - sum, Tref(NEGATIVE_INF));
+        *(itr_out + i) = std::max(*(itr_out + i) - sum, Tref(NEGATIVE_CUTOFF_VAL));
 }
 
 template <typename T>
@@ -136,7 +136,7 @@ void ctc_alpha_cpu(std::vector<int>& probsDesc,
                     alpha_ts = logaddexp_cpu(&alpha_ts, &alpha_t1s2);
 
             alpha_ts += probs_logits[pidx];
-            alpha[aidx_ts] = std::max(alpha_ts, T(NEGATIVE_INF));
+            alpha[aidx_ts] = std::max(alpha_ts, T(NEGATIVE_CUTOFF_VAL));
         }
     }
 
@@ -167,13 +167,13 @@ void ctc_gradient_cpu(std::vector<int>& probsDesc,
     int alpha_len     = input_length * label_prime_len;
     float prob_lx_log = logaddexp_cpu(&(alpha_log[alpha_len - 1]), &(alpha_log[alpha_len - 2]));
 
-    std::vector<T> beta_buff0(label_prime_len, T(NEGATIVE_INF));
-    std::vector<T> beta_buff1(label_prime_len, T(NEGATIVE_INF));
+    std::vector<T> beta_buff0(label_prime_len, T(NEGATIVE_CUTOFF_VAL));
+    std::vector<T> beta_buff1(label_prime_len, T(NEGATIVE_CUTOFF_VAL));
 
     int aidx0 = 1;
     int aidx1 = label_length + label_repeat == input_length ? 1 : 0;
 
-    std::vector<T> grad_temp(class_sz, T(NEGATIVE_INF));
+    std::vector<T> grad_temp(class_sz, T(NEGATIVE_CUTOFF_VAL));
     for(int k = aidx1; k <= aidx0; k++)
     {
         int k1     = label_prime_len - 1 - k;
@@ -199,7 +199,7 @@ void ctc_gradient_cpu(std::vector<int>& probsDesc,
         {
             grad_temp[i] -= probs_logits_pidx;
             grad_temp[i] -= prob_lx_log;
-            grad_temp[i] = std::max(grad_temp[i], T(NEGATIVE_INF));
+            grad_temp[i] = std::max(grad_temp[i], T(NEGATIVE_CUTOFF_VAL));
 
             gradients_logits[gidx] = exp(probs_logits_pidx) - exp(grad_temp[i]);
         }
@@ -207,7 +207,7 @@ void ctc_gradient_cpu(std::vector<int>& probsDesc,
         {
             grad_temp[i] -= (probs_logits_pidx * 2);
             grad_temp[i] -= prob_lx_log;
-            grad_temp[i] = std::max(grad_temp[i], T(NEGATIVE_INF));
+            grad_temp[i] = std::max(grad_temp[i], T(NEGATIVE_CUTOFF_VAL));
 
             gradients_logits[gidx] = -exp(grad_temp[i]);
         }
@@ -216,7 +216,7 @@ void ctc_gradient_cpu(std::vector<int>& probsDesc,
     for(int j = 1; j < input_length; j++)
     {
         int j1 = input_length - 1 - j;
-        std::fill(grad_temp.begin(), grad_temp.end(), T(NEGATIVE_INF));
+        std::fill(grad_temp.begin(), grad_temp.end(), T(NEGATIVE_CUTOFF_VAL));
 
         for(int k = 0; k < label_prime_len; k++)
         {
@@ -237,7 +237,7 @@ void ctc_gradient_cpu(std::vector<int>& probsDesc,
                         &beta_temp, j % 2 == 0 ? &(beta_buff1[k1 + 2]) : &(beta_buff0[k1 + 2]));
 
             beta_temp += probs_logits[pidx];
-            beta_temp = std::max(beta_temp, T(NEGATIVE_INF));
+            beta_temp = std::max(beta_temp, T(NEGATIVE_CUTOFF_VAL));
             if(j % 2 == 0)
                 beta_buff0[k1] = beta_temp;
             else
@@ -258,7 +258,7 @@ void ctc_gradient_cpu(std::vector<int>& probsDesc,
             {
                 grad_temp[i] -= probs_logits_pidx;
                 grad_temp[i] -= prob_lx_log;
-                grad_temp[i] = std::max(grad_temp[i], T(NEGATIVE_INF));
+                grad_temp[i] = std::max(grad_temp[i], T(NEGATIVE_CUTOFF_VAL));
 
                 gradients_logits[gidx] = exp(probs_logits_pidx) - exp(grad_temp[i]);
             }
@@ -266,7 +266,7 @@ void ctc_gradient_cpu(std::vector<int>& probsDesc,
             {
                 grad_temp[i] -= (probs_logits_pidx * 2);
                 grad_temp[i] -= prob_lx_log;
-                grad_temp[i] = std::max(grad_temp[i], T(NEGATIVE_INF));
+                grad_temp[i] = std::max(grad_temp[i], T(NEGATIVE_CUTOFF_VAL));
 
                 gradients_logits[gidx] = -exp(grad_temp[i]);
             }
@@ -295,7 +295,7 @@ void launchCTCLoss(const int class_sz,
     int alpha_offset    = problog_offset + class_sz * batch_size * max_time_step;
     std::fill(workspace_cpu.begin() + alpha_offset,
               workspace_cpu.begin() + alpha_offset + max_time_step * batch_size * max_S_len,
-              Tref(NEGATIVE_INF));
+              Tref(NEGATIVE_CUTOFF_VAL));
 
     if(is_softmax_applied)
         for(int j = 0; j < max_time_step * batch_size; j++)
