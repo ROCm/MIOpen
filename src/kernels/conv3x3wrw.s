@@ -928,7 +928,7 @@ s_endpgm
 .error "ROCM_METADATA_VERSION must be defined"
 .endif
 
-.macro metadata wg_x
+.macro METADATA wg_x, lds_size
   .if ROCM_METADATA_VERSION == 4
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
@@ -937,7 +937,7 @@ s_endpgm
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
-              { KernargSegmentSize: 64, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
+              { KernargSegmentSize: 64, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
             Args:
             - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
@@ -960,20 +960,11 @@ s_endpgm
   .endif
 .endm
 
-.if n_per_group == 8
-    metadata 512
-.elseif n_per_group == 7
-    metadata 448
-.elseif n_per_group == 6
-    metadata 384
-.elseif n_per_group == 5
-    metadata 320
-.elseif n_per_group == 4
-    metadata 256
-.elseif n_per_group == 3
-    metadata 192
-.elseif n_per_group == 2
-    metadata 128
-.else
-    metadata 64
-.endif
+workgroup_size_x = n_per_group * 64
+
+.altmacro
+.macro METADATA_WRAPPER wg_x, lds_size
+    METADATA %\wg_x, %\lds_size
+.endm
+
+METADATA_WRAPPER workgroup_size_x, .AUTO_LDS_BYTE_SIZE

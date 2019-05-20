@@ -369,7 +369,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
                                                            const TensorDescriptor& xDesc,
                                                            const TensorDescriptor& yDesc) const
 {
-    MIOPEN_LOG_I2("");
+    MIOPEN_LOG_I("");
     {
         const std::size_t spatial_dim = GetSpatialDimension();
 
@@ -444,7 +444,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
                                                     const TensorDescriptor& dyDesc,
                                                     const TensorDescriptor& dxDesc) const
 {
-    MIOPEN_LOG_I2("");
+    MIOPEN_LOG_I("");
     {
         auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + GetSpatialDimension());
 
@@ -671,13 +671,13 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
     }
 }
 
-std::size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
-    Handle& handle,
-    const TensorDescriptor& dyDesc,
-    const TensorDescriptor& xDesc,
-    const TensorDescriptor& dwDesc) const
+std::size_t
+ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
+                                                       const TensorDescriptor& dyDesc,
+                                                       const TensorDescriptor& xDesc,
+                                                       const TensorDescriptor& dwDesc) const
 {
-    MIOPEN_LOG_I2("");
+    MIOPEN_LOG_I("");
 
     std::size_t workspace_size = 0;
     {
