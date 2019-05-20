@@ -262,10 +262,10 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                  Data_t workSpace,
                                  std::size_t workSpaceSize) const;
 
-    std::size_t ConvolutionBackwardWeightsGetWorkSpaceSize(Handle& handle,
-                                                           const TensorDescriptor& dyDesc,
-                                                           const TensorDescriptor& xDesc,
-                                                           const TensorDescriptor& dwDesc) const;
+    std::size_t BackwardWeightsGetWorkSpaceSize(Handle& handle,
+                                                const TensorDescriptor& dyDesc,
+                                                const TensorDescriptor& xDesc,
+                                                const TensorDescriptor& dwDesc) const;
 
     std::size_t BackwardWeightsGetWorkSpaceSizeGEMM(const TensorDescriptor& dyDesc,
                                                     const TensorDescriptor& dwDesc) const;

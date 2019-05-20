@@ -692,7 +692,7 @@ struct verify_backward_weights_conv : conv_base<T>
         auto wei_dev = handle.Write(rweights.data);
         auto in_dev  = handle.Write(input.data);
 
-        std::size_t workspace_size = filter.ConvolutionBackwardWeightsGetWorkSpaceSize(
+        std::size_t workspace_size = filter.BackwardWeightsGetWorkSpaceSize(
             handle,
             filter.mode == miopenTranspose ? input.desc : out.desc,
             filter.mode == miopenTranspose ? out.desc : input.desc,
@@ -1016,7 +1016,7 @@ struct conv_driver : test_driver
                             : filter.ForwardGetWorkSpaceSize(
                                   handle, weights.desc, input.desc, output.desc);
 
-                    size_t workspace_size_3 = filter.ConvolutionBackwardWeightsGetWorkSpaceSize(
+                    size_t workspace_size_3 = filter.BackwardWeightsGetWorkSpaceSize(
                         handle,
                         filter.mode == miopenTranspose ? input.desc : output.desc,
                         filter.mode == miopenTranspose ? output.desc : input.desc,
