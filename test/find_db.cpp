@@ -147,7 +147,7 @@ struct FindDbTest : test_driver
         MIOPEN_LOG_I("Starting wrw find-db test.");
 
         auto workspace_size =
-            filter.ConvolutionBackwardWeightsGetWorkSpaceSize(handle, y.desc, x.desc, w.desc);
+            filter.BackwardWeightsGetWorkSpaceSize(handle, y.desc, x.desc, w.desc);
 
         auto workspace     = std::vector<char>(workspace_size);
         auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
