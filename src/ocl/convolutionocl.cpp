@@ -826,7 +826,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                                  size_t workSpaceSize,
                                                  bool exhaustiveSearch) const
 {
-    MIOPEN_LOG_I2("");
+    MIOPEN_LOG_I("");
     if(x == nullptr || w == nullptr || y == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "Buffers cannot be NULL");
     if(returnedAlgoCount == nullptr)
@@ -891,7 +891,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                                                Data_t workSpace,
                                                size_t workSpaceSize) const
 {
-    MIOPEN_LOG_I2("algo = " << algo << ", workspace = " << workSpaceSize);
+    MIOPEN_LOG_I("algo = " << algo << ", workspace = " << workSpaceSize);
     if(x == nullptr || w == nullptr || y == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -1521,7 +1521,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                                      size_t workSpaceSize,
                                                      bool exhaustiveSearch) const
 {
-    MIOPEN_LOG_I2("");
+    MIOPEN_LOG_I("");
     if(dx == nullptr || w == nullptr || dy == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "Buffers cannot be NULL");
     if(returnedAlgoCount == nullptr)
@@ -1971,7 +1971,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                                                     Data_t workSpace,
                                                     size_t workSpaceSize) const
 {
-    MIOPEN_LOG_I2("algo = " << algo << ", workspace = " << workSpaceSize);
+    MIOPEN_LOG_I("algo = " << algo << ", workspace = " << workSpaceSize);
     if(dx == nullptr || w == nullptr || dy == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -2516,9 +2516,6 @@ inline float EvaluateWrWDirectSolution(Handle& handle,
     return elapsed;
 }
 
-// ConvolutionBackwardWeightsGetWorkSpaceSize
-// FindBackwardWeightsAlgorithm()
-//
 void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                         const TensorDescriptor& dyDesc,
                                                         ConstData_t dy,
@@ -2533,7 +2530,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                         size_t workSpaceSize,
                                                         bool exhaustiveSearch) const
 {
-    MIOPEN_LOG_I2("");
+    MIOPEN_LOG_I("");
     if(x == nullptr || dw == nullptr || dy == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "Buffers cannot be NULL");
     if(returnedAlgoCount == nullptr)
@@ -2871,7 +2868,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                                                        Data_t workSpace,
                                                        size_t workSpaceSize) const
 {
-    MIOPEN_LOG_I2("algo = " << algo << ", workspace = " << workSpaceSize);
+    MIOPEN_LOG_I("algo = " << algo << ", workspace = " << workSpaceSize);
     if(x == nullptr || dw == nullptr || dy == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);

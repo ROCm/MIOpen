@@ -899,14 +899,13 @@ miopenConvolutionBackwardWeightsGetWorkSpaceSize(miopenHandle_t handle,
 
     MIOPEN_LOG_FUNCTION(handle, dyDesc, xDesc, convDesc, dwDesc, workSpaceSize);
     return miopen::try_([&] {
-        miopen::deref(workSpaceSize) =
-            miopen::deref(convDesc).ConvolutionBackwardWeightsGetWorkSpaceSize(
-                miopen::deref(handle),
-                miopen::deref(convDesc).mode == miopenTranspose ? miopen::deref(xDesc)
-                                                                : miopen::deref(dyDesc),
-                miopen::deref(convDesc).mode == miopenTranspose ? miopen::deref(dyDesc)
-                                                                : miopen::deref(xDesc),
-                miopen::deref(dwDesc));
+        miopen::deref(workSpaceSize) = miopen::deref(convDesc).BackwardWeightsGetWorkSpaceSize(
+            miopen::deref(handle),
+            miopen::deref(convDesc).mode == miopenTranspose ? miopen::deref(xDesc)
+                                                            : miopen::deref(dyDesc),
+            miopen::deref(convDesc).mode == miopenTranspose ? miopen::deref(dyDesc)
+                                                            : miopen::deref(xDesc),
+            miopen::deref(dwDesc));
     });
 }
 
