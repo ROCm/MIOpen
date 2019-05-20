@@ -974,7 +974,7 @@ s_endpgm
 .end
 .endif
 
-.macro metadata wg_x
+.macro METADATA wg_x, lds_size
   .if ROCM_METADATA_VERSION == 4
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
@@ -983,7 +983,7 @@ s_endpgm
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
-              { KernargSegmentSize: 64, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
+              { KernargSegmentSize: 64, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
             Args:
             - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
@@ -1007,37 +1007,11 @@ s_endpgm
 .endm
 
 waves_in_group = waves_c_in_group * waves_k_in_group
+workgroup_size_x = waves_in_group * 64
 
-.if waves_in_group == 16
-    metadata 1024
-.elseif waves_in_group == 15
-    metadata 960
-.elseif waves_in_group == 14
-    metadata 896
-.elseif waves_in_group == 13
-    metadata 832
-.elseif waves_in_group == 12
-    metadata 768
-.elseif waves_in_group == 11
-    metadata 704
-.elseif waves_in_group == 10
-    metadata 640
-.elseif waves_in_group == 9
-    metadata 576
-.elseif waves_in_group == 8
-    metadata 512
-.elseif waves_in_group == 7
-    metadata 448
-.elseif waves_in_group == 6
-    metadata 384
-.elseif waves_in_group == 5
-    metadata 320
-.elseif waves_in_group == 4
-    metadata 256
-.elseif waves_in_group == 3
-    metadata 192
-.elseif waves_in_group == 2
-    metadata 128
-.else
-    metadata 64
-.endif
+.altmacro
+.macro METADATA_WRAPPER wg_x, lds_size
+    METADATA %\wg_x, %\lds_size
+.endm
+
+METADATA_WRAPPER workgroup_size_x, .AUTO_LDS_BYTE_SIZE

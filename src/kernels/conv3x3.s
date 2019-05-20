@@ -1,9 +1,9 @@
 /*******************************************************************************
  *
  * MIT License
- * 
+ *
  * Copyright (c) 2019 Advanced Micro Devices, Inc.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -586,12 +586,11 @@ gcnAsmConv3x3U:
      compute_pgm_rsrc1_sgprs = .AUTO_SGPR_GRANULATED_COUNT
      compute_pgm_rsrc2_tidig_comp_cnt = 1
      compute_pgm_rsrc2_user_sgpr = 2
-     //compute_pgm_rsrc2_lds_size = 0
      kernarg_segment_byte_size = 56
      wavefront_sgpr_count = .AUTO_SGPR_COUNT
      workitem_vgpr_count = .AUTO_VGPR_COUNT
      float_mode = 192
-     //workgroup_group_segment_byte_size = 8192
+     workgroup_group_segment_byte_size = 0
   .end_amd_kernel_code_t
 .endif
 

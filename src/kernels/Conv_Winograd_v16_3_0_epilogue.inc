@@ -29,14 +29,14 @@ s_endpgm
 
 .amd_amdgpu_hsa_metadata
 Version:         [ 1, 0 ]
-Kernels:         
+Kernels:
   - Name:            sp3AsmConvRxSU
     SymbolName:      'sp3AsmConvRxSU@kd'
     Language:        OpenCL C
     LanguageVersion: [ 1, 2 ]
-    Attrs:           
+    Attrs:
       ReqdWorkGroupSize: [ 512, 1, 1 ]
-    Args:            
+    Args:
       - TypeName:        int
         Size:            4
         Align:           4
@@ -225,9 +225,9 @@ Kernels:
         ValueKind:       HiddenNone
         ValueType:       I8
         AddrSpaceQual:   Global
-    CodeProps:       
+    CodeProps:
       KernargSegmentSize: 176
-      GroupSegmentFixedSize: 0
+      GroupSegmentFixedSize: 65536
       PrivateSegmentFixedSize: 0
       KernargSegmentAlign: 8
       WavefrontSize:   64
