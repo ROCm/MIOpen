@@ -178,7 +178,7 @@ Kernels:
         AddrSpaceQual:   Global
     CodeProps:
       KernargSegmentSize: 136
-      GroupSegmentFixedSize: 0
+      GroupSegmentFixedSize: 65536
       PrivateSegmentFixedSize: 0
       KernargSegmentAlign: 8
       WavefrontSize:   64
