@@ -628,7 +628,7 @@ gcnAsmConv3x3U:
   num_wavefronts = output_channels / filters_per_wave
   //to-do add support of uneven_outputs into grouped conv
   static_assert(group_counts == 1 || ((num_wavefronts % group_counts == 0) && uneven_outputs == 0))
-  static_assert(input_channels % group_counts == 0)
+  static_assert(input_channels % (4 * group_counts) == 0) //to-do remove restriction that (n_inputs/group_counts) must be multiple of 4 
   k_group_size = output_channels / filters_per_wave / group_counts
   c_group_size = input_channels / group_counts
   s_group_id = loop_cnt
