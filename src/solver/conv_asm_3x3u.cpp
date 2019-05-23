@@ -198,7 +198,7 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_size_w == 3
         && params.kernel_size_h == 3
         && params.n_inputs > 0
-        && params.n_inputs % std::max(4, params.group_counts) == 0
+        && (params.n_inputs / params.group_counts) % 4 == 0 /// \todo: remove restriction that (n_inputs/group_counts) must be multiple of 4
         && params.in_width > 3
         && params.in_width <= 1000
         && params.IsFp32()
