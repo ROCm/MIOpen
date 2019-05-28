@@ -198,7 +198,7 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_size_w == 3
         && params.kernel_size_h == 3
         && params.n_inputs > 0
-        && params.n_inputs % std::max(4, params.group_counts) == 0
+        && (params.n_inputs / params.group_counts) % 4 == 0 /// \todo: remove restriction that (n_inputs/group_counts) must be multiple of 4
         && params.in_width > 3
         && params.in_width <= 1000
         && params.IsFp32()
@@ -244,6 +244,9 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
     const int k_group_size                  = params.n_outputs / params.group_counts;
     const bool k_group_size_is_power_of_two = ((k_group_size & (k_group_size - 1)) == 0);
 
+    const auto w64_chunks   = (params.in_width + 63) / 64;
+    const auto active_lanes = (params.in_width + w64_chunks - 1) / w64_chunks;
+
     KernelBuildParameters options{
         {"batch_size", params.batch_sz},
         {"img_width", params.in_width},
@@ -261,10 +264,8 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
         {"enable_debug_output", 0},
         {"group_counts", params.group_counts},
         {"k_group_size_is_power_of_two", k_group_size_is_power_of_two},
+        {"workgroup_size_x", active_lanes},
     };
-
-    const auto w64_chunks   = (params.in_width + 63) / 64;
-    const auto active_lanes = (params.in_width + w64_chunks - 1) / w64_chunks;
 
     KernelInfo construction_params;
     construction_params.comp_options = options.GenerateFor(kbp::GcnAsm{});
