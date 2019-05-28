@@ -628,7 +628,7 @@ gcnAsmConv3x3U:
   num_wavefronts = output_channels / filters_per_wave
   //to-do add support of uneven_outputs into grouped conv
   static_assert(group_counts == 1 || ((num_wavefronts % group_counts == 0) && uneven_outputs == 0))
-  static_assert(input_channels % group_counts == 0)
+  static_assert(input_channels % (4 * group_counts) == 0) //to-do remove restriction that (n_inputs/group_counts) must be multiple of 4 
   k_group_size = output_channels / filters_per_wave / group_counts
   c_group_size = input_channels / group_counts
   s_group_id = loop_cnt
@@ -1028,7 +1028,7 @@ loop_end:
 // When YAML text is being processed, assembly-time constant expressions
 // are not computed, but we need to expand some symbols into text.
 // That is why we need METADATA and METADATA_WRAPPER macros.
-.macro METADATA sc,wc
+.macro METADATA sc,wc,wg_x
 .amdgpu_metadata
 ---
 amdhsa.version: [ 1, 0 ]
@@ -1044,7 +1044,7 @@ amdhsa.kernels:
     .private_segment_fixed_size: 0
     .kernarg_segment_align: 8
     .wavefront_size: 64
-    .max_flat_workgroup_size: 512
+    .max_flat_workgroup_size: \wg_x
     .args:
     - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32, .name: in,      .address_space: global, .is_const: true }
     - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32, .name: weights, .address_space: global, .is_const: true }
@@ -1058,38 +1058,53 @@ amdhsa.kernels:
 .endm // METADATA
 
 .altmacro
-.macro METADATA_WRAPPER sc,wc
-    METADATA %\sc, %\wc
+.macro METADATA_WRAPPER sc,wc,wg_x
+    METADATA %\sc, %\wc, %\wg_x
 .endm
 
-METADATA_WRAPPER .AUTO_SGPR_COUNT,.AUTO_VGPR_COUNT
+.ifnotdef workgroup_size_x
+  .error "workgroup_size_x must be defined"
+  .end
+.endif
+METADATA_WRAPPER .AUTO_SGPR_COUNT,.AUTO_VGPR_COUNT,workgroup_size_x
 .endif // .ifdef EXPERIMENTAL_COv3
 
 .ifnotdef EXPERIMENTAL_COv3
-.ifndef ROCM_METADATA_VERSION
-.error "ROCM_METADATA_VERSION must be defined"
-.end
-.endif
-.if ROCM_METADATA_VERSION == 4
-.amd_amdgpu_hsa_metadata
-{ Version: [ 1, 0 ],
-    Kernels:
-    - { Name: gcnAsmConv3x3U, SymbolName: 'gcnAsmConv3x3U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-        CodeProps:
-          { KernargSegmentSize: 56, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
-        Args:
-        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: in,          AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: weights,     AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: out,         AddrSpaceQual: Global, AccQual: Default }
-        - { Size: 4, Align: 4, ValueKind: ByValue,      ValueType: F32, TypeName:  float,   Name: padding_val,                        AccQual: Default }
-        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetX, ValueType: I64 }
-        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetY, ValueType: I64 }
-        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetZ, ValueType: I64 }
-      }
-}
-.end_amd_amdgpu_hsa_metadata
-.else
-  .error "Unsupported ROCM_METADATA_VERSION"
+.macro METADATA wg_x
+  .if ROCM_METADATA_VERSION == 4
+    .amd_amdgpu_hsa_metadata
+    { Version: [ 1, 0 ],
+        Kernels:
+        - { Name: gcnAsmConv3x3U, SymbolName: 'gcnAsmConv3x3U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+            Attrs:
+              { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
+            CodeProps:
+              { KernargSegmentSize: 56, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
+            Args:
+            - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: in,          AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+            - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: weights,     AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+            - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: out,         AddrSpaceQual: Global, AccQual: Default }
+            - { Size: 4, Align: 4, ValueKind: ByValue,      ValueType: F32, TypeName:  float,   Name: padding_val,                        AccQual: Default }
+            - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetX, ValueType: I64 }
+            - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetY, ValueType: I64 }
+            - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetZ, ValueType: I64 }
+          }
+    }
+    .end_amd_amdgpu_hsa_metadata
+  .else
+    .error "Unsupported ROCM_METADATA_VERSION"
+    .end
+  .endif
+.endm // METADATA
+
+.altmacro
+.macro METADATA_WRAPPER wg_x
+    METADATA %\wg_x
+.endm
+
+.ifnotdef workgroup_size_x
+  .error "workgroup_size_x must be defined"
   .end
 .endif
+METADATA_WRAPPER workgroup_size_x
 .endif //.ifnotdef EXPERIMENTAL_COv3

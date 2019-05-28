@@ -48,6 +48,7 @@ std::vector<std::string> KernelWarnings()
         "-Wno-conversion",
         "-Wno-double-promotion",
         "-Wno-float-equal",
+        "-Wno-pass-failed", // Disable "loop not unrolled" warnings. See #1735.
     };
 }
 
