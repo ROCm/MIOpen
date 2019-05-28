@@ -23,12 +23,21 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-  .hsa_code_object_version 2,1
+.hsa_code_object_version 2,1
 
-  .hsa_code_object_isa
+.hsa_code_object_isa
 
-  .text
-  .amdgpu_hsa_kernel gcnAsmBNFwdTrainSpatial
+.text
+.amdgpu_hsa_kernel gcnAsmBNFwdTrainSpatial
+
+
+/// \todo Better use common.inc. This requires more testing, so let's just copy macro here.
+.macro static_assert fufufu
+	.if !\fufufu
+		.error "\fufufu is false"
+		.end
+	.endif
+.endm
 
 .include "inst_wrappers.inc"
 
@@ -203,8 +212,8 @@ mini_batch_compute:
   buffer_store_short v6, v4, s[0:3], s9 offen
       .if(fmamix_instructions_available)
       v_mov_b32 v10, 0x3f800000
-      v_fma_mix_f32 v1, v8, v8, v1 op_sel_hi:[1,1,0]    
-      v_fma_mix_f32 v1, v6, v6, v1 op_sel_hi:[1,1,0]    
+      v_fma_mix_f32 v1, v8, v8, v1 op_sel_hi:[1,1,0]
+      v_fma_mix_f32 v1, v6, v6, v1 op_sel_hi:[1,1,0]
       v_fma_mix_f32 v2, v8, v10, v2 op_sel_hi:[1,0,0]
       v_fma_mix_f32 v2, v6, v10, v2 op_sel_hi:[1,0,0]
       .else
@@ -383,7 +392,7 @@ ROCM_METADATA_VERSION = 4 /// \todo This should come from the host.
                Attrs:
                  { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
                  CodeProps:
-                 { KernargSegmentSize: 136, GroupSegmentFixedSize: 136, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: 40, NumVGPRs: 12, MaxFlatWorkGroupSize: 1024}
+                 { KernargSegmentSize: 136, GroupSegmentFixedSize: 136, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: 40, NumVGPRs: 12, MaxFlatWorkGroupSize: \wg_x }
                  Args:
                  - { Name: in      , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: ReadOnly, IsConst: true, IsRestrict: true}
                  - { Name: out     , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true}
@@ -410,7 +419,7 @@ ROCM_METADATA_VERSION = 4 /// \todo This should come from the host.
                Attrs:
                  { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
                  CodeProps:
-                 { KernargSegmentSize: 136, GroupSegmentFixedSize: 136, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: 40, NumVGPRs: 12, MaxFlatWorkGroupSize: 1024}
+                 { KernargSegmentSize: 136, GroupSegmentFixedSize: 136, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: 40, NumVGPRs: 12, MaxFlatWorkGroupSize: \wg_x }
                  Args:
                  - { Name: in      , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: ReadOnly, IsConst: true, IsRestrict: true}
                  - { Name: out     , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true}
@@ -435,7 +444,7 @@ ROCM_METADATA_VERSION = 4 /// \todo This should come from the host.
                Attrs:
                  { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
                  CodeProps:
-                 { KernargSegmentSize: 136, GroupSegmentFixedSize: 136, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: 40, NumVGPRs: 12, MaxFlatWorkGroupSize: 1024}
+                 { KernargSegmentSize: 136, GroupSegmentFixedSize: 136, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: 40, NumVGPRs: 12, MaxFlatWorkGroupSize: \wg_x }
                  Args:
                  - { Name: in      , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: ReadOnly, IsConst: true, IsRestrict: true}
                  - { Name: out     , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true}
@@ -459,7 +468,7 @@ ROCM_METADATA_VERSION = 4 /// \todo This should come from the host.
                Attrs:
                  { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
                  CodeProps:
-                 { KernargSegmentSize: 136, GroupSegmentFixedSize: 136, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: 40, NumVGPRs: 12, MaxFlatWorkGroupSize: 1024}
+                 { KernargSegmentSize: 136, GroupSegmentFixedSize: 136, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: 40, NumVGPRs: 12, MaxFlatWorkGroupSize: \wg_x }
                  Args:
                  - { Name: in      , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: ReadOnly, IsConst: true, IsRestrict: true}
                  - { Name: out     , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true}
@@ -487,10 +496,11 @@ ROCM_METADATA_VERSION = 4 /// \todo This should come from the host.
 //.endif
 
 .altmacro
-.macro metadata_wrapper x, y, z
-    metadata %\x, %\y, %\z
+.macro metadata_wrapper wg_x, save_flag, result_running_flag
+    metadata %\wg_x, %\save_flag, %\result_running_flag
 .endm
 
+static_assert(MIO_BN_GRP1 == 1 && MIO_BN_GRP2 == 1)
 metadata_wrapper MIO_BN_GRP0, MIO_SAVE_MEAN_VARIANCE, MIO_RUNNING_RESULT
 
 //metadata 1024
