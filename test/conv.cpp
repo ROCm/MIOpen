@@ -803,14 +803,6 @@ struct conv_driver : test_driver
             MIOPEN_LOG_E("dimension is wrong!");
         }
 
-        bool is_int8 = (input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4);
-
-        // lack of transposeConv or groupConv for int8 type
-        if(is_int8 && (filter.mode == miopenTranspose || filter.group_count > 1))
-        {
-            return;
-        }
-
         filter.pads.resize(spatial_dim);
         filter.strides.resize(spatial_dim);
         filter.dilations.resize(spatial_dim);
@@ -835,9 +827,10 @@ struct conv_driver : test_driver
         std::vector<std::size_t> wei_spatial_len(weights.desc.GetLengths().begin() + 2,
                                                  weights.desc.GetLengths().end());
 
+        bool is_int8 = (input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4);
+
         // lack of transposeConv or groupConv for int8 type
-        if(input.desc.GetType() == miopenInt8 &&
-           (filter.mode == miopenTranspose || filter.group_count > 1))
+        if(is_int8 && (filter.mode == miopenTranspose || filter.group_count > 1))
         {
             return;
         }
