@@ -505,6 +505,88 @@ struct ConvBiasActivAsm1x1U : ConvAsm1x1U
     PerformanceConfigConvBiasActivAsm1x1U Search(const ConvolutionContext&) const;
 };
 
+struct PerformanceConfigConvAsm1x1UV2 : Serializable<PerformanceConfigConvAsm1x1UV2>
+{
+    // ----------------- // Full set          Optimized       Spare
+    // ----------------------------------------------------------------------------
+    int chunk_size;       // 2^n[1..64]        2^n[16..64]     <same>
+    int dwords_per_ld;    // [1..4]            1,2,3           <same>
+    int k_mult;           // [1..32]           8,16            1,2,3,4
+    int c_mult;           // [1..32]           2^n[1..4]       <same>
+    int n_mult;           // [1..32]           1,2             <same>
+    int w_mult;           // [1..32]           1,2             <same>
+    int h_mult;           // [1..32]           1,2             <same>
+    int h_per_chunk;      // 2^n[1..64]        [2,4,8]         <same>
+    int waves_k_in_group; // [1..8]            2,4             <same>
+    int waves_c_in_group; // [1..8]            1,2             <same>
+    bool use_spare_set;
+
+    PerformanceConfigConvAsm1x1UV2(int, int, int, int, int, int, int, int, int, int, bool);
+    PerformanceConfigConvAsm1x1UV2()
+        : PerformanceConfigConvAsm1x1UV2(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false)
+    {
+    }
+    PerformanceConfigConvAsm1x1UV2(bool spare);
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.chunk_size, "chunk_size");
+        f(self.dwords_per_ld, "dwords_per_ld");
+        f(self.k_mult, "k_mult");
+        f(self.c_mult, "c_mult");
+        f(self.n_mult, "n_mult");
+        f(self.w_mult, "w_mult");
+        f(self.h_mult, "h_mult");
+        f(self.h_per_chunk, "h_per_chunk");
+        f(self.waves_k_in_group, "waves_k_in_group");
+        f(self.waves_c_in_group, "waves_c_in_group");
+    }
+
+    // clang-format off
+    int GetChunkSize() const { return chunk_size; }
+    int GetDwordsPerLd() const { return dwords_per_ld; }
+    int GetCMult() const { return c_mult; }
+    int GetKMult() const { return k_mult; }    
+    int GetNMult() const { return n_mult; }
+    int GetWMult() const { return w_mult; }
+    int GetHMult() const { return h_mult; }
+    int GetHPerChunk() const { return h_per_chunk; }    
+    int GetWavesCInGroup() const { return waves_c_in_group; }
+    int GetWavesKInGroup() const { return waves_k_in_group; }
+    int GetNPerGpr() const { assert(chunk_size); return 64 / chunk_size; }
+    // clang-format on
+
+    void EuristicInit(const ConvolutionContext& config);
+    bool IsValidValue() const;
+    bool SetNextValue();
+    bool IsValid(const ConvolutionContext& config) const;
+    bool operator==(const PerformanceConfigConvAsm1x1UV2& other) const;
+    std::string ToString() const;
+};
+
+struct ConvAsm1x1UV2 : SolverBase<ConvolutionContext>
+{
+    PerformanceConfigConvAsm1x1UV2 GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConfigConvAsm1x1UV2&) const;
+    PerformanceConfigConvAsm1x1UV2 Search(const ConvolutionContext&) const;
+    bool IsApplicable(const ConvolutionContext& params) const;
+    bool IsFast(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfigConvAsm1x1UV2& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+    template <typename B, typename T>
+    int RunAndMeasureSolution(miopen::Handle& profile_h,
+                              B bot_ocl_buf,
+                              T top_ocl_buf,
+                              ConstData_t wei_ocl_buf,
+                              ConstData_t bias_ocl_buf,
+                              const ConvolutionContext& params,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
+};
+
 struct ConvAsm5x10u2v2f1 : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
