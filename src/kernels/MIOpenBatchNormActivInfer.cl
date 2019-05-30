@@ -23,48 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#define PPCAT_NX(A, B) A##B
-#define PPCAT(A, B) PPCAT_NX(A, B)
-#define TWO 2
-#define FOUR 4
-#define EIGHT 8
-
-#if(MIOPEN_USE_FP16 == 1 && MIOPEN_USE_FPMIX == 0)
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
-#define _FLOAT half
-#define _FLOAT_PREC half
-#ifndef HALF_MAX
-#define MAX_VAL 65504
-#else
-#define MAX_VAL HALF_MAX
-#endif
-
-#define EPSILON (_FLOAT_PREC)0.0001
-
-#elif(MIOPEN_USE_FP32 == 1 && MIOPEN_USE_FPMIX == 0)
-#define _FLOAT float
-#define _FLOAT_PREC float
-#define EPSILON (_FLOAT)0.000001
-#ifndef FLT_MAX
-#define MAX_VAL 3.402823466e+38F
-#else
-#define MAX_VAL FLT_MAX
-#endif
-
-#elif MIOPEN_USE_FPMIX == 1
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
-#define _FLOAT half
-#define _FLOAT_PREC float
-#define EPSILON (_FLOAT_PREC)0.000001
-#endif
-
-#define _FLOAT2 PPCAT(_FLOAT, TWO)
-#define _FLOAT4 PPCAT(_FLOAT, FOUR)
-#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
-
-#define UNUSED __attribute__((__unused__))
-
-#include "activation_functions.h"
 
 // Disable specific warnings
 #ifdef __clang__
@@ -73,6 +31,9 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
+
+#include "batchnorm_functions.h"
+#include "activation_functions.h"
 
 void BatchNormFunctionSpatial(const uint n,
                               _FLOAT_PREC* out,
@@ -130,8 +91,7 @@ MIOpenBatchNormActivInferSpatialEst(const _FLOAT alpha,
     _FLOAT data[MIOPEN_READ_UNIT];
     _FLOAT_PREC invVariance = rsqrt(pvar + epsilon);
 
-    int n_i = 0;
-    __attribute__((opencl_unroll_hint(2))) for(n_i = 0; n_i < MIO_BN_N; n_i++)
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int n_i = 0; n_i < MIO_BN_N; n_i++)
     {
         int index = n_i * MIO_BN_CHW + c_offset + hw_i * MIOPEN_READ_UNIT;
 
@@ -198,8 +158,7 @@ MIOpenBatchNormActivInferPerActEst(const _FLOAT alpha,
     for(int i          = 0; i < MIOPEN_READ_UNIT; i++)
         invVariance[i] = rsqrt((_FLOAT_PREC)pvar[i] + epsilon);
 
-    int n_i = 0;
-    __attribute__((opencl_unroll_hint(2))) for(n_i = 0; n_i < MIO_BN_N; n_i++)
+    __attribute__((opencl_unroll_hint(2))) for(uint n_i = 0; n_i < MIO_BN_N; n_i++)
     {
         int index                  = n_i * MIO_BN_CHW + chw_i;
         *((MIOPEN_READ_TYPE*)data) = *((const __global MIOPEN_READ_TYPE*)(in + index));
