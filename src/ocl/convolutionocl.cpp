@@ -178,7 +178,7 @@ inline int EvaluateDataDirectSolution(Handle& handle,
             }
             k(workSpace, out);
         }
-        else if(k.GetName() == "gcnAsmConv1x1U")
+        else if(k.GetName() == "gcnAsmConv1x1U" || k.GetName() == "gcnAsmConv1x1U_stride2")
         {
             int unused       = 0;
             int* return_addr = nullptr;
@@ -999,7 +999,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 }
                 else if(num_kernels == 1)
                 {
-                    if(kernel.GetName() == "gcnAsmConv1x1U")
+                    if(kernel.GetName() == "gcnAsmConv1x1U" ||
+                       kernel.GetName() == "gcnAsmConv1x1U_stride2")
                     {
                         int unused       = 0;
                         int* return_addr = nullptr;
@@ -2033,7 +2034,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
             visit_float(dyDesc.GetType(), [&](auto as_float) {
                 float t1 = 0;
-                if(kernels[0].GetName() == "gcnAsmConv1x1U")
+                if(kernels[0].GetName() == "gcnAsmConv1x1U" ||
+                   kernels[0].GetName() == "gcnAsmConv1x1U_stride2")
                 {
                     int unused       = 0;
                     int* return_addr = nullptr;

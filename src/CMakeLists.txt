@@ -130,6 +130,7 @@ set( MIOpen_Source
     solver.cpp
     solver/conv_asm_3x3u.cpp
     solver/conv_asm_1x1u.cpp
+    solver/conv_asm_1x1u_stride2.cpp
     solver/conv_asm_1x1u_bias_activ.cpp
     solver/conv_asm_5x10u2v2f1.cpp
     solver/conv_asm_5x10u2v2b1.cpp
@@ -214,6 +215,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/dummy_kernel.s
         kernels/conv3x3.s
         kernels/conv1x1u.s
+        kernels/conv1x1u_stride2.s
         kernels/conv1x1u_bias_activ.s
         kernels/conv3x3wrw.s
         kernels/conv1x1wrw.s
