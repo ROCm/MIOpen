@@ -174,13 +174,15 @@ void BatchNormForwardTraining(Handle& handle,
         }
 
         std::string network_config =
-            std::to_string(variant) + std::to_string(xgridsize) + std::to_string(ldsgcn) +
-            std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
-            "rs" + std::to_string(static_cast<int>(resultsave)) +
-            std::to_string(static_cast<int>(resultrunning)) + "type" +
-            std::to_string(static_cast<int>(bfp16parm)) +
-            std::to_string(static_cast<int>(bfp32parm)) + std::to_string(in_nchw) +
-            std::to_string(static_cast<int>(single)) + std::to_string(in_cstride);
+            "variant" + std::to_string(variant) + "gx" + std::to_string(xgridsize) + "gy" +
+            std::to_string(ygridsize) + "xl" + std::to_string(xlocalsize) + "yl" +
+            std::to_string(ylocalsize) + "ldsgcn" + std::to_string(ldsgcn) + "rs" +
+            std::to_string(static_cast<int>(resultsave)) + "rr" +
+            std::to_string(static_cast<int>(resultrunning)) + "fp16" +
+            std::to_string(static_cast<int>(bfp16parm)) + "fp32" +
+            std::to_string(static_cast<int>(bfp32parm)) + "single" +
+            std::to_string(static_cast<int>(single)) + "n" + std::to_string(n) + "c" +
+            std::to_string(c) + "hw" + std::to_string(in_cstride);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
@@ -520,12 +522,12 @@ void BatchNormForwardTraining(Handle& handle,
         ygridsize             = segment * ylocalsize;
         std::string algo_name = "miopenBatchNormForwardTrainingPerActivation";
         std::string network_config =
-            std::to_string(static_cast<int>(bfp16parm)) +
-            std::to_string(static_cast<int>(bfp32parm)) + std::to_string(xgridsize) +
-            std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
-            std::to_string(static_cast<int>(resultsave)) +
-            std::to_string(static_cast<int>(resultrunning)) + std::to_string(in_nchw) +
-            std::to_string(segment) + std::to_string(n) + std::to_string(in_cstride);
+            "fp16" + std::to_string(static_cast<int>(bfp16parm)) + "fp32" +
+            std::to_string(static_cast<int>(bfp32parm)) + "gx" + std::to_string(xgridsize) + "gy" +
+            std::to_string(ygridsize) + "lx" + std::to_string(xlocalsize) + "ly" +
+            std::to_string(ylocalsize) + "rs" + std::to_string(static_cast<int>(resultsave)) +
+            "rr" + std::to_string(static_cast<int>(resultrunning)) + "segment" +
+            std::to_string(segment) + "n" + std::to_string(n) + "hw" + std::to_string(in_cstride);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
@@ -759,10 +761,11 @@ void BatchNormForwardInference(Handle& handle,
 
         std::string algo_name = "miopenBatchNormalizationForwardInference";
         std::string network_config =
-            std::to_string(n) + std::to_string(in_cstride) + std::to_string(in_nstride) +
-            std::to_string(segment) + "dims" + std::to_string(xgridsize) +
-            std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
-            +"type" + std::to_string(static_cast<int>(bfp16parm)) +
+            "n" + std::to_string(n) + "hw" + std::to_string(in_cstride) + "chw" +
+            std::to_string(in_nstride) + "segment" + std::to_string(segment) + "gx" +
+            std::to_string(xgridsize) + "gy" + std::to_string(ygridsize) + "lx" +
+            std::to_string(xlocalsize) + "ly" + std::to_string(ylocalsize) + "fp16" +
+            std::to_string(static_cast<int>(bfp16parm)) + "fp32" +
             std::to_string(static_cast<int>(bfp32parm)) + "mode" + std::to_string(bn_mode);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
@@ -989,12 +992,14 @@ void BatchNormBackward(Handle& handle,
         }
         std::string algo_name = "miopenBatchNormBackwardPropSpatial";
         std::string network_config =
-            std::to_string(variant) + std::to_string(xgridsize) + std::to_string(in_cstride) +
-            std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
-            std::to_string(static_cast<int>(useSaved)) +
-            std::to_string(static_cast<int>(bfp16parm)) +
-            std::to_string(static_cast<int>(bfp32parm)) + std::to_string(in_nchw) +
-            std::to_string(static_cast<int>(single)) + std::to_string(c) + std::to_string(ldsgcn);
+            "variant" + std::to_string(variant) + "gx" + std::to_string(xgridsize) + "hw" +
+            std::to_string(in_cstride) + "gy" + std::to_string(ygridsize) + "lx" +
+            std::to_string(xlocalsize) + "ly" + std::to_string(ylocalsize) + "us" +
+            std::to_string(static_cast<int>(useSaved)) + "fp16" +
+            std::to_string(static_cast<int>(bfp16parm)) + "fp32" +
+            std::to_string(static_cast<int>(bfp32parm)) + "single" +
+            std::to_string(static_cast<int>(single)) + "c" + std::to_string(c) + "gcn" +
+            std::to_string(ldsgcn);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
