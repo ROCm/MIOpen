@@ -317,12 +317,13 @@ miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::GetNetworkConfig(std::string
     if(input_desc.GetLengths().empty())
         MIOPEN_THROW("The input descriptor is not set");
 
-    network_config += std::to_string(variant) + std::to_string(xgridsize) + std::to_string(ldsgcn) +
-                      std::to_string(ygridsize) + std::to_string(xlocalsize) +
-                      std::to_string(ylocalsize) + "bn" + std::to_string(mode) + "n" +
-                      std::to_string(n) + "cstride" + std::to_string(in_cstride) + "nstride" +
-                      std::to_string(in_nstride) + "c" + std::to_string(c) + "nchw" +
-                      std::to_string(in_nchw);
+    network_config += "variant" + std::to_string(variant) + "gx" + std::to_string(xgridsize) +
+                      "gcn" + std::to_string(ldsgcn) + "gy" + std::to_string(ygridsize) + "lx" +
+                      std::to_string(xlocalsize) + "ly" + std::to_string(ylocalsize) + "bn" +
+                      std::to_string(mode) + "n" + std::to_string(n) + "cstride" +
+                      std::to_string(in_cstride) + "nstride" + std::to_string(in_nstride) + "c" +
+                      std::to_string(c) + "nchw" + std::to_string(in_nchw);
+
     return miopenStatusSuccess;
 }
 
@@ -513,12 +514,13 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::GetNetworkConfig(std::string
     if(input_desc.GetLengths().empty())
         MIOPEN_THROW("The input descriptor is not set");
 
-    network_config +=
-        std::to_string(variant) + std::to_string(xgridsize) + std::to_string(ldsgcn) +
-        std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) + "bn" +
-        std::to_string(mode) + "sbs" + std::to_string(static_cast<int>(saveBatchStats)) + "sps" +
-        std::to_string(static_cast<int>(savePopStats)) + std::to_string(n) +
-        std::to_string(in_cstride) + std::to_string(in_nstride) + std::to_string(in_nchw);
+    network_config += "variant" + std::to_string(variant) + "gx" + std::to_string(xgridsize) +
+                      "gcn" + std::to_string(ldsgcn) + "gy" + std::to_string(ygridsize) + "lx" +
+                      std::to_string(xlocalsize) + "ly" + std::to_string(ylocalsize) + "bn" +
+                      std::to_string(mode) + "sbs" +
+                      std::to_string(static_cast<int>(saveBatchStats)) + "sps" +
+                      std::to_string(static_cast<int>(savePopStats)) + "n" + std::to_string(n) +
+                      "hw" + std::to_string(in_cstride) + "chw" + std::to_string(in_nstride);
 
     return miopenStatusSuccess;
 }
