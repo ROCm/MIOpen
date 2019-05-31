@@ -30,6 +30,7 @@
 #include <miopen/kernel.hpp>
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
+#include <miopen/solver_id.hpp>
 
 #include <string>
 #include <tuple>
@@ -66,6 +67,8 @@ using ExtraKernelArgs = std::tuple<int /*N*/,
                                    int /*n_groups*/,
                                    int /*out_H*/,
                                    int /*out_W*/>;
+
+struct ConvFwdTensors;
 
 struct ConvolutionDescriptor : miopenConvolutionDescriptor
 {
@@ -220,6 +223,42 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                             Data_t workSpace,
                             std::size_t workSpaceSize) const;
 
+    std::size_t GetForwardSolutionCount(Handle& handle,
+                                        const TensorDescriptor& wDesc,
+                                        const TensorDescriptor& xDesc,
+                                        const TensorDescriptor& yDesc) const;
+
+    void GetForwardSolutions(Handle& handle,
+                             const TensorDescriptor& wDesc,
+                             const TensorDescriptor& xDesc,
+                             const TensorDescriptor& yDesc,
+                             size_t maxSolutionCount,
+                             size_t* solutionCount,
+                             miopenConvSolution_t* solutions) const;
+
+    void CompileForwardSolution(Handle& handle,
+                                const TensorDescriptor& wDesc,
+                                const TensorDescriptor& xDesc,
+                                const TensorDescriptor& yDesc,
+                                solver::Id solver_id) const;
+
+    std::size_t GetForwardSolutionWorkspaceSize(Handle& handle,
+                                                const TensorDescriptor& wDesc,
+                                                const TensorDescriptor& xDesc,
+                                                const TensorDescriptor& yDesc,
+                                                solver::Id solver_id) const;
+
+    void ConvolutionForwardImmediate(Handle& handle,
+                                     const TensorDescriptor& wDesc,
+                                     ConstData_t w,
+                                     const TensorDescriptor& xDesc,
+                                     ConstData_t x,
+                                     const TensorDescriptor& yDesc,
+                                     Data_t y,
+                                     Data_t workSpace,
+                                     std::size_t workSpaceSize,
+                                     solver::Id solver_id) const;
+
     std::size_t BackwardDataGetWorkSpaceSizeGEMM(const TensorDescriptor& wDesc,
                                                  const TensorDescriptor& dyDesc) const;
 
@@ -311,6 +350,19 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     std::vector<int> trans_output_pads;
     int group_count;
     float lowp_quant; // quantization factor for low precision
+
+    private:
+    void ConvFwdWino(const ConvolutionContext& ctx,
+                     const ConvFwdTensors& tensors,
+                     const KernelInvoke& kernel) const;
+    void ConvFwdGemm(Handle& handle,
+                     const ConvFwdTensors& tensors,
+                     Data_t workSpace,
+                     std::size_t workSpaceSize) const;
+    void ConvFwdFft(Handle& handle,
+                    const ConvFwdTensors& tensors,
+                    Data_t workSpace,
+                    std::size_t workSpaceSize) const;
 };
 
 void ConvolutionBackwardBias(Handle& handle,
