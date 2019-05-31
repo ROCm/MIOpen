@@ -185,19 +185,24 @@ void CTCLossDescriptor::CTCLoss(Handle& handle,
     float time = 0.;
     if(apply_softmax_layer)
     {
-        CopyTensor(handle, probsDesc, probs, probsDesc, workSpace, 0, problog_offset);
-        if(handle.IsProfilingEnabled())
-            time += handle.GetKernelTime();
-
         std::vector<int> sfm_size(4, 1);
-        sfm_size[0] = max_time_step * batch_size;
-        sfm_size[1] = class_sz;
-        auto sfm_desc =
-            miopen::TensorDescriptor(probsDesc.GetType(), sfm_size.data(), sfm_size.data(), 4);
+        sfm_size[0]   = max_time_step * batch_size;
+        sfm_size[1]   = class_sz;
+        auto sfm_desc = miopen::TensorDescriptor(probsDesc.GetType(), sfm_size.data(), 4);
 
         float alpha = 1;
         float beta  = 0;
-        SoftmaxForward(handle, &alpha, &beta, sfm_desc, workSpace, problog_offset, true);
+        SoftmaxForward(handle,
+                       &alpha,
+                       &beta,
+                       sfm_desc,
+                       probs,
+                       sfm_desc,
+                       workSpace,
+                       MIOPEN_SOFTMAX_LOG,
+                       MIOPEN_SOFTMAX_MODE_CHANNEL,
+                       0,
+                       problog_offset);
         if(handle.IsProfilingEnabled())
             time += handle.GetKernelTime();
     }
