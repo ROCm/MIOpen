@@ -29,85 +29,23 @@
 
 #include <miopen/config.h>
 
+#include <miopen/conv_solution.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/legacy_exhaustive_search.hpp>
+#include <miopen/type_name.hpp>
+#include <miopen/miopen.h>
+
 #include <memory>
 #include <string>
 #include <vector>
 #include <ostream>
 
-#include <miopen/logger.hpp>
-#include <miopen/find_controls.hpp>
-#include <miopen/mlo_internal.hpp>
-#include <miopen/legacy_exhaustive_search.hpp>
-#include <miopen/env.hpp>
-#include <miopen/type_name.hpp>
-#include <miopen/miopen.h>
-
 namespace miopen {
-
-/// Allows to explicitly disable performance filtering heuristics
-/// in "Find first convolution only" mode.
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 
 namespace solver {
 /// \todo Move wave_size into abstraction wich represent GPU information
 const int wave_size = 64;
-/// Describes a kernel source and whatever information required in order
-/// to build and run it (the former is unused for binary kernels).
-struct KernelInfo
-{
-    std::string comp_options;
-    std::vector<size_t> l_wk;
-    std::vector<size_t> g_wk;
-    std::string kernel_file;
-    std::string kernel_name;
-    friend std::ostream& operator<<(std::ostream& os, const KernelInfo& k);
-};
-
-/// Information required to build and run a kernel (or a set of kernels),
-/// which is expected to perform computatons as per the problem config.
-///
-/// TODO: Currently best suits a subset of existing solvers,
-/// namely some OpenCL-written forward direct convolutions.
-/// Shall be refactored (possibly, to a class hierarchy).
-struct ConvSolution
-{
-    /// \todo Use better name than construction_params.
-    std::vector<KernelInfo> construction_params; // impl may consist of multiple kernels.
-    miopenStatus_t status;
-    std::string solver_id;
-
-    size_t workspce_sz;
-    int grp_tile1;       // total number ALUs per group
-    int grp_tile0;       // total number ALUs per group
-    int in_tile1;        // size of in-tile in local memory
-    int in_tile0;        // size of in-tile in local memory
-    int out_pix_tile1;   // # of generated pixels per output per wk-item  (ALU)
-    int out_pix_tile0;   // # of generated pixels per output per wk-item  (ALU)
-    int n_out_pix_tiles; // # output pixel tiles per wk-item (ALU)
-    int n_in_data_tiles; // # of blocks of different inputs in LDS
-    int n_stacks;        // # of diff stacks (part of batch).
-
-    ConvSolution(miopenStatus_t status_ = miopenStatusSuccess)
-        : status(status_),
-          solver_id("<unknown>"),
-          workspce_sz(0),
-          grp_tile1(-1),
-          grp_tile0(-1),
-          in_tile1(-1),
-          in_tile0(-1),
-          out_pix_tile1(-1),
-          out_pix_tile0(-1),
-          n_out_pix_tiles(-1),
-          n_in_data_tiles(-1),
-          n_stacks(-1)
-    {
-    }
-
-    inline bool Succeeded() const { return status == miopenStatusSuccess; }
-};
-
-std::ostream& operator<<(std::ostream& os, const ConvSolution& s);
-
 template <class Solver>
 std::string ComputeSolverDbId(Solver)
 {
@@ -125,171 +63,6 @@ const std::string& SolverDbId(Solver solver)
     static const auto result = ComputeSolverDbId(solver);
     return result;
 }
-
-template <class Solver, class Context, class Db>
-auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
-    -> decltype(s.GetSolution(context, s.Search(context)))
-{
-    const FindEnforce enforce;
-    MIOPEN_LOG_I(SolverDbId(s));
-    if(enforce.IsDbClean(context))
-    {
-        if(db.Remove(context, SolverDbId(s)))
-            MIOPEN_LOG_W("Perf Db: record removed: " << SolverDbId(s) << ", enforce: " << enforce);
-    }
-    else
-    {
-        if((context.do_search || enforce.IsSearch(context)) && enforce.IsDbUpdate(context))
-        {
-            MIOPEN_LOG_W("Perf Db: load skipped: " << SolverDbId(s) << ", enforce: " << enforce);
-        }
-        else
-        {
-            using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
-            PerformanceConfig config{};
-            if(db.Load(context, SolverDbId(s), config))
-            {
-                MIOPEN_LOG_I2("Perf Db: record loaded: " << SolverDbId(s));
-                if(s.IsValidPerformanceConfig(context, config))
-                {
-                    return s.GetSolution(context, config);
-                }
-                MIOPEN_LOG(
-                    (MIOPEN_INSTALLABLE ? LoggingLevel::Warning : miopen::LoggingLevel::Error),
-                    "Invalid config loaded from Perf Db: " << SolverDbId(s) << ": " << config
-                                                           << ". Performance may degrade.");
-            }
-            else
-            {
-                MIOPEN_LOG_I("Perf Db: record not found for: " << SolverDbId(s));
-            }
-        }
-
-        if(context.do_search || enforce.IsSearch(context)) // TODO: Make it a customization point
-        {
-            MIOPEN_LOG_I("Starting search: " << SolverDbId(s) << ", enforce: " << enforce);
-            try
-            {
-                auto c = s.Search(context);
-                db.Update(context, SolverDbId(s), c);
-                return s.GetSolution(context, c);
-            }
-            catch(const miopen::Exception& ex)
-            {
-                MIOPEN_LOG_E("Search failed for: " << SolverDbId(s) << ": " << ex.what());
-            }
-        }
-    }
-
-    return s.GetSolution(context, s.GetPerformanceConfig(context));
-}
-
-template <class Solver, class Context, class Db>
-auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&)
-    -> decltype(s.GetSolution(context))
-{
-    MIOPEN_LOG_I(SolverDbId(s) << " (not searchable)");
-    return s.GetSolution(context);
-}
-
-/// Finds optimized Solution. Generic method.
-///
-/// Given the specific problem config, finds (hopefully) optimal
-/// solution-specific parameters and returns the Solution object.
-/// Could take long if an exhaustive search is requested/performed.
-/// May read/write perfDb.
-template <class Solver, class Context, class Db>
-ConvSolution FindSolution(Solver s, const Context& context, Db& db)
-{
-    static_assert(std::is_empty<Solver>{} && std::is_trivially_constructible<Solver>{},
-                  "Solver must be stateless");
-    // TODO: This assumes all solutions are ConvSolution
-    auto solution      = FindSolutionImpl(rank<1>{}, s, context, db);
-    solution.solver_id = SolverDbId(s);
-    return solution;
-}
-
-template <class... Solvers>
-struct SolverContainer
-{
-    template <class Context, class Db>
-    auto SearchForSolution(const Context& search_params, Db&& db) const
-    {
-        using Solution = typename std::common_type<decltype(
-            FindSolution(Solvers{}, search_params, db))...>::type;
-        Solution solution{miopenStatusUnknownError};
-
-// Using const here causes gcc to ICE
-#if(!defined(__GNUC__) || defined(__clang__))
-        const
-#endif
-            auto no_perf_filtering =
-                miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
-
-        miopen::each_args(
-            [&](auto solver) {
-                if(solver.IsApplicable(search_params) &&
-                   (no_perf_filtering || solver.IsFast(search_params)))
-                {
-                    if(!solution.Succeeded())
-                    {
-                        solution = FindSolution(solver, search_params, db);
-                        if(solution.Succeeded())
-                        {
-                            MIOPEN_LOG_I2(SolverDbId(solver) << ": Success.");
-                            if(solution.construction_params.empty())
-                            {
-                                MIOPEN_THROW(std::string("Internal error in solver: ") +
-                                             SolverDbId(solver));
-                            }
-                        }
-                    }
-                    else
-                        MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped");
-                }
-                else
-                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
-            },
-            Solvers{}...);
-
-        return solution;
-    }
-
-    // Search for all applicable solutions among many solvers
-    template <class Context, class Db, class Solution = miopen::solver::ConvSolution>
-    std::vector<Solution> SearchForAllSolutions(const Context& search_params, Db&& db) const
-    {
-        std::vector<Solution> ss;
-        miopen::each_args(
-            [&](auto solver) {
-                if(solver.IsApplicable(search_params))
-                {
-                    const Solution s = FindSolution(solver, search_params, db);
-                    if(s.Succeeded())
-                    {
-                        ss.push_back(s);
-                        MIOPEN_LOG_I2(SolverDbId(solver) << ": Success.");
-                    }
-                    else
-                    {
-                        /// \todo If Solver is applicable it must provide an appropriate Solution.
-                        /// This is not the case for some 20x5 convolutions (and possibly others).
-                        /// Normally we should not get here and message level should be Error.
-                        /// For now, let's use Info (not Warning) level to avoid
-                        /// flooding the console.
-                        MIOPEN_LOG_I(SolverDbId(solver)
-                                     << ": [Warning] Applicable Solver not succeeded.");
-                    }
-                }
-                else
-                {
-                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
-                }
-            },
-            Solvers{}...);
-        return ss;
-    }
-};
 
 /// Base class for problem solvers.
 ///
@@ -986,69 +759,7 @@ struct ConvOclBwdWrW1x1 : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-struct AnySolver
-{
-    using Db = decltype(std::declval<mlo_construct_base>().GetDb());
-
-    AnySolver() : ptr_value(nullptr){};
-    template <class U>
-    AnySolver(U src) : ptr_value(new AnySolver_tmpl<U>(std::forward<U>(src))){};
-    bool IsApplicable(const ConvolutionContext& ctx) const
-    {
-        assert(ptr_value != nullptr);
-        return ptr_value->IsApplicable(ctx);
-    };
-    const std::type_info& Type() const
-    {
-        assert(ptr_value != nullptr);
-        return ptr_value->Type();
-    };
-    bool IsEmpty() const { return ptr_value == nullptr; };
-    bool IsFast(const ConvolutionContext& ctx) const
-    {
-        assert(ptr_value != nullptr);
-        return ptr_value->IsFast(ctx);
-    };
-    ConvSolution FindSolution(const ConvolutionContext& ctx, Db& db) const
-    {
-        assert(ptr_value != nullptr);
-        return ptr_value->FindSolution(ctx, db);
-    };
-
-    // virtual base class
-    struct AnySolver_base
-    {
-        using ptr = std::shared_ptr<const AnySolver_base>;
-
-        virtual ~AnySolver_base(){};
-        virtual bool IsApplicable(const ConvolutionContext& ctx) const = 0;
-        virtual bool IsFast(const ConvolutionContext& ctx) const       = 0;
-        virtual const std::type_info& Type() const                     = 0;
-        virtual ConvSolution FindSolution(const ConvolutionContext& ctx, Db& db) const = 0;
-    };
-
-    // templated derived class
-    template <class T>
-    struct AnySolver_tmpl : AnySolver_base
-    {
-        AnySolver_tmpl(T obj) : value(std::move(obj)){};
-        bool IsApplicable(const ConvolutionContext& ctx) const override
-        {
-            return value.IsApplicable(ctx);
-        };
-        bool IsFast(const ConvolutionContext& ctx) const override { return value.IsFast(ctx); };
-        ConvSolution FindSolution(const ConvolutionContext& ctx, Db& db) const override
-        {
-            return miopen::solver::FindSolution(value, ctx, db);
-        };
-        const std::type_info& Type() const override { return typeid(T); };
-
-        private:
-        T value;
-    };
-
-    AnySolver_base::ptr ptr_value;
-};
+struct AnySolver;
 
 } // namespace solver
 } // namespace miopen
@@ -1072,7 +783,8 @@ struct mlo_construct_direct2D_fusion : mlo_construct_base
     {
         params = _search_params;
     }
-    miopen::solver::ConvSolution FindSolution(std::vector<miopen::solver::AnySolver> solvers);
+    miopen::solver::ConvSolution
+    FindSolution(const std::vector<miopen::solver::AnySolver>& solvers);
 };
 
 #endif // GUARD_MIOPEN_SOLVER_HPP_
