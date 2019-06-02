@@ -44,30 +44,58 @@ namespace miopen {
 
 struct Handle;
 
-class FindDb
+class FindDbRecord
 {
     public:
     static bool enabled;                                  // For unit tests.
     static boost::optional<std::string>& path_override(); /// \todo Remove when #1723 is resolved.
+
+    FindDbRecord(const FindDbRecord&) = delete;
+    FindDbRecord& operator=(const FindDbRecord&) = delete;
+
+    template <class TProblemDescription>
+    FindDbRecord(Handle& handle, const TProblemDescription& problem)
+        : path(path_override() ? *path_override() : GetPath(handle)), db(TryLoadDb(path))
+    {
+        if(!db.is_initialized())
+            return;
+
+        content = db->FindRecord(problem);
+        in_sync = content.is_initialized();
+    }
+
+    ~FindDbRecord()
+    {
+        if(!db.is_initialized() || !content.is_initialized() || in_sync)
+            return;
+        if(!db->StoreRecord(content.get()))
+            MIOPEN_LOG_E("Failed to store record to find-db at <" << path << ">");
+    }
+
+    auto begin() const { return content->As<FindDbData>().begin(); }
+    auto begin() { return content->As<FindDbData>().begin(); }
+    auto end() const { return content->As<FindDbData>().end(); }
+    auto end() { return content->As<FindDbData>().end(); }
+    bool empty() const { return !content.is_initialized(); }
 
     template <class TProblemDescription>
     static std::vector<PerfField> TryLoad(Handle& handle,
                                           const TProblemDescription& problem,
                                           const std::function<void(DbRecord&)>& regenerator)
     {
-        auto ret     = std::vector<PerfField>{};
-        auto find_db = FindDb{handle, problem};
+        auto ret    = std::vector<PerfField>{};
+        auto record = FindDbRecord{handle, problem};
 
-        if(find_db.loaded && !find_db.CopyValidating(handle, ret))
+        if(record.in_sync && !record.CopyValidating(handle, ret))
             return ret;
 
         MIOPEN_LOG_I("Find-db regenerating.");
         ret.clear();
-        find_db.loaded = false;
-        find_db.record.emplace(problem);
-        regenerator(*find_db.record);
+        record.in_sync = false;
+        record.content.emplace(problem);
+        regenerator(*record.content);
 
-        for(const auto& pair : find_db.record->As<FindDbData>())
+        for(const auto& pair : record)
             // cppcheck-suppress useStlAlgorithm
             ret.push_back(
                 {pair.first, pair.second.solver_id, pair.second.time, pair.second.workspace});
@@ -75,36 +103,16 @@ class FindDb
         return ret;
     }
 
-    FindDb(const FindDb&) = delete;
-    FindDb& operator=(const FindDb&) = delete;
-
     private:
     std::string path;
     boost::optional<DbTimer<Db>> db;
-    boost::optional<DbRecord> record{boost::none};
-    bool loaded = false;
+    boost::optional<DbRecord> content{boost::none};
+    bool in_sync = false;
 
-    FindDb(FindDb&&) = default;
-    FindDb& operator=(FindDb&&) = default;
+    static bool HasKernel(Handle& handle, const FindDbKCacheKey& key);
 
-    template <class TProblemDescription>
-    FindDb(Handle& handle, const TProblemDescription& problem)
-        : path(path_override() ? *path_override() : GetPath(handle)), db(TryLoadDb(path))
-    {
-        if(!db.is_initialized())
-            return;
-
-        record = db->FindRecord(problem);
-        loaded = record.is_initialized();
-    }
-
-    ~FindDb()
-    {
-        if(!db.is_initialized() || !record.is_initialized() || loaded)
-            return;
-        if(!db->StoreRecord(record.get()))
-            MIOPEN_LOG_E("Failed to store record to find-db at <" << path << ">");
-    }
+    FindDbRecord(FindDbRecord&&) = default;
+    FindDbRecord& operator=(FindDbRecord&&) = default;
 
     static std::string GetPath(Handle& handle);
 
@@ -117,6 +125,8 @@ class FindDb
 
     // Returns true if rebuild is required
     bool CopyValidating(Handle& handle, std::vector<PerfField>& to) const;
+
+    void LogFindDbItem(bool is_valid, const std::pair<std::string, FindDbData>& pair) const;
 };
 
 } // namespace miopen

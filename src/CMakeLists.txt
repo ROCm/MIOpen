@@ -123,6 +123,9 @@ set( MIOpen_Source
     include/miopen/kernel_build_params.hpp
     include/miopen/algorithm.hpp
     include/miopen/finddb_kernel_cache_key.hpp
+    include/miopen/solver_id.hpp
+    include/miopen/any_solver.hpp
+    include/miopen/conv_solution.hpp
     md_graph.cpp
     mdg_expr.cpp
     tensor.cpp
@@ -223,6 +226,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv5x10u2v2b1.s
         kernels/conv7x7c3h224w224k64u2v2p3q3f1.s
         kernels/gcnAsmBNFwdTrainSpatial.s
+        kernels/gcnAsmBNBwdTrainSpatial.s
         kernels/MIOpenTensorKernels.cl
         kernels/MIOpenSubTensorOpWithScalarKernel.cl
         kernels/MIOpenSubTensorOpWithSubTensorKernel.cl
