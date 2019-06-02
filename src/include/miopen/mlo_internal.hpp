@@ -138,6 +138,8 @@ class MultiFileDb;
 template <class TInnerDb>
 class DbTimer;
 
+struct ConvolutionContext;
+
 template <class TInstance>
 class StaticContainer
 {
@@ -148,6 +150,8 @@ class StaticContainer
         return data;
     }
 };
+
+miopen::DbTimer<miopen::MultiFileDb> GetDb(const miopen::ConvolutionContext& ctx);
 
 template <class TTo>
 size_t setTopDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor)

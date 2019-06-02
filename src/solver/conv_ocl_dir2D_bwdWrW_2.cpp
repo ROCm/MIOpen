@@ -24,9 +24,12 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
-#include "miopen/mlo_utils.hpp"
+#include <miopen/solver.hpp>
+
+#include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
+#include <miopen/mlo_utils.hpp>
+
 #include <algorithm>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_OCL_WRW2_SEARCH_OPTIMIZED)

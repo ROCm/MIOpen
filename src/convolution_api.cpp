@@ -456,7 +456,6 @@ extern "C" miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
 
     MIOPEN_LOG_FUNCTION(handle, alpha, bDesc, b, beta, yDesc, y);
     return miopen::try_([&] {
-
         return OpTensor(miopen::deref(handle),
                         miopenTensorOpAdd,
                         alpha,
@@ -472,33 +471,46 @@ extern "C" miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
 }
 
 extern "C" miopenStatus_t
-miopenConvolutionForwardGetSolutionCount(miopenHandle_t /*handle*/,
+miopenConvolutionForwardGetSolutionCount(miopenHandle_t handle,
                                          const miopenTensorDescriptor_t wDesc,
                                          const miopenTensorDescriptor_t xDesc,
                                          const miopenConvolutionDescriptor_t convDesc,
                                          const miopenTensorDescriptor_t yDesc,
-                                         size_t* /*solutionCount*/)
+                                         size_t* solutionCount)
 {
-    MIOPEN_LOG_FUNCTION(wDesc, xDesc, convDesc, yDesc);
-    return miopenStatusNotImplemented;
+    MIOPEN_LOG_FUNCTION(handle, wDesc, xDesc, convDesc, yDesc);
+    return miopen::try_([&] {
+        *solutionCount = miopen::deref(convDesc).GetForwardSolutionCount(miopen::deref(handle),
+                                                                         miopen::deref(wDesc),
+                                                                         miopen::deref(xDesc),
+                                                                         miopen::deref(yDesc));
+    });
 }
 
 extern "C" miopenStatus_t
-miopenConvolutionForwardGetSolution(miopenHandle_t /*handle*/,
+miopenConvolutionForwardGetSolution(miopenHandle_t handle,
                                     const miopenTensorDescriptor_t wDesc,
                                     const miopenTensorDescriptor_t xDesc,
                                     const miopenConvolutionDescriptor_t convDesc,
                                     const miopenTensorDescriptor_t yDesc,
                                     const size_t maxSolutionCount,
-                                    size_t* /*solutionCount*/,
-                                    miopenConvSolution_t* /*solutions*/)
+                                    size_t* solutionCount,
+                                    miopenConvSolution_t* solutions)
 {
-    MIOPEN_LOG_FUNCTION(wDesc, xDesc, convDesc, yDesc, maxSolutionCount);
-    return miopenStatusNotImplemented;
+    MIOPEN_LOG_FUNCTION(handle, wDesc, xDesc, convDesc, yDesc, maxSolutionCount);
+    return miopen::try_([&] {
+        miopen::deref(convDesc).GetForwardSolutions(miopen::deref(handle),
+                                                    miopen::deref(wDesc),
+                                                    miopen::deref(xDesc),
+                                                    miopen::deref(yDesc),
+                                                    maxSolutionCount,
+                                                    solutionCount,
+                                                    solutions);
+    });
 }
 
 extern "C" miopenStatus_t
-miopenConvolutionForwardGetSolutionWorkspaceSize(miopenHandle_t /*handle*/,
+miopenConvolutionForwardGetSolutionWorkspaceSize(miopenHandle_t handle,
                                                  const miopenTensorDescriptor_t wDesc,
                                                  const miopenTensorDescriptor_t xDesc,
                                                  const miopenConvolutionDescriptor_t convDesc,
@@ -506,24 +518,37 @@ miopenConvolutionForwardGetSolutionWorkspaceSize(miopenHandle_t /*handle*/,
                                                  const uint64_t solution_id,
                                                  size_t* workSpaceSize)
 {
-    MIOPEN_LOG_FUNCTION(wDesc, xDesc, convDesc, yDesc, solution_id, workSpaceSize);
-    return miopenStatusNotImplemented;
+    MIOPEN_LOG_FUNCTION(handle, wDesc, xDesc, convDesc, yDesc, solution_id, workSpaceSize);
+    return miopen::try_([&] {
+        *workSpaceSize =
+            miopen::deref(convDesc).GetForwardSolutionWorkspaceSize(miopen::deref(handle),
+                                                                    miopen::deref(wDesc),
+                                                                    miopen::deref(xDesc),
+                                                                    miopen::deref(yDesc),
+                                                                    solution_id);
+    });
 }
 
 extern "C" miopenStatus_t
-miopenConvolutionForwardCompileSolution(miopenHandle_t /*handle*/,
+miopenConvolutionForwardCompileSolution(miopenHandle_t handle,
                                         const miopenTensorDescriptor_t wDesc,
                                         const miopenTensorDescriptor_t xDesc,
                                         const miopenConvolutionDescriptor_t convDesc,
                                         const miopenTensorDescriptor_t yDesc,
                                         const uint64_t solution_id)
 {
-    MIOPEN_LOG_FUNCTION(wDesc, xDesc, convDesc, yDesc, solution_id);
-    return miopenStatusNotImplemented;
+    MIOPEN_LOG_FUNCTION(handle, wDesc, xDesc, convDesc, yDesc, solution_id);
+    return miopen::try_([&] {
+        miopen::deref(convDesc).CompileForwardSolution(miopen::deref(handle),
+                                                       miopen::deref(wDesc),
+                                                       miopen::deref(xDesc),
+                                                       miopen::deref(yDesc),
+                                                       solution_id);
+    });
 }
 
 extern "C" miopenStatus_t
-miopenConvolutionForwardImmediate(miopenHandle_t /*handle*/,
+miopenConvolutionForwardImmediate(miopenHandle_t handle,
                                   const miopenTensorDescriptor_t wDesc,
                                   const void* w,
                                   const miopenTensorDescriptor_t xDesc,
@@ -536,8 +561,20 @@ miopenConvolutionForwardImmediate(miopenHandle_t /*handle*/,
                                   const uint64_t solution_id)
 {
     MIOPEN_LOG_FUNCTION(
-        wDesc, w, xDesc, x, convDesc, yDesc, y, workSpace, workSpaceSize, solution_id);
-    return miopenStatusNotImplemented;
+        handle, wDesc, w, xDesc, x, convDesc, yDesc, y, workSpace, workSpaceSize, solution_id);
+
+    return miopen::try_([&] {
+        miopen::deref(convDesc).ConvolutionForwardImmediate(miopen::deref(handle),
+                                                            miopen::deref(wDesc),
+                                                            DataCast(w),
+                                                            miopen::deref(xDesc),
+                                                            DataCast(x),
+                                                            miopen::deref(yDesc),
+                                                            DataCast(y),
+                                                            DataCast(workSpace),
+                                                            workSpaceSize,
+                                                            solution_id);
+    });
 }
 
 extern "C" miopenStatus_t

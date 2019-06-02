@@ -400,6 +400,26 @@ typedef enum {
               */
 } miopenActivationMode_t;
 
+/*! @ingroup softmax
+ * @enum miopenSoftmaxAlgorithm_t
+ * Softmax implementation algorithms
+*/
+typedef enum {
+    MIOPEN_SOFTMAX_FAST     = 0, /*!< straightforward softmax */
+    MIOPEN_SOFTMAX_ACCURATE = 1, /*!< scaled softmax by maximum value in input domain */
+    MIOPEN_SOFTMAX_LOG      = 2, /*!< log softmax */
+} miopenSoftmaxAlgorithm_t;
+
+/*! @ingroup softmax
+ * @enum miopenSoftmaxMode_t
+ * Softmax modes
+*/
+typedef enum {
+    MIOPEN_SOFTMAX_MODE_INSTANCE = 0, /*!< compute per image (N) across C, H, W */
+    MIOPEN_SOFTMAX_MODE_CHANNEL =
+        1, /*!< compute per spatial location (H, W) per image (N) across C */
+} miopenSoftmaxMode_t;
+
 /** @addtogroup tensor
  *
  *  @{
@@ -2345,7 +2365,7 @@ miopenDestroyActivationDescriptor(miopenActivationDescriptor_t activDesc);
  */
 /*! @brief Execute a softmax forward layer
  *
- * MIOpen does not support Softmax modes. MIOpen implements the SOFTMAX_MODE_CHANNEL flavor.
+ * This API only implements the SOFTMAX_MODE_CHANNEL in SOFTMAX_ACCURATE path.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -2366,7 +2386,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftmaxForward(miopenHandle_t handle,
 
 /*! @brief Execute a softmax backwards layer
  *
- * MIOpen does not support Softmax modes. MIOpen implements the SOFTMAX_MODE_CHANNEL flavor.
+ * This API only implements the SOFTMAX_MODE_CHANNEL in SOFTMAX_ACCURATE path.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -2388,6 +2408,56 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
                                                    const void* beta,
                                                    const miopenTensorDescriptor_t dxDesc,
                                                    void* dx);
+
+/*! @brief Execute a softmax forward layer with expanded modes and algorithms
+ *
+ * @param handle         MIOpen handle (input)
+ * @param alpha          Floating point scaling factor, allocated on the host (input)
+ * @param xDesc          Tensor descriptor for data input tensor x (input)
+ * @param x              Data tensor x (input)
+ * @param beta           Floating point shift factor, allocated on the host (input)
+ * @param yDesc          Tensor descriptor for output data tensor y (input)
+ * @param y              Data tensor y (output)
+ * @param algorithm      Softmax implementation algorithm (input)
+ * @param mode           Softmax mode (input)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSoftmaxForward_V2(miopenHandle_t handle,
+                                                     const void* alpha,
+                                                     const miopenTensorDescriptor_t xDesc,
+                                                     const void* x,
+                                                     const void* beta,
+                                                     const miopenTensorDescriptor_t yDesc,
+                                                     void* y,
+                                                     miopenSoftmaxAlgorithm_t algorithm,
+                                                     miopenSoftmaxMode_t mode);
+
+/*! @brief Execute a softmax backwards layer with expanded modes and algorithms
+ *
+ * @param handle         MIOpen handle (input)
+ * @param alpha          Floating point scaling factor, allocated on the host (input)
+ * @param yDesc          Tensor descriptor for input data tensor y (input)
+ * @param y              Data tensor y (input)
+ * @param dyDesc         Tensor descriptor for input data tensor dy (input)
+ * @param dy             Data delta tensor dy (input)
+ * @param beta           Floating point shift factor, allocated on the host (input)
+ * @param dxDesc         Tensor descriptor for data output tensor dx (input)
+ * @param dx             Output data delta tensor dx (output)
+ * @param algorithm      Softmax implementation algorithm (input)
+ * @param mode           Softmax mode (input)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSoftmaxBackward_V2(miopenHandle_t handle,
+                                                      const void* alpha,
+                                                      const miopenTensorDescriptor_t yDesc,
+                                                      const void* y,
+                                                      const miopenTensorDescriptor_t dyDesc,
+                                                      const void* dy,
+                                                      const void* beta,
+                                                      const miopenTensorDescriptor_t dxDesc,
+                                                      void* dx,
+                                                      miopenSoftmaxAlgorithm_t algorithm,
+                                                      miopenSoftmaxMode_t mode);
 
 /** @} */
 // CLOSEOUT SOFTMAX DOXYGEN GROUP

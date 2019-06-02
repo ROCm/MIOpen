@@ -45,7 +45,6 @@
 #include <mutex>
 #include <shared_mutex>
 #include <string>
-#include "include/miopen/db.hpp"
 
 namespace miopen {
 

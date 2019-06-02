@@ -28,6 +28,12 @@
 
 #include <miopen/config.h>
 #include <miopen/convolution.hpp>
+#include <miopen/db.hpp>
+#include <miopen/env.hpp>
+#include <miopen/gcn_asm_utils.hpp>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/mlo_utils.hpp>
+#include <miopen/solver.hpp>
 
 #include <cmath>
 #include <cstring>
@@ -35,13 +41,6 @@
 #include <memory>
 #include <sstream>
 #include <unordered_map>
-
-#include <miopen/solver.hpp>
-#include <miopen/db.hpp>
-#include <miopen/env.hpp>
-#include <miopen/gcn_asm_utils.hpp>
-#include <miopen/mlo_internal.hpp>
-#include <miopen/mlo_utils.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
@@ -56,13 +55,15 @@ miopen::DbTimer<miopen::MultiFileDb> mlo_construct_base::GetDb() const
     return {{db_path(), _search_params.GetUserPerfDbPath()}};
 }
 
-static miopen::DbTimer<miopen::MultiFileDb> GetDb(const miopen::ConvolutionContext& ctx)
+namespace miopen {
+miopen::DbTimer<miopen::MultiFileDb> GetDb(const miopen::ConvolutionContext& ctx)
 {
     return {{ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath()}};
 }
+} // namespace miopen
 
 miopen::solver::ConvSolution
-mlo_construct_direct2D_fusion::FindSolution(std::vector<miopen::solver::AnySolver> solvers)
+mlo_construct_direct2D_fusion::FindSolution(const std::vector<miopen::solver::AnySolver>& solvers)
 {
     miopen::solver::ConvSolution solution{miopenStatusUnknownError};
     std::string solver_id;
