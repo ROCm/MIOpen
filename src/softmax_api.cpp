@@ -38,44 +38,106 @@ extern "C" miopenStatus_t miopenSoftmaxForward(miopenHandle_t handle,
                                                const miopenTensorDescriptor_t yDesc,
                                                void* y)
 {
-    MIOPEN_LOG_FUNCTION(handle, alpha, xDesc, x, beta, yDesc, y);
+    MIOPEN_LOG_FUNCTION(alpha, xDesc, x, beta, yDesc, y);
     return miopen::try_([&] {
-        CopyTensor(miopen::deref(handle),
-                   miopen::deref(xDesc),
-                   DataCast(x),
-                   miopen::deref(yDesc),
-                   DataCast(y));
-
-        miopen::SoftmaxForward(
-            miopen::deref(handle), alpha, beta, miopen::deref(yDesc), DataCast(y));
+        miopen::SoftmaxForward(miopen::deref(handle),
+                               alpha,
+                               beta,
+                               miopen::deref(xDesc),
+                               DataCast(x),
+                               miopen::deref(yDesc),
+                               DataCast(y),
+                               miopenSoftmaxAlgorithm_t(1),
+                               miopenSoftmaxMode_t(1),
+                               0,
+                               0);
     });
 }
 
-miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
-                                     const void* alpha,
-                                     const miopenTensorDescriptor_t yDesc,
-                                     const void* y,
-                                     const miopenTensorDescriptor_t dyDesc,
-                                     const void* dy,
-                                     const void* beta,
-                                     const miopenTensorDescriptor_t dxDesc,
-                                     void* dx)
+extern "C" miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
+                                                const void* alpha,
+                                                const miopenTensorDescriptor_t yDesc,
+                                                const void* y,
+                                                const miopenTensorDescriptor_t dyDesc,
+                                                const void* dy,
+                                                const void* beta,
+                                                const miopenTensorDescriptor_t dxDesc,
+                                                void* dx)
 {
 
-    MIOPEN_LOG_FUNCTION(handle, alpha, yDesc, y, dyDesc, dy, beta, dxDesc, dx);
+    MIOPEN_LOG_FUNCTION(alpha, yDesc, y, dyDesc, dy, beta, dxDesc, dx);
     return miopen::try_([&] {
-        CopyTensor(miopen::deref(handle),
-                   miopen::deref(dyDesc),
-                   DataCast(dy),
-                   miopen::deref(dxDesc),
-                   DataCast(dx));
-
         miopen::SoftmaxBackward(miopen::deref(handle),
                                 alpha,
                                 miopen::deref(yDesc),
                                 DataCast(y),
+                                miopen::deref(dyDesc),
+                                DataCast(dy),
                                 beta,
                                 miopen::deref(dxDesc),
-                                DataCast(dx));
+                                DataCast(dx),
+                                miopenSoftmaxAlgorithm_t(1),
+                                miopenSoftmaxMode_t(1),
+                                0,
+                                0,
+                                0);
+    });
+}
+
+extern "C" miopenStatus_t miopenSoftmaxForward_V2(miopenHandle_t handle,
+                                                  const void* alpha,
+                                                  const miopenTensorDescriptor_t xDesc,
+                                                  const void* x,
+                                                  const void* beta,
+                                                  const miopenTensorDescriptor_t yDesc,
+                                                  void* y,
+                                                  miopenSoftmaxAlgorithm_t algorithm,
+                                                  miopenSoftmaxMode_t mode)
+{
+    MIOPEN_LOG_FUNCTION(alpha, xDesc, x, beta, yDesc, y, algorithm, mode);
+    return miopen::try_([&] {
+        miopen::SoftmaxForward(miopen::deref(handle),
+                               alpha,
+                               beta,
+                               miopen::deref(xDesc),
+                               DataCast(x),
+                               miopen::deref(yDesc),
+                               DataCast(y),
+                               algorithm,
+                               mode,
+                               0,
+                               0);
+    });
+}
+
+extern "C" miopenStatus_t miopenSoftmaxBackward_V2(miopenHandle_t handle,
+                                                   const void* alpha,
+                                                   const miopenTensorDescriptor_t yDesc,
+                                                   const void* y,
+                                                   const miopenTensorDescriptor_t dyDesc,
+                                                   const void* dy,
+                                                   const void* beta,
+                                                   const miopenTensorDescriptor_t dxDesc,
+                                                   void* dx,
+                                                   miopenSoftmaxAlgorithm_t algorithm,
+                                                   miopenSoftmaxMode_t mode)
+{
+
+    MIOPEN_LOG_FUNCTION(alpha, yDesc, y, dyDesc, dy, beta, dxDesc, dx, algorithm, mode);
+    return miopen::try_([&] {
+        miopen::SoftmaxBackward(miopen::deref(handle),
+                                alpha,
+                                miopen::deref(yDesc),
+                                DataCast(y),
+                                miopen::deref(dyDesc),
+                                DataCast(dy),
+                                beta,
+                                miopen::deref(dxDesc),
+                                DataCast(dx),
+                                algorithm,
+                                mode,
+                                0,
+                                0,
+                                0);
     });
 }

@@ -69,38 +69,65 @@ class DbRecord
 {
     public:
     template <class TValue>
-    class Iterator
+    class Iterator : public std::iterator<std::input_iterator_tag, std::pair<std::string, TValue>>
     {
         friend class DbRecord;
 
         using InnerIterator = std::unordered_map<std::string, std::string>::const_iterator;
 
         public:
-        std::pair<const std::string&, TValue> operator*() const
+        using Value = std::pair<std::string, TValue>;
+
+        Value operator*() const
         {
             assert(it != InnerIterator{});
-            TValue value;
-            value.Deserialize(it->second);
-            return {it->first, value};
+            return value;
+        }
+
+        const Value* operator->() const
+        {
+            assert(it != InnerIterator{});
+            return &value;
+        }
+
+        Value* operator->()
+        {
+            assert(it != InnerIterator{});
+            return &value;
         }
 
         Iterator& operator++()
         {
             ++it;
+            value = GetValue(it);
             return *this;
         }
 
         const Iterator operator++(int) // NOLINT (readability-const-return-type)
         {
-            return Iterator{it++};
+            auto ret = *this;
+            ++(*this);
+            return ret;
         }
 
         bool operator==(const Iterator& other) const { return it == other.it; }
         bool operator!=(const Iterator& other) const { return it != other.it; }
 
         private:
-        Iterator(const InnerIterator it_) : it(it_) {}
         InnerIterator it;
+        Value value;
+
+        Iterator(const InnerIterator it_) : it(it_), value(GetValue(it_)) {}
+
+        static Value GetValue(const InnerIterator& it)
+        {
+            if(it == InnerIterator{})
+                return {};
+
+            auto value = TValue{};
+            value.Deserialize(it->second);
+            return {it->first, value};
+        }
     };
 
     template <class TValue>
@@ -145,6 +172,8 @@ class DbRecord
     DbRecord(const T& problem_config_) : DbRecord(Serialize(problem_config_))
     {
     }
+
+    auto GetSize() const { return map.size(); }
 
     const std::string& GetKey() const { return key; }
 

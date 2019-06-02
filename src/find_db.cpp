@@ -36,60 +36,34 @@
 
 namespace miopen {
 
-bool FindDb::enabled = true;
+bool FindDbRecord::enabled = true;
 
-boost::optional<std::string>& FindDb::path_override()
+boost::optional<std::string>& FindDbRecord::path_override()
 {
     static boost::optional<std::string> data = boost::none;
     return data;
 }
 
-std::string FindDb::GetPath(Handle& handle)
+std::string FindDbRecord::GetPath(Handle& handle)
 {
     return GetFindDbPath() + "/" + handle.GetDbPathFilename() + ".cd.fdb.txt";
 }
 
-bool FindDb::CopyValidating(Handle& handle, std::vector<PerfField>& to) const
+bool FindDbRecord::CopyValidating(Handle& handle, std::vector<PerfField>& to) const
 {
     auto unbuilt = false;
     auto any     = false;
 
-    for(const auto& pair : record->As<FindDbData>())
+    for(const auto& pair : content->As<FindDbData>())
     {
-        if(loaded && !pair.second.kcache_key.IsUnused())
+        if(in_sync && !pair.second.kcache_key.IsUnused())
         {
             const auto is_valid = pair.second.kcache_key.IsValid();
 
-            if(!is_valid ||
-               !handle.HasKernel(pair.second.kcache_key.algorithm_name,
-                                 pair.second.kcache_key.network_config))
+            if(!is_valid || !HasKernel(handle, pair.second.kcache_key))
             {
                 unbuilt = true;
-
-                MIOPEN_LOG(is_valid ? LoggingLevel::Info2 : LoggingLevel::Error,
-                           "Kernel cache entry not found for solver <"
-                               << pair.first
-                               << "::"
-                               << pair.second.solver_id
-                               << "> at network config: "
-                               << record->GetKey()
-                               << " and kernel cache key: "
-                               << pair.second.kcache_key.algorithm_name
-                               << ", "
-                               << pair.second.kcache_key.network_config);
-
-                for(const auto& pair2 : record->As<FindDbData>())
-                    MIOPEN_LOG(
-                        is_valid ? LoggingLevel::Info2 : LoggingLevel::Error,
-                        "Find-db record content: <" << pair2.first << "::" << pair2.second.solver_id
-                                                    << "> at network config: "
-                                                    << pair2.second.kcache_key.network_config
-                                                    << " and algorithm name: "
-                                                    << pair2.second.kcache_key.algorithm_name);
-
-                MIOPEN_LOG(is_valid ? LoggingLevel::Info2 : LoggingLevel::Error,
-                           "Actual network config used: " << record->GetKey());
-
+                LogFindDbItem(is_valid, pair);
                 break;
             }
         }
@@ -99,6 +73,35 @@ bool FindDb::CopyValidating(Handle& handle, std::vector<PerfField>& to) const
     }
 
     return !any || unbuilt;
+}
+
+void FindDbRecord::LogFindDbItem(bool is_valid,
+                                 const std::pair<std::string, FindDbData>& pair) const
+{
+    const auto log_level = is_valid ? LoggingLevel::Info2 : LoggingLevel::Error;
+
+    MIOPEN_LOG(
+        log_level,
+        "Kernel cache entry not found for solver <" << pair.first << "::" << pair.second.solver_id
+                                                    << "> at network config: "
+                                                    << content->GetKey()
+                                                    << " and kernel cache key: "
+                                                    << pair.second.kcache_key.algorithm_name
+                                                    << ", "
+                                                    << pair.second.kcache_key.network_config);
+
+    for(const auto& pair2 : content->As<FindDbData>())
+        MIOPEN_LOG(log_level,
+                   "Find-db record content: <" << pair2.first << "::" << pair2.second.solver_id
+                                               << "> at network config: "
+                                               << pair2.second.kcache_key.network_config
+                                               << " and algorithm name: "
+                                               << pair2.second.kcache_key.algorithm_name);
+}
+
+bool FindDbRecord::HasKernel(Handle& handle, const FindDbKCacheKey& key)
+{
+    return handle.HasKernel(key.algorithm_name, key.network_config);
 }
 
 } // namespace miopen
