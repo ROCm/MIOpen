@@ -72,10 +72,6 @@ __kernel void MIOpenBatchNormActivFwdTrainPerActivation(
     _FLOAT_PREC pvt_scale   = 0.;
     _FLOAT_PREC pvt_bias    = 0.;
     _FLOAT_PREC bn_out, act_out;
-#if(MIO_RUNNING_RESULT == 1)
-    _FLOAT_PREC pvt_runMean;
-    _FLOAT_PREC pvt_newRunMean;
-#endif
     unsigned int xgid    = get_global_id(0);
     unsigned int ygid    = get_global_id(1);
     unsigned int yglb_sz = get_global_size(1);

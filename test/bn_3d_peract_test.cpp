@@ -675,7 +675,9 @@ struct verify_backward_3d_bn_per_activation_use_saved
                             xhat_index =
                                 in_cstride * bidx + in_dstride * didx + width * row + column;
                             tmp1        = xhat[xhat_index] * dxhathat + dxhat;
-                            double tmp2 = n_batch * dxhat - tmp1;
+                            double tmp2 = n_batch * (scale(0, cidx, didx, row, column) *
+                                                     dy_input(bidx, cidx, didx, row, column)) -
+                                          tmp1;
                             double tmp3 = elemInvVar / (double(n));
                             dx_out(bidx, cidx, didx, row, column) = tmp3 * tmp2;
                         } // end for(n_batchs)
@@ -878,7 +880,9 @@ struct verify_backward_3d_bn_per_activation_recalc
                             xhat_index =
                                 in_cstride * bidx + in_dstride * didx + width * row + column;
                             tmp1        = xhat[xhat_index] * dxhathat + dxhat;
-                            double tmp2 = n_batch * dxhat - tmp1;
+                            double tmp2 = n_batch * (scale(0, cidx, didx, row, column) *
+                                                     dy_input(bidx, cidx, didx, row, column)) -
+                                          tmp1;
                             double tmp3 = elemInvVar / double(n);
                             dx_out(bidx, cidx, didx, row, column) = tmp3 * tmp2;
                         } // end for(n_batchs)
@@ -1001,6 +1005,7 @@ struct batch_norm_3d_per_activation_driver : test_driver
     {
         std::size_t n, c, d, h, w;
         std::tie(n, c, d, h, w) = miopen::tien<5>(input.desc.GetLengths());
+        this->tolerance = 200 * input.desc.GetElementSize();
 
         if(n == 1)
         {

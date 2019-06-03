@@ -98,7 +98,7 @@ __kernel void MIOpenBatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
                 index         = in_nstride * n + adjIndex;
                 xhat          = ((_FLOAT_PREC)(*(x_in + index)) - mean) * invVar;
                 tmp1          = mad(xhat, dxhathat, dxhat);
-                tmp2          = mad((_FLOAT_PREC)N, dxhat, -tmp1);
+                tmp2          = mad((_FLOAT_PREC)N, dy_in[index] * pvt_scale, -tmp1);
                 tmp3          = invVar / ((_FLOAT_PREC)N);
                 dx_out[index] = (_FLOAT)(tmp3 * tmp2);
             }
@@ -188,7 +188,7 @@ __kernel void MIOpenBatchNormBwdPerActivation(const __global _FLOAT* x_in,
                 index         = in_nstride * n + adjIndex;
                 xhat          = ((_FLOAT_PREC)(*(x_in + index)) - mean) * invVar;
                 tmp1          = mad(xhat, dxhathat, dxhat);
-                tmp2          = mad((_FLOAT_PREC)N, dxhat, -tmp1);
+                tmp2          = mad((_FLOAT_PREC)N, dy_in[index] * pvt_scale, -tmp1);
                 tmp3          = invVar / ((_FLOAT_PREC)N);
                 dx_out[index] = (_FLOAT)(tmp3 * tmp2);
             }

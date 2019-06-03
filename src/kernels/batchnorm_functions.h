@@ -6,6 +6,10 @@
 #define FOUR 4
 #define EIGHT 8
 
+#ifndef MIOPEN_USE_FPMIX
+#define MIOPEN_USE_FPMIX 0
+#endif
+
 #define _FLOAT_ACCUM float
 #if MIOPEN_USE_FP16 == 1
 #define MIO_BN_NODPP 1
