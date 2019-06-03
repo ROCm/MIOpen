@@ -566,9 +566,11 @@ void batchNormPerActHostBwdTrain(const tensor<T>& x_input,
 
                 for(int bidx = 0; bidx < n_batch; bidx++)
                 { // via mini_batch
-                    xhat_index  = in_cstride * bidx + (width * row + column);
-                    tmp1        = xhat[xhat_index] * dxhathat + dxhat;
-                    double tmp2 = n_batch * dxhat - tmp1;
+                    xhat_index = in_cstride * bidx + (width * row + column);
+                    tmp1       = xhat[xhat_index] * dxhathat + dxhat;
+                    double tmp2 =
+                        n_batch * scale(0, cidx, row, column) * dy_input(bidx, cidx, row, column) -
+                        tmp1;
                     double tmp3 = elemInvVar / (double(n));
                     dx_out(bidx, cidx, row, column) = static_cast<T>(tmp3 * tmp2);
                 } // end for(n_batchs)
@@ -650,9 +652,19 @@ void batchNormActivPerActHostBwdTrain(miopenActivationMode_t activMode,
 
                 for(int bidx = 0; bidx < n_batch; bidx++)
                 { // via mini_batch
-                    xhat_index  = in_cstride * bidx + (width * row + column);
-                    tmp1        = xhat[xhat_index] * dxhathat + dxhat;
-                    double tmp2 = n_batch * dxhat - tmp1;
+                    xhat_index = in_cstride * bidx + (width * row + column);
+                    tmp1       = xhat[xhat_index] * dxhathat + dxhat;
+                    double bnrefowd =
+                        scale(0, cidx, row, column) * xhat[xhat_index] + bias(0, cidx, row, column);
+                    activationHostBwdElement(activMode,
+                                             gamma,
+                                             beta,
+                                             alpha,
+                                             dy_input(bidx, cidx, row, column),
+                                             bnrefowd,
+                                             y_input(bidx, cidx, row, column),
+                                             dyelem);
+                    double tmp2 = (n_batch * scale(0, cidx, row, column) * dyelem) - tmp1;
                     double tmp3 = elemInvVar / (double(n));
                     dx_out(bidx, cidx, row, column) = static_cast<T>(tmp3 * tmp2);
                 } // end for(n_batchs)
