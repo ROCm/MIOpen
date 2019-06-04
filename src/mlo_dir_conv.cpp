@@ -293,8 +293,3 @@ void miopen::ConvolutionContext::DetectRocm()
 #endif
     }
 }
-
-bool IsFastBinaryWinograd3x3U(const miopen::ConvolutionContext& ctx)
-{
-    return (ctx.n_outputs >= 16 && ctx.n_outputs % 2 == 0);
-}
