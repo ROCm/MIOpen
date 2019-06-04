@@ -1,4 +1,7 @@
 
+#ifndef MIOPEN_NRN_OP_ID
+#define MIOPEN_NRN_OP_ID 0
+#endif
 
 #define MIOPEN_NEURON_PASTHRU 0      // x
 #define MIOPEN_NEURON_LOGISTIC 1     // 1 / (1 + e^-x)  //Sigmoid
