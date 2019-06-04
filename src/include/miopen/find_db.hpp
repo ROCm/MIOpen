@@ -83,8 +83,8 @@ class FindDbRecord
                                           const TProblemDescription& problem,
                                           const std::function<void(DbRecord&)>& regenerator)
     {
-        auto ret    = std::vector<PerfField>{};
-        auto record = FindDbRecord{handle, problem};
+        auto ret = std::vector<PerfField>{};
+        FindDbRecord record{handle, problem};
 
         if(record.in_sync && !record.CopyValidating(handle, ret))
             return ret;
@@ -110,9 +110,6 @@ class FindDbRecord
     bool in_sync = false;
 
     static bool HasKernel(Handle& handle, const FindDbKCacheKey& key);
-
-    FindDbRecord(FindDbRecord&&) = default;
-    FindDbRecord& operator=(FindDbRecord&&) = default;
 
     static std::string GetPath(Handle& handle);
 

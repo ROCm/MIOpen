@@ -339,8 +339,6 @@ miopen::solver::ConvSolution FindWinogradWrWSolution(const miopen::ConvolutionCo
 std::vector<miopen::solver::ConvSolution>
 FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx);
 
-bool IsFastBinaryWinograd3x3U(const miopen::ConvolutionContext& ctx);
-
 /*
  * returns parameter values that are compiled in legacy kernels for kernels using them as
  * arguments.

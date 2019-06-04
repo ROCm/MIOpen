@@ -49,7 +49,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
-    if(miopen::CheckNumericsEnabled() != 0)
+    if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsInput(handle, xDesc, x);
         if(!float_equal(*(static_cast<const float*>(beta)), 0))
@@ -143,7 +143,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
         handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
             x, y, workSpace);
     }
-    if(miopen::CheckNumericsEnabled() != 0)
+    if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsOutput(handle, yDesc, y);
     }
@@ -170,7 +170,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
-    if(miopen::CheckNumericsEnabled() != 0)
+    if(miopen::CheckNumericsEnabled())
     {
         // miopen::checkNumericsInput(handle, yDesc, y); // not actually used?
         miopen::checkNumericsInput(handle, dyDesc, dy);
@@ -308,7 +308,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
         }
     }
 
-    if(miopen::CheckNumericsEnabled() != 0)
+    if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsOutput(handle, dxDesc, dx);
     }
