@@ -485,7 +485,7 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_dilation_w == 1
         && params.kernel_dilation_h == 1
         && params.bias == 0
-        && (params.IsFp32() || params.IsFp16() || params.IsBF16())
+        && (params.IsFp32() || params.IsFp16() || params.IsBfp16())
         && params.in_layout == "NCHW"
         && params.group_counts == 1);
     if(!ok)

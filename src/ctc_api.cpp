@@ -89,6 +89,7 @@ miopenGetCTCLossWorkspaceSize(miopenHandle_t handle,
                         algo,
                         ctcLossDesc,
                         workSpaceSize);
+
     return miopen::try_([&] {
         miopen::deref(workSpaceSize) = miopen::deref(ctcLossDesc)
                                            .GetCTCLossWorkspaceSize(miopen::deref(handle),
@@ -127,6 +128,14 @@ extern "C" miopenStatus_t miopenCTCLoss(miopenHandle_t handle,
                         ctcLossDesc,
                         workSpace,
                         workSpaceSize);
+
+    // bfloat16 not supported for ctc operation
+    if(miopen::deref(probsDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(gradientsDesc).GetType() == miopenBFloat16)
+    {
+        return miopenStatusNotImplemented;
+    }
+
     return miopen::try_([&] {
         miopen::deref(ctcLossDesc)
             .CTCLoss(miopen::deref(handle),

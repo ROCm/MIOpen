@@ -23,20 +23,22 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-uint iDiv_legacy(uint v, uint d)
+typedef union
 {
-    uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
-    return (r);
+    ushort2 ushortx2;
+    float f32;
+} cvt_bf16_fp32_t;
+
+float bfloat16_to_float(ushort src_val)
+{
+    cvt_bf16_fp32_t target_val;
+    target_val.ushortx2 = (ushort2)(0, src_val);
+    return target_val.f32;
 }
 
-uint iDiv(uint v, uint d)
+ushort float_to_bfloat16(float src_val)
 {
-    uint r = v / d;
-    return (r);
-}
-
-uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24((uint)u, (uint)d);
-    return (r);
+    cvt_bf16_fp32_t target_val;
+    target_val.f32 = src_val;
+    return target_val.ushortx2.hi; // Truncation rounding
 }

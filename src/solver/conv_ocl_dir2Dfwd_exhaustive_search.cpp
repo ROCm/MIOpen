@@ -32,6 +32,7 @@
 #include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/mlo_utils.hpp>
 #include <miopen/solver.hpp>
+#include <miopen/bfloat16.hpp>
 
 #include <half.hpp>
 
@@ -212,6 +213,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
         return SearchImpl<half_float::half>(params);
     else if(params.IsFp32())
         return SearchImpl<float>(params);
+    else if(params.IsBfp16())
+        return SearchImpl<bfloat16>(params);
     else
     {
         MIOPEN_THROW("Unsupported float_size");
