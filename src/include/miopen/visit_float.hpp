@@ -29,7 +29,7 @@
 
 #include <miopen/miopen.h>
 #include <half.hpp>
-#include <bf16.hpp>
+#include <miopen/bfloat16.hpp>
 
 namespace miopen {
 

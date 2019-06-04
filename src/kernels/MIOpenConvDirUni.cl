@@ -23,36 +23,17 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include "float_types.h"
 
-#define PPCAT_NX(A, B) A##B
-#define PPCAT(A, B) PPCAT_NX(A, B)
-#define TWO 2
-#define FOUR 4
-#define EIGHT 8
-
+// Since float_types.h has enabled true mixed precision for all
+// direct ocl kernels, this kernel needs to retain its older behavior as it is
+// dependent upon tunability which isn't slated for MIOpen 2.0 PR #1725
 #if MIOPEN_USE_FP16 == 1
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
-#define _FLOAT half
-#define SIZEOF_FLOAT 2 /* sizeof is unavailable for preprocessor */
-#ifndef HALF_MAX
-#define MAX_VAL 65504 /* max value */
-#else
-#define MAX_VAL HALF_MAX
+#undef _FLOAT_ACCUM
+#define _FLOAT_ACCUM _FLOAT
+#define CVT_FLOAT2ACCUM(x) ((_FLOAT_ACCUM)(x))
+#define CVT_ACCUM2FLOAT(x) ((_FLOAT)(x))
 #endif
-#endif
-#if MIOPEN_USE_FP32 == 1
-#define _FLOAT float
-#define SIZEOF_FLOAT 4
-#ifndef FLT_MAX
-#define MAX_VAL 3.402823466e+38F /* max value */
-#else
-#define MAX_VAL FLT_MAX
-#endif
-#endif
-
-#define _FLOAT2 PPCAT(_FLOAT, TWO)
-#define _FLOAT4 PPCAT(_FLOAT, FOUR)
-#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #define UNUSED __attribute__((__unused__))
 
@@ -187,7 +168,7 @@ static inline void Conv(uint o_map_base,
                         __local _FLOAT* __restrict lcl_indata,
                         __private _FLOAT* __restrict pvt_wei_stage,
                         __local _FLOAT* __restrict lcl_wei,
-                        __private _FLOAT* __restrict pvt_accum)
+                        __private _FLOAT_ACCUM* __restrict pvt_accum)
 {
     // convolution
 
@@ -271,7 +252,7 @@ static inline void Conv(uint o_map_base,
                         for(uint i = 0; i < MLO_OUT_TILE0; ++i)
                         {
 #if MLO_DIR_FORWARD == 1
-                            _FLOAT sum = (_FLOAT)0;
+                            _FLOAT_ACCUM sum = CVT_FLOAT2ACCUM(0);
 #endif
                             for(uint l = 0; l < MLO_FILTER_SIZE0; ++l)
                             {
@@ -289,18 +270,20 @@ static inline void Conv(uint o_map_base,
 #if MLO_DIR_FORWARD == 1
                                 // Directly accumulating to `pvt_accum` here sometimes results in
                                 // validation error for half precision.
-                                sum += pvt_in_stage[j * MLO_PVT_IN_WIDTH * MLO_FILTER_STRIDE1 +
-                                                    i * MLO_FILTER_STRIDE0 + l] *
-                                       pvt_wei_stage[l_act];
+                                sum += CVT_FLOAT2ACCUM(
+                                           pvt_in_stage[j * MLO_PVT_IN_WIDTH * MLO_FILTER_STRIDE1 +
+                                                        i * MLO_FILTER_STRIDE0 + l]) *
+                                       CVT_FLOAT2ACCUM(pvt_wei_stage[l_act]);
 #else
                             if(((i + l + 1 - MLO_PADDING_SHIFT0 +
                                  (MLO_FILTER_SIZE0 % MLO_FILTER_STRIDE0)) %
                                 MLO_FILTER_STRIDE0) == 0)
                             {
                                 pvt_accum[(o_c * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i] +=
-                                    pvt_in_stage[(j / MLO_FILTER_STRIDE1) * MLO_PVT_IN_WIDTH +
-                                                 (i + l) / MLO_FILTER_STRIDE0] *
-                                    pvt_wei_stage[l_act];
+                                    CVT_FLOAT2ACCUM(
+                                        pvt_in_stage[(j / MLO_FILTER_STRIDE1) * MLO_PVT_IN_WIDTH +
+                                                     (i + l) / MLO_FILTER_STRIDE0]) *
+                                    CVT_FLOAT2ACCUM(pvt_wei_stage[l_act]);
                             }
 #endif
                             }
@@ -343,7 +326,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #endif
     __local _FLOAT lcl_indata[MLO_IN_LCL_SZ];
     __local _FLOAT lcl_wei[MLO_WEIGHTS_SZ];
-    __private _FLOAT pvt_accum[MLO_PVT_ACCUM_DATA_SZ];
+    __private _FLOAT_ACCUM pvt_accum[MLO_PVT_ACCUM_DATA_SZ];
     __private _FLOAT pvt_in_stage[MLO_PVT_IN_HEIGHT * MLO_PVT_IN_WIDTH];
     __private _FLOAT pvt_wei_stage[MLO_FILTER_SIZE0];
 
@@ -444,13 +427,13 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #if MLO_LARGE_MAP == 0
     for(uint i = lcl_id; i < MLO_IN_LCL_SZ; i += MLO_GRP_SZ)
     {
-        lcl_indata[i] = (_FLOAT)0.f;
+        lcl_indata[i] = CVT_ACCUM2FLOAT(0);
     }
 #endif
 
     for(uint i = 0; i < MLO_PVT_ACCUM_DATA_SZ; ++i)
     {
-        pvt_accum[i] = (_FLOAT)0.f;
+        pvt_accum[i] = (_FLOAT_ACCUM)0;
     }
 
 #ifdef GRP_MOD_ENABLE
@@ -772,11 +755,15 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
                             if(x_out_grp + x_out_lcl + i < MLO_OUT_WIDTH &&
                                out_off2 + i < MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
 #endif
-                        out[out_off2 + i] = pvt_accum[o * MLO_OUT_TILE_SZ + j * MLO_OUT_TILE0 + i]
+
 #if MLO_CONV_BIAS
-                                            + bias[o_map + o]
+                        out[out_off2 + i] =
+                            CVT_ACCUM2FLOAT(pvt_accum[o * MLO_OUT_TILE_SZ + j * MLO_OUT_TILE0 + i] +
+                                            CVT_FLOAT2ACCUM(bias[o_map + o]));
+#else
+                                out[out_off2 + i] = CVT_ACCUM2FLOAT(
+                                    pvt_accum[o * MLO_OUT_TILE_SZ + j * MLO_OUT_TILE0 + i]);
 #endif
-                            ;
                     }
                 }
             }

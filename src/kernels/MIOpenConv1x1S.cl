@@ -24,41 +24,22 @@
  *
  *******************************************************************************/
 
-#define PPCAT_NX(A, B) A##B
-#define PPCAT(A, B) PPCAT_NX(A, B)
-#define TWO 2
-#define FOUR 4
-#define EIGHT 8
+#include "float_types.h"
+#include "math_ops.h"
 
+// Since float_types.h has enabled true mixed precision for all
+// direct ocl kernels, this kernel needs to retain its older behavior as it is
+// dependent upon tunability which isn't slated for MIOpen 2.0 PR #1725
 #if MIOPEN_USE_FP16 == 1
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
-#define _FLOAT half
-#ifndef HALF_MAX
-#define MAX_VAL 65504 /* max value */
-#else
-#define MAX_VAL HALF_MAX
+#undef _FLOAT_ACCUM
+#define _FLOAT_ACCUM _FLOAT
+#define CVT_FLOAT2ACCUM(x) ((_FLOAT_ACCUM)(x))
+#define CVT_ACCUM2FLOAT(x) ((_FLOAT)(x))
 #endif
-#endif
-#if MIOPEN_USE_FP32 == 1
-#define _FLOAT float
-#ifndef FLT_MAX
-#define MAX_VAL 3.402823466e+38F /* max value */
-#else
-#define MAX_VAL FLT_MAX
-#endif
-#endif
-
-#define _FLOAT2 PPCAT(_FLOAT, TWO)
-#define _FLOAT4 PPCAT(_FLOAT, FOUR)
-#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #define UNUSED __attribute__((__unused__))
 
 #define DBG_OUT_OF_RNGE 0
-
-// calculating the size of the area for weights prefetch
-
-#include "math_ops.h"
 
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2))) __kernel void
 MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
@@ -70,7 +51,6 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
               UNUSED _FLOAT dummy_val // nothing
               )
 {
-
     _FLOAT weights[MLO_N_LCL_OUT_MAPS][MLO_N_LCL_IN_MAPS];
 
     uint gbl_id0  = get_global_id(0);
@@ -90,14 +70,14 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #endif
         ;
 
-    _FLOAT accum[MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT] = {{(_FLOAT)(0)}};
+    _FLOAT_ACCUM accum[MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT] = {{(_FLOAT_ACCUM)0.0f}};
     _FLOAT dat[MLO_N_LCL_IN_MAPS][MLO_READ_UNIT];
 
     for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
     {
         for(uint i = 0; i < MLO_READ_UNIT; ++i)
         {
-            accum[o][i] = (_FLOAT)(0);
+            accum[o][i] = (_FLOAT_ACCUM)0.0f;
         }
     }
 
@@ -137,7 +117,9 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #endif
                 )
             {
+
                 weights[o][c] = *w2;
+
 #if DBG_OUT_OF_RNGE
                 if(wei_off2 >= MLO_N_INPUTS * MLO_N_OUTPUTS)
                 {
@@ -172,14 +154,14 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
         // convolve
         for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
         {
-            _FLOAT acc[MLO_READ_UNIT] = {(_FLOAT)(0)};
+            _FLOAT_ACCUM acc[MLO_READ_UNIT] = {(_FLOAT_ACCUM)0.0f};
             for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
             {
-                _FLOAT we = weights[o][c];
-                _FLOAT* d = &dat[c][0];
+                _FLOAT_ACCUM we = CVT_FLOAT2ACCUM(weights[o][c]);
+                _FLOAT* d       = &dat[c][0];
                 for(uint i = 0; i < MLO_READ_UNIT; ++i)
                 {
-                    acc[i] += d[i] * we;
+                    acc[i] += CVT_FLOAT2ACCUM(d[i]) * we;
                 }
             }
             for(uint i = 0; i < MLO_READ_UNIT; ++i)
@@ -195,7 +177,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
     {
         for(uint i = 0; i < MLO_READ_UNIT; ++i)
         {
-            *(q + i) = accum[o][i];
+            *(q + i) = CVT_ACCUM2FLOAT(accum[o][i]);
         }
     }
 }
@@ -247,14 +229,14 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
 #endif
         ;
 
-    _FLOAT accum[MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT];
+    _FLOAT_ACCUM accum[MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT];
     _FLOAT dat[MLO_N_LCL_IN_MAPS][MLO_READ_UNIT];
 
     for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
     {
         for(uint i = 0; i < MLO_READ_UNIT; ++i)
         {
-            accum[o][i] = (_FLOAT)(0);
+            accum[o][i] = CVT_FLOAT2ACCUM(0);
         }
     }
 
@@ -341,7 +323,7 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
             {
                 for(uint i = 0; i < MLO_READ_UNIT; ++i)
                 {
-                    accum[o][i] += dat[c][i] * weights[o][c];
+                    accum[o][i] += CVT_FLOAT2ACCUM(dat[c][i]) * CVT_FLOAT2ACCUM(weights[o][c]);
 #if 0
                     if (pos_out_y == 2 && pos_out_x == 0)
                     {
@@ -386,7 +368,7 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
                   * MLO_FILTER_STRIDE0
 #endif
                 ;
-            *q1 = accum[o][i];
+            *q1 = CVT_ACCUM2FLOAT(accum[o][i]);
 
 #if MLO_DIR_FORWARD == 0
             for(uint s = 1; s < MLO_FILTER_STRIDE0; ++s)
@@ -395,7 +377,7 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
                 if(out_x + s < MLO_OUT_WIDTH)
 #endif
                 {
-                    *(q1 + s) = (_FLOAT)(0);
+                    *(q1 + s) = CVT_ACCUM2FLOAT(0);
                 }
             }
 #endif
@@ -417,7 +399,7 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
                     if(out_x + s < MLO_OUT_WIDTH)
 #endif
                     {
-                        *(q2 + s) = (_FLOAT)(0);
+                        *(q2 + s) = CVT_ACCUM2FLOAT(0);
                     }
                 }
             }

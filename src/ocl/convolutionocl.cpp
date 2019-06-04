@@ -3910,11 +3910,19 @@ void ConvolutionBackwardBias(Handle& handle,
     {
         params += " -DMIOPEN_USE_FP16=0 ";
         params += " -DMIOPEN_USE_FP32=1 ";
+        params += " -DMIOPEN_USE_BFP16=0 ";
     }
     else if(dyDesc.GetType() == miopenHalf)
     {
         params += " -DMIOPEN_USE_FP16=1 ";
         params += " -DMIOPEN_USE_FP32=0 ";
+        params += " -DMIOPEN_USE_BFP16=0 ";
+    }
+    else if(dyDesc.GetType() == miopenBFloat16)
+    {
+        params += " -DMIOPEN_USE_FP16=0 ";
+        params += " -DMIOPEN_USE_FP32=0 ";
+        params += " -DMIOPEN_USE_BFP16=1 ";
     }
 
     const std::vector<size_t> vld = {lcl_grp_size0, size_t{1}, size_t{1}};

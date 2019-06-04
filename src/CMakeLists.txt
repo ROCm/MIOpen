@@ -91,6 +91,7 @@ set( MIOpen_Source
     find_db.cpp
     conv_algo_name.cpp
     include/miopen/temp_file.hpp
+    include/miopen/bfloat16.hpp
     include/miopen/db.hpp
     include/miopen/db_record.hpp
     include/miopen/lock_file.hpp

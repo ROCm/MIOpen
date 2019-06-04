@@ -33,7 +33,7 @@ namespace solver {
 
 bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!(params.IsFp32() || params.IsFp16()))
+    if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
 
     // clang-format off
@@ -401,7 +401,8 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
         + std::string(" -DMLO_N_READ_PROCS=") +
         std::to_string(static_cast<long long>(n_read_procs)) + std::string(" -DMLO_ALU_VTILE0=") +
         std::to_string(static_cast<long long>(alu_tile0)) + std::string(" -DMLO_ALU_VTILE1=") +
-        std::to_string(static_cast<long long>(alu_tile1));
+        std::to_string(static_cast<long long>(alu_tile1)) + params.general_compile_options;
+
     if(group_counts >= 2)
     {
         kernel_params.comp_options += (std::string(" -DMLO_GROUP_COUNTS=") +

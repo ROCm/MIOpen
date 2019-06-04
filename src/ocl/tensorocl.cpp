@@ -1079,11 +1079,19 @@ void OpTensorOther(Handle& handle,
         {
             parms += " -DMIOPEN_USE_FP16=0";
             parms += " -DMIOPEN_USE_FP32=1";
+            parms += " -DMIOPEN_USE_BFP16=0";
         }
         else if(aTensorDesc.GetType() == miopenHalf)
         {
             parms += " -DMIOPEN_USE_FP16=1";
             parms += " -DMIOPEN_USE_FP32=0";
+            parms += " -DMIOPEN_USE_BFP16=0";
+        }
+        else if(aTensorDesc.GetType() == miopenBFloat16)
+        {
+            parms += " -DMIOPEN_USE_FP16=0";
+            parms += " -DMIOPEN_USE_FP32=0";
+            parms += " -DMIOPEN_USE_BFP16=1";
         }
 
         parms += " -DMIOPEN_TENSOR_OP=";
@@ -1318,12 +1326,12 @@ static std::string parms_half_or_float(const miopenDataType_t t)
     {
     case miopenHalf:
     {
-        s = " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
+        s = " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_BFP16=0";
         break;
     }
     case miopenFloat:
     {
-        s = " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+        s = " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_BFP16=0";
         break;
     }
     case miopenInt8:

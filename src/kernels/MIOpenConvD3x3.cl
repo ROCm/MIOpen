@@ -23,34 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#define PPCAT_NX(A, B) A##B
-#define PPCAT(A, B) PPCAT_NX(A, B)
-#define TWO 2
-#define FOUR 4
-#define EIGHT 8
-
-#if MIOPEN_USE_FP16 == 1
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
-#define _FLOAT half
-#ifndef HALF_MAX
-#define MAX_VAL 65504 /* max value */
-#else
-#define MAX_VAL HALF_MAX
-#endif
-#endif
-#if MIOPEN_USE_FP32 == 1
-#define _FLOAT float
-#ifndef FLT_MAX
-#define MAX_VAL 3.402823466e+38F /* max value */
-#else
-#define MAX_VAL FLT_MAX
-#endif
-#endif
-
-#define _FLOAT2 PPCAT(_FLOAT, TWO)
-#define _FLOAT4 PPCAT(_FLOAT, FOUR)
-#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
+#include "float_types.h"
+#include "data_ops.h"
 
 #define UNUSED __attribute__((__unused__))
 
@@ -136,7 +110,7 @@ MIOpenCvD3x3_WSR0(const __global _FLOAT* __restrict in_ptr,
     // all other allocation should be before this one since we may exceed lcl mem range
     __local _FLOAT in_lcl[MLO_IN_LCL_WIDTH * (MLO_OUT_EXTENT1 + 2 * MLO_FILTER_PAD1)];
 
-    __private _FLOAT pvt_accum[MLO_N_LCL_OUT_MAPS * MLO_OUT_TILE1 * MLO_OUT_TILE0];
+    __private _FLOAT_ACCUM pvt_accum[MLO_N_LCL_OUT_MAPS * MLO_OUT_TILE1 * MLO_OUT_TILE0];
 
     int grp_input_id   = get_group_id(0); // tile id inside the input map
     int grp_gbl_offset = (grp_input_id == 0)
@@ -196,7 +170,7 @@ MIOpenCvD3x3_WSR0(const __global _FLOAT* __restrict in_ptr,
 
     for(uint i = 0; i < MLO_N_LCL_OUT_MAPS * MLO_OUT_TILE1 * MLO_OUT_TILE0; ++i)
     {
-        pvt_accum[i] = 0;
+        pvt_accum[i] = (_FLOAT_ACCUM)0;
     }
 
     barrier(CLK_LOCAL_MEM_FENCE);
@@ -302,10 +276,11 @@ MIOpenCvD3x3_WSR0(const __global _FLOAT* __restrict in_ptr,
                         {
 
                             pvt_accum[(oc * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i] +=
-                                pvt_in_stage[(j + k) * (MLO_OUT_TILE0 + 2 * MLO_FILTER_PAD0) + i +
-                                             l] *
-                                pvt_wei_stage[oc * MLO_WEI_CHANNEL_STRIDE + k * MLO_FILTER_SIZE0 +
-                                              l];
+                                CVT_FLOAT2ACCUM(
+                                    pvt_in_stage[(j + k) * (MLO_OUT_TILE0 + 2 * MLO_FILTER_PAD0) +
+                                                 i + l]) *
+                                CVT_FLOAT2ACCUM(pvt_wei_stage[oc * MLO_WEI_CHANNEL_STRIDE +
+                                                              k * MLO_FILTER_SIZE0 + l]);
 #if 0
 
 							if (get_group_id(0) == 0 && lcl_id == 0 && j == 0 && i == 0)
@@ -356,11 +331,11 @@ MIOpenCvD3x3_WSR0(const __global _FLOAT* __restrict in_ptr,
                         int gbl_out_off = out_off2 + i * MLO_READ_UNIT;
                         for(int k = 0; k < MLO_READ_UNIT; ++k)
                         {
-                            out_ptr[gbl_out_off + k] =
+                            out_ptr[gbl_out_off + k] = CVT_ACCUM2FLOAT(
                                 pvt_accum[/*ib*MLO_N_LCL_OUT_MAPS * MLO_OUT_TILE_SZ + */ (
                                               oc * MLO_OUT_TILE1 + j) *
                                               MLO_OUT_TILE0 +
-                                          i * MLO_READ_UNIT + k];
+                                          i * MLO_READ_UNIT + k]);
 #if DBG_OUT_OF_RNGE
                             if(gbl_out_off + k > MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
                             {
