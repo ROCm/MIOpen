@@ -270,7 +270,7 @@ miopenStatus_t SoftmaxForward(Handle& handle,
                 x, y, vector_size, grid_size, spatial_dim, alpha_fp, beta_fp);
         }
     }
-    if(miopen::CheckNumericsEnabled() != 0)
+    if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsOutput(handle, yDesc, y);
     }
@@ -312,7 +312,7 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
     }
 
-    if(miopen::CheckNumericsEnabled() != 0)
+    if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsInput(handle, yDesc, y);
     }
@@ -524,7 +524,7 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
                 y, dy, dx, vector_size, grid_size, spatial_dim, alpha_fp, beta_fp);
         }
     }
-    if(miopen::CheckNumericsEnabled() != 0)
+    if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsOutput(handle, dxDesc, dx);
     }
