@@ -176,10 +176,10 @@ miopenStatus_t SoftmaxForward(Handle& handle,
                 parms += " -DINPUT_H=" + std::to_string(h) + " -DINPUT_W=" + std::to_string(w);
 
             if(!float_equal(alpha_fp, 1.0))
-                parms += " -DUSE_ALPHA";
+                parms += " -DUSE_ALPHA=1";
 
             if(!float_equal(beta_fp, 0))
-                parms += " -DUSE_BETA";
+                parms += " -DUSE_BETA=1";
 
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 x, y, vector_size, grid_size, spatial_dim, alpha_fp, beta_fp);
@@ -261,10 +261,10 @@ miopenStatus_t SoftmaxForward(Handle& handle,
                 parms += " -DINPUT_H=" + std::to_string(h) + " -DINPUT_W=" + std::to_string(w);
 
             if(!float_equal(alpha_fp, 1.0))
-                parms += " -DUSE_ALPHA";
+                parms += " -DUSE_ALPHA=1";
 
             if(!float_equal(beta_fp, 0))
-                parms += " -DUSE_BETA";
+                parms += " -DUSE_BETA=1";
 
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 x, y, vector_size, grid_size, spatial_dim, alpha_fp, beta_fp);
@@ -425,10 +425,10 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
                 parms += " -DINPUT_H=" + std::to_string(h) + " -DINPUT_W=" + std::to_string(w);
 
             if(!float_equal(alpha_fp, 1.0))
-                parms += " -DUSE_ALPHA";
+                parms += " -DUSE_ALPHA=1";
 
             if(!float_equal(beta_fp, 0))
-                parms += " -DUSE_BETA";
+                parms += " -DUSE_BETA=1";
 
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 y, dy, dx, vector_size, grid_size, spatial_dim, alpha_fp, beta_fp);
@@ -515,10 +515,10 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
                 parms += " -DINPUT_H=" + std::to_string(h) + " -DINPUT_W=" + std::to_string(w);
 
             if(!float_equal(alpha_fp, 1.0))
-                parms += " -DUSE_ALPHA";
+                parms += " -DUSE_ALPHA=1";
 
             if(!float_equal(beta_fp, 0))
-                parms += " -DUSE_BETA";
+                parms += " -DUSE_BETA=1";
 
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 y, dy, dx, vector_size, grid_size, spatial_dim, alpha_fp, beta_fp);
