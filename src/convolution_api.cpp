@@ -360,6 +360,10 @@ extern "C" miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
         {
             ss << "convfp16";
         }
+        else if(miopen::deref(xDesc).GetType() == miopenBFloat16)
+        {
+            ss << "convbfp16";
+        }
         else if(miopen::deref(xDesc).GetType() == miopenInt8 ||
                 miopen::deref(xDesc).GetType() == miopenInt8x4)
         {
@@ -436,6 +440,14 @@ extern "C" miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
 {
 
     MIOPEN_LOG_FUNCTION(handle, alpha, bDesc, b, beta, yDesc, y);
+
+    // bfloat16 not supported for bias operation
+    if(miopen::deref(yDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(bDesc).GetType() == miopenBFloat16)
+    {
+        return miopenStatusNotImplemented;
+    }
+
     return miopen::try_([&] {
         return OpTensor(miopen::deref(handle),
                         miopenTensorOpAdd,
@@ -843,6 +855,10 @@ miopenConvolutionBackwardData(miopenHandle_t handle,
         {
             ss << "convfp16";
         }
+        else if(miopen::deref(dyDesc).GetType() == miopenBFloat16)
+        {
+            ss << "convbfp16";
+        }
         else
         {
             ss << "conv";
@@ -986,6 +1002,10 @@ miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
         {
             ss << "convfp16";
         }
+        else if(miopen::deref(dyDesc).GetType() == miopenBFloat16)
+        {
+            ss << "convbfp16";
+        }
         else
         {
             ss << "conv";
@@ -1089,6 +1109,13 @@ extern "C" miopenStatus_t miopenConvolutionBackwardBias(miopenHandle_t handle,
                                                         void* db)
 {
     MIOPEN_LOG_FUNCTION(handle, alpha, dyDesc, dy, beta, dbDesc, db);
+    // bfloat16 not supported for bias operation
+    if(miopen::deref(dyDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(dbDesc).GetType() == miopenBFloat16)
+    {
+        return miopenStatusNotImplemented;
+    }
+
     return miopen::try_([&] {
         ConvolutionBackwardBias(miopen::deref(handle),
                                 alpha,

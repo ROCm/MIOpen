@@ -831,7 +831,6 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             for(int i = 0; i < wei_sz; i++)
             {
                 wei.data[i] = static_cast<Tgpu>(Data_scale * 2 * detail::RanGenWeights<float>());
-                // printf("wei  %d  %d \n",i,wei.data[i]);
             }
         }
     }

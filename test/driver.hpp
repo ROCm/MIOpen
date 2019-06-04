@@ -42,6 +42,7 @@
 #include <miopen/md5.hpp>
 #include <miopen/type_name.hpp>
 #include <miopen/env.hpp>
+#include <miopen/bfloat16.hpp>
 
 template <class U, class T>
 constexpr std::is_same<T, U> is_same(const T&)
@@ -254,7 +255,7 @@ struct test_driver
         switch(this->type)
         {
         case miopenHalf: ss << "--half "; break;
-        case miopenBFloat16: ss << "--bf16 "; break;
+        case miopenBFloat16: ss << "--bfloat16 "; break;
         case miopenInt8x4:
         case miopenInt8: ss << "--int8 "; break;
         case miopenInt32: ss << "--int32 "; break;
@@ -826,7 +827,8 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
     Driver d{};
     d.program_name = program_name;
 
-    std::set<std::string> keywords{"--help", "-h", "--half", "--float", "--double", "--int8"};
+    std::set<std::string> keywords{
+        "--help", "-h", "--half", "--float", "--double", "--int8", "--bfloat16"};
     d.parse(keyword_set{keywords});
     auto arg_map = args::parse(as, [&](std::string x) {
         return (keywords.count(x) > 0) or
@@ -840,6 +842,10 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
     else if(arg_map.count("--int8") > 0)
     {
         d.type = miopenInt8;
+    }
+    else if(arg_map.count("--bfloat16") > 0)
+    {
+        d.type = miopenBFloat16;
     }
     else if(arg_map.count("--double") > 0)
     {
@@ -942,6 +948,11 @@ void test_drive(int argc, const char* argv[])
         if(arg == "--float")
         {
             test_drive_impl<Driver<float>>(argv[0], std::move(as));
+            break;
+        }
+        if(arg == "--bfloat16")
+        {
+            test_drive_impl<Driver<bfloat16>>(argv[0], std::move(as));
             break;
         }
         if(arg == "--double")

@@ -74,6 +74,13 @@ miopenBatchNormalizationForwardInference(miopenHandle_t handle,
                         estimatedVariance,
                         epsilon);
 
+    // bfloat16 not supported for batchnorm operation
+    if(miopen::deref(yDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(xDesc).GetType() == miopenBFloat16)
+    {
+        return miopenStatusNotImplemented;
+    }
+
     // In case of NxCxDxHxW
     int size{0};
     miopenGetTensorDescriptorSize(xDesc, &size);
@@ -135,6 +142,14 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
                         epsilon,
                         resultSaveMean,
                         resultSaveInvVariance);
+
+    // bfloat16 not supported for batchnorm operation
+    if(miopen::deref(xDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(yDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(bnScaleBiasMeanVarDesc).GetType() == miopenBFloat16)
+    {
+        return miopenStatusNotImplemented;
+    }
 
     if(miopen::IsLoggingCmd())
     {
@@ -214,6 +229,13 @@ miopenBatchNormalizationBackward(miopenHandle_t handle,
                                  const void* savedMean,
                                  const void* savedInvVariance)
 {
+    // bfloat16 not supported for batchnorm operation
+    if(miopen::deref(xDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(dyDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(dxDesc).GetType() == miopenBFloat16)
+    {
+        return miopenStatusNotImplemented;
+    }
 
     MIOPEN_LOG_FUNCTION(handle,
                         bn_mode,

@@ -243,11 +243,15 @@ void miopen::ConvolutionContext::SetupFloats()
 {
     if(IsFp32())
     {
-        general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
+        general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_BFP16=0";
     }
     else if(IsFp16())
     {
-        general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1";
+        general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_BFP16=0";
+    }
+    else if(IsBfp16())
+    {
+        general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_BFP16=1";
     }
     else
     {
