@@ -779,7 +779,7 @@ MIOpenConvUniBatchNormActiv(
                                 bn_res = pscale * (conv_res - pmean) * pinvVariance + pbias;
 // bn_res  = mad(pscale, (conv_res - pmean) * pinvVariance, pbias);
 #endif
-#ifdef MIOPEN_NRN_OP_ID
+#if(MIOPEN_NRN_OP_ID > 0)
 #ifdef MIOPEN_YES_ACTIV
                             ActivationFunction(
                                 1, &actv_res, (const _FLOAT*)&bn_res, gamma, beta, alpha);
