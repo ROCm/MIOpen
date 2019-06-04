@@ -81,6 +81,14 @@
 #define USE_SOFTMAX_MODE_CHANNEL 0
 #endif
 
+#ifndef USE_ALPHA
+#define USE_ALPHA 0
+#endif
+
+#ifndef USE_BETA
+#define USE_BETA 0
+#endif
+
 #ifndef IS_INPUT_PACKED
 #define IS_INPUT_PACKED 1
 #endif
@@ -164,11 +172,11 @@ __kernel void SoftmaxForward(global _FLOAT* x,
                              const int vector_size,
                              const int grid_size,
                              const int spatial_dim,
-#ifndef USE_ALPHA
+#if !USE_ALPHA
                              UNUSED
 #endif
                              const float alpha,
-#ifndef USE_BETA
+#if !USE_BETA
                              UNUSED
 #endif
                              const float beta)
@@ -365,11 +373,11 @@ __kernel void SoftmaxForward(global _FLOAT* x,
             value /= channel_sum;
 #endif
 
-#ifdef USE_ALPHA
+#if USE_ALPHA
             value *= ((_FLOAT)alpha);
 #endif
 
-#ifdef USE_BETA
+#if USE_BETA
             value += y[y_gidx] * ((_FLOAT)beta);
 #endif
 
@@ -505,22 +513,21 @@ __kernel void SoftmaxForward(global _FLOAT* x,
         v_idx += lid * U_BATCH_SIZE;
 #endif
 
-        _FLOAT tmp = values[v_idx]
+        _FLOAT tmp = values[v_idx];
 #if !USE_SOFTMAX_FAST
-                     - channel_max
-#endif
-            ;
-#if !USE_SOFTMAX_LOG
-        tmp = exp(tmp);
+        tmp -= channel_max;
 #endif
 
-        t_helper
-#if USE_SOFTMAX_LOG
-            = LogAddExp(t_helper, tmp)
-#else
-            += tmp
+#if !USE_SOFTMAX_LOG
+        tmp      = exp(tmp);
 #endif
-            ;
+
+#if USE_SOFTMAX_LOG
+        t_helper = LogAddExp(t_helper, tmp);
+#else
+        t_helper += tmp;
+#endif
+
         values[v_idx] = tmp;
     }
 
@@ -581,11 +588,11 @@ __kernel void SoftmaxForward(global _FLOAT* x,
             values[v_idx] /= channel_sum;
 #endif
 
-#ifdef USE_ALPHA
+#if USE_ALPHA
             values[v_idx] *= ((_FLOAT)alpha);
 #endif
 
-#ifdef USE_BETA
+#if USE_BETA
             values[v_idx] += y[y_gidx] * ((_FLOAT)beta);
 #endif
 
@@ -604,11 +611,11 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
                               const int vector_size,
                               const int grid_size,
                               const int spatial_dim,
-#ifndef USE_ALPHA
+#if !USE_ALPHA
                               UNUSED
 #endif
                               const float alpha,
-#ifndef USE_BETA
+#if !USE_BETA
                               UNUSED
 #endif
                               const float beta)
@@ -738,11 +745,11 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
             value *= y[y_gidx];
 #endif
 
-#ifdef USE_ALPHA
+#if USE_ALPHA
             value *= alpha;
 #endif
 
-#ifdef USE_BETA
+#if USE_BETA
             value += dx[dx_gidx] * beta;
 #endif
 
@@ -890,22 +897,19 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
         dx_value[v_idx] -= channel_dot;
         if(mad24(batch_n, vector_size, i) * spatial_dim + batch_s < vector_size * grid_size)
         {
-#ifdef USE_BETA
-            _FLOAT tmp_dx = dx[dx_gidx];
+#if !USE_SOFTMAX_LOG
+            dx_value[v_idx] *= y_value[v_idx];
 #endif
 
-            dx[dx_gidx] =
-#if !USE_SOFTMAX_LOG
-                y_value[v_idx] *
+#if USE_ALPHA
+            dx_value[v_idx] *= alpha;
 #endif
-                    dx_value[v_idx]
-#ifdef USE_ALPHA
-                    * alpha
+
+#if USE_BETA
+            dx_value[v_idx] += dx[dx_gidx] * beta;
 #endif
-#ifdef USE_BETA
-                + tmp_dx * beta
-#endif
-                ;
+
+            dx[dx_gidx] = dx_value[v_idx];
         }
     }
 
