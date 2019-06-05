@@ -39,6 +39,14 @@ extern "C" miopenStatus_t miopenSoftmaxForward(miopenHandle_t handle,
                                                void* y)
 {
     MIOPEN_LOG_FUNCTION(alpha, xDesc, x, beta, yDesc, y);
+
+    // bfloat16 not supported for softmax operation
+    if(miopen::deref(xDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(yDesc).GetType() == miopenBFloat16)
+    {
+        return miopenStatusNotImplemented;
+    }
+
     return miopen::try_([&] {
         miopen::SoftmaxForward(miopen::deref(handle),
                                alpha,
@@ -66,6 +74,15 @@ extern "C" miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
 {
 
     MIOPEN_LOG_FUNCTION(alpha, yDesc, y, dyDesc, dy, beta, dxDesc, dx);
+
+    // bfloat16 not supported for softmax operation
+    if(miopen::deref(dyDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(dxDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(yDesc).GetType() == miopenBFloat16)
+    {
+        return miopenStatusNotImplemented;
+    }
+
     return miopen::try_([&] {
         miopen::SoftmaxBackward(miopen::deref(handle),
                                 alpha,

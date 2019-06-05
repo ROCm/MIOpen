@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,42 +27,14 @@
 #define GUARD_MIOPEN_CONV_ALGO_NAME_HPP
 
 #include <string>
-#include <unordered_map>
 
 namespace miopen {
 
-inline int FwdAlgoResolver(const std::string& s)
-{
-    static std::unordered_map<std::string, int> data{
-        {"miopenConvolutionFwdAlgoGEMM", 0},
-        {"miopenConvolutionFwdAlgoDirect", 1},
-        {"miopenConvolutionFwdAlgoFFT", 2},
-        {"miopenConvolutionFwdAlgoWinograd", 3},
-    };
-    return data.at(s);
-}
+miopenConvFwdAlgorithm_t StringToConvolutionFwdAlgo(const std::string& s);
+miopenConvBwdDataAlgorithm_t StringToConvolutionBwdDataAlgo(const std::string& s);
+miopenConvBwdWeightsAlgorithm_t StringToConvolutionBwdWeightsAlgo(const std::string& s);
 
-inline int BwdDataAlgoResolver(const std::string& s)
-{
-    static std::unordered_map<std::string, int> data{
-        {"miopenConvolutionBwdDataAlgoGEMM", 0},
-        {"miopenConvolutionBwdDataAlgoDirect", 1},
-        {"miopenConvolutionBwdDataAlgoFFT", 2},
-        {"miopenConvolutionBwdDataAlgoWinograd", 3},
-        {"miopenTransposeBwdDataAlgoGEMM", 4},
-    };
-    return data.at(s);
-}
-
-inline int BwdWeightsAlgoResolver(const std::string& s)
-{
-    static std::unordered_map<std::string, int> data{
-        {"miopenConvolutionBwdWeightsAlgoGEMM", 0},
-        {"miopenConvolutionBwdWeightsAlgoDirect", 1},
-        {"miopenConvolutionBwdWeightsAlgoWinograd", 3},
-    };
-    return data.at(s);
-}
+std::string ConvolutionAlgoToString(miopenConvAlgorithm_t algo);
 
 } // namespace miopen
 

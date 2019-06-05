@@ -381,6 +381,14 @@ extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
                         workSpaceNumBytes,
                         reserveSpace,
                         reserveSpaceNumBytes);
+
+    // bfloat16 not supported for rnn operation
+    if(miopen::deref(wDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(hyDesc).GetType() == miopenBFloat16)
+    {
+        return miopenStatusNotImplemented;
+    }
+
     return miopen::try_([&] {
 
         miopen::c_array_view<const miopenTensorDescriptor_t> xDescArray{xDesc, size_t(sequenceLen)};
@@ -463,6 +471,14 @@ extern "C" miopenStatus_t miopenRNNBackwardData(miopenHandle_t handle,
                         workSpaceNumBytes,
                         reserveSpace,
                         reserveSpaceNumBytes);
+
+    // bfloat16 not supported for rnn operation
+    if(miopen::deref(wDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(cxDesc).GetType() == miopenBFloat16)
+    {
+        return miopenStatusNotImplemented;
+    }
+
     return miopen::try_([&] {
 
         miopen::c_array_view<const miopenTensorDescriptor_t> yDescArray{yDesc, size_t(sequenceLen)};
@@ -530,6 +546,14 @@ miopenStatus_t miopenRNNBackwardWeights(miopenHandle_t handle,
                         workSpaceNumBytes,
                         reserveSpace,
                         reserveSpaceNumBytes);
+
+    // bfloat16 not supported for rnn operation
+    if(miopen::deref(hxDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(dwDesc).GetType() == miopenBFloat16)
+    {
+        return miopenStatusNotImplemented;
+    }
+
     return miopen::try_([&] {
 
         miopen::c_array_view<const miopenTensorDescriptor_t> xDescArray{xDesc, size_t(sequenceLen)};

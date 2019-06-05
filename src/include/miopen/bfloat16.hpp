@@ -23,14 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef BF16_H_
-#define BF16_H_
+#ifndef BFLOAT16_H_
+#define BFLOAT16_H_
 #include <boost/operators.hpp>
+#include <iostream>
 
 class bfloat16 : boost::totally_ordered<bfloat16, boost::arithmetic<bfloat16>>
 {
     public:
-    bfloat16() : data_() {}
+    bfloat16() : data_{0} {}
     explicit bfloat16(float rhs)
     {
         static union
@@ -40,8 +41,7 @@ class bfloat16 : boost::totally_ordered<bfloat16, boost::arithmetic<bfloat16>>
         } bits_st;
 
         bits_st.float_st = rhs;
-
-        data_ = bits_st.bf16_st >> 16;
+        data_            = bits_st.bf16_st >> 16;
     }
     operator float() const
     {
@@ -53,7 +53,6 @@ class bfloat16 : boost::totally_ordered<bfloat16, boost::arithmetic<bfloat16>>
 
         bits_st.bf16_st = data_;
         bits_st.bf16_st = bits_st.bf16_st << 16;
-
         return bits_st.float_st;
     }
 
@@ -70,6 +69,13 @@ class bfloat16 : boost::totally_ordered<bfloat16, boost::arithmetic<bfloat16>>
         *this = bfloat16(static_cast<float>(*this) + static_cast<float>(rhs));
         return *this;
     }
+
+    bfloat16& operator+=(float rhs)
+    {
+        *this = bfloat16(static_cast<float>(*this) + rhs);
+        return *this;
+    }
+
     bfloat16& operator-=(bfloat16 rhs)
     {
         *this += -rhs;
@@ -80,19 +86,45 @@ class bfloat16 : boost::totally_ordered<bfloat16, boost::arithmetic<bfloat16>>
         *this = bfloat16(static_cast<float>(*this) * static_cast<float>(rhs));
         return *this;
     }
+    bfloat16& operator*=(float rhs)
+    {
+        *this = bfloat16(static_cast<float>(*this) * rhs);
+        return *this;
+    }
+
     bfloat16& operator/=(bfloat16 rhs)
     {
         *this = bfloat16(static_cast<float>(*this) / static_cast<float>(rhs));
         return *this;
     }
-
     bool operator<(bfloat16 rhs) const
     {
         return static_cast<float>(*this) < static_cast<float>(rhs);
     }
     bool operator==(bfloat16 rhs) const { return std::equal_to<float>()(*this, rhs); }
+
+    static constexpr bfloat16 generate(uint16_t val) { return bfloat16{val, true}; }
+
     private:
+    constexpr bfloat16(std::uint16_t val, bool) : data_{val} {}
+
     std::uint16_t data_;
 };
 
+namespace std {
+template <>
+class numeric_limits<bfloat16>
+{
+    public:
+    static constexpr bool is_specialized = true;
+    static constexpr bfloat16 min() noexcept { return bfloat16::generate(0x007F); }
+    static constexpr bfloat16 max() noexcept { return bfloat16::generate(0x7F7F); }
+    static constexpr bfloat16 lowest() noexcept { return bfloat16::generate(0xFF7F); }
+    static constexpr bfloat16 epsilon() noexcept { return bfloat16::generate(0x3C00); }
+    static constexpr bfloat16 infinity() noexcept { return bfloat16::generate(0x7F80); }
+    static constexpr bfloat16 quiet_NaN() noexcept { return bfloat16::generate(0x7FC0); }
+    static constexpr bfloat16 signaling_NaN() noexcept { return bfloat16::generate(0x7FC0); }
+    static constexpr bfloat16 denorm_min() noexcept { return bfloat16::generate(0); }
+};
+} // namespace std
 #endif

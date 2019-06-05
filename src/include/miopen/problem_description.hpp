@@ -155,7 +155,7 @@ struct ProblemDescription
         return in_data_type == miopenHalf && weights_data_type == miopenHalf &&
                out_data_type == miopenHalf;
     }
-    bool IsBF16() const
+    bool IsBfp16() const
     {
         return in_data_type == miopenBFloat16 && weights_data_type == miopenBFloat16 &&
                out_data_type == miopenBFloat16;

@@ -94,7 +94,7 @@ lds_element_stride = 4
 dword_size = 4
 
 elements_in_dword = 1
-.if(buf_type == TYPE_FP16 || buf_type == TYPE_INT16)
+.if(buf_type == TYPE_FP16 || buf_type == TYPE_INT16 || buf_type == TYPE_BFP16)
     elements_in_dword = 2
 .elseif(buf_type == TYPE_INT8)
     elements_in_dword = 4
@@ -119,12 +119,14 @@ static_assert(k_mult % sequential_k_channels == 0)
 static_assert(input_channels % sequential_c_channels == 0)
 static_assert(output_channels % sequential_k_channels == 0)
 
+bfp16_native_support = 0
 dot_instructions_available = 0
 .if (.option.machine_version_major == 9) && (.option.machine_version_minor == 0) && (.option.machine_version_stepping == 6)
     dot_instructions_available = 1
 .endif
 madmix_instructions_available = 0
 fmamix_instructions_available = 0
+madmix_fmamix_with_dpp_available = 0
 .if (.option.machine_version_major == 9)
     .if(.option.machine_version_stepping > 2)
         fmamix_instructions_available = 1
@@ -132,6 +134,12 @@ fmamix_instructions_available = 0
         madmix_instructions_available = 1
     .endif
 .endif
+
+bit_convert_mult = 0
+.if(buf_type == TYPE_BFP16 && !bfp16_native_support)
+    bit_convert_mult = 1
+.endif
+
 
 log2 c_per_gpr_log2, c_per_gpr
 log2 k_per_gpr_log2, k_per_gpr
@@ -287,7 +295,9 @@ part2_offset = part1_chunks * input_w_stride * active_lanes_in_part1_chunks
 .SGPR_ALLOC k_base
 .SGPR_ALLOC n_base
 .SGPR_ALLOC stmp
+.SGPR_ALLOC loop_begin_ptr, 2
 .SGPR_ALLOC wave_id // wave_id in group
+
 .SGPR_RESERVE_XNACK
 
 .VGPR_ALLOC_FROM 0
@@ -301,8 +311,18 @@ part2_offset = part1_chunks * input_w_stride * active_lanes_in_part1_chunks
 .VGPR_ALLOC voffset_ldsw
 accums_cnt = wei_w * wei_h * k_per_gpr * c_mult * k_mult
 .VGPR_ALLOC accums, accums_cnt
-.VGPR_ALLOC lines_in, read_size * c_mult * (data_prefetch + 1)
-.VGPR_ALLOC lines_out, read_size * k_mult * (data_prefetch + 1)
+single_lane_vgpr_offset = read_size
+
+inbuf_prefetch_vgpr_offset = single_lane_vgpr_offset * c_mult
+inbuf_bit_convert_vgpr_offset = inbuf_prefetch_vgpr_offset * (data_prefetch + 1)
+lines_in_cnt = inbuf_bit_convert_vgpr_offset + (bit_convert_mult * inbuf_prefetch_vgpr_offset)
+.VGPR_ALLOC lines_in, lines_in_cnt
+
+outbuf_prefetch_vgpr_offset = single_lane_vgpr_offset * k_mult
+outbuf_bit_convert_vgpr_offset = outbuf_prefetch_vgpr_offset * (data_prefetch + 1)
+lines_out_cnt = outbuf_bit_convert_vgpr_offset + (bit_convert_mult * outbuf_prefetch_vgpr_offset)
+.VGPR_ALLOC lines_out, lines_out_cnt
+
 .VGPR_ALLOC permute_addr
 .VGPR_ALLOC n_id
 .if (madmix_instructions_available == 0 && dot_instructions_available == 0 && fmamix_instructions_available == 0)
@@ -340,7 +360,7 @@ gcnAsmConv1x1WrW:
      workgroup_group_segment_byte_size = .AUTO_LDS_BYTE_SIZE
     .end_amd_kernel_code_t
 
-    .macro mult_acc v_acc, v_base_out, v_base_in, it, cnt
+    .macro mult_acc_fp16 v_acc, v_base_out, v_base_in, it, cnt
     .if( ( (\it * elements_in_dword) + elements_in_dword) <= \cnt)
         .if(dot_instructions_available)
             v_dot2_f32_f16 v[\v_acc], v[\v_base_out], v[\v_base_in], v[\v_acc]
@@ -375,6 +395,18 @@ gcnAsmConv1x1WrW:
     .endif
 .endm
 
+    .macro bfp16_fp32_convert bfp16_vgpr_ptr, second_fp32_res_ptr, cnt
+    convert_i = 0
+    .rept \cnt
+        //v_lshlrev_b32 v[\second_fp32_res_ptr + convert_i], 16, v[\bfp16_vgpr_ptr + convert_i]
+        //v_and_b32 v[\bfp16_vgpr_ptr + convert_i], 0 + 0xFFFF0000, v[\bfp16_vgpr_ptr + convert_i]
+        v_and_b32 v[\second_fp32_res_ptr + convert_i], 0 + 0xFFFF0000, v[\bfp16_vgpr_ptr + convert_i]
+        v_lshlrev_b32 v[\bfp16_vgpr_ptr + convert_i], 16, v[\bfp16_vgpr_ptr + convert_i]
+        
+        convert_i = convert_i + 1
+    .endr
+.endm
+
 .macro m_conv_accums elements_cnt, ld_part_id
     rotates_inflight = 0
     k_ds = 0
@@ -382,13 +414,28 @@ gcnAsmConv1x1WrW:
         .exitm
     .endif
 
+    .if(buf_type == TYPE_BFP16 && bfp16_native_support == 0)
+        conv_elements_cnt = \elements_cnt
+        fi_element_ptr = lines_in + (\ld_part_id * inbuf_prefetch_vgpr_offset)
+        bfp16_fp32_convert fi_element_ptr, lines_in + inbuf_bit_convert_vgpr_offset, inbuf_prefetch_vgpr_offset
+        fi_element_ptr = lines_out + (\ld_part_id * outbuf_prefetch_vgpr_offset)
+        bfp16_fp32_convert fi_element_ptr, lines_out + outbuf_bit_convert_vgpr_offset, outbuf_prefetch_vgpr_offset
+    .else
+        conv_elements_cnt = (\elements_cnt + elements_in_dword - 1) / elements_in_dword
+    .endif
+
     .rept k_ds_rotates
         i = 0
-        .rept (\elements_cnt + elements_in_dword - 1) / elements_in_dword
+        .rept conv_elements_cnt
             kx = 0
             .rept k_mult
-                base_out = lines_out + kx * read_size + (\ld_part_id * read_size * k_mult)
-
+                base_out = lines_out + kx * read_size + (\ld_part_id * outbuf_prefetch_vgpr_offset)
+                .if (buf_type == TYPE_BFP16 && bfp16_native_support == 0)
+                    base_out = base_out - (i % 2) * (\ld_part_id * outbuf_prefetch_vgpr_offset)
+                    base_out = base_out + (i % 2) * outbuf_bit_convert_vgpr_offset + (i / 2)
+                .else
+                    base_out = base_out + i
+                .endif
                 .if k_ds > 0
                     rotates_inflight = rotates_inflight - 1
                     s_wait , rotates_inflight
@@ -399,24 +446,35 @@ gcnAsmConv1x1WrW:
                 cx = 0
 
                 .rept c_mult
-                    base_in = lines_in + cx * read_size + (\ld_part_id * read_size * c_mult)
+                    base_in = lines_in + cx * read_size + (\ld_part_id * inbuf_prefetch_vgpr_offset)
                     acc = accums + k_per_gpr * (cx * k_mult + kx) + k_ds * k_dpp_rotates
+                    
+                    .if(buf_type == TYPE_BFP16 && bfp16_native_support == 0)
+                        base_in = base_in - (i % 2) * (\ld_part_id * inbuf_prefetch_vgpr_offset)
+                        base_in = base_in + (i % 2) * inbuf_bit_convert_vgpr_offset + (i / 2)
+                    .else
+                        base_in = base_in + i
+                    .endif
 
-                        .if(elements_in_dword == 2)
-                            mult_acc (acc + k_dpp), (base_out + i), (base_in + i), i, \elements_cnt
-                        .else   //if fp32
-                            .if(k_dpp == 0)
-                                v_mac_f32 v[acc], v[base_out + i], v[base_in + i]
-                            .else
-                                v_mac_f32 v[acc + k_dpp], v[base_out + i], v[base_in + i] row_ror:16*k_dpp/k_dpp_rotates
-                            .endif
+                    .if(elements_in_dword == 2 && ( (buf_type == TYPE_FP16) || (buf_type == TYPE_BFP16 && bfp16_native_support == 1) ))
+                        .if(buf_type == TYPE_FP16)
+                            mult_acc_fp16 (acc + k_dpp), (base_out), (base_in), i, \elements_cnt
+                        .elseif (buf_type == TYPE_BFP16)
+                            mult_acc_bfp16 (acc + k_dpp), (base_out), (base_in), i, \elements_cnt
                         .endif
+                    .else   //if fp32 or converted bfp16
+                        .if(k_dpp == 0)
+                            v_mac_f32 v[acc], v[base_out], v[base_in]
+                        .else
+                            v_mac_f32 v[acc + k_dpp], v[base_out], v[base_in] row_ror:16*k_dpp/k_dpp_rotates
+                        .endif
+                    .endif
                     cx = cx + 1
                 .endr
 
                     k_dpp = k_dpp + 1
-                    .if(elements_in_dword == 2 && k_dpp_rotates > 1)
-                        v_mov_b32 v[base_out + i], v[base_out + i] row_ror:16/k_dpp_rotates
+                    .if(elements_in_dword == 2 && k_dpp_rotates > 1 && madmix_fmamix_with_dpp_available == 0 && buf_type != TYPE_BFP16)
+                        v_mov_b32 v[base_out], v[base_out] row_ror:16/k_dpp_rotates
                         s_nop 1
                     .endif
                 .endr
@@ -424,9 +482,9 @@ gcnAsmConv1x1WrW:
                 .if (k_ds + 1) < k_ds_rotates
                     static_assert (c_quads == 2 || c_quads == 4)
                     .if c_quads == 2
-                        ds_swizzle_b32 v[base_out+i], v[base_out+i] offset:0xc200
+                        ds_swizzle_b32 v[base_out], v[base_out] offset:0xc200
                     .elseif c_quads == 4
-                        ds_bpermute_b32 v[base_out+i], v[permute_addr], v[base_out+i]
+                        ds_bpermute_b32 v[base_out], v[permute_addr], v[base_out]
                     .endif
                     rotates_inflight = rotates_inflight + 1
                 .endif
@@ -526,7 +584,6 @@ gcnAsmConv1x1WrW:
     _v_add_nc_u32 v[voffset_out], v[voffset_out], v[vtmp] // +hw_off
 
     s_mul_i32 s[stmp], 0 + 4 * read_size * wave_size, s[wave_id]
-
 
     // calculate buffer scalar offsets
     s_mul_i32 s[c_base], 0 + c_per_gpr * c_mult, s[gid_y]
@@ -628,7 +685,7 @@ gcnAsmConv1x1WrW:
             sequential_output_channels = sequential_c_channels
             ck_stride = input_c_stride
             mult = c_mult
-            dst = lines_in + \ld_id * read_size * c_mult
+            dst = lines_in + \ld_id * inbuf_prefetch_vgpr_offset
             desc = desc_in
             soff = soffset_in
             adj_size = c_per_gpr * input_c_stride
@@ -636,7 +693,7 @@ gcnAsmConv1x1WrW:
             mult = k_mult
             sequential_output_channels = sequential_k_channels
             ck_stride = output_k_stride
-            dst = lines_out + \ld_id * read_size * k_mult
+            dst = lines_out + \ld_id * outbuf_prefetch_vgpr_offset
             desc = desc_out
             soff = soffset_out
             adj_size = k_per_gpr * output_k_stride
@@ -775,6 +832,7 @@ last_free_ld_part = LD_PART_B_ID
     .endr
 .endm
 
+S_GETPC_B64 s[loop_begin_ptr:loop_begin_ptr+1]
 loop_n_begin: // loop over batch (n)
     s_mov_b32 s[loop_hw_cnt], 0
 
@@ -833,7 +891,11 @@ loop_n_end:
 
     s_addk_i32 s[loop_n_cnt], 0 + n_per_gpr * n_part_cnt
     s_cmpk_ge_u32 s[loop_n_cnt], 0 + batch_size
-    s_cbranch_scc0 loop_n_begin
+    //s_cbranch_scc0 loop_n_begin
+    s_cbranch_scc1 loop_exit
+
+    s_setpc_b64 s[loop_begin_ptr:loop_begin_ptr+1]
+loop_exit:
 
     // reduction inside chunk
     m_acc_reduction 0, chunk_size_log2
@@ -1010,13 +1072,23 @@ loop_n_end:
                     .endif
 
                     acc = accums + k_per_gpr * (cx * k_mult + kx) + k_ds * k_dpp_rotates
-                    .if (acc_type == TYPE_FP32 && buf_type == TYPE_FP16 && !short_store)
+                    .if( (buf_type == TYPE_FP16 || buf_type == TYPE_BFP16) && acc_type == TYPE_FP32)
                         acc2_cx = cx + sequential_c_channels - 1
                         acc2_kx = kx + sequential_k_channels - 1
                         acc2 = accums + k_per_gpr * ( (acc2_cx * k_mult) + acc2_kx) + k_ds * k_dpp_rotates
-                        v_cvt_pkrtz_f16_f32 v[acc+k_dpp], v[acc + k_dpp], v[acc2 + k_dpp]
-                    .elseif(buf_type == TYPE_FP16 && short_store)
-                        v_cvt_f16_f32 v[acc+k_dpp], v[acc + k_dpp]
+                        .if(buf_type == TYPE_FP16)
+                            .if (!short_store)
+                                v_cvt_pkrtz_f16_f32 v[acc+k_dpp], v[acc + k_dpp], v[acc2 + k_dpp]
+                            .else
+                                v_cvt_f16_f32 v[acc+k_dpp], v[acc + k_dpp]
+                            .endif
+                        .else 
+                            v_lshrrev_b32 v[acc + k_dpp], 16, v[acc + k_dpp]
+                            .if (!short_store)
+                                v_and_b32 v[acc2 + k_dpp], 0xFFFF0000, v[acc2 + k_dpp]
+                                v_or_b32 v[acc + k_dpp], v[acc + k_dpp], v[acc2 + k_dpp]
+                            .endif
+                        .endif
                     .endif
                     s_mov_b32 s[stmp], 0 + cx * c_per_gpr * filter_c_stride + kx * k_per_gpr * filter_k_stride
 
