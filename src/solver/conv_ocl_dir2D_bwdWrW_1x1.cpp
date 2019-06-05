@@ -33,7 +33,7 @@ namespace solver {
 
 bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!(params.IsFp32() || params.IsFp16()))
+    if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
 
     bool result =

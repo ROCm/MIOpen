@@ -225,7 +225,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue()
                     break;
                 if(!IncPack<1, 2, 4, 8, 16>(c_per_gpr))
                     break;
-                if(!IncPack<1, 2, 4, 8, 16>(c_mult))
+                if(!IncPack<1, 2, 4, 8>(c_mult))
                     break;
                 if(!IncPack<1, 2, 4, 8>(k_per_gpr))
                     break;
@@ -233,7 +233,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue()
                     break;
                 if(!IncPack<1, 2>(n_per_gpr))
                     break;
-                if(!IncPack<1, 2, 4, 8>(n_part_cnt))
+                if(!IncPack<1, 2, 4>(n_part_cnt))
                     break;
                 if(!IncPack<1, 0>(short_store))
                     break;
@@ -317,10 +317,14 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
 
     if(!(c_per_gpr * n_per_gpr * GetHWPerGpr() * chunk_size == wave_size))
         return false;
-    if(config.out_data_type == miopenHalf)
+    if(config.out_data_type == miopenHalf || config.out_data_type == miopenBFloat16)
     {
-        if((short_store == 0) && ((c_mult % 2) != 0 || (config.n_inputs % 2) != 0))
-            return false;
+        if(short_store == 0)
+        {
+            const int sequential_channels = 2;
+            if((c_mult % sequential_channels) != 0 || (config.n_outputs % sequential_channels) != 0)
+                return false;
+        }
     }
     else
     {
@@ -328,8 +332,17 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
             return false;
     }
 
-    int acc_gprs = c_mult * k_mult * k_per_gpr;
-    if(!(acc_gprs + 12 + (c_mult + k_mult) * read_size * (data_prefetch + 1) <=
+    int acc_gprs      = c_mult * k_mult * k_per_gpr;
+    int bfp16_convert = 0;
+
+    const std::string name = config.GetStream().GetDeviceName();
+    if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
+        bfp16_convert = 0;
+    else
+        bfp16_convert =
+            (config.out_data_type == miopenBFloat16) ? ((c_mult + k_mult) * read_size) : 0;
+
+    if(!(acc_gprs + 12 + (c_mult + k_mult) * read_size * (data_prefetch + 1) + bfp16_convert <=
          (n_part_cnt > 4 ? 128 : 256)))
     {
         return false;
@@ -345,8 +358,9 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
 
 void PerformanceConfigConvAsmBwdWrW1x1::EuristicInit(const ConvolutionContext& config)
 {
-    short_store = (config.out_data_type == miopenHalf) ? 1 : 0;
-    read_size   = 4;
+    short_store =
+        (config.out_data_type == miopenHalf || config.out_data_type == miopenBFloat16) ? 1 : 0;
+    read_size = 4;
     n_per_gpr =
         (config.batch_sz >= 4 && (AsmImgHeight(config) * AsmImgWidth(config)) <= 128) ? 4 : 1;
     data_prefetch      = 1;
@@ -471,7 +485,7 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_dilation_w == 1
         && params.kernel_dilation_h == 1
         && params.bias == 0
-        && (params.IsFp32() || params.IsFp16())
+        && (params.IsFp32() || params.IsFp16() || params.IsBfp16())
         && params.in_layout == "NCHW"
         && params.group_counts == 1);
     if(!ok)
@@ -587,7 +601,9 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "do_not_use_default_perf_params", 1);
 
     GenerateClangDefsym(options, "acc_type", 1);
-    GenerateClangDefsym(options, "buf_type", (data_len == 2 ? 2 : 1));
+    const unsigned int buf_type =
+        params.out_data_type == miopenHalf ? 2 : params.out_data_type == miopenFloat ? 1 : 3;
+    GenerateClangDefsym(options, "buf_type", buf_type);
 
     enum class MemLayout : int
     {
