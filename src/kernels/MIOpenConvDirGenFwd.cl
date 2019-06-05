@@ -24,33 +24,9 @@
  *
  *******************************************************************************/
 
-#define PPCAT_NX(A, B) A##B
-#define PPCAT(A, B) PPCAT_NX(A, B)
-#define TWO 2
-#define FOUR 4
-#define EIGHT 8
-
-#if MIOPEN_USE_FP16 == 1
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
-#define _FLOAT half
-#ifndef HALF_MAX
-#define MAX_VAL 65504 /* max value */
-#else
-#define MAX_VAL HALF_MAX
-#endif
-#endif
-#if MIOPEN_USE_FP32 == 1
-#define _FLOAT float
-#ifndef FLT_MAX
-#define MAX_VAL 3.402823466e+38F /* max value */
-#else
-#define MAX_VAL FLT_MAX
-#endif
-#endif
-
-#define _FLOAT2 PPCAT(_FLOAT, TWO)
-#define _FLOAT4 PPCAT(_FLOAT, FOUR)
-#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
+#include "float_types.h"
+#include "math_ops.h"
+#include "data_ops.h"
 
 #ifndef MLO_OUT_ALIGNED
 #define MLO_OUT_ALIGNED 0
@@ -99,8 +75,6 @@
 #define MLO_PVT_OUT_DATA_HEIGHT MLO_N_OUT_PIX_SZ1* MLO_LCL_N_OUT_CHNLS
 #define MLO_PVT_OUT_DATA_SZ MLO_PVT_OUT_DATA_HEIGHT* MLO_N_OUT_PIX_SZ0
 
-#include "data_ops.h"
-
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2))) __kernel void
 MIOpenCDFGen(const __global _FLOAT* __restrict bot,
              const __global _FLOAT* __restrict weights,
@@ -116,7 +90,7 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
     __local _FLOAT lcl_wei[MLO_LCL_WEI_SIZE];
 
     _FLOAT pvt_bot_dat[MLO_PVT_COL_STG_HEIGHT * MLO_PVT_COL_STG_WIDTH];
-    _FLOAT pvt_top_dat[MLO_PVT_OUT_DATA_SZ];
+    _FLOAT_ACCUM pvt_top_dat[MLO_PVT_OUT_DATA_SZ];
     _FLOAT pvt_wei_dat[MLO_FLTR_SZ0];
 
     uint x_out_grp = get_group_id(0) * MLO_N_PROCS0 * MLO_N_OUT_PIX_SZ0;
@@ -132,13 +106,13 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
                                  -(int)lcl_id); // wk item id for the input to make a coalesed read
 #else
     uint lcl_in_proc_id = lcl_id & (MLO_N_PROCS0 * MLO_N_PROCS1 -
-                                    1);                         // wk item id for the input to make a coalesed read
+                                    1);                                          // wk item id for the input to make a coalesed read
 #endif
     uint lcl_proc_id1 = lcl_in_proc_id / MLO_N_PROCS0; //
 #if MLO_N_PROCS0 & (MLO_N_PROCS0 - 1)
     uint lcl_proc_id0 = -mad24((int)lcl_proc_id1, MLO_N_PROCS0, -(int)lcl_in_proc_id); //
 #else
-    uint lcl_proc_id0    = lcl_in_proc_id & (MLO_N_PROCS0 - 1); //
+    uint lcl_proc_id0                     = lcl_in_proc_id & (MLO_N_PROCS0 - 1); //
 #endif
     uint x_out_lcl = mul24(lcl_proc_id0, (uint)MLO_N_OUT_PIX_SZ0);
     uint y_out_lcl = mul24(lcl_proc_id1, (uint)MLO_N_OUT_PIX_SZ1);
@@ -153,7 +127,7 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
 #if MLO_N_STACKS & (MLO_N_STACKS - 1)
     uint b_id = -mad24((int)o_id, MLO_N_STACKS, -(int)ob); // block of batchs
 #else
-    uint b_id            = ob & (MLO_N_STACKS - 1);             // block of batchs
+    uint b_id                             = ob & (MLO_N_STACKS - 1);             // block of batchs
 #endif
     // my batch
     uint b = b_id * MLO_LCL_N_IN_CHNLS + lcl_proc;
@@ -172,7 +146,7 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
 #endif
     for(uint i = 0; i < MLO_PVT_OUT_DATA_SZ; ++i)
     {
-        pvt_top_dat[i] = 0;
+        pvt_top_dat[i] = (_FLOAT_ACCUM)0;
     }
 
     for(uint c = 0; c < MLO_N_IN_CHNLS;
@@ -187,8 +161,8 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
             uint lcl_o   = (uint)((float)i / (MLO_FLTR_SZ0 * MLO_FLTR_SZ1) + 0.00001f);
             uint lcl_o_i = i - lcl_o * (MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
 #else
-            uint lcl_o   = i / (MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
-            uint lcl_o_i = i & (MLO_FLTR_SZ0 * MLO_FLTR_SZ1 - 1);
+            uint lcl_o                    = i / (MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
+            uint lcl_o_i                  = i & (MLO_FLTR_SZ0 * MLO_FLTR_SZ1 - 1);
 #endif
 
             lcl_wei[i] =
@@ -265,12 +239,13 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
                     for(uint pi = 0; pi < MLO_N_OUT_PIX_SZ0; ++pi)
                     {
 
-                        _FLOAT sum = (_FLOAT)0;
+                        _FLOAT_ACCUM sum = CVT_FLOAT2ACCUM(0);
                         for(uint m = 0; m < MLO_FLTR_SZ0; ++m)
                         {
-                            sum += pvt_bot_dat[pj * MLO_FLTR_STRIDE1 * MLO_PVT_COL_STG_WIDTH +
-                                               pi * MLO_FLTR_STRIDE0 + m] *
-                                   pvt_wei_dat[m];
+                            sum += CVT_FLOAT2ACCUM(
+                                       pvt_bot_dat[pj * MLO_FLTR_STRIDE1 * MLO_PVT_COL_STG_WIDTH +
+                                                   pi * MLO_FLTR_STRIDE0 + m]) *
+                                   CVT_FLOAT2ACCUM(pvt_wei_dat[m]);
 
 #if 0
                                                                 if (y_out + pj == 0 && x_out + pi == 14)
@@ -331,12 +306,16 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
 #if MLO_ALIGNED == 0
                         if(x_out + i < MLO_OUT_WIDTH)
 #endif
-                            top[top_off2 + i] =
-                                pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i]
+
 #if MLO_CONV_BIAS == 1
-                                + bias_val
+                            top[top_off2 + i] = CVT_ACCUM2FLOAT(
+                                pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i] +
+                                CVT_FLOAT2ACCUM(bias_val));
+#else
+                        top[top_off2 + i] = CVT_ACCUM2FLOAT(
+                            pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i]);
 #endif
-                                ;
+
 #if 0
                                                 if (y_out + j == 0 && x_out + i == 14)
                                                 {
@@ -371,7 +350,7 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
     __local _FLOAT lcl_wei[MLO_LCL_WEI_SIZE * MLO_OUT_STACKS];
 
     _FLOAT pvt_bot_dat[MLO_PVT_COL_STG_HEIGHT * MLO_PVT_COL_STG_WIDTH];
-    _FLOAT pvt_top_dat[MLO_PVT_OUT_DATA_SZ];
+    _FLOAT_ACCUM pvt_top_dat[MLO_PVT_OUT_DATA_SZ];
     _FLOAT pvt_wei_dat[MLO_FLTR_SZ0];
 
     uint x_out_grp = get_group_id(0) * MLO_N_PROCS0 * MLO_N_OUT_PIX_SZ0;
@@ -395,8 +374,7 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
     uint o_id = ob / MLO_N_STACKS;                    // block of outputs
     uint b_id = ob - mul24(o_id, (uint)MLO_N_STACKS); // block of batchs
     // my batch
-    uint b = b_id * MLO_LCL_N_IN_CHNLS * MLO_IN_STACKS + proc_tile1;
-
+    uint b      = b_id * MLO_LCL_N_IN_CHNLS * MLO_IN_STACKS + proc_tile1;
     uint in_off = b * MLO_IN_BATCH_STRIDE;
     uint wei_off =
         mul24(o_id, (uint)(MLO_LCL_N_OUT_CHNLS * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1));
@@ -411,7 +389,7 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
 #endif
     for(uint i = 0; i < MLO_PVT_OUT_DATA_SZ; ++i)
     {
-        pvt_top_dat[i] = 0;
+        pvt_top_dat[i] = (_FLOAT_ACCUM)0;
     }
 
     for(uint c = 0; c < MLO_N_IN_CHNLS;
@@ -426,8 +404,8 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
             uint lcl_o   = (uint)((float)i / (MLO_FLTR_SZ0 * MLO_FLTR_SZ1) + 0.00001f);
             uint lcl_o_i = i - lcl_o * (MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
 #else
-            uint lcl_o   = i / (MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
-            uint lcl_o_i = i & (MLO_FLTR_SZ0 * MLO_FLTR_SZ1 - 1);
+            uint lcl_o                    = i / (MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
+            uint lcl_o_i                  = i & (MLO_FLTR_SZ0 * MLO_FLTR_SZ1 - 1);
 #endif
 
             lcl_wei[i] =
@@ -504,12 +482,13 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
                     for(uint pi = 0; pi < MLO_N_OUT_PIX_SZ0; ++pi)
                     {
 
-                        _FLOAT sum = (_FLOAT)0;
+                        _FLOAT_ACCUM sum = CVT_FLOAT2ACCUM(0);
                         for(uint m = 0; m < MLO_FLTR_SZ0; ++m)
                         {
-                            sum += pvt_bot_dat[pj * MLO_FLTR_STRIDE1 * MLO_PVT_COL_STG_WIDTH +
-                                               pi * MLO_FLTR_STRIDE0 + m] *
-                                   pvt_wei_dat[m];
+                            sum += CVT_FLOAT2ACCUM(
+                                       pvt_bot_dat[pj * MLO_FLTR_STRIDE1 * MLO_PVT_COL_STG_WIDTH +
+                                                   pi * MLO_FLTR_STRIDE0 + m]) *
+                                   CVT_FLOAT2ACCUM(pvt_wei_dat[m]);
 
 #if 0
                                                         if (get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0 && proc_tile1 == 0 && o == 0 && y_out + pj == 2 && x_out + pi == 0)
@@ -574,12 +553,14 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
 #if MLO_ALIGNED == 0
                         if(x_out + i < MLO_OUT_WIDTH)
 #endif
-                            top[top_off2 + i] =
-                                pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i]
 #if MLO_CONV_BIAS == 1
-                                + bias_val
+                            top[top_off2 + i] = CVT_ACCUM2FLOAT(
+                                pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i] +
+                                CVT_FLOAT2ACCUM(bias_val));
+#else
+                        top[top_off2 + i] = CVT_ACCUM2FLOAT(
+                            pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i]);
 #endif
-                                ;
 
 #if 0
                                                 if (get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0 && proc_tile1 == 0 && o == 0 && y_out + j == 2 && x_out + i == 0)
@@ -622,8 +603,8 @@ aDNNConv_img2col(const __global _FLOAT* __restrict img,
                                  (MLO_N_PROCS0 * MLO_N_PROCS1),
                                  -(int)lcl_id); // wk item id for the input to make a coalesed read
 #else
-    uint lcl_proc        = lcl_id / (MLO_N_PROCS0 * MLO_N_PROCS1); // input id from diff stack
-    uint lcl_in_proc_id  = lcl_id & (MLO_N_PROCS0 * MLO_N_PROCS1 -
+    uint lcl_proc       = lcl_id / (MLO_N_PROCS0 * MLO_N_PROCS1); // input id from diff stack
+    uint lcl_in_proc_id = lcl_id & (MLO_N_PROCS0 * MLO_N_PROCS1 -
                                     1);                      // wk item id for the input to make a coalesed read
 #endif
     uint lcl_proc_id1 = (uint)((float)lcl_in_proc_id / MLO_N_PROCS0); //

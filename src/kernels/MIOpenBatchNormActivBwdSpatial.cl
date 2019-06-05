@@ -255,7 +255,6 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
     _FLOAT_PREC db          = (_FLOAT_PREC)0.;
     _FLOAT_PREC ds          = (_FLOAT_PREC)0.;
     _FLOAT_PREC xhat        = (_FLOAT_PREC)0.;
-    _FLOAT_PREC dyvalue     = (_FLOAT_PREC)0.;
 
     __local _FLOAT_PREC lmean, lvar;
     __local _FLOAT_PREC lcl_scale, lcl_bias;
@@ -478,7 +477,6 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
         index          = nidx * MIO_BN_CHW + chwid + hwidx;
         if(index < MIO_BN_NCHW)
         {
-            // dyvalue = *(dy_in + index);
             _FLOAT_PREC bn_dyin;
             _FLOAT_PREC act_dyin = (_FLOAT_PREC) * (dy_in + index);
             _FLOAT_PREC act_out  = (_FLOAT_PREC) * (y_in + index);

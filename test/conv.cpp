@@ -762,6 +762,7 @@ struct conv_driver : test_driver
     bool do_backward_weights = true;
     int search               = 0;
     bool gen_float           = false;
+    bool dry_run             = false;
 
     std::unordered_map<std::string, std::size_t> conv_dim_lookup = {{"CONV2D", 2}, {"CONV3D", 3}};
 
@@ -786,14 +787,20 @@ struct conv_driver : test_driver
         add(do_backward_weights, "disable-backward-weights", set_value(false));
         add(search, "search", set_value(1));
         add(gen_float, "generate-float", set_value(true));
+        add(dry_run, "dry-run", set_value(true));
     }
 
     void run()
     {
-        filter.spatialDim  = conv_dim_lookup[miopen::ToUpper(conv_dim_type)];
-        filter.mode        = cmode_lookup[miopen::ToUpper(conv_mode)];
-        filter.paddingMode = pmode_lookup[miopen::ToUpper(pad_mode)];
-
+        // Dry run prints just the entire command. One way to list all configs
+        if(dry_run)
+        {
+            show_command();
+            return;
+        }
+        filter.spatialDim       = conv_dim_lookup[miopen::ToUpper(conv_dim_type)];
+        filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
+        filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];
         std::size_t spatial_dim = filter.GetSpatialDimension();
 
         if(input.desc.GetSize() != 2 + spatial_dim || weights.desc.GetSize() != 2 + spatial_dim ||
@@ -834,6 +841,16 @@ struct conv_driver : test_driver
         {
             return;
         }
+
+        bool is_bfloat16 =
+            (input.desc.GetType() == miopenBFloat16 && weights.desc.GetType() == miopenBFloat16);
+
+        // bfloat16 is not supported for dilation configs, 2x2 filters and conv3d
+        if(is_bfloat16 &&
+           (!(filter.dilations[0] == 1 && filter.dilations[1] == 1) ||
+            (weights.desc.GetLengths()[2] == 2 && weights.desc.GetLengths()[3] == 2) ||
+            !(filter.spatialDim == 2)))
+            return;
 
         if(((filter.mode == miopenTranspose) &&
             ((filter.group_count == 1 && in_c_len == wei_k_len) ||

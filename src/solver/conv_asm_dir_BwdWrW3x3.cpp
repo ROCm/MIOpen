@@ -55,7 +55,45 @@ inline static bool Inc_1_2_4_8(int& v)
     return false;
 }
 
+inline static bool Inc_1_2_4(int& v)
+{
+    assert(v == 1 || v == 2 || v == 4);
+    if(v == 4)
+    {
+        v = 1;
+        return true;
+    }
+    v = v * 2;
+    return false;
+}
+
+inline static bool Inc_2_4_8(int& v)
+{
+    assert(v == 2 || v == 4 || v == 8);
+    if(v == 8)
+    {
+        v = 2;
+        return true;
+    }
+    v = v * 2;
+    return false;
+}
+
+inline static bool Inc_4_8_16(int& v)
+{
+    assert(v == 4 || v == 8 || v == 16);
+    if(v == 16)
+    {
+        v = 4;
+        return true;
+    }
+    v = v * 2;
+    return false;
+}
+
 inline static bool Is_1_2_4_8(const int& v) { return v == 1 || v == 2 || v == 4 || v == 8; }
+
+inline static bool Is_4_8_16(const int& v) { return v == 4 || v == 8 || v == 16; }
 
 bool PerformanceConfigAsmDirect3x3WrW::SetNextValue()
 {
@@ -75,21 +113,22 @@ bool PerformanceConfigAsmDirect3x3WrW::SetNextValue()
         if(++reverse_inout <= 1)
             break;
         reverse_inout = 0;
-        // (8 == chunk_size || 16 == chunk_size)
-        if((chunk_size += 8) <= 16)
+        // (8 == chunk_size || 16 == chunk_size || 4 == chunk_size)
+        if(!Inc_4_8_16(chunk_size))
             break;
-        chunk_size = 8;
         // (1 == k_per_wave || 2 == k_per_wave || 4 == k_per_wave || 8 == k_per_wave)
-        if(!Inc_1_2_4_8(k_per_wave))
+        if(use_spare_set ? !Inc_1_2_4_8(k_per_wave) : !Inc_2_4_8(k_per_wave))
             break;
         // (1 <= pipe_lines_depth && pipe_lines_depth <= 16)
-        if(++pipe_lines_depth <= 16)
+        if(++pipe_lines_depth <= (use_spare_set ? 16 : 8))
             break;
         pipe_lines_depth = 1;
-        // (1 <= n_per_group && n_per_group <= 8);
-        if(++n_per_group <= 8)
+        if(use_spare_set ? !Inc_1_2_4_8(n_per_group) : !Inc_1_2_4(n_per_group))
             break;
-        n_per_group = 1;
+        if(use_spare_set ? !Inc_1_2_4_8(waves_c_in_group) : !Inc_1_2_4(waves_c_in_group))
+            break;
+        if(use_spare_set ? !Inc_1_2_4_8(waves_k_in_group) : !Inc_1_2_4(waves_k_in_group))
+            break;
         // All the fields (components) of performance confic have wrapped around.
         return false;
     } while(false);
@@ -97,13 +136,16 @@ bool PerformanceConfigAsmDirect3x3WrW::SetNextValue()
 }
 
 PerformanceConfigAsmDirect3x3WrW::PerformanceConfigAsmDirect3x3WrW(
-    int lwc, int rio, int csz, int kpw, int pld, int npg)
+    int lwc, int rio, int csz, int kpw, int pld, int npg, int wcg, int wkg, bool spare)
     : limit_wave_cnt(lwc),
       reverse_inout(rio),
       chunk_size(csz),
       k_per_wave(kpw),
       pipe_lines_depth(pld),
-      n_per_group(npg)
+      n_per_group(npg),
+      waves_c_in_group(wcg),
+      waves_k_in_group(wkg),
+      use_spare_set(spare)
 {
 }
 
@@ -116,7 +158,10 @@ operator==(const PerformanceConfigAsmDirect3x3WrW& other) const
         && chunk_size == other.chunk_size
         && k_per_wave == other.k_per_wave
         && pipe_lines_depth == other.pipe_lines_depth
-        && n_per_group == other.n_per_group; // clang-format on
+        && n_per_group == other.n_per_group
+        && waves_c_in_group == other.waves_c_in_group
+        && waves_k_in_group == other.waves_k_in_group
+        && use_spare_set == other.use_spare_set; // clang-format on
 }
 
 bool PerformanceConfigAsmDirect3x3WrW::IsValidValue() const
@@ -124,10 +169,12 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValidValue() const
     // clang-format off
     return (0 <= limit_wave_cnt && limit_wave_cnt <= 9)
         && (0 <= reverse_inout && reverse_inout <= 1)
-        && (8 == chunk_size || 16 == chunk_size)
+        && Is_4_8_16(chunk_size)
         && Is_1_2_4_8(k_per_wave)
         && (1 <= pipe_lines_depth && pipe_lines_depth <= 16)
-        && (1 <= n_per_group && n_per_group <= 8); // clang-format on
+        && Is_1_2_4_8(n_per_group)
+        && Is_1_2_4_8(waves_c_in_group)
+        && Is_1_2_4_8(waves_k_in_group); // clang-format on
 }
 
 static bool IsReverseInOutAllowed(const ConvolutionContext& config)
@@ -144,23 +191,19 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config)
     assert(chunk_size != 0);
     if(reverse_inout == 0)
     {
-        if((config.n_outputs % (GetCPerWave() * config.group_counts) != 0) ||
-           (config.n_inputs % (GetKPerWave() * config.group_counts) != 0))
+        if((config.n_outputs % (GetCPerWave() * config.group_counts * waves_c_in_group) != 0) ||
+           (config.n_inputs % (GetKPerWave() * config.group_counts * waves_k_in_group) != 0))
             return false;
     }
     else
     {
-        if((config.n_outputs % (GetKPerWave() * config.group_counts) != 0) ||
-           (config.n_inputs % (GetCPerWave() * config.group_counts) != 0))
+        if((config.n_outputs % (GetKPerWave() * config.group_counts * waves_k_in_group) != 0) ||
+           (config.n_inputs % (GetCPerWave() * config.group_counts * waves_c_in_group) != 0))
             return false;
     }
     if((config.n_outputs % (64 / chunk_size) != 0) && (config.n_inputs % (64 / chunk_size) != 0))
         return false;
-    if((reverse_inout != 0 ? config.n_inputs : config.n_outputs) % GetCPerWave() != 0)
-        return false;
     if(!(chunk_size * k_per_wave <= 64))
-        return false;
-    if((reverse_inout != 0 ? config.n_outputs : config.n_inputs) % k_per_wave != 0)
         return false;
     if(!(n_per_group <= config.batch_sz))
         return false;
@@ -203,14 +246,25 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config)
         const int vgprs = accums_cnt + vgprs_for_lines_in + vgprs_for_lines_out +
                           (k_group_size_is_power_of_two ? 0 : vgprs_for_division) + 6 +
                           (elements_in_dword(config) - 1);
+        const int max_waves_per_CU = std::min((256 / vgprs) * 4, 8); // max workgroup size = 512;
+        if((waves_c_in_group >= 4 && waves_k_in_group > 1) ||
+           (waves_c_in_group > 1 && waves_k_in_group >= 4))
+            return false;
+        if(waves_c_in_group > 1 && waves_k_in_group > 1 && n_per_group > 1)
+            return false;
+        if(waves_k_in_group * waves_c_in_group * n_per_group > max_waves_per_CU)
+            return false;
         if(!(vgprs <= 256))
             return false;
         if(n_per_group > 4)
             if(!(vgprs <= 128))
                 return false;
+        if(!(n_per_group * waves_k_in_group * waves_c_in_group <= 16))
+            return false;
         if(limit_wave_cnt != 0 && limit_wave_cnt * 4 < n_per_group)
             return false;
-        const auto lds_size = (n_per_group - 1) * 64 /*wavesize*/ * sizeof(float) * accums_cnt;
+        const auto lds_size = (n_per_group - 1) * 64 /*wavesize*/ * sizeof(float) * accums_cnt *
+                              waves_c_in_group * waves_k_in_group;
         if(!(lds_size <= 65536))
             return false;
 
@@ -287,6 +341,8 @@ void PerformanceConfigAsmDirect3x3WrW::EuristicInit(const ConvolutionContext& co
         k_per_wave       = 1;
         pipe_lines_depth = 2;
         n_per_group      = 1;
+        waves_c_in_group = 1;
+        waves_k_in_group = 1;
         if(config.n_outputs % (4 * config.group_counts) != 0)
         {
             /// (1) If reverse is Off, then both (C % c_per_wave) and (K % k_per_wave) must be 0.
@@ -450,6 +506,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
             }
         }
     }
+
     GenerateClangDefsym(options, "limit_wave_cnt", pcfg->GetLimitWaveCnt());
     GenerateClangDefsym(options, "chunk_size", pcfg->GetChunkSize());
     GenerateClangDefsym(options, "c_per_wave", pcfg->GetCPerWave());
@@ -457,6 +514,8 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "n_per_group", pcfg->GetNPerGroup());
     GenerateClangDefsym(options, "pipe_lines_depth", pcfg->GetPipeLinesDepth());
     GenerateClangDefsym(options, "reverse_inout", pcfg->GetReverseInout());
+    GenerateClangDefsym(options, "waves_c_in_group", pcfg->GetWavesCInGroup());
+    GenerateClangDefsym(options, "waves_k_in_group", pcfg->GetWavesKInGroup());
     // Debugging:
     GenerateClangDefsym(options, "enable_debug_output", 0);
     GenerateClangDefsym(options, "group_counts", params.group_counts);
@@ -472,22 +531,26 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     kernel.comp_options = options.str();
 
     kernel.l_wk.clear(); // workgroupsize
-    kernel.l_wk.push_back(64 * pcfg->GetNPerGroup());
+    kernel.l_wk.push_back(64 * pcfg->GetNPerGroup() * pcfg->GetWavesCInGroup() *
+                          pcfg->GetWavesKInGroup());
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
     kernel.g_wk.clear(); // gridsize
-    kernel.g_wk.push_back(64 * pcfg->GetNPerGroup());
+    kernel.g_wk.push_back(64 * pcfg->GetNPerGroup() * pcfg->GetWavesCInGroup() *
+                          pcfg->GetWavesKInGroup());
 
     if(pcfg->GetReverseInout() == 0)
     {
-        kernel.g_wk.push_back(params.n_outputs / pcfg->GetCPerWave() / params.group_counts);
-        kernel.g_wk.push_back(params.n_inputs / pcfg->GetKPerWave());
+        kernel.g_wk.push_back(params.n_outputs / pcfg->GetCPerWave() / pcfg->GetWavesCInGroup() /
+                              params.group_counts);
+        kernel.g_wk.push_back(params.n_inputs / pcfg->GetKPerWave() / pcfg->GetWavesKInGroup());
     }
     else
     {
-        kernel.g_wk.push_back(params.n_outputs / pcfg->GetKPerWave() / params.group_counts);
-        kernel.g_wk.push_back(params.n_inputs / pcfg->GetCPerWave());
+        kernel.g_wk.push_back(params.n_outputs / pcfg->GetKPerWave() / pcfg->GetWavesKInGroup() /
+                              params.group_counts);
+        kernel.g_wk.push_back(params.n_inputs / pcfg->GetCPerWave() / pcfg->GetWavesCInGroup());
     }
 
     kernel.kernel_file = "conv3x3wrw.s";

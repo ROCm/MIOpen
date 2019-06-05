@@ -89,7 +89,9 @@ set( MIOpen_Source
     problem_description.cpp
     kernel_build_params.cpp
     find_db.cpp
+    conv_algo_name.cpp
     include/miopen/temp_file.hpp
+    include/miopen/bfloat16.hpp
     include/miopen/db.hpp
     include/miopen/db_record.hpp
     include/miopen/lock_file.hpp
@@ -126,6 +128,7 @@ set( MIOpen_Source
     include/miopen/solver_id.hpp
     include/miopen/any_solver.hpp
     include/miopen/conv_solution.hpp
+    include/miopen/conv_algo_name.hpp
     md_graph.cpp
     mdg_expr.cpp
     tensor.cpp

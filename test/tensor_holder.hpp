@@ -32,9 +32,9 @@
 #include <miopen/functional.hpp>
 #include <miopen/type_name.hpp>
 #include <miopen/each_args.hpp>
+#include <miopen/bfloat16.hpp>
 
 #include <half.hpp>
-#include <bf16.hpp>
 #include <iomanip>
 #include <fstream>
 

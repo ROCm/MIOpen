@@ -1166,7 +1166,7 @@ miopenConvolutionBackwardDataImmediate(miopenHandle_t handle,
                                        const void* w,
                                        const miopenConvolutionDescriptor_t convDesc,
                                        const miopenTensorDescriptor_t dxDesc,
-                                       const void* dx,
+                                       void* dx,
                                        void* workSpace,
                                        size_t workSpaceSize,
                                        const uint64_t solution_id);

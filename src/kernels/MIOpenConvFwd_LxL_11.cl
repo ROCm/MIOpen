@@ -23,34 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#define PPCAT_NX(A, B) A##B
-#define PPCAT(A, B) PPCAT_NX(A, B)
-#define TWO 2
-#define FOUR 4
-#define EIGHT 8
-
-#if MIOPEN_USE_FP16 == 1
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
-#define _FLOAT half
-#ifndef HALF_MAX
-#define MAX_VAL 65504 /* max value */
-#else
-#define MAX_VAL HALF_MAX
-#endif
-#endif
-#if MIOPEN_USE_FP32 == 1
-#define _FLOAT float
-#ifndef FLT_MAX
-#define MAX_VAL 3.402823466e+38F /* max value */
-#else
-#define MAX_VAL FLT_MAX
-#endif
-#endif
-
-#define _FLOAT2 PPCAT(_FLOAT, TWO)
-#define _FLOAT4 PPCAT(_FLOAT, FOUR)
-#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
+#include "float_types.h"
 
 #define UNUSED __attribute__((__unused__))
 
@@ -322,7 +295,7 @@ void Convolve(uint ex_row,
               uint bot_h,
               __local _FLOAT* __restrict wei_mem,
               __local _FLOAT* __restrict bot_mem,
-              __private _FLOAT* pvt_accum)
+              __private _FLOAT_ACCUM* pvt_accum)
 {
     // only for 11
     __private _FLOAT wei_vals[MLO_N_LCL_OUT_MAPS * MLO_N_FILTER_SPLITS0];
@@ -354,7 +327,8 @@ void Convolve(uint ex_row,
             {
                 _FLOAT in_val  = in_vals[n + i];
                 _FLOAT wei_val = wei_vals[k * MLO_N_FILTER_SPLITS0 + i];
-                pvt_accum[k * MLO_OUT_PIX_TILE0 + n] += wei_val * in_val;
+                pvt_accum[k * MLO_OUT_PIX_TILE0 + n] +=
+                    CVT_FLOAT2ACCUM(wei_val) * CVT_FLOAT2ACCUM(in_val);
 #if 0
 				if (wei_val * in_val != 0 && ib + b + bb == 0 && k_idx + k == 1 && out_y + ex_row == 0 && ex_pix + n == 0)
 				{
@@ -428,7 +402,7 @@ MIOpenCvFwd11x11(const __global _FLOAT* __restrict bot,
 #define MLO_ACCUM_SZ \
     (MLO_OUT_PIX_TILE1 * MLO_OUT_PIX_TILE0 * MLO_N_LCL_OUT_MAPS * MLO_N_LCL_IN_MAPS)
 
-    __private _FLOAT pvt_accum[MLO_ACCUM_SZ];
+    __private _FLOAT_ACCUM pvt_accum[MLO_ACCUM_SZ];
 
     // zero out LDS
     for(uint i = lcl_id; i < (MLO_LCL_MEM_SZ); i += MLO_GRP_SZ)
@@ -460,7 +434,7 @@ MIOpenCvFwd11x11(const __global _FLOAT* __restrict bot,
 
         for(uint i = 0; i < MLO_ACCUM_SZ; ++i)
         {
-            pvt_accum[i] = 0;
+            pvt_accum[i] = CVT_FLOAT2ACCUM(0);
         }
 
 // all input maps
@@ -606,7 +580,7 @@ MIOpenCvFwd11x11(const __global _FLOAT* __restrict bot,
                     if((k_idx + k) < MLO_N_OUTPUTS && ex_row < MLO_OUT_EXTENT1 &&
                        (out_y + ex_row) < MLO_OUT_HEIGHT && ex_pix + i < MLO_OUT_WIDTH)
                     {
-                        top_p[i] = pvt_accum[k * MLO_OUT_PIX_TILE0 + i];
+                        top_p[i] = CVT_ACCUM2FLOAT(pvt_accum[k * MLO_OUT_PIX_TILE0 + i]);
                     }
                 }
             }
@@ -725,7 +699,7 @@ void Convolve2(uint b,
                uint bot_h,
                __local _FLOAT* __restrict wei_mem,
                __local _FLOAT* __restrict bot_mem,
-               __private _FLOAT* pvt_accum)
+               __private _FLOAT_ACCUM* pvt_accum)
 {
     // only for 11
     __private _FLOAT wei_vals[MLO_N_LCL_OUT_MAPS * MLO_N_FILTER_SPLITS0];
@@ -757,7 +731,8 @@ void Convolve2(uint b,
             {
                 _FLOAT in_val  = in_vals[n + i];
                 _FLOAT wei_val = wei_vals[k * MLO_N_FILTER_SPLITS0 + i];
-                pvt_accum[k * MLO_OUT_PIX_TILE0 + n] += wei_val * in_val;
+                pvt_accum[k * MLO_OUT_PIX_TILE0 + n] +=
+                    CVT_FLOAT2ACCUM(wei_val) * CVT_FLOAT2ACCUM(in_val);
 #if 0
 				if (wei_val * in_val != 0 && ib + b + bb == 0 && k_idx + k == 1 && out_y + ex_row == 0 && ex_pix + n == 0)
 				{
@@ -823,7 +798,7 @@ MIOpenCvFwd11x11_2(const __global _FLOAT* __restrict bot,
 #define MLO_ACCUM_SZ \
     (MLO_OUT_PIX_TILE1 * MLO_OUT_PIX_TILE0 * MLO_N_LCL_OUT_MAPS * MLO_N_LCL_IN_MAPS)
 
-    __private _FLOAT pvt_accum[MLO_ACCUM_SZ];
+    __private _FLOAT_ACCUM pvt_accum[MLO_ACCUM_SZ];
 
     // zero out LDS
     for(uint i = lcl_id; i < (MLO_LCL_MEM_SZ); i += MLO_GRP_SZ)
@@ -866,7 +841,7 @@ MIOpenCvFwd11x11_2(const __global _FLOAT* __restrict bot,
 
         for(uint i = 0; i < MLO_ACCUM_SZ; ++i)
         {
-            pvt_accum[i] = 0;
+            pvt_accum[i] = CVT_FLOAT2ACCUM(0);
         }
 
 // all input maps
@@ -1016,7 +991,7 @@ MIOpenCvFwd11x11_2(const __global _FLOAT* __restrict bot,
                    (k_idx + k) < MLO_N_OUTPUTS && ex_row < MLO_LAST_OUT_EXTENT1 &&
                    (out_y + ex_row) < MLO_OUT_HEIGHT && ex_pix + i < MLO_OUT_WIDTH)
                 {
-                    top_p[i] = pvt_accum[k * MLO_OUT_PIX_TILE0 + i];
+                    top_p[i] = CVT_ACCUM2FLOAT(pvt_accum[k * MLO_OUT_PIX_TILE0 + i]);
                 }
 
 #if 0
@@ -1123,7 +1098,7 @@ void MoveDataIn(_FLOAT proc_dat[MLO_IN_PIX_TILE1][MLO_IN_PIX_TILE0],
 }
 #endif
 
-void Convolve(_FLOAT* pvt_accum,
+void Convolve(_FLOAT_ACCUM* pvt_accum,
               const _FLOAT proc_dat[MLO_IN_PIX_TILE1][MLO_IN_PIX_TILE0],
               const __local _FLOAT* lcl_mem,
               uint lcl_wei_read_off
@@ -1156,8 +1131,9 @@ void Convolve(_FLOAT* pvt_accum,
                         uint lcl_off = lcl_wei_read_off + k * MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0 +
                                        y * MLO_FILTER_SIZE0 + x;
                         pvt_accum[pvt_off] +=
-                            proc_dat[j / MLO_FILTER_STRIDE1 + jj][i / MLO_FILTER_STRIDE0 + ii] *
-                            lcl_mem[lcl_off];
+                            CVT_FLOAT2ACCUM(proc_dat[j / MLO_FILTER_STRIDE1 + jj]
+                                                    [i / MLO_FILTER_STRIDE0 + ii]) *
+                            CVT_FLOAT2ACCUM(lcl_mem[lcl_off]);
 #if 0
 
 						if (k == 0 && map_out_x + (int)i == 0 && map_out_y + (int)j == 66)
@@ -1197,8 +1173,9 @@ void Convolve(_FLOAT* pvt_accum,
                                            k * MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0 +
                                            y * MLO_FILTER_SIZE0 + x;
                             pvt_accum[pvt_off] +=
-                                proc_dat[j / MLO_FILTER_STRIDE1 + jj][i / MLO_FILTER_STRIDE0 + ii] *
-                                lcl_mem[lcl_off];
+                                CVT_FLOAT2ACCUM(proc_dat[j / MLO_FILTER_STRIDE1 + jj]
+                                                        [i / MLO_FILTER_STRIDE0 + ii]) *
+                                CVT_FLOAT2ACCUM(lcl_mem[lcl_off]);
 #if 0
 
 							if (k == 0 && map_out_x + (int)i == 0 && map_out_y + (int)j == 66)
@@ -1246,8 +1223,9 @@ void Convolve(_FLOAT* pvt_accum,
                                            k * MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0 +
                                            y * MLO_FILTER_SIZE0 + x;
                             pvt_accum[pvt_off] +=
-                                proc_dat[j / MLO_FILTER_STRIDE1 + jj][i / MLO_FILTER_STRIDE0 + ii] *
-                                lcl_mem[lcl_off];
+                                CVT_FLOAT2ACCUM(proc_dat[j / MLO_FILTER_STRIDE1 + jj]
+                                                        [i / MLO_FILTER_STRIDE0 + ii]) *
+                                CVT_FLOAT2ACCUM(lcl_mem[lcl_off]);
 #if 0
 
 							if (k == 0 && map_out_x + (int)i == 0 && map_out_y + (int)j == 66)
@@ -1285,9 +1263,10 @@ void Convolve(_FLOAT* pvt_accum,
                                 uint lcl_off = lcl_wei_read_off +
                                                k * MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0 +
                                                y * MLO_FILTER_SIZE0 + x;
-                                pvt_accum[pvt_off] += proc_dat[j / MLO_FILTER_STRIDE1 + jj]
-                                                              [i / MLO_FILTER_STRIDE0 + ii] *
-                                                      lcl_mem[lcl_off];
+                                pvt_accum[pvt_off] +=
+                                    CVT_FLOAT2ACCUM(proc_dat[j / MLO_FILTER_STRIDE1 + jj]
+                                                            [i / MLO_FILTER_STRIDE0 + ii]) *
+                                    CVT_FLOAT2ACCUM(lcl_mem[lcl_off]);
 #if 0
 
 								if (k == 0 && map_out_x + (int)i == 0 && map_out_y + (int)j == 66)
@@ -1345,11 +1324,11 @@ MIOpenCvBwd11x11(const __global _FLOAT* __restrict bot,
 
 #undef MLO_ACCUM_SZ
 #define MLO_ACCUM_SZ (MLO_OUT_PIX_TILE1 * MLO_OUT_PIX_TILE0 * MLO_N_LCL_OUT_MAPS)
-    _FLOAT pvt_accum[MLO_ACCUM_SZ];
+    _FLOAT_ACCUM pvt_accum[MLO_ACCUM_SZ];
 
     for(uint i = 0; i < MLO_ACCUM_SZ; ++i)
     {
-        pvt_accum[i] = 0;
+        pvt_accum[i] = CVT_FLOAT2ACCUM(0);
     }
 
     uint lcl_id = get_local_id(0);
@@ -1472,8 +1451,8 @@ MIOpenCvBwd11x11(const __global _FLOAT* __restrict bot,
                 if((k_idx + k) < MLO_N_OUTPUTS && map_out_y + j < MLO_OUT_HEIGHT &&
                    map_out_y + j >= 0 && map_out_x + i < MLO_OUT_WIDTH && map_out_x + i >= 0)
                 {
-                    top_p[j * MLO_OUT_STRIDE + i] =
-                        pvt_accum[(k * MLO_OUT_PIX_TILE1 + j) * MLO_OUT_PIX_TILE0 + i];
+                    top_p[j * MLO_OUT_STRIDE + i] = CVT_ACCUM2FLOAT(
+                        pvt_accum[(k * MLO_OUT_PIX_TILE1 + j) * MLO_OUT_PIX_TILE0 + i]);
                 }
             }
         }

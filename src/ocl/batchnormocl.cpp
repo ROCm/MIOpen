@@ -83,7 +83,7 @@ void BatchNormForwardTraining(Handle& handle,
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
-    if(miopen::CheckNumericsEnabled() != 0)
+    if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsInput(handle, xDesc, x);
         miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnScale);
@@ -666,7 +666,7 @@ void BatchNormForwardTraining(Handle& handle,
         }
     } // end per-activation
 
-    if(miopen::CheckNumericsEnabled() != 0)
+    if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsOutput(handle, yDesc, y);
         miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultRunningMean);
@@ -693,7 +693,7 @@ void BatchNormForwardInference(Handle& handle,
                                ConstData_t estimatedVariance,
                                double epsilon)
 {
-    if(miopen::CheckNumericsEnabled() != 0)
+    if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsInput(handle, xDesc, x);
         miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnScale);
@@ -835,7 +835,7 @@ void BatchNormForwardInference(Handle& handle,
                                  nullptr,
                                  nullptr);
     }
-    if(miopen::CheckNumericsEnabled() != 0)
+    if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsOutput(handle, yDesc, y);
     }
@@ -867,7 +867,7 @@ void BatchNormBackward(Handle& handle,
 #if(MIO_BN_TIME_EVERYTHING == 1)
     auto t_start = std::chrono::high_resolution_clock::now();
 #endif
-    if(miopen::CheckNumericsEnabled() != 0)
+    if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsInput(handle, xDesc, x);
         miopen::checkNumericsInput(handle, dyDesc, dy);
@@ -1423,7 +1423,7 @@ void BatchNormBackward(Handle& handle,
             }
         }
     }
-    if(miopen::CheckNumericsEnabled() != 0)
+    if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsOutput(handle, dxDesc, dx);
         miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnScaleDiff);
