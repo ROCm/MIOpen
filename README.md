@@ -114,7 +114,7 @@ The default path to the System PerfDb is `miopen/share/miopen/db/` within instal
 cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On ..
 ```
 
-Database paths can be explicitly customized by means of `MIOPEN_DB_PATH` (System PerfDb) and `MIOPEN_USER_DB_PATH` (User PerfDb) cmake variables.
+Database paths can be explicitly customized by means of `MIOPEN_SYSTEM_DB_PATH` (System PerfDb) and `MIOPEN_USER_DB_PATH` (User PerfDb) cmake variables.
 
 If the user installs a new version of MIOpen, it is recommended that the user move, or delete their old user database file. The user can find the file with the suffix `*.updb.txt` in the user perf db path. 
 

@@ -30,9 +30,10 @@
 
 namespace miopen {
 
-std::string GetDbPath();
+std::string GetSystemDbPath();
 const std::string& GetUserDbPath();
-const std::string& GetFindDbPath();
+std::string GetUserFindDbSuffix();
+std::string GetSystemFindDbSuffix();
 
 } // namespace miopen
 
