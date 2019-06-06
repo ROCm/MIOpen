@@ -1678,7 +1678,7 @@ void GetSolutions(Handle& handle,
         if(i >= maxSolutionCount)
             break;
 
-        solutions[i].algorihtm      = static_cast<miopenConvAlgorithm_t>(algoResolver(pair.first));
+        solutions[i].algorithm      = static_cast<miopenConvAlgorithm_t>(algoResolver(pair.first));
         solutions[i].time           = pair.second.time;
         solutions[i].workspace_size = pair.second.workspace;
         solutions[i].solution_id    = solver::Id{pair.second.solver_id};
