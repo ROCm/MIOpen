@@ -162,7 +162,7 @@ struct Handle : miopenHandle
         return result;
     }
 
-    std::string GetDbPathFilename()
+    std::string GetDbBasename()
     {
         // clang-format off
         return GetDeviceName()
