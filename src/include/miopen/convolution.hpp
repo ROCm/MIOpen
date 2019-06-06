@@ -69,6 +69,7 @@ using ExtraKernelArgs = std::tuple<int /*N*/,
                                    int /*out_W*/>;
 
 struct ConvFwdTensors;
+struct ConvWrwTensors;
 
 struct ConvolutionDescriptor : miopenConvolutionDescriptor
 {
@@ -330,6 +331,42 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                       std::size_t workSpaceSize,
                                       solver::Id solver_id) const;
 
+    std::size_t GetWrwSolutionCount(Handle& handle,
+                                    const TensorDescriptor& dyDesc,
+                                    const TensorDescriptor& xDesc,
+                                    const TensorDescriptor& dwDesc) const;
+
+    void GetWrwSolutions(Handle& handle,
+                         const TensorDescriptor& dyDesc,
+                         const TensorDescriptor& xDesc,
+                         const TensorDescriptor& dwDesc,
+                         size_t maxSolutionCount,
+                         size_t* solutionCount,
+                         miopenConvSolution_t* solutions) const;
+
+    void CompileWrwSolution(Handle& handle,
+                            const TensorDescriptor& dyDesc,
+                            const TensorDescriptor& xDesc,
+                            const TensorDescriptor& dwDesc,
+                            solver::Id solver_id) const;
+
+    std::size_t GetWrwSolutionWorkspaceSize(Handle& handle,
+                                            const TensorDescriptor& dyDesc,
+                                            const TensorDescriptor& xDesc,
+                                            const TensorDescriptor& dwDesc,
+                                            solver::Id solver_id) const;
+
+    void ConvolutionWrwImmediate(Handle& handle,
+                                 const TensorDescriptor& dyDesc,
+                                 ConstData_t dy,
+                                 const TensorDescriptor& xDesc,
+                                 ConstData_t x,
+                                 const TensorDescriptor& dwDesc,
+                                 Data_t dw,
+                                 Data_t workSpace,
+                                 std::size_t workSpaceSize,
+                                 solver::Id solver_id) const;
+
     std::size_t BackwardWeightsGetWorkSpaceSize(Handle& handle,
                                                 const TensorDescriptor& dyDesc,
                                                 const TensorDescriptor& xDesc,
@@ -402,6 +439,26 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                     const ConvBwdTensors& tensors,
                     Data_t workSpace,
                     size_t workSpaceSize) const;
+
+    ProblemDescription MakeWrwProblem(const TensorDescriptor& dyDesc,
+                                      const TensorDescriptor& xDesc,
+                                      const TensorDescriptor& dwDesc) const;
+
+    void BackwardWeightsGemm(Handle& handle,
+                             const ConvWrwTensors& tensors,
+                             Data_t workSpace,
+                             std::size_t workSpaceSize) const;
+
+    template <class TKernels>
+    void BackwardWeightsDirect(Handle& handle,
+                               const ConvolutionContext& ctx,
+                               const ConvWrwTensors& tensors,
+                               Data_t workSpace,
+                               const TKernels& kernels) const;
+
+    void BackwardWeightsWinograd(const ConvolutionContext& ctx,
+                                 const ConvWrwTensors& tensors,
+                                 const KernelInvoke& kernel) const;
 };
 
 void ConvolutionBackwardBias(Handle& handle,
