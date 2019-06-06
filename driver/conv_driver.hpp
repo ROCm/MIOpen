@@ -1154,7 +1154,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
         return rc;
     }
 
-    std::cout << "Solutions available: " << count << std::endl;
+    std::cout << "Forward Conv solutions available: " << count << std::endl;
     auto solutions = std::vector<miopenConvSolution_t>(count);
 
     miopenConvolutionForwardGetSolution(handle,
@@ -1275,7 +1275,8 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
     if(timer_enabled)
     {
         std::cout << "MIOpen Forward Conv. Algorithm: "
-                  << miopen::ConvolutionAlgoToString(selected->algorihtm) << std::endl;
+                  << miopen::ConvolutionAlgoToString(selected->algorihtm) << "["
+                  << selected->solution_id << "]" << std::endl;
         PrintForwardTime(kernel_total_time, kernel_first_time);
     }
 
@@ -1686,7 +1687,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
         return rc;
     }
 
-    std::cout << "Solutions available: " << count << std::endl;
+    std::cout << "Backward Data Conv solutions available: " << count << std::endl;
     auto solutions = std::vector<miopenConvSolution_t>(count);
 
     rc = miopenConvolutionBackwardDataGetSolution(
@@ -1790,7 +1791,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
     if(timer_enabled)
     {
         std::cout << "MIOpen Backward Data Conv. Algorithm: "
-                  << miopen::ConvolutionAlgoToString(selected->algorihtm) << std::endl;
+                  << miopen::ConvolutionAlgoToString(selected->algorihtm) << "["
+                  << selected->solution_id << "]" << std::endl;
         PrintBackwardDataTime(kernel_total_time, kernel_first_time);
     }
 
@@ -1802,7 +1804,133 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
 {
-    return 0;
+    std::size_t count;
+    auto rc = miopenConvolutionBackwardWeightsGetSolutionCount(
+        handle, outputTensor, inputTensor, convDesc, weightTensor, &count);
+
+    if(rc == miopenStatusNotImplemented)
+    {
+        std::cout << "Using immediate mode with no record in find-db is not implemented yet."
+                  << std::endl;
+        return rc;
+    }
+
+    std::cout << "Backward Weights Conv solutions available: " << count << std::endl;
+    auto solutions = std::vector<miopenConvSolution_t>(count);
+
+    rc = miopenConvolutionBackwardWeightsGetSolution(
+        handle, outputTensor, inputTensor, convDesc, weightTensor, count, &count, solutions.data());
+
+    solutions.resize(count);
+    std::sort(solutions.begin(), solutions.end(), [](auto& l, auto& r) { return l.time < r.time; });
+    const miopenConvSolution_t* selected = nullptr;
+
+    for(const auto& solution : solutions)
+    {
+        if(*immediate_solution == solution.solution_id)
+            selected = &solution;
+
+        std::cout << "Solution[" << solution.solution_id
+                  << "] - algo: " << miopen::ConvolutionAlgoToString(solution.algorihtm)
+                  << ", time: " << solution.time << " ms, ws: " << solution.workspace_size
+                  << std::endl;
+    }
+
+    if(*immediate_solution == 0)
+        selected = &solutions.front();
+
+    if(selected == nullptr)
+    {
+        std::cout << "Invalid solution id: " << *immediate_solution << std::endl;
+        return miopenStatusBadParm;
+    }
+
+    std::size_t ws_size;
+
+    rc = miopenConvolutionBackwardWeightsGetSolutionWorkspaceSize(
+        handle, outputTensor, inputTensor, convDesc, weightTensor, selected->solution_id, &ws_size);
+
+#if MIOPEN_BACKEND_OPENCL
+    cl_context ctx;
+
+    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
+#elif MIOPEN_BACKEND_HIP
+    uint32_t ctx = 0;
+#endif
+
+    auto ws =
+        std::unique_ptr<GPUMem>{ws_size > 0 ? new GPUMem{ctx, ws_size, sizeof(Tgpu)} : nullptr};
+
+    rc = miopenConvolutionBackwardWeightsCompileSolution(
+        handle, outputTensor, inputTensor, convDesc, weightTensor, selected->solution_id);
+
+    const auto iterations         = inflags.GetValueInt("iter");
+    const auto timer_enabled      = inflags.GetValueInt("time") == 1;
+    const auto wall_clock_enabled = timer_enabled && inflags.GetValueInt("wall") == 1;
+    float kernel_total_time       = 0.0;
+    float kernel_first_time       = 0.0;
+    Timer t;
+
+    if(wall_clock_enabled)
+    {
+        miopenConvolutionBackwardWeightsImmediate(handle,
+                                                  outputTensor,
+                                                  dout_dev->GetMem(),
+                                                  inputTensor,
+                                                  in_dev->GetMem(),
+                                                  convDesc,
+                                                  weightTensor,
+                                                  dwei_dev->GetMem(),
+                                                  ws ? ws->GetMem() : nullptr,
+                                                  ws_size,
+                                                  selected->solution_id);
+
+        t.start();
+    }
+
+    for(int i = 0; i < iterations; i++)
+    {
+        miopenConvolutionBackwardWeightsImmediate(handle,
+                                                  outputTensor,
+                                                  dout_dev->GetMem(),
+                                                  inputTensor,
+                                                  in_dev->GetMem(),
+                                                  convDesc,
+                                                  weightTensor,
+                                                  dwei_dev->GetMem(),
+                                                  ws ? ws->GetMem() : nullptr,
+                                                  ws_size,
+                                                  selected->solution_id);
+
+        float time = 0.0;
+        miopenGetKernelTime(GetHandle(), &time);
+        kernel_total_time += time;
+        if(i == 0)
+            kernel_first_time = time;
+    }
+
+    if(wall_clock_enabled)
+    {
+        t.stop();
+        std::cout << "Wall-clock Time Backward Weights Conv. Elapsed: "
+                  << (t.gettime_ms() / inflags.GetValueInt("iter")) << " ms" << std::endl;
+    }
+
+    if(timer_enabled)
+    {
+        std::cout << "MIOpen Backward Weights Conv. Algorithm: "
+                  << miopen::ConvolutionAlgoToString(selected->algorihtm) << "["
+                  << selected->solution_id << "]" << std::endl;
+        PrintBackwardWrwTime(kernel_total_time, kernel_first_time);
+    }
+
+    is_wrw_winograd = (selected->algorihtm == miopenConvolutionAlgoWinograd);
+    dwei_dev->FromGPU(GetStream(), dwei.data());
+
+    if(workspace_bwd_weights_dev != nullptr && is_wrw_winograd)
+        workspace_bwd_weights_dev->FromGPU(GetStream(), workspace_bwd_weights.data());
+
+    return rc;
 }
 
 template <typename Tgpu, typename Tref>

@@ -44,9 +44,16 @@ boost::optional<std::string>& FindDbRecord::path_override()
     return data;
 }
 
-std::string FindDbRecord::GetPath(Handle& handle)
+std::string FindDbRecord::GetInstalledPath(Handle& handle)
 {
-    return GetFindDbPath() + "/" + handle.GetDbPathFilename() + ".cd.fdb.txt";
+    return GetSystemDbPath() + "/" + handle.GetDbBasename() + "." + GetSystemFindDbSuffix() +
+           ".fdb.txt";
+}
+
+std::string FindDbRecord::GetUserPath(Handle& handle)
+{
+    return GetUserDbPath() + "/" + handle.GetDbBasename() + "." + GetUserFindDbSuffix() +
+           ".ufdb.txt";
 }
 
 bool FindDbRecord::CopyValidating(Handle& handle, std::vector<PerfField>& to) const
