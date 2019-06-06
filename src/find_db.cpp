@@ -73,9 +73,9 @@ bool FindDbRecord::CopyValidating(Handle& handle, std::vector<PerfField>& to) co
                 LogFindDbItem(is_valid, pair);
                 break;
             }
-        }
 
-        any = true;
+            any = true;
+        }
         to.push_back({pair.first, pair.second.solver_id, pair.second.time, pair.second.workspace});
     }
 
