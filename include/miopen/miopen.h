@@ -889,7 +889,7 @@ typedef struct
     size_t workspace_size; /*!< Workspace required to run the selected algorithm represented in the
                               union */
     uint64_t solution_id;  /*!< Identifier for the returned solution */
-    miopenConvAlgorithm_t algorihtm; /*!< The algorithm used to compute the solution */
+    miopenConvAlgorithm_t algorithm; /*!< The algorithm used to compute the solution */
 } miopenConvSolution_t;
 
 /*! @brief Query the maximum number of solutions applicable for the given input/output and weights
