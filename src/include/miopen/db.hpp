@@ -156,15 +156,16 @@ class Db
     }
 };
 
+template <bool merge_records>
 class MultiFileDb
 {
     public:
     MultiFileDb(const std::string& installed_path, const std::string& user_path)
-        : _installed(installed_path), _user(user_path, false)
+        : _installed(installed_path, merge_records), _user(user_path, false)
     {
     }
 
-    template <class T>
+    template <class T, bool merge = merge_records, std::enable_if_t<merge>* = nullptr>
     boost::optional<DbRecord> FindRecord(const T& problem_config)
     {
         auto users           = _user.FindRecord(problem_config);
@@ -180,6 +181,13 @@ class MultiFileDb
             return users;
 
         return installed;
+    }
+
+    template <class T, bool merge = merge_records, std::enable_if_t<!merge>* = nullptr>
+    boost::optional<DbRecord> FindRecord(const T& problem_config)
+    {
+        auto users = _user.FindRecord(problem_config);
+        return users ? users : _installed.FindRecord(problem_config);
     }
 
     bool StoreRecord(const DbRecord& record) { return _user.StoreRecord(record); }
