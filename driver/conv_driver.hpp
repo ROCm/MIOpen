@@ -1175,7 +1175,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
             selected = &solution;
 
         std::cout << "Solution[" << solution.solution_id
-                  << "] - algo: " << miopen::ConvolutionAlgoToString(solution.algorihtm)
+                  << "] - algo: " << miopen::ConvolutionAlgoToString(solution.algorithm)
                   << ", time: " << solution.time << " ms, ws: " << solution.workspace_size
                   << std::endl;
     }
@@ -1275,7 +1275,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
     if(timer_enabled)
     {
         std::cout << "MIOpen Forward Conv. Algorithm: "
-                  << miopen::ConvolutionAlgoToString(selected->algorihtm) << "["
+                  << miopen::ConvolutionAlgoToString(selected->algorithm) << "["
                   << selected->solution_id << "]" << std::endl;
         PrintForwardTime(kernel_total_time, kernel_first_time);
     }
@@ -1703,7 +1703,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
             selected = &solution;
 
         std::cout << "Solution[" << solution.solution_id
-                  << "] - algo: " << miopen::ConvolutionAlgoToString(solution.algorihtm)
+                  << "] - algo: " << miopen::ConvolutionAlgoToString(solution.algorithm)
                   << ", time: " << solution.time << " ms, ws: " << solution.workspace_size
                   << std::endl;
     }
@@ -1791,7 +1791,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
     if(timer_enabled)
     {
         std::cout << "MIOpen Backward Data Conv. Algorithm: "
-                  << miopen::ConvolutionAlgoToString(selected->algorihtm) << "["
+                  << miopen::ConvolutionAlgoToString(selected->algorithm) << "["
                   << selected->solution_id << "]" << std::endl;
         PrintBackwardDataTime(kernel_total_time, kernel_first_time);
     }
@@ -1831,7 +1831,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
             selected = &solution;
 
         std::cout << "Solution[" << solution.solution_id
-                  << "] - algo: " << miopen::ConvolutionAlgoToString(solution.algorihtm)
+                  << "] - algo: " << miopen::ConvolutionAlgoToString(solution.algorithm)
                   << ", time: " << solution.time << " ms, ws: " << solution.workspace_size
                   << std::endl;
     }
@@ -1919,12 +1919,12 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
     if(timer_enabled)
     {
         std::cout << "MIOpen Backward Weights Conv. Algorithm: "
-                  << miopen::ConvolutionAlgoToString(selected->algorihtm) << "["
+                  << miopen::ConvolutionAlgoToString(selected->algorithm) << "["
                   << selected->solution_id << "]" << std::endl;
         PrintBackwardWrwTime(kernel_total_time, kernel_first_time);
     }
 
-    is_wrw_winograd = (selected->algorihtm == miopenConvolutionAlgoWinograd);
+    is_wrw_winograd = (selected->algorithm == miopenConvolutionAlgoWinograd);
     dwei_dev->FromGPU(GetStream(), dwei.data());
 
     if(workspace_bwd_weights_dev != nullptr && is_wrw_winograd)
