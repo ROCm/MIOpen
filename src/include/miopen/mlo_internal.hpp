@@ -133,6 +133,7 @@ namespace miopen {
 
 struct TensorDescriptor;
 
+template <bool>
 class MultiFileDb;
 
 template <class TInnerDb>
@@ -151,7 +152,7 @@ class StaticContainer
     }
 };
 
-miopen::DbTimer<miopen::MultiFileDb> GetDb(const miopen::ConvolutionContext& ctx);
+miopen::DbTimer<miopen::MultiFileDb<true>> GetDb(const miopen::ConvolutionContext& ctx);
 
 template <class TTo>
 size_t setTopDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor)
@@ -264,9 +265,9 @@ struct ConvolutionContext : ProblemDescription
     std::string GetPerfDbPath() const
     {
         // clang-format off
-        return GetDbPath()
+        return GetSystemDbPath()
              + "/"
-             + GetStream().GetDbPathFilename()
+             + GetStream().GetDbBasename()
              + ".cd.pdb.txt";
         // clang-format on
     }
@@ -276,7 +277,7 @@ struct ConvolutionContext : ProblemDescription
         // clang-format off
         return GetUserDbPath()
              + "/"
-             + GetStream().GetDbPathFilename()
+             + GetStream().GetDbBasename()
              + ".cd.updb.txt";
         // clang-format on
     }
@@ -434,7 +435,7 @@ struct mlo_construct_base
     void detectRocm() { _search_params.DetectRocm(); }
     void setupFloats() { _search_params.SetupFloats(); }
 
-    miopen::DbTimer<miopen::MultiFileDb> GetDb() const;
+    miopen::DbTimer<miopen::MultiFileDb<true>> GetDb() const;
 
     /*
      * get common compiler options

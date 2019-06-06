@@ -471,6 +471,18 @@ install(FILES
     kernels/gfx900_56.cd.pdb.txt
     kernels/gfx906_64.cd.pdb.txt
     kernels/gfx906_60.cd.pdb.txt
+    kernels/gfx803_36.HIP.fdb.txt
+    kernels/gfx803_64.HIP.fdb.txt
+    kernels/gfx900_64.HIP.fdb.txt
+    kernels/gfx900_56.HIP.fdb.txt
+    kernels/gfx906_64.HIP.fdb.txt
+    kernels/gfx906_60.HIP.fdb.txt
+    kernels/gfx803_36.OpenCL.fdb.txt
+    kernels/gfx803_64.OpenCL.fdb.txt
+    kernels/gfx900_64.OpenCL.fdb.txt
+    kernels/gfx900_56.OpenCL.fdb.txt
+    kernels/gfx906_64.OpenCL.fdb.txt
+    kernels/gfx906_60.OpenCL.fdb.txt
  DESTINATION ${DATA_INSTALL_DIR}/db)
 
 rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})

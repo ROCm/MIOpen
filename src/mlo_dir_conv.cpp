@@ -50,13 +50,13 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
  **
  ************************************************************************************************************************/
 
-miopen::DbTimer<miopen::MultiFileDb> mlo_construct_base::GetDb() const
+miopen::DbTimer<miopen::MultiFileDb<true>> mlo_construct_base::GetDb() const
 {
     return {{db_path(), _search_params.GetUserPerfDbPath()}};
 }
 
 namespace miopen {
-miopen::DbTimer<miopen::MultiFileDb> GetDb(const miopen::ConvolutionContext& ctx)
+miopen::DbTimer<miopen::MultiFileDb<true>> GetDb(const miopen::ConvolutionContext& ctx)
 {
     return {{ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath()}};
 }

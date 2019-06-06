@@ -55,7 +55,8 @@ class FindDbRecord
 
     template <class TProblemDescription>
     FindDbRecord(Handle& handle, const TProblemDescription& problem)
-        : path(path_override() ? *path_override() : GetPath(handle)), db(TryLoadDb(path))
+        : path(path_override() ? *path_override() : GetUserPath(handle)),
+          db(TryLoadDb(path_override() ? *path_override() : GetInstalledPath(handle), path))
     {
         if(!db.is_initialized())
             return;
@@ -105,19 +106,21 @@ class FindDbRecord
 
     private:
     std::string path;
-    boost::optional<DbTimer<Db>> db;
+    boost::optional<DbTimer<MultiFileDb<false>>> db;
     boost::optional<DbRecord> content{boost::none};
     bool in_sync = false;
 
     static bool HasKernel(Handle& handle, const FindDbKCacheKey& key);
 
-    static std::string GetPath(Handle& handle);
+    static std::string GetInstalledPath(Handle& handle);
+    static std::string GetUserPath(Handle& handle);
 
-    static boost::optional<DbTimer<Db>> TryLoadDb(const std::string& path)
+    static boost::optional<DbTimer<MultiFileDb<false>>> TryLoadDb(const std::string& installed_path,
+                                                                  const std::string& user_path)
     {
         if(!enabled || IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}))
             return boost::none;
-        return DbTimer<Db>{{path, false}};
+        return DbTimer<MultiFileDb<false>>{{installed_path, user_path}};
     }
 
     // Returns true if rebuild is required
