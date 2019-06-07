@@ -451,7 +451,8 @@ static void DirConvFindCore(Handle& handle,
                                         yDesc.GetType());
                     time_gemm += handle.GetKernelTime();
 
-                    if(wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4)
+                    if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
+                       yDesc.GetType() != miopenInt32)
                     {
                         TensorDescriptor ygemmDesc(
                             miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
@@ -540,7 +541,8 @@ static void DirConvFindCore(Handle& handle,
                         time_gemm *= in_n;
                 }
 
-                if(wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4)
+                if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
+                   yDesc.GetType() != miopenInt32)
                 {
                     TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
 
@@ -636,7 +638,8 @@ static void DirConvFindCore(Handle& handle,
 
                 time_gemm += (in_n * (time_im2col + handle.GetKernelTime()));
 
-                if(wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4)
+                if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
+                   yDesc.GetType() != miopenInt32)
                 {
                     TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
 
@@ -1307,7 +1310,8 @@ void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
         if(handle.IsProfilingEnabled())
             t1 += handle.GetKernelTime();
 
-        if(tensors.wDesc.GetType() == miopenInt8 || tensors.wDesc.GetType() == miopenInt8x4)
+        if((tensors.wDesc.GetType() == miopenInt8 || tensors.wDesc.GetType() == miopenInt8x4) &&
+           tensors.yDesc.GetType() != miopenInt32)
         {
             TensorDescriptor ygemmDesc(
                 miopenInt32, tensors.yDesc.GetLengths(), tensors.yDesc.GetStrides());
@@ -1434,7 +1438,8 @@ void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
                     time_0 += handle.GetKernelTime();
             }
 
-            if(tensors.wDesc.GetType() == miopenInt8 || tensors.wDesc.GetType() == miopenInt8x4)
+            if((tensors.wDesc.GetType() == miopenInt8 || tensors.wDesc.GetType() == miopenInt8x4) &&
+               tensors.yDesc.GetType() != miopenInt32)
             {
                 TensorDescriptor ygemmDesc(
                     miopenInt32, tensors.yDesc.GetLengths(), tensors.yDesc.GetStrides());
@@ -1567,7 +1572,8 @@ void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
             }
         }
 
-        if(tensors.wDesc.GetType() == miopenInt8 || tensors.wDesc.GetType() == miopenInt8x4)
+        if((tensors.wDesc.GetType() == miopenInt8 || tensors.wDesc.GetType() == miopenInt8x4) &&
+           tensors.yDesc.GetType() != miopenInt32)
         {
             TensorDescriptor ygemmDesc(
                 miopenInt32, tensors.yDesc.GetLengths(), tensors.yDesc.GetStrides());

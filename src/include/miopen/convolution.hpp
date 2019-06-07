@@ -103,7 +103,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     int GetGroupCount() const;
 
     TensorDescriptor GetForwardOutputTensor(const TensorDescriptor& xDesc,
-                                            const TensorDescriptor& wDesc) const;
+                                            const TensorDescriptor& wDesc,
+                                            miopenDataType_t yType = miopenFloat) const;
 
     std::size_t ForwardGetWorkSpaceSizeGEMM(const TensorDescriptor& wDesc,
                                             const TensorDescriptor& yDesc) const;
