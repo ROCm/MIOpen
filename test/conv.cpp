@@ -845,11 +845,8 @@ struct conv_driver : test_driver
         bool is_bfloat16 =
             (input.desc.GetType() == miopenBFloat16 && weights.desc.GetType() == miopenBFloat16);
 
-        // bfloat16 is not supported for dilation configs, 2x2 filters and conv3d
-        if(is_bfloat16 &&
-           (!(filter.dilations[0] == 1 && filter.dilations[1] == 1) ||
-            (weights.desc.GetLengths()[2] == 2 && weights.desc.GetLengths()[3] == 2) ||
-            !(filter.spatialDim == 2)))
+        // bfloat16 is not supported for conv3d
+        if(is_bfloat16 && !(filter.spatialDim == 2))
             return;
 
         if(((filter.mode == miopenTranspose) &&
@@ -966,7 +963,8 @@ struct conv_driver : test_driver
                 bool skip_backward_weights = is_int8;
 
 #if TEST_DIRECT_SUPPORTED_CONFIG_ONLY
-                if(input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4)
+                if(input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4 ||
+                   input.desc.GetType() == miopenBFloat16)
                 {
                     return;
                 }

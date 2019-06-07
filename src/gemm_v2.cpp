@@ -95,7 +95,10 @@ dummy_memset(Handle& handle, Data_t mem, std::size_t mem_len, miopenDataType_t d
         data_size = sizeof(int);
         break;
     }
-    case miopenBFloat16: { break;
+    case miopenBFloat16:
+    {
+        data_size = sizeof(rocblas_bfloat16);
+        break;
     }
     case miopenHalf:
     {
@@ -378,7 +381,6 @@ miopenStatus_t CallGemm(Handle& handle,
                 nullptr);
         }
         break;
-        case miopenBFloat16: break;
         case miopenInt32: break;
         case miopenHalf:
         {
@@ -406,6 +408,43 @@ miopenStatus_t CallGemm(Handle& handle,
                 gemm_desc.ldc,
                 static_cast<rocblas_half*>(C) + c_offset,
                 rocblas_datatype::rocblas_datatype_f16_r,
+                gemm_desc.ldc,
+                rocblas_datatype::rocblas_datatype_f32_r,
+                rocblas_gemm_algo::rocblas_gemm_algo_standard,
+                0,
+                0,
+                &zero,
+                nullptr);
+        }
+        break;
+
+        case miopenBFloat16:
+        {
+
+            float alpha = gemm_desc.alpha;
+            float beta  = gemm_desc.beta;
+
+            std::size_t zero = 0;
+            rb_status        = rocblas_gemm_ex(
+                handle.rhandle().get(),
+                gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
+                gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
+                gemm_desc.m,
+                gemm_desc.n,
+                gemm_desc.k,
+                &alpha,
+                static_cast<const rocblas_bfloat16*>(A) + a_offset,
+                rocblas_datatype::rocblas_datatype_bf16_r,
+                gemm_desc.lda,
+                static_cast<const rocblas_bfloat16*>(B) + b_offset,
+                rocblas_datatype::rocblas_datatype_bf16_r,
+                gemm_desc.ldb,
+                &beta,
+                static_cast<const rocblas_bfloat16*>(C) + c_offset,
+                rocblas_datatype::rocblas_datatype_bf16_r,
+                gemm_desc.ldc,
+                static_cast<rocblas_bfloat16*>(C) + c_offset,
+                rocblas_datatype::rocblas_datatype_bf16_r,
                 gemm_desc.ldc,
                 rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
@@ -666,7 +705,6 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                 nullptr);
         }
         break;
-        case miopenBFloat16: break;
         case miopenInt32: break;
         case miopenHalf:
         {
@@ -697,6 +735,47 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                 gemm_desc.strideC,
                 static_cast<rocblas_half*>(C) + c_offset,
                 rocblas_datatype::rocblas_datatype_f16_r,
+                gemm_desc.ldc,
+                gemm_desc.strideC,
+                gemm_desc.batch_count,
+                rocblas_datatype::rocblas_datatype_f32_r,
+                rocblas_gemm_algo::rocblas_gemm_algo_standard,
+                0,
+                0,
+                &zero,
+                nullptr);
+        }
+        break;
+
+        case miopenBFloat16:
+        {
+            float alpha = gemm_desc.alpha;
+            float beta  = gemm_desc.beta;
+
+            std::size_t zero = 0;
+            rb_status        = rocblas_gemm_strided_batched_ex(
+                handle.rhandle().get(),
+                gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
+                gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
+                gemm_desc.m,
+                gemm_desc.n,
+                gemm_desc.k,
+                &alpha,
+                static_cast<const rocblas_bfloat16*>(A) + a_offset,
+                rocblas_datatype::rocblas_datatype_bf16_r,
+                gemm_desc.lda,
+                gemm_desc.strideA,
+                static_cast<const rocblas_bfloat16*>(B) + b_offset,
+                rocblas_datatype::rocblas_datatype_bf16_r,
+                gemm_desc.ldb,
+                gemm_desc.strideB,
+                &beta,
+                static_cast<const rocblas_bfloat16*>(C) + c_offset,
+                rocblas_datatype::rocblas_datatype_bf16_r,
+                gemm_desc.ldc,
+                gemm_desc.strideC,
+                static_cast<rocblas_bfloat16*>(C) + c_offset,
+                rocblas_datatype::rocblas_datatype_bf16_r,
                 gemm_desc.ldc,
                 gemm_desc.strideC,
                 gemm_desc.batch_count,
@@ -899,7 +978,6 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
             }
         }
         break;
-        case miopenBFloat16: break;
         case miopenInt32: break;
         case miopenHalf:
         {
@@ -929,6 +1007,45 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
                     gemm_desc.ldc,
                     static_cast<rocblas_half*>(C) + c_offset + i * gemm_desc.strideC,
                     rocblas_datatype::rocblas_datatype_f16_r,
+                    gemm_desc.ldc,
+                    rocblas_datatype::rocblas_datatype_f32_r,
+                    rocblas_gemm_algo::rocblas_gemm_algo_standard,
+                    0,
+                    0,
+                    &zero,
+                    nullptr);
+            }
+        }
+        break;
+
+        case miopenBFloat16:
+        {
+            float alpha = gemm_desc.alpha;
+            float beta  = gemm_desc.beta;
+
+            std::size_t zero = 0;
+            for(int i = 0; i < gemm_desc.batch_count; ++i)
+            {
+                rb_status = rocblas_gemm_ex(
+                    handle.rhandle().get(),
+                    gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
+                    gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
+                    gemm_desc.m,
+                    gemm_desc.n,
+                    gemm_desc.k,
+                    &alpha,
+                    static_cast<const rocblas_bfloat16*>(A) + a_offset + i * gemm_desc.strideA,
+                    rocblas_datatype::rocblas_datatype_bf16_r,
+                    gemm_desc.lda,
+                    static_cast<const rocblas_bfloat16*>(B) + b_offset + i * gemm_desc.strideB,
+                    rocblas_datatype::rocblas_datatype_bf16_r,
+                    gemm_desc.ldb,
+                    &beta,
+                    static_cast<const rocblas_bfloat16*>(C) + c_offset + i * gemm_desc.strideC,
+                    rocblas_datatype::rocblas_datatype_bf16_r,
+                    gemm_desc.ldc,
+                    static_cast<rocblas_half*>(C) + c_offset + i * gemm_desc.strideC,
+                    rocblas_datatype::rocblas_datatype_bf16_r,
                     gemm_desc.ldc,
                     rocblas_datatype::rocblas_datatype_f32_r,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard,

@@ -38,6 +38,10 @@
 #define MIOPEN_USE_FP16 0
 #endif
 
+#ifndef MIOPEN_USE_BFP16
+#define MIOPEN_USE_BFP16 0
+#endif
+
 #ifndef MIOPEN_USE_INT8
 #define MIOPEN_USE_INT8 0
 #endif
@@ -45,6 +49,8 @@
 #ifndef MIOPEN_USE_INT8x4
 #define MIOPEN_USE_INT8x4 0
 #endif
+
+#include "float_types.h"
 
 #if MIOPEN_USE_INT8 == 1 || MIOPEN_USE_INT8x4 == 1
 #define _FLOAT char
@@ -54,28 +60,6 @@
 #define MAX_VAL FLT_MAX
 #endif
 #endif
-#if MIOPEN_USE_FP16 == 1
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
-#define _FLOAT half
-#ifndef HALF_MAX
-#define MAX_VAL 65504 /* max value */
-#else
-#define MAX_VAL HALF_MAX
-#endif
-#endif
-#if MIOPEN_USE_FP32 == 1
-#define _FLOAT float
-#ifndef FLT_MAX
-#define MAX_VAL 3.402823466e+38F /* max value */
-#else
-#define MAX_VAL FLT_MAX
-#endif
-#endif
-
-#define _FLOAT2 PPCAT(_FLOAT, TWO)
-#define _FLOAT4 PPCAT(_FLOAT, FOUR)
-#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
-#define _AS_FLOAT PPCAT(as_, _FLOAT)
 
 #ifndef WORK_LENGTH_0
 #define WORK_LENGTH_0 1
