@@ -135,7 +135,8 @@ const std::vector<int>& ConvolutionDescriptor::GetTransposeConvPads() const
 int ConvolutionDescriptor::GetGroupCount() const { return group_count; }
 
 TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescriptor& xDesc,
-                                                               const TensorDescriptor& wDesc) const
+                                                               const TensorDescriptor& wDesc,
+                                                               miopenDataType_t yType) const
 {
     const std::size_t spatial_dim = GetSpatialDimension();
 
@@ -249,7 +250,7 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
     out_lens[1] = out_c;
 
     return TensorDescriptor((xDesc.GetType() == miopenInt8 || xDesc.GetType() == miopenInt8x4
-                                 ? miopenFloat
+                                 ? (yType == miopenInt32 ? yType : miopenFloat)
                                  : xDesc.GetType()),
                             out_lens);
 }
