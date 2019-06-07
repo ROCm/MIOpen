@@ -129,7 +129,7 @@ rocmtest opencl_tidy: rocmnode('rocmtest') { cmake_build ->
 }
 
 // Quick tests
-rocmtest opencl: rocmnode('vega') { cmake_build ->
+rocmtest opencl:rocmnode('vega') { cmake_build ->
     stage('Clang Debug') {
         cmake_build('clang++-3.8', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
     }
@@ -179,7 +179,11 @@ rocmtest opencl: rocmnode('vega') { cmake_build ->
     stage('Int8 GCC Release') {
         cmake_build('g++-5', '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
     }
-}
+}, bfloat16_hip: rocmnode('vega20') { cmake_build ->
+    stage('Bfloat16 Hip Release') {
+        cmake_build('hcc', '-DMIOPEN_TEST_BFLOAT16=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
+    }
+} 
 
 // All tests
 rocmtest opencl_all: rocmnode('vega') { cmake_build ->
@@ -198,9 +202,11 @@ rocmtest opencl_all: rocmnode('vega') { cmake_build ->
     stage('Int8 Hip Release All') {
         cmake_build('hcc', '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
+}, bfloat16_hip_all: rocmnode('vega20') { cmake_build ->
+    stage('Bfloat16 Hip Release All') {
+        cmake_build('hcc', '-DMIOPEN_TEST_BFLOAT16=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+    }
 }
-
-
 
 // Package stage
 rocmtest opencl_package: rocmnode('rocmtest') { cmake_build ->

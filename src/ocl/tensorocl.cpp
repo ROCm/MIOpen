@@ -1345,6 +1345,10 @@ static std::string parms_half_or_float(const miopenDataType_t t)
         break;
     }
     case miopenBFloat16:
+    {
+        s = " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_BFP16=1";
+        break;
+    }
     case miopenInt32: break;
     }
 
@@ -1578,7 +1582,7 @@ void ScaleTensor(
     assert(yDim_flat > 0 && yDim_flat <= 5);
 
     const miopenDataType_t dataType = yDesc_flat.GetType();
-    if(dataType == miopenInt8 || dataType == miopenInt8x4)
+    if(dataType == miopenInt8 || dataType == miopenInt8x4 || dataType == miopenBFloat16)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }

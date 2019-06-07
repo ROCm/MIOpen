@@ -195,6 +195,8 @@ float Im2d2ColGPU(Handle& handle,
             params += " -DMIOPEN_USE_INT8x4=1";
         else if(type == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
+        else if(type == miopenBFloat16)
+            params += " -DMIOPEN_USE_BFP16=1";
         else
             params += " -DMIOPEN_USE_FP32=1";
 
@@ -316,6 +318,8 @@ float Im3d2ColGPU(Handle& handle,
             params += " -DMIOPEN_USE_INT8x4=1";
         else if(type == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
+        else if(type == miopenBFloat16)
+            params += " -DMIOPEN_USE_BFP16=1";
         else
             params += " -DMIOPEN_USE_FP32=1";
 
@@ -418,9 +422,11 @@ float Col2Im2dGPU(Handle& handle,
     {
         std::string params;
         if(type == miopenFloat)
-            params += "-DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+            params += "-DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_BFP16=0";
+        else if(type == miopenBFloat16)
+            params += "-DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_BFP16=1";
         else
-            params += "-DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
+            params += "-DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_BFP16=0";
 
         const std::vector<size_t> vld{256, 1, 1};
         size_t global_threads = in_c * in_h * in_w;
@@ -527,9 +533,11 @@ float Col2Im3dGPU(Handle& handle,
     {
         std::string params;
         if(type == miopenFloat)
-            params += "-DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+            params += "-DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_BFP16=0";
+        else if(type == miopenBFloat16)
+            params += "-DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_BFP16=1";
         else
-            params += "-DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
+            params += "-DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_BFP16=0";
 
         const std::vector<size_t> vld{256, 1, 1};
         size_t global_threads = in_c * in_d * in_h * in_w;
@@ -755,6 +763,8 @@ float transpose_NCHW2CNHW(Handle& handle,
         }
         else if(type == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
+        else if(type == miopenBFloat16)
+            params += " -DMIOPEN_USE_BFP16=1";
         else
             params += " -DMIOPEN_USE_FP32=1";
 
@@ -887,6 +897,8 @@ float transpose_CNHW2NCHW(Handle& handle,
         }
         else if(type == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
+        else if(type == miopenBFloat16)
+            params += " -DMIOPEN_USE_BFP16=1";
         else
             params += " -DMIOPEN_USE_FP32=1";
 
@@ -1122,10 +1134,10 @@ float transpose_packed_MN2NM(Handle& handle,
             out_offset /= 4;
             params += " -DMIOPEN_USE_INT8x4=1";
         }
-        else if(type == miopenHalf)
-            params += " -DMIOPEN_USE_FP16=1";
         else
-            params += " -DMIOPEN_USE_FP32=1";
+        {
+            MIOPEN_THROW("transpose_packed_MN2NM only meant for int8 variants.");
+        }
 
         params += " -DNC_TRANS_MN2NM=1";
 
