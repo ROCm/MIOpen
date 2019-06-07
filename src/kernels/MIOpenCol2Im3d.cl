@@ -23,28 +23,17 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include "float_types.h"
+
 #if MIOPEN_USE_FP16
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
-typedef half data_t;
-typedef float accumulator_t;
 #define ACCUMULATOR_NEEDS_CONVERSION 1
-#ifndef HALF_MAX
-#define MAX_VAL 65504 /* max value */
-#else
-#define MAX_VAL HALF_MAX
-#endif
+#elif MIOPEN_USE_BFP16
+#define ACCUMULATOR_NEEDS_CONVERSION 1
 #elif MIOPEN_USE_FP32
-typedef float data_t;
-typedef float accumulator_t;
 #define ACCUMULATOR_NEEDS_CONVERSION 0
-#ifndef FLT_MAX
-#define MAX_VAL 3.402823466e+38F /* max value */
-#else
-#define MAX_VAL FLT_MAX
-#endif
 #endif
 
-__kernel void Col2Im3d(global data_t* col,
+__kernel void Col2Im3d(global _FLOAT* col,
                        const int col_d,
                        const int col_h,
                        const int col_w,
@@ -63,10 +52,10 @@ __kernel void Col2Im3d(global data_t* col,
                        const int depth,
                        const int height,
                        const int width,
-                       global data_t* im,
+                       global _FLOAT* im,
                        const int im_offset)
 {
-    global data_t* im_off = im + im_offset;
+    global _FLOAT* im_off = im + im_offset;
     int gid               = (int)get_global_id(0);
 
     int im_ch = gid / (width * height * depth);
@@ -98,7 +87,7 @@ __kernel void Col2Im3d(global data_t* col,
     int ch_offset = im_ch * col_d * col_w * col_h * wei_d * wei_w * wei_h;
     col += ch_offset;
 
-    accumulator_t tmp = (accumulator_t)0;
+    _FLOAT_ACCUM tmp = (_FLOAT_ACCUM)0;
 
     for(int cz = start_d; cz < end_d; cz++)
     {
@@ -117,14 +106,14 @@ __kernel void Col2Im3d(global data_t* col,
                     int col_off =
                         (((((z * wei_h) + y) * wei_w + x) * col_d + cz) * col_h + cy) * col_w + cx;
 
-                    tmp += (accumulator_t)(col[col_off]);
+                    tmp += CVT_FLOAT2ACCUM(col[col_off]);
                 }
             }
         }
     }
 #if ACCUMULATOR_NEEDS_CONVERSION
-    im_off[gid] = tmp > ((accumulator_t)MAX_VAL) ? MAX_VAL : (data_t)tmp;
+    im_off[gid] = tmp > CVT_FLOAT2ACCUM(MAX_VAL) ? MAX_VAL : CVT_ACCUM2FLOAT(tmp);
 #else
-    im_off[gid] = tmp;
+    im_off[gid] = CVT_ACCUM2FLOAT(tmp);
 #endif
 }
