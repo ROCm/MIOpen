@@ -31,7 +31,6 @@
 #include "random.hpp"
 
 using float16 = half_float::half;
-// typedef half float16;
 
 #include "InputFlags.hpp"
 #include <algorithm>
@@ -45,18 +44,13 @@ using float16 = half_float::half;
 #include <vector>
 
 #if MIOPEN_BACKEND_OPENCL
-
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/cl.h>
 #else
 #include <CL/cl.h>
 #endif
-
 #elif MIOPEN_BACKEND_HIP
 #include <hip/hip_runtime_api.h>
-
-#define printf(...) fprintf(stdout, __VA_ARGS__)
-
 #endif
 
 #define UNPACK_VEC4(v) (v[0]), (v[1]), (v[2]), (v[3])
