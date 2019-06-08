@@ -250,6 +250,56 @@ miopenConvolutionForwardGetWorkSpaceSize(miopenHandle_t handle,
     return (miopenStatusSuccess);
 }
 
+static void LogCmdConvolution(const miopenTensorDescriptor_t xDesc,
+                              const miopenTensorDescriptor_t wDesc,
+                              const miopenConvolutionDescriptor_t convDesc,
+                              const bool is_immediate)
+{
+    if(miopen::IsLoggingCmd())
+    {
+        std::stringstream ss;
+        if(miopen::deref(xDesc).GetType() == miopenHalf)
+        {
+            ss << "convfp16";
+        }
+        else if(miopen::deref(xDesc).GetType() == miopenBFloat16)
+        {
+            ss << "convbfp16";
+        }
+        else if(miopen::deref(xDesc).GetType() == miopenInt8 ||
+                miopen::deref(xDesc).GetType() == miopenInt8x4)
+        {
+            ss << "convint8";
+        }
+        else
+        {
+            ss << "conv";
+        }
+        ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
+            << " -c " << miopen::deref(xDesc).GetLengths()[1]
+            << " -H " << miopen::deref(xDesc).GetLengths()[2]
+            << " -W " << miopen::deref(xDesc).GetLengths()[3]
+            << " -k " << miopen::deref(wDesc).GetLengths()[0]
+            << " -y " << miopen::deref(wDesc).GetLengths()[2]
+            << " -x " << miopen::deref(wDesc).GetLengths()[3]
+            << " -p " << miopen::deref(convDesc).GetConvPads()[0]
+            << " -q " << miopen::deref(convDesc).GetConvPads()[1]
+            << " -u " << miopen::deref(convDesc).GetConvStrides()[0]
+            << " -v " << miopen::deref(convDesc).GetConvStrides()[1]
+            << " -l " << miopen::deref(convDesc).GetConvDilations()[0]
+            << " -j " << miopen::deref(convDesc).GetConvDilations()[1]
+            << " -m " << (miopen::deref(convDesc).mode == 1 ? "trans" : "conv")
+            << " -g " << miopen::deref(convDesc).group_count
+            << " -F 1"
+            << " -t 1"; // clang-format on
+        if(miopen::deref(xDesc).GetType() == miopenInt8x4)
+            ss << " -Z 1";
+        if(is_immediate)
+            ss << " -S 0";
+        MIOPEN_LOG_DRIVER_CMD(ss.str());
+    }
+}
+
 extern "C" miopenStatus_t
 miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
                                       const miopenTensorDescriptor_t xDesc,
@@ -352,48 +402,7 @@ extern "C" miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
                         y,
                         workSpace,
                         workSpaceSize);
-
-    if(miopen::IsLoggingCmd())
-    {
-        std::stringstream ss;
-        if(miopen::deref(xDesc).GetType() == miopenHalf)
-        {
-            ss << "convfp16";
-        }
-        else if(miopen::deref(xDesc).GetType() == miopenBFloat16)
-        {
-            ss << "convbfp16";
-        }
-        else if(miopen::deref(xDesc).GetType() == miopenInt8 ||
-                miopen::deref(xDesc).GetType() == miopenInt8x4)
-        {
-            ss << "convint8";
-        }
-        else
-        {
-            ss << "conv";
-        }
-        ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
-            << " -c " << miopen::deref(xDesc).GetLengths()[1]
-            << " -H " << miopen::deref(xDesc).GetLengths()[2]
-            << " -W " << miopen::deref(xDesc).GetLengths()[3]
-            << " -k " << miopen::deref(wDesc).GetLengths()[0]
-            << " -y " << miopen::deref(wDesc).GetLengths()[2]
-            << " -x " << miopen::deref(wDesc).GetLengths()[3]
-            << " -p " << miopen::deref(convDesc).GetConvPads()[0]
-            << " -q " << miopen::deref(convDesc).GetConvPads()[1]
-            << " -u " << miopen::deref(convDesc).GetConvStrides()[0]
-            << " -v " << miopen::deref(convDesc).GetConvStrides()[1]
-            << " -l " << miopen::deref(convDesc).GetConvDilations()[0]
-            << " -j " << miopen::deref(convDesc).GetConvDilations()[1]
-            << " -m " << (miopen::deref(convDesc).mode == 1 ? "trans" : "conv")
-            << " -g " << miopen::deref(convDesc).group_count
-            << " -F 1"
-            << " -t 1"; // clang-format on
-        if(miopen::deref(xDesc).GetType() == miopenInt8x4)
-            ss << " -Z 1";
-        MIOPEN_LOG_DRIVER_CMD(ss.str());
-    }
+    LogCmdConvolution(xDesc, wDesc, convDesc, false);
 
     /// workaround for previous trans conv logic
     if(miopen::deref(convDesc).mode == miopenTranspose)
@@ -555,6 +564,7 @@ miopenConvolutionForwardImmediate(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(
         handle, wDesc, w, xDesc, x, convDesc, yDesc, y, workSpace, workSpaceSize, solution_id);
+    LogCmdConvolution(xDesc, wDesc, convDesc, true);
 
     return miopen::try_([&] {
         miopen::deref(convDesc).ConvolutionForwardImmediate(miopen::deref(handle),
