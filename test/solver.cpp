@@ -96,6 +96,7 @@ class SearchableTestSolver : public solver::SolverBase<ConvolutionContext>
     static int searches_done() { return _serches_done; }
     static const char* FileName() { return "SearchableTestSolver"; }
     static const char* NoSearchFileName() { return "SearchableTestSolver.NoSearch"; }
+    bool IsApplicable(const ConvolutionContext& /* context */) const { return true; }
 
     TestConfig GetPerformanceConfig(const ConvolutionContext&) const
     {
@@ -205,6 +206,7 @@ class SolverTest
 
         const auto sol = FindSolution(ctx, db_path);
 
+        EXPECT_OP(sol.construction_params.size(), >, 0);
         EXPECT_EQUAL(sol.construction_params[0].kernel_file, expected_kernel);
     }
 };

@@ -150,7 +150,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     // backwards compatibility. New solvers should only be added to the end of list unless it is
     // intended to reuse an id of a removed solver.
 
-    uint64_t id = 0;
+    uint64_t id = 0; // 0 is reserved for invalid value.
     RegisterWithSolver(registry, ++id, ConvAsm3x3U{});
     RegisterWithSolver(registry, ++id, ConvAsm1x1U{});
     RegisterWithSolver(registry, ++id, ConvAsm1x1UV2{});

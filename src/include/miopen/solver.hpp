@@ -100,7 +100,7 @@ struct SolverBase
     /// GetPerformanceConfig() so that GetSolution() would return valid
     /// solution for a problem (i.e. convolution). In other words, if a Solution
     /// says "I'm suitable" for a problem, it agrees to solve that problem correctly.
-    bool IsApplicable(const Context&) const { return true; }
+    bool IsApplicable(const Context&) const { return false; }
 
     /// Legacy euristic method which shall return false when a solution
     /// is known to be slower than some another solution for the same problem config.
@@ -320,11 +320,11 @@ struct PerformanceConfigConvAsm1x1UV2 : Serializable<PerformanceConfigConvAsm1x1
     int GetChunkSize() const { return chunk_size; }
     int GetDwordsPerLd() const { return dwords_per_ld; }
     int GetCMult() const { return c_mult; }
-    int GetKMult() const { return k_mult; }    
+    int GetKMult() const { return k_mult; }
     int GetNMult() const { return n_mult; }
     int GetWMult() const { return w_mult; }
     int GetHMult() const { return h_mult; }
-    int GetHPerChunk() const { return h_per_chunk; }    
+    int GetHPerChunk() const { return h_per_chunk; }
     int GetWavesCInGroup() const { return waves_c_in_group; }
     int GetWavesKInGroup() const { return waves_k_in_group; }
     int GetNPerGpr() const { assert(chunk_size); return 64 / chunk_size; }
@@ -773,6 +773,16 @@ struct ConvOclBwdWrW1x1 : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
+};
+
+/// Partial implementation.
+struct gemm : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& /*params*/) const { return false; };
+    ConvSolution GetSolution(const ConvolutionContext&) const
+    {
+        return ConvSolution{miopenStatusNotInitialized};
+    }
 };
 
 struct AnySolver;

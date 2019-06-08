@@ -156,7 +156,12 @@ int main(int argc, char* argv[])
 
     if(fargval & 1 || fargval == 0 || bnFwdInVer)
     {
-        drv->RunForwardGPU();
+        int rc = drv->RunForwardGPU();
+        if(rc != 0)
+        {
+            std::cout << "RunForwardGPU() failed, rc = " << rc << std::endl;
+            return rc;
+        }
         if(verifyarg)
             drv->VerifyForward();
     }

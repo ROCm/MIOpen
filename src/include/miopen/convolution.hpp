@@ -126,6 +126,11 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
 
     bool IsWinograd3x3SupportedAndFast(miopen::ConvolutionContext& ctx) const;
 
+    std::size_t ForwardGetValidWorkSpaceSizeGemm(Handle& handle,
+                                                 const TensorDescriptor& wDesc,
+                                                 const TensorDescriptor& xDesc,
+                                                 const TensorDescriptor& yDesc) const;
+
     std::size_t ForwardGetWorkSpaceSize(Handle& handle,
                                         const TensorDescriptor& wDesc,
                                         const TensorDescriptor& xDesc,

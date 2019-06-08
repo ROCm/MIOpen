@@ -1039,6 +1039,9 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPU()
     else
         rc = RunForwardGpuFind(is_transform);
 
+    if(rc != miopenStatusSuccess)
+        return rc;
+
     if(inflags.GetValueInt("bias") != 0)
     {
         float alpha = static_cast<float>(1), beta = static_cast<float>(0);
@@ -1146,39 +1149,41 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
                                                  convDesc,
                                                  outputTensor,
                                                  &count);
-
-    if(rc == miopenStatusNotImplemented)
-    {
-        std::cout << "Using immediate mode with no record in find-db is not implemented yet."
-                  << std::endl;
+    if(rc != miopenStatusSuccess)
         return rc;
-    }
+    std::cout << "Solutions available: " << count << std::endl;
+    if(count < 1)
+        return miopenStatusNotImplemented;
 
     std::cout << "Forward Conv solutions available: " << count << std::endl;
     auto solutions = std::vector<miopenConvSolution_t>(count);
+    rc             = miopenConvolutionForwardGetSolution(handle,
+                                             (is_transform ? weightTensor_vect4 : weightTensor),
+                                             (is_transform ? inputTensor_vect4 : inputTensor),
+                                             convDesc,
+                                             outputTensor,
+                                             count,
+                                             &count,
+                                             solutions.data());
+    if(rc != miopenStatusSuccess)
+        return rc;
+    if(count < 1)
+        return miopenStatusNotImplemented;
 
-    miopenConvolutionForwardGetSolution(handle,
-                                        (is_transform ? weightTensor_vect4 : weightTensor),
-                                        (is_transform ? inputTensor_vect4 : inputTensor),
-                                        convDesc,
-                                        outputTensor,
-                                        count,
-                                        &count,
-                                        solutions.data());
     solutions.resize(count);
-    std::sort(solutions.begin(), solutions.end(), [](auto& l, auto& r) { return l.time < r.time; });
+    std::sort(solutions.begin(), solutions.end(), [](auto& l, auto& r) {
+        return l.time < r.time;
+    }); /// FIXME sort this in the library
     const miopenConvSolution_t* selected = nullptr;
 
-    for(const auto& solution : solutions)
-    {
-        if(*immediate_solution == solution.solution_id)
-            selected = &solution;
+    for(const auto& s : solutions)
+        std::cout << "Solution[" << s.solution_id
+                  << "] - algo: " << miopen::ConvolutionAlgoToString(s.algorithm)
+                  << ", time: " << s.time << " ms, ws: " << s.workspace_size << std::endl;
 
-        std::cout << "Solution[" << solution.solution_id
-                  << "] - algo: " << miopen::ConvolutionAlgoToString(solution.algorithm)
-                  << ", time: " << solution.time << " ms, ws: " << solution.workspace_size
-                  << std::endl;
-    }
+    for(const auto& s : solutions)
+        if(*immediate_solution == s.solution_id)
+            selected = &s;
 
     if(*immediate_solution == 0)
         selected = &solutions.front();
@@ -1191,7 +1196,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
 
     std::size_t ws_size;
 
-    miopenConvolutionForwardGetSolutionWorkspaceSize(
+    rc = miopenConvolutionForwardGetSolutionWorkspaceSize(
         handle,
         (is_transform ? weightTensor_vect4 : weightTensor),
         (is_transform ? inputTensor_vect4 : inputTensor),
@@ -1199,6 +1204,8 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
         outputTensor,
         selected->solution_id,
         &ws_size);
+    if(rc != miopenStatusSuccess)
+        return rc;
 
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
@@ -1211,12 +1218,14 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
     auto ws =
         std::unique_ptr<GPUMem>{ws_size > 0 ? new GPUMem{ctx, ws_size, sizeof(Tgpu)} : nullptr};
 
-    miopenConvolutionForwardCompileSolution(handle,
-                                            (is_transform ? weightTensor_vect4 : weightTensor),
-                                            (is_transform ? inputTensor_vect4 : inputTensor),
-                                            convDesc,
-                                            outputTensor,
-                                            selected->solution_id);
+    rc = miopenConvolutionForwardCompileSolution(handle,
+                                                 (is_transform ? weightTensor_vect4 : weightTensor),
+                                                 (is_transform ? inputTensor_vect4 : inputTensor),
+                                                 convDesc,
+                                                 outputTensor,
+                                                 selected->solution_id);
+    if(rc != miopenStatusSuccess)
+        return rc;
 
     const auto iterations         = inflags.GetValueInt("iter");
     const auto timer_enabled      = inflags.GetValueInt("time") == 1;
@@ -1227,7 +1236,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
 
     if(wall_clock_enabled)
     {
-        miopenConvolutionForwardImmediate(
+        rc = miopenConvolutionForwardImmediate(
             handle,
             (is_transform ? weightTensor_vect4 : weightTensor),
             (is_transform ? wei_vect4_dev->GetMem() : wei_dev->GetMem()),
@@ -1239,13 +1248,15 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
             ws ? ws->GetMem() : nullptr,
             ws_size,
             selected->solution_id);
+        if(rc != miopenStatusSuccess)
+            return rc;
 
         t.start();
     }
 
     for(int i = 0; i < iterations; i++)
     {
-        miopenConvolutionForwardImmediate(
+        rc = miopenConvolutionForwardImmediate(
             handle,
             (is_transform ? weightTensor_vect4 : weightTensor),
             (is_transform ? wei_vect4_dev->GetMem() : wei_dev->GetMem()),
@@ -1257,6 +1268,8 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
             ws ? ws->GetMem() : nullptr,
             ws_size,
             selected->solution_id);
+        if(rc != miopenStatusSuccess)
+            return rc;
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
