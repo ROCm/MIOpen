@@ -258,6 +258,7 @@ struct ConvolutionContext : ProblemDescription
         : ProblemDescription(in, weights, out, conv, dir, bias_)
     {
     }
+    ConvolutionContext(const ProblemDescription& problem) : ProblemDescription(problem) {}
 
     void DetectRocm();
     void SetupFloats();
