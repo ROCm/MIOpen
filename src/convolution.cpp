@@ -365,6 +365,37 @@ ConvolutionDescriptor::ForwardGetValidWorkSpaceSizeGemm(Handle& handle,
 
     return workspace_size_gemm;
 #else
+    (void)handle;
+    (void)wDesc;
+    (void)xDesc;
+    (void)yDesc;
+    return 0;
+#endif
+}
+
+std::size_t
+ConvolutionDescriptor::WrwGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDesc,
+                                                    const TensorDescriptor& /*xDesc*/,
+                                                    const TensorDescriptor& dwDesc) const
+{
+#if MIOPEN_USE_GEMM
+    const std::size_t spatial_dim = GetSpatialDimension();
+    const auto wei_spatial        = boost::adaptors::slice(dwDesc.GetLengths(), 2, 2 + spatial_dim);
+
+    // if not 1x1
+    if((miopen::any_of(wei_spatial, [](auto v) { return v != 1; }) ||
+        miopen::any_of(GetConvPads(), [](auto v) { return v != 0; }) ||
+        miopen::any_of(GetConvStrides(), [](auto v) { return v != 1; })))
+        return BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc) * group_count;
+
+    if(miopen::any_of(wei_spatial, [](auto v) { return v == 1; }) &&
+       miopen::any_of(GetConvPads(), [](auto v) { return v == 0; }) &&
+       miopen::any_of(GetConvStrides(), [](auto v) { return v == 1; }))
+        return 0;
+
+    MIOPEN_THROW(miopenStatusNotImplemented);
+#else
+    (void)handle;
     (void)wDesc;
     (void)xDesc;
     (void)yDesc;
