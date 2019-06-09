@@ -131,6 +131,10 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                                  const TensorDescriptor& xDesc,
                                                  const TensorDescriptor& yDesc) const;
 
+    std::size_t BackwardGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDesc,
+                                                  const TensorDescriptor& wDesc,
+                                                  const TensorDescriptor& dxDesc) const;
+
     std::size_t ForwardGetWorkSpaceSize(Handle& handle,
                                         const TensorDescriptor& wDesc,
                                         const TensorDescriptor& xDesc,
@@ -465,6 +469,33 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     void BackwardWeightsWinograd(const ConvolutionContext& ctx,
                                  const ConvWrwTensors& tensors,
                                  const KernelInvoke& kernel) const;
+
+    std::size_t GetSolutionWorkspaceSizeFallback(Handle& handle,
+                                                 const TensorDescriptor& wDesc,
+                                                 const TensorDescriptor& xDesc,
+                                                 const TensorDescriptor& yDesc,
+                                                 solver::Id solver_id) const;
+
+    std::size_t GetBwdSolutionWorkspaceSizeFallback(const TensorDescriptor& dyDesc,
+                                                    const TensorDescriptor& wDesc,
+                                                    const TensorDescriptor& dxDesc,
+                                                    solver::Id solver_id) const;
+
+    void GetForwardSolutionsFallback(Handle& handle,
+                                     const TensorDescriptor& wDesc,
+                                     const TensorDescriptor& xDesc,
+                                     const TensorDescriptor& yDesc,
+                                     size_t maxSolutionCount,
+                                     size_t* solutionCount,
+                                     miopenConvSolution_t* solutions) const;
+
+    void GetBwdSolutionsFallback(Handle& handle,
+                                 const TensorDescriptor& dyDesc,
+                                 const TensorDescriptor& wDesc,
+                                 const TensorDescriptor& dxDesc,
+                                 size_t maxSolutionCount,
+                                 size_t* solutionCount,
+                                 miopenConvSolution_t* solutions) const;
 };
 
 void ConvolutionBackwardBias(Handle& handle,
