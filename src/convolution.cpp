@@ -365,7 +365,6 @@ ConvolutionDescriptor::ForwardGetValidWorkSpaceSizeGemm(Handle& handle,
 
     return workspace_size_gemm;
 #else
-    (void)handle;
     (void)wDesc;
     (void)xDesc;
     (void)yDesc;
