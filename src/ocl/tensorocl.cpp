@@ -1584,7 +1584,8 @@ void ScaleTensor(
     const miopenDataType_t dataType = yDesc_flat.GetType();
     if(dataType == miopenInt8 || dataType == miopenInt8x4 || dataType == miopenBFloat16)
     {
-        MIOPEN_THROW(miopenStatusBadParm);
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "Tensor scale operation is not supported for int8, int8x4, and bfloat16.");
     }
 
     std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(yDim_flat) + "d";
@@ -1935,9 +1936,11 @@ void CastTensor(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
     }
 
-    if(srcDesc.GetType() == miopenInt8x4 || dstDesc.GetType() == miopenInt8x4)
+    if(srcDesc.GetType() == miopenInt8x4 || dstDesc.GetType() == miopenInt8x4 ||
+       srcDesc.GetType() == miopenBFloat16 || dstDesc.GetType() == miopenBFloat16)
     {
-        MIOPEN_THROW(miopenStatusBadParm);
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "Tensor cast operation is not supported for int8, int8x4, and bfloat16.");
     }
 
     auto flat_descriptors = GetConsistentFlattenedTensorDescriptors(srcDesc, dstDesc);
