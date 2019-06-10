@@ -482,10 +482,16 @@ miopenConvolutionForwardGetSolutionCount(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, wDesc, xDesc, convDesc, yDesc);
     return miopen::try_([&] {
-        *solutionCount = miopen::deref(convDesc).GetForwardSolutionCount(miopen::deref(handle),
-                                                                         miopen::deref(wDesc),
-                                                                         miopen::deref(xDesc),
-                                                                         miopen::deref(yDesc));
+        if(miopen::deref(convDesc).mode == miopenTranspose)
+            *solutionCount = miopen::deref(convDesc).GetBackwardSolutionCount(miopen::deref(handle),
+                                                                              miopen::deref(xDesc),
+                                                                              miopen::deref(wDesc),
+                                                                              miopen::deref(yDesc));
+        else
+            *solutionCount = miopen::deref(convDesc).GetForwardSolutionCount(miopen::deref(handle),
+                                                                             miopen::deref(wDesc),
+                                                                             miopen::deref(xDesc),
+                                                                             miopen::deref(yDesc));
     });
 }
 
@@ -501,13 +507,22 @@ miopenConvolutionForwardGetSolution(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, wDesc, xDesc, convDesc, yDesc, maxSolutionCount);
     return miopen::try_([&] {
-        miopen::deref(convDesc).GetForwardSolutions(miopen::deref(handle),
-                                                    miopen::deref(wDesc),
-                                                    miopen::deref(xDesc),
-                                                    miopen::deref(yDesc),
-                                                    maxSolutionCount,
-                                                    solutionCount,
-                                                    solutions);
+        if(miopen::deref(convDesc).mode == miopenTranspose)
+            miopen::deref(convDesc).GetBackwardSolutions(miopen::deref(handle),
+                                                         miopen::deref(xDesc),
+                                                         miopen::deref(wDesc),
+                                                         miopen::deref(yDesc),
+                                                         maxSolutionCount,
+                                                         solutionCount,
+                                                         solutions);
+        else
+            miopen::deref(convDesc).GetForwardSolutions(miopen::deref(handle),
+                                                        miopen::deref(wDesc),
+                                                        miopen::deref(xDesc),
+                                                        miopen::deref(yDesc),
+                                                        maxSolutionCount,
+                                                        solutionCount,
+                                                        solutions);
     });
 }
 
@@ -522,12 +537,20 @@ miopenConvolutionForwardGetSolutionWorkspaceSize(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, wDesc, xDesc, convDesc, yDesc, solution_id, workSpaceSize);
     return miopen::try_([&] {
-        *workSpaceSize =
-            miopen::deref(convDesc).GetForwardSolutionWorkspaceSize(miopen::deref(handle),
-                                                                    miopen::deref(wDesc),
-                                                                    miopen::deref(xDesc),
-                                                                    miopen::deref(yDesc),
-                                                                    solution_id);
+        if(miopen::deref(convDesc).mode == miopenTranspose)
+            *workSpaceSize =
+                miopen::deref(convDesc).GetBackwardSolutionWorkspaceSize(miopen::deref(handle),
+                                                                         miopen::deref(xDesc),
+                                                                         miopen::deref(wDesc),
+                                                                         miopen::deref(yDesc),
+                                                                         solution_id);
+        else
+            *workSpaceSize =
+                miopen::deref(convDesc).GetForwardSolutionWorkspaceSize(miopen::deref(handle),
+                                                                        miopen::deref(wDesc),
+                                                                        miopen::deref(xDesc),
+                                                                        miopen::deref(yDesc),
+                                                                        solution_id);
     });
 }
 
@@ -541,11 +564,18 @@ miopenConvolutionForwardCompileSolution(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, wDesc, xDesc, convDesc, yDesc, solution_id);
     return miopen::try_([&] {
-        miopen::deref(convDesc).CompileForwardSolution(miopen::deref(handle),
-                                                       miopen::deref(wDesc),
-                                                       miopen::deref(xDesc),
-                                                       miopen::deref(yDesc),
-                                                       solution_id);
+        if(miopen::deref(convDesc).mode == miopenTranspose)
+            miopen::deref(convDesc).CompileBackwardSolution(miopen::deref(handle),
+                                                            miopen::deref(xDesc),
+                                                            miopen::deref(wDesc),
+                                                            miopen::deref(yDesc),
+                                                            solution_id);
+        else
+            miopen::deref(convDesc).CompileForwardSolution(miopen::deref(handle),
+                                                           miopen::deref(wDesc),
+                                                           miopen::deref(xDesc),
+                                                           miopen::deref(yDesc),
+                                                           solution_id);
     });
 }
 
@@ -567,16 +597,28 @@ miopenConvolutionForwardImmediate(miopenHandle_t handle,
     LogCmdConvolution(xDesc, wDesc, convDesc, true);
 
     return miopen::try_([&] {
-        miopen::deref(convDesc).ConvolutionForwardImmediate(miopen::deref(handle),
-                                                            miopen::deref(wDesc),
-                                                            DataCast(w),
-                                                            miopen::deref(xDesc),
-                                                            DataCast(x),
-                                                            miopen::deref(yDesc),
-                                                            DataCast(y),
-                                                            DataCast(workSpace),
-                                                            workSpaceSize,
-                                                            solution_id);
+        if(miopen::deref(convDesc).mode == miopenTranspose)
+            miopen::deref(convDesc).ConvolutionBackwardImmediate(miopen::deref(handle),
+                                                                 miopen::deref(xDesc),
+                                                                 DataCast(x),
+                                                                 miopen::deref(wDesc),
+                                                                 DataCast(w),
+                                                                 miopen::deref(yDesc),
+                                                                 DataCast(y),
+                                                                 DataCast(workSpace),
+                                                                 workSpaceSize,
+                                                                 solution_id);
+        else
+            miopen::deref(convDesc).ConvolutionForwardImmediate(miopen::deref(handle),
+                                                                miopen::deref(wDesc),
+                                                                DataCast(w),
+                                                                miopen::deref(xDesc),
+                                                                DataCast(x),
+                                                                miopen::deref(yDesc),
+                                                                DataCast(y),
+                                                                DataCast(workSpace),
+                                                                workSpaceSize,
+                                                                solution_id);
     });
 }
 
@@ -590,10 +632,17 @@ miopenConvolutionBackwardDataGetSolutionCount(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, dyDesc, wDesc, convDesc, dxDesc);
     return miopen::try_([&] {
-        *solutionCount = miopen::deref(convDesc).GetBackwardSolutionCount(miopen::deref(handle),
-                                                                          miopen::deref(dyDesc),
-                                                                          miopen::deref(wDesc),
-                                                                          miopen::deref(dxDesc));
+        if(miopen::deref(convDesc).mode == miopenTranspose)
+            *solutionCount = miopen::deref(convDesc).GetForwardSolutionCount(miopen::deref(handle),
+                                                                             miopen::deref(wDesc),
+                                                                             miopen::deref(dyDesc),
+                                                                             miopen::deref(dxDesc));
+        else
+            *solutionCount =
+                miopen::deref(convDesc).GetBackwardSolutionCount(miopen::deref(handle),
+                                                                 miopen::deref(dyDesc),
+                                                                 miopen::deref(wDesc),
+                                                                 miopen::deref(dxDesc));
     });
 }
 
@@ -609,13 +658,23 @@ miopenConvolutionBackwardDataGetSolution(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, dyDesc, wDesc, convDesc, dxDesc, maxSolutionCount, solutionCount);
     return miopen::try_([&] {
-        miopen::deref(convDesc).GetBackwardSolutions(miopen::deref(handle),
-                                                     miopen::deref(dyDesc),
-                                                     miopen::deref(wDesc),
-                                                     miopen::deref(dxDesc),
-                                                     maxSolutionCount,
-                                                     solutionCount,
-                                                     solutions);
+        if(miopen::deref(convDesc).mode == miopenTranspose)
+            miopen::deref(convDesc).GetForwardSolutions(miopen::deref(handle),
+                                                        miopen::deref(wDesc),
+                                                        miopen::deref(dyDesc),
+                                                        miopen::deref(dxDesc),
+                                                        maxSolutionCount,
+                                                        solutionCount,
+                                                        solutions);
+
+        else
+            miopen::deref(convDesc).GetBackwardSolutions(miopen::deref(handle),
+                                                         miopen::deref(dyDesc),
+                                                         miopen::deref(wDesc),
+                                                         miopen::deref(dxDesc),
+                                                         maxSolutionCount,
+                                                         solutionCount,
+                                                         solutions);
     });
 }
 
@@ -630,12 +689,20 @@ miopenConvolutionBackwardDataGetSolutionWorkspaceSize(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, dyDesc, wDesc, convDesc, dxDesc, solution_id, workSpaceSize);
     return miopen::try_([&] {
-        *workSpaceSize =
-            miopen::deref(convDesc).GetBackwardSolutionWorkspaceSize(miopen::deref(handle),
-                                                                     miopen::deref(dyDesc),
-                                                                     miopen::deref(wDesc),
-                                                                     miopen::deref(dxDesc),
-                                                                     solution_id);
+        if(miopen::deref(convDesc).mode == miopenTranspose)
+            *workSpaceSize =
+                miopen::deref(convDesc).GetForwardSolutionWorkspaceSize(miopen::deref(handle),
+                                                                        miopen::deref(wDesc),
+                                                                        miopen::deref(dyDesc),
+                                                                        miopen::deref(dxDesc),
+                                                                        solution_id);
+        else
+            *workSpaceSize =
+                miopen::deref(convDesc).GetBackwardSolutionWorkspaceSize(miopen::deref(handle),
+                                                                         miopen::deref(dyDesc),
+                                                                         miopen::deref(wDesc),
+                                                                         miopen::deref(dxDesc),
+                                                                         solution_id);
     });
 }
 
@@ -649,11 +716,18 @@ miopenConvolutionBackwardDataCompileSolution(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, dyDesc, wDesc, convDesc, dxDesc, solution_id);
     return miopen::try_([&] {
-        miopen::deref(convDesc).CompileBackwardSolution(miopen::deref(handle),
-                                                        miopen::deref(dyDesc),
-                                                        miopen::deref(wDesc),
-                                                        miopen::deref(dxDesc),
-                                                        solution_id);
+        if(miopen::deref(convDesc).mode == miopenTranspose)
+            miopen::deref(convDesc).CompileForwardSolution(miopen::deref(handle),
+                                                           miopen::deref(wDesc),
+                                                           miopen::deref(dyDesc),
+                                                           miopen::deref(dxDesc),
+                                                           solution_id);
+        else
+            miopen::deref(convDesc).CompileBackwardSolution(miopen::deref(handle),
+                                                            miopen::deref(dyDesc),
+                                                            miopen::deref(wDesc),
+                                                            miopen::deref(dxDesc),
+                                                            solution_id);
     });
 }
 
@@ -673,16 +747,28 @@ miopenConvolutionBackwardDataImmediate(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(
         handle, dyDesc, wDesc, convDesc, dxDesc, workSpace, workSpaceSize, solution_id);
     return miopen::try_([&] {
-        miopen::deref(convDesc).ConvolutionBackwardImmediate(miopen::deref(handle),
-                                                             miopen::deref(dyDesc),
-                                                             DataCast(dy),
-                                                             miopen::deref(wDesc),
-                                                             DataCast(w),
-                                                             miopen::deref(dxDesc),
-                                                             DataCast(dx),
-                                                             DataCast(workSpace),
-                                                             workSpaceSize,
-                                                             solution_id);
+        if(miopen::deref(convDesc).mode == miopenTranspose)
+            miopen::deref(convDesc).ConvolutionForwardImmediate(miopen::deref(handle),
+                                                                miopen::deref(wDesc),
+                                                                DataCast(w),
+                                                                miopen::deref(dyDesc),
+                                                                DataCast(dy),
+                                                                miopen::deref(dxDesc),
+                                                                DataCast(dx),
+                                                                DataCast(workSpace),
+                                                                workSpaceSize,
+                                                                solution_id);
+        else
+            miopen::deref(convDesc).ConvolutionBackwardImmediate(miopen::deref(handle),
+                                                                 miopen::deref(dyDesc),
+                                                                 DataCast(dy),
+                                                                 miopen::deref(wDesc),
+                                                                 DataCast(w),
+                                                                 miopen::deref(dxDesc),
+                                                                 DataCast(dx),
+                                                                 DataCast(workSpace),
+                                                                 workSpaceSize,
+                                                                 solution_id);
     });
 }
 extern "C" miopenStatus_t
@@ -695,10 +781,16 @@ miopenConvolutionBackwardWeightsGetSolutionCount(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, dyDesc, xDesc, convDesc, dwDesc, solutionCount);
     return miopen::try_([&] {
-        *solutionCount = miopen::deref(convDesc).GetWrwSolutionCount(miopen::deref(handle),
-                                                                     miopen::deref(dyDesc),
-                                                                     miopen::deref(xDesc),
-                                                                     miopen::deref(dwDesc));
+        if(miopen::deref(convDesc).mode == miopenTranspose)
+            *solutionCount = miopen::deref(convDesc).GetWrwSolutionCount(miopen::deref(handle),
+                                                                         miopen::deref(xDesc),
+                                                                         miopen::deref(dyDesc),
+                                                                         miopen::deref(dwDesc));
+        else
+            *solutionCount = miopen::deref(convDesc).GetWrwSolutionCount(miopen::deref(handle),
+                                                                         miopen::deref(dyDesc),
+                                                                         miopen::deref(xDesc),
+                                                                         miopen::deref(dwDesc));
     });
 }
 
@@ -714,13 +806,22 @@ miopenConvolutionBackwardWeightsGetSolution(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, dyDesc, xDesc, convDesc, dwDesc, maxSolutionCount, solutionCount);
     return miopen::try_([&] {
-        miopen::deref(convDesc).GetWrwSolutions(miopen::deref(handle),
-                                                miopen::deref(dyDesc),
-                                                miopen::deref(xDesc),
-                                                miopen::deref(dwDesc),
-                                                maxSolutionCount,
-                                                solutionCount,
-                                                solutions);
+        if(miopen::deref(convDesc).mode == miopenTranspose)
+            miopen::deref(convDesc).GetWrwSolutions(miopen::deref(handle),
+                                                    miopen::deref(xDesc),
+                                                    miopen::deref(dyDesc),
+                                                    miopen::deref(dwDesc),
+                                                    maxSolutionCount,
+                                                    solutionCount,
+                                                    solutions);
+        else
+            miopen::deref(convDesc).GetWrwSolutions(miopen::deref(handle),
+                                                    miopen::deref(dyDesc),
+                                                    miopen::deref(xDesc),
+                                                    miopen::deref(dwDesc),
+                                                    maxSolutionCount,
+                                                    solutionCount,
+                                                    solutions);
     });
 }
 
@@ -735,11 +836,20 @@ extern "C" miopenStatus_t miopenConvolutionBackwardWeightsGetSolutionWorkspaceSi
 {
     MIOPEN_LOG_FUNCTION(handle, dyDesc, xDesc, convDesc, dwDesc, solution_id, workSpaceSize);
     return miopen::try_([&] {
-        *workSpaceSize = miopen::deref(convDesc).GetWrwSolutionWorkspaceSize(miopen::deref(handle),
-                                                                             miopen::deref(dyDesc),
-                                                                             miopen::deref(xDesc),
-                                                                             miopen::deref(dwDesc),
-                                                                             solution_id);
+        if(miopen::deref(convDesc).mode == miopenTranspose)
+            *workSpaceSize =
+                miopen::deref(convDesc).GetWrwSolutionWorkspaceSize(miopen::deref(handle),
+                                                                    miopen::deref(xDesc),
+                                                                    miopen::deref(dyDesc),
+                                                                    miopen::deref(dwDesc),
+                                                                    solution_id);
+        else
+            *workSpaceSize =
+                miopen::deref(convDesc).GetWrwSolutionWorkspaceSize(miopen::deref(handle),
+                                                                    miopen::deref(dyDesc),
+                                                                    miopen::deref(xDesc),
+                                                                    miopen::deref(dwDesc),
+                                                                    solution_id);
     });
 }
 
@@ -753,11 +863,18 @@ miopenConvolutionBackwardWeightsCompileSolution(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, dyDesc, xDesc, convDesc, dwDesc, solution_id);
     return miopen::try_([&] {
-        miopen::deref(convDesc).CompileWrwSolution(miopen::deref(handle),
-                                                   miopen::deref(dyDesc),
-                                                   miopen::deref(xDesc),
-                                                   miopen::deref(dwDesc),
-                                                   solution_id);
+        if(miopen::deref(convDesc).mode == miopenTranspose)
+            miopen::deref(convDesc).CompileWrwSolution(miopen::deref(handle),
+                                                       miopen::deref(xDesc),
+                                                       miopen::deref(dyDesc),
+                                                       miopen::deref(dwDesc),
+                                                       solution_id);
+        else
+            miopen::deref(convDesc).CompileWrwSolution(miopen::deref(handle),
+                                                       miopen::deref(dyDesc),
+                                                       miopen::deref(xDesc),
+                                                       miopen::deref(dwDesc),
+                                                       solution_id);
     });
 }
 
@@ -777,16 +894,28 @@ miopenConvolutionBackwardWeightsImmediate(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(
         handle, dyDesc, dy, xDesc, x, convDesc, dwDesc, dw, workSpace, workSpaceSize, solution_id);
     return miopen::try_([&] {
-        miopen::deref(convDesc).ConvolutionWrwImmediate(miopen::deref(handle),
-                                                        miopen::deref(dyDesc),
-                                                        DataCast(dy),
-                                                        miopen::deref(xDesc),
-                                                        DataCast(x),
-                                                        miopen::deref(dwDesc),
-                                                        DataCast(dw),
-                                                        DataCast(workSpace),
-                                                        workSpaceSize,
-                                                        solution_id);
+        if(miopen::deref(convDesc).mode == miopenTranspose)
+            miopen::deref(convDesc).ConvolutionWrwImmediate(miopen::deref(handle),
+                                                            miopen::deref(xDesc),
+                                                            DataCast(x),
+                                                            miopen::deref(dyDesc),
+                                                            DataCast(dy),
+                                                            miopen::deref(dwDesc),
+                                                            DataCast(dw),
+                                                            DataCast(workSpace),
+                                                            workSpaceSize,
+                                                            solution_id);
+        else
+            miopen::deref(convDesc).ConvolutionWrwImmediate(miopen::deref(handle),
+                                                            miopen::deref(dyDesc),
+                                                            DataCast(dy),
+                                                            miopen::deref(xDesc),
+                                                            DataCast(x),
+                                                            miopen::deref(dwDesc),
+                                                            DataCast(dw),
+                                                            DataCast(workSpace),
+                                                            workSpaceSize,
+                                                            solution_id);
     });
 }
 
