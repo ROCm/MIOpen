@@ -59,7 +59,7 @@ if(MIOPEN_TEST_INT8)
 endif()
 
 if(MIOPEN_TEST_BFLOAT16)
-    set(SKIP_ALL_EXCEPT_TESTS test_conv)
+    set(SKIP_ALL_EXCEPT_TESTS test_conv test_tensor_copy test_tensor_set test_tensor_vec)
     set(MIOPEN_TEST_FLOAT_ARG --bfloat16)
 endif()
 
