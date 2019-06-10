@@ -1756,6 +1756,8 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionCountFallback(const TensorDescr
 std::size_t GetSolutionCount(Handle& handle, const ProblemDescription& problem)
 {
     const FindDbRecord fdb_record{handle, problem};
+    if(fdb_record.empty())
+        return 0;
     return std::distance(fdb_record.begin(), fdb_record.end());
 }
 
