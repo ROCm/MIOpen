@@ -137,8 +137,6 @@ bool KernelCache::HasKernels(const std::string& algorithm, const std::string& ne
     if(it == kernel_map.end())
         return false;
 
-    /*    assert(!it->second.empty() &&
-               "There should be at least one kernel in kernel cache if an entry exists");*/
     if(it->second.empty())
     {
         MIOPEN_THROW("There should be at least one kernel in kernel cache if an entry exists");
