@@ -137,8 +137,13 @@ bool KernelCache::HasKernels(const std::string& algorithm, const std::string& ne
     if(it == kernel_map.end())
         return false;
 
-    assert(!it->second.empty() &&
-           "There should be at least one kernel in kernel cache if an entry exists");
+    /*    assert(!it->second.empty() &&
+               "There should be at least one kernel in kernel cache if an entry exists");*/
+    if(it->second.empty())
+    {
+        MIOPEN_THROW("There should be at least one kernel in kernel cache if an entry exists");
+    }
+
     return true;
 }
 
@@ -208,7 +213,10 @@ void KernelCache::AddKernel(Key key, Kernel k, std::size_t cache_index)
 
 void KernelCache::ClearKernels(const std::string& algorithm, const std::string& network_config)
 {
-    assert(!network_config.empty() && !algorithm.empty());
+    if(network_config.empty() || algorithm.empty())
+    {
+        MIOPEN_THROW("Network config or algorithm empty.");
+    }
     const std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
     auto&& v = this->kernel_map[key];
     if(!v.empty())

@@ -255,6 +255,52 @@ inline std::set<std::vector<int>> get_weights(int n = MIOPEN_TEST_DEFAULT_BATCH_
     // clang-format on
 }
 
+inline std::set<std::vector<int>> get_immed_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+{
+    // clang-format off
+    return 
+    {
+        { pick_batch_size(32,  n), 1,    14,  14  },
+        { pick_batch_size(256, n), 1,    27,  27  },
+        { pick_batch_size(128, n), 512,  12,  12  },
+        { pick_batch_size(256, n), 256,  13,  13  },
+        { pick_batch_size(256, n), 3,    227, 227 },
+        { pick_batch_size(32, n),  64,   56,  56  },
+//        { pick_batch_size(32, n),  832,  64,  128 },
+//        { pick_batch_size(32, n),  832,  7,   7   },
+        { pick_batch_size(32, n),  96,   14,  14  },
+        { pick_batch_size(32, n),  96,   28,  28  },
+        { pick_batch_size(64, n),  128,  56,  56  },
+        { pick_batch_size(64, n),  3,    224, 224 },
+        { pick_batch_size(64, n),  256,  14,  14  },
+        { 1,                       1,    1,   1   }
+    };
+    // clang-format on
+}
+
+inline std::set<std::vector<int>> get_immed_weights(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+{
+    // clang-format off
+    return 
+    {
+        { pick_batch_size(208, n), 96,   3,  3  },
+        { pick_batch_size(24, n),  512,  1,  1  },
+        { pick_batch_size(256, n), 128,  3,  3  },
+        { pick_batch_size(256, n), 256,  3,  3  },
+//        { pick_batch_size(256, n), 832,  1,  1  },
+        { pick_batch_size(256, n), 64,   5,  5  },
+        { pick_batch_size(288, n), 144,  3,  3  },
+        { pick_batch_size(96, n),  3,    11, 11 },
+        { pick_batch_size(32, n),  128,   5,  5  },
+        { pick_batch_size(32, n),  128,  1,  1  },
+        { pick_batch_size(256, n), 256,  3,  3  },
+        { pick_batch_size(512, n), 512,  3,  3  },
+        { pick_batch_size(160, n), 128,  3,  3  },
+        { pick_batch_size(32, n),  3,    7,  7  }
+    };
+    // clang-format on
+}
+
 inline std::set<std::vector<int>>
 get_3d_conv_input_shapes(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
