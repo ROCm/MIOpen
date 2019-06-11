@@ -68,8 +68,6 @@ default chunk_size, 16
 default reverse_inout, 0
 default weights_layout, 0
 default reverse_weights, 0
-default waves_c_in_group, 1
-default waves_k_in_group, 1
 
 default elements_in_dword, 1
 static_assert(elements_in_dword == 1 || elements_in_dword == 2)
@@ -100,7 +98,7 @@ static_assert (pipe_lines_depth <= img_h)
 static_assert (pad_h < wei_h)
 static_assert (input_channels % c_per_wave == 0)
 static_assert (output_channels % k_per_wave == 0)
-static_assert (n_per_group == 1 || n_per_group == 2 || n_per_group == 4 || n_per_group == 8)
+static_assert (1 <= n_per_group && n_per_group <= 8)
 static_assert (n_per_group <= batch_size)
 static_assert (c_per_wave * chunk_size == 64)
 static_assert (k_per_wave * chunk_size <= 64)
@@ -163,7 +161,7 @@ gprs_per_batch_out = gprs_per_line_out * lines_cnt_out
 
 
 static_assert ((chunk_size == 16) || (chunk_size == 64) || (active_lanes < chunk_size)) // 64 for future expansion
-static_assert (chunk_size == 8 || chunk_size == 16 || chunk_size == 4)
+static_assert (chunk_size == 8 || chunk_size == 16)
 active_lanes_mask = (1 << active_lanes) - 1
 partial_lanes_mask = 1 << (active_lanes - 1)
 shift = chunk_size
@@ -206,8 +204,6 @@ max_hw_lcnt = 15
 .SGPR_ALLOC loop_n_cnt
 .SGPR_ALLOC loop_h_cnt
 .SGPR_ALLOC wave_id // wave_id in group
-.SGPR_ALLOC wave_c_id // wave_id of input channel (c) in group
-.SGPR_ALLOC wave_k_id // wave_id of output channel (k) in group
 .SGPR_RESERVE_XNACK
 
 
@@ -246,14 +242,12 @@ lines_cnt_out = (pipe_lines_depth + stride_h - 1) / stride_h
 .endif
 
 .LDS_ALLOC_FROM 0
-.LDS_ALLOC accums_lds, (n_per_group - 1) * 64 * 4 * accums_cnt * waves_c_in_group * waves_k_in_group
+.LDS_ALLOC accums_lds, (n_per_group - 1) * 64 * 4 * accums_cnt
 
 .GPR_ALLOC_END
 
-num_waves = n_per_group * waves_c_in_group * waves_k_in_group
-
 max_waves_per_CU = (256 / .AUTO_VGPR_COUNT) * 4
-static_assert( max_waves_per_CU >= num_waves )
+static_assert( max_waves_per_CU >= n_per_group )
 //.text 0
 //.p2align 8
 gcnAsmConv3x3WrW:
@@ -295,16 +289,6 @@ gcnAsmConv3x3WrW:
    v_lshrrev_b32 v[vtmp], 6, v[tid]
    v_readfirstlane_b32 s[wave_id], v[vtmp]
    v_and_b32 v[tid], 0x3f, v[tid]
-
-   log2 n_per_group_log2, n_per_group
-   log2 waves_c_in_group_log2, waves_c_in_group
-   s_lshr_b32 s[wave_k_id], s[wave_id], 0 + n_per_group_log2 + waves_c_in_group_log2
-   s_mul_i32 s[stmp], s[wave_k_id], 0 + n_per_group * waves_c_in_group
-   s_sub_i32 s[wave_id], s[wave_id], s[stmp]
-   s_lshr_b32 s[wave_c_id], s[wave_id], 0 + n_per_group_log2
-   s_mul_i32 s[stmp], s[wave_c_id], n_per_group
-   s_sub_i32 s[wave_id], s[wave_id], s[stmp]
-   .GPR_REUSE wave_id, wave_n_id
 
    // calculate input/output offsets
    // example for c_per_wave=4, k_per_wave=2
@@ -359,32 +343,22 @@ gcnAsmConv3x3WrW:
    s_waitcnt 0
 
    // calculate buffer offsets
-   s_mul_i32 s[soffset_in], s[gid_y], waves_c_in_group * c_per_wave * input_feature_map_size // input feature map (c)
-   s_mul_i32 s[stmp], s[wave_n_id], input_stack_size // image in batch (n)
+   s_mul_i32 s[stmp], s[wave_id], input_stack_size // image in batch (n)
+   s_mul_i32 s[soffset_in], s[gid_y], c_per_wave * input_feature_map_size // input feature map (c)
    s_add_u32 s[soffset_in], s[soffset_in], s[stmp]
-   s_mul_i32 s[stmp], s[wave_c_id], 0 + c_per_wave * input_feature_map_size
-   s_add_u32 s[soffset_in], s[soffset_in], s[stmp]
-
-   s_mul_i32 s[soffset_out], s[gid_z], waves_k_in_group * k_per_wave * output_feature_map_size // output feature map (k)
-   s_mul_i32 s[stmp], s[wave_n_id], output_stack_size // image in batch (n)
+   s_mul_i32 s[stmp], s[wave_id], output_stack_size // image in batch (n)
+   s_mul_i32 s[soffset_out], s[gid_z], k_per_wave * output_feature_map_size // output feature map (k)
    s_add_u32 s[soffset_out], s[soffset_out], s[stmp]
-   s_mul_i32 s[stmp], s[wave_k_id], 0 + k_per_wave * output_feature_map_size
-   s_add_u32 s[soffset_out], s[soffset_out], s[stmp]
-
-   s_mul_i32 s[soffset_wei], s[gid_y], waves_c_in_group * c_per_wave * filter_c_stride
-   s_mul_i32 s[stmp], s[wave_c_id], c_per_wave * filter_c_stride
-   s_add_u32 s[soffset_wei], s[soffset_wei], s[stmp]
-   s_mul_i32 s[stmp], s[gid_z], waves_k_in_group * k_per_wave * filter_k_stride
-   s_add_u32 s[soffset_wei], s[soffset_wei], s[stmp]
-   s_mul_i32 s[stmp], s[wave_k_id], k_per_wave * filter_k_stride
+   s_mul_i32 s[soffset_wei], s[gid_y], c_per_wave * filter_c_stride
+   s_mul_i32 s[stmp], s[gid_z], k_per_wave * filter_k_stride
    s_add_u32 s[soffset_wei], s[soffset_wei], s[stmp]
 
    // calculate group offsets
-   static_assert(output_channels % (k_per_wave * waves_k_in_group * group_counts) == 0)
-   static_assert(input_channels % (c_per_wave * waves_c_in_group * group_counts) == 0)
+   static_assert(output_channels % (k_per_wave * group_counts) == 0)
+   static_assert(input_channels % (c_per_wave * group_counts) == 0)
    .if reverse_inout
-       c_group_size = output_channels / k_per_wave / waves_k_in_group / group_counts
-       k_group_size = input_channels / c_per_wave / waves_c_in_group / group_counts
+       c_group_size = output_channels / k_per_wave / group_counts
+       k_group_size = input_channels / c_per_wave / group_counts
        .if k_group_size_is_power_of_two
            log2 k_group_size_log2, k_group_size
            s_lshr_b32 s[stmp], s[gid_y], 0 + k_group_size_log2 // group_id
@@ -394,11 +368,11 @@ gcnAsmConv3x3WrW:
            u32_div gid, group_size, group_id, vtmp_udiv, stmp
            v_readfirstlane_b32 s[stmp], v[group_id]
        .endif
-       s_mul_i32 s[stmp], s[stmp], c_group_size * k_per_wave * waves_k_in_group * output_feature_map_size // k_group_offset
+       s_mul_i32 s[stmp], s[stmp], c_group_size * k_per_wave * output_feature_map_size // k_group_offset
        s_add_u32 s[soffset_out], s[soffset_out], s[stmp]
    .else
-       k_group_size = output_channels / k_per_wave / waves_k_in_group / group_counts
-       c_group_size = input_channels / c_per_wave / waves_c_in_group / group_counts
+       k_group_size = output_channels / k_per_wave / group_counts
+       c_group_size = input_channels / c_per_wave / group_counts
        .if k_group_size_is_power_of_two
            log2 k_group_size_log2, k_group_size
            s_lshr_b32 s[stmp], s[gid_z], 0 + k_group_size_log2 // group_id
@@ -408,7 +382,7 @@ gcnAsmConv3x3WrW:
            u32_div gid, group_size, group_id, vtmp_udiv, stmp
            v_readfirstlane_b32 s[stmp], v[group_id]
        .endif
-       s_mul_i32 s[stmp], s[stmp], c_group_size * c_per_wave * waves_c_in_group * input_feature_map_size // c_group_offset
+       s_mul_i32 s[stmp], s[stmp], c_group_size * c_per_wave * input_feature_map_size // c_group_offset
        s_add_u32 s[soffset_in], s[soffset_in], s[stmp]
    .endif
 
@@ -627,13 +601,6 @@ gcnAsmConv3x3WrW:
             .if elements_in_dword == 2
                ds_swizzle_b32 v[out_base+out_x+gprs_per_batch_out], v[out_base+out_x+gprs_per_batch_out] offset:0x201F
             .endif
-         .elseif \swizzle==4  // swaps each 4 lanes
-            // lanes[0:3] <-> lanes[4:7]
-            // ...
-            ds_swizzle_b32 v[out_base+out_x], v[out_base+out_x] offset:0x101F
-            .if elements_in_dword == 2
-               ds_swizzle_b32 v[out_base+out_x+gprs_per_batch_out], v[out_base+out_x+gprs_per_batch_out] offset:0x101F
-            .endif
          .elseif \swizzle != 0
             .error "Wrong swizzle parameter"
          .endif
@@ -819,19 +786,15 @@ loop_n_end:
    .GPR_REUSE voffset_in, lds_off
    .if n_per_group > 1
       s_mov_b32 m0, -1
-      s_cmpk_eq_u32 s[wave_n_id], 0 + n_per_group - 1
+      s_cmpk_eq_u32 s[wave_id], 0 + n_per_group - 1
       s_cbranch_scc1 last_wave
 
-      s_mulk_i32 s[wave_n_id], 4 * 64 * accums_cnt
+      s_mulk_i32 s[wave_id], 4 * 64 * accums_cnt
       //v_lshlrev_b32 v[lds_off], 4, v[tid]
-      //_v_add_co_u32 v[lds_off], vcc, s[wave_n_id], v[lds_off]
+      //_v_add_co_u32 v[lds_off], vcc, s[wave_id], v[lds_off]
       //.ds_write_all
       v_lshlrev_b32 v[lds_off], 2, v[tid]
-     _v_add_co_u32 v[lds_off], vcc, s[wave_n_id], v[lds_off]
-      s_mul_i32 s[stmp], s[wave_k_id], waves_c_in_group * (n_per_group - 1) * 4 * 64 * accums_cnt
-     _v_add_co_u32 v[lds_off], vcc, s[stmp], v[lds_off]
-      s_mul_i32 s[stmp], s[wave_c_id], (n_per_group - 1) * 4 * 64 * accums_cnt
-     _v_add_co_u32 v[lds_off], vcc, s[stmp], v[lds_off]
+     _v_add_co_u32 v[lds_off], vcc, s[wave_id], v[lds_off]
       imm_off = 0
       cur_accum = accums
       .rept accums_cnt
@@ -846,10 +809,6 @@ last_wave:
       s_barrier
 
       v_lshlrev_b32 v[lds_off], 2, v[tid]
-      s_mul_i32 s[stmp], s[wave_k_id], waves_c_in_group * (n_per_group - 1) * 4 * 64 * accums_cnt
-     _v_add_co_u32 v[lds_off], vcc, s[stmp], v[lds_off]
-      s_mul_i32 s[stmp], s[wave_c_id], (n_per_group - 1) * 4 * 64 * accums_cnt
-     _v_add_co_u32 v[lds_off], vcc, s[stmp], v[lds_off]
       .rept n_per_group-1
          imm_off = 0
          cur_accum = accums
@@ -900,13 +859,11 @@ last_wave:
 
 
    //storing result
-   static_assert(chunk_size == 16 || chunk_size == 8 || chunk_size == 4)
+   static_assert(chunk_size == 16 || chunk_size == 8)
    .if chunk_size == 16
       s_mov_b32 exec_hi, 0x00010001
-   .elseif chunk_size == 8
-      s_mov_b32 exec_hi, 0x01010101
    .else
-      s_mov_b32 exec_hi, 0x11111111
+      s_mov_b32 exec_hi, 0x01010101
    .endif
    s_mov_b32 exec_lo, exec_hi
 
@@ -1003,7 +960,7 @@ s_endpgm
   .endif
 .endm
 
-workgroup_size_x = num_waves * 64
+workgroup_size_x = n_per_group * 64
 
 .altmacro
 .macro METADATA_WRAPPER wg_x, lds_size
