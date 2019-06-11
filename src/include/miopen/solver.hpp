@@ -453,28 +453,16 @@ struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirec
 {
     int limit_wave_cnt;   // [0..9]
     int reverse_inout;    // [0..1], 1 is allowed for stride=1x1 only.
-    int chunk_size;       // {16,8,4}, Smaller values increase register pressure.
+    int chunk_size;       // {16,8}, Smaller values increase register pressure.
     int k_per_wave;       // {1,2,4,8} && ((chunk_size * k_per_wave) <= 64).
                           // Higher values increase register pressure.
     int pipe_lines_depth; // [1..16] && (pipe_lines_depth <= img_h).
                           // Higher values increase register pressure.
-    int n_per_group;      // {1,2,4,8} && (n_per_group <= batch_size).
+    int n_per_group;      // [1..8] && (n_per_group <= batch_size).
 
-    int waves_c_in_group; // {1,2,4,8}
-    int waves_k_in_group; // {1,2,4,8}
-
-    bool use_spare_set;
-
-    PerformanceConfigAsmDirect3x3WrW(
-        int lwc, int rio, int csz, int kpw, int pld, int npg, int wcg, int wkg, bool);
-    PerformanceConfigAsmDirect3x3WrW()
-        : PerformanceConfigAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1, -1, -1, false)
-    {
-    }
-    PerformanceConfigAsmDirect3x3WrW(bool spare)
-        : PerformanceConfigAsmDirect3x3WrW(0, 0, 8, 1, 1, 1, 1, 1, spare)
-    {
-    }
+    PerformanceConfigAsmDirect3x3WrW(int lwc, int rio, int csz, int kpw, int pld, int npg);
+    PerformanceConfigAsmDirect3x3WrW() : PerformanceConfigAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1) {}
+    PerformanceConfigAsmDirect3x3WrW(bool) : PerformanceConfigAsmDirect3x3WrW(0, 0, 8, 1, 1, 1) {}
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
@@ -485,8 +473,6 @@ struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirec
         f(self.k_per_wave, "k_per_wave");
         f(self.pipe_lines_depth, "pipe_lines_depth");
         f(self.n_per_group, "n_per_group");
-        f(self.waves_c_in_group, "waves_c_in_group");
-        f(self.waves_k_in_group, "waves_k_in_group");
     }
 
     // clang-format off
@@ -497,8 +483,6 @@ struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirec
     int GetPipeLinesDepth() const { return pipe_lines_depth; }
     int GetNPerGroup() const { return n_per_group; }
     int GetCPerWave() const { assert(chunk_size); return 64 / chunk_size; } // clang-format on
-    int GetWavesCInGroup() const { return waves_c_in_group; }
-    int GetWavesKInGroup() const { return waves_k_in_group; }
 
     void EuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
