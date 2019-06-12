@@ -1395,6 +1395,12 @@ int ConvDriver<Tgpu, Tref>::FindBackwardWeights(int& ret_algo_count,
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::RunBackwardGPU()
 {
+    if(data_type == miopenInt8 || data_type == miopenInt8x4)
+    {
+        std::cout << "Int8 Backward Convolution is not supported" << std::endl;
+        return 0;
+    }
+
     if(!(bwd_allowed || wrw_allowed))
         return 0;
 
@@ -2193,6 +2199,11 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::VerifyBackward()
 {
+    if(data_type == miopenInt8 || data_type == miopenInt8x4)
+    {
+        std::cout << "Int8 Backward Convolution is not supported" << std::endl;
+        return 0;
+    }
 
     if(!(bwd_allowed || wrw_allowed))
         return 0;
