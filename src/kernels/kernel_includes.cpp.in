@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,31 +23,35 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_HIPOC_PROGRAM_HPP
-#define GUARD_MIOPEN_HIPOC_PROGRAM_HPP
-
-#include <hip/hip_runtime_api.h>
-#include <miopen/manage_ptr.hpp>
-#include <boost/filesystem/path.hpp>
-#include <string>
+#include "miopen_kernel_includes.h"
+#include <algorithm>
+#include <map>
+#include <miopen/kernel.hpp>
+#include <miopen/stringutils.hpp>
 
 namespace miopen {
 
-using hipModulePtr = MIOPEN_MANAGE_PTR(hipModule_t, hipModuleUnload);
-struct HIPOCProgramImpl;
-struct HIPOCProgram
+const std::map<std::string, std::string>& kernel_includes()
 {
-    HIPOCProgram();
-    HIPOCProgram(const std::string& program_name,
-                 std::string params,
-                 bool is_kernel_str,
-                 std::string dev_name,
-                 const std::string& kernel_src);
-    HIPOCProgram(const std::string& program_name, const boost::filesystem::path& hsaco);
-    std::shared_ptr<const HIPOCProgramImpl> impl;
-    hipModule_t GetModule() const;
-    boost::filesystem::path GetBinary() const;
-};
-} // namespace miopen
+    static const std::map<std::string, std::string> data{${INIT_KERNELS}};
+    return data;
+}
+std::string GetKernelInc(std::string key)
+{
+    auto it = kernel_includes().find(key);
+    if(it == kernel_includes().end())
+        MIOPEN_THROW("Failed to load kernel source: " + key);
 
-#endif
+    return it->second;
+}
+std::vector<std::string> GetKernelIncList()
+{
+    std::vector<std::string> keys;
+    auto m = kernel_includes();
+    std::transform(m.begin(),
+                   m.end(),
+                   std::back_inserter(keys),
+                   [](decltype(m)::value_type const& pair) { return pair.first; });
+    return keys;
+}
+} // namespace miopen

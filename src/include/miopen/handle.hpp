@@ -87,7 +87,9 @@ struct Handle : miopenHandle
                            const std::vector<size_t>& vld,
                            const std::vector<size_t>& vgd,
                            const std::string& params,
-                           std::size_t cache_index = 0);
+                           std::size_t cache_index       = 0,
+                           bool is_kernel_str            = false,
+                           const std::string& kernel_src = "");
 
     bool HasKernel(const std::string& algorithm, const std::string& network_config) const;
 
@@ -113,7 +115,10 @@ struct Handle : miopenHandle
     const std::vector<Kernel>& GetKernelsImpl(const std::string& algorithm,
                                               const std::string& network_config);
 
-    Program LoadProgram(const std::string& program_name, std::string params, bool is_kernel_str);
+    Program LoadProgram(const std::string& program_name,
+                        std::string params,
+                        bool is_kernel_str,
+                        const std::string& kernel_src);
 
     void Finish() const;
     void Flush() const;

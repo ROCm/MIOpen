@@ -72,8 +72,10 @@ class KernelCache
                      const std::string& kernel_name,
                      const std::vector<size_t>& vld,
                      const std::vector<size_t>& vgd,
-                     std::string params      = "",
-                     std::size_t cache_index = 0);
+                     std::string params            = "",
+                     std::size_t cache_index       = 0,
+                     bool is_kernel_str            = false,
+                     const std::string& kernel_src = "");
 
     void AddKernel(Key key, Kernel k, std::size_t cache_index);
 

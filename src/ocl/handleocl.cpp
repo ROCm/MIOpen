@@ -479,11 +479,22 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                const std::vector<size_t>& vld,
                                const std::vector<size_t>& vgd,
                                const std::string& params,
-                               std::size_t cache_index)
+                               std::size_t cache_index,
+                               bool is_kernel_str,
+                               const std::string& kernel_src)
 {
 
-    auto obj = this->impl->cache.AddKernel(
-        *this, algorithm, network_config, program_name, kernel_name, vld, vgd, params, cache_index);
+    auto obj = this->impl->cache.AddKernel(*this,
+                                           algorithm,
+                                           network_config,
+                                           program_name,
+                                           kernel_name,
+                                           vld,
+                                           vgd,
+                                           params,
+                                           cache_index,
+                                           is_kernel_str,
+                                           kernel_src);
     return this->Run(obj);
 }
 
@@ -520,7 +531,10 @@ KernelInvoke Handle::Run(Kernel k)
     }
 }
 
-Program Handle::LoadProgram(const std::string& program_name, std::string params, bool is_kernel_str)
+Program Handle::LoadProgram(const std::string& program_name,
+                            std::string params,
+                            bool is_kernel_str,
+                            const std::string& kernel_src)
 {
     auto cache_file =
         miopen::LoadBinary(this->GetDeviceName(), program_name, params, is_kernel_str);
@@ -530,7 +544,8 @@ Program Handle::LoadProgram(const std::string& program_name, std::string params,
                                      miopen::GetDevice(this->GetStream()),
                                      program_name,
                                      params,
-                                     is_kernel_str);
+                                     is_kernel_str,
+                                     kernel_src);
 
         // Save to cache
         auto path = miopen::GetCachePath() / boost::filesystem::unique_path();
