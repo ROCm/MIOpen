@@ -60,6 +60,7 @@ endif()
 rocm_setup_version(VERSION 1.9.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
+include(TargetFlags)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.3")
@@ -97,10 +98,23 @@ set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
     OpenCL HIP HIPOC )
+
+# HIP is always required
+find_package(hip REQUIRED)
+target_flags(HIP_COMPILER_FLAGS hip::device)
+
+message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
+
+add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
+
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set(MIOPEN_BACKEND_OPENCL 1)
     find_package( OpenCL REQUIRED )
+    find_program(HIP_COMPILER hcc
+        PATH_SUFFIXES bin
+        PATHS /opt/rocm
+    )
 endif()
 
 # HIP
@@ -117,7 +131,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     else()
         message(FATAL_ERROR "clang-ocl not found")
     endif()
-    find_package(hip REQUIRED)
+    
     link_libraries(stdc++)
 
     # A hack to make this work without the device enumerator
@@ -127,6 +141,9 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
         link_libraries(-amdgpu-target=gfx906)
     endif()
     # end hack
+
+    set(HIP_COMPILER ${CMAKE_CXX_COMPILER} CACHE PATH "")
+
 
     # rocblas
     set(MIOPEN_USE_ROCBLAS ON CACHE BOOL "")
@@ -138,6 +155,17 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     endif()
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
+# look for and register extractkernel
+find_program(EXTRACTKERNEL_BIN extractkernel
+    PATH_SUFFIXES bin
+    PATHS /opt/rocm
+)
+if(EXTRACTKERNEL_BIN)
+    message(STATUS "extractkernel found: ${EXTRACTKERNEL_BIN}")
+    set(EXTRACTKERNEL_BIN "${EXTRACTKERNEL_BIN}")
+else()
+    message(FATAL_ERROR "extractkernel not found")
+endif()
 
 # Online assembler
 find_program(MIOPEN_AMDGCN_ASSEMBLER
