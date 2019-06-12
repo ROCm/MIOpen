@@ -29,10 +29,13 @@
 #include <miopen/clhelper.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/gcn_asm_utils.hpp>
+#include <miopen/hip_build_utils.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/kernel_warnings.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/ocldeviceinfo.hpp>
+#include <miopen/tmp_dir.hpp>
+#include <miopen/write_file.hpp>
 #include <string>
 #include <vector>
 
@@ -126,7 +129,8 @@ ClProgramPtr LoadProgram(cl_context ctx,
                          cl_device_id device,
                          const std::string& program_name,
                          std::string params,
-                         bool is_kernel_str)
+                         bool is_kernel_str,
+                         const std::string& kernel_src)
 {
     bool is_binary = false;
     std::string source;
@@ -136,7 +140,10 @@ ClProgramPtr LoadProgram(cl_context ctx,
     }
     else
     {
-        source      = miopen::GetKernelSrc(program_name);
+        if(kernel_src.empty())
+            source = miopen::GetKernelSrc(program_name);
+        else
+            source  = kernel_src;
         auto is_asm = miopen::EndsWith(program_name, ".s");
         if(is_asm)
         { // Overwrites source (asm text) by binary results of assembly:
@@ -152,6 +159,17 @@ ClProgramPtr LoadProgram(cl_context ctx,
     if(is_binary)
     {
         return LoadBinaryProgram(ctx, device, source);
+    }
+    else if(!is_kernel_str && miopen::EndsWith(program_name, ".cpp"))
+    {
+        std::string device_name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(device);
+        ParseDevName(device_name);
+        boost::optional<miopen::TmpDir> dir(program_name);
+        auto hsaco_file = HipBuild(dir, program_name, source, params, device_name);
+        // load the hsaco file as a data stream and then load the binary
+        std::string buf;
+        bin_file_to_str(hsaco_file, buf);
+        return LoadBinaryProgram(ctx, device, buf);
     }
     else
     {
@@ -218,25 +236,4 @@ cl_context GetContext(cl_command_queue q)
     return context;
 }
 
-#if 0 /// \todo Dead code?
-ClAqPtr CreateQueueWithProfiling(cl_context ctx, cl_device_id dev)
-{
-    cl_int status;
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-    ClAqPtr q{clCreateCommandQueue(ctx, dev, CL_QUEUE_PROFILING_ENABLE, &status)};
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
-    if(status != CL_SUCCESS)
-    {
-        MIOPEN_THROW_CL_STATUS(status);
-    }
-
-    return q;
-}
-#endif
 } // namespace miopen

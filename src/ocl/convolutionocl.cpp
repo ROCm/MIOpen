@@ -2804,7 +2804,7 @@ void ConvBwdDirect(const ConvolutionContext& ctx,
                    Data_t workSpace,
                    TKernels&& kernels)
 {
-    assert(1 <= kernels.size() && kernels.size() <= 2);
+    assert(!kernels.empty() && kernels.size() <= 2);
 
     visit_float(tensors.dyDesc.GetType(), [&](auto as_float) {
         float t1 = 0;
