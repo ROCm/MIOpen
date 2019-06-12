@@ -48,7 +48,7 @@
 #include "network_data.hpp"
 #include "miopen/find_db.hpp"
 
-#define MIOPEN_TEST_3D_IMMED 0
+#define MIOPEN_TEST_3D_IMMED 1
 #define TEST_DIRECT_SUPPORTED_CONFIG_ONLY (!MIOPEN_USE_ROCBLAS)
 
 #if TEST_DIRECT_SUPPORTED_CONFIG_ONLY
