@@ -434,10 +434,14 @@ void PerformanceConfigConvAsm1x1UV2::EuristicInit(const ConvolutionContext& conf
     }
     if(!IsValid(config))
     {
+        MIOPEN_LOG_I("!IsValid(): " << ToString());
         MIOPEN_LOG_E("All attempts failed");
         assert(false);
     }
-    MIOPEN_LOG_I(ToString());
+    else
+    {
+        MIOPEN_LOG_I(ToString());
+    }
 }
 
 std::string PerformanceConfigConvAsm1x1UV2::ToString() const
@@ -487,11 +491,11 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
     const auto elements_in_dword = 4 / GetTypeSize(params.in_data_type);
     // clang-format off
     const auto img_hw = params.out_height * params.out_width;
-    bool ok = (params.pad_w == 0        
-        && params.pad_h == 0             
-        && params.kernel_size_w == 1     
-        && params.kernel_size_h == 1     
-        && params.kernel_stride_w <= 2   
+    bool ok = (params.pad_w == 0
+        && params.pad_h == 0
+        && params.kernel_size_w == 1
+        && params.kernel_size_h == 1
+        && params.kernel_stride_w <= 2
         && params.kernel_stride_w == params.kernel_stride_h
         && params.kernel_dilation_w == 1
         && params.kernel_dilation_h == 1
@@ -526,6 +530,35 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
          && n_c_h_w < std::pow(2, 29)
          && n_k_h_w < std::pow(2, 29)
          && c_k_r_s < std::pow(2, 29); // clang-format on
+    if(ok)
+    {
+        /// Hotfix for issue 1810 (EuristicInit problem of this solver).
+        /// Modified copy from PerformanceConfigConvAsm1x1UV2::IsValid()
+        /// \todo Refactor this.
+        const auto& config = params; // alias
+        buff_info ibuf(MemLayout::NCHW,
+                       config.batch_sz,
+                       config.n_inputs,
+                       config.in_height,
+                       config.in_width,
+                       1,
+                       GetTypeSize(config.in_data_type));
+        buff_info obuf(MemLayout::NCHW,
+                       config.batch_sz,
+                       config.n_outputs,
+                       config.out_height,
+                       config.out_width,
+                       1,
+                       GetTypeSize(config.out_data_type));
+
+        const int eurictic_init_min_n_mult     = 1;
+        const int eurictic_init_max_chunk_size = 16;
+        const int n_miss = eurictic_init_min_n_mult * (64 / eurictic_init_max_chunk_size) - 1;
+
+        if((static_cast<long>(config.n_inputs) + n_miss) * ibuf.byte_stride.nk >= (1LL << 31) ||
+           (static_cast<long>(config.n_outputs) + n_miss) * obuf.byte_stride.nk >= (1LL << 31))
+            ok = false;
+    }
     return ok;
 }
 
