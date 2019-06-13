@@ -1441,6 +1441,10 @@ int main(int argc, const char* argv[])
     bool do_conv3d = std::any_of(as.begin(), as.end(), [](auto&& arg) { return arg == "conv3d"; });
     bool do_all    = std::any_of(as.begin(), as.end(), [](auto&& arg) { return arg == "--all"; });
 
+    /// \todo If 2D or 3D is explictily specified, then "--all" flag is not used here.
+    /// "--all" has any effect here only if both 2D and 3D flags are *cleared*.
+    /// Is it what we really want? This piece of code looks ofbuscated. And yes, I do
+    /// understand that "--all" could affect other aspects of the test. --atamazov 12 Jun 2019
     if(do_conv2d and !do_conv3d)
     {
         test_drive<conv2d_driver>(argc, argv);
