@@ -3496,14 +3496,11 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
     // < algorith_name, <time, workspace_size> >
     auto perf_db = FindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
-        // GEMM based
-        int out_h, out_w;
-        std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
 #if MIOPEN_USE_GEMM
         if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
            !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsUseRocBlas))
-        { // GEMM based
+        {
             const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
             ValidateGroupCount(xDesc, dwDesc, *this);
