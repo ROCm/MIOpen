@@ -595,7 +595,7 @@ std::size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMMTranspose(
     const TensorDescriptor& dyDesc, const TensorDescriptor& dxDesc) const
 {
     std::size_t in_n, in_c;
-    std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
+    std::tie(in_n, in_c) = miopen::tie_pick<0, 1>{}(dxDesc.GetLengths());
 
     auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + GetSpatialDimension());
 

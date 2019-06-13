@@ -959,6 +959,18 @@ template <typename Tgpu, typename Tref>
 void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
                                               const float kernel_first_time) const
 {
+    int iter = inflags.GetValueInt("iter");
+    float kernel_average_time =
+        iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
+    printf("GPU Kernel Time Forward Conv. Elapsed: %f ms (average)\n", kernel_average_time);
+
+    const auto num_dim = miopen::deref(inputTensor).GetSize() - 2;
+    if(num_dim != 2)
+    {
+        printf("stats: <not implemented> for conv%dd\n", num_dim);
+        return;
+    }
+
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
     int wei_c, wei_n, wei_h, wei_w;
@@ -977,11 +989,6 @@ void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
     size_t outputBytes = 1.0 * out_n * out_c * out_h * out_w *
                          miopen::GetTypeSize(miopen::deref(outputTensor).GetType());
 
-    int iter = inflags.GetValueInt("iter");
-    float kernel_average_time =
-        iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-
-    printf("GPU Kernel Time Forward Conv. Elapsed: %f ms (average)\n", kernel_average_time);
     printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
            "GB/s, timeMs\n");
     printf("stats: %s%dx%du%d, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
@@ -1527,6 +1534,13 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, floa
 
     printf("GPU Kernel Time Backward Data Conv. Elapsed: %f ms (average)\n", kernel_average_time);
 
+    const auto num_dim = miopen::deref(inputTensor).GetSize() - 2;
+    if(num_dim != 2)
+    {
+        printf("stats: <not implemented> for conv%dd\n", num_dim);
+        return;
+    }
+
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
     int wei_c, wei_n, wei_h, wei_w;
@@ -1655,6 +1669,13 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
 
     printf("GPU Kernel Time Backward Weights Conv. Elapsed: %f ms (average)\n",
            kernel_average_time);
+
+    const auto num_dim = miopen::deref(inputTensor).GetSize() - 2;
+    if(num_dim != 2)
+    {
+        printf("stats: <not implemented> for conv%dd\n", num_dim);
+        return;
+    }
 
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
