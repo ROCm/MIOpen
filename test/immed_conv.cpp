@@ -294,7 +294,7 @@ struct verify_forward_conv : conv_base<T>
                 exit(-1);
             }
 
-            //std::cout << "Transpose forward Conv solutions available: " << count << std::endl;
+            // std::cout << "Transpose forward Conv solutions available: " << count << std::endl;
             auto solutions = std::vector<miopenConvSolution_t>(count);
 
             filter.GetBackwardSolutions(
@@ -358,7 +358,7 @@ struct verify_forward_conv : conv_base<T>
                 exit(-1);
             }
 
-            //std::cout << "Forward Conv solutions available: " << count << std::endl;
+            // std::cout << "Forward Conv solutions available: " << count << std::endl;
             auto solutions = std::vector<miopenConvSolution_t>(count);
 
             filter.GetForwardSolutions(
@@ -538,7 +538,7 @@ struct verify_forward_conv_int8 : conv_base<T>
             exit(-1);
         }
 
-        //std::cout << "Forward Conv solutions available: " << count << std::endl;
+        // std::cout << "Forward Conv solutions available: " << count << std::endl;
         auto solutions = std::vector<miopenConvSolution_t>(count);
 
         filter.GetForwardSolutions(handle,
@@ -703,7 +703,7 @@ struct verify_backward_conv : conv_base<T>
                 exit(-1);
             }
 
-            //std::cout << "backward transpose Conv solutions available: " << count << std::endl;
+            // std::cout << "backward transpose Conv solutions available: " << count << std::endl;
             auto solutions = std::vector<miopenConvSolution_t>(count);
 
             filter.GetForwardSolutions(
@@ -766,7 +766,7 @@ struct verify_backward_conv : conv_base<T>
                 exit(-1);
             }
 
-            //std::cout << "Backward Conv solutions available: " << count << std::endl;
+            // std::cout << "Backward Conv solutions available: " << count << std::endl;
             auto solutions = std::vector<miopenConvSolution_t>(count);
 
             filter.GetBackwardSolutions(
@@ -922,7 +922,7 @@ struct verify_backward_weights_conv : conv_base<T>
             exit(-1);
         }
 
-        //std::cout << "Backward weights conv solutions available: " << count << std::endl;
+        // std::cout << "Backward weights conv solutions available: " << count << std::endl;
         auto solutions = std::vector<miopenConvSolution_t>(count);
 
         filter.GetWrwSolutions(handle,
