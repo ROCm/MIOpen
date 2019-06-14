@@ -88,11 +88,9 @@ else()
     set(WINE_CMD)
 endif()
 
+list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/hcc /opt/rocm/hip)
+
 option(ENABLE_HIP_WORKAROUNDS Off)
-if(ENABLE_HIP_WORKAROUNDS)
-    # Add these to CMAKE_PREFIX_PATH to workaround installation problems with hip and hcc
-    list(APPEND CMAKE_PREFIX_PATH /opt/rocm/hcc /opt/rocm/hip)
-endif()
 
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
@@ -100,7 +98,7 @@ set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
     OpenCL HIP HIPOC )
 
 # HIP is always required
-find_package(hip REQUIRED)
+find_package(hip REQUIRED PATHS /opt/rocm)
 target_flags(HIP_COMPILER_FLAGS hip::device)
 
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
@@ -119,7 +117,6 @@ endif()
 
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
-    list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/hip /opt/rocm/hcc)
     set(MIOPEN_BACKEND_HIP 1)
     find_program(HIP_OC_COMPILER clang-ocl
         PATH_SUFFIXES bin
