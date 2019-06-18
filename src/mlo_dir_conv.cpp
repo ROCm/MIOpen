@@ -264,6 +264,9 @@ void miopen::ConvolutionContext::SetupFloats()
     else if(IsBfp16())
     {
         general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_BFP16=1";
+#if MIOPEN_USE_RNE_BFLOAT16 == 1
+        general_compile_options += " -DMIOPEN_USE_RNE_BFLOAT16=1";
+#endif
     }
     else
     {
