@@ -94,6 +94,57 @@ inline std::size_t get_index_max(miopenIndexType_t index_type)
     MIOPEN_THROW("not belong to any case");
 }
 
+inline std::string GetDataTypeKernelParams(miopenDataType_t type)
+{
+    std::string s{};
+
+    switch(type)
+    {
+    case miopenHalf:
+    {
+        s = " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_BFP16=0 -DMIOPEN_USE_INT8=0 "
+            "-DMIOPEN_USE_INT8x4=0";
+        break;
+    }
+    case miopenFloat:
+    {
+        s = " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_BFP16=0  -DMIOPEN_USE_INT8=0 "
+            "-DMIOPEN_USE_INT8x4=0";
+        break;
+    }
+    case miopenInt8:
+    {
+        s = " -DMIOPEN_USE_INT8=1 -DMIOPEN_USE_INT8x4=0 -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=0 "
+            "-DMIOPEN_USE_BFP16=0";
+        break;
+    }
+    case miopenInt8x4:
+    {
+        s = " -DMIOPEN_USE_INT8x4=1 -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_BFP16=0 "
+            "-DMIOPEN_USE_INT8=0";
+        break;
+    }
+    case miopenBFloat16:
+    {
+        s = " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_BFP16=1 -DMIOPEN_USE_INT8=0 "
+            "-DMIOPEN_USE_INT8x4=0";
+#if MIOPEN_USE_RNE_BFLOAT16 == 1
+        s += " -DMIOPEN_USE_RNE_BFLOAT16=1";
+#endif
+        break;
+    }
+    // In special case of int8 and int8x4, the output datatype is specified to be in32
+    // by frameworks. However, inside the kernel the outputs are marked fp32. That setting
+    // is done outside of this function.
+    case miopenInt32: break;
+    default:
+        MIOPEN_THROW("Only float, half, bfloat16, int8, int8x4 data type is supported.");
+        break;
+    }
+
+    return s;
+}
+
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_DATATYPE_HPP

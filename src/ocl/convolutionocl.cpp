@@ -39,6 +39,7 @@
 #include <miopen/tensor.hpp>
 #include <miopen/util.hpp>
 #include <miopen/visit_float.hpp>
+#include <miopen/datatype.hpp>
 
 #if MIOPEN_USE_GEMM
 #include <miopen/gemm_v2.hpp>
@@ -4799,24 +4800,8 @@ void ConvolutionBackwardBias(Handle& handle,
     params += " -DMLO_OUT_BATCH_STRIDE=" + std::to_string(stride_n);
     params += " -DMLO_WK_SIZE=" + std::to_string(map_size_aligned);
     params += " -DMLO_N_PIX_OFF=" + std::to_string(off_pix);
-    if(dyDesc.GetType() == miopenFloat)
-    {
-        params += " -DMIOPEN_USE_FP16=0 ";
-        params += " -DMIOPEN_USE_FP32=1 ";
-        params += " -DMIOPEN_USE_BFP16=0 ";
-    }
-    else if(dyDesc.GetType() == miopenHalf)
-    {
-        params += " -DMIOPEN_USE_FP16=1 ";
-        params += " -DMIOPEN_USE_FP32=0 ";
-        params += " -DMIOPEN_USE_BFP16=0 ";
-    }
-    else if(dyDesc.GetType() == miopenBFloat16)
-    {
-        params += " -DMIOPEN_USE_FP16=0 ";
-        params += " -DMIOPEN_USE_FP32=0 ";
-        params += " -DMIOPEN_USE_BFP16=1 ";
-    }
+
+    params += GetDataTypeKernelParams(dyDesc.GetType());
 
     const std::vector<size_t> vld = {lcl_grp_size0, size_t{1}, size_t{1}};
     const std::vector<size_t> vgd = {lcl_grp_size0, static_cast<size_t>(out_k), size_t{1}};
