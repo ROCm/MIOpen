@@ -418,6 +418,24 @@ COMMAND $<TARGET_FILE:test_conv> --verbose --conv_dim_type conv3d --input 16    
 )
 
 
+
+add_custom_test(test_conv_nkc128 ALL
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	128	128	55	55	--weights	128 128 	1	1	--pads_strides_dilations	0	0	1	1	1	1		--disable-backward-weights
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	128	128	28	28	--weights	128 128 	1	1	--pads_strides_dilations	0	0	1	1	1	1		--disable-backward-weights
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	128	128	14	14	--weights	128 128 	1	1	--pads_strides_dilations	0	0	1	1	1	1		--disable-backward-weights
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	128	128	 7	 7	--weights	128 128 	1	1	--pads_strides_dilations	0	0	1	1	1	1		--disable-backward-weights
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	128	128	55	55	--weights	128 128 	1	1	--pads_strides_dilations	0	0	2	2	1	1		--disable-backward-weights
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	128	128	28	28	--weights	128 128 	1	1	--pads_strides_dilations	0	0	2	2	1	1		--disable-backward-weights
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	128	128	14	14	--weights	128 128 	1	1	--pads_strides_dilations	0	0	2	2	1	1		--disable-backward-weights
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	128	128	 7	 7	--weights	128 128 	1	1	--pads_strides_dilations	0	0	2	2	1	1		--disable-backward-weights
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	128	128	28	28	--weights	128 128 	3	3	--pads_strides_dilations	0	0	2	2	2	2		--disable-backward-data   --disable-backward-weights
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	128	128	14	14	--weights	128 128 	3	3	--pads_strides_dilations	0	0	2	2	2	2		--disable-backward-data   --disable-backward-weights
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	128	128	 7	 7	--weights	128 128 	3	3	--pads_strides_dilations	0	0	2	2	2	2		--disable-backward-data   --disable-backward-weights
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	128	128	55	55	--weights	128 128 	1	7	--pads_strides_dilations	0	0	2	2	1	2		--disable-backward-data   --disable-backward-weights
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	128	128	28	28	--weights	128 128 	1	7	--pads_strides_dilations	0	0	2	2	1	2		--disable-backward-data   --disable-backward-weights
+COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	128	128	14	14	--weights	128 128 	1	7	--pads_strides_dilations	0	0	2	2	1	2		--disable-backward-data   --disable-backward-weights
+)
+
 if(MIOPEN_TEST_DEEPBENCH)
     add_custom_test(test_deepbench_conv
     COMMAND	$<TARGET_FILE:test_conv>	--verbose	--input	4	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1						

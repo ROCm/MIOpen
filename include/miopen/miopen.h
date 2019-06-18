@@ -815,10 +815,11 @@ miopenDestroyConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc);
  * convolution implementation.
  */
 typedef enum {
-    miopenConvolutionFwdAlgoGEMM     = 0, /*!< GEMM variant */
-    miopenConvolutionFwdAlgoDirect   = 1, /*!< Direct convolutions */
-    miopenConvolutionFwdAlgoFFT      = 2, /*!< Fast Fourier Transform indirect convolutions */
-    miopenConvolutionFwdAlgoWinograd = 3, /*!< Winograd indirect convolutions */
+    miopenConvolutionFwdAlgoGEMM         = 0, /*!< GEMM variant */
+    miopenConvolutionFwdAlgoDirect       = 1, /*!< Direct convolutions */
+    miopenConvolutionFwdAlgoFFT          = 2, /*!< Fast Fourier Transform indirect convolutions */
+    miopenConvolutionFwdAlgoWinograd     = 3, /*!< Winograd indirect convolutions */
+    miopenConvolutionFwdAlgoImplicitGEMM = 4, /*!< Implicit GEMM convolutions */
 } miopenConvFwdAlgorithm_t;
 
 /*! @enum miopenConvBwdWeightsAlgorithm_t
@@ -840,6 +841,7 @@ typedef enum {
     miopenConvolutionBwdDataAlgoWinograd = 3, /*!< Winograd indirect convolutions */
     miopenTransposeBwdDataAlgoGEMM =
         4, /*!< Deprecated Transpose GEMM variant legacy, ToBe Removed */
+    miopenConvolutionBwdAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions */
 } miopenConvBwdDataAlgorithm_t;
 
 typedef enum {
