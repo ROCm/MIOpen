@@ -98,7 +98,7 @@ struct HIPOCProgramImpl
         else if(!is_kernel_str && miopen::EndsWith(program_name, ".cpp"))
         {
 #if MIOPEN_BUILD_DEV
-            params += " -Werror" + KernelWarningsString();
+            params += " -Werror" + HipKernelWarningsString();
 #else
             params += " -Wno-everything";
 #endif
@@ -110,7 +110,7 @@ struct HIPOCProgramImpl
             WriteFile(src, dir->path / filename);
 
 #if MIOPEN_BUILD_DEV
-            params += " -Werror" + KernelWarningsString();
+            params += " -Werror" + OclKernelWarningsString();
 #else
             params += " -Wno-everything";
 #endif

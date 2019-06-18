@@ -319,6 +319,9 @@ enable_cppcheck(
         useInitializationList:*test/*.cpp
         *:*.cl
         *:*src/kernels/*.h
+        knownConditionTrueFalse:*src/kernels/composable_kernel/*/*
+        wrongPrintfScanfArgNum:*src/kernels/composable_kernel/*/*
+        unusedScopedObject:*src/kernels/composable_kernel/*/*
     FORCE
     SOURCES
         addkernels/

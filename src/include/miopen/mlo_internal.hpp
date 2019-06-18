@@ -335,6 +335,9 @@ auto FindAllSolutions(T& x) -> decltype(x.FindAllSolutions())
 std::vector<miopen::solver::ConvSolution>
 FindAllDirectSolutions(const miopen::ConvolutionContext& ctx);
 
+std::vector<miopen::solver::ConvSolution>
+FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx);
+
 miopen::solver::ConvSolution FindWinogradSolution(const miopen::ConvolutionContext& ctx);
 miopen::solver::ConvSolution FindWinogradWrWSolution(const miopen::ConvolutionContext& ctx);
 

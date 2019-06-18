@@ -120,6 +120,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     std::size_t
     ForwardBackwardDataGetWorkSpaceSizeDirect(const miopen::ConvolutionContext& ctx) const;
 
+    std::size_t ForwardGetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx) const;
+
     std::size_t ForwardGetWorkSpaceSizeFFT(const TensorDescriptor& wDesc,
                                            const TensorDescriptor& xDesc,
                                            const TensorDescriptor& yDesc) const;
@@ -217,6 +219,17 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                             std::string& network_config,
                             ExtraKernelArgs& extraArgs,
                             const ConvolutionUserBuffers& bufs) const;
+
+    std::vector<miopen::solver::ConvSolution>
+    FindDataImplicitGemmSolutions(Handle& handle,
+                                  const TensorDescriptor& xDesc,
+                                  const TensorDescriptor& wDesc,
+                                  const TensorDescriptor& yDesc,
+                                  bool exhaustiveSearch,
+                                  bool isForward,
+                                  std::string& network_config,
+                                  ExtraKernelArgs& extraArgs,
+                                  const ConvolutionUserBuffers& bufs) const;
 
     void ConvolutionForward(Handle& handle,
                             const void* alpha,

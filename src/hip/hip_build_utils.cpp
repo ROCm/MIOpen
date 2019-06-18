@@ -45,7 +45,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
         MIOPEN_THROW("HIP kernel are not supported on " + dev_name + " architecture");
     // write out the include files
     auto inc_list = GetKernelIncList();
-    auto inc_path = tmp_dir->path / "miopen" / "composable_kernel";
+    auto inc_path = tmp_dir->path;
     boost::filesystem::create_directories(inc_path);
     for(auto inc_file : inc_list)
     {
@@ -61,7 +61,9 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     params += " ";
     auto bin_file = tmp_dir->path / (filename + ".o");
     // compile with hcc
-    tmp_dir->Execute(HIP_COMPILER, params + filename + " -o " + bin_file.string());
+    auto env = std::string("KMOPTLLC=-mattr=+enable-ds128");
+    tmp_dir->Execute(env + std::string(" ") + HIP_COMPILER,
+                     params + filename + " -o " + bin_file.string());
     if(!boost::filesystem::exists(bin_file))
         MIOPEN_THROW(filename + " failed to compile");
     // call extract kernel

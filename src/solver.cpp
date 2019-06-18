@@ -176,6 +176,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(registry, ++id, ConvOclBwdWrW2NonTunable{});
     RegisterWithSolver(registry, ++id, ConvOclBwdWrW53{});
     RegisterWithSolver(registry, ++id, ConvOclBwdWrW1x1{});
+    RegisterWithSolver(registry, ++id, ConvHipImplicitGemmV4Fwd{});
+    RegisterWithSolver(registry, ++id, ConvHipImplicitGemmV4_1x1{});
 
     // Several ids w/o solver for immediate mode
     Register(registry, ++id, "gemm");
