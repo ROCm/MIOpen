@@ -165,6 +165,12 @@ ClProgramPtr LoadProgram(cl_context ctx,
         std::string device_name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(device);
         ParseDevName(device_name);
         boost::optional<miopen::TmpDir> dir(program_name);
+#if MIOPEN_BUILD_DEV
+        params += " -Werror";
+#ifdef __linux__
+        params += HipKernelWarningsString();
+#endif
+#endif
         auto hsaco_file = HipBuild(dir, program_name, source, params, device_name);
         // load the hsaco file as a data stream and then load the binary
         std::string buf;
@@ -175,10 +181,9 @@ ClProgramPtr LoadProgram(cl_context ctx,
     {
         ClProgramPtr result{CreateProgram(ctx, source.data(), source.size())};
 #if MIOPEN_BUILD_DEV
-        // params += " -Werror";
         params += " -Werror";
 #ifdef __linux__
-        params += KernelWarningsString();
+        params += OclKernelWarningsString();
 #endif
 #endif
         params += " -cl-std=CL1.2";

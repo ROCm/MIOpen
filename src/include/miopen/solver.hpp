@@ -396,6 +396,18 @@ struct ConvOclDirectFwd3x3 : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
+struct ConvHipImplicitGemmV4Fwd : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
+struct ConvHipImplicitGemmV4_1x1 : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
 /// Holds common member functions for the Solvers which share the same
 /// "legacy exhaustive search" machinery.
 struct ConvOclDirectFwdLegacyExhaustiveSearch : SolverBase<ConvolutionContext>
