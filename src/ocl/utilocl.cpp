@@ -27,6 +27,7 @@
 #include <miopen/kernel_cache.hpp>
 #include <miopen/util.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/datatype.hpp>
 
 #include <boost/range/adaptors.hpp>
 
@@ -189,21 +190,11 @@ float Im2d2ColGPU(Handle& handle,
         params += " -DTILE_SZ_Y=" + std::to_string(tile_sz_y);
         params += " -DUSE_IM_OFF_GUARD=1";
 
-        if(type == miopenInt8)
-            params += " -DMIOPEN_USE_INT8=1";
-        else if(type == miopenInt8x4)
-            params += " -DMIOPEN_USE_INT8x4=1";
-        else if(type == miopenHalf)
-            params += " -DMIOPEN_USE_FP16=1";
-        else if(type == miopenBFloat16)
-            params += " -DMIOPEN_USE_BFP16=1";
-        else
-            params += " -DMIOPEN_USE_FP32=1";
+        params += GetDataTypeKernelParams(type);
 
         const std::vector<size_t> vld{256, 1, 1};
         size_t global_threads = 256 * std::max(1, (c_pack / num_ch_per_wg)) * num_blks;
         const std::vector<size_t> vgd{global_threads, 1, 1};
-
         handle.AddKernel(
             "miopenIm2Col", network_config, program_name, kernel_name, vld, vgd, params)(
             data_size_bound_pack,
@@ -310,18 +301,7 @@ float Im3d2ColGPU(Handle& handle,
     }
     else
     {
-        std::string params;
-
-        if(type == miopenInt8)
-            params += " -DMIOPEN_USE_INT8=1";
-        else if(type == miopenInt8x4)
-            params += " -DMIOPEN_USE_INT8x4=1";
-        else if(type == miopenHalf)
-            params += " -DMIOPEN_USE_FP16=1";
-        else if(type == miopenBFloat16)
-            params += " -DMIOPEN_USE_BFP16=1";
-        else
-            params += " -DMIOPEN_USE_FP32=1";
+        std::string params = GetDataTypeKernelParams(type);
 
         const std::vector<size_t> vld{256, 1, 1};
         size_t global_threads = std::min(
@@ -420,13 +400,7 @@ float Col2Im2dGPU(Handle& handle,
     }
     else
     {
-        std::string params;
-        if(type == miopenFloat)
-            params += "-DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_BFP16=0";
-        else if(type == miopenBFloat16)
-            params += "-DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_BFP16=1";
-        else
-            params += "-DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_BFP16=0";
+        std::string params = GetDataTypeKernelParams(type);
 
         const std::vector<size_t> vld{256, 1, 1};
         size_t global_threads = in_c * in_h * in_w;
@@ -531,13 +505,7 @@ float Col2Im3dGPU(Handle& handle,
     }
     else
     {
-        std::string params;
-        if(type == miopenFloat)
-            params += "-DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_BFP16=0";
-        else if(type == miopenBFloat16)
-            params += "-DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_BFP16=1";
-        else
-            params += "-DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_BFP16=0";
+        std::string params = GetDataTypeKernelParams(type);
 
         const std::vector<size_t> vld{256, 1, 1};
         size_t global_threads = in_c * in_d * in_h * in_w;
@@ -750,23 +718,21 @@ float transpose_NCHW2CNHW(Handle& handle,
     }
     else
     {
-        std::string params;
+        std::string params = GetDataTypeKernelParams(type);
 
-        if(type == miopenInt8)
-            params += " -DMIOPEN_USE_INT8=1";
-        else if(type == miopenInt8x4)
+        // TBD: Why Int32 is being treated as fp32
+        if(type == miopenInt32)
+        {
+            params = " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_BFP16=0 "
+                     " -DMIOPEN_USE_INT8=0 -DMIOPEN_USE_INT8x4=0";
+        }
+
+        if(type == miopenInt8x4)
         {
             c /= 4;
             in_offset /= 4;
             out_offset /= 4;
-            params += " -DMIOPEN_USE_INT8x4=1";
         }
-        else if(type == miopenHalf)
-            params += " -DMIOPEN_USE_FP16=1";
-        else if(type == miopenBFloat16)
-            params += " -DMIOPEN_USE_BFP16=1";
-        else
-            params += " -DMIOPEN_USE_FP32=1";
 
         if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
         {
@@ -884,23 +850,21 @@ float transpose_CNHW2NCHW(Handle& handle,
     }
     else
     {
-        std::string params;
+        std::string params = GetDataTypeKernelParams(type);
 
-        if(type == miopenInt8)
-            params += " -DMIOPEN_USE_INT8=1";
-        else if(type == miopenInt8x4)
+        // TBD: Why Int32 is being treated as fp32
+        if(type == miopenInt32)
+        {
+            params = " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_BFP16=0 "
+                     " -DMIOPEN_USE_INT8=0 -DMIOPEN_USE_INT8x4=0";
+        }
+
+        if(type == miopenInt8x4)
         {
             c /= 4;
             in_offset /= 4;
             out_offset /= 4;
-            params += " -DMIOPEN_USE_INT8x4=1";
         }
-        else if(type == miopenHalf)
-            params += " -DMIOPEN_USE_FP16=1";
-        else if(type == miopenBFloat16)
-            params += " -DMIOPEN_USE_BFP16=1";
-        else
-            params += " -DMIOPEN_USE_FP32=1";
 
         if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
         {
@@ -1123,18 +1087,15 @@ float transpose_packed_MN2NM(Handle& handle,
     }
     else
     {
-        std::string params;
-
-        if(type == miopenInt8)
-            params += " -DMIOPEN_USE_INT8=1";
-        else if(type == miopenInt8x4)
+        std::string params = GetDataTypeKernelParams(type);
+        if(type == miopenInt8x4)
         {
             m /= 4;
             in_offset /= 4;
             out_offset /= 4;
-            params += " -DMIOPEN_USE_INT8x4=1";
         }
-        else
+
+        if(!(type == miopenInt8x4 || type == miopenInt8))
         {
             MIOPEN_THROW("transpose_packed_MN2NM only meant for int8 variants.");
         }
