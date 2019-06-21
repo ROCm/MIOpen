@@ -52,7 +52,7 @@ ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx
 
     std::size_t b_per_block = 16;
     std::size_t k_per_block = 128;
-    std::size_t c_per_block = 8;
+    std::size_t e_per_block = 8;
 
     std::size_t block_size = 256;
 
@@ -99,7 +99,7 @@ ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx
         std::string(" -DCK_PARAM_TUNABLE_BLOCK_SIZE=") + std::to_string(block_size) +
         std::string(" -DCK_PARAM_TUNABLE_B_PER_BLOCK=") + std::to_string(b_per_block) +
         std::string(" -DCK_PARAM_TUNABLE_K_PER_BLOCK=") + std::to_string(k_per_block) +
-        std::string(" -DCK_PARAM_TUNABLE_C_PER_BLOCK=") + std::to_string(c_per_block) +
+        std::string(" -DCK_PARAM_TUNABLE_E_PER_BLOCK=") + std::to_string(e_per_block) +
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size);
     // clang-format on
 

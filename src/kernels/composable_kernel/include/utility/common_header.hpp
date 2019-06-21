@@ -1,10 +1,11 @@
-#ifndef CK_COMMON_HPP
-#define CK_COMMON_HPP
+#ifndef CK_COMMON_HEADER_HPP
+#define CK_COMMON_HEADER_HPP
 
 #include "config.hpp"
 #include "utility.hpp"
-#include "vector_type.hpp"
 #include "integral_constant.hpp"
+#include "math.hpp"
+#include "vector_type.hpp"
 #include "Sequence.hpp"
 #include "Array.hpp"
 #include "functional.hpp"

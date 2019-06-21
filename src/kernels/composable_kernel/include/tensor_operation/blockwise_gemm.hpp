@@ -54,9 +54,9 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_v2
                           N % (NPerThreadSubC * NLevel0Cluster * NLevel1Cluster) == 0,
                       "wrong! Cannot evenly divide work among\n");
 
-        static_assert(std::is_same<decltype(ThreadMatrixC::GetLengths()),
-                                   decltype(GetThreadMatrixCLengths())>{},
-                      "wrong! ThreadMatrixC lengths is wrong");
+        static_assert(
+            is_same<decltype(ThreadMatrixC::GetLengths()), decltype(GetThreadMatrixCLengths())>{},
+            "wrong! ThreadMatrixC lengths is wrong");
 
         auto c_thread_mtx_index = GetBeginOfThreadMatrixC(get_thread_local_1d_id());
 
