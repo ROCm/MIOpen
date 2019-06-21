@@ -649,7 +649,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(const TensorDescripto
 std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeImplicitGemm(
     const miopen::ConvolutionContext& ctx) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
     {
         return 0;
     }
