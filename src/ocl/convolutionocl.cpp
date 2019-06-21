@@ -2685,7 +2685,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
             if(selected.Succeeded())
             {
-                const std::string algorithm_name = "miopenConvolutionBwdAlgoImplicitGEMM";
+                const std::string algorithm_name = "miopenConvolutionBwdDataAlgoImplicitGEMM";
                 AddKernels(handle, algorithm_name, network_config, selected, nullptr);
                 MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
                                           << selected.workspce_sz);
@@ -3063,7 +3063,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             break;
         }
 
-        case miopenConvolutionBwdAlgoImplicitGEMM:
+        case miopenConvolutionBwdDataAlgoImplicitGEMM:
         {
             auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, 0}; // backward
             ctx.SetStream(&handle);
@@ -3072,7 +3072,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             ctx.mloBuildConf_Key(network_config);
 
             auto&& kernels =
-                handle.GetKernels("miopenConvolutionBwdAlgoImplicitGEMM", network_config);
+                handle.GetKernels("miopenConvolutionBwdDataAlgoImplicitGEMM", network_config);
             ConvBwdImplicitGemm(ctx, handle, tensors, workSpace, workSpaceSize, kernels);
             break;
         }
@@ -3738,7 +3738,8 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
                 ConvBwdWino(ctx, tensors, v_kernels.front());
             else if(pair.second.kcache_key.algorithm_name == "miopenConvolutionBwdDataAlgoDirect")
                 ConvBwdDirect(ctx, handle, tensors, workSpace, v_kernels);
-            else if(pair.second.kcache_key.algorithm_name == "miopenConvolutionBwdAlgoImplicitGEMM")
+            else if(pair.second.kcache_key.algorithm_name ==
+                    "miopenConvolutionBwdDataAlgoImplicitGEMM")
                 ConvBwdImplicitGemm(ctx, handle, tensors, workSpace, workSpaceSize, v_kernels);
             else
                 MIOPEN_THROW("Invalid algorithm: " + pair.second.kcache_key.algorithm_name);
