@@ -154,7 +154,7 @@ Kernel KernelCache::AddKernel(Handle& h,
                               const std::vector<size_t>& vgd,
                               std::string params,
                               std::size_t cache_index,
-                              bool is_kernel_str,
+                              bool is_kernel_miopengemm_str,
                               const std::string& kernel_src)
 {
     if(params.length() > 0)
@@ -180,18 +180,21 @@ Kernel KernelCache::AddKernel(Handle& h,
     }
     else
     {
-        if(!is_kernel_str) // default value
-            is_kernel_str = algorithm.find("GEMM") != std::string::npos;
+        if(!is_kernel_miopengemm_str) // default value
+            is_kernel_miopengemm_str = algorithm.find("ImplicitGEMM") == std::string::npos &&
+                                       algorithm.find("GEMM") != std::string::npos;
+
         if(miopen::IsLogging(miopen::LoggingLevel::Info2))
         {
-            AddKernelDumpKernelParams(is_kernel_str ? std::string("(source provided by gemm)")
-                                                    : program_name,
+            AddKernelDumpKernelParams(is_kernel_miopengemm_str
+                                          ? std::string("(source provided by miopengemm)")
+                                          : program_name,
                                       kernel_name,
                                       vld,
                                       vgd,
                                       params);
         }
-        program = h.LoadProgram(program_name, params, is_kernel_str, kernel_src);
+        program = h.LoadProgram(program_name, params, is_kernel_miopengemm_str, kernel_src);
         program_map[std::make_pair(program_name, params)] = program;
     }
     Kernel kernel{program, kernel_name, vld, vgd};
