@@ -52,7 +52,7 @@ miopenConvBwdDataAlgorithm_t StringToConvolutionBwdDataAlgo(const std::string& s
         {"miopenConvolutionBwdDataAlgoFFT", miopenConvolutionBwdDataAlgoFFT},
         {"miopenConvolutionBwdDataAlgoWinograd", miopenConvolutionBwdDataAlgoWinograd},
         {"miopenTransposeBwdDataAlgoGEMM", miopenTransposeBwdDataAlgoGEMM},
-        {"miopenConvolutionBwdAlgoImplicitGEMM", miopenConvolutionBwdAlgoImplicitGEMM},
+        {"miopenConvolutionBwdDataAlgoImplicitGEMM", miopenConvolutionBwdDataAlgoImplicitGEMM},
     };
     return data.at(s);
 }
@@ -75,6 +75,7 @@ std::string ConvolutionAlgoToString(const miopenConvAlgorithm_t algo)
     case miopenConvolutionAlgoDirect: return "miopenConvolutionAlgoDirect";
     case miopenConvolutionAlgoFFT: return "miopenConvolutionAlgoFFT";
     case miopenConvolutionAlgoWinograd: return "miopenConvolutionAlgoWinograd";
+    case miopenConvolutionAlgoImplicitGEMM: return "miopenConvolutionAlgoImplicitGEMM";
     }
     return "<invalid algorithm>";
 }
@@ -115,6 +116,13 @@ static_assert(miopenConvolutionAlgoWinograd ==
               "");
 static_assert(miopenConvolutionAlgoWinograd ==
                   static_cast<miopenConvAlgorithm_t>(miopenConvolutionBwdWeightsAlgoWinograd),
+              "");
+
+static_assert(miopenConvolutionAlgoImplicitGEMM ==
+                  static_cast<miopenConvAlgorithm_t>(miopenConvolutionFwdAlgoImplicitGEMM),
+              "");
+static_assert(miopenConvolutionAlgoImplicitGEMM ==
+                  static_cast<miopenConvAlgorithm_t>(miopenConvolutionBwdDataAlgoImplicitGEMM),
               "");
 
 } // namespace miopen
