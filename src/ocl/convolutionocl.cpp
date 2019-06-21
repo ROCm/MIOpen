@@ -384,7 +384,7 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
                                                      const ConvolutionUserBuffers& bufs) const
 {
 
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
         return {};
 
     auto ctx                    = ConvolutionContext{xDesc, wDesc, yDesc, *this, isForward ? 1 : 0};
