@@ -411,18 +411,16 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     target_include_directories(MIOpen SYSTEM PUBLIC ${OPENCL_INCLUDE_DIRS} )
     target_link_libraries( MIOpen PUBLIC ${OPENCL_LIBRARIES} )
     list(APPEND PACKAGE_DEPENDS PACKAGE OpenCL)
-    set(BACKEND_PACKAGE "OpenCL")
 elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
-    target_link_libraries( MIOpen PRIVATE hip::hip_hcc hip::device )
-    target_link_libraries( MIOpen INTERFACE hip::hip_hcc )
+    target_link_libraries( MIOpen PRIVATE hip::device )
+    target_link_libraries( MIOpen INTERFACE hip::host )
     if(ENABLE_HIP_WORKAROUNDS)
         # Workaround hip not setting its usage requirements correctly
         target_compile_definitions( MIOpen PRIVATE -D__HIP_PLATFORM_HCC__=1 )
     endif()
     # This is helpful for the tests
-    target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:${hip_LIBRARIES}> )
+    target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:hip::device> )
     list(APPEND PACKAGE_DEPENDS PACKAGE hip)
-    set(BACKEND_PACKAGE "hip")
 endif()
 
 ############################################################
