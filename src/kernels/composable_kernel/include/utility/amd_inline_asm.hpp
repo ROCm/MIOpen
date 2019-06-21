@@ -6,7 +6,7 @@
 namespace ck {
 
 // cast a pointer of LDS to its address
-extern "C" __attribute__((address_space(3))) void* __to_local(void* p)[[hc]];
+extern "C" __attribute__((address_space(3))) __device__ void* __to_local(void* p);
 
 __device__ void vmcnt(index_t cnt)
 {

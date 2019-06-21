@@ -31,7 +31,7 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_
 
     constexpr index_t BPerBlock = CK_PARAM_TUNABLE_B_PER_BLOCK;
     constexpr index_t KPerBlock = CK_PARAM_TUNABLE_K_PER_BLOCK;
-    constexpr index_t CPerBlock = CK_PARAM_TUNABLE_C_PER_BLOCK;
+    constexpr index_t EPerBlock = CK_PARAM_TUNABLE_E_PER_BLOCK;
 
     // read params: dependent params
     constexpr index_t GridSize = CK_PARAM_DEPENDENT_GRID_SIZE;
@@ -87,7 +87,7 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_
             ConvDilations,
             BPerBlock,
             KPerBlock,
-            CPerBlock,
+            EPerBlock,
             N1,
             N2,
             GemmMPerThreadSubC,
