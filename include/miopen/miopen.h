@@ -32,7 +32,7 @@
 #endif
 
 #include <stddef.h>
-
+#include <stdbool.h>
 #include <miopen/config.h>
 #include <miopen/export.h>
 
