@@ -28,6 +28,7 @@
 
 #include <miopen/logger.hpp>
 #include <miopen/any_solver.hpp>
+#include <miopen/conv_algo_name.hpp>
 
 #include <cstdint>
 #include <unordered_map>
@@ -46,6 +47,7 @@ struct Id
 
     std::string ToString() const;
     AnySolver GetSolver() const;
+    std::string GetAlgo(miopenConvDirection_t dir) const;
 
     bool IsValid() const { return value != invalid; }
     operator bool() const { return IsValid(); }

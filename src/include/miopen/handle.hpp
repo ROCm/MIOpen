@@ -177,6 +177,7 @@ struct Handle : miopenHandle
     }
 
     std::unique_ptr<HandleImpl> impl;
+    std::unordered_map<std::string, std::vector<miopenConvSolution_t>> find_map;
 #if MIOPEN_USE_MIOPENGEMM
     std::unordered_map<GemmKey, std::unique_ptr<GemmGeometry>, SimpleHash> geo_map;
 #endif
