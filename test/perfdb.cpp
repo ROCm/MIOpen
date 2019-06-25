@@ -1006,7 +1006,7 @@ class DbMultiFileReadTest : public DbMultiFileTest
             {id1(), value1()}, {id0(), value2()},
         }};
 
-        MultiFileDb<merge_records> db(temp_file, user_db_path);
+        MultiFileDb<Db, Db, merge_records> db(temp_file, user_db_path);
         if(merge_records)
             ValidateSingleEntry(key(), merged_data, db);
         else
@@ -1021,14 +1021,14 @@ class DbMultiFileReadTest : public DbMultiFileTest
     {
         RawWrite(user_db_path, key(), single_item_data());
         ValidateSingleEntry(
-            key(), single_item_data(), MultiFileDb<merge_records>(temp_file, user_db_path));
+            key(), single_item_data(), MultiFileDb<Db, Db, merge_records>(temp_file, user_db_path));
     }
 
     void ReadInstalled() const
     {
         RawWrite(temp_file, key(), single_item_data());
         ValidateSingleEntry(
-            key(), single_item_data(), MultiFileDb<merge_records>(temp_file, user_db_path));
+            key(), single_item_data(), MultiFileDb<Db, Db, merge_records>(temp_file, user_db_path));
     }
 
     void ReadConflict() const
@@ -1052,7 +1052,7 @@ class DbMultiFileWriteTest : public DbMultiFileTest
         EXPECT(record.SetValues(id1(), value1()));
 
         {
-            MultiFileDb<true> db(temp_file, user_db_path);
+            MultiFileDb<Db, Db, true> db(temp_file, user_db_path);
 
             EXPECT(db.StoreRecord(record));
         }
@@ -1061,7 +1061,8 @@ class DbMultiFileWriteTest : public DbMultiFileTest
         EXPECT(!std::getline(std::ifstream(temp_file), read).good());
         EXPECT(std::getline(std::ifstream(user_db_path), read).good());
 
-        ValidateSingleEntry(key(), common_data(), MultiFileDb<true>(temp_file, user_db_path));
+        ValidateSingleEntry(
+            key(), common_data(), MultiFileDb<Db, Db, true>(temp_file, user_db_path));
     }
 };
 
@@ -1097,7 +1098,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
         std::cout << "Update test..." << std::endl;
 
         {
-            MultiFileDb<true> db(temp_file, user_db_path);
+            MultiFileDb<Db, Db, true> db(temp_file, user_db_path);
             EXPECT(db.Update(key(), id1(), value1()));
         }
 
@@ -1119,7 +1120,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
     {
         std::cout << "Load test..." << std::endl;
 
-        MultiFileDb<true> db(temp_file, user_db_path);
+        MultiFileDb<Db, Db, true> db(temp_file, user_db_path);
         ValidateData(db, value1());
     }
 
@@ -1127,7 +1128,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
     {
         std::cout << "Remove test..." << std::endl;
 
-        MultiFileDb<true> db(temp_file, user_db_path);
+        MultiFileDb<Db, Db, true> db(temp_file, user_db_path);
         EXPECT(!db.Remove(key(), id0()));
         EXPECT(db.Remove(key(), id1()));
 
@@ -1138,7 +1139,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
     {
         std::cout << "Remove record test..." << std::endl;
 
-        MultiFileDb<true> db(temp_file, user_db_path);
+        MultiFileDb<Db, Db, true> db(temp_file, user_db_path);
         EXPECT(db.Update(key(), id1(), value1()));
         EXPECT(db.RemoveRecord(key()));
 
@@ -1169,7 +1170,7 @@ class DbMultiFileMultiThreadedReadTest : public DbMultiFileTest
         std::cout << "Initializing test data..." << std::endl;
         const std::string p = temp_file;
         const auto& up      = user_db_path;
-        const auto c        = [&p, up]() { return MultiFileDb<true>(p, up); };
+        const auto c        = [&p, up]() { return MultiFileDb<Db, Db, true>(p, up); };
         ResetDb();
         DBMultiThreadedTestWork::FillForReading(c);
 
@@ -1212,7 +1213,7 @@ class DbMultiFileMultiThreadedTest : public DbMultiFileTest
         threads.reserve(DBMultiThreadedTestWork::threads_count);
         const std::string p = temp_file;
         const auto up       = user_db_path;
-        const auto c        = [&p, &up]() { return MultiFileDb<true>(p, up); };
+        const auto c        = [&p, &up]() { return MultiFileDb<Db, Db, true>(p, up); };
 
         {
             std::unique_lock<std::mutex> lock(mutex);
