@@ -150,7 +150,7 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
         pos->end   = -1;
     }
 
-    MIOPEN_LOG_I2("Looking for key: " << key);
+    MIOPEN_LOG_I2("Looking for key " << key << " in file " << filename);
 
     std::ifstream file(filename);
 

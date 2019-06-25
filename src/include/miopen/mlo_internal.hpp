@@ -133,8 +133,11 @@ namespace miopen {
 
 struct TensorDescriptor;
 
-template <bool>
+template <class TInstalled, class TUser, bool merge_records>
 class MultiFileDb;
+
+class ReadonlyRamDb;
+class Db;
 
 template <class TInnerDb>
 class DbTimer;
@@ -152,7 +155,8 @@ class StaticContainer
     }
 };
 
-miopen::DbTimer<miopen::MultiFileDb<true>> GetDb(const miopen::ConvolutionContext& ctx);
+using PerfDb = DbTimer<MultiFileDb<Db, Db, true>>;
+PerfDb GetDb(const ConvolutionContext& ctx);
 
 template <class TTo>
 size_t setTopDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor)
@@ -439,7 +443,7 @@ struct mlo_construct_base
     void detectRocm() { _search_params.DetectRocm(); }
     void setupFloats() { _search_params.SetupFloats(); }
 
-    miopen::DbTimer<miopen::MultiFileDb<true>> GetDb() const;
+    miopen::PerfDb GetDb() const;
 
     /*
      * get common compiler options
