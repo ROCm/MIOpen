@@ -29,7 +29,6 @@
 
 #include <string>
 #include <unordered_map>
-
 namespace miopen {
 
 miopenConvFwdAlgorithm_t StringToConvolutionFwdAlgo(const std::string& s)
@@ -76,6 +75,50 @@ std::string ConvolutionAlgoToString(const miopenConvAlgorithm_t algo)
     case miopenConvolutionAlgoFFT: return "miopenConvolutionAlgoFFT";
     case miopenConvolutionAlgoWinograd: return "miopenConvolutionAlgoWinograd";
     case miopenConvolutionAlgoImplicitGEMM: return "miopenConvolutionAlgoImplicitGEMM";
+    }
+    return "<invalid algorithm>";
+}
+
+std::string ConvolutionAlgoToDirectionalString(const miopenConvAlgorithm_t algo,
+                                               miopenConvDirection_t dir)
+{
+
+    switch(dir)
+    {
+    case miopenConvFwd:
+    {
+        switch(algo)
+        {
+        case miopenConvolutionAlgoGEMM: return "miopenConvolutionFwdAlgoGEMM";
+        case miopenConvolutionAlgoDirect: return "miopenConvolutionFwdAlgoDirect";
+        case miopenConvolutionAlgoFFT: return "miopenConvolutionFwdAlgoFFT";
+        case miopenConvolutionAlgoWinograd: return "miopenConvolutionFwdAlgoWinograd";
+        case miopenConvolutionAlgoImplicitGEMM: return "miopenConvolutionFwdAlgoImplicitGEMM";
+        }
+    }
+    case miopenConvBwdData:
+    {
+        switch(algo)
+        {
+        case miopenConvolutionAlgoGEMM: return "miopenConvolutionBwdDataAlgoGEMM";
+        case miopenConvolutionAlgoDirect: return "miopenConvolutionBwdDataAlgoDirect";
+        case miopenConvolutionAlgoFFT: return "miopenConvolutionBwdDataAlgoFFT";
+        case miopenConvolutionAlgoWinograd: return "miopenConvolutionBwdDataAlgoWinograd";
+        case miopenConvolutionAlgoImplicitGEMM: return "miopenConvolutionBwdDataAlgoImplicitGEMM";
+        }
+    }
+    case miopenConvBwdWeights:
+    {
+        switch(algo)
+        {
+        case miopenConvolutionAlgoGEMM: return "miopenConvolutionBwdWeigthsAlgoGEMM";
+        case miopenConvolutionAlgoDirect: return "miopenConvolutionBwdWeightsAlgoDirect";
+        case miopenConvolutionAlgoFFT: return "miopenConvolutionBwdWeigthsAlgoFFT";
+        case miopenConvolutionAlgoWinograd: return "miopenConvolutionBwdWeigthtsAlgoWinograd";
+        case miopenConvolutionAlgoImplicitGEMM:
+            return "miopenConvolutionBwdWeightsAlgoImplicitGEMM";
+        }
+    }
     }
     return "<invalid algorithm>";
 }

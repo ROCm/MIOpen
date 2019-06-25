@@ -27,14 +27,24 @@
 #define GUARD_MIOPEN_CONV_ALGO_NAME_HPP
 
 #include <string>
+#include <miopen/errors.hpp>
 
 namespace miopen {
+
+enum miopenConvDirection_t
+{
+    miopenConvFwd,
+    miopenConvBwdData,
+    miopenConvBwdWeights
+};
 
 miopenConvFwdAlgorithm_t StringToConvolutionFwdAlgo(const std::string& s);
 miopenConvBwdDataAlgorithm_t StringToConvolutionBwdDataAlgo(const std::string& s);
 miopenConvBwdWeightsAlgorithm_t StringToConvolutionBwdWeightsAlgo(const std::string& s);
 
 std::string ConvolutionAlgoToString(miopenConvAlgorithm_t algo);
+std::string ConvolutionAlgoToDirectionalString(miopenConvAlgorithm_t algo,
+                                               miopenConvDirection_t dir);
 
 } // namespace miopen
 
