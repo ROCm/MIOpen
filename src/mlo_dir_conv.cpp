@@ -34,6 +34,7 @@
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
 #include <miopen/solver.hpp>
+#include <miopen/readonlyramdb.hpp>
 
 #include <cmath>
 #include <cstring>
@@ -44,23 +45,15 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
-/************************************************************************************************************************
- **
- **			CONSTRUCT CONVOLUTIONAL LAYER
- **
- ************************************************************************************************************************/
-
-miopen::DbTimer<miopen::MultiFileDb<true>> mlo_construct_base::GetDb() const
+miopen::PerfDb mlo_construct_base::GetDb() const
 {
     return {{db_path(), _search_params.GetUserPerfDbPath()}};
 }
 
-namespace miopen {
-miopen::DbTimer<miopen::MultiFileDb<true>> GetDb(const miopen::ConvolutionContext& ctx)
+miopen::PerfDb miopen::GetDb(const ConvolutionContext& ctx)
 {
     return {{ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath()}};
 }
-} // namespace miopen
 
 miopen::solver::ConvSolution
 mlo_construct_direct2D_fusion::FindSolution(const std::vector<miopen::solver::AnySolver>& solvers)
