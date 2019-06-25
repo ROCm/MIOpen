@@ -2385,9 +2385,38 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
 
     ConvForwardCheckNumerics(handle, tensors, [&]() {
+
         if(solver_id == solver::Id::gemm())
         {
             ConvFwdGemm(handle, tensors, workSpace, workSpaceSize);
+            return;
+        }
+
+        std::string network_config;
+        auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, 1};
+        ctx.SetStream(&handle);
+        ctx.mloBuildConf_Key(network_config);
+        auto algo_name           = solver_id.GetAlgo(miopenConvFwd);
+        const auto&& chk_kernels = handle.GetKernels(algo_name, network_config);
+        auto v_chk_kernels = std::vector<KernelInvoke>{chk_kernels.begin(), chk_kernels.end()};
+
+        if(!v_chk_kernels.empty())
+        {
+            MIOPEN_LOG_I2(
+                "Found previously compiled kernels for solution: " << solver_id.ToString());
+            if(solver_id == solver::Id::fft())
+            {
+                ConvFwdFFT(handle, tensors, workSpace, workSpaceSize);
+            }
+
+            if(algo_name == "miopenConvolutionFwdAlgoWinograd")
+                ConvFwdWino(ctx, tensors, v_chk_kernels.front());
+            else if(algo_name == "miopenConvolutionFwdAlgoDirect")
+                ConvFwdDirect(ctx, handle, tensors, workSpace, workSpaceSize, v_chk_kernels);
+            else if(algo_name == "miopenConvolutionFwdAlgoImplicitGEMM")
+                ConvFwdImplicitGemm(ctx, handle, tensors, workSpace, workSpaceSize, v_chk_kernels);
+            else
+                MIOPEN_THROW("Invalid algorithm: " + algo_name);
             return;
         }
 
@@ -2414,9 +2443,6 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
                 ConvFwdFFT(handle, tensors, workSpace, workSpaceSize);
                 return;
             }
-
-            auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, 1};
-            ctx.SetStream(&handle);
 
             if(v_kernels.empty())
                 v_kernels = CompileSolver(handle, ctx, solver_id, pair.second.kcache_key);
@@ -3703,6 +3729,33 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
             return;
         }
 
+        std::string network_config;
+        auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, 0};
+        ctx.SetStream(&handle);
+        ctx.mloBuildConf_Key(network_config);
+        auto algo_name           = solver_id.GetAlgo(miopenConvBwdData);
+        const auto&& chk_kernels = handle.GetKernels(algo_name, network_config);
+        auto v_chk_kernels = std::vector<KernelInvoke>{chk_kernels.begin(), chk_kernels.end()};
+
+        if(!v_chk_kernels.empty())
+        {
+            MIOPEN_LOG_I2(
+                "Found previously compiled kernels for solution: " << solver_id.ToString());
+            if(solver_id == solver::Id::fft())
+            {
+                ConvBwdFFT(handle, tensors, workSpace, workSpaceSize);
+            }
+            if(algo_name == "miopenConvolutionBwdDataAlgoWinograd")
+                ConvBwdWino(ctx, tensors, v_chk_kernels.front());
+            else if(algo_name == "miopenConvolutionBwdDataAlgoDirect")
+                ConvBwdDirect(ctx, handle, tensors, workSpace, v_chk_kernels);
+            else if(algo_name == "miopenConvolutionBwdDataAlgoImplicitGEMM")
+                ConvBwdImplicitGemm(ctx, handle, tensors, workSpace, workSpaceSize, v_chk_kernels);
+            else
+                MIOPEN_THROW("Invalid algorithm: " + algo_name);
+            return;
+        }
+
         const auto problem = ProblemDescription{dxDesc, wDesc, dyDesc, *this, 0};
         const FindDbRecord fdb_record{handle, problem};
 
@@ -3727,9 +3780,6 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
                 ConvBwdFFT(handle, tensors, workSpace, workSpaceSize);
                 return;
             }
-
-            auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, 0};
-            ctx.SetStream(&handle);
 
             if(v_kernels.empty())
                 v_kernels = CompileSolver(handle, ctx, solver_id, pair.second.kcache_key);
@@ -4714,8 +4764,28 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
             return;
         }
 
+        std::string network_config;
         auto ctx = ConvolutionContext{xDesc, dwDesc, dyDesc, *this, 0};
+        ctx.SetStream(&handle);
         ctx.direction.SetBackwardWrW();
+        ctx.mloBuildConf_Key(network_config);
+        auto algo_name           = solver_id.GetAlgo(miopenConvBwdWeights);
+        const auto&& chk_kernels = handle.GetKernels(algo_name, network_config);
+        auto v_chk_kernels = std::vector<KernelInvoke>{chk_kernels.begin(), chk_kernels.end()};
+        if(!v_chk_kernels.empty())
+        {
+            MIOPEN_LOG_I2(
+                "Found previously compiled kernels for solution: " << solver_id.ToString());
+
+            if(algo_name == "miopenConvolutionBwdWeightsAlgoWinograd")
+                BackwardWeightsWinograd(ctx, tensors, v_chk_kernels.front());
+            else if(algo_name == "miopenConvolutionBwdWeightsAlgoDirect")
+                BackwardWeightsDirect(handle, ctx, tensors, workSpace, v_chk_kernels);
+            else
+                MIOPEN_THROW("Invalid algorithm: " + algo_name);
+            return;
+        }
+
         const FindDbRecord fdb_record{handle, ctx};
 
         for(const auto& pair : fdb_record)
@@ -4726,8 +4796,6 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
             const auto&& kernels = handle.GetKernels(pair.second.kcache_key.algorithm_name,
                                                      pair.second.kcache_key.network_config);
             auto v_kernels = std::vector<KernelInvoke>{kernels.begin(), kernels.end()};
-
-            ctx.SetStream(&handle);
 
             if(v_kernels.empty())
                 v_kernels = CompileSolver(handle, ctx, solver_id, pair.second.kcache_key);
