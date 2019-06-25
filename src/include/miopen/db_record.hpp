@@ -31,6 +31,7 @@
 #include <miopen/logger.hpp>
 
 #include <cassert>
+#include <istream>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -158,12 +159,18 @@ class DbRecord
         return ss.str();
     }
 
-    bool ParseContents(const std::string& contents);
+    bool ParseContents(std::istream& contents);
     void WriteContents(std::ostream& stream) const;
     bool SetValues(const std::string& id, const std::string& values);
     bool GetValues(const std::string& id, std::string& values) const;
 
     DbRecord(const std::string& key_) : key(key_) {}
+
+    bool ParseContents(const std::string& contents)
+    {
+        auto ss = std::istringstream(contents);
+        return ParseContents(ss);
+    }
 
     public:
     /// T shall provide a db KEY by means of the "void Serialize(std::ostream&) const" member
@@ -228,6 +235,7 @@ class DbRecord
     }
 
     friend class Db;
+    friend class ReadonlyRamDb;
 };
 
 } // namespace miopen

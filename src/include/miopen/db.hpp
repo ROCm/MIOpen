@@ -27,6 +27,7 @@
 #define GUARD_MIOPEN_DB_HPP_
 
 #include <miopen/db_record.hpp>
+#include <miopen/rank.hpp>
 
 #include <boost/core/explicit_operator_bool.hpp>
 #include <boost/none.hpp>
@@ -156,12 +157,13 @@ class Db
     }
 };
 
-template <bool merge_records>
+template <class TInstalled, class TUser, bool merge_records>
 class MultiFileDb
 {
     public:
     MultiFileDb(const std::string& installed_path, const std::string& user_path)
-        : _installed(installed_path, merge_records), _user(user_path, false)
+        : _installed(GetDbInstance<TInstalled>(installed_path, merge_records)),
+          _user(GetDbInstance<TUser>(user_path, false))
     {
     }
 
@@ -225,7 +227,26 @@ class MultiFileDb
     }
 
     private:
-    Db _installed, _user;
+    template <class TDb, class TRet = decltype(TDb::GetCached("", true))>
+    static TRet GetDbInstance(rank<1>, const std::string& path, bool warn_if_unreadable)
+    {
+        return TDb::GetCached(path, warn_if_unreadable);
+    };
+
+    template <class TDb>
+    static TDb GetDbInstance(rank<0>, const std::string& path, bool warn_if_unreadable)
+    {
+        return {path, warn_if_unreadable};
+    };
+
+    template <class TDb, class TRet = decltype(GetDbInstance<TDb>(rank<1>{}, {}, {}))>
+    static TRet GetDbInstance(const std::string& path, bool warn_if_unreadable)
+    {
+        return GetDbInstance<TDb>(rank<1>{}, path, warn_if_unreadable);
+    }
+
+    decltype(GetDbInstance<TInstalled>("", true)) _installed;
+    decltype(GetDbInstance<TUser>("", false)) _user;
 };
 
 template <class TInnerDb>
