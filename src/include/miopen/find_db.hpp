@@ -32,6 +32,7 @@
 #include <miopen/db_record.hpp>
 #include <miopen/env.hpp>
 #include <miopen/perf_field.hpp>
+#include <miopen/readonlyramdb.hpp>
 
 #include <boost/optional.hpp>
 
@@ -56,7 +57,10 @@ class FindDbRecord
     template <class TProblemDescription>
     FindDbRecord(Handle& handle, const TProblemDescription& problem)
         : path(path_override() ? *path_override() : GetUserPath(handle)),
-          db(TryLoadDb(path_override() ? *path_override() : GetInstalledPath(handle), path))
+          db(!enabled || IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{})
+                 ? boost::none
+                 : boost::optional<DbClass>{DbClass{
+                       {path_override() ? *path_override() : GetInstalledPath(handle), path}}})
     {
         if(!db.is_initialized())
             return;
@@ -105,8 +109,14 @@ class FindDbRecord
     }
 
     private:
+#if MIOPEN_DEBUG_FIND_DB_CACHING == 1
+    using DbClass = DbTimer<MultiFileDb<ReadonlyRamDb, Db, false>>;
+#else
+    using DbClass = DbTimer<MultiFileDb<Db, Db, false>>;
+#endif
+
     std::string path;
-    boost::optional<DbTimer<MultiFileDb<false>>> db;
+    boost::optional<DbClass> db;
     boost::optional<DbRecord> content{boost::none};
     bool in_sync = false;
 
@@ -114,14 +124,6 @@ class FindDbRecord
 
     static std::string GetInstalledPath(Handle& handle);
     static std::string GetUserPath(Handle& handle);
-
-    static boost::optional<DbTimer<MultiFileDb<false>>> TryLoadDb(const std::string& installed_path,
-                                                                  const std::string& user_path)
-    {
-        if(!enabled || IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}))
-            return boost::none;
-        return DbTimer<MultiFileDb<false>>{{installed_path, user_path}};
-    }
 
     // Returns true if rebuild is required
     bool CopyValidating(Handle& handle, std::vector<PerfField>& to) const;
