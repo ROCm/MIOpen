@@ -44,7 +44,12 @@ class path;
 
 namespace miopen {
 
-struct RecordPositions;
+struct RecordPositions
+{
+    std::streamoff begin = -1;
+    std::streamoff end   = -1;
+};
+
 class LockFile;
 
 std::string LockFilePath(const boost::filesystem::path& filename_);

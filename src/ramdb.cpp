@@ -42,12 +42,6 @@
 
 namespace miopen {
 
-struct RecordPositions
-{
-    std::streamoff begin = -1;
-    std::streamoff end   = -1;
-};
-
 #define MIOPEN_VALIDATE_LOCK(lock)                       \
     do                                                   \
     {                                                    \
@@ -151,8 +145,10 @@ boost::optional<miopen::DbRecord> RamDb::FindRecordUnsafe(const std::string& pro
 
     if(!record.ParseContents(it->second.content))
     {
-        MIOPEN_LOG_E("Error parsing payload under the key: "
-                     << problem << " form file " << GetFileName() << "#" << it->second.line);
+        MIOPEN_LOG_E("Error parsing payload under the key: " << problem << " form file "
+                                                             << GetFileName()
+                                                             << "#"
+                                                             << it->second.line);
         MIOPEN_LOG_E("Contents: " << it->second.content);
         return boost::none;
     }
@@ -181,11 +177,11 @@ void RamDb::Validate()
     MIOPEN_VALIDATE_LOCK(lock);
 
     if(!boost::filesystem::exists(GetFileName()))
-	{
+    {
         if(!cache.empty())
             Prefetch();
         return;
-	}
+    }
 
     const auto file_mod_time = boost::filesystem::last_write_time(GetFileName());
 

@@ -38,7 +38,6 @@
 namespace miopen {
 
 class LockFile;
-struct RecordPositions;
 
 class RamDb : protected Db
 {
@@ -70,7 +69,7 @@ class RamDb : protected Db
         return record->GetValues(id, value);
     }
 
-	bool StoreRecord(const DbRecord& record);
+    bool StoreRecord(const DbRecord& record);
     bool UpdateRecord(DbRecord& record);
     bool RemoveRecord(const std::string& key);
     bool Remove(const std::string& key, const std::string& id);
@@ -112,10 +111,10 @@ class RamDb : protected Db
     std::time_t file_read_time = 0;
     std::unordered_map<std::string, CacheItem> cache;
 
-	boost::optional<miopen::DbRecord> FindRecordUnsafe(const std::string& problem);
+    boost::optional<miopen::DbRecord> FindRecordUnsafe(const std::string& problem);
 
-	void Invalidate();
-	void Validate();
+    void Invalidate();
+    void Validate();
     void Prefetch();
 };
 

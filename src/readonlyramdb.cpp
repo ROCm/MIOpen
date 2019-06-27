@@ -62,7 +62,8 @@ static auto Measure(const std::string& funcName, TFunc&& func)
     const auto start = std::chrono::high_resolution_clock::now();
     func();
     const auto end = std::chrono::high_resolution_clock::now();
-    MIOPEN_LOG_I("ReadonlyRamDb::" << funcName << " time: " << (end - start).count() * .000001f << " ms");
+    MIOPEN_LOG_I("ReadonlyRamDb::" << funcName << " time: " << (end - start).count() * .000001f
+                                   << " ms");
 }
 
 void ReadonlyRamDb::Prefetch(bool warn_if_unreadable)

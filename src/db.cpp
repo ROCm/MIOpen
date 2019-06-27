@@ -48,12 +48,6 @@
 
 namespace miopen {
 
-struct RecordPositions
-{
-    std::streamoff begin = -1;
-    std::streamoff end   = -1;
-};
-
 std::string LockFilePath(const boost::filesystem::path& filename_)
 {
     const auto directory = boost::filesystem::temp_directory_path() / "miopen-lockfiles";
