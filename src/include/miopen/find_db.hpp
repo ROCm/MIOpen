@@ -32,6 +32,7 @@
 #include <miopen/db_record.hpp>
 #include <miopen/env.hpp>
 #include <miopen/perf_field.hpp>
+#include <miopen/ramdb.hpp>
 #include <miopen/readonlyramdb.hpp>
 
 #include <boost/optional.hpp>
@@ -110,7 +111,7 @@ class FindDbRecord
 
     private:
 #if MIOPEN_DEBUG_FIND_DB_CACHING == 1
-    using DbClass = DbTimer<MultiFileDb<ReadonlyRamDb, Db, false>>;
+    using DbClass = DbTimer<MultiFileDb<ReadonlyRamDb, RamDb, false>>;
 #else
     using DbClass = DbTimer<MultiFileDb<Db, Db, false>>;
 #endif

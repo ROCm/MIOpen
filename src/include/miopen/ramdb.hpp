@@ -25,63 +25,81 @@
  *******************************************************************************/
 #pragma once
 
+#include <miopen/db.hpp>
 #include <miopen/db_record.hpp>
 
 #include <boost/optional.hpp>
 
+#include <ctime>
 #include <unordered_map>
 #include <string>
 #include <sstream>
 
 namespace miopen {
 
-class ReadonlyRamDb
+class LockFile;
+struct RecordPositions;
+
+class RamDb : protected Db
 {
     public:
-    ReadonlyRamDb(std::string path) : db_path(path) {}
+    RamDb(std::string path, bool warn_if_unreadable_);
 
-    static ReadonlyRamDb& GetCached(const std::string& path, bool warn_if_unreadable);
+    RamDb(const RamDb&) = delete;
+    RamDb(RamDb&&)      = delete;
+    RamDb& operator=(const RamDb&) = delete;
+    RamDb& operator=(RamDb&&) = delete;
 
-    boost::optional<DbRecord> FindRecord(const std::string& problem) const
-    {
-        const auto it = cache.find(problem);
+    static RamDb& GetCached(const std::string& path, bool warn_if_unreadable);
 
-        if(it == cache.end())
-            return boost::none;
-
-        auto record = DbRecord{problem};
-
-        if(!record.ParseContents(it->second.content))
-        {
-            MIOPEN_LOG_E("Error parsing payload under the key: " << problem << " form file "
-                                                                 << db_path
-                                                                 << "#"
-                                                                 << it->second.line);
-            MIOPEN_LOG_E("Contents: " << it->second.content);
-            return boost::none;
-        }
-        else
-        {
-            MIOPEN_LOG_I2("Looking for key " << problem << " in file " << db_path);
-        }
-
-        return record;
-    }
+    boost::optional<DbRecord> FindRecord(const std::string& problem);
 
     template <class TProblem>
-    boost::optional<DbRecord> FindRecord(const TProblem& problem) const
+    boost::optional<DbRecord> FindRecord(const TProblem& problem)
     {
         const auto key = DbRecord::Serialize(problem);
         return FindRecord(key);
     }
 
     template <class TProblem, class TValue>
-    bool Load(const TProblem& problem, const std::string& id, TValue& value) const
+    bool Load(const TProblem& problem, const std::string& id, TValue& value)
     {
         const auto record = FindRecord(problem);
         if(!record)
             return false;
         return record->GetValues(id, value);
+    }
+
+	bool StoreRecord(const DbRecord& record);
+    bool UpdateRecord(DbRecord& record);
+    bool RemoveRecord(const std::string& key);
+    bool Remove(const std::string& key, const std::string& id);
+
+    template <class T>
+    inline bool Remove(const T& problem_config, const std::string& id)
+    {
+        const auto key = DbRecord::Serialize(problem_config);
+        return Remove(key, id);
+    }
+
+    template <class T>
+    inline bool RemoveRecord(const T& problem_config)
+    {
+        const auto key = DbRecord::Serialize(problem_config);
+        return RemoveRecord(key);
+    }
+
+    template <class T, class V>
+    inline boost::optional<DbRecord>
+    Update(const T& problem_config, const std::string& id, const V& values)
+    {
+        DbRecord record(problem_config);
+        record.SetValues(id, values);
+        const auto ok = UpdateRecord(record);
+        if(ok)
+            return record;
+        else
+            return boost::none;
     }
 
     private:
@@ -91,15 +109,14 @@ class ReadonlyRamDb
         std::string content;
     };
 
-    std::string db_path;
+    std::time_t file_read_time = 0;
     std::unordered_map<std::string, CacheItem> cache;
 
-    ReadonlyRamDb(const ReadonlyRamDb&) = default;
-    ReadonlyRamDb(ReadonlyRamDb&&)      = default;
-    ReadonlyRamDb& operator=(const ReadonlyRamDb&) = default;
-    ReadonlyRamDb& operator=(ReadonlyRamDb&&) = default;
+	boost::optional<miopen::DbRecord> FindRecordUnsafe(const std::string& problem);
 
-    void Prefetch(bool warn_if_unreadable);
+	void Invalidate();
+	void Validate();
+    void Prefetch();
 };
 
 } // namespace miopen

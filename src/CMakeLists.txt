@@ -108,6 +108,7 @@ set( MIOpen_Source
     find_db.cpp
     conv_algo_name.cpp
     readonlyramdb.cpp
+	ramdb.cpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
     include/miopen/db.hpp
@@ -149,6 +150,7 @@ set( MIOpen_Source
     include/miopen/conv_solution.hpp
     include/miopen/conv_algo_name.hpp
     include/miopen/readonlyramdb.hpp
+    include/miopen/ramdb.hpp
     md_graph.cpp
     mdg_expr.cpp
     tensor.cpp

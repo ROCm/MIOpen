@@ -49,7 +49,7 @@ ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path, bool warn_if_un
                                   std::forward_as_tuple(path),
                                   std::forward_as_tuple(path))
                          .first->second;
-    instance.Prefetch(path, warn_if_unreadable);
+    instance.Prefetch(warn_if_unreadable);
     return instance;
 }
 
@@ -62,18 +62,18 @@ static auto Measure(const std::string& funcName, TFunc&& func)
     const auto start = std::chrono::high_resolution_clock::now();
     func();
     const auto end = std::chrono::high_resolution_clock::now();
-    MIOPEN_LOG_I("Db::" << funcName << " time: " << (end - start).count() * .000001f << " ms");
+    MIOPEN_LOG_I("ReadonlyRamDb::" << funcName << " time: " << (end - start).count() * .000001f << " ms");
 }
 
-void ReadonlyRamDb::Prefetch(const std::string& path, bool warn_if_unreadable)
+void ReadonlyRamDb::Prefetch(bool warn_if_unreadable)
 {
-    Measure("Prefetch", [this, &path, warn_if_unreadable]() {
-        auto file = std::ifstream{path};
+    Measure("Prefetch", [this, warn_if_unreadable]() {
+        auto file = std::ifstream{db_path};
 
         if(!file)
         {
             const auto log_level = warn_if_unreadable ? LoggingLevel::Warning : LoggingLevel::Info;
-            MIOPEN_LOG(log_level, "File is unreadable: " << path);
+            MIOPEN_LOG(log_level, "File is unreadable: " << db_path);
             return;
         }
 
@@ -92,7 +92,7 @@ void ReadonlyRamDb::Prefetch(const std::string& path, bool warn_if_unreadable)
 
             if(!is_key)
             {
-                MIOPEN_LOG_E("Ill-formed record: key not found: " << path << "#" << n_line);
+                MIOPEN_LOG_E("Ill-formed record: key not found: " << db_path << "#" << n_line);
                 continue;
             }
 

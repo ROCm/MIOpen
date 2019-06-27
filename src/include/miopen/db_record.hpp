@@ -236,6 +236,7 @@ class DbRecord
 
     friend class Db;
     friend class ReadonlyRamDb;
+    friend class RamDb;
 };
 
 } // namespace miopen
