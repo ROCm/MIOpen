@@ -19,6 +19,8 @@ Sources and binaries can be found at `MIOpen's GitHub site <https://github.com/R
     DebugAndLogging
     cache
     perfdatabase
+    finddb
+    find_and_immediate
     Getting_Started_FusionAPI
     apireference
 
