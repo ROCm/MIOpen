@@ -2,6 +2,42 @@
 ## MIOpen Release notes
 
 
+### 07/08/2019 [ 2.0.0 ]
+
+- This release contains several new features including an immediate mode for selecting convolutions, bfloat16 support, new layers, modes, and algorithms.
+- MIOpenDriver, a tool for benchmarking and developing kernels is now shipped with MIOpen.
+- BFloat16 now supported in HIP requires an updated rocBLAS as a GEMM backend.
+- Immediate mode API now provides the ability to quickly obtain a convolution kernel. 
+- MIOpen now contains HIP source kernels and implements the ImplicitGEMM kernels. This is a new feature and is currently disabled by default. Use the environmental variable "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM=1" to activation this feature. ImplicitGEMM requires an up to date HIP version of at least 1.5.9211.
+- A new "loss" catagory of layers has been added, of which, CTC loss is the first. See the API reference for more details.
+- 2.0 is the last release of active support for gfx803 architectures. In future releases, MIOpen will not actively debug and develop new features specifically for gfx803.
+- System Find-Db in memory cache is disabled by default. Please see build instructions to enable this feature.
+
+
+Changes:
+
+- Added support for bfloat16 datatype in convolutions
+- Added softmax channel mode and new softmax version 2 API
+- Added fast / accurate / log softmax algorithms 
+- Added new implicit GEMM convolution algorithm for forward and backwards data passes, disabled by default
+- Added int32 datatype support for output tensors in int8 convolutions
+- Added immediate mode for finding the best convolution kernel for a given configuration
+- Added a Find-Db infrastructure which stashes results of find on a user's system
+- Added a shipped System Find-Db containing offline run Find() results
+- Added an additional, faster batch norm assembly kernel for fp16
+- Added CTC loss layer
+- Added MIOpenDriver as a default component in MIOpen's build [#34](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/34)
+- Fixed C compatability for boolean types in C API [#103](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/103)
+- Fixed incorrect calculation in per-activation batch norm backwards pass [#104](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/104)
+- Fixed bug [#95](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/95) with asm batch norm ISA 
+- Fixed IsApplicable bug in Conv3x3Asm for group convolutions
+- Improved performance of 1x1 stride 2 fp32 convolutions in the forward and backwards data passes
+- Improved 3-D convolution stability
+- Improved applicability of direct convolution backwards weights for 2x2, 5x10, and 5x20 filter sizes
+- Improved maintainability in kernels and cpp code
+- Updated rocBLAS minimum version to branch [master-rocm-2.6](https://github.com/ROCmSoftwarePlatform/rocBLAS/tree/master-rocm-2.6)
+
+
 ### 05/03/2019 [ 1.8.1 ]
 
 - This release contains minor bug fixes and additional performance database improvements.
@@ -14,23 +50,25 @@ Changes:
 - Improved support in performance database for Radeon VII
 
 
-
 ### 04/11/2019 [ 1.8.0 ]
 
+- This release contaings full 3-D convolution support and int8 support for interfence. 
+- Additionally, there are major updates in the performance database for major models including those found in Torchvision. 
 - This release contains full 3-D convolution support and int8 support for inference. 
 - Additionally, there are updates in the performance database for major models including those found in Torchvision. 
 - An assortment of bugs have been resolved in this release.
 
-  
-Changes:
 
+Changes:
 - Fixed various issues in assembly kernels
 - Fixed issue #92 and #79 for miopenOpTensor
 - Fixed issue #88 for bzip2
 - Fixed issue #77 algorithm mismatch
+- Added Winograd suport for fp32 backwards weights
 - Added Winograd support for fp32 backwards weights
 - Added pooling inclusive mode
 - Added tuning for direct group convolution algorithms
+- Added additional kernel supoort for group convolutions
 - Added additional kernel support for group convolutions
 - Added API for 3-D convolutions
 - Added support for int8 inference convolutions
@@ -84,6 +122,7 @@ Known Issues:
 - Group convolutions backwards weights performance has been improved
 - Logging across the library has been improved
 - Performance database has been updated
+
   
 Changes:
 
@@ -321,4 +360,5 @@ Changes:
 - Removed GEMM interface from the MIOpen API
 
 
-### 06/30/2017 [ 1.0.0 ] Initial release  
+### 06/30/2017 [ 1.0.0 ] Initial release 
+ 

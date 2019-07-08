@@ -106,6 +106,11 @@ class SoftmaxDriver : public Driver
     std::vector<Tgpu> din;
     std::vector<Tgpu> dout;
     std::vector<Tref> dinhost;
+
+    float alpha;
+    float beta;
+    miopenSoftmaxAlgorithm_t algo;
+    miopenSoftmaxMode_t mode;
 };
 
 template <typename Tgpu, typename Tref>
@@ -130,6 +135,11 @@ int SoftmaxDriver<Tgpu, Tref>::GetandSetData()
 
     SetTensor4d(dInputTensor, in_len, data_type);
     SetTensor4d(dOutputTensor, in_len, data_type);
+
+    alpha = static_cast<float>(inflags.GetValueDouble("alpha"));
+    beta  = static_cast<float>(inflags.GetValueDouble("beta"));
+    algo  = miopenSoftmaxAlgorithm_t(inflags.GetValueInt("algorithm"));
+    mode  = miopenSoftmaxMode_t(inflags.GetValueInt("mode"));
     return (0);
 }
 
@@ -143,6 +153,13 @@ int SoftmaxDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
     inflags.AddInputFlag("alpha", 'A', "1.0", "Softmax shift (Default=1.0)", "float");
     inflags.AddInputFlag("beta", 'B', "0.0", "Softmax scale (Default=0.0)", "float");
+    inflags.AddInputFlag("algorithm",
+                         'a',
+                         "1",
+                         "softmax algorithms: fast (0), accurate (1), logsoftmax (2) (Default=1)",
+                         "int");
+    inflags.AddInputFlag(
+        "mode", 'm', "1", "instance mode (0), channel mode (1) (Default=1)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -209,7 +226,7 @@ int SoftmaxDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     status = in_dev->ToGPU(q, in.data());
     status |= out_dev->ToGPU(q, out.data());
 
-    status = din_dev->ToGPU(q, din.data());
+    status |= din_dev->ToGPU(q, din.data());
     status |= dout_dev->ToGPU(q, dout.data());
 
     if(status != CL_SUCCESS)
@@ -221,36 +238,41 @@ int SoftmaxDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref>
 int SoftmaxDriver<Tgpu, Tref>::RunForwardGPU()
 {
-
-    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
-
-    miopenSoftmaxForward(
-        GetHandle(), &alpha, inputTensor, in_dev->GetMem(), &beta, outputTensor, out_dev->GetMem());
+    float kernel_total_time = 0.0;
+    float kernel_first_time = 0.0;
 
     Timer t;
     START_TIME
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenSoftmaxForward(GetHandle(),
-                             &alpha,
-                             inputTensor,
-                             in_dev->GetMem(),
-                             &beta,
-                             outputTensor,
-                             out_dev->GetMem());
+        miopenSoftmaxForward_V2(GetHandle(),
+                                &alpha,
+                                inputTensor,
+                                in_dev->GetMem(),
+                                &beta,
+                                outputTensor,
+                                out_dev->GetMem(),
+                                algo,
+                                mode);
+
+        float time = 0.0;
+        miopenGetKernelTime(GetHandle(), &time);
+        kernel_total_time += time;
+        if(i == 0)
+            kernel_first_time = time;
     }
 
     if(inflags.GetValueInt("time") == 1)
     {
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-
         STOP_TIME
+        int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            printf("Wall-clock Time Forward Softmax Elapsed: %f ms\n",
-                   t.gettime_ms() / inflags.GetValueInt("iter"));
-        printf("GPU Kernel Time Forward Softmax Elapsed: %f ms\n", time);
+            printf("Wall-clock Time Forward Softmax Elapsed: %f ms\n", t.gettime_ms() / iter);
+
+        float kernel_average_time =
+            iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
+        printf("GPU Kernel Time Forward Softmax Elapsed: %f ms\n", kernel_average_time);
     }
 
     out_dev->FromGPU(GetStream(), out.data());
@@ -267,44 +289,43 @@ int SoftmaxDriver<Tgpu, Tref>::RunForwardCPU()
 template <typename Tgpu, typename Tref>
 int SoftmaxDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
-
-    miopenSoftmaxBackward(GetHandle(),
-                          &alpha,
-                          outputTensor,
-                          out_dev->GetMem(),
-                          dOutputTensor,
-                          dout_dev->GetMem(),
-                          &beta,
-                          dInputTensor,
-                          din_dev->GetMem());
+    float kernel_total_time = 0.0;
+    float kernel_first_time = 0.0;
 
     Timer t;
     START_TIME
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenSoftmaxBackward(GetHandle(),
-                              &alpha,
-                              outputTensor,
-                              out_dev->GetMem(),
-                              dOutputTensor,
-                              dout_dev->GetMem(),
-                              &beta,
-                              dInputTensor,
-                              din_dev->GetMem());
+        miopenSoftmaxBackward_V2(GetHandle(),
+                                 &alpha,
+                                 outputTensor,
+                                 out_dev->GetMem(),
+                                 dOutputTensor,
+                                 dout_dev->GetMem(),
+                                 &beta,
+                                 dInputTensor,
+                                 din_dev->GetMem(),
+                                 algo,
+                                 mode);
+
+        float time = 0.0;
+        miopenGetKernelTime(GetHandle(), &time);
+        kernel_total_time += time;
+        if(i == 0)
+            kernel_first_time = time;
     }
 
     if(inflags.GetValueInt("time") == 1)
     {
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-
         STOP_TIME
+        int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            printf("Wall-clock Time Backward Softmax Elapsed: %f ms\n",
-                   t.gettime_ms() / inflags.GetValueInt("iter"));
-        printf("GPU Kernel Time Backward Softmax Elapsed: %f ms\n", time);
+            printf("Wall-clock Time Backward Softmax Elapsed: %f ms\n", t.gettime_ms() / iter);
+
+        float kernel_average_time =
+            iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
+        printf("GPU Kernel Time Backward Softmax Elapsed: %f ms\n", kernel_average_time);
     }
 
     din_dev->FromGPU(GetStream(), din.data());
@@ -315,18 +336,11 @@ int SoftmaxDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 int SoftmaxDriver<Tgpu, Tref>::VerifyForward()
 {
-
-    int n, c, h, w;
-    miopenGet4dTensorDescriptorLengths(inputTensor, &n, &c, &h, &w);
-
-    std::copy(in.begin(), in.end(), outhost.begin());
-    Tref max_val = (sizeof(Tgpu) == 4) ? 3.402823466e+38f : 65504.;
-    std::vector<Tref> channel_max(n * h * w, static_cast<Tref>(-max_val));
-
-    mloSoftmaxForwardRunHost<Tref>(n, c, h, w, channel_max.data(), outhost.data());
+    mloSoftmaxForwardRunHost<Tgpu, Tref>(
+        inputTensor, outputTensor, in.data(), outhost.data(), alpha, beta, algo, mode);
 
     auto error           = miopen::rms_range(outhost, out);
-    const Tref tolerance = 1e-3; // 1e-6;
+    const Tref tolerance = data_type == miopenHalf ? 5e-2 : 1e-3; // 1e-6;
     if(error > tolerance)
     {
         std::cout << "Forward Softmax Failed: " << error << "\n";
@@ -349,17 +363,18 @@ int SoftmaxDriver<Tgpu, Tref>::RunBackwardCPU()
 template <typename Tgpu, typename Tref>
 int SoftmaxDriver<Tgpu, Tref>::VerifyBackward()
 {
-    int n, c, h, w;
-    miopenGet4dTensorDescriptorLengths(dOutputTensor, &n, &c, &h, &w);
-
-    std::copy(dout.begin(), dout.end(), dinhost.begin());
-    std::vector<Tref> channel_dot(n * h * w, static_cast<Tref>(0.0));
-
-    mloSoftmaxBackwardRunHost<Tgpu, Tref>(
-        n, c, h, w, channel_dot.data(), out.data(), dinhost.data());
+    mloSoftmaxBackwardRunHost<Tgpu, Tref>(inputTensor,
+                                          outputTensor,
+                                          out.data(),
+                                          dout.data(),
+                                          dinhost.data(),
+                                          alpha,
+                                          beta,
+                                          algo,
+                                          mode);
 
     auto error           = miopen::rms_range(dinhost, din);
-    const Tref tolerance = 1e-3; // 1e-6;
+    const Tref tolerance = data_type == miopenHalf ? 5e-2 : 1e-3; // 1e-6;
     if(error > tolerance)
     {
         std::cout << "Backward Softmax Failed: " << error << "\n";

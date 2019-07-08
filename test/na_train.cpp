@@ -800,7 +800,7 @@ struct na_fusion_driver : test_driver
 
         std::size_t input_n, input_c, input_h, input_w;
         std::tie(input_n, input_c, input_h, input_w) = miopen::tien<4>(input.desc.GetLengths());
-        this->tolerance = 80 * (float(input.desc.GetElementSize()) / float(input_c));
+        this->tolerance = 80 * float(input.desc.GetElementSize());
         ptr_activdesc   = GetManagedActivDesc();
         miopenSetActivationDescriptor(ptr_activdesc.get(), activ_mode, alpha, beta, gamma);
         auto&& handle = get_handle();

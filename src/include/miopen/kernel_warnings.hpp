@@ -31,8 +31,8 @@
 
 namespace miopen {
 
-std::vector<std::string> KernelWarnings();
-const std::string& KernelWarningsString();
+const std::string& OclKernelWarningsString();
+const std::string& HipKernelWarningsString();
 
 } // namespace miopen
 

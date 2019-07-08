@@ -32,6 +32,7 @@
 #include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/mlo_utils.hpp>
 #include <miopen/solver.hpp>
+#include <miopen/bfloat16.hpp>
 
 #include <half.hpp>
 
@@ -128,11 +129,11 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
 * Measure the current configuration performance.
 */
 template <typename Tgpu, class... Solvers>
-static int MeasurePerfConfig(Handle* profile_h,
-                             Data_t bot_ocl_buf,
+static int MeasurePerfConfig(Handle& handle,
+                             ConstData_t bot_ocl_buf,
                              Data_t top_ocl_buf,
-                             Data_t wei_ocl_buf,
-                             Data_t bias_ocl_buf,
+                             ConstData_t wei_ocl_buf,
+                             ConstData_t bias_ocl_buf,
                              double& processing_time,
                              const ConvolutionContext& params,
                              const LegacyPerformanceConfig& result)
@@ -158,78 +159,41 @@ static int MeasurePerfConfig(Handle* profile_h,
     {
         return 1;
     }
+#if !MIOPEN_ALLOC_BUFFERS
+    if(params.bias && bias_ocl_buf == nullptr)
+    {
+        MIOPEN_LOG((MIOPEN_INSTALLABLE ? miopen::LoggingLevel::Info : miopen::LoggingLevel::Error),
+                   "Legacy search: Bias buffer required");
+        return 2;
+    }
+#endif
 
     MIOPEN_LOG_I2("Trying " << result);
     const auto kernel_params     = kernel_search_result.construction_params[0];
     std::string compiler_options = params.general_compile_options + kernel_params.comp_options;
 
-    // Creating OCLKernel obj
     try
     {
-
         Tgpu padding_value = static_cast<Tgpu>(0);
+        processing_time    = std::numeric_limits<double>::max();
 
-        if(profile_h)
+        auto k = handle.AddKernel("",
+                                  "",
+                                  kernel_params.kernel_file,
+                                  kernel_params.kernel_name,
+                                  kernel_params.l_wk,
+                                  kernel_params.g_wk,
+                                  compiler_options);
+
+        if(params.bias)
         {
-            processing_time = std::numeric_limits<double>::max();
-
-            auto k = profile_h->AddKernel("",
-                                          "",
-                                          kernel_params.kernel_file,
-                                          kernel_params.kernel_name,
-                                          kernel_params.l_wk,
-                                          kernel_params.g_wk,
-                                          compiler_options);
-
-            if(params.bias)
-            {
-                k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
-            }
-            else
-            {
-                k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
-            }
-            processing_time = profile_h->GetKernelTime();
+            k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
         }
         else
         {
-            double s = 0, e = 0;
-
-            auto k = params.GetStream().AddKernel("",
-                                                  "",
-                                                  kernel_params.kernel_file,
-                                                  kernel_params.kernel_name,
-                                                  kernel_params.l_wk,
-                                                  kernel_params.g_wk,
-                                                  compiler_options);
-
-            if(params.bias)
-            {
-                k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
-            }
-            else
-            {
-                k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
-            }
-
-            params.GetStream().Finish();
-
-            s = miopen_mach_absolute_time();
-
-            if(params.bias)
-            {
-                k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
-            }
-            else
-            {
-                k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
-            }
-
-            params.GetStream().Finish();
-            e = miopen_mach_absolute_time();
-
-            processing_time = subtractTimes(e, s);
+            k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
         }
+        processing_time = handle.GetKernelTime();
     }
     catch(miopen::Exception& ex)
     {
@@ -249,6 +213,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
         return SearchImpl<half_float::half>(params);
     else if(params.IsFp32())
         return SearchImpl<float>(params);
+    else if(params.IsBfp16())
+        return SearchImpl<bfloat16>(params);
     else
     {
         MIOPEN_THROW("Unsupported float_size");
@@ -262,7 +228,6 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     LegacyPerformanceConfig result;
     bool is_passed = false;
 
-    miopen::Handle profile_h;
     double processing_time = std::numeric_limits<double>::max();
 
     LegacyPerformanceConfig candidate;
@@ -276,30 +241,23 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     candidate.n_in_data_tiles = 3;
     candidate.n_stacks        = 1;
 
-    // enable profiling for the handle for benchmarking
-    profile_h.EnableProfiling();
+#if MIOPEN_ALLOC_BUFFERS
+    miopen::Handle profile_h;
 
-    // allocate tem input/output buffers
+    // allocate input/output buffers
     size_t bot_sz = params.bot_sz / sizeof(Tgpu);
     std::vector<Tgpu> bot_sys_buf(bot_sz);
-
     for(size_t i = 0; i < bot_sz; i++)
     {
         bot_sys_buf[i] = static_cast<Tgpu>(rand() * (1.0 / RAND_MAX));
     }
-
     auto bot_ocl_buf = profile_h.Write(bot_sys_buf);
+    auto bot_ocl_ptr = bot_ocl_buf.get();
 
     size_t top_sz = params.top_sz / sizeof(Tgpu);
     std::vector<Tgpu> top_sys_buf(top_sz);
-
     auto top_ocl_buf = profile_h.Write(top_sys_buf);
-
-    std::vector<Tgpu> random_top_sys_buf(top_sz);
-    for(size_t i = 0; i < top_sz; i++)
-    {
-        random_top_sys_buf[i] = static_cast<Tgpu>(rand() * (1.0 / RAND_MAX));
-    }
+    auto top_ocl_ptr = top_ocl_buf.get();
 
     size_t weights_sz = params.weights_sz / sizeof(Tgpu);
     std::vector<Tgpu> wei_sys_buf(weights_sz);
@@ -307,12 +265,11 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     {
         wei_sys_buf[i] = static_cast<Tgpu>((rand() * (1.0 / RAND_MAX) - 0.5) * 0.001);
     }
-
     auto wei_ocl_buf = profile_h.Write(wei_sys_buf);
+    auto wei_ocl_ptr = wei_ocl_buf.get();
 
     std::vector<Tgpu> bias_sys_buf;
     miopen::Allocator::ManageDataPtr bias_ocl_buf = nullptr;
-
     if(params.bias != 0)
     {
         size_t bias_sz = params.bias_sz / sizeof(Tgpu);
@@ -324,6 +281,18 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
 
         bias_ocl_buf = profile_h.Write(bias_sys_buf);
     }
+    auto bias_ocl_ptr = bias_ocl_buf.get();
+#else
+    auto& profile_h = params.GetStream();
+    auto bot_ocl_ptr =
+        params.direction.IsForward() ? params.GetBufs().io.fwd.x : params.GetBufs().io.bwd.dy;
+    auto top_ocl_ptr =
+        params.direction.IsForward() ? params.GetBufs().io.fwd.y : params.GetBufs().io.bwd.dx;
+    auto wei_ocl_ptr =
+        params.direction.IsForward() ? params.GetBufs().io.fwd.w : params.GetBufs().io.bwd.w;
+    auto bias_ocl_ptr = params.GetBufs().bias;
+#endif
+    AutoEnableProfiling enableProfiling{profile_h};
 
     // search loop here
     int grp_tl_ln[4]       = {8, 16, 32};
@@ -337,7 +306,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
 
     double min_proc_time = std::numeric_limits<double>::max();
 
-    size_t run_counter = 0;
+    size_t run_counter = 0, failed_counter = 0;
 
     int out_pix_tl_cnt = 3; // out_pix_tile_sz[1];
     int n_out_tls      = 4;
@@ -364,7 +333,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
 
     size_t report_inteval = 25;
 
-    long long runs_left = 0;
+    long long runs_left = 0, total_runs = 0;
 
     if(params.kernel_size_w == 1 && params.kernel_size_h == 1 &&
        params.group_counts == 1) // Group conv: None 1x1 version yet, fallback to universal kernel.
@@ -399,7 +368,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
             n_grp_tiles0       = 1;
             grp_tl_ln[0]       = 64;
 
-            runs_left = out_pix_tl_cnt * n_out_tls * n_in_tls * (n_grp_tiles0 + 1);
+            runs_left  = out_pix_tl_cnt * n_out_tls * n_in_tls * (n_grp_tiles0 + 1);
+            total_runs = runs_left;
 
             result.out_pix_tile1 = 1;
         }
@@ -443,6 +413,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
             n_out_tls       = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
             n_in_tls        = 2;
             runs_left       = n_grp_tiles * out_pix_tl_cnt * n_out_tls * n_in_tls;
+            total_runs      = runs_left;
 
             result.out_pix_tile1 = 0;
         }
@@ -479,21 +450,33 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
                         }
 
                         const auto ret =
-                            MeasurePerfConfig<Tgpu, ConvOclDirectFwd1x1>(&profile_h,
-                                                                         bot_ocl_buf.get(),
-                                                                         top_ocl_buf.get(),
-                                                                         wei_ocl_buf.get(),
-                                                                         bias_ocl_buf.get(),
+                            MeasurePerfConfig<Tgpu, ConvOclDirectFwd1x1>(profile_h,
+                                                                         bot_ocl_ptr,
+                                                                         top_ocl_ptr,
+                                                                         wei_ocl_ptr,
+                                                                         bias_ocl_ptr,
                                                                          processing_time,
                                                                          params,
                                                                          result);
                         --runs_left;
                         if(ret != 0)
                         {
+                            ++failed_counter;
                             continue;
                         }
 
                         is_passed = true;
+                        MIOPEN_LOG_T("##(n_current, n_failed, n_runs_total): " << run_counter
+                                                                               << " / "
+                                                                               << failed_counter
+                                                                               << " / "
+                                                                               << total_runs
+                                                                               << " elapsed_time: "
+                                                                               << processing_time
+                                                                               << " best_time: "
+                                                                               << processing_time
+                                                                               << ", "
+                                                                               << result);
 
                         if(processing_time < min_proc_time)
                         {
@@ -527,6 +510,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
         MIOPEN_LOG_W("Searching the best solution in the 9 dim space. Please, be patient...");
         runs_left = /*n_grp_tiles * */ n_tiles_cnt * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls *
                     n_in_tls * stack_cnt;
+        total_runs = runs_left;
 
         // tile1
         for(int j = 0; j < n_tile1_sz; ++j)
@@ -620,23 +604,36 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
                                         continue;
                                     }
 
-                                    const auto ret = MeasurePerfConfig<Tgpu, ConvOclDirectFwd>(
-                                        &profile_h,
-                                        bot_ocl_buf.get(),
-                                        top_ocl_buf.get(),
-                                        wei_ocl_buf.get(),
-                                        bias_ocl_buf.get(),
-                                        processing_time,
-                                        params,
-                                        result);
+                                    const auto ret =
+                                        MeasurePerfConfig<Tgpu, ConvOclDirectFwd>(profile_h,
+                                                                                  bot_ocl_ptr,
+                                                                                  top_ocl_ptr,
+                                                                                  wei_ocl_ptr,
+                                                                                  bias_ocl_ptr,
+                                                                                  processing_time,
+                                                                                  params,
+                                                                                  result);
 
                                     --runs_left;
                                     if(ret != 0)
                                     {
+                                        ++failed_counter;
                                         continue;
                                     }
 
                                     is_passed = true;
+                                    MIOPEN_LOG_T("##(n_current, n_failed, n_runs_total): "
+                                                 << run_counter
+                                                 << " / "
+                                                 << failed_counter
+                                                 << " / "
+                                                 << total_runs
+                                                 << " elapsed_time: "
+                                                 << processing_time
+                                                 << " best_time: "
+                                                 << processing_time
+                                                 << ", "
+                                                 << result);
 
                                     if(processing_time < min_proc_time)
                                     {
@@ -678,22 +675,22 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
            params.group_counts ==
                1) // Group conv: None 1x1 version yet, fallback to universal kernel.
         {
-            ret = MeasurePerfConfig<Tgpu, ConvOclDirectFwd1x1>(&profile_h,
-                                                               bot_ocl_buf.get(),
-                                                               top_ocl_buf.get(),
-                                                               wei_ocl_buf.get(),
-                                                               bias_ocl_buf.get(),
+            ret = MeasurePerfConfig<Tgpu, ConvOclDirectFwd1x1>(profile_h,
+                                                               bot_ocl_ptr,
+                                                               top_ocl_ptr,
+                                                               wei_ocl_ptr,
+                                                               bias_ocl_ptr,
                                                                default_time,
                                                                params,
                                                                default_config);
         }
         else
         {
-            ret = MeasurePerfConfig<Tgpu, ConvOclDirectFwd>(&profile_h,
-                                                            bot_ocl_buf.get(),
-                                                            top_ocl_buf.get(),
-                                                            wei_ocl_buf.get(),
-                                                            bias_ocl_buf.get(),
+            ret = MeasurePerfConfig<Tgpu, ConvOclDirectFwd>(profile_h,
+                                                            bot_ocl_ptr,
+                                                            top_ocl_ptr,
+                                                            wei_ocl_ptr,
+                                                            bias_ocl_ptr,
                                                             default_time,
                                                             params,
                                                             default_config);
@@ -716,7 +713,6 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     }
     result = candidate;
 
-    profile_h.EnableProfiling(false);
     if(!is_passed)
         MIOPEN_THROW("Search failed for ConvOclDirectFwdLegacyExhaustiveSearch");
     return result;

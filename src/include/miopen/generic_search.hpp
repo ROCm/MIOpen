@@ -253,12 +253,18 @@ inline size_t divide_round_plus_inf(const size_t x, const unsigned y)
 enum class SearchTweak
 {
     None,
-    // The buffer(s) needs to be adjusted in some cases.
-    // For example, dx buffer shall be made ~4x smaller
-    // when the 2x subsampling kernel is used at the dx input of
-    // the WrW convolution, but we are skipping it during auto-tune.
-    OverrideXBufferSizeByWorkspaceSize,
-    OverrideWeightBufferSizeByWorkspaceSize,
+    /// Enforces the generic search algorithm
+    /// to use workspace buffer instead of input data (x/dx) buffer.
+    /// Example use case: Solution uses (non-tunable) subsampling or upsampling
+    /// kernel which reads x/dx buffer and writes workspace, and then tunable
+    /// convolution kernel which reads workspace instead of x/dx buffer.
+    /// Another example: the first tunable kernel writes workspace (instead of x/dx),
+    /// and the second non-tunable kernel converts workspace to user's buffer.
+    WorkspaceInsteadOfXBuffer,
+    /// This tweak is like previous one and use cases are similar,
+    /// but it enforces the generic search algorithm
+    /// to use workspace buffer instead of weights buffer.
+    WorkspaceInsteadOfWeightsBuffer,
 };
 
 /// Solver member function requirements:
@@ -286,31 +292,101 @@ enum class SearchTweak
 ///         bot[] (dy) --> +--------+
 /// ------------------------------------------------
 /// clang-format-on
+#if MIOPEN_ALLOC_BUFFERS
+template <class Solver, class Context>
+auto GenericSearchFwd(const Solver s,
+                      const Context& context,
+                      const SearchTweak tweak = SearchTweak::None)
+    -> decltype(s.GetPerformanceConfig(context))
+{
+    return GenericSearch(s, context, tweak);
+}
+
+template <class Solver, class Context>
+auto GenericSearchBwd(const Solver s,
+                      const Context& context,
+                      const SearchTweak tweak = SearchTweak::None)
+    -> decltype(s.GetPerformanceConfig(context))
+{
+    return GenericSearch(s, context, tweak);
+}
+
+template <class Solver, class Context>
+auto GenericSearchWrW(const Solver s,
+                      const Context& context,
+                      const SearchTweak tweak = SearchTweak::None)
+    -> decltype(s.GetPerformanceConfig(context))
+{
+    return GenericSearch(s, context, tweak);
+}
+#else
+template <class Solver, class Context>
+auto GenericSearchFwd(const Solver s,
+                      const Context& context,
+                      const SearchTweak tweak = SearchTweak::None)
+    -> decltype(s.GetPerformanceConfig(context))
+{
+    const auto& bufs = context.GetBufs().io.fwd;
+    return GenericSearch(s, context, tweak, bufs.y, bufs.x, bufs.w);
+}
+
+template <class Solver, class Context>
+auto GenericSearchBwd(const Solver s,
+                      const Context& context,
+                      const SearchTweak tweak = SearchTweak::None)
+    -> decltype(s.GetPerformanceConfig(context))
+{
+    const auto& bufs = context.GetBufs().io.bwd;
+    return GenericSearch(s, context, tweak, bufs.dx, bufs.dy, bufs.w);
+}
+
+template <class Solver, class Context>
+auto GenericSearchWrW(const Solver s,
+                      const Context& context,
+                      const SearchTweak tweak = SearchTweak::None)
+    -> decltype(s.GetPerformanceConfig(context))
+{
+    const auto& bufs = context.GetBufs().io.wrw;
+    return GenericSearch(s, context, tweak, bufs.dx, bufs.dy, bufs.dw);
+}
+#endif
+
+#if MIOPEN_ALLOC_BUFFERS
 template <class Solver, class Context>
 auto GenericSearch(const Solver s,
                    const Context& context,
                    const SearchTweak tweak = SearchTweak::None)
+#else
+template <class Solver, class Context, typename TopT, typename BotT, typename WeiT>
+auto GenericSearch(const Solver s,
+                   const Context& context,
+                   const SearchTweak tweak,
+                   TopT top_ocl_ptr,
+                   BotT bot_ocl_ptr,
+                   WeiT wei_ocl_ptr)
+#endif
     -> decltype(s.GetPerformanceConfig(context))
 {
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
     PerformanceConfig best_config;
     const auto default_solution = s.GetSolution(context, s.GetPerformanceConfig(context));
 
+#if MIOPEN_ALLOC_BUFFERS
     // Allocate buffers, init input buffers.
     size_t top_size  = context.top_sz / sizeof(float);
     size_t bot_size  = context.bot_sz / sizeof(float);
     size_t wei_size  = context.weights_sz / sizeof(float);
     size_t bias_size = context.bias_sz / sizeof(float);
 
-    if(tweak == SearchTweak::OverrideXBufferSizeByWorkspaceSize)
+    if(tweak == SearchTweak::WorkspaceInsteadOfXBuffer)
     {
         assert(default_solution.workspce_sz != 0);
         if(context.direction.IsForward())
             bot_size = default_solution.workspce_sz;
         else
-            top_size = default_solution.workspce_sz;
+            top_size = default_solution.workspce_sz; // Ok for both Bwd and WrW.
     }
-    else if(tweak == SearchTweak::OverrideWeightBufferSizeByWorkspaceSize)
+    else if(tweak == SearchTweak::WorkspaceInsteadOfWeightsBuffer)
     {
         assert(default_solution.workspce_sz != 0);
         wei_size = default_solution.workspce_sz;
@@ -333,6 +409,44 @@ auto GenericSearch(const Solver s,
     auto top_ocl_buf  = profile_h.Write(top);
     auto wei_ocl_buf  = profile_h.Write(wei);
     auto bias_ocl_buf = context.bias ? profile_h.Write(bias) : nullptr;
+    auto bot_ocl_ptr  = bot_ocl_buf.get();
+    auto top_ocl_ptr  = top_ocl_buf.get();
+    auto wei_ocl_ptr  = wei_ocl_buf.get();
+    auto bias_ocl_ptr = bias_ocl_buf.get();
+#else
+    auto& profile_h          = context.GetStream();
+    ConstData_t bias_ocl_ptr = context.GetBufs().bias;
+    if(context.bias != 0 && bias_ocl_ptr == nullptr)
+        MIOPEN_THROW("GenericSearch: context.bias != 0 && bias_ocl_ptr == nullptr");
+    if(top_ocl_ptr == nullptr || bot_ocl_ptr == nullptr || wei_ocl_ptr == nullptr)
+        MIOPEN_THROW("GenericSearch: top_ocl_ptr == nullptr || bot_ocl_ptr == nullptr || "
+                     "wei_ocl_ptr == nullptr");
+    switch(tweak)
+    {
+    case SearchTweak::None: break;
+    case SearchTweak::WorkspaceInsteadOfXBuffer:
+    {
+        if(context.GetBufs().workSpaceSize < default_solution.workspce_sz ||
+           context.GetBufs().workSpace == nullptr)
+            MIOPEN_THROW("GenericSearch: Too small workspace or nullptr");
+        if(context.direction.IsForward())
+            bot_ocl_ptr = context.GetBufs().workSpace;
+        else // bwd or wrw
+            top_ocl_ptr = context.GetBufs().workSpace;
+    }
+    break;
+    case SearchTweak::WorkspaceInsteadOfWeightsBuffer:
+    {
+        if(context.GetBufs().workSpaceSize < default_solution.workspce_sz ||
+           context.GetBufs().workSpace == nullptr)
+            MIOPEN_THROW("GenericSearch: Too small workspace or nullptr");
+        wei_ocl_ptr = context.GetBufs().workSpace;
+    }
+    break;
+    default: MIOPEN_THROW("GenericSearch: Unsupported SearchTweak value.");
+    }
+#endif
+    AutoEnableProfiling enableProfiling{profile_h};
 
     const ComputedContainer<PerformanceConfig, Context> main(context);
     const int main_size = std::distance(main.begin(), main.end());
@@ -363,8 +477,8 @@ auto GenericSearch(const Solver s,
                           << current_config);
 
         const auto current_solution = s.GetSolution(context, current_config, true);
-        if((tweak == SearchTweak::OverrideXBufferSizeByWorkspaceSize ||
-            tweak == SearchTweak::OverrideWeightBufferSizeByWorkspaceSize) &&
+        if((tweak == SearchTweak::WorkspaceInsteadOfXBuffer ||
+            tweak == SearchTweak::WorkspaceInsteadOfWeightsBuffer) &&
            default_solution.workspce_sz != current_solution.workspce_sz)
         {
             ret = -2;
@@ -378,14 +492,27 @@ auto GenericSearch(const Solver s,
         if(ret == 0)
         {
             ret = s.RunAndMeasureSolution(profile_h,
-                                          bot_ocl_buf.get(),
-                                          top_ocl_buf.get(),
-                                          wei_ocl_buf.get(),
-                                          context.bias ? bias_ocl_buf.get() : nullptr,
+                                          bot_ocl_ptr,
+                                          top_ocl_ptr,
+                                          wei_ocl_ptr,
+                                          bias_ocl_ptr,
                                           context,
                                           current_solution,
                                           elapsed_time);
         }
+        MIOPEN_LOG_T("##"
+                     << "(n_current, n_failed, n_runs_total):  "
+                     << n_current
+                     << '/'
+                     << n_failed
+                     << '/'
+                     << n_runs_total
+                     << " elapsed_time: "
+                     << elapsed_time
+                     << ", best_time: "
+                     << best_time
+                     << ", "
+                     << current_config);
 
         if(ret == 0)
         {
@@ -401,10 +528,10 @@ auto GenericSearch(const Solver s,
                 for(int i = 0; i < 4; ++i)
                 {
                     ret = s.RunAndMeasureSolution(profile_h,
-                                                  bot_ocl_buf.get(),
-                                                  top_ocl_buf.get(),
-                                                  wei_ocl_buf.get(),
-                                                  context.bias ? bias_ocl_buf.get() : nullptr,
+                                                  bot_ocl_ptr,
+                                                  top_ocl_ptr,
+                                                  wei_ocl_ptr,
+                                                  bias_ocl_ptr,
                                                   context,
                                                   current_solution,
                                                   temp);
@@ -465,10 +592,10 @@ auto GenericSearch(const Solver s,
     float default_time = 0.0f;
     profile_h.EnableProfiling(true);
     if(s.RunAndMeasureSolution(profile_h,
-                               bot_ocl_buf.get(),
-                               top_ocl_buf.get(),
-                               wei_ocl_buf.get(),
-                               context.bias ? bias_ocl_buf.get() : nullptr,
+                               bot_ocl_ptr,
+                               top_ocl_ptr,
+                               wei_ocl_ptr,
+                               bias_ocl_ptr,
                                context,
                                default_solution,
                                default_time) == 0)

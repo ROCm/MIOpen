@@ -51,21 +51,48 @@ int nextPow2(int v)
     }
 }
 
-miopenStatus_t SoftmaxForward(
-    Handle& handle, const void* alpha, const void* beta, const TensorDescriptor& yDesc, Data_t y)
+miopenStatus_t SoftmaxForward(Handle& handle,
+                              const void* alpha,
+                              const void* beta,
+                              const TensorDescriptor& xDesc,
+                              ConstData_t x,
+                              const TensorDescriptor& yDesc,
+                              Data_t y,
+                              miopenSoftmaxAlgorithm_t algorithm,
+                              miopenSoftmaxMode_t mode,
+                              int x_offset,
+                              int y_offset)
 {
-    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
-       !float_equal(*(static_cast<const float*>(beta)), 0))
+    if(x == nullptr || y == nullptr)
     {
-        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+        MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
     }
+
+    if(xDesc.GetType() != yDesc.GetType())
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
+    }
+
+    if(xDesc.GetLengths() != yDesc.GetLengths())
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
+    }
+
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(yDesc.GetLengths());
+
+    int in_nstr, in_cstr, in_hstr, in_wstr;
+    std::tie(in_nstr, in_cstr, in_hstr, in_wstr) = tien<4>(xDesc.GetStrides());
+
+    int out_nstr, out_cstr, out_hstr, out_wstr;
+    std::tie(out_nstr, out_cstr, out_hstr, out_wstr) = tien<4>(yDesc.GetStrides());
+
     // using workgroup size of 256 by default
-    int grid_size   = n * h * w;
-    int spatial_dim = h * w;
+    int grid_size   = mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? n : n * h * w;
+    int spatial_dim = mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? 1 : h * w;
+    int vector_size = mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? c * h * w : c;
     // num_spatial_dims or pixels each workgroup can compute
-    int num_batch = c < 256 ? nextPow2(256 / c) : 1;
+    int num_batch = vector_size < 256 ? nextPow2(256 / vector_size) : 1;
 
     const std::vector<size_t> vld{256, 1, 1};
 
@@ -76,6 +103,9 @@ miopenStatus_t SoftmaxForward(
         usefp16 = true;
         usefp32 = false;
     }
+
+    auto alpha_fp = *(static_cast<const float*>(alpha));
+    auto beta_fp  = *(static_cast<const float*>(beta));
 
     // See Kernels/MIOpenSoftmax.cl for description
     if(num_batch == 1)
@@ -88,17 +118,19 @@ miopenStatus_t SoftmaxForward(
 
         std::string algo_name = "SoftmaxForwardOneBatch";
         std::string network_config =
-            std::to_string(num_batch) + std::to_string(static_cast<int>(usefp16)) +
-            std::to_string(static_cast<int>(usefp32)) + std::to_string(vgd[0]) +
-            std::to_string(vld[0]) + std::to_string(spatial_dim) + std::to_string(grid_size) +
-            std::to_string(workgroups) + std::to_string(c);
+            "n" + std::to_string(num_batch) + "half" + std::to_string(static_cast<int>(usefp16)) +
+            "float" + std::to_string(static_cast<int>(usefp32)) + "g" + std::to_string(vgd[0]) +
+            "l" + std::to_string(vld[0]) + "dim" + std::to_string(spatial_dim) + "grid" +
+            std::to_string(grid_size) + "wg" + std::to_string(workgroups) + "v" +
+            std::to_string(vector_size) + "a" + std::to_string(alpha_fp) + "b" +
+            std::to_string(beta_fp) + "algo" + std::to_string(static_cast<int>(algorithm)) +
+            "mode" + std::to_string(static_cast<int>(mode));
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
         if(!kernels.empty())
         {
-            // auto kernel = kernels.front();
-            kernels.front()(y, c, grid_size, spatial_dim);
+            kernels.front()(x, y, vector_size, grid_size, spatial_dim, alpha_fp, beta_fp);
         }
         else
         {
@@ -109,8 +141,48 @@ miopenStatus_t SoftmaxForward(
             std::string parms = "-DNUM_BATCH=" + std::to_string(num_batch) + " -DMIOPEN_USE_FP16=" +
                                 std::to_string(static_cast<int>(usefp16)) + " -DMIOPEN_USE_FP32=" +
                                 std::to_string(static_cast<int>(usefp32));
+
+            parms += " -DOUT_OFFSET=" + std::to_string(y_offset) + " -DIN_OFFSET=" +
+                     std::to_string(x_offset);
+            if(algorithm == MIOPEN_SOFTMAX_LOG)
+                parms += " -DUSE_SOFTMAX_LOG=1";
+            else if(algorithm == MIOPEN_SOFTMAX_FAST)
+                parms += " -DUSE_SOFTMAX_FAST=1";
+            else
+                parms += " -DUSE_SOFTMAX_ACCURATE=1";
+
+            if(mode == MIOPEN_SOFTMAX_MODE_INSTANCE)
+                parms += " -DUSE_SOFTMAX_MODE_INSTANCE=1";
+            else
+                parms += " -DUSE_SOFTMAX_MODE_CHANNEL=1";
+
+            parms += " -DRUN_FORWARD=1";
+            if(xDesc.IsPacked())
+                parms += " -DIS_INPUT_PACKED=1";
+            else
+                parms += " -DINPUT_N_STRIDE=" + std::to_string(in_nstr) + " -DINPUT_C_STRIDE=" +
+                         std::to_string(in_cstr) + " -DINPUT_H_STRIDE=" + std::to_string(in_hstr) +
+                         " -DINPUT_W_STRIDE=" + std::to_string(in_wstr) + " -DIS_INPUT_PACKED=0";
+
+            if(yDesc.IsPacked())
+                parms += " -DIS_OUTPUT_PACKED=1";
+            else
+                parms += " -DOUTPUT_N_STRIDE=" + std::to_string(out_nstr) + " -DOUTPUT_C_STRIDE=" +
+                         std::to_string(out_cstr) + " -DOUTPUT_H_STRIDE=" +
+                         std::to_string(out_hstr) + " -DOUTPUT_W_STRIDE=" +
+                         std::to_string(out_wstr) + " -DIS_OUTPUT_PACKED=0";
+
+            if(!(xDesc.IsPacked() && yDesc.IsPacked()))
+                parms += " -DINPUT_H=" + std::to_string(h) + " -DINPUT_W=" + std::to_string(w);
+
+            if(!float_equal(alpha_fp, 1.0))
+                parms += " -DUSE_ALPHA=1";
+
+            if(!float_equal(beta_fp, 0))
+                parms += " -DUSE_BETA=1";
+
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                y, c, grid_size, spatial_dim);
+                x, y, vector_size, grid_size, spatial_dim, alpha_fp, beta_fp);
         }
     }
     else
@@ -119,27 +191,31 @@ miopenStatus_t SoftmaxForward(
         // num_threads iterating over channels for one spatial_dim
         int batch_size = 256 / num_batch;
         // num_channels each threads iterates over to cover all the channels
-        int u_batch_size = (c > batch_size) ? nextPow2(c / batch_size) : 1;
+        int u_batch_size = (vector_size > batch_size) ? nextPow2(vector_size / batch_size) : 1;
 
-        // size_t workgroups =
-        //    grid_size % num_batch == 0 ? grid_size / num_batch : grid_size / num_batch + 1;
         size_t workgroups =
             (grid_size % num_batch == 0) ? (grid_size / num_batch) : (grid_size / num_batch + 1);
         const std::vector<size_t> vgd{workgroups * vld[0], 1, 1};
 
+        if((u_batch_size + 1) * 256 > 65536 && yDesc.GetType() == miopenHalf)
+            MIOPEN_THROW(miopenStatusBadParm, "Exceed local memory capacity");
+
         std::string algo_name = "SoftmaxForwardMultiBatch";
         std::string network_config =
-            std::to_string(num_batch) + std::to_string(static_cast<int>(usefp16)) +
-            std::to_string(static_cast<int>(usefp32)) + std::to_string(vgd[0]) +
-            std::to_string(vld[0]) + std::to_string(spatial_dim) + std::to_string(grid_size) +
-            std::to_string(workgroups) + std::to_string(c) + std::to_string(u_batch_size) +
-            std::to_string(batch_size);
+            "n" + std::to_string(num_batch) + "half" + std::to_string(static_cast<int>(usefp16)) +
+            "float" + std::to_string(static_cast<int>(usefp32)) + "g" + std::to_string(vgd[0]) +
+            "l" + std::to_string(vld[0]) + "dim" + std::to_string(spatial_dim) + "grid" +
+            std::to_string(grid_size) + "wg" + std::to_string(workgroups) + "v" +
+            std::to_string(vector_size) + "ubatch" + std::to_string(u_batch_size) + "batch" +
+            std::to_string(batch_size) + "a" + std::to_string(alpha_fp) + "b" +
+            std::to_string(beta_fp) + "algo" + std::to_string(static_cast<int>(algorithm)) +
+            "mode" + std::to_string(static_cast<int>(mode));
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
         if(!kernels.empty())
         {
-            kernels.front()(y, c, grid_size, spatial_dim);
+            kernels.front()(x, y, vector_size, grid_size, spatial_dim, alpha_fp, beta_fp);
         }
         else
         {
@@ -151,11 +227,50 @@ miopenStatus_t SoftmaxForward(
                                 std::to_string(static_cast<int>(usefp16)) + " -DMIOPEN_USE_FP32=" +
                                 std::to_string(static_cast<int>(usefp32));
 
+            parms += " -DOUT_OFFSET=" + std::to_string(y_offset) + " -DIN_OFFSET=" +
+                     std::to_string(x_offset);
+            if(algorithm == MIOPEN_SOFTMAX_LOG)
+                parms += " -DUSE_SOFTMAX_LOG=1";
+            else if(algorithm == MIOPEN_SOFTMAX_FAST)
+                parms += " -DUSE_SOFTMAX_FAST=1";
+            else
+                parms += " -DUSE_SOFTMAX_ACCURATE=1";
+
+            if(mode == MIOPEN_SOFTMAX_MODE_INSTANCE)
+                parms += " -DUSE_SOFTMAX_MODE_INSTANCE=1";
+            else
+                parms += " -DUSE_SOFTMAX_MODE_CHANNEL=1";
+
+            parms += " -DRUN_FORWARD=1";
+            if(xDesc.IsPacked())
+                parms += " -DIS_INPUT_PACKED=1";
+            else
+                parms += " -DINPUT_N_STRIDE=" + std::to_string(in_nstr) + " -DINPUT_C_STRIDE=" +
+                         std::to_string(in_cstr) + " -DINPUT_H_STRIDE=" + std::to_string(in_hstr) +
+                         " -DINPUT_W_STRIDE=" + std::to_string(in_wstr) + " -DIS_INPUT_PACKED=0";
+
+            if(yDesc.IsPacked())
+                parms += " -DIS_OUTPUT_PACKED=1";
+            else
+                parms += " -DOUTPUT_N_STRIDE=" + std::to_string(out_nstr) + " -DOUTPUT_C_STRIDE=" +
+                         std::to_string(out_cstr) + " -DOUTPUT_H_STRIDE=" +
+                         std::to_string(out_hstr) + " -DOUTPUT_W_STRIDE=" +
+                         std::to_string(out_wstr) + " -DIS_OUTPUT_PACKED=0";
+
+            if(!(xDesc.IsPacked() && yDesc.IsPacked()))
+                parms += " -DINPUT_H=" + std::to_string(h) + " -DINPUT_W=" + std::to_string(w);
+
+            if(!float_equal(alpha_fp, 1.0))
+                parms += " -DUSE_ALPHA=1";
+
+            if(!float_equal(beta_fp, 0))
+                parms += " -DUSE_BETA=1";
+
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                y, c, grid_size, spatial_dim);
+                x, y, vector_size, grid_size, spatial_dim, alpha_fp, beta_fp);
         }
     }
-    if(miopen::CheckNumericsEnabled() != 0)
+    if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsOutput(handle, yDesc, y);
     }
@@ -166,20 +281,38 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
                                const void* alpha,
                                const TensorDescriptor& yDesc,
                                ConstData_t y,
+                               const TensorDescriptor& dyDesc,
+                               ConstData_t dy,
                                const void* beta,
                                const TensorDescriptor& dxDesc,
-                               Data_t dx)
+                               Data_t dx,
+                               miopenSoftmaxAlgorithm_t algorithm,
+                               miopenSoftmaxMode_t mode,
+                               int y_offset,
+                               int dy_offset,
+                               int dx_offset)
 {
-    if(yDesc != dxDesc)
+    if(dx == nullptr || y == nullptr || dy == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
+    }
+
+    if(yDesc != dyDesc)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
-       !float_equal(*(static_cast<const float*>(beta)), 0))
+
+    if(dxDesc.GetType() != dyDesc.GetType())
     {
-        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
     }
-    if(miopen::CheckNumericsEnabled() != 0)
+
+    if(dxDesc.GetLengths() != dyDesc.GetLengths())
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
+    }
+
+    if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsInput(handle, yDesc, y);
     }
@@ -187,10 +320,21 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(dxDesc.GetLengths());
 
+    int din_nstr, din_cstr, din_hstr, din_wstr;
+    std::tie(din_nstr, din_cstr, din_hstr, din_wstr) = tien<4>(dxDesc.GetStrides());
+
+    int dout_nstr, dout_cstr, dout_hstr, dout_wstr;
+    std::tie(dout_nstr, dout_cstr, dout_hstr, dout_wstr) = tien<4>(dyDesc.GetStrides());
+
+    int out_nstr, out_cstr, out_hstr, out_wstr;
+    std::tie(out_nstr, out_cstr, out_hstr, out_wstr) = tien<4>(yDesc.GetStrides());
+
     // using workgroup size of 256 by default
-    int grid_size   = n * h * w;
-    int spatial_dim = h * w;
-    int num_batch   = (c < 256) ? nextPow2(256 / c) : 1;
+    int grid_size   = mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? n : n * h * w;
+    int spatial_dim = mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? 1 : h * w;
+    int vector_size = mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? c * h * w : c;
+    // num_spatial_dims or pixels each workgroup can compute
+    int num_batch = vector_size < 256 ? nextPow2(256 / vector_size) : 1;
 
     const std::vector<size_t> vld{256, 1, 1};
 
@@ -201,6 +345,9 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
         usefp16 = true;
         usefp32 = false;
     }
+
+    auto alpha_fp = *(static_cast<const float*>(alpha));
+    auto beta_fp  = *(static_cast<const float*>(beta));
 
     // See Kernels/MIOpenSoftmax.cl for description
     if(num_batch == 1)
@@ -213,16 +360,19 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
 
         std::string algo_name = "SoftmaxBackwardOneBatch";
         std::string network_config =
-            std::to_string(num_batch) + std::to_string(static_cast<int>(usefp16)) +
-            std::to_string(static_cast<int>(usefp32)) + std::to_string(vgd[0]) +
-            std::to_string(vld[0]) + std::to_string(spatial_dim) + std::to_string(grid_size) +
-            std::to_string(workgroups) + std::to_string(c);
+            "n" + std::to_string(num_batch) + "half" + std::to_string(static_cast<int>(usefp16)) +
+            "float" + std::to_string(static_cast<int>(usefp32)) + "g" + std::to_string(vgd[0]) +
+            "l" + std::to_string(vld[0]) + "dim" + std::to_string(spatial_dim) + "grid" +
+            std::to_string(grid_size) + "wg" + std::to_string(workgroups) + "v" +
+            std::to_string(vector_size) + "a" + std::to_string(alpha_fp) + "b" +
+            std::to_string(beta_fp) + "algo" + std::to_string(static_cast<int>(algorithm)) +
+            "mode" + std::to_string(static_cast<int>(mode));
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
         if(!kernels.empty())
         {
-            kernels.front()(y, dx, c, grid_size, spatial_dim);
+            kernels.front()(y, dy, dx, vector_size, grid_size, spatial_dim, alpha_fp, beta_fp);
         }
         else
         {
@@ -231,31 +381,86 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
             std::string parms = "-DNUM_BATCH=" + std::to_string(num_batch) + " -DMIOPEN_USE_FP16=" +
                                 std::to_string(static_cast<int>(usefp16)) + " -DMIOPEN_USE_FP32=" +
                                 std::to_string(static_cast<int>(usefp32));
+
+            parms += " -DOUT_OFFSET=" + std::to_string(y_offset) + " -DDOUT_OFFSET=" +
+                     std::to_string(dy_offset) + " -DDIN_OFFSET=" + std::to_string(dx_offset);
+            if(algorithm == MIOPEN_SOFTMAX_LOG)
+                parms += " -DUSE_SOFTMAX_LOG=1";
+            else if(algorithm == MIOPEN_SOFTMAX_FAST)
+                parms += " -DUSE_SOFTMAX_FAST=1";
+            else
+                parms += " -DUSE_SOFTMAX_ACCURATE=1";
+
+            if(mode == MIOPEN_SOFTMAX_MODE_INSTANCE)
+                parms += " -DUSE_SOFTMAX_MODE_INSTANCE=1";
+            else
+                parms += " -DUSE_SOFTMAX_MODE_CHANNEL=1";
+
+            parms += " -DRUN_FORWARD=0";
+            if(yDesc.IsPacked())
+                parms += " -DIS_OUTPUT_PACKED=1";
+            else
+                parms += " -DOUTPUT_N_STRIDE=" + std::to_string(out_nstr) + " -DOUTPUT_C_STRIDE=" +
+                         std::to_string(out_cstr) + " -DOUTPUT_H_STRIDE=" +
+                         std::to_string(out_hstr) + " -DOUTPUT_W_STRIDE=" +
+                         std::to_string(out_wstr) + " -DIS_OUTPUT_PACKED=0";
+
+            if(dyDesc.IsPacked())
+                parms += " -DIS_DOUTPUT_PACKED=1";
+            else
+                parms +=
+                    " -DDOUTPUT_N_STRIDE=" + std::to_string(dout_nstr) + " -DDOUTPUT_C_STRIDE=" +
+                    std::to_string(dout_cstr) + " -DDOUTPUT_H_STRIDE=" + std::to_string(dout_hstr) +
+                    " -DDOUTPUT_W_STRIDE=" + std::to_string(dout_wstr) + " -DIS_DOUTPUT_PACKED=0";
+
+            if(dxDesc.IsPacked())
+                parms += " -DIS_DINPUT_PACKED=1";
+            else
+                parms += " -DDINPUT_N_STRIDE=" + std::to_string(din_nstr) + " -DDINPUT_C_STRIDE=" +
+                         std::to_string(din_cstr) + " -DDINPUT_H_STRIDE=" +
+                         std::to_string(din_hstr) + " -DDINPUT_W_STRIDE=" +
+                         std::to_string(din_wstr) + " -DIS_DINPUT_PACKED=0";
+
+            if(!(dxDesc.IsPacked() && dyDesc.IsPacked() && yDesc.IsPacked()))
+                parms += " -DINPUT_H=" + std::to_string(h) + " -DINPUT_W=" + std::to_string(w);
+
+            if(!float_equal(alpha_fp, 1.0))
+                parms += " -DUSE_ALPHA=1";
+
+            if(!float_equal(beta_fp, 0))
+                parms += " -DUSE_BETA=1";
+
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                y, dx, c, grid_size, spatial_dim);
+                y, dy, dx, vector_size, grid_size, spatial_dim, alpha_fp, beta_fp);
         }
     }
     else
     { // CSR-Stream like approach
         int batch_size   = 256 / num_batch;
-        int u_batch_size = (c > batch_size) ? nextPow2(c / batch_size) : 1;
+        int u_batch_size = (vector_size > batch_size) ? nextPow2(vector_size / batch_size) : 1;
         size_t workgroups =
             (grid_size % num_batch == 0) ? (grid_size / num_batch) : (grid_size / num_batch + 1);
         const std::vector<size_t> vgd{workgroups * vld[0], 1, 1};
 
+        if((2 * u_batch_size + 1) * 256 > 65536 && yDesc.GetType() == miopenHalf)
+            MIOPEN_THROW(miopenStatusBadParm, "Exceed local memory capacity");
+
         std::string algo_name = "SoftmaxBackwardMultiBatch";
         std::string network_config =
-            std::to_string(num_batch) + std::to_string(static_cast<int>(usefp16)) +
-            std::to_string(static_cast<int>(usefp32)) + std::to_string(vgd[0]) +
-            std::to_string(vld[0]) + std::to_string(spatial_dim) + std::to_string(grid_size) +
-            std::to_string(workgroups) + std::to_string(c) + std::to_string(u_batch_size) +
-            std::to_string(batch_size);
+            "n" + std::to_string(num_batch) + "half" + std::to_string(static_cast<int>(usefp16)) +
+            "float" + std::to_string(static_cast<int>(usefp32)) + "g" + std::to_string(vgd[0]) +
+            "l" + std::to_string(vld[0]) + "dim" + std::to_string(spatial_dim) + "grid" +
+            std::to_string(grid_size) + "wg" + std::to_string(workgroups) + "v" +
+            std::to_string(vector_size) + "ubatch" + std::to_string(u_batch_size) + "batch" +
+            std::to_string(batch_size) + "a" + std::to_string(alpha_fp) + "b" +
+            std::to_string(beta_fp) + "algo" + std::to_string(static_cast<int>(algorithm)) +
+            "mode" + std::to_string(static_cast<int>(mode));
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
         if(!kernels.empty())
         {
-            kernels.front()(y, dx, c, grid_size, spatial_dim);
+            kernels.front()(y, dy, dx, vector_size, grid_size, spatial_dim, alpha_fp, beta_fp);
         }
         else
         {
@@ -266,11 +471,60 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
                                 std::to_string(u_batch_size) + " -DMIOPEN_USE_FP16=" +
                                 std::to_string(static_cast<int>(usefp16)) + " -DMIOPEN_USE_FP32=" +
                                 std::to_string(static_cast<int>(usefp32));
+
+            parms += " -DOUT_OFFSET=" + std::to_string(y_offset) + " -DDOUT_OFFSET=" +
+                     std::to_string(dy_offset) + " -DDIN_OFFSET=" + std::to_string(dx_offset);
+            if(algorithm == MIOPEN_SOFTMAX_LOG)
+                parms += " -DUSE_SOFTMAX_LOG=1";
+            else if(algorithm == MIOPEN_SOFTMAX_FAST)
+                parms += " -DUSE_SOFTMAX_FAST=1";
+            else
+                parms += " -DUSE_SOFTMAX_ACCURATE=1";
+
+            if(mode == MIOPEN_SOFTMAX_MODE_INSTANCE)
+                parms += " -DUSE_SOFTMAX_MODE_INSTANCE=1";
+            else
+                parms += " -DUSE_SOFTMAX_MODE_CHANNEL=1";
+
+            parms += " -DRUN_FORWARD=0";
+            if(yDesc.IsPacked())
+                parms += " -DIS_OUTPUT_PACKED=1";
+            else
+                parms += " -DOUTPUT_N_STRIDE=" + std::to_string(out_nstr) + " -DOUTPUT_C_STRIDE=" +
+                         std::to_string(out_cstr) + " -DOUTPUT_H_STRIDE=" +
+                         std::to_string(out_hstr) + " -DOUTPUT_W_STRIDE=" +
+                         std::to_string(out_wstr) + " -DIS_OUTPUT_PACKED=0";
+
+            if(dyDesc.IsPacked())
+                parms += " -DIS_DOUTPUT_PACKED=1";
+            else
+                parms +=
+                    " -DDOUTPUT_N_STRIDE=" + std::to_string(dout_nstr) + " -DDOUTPUT_C_STRIDE=" +
+                    std::to_string(dout_cstr) + " -DDOUTPUT_H_STRIDE=" + std::to_string(dout_hstr) +
+                    " -DDOUTPUT_W_STRIDE=" + std::to_string(dout_wstr) + " -DIS_DOUTPUT_PACKED=0";
+
+            if(dxDesc.IsPacked())
+                parms += " -DIS_DINPUT_PACKED=1";
+            else
+                parms += " -DDINPUT_N_STRIDE=" + std::to_string(din_nstr) + " -DDINPUT_C_STRIDE=" +
+                         std::to_string(din_cstr) + " -DDINPUT_H_STRIDE=" +
+                         std::to_string(din_hstr) + " -DDINPUT_W_STRIDE=" +
+                         std::to_string(din_wstr) + " -DIS_DINPUT_PACKED=0";
+
+            if(!(dxDesc.IsPacked() && dyDesc.IsPacked() && yDesc.IsPacked()))
+                parms += " -DINPUT_H=" + std::to_string(h) + " -DINPUT_W=" + std::to_string(w);
+
+            if(!float_equal(alpha_fp, 1.0))
+                parms += " -DUSE_ALPHA=1";
+
+            if(!float_equal(beta_fp, 0))
+                parms += " -DUSE_BETA=1";
+
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                y, dx, c, grid_size, spatial_dim);
+                y, dy, dx, vector_size, grid_size, spatial_dim, alpha_fp, beta_fp);
         }
     }
-    if(miopen::CheckNumericsEnabled() != 0)
+    if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsOutput(handle, dxDesc, dx);
     }

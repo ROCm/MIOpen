@@ -2,66 +2,81 @@
 
 #include <miopen/convolution.hpp>
 
+#include <functional>
 #include <sstream>
+#include <tuple>
+
+namespace miopen {
 
 static std::string
 EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataType_t out)
 {
     if(in == weights && in == out)
-        return miopen::GetDataTypeName(in);
-    return miopen::GetDataTypeName(in) + miopen::GetDataTypeName(weights) +
-           miopen::GetDataTypeName(out);
+        return GetDataTypeName(in);
+    return GetDataTypeName(in) + GetDataTypeName(weights) + GetDataTypeName(out);
 }
 
-int miopen::ProblemDescription::mloBuildConf_Key(std::string& conf_key) const
+std::function<void(std::ostream&)>
+PrintDHW(char sep, int spatial_dims, int depth, int height, int width)
+{
+    return [=](std::ostream& stream) {
+        if(spatial_dims > 2)
+            stream << depth << sep;
+        stream << height << sep << width;
+    };
+}
+
+std::ostream& operator<<(std::ostream& stream, std::function<void(std::ostream&)>&& manipulator)
+{
+    manipulator(stream);
+    return stream;
+}
+
+int ProblemDescription::mloBuildConf_Key(std::string& conf_key) const
 {
     std::ostringstream ss;
 
-    ss << n_inputs << 'x';
-    ss << in_height << 'x';
-    ss << in_width << 'x';
-    ss << kernel_size_h << 'x';
-    ss << kernel_size_w << 'x';
-    ss << n_outputs << 'x';
-    ss << out_height << 'x';
-    ss << out_width << 'x';
-    ss << batch_sz << 'x';
-    ss << in_layout << 'x';
-    ss << EncodeDataTypesForKey(in_data_type, weights_data_type, out_data_type) << 'x';
-    ss << pad_h << 'x';
-    ss << pad_w << 'x';
-    ss << kernel_stride_h << 'x';
-    ss << kernel_stride_w << 'x';
-    ss << kernel_dilation_h << 'x';
-    ss << kernel_dilation_w << 'x';
-    ss << group_counts << 'x';
-    ss << (direction.IsForward() ? "1" : "0");
+    ss << n_inputs;
+    ss << 'x' << PrintDHW('x', spatial_dims, in_depth, in_height, in_width);
+    ss << 'x' << PrintDHW('x', spatial_dims, kernel_size_d, kernel_size_h, kernel_size_w);
+    ss << 'x' << n_outputs;
+    ss << 'x' << PrintDHW('x', spatial_dims, out_depth, out_height, out_width);
+    ss << 'x' << batch_sz;
+    ss << 'x' << in_layout;
+    ss << 'x' << EncodeDataTypesForKey(in_data_type, weights_data_type, out_data_type);
+    ss << 'x' << PrintDHW('x', spatial_dims, pad_d, pad_h, pad_w);
+    ss << 'x' << PrintDHW('x', spatial_dims, kernel_stride_d, kernel_stride_h, kernel_stride_w);
+    ss << 'x'
+       << PrintDHW('x', spatial_dims, kernel_dilation_d, kernel_dilation_h, kernel_dilation_w);
+    ss << 'x' << group_counts;
+    ss << 'x' << (direction.IsForward() ? "1" : "0");
 
     conf_key = ss.str();
 
     return (0);
 }
 
-void miopen::ProblemDescription::Serialize(std::ostream& stream) const
+void ProblemDescription::Serialize(std::ostream& stream) const
 {
     if(!direction.IsKnown())
         MIOPEN_THROW("!direction.IsKnown()");
     const auto sep = '-';
+    // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NCHW-FP32-F
     // clang-format off
-        // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NCHW-FP32-F
-        stream
-            << n_inputs << sep << in_height << sep << in_width
-            << sep << kernel_size_h << 'x' << kernel_size_w
-            << sep << n_outputs << sep << out_height << sep << out_width
-            << sep << batch_sz
-            << sep << pad_h << 'x' << pad_w
-            << sep << kernel_stride_h << 'x' << kernel_stride_w
-            << sep << kernel_dilation_h << 'x' << kernel_dilation_w
-            << sep << bias
-            << sep << in_layout
-            << sep << EncodeDataTypesForKey(in_data_type, weights_data_type, out_data_type)
-            << sep << (direction.IsForward() ? "F"
-                     : direction.IsBackwardData() ? "B" : "W"); // clang-format on
+    stream << n_inputs;
+    stream << sep << PrintDHW(sep, spatial_dims, in_depth, in_height, in_width);
+    stream << sep << PrintDHW('x', spatial_dims, kernel_size_d, kernel_size_h, kernel_size_w);
+    stream << sep << n_outputs;
+    stream << sep << PrintDHW(sep, spatial_dims, out_depth, out_height, out_width);
+    stream << sep << batch_sz;
+    stream << sep << PrintDHW('x', spatial_dims, pad_d, pad_h, pad_w);
+    stream << sep << PrintDHW('x', spatial_dims, kernel_stride_d, kernel_stride_h, kernel_stride_w);
+    stream << sep << PrintDHW('x', spatial_dims, kernel_dilation_d, kernel_dilation_h, kernel_dilation_w);
+    stream << sep << bias;
+    stream << sep << in_layout;
+    stream << sep << EncodeDataTypesForKey(in_data_type, weights_data_type, out_data_type);
+    stream << sep << (direction.IsForward() ? "F" : direction.IsBackwardData() ? "B" : "W");
+    // clang-format on
     // New performance config entries shall come into variable/optional part of db key.
     // This is to support backward compatibility with previous versions of databases.
     std::ostringstream optional;
@@ -76,29 +91,38 @@ void miopen::ProblemDescription::Serialize(std::ostream& stream) const
     }
 }
 
-miopen::ProblemDescription::ProblemDescription(const TensorDescriptor& in,
-                                               const TensorDescriptor& weights,
-                                               const TensorDescriptor& out,
-                                               const ConvolutionDescriptor& conv,
-                                               int dir,
-                                               int bias_)
+ProblemDescription::ProblemDescription(const TensorDescriptor& in,
+                                       const TensorDescriptor& weights,
+                                       const TensorDescriptor& out,
+                                       const ConvolutionDescriptor& conv,
+                                       int dir,
+                                       int bias_)
     : bias(bias_)
 {
     direction.Set(dir);
 
-    SetDescFromMLDesc(*this, in, &ProblemDescription::setInputDescr);
-    SetDescFromMLDesc(*this, weights, &ProblemDescription::setWeightsDescr);
-    SetDescFromMLDesc(*this, out, &ProblemDescription::setOutputDescr);
     setConvDescr(conv);
+    SetDescFromMLDesc(spatial_dims, *this, in, &ProblemDescription::setInputDescr);
+    SetDescFromMLDesc(spatial_dims, *this, weights, &ProblemDescription::setWeightsDescr);
+    SetDescFromMLDesc(spatial_dims, *this, out, &ProblemDescription::setOutputDescr);
 }
 
-void miopen::ProblemDescription::setConvDescr(const ConvolutionDescriptor& conv)
+std::tuple<int, int, int> GetDHW(int spatial_dims, const std::vector<int>& data)
 {
-    pad_h             = conv.GetConvPads()[0];
-    pad_w             = conv.GetConvPads()[1];
-    kernel_stride_h   = conv.GetConvStrides()[0];
-    kernel_stride_w   = conv.GetConvStrides()[1];
-    kernel_dilation_h = conv.GetConvDilations()[0];
-    kernel_dilation_w = conv.GetConvDilations()[1];
-    group_counts      = conv.group_count;
+    if(spatial_dims == 2)
+        return std::make_tuple(0, data[0], data[1]);
+    return std::make_tuple(data[0], data[1], data[2]);
 }
+
+void ProblemDescription::setConvDescr(const ConvolutionDescriptor& conv)
+{
+    spatial_dims = conv.spatialDim;
+    std::tie(pad_d, pad_h, pad_w) = GetDHW(spatial_dims, conv.GetConvPads());
+    std::tie(kernel_stride_d, kernel_stride_h, kernel_stride_w) =
+        GetDHW(spatial_dims, conv.GetConvStrides());
+    std::tie(kernel_dilation_d, kernel_dilation_h, kernel_dilation_w) =
+        GetDHW(spatial_dims, conv.GetConvDilations());
+    group_counts = conv.group_count;
+}
+
+} // namespace miopen

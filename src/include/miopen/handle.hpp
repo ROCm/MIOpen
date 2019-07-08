@@ -87,7 +87,9 @@ struct Handle : miopenHandle
                            const std::vector<size_t>& vld,
                            const std::vector<size_t>& vgd,
                            const std::string& params,
-                           std::size_t cache_index = 0);
+                           std::size_t cache_index       = 0,
+                           bool is_kernel_str            = false,
+                           const std::string& kernel_src = "");
 
     bool HasKernel(const std::string& algorithm, const std::string& network_config) const;
 
@@ -113,18 +115,23 @@ struct Handle : miopenHandle
     const std::vector<Kernel>& GetKernelsImpl(const std::string& algorithm,
                                               const std::string& network_config);
 
-    Program LoadProgram(const std::string& program_name, std::string params, bool is_kernel_str);
+    Program LoadProgram(const std::string& program_name,
+                        std::string params,
+                        bool is_kernel_str,
+                        const std::string& kernel_src);
 
     void Finish() const;
     void Flush() const;
 
     std::size_t GetLocalMemorySize();
+    std::size_t GetGlobalMemorySize();
     std::size_t GetMaxComputeUnits();
 
     std::size_t m_MaxMemoryAllocSizeCached = 0;
     std::size_t GetMaxMemoryAllocSize();
 
     std::string GetDeviceName();
+    std::ostream& Print(std::ostream& os) const;
 
     void Copy(ConstData_t src, Data_t dest, std::size_t size);
 
@@ -160,7 +167,7 @@ struct Handle : miopenHandle
         return result;
     }
 
-    std::string GetDbPathFilename()
+    std::string GetDbBasename()
     {
         // clang-format off
         return GetDeviceName()
@@ -170,6 +177,7 @@ struct Handle : miopenHandle
     }
 
     std::unique_ptr<HandleImpl> impl;
+    std::unordered_map<std::string, std::vector<miopenConvSolution_t>> find_map;
 #if MIOPEN_USE_MIOPENGEMM
     std::unordered_map<GemmKey, std::unique_ptr<GemmGeometry>, SimpleHash> geo_map;
 #endif
@@ -183,6 +191,28 @@ struct Handle : miopenHandle
     rocblas_handle_ptr rhandle_;
 #endif
 };
+
+inline std::ostream& operator<<(std::ostream& os, const Handle& handle) { return handle.Print(os); }
+
+struct AutoEnableProfiling
+{
+    AutoEnableProfiling(Handle& x) : h(x)
+    {
+        prev_state = h.IsProfilingEnabled();
+        h.EnableProfiling();
+    }
+
+    ~AutoEnableProfiling()
+    {
+        h.EnableProfiling(prev_state);
+        h.ResetKernelTime();
+    }
+
+    private:
+    Handle& h;
+    bool prev_state;
+};
+
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenHandle, miopen::Handle);
 

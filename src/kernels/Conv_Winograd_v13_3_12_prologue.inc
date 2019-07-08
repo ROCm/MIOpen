@@ -37,7 +37,6 @@ sp3AsmConvRxSU:
     is_ptr64 = 1
     enable_vgpr_workitem_id = 1 // v1 is not used at all for now, but what the heck.
     float_mode = 192
-    workgroup_group_segment_byte_size = 0
     enable_sgpr_private_segment_buffer = 1
     enable_sgpr_dispatch_ptr = 1
     enable_sgpr_kernarg_segment_ptr = 1

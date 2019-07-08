@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include <miopen/errors.hpp>
 #include <miopen/gcn_asm_utils.hpp>
+#include <miopen/hip_build_utils.hpp>
 #include <miopen/hipoc_program.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/kernel_warnings.hpp>
@@ -37,48 +38,6 @@
 #include <unistd.h>
 
 namespace miopen {
-
-hipModulePtr CreateModule(const std::string& program_name, std::string params, bool is_kernel_str)
-{
-    std::string filename =
-        is_kernel_str ? "tinygemm.cl" : program_name; // jn : don't know what this is
-    TmpDir dir{filename};
-    auto bin_file   = dir.path / (filename + ".bin");
-    auto hsaco_file = dir.path / (filename + ".o");
-    auto obj_file   = dir.path / (filename + ".obj");
-
-    std::string src = is_kernel_str ? program_name : GetKernelSrc(program_name);
-    if(!is_kernel_str && miopen::EndsWith(program_name, ".so"))
-    {
-        WriteFile(src, hsaco_file);
-    }
-    else if(!is_kernel_str && miopen::EndsWith(program_name, ".s"))
-    {
-        AmdgcnAssemble(src, params);
-        WriteFile(src, hsaco_file);
-    }
-    else
-    {
-
-        WriteFile(src, dir.path / filename);
-
-#if MIOPEN_BUILD_DEV
-        params += " -Werror" + KernelWarningsString();
-#else
-        params += " -Wno-everything";
-#endif
-        dir.Execute(HIP_OC_COMPILER, params + " " + filename + " -o " + hsaco_file.string());
-    }
-
-    hipModule_t raw_m;
-    auto status = hipModuleLoad(&raw_m, hsaco_file.string().c_str());
-    if(status != hipSuccess)
-        MIOPEN_THROW_HIP_STATUS(status, "Failed creating module");
-    // We construct the module after the error even though this might leak
-    // memory because it causes a nasty double free in glibc if we dont
-    hipModulePtr m{raw_m};
-    return m;
-}
 
 hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
 {
@@ -97,24 +56,36 @@ struct HIPOCProgramImpl
     {
         this->module = CreateModule(this->hsaco_file);
     }
-    HIPOCProgramImpl(const std::string& program_name, std::string params, bool is_kernel_str)
-        : name(program_name)
+    HIPOCProgramImpl(const std::string& program_name,
+                     std::string params,
+                     bool is_kernel_str,
+                     std::string _dev_name,
+                     const std::string& kernel_src)
+        : name(program_name), dev_name(_dev_name)
     {
-        this->BuildModule(program_name, params, is_kernel_str);
+        this->BuildModule(program_name, params, is_kernel_str, kernel_src);
         this->module = CreateModule(this->hsaco_file);
     }
     std::string name;
+    std::string dev_name;
     boost::filesystem::path hsaco_file;
     hipModulePtr module;
     boost::optional<TmpDir> dir;
-    void BuildModule(const std::string& program_name, std::string params, bool is_kernel_str)
+    void BuildModule(const std::string& program_name,
+                     std::string params,
+                     bool is_kernel_str,
+                     const std::string& kernel_src)
     {
         std::string filename =
             is_kernel_str ? "tinygemm.cl" : program_name; // jn : don't know what this is
         dir.emplace(filename);
-        hsaco_file = dir->path / (filename + ".o");
 
-        std::string src = is_kernel_str ? program_name : GetKernelSrc(program_name);
+        hsaco_file = dir->path / (filename + ".o");
+        std::string src;
+        if(kernel_src.empty())
+            src = is_kernel_str ? program_name : GetKernelSrc(program_name);
+        else
+            src = kernel_src;
         if(!is_kernel_str && miopen::EndsWith(program_name, ".so"))
         {
             WriteFile(src, hsaco_file);
@@ -124,24 +95,40 @@ struct HIPOCProgramImpl
             AmdgcnAssemble(src, params);
             WriteFile(src, hsaco_file);
         }
+        else if(!is_kernel_str && miopen::EndsWith(program_name, ".cpp"))
+        {
+#if MIOPEN_BUILD_DEV
+            params += " -Werror" + HipKernelWarningsString();
+#else
+            params += " -Wno-everything";
+#endif
+            hsaco_file = HipBuild(dir, filename, src, params, dev_name);
+        }
         else
         {
 
             WriteFile(src, dir->path / filename);
 
 #if MIOPEN_BUILD_DEV
-            params += " -Werror" + KernelWarningsString();
+            params += " -Werror" + OclKernelWarningsString();
 #else
             params += " -Wno-everything";
 #endif
             dir->Execute(HIP_OC_COMPILER, params + " " + filename + " -o " + hsaco_file.string());
         }
+        if(!boost::filesystem::exists(hsaco_file))
+            MIOPEN_THROW("Cant find file: " + hsaco_file.string());
     }
 };
 
 HIPOCProgram::HIPOCProgram() {}
-HIPOCProgram::HIPOCProgram(const std::string& program_name, std::string params, bool is_kernel_str)
-    : impl(std::make_shared<HIPOCProgramImpl>(program_name, params, is_kernel_str))
+HIPOCProgram::HIPOCProgram(const std::string& program_name,
+                           std::string params,
+                           bool is_kernel_str,
+                           std::string dev_name,
+                           const std::string& kernel_src)
+    : impl(std::make_shared<HIPOCProgramImpl>(
+          program_name, params, is_kernel_str, dev_name, kernel_src))
 {
 }
 

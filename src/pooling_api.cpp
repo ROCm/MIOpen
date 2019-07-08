@@ -210,36 +210,32 @@ extern "C" miopenStatus_t miopenPoolingForward(miopenHandle_t handle,
 {
 
     MIOPEN_LOG_FUNCTION(
-        poolDesc, alpha, xDesc, x, beta, yDesc, y, do_backward, workSpace, workSpaceSize);
+        handle, poolDesc, alpha, xDesc, x, beta, yDesc, y, do_backward, workSpace, workSpaceSize);
 
     if(miopen::IsLoggingCmd())
     {
+        std::stringstream ss;
         if(miopen::deref(xDesc).GetType() == miopenHalf)
         {
-            std::cerr << MIOPEN_DRIVER_CMD("poolfp16");
+            ss << "poolfp16";
         }
         else
         {
-            std::cerr << MIOPEN_DRIVER_CMD("pool");
+            ss << "pool";
         }
-
-        std::cerr << " -n " << miopen::deref(xDesc).GetLengths()[0] << " -c "
-                  << miopen::deref(xDesc).GetLengths()[1] << " -H "
-                  << miopen::deref(xDesc).GetLengths()[2] << " -W "
-                  << miopen::deref(xDesc).GetLengths()[3]
-
-                  << " -y " << miopen::deref(poolDesc).lens[0] << " -x "
-                  << miopen::deref(poolDesc).lens[1]
-
-                  << " -p " << miopen::deref(poolDesc).pads[0] << " -q "
-                  << miopen::deref(poolDesc).pads[1] << " -u " << miopen::deref(poolDesc).strides[0]
-                  << " -v " << miopen::deref(poolDesc).strides[1] << " -m "
-                  << (miopen::deref(poolDesc).mode == 0
-                          ? "max"
-                          : (miopen::deref(poolDesc).mode == 1 ? "avg" : "avg_in"))
-                  << " -t "
-                  << "1"
-                  << "\n";
+        ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
+            << " -c " << miopen::deref(xDesc).GetLengths()[1]
+            << " -H " << miopen::deref(xDesc).GetLengths()[2]
+            << " -W " << miopen::deref(xDesc).GetLengths()[3]
+            << " -y " << miopen::deref(poolDesc).lens[0]
+            << " -x " << miopen::deref(poolDesc).lens[1]
+            << " -p " << miopen::deref(poolDesc).pads[0]
+            << " -q " << miopen::deref(poolDesc).pads[1]
+            << " -u " << miopen::deref(poolDesc).strides[0]
+            << " -v " << miopen::deref(poolDesc).strides[1]
+            << " -m " << (miopen::deref(poolDesc).mode == 0 ? "max" : (miopen::deref(poolDesc).mode == 1 ? "avg" : "avg_in"))
+            << " -t 1"; // clang-format on
+        MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 
     return miopen::try_([&] {
@@ -272,36 +268,32 @@ extern "C" miopenStatus_t miopenPoolingBackward(miopenHandle_t handle,
 {
 
     MIOPEN_LOG_FUNCTION(
-        poolDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx, workSpace);
+        handle, poolDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx, workSpace);
 
     if(miopen::IsLoggingCmd())
     {
+        std::stringstream ss;
         if(miopen::deref(xDesc).GetType() == miopenHalf)
         {
-            std::cerr << MIOPEN_DRIVER_CMD("poolfp16");
+            ss << "poolfp16";
         }
         else
         {
-            std::cerr << MIOPEN_DRIVER_CMD("pool");
+            ss << "pool";
         }
-
-        std::cerr << " -n " << miopen::deref(xDesc).GetLengths()[0] << " -c "
-                  << miopen::deref(xDesc).GetLengths()[1] << " -H "
-                  << miopen::deref(xDesc).GetLengths()[2] << " -W "
-                  << miopen::deref(xDesc).GetLengths()[3]
-
-                  << " -y " << miopen::deref(poolDesc).lens[0] << " -x "
-                  << miopen::deref(poolDesc).lens[1]
-
-                  << " -p " << miopen::deref(poolDesc).pads[0] << " -q "
-                  << miopen::deref(poolDesc).pads[1] << " -u " << miopen::deref(poolDesc).strides[0]
-                  << " -v " << miopen::deref(poolDesc).strides[1] << " -m "
-                  << (miopen::deref(poolDesc).mode == 0
-                          ? "max"
-                          : (miopen::deref(poolDesc).mode == 1 ? "avg" : "avg_in"))
-                  << " -t "
-                  << "1"
-                  << "\n";
+        ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
+            << " -c " << miopen::deref(xDesc).GetLengths()[1]
+            << " -H " << miopen::deref(xDesc).GetLengths()[2]
+            << " -W " << miopen::deref(xDesc).GetLengths()[3]
+            << " -y " << miopen::deref(poolDesc).lens[0]
+            << " -x " << miopen::deref(poolDesc).lens[1]
+            << " -p " << miopen::deref(poolDesc).pads[0]
+            << " -q " << miopen::deref(poolDesc).pads[1]
+            << " -u " << miopen::deref(poolDesc).strides[0]
+            << " -v " << miopen::deref(poolDesc).strides[1]
+            << " -m " << (miopen::deref(poolDesc).mode == 0 ? "max" : (miopen::deref(poolDesc).mode == 1 ? "avg" : "avg_in"))
+            << " -t 1"; // clang-format on
+        MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 
     return miopen::try_([&] {

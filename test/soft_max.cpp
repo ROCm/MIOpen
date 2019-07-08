@@ -42,97 +42,321 @@
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 
+#define NEGATIVE_CUTOFF_VAL_FP32 (-1e20)
+#define NEGATIVE_CUTOFF_VAL_FP16 (-1e4)
+
+template <typename T>
+T logaddexp(T x, T y, T neg_inf)
+{
+    T a = std::max(x, y);
+    T b = std::min(x, y);
+    T c = b - a;
+
+    return c <= neg_inf ? std::max(a, neg_inf) : std::max(T(a + log(T(1) + exp(b - a))), neg_inf);
+}
+
+template <class T>
 struct verify_forward_sofmax
 {
-    template <class T>
-    tensor<T> cpu(const tensor<T>& input) const
+    tensor<T> input;
+    tensor<T> output;
+
+    float alpha;
+    float beta;
+    miopenSoftmaxAlgorithm_t algo;
+    miopenSoftmaxMode_t mode;
+
+    verify_forward_sofmax(const tensor<T>& pinput,
+                          const tensor<T>& pout,
+                          float palpha                = 1,
+                          float pbeta                 = 0,
+                          miopenSoftmaxAlgorithm_t pa = MIOPEN_SOFTMAX_ACCURATE,
+                          miopenSoftmaxMode_t pm      = MIOPEN_SOFTMAX_MODE_CHANNEL)
     {
-        auto out = input;
-        std::fill(out.begin(), out.end(), 0);
+        input  = pinput;
+        output = pout;
+        alpha  = palpha;
+        beta   = pbeta;
+        algo   = pa;
+        mode   = pm;
+    }
+
+    tensor<T> cpu() const
+    {
+        auto out = output;
 
         int in_n, in_c, in_h, in_w;
         std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
-        par_ford(in_n, in_h, in_w)([&](int o, int i, int j) {
-            T max_c = std::numeric_limits<T>::lowest();
-            ford(in_c)([&](int w) { max_c = std::max(max_c, input(o, w, i, j)); });
+        int in_nstr, in_cstr, in_hstr;
+        std::tie(in_nstr, in_cstr, in_hstr, std::ignore) = miopen::tien<4>(input.desc.GetStrides());
 
-            double sum = 0;
-            ford(in_c)([&](int w) { sum += std::exp(input(o, w, i, j) - max_c); });
+        int out_nstr, out_cstr, out_hstr;
+        std::tie(out_nstr, out_cstr, out_hstr, std::ignore) =
+            miopen::tien<4>(out.desc.GetStrides());
 
-            ford(in_c)([&](int w) { out(o, w, i, j) = std::exp(input(o, w, i, j) - max_c) / sum; });
+        if(mode == MIOPEN_SOFTMAX_MODE_INSTANCE)
+            par_ford(in_n)([&](int o) {
+                if(algo == MIOPEN_SOFTMAX_FAST)
+                {
+                    double sum = 0;
+                    ford(in_c, in_h, in_w)([&](int w, int i, int j) {
+                        sum += std::exp(input[o * in_nstr + w * in_cstr + i * in_hstr + j]);
+                    });
+                    ford(in_c, in_h, in_w)([&](int w, int i, int j) {
+                        out[o * out_nstr + w * out_cstr + i * out_hstr + j] =
+                            alpha * (std::exp(input[o * in_nstr + w * in_cstr + i * in_hstr + j]) /
+                                     sum) +
+                            beta * out[o * out_nstr + w * out_cstr + i * out_hstr + j];
+                    });
+                }
+                else
+                {
+                    T max_c = std::numeric_limits<T>::lowest();
+                    ford(in_c, in_h, in_w)([&](int w, int i, int j) {
+                        max_c = std::max(max_c, input[o * in_nstr + w * in_cstr + i * in_hstr + j]);
+                    });
 
-        });
+                    if(algo == MIOPEN_SOFTMAX_LOG)
+                    {
+                        double neg_inf = input.desc.GetType() == miopenHalf
+                                             ? NEGATIVE_CUTOFF_VAL_FP16
+                                             : NEGATIVE_CUTOFF_VAL_FP32;
+                        double sum = neg_inf;
+                        ford(in_c, in_h, in_w)([&](int w, int i, int j) {
+                            sum = logaddexp(
+                                double(input[o * in_nstr + w * in_cstr + i * in_hstr + j] - max_c),
+                                sum,
+                                neg_inf);
+                        });
+
+                        ford(in_c, in_h, in_w)([&](int w, int i, int j) {
+                            out[o * out_nstr + w * out_cstr + i * out_hstr + j] =
+                                alpha * (input[o * in_nstr + w * in_cstr + i * in_hstr + j] -
+                                         max_c - sum) +
+                                beta * out[o * out_nstr + w * out_cstr + i * out_hstr + j];
+                        });
+                    }
+                    else
+                    {
+                        double sum = 0;
+                        ford(in_c, in_h, in_w)([&](int w, int i, int j) {
+                            sum += std::exp(input[o * in_nstr + w * in_cstr + i * in_hstr + j] -
+                                            max_c);
+                        });
+
+                        ford(in_c, in_h, in_w)([&](int w, int i, int j) {
+                            out[o * out_nstr + w * out_cstr + i * out_hstr + j] =
+                                alpha *
+                                    (std::exp(input[o * in_nstr + w * in_cstr + i * in_hstr + j] -
+                                              max_c) /
+                                     sum) +
+                                beta * out[o * out_nstr + w * out_cstr + i * out_hstr + j];
+                        });
+                    }
+                }
+            });
+        else
+            par_ford(in_n, in_h, in_w)([&](int o, int i, int j) {
+                if(algo == MIOPEN_SOFTMAX_FAST)
+                {
+                    double sum = 0;
+                    ford(in_c)([&](int w) {
+                        sum += std::exp(input[o * in_nstr + w * in_cstr + i * in_hstr + j]);
+                    });
+                    ford(in_c)([&](int w) {
+                        out[o * out_nstr + w * out_cstr + i * out_hstr + j] =
+                            alpha * (std::exp(input[o * in_nstr + w * in_cstr + i * in_hstr + j]) /
+                                     sum) +
+                            beta * out[o * out_nstr + w * out_cstr + i * out_hstr + j];
+                    });
+                }
+                else
+                {
+                    T max_c = std::numeric_limits<T>::lowest();
+                    ford(in_c)([&](int w) {
+                        max_c = std::max(max_c, input[o * in_nstr + w * in_cstr + i * in_hstr + j]);
+                    });
+
+                    if(algo == MIOPEN_SOFTMAX_LOG)
+                    {
+                        double neg_inf = input.desc.GetType() == miopenHalf
+                                             ? NEGATIVE_CUTOFF_VAL_FP16
+                                             : NEGATIVE_CUTOFF_VAL_FP32;
+                        double sum = neg_inf;
+                        ford(in_c)([&](int w) {
+                            sum = logaddexp(
+                                double(input[o * in_nstr + w * in_cstr + i * in_hstr + j] - max_c),
+                                sum,
+                                neg_inf);
+                        });
+
+                        ford(in_c)([&](int w) {
+                            out[o * out_nstr + w * out_cstr + i * out_hstr + j] =
+                                alpha * (input[o * in_nstr + w * in_cstr + i * in_hstr + j] -
+                                         max_c - sum) +
+                                beta * out[o * out_nstr + w * out_cstr + i * out_hstr + j];
+                        });
+                    }
+                    else
+                    {
+                        double sum = 0;
+                        ford(in_c)([&](int w) {
+                            sum += std::exp(input[o * in_nstr + w * in_cstr + i * in_hstr + j] -
+                                            max_c);
+                        });
+
+                        ford(in_c)([&](int w) {
+                            out[o * out_nstr + w * out_cstr + i * out_hstr + j] =
+                                alpha *
+                                    (std::exp(input[o * in_nstr + w * in_cstr + i * in_hstr + j] -
+                                              max_c) /
+                                     sum) +
+                                beta * out[o * out_nstr + w * out_cstr + i * out_hstr + j];
+                        });
+                    }
+                }
+            });
         return out;
     }
 
-    template <class T>
-    tensor<T> gpu(const tensor<T>& input) const
+    tensor<T> gpu() const
     {
         auto&& handle = get_handle();
-        auto out      = input;
+        auto out      = output;
 
+        auto in_dev  = handle.Write(input.data);
         auto out_dev = handle.Write(out.data);
 
-        float alpha = 1, beta = 0;
-
-        miopen::SoftmaxForward(handle, &alpha, &beta, input.desc, out_dev.get());
+        miopen::SoftmaxForward(
+            handle, &alpha, &beta, input.desc, in_dev.get(), out.desc, out_dev.get(), algo, mode);
 
         out.data = handle.Read<T>(out_dev, out.data.size());
         return out;
     }
 
-    template <class T>
-    void fail(float, const tensor<T>& input) const
+    void fail(int = 0) const
     {
         std::cout << "Forward Sofmax: " << std::endl;
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
     }
 };
 
+template <class T>
 struct verify_backward_sofmax
 {
-    template <class T>
-    tensor<T> cpu(const tensor<T>& out, const tensor<T>& dout) const
+    tensor<T> dinput;
+    tensor<T> dout;
+    tensor<T> out;
+
+    float alpha;
+    float beta;
+    miopenSoftmaxAlgorithm_t algo;
+    miopenSoftmaxMode_t mode;
+
+    verify_backward_sofmax(const tensor<T>& pout,
+                           const tensor<T>& pdout,
+                           const tensor<T>& pdinput,
+                           float palpha                = 1,
+                           float pbeta                 = 0,
+                           miopenSoftmaxAlgorithm_t pa = MIOPEN_SOFTMAX_ACCURATE,
+                           miopenSoftmaxMode_t pm      = MIOPEN_SOFTMAX_MODE_CHANNEL)
     {
-        auto input = dout;
+        dinput = pdinput;
+        dout   = pdout;
+        out    = pout;
+        alpha  = palpha;
+        beta   = pbeta;
+        algo   = pa;
+        mode   = pm;
+    }
+
+    tensor<T> cpu() const
+    {
+        auto din = dinput;
 
         int in_n, in_c, in_h, in_w;
-        std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
+        std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(din.desc.GetLengths());
 
-        par_ford(in_n, in_h, in_w)([&](int o, int i, int j) {
-            double sum = 0;
-            ford(in_c)([&](int c) { sum += out(o, c, i, j) * dout(o, c, i, j); });
+        int in_nstr, in_cstr, in_hstr;
+        std::tie(in_nstr, in_cstr, in_hstr, std::ignore) = miopen::tien<4>(din.desc.GetStrides());
 
-            ford(in_c)(
-                [&](int c) { input(o, c, i, j) = out(o, c, i, j) * (input(o, c, i, j) - sum); });
-        });
-        return input;
+        int out_nstr, out_cstr, out_hstr;
+        std::tie(out_nstr, out_cstr, out_hstr, std::ignore) =
+            miopen::tien<4>(dout.desc.GetStrides());
+
+        if(mode == MIOPEN_SOFTMAX_MODE_INSTANCE)
+            par_ford(in_n)([&](int o) {
+                double sum = 0;
+                ford(in_c, in_h, in_w)([&](int c, int i, int j) {
+                    sum += out[o * out_nstr + c * out_cstr + i * out_hstr + j] *
+                           dout[o * out_nstr + c * out_cstr + i * out_hstr + j];
+                });
+
+                ford(in_c, in_h, in_w)([&](int c, int i, int j) {
+                    if(algo == MIOPEN_SOFTMAX_LOG)
+                        din[o * in_nstr + c * in_cstr + i * in_hstr + j] =
+                            alpha * (dout[o * out_nstr + c * out_cstr + i * out_hstr + j] - sum) +
+                            beta * din[o * in_nstr + c * in_cstr + i * in_hstr + j];
+                    else
+                        din[o * in_nstr + c * in_cstr + i * in_hstr + j] =
+                            alpha * (out[o * out_nstr + c * out_cstr + i * out_hstr + j] *
+                                     (dout[o * out_nstr + c * out_cstr + i * out_hstr + j] - sum)) +
+                            beta * din[o * in_nstr + c * in_cstr + i * in_hstr + j];
+                });
+            });
+        else
+            par_ford(in_n, in_h, in_w)([&](int o, int i, int j) {
+                double sum = 0;
+                ford(in_c)([&](int c) {
+                    sum += out[o * out_nstr + c * out_cstr + i * out_hstr + j] *
+                           dout[o * out_nstr + c * out_cstr + i * out_hstr + j];
+                });
+
+                ford(in_c)([&](int c) {
+                    if(algo == MIOPEN_SOFTMAX_LOG)
+                        din[o * in_nstr + c * in_cstr + i * in_hstr + j] =
+                            alpha * (dout[o * out_nstr + c * out_cstr + i * out_hstr + j] - sum) +
+                            beta * din[o * in_nstr + c * in_cstr + i * in_hstr + j];
+                    else
+                        din[o * in_nstr + c * in_cstr + i * in_hstr + j] =
+                            alpha * (out[o * out_nstr + c * out_cstr + i * out_hstr + j] *
+                                     (dout[o * out_nstr + c * out_cstr + i * out_hstr + j] - sum)) +
+                            beta * din[o * in_nstr + c * in_cstr + i * in_hstr + j];
+                });
+            });
+        return din;
     }
 
-    template <class T>
-    tensor<T> gpu(const tensor<T>& out, const tensor<T>& dout) const
+    tensor<T> gpu() const
     {
         auto&& handle = get_handle();
-        auto input    = dout;
+        auto din      = dinput;
 
-        auto in_dev  = handle.Write(input.data);
-        auto out_dev = handle.Write(out.data);
+        auto din_dev  = handle.Write(din.data);
+        auto dout_dev = handle.Write(dout.data);
+        auto out_dev  = handle.Write(out.data);
 
-        float alpha = 1, beta = 0;
+        miopen::SoftmaxBackward(handle,
+                                &alpha,
+                                out.desc,
+                                out_dev.get(),
+                                dout.desc,
+                                dout_dev.get(),
+                                &beta,
+                                din.desc,
+                                din_dev.get(),
+                                algo,
+                                mode);
 
-        miopen::SoftmaxBackward(
-            handle, &alpha, out.desc, out_dev.get(), &beta, input.desc, in_dev.get());
-
-        input.data = handle.Read<T>(in_dev, input.data.size());
-        return input;
+        din.data = handle.Read<T>(din_dev, din.data.size());
+        return din;
     }
 
-    template <class T>
-    void fail(float, const tensor<T>& output, const tensor<T>&) const
+    void fail(int = 0) const
     {
         std::cout << "Backward Sofmax: " << std::endl;
-        std::cout << "Output tensor: " << output.desc.ToString() << std::endl;
+        std::cout << "Output tensor: " << out.desc.ToString() << std::endl;
     }
 };
 
@@ -140,24 +364,70 @@ template <class T>
 struct softmax_driver : test_driver
 {
     tensor<T> input;
+    tensor<T> out;
+    tensor<T> din;
+    tensor<T> dout;
+
+    std::vector<int> in_dim;
+    std::vector<float> scales;
+
+    miopenSoftmaxAlgorithm_t algo{};
+    miopenSoftmaxMode_t mode{};
 
     softmax_driver()
     {
-        add(input,
-            "input",
-            get_input_tensor(tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}));
+        std::set<std::vector<int>> in_dim_set = get_inputs(batch_factor);
+        std::vector<std::vector<int>> in_dim_vec(in_dim_set.begin(), in_dim_set.end());
+
+        add(in_dim, "input-dim", generate_data(in_dim_vec, {16, 32, 8, 8}));
+
+        add(algo,
+            "algorithm",
+            generate_data({MIOPEN_SOFTMAX_FAST, MIOPEN_SOFTMAX_ACCURATE, MIOPEN_SOFTMAX_LOG}));
+        add(mode,
+            "mode",
+            generate_data({MIOPEN_SOFTMAX_MODE_INSTANCE, MIOPEN_SOFTMAX_MODE_CHANNEL}));
+
+        add(scales, "scales", generate_data({{1.f, 0.f}, {float(0.5), float(0.5)}}));
+        add(tolerance, "tolerance", generate_data({8000})); // 80 for MIOPEN_SOFTMAX_MODE_CHANNEL
     }
 
     void run()
     {
-        auto out  = verify(verify_forward_sofmax{}, input);
-        auto dout = input;
-        dout.generate([&](int n, int c, int h, int w) {
+        unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
+
+        /// \todo Apply mix-precision in softmax to improve the stability of fp16
+        if((in_dim[1] * in_dim[2] * in_dim[3] >= 2048) && mode == MIOPEN_SOFTMAX_MODE_INSTANCE &&
+           miopen_type<T>{} == miopenHalf)
+            return;
+        if(in_dim[1] >= 96 && in_dim[2] >= 14 && in_dim[3] >= 14 && algo == MIOPEN_SOFTMAX_FAST &&
+           miopen_type<T>{} == miopenHalf)
+            return;
+
+        input             = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{max_value});
+        size_t total_mem  = 2 * input.desc.GetNumBytes(); // estimate based on backward pass
+        size_t device_mem = get_handle().GetGlobalMemorySize();
+        if(total_mem >= device_mem)
+        {
+            show_command();
+            std::cout << "Config requires " << total_mem
+                      << " Bytes to write all necessary tensors to GPU. GPU has " << device_mem
+                      << " Bytes of memory." << std::endl;
+            return;
+        }
+
+        out         = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{max_value});
+        float alpha = scales[0];
+        float beta  = scales[1];
+
+        verify(verify_forward_sofmax<T>{input, out, alpha, beta, algo, mode});
+        dout = tensor<T>{in_dim}.generate([&](int n, int c, int h, int w) {
             T x      = input(n, c, h, w);
             double y = (877 * n + 547 * c + 701 * h + 1049 * w + static_cast<int>(769 * x)) % 2503;
             return ((x * y) / 1301.0);
         });
-        verify(verify_backward_sofmax{}, out.first, dout);
+        din = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{max_value});
+        verify(verify_backward_sofmax<T>{out, dout, din, alpha, beta, algo, mode});
     }
 };
 

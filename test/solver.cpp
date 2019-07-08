@@ -96,6 +96,7 @@ class SearchableTestSolver : public solver::SolverBase<ConvolutionContext>
     static int searches_done() { return _serches_done; }
     static const char* FileName() { return "SearchableTestSolver"; }
     static const char* NoSearchFileName() { return "SearchableTestSolver.NoSearch"; }
+    bool IsApplicable(const ConvolutionContext& /* context */) const { return true; }
 
     TestConfig GetPerformanceConfig(const ConvolutionContext&) const
     {
@@ -136,29 +137,15 @@ class SearchableTestSolver : public solver::SolverBase<ConvolutionContext>
 
 int SearchableTestSolver::_serches_done = 0;
 
-class TrivialConstruct : public mlo_construct_direct2D
+static solver::ConvSolution FindSolution(const ConvolutionContext& ctx, const std::string& db_path)
 {
-    public:
-    TrivialConstruct(const TensorDescriptor& in, const char* db_path, int dir, bool do_bias = false)
-        : mlo_construct_direct2D(
-              in, TensorDescriptor{}, TensorDescriptor{}, ConvolutionDescriptor{}, dir, do_bias)
-    {
-        _db_path = db_path;
-    }
+    Db db(db_path);
 
-    solver::ConvSolution FindSolution() const
-    {
-        Db db(_db_path);
+    const auto solvers =
+        solver::SolverContainer<TrivialSlowTestSolver, TrivialTestSolver, SearchableTestSolver>{};
 
-        // clang-format off
-        return miopen::solver::SearchForSolution<
-            TrivialSlowTestSolver,
-            TrivialTestSolver,
-            SearchableTestSolver
-        >(_search_params, db);
-        // clang-format on
-    }
-};
+    return solvers.SearchForSolution(ctx, db);
+}
 
 class SolverTest
 {
@@ -174,31 +161,29 @@ class SolverTest
         ConstructTest(db_path,
                       TrivialTestSolver::FileName(),
                       {0, 0, 0, 1},
-                      [](mlo_construct_direct2D& c) { c.setDoSearch(true); });
+                      [](ConvolutionContext& c) { c.do_search = true; });
 
         ConstructTest(db_path,
                       SearchableTestSolver::NoSearchFileName(),
                       {0, 0, 0, 0},
-                      [](mlo_construct_direct2D& c) { c.setDoSearch(false); });
+                      [](ConvolutionContext& c) { c.do_search = false; });
 
         ConstructTest(db_path,
                       SearchableTestSolver::FileName(),
                       {0, 0, 0, 0},
-                      [](mlo_construct_direct2D& c) { c.setDoSearch(true); });
+                      [](ConvolutionContext& c) { c.do_search = true; });
 
         const auto& searchable_solver = StaticContainer<const SearchableTestSolver>::Instance();
         const auto searches           = SearchableTestSolver::searches_done();
 
         // Should read in both cases: result is already in DB, solver is searchable.
-        ConstructTest(db_path,
-                      SearchableTestSolver::FileName(),
-                      {0, 0, 0, 0},
-                      [](mlo_construct_direct2D&) {});
+        ConstructTest(
+            db_path, SearchableTestSolver::FileName(), {0, 0, 0, 0}, [](ConvolutionContext&) {});
 
         ConstructTest(db_path,
                       SearchableTestSolver::FileName(),
                       {0, 0, 0, 0},
-                      [](mlo_construct_direct2D& c) { c.setDoSearch(true); });
+                      [](ConvolutionContext& c) { c.do_search = true; });
 
         // Checking no more searches were done.
         EXPECT_EQUAL(searches, searchable_solver.searches_done());
@@ -208,15 +193,20 @@ class SolverTest
     static void ConstructTest(const std::string& db_path,
                               const char* expected_kernel,
                               const std::initializer_list<size_t>& in,
-                              const std::function<void(mlo_construct_direct2D&)>& context_filler =
-                                  [](mlo_construct_direct2D&) {})
+                              const std::function<void(ConvolutionContext&)>& context_filler =
+                                  [](ConvolutionContext&) {})
     {
-        TrivialConstruct construct(TensorDescriptor{miopenFloat, in}, db_path.c_str(), 1);
-        construct.setStream(&get_handle());
+        auto ctx = ConvolutionContext{TensorDescriptor{miopenFloat, in},
+                                      TensorDescriptor{},
+                                      TensorDescriptor{},
+                                      ConvolutionDescriptor{},
+                                      1};
+        ctx.SetStream(&get_handle());
+        context_filler(ctx);
 
-        context_filler(construct);
-        const auto sol = FindFirstSolution(construct);
+        const auto sol = FindSolution(ctx, db_path);
 
+        EXPECT_OP(sol.construction_params.size(), >, 0);
         EXPECT_EQUAL(sol.construction_params[0].kernel_file, expected_kernel);
     }
 };

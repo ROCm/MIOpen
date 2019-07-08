@@ -32,6 +32,10 @@
 #define MIOPEN_USE_FP16 0
 #endif
 
+#ifndef MIOPEN_USE_BFP16
+#define MIOPEN_USE_BFP16 0
+#endif
+
 #ifndef MIOPEN_USE_INT8
 #define MIOPEN_USE_INT8 0
 #endif
@@ -44,7 +48,7 @@
 typedef char data_t;
 #elif MIOPEN_USE_INT8x4
 typedef uint data_t;
-#elif MIOPEN_USE_FP16
+#elif(MIOPEN_USE_FP16 || MIOPEN_USE_BFP16)
 // As the half type degrades the performance, use short instead of half in
 // transpose kernels, which have no match op. May change back to half when
 // compile can deliver equal performance as short

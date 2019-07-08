@@ -86,6 +86,11 @@ bool PerformanceConfigConvAsm3x3U::IsValid(const ConvolutionContext& config) con
 {
     if(!IsValidValue())
         return false;
+    // to-do add support of uneven_outputs into grouped conv
+    bool uneven_outputs = (config.n_outputs % filters_per_wave) != 0;
+    auto num_wavefronts = config.n_outputs / filters_per_wave;
+    if(config.group_counts > 1 && (uneven_outputs || (num_wavefronts % config.group_counts != 0)))
+        return false;
 
     // Count the number of VGPRs required.
     const auto& img_width  = config.in_width;
@@ -113,8 +118,15 @@ bool PerformanceConfigConvAsm3x3U::IsValid(const ConvolutionContext& config) con
     const int gprs_per_input_line = (img_x_blocks * block_size_x + active_lanes - 1) / active_lanes;
     const int input_lines_per_wave =
         (img_height == output_lines_per_wave) ? output_lines_per_wave : (output_lines_per_wave + 2);
-    n += (gprs_per_input_line * input_lines_per_wave); // linesA
-    n += (gprs_per_input_line * input_lines_per_wave); // linesB
+
+    const int k_group_size                  = config.n_outputs / config.group_counts;
+    const bool k_group_size_is_power_of_two = ((k_group_size & (k_group_size - 1)) == 0);
+    n += (k_group_size_is_power_of_two || gprs_per_input_line * input_lines_per_wave >= 4)
+             ? (gprs_per_input_line * input_lines_per_wave)
+             : 4; // linesA
+    n += (k_group_size_is_power_of_two || gprs_per_input_line * input_lines_per_wave >= 3)
+             ? (gprs_per_input_line * input_lines_per_wave)
+             : 3; // linesB
 
     // const bool enable_dpp_zero_column_padding = true;
     // if(enable_dpp_zero_column_padding)
@@ -127,11 +139,17 @@ bool PerformanceConfigConvAsm3x3U::IsValid(const ConvolutionContext& config) con
     return n < available_vgprs;
 }
 
-void PerformanceConfigConvAsm3x3U::EuristicInit(const ConvolutionContext&)
+void PerformanceConfigConvAsm3x3U::EuristicInit(const ConvolutionContext& config)
 {
     limit_wave_cnt        = 0;
     filters_per_wave      = 2;
     output_lines_per_wave = 2;
+
+    if(config.n_outputs % (filters_per_wave * config.group_counts) != 0)
+    {
+        filters_per_wave = 1;
+    }
+
     MIOPEN_LOG_I(ToString());
 }
 
@@ -160,14 +178,9 @@ bool ConvAsm3x3U::IsValidPerformanceConfig(const ConvolutionContext& problem,
 bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
 {
     if(!params.use_asm_kernels)
-    {
         return false;
-    }
-    if(!(params.rmv == rocm_meta_version::V1 || params.rmv == rocm_meta_version::V2 ||
-         params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
-    {
+    if(params.rmv != rocm_meta_version::AMDHSA_1_0)
         return false;
-    }
 
     const std::string name = params.GetStream().GetDeviceName();
     if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
@@ -185,11 +198,10 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_size_w == 3
         && params.kernel_size_h == 3
         && params.n_inputs > 0
-        && params.n_inputs % 4 == 0
+        && (params.n_inputs / params.group_counts) % 4 == 0 /// \todo: remove restriction that (n_inputs/group_counts) must be multiple of 4
         && params.in_width > 3
         && params.in_width <= 1000
         && params.IsFp32()
-        && params.group_counts == 1
         && params.in_layout == "NCHW";
         // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
     // clang-format on
@@ -229,6 +241,12 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
         }
     }
 
+    const int k_group_size                  = params.n_outputs / params.group_counts;
+    const bool k_group_size_is_power_of_two = ((k_group_size & (k_group_size - 1)) == 0);
+
+    const auto w64_chunks   = (params.in_width + 63) / 64;
+    const auto active_lanes = (params.in_width + w64_chunks - 1) / w64_chunks;
+
     KernelBuildParameters options{
         {"batch_size", params.batch_sz},
         {"img_width", params.in_width},
@@ -238,21 +256,16 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
         {"weights_layout", params.direction.IsForward() ? 0 : 1},
         {"reverse_weights", params.direction.IsForward() ? 0 : 1},
         {"no_params_file", 1},
-        {"ROCM_METADATA_VERSION",
-         (params.rmv == rocm_meta_version::V1) ? 1 : (params.rmv == rocm_meta_version::V2)
-                                                         ? 2
-                                                         : (params.rmv == rocm_meta_version::V3)
-                                                               ? 3
-                                                               : 4},
+        {"ROCM_METADATA_VERSION", 4},
         {"limit_wave_cnt", pcfg->limit_wave_cnt},
         {"filters_per_wave", pcfg->filters_per_wave},
         {"output_lines_per_wave", pcfg->output_lines_per_wave},
         // Debugging:
         {"enable_debug_output", 0},
+        {"group_counts", params.group_counts},
+        {"k_group_size_is_power_of_two", k_group_size_is_power_of_two},
+        {"workgroup_size_x", active_lanes},
     };
-
-    const auto w64_chunks   = (params.in_width + 63) / 64;
-    const auto active_lanes = (params.in_width + w64_chunks - 1) / w64_chunks;
 
     KernelInfo construction_params;
     construction_params.comp_options = options.GenerateFor(kbp::GcnAsm{});
@@ -274,11 +287,12 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
     return result;
 }
 
+template <typename B, typename T>
 int ConvAsm3x3U::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                       Data_t bot_ocl_buf,
-                                       Data_t top_ocl_buf,
-                                       Data_t wei_ocl_buf,
-                                       Data_t bias_ocl_buf,
+                                       B bot_ocl_buf,
+                                       T top_ocl_buf,
+                                       ConstData_t wei_ocl_buf,
+                                       ConstData_t bias_ocl_buf,
                                        const ConvolutionContext&,
                                        const ConvSolution& solution,
                                        float& elapsed_time) const
@@ -315,7 +329,10 @@ int ConvAsm3x3U::RunAndMeasureSolution(miopen::Handle& profile_h,
 
 PerformanceConfigConvAsm3x3U ConvAsm3x3U::Search(const ConvolutionContext& context) const
 {
-    return GenericSearch(*this, context);
+    if(context.direction.IsForward())
+        return GenericSearchFwd(*this, context);
+    else
+        return GenericSearchBwd(*this, context);
 }
 
 } // namespace solver

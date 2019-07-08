@@ -28,6 +28,7 @@
 #include <miopen/env.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/finddb_kernel_cache_key.hpp>
 
 #if MIOPEN_USE_ROCBLAS
 #include <half.hpp>
@@ -94,6 +95,11 @@ dummy_memset(Handle& handle, Data_t mem, std::size_t mem_len, miopenDataType_t d
         data_size = sizeof(int);
         break;
     }
+    case miopenBFloat16:
+    {
+        data_size = sizeof(rocblas_bfloat16);
+        break;
+    }
     case miopenHalf:
     {
         data_size = sizeof(half_float::half);
@@ -142,6 +148,7 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
         break;
     }
 #elif MIOPEN_USE_ROCBLAS
+    (void)data_type;
     switch(gemm_backend_env)
     {
     case GemmBackend_t::nogemmbackend: gemm_backend_enforced = GemmBackend_t::nogemmbackend; break;
@@ -173,7 +180,7 @@ miopenStatus_t CallGemmTimeMeasure(Handle& handle,
                                    int b_offset,
                                    Data_t C,
                                    int c_offset,
-                                   std::string* kcache_key,
+                                   FindDbKCacheKey* kcache_key,
                                    bool time_precision,
                                    CallGemmType_t call_gemm_type,
                                    GemmBackend_t gemm_backend)
@@ -282,7 +289,7 @@ miopenStatus_t CallGemm(Handle& handle,
                         int b_offset,
                         Data_t C,
                         int c_offset,
-                        std::string* kcache_key,
+                        FindDbKCacheKey* kcache_key,
                         bool enqueue_dummy_kernel,
                         GemmBackend_t gemm_backend)
 {
@@ -374,7 +381,6 @@ miopenStatus_t CallGemm(Handle& handle,
                 nullptr);
         }
         break;
-
         case miopenInt32: break;
         case miopenHalf:
         {
@@ -402,6 +408,43 @@ miopenStatus_t CallGemm(Handle& handle,
                 gemm_desc.ldc,
                 static_cast<rocblas_half*>(C) + c_offset,
                 rocblas_datatype::rocblas_datatype_f16_r,
+                gemm_desc.ldc,
+                rocblas_datatype::rocblas_datatype_f32_r,
+                rocblas_gemm_algo::rocblas_gemm_algo_standard,
+                0,
+                0,
+                &zero,
+                nullptr);
+        }
+        break;
+
+        case miopenBFloat16:
+        {
+
+            float alpha = gemm_desc.alpha;
+            float beta  = gemm_desc.beta;
+
+            std::size_t zero = 0;
+            rb_status        = rocblas_gemm_ex(
+                handle.rhandle().get(),
+                gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
+                gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
+                gemm_desc.m,
+                gemm_desc.n,
+                gemm_desc.k,
+                &alpha,
+                static_cast<const rocblas_bfloat16*>(A) + a_offset,
+                rocblas_datatype::rocblas_datatype_bf16_r,
+                gemm_desc.lda,
+                static_cast<const rocblas_bfloat16*>(B) + b_offset,
+                rocblas_datatype::rocblas_datatype_bf16_r,
+                gemm_desc.ldb,
+                &beta,
+                static_cast<const rocblas_bfloat16*>(C) + c_offset,
+                rocblas_datatype::rocblas_datatype_bf16_r,
+                gemm_desc.ldc,
+                static_cast<rocblas_bfloat16*>(C) + c_offset,
+                rocblas_datatype::rocblas_datatype_bf16_r,
                 gemm_desc.ldc,
                 rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
@@ -459,11 +502,11 @@ miopenStatus_t CallGemm(Handle& handle,
             handle.AccumKernelTime(mS);
         }
 
-        if(kcache_key != nullptr)
-            *kcache_key = FindDbData::GetUnusedKCacheKey();
-
         if(rb_status != rocblas_status::rocblas_status_success)
             MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");
+
+        if(kcache_key != nullptr)
+            *kcache_key = FindDbKCacheKey::MakeUnused("rocBlas");
 
         return miopenStatusSuccess;
 #else
@@ -497,7 +540,7 @@ miopenStatus_t CallGemm(Handle& handle,
         const std::string network_config = gemm_desc_to_string();
 
         if(kcache_key != nullptr)
-            *kcache_key = network_config;
+            *kcache_key = {algorithm_name, network_config};
 
         auto&& kernels = handle.GetKernels(algorithm_name, network_config);
 
@@ -564,7 +607,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                                       int b_offset,
                                       Data_t C,
                                       int c_offset,
-                                      std::string* kcache_key,
+                                      FindDbKCacheKey* kcache_key,
                                       bool enqueue_dummy_kernel,
                                       GemmBackend_t gemm_backend)
 {
@@ -662,7 +705,6 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                 nullptr);
         }
         break;
-
         case miopenInt32: break;
         case miopenHalf:
         {
@@ -693,6 +735,47 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                 gemm_desc.strideC,
                 static_cast<rocblas_half*>(C) + c_offset,
                 rocblas_datatype::rocblas_datatype_f16_r,
+                gemm_desc.ldc,
+                gemm_desc.strideC,
+                gemm_desc.batch_count,
+                rocblas_datatype::rocblas_datatype_f32_r,
+                rocblas_gemm_algo::rocblas_gemm_algo_standard,
+                0,
+                0,
+                &zero,
+                nullptr);
+        }
+        break;
+
+        case miopenBFloat16:
+        {
+            float alpha = gemm_desc.alpha;
+            float beta  = gemm_desc.beta;
+
+            std::size_t zero = 0;
+            rb_status        = rocblas_gemm_strided_batched_ex(
+                handle.rhandle().get(),
+                gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
+                gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
+                gemm_desc.m,
+                gemm_desc.n,
+                gemm_desc.k,
+                &alpha,
+                static_cast<const rocblas_bfloat16*>(A) + a_offset,
+                rocblas_datatype::rocblas_datatype_bf16_r,
+                gemm_desc.lda,
+                gemm_desc.strideA,
+                static_cast<const rocblas_bfloat16*>(B) + b_offset,
+                rocblas_datatype::rocblas_datatype_bf16_r,
+                gemm_desc.ldb,
+                gemm_desc.strideB,
+                &beta,
+                static_cast<const rocblas_bfloat16*>(C) + c_offset,
+                rocblas_datatype::rocblas_datatype_bf16_r,
+                gemm_desc.ldc,
+                gemm_desc.strideC,
+                static_cast<rocblas_bfloat16*>(C) + c_offset,
+                rocblas_datatype::rocblas_datatype_bf16_r,
                 gemm_desc.ldc,
                 gemm_desc.strideC,
                 gemm_desc.batch_count,
@@ -757,11 +840,11 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
             handle.AccumKernelTime(mS);
         }
 
-        if(kcache_key != nullptr)
-            *kcache_key = FindDbData::GetUnusedKCacheKey();
-
         if(rb_status != rocblas_status::rocblas_status_success)
             MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");
+
+        if(kcache_key != nullptr)
+            *kcache_key = FindDbKCacheKey::MakeUnused("rocBlas");
 
         return miopenStatusSuccess;
 #else
@@ -799,7 +882,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
                                                 int b_offset,
                                                 Data_t C,
                                                 int c_offset,
-                                                std::string* kcache_key,
+                                                FindDbKCacheKey* kcache_key,
                                                 bool enqueue_dummy_kernel,
                                                 GemmBackend_t gemm_backend)
 {
@@ -895,7 +978,6 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
             }
         }
         break;
-
         case miopenInt32: break;
         case miopenHalf:
         {
@@ -925,6 +1007,45 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
                     gemm_desc.ldc,
                     static_cast<rocblas_half*>(C) + c_offset + i * gemm_desc.strideC,
                     rocblas_datatype::rocblas_datatype_f16_r,
+                    gemm_desc.ldc,
+                    rocblas_datatype::rocblas_datatype_f32_r,
+                    rocblas_gemm_algo::rocblas_gemm_algo_standard,
+                    0,
+                    0,
+                    &zero,
+                    nullptr);
+            }
+        }
+        break;
+
+        case miopenBFloat16:
+        {
+            float alpha = gemm_desc.alpha;
+            float beta  = gemm_desc.beta;
+
+            std::size_t zero = 0;
+            for(int i = 0; i < gemm_desc.batch_count; ++i)
+            {
+                rb_status = rocblas_gemm_ex(
+                    handle.rhandle().get(),
+                    gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
+                    gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
+                    gemm_desc.m,
+                    gemm_desc.n,
+                    gemm_desc.k,
+                    &alpha,
+                    static_cast<const rocblas_bfloat16*>(A) + a_offset + i * gemm_desc.strideA,
+                    rocblas_datatype::rocblas_datatype_bf16_r,
+                    gemm_desc.lda,
+                    static_cast<const rocblas_bfloat16*>(B) + b_offset + i * gemm_desc.strideB,
+                    rocblas_datatype::rocblas_datatype_bf16_r,
+                    gemm_desc.ldb,
+                    &beta,
+                    static_cast<const rocblas_bfloat16*>(C) + c_offset + i * gemm_desc.strideC,
+                    rocblas_datatype::rocblas_datatype_bf16_r,
+                    gemm_desc.ldc,
+                    static_cast<rocblas_half*>(C) + c_offset + i * gemm_desc.strideC,
+                    rocblas_datatype::rocblas_datatype_bf16_r,
                     gemm_desc.ldc,
                     rocblas_datatype::rocblas_datatype_f32_r,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard,
@@ -986,11 +1107,11 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
             handle.AccumKernelTime(mS);
         }
 
-        if(kcache_key != nullptr)
-            *kcache_key = FindDbData::GetUnusedKCacheKey();
-
         if(rb_status != rocblas_status::rocblas_status_success)
             MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");
+
+        if(kcache_key != nullptr)
+            *kcache_key = FindDbKCacheKey::MakeUnused("rocBlas");
 
         return miopenStatusSuccess;
 #else
@@ -1024,7 +1145,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
         const std::string network_config = gemm_desc_to_string();
 
         if(kcache_key != nullptr)
-            *kcache_key = network_config;
+            *kcache_key = {algorithm_name, network_config};
 
         auto&& old_kernels = handle.GetKernels(algorithm_name, network_config);
 

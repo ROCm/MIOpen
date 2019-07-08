@@ -23,36 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#define PPCAT_NX(A, B) A##B
-#define PPCAT(A, B) PPCAT_NX(A, B)
-#define TWO 2
-#define FOUR 4
-#define EIGHT 8
-
-#if MIOPEN_USE_FP16 == 1
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
-#define _FLOAT half
-#define _FLOAT_ACCUM float
-#ifndef HALF_MAX
-#define MAX_VAL 65504 /* max value */
-#else
-#define MAX_VAL HALF_MAX
-#endif
-#endif
-#if MIOPEN_USE_FP32 == 1
-#define _FLOAT float
-#define _FLOAT_ACCUM float
-#ifndef FLT_MAX
-#define MAX_VAL 3.402823466e+38F /* max value */
-#else
-#define MAX_VAL FLT_MAX
-#endif
-#endif
-
-#define _FLOAT2 PPCAT(_FLOAT, TWO)
-#define _FLOAT4 PPCAT(_FLOAT, FOUR)
-#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
+#include "float_types.h"
 
 #define UNUSED __attribute__((__unused__))
 
@@ -232,7 +203,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
     for(uint i = 0; i < (MLO_N_OUT_BLK_GRP * MLO_N_LCL_OUT_MAPS * MLO_WEI_WKITEM); ++i)
     {
-        pvt_accum[i] = 0;
+        pvt_accum[i] = (_FLOAT_ACCUM)0;
     }
 
     // zero out LDS
@@ -530,7 +501,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                                 _FLOAT i_val = i_vals[w];
 
                                 pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] +=
-                                    (_FLOAT_ACCUM)i_val * (_FLOAT_ACCUM)o_val;
+                                    CVT_FLOAT2ACCUM(i_val) * CVT_FLOAT2ACCUM(o_val);
                             } // for (/*uint w = 0*/; w < MLO_WEI_WKITEM; ++w)
                         }     // for (uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
 
@@ -569,8 +540,8 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
     // send it out
 
-    uint wei_lcl_off = 0;
-    _FLOAT final_sum = 0;
+    uint wei_lcl_off       = 0;
+    _FLOAT_ACCUM final_sum = 0;
 
     // save in lcl and orgnize in a proper order
     // outputs
@@ -599,8 +570,8 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                                       (MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM) +
                                   w_x;
 
-                    lcl[wei_lcl_off] =
-                        pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w];
+                    lcl[wei_lcl_off] = CVT_ACCUM2FLOAT(
+                        pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w]);
                 }
             }
         }
@@ -633,15 +604,16 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             final_sum = 0;
             for(uint i = 0; i < MLO_MAX_WEI_BLK; ++i)
             {
-                final_sum += lcl[((oo * MLO_MAX_WEI_BLK + i) * MLO_FILTER_SIZE1 + wei_i_y) *
-                                     (MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM) +
-                                 wei_i_x];
+                final_sum +=
+                    CVT_FLOAT2ACCUM(lcl[((oo * MLO_MAX_WEI_BLK + i) * MLO_FILTER_SIZE1 + wei_i_y) *
+                                            (MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM) +
+                                        wei_i_x]);
             }
 
             uint wei_out_off =
                 wei_df_off + (og * MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i;
 
-            weights_df[wei_out_off] = final_sum; // lcl[lcl_id]; //
+            weights_df[wei_out_off] = CVT_ACCUM2FLOAT(final_sum); // lcl[lcl_id]; //
         }
 
     } // for(uint og = 0; og < MLO_N_OUT_BLK_GRP; ++og)
@@ -664,10 +636,10 @@ MIOpenCvBwdWrW_rdc(const __global _FLOAT* __restrict weight_df_tmp,
     uint wei_idx                = wei_idx0 & (MLO_WEI_CHANNEL_STRIDE - 1);
 #endif
 
-    _FLOAT pvt_accum_wei[MLO_UT_READ_UNIT];
+    _FLOAT_ACCUM pvt_accum_wei[MLO_UT_READ_UNIT];
     for(uint i = 0; i < MLO_UT_READ_UNIT; ++i)
     {
-        pvt_accum_wei[i] = 0;
+        pvt_accum_wei[i] = CVT_FLOAT2ACCUM(0);
     }
 
     uint batch_loop = MLO_N_BATCH_BLKS;
@@ -676,14 +648,15 @@ MIOpenCvBwdWrW_rdc(const __global _FLOAT* __restrict weight_df_tmp,
     {
         for(uint j = 0; j < MLO_UT_READ_UNIT; ++j)
         {
-            pvt_accum_wei[j] += weight_df_tmp[(wei_blk_idx * MLO_WEI_CHANNEL_STRIDE +
+            pvt_accum_wei[j] +=
+                CVT_FLOAT2ACCUM(weight_df_tmp[(wei_blk_idx * MLO_WEI_CHANNEL_STRIDE +
                                                i * MLO_N_OUTPUTS * MLO_WEI_BATCH_STRIDE) +
-                                              wei_idx + j];
+                                              wei_idx + j]);
         }
     }
 
     for(uint j = 0; j < MLO_UT_READ_UNIT; ++j)
     {
-        weights_df[wei_idx0 + j] = pvt_accum_wei[j];
+        weights_df[wei_idx0 + j] = CVT_ACCUM2FLOAT(pvt_accum_wei[j]);
     }
 }

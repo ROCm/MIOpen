@@ -38,7 +38,11 @@ struct HIPOCProgramImpl;
 struct HIPOCProgram
 {
     HIPOCProgram();
-    HIPOCProgram(const std::string& program_name, std::string params, bool is_kernel_str);
+    HIPOCProgram(const std::string& program_name,
+                 std::string params,
+                 bool is_kernel_str,
+                 std::string dev_name,
+                 const std::string& kernel_src);
     HIPOCProgram(const std::string& program_name, const boost::filesystem::path& hsaco);
     std::shared_ptr<const HIPOCProgramImpl> impl;
     hipModule_t GetModule() const;

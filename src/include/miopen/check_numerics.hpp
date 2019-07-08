@@ -16,7 +16,7 @@ struct CheckNumerics
     static const int Abort        = 0x08; // abort on abnormal result (to drop into debugger)
     static const int ComputeStats = 0x10; // Print mean/absmean/min/max (slow)
 };
-int CheckNumericsEnabled(int bitMask = -1);
+bool CheckNumericsEnabled(int bitMask = -1);
 
 bool checkNumericsInput(Handle& handle, const TensorDescriptor& dDesc, ConstData_t data);
 bool checkNumericsOutput(Handle& handle, const TensorDescriptor& dDesc, ConstData_t data);

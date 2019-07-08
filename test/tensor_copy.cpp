@@ -142,6 +142,7 @@ struct tensor_copy_driver : test_driver
 
     tensor_copy_driver()
     {
+        disabled_cache            = true;
         std::vector<int> src_lens = {32, 16, 32, 16, 16};
         std::vector<int> dst_lens = {32, 32, 16, 16, 16};
 

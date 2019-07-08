@@ -37,15 +37,20 @@ namespace miopen {
 // Tensor Helper APIs
 
 template <class TTo, class TFunc>
-size_t SetDescFromMLDesc(TTo& to, const TensorDescriptor& tensor, const TFunc method)
+size_t
+SetDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor, const TFunc method)
 {
-    int n, c, h, w;
+    int n, c, d = 1, h, w;
     int ns, cs, hs, ws;
 
-    std::tie(n, c, h, w)     = miopen::tien<4>(tensor.GetLengths(), 1);
+    if(spatial_dims == 3)
+        std::tie(n, c, d, h, w) = miopen::tien<5>(tensor.GetLengths(), 1);
+    else
+        std::tie(n, c, h, w) = miopen::tien<4>(tensor.GetLengths(), 1);
+
     std::tie(ns, cs, hs, ws) = miopen::tien<4>(tensor.GetStrides(), 0);
 
-    (to.*method)("NCHW", tensor.GetType(), n, c, h, w, ns, cs, hs, ws);
+    (to.*method)("NCHW", tensor.GetType(), n, c, d, h, w, ns, cs, hs, ws);
 
     return tensor.GetElementSpace();
 }
@@ -61,6 +66,7 @@ inline std::string GetDataTypeName(miopenDataType_t data_type)
     case miopenInt8: return "INT8";
     case miopenInt8x4: return "INT8x4";
     case miopenInt32: return "INT32";
+    case miopenBFloat16: return "BF16";
     }
 
     return "Unknown(" + std::to_string(data_type) + ")";
@@ -68,21 +74,28 @@ inline std::string GetDataTypeName(miopenDataType_t data_type)
 
 struct ProblemDescription
 {
+    int spatial_dims      = 2;
     int n_inputs          = 0;
     int in_height         = 0;
     int in_width          = 0;
+    int in_depth          = 0;
     int kernel_size_h     = 0;
     int kernel_size_w     = 0;
+    int kernel_size_d     = 0;
     int n_outputs         = 0;
     int out_height        = 0;
     int out_width         = 0;
+    int out_depth         = 0;
     int batch_sz          = 0;
     int pad_h             = 0;
     int pad_w             = 0;
+    int pad_d             = 0;
     int kernel_stride_h   = 0;
     int kernel_stride_w   = 0;
+    int kernel_stride_d   = 0;
     int kernel_dilation_h = 0;
     int kernel_dilation_w = 0;
+    int kernel_dilation_d = 0;
     int bias              = 0;
     std::string in_layout;
     std::string weights_layout;
@@ -142,6 +155,11 @@ struct ProblemDescription
         return in_data_type == miopenHalf && weights_data_type == miopenHalf &&
                out_data_type == miopenHalf;
     }
+    bool IsBfp16() const
+    {
+        return in_data_type == miopenBFloat16 && weights_data_type == miopenBFloat16 &&
+               out_data_type == miopenBFloat16;
+    }
 
     ProblemDescription() = default;
 
@@ -166,6 +184,7 @@ struct ProblemDescription
     void setTopDescr(const std::string& layout,
                      miopenDataType_t data_type,
                      int batch,
+                     int channels,
                      int depth,
                      int height,
                      int width,
@@ -177,12 +196,13 @@ struct ProblemDescription
         batch_sz     = batch;
         int data_len = GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
-                          ? batch * depth * height * width * data_len
+                          ? batch * channels * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
         out_width          = width;
         out_height         = height;
-        n_outputs          = depth;
+        out_depth          = depth;
+        n_outputs          = channels;
         out_batch_stride   = batch_stride;
         out_channel_stride = channel_stride;
         out_stride         = stride;
@@ -199,6 +219,7 @@ struct ProblemDescription
     void setBotDescr(const std::string& layout,
                      miopenDataType_t data_type,
                      int batch,
+                     int channels,
                      int depth,
                      int height,
                      int width,
@@ -210,12 +231,13 @@ struct ProblemDescription
         batch_sz     = batch;
         int data_len = GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
-                          ? batch * depth * height * width * data_len
+                          ? batch * channels * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
         in_width          = width;
         in_height         = height;
-        n_inputs          = depth;
+        in_depth          = depth;
+        n_inputs          = channels;
         in_batch_stride   = batch_stride;
         in_channel_stride = channel_stride;
         in_stride         = stride;
@@ -231,7 +253,8 @@ struct ProblemDescription
     void setTopDfDescr(const std::string& /*layout*/,
                        miopenDataType_t /*data_type*/,
                        int batch,
-                       int depth,
+                       int channels,
+                       int /*depth*/,
                        int /*height*/,
                        int /*width*/,
                        int /*batch_stride*/,
@@ -240,7 +263,7 @@ struct ProblemDescription
                        int /*w_stride*/)
     {
         batch_sz  = batch;
-        n_outputs = depth;
+        n_outputs = channels;
     }
 
     /*
@@ -250,7 +273,8 @@ struct ProblemDescription
     void setBotDfDescr(const std::string& /*layout*/,
                        miopenDataType_t /*data_type*/,
                        int batch,
-                       int depth,
+                       int channels,
+                       int /*depth*/,
                        int /*height*/,
                        int /*width*/,
                        int /*batch_stride*/,
@@ -259,7 +283,7 @@ struct ProblemDescription
                        int /*w_stride*/)
     {
         batch_sz = batch;
-        n_inputs = depth;
+        n_inputs = channels;
     }
 
     int mloBuildConf_Key(std::string& conf_key) const;
@@ -276,6 +300,7 @@ struct ProblemDescription
     void setWeightsDescr(const std::string& layout,
                          miopenDataType_t data_type,
                          int batch,
+                         int channels,
                          int depth,
                          int height,
                          int width,
@@ -286,10 +311,11 @@ struct ProblemDescription
     {
         kernel_size_w     = width;
         kernel_size_h     = height;
+        kernel_size_d     = depth;
         weights_data_type = data_type;
         int data_len      = GetTypeSize(data_type);
         size_t size       = (layout == "NCHW")
-                          ? batch * depth * height * width * data_len
+                          ? batch * channels * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
         weights_sz = size;
     }
@@ -300,6 +326,7 @@ struct ProblemDescription
     void setOutputDescr(const std::string& layout,
                         miopenDataType_t data_type,
                         int batch,
+                        int channels,
                         int depth,
                         int height,
                         int width,
@@ -311,14 +338,15 @@ struct ProblemDescription
         batch_sz     = batch;
         int data_len = GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
-                          ? batch * depth * height * width * data_len
+                          ? batch * channels * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
         if(direction.IsForward())
         {
 
             out_width          = width;
             out_height         = height;
-            n_outputs          = depth;
+            out_depth          = depth;
+            n_outputs          = channels;
             out_batch_stride   = batch_stride;
             out_channel_stride = channel_stride;
             out_stride         = stride;
@@ -330,7 +358,8 @@ struct ProblemDescription
         {
             in_width          = width;
             in_height         = height;
-            n_inputs          = depth;
+            in_depth          = depth;
+            n_inputs          = channels;
             in_batch_stride   = batch_stride;
             in_channel_stride = channel_stride;
             in_stride         = stride;
@@ -349,6 +378,7 @@ struct ProblemDescription
     void setInputDescr(const std::string& layout,
                        miopenDataType_t data_type,
                        int batch,
+                       int channels,
                        int depth,
                        int height,
                        int width,
@@ -360,14 +390,15 @@ struct ProblemDescription
         batch_sz     = batch;
         int data_len = GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
-                          ? batch * depth * height * width * data_len
+                          ? batch * channels * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
         if(direction.IsForward())
         {
 
             in_width          = width;
             in_height         = height;
-            n_inputs          = depth;
+            in_depth          = depth;
+            n_inputs          = channels;
             in_batch_stride   = batch_stride;
             in_channel_stride = channel_stride;
             in_stride         = stride;
@@ -381,7 +412,8 @@ struct ProblemDescription
         {
             out_width          = width;
             out_height         = height;
-            n_outputs          = depth;
+            out_depth          = depth;
+            n_outputs          = channels;
             out_batch_stride   = batch_stride;
             out_channel_stride = channel_stride;
             out_stride         = stride;

@@ -1,19 +1,19 @@
 /*******************************************************************************
- * 
+ *
  * MIT License
- * 
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
- * 
+ *
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,18 +21,22 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  *******************************************************************************/
 
+.ifnotdef EXPERIMENTAL_COv3
 .hsa_code_object_version 2,1
 .hsa_code_object_isa
+.endif
 
 .text
 .globl gcnAsmConv3x3U
 .p2align 8
 .type gcnAsmConv3x3U,@function
-.amdgpu_hsa_kernel gcnAsmConv3x3U
 
+.ifnotdef EXPERIMENTAL_COv3
+.amdgpu_hsa_kernel gcnAsmConv3x3U
+.endif
 
 .include "gpr_alloc.inc"
 .include "common.inc"
@@ -201,12 +205,12 @@ output_buffer_window = 4 * img_height * img_width
 .set weights_per_filter, weights_w * weights_h
 .if weights_layout == 0 // KCHW
     .set filter_c_stride, 4 * weights_per_filter
-    .set filter_k_stride, 4 * weights_per_filter * input_channels
+    .set filter_k_stride, 4 * weights_per_filter * input_channels / group_counts
 .else // CKHW
-    .set filter_c_stride, 4 * weights_per_filter * output_channels
+    .set filter_c_stride, 4 * weights_per_filter * output_channels / group_counts
     .set filter_k_stride, 4 * weights_per_filter
 .endif
-.set filters_size, 4 * weights_per_filter * input_channels * output_channels
+.set filters_size, 4 * weights_per_filter * input_channels * output_channels / group_counts
 
 
 .GPR_ALLOC_BEGIN
@@ -286,7 +290,6 @@ __sgprs_ptr = .SGPR_NEXT_FREE
 .SGPR_ALLOC_ONCE tmp
 .SGPR_ALLOC img_offset, 1 + additional_input_sgprs, 1  // img_offset[0] - offset of the first line to read
 
-
 __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
 .if sgprs_to_allocate_after_filters != __sgprs_allocated_after_filters
     .error "Error: check sgpr allocation"
@@ -323,8 +326,18 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
 .endif
 
 // input lines
-.VGPR_ALLOC linesA, gprs_per_input_line * input_lines_per_wave
-.VGPR_ALLOC linesB, gprs_per_input_line * input_lines_per_wave
+.if k_group_size_is_power_of_two || gprs_per_input_line * input_lines_per_wave >= 4
+    .VGPR_ALLOC linesA, gprs_per_input_line * input_lines_per_wave
+.else
+    .VGPR_ALLOC linesA, 4
+.endif
+
+.if k_group_size_is_power_of_two || gprs_per_input_line * input_lines_per_wave >= 3
+    .VGPR_ALLOC linesB, gprs_per_input_line * input_lines_per_wave
+.else
+    .VGPR_ALLOC linesB, 3
+.endif
+
 .if enable_dpp_zero_column_padding
     .VGPR_ALLOC in_l // part of input line shifted left with zero padding
     .VGPR_ALLOC in_r // part of input line shifted right with zero padding
@@ -562,6 +575,7 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
 //.p2align 8
 gcnAsmConv3x3U:
 
+.ifnotdef EXPERIMENTAL_COv3
   .amd_kernel_code_t
      enable_sgpr_kernarg_segment_ptr = 1
      compute_pgm_rsrc2_tgid_x_en = 1
@@ -572,13 +586,13 @@ gcnAsmConv3x3U:
      compute_pgm_rsrc1_sgprs = .AUTO_SGPR_GRANULATED_COUNT
      compute_pgm_rsrc2_tidig_comp_cnt = 1
      compute_pgm_rsrc2_user_sgpr = 2
-     //compute_pgm_rsrc2_lds_size = 0
      kernarg_segment_byte_size = 56
      wavefront_sgpr_count = .AUTO_SGPR_COUNT
      workitem_vgpr_count = .AUTO_VGPR_COUNT
      float_mode = 192
-     //workgroup_group_segment_byte_size = 8192
+     workgroup_group_segment_byte_size = 0
   .end_amd_kernel_code_t
+.endif
 
 .if accums < linesA || accums < linesB || linesA == linesB
     .error "Error: check vgpr allocation"
@@ -609,6 +623,28 @@ gcnAsmConv3x3U:
     s_mov_b32 s[gid_x], debug_gid_x //debug output batch
     s_mov_b32 s[gid_y], debug_gid_y //debug line batch
     s_mov_b32 s[gid_z], debug_gid_z //debug image
+  .endif
+
+  num_wavefronts = output_channels / filters_per_wave
+  //to-do add support of uneven_outputs into grouped conv
+  static_assert(group_counts == 1 || ((num_wavefronts % group_counts == 0) && uneven_outputs == 0))
+  static_assert(input_channels % (4 * group_counts) == 0) //to-do remove restriction that (n_inputs/group_counts) must be multiple of 4 
+  k_group_size = output_channels / filters_per_wave / group_counts
+  c_group_size = input_channels / group_counts
+  s_group_id = loop_cnt
+  .if k_group_size_is_power_of_two
+      log2 k_group_size_log2, k_group_size
+      s_lshr_b32 s[s_group_id], s[gid_x], 0 + k_group_size_log2 // group_id
+  .else
+      stmp_udiv = in_desc
+      vtmp_udiv = linesA
+      gid = linesB
+      v_group_id = linesB + 1
+      group_size = linesB + 2
+      v_mov_b32 v[gid], s[gid_x]
+      v_mov_b32 v[group_size], 0 + k_group_size
+      u32_div gid, group_size, v_group_id, vtmp_udiv, stmp_udiv
+      v_readfirstlane_b32 s[s_group_id], v[v_group_id]
   .endif
 
   s_load_dwordx2 s[in_desc:in_desc+1], s[kernarg:kernarg+1], 0x0 + in_ptr_off
@@ -656,7 +692,7 @@ gcnAsmConv3x3U:
         s_xor_b32 exec_lo, exec_lo, last_active_lane_mask
     .endif
     .if enable_zero_line_padding_on_read
-       _v_add_nc_u32 v[in_off_p], v[in_off_p], v[in_off] 
+       _v_add_nc_u32 v[in_off_p], v[in_off_p], v[in_off]
     .else
        _v_add_nc_u32 v[in_off_p], v[in_off_p], v[voffset]
     .endif
@@ -665,12 +701,27 @@ gcnAsmConv3x3U:
   s_waitcnt 0
 
   // compute offset for weights
-  s_mul_i32 s[tmp], s[gid_x], filters_per_wave * filter_k_stride
-  s_add_u32 s[weights_ptr], s[weights_ptr], s[tmp]
-  s_addc_u32 s[weights_ptr+1], s[weights_ptr+1], 0
-  .if load_weights_using_buffer
-    .GPR_REUSE weights_ptr, wei_desc
-    s_sub_u32 s[wei_desc+2], filters_size, s[tmp]
+  .if weights_layout == 0 || group_counts == 1
+      s_mul_i32 s[tmp], s[gid_x], filters_per_wave * filter_k_stride
+      s_add_u32 s[weights_ptr], s[weights_ptr], s[tmp]
+      s_addc_u32 s[weights_ptr+1], s[weights_ptr+1], 0
+      .if load_weights_using_buffer
+        .GPR_REUSE weights_ptr, wei_desc
+        s_sub_u32 s[wei_desc+2], filters_size, s[tmp]
+      .endif
+  .else
+      s_mul_i32 s[tmp], s[s_group_id], k_group_size
+      s_sub_i32 s[tmp], s[gid_x], s[tmp]
+      s_mul_i32 s[tmp], s[tmp], filters_per_wave * filter_k_stride
+      s_add_u32 s[weights_ptr], s[weights_ptr], s[tmp]
+      s_addc_u32 s[weights_ptr+1], s[weights_ptr+1], 0
+      .if load_weights_using_buffer
+        .GPR_REUSE weights_ptr, wei_desc
+        s_sub_u32 s[wei_desc+2], filters_size, s[tmp]
+      .endif
+      s_mul_i32 s[tmp], s[s_group_id], c_group_size * filter_c_stride // c_group_offset
+      s_add_u32 s[weights_ptr], s[weights_ptr], s[tmp]
+      s_addc_u32 s[weights_ptr+1], s[weights_ptr+1], 0
   .endif
 
   // construct input buffer descriptor
@@ -682,6 +733,12 @@ gcnAsmConv3x3U:
   s_mov_b32 s[in_desc+2], input_buffer_window // size
   s_mov_b32 s[in_desc+3], 0x00027000
 
+.if group_counts > 1
+  s_mul_i32 s[tmp], s[s_group_id], c_group_size * input_feature_map_stride // c_group_offset
+  s_add_u32 s[in_desc], s[in_desc], s[tmp]
+  s_addc_u32 s[in_desc+1], s[in_desc+1], 0
+.endif
+
   .if uneven_outputs
     s_mul_i32 s[out_k], s[gid_x], filters_per_wave
   .endif
@@ -691,12 +748,18 @@ gcnAsmConv3x3U:
     s_add_u32 s[tmp], s[tmp], s[gid_z]
   .endif
   s_add_u32 s[out_ptr], s[out_ptr], s[tmp]
-  s_addc_u32 s[out_ptr+1], s[out_ptr+1], 0 
+  s_addc_u32 s[out_ptr+1], s[out_ptr+1], 0
   s_mul_i32 s[tmp], s[gid_y], output_line_stride * output_lines_per_wave // output line offset
   .GPR_REUSE tmp, out_img_off
   .GPR_INVALIDATE gid_x
   .GPR_INVALIDATE gid_y
   .GPR_INVALIDATE gid_z
+
+  .GPR_INVALIDATE gid
+  .GPR_INVALIDATE group_size
+  .GPR_INVALIDATE s_group_id
+  .GPR_INVALIDATE v_group_id
+  .GPR_INVALIDATE vtmp_udiv
 
 
   // zeroing acc
@@ -736,7 +799,7 @@ loop_begin:
 
 loop_end:
   s_addk_i32 s[loop_cnt], 1
-  s_cmpk_ge_u32 s[loop_cnt], 0 + input_channels/2 - 1
+  s_cmpk_ge_u32 s[loop_cnt], 0 + c_group_size/2 - 1
   s_cbranch_scc0 loop_begin
 
   .load_input linesB, linesB_start_offset
@@ -781,7 +844,7 @@ loop_begin:
 
 loop_end:
   s_addk_i32 s[loop_cnt], 1
-  s_cmpk_ge_u32 s[loop_cnt], 0 + input_channels/2 - 1
+  s_cmpk_ge_u32 s[loop_cnt], 0 + c_group_size/2 - 1
   s_cbranch_scc0 loop_begin
 
 
@@ -920,309 +983,128 @@ loop_end:
 .Lfunc_end0:
     .size gcnAsmConv3x3U, .Lfunc_end0 - gcnAsmConv3x3U
 
-.ifndef ROCM_METADATA_VERSION
-.error "ROCM_METADATA_VERSION must be defined"
-.end
+.ifdef EXPERIMENTAL_COv3
+.rodata
+.p2align 6
+.amdhsa_kernel gcnAsmConv3x3U
+    //enable_sgpr_kernarg_segment_ptr = 1
+    .amdhsa_user_sgpr_kernarg_segment_ptr 1
+
+    // compute_pgm_rsrc2_tgid_x_en = 1
+    // compute_pgm_rsrc2_tgid_y_en = 1
+    // compute_pgm_rsrc2_tgid_z_en = 1
+    .amdhsa_system_sgpr_workgroup_id_x 1
+    .amdhsa_system_sgpr_workgroup_id_y 1
+    .amdhsa_system_sgpr_workgroup_id_z 1
+
+    // is_ptr64 = 1
+    // -> FIXME_COV3
+
+    // compute_pgm_rsrc1_vgprs = .AUTO_VGPR_GRANULATED_COUNT
+    // compute_pgm_rsrc1_sgprs = .AUTO_SGPR_GRANULATED_COUNT
+    .amdhsa_next_free_vgpr .AUTO_VGPR_COUNT
+    .amdhsa_next_free_sgpr .AUTO_SGPR_COUNT
+
+    // compute_pgm_rsrc2_tidig_comp_cnt = 1
+    .amdhsa_system_vgpr_workitem_id 1
+
+    // compute_pgm_rsrc2_user_sgpr = 2
+    // -> FIXME_COV3
+
+    // kernarg_segment_byte_size = 56
+    // -> metadata kernarg_segment_size
+
+    // wavefront_sgpr_count = .AUTO_SGPR_COUNT
+    // -> metadata sgpr_count
+
+    // workitem_vgpr_count = .AUTO_VGPR_COUNT
+    // -> metadata, vgpr_count
+
+    // float_mode = 192
+    // -> defaults are just the same
+.end_amdhsa_kernel
+
+// Workaround.
+// When YAML text is being processed, assembly-time constant expressions
+// are not computed, but we need to expand some symbols into text.
+// That is why we need METADATA and METADATA_WRAPPER macros.
+.macro METADATA sc,wc,wg_x
+.amdgpu_metadata
+---
+amdhsa.version: [ 1, 0 ]
+amdhsa.kernels:
+  - .name: gcnAsmConv3x3U
+    .symbol: gcnAsmConv3x3U@kd
+    .sgpr_count: \sc
+    .vgpr_count: \wc
+    .language: "OpenCL C"
+    .language_version: [ 1, 2 ]
+    .kernarg_segment_size: 56
+    .group_segment_fixed_size: 0
+    .private_segment_fixed_size: 0
+    .kernarg_segment_align: 8
+    .wavefront_size: 64
+    .max_flat_workgroup_size: \wg_x
+    .args:
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32, .name: in,      .address_space: global, .is_const: true }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32, .name: weights, .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 16, .value_kind: global_buffer, .value_type: f32, .name: out,     .address_space: global, .is_const: false }
+    - { .size: 4, .offset: 24, .value_kind: by_value,      .value_type: f32, .name: padding_val }
+    - { .size: 8, .offset: 32, .value_kind: hidden_global_offset_x, .value_type: i64 }
+    - { .size: 8, .offset: 40, .value_kind: hidden_global_offset_y, .value_type: i64 }
+    - { .size: 8, .offset: 48, .value_kind: hidden_global_offset_z, .value_type: i64 }
+...
+.end_amdgpu_metadata
+.endm // METADATA
+
+.altmacro
+.macro METADATA_WRAPPER sc,wc,wg_x
+    METADATA %\sc, %\wc, %\wg_x
+.endm
+
+.ifnotdef workgroup_size_x
+  .error "workgroup_size_x must be defined"
+  .end
 .endif
-.if ROCM_METADATA_VERSION == 4
-.amd_amdgpu_hsa_metadata
-{ Version: [ 1, 0 ],
-    Kernels:
-    - { Name: gcnAsmConv3x3U, SymbolName: 'gcnAsmConv3x3U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-        CodeProps:
-          { KernargSegmentSize: 56, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
-        Args:
-        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: in,          AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: weights,     AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: out,         AddrSpaceQual: Global, AccQual: Default }
-        - { Size: 4, Align: 4, ValueKind: ByValue,      ValueType: F32, TypeName:  float,   Name: padding_val,                        AccQual: Default }
-        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetX, ValueType: I64 }
-        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetY, ValueType: I64 }
-        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetZ, ValueType: I64 }
-      }
-}
-.end_amd_amdgpu_hsa_metadata
+METADATA_WRAPPER .AUTO_SGPR_COUNT,.AUTO_VGPR_COUNT,workgroup_size_x
+.endif // .ifdef EXPERIMENTAL_COv3
+
+.ifnotdef EXPERIMENTAL_COv3
+.macro METADATA wg_x
+  .if ROCM_METADATA_VERSION == 4
+    .amd_amdgpu_hsa_metadata
+    { Version: [ 1, 0 ],
+        Kernels:
+        - { Name: gcnAsmConv3x3U, SymbolName: 'gcnAsmConv3x3U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+            Attrs:
+              { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
+            CodeProps:
+              { KernargSegmentSize: 56, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
+            Args:
+            - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: in,          AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+            - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: weights,     AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+            - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: out,         AddrSpaceQual: Global, AccQual: Default }
+            - { Size: 4, Align: 4, ValueKind: ByValue,      ValueType: F32, TypeName:  float,   Name: padding_val,                        AccQual: Default }
+            - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetX, ValueType: I64 }
+            - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetY, ValueType: I64 }
+            - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetZ, ValueType: I64 }
+          }
+    }
+    .end_amd_amdgpu_hsa_metadata
+  .else
+    .error "Unsupported ROCM_METADATA_VERSION"
+    .end
+  .endif
+.endm // METADATA
+
+.altmacro
+.macro METADATA_WRAPPER wg_x
+    METADATA %\wg_x
+.endm
+
+.ifnotdef workgroup_size_x
+  .error "workgroup_size_x must be defined"
+  .end
 .endif
-.if ROCM_METADATA_VERSION == 3
-.amdgpu_code_object_metadata
-{ Version: [ 3, 0 ],
-    Kernels:
-    - { Name: gcnAsmConv3x3U, Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-        Args:
-        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: in,          AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: weights,     AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: out,         AddrSpaceQual: Global, AccQual: Default }
-        - { Size: 4, Align: 4, ValueKind: ByValue,      ValueType: F32, TypeName:  float,   Name: padding_val,                        AccQual: Default }
-        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetX, ValueType: I64 }
-        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetY, ValueType: I64 }
-        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetZ, ValueType: I64 }
-      }
-}
-.end_amdgpu_code_object_metadata
-.endif
-.if ROCM_METADATA_VERSION == 2
-.amdgpu_runtime_metadata
-{ amd.MDVersion: [ 2, 1 ],
-    amd.Kernels:
-    - { amd.KernelName: gcnAsmConv3x3U, amd.Language: OpenCL C, amd.LanguageVersion: [ 1, 2 ],
-        amd.Args:
-        - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: in,          amd.ArgAddrQual: 1, amd.ArgAccQual: 0, amd.ArgIsConst: 1 }
-        - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: weights,     amd.ArgAddrQual: 1, amd.ArgAccQual: 0, amd.ArgIsConst: 1 }
-        - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: out,         amd.ArgAddrQual: 1, amd.ArgAccQual: 0 }
-        - { amd.ArgSize: 4, amd.ArgAlign: 4, amd.ArgKind: 0, amd.ArgValueType: 8, amd.ArgTypeName:  float,   amd.ArgName: padding_val,                     amd.ArgAccQual: 0 }
-        - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 7, amd.ArgValueType: 9 }
-        - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 8, amd.ArgValueType: 9 }
-        - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 9, amd.ArgValueType: 9 }
-      }
-}
-.end_amdgpu_runtime_metadata
-.endif
-.if ROCM_METADATA_VERSION == 1
-.section .note
-    // old ROCm metadata
-    .long 4
-    .long .Lmeta_end - .Lmeta_begin
-    .long 7
-    .asciz "AMD"
-    .p2align 2
-    .Lmeta_begin:
-.byte 0x01
-.byte 0x00
-.byte 0x01
-.byte 0x02
-.byte 0x00
-.byte 0x03
-.byte 0xC8
-.byte 0x00
-.byte 0x04
-.byte 0x06
-.byte 0x0E
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.ascii "gcnAsmConv3x3U"
-.byte 0x07
-.byte 0x09
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0B
-.byte 0x06
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x66
-.byte 0x6C
-.byte 0x6F
-.byte 0x61
-.byte 0x74
-.byte 0x2A
-.byte 0x0C
-.byte 0x02
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x69
-.byte 0x6E
-.byte 0x11
-.byte 0x0D
-.byte 0x01
-.byte 0x0E
-.byte 0x08
-.byte 0x00
-.byte 0x10
-.byte 0x00
-.byte 0x0F
-.byte 0x01
-.byte 0x08
-.byte 0x07
-.byte 0x09
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0B
-.byte 0x06
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x66
-.byte 0x6C
-.byte 0x6F
-.byte 0x61
-.byte 0x74
-.byte 0x2A
-.byte 0x0C
-.byte 0x07
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x77
-.byte 0x65
-.byte 0x69
-.byte 0x67
-.byte 0x68
-.byte 0x74
-.byte 0x73
-.byte 0x11
-.byte 0x0D
-.byte 0x01
-.byte 0x0E
-.byte 0x08
-.byte 0x00
-.byte 0x10
-.byte 0x00
-.byte 0x0F
-.byte 0x01
-.byte 0x08
-.byte 0x07
-.byte 0x09
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0B
-.byte 0x06
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x66
-.byte 0x6C
-.byte 0x6F
-.byte 0x61
-.byte 0x74
-.byte 0x2A
-.byte 0x0C
-.byte 0x03
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x6F
-.byte 0x75
-.byte 0x74
-.byte 0x0D
-.byte 0x01
-.byte 0x0E
-.byte 0x08
-.byte 0x00
-.byte 0x10
-.byte 0x00
-.byte 0x0F
-.byte 0x01
-.byte 0x08
-.byte 0x07
-.byte 0x09
-.byte 0x04
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x04
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0B
-.byte 0x05
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x66
-.byte 0x6C
-.byte 0x6F
-.byte 0x61
-.byte 0x74
-.byte 0x0C
-.byte 0x0B
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x70
-.byte 0x61
-.byte 0x64
-.byte 0x64
-.byte 0x69
-.byte 0x6E
-.byte 0x67
-.byte 0x5F
-.byte 0x76
-.byte 0x61
-.byte 0x6C
-.byte 0x0D
-.byte 0x00
-.byte 0x0E
-.byte 0x08
-.byte 0x00
-.byte 0x10
-.byte 0x00
-.byte 0x08
-.byte 0x07
-.byte 0x09
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0D
-.byte 0x07
-.byte 0x0E
-.byte 0x09
-.byte 0x00
-.byte 0x08
-.byte 0x07
-.byte 0x09
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0D
-.byte 0x08
-.byte 0x0E
-.byte 0x09
-.byte 0x00
-.byte 0x08
-.byte 0x07
-.byte 0x09
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0A
-.byte 0x08
-.byte 0x00
-.byte 0x00
-.byte 0x00
-.byte 0x0D
-.byte 0x09
-.byte 0x0E
-.byte 0x09
-.byte 0x00
-.byte 0x08
-.byte 0x05
-    .Lmeta_end:
-    .p2align 2
-.endif
+METADATA_WRAPPER workgroup_size_x
+.endif //.ifnotdef EXPERIMENTAL_COv3

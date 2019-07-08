@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <algorithm>
+#include <miopen/logger.hpp>
 #include <miopen/device_name.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
@@ -181,6 +182,7 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
 #if MIOPEN_USE_ROCBLAS
     rhandle_ = CreateRocblasHandle();
 #endif
+    MIOPEN_LOG_I(*this);
 }
 
 Handle::Handle() : impl(new HandleImpl())
@@ -199,6 +201,7 @@ Handle::Handle() : impl(new HandleImpl())
 #if MIOPEN_USE_ROCBLAS
     rhandle_ = CreateRocblasHandle();
 #endif
+    MIOPEN_LOG_I(*this);
 }
 
 Handle::~Handle() {}
@@ -269,11 +272,22 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                const std::vector<size_t>& vld,
                                const std::vector<size_t>& vgd,
                                const std::string& params,
-                               std::size_t cache_index)
+                               std::size_t cache_index,
+                               bool is_kernel_str,
+                               const std::string& kernel_src)
 {
 
-    auto obj = this->impl->cache.AddKernel(
-        *this, algorithm, network_config, program_name, kernel_name, vld, vgd, params, cache_index);
+    auto obj = this->impl->cache.AddKernel(*this,
+                                           algorithm,
+                                           network_config,
+                                           program_name,
+                                           kernel_name,
+                                           vld,
+                                           vgd,
+                                           params,
+                                           cache_index,
+                                           is_kernel_str,
+                                           kernel_src);
     return this->Run(obj);
 }
 
@@ -302,7 +316,10 @@ KernelInvoke Handle::Run(Kernel k)
         return k.Invoke(this->GetStream());
 }
 
-Program Handle::LoadProgram(const std::string& program_name, std::string params, bool is_kernel_str)
+Program Handle::LoadProgram(const std::string& program_name,
+                            std::string params,
+                            bool is_kernel_str,
+                            const std::string& kernel_src)
 {
     this->impl->set_ctx();
     params += " -mcpu=" + this->GetDeviceName();
@@ -310,7 +327,8 @@ Program Handle::LoadProgram(const std::string& program_name, std::string params,
         miopen::LoadBinary(this->GetDeviceName(), program_name, params, is_kernel_str);
     if(cache_file.empty())
     {
-        auto p = HIPOCProgram{program_name, params, is_kernel_str};
+        auto p =
+            HIPOCProgram{program_name, params, is_kernel_str, this->GetDeviceName(), kernel_src};
 
         // Save to cache
         auto path = miopen::GetCachePath() / boost::filesystem::unique_path();
@@ -368,6 +386,17 @@ std::size_t Handle::GetLocalMemorySize()
     return result;
 }
 
+std::size_t Handle::GetGlobalMemorySize()
+{
+    size_t result;
+    auto status = hipDeviceTotalMem(&result, this->impl->device);
+
+    if(status != hipSuccess)
+        MIOPEN_THROW_HIP_STATUS(status);
+
+    return result;
+}
+
 std::size_t Handle::GetMaxComputeUnits()
 {
     int result;
@@ -401,6 +430,12 @@ std::string Handle::GetDeviceName()
     hipGetDeviceProperties(&props, this->impl->device);
     std::string n("gfx" + std::to_string(props.gcnArch));
     return GetDeviceNameFromMap(n);
+}
+
+std::ostream& Handle::Print(std::ostream& os) const
+{
+    os << "stream: " << this->impl->stream << ", device_id: " << this->impl->device;
+    return os;
 }
 
 shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::size_t)

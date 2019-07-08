@@ -32,7 +32,7 @@ namespace solver {
 
 bool ConvOclDirectFwd3x3::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!(params.IsFp32() || params.IsFp16()))
+    if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
 
     return params.kernel_size_w == 3 && params.kernel_size_h == 3 && params.pad_w == 1 &&
@@ -175,6 +175,7 @@ ConvSolution ConvOclDirectFwd3x3::GetSolution(const ConvolutionContext& params) 
         std::to_string(static_cast<long long>(read_unit)) + std::string(" -DMLO_CONV_BIAS=") +
         std::to_string(static_cast<long long>(params.bias)) + params.general_compile_options;
 
+    std::cout << " MIOpenConvD3x3 " << construction_parameters.comp_options << std::endl;
     construction_parameters.l_wk.push_back(result.grp_tile0);
     construction_parameters.l_wk.push_back(result.grp_tile1);
     construction_parameters.l_wk.push_back(grp_tile2);

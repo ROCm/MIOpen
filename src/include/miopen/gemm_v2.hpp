@@ -26,8 +26,6 @@
 #ifndef GUARD_MIOPEN_GEMM_V2_HPP_
 #define GUARD_MIOPEN_GEMM_V2_HPP_
 
-#include <string>
-
 #include <miopen/common.hpp>
 #include <miopen/miopen.h>
 
@@ -35,6 +33,7 @@ namespace miopen {
 
 struct Handle;
 struct TensorDescriptor;
+struct FindDbKCacheKey;
 
 enum GemmBackend_t
 {
@@ -86,7 +85,7 @@ miopenStatus_t CallGemmTimeMeasure(Handle& handle,
                                    int b_offset,
                                    Data_t C,
                                    int c_offset,
-                                   std::string* kcache_key,
+                                   FindDbKCacheKey* kcache_key, // for find-db
                                    bool time_precision,
                                    CallGemmType_t call_gemm_type,
                                    GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
@@ -99,7 +98,7 @@ miopenStatus_t CallGemm(Handle& handle,
                         int b_offset,
                         Data_t C,
                         int c_offset,
-                        std::string* kcache_key,
+                        FindDbKCacheKey* kcache_key, // for find-db
                         bool enqueue_dummy_kernel,
                         GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
 
@@ -111,7 +110,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                                       int b_offset,
                                       Data_t C,
                                       int c_offset,
-                                      std::string* kcache_key,
+                                      FindDbKCacheKey* kcache_key, // for find-db
                                       bool enqueue_dummy_kernel,
                                       GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
 
@@ -124,7 +123,7 @@ CallGemmStridedBatchedSequential(Handle& handle,
                                  int b_offset,
                                  Data_t C,
                                  int c_offset,
-                                 std::string* kcache_key,
+                                 FindDbKCacheKey* kcache_key, // for find-db
                                  bool enqueue_dummy_kernel,
                                  GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
 
