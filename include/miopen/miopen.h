@@ -821,11 +821,12 @@ miopenDestroyConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc);
  * convolution implementation.
  */
 typedef enum {
-    miopenConvolutionFwdAlgoGEMM         = 0, /*!< GEMM variant */
-    miopenConvolutionFwdAlgoDirect       = 1, /*!< Direct convolutions */
-    miopenConvolutionFwdAlgoFFT          = 2, /*!< Fast Fourier Transform indirect convolutions */
-    miopenConvolutionFwdAlgoWinograd     = 3, /*!< Winograd indirect convolutions */
-    miopenConvolutionFwdAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions, fp32 only and disabled by default */
+    miopenConvolutionFwdAlgoGEMM     = 0, /*!< GEMM variant */
+    miopenConvolutionFwdAlgoDirect   = 1, /*!< Direct convolutions */
+    miopenConvolutionFwdAlgoFFT      = 2, /*!< Fast Fourier Transform indirect convolutions */
+    miopenConvolutionFwdAlgoWinograd = 3, /*!< Winograd indirect convolutions */
+    miopenConvolutionFwdAlgoImplicitGEMM =
+        5, /*!< Implicit GEMM convolutions, fp32 only and disabled by default */
 } miopenConvFwdAlgorithm_t;
 
 /*! @enum miopenConvBwdWeightsAlgorithm_t
@@ -847,15 +848,17 @@ typedef enum {
     miopenConvolutionBwdDataAlgoWinograd = 3, /*!< Winograd indirect convolutions */
     miopenTransposeBwdDataAlgoGEMM =
         4, /*!< Deprecated Transpose GEMM variant legacy, ToBe Removed */
-    miopenConvolutionBwdDataAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions, fp32 only and disabled by default */
+    miopenConvolutionBwdDataAlgoImplicitGEMM =
+        5, /*!< Implicit GEMM convolutions, fp32 only and disabled by default */
 } miopenConvBwdDataAlgorithm_t;
 
 typedef enum {
-    miopenConvolutionAlgoGEMM         = 0, /*!< GEMM variant */
-    miopenConvolutionAlgoDirect       = 1, /*!< Direct convolutions */
-    miopenConvolutionAlgoFFT          = 2, /*!< Fast Fourier Transform indirect convolutions */
-    miopenConvolutionAlgoWinograd     = 3, /*!< Winograd indirect convolutions */
-    miopenConvolutionAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions, fp32 only and disabled by default */
+    miopenConvolutionAlgoGEMM     = 0, /*!< GEMM variant */
+    miopenConvolutionAlgoDirect   = 1, /*!< Direct convolutions */
+    miopenConvolutionAlgoFFT      = 2, /*!< Fast Fourier Transform indirect convolutions */
+    miopenConvolutionAlgoWinograd = 3, /*!< Winograd indirect convolutions */
+    miopenConvolutionAlgoImplicitGEMM =
+        5, /*!< Implicit GEMM convolutions, fp32 only and disabled by default */
 } miopenConvAlgorithm_t;
 
 /*! @struct miopenConvAlgoPerf_t
