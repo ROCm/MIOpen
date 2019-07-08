@@ -7,6 +7,7 @@ API Reference
     :maxdepth: 4
     :caption: Contents:
 
+    datatypes
     handle
     tensor
     activation
@@ -17,3 +18,4 @@ API Reference
     pooling
     softmax
     fusion
+    loss

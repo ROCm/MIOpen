@@ -256,16 +256,7 @@ void OpTensor3d(Handle& handle,
 
         std::string parms = " -DMIOPEN_TYPE=" + GetDataType(bTensorDesc.GetType());
 
-        if(aTensorDesc.GetType() == miopenFloat)
-        {
-            parms += " -DMIOPEN_USE_FP16=0";
-            parms += " -DMIOPEN_USE_FP32=1";
-        }
-        else if(aTensorDesc.GetType() == miopenHalf)
-        {
-            parms += " -DMIOPEN_USE_FP16=1";
-            parms += " -DMIOPEN_USE_FP32=0";
-        }
+        parms += GetDataTypeKernelParams(aTensorDesc.GetType());
 
         parms += " -DMIOPEN_TENSOR_OP=";
         switch(tensorOp)
@@ -679,16 +670,7 @@ void OpTensor4d(Handle& handle,
         std::string parms = " -DMIOPEN_TYPE=" + GetDataType(bTensorDesc.GetType()) +
                             " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
 
-        if(aTensorDesc.GetType() == miopenFloat)
-        {
-            parms += " -DMIOPEN_USE_FP16=0";
-            parms += " -DMIOPEN_USE_FP32=1";
-        }
-        else if(aTensorDesc.GetType() == miopenHalf)
-        {
-            parms += " -DMIOPEN_USE_FP16=1";
-            parms += " -DMIOPEN_USE_FP32=0";
-        }
+        parms += GetDataTypeKernelParams(aTensorDesc.GetType());
 
         parms += " -DMIOPEN_TENSOR_OP=";
         switch(tensorOp)
@@ -1075,16 +1057,7 @@ void OpTensorOther(Handle& handle,
         std::string parms = " -DMIOPEN_TYPE=" + GetDataType(bTensorDesc.GetType()) +
                             " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
 
-        if(aTensorDesc.GetType() == miopenFloat)
-        {
-            parms += " -DMIOPEN_USE_FP16=0";
-            parms += " -DMIOPEN_USE_FP32=1";
-        }
-        else if(aTensorDesc.GetType() == miopenHalf)
-        {
-            parms += " -DMIOPEN_USE_FP16=1";
-            parms += " -DMIOPEN_USE_FP32=0";
-        }
+        parms += GetDataTypeKernelParams(aTensorDesc.GetType());
 
         parms += " -DMIOPEN_TENSOR_OP=";
         switch(tensorOp)
@@ -1310,38 +1283,6 @@ void OpTensor(Handle& handle,
     }
 }
 
-static std::string parms_half_or_float(const miopenDataType_t t)
-{
-    std::string s{};
-
-    switch(t)
-    {
-    case miopenHalf:
-    {
-        s = " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
-        break;
-    }
-    case miopenFloat:
-    {
-        s = " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
-        break;
-    }
-    case miopenInt8:
-    {
-        s = " -DMIOPEN_USE_INT8=1";
-        break;
-    }
-    case miopenInt8x4:
-    {
-        s = " -DMIOPEN_USE_INT8x4=1";
-        break;
-    }
-    case miopenInt32: break;
-    }
-
-    return s;
-}
-
 struct two_exp_ceiling_t
 {
     std::size_t operator()(std::size_t n) const
@@ -1444,7 +1385,7 @@ void SetTensor(
         std::size_t wld = 256 < wgd ? 256 : wgd;
 
         std::string parms = "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_SET" +
-                            parms_half_or_float(dataType);
+                            GetDataTypeKernelParams(dataType);
         for(int i = 0; i < yDim_flat; ++i)
         {
             parms += " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
@@ -1569,9 +1510,10 @@ void ScaleTensor(
     assert(yDim_flat > 0 && yDim_flat <= 5);
 
     const miopenDataType_t dataType = yDesc_flat.GetType();
-    if(dataType == miopenInt8 || dataType == miopenInt8x4)
+    if(dataType == miopenInt8 || dataType == miopenInt8x4 || dataType == miopenBFloat16)
     {
-        MIOPEN_THROW(miopenStatusBadParm);
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "Tensor scale operation is not supported for int8, int8x4, and bfloat16.");
     }
 
     std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(yDim_flat) + "d";
@@ -1606,7 +1548,7 @@ void ScaleTensor(
         std::size_t wld = 256 < wgd ? 256 : wgd;
 
         std::string parms = "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_MULTIPLY" +
-                            parms_half_or_float(dataType);
+                            GetDataTypeKernelParams(dataType);
         for(int i = 0; i < yDim_flat; ++i)
         {
             parms += " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
@@ -1786,7 +1728,7 @@ void CopyTensor(Handle& handle,
             std::size_t wld = 256 < wgd ? 256 : wgd;
 
             std::string parms = "-DSUBTENSOR_OP_WITH_SUBTENSOR=SUBTENSOR_OP_WITH_SUBTENSOR_COPY" +
-                                parms_half_or_float(srcDesc_flat.GetType());
+                                GetDataTypeKernelParams(srcDesc_flat.GetType());
             for(unsigned long i = 0; i < srcDim_flat; ++i)
             {
                 parms +=
@@ -1922,9 +1864,11 @@ void CastTensor(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
     }
 
-    if(srcDesc.GetType() == miopenInt8x4 || dstDesc.GetType() == miopenInt8x4)
+    if(srcDesc.GetType() == miopenInt8x4 || dstDesc.GetType() == miopenInt8x4 ||
+       srcDesc.GetType() == miopenBFloat16 || dstDesc.GetType() == miopenBFloat16)
     {
-        MIOPEN_THROW(miopenStatusBadParm);
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "Tensor cast operation is not supported for int8, int8x4, and bfloat16.");
     }
 
     auto flat_descriptors = GetConsistentFlattenedTensorDescriptors(srcDesc, dstDesc);

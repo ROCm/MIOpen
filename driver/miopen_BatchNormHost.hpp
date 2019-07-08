@@ -807,7 +807,7 @@ int miopenBNBwdPerActivationRunHost(
                             xhat_index =
                                 in_cstride * bidx + in_dstride * didx + width * row + column;
                             tmp1          = xhat[xhat_index] * dxhathat + dxhat;
-                            tmp2          = n_batchs * dxhat - tmp1;
+                            tmp2          = n_batchs * (dy_ptr[index] * scale_ptr[adjIndex]) - tmp1;
                             tmp3          = elemInvVar / static_cast<Tref>(n_batchs);
                             dx_ptr[index] = tmp3 * tmp2;
                         } // end for(n_batchs)

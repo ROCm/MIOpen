@@ -30,6 +30,7 @@
 #include <miopen/kernel.hpp>
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
+#include <miopen/solver_id.hpp>
 
 #include <string>
 #include <tuple>
@@ -42,6 +43,7 @@ struct ConvSolution;
 } // namespace solver
 struct Handle;
 struct TensorDescriptor;
+struct ConvolutionUserBuffers;
 
 using WinogradKernelParams = std::tuple<int /*N*/,
                                         int /*C*/,
@@ -65,6 +67,9 @@ using ExtraKernelArgs = std::tuple<int /*N*/,
                                    int /*n_groups*/,
                                    int /*out_H*/,
                                    int /*out_W*/>;
+
+struct ConvFwdTensors;
+struct ConvWrwTensors;
 
 struct ConvolutionDescriptor : miopenConvolutionDescriptor
 {
@@ -98,7 +103,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     int GetGroupCount() const;
 
     TensorDescriptor GetForwardOutputTensor(const TensorDescriptor& xDesc,
-                                            const TensorDescriptor& wDesc) const;
+                                            const TensorDescriptor& wDesc,
+                                            miopenDataType_t yType = miopenFloat) const;
 
     std::size_t ForwardGetWorkSpaceSizeGEMM(const TensorDescriptor& wDesc,
                                             const TensorDescriptor& yDesc) const;
@@ -112,20 +118,28 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                                           const TensorDescriptor& yDesc) const;
 
     std::size_t
-    ForwardBackwardDataGetWorkSpaceSizeDirect(Handle& handle,
-                                              const TensorDescriptor& xDesc,
-                                              const TensorDescriptor& yDesc,
-                                              const TensorDescriptor& wDesc,
-                                              int direction) const; // 1: Forward, 0: BackwardData
+    ForwardBackwardDataGetWorkSpaceSizeDirect(const miopen::ConvolutionContext& ctx) const;
+
+    std::size_t ForwardGetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx) const;
 
     std::size_t ForwardGetWorkSpaceSizeFFT(const TensorDescriptor& wDesc,
                                            const TensorDescriptor& xDesc,
                                            const TensorDescriptor& yDesc) const;
 
-    bool IsWinograd3x3Supported(Handle& handle,
-                                bool direction,
-                                const TensorDescriptor& wDesc,
-                                const TensorDescriptor& xDesc) const;
+    bool IsWinograd3x3SupportedAndFast(miopen::ConvolutionContext& ctx) const;
+
+    std::size_t ForwardGetValidWorkSpaceSizeGemm(Handle& handle,
+                                                 const TensorDescriptor& wDesc,
+                                                 const TensorDescriptor& xDesc,
+                                                 const TensorDescriptor& yDesc) const;
+
+    std::size_t BackwardGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDesc,
+                                                  const TensorDescriptor& wDesc,
+                                                  const TensorDescriptor& dxDesc) const;
+
+    std::size_t WrwGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDesc,
+                                             const TensorDescriptor& xDesc,
+                                             const TensorDescriptor& dwDesc) const;
 
     std::size_t ForwardGetWorkSpaceSize(Handle& handle,
                                         const TensorDescriptor& wDesc,
@@ -138,7 +152,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               const TensorDescriptor& wDesc,
                               ConstData_t w,
                               const TensorDescriptor& yDesc,
-                              ConstData_t y,
+                              Data_t y,
                               int requestAlgoCount,
                               int* returnedAlgoCount,
                               miopenConvAlgoPerf_t* perfResults,
@@ -146,7 +160,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               std::size_t workSpaceSize,
                               bool exhaustiveSearch) const;
 
-    template <typename T>
     int FindWinogradKernel(Handle& handle,
                            const TensorDescriptor& xDesc,
                            const TensorDescriptor& wDesc,
@@ -155,6 +168,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                            KernelInvoke& kernel,
                            std::string& solver_id,
                            int direction,
+                           bool is_wrw,
                            std::string* kcache_key = nullptr) const;
 
     int FindFwdFFTKernel(Handle& handle,
@@ -181,7 +195,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                          const TensorDescriptor& wDesc,
                          const TensorDescriptor& dxDesc,
                          std::size_t workSpaceSize,
-                         std::vector<KernelInvoke>& kernels) const;
+                         std::vector<KernelInvoke>& kernels,
+                         std::string& kcache_key) const;
 
     float ExecuteBwdFFTKernel(Handle& handle,
                               const TensorDescriptor& dyDesc,
@@ -202,7 +217,19 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                             bool exhaustiveSearch,
                             bool isForward,
                             std::string& network_config,
-                            ExtraKernelArgs& extraArgs) const;
+                            ExtraKernelArgs& extraArgs,
+                            const ConvolutionUserBuffers& bufs) const;
+
+    std::vector<miopen::solver::ConvSolution>
+    FindDataImplicitGemmSolutions(Handle& handle,
+                                  const TensorDescriptor& xDesc,
+                                  const TensorDescriptor& wDesc,
+                                  const TensorDescriptor& yDesc,
+                                  bool exhaustiveSearch,
+                                  bool isForward,
+                                  std::string& network_config,
+                                  ExtraKernelArgs& extraArgs,
+                                  const ConvolutionUserBuffers& bufs) const;
 
     void ConvolutionForward(Handle& handle,
                             const void* alpha,
@@ -216,6 +243,42 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                             Data_t y,
                             Data_t workSpace,
                             std::size_t workSpaceSize) const;
+
+    std::size_t GetForwardSolutionCount(Handle& handle,
+                                        const TensorDescriptor& wDesc,
+                                        const TensorDescriptor& xDesc,
+                                        const TensorDescriptor& yDesc) const;
+
+    void GetForwardSolutions(Handle& handle,
+                             const TensorDescriptor& wDesc,
+                             const TensorDescriptor& xDesc,
+                             const TensorDescriptor& yDesc,
+                             size_t maxSolutionCount,
+                             size_t* solutionCount,
+                             miopenConvSolution_t* solutions) const;
+
+    void CompileForwardSolution(Handle& handle,
+                                const TensorDescriptor& wDesc,
+                                const TensorDescriptor& xDesc,
+                                const TensorDescriptor& yDesc,
+                                solver::Id solver_id) const;
+
+    std::size_t GetForwardSolutionWorkspaceSize(Handle& handle,
+                                                const TensorDescriptor& wDesc,
+                                                const TensorDescriptor& xDesc,
+                                                const TensorDescriptor& yDesc,
+                                                solver::Id solver_id) const;
+
+    void ConvolutionForwardImmediate(Handle& handle,
+                                     const TensorDescriptor& wDesc,
+                                     ConstData_t w,
+                                     const TensorDescriptor& xDesc,
+                                     ConstData_t x,
+                                     const TensorDescriptor& yDesc,
+                                     Data_t y,
+                                     Data_t workSpace,
+                                     std::size_t workSpaceSize,
+                                     solver::Id solver_id) const;
 
     std::size_t BackwardDataGetWorkSpaceSizeGEMM(const TensorDescriptor& wDesc,
                                                  const TensorDescriptor& dyDesc) const;
@@ -238,7 +301,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                   const TensorDescriptor& wDesc,
                                   ConstData_t w,
                                   const TensorDescriptor& dxDesc,
-                                  ConstData_t dx,
+                                  Data_t dx,
                                   int requestAlgoCount,
                                   int* returnedAlgoCount,
                                   miopenConvAlgoPerf_t* perfResults,
@@ -259,10 +322,82 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                  Data_t workSpace,
                                  std::size_t workSpaceSize) const;
 
-    std::size_t ConvolutionBackwardWeightsGetWorkSpaceSize(Handle& handle,
-                                                           const TensorDescriptor& dyDesc,
-                                                           const TensorDescriptor& xDesc,
-                                                           const TensorDescriptor& dwDesc) const;
+    std::size_t GetBackwardSolutionCount(Handle& handle,
+                                         const TensorDescriptor& dyDesc,
+                                         const TensorDescriptor& wDesc,
+                                         const TensorDescriptor& dxDesc) const;
+
+    void GetBackwardSolutions(Handle& handle,
+                              const TensorDescriptor& dyDesc,
+                              const TensorDescriptor& wDesc,
+                              const TensorDescriptor& dxDesc,
+                              size_t maxSolutionCount,
+                              size_t* solutionCount,
+                              miopenConvSolution_t* solutions) const;
+
+    void CompileBackwardSolution(Handle& handle,
+                                 const TensorDescriptor& dyDesc,
+                                 const TensorDescriptor& wDesc,
+                                 const TensorDescriptor& dxDesc,
+                                 solver::Id solver_id) const;
+
+    std::size_t GetBackwardSolutionWorkspaceSize(Handle& handle,
+                                                 const TensorDescriptor& dyDesc,
+                                                 const TensorDescriptor& wDesc,
+                                                 const TensorDescriptor& dxDesc,
+                                                 solver::Id solver_id) const;
+
+    void ConvolutionBackwardImmediate(Handle& handle,
+                                      const TensorDescriptor& dyDesc,
+                                      ConstData_t dy,
+                                      const TensorDescriptor& wDesc,
+                                      ConstData_t w,
+                                      const TensorDescriptor& dxDesc,
+                                      Data_t dx,
+                                      Data_t workSpace,
+                                      std::size_t workSpaceSize,
+                                      solver::Id solver_id) const;
+
+    std::size_t GetWrwSolutionCount(Handle& handle,
+                                    const TensorDescriptor& dyDesc,
+                                    const TensorDescriptor& xDesc,
+                                    const TensorDescriptor& dwDesc) const;
+
+    void GetWrwSolutions(Handle& handle,
+                         const TensorDescriptor& dyDesc,
+                         const TensorDescriptor& xDesc,
+                         const TensorDescriptor& dwDesc,
+                         size_t maxSolutionCount,
+                         size_t* solutionCount,
+                         miopenConvSolution_t* solutions) const;
+
+    void CompileWrwSolution(Handle& handle,
+                            const TensorDescriptor& dyDesc,
+                            const TensorDescriptor& xDesc,
+                            const TensorDescriptor& dwDesc,
+                            solver::Id solver_id) const;
+
+    std::size_t GetWrwSolutionWorkspaceSize(Handle& handle,
+                                            const TensorDescriptor& dyDesc,
+                                            const TensorDescriptor& xDesc,
+                                            const TensorDescriptor& dwDesc,
+                                            solver::Id solver_id) const;
+
+    void ConvolutionWrwImmediate(Handle& handle,
+                                 const TensorDescriptor& dyDesc,
+                                 ConstData_t dy,
+                                 const TensorDescriptor& xDesc,
+                                 ConstData_t x,
+                                 const TensorDescriptor& dwDesc,
+                                 Data_t dw,
+                                 Data_t workSpace,
+                                 std::size_t workSpaceSize,
+                                 solver::Id solver_id) const;
+
+    std::size_t BackwardWeightsGetWorkSpaceSize(Handle& handle,
+                                                const TensorDescriptor& dyDesc,
+                                                const TensorDescriptor& xDesc,
+                                                const TensorDescriptor& dwDesc) const;
 
     std::size_t BackwardWeightsGetWorkSpaceSizeGEMM(const TensorDescriptor& dyDesc,
                                                     const TensorDescriptor& dwDesc) const;
@@ -278,7 +413,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                      const TensorDescriptor& xDesc,
                                      ConstData_t x,
                                      const TensorDescriptor& dwDesc,
-                                     ConstData_t dw,
+                                     Data_t dw,
                                      int requestAlgoCount,
                                      int* returnedAlgoCount,
                                      miopenConvAlgoPerf_t* perfResults,
@@ -308,6 +443,98 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     std::vector<int> trans_output_pads;
     int group_count;
     float lowp_quant; // quantization factor for low precision
+
+    private:
+    void ConvFwdWino(const ConvolutionContext& ctx,
+                     const ConvFwdTensors& tensors,
+                     const KernelInvoke& kernel) const;
+    void ConvFwdGemm(Handle& handle,
+                     const ConvFwdTensors& tensors,
+                     Data_t workSpace,
+                     std::size_t workSpaceSize) const;
+    void ConvFwdFFT(Handle& handle,
+                    const ConvFwdTensors& tensors,
+                    Data_t workSpace,
+                    std::size_t workSpaceSize) const;
+
+    void ConvBwdGemm(Handle& handle,
+                     const struct ConvBwdTensors& tensors,
+                     Data_t workSpace,
+                     std::size_t workSpaceSize) const;
+
+    void ConvBwdFFT(Handle& handle,
+                    const ConvBwdTensors& tensors,
+                    Data_t workSpace,
+                    size_t workSpaceSize) const;
+
+    ProblemDescription MakeWrwProblem(const TensorDescriptor& dyDesc,
+                                      const TensorDescriptor& xDesc,
+                                      const TensorDescriptor& dwDesc) const;
+
+    void BackwardWeightsGemm(Handle& handle,
+                             const ConvWrwTensors& tensors,
+                             Data_t workSpace,
+                             std::size_t workSpaceSize) const;
+
+    template <class TKernels>
+    void BackwardWeightsDirect(Handle& handle,
+                               const ConvolutionContext& ctx,
+                               const ConvWrwTensors& tensors,
+                               Data_t workSpace,
+                               const TKernels& kernels) const;
+
+    void BackwardWeightsWinograd(const ConvolutionContext& ctx,
+                                 const ConvWrwTensors& tensors,
+                                 const KernelInvoke& kernel) const;
+
+    std::size_t GetFwdSolutionWorkspaceSizeFallback(Handle& handle,
+                                                    const TensorDescriptor& wDesc,
+                                                    const TensorDescriptor& xDesc,
+                                                    const TensorDescriptor& yDesc,
+                                                    solver::Id solver_id) const;
+
+    std::size_t GetBwdSolutionWorkspaceSizeFallback(const TensorDescriptor& dyDesc,
+                                                    const TensorDescriptor& wDesc,
+                                                    const TensorDescriptor& dxDesc,
+                                                    solver::Id solver_id) const;
+
+    void GetForwardSolutionsFallback(Handle& handle,
+                                     const TensorDescriptor& wDesc,
+                                     const TensorDescriptor& xDesc,
+                                     const TensorDescriptor& yDesc,
+                                     size_t maxSolutionCount,
+                                     size_t* solutionCount,
+                                     miopenConvSolution_t* solutions) const;
+
+    void GetBwdSolutionsFallback(Handle& handle,
+                                 const TensorDescriptor& dyDesc,
+                                 const TensorDescriptor& wDesc,
+                                 const TensorDescriptor& dxDesc,
+                                 size_t maxSolutionCount,
+                                 size_t* solutionCount,
+                                 miopenConvSolution_t* solutions) const;
+
+    bool IsGemmApplicableWrw(const TensorDescriptor& dyDesc,
+                             const TensorDescriptor& xDesc,
+                             const TensorDescriptor& dwDesc) const;
+
+    std::size_t GetWrwSolutionCountFallback(const TensorDescriptor& dyDesc,
+                                            const TensorDescriptor& xDesc,
+                                            const TensorDescriptor& dwDesc) const;
+
+    void GetWrwSolutionsFallback(Handle& handle,
+                                 const TensorDescriptor& dyDesc,
+                                 const TensorDescriptor& xDesc,
+                                 const TensorDescriptor& dwDesc,
+                                 size_t maxSolutionCount,
+                                 size_t* solutionCount,
+                                 miopenConvSolution_t* solutions) const;
+
+    std::size_t GetWrwSolutionWorkspaceSizeFallback(Handle& handle,
+                                                    const TensorDescriptor& dyDesc,
+                                                    const TensorDescriptor& xDesc,
+                                                    const TensorDescriptor& dwDesc,
+                                                    solver::Id solver_id) const;
 };
 
 void ConvolutionBackwardBias(Handle& handle,

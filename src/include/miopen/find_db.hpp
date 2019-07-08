@@ -27,40 +27,80 @@
 #ifndef GUARD_MIOPEN_FIND_DB_HPP_
 #define GUARD_MIOPEN_FIND_DB_HPP_
 
-#include <functional>
-#include <vector>
-
-#include <boost/optional.hpp>
-
 #include <miopen/db.hpp>
 #include <miopen/db_path.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/env.hpp>
-#include <miopen/handle.hpp>
 #include <miopen/perf_field.hpp>
+#include <miopen/readonlyramdb.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_FIND_DB)
+#include <boost/optional.hpp>
+
+#include <functional>
+#include <vector>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DISABLE_FIND_DB)
 
 namespace miopen {
 
-class FindDb
+struct Handle;
+
+class FindDbRecord
 {
     public:
+    static bool enabled;                                  // For unit tests.
+    static boost::optional<std::string>& path_override(); /// \todo Remove when #1723 is resolved.
+
+    FindDbRecord(const FindDbRecord&) = delete;
+    FindDbRecord& operator=(const FindDbRecord&) = delete;
+
+    template <class TProblemDescription>
+    FindDbRecord(Handle& handle, const TProblemDescription& problem)
+        : path(path_override() ? *path_override() : GetUserPath(handle)),
+          db(!enabled || IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{})
+                 ? boost::none
+                 : boost::optional<DbClass>{DbClass{
+                       {path_override() ? *path_override() : GetInstalledPath(handle), path}}})
+    {
+        if(!db.is_initialized())
+            return;
+
+        content = db->FindRecord(problem);
+        in_sync = content.is_initialized();
+    }
+
+    ~FindDbRecord()
+    {
+        if(!db.is_initialized() || !content.is_initialized() || in_sync)
+            return;
+        if(!db->StoreRecord(content.get()))
+            MIOPEN_LOG_E("Failed to store record to find-db at <" << path << ">");
+    }
+
+    auto begin() const { return content->As<FindDbData>().begin(); }
+    auto begin() { return content->As<FindDbData>().begin(); }
+    auto end() const { return content->As<FindDbData>().end(); }
+    auto end() { return content->As<FindDbData>().end(); }
+    bool empty() const { return !content.is_initialized(); }
+
     template <class TProblemDescription>
     static std::vector<PerfField> TryLoad(Handle& handle,
                                           const TProblemDescription& problem,
                                           const std::function<void(DbRecord&)>& regenerator)
     {
-        std::vector<PerfField> ret;
-        FindDb find_db{handle, problem};
+        auto ret = std::vector<PerfField>{};
+        FindDbRecord record{handle, problem};
 
-        if(find_db.loaded && !find_db.CopyValidating(handle, ret))
+        if(record.in_sync && !record.CopyValidating(handle, ret))
             return ret;
 
-        find_db.record = DbRecord(problem);
-        regenerator(*find_db.record);
+        MIOPEN_LOG_I("Find-db regenerating.");
+        ret.clear();
+        record.in_sync = false;
+        record.content.emplace(problem);
+        regenerator(*record.content);
 
-        for(const auto& pair : find_db.record->As<FindDbData>())
+        for(const auto& pair : record)
             // cppcheck-suppress useStlAlgorithm
             ret.push_back(
                 {pair.first, pair.second.solver_id, pair.second.time, pair.second.workspace});
@@ -68,58 +108,27 @@ class FindDb
         return ret;
     }
 
-    FindDb(const FindDb&) = delete;
-    FindDb(FindDb&&)      = delete;
-    FindDb& operator=(const FindDb&) = delete;
-    FindDb& operator=(FindDb&&) = delete;
-
     private:
+#if MIOPEN_DEBUG_FIND_DB_CACHING == 1
+    using DbClass = DbTimer<MultiFileDb<ReadonlyRamDb, Db, false>>;
+#else
+    using DbClass = DbTimer<MultiFileDb<Db, Db, false>>;
+#endif
+
     std::string path;
-    boost::optional<Db> db;
-    boost::optional<DbRecord> record{boost::none};
-    bool loaded = false;
+    boost::optional<DbClass> db;
+    boost::optional<DbRecord> content{boost::none};
+    bool in_sync = false;
 
-    template <class TProblemDescription>
-    FindDb(Handle& handle, const TProblemDescription& /*problem*/)
-        : path(GetFindDbPath() + "/" + handle.GetDbPathFilename() + ".cd.fdb.txt"),
-          db(IsEnabled(MIOPEN_DEBUG_ENABLE_FIND_DB{}) ? boost::optional<Db>{Db{path, false}}
-                                                      : boost::none)
-    {
-        if(!db.is_initialized())
-            return;
+    static bool HasKernel(Handle& handle, const FindDbKCacheKey& key);
 
-        record = boost::none; // db->FindRecord(problem);
-        loaded = record.is_initialized();
-    }
-
-    ~FindDb()
-    {
-        if(db.is_initialized() && record.is_initialized() && !loaded &&
-           !db->StoreRecord(record.get()))
-            MIOPEN_LOG_W("Failed to store record to find-db at <" << path << ">");
-    }
+    static std::string GetInstalledPath(Handle& handle);
+    static std::string GetUserPath(Handle& handle);
 
     // Returns true if rebuild is required
-    bool CopyValidating(Handle& handle, std::vector<PerfField>& to)
-    {
-        auto unbuilt = false;
-        auto any     = false;
+    bool CopyValidating(Handle& handle, std::vector<PerfField>& to) const;
 
-        for(const auto& pair : record->As<FindDbData>())
-        {
-            any = true;
-            to.push_back(
-                {pair.first, pair.second.solver_id, pair.second.time, pair.second.workspace});
-
-            if(loaded && (pair.second.kchache_key == FindDbData::GetUnusedKCacheKey() ||
-                          !handle.HasKernel(pair.first, pair.second.kchache_key)))
-            {
-                unbuilt = true;
-            }
-        }
-
-        return !any || unbuilt;
-    }
+    void LogFindDbItem(bool is_valid, const std::pair<std::string, FindDbData>& pair) const;
 };
 
 } // namespace miopen

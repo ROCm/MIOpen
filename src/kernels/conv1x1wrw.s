@@ -1,19 +1,19 @@
 /*******************************************************************************
- * 
+ *
  * MIT License
- * 
+ *
  * Copyright (c) 2017 Advanced Micro Devices, Inc.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,7 +21,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  *******************************************************************************/
 
 .hsa_code_object_version 2,1
@@ -94,7 +94,7 @@ lds_element_stride = 4
 dword_size = 4
 
 elements_in_dword = 1
-.if(buf_type == TYPE_FP16 || buf_type == TYPE_INT16)
+.if(buf_type == TYPE_FP16 || buf_type == TYPE_INT16 || buf_type == TYPE_BFP16)
     elements_in_dword = 2
 .elseif(buf_type == TYPE_INT8)
     elements_in_dword = 4
@@ -119,12 +119,14 @@ static_assert(k_mult % sequential_k_channels == 0)
 static_assert(input_channels % sequential_c_channels == 0)
 static_assert(output_channels % sequential_k_channels == 0)
 
+bfp16_native_support = 0
 dot_instructions_available = 0
 .if (.option.machine_version_major == 9) && (.option.machine_version_minor == 0) && (.option.machine_version_stepping == 6)
     dot_instructions_available = 1
 .endif
 madmix_instructions_available = 0
 fmamix_instructions_available = 0
+madmix_fmamix_with_dpp_available = 0
 .if (.option.machine_version_major == 9)
     .if(.option.machine_version_stepping > 2)
         fmamix_instructions_available = 1
@@ -132,6 +134,12 @@ fmamix_instructions_available = 0
         madmix_instructions_available = 1
     .endif
 .endif
+
+bit_convert_mult = 0
+.if(buf_type == TYPE_BFP16 && !bfp16_native_support)
+    bit_convert_mult = 1
+.endif
+
 
 log2 c_per_gpr_log2, c_per_gpr
 log2 k_per_gpr_log2, k_per_gpr
@@ -172,7 +180,7 @@ full_chunks = full_reads * elements_per_lane
     .if(i_cnt > metachunk_size)
         i_cnt = metachunk_size
     .elseif (i_cnt < 0)
-        i_cnt = 0 
+        i_cnt = 0
         static_assert(0)
     .endif
 .endif
@@ -183,7 +191,7 @@ x = 0
 .if(partial_chunks)
 .rept i_cnt
     partial_points1 = full_reads_per_lane * elements_per_lane * i + partial_chunks
-    
+
     x = max_per_read
     .rept max_per_read
         j = (partial_points1) / x
@@ -234,7 +242,7 @@ adv_perf_param_comb = 0
     active_lanes_in_part2_chunks = 0
     rem_lanes_ful = metachunk_size
 .else
-    
+
     .if( part2_chunks == max_per_read + 1 && part1_chunks == max_per_read + 1)
         adv_perf_param_comb = 1
         x = max_per_read
@@ -257,7 +265,7 @@ adv_perf_param_comb = 0
     static_assert(part2_chunks <= max_per_read)
     static_assert(part1_chunks <= max_per_read)
 
-    
+
     static_assert(part1_chunks + part2_chunks <= max_per_read)
     static_assert(part1_chunks > 0)
 .endif
@@ -287,7 +295,9 @@ part2_offset = part1_chunks * input_w_stride * active_lanes_in_part1_chunks
 .SGPR_ALLOC k_base
 .SGPR_ALLOC n_base
 .SGPR_ALLOC stmp
+.SGPR_ALLOC loop_begin_ptr, 2
 .SGPR_ALLOC wave_id // wave_id in group
+
 .SGPR_RESERVE_XNACK
 
 .VGPR_ALLOC_FROM 0
@@ -301,8 +311,18 @@ part2_offset = part1_chunks * input_w_stride * active_lanes_in_part1_chunks
 .VGPR_ALLOC voffset_ldsw
 accums_cnt = wei_w * wei_h * k_per_gpr * c_mult * k_mult
 .VGPR_ALLOC accums, accums_cnt
-.VGPR_ALLOC lines_in, read_size * c_mult * (data_prefetch + 1)
-.VGPR_ALLOC lines_out, read_size * k_mult * (data_prefetch + 1)
+single_lane_vgpr_offset = read_size
+
+inbuf_prefetch_vgpr_offset = single_lane_vgpr_offset * c_mult
+inbuf_bit_convert_vgpr_offset = inbuf_prefetch_vgpr_offset * (data_prefetch + 1)
+lines_in_cnt = inbuf_bit_convert_vgpr_offset + (bit_convert_mult * inbuf_prefetch_vgpr_offset)
+.VGPR_ALLOC lines_in, lines_in_cnt
+
+outbuf_prefetch_vgpr_offset = single_lane_vgpr_offset * k_mult
+outbuf_bit_convert_vgpr_offset = outbuf_prefetch_vgpr_offset * (data_prefetch + 1)
+lines_out_cnt = outbuf_bit_convert_vgpr_offset + (bit_convert_mult * outbuf_prefetch_vgpr_offset)
+.VGPR_ALLOC lines_out, lines_out_cnt
+
 .VGPR_ALLOC permute_addr
 .VGPR_ALLOC n_id
 .if (madmix_instructions_available == 0 && dot_instructions_available == 0 && fmamix_instructions_available == 0)
@@ -340,7 +360,7 @@ gcnAsmConv1x1WrW:
      workgroup_group_segment_byte_size = .AUTO_LDS_BYTE_SIZE
     .end_amd_kernel_code_t
 
-    .macro mult_acc v_acc, v_base_out, v_base_in, it, cnt
+    .macro mult_acc_fp16 v_acc, v_base_out, v_base_in, it, cnt
     .if( ( (\it * elements_in_dword) + elements_in_dword) <= \cnt)
         .if(dot_instructions_available)
             v_dot2_f32_f16 v[\v_acc], v[\v_base_out], v[\v_base_in], v[\v_acc]
@@ -374,7 +394,19 @@ gcnAsmConv1x1WrW:
         .endif
     .endif
 .endm
-    
+
+    .macro bfp16_fp32_convert bfp16_vgpr_ptr, second_fp32_res_ptr, cnt
+    convert_i = 0
+    .rept \cnt
+        //v_lshlrev_b32 v[\second_fp32_res_ptr + convert_i], 16, v[\bfp16_vgpr_ptr + convert_i]
+        //v_and_b32 v[\bfp16_vgpr_ptr + convert_i], 0 + 0xFFFF0000, v[\bfp16_vgpr_ptr + convert_i]
+        v_and_b32 v[\second_fp32_res_ptr + convert_i], 0 + 0xFFFF0000, v[\bfp16_vgpr_ptr + convert_i]
+        v_lshlrev_b32 v[\bfp16_vgpr_ptr + convert_i], 16, v[\bfp16_vgpr_ptr + convert_i]
+        
+        convert_i = convert_i + 1
+    .endr
+.endm
+
 .macro m_conv_accums elements_cnt, ld_part_id
     rotates_inflight = 0
     k_ds = 0
@@ -382,41 +414,67 @@ gcnAsmConv1x1WrW:
         .exitm
     .endif
 
+    .if(buf_type == TYPE_BFP16 && bfp16_native_support == 0)
+        conv_elements_cnt = \elements_cnt
+        fi_element_ptr = lines_in + (\ld_part_id * inbuf_prefetch_vgpr_offset)
+        bfp16_fp32_convert fi_element_ptr, lines_in + inbuf_bit_convert_vgpr_offset, inbuf_prefetch_vgpr_offset
+        fi_element_ptr = lines_out + (\ld_part_id * outbuf_prefetch_vgpr_offset)
+        bfp16_fp32_convert fi_element_ptr, lines_out + outbuf_bit_convert_vgpr_offset, outbuf_prefetch_vgpr_offset
+    .else
+        conv_elements_cnt = (\elements_cnt + elements_in_dword - 1) / elements_in_dword
+    .endif
+
     .rept k_ds_rotates
         i = 0
-        .rept (\elements_cnt + elements_in_dword - 1) / elements_in_dword
+        .rept conv_elements_cnt
             kx = 0
             .rept k_mult
-                base_out = lines_out + kx * read_size + (\ld_part_id * read_size * k_mult)
-                
+                base_out = lines_out + kx * read_size + (\ld_part_id * outbuf_prefetch_vgpr_offset)
+                .if (buf_type == TYPE_BFP16 && bfp16_native_support == 0)
+                    base_out = base_out - (i % 2) * (\ld_part_id * outbuf_prefetch_vgpr_offset)
+                    base_out = base_out + (i % 2) * outbuf_bit_convert_vgpr_offset + (i / 2)
+                .else
+                    base_out = base_out + i
+                .endif
                 .if k_ds > 0
                     rotates_inflight = rotates_inflight - 1
                     s_wait , rotates_inflight
                 .endif
-                
+
                 k_dpp = 0
                 .rept k_dpp_rotates
                 cx = 0
 
                 .rept c_mult
-                    base_in = lines_in + cx * read_size + (\ld_part_id * read_size * c_mult)
+                    base_in = lines_in + cx * read_size + (\ld_part_id * inbuf_prefetch_vgpr_offset)
                     acc = accums + k_per_gpr * (cx * k_mult + kx) + k_ds * k_dpp_rotates
+                    
+                    .if(buf_type == TYPE_BFP16 && bfp16_native_support == 0)
+                        base_in = base_in - (i % 2) * (\ld_part_id * inbuf_prefetch_vgpr_offset)
+                        base_in = base_in + (i % 2) * inbuf_bit_convert_vgpr_offset + (i / 2)
+                    .else
+                        base_in = base_in + i
+                    .endif
 
-                        .if(elements_in_dword == 2)
-                            mult_acc (acc + k_dpp), (base_out + i), (base_in + i), i, \elements_cnt
-                        .else   //if fp32
-                            .if(k_dpp == 0)
-                                v_mac_f32 v[acc], v[base_out + i], v[base_in + i]
-                            .else
-                                v_mac_f32 v[acc + k_dpp], v[base_out + i], v[base_in + i] row_ror:16*k_dpp/k_dpp_rotates
-                            .endif
+                    .if(elements_in_dword == 2 && ( (buf_type == TYPE_FP16) || (buf_type == TYPE_BFP16 && bfp16_native_support == 1) ))
+                        .if(buf_type == TYPE_FP16)
+                            mult_acc_fp16 (acc + k_dpp), (base_out), (base_in), i, \elements_cnt
+                        .elseif (buf_type == TYPE_BFP16)
+                            mult_acc_bfp16 (acc + k_dpp), (base_out), (base_in), i, \elements_cnt
                         .endif
+                    .else   //if fp32 or converted bfp16
+                        .if(k_dpp == 0)
+                            v_mac_f32 v[acc], v[base_out], v[base_in]
+                        .else
+                            v_mac_f32 v[acc + k_dpp], v[base_out], v[base_in] row_ror:16*k_dpp/k_dpp_rotates
+                        .endif
+                    .endif
                     cx = cx + 1
                 .endr
-                
+
                     k_dpp = k_dpp + 1
-                    .if(elements_in_dword == 2 && k_dpp_rotates > 1)
-                        v_mov_b32 v[base_out + i], v[base_out + i] row_ror:16/k_dpp_rotates
+                    .if(elements_in_dword == 2 && k_dpp_rotates > 1 && madmix_fmamix_with_dpp_available == 0 && buf_type != TYPE_BFP16)
+                        v_mov_b32 v[base_out], v[base_out] row_ror:16/k_dpp_rotates
                         s_nop 1
                     .endif
                 .endr
@@ -424,13 +482,13 @@ gcnAsmConv1x1WrW:
                 .if (k_ds + 1) < k_ds_rotates
                     static_assert (c_quads == 2 || c_quads == 4)
                     .if c_quads == 2
-                        ds_swizzle_b32 v[base_out+i], v[base_out+i] offset:0xc200
+                        ds_swizzle_b32 v[base_out], v[base_out] offset:0xc200
                     .elseif c_quads == 4
-                        ds_bpermute_b32 v[base_out+i], v[permute_addr], v[base_out+i]
+                        ds_bpermute_b32 v[base_out], v[permute_addr], v[base_out]
                     .endif
                     rotates_inflight = rotates_inflight + 1
                 .endif
-                
+
                 kx = kx + 1
             .endr
             i = i + 1
@@ -474,11 +532,11 @@ gcnAsmConv1x1WrW:
     s_load_dwordx2 s[desc_wei:desc_wei+1], s[kernarg:kernarg+1], 0x0 + wei_ptr_off
     s_load_dwordx2 s[desc_out:desc_out+1], s[kernarg:kernarg+1], 0x0 + out_ptr_off
     s_mov_b32 m0, -1
-    
+
     v_readfirstlane_b32 s[wave_id], v[tid]
     s_lshr_b32 s[wave_id], s[wave_id], 0+wave_size_log2
     v_and_b32 v[tid], 0x3f, v[tid]
-    
+
     // calculate input/output offsets
     // example for c_per_gpr=4, k_per_gpr=2, n_per_gpr=1
     // lanes  0-15: c0, k0, n0
@@ -491,61 +549,60 @@ gcnAsmConv1x1WrW:
     v_lshrrev_b32 v[n_id], 0 + wave_size_log2 - n_per_gpr_log2, v[tid]
     v_bfe_u32 v[c_id], v[tid], 0 + chunk_size_log2, 0 + c_per_gpr_log2
     v_bfe_u32 v[k_id], v[tid], 0 + chunk_size_log2 + c_per_gpr_log2 - k_per_gpr_log2, 0 + k_per_gpr_log2
-    
+
     s_mov_b32 s[stmp], 0 + input_c_stride * sequential_c_channels
     v_mul_lo_u32 v[voffset_in], s[stmp], v[c_id]
     s_mov_b32 s[stmp], 0 + input_n_stride
     v_mul_lo_u32 v[vtmp], s[stmp], v[n_id]
     _v_add_nc_u32 v[voffset_in], v[voffset_in], v[vtmp] // c_off + n_off
-    
+
     s_mov_b32 s[stmp], 0 + output_k_stride * sequential_k_channels
     v_mul_lo_u32 v[voffset_out], s[stmp], v[k_id]
     s_mov_b32 s[stmp], 0 + output_n_stride
     v_mul_lo_u32 v[vtmp], s[stmp], v[n_id]
     _v_add_nc_u32 v[voffset_out], v[voffset_out], v[vtmp] // k_off + n_off
-    
+
     vtmp2 = permute_addr
     v_bfe_u32 v[vtmp], v[tid], 0 + chunk_size_log2 + c_per_gpr_log2, 0 + hw_per_gpr_log2 // hw peice id
     v_lshlrev_b32 v[vtmp], 0 + chunk_size_log2, v[vtmp]
     v_and_b32 v[vtmp2], 0 + chunk_size - 1, v[tid] // lane in chunk
     _v_add_nc_u32 v[vtmp2], v[vtmp2], v[vtmp] // lane in metachunk
-    
+
     v_mul_u32_u24 v[vtmp], 0 + input_w_stride * part1_chunks, v[vtmp2]
     _v_add_nc_u32 v[voffset_part1_in],  v[voffset_in], v[vtmp] // +hw_off
     v_mul_u32_u24 v[vtmp], 0 + output_w_stride * part1_chunks, v[vtmp2]
     _v_add_nc_u32 v[voffset_part1_out], v[voffset_out], v[vtmp] // +hw_off
-    
+
     v_mul_u32_u24 v[vtmp], 0 + input_w_stride * part2_chunks, v[vtmp2]
     _v_add_nc_u32 v[voffset_part2_in],  v[voffset_in], v[vtmp] // +hw_off
     v_mul_u32_u24 v[vtmp], 0 + output_w_stride * part2_chunks, v[vtmp2]
     _v_add_nc_u32 v[voffset_part2_out], v[voffset_out], v[vtmp] // +hw_off
-    
+
     v_mul_u32_u24 v[vtmp], 0 + input_w_stride * elements_per_lane, v[vtmp2]
     _v_add_nc_u32 v[voffset_in], v[voffset_in], v[vtmp] // +hw_off
     v_mul_u32_u24 v[vtmp], 0 + output_w_stride * elements_per_lane, v[vtmp2]
     _v_add_nc_u32 v[voffset_out], v[voffset_out], v[vtmp] // +hw_off
-    
+
     s_mul_i32 s[stmp], 0 + 4 * read_size * wave_size, s[wave_id]
-    
 
     // calculate buffer scalar offsets
     s_mul_i32 s[c_base], 0 + c_per_gpr * c_mult, s[gid_y]
     s_mul_i32 s[k_base], 0 + k_per_gpr * k_mult, s[gid_z]
     s_mul_i32 s[n_base], 0 + n_per_gpr, s[wave_id]
-    
+
     s_mul_i32 s[soffset_in], 0 + input_n_stride, s[n_base]
     s_mul_i32 s[stmp], 0 + input_c_stride, s[c_base]
     s_add_u32 s[soffset_in], s[soffset_in], s[stmp]
-    
+
     s_mul_i32 s[soffset_out], 0 + output_n_stride, s[n_base]
     s_mul_i32 s[stmp], 0 + output_k_stride, s[k_base]
     s_add_u32 s[soffset_out], s[soffset_out], s[stmp]
-    
+
     s_mul_i32 s[soffset_wei], 0 + filter_c_stride, s[c_base]
     s_mul_i32 s[stmp], 0 + filter_k_stride, s[k_base]
     s_add_u32 s[soffset_wei], s[soffset_wei], s[stmp]
 
-    
+
     // mask unused lanes
     _v_add_nc_u32 v[c_id], s[c_base], v[c_id]
     _v_add_nc_u32 v[k_id], s[k_base], v[k_id]
@@ -554,12 +611,12 @@ gcnAsmConv1x1WrW:
     v_cndmask_b32_e32 v[voffset_in], -1, v[voffset_in], vcc
     v_cmp_gt_u32 vcc, 0 + output_channels, v[k_id]
     v_cndmask_b32_e32 v[voffset_out], -1, v[voffset_out], vcc
-    
+
     v_mov_b32 v[vtmp], 0x7FFFFFFF
     v_cmp_gt_u32 vcc, 0 + active_lanes_in_full_chunks, v[vtmp2]
     v_cndmask_b32_e32 v[voffset_in],  v[vtmp], v[voffset_in], vcc
     v_cndmask_b32_e32 v[voffset_out], v[vtmp], v[voffset_out], vcc
-    
+
     .if(adv_perf_param_comb)
         v_mov_b32 v[voffset_part2_in],  v[voffset_part1_in]
         v_mov_b32 v[voffset_part2_out],  v[voffset_part1_out]
@@ -572,7 +629,7 @@ gcnAsmConv1x1WrW:
     v_cmp_gt_u32 vcc, 0 + active_lanes_in_part1_chunks, v[vtmp2]
     v_cndmask_b32_e32 v[voffset_part1_in],  v[vtmp], v[voffset_part1_in], vcc
     v_cndmask_b32_e32 v[voffset_part1_out], v[vtmp], v[voffset_part1_out], vcc
-    
+
     v_cmp_eq_u32 vcc, 0 + active_lanes_in_part1_chunks, v[vtmp2]
     s_nop 4
     s_mov_b64 s[bound_lanes_exec:bound_lanes_exec+1], vcc
@@ -581,7 +638,7 @@ gcnAsmConv1x1WrW:
     .GPR_INVALIDATE k_id
     .GPR_INVALIDATE vtmp
     .GPR_INVALIDATE vtmp2
-    
+
     // fill format and size fields of buffer descriptors
     s_mov_b32 s[desc_in+2], input_buffer_size
     s_mov_b32 s[desc_in+3], 0x00027000
@@ -589,29 +646,29 @@ gcnAsmConv1x1WrW:
     s_mov_b32 s[desc_wei+3], 0x00027000
     s_mov_b32 s[desc_out+2], output_buffer_size
     s_mov_b32 s[desc_out+3], 0x00027000
-    
+
     i = 0
     .rept accums_cnt
         v_mov_b32 v[accums+i], 0
         i = i + 1
     .endr
-    
+
     s_waitcnt 0
-    
+
     // calculate buffer offsets
     s_add_u32 s[desc_wei], s[desc_wei], s[soffset_wei]
     s_addc_u32 s[1+desc_wei], 0, s[1+desc_wei]
     s_sub_u32 s[2+desc_wei], s[2+desc_wei], s[soffset_wei]
     s_max_i32 s[2+desc_wei], 0, s[2+desc_wei]
-    
+
     // compute permute_addr
     .if c_quads == 4
         _v_add_nc_u32 v[permute_addr], 0 + wave_size / k_ds_rotates, v[tid]
         v_lshlrev_b32 v[permute_addr], 2, v[permute_addr]
     .endif
-    
+
     s_mov_b32 s[loop_n_cnt], s[n_base]
-    
+
         .macro increase_ioffset_or_soffset i_offset, sgpr, sgpr_offset, rize_vall
         _buff = \i_offset + \rize_vall
         .if(_buff >= (1 << 12))
@@ -619,7 +676,7 @@ gcnAsmConv1x1WrW:
             \i_offset = 0
             \sgpr_offset = \sgpr_offset + _buff
         .else
-            \i_offset = \i_offset + \rize_vall 
+            \i_offset = \i_offset + \rize_vall
         .endif
     .endm
 
@@ -628,7 +685,7 @@ gcnAsmConv1x1WrW:
             sequential_output_channels = sequential_c_channels
             ck_stride = input_c_stride
             mult = c_mult
-            dst = lines_in + \ld_id * read_size * c_mult
+            dst = lines_in + \ld_id * inbuf_prefetch_vgpr_offset
             desc = desc_in
             soff = soffset_in
             adj_size = c_per_gpr * input_c_stride
@@ -636,7 +693,7 @@ gcnAsmConv1x1WrW:
             mult = k_mult
             sequential_output_channels = sequential_k_channels
             ck_stride = output_k_stride
-            dst = lines_out + \ld_id * read_size * k_mult
+            dst = lines_out + \ld_id * outbuf_prefetch_vgpr_offset
             desc = desc_out
             soff = soffset_out
             adj_size = k_per_gpr * output_k_stride
@@ -658,18 +715,18 @@ gcnAsmConv1x1WrW:
                 .if(\dwords1>0)
                     \w_cnt = \w_cnt + 1
                 .endif
-                
+
                 .if(\shorts1 != 0)
                     short_offset = \dwords1 * dword_size
                     m_buffer_load_ushort 1, \dwords1 + dst, \voff1, desc, soff, (_sequential_ck_offset + short_offset)
                     \w_cnt = \w_cnt + 1
                 .else
                     .if(\ex_load)
-                    
+
                         s_mov_b64 exec, s[bound_lanes_exec:bound_lanes_exec+1]
                         bound_dwords_cnt = bound_elements_cnt / elements_in_dword
                         bound_shorts_cnt = bound_elements_cnt % elements_in_dword
-                        
+
                         m_buffer_load_dwordx bound_dwords_cnt, dst, \voff2, desc, soff, _sequential_ck_offset
                         short_offset = bound_dwords_cnt * dword_size
                         m_buffer_load_ushort bound_shorts_cnt, dst + bound_dwords_cnt, \voff2, desc, soff, (_sequential_ck_offset + short_offset)
@@ -700,16 +757,16 @@ gcnAsmConv1x1WrW:
                 _sequential_output_channels_it = _sequential_output_channels_it + 1
             .endr
             .if(_mult_it != (mult - 1))
-                
+
                 s_add_u32 s[soff], s[soff], 0 + adj_size - _seq_ck_offset_in_soffset
                 \total_adj = \total_adj + adj_size
                 _mult_it = _mult_it + 1
             .else
-                \total_adj = \total_adj + _seq_ck_offset_in_soffset 
+                \total_adj = \total_adj + _seq_ck_offset_in_soffset
             .endif
         .endr
     .endm
-    
+
 .if(full_reads > 0 && full_reads < data_prefetch + 1)
     data_prefetch = full_reads - 1
 .endif
@@ -722,8 +779,8 @@ last_free_ld_part = LD_PART_B_ID
 
 
 .macro ld_buffers_inc_pointers_rept_waitcnt chunk_type, ld_part_id, rept_wait_cnt=-1
-     wait_cnt = 0 
-    
+     wait_cnt = 0
+
     .if(\chunk_type == LD_PARTIAL_CHUNKS)
         m_load in,  c_off, part1_dwords, voffset_part1_in, wait_cnt, \ld_part_id, part2_dwords, voffset_part2_in, part1_shorts, part2_shorts, adv_perf_param_comb
         m_load out, k_off, part1_dwords, voffset_part1_out, wait_cnt, \ld_part_id, part2_dwords, voffset_part2_out, part1_shorts, part2_shorts, adv_perf_param_comb
@@ -756,7 +813,7 @@ last_free_ld_part = LD_PART_B_ID
         ld_buffers_inc_pointers_rept_waitcnt LD_FULL_CHUNKS, q_id_data_ld
 
         s_wait \q_wait_cnt
-        
+
         m_conv_accums elements_per_lane, q_id_conv
 
         q_id_conv = ((q_id_conv + 1) % (data_prefetch + 1))
@@ -769,12 +826,13 @@ last_free_ld_part = LD_PART_B_ID
 
     .rept data_prefetch
         \q_wait_cnt = (\q_wait_cnt - \singl_wait_cnt)
-        s_wait \q_wait_cnt  
+        s_wait \q_wait_cnt
         m_conv_accums elements_per_lane, q_id_conv
         q_id_conv = ((q_id_conv + 1) % (data_prefetch + 1))
     .endr
 .endm
 
+S_GETPC_B64 s[loop_begin_ptr:loop_begin_ptr+1]
 loop_n_begin: // loop over batch (n)
     s_mov_b32 s[loop_hw_cnt], 0
 
@@ -784,9 +842,9 @@ loop_n_begin: // loop over batch (n)
     single_wait_vec_load_full = 0
     .if full_reads
         loop_resi = 0
-        
+
         data_prefetch_init_q q_wait_vec_load_full, single_wait_vec_load_full
-        
+
         .if(full_reads >= 2 * data_prefetch + 1)
             loop_hw_begin:
                 data_ld_prefetch_active_loop q_wait_vec_load_full
@@ -804,10 +862,10 @@ loop_n_begin: // loop over batch (n)
             last_free_ld_part = ((LD_PART_B_ID + loop_resi) % (data_prefetch + 1))
         .endif
     .endif
-    
+
     c_off = full_chunks * input_w_stride * active_lanes_in_full_chunks
     k_off = full_chunks * output_w_stride * active_lanes_in_full_chunks
-    .if partial_chunks 
+    .if partial_chunks
         wait_vec_load_part = 0
         part1_dwords = part1_chunks  / elements_in_dword
         part2_dwords = part2_chunks / elements_in_dword
@@ -820,7 +878,7 @@ loop_n_begin: // loop over batch (n)
     .if(full_reads != 0 && data_prefetch != 0)
         data_prefetch_conv_finalizing q_wait_vec_load_full, single_wait_vec_load_full, loop_resi
     .endif
-    
+
     .if(partial_chunks)
         s_wait 0
         m_conv_accums partial_chunks, last_free_ld_part
@@ -833,8 +891,12 @@ loop_n_end:
 
     s_addk_i32 s[loop_n_cnt], 0 + n_per_gpr * n_part_cnt
     s_cmpk_ge_u32 s[loop_n_cnt], 0 + batch_size
-    s_cbranch_scc0 loop_n_begin
-    
+    //s_cbranch_scc0 loop_n_begin
+    s_cbranch_scc1 loop_exit
+
+    s_setpc_b64 s[loop_begin_ptr:loop_begin_ptr+1]
+loop_exit:
+
     // reduction inside chunk
     m_acc_reduction 0, chunk_size_log2
 
@@ -858,9 +920,9 @@ loop_n_end:
             // acc layout [c][n/hw]:
             // c0n0 c0n1 c0n2 ... c1n0 c1n1 c1n2 ...
             s_waitcnt 0 // todo: more later
-            
+
             m_acc_reduction 0, n_per_gpr_log2 + hw_per_gpr_log2
-            
+
             v_lshlrev_b32 v[permute_addr], 2 + n_per_gpr_log2 + hw_per_gpr_log2, v[tid]
             m_bpermute accums, accums_cnt, permute_addr
             s_waitcnt 0 // todo: finally more later
@@ -868,19 +930,19 @@ loop_n_end:
     .endif
 
     s_waitcnt 0
-    
+
     .GPR_REUSE lines_in, lines_in_buffer
     .GPR_REUSE lines_out, lines_in_buffer2
     //used as one
 
     //use LDS to merge waves
     .macro acc_nvgpr_from_lds read_buffer, buffer_start, data_cnt
-        
+
         acum_idx = \buffer_start / (n_part_cnt - 1)
         wave_idx = \buffer_start - acum_idx * (n_part_cnt - 1)
         read_it = 0
 
-        .rept \data_cnt 
+        .rept \data_cnt
             .if (wave_idx >= (n_part_cnt - 1))
                 wave_idx = 0
                 acum_idx = acum_idx + 1
@@ -890,7 +952,7 @@ loop_n_end:
             .endif
 
             v_add_f32 v[accums + acum_idx], v[accums + acum_idx], v[\read_buffer + read_it]
-            
+
             read_it = read_it + 1
             wave_idx = wave_idx + 1
         .endr
@@ -902,9 +964,9 @@ loop_n_end:
 
         s_cmpk_eq_u32 s[wave_id], 0
         s_cbranch_scc1 lds_read_begin
-        
+
         s_sub_u32 s[stmp], s[wave_id], 1
-        
+
         s_mul_i32 s[stmp], 0 + lds_element_stride * lds_read_size * wave_size, s[stmp]
         _v_add_nc_u32 v[voffset_ldsw], s[stmp], v[voffset_ldsw]
 
@@ -917,15 +979,15 @@ loop_n_end:
         s_wait , 0
 
         s_endpgm
-        
+
         lds_read_begin:
-        s_barrier 
-        
+        s_barrier
+
         lines_io_size = read_size * (c_mult + k_mult)
         lines_in_id = 0
         first_element = 0
         lds_acc_off = 0
-        
+
         .rept accums_cnt * (n_part_cnt - 1)
             .if(lines_in_id >= lines_io_size)
                 s_wait , 0
@@ -940,10 +1002,10 @@ loop_n_end:
         s_wait , 0
         acc_nvgpr_from_lds lines_in_buffer, first_element, lines_in_id
     .endif
-    
+
     .GPR_REUSE lines_in_buffer, lines_in
     .GPR_REUSE lines_in_buffer2, lines_out
-    
+
     // STORE
     // prepare output addresses
     .GPR_REUSE voffset_in, voffset_wei
@@ -961,29 +1023,29 @@ loop_n_end:
     v_mul_u32_u24 v[c_off], 0 + filter_c_stride * sequential_c_channels, v[tid]
     v_cmp_gt_i32 vcc, 0 + c_per_gpr, v[tid]
     v_cndmask_b32_e32 v[c_off], v[invalid_addr], v[c_off], vcc
-    
+
     .macro _v_add_nc_u32_ror dst, src0, src1, ror
         .long 0x320000FA + ((\src1) << 9) + ((\dst) << 17)
         .long 0xFF012100 + \src0 + ((\ror - 1) << 8)
     .endm
-    
+
     v_bfe_u32 v[k_off], v[tid], 0 + c_per_gpr_log2 - k_per_gpr_log2, 0 + k_per_gpr_log2
     _v_add_nc_u32 v[k_gid], s[k_base], v[k_off]
     v_mul_u32_u24 v[k_off], 0 + filter_k_stride * sequential_k_channels, v[k_off]
-    
+
     _v_add_nc_u32 v[permute_addr], 0 + wave_size / k_ds_rotates, v[tid]
     v_lshlrev_b32 v[permute_addr], 2, v[permute_addr]
-    
+
     // store accums
     k_ds = 0
     rotates_inflight = 0
     .rept k_ds_rotates
-        
+
         .if k_ds > 0
             rotates_inflight = rotates_inflight - 2
             s_wait , rotates_inflight
         .endif
-        
+
         kx = 0
 
         k_mult_packed_cnt = (k_mult + sequential_k_channels - 1) / sequential_k_channels
@@ -1010,16 +1072,26 @@ loop_n_end:
                     .endif
 
                     acc = accums + k_per_gpr * (cx * k_mult + kx) + k_ds * k_dpp_rotates
-                    .if (acc_type == TYPE_FP32 && buf_type == TYPE_FP16 && !short_store)
+                    .if( (buf_type == TYPE_FP16 || buf_type == TYPE_BFP16) && acc_type == TYPE_FP32)
                         acc2_cx = cx + sequential_c_channels - 1
                         acc2_kx = kx + sequential_k_channels - 1
                         acc2 = accums + k_per_gpr * ( (acc2_cx * k_mult) + acc2_kx) + k_ds * k_dpp_rotates
-                        v_cvt_pkrtz_f16_f32 v[acc+k_dpp], v[acc + k_dpp], v[acc2 + k_dpp]
-                    .elseif(buf_type == TYPE_FP16 && short_store)
-                        v_cvt_f16_f32 v[acc+k_dpp], v[acc + k_dpp]
+                        .if(buf_type == TYPE_FP16)
+                            .if (!short_store)
+                                v_cvt_pkrtz_f16_f32 v[acc+k_dpp], v[acc + k_dpp], v[acc2 + k_dpp]
+                            .else
+                                v_cvt_f16_f32 v[acc+k_dpp], v[acc + k_dpp]
+                            .endif
+                        .else 
+                            v_lshrrev_b32 v[acc + k_dpp], 16, v[acc + k_dpp]
+                            .if (!short_store)
+                                v_and_b32 v[acc2 + k_dpp], 0xFFFF0000, v[acc2 + k_dpp]
+                                v_or_b32 v[acc + k_dpp], v[acc + k_dpp], v[acc2 + k_dpp]
+                            .endif
+                        .endif
                     .endif
                     s_mov_b32 s[stmp], 0 + cx * c_per_gpr * filter_c_stride + kx * k_per_gpr * filter_k_stride
-                    
+
                     .if(short_store)
                         buffer_store_short v[acc+k_dpp], v[voffset_wei], s[desc_wei:desc_wei+3], s[stmp] offen
                     .else
@@ -1033,7 +1105,7 @@ loop_n_end:
             kx = kx + sequential_k_channels
         .endr
         k_ds = k_ds + 1
-        
+
         .if k_ds < k_ds_rotates
             static_assert (c_quads == 2 || c_quads == 4)
             .if c_quads == 2
@@ -1064,31 +1136,7 @@ s_endpgm
 .endif
 .set n_per_group, n_part_cnt
 
-.macro metadata wg_x
-  .if ROCM_METADATA_VERSION == 3
-    .amdgpu_code_object_metadata
-    { Version: [ 3, 0 ],
-        Kernels:
-        - { Name: gcnAsmConv1x1WrW, Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-            Attrs:
-              { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
-            Args:
-            - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: H       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: W       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: K       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: n_groups, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: unused_0, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: unused_1, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-            - { Name: dw      , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
-            - { Name: dy      , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-            - { Name: ret_addr, Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: I32, TypeName: 'int*'  , AddrSpaceQual: Global, AccQual: Default }
-          }
-    }
-    .end_amdgpu_code_object_metadata
-  .endif
+.macro METADATA wg_x, lds_size
   .if ROCM_METADATA_VERSION == 4
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
@@ -1097,7 +1145,7 @@ s_endpgm
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
-              { KernargSegmentSize: 64, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
+              { KernargSegmentSize: 64, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
             Args:
             - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
@@ -1114,23 +1162,17 @@ s_endpgm
           }
     }
     .end_amd_amdgpu_hsa_metadata
+  .else
+    .error "Unsupported ROCM_METADATA_VERSION"
+    .end
   .endif
 .endm
 
-.if n_per_group == 8
-    metadata 512
-.elseif n_per_group == 7
-    metadata 448
-.elseif n_per_group == 6
-    metadata 384
-.elseif n_per_group == 5
-    metadata 320
-.elseif n_per_group == 4
-    metadata 256
-.elseif n_per_group == 3
-    metadata 192
-.elseif n_per_group == 2
-    metadata 128
-.else
-    metadata 64
-.endif
+workgroup_size_x = n_per_group * 64
+
+.altmacro
+.macro METADATA_WRAPPER wg_x, lds_size
+    METADATA %\wg_x, %\lds_size
+.endm
+
+METADATA_WRAPPER workgroup_size_x, .AUTO_LDS_BYTE_SIZE

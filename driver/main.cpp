@@ -36,6 +36,7 @@
 #include "pool_driver.hpp"
 #include "softmax_driver.hpp"
 #include "rnn_driver.hpp"
+#include "ctc_driver.hpp"
 #include "miopen/config.h"
 
 int main(int argc, char* argv[])
@@ -56,6 +57,10 @@ int main(int argc, char* argv[])
     else if(base_arg == "convfp16")
     {
         drv = new ConvDriver<float16, float>();
+    }
+    else if(base_arg == "convbfp16")
+    {
+        drv = new ConvDriver<bfloat16, float>();
     }
     else if(base_arg == "convint8")
     {
@@ -128,6 +133,10 @@ int main(int argc, char* argv[])
     {
         drv = new RNNDriver<float16, double>();
     }
+    else if(base_arg == "ctc")
+    {
+        drv = new CTCDriver<float>();
+    }
     else
     {
         printf("Incorrect BaseArg\n");
@@ -147,7 +156,12 @@ int main(int argc, char* argv[])
 
     if(fargval & 1 || fargval == 0 || bnFwdInVer)
     {
-        drv->RunForwardGPU();
+        int rc = drv->RunForwardGPU();
+        if(rc != 0)
+        {
+            std::cout << "RunForwardGPU() failed, rc = " << rc << std::endl;
+            return rc;
+        }
         if(verifyarg)
             drv->VerifyForward();
     }

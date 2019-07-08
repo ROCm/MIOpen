@@ -27,10 +27,10 @@
 #define GUARD_MIOPEN_DRIVER_HPP
 
 #include "half.hpp"
+
 #include "random.hpp"
 
-using half_float::half;
-typedef half float16;
+using float16 = half_float::half;
 
 #include "InputFlags.hpp"
 #include <algorithm>
@@ -39,22 +39,18 @@ typedef half float16;
 #include <cfloat>
 #include <memory>
 #include <miopen/miopen.h>
+#include <miopen/bfloat16.hpp>
 #include <numeric>
 #include <vector>
 
 #if MIOPEN_BACKEND_OPENCL
-
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/cl.h>
 #else
 #include <CL/cl.h>
 #endif
-
 #elif MIOPEN_BACKEND_HIP
 #include <hip/hip_runtime_api.h>
-
-#define printf(...) fprintf(stdout, __VA_ARGS__)
-
 #endif
 
 #define UNPACK_VEC4(v) (v[0]), (v[1]), (v[2]), (v[3])
@@ -132,8 +128,8 @@ void PadBufferSize(size_t& sz, int datatype_sz)
 {
     printf("Usage: ./driver *base_arg* *other_args*\n");
     printf(
-        "Supported Base Arguments: conv[fp16], CBAInfer[fp16], pool[fp16], lrn[fp16], activ[fp16], "
-        "softmax[fp16], bnorm[fp16], rnn, gemm\n");
+        "Supported Base Arguments: conv[fp16|int8|bfp16], CBAInfer[fp16], pool[fp16], lrn[fp16], "
+        "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm, ctc\n");
     exit(0);
 }
 
@@ -147,11 +143,11 @@ std::string ParseBaseArg(int argc, char* argv[])
 
     std::string arg = argv[1];
 
-    if(arg != "conv" && arg != "convfp16" && arg != "convint8" && arg != "CBAInfer" &&
-       arg != "CBAInferfp16" && arg != "pool" && arg != "poolfp16" && arg != "lrn" &&
-       arg != "lrnfp16" && arg != "activ" && arg != "activfp16" && arg != "softmax" &&
-       arg != "softmaxfp16" && arg != "bnorm" && arg != "bnormfp16" && arg != "rnn" &&
-       arg != "rnnfp16" && arg != "gemm" /*&& arg != "gemmfp16"*/)
+    if(arg != "conv" && arg != "convfp16" && arg != "convint8" && arg != "convbfp16" &&
+       arg != "CBAInfer" && arg != "CBAInferfp16" && arg != "pool" && arg != "poolfp16" &&
+       arg != "lrn" && arg != "lrnfp16" && arg != "activ" && arg != "activfp16" &&
+       arg != "softmax" && arg != "softmaxfp16" && arg != "bnorm" && arg != "bnormfp16" &&
+       arg != "rnn" && arg != "rnnfp16" && arg != "gemm" /*&& arg != "gemmfp16"*/ && arg != "ctc")
 
     {
         printf("Invalid Base Input Argument\n");
@@ -202,6 +198,8 @@ class Driver
     virtual int VerifyBackward()         = 0;
 
     protected:
+    template <typename Tgpu>
+    void InitDataType();
     miopenHandle_t handle;
     miopenDataType_t data_type;
 
@@ -211,6 +209,34 @@ class Driver
     hipStream_t q;
 #endif
 };
+
+template <>
+void Driver::InitDataType<int8_t>()
+{
+    data_type = miopenInt8;
+}
+template <>
+void Driver::InitDataType<float>()
+{
+    data_type = miopenFloat;
+}
+template <>
+void Driver::InitDataType<float16>()
+{
+    data_type = miopenHalf;
+}
+template <>
+void Driver::InitDataType<bfloat16>()
+{
+    data_type = miopenBFloat16;
+}
+// "std::is_same<Tgpu, float>{}" used to avoid "static_assert" compilation error,
+// which occurs when the condition does not depend in any way on the template parameters.
+template <typename Tgpu>
+void Driver::InitDataType()
+{
+    static_assert(std::is_same<Tgpu, float>{}, "unsupported Tgpu");
+}
 
 template <typename T>
 std::ostream& operator<<(std::ostream& os, const std::vector<T>& vs)

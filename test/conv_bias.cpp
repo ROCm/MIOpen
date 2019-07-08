@@ -102,6 +102,18 @@ struct conv_bias_driver : test_driver
 
         tensor<T> bias(bias_lens);
 
+        size_t total_mem =
+            bias.desc.GetNumBytes() + output.desc.GetNumBytes(); // estimate based on backward pass
+        size_t device_mem = get_handle().GetGlobalMemorySize();
+        if(total_mem >= device_mem)
+        {
+            show_command();
+            std::cout << "Config requires " << total_mem
+                      << " Bytes to write all necessary tensors to GPU. GPU has " << device_mem
+                      << " Bytes of memory." << std::endl;
+            return;
+        }
+
         verify(verify_backwards_bias<T>{output, bias});
     }
 };

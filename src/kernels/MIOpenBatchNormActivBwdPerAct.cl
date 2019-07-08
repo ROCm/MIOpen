@@ -23,85 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#define PPCAT_NX(A, B) A##B
-#define PPCAT(A, B) PPCAT_NX(A, B)
-#define TWO 2
-#define FOUR 4
-#define EIGHT 8
-
-#if(MIOPEN_USE_FP16 == 1 && MIOPEN_USE_FPMIX == 0)
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
-#define _FLOAT half
-#define _FLOAT_PREC half
-#ifndef HALF_MAX
-#define MAX_VAL 65504 /* max value */
-#else
-#define MAX_VAL HALF_MAX
-#endif
-#define EPSILON (_FLOAT_PREC)0.0001
-#elif(MIOPEN_USE_FP32 == 1 && MIOPEN_USE_FPMIX == 0)
-#define _FLOAT float
-#define _FLOAT_PREC float
-#ifndef FLT_MAX
-#define MAX_VAL 3.402823466e+38F /* max value */
-#else
-#define MAX_VAL FLT_MAX
-#endif
-#define EPSILON (_FLOAT)0.000001
-#elif MIOPEN_USE_FPMIX == 1
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
-#define _FLOAT half
-#define _FLOAT_PREC float
-#define EPSILON (_FLOAT)0.000001
-#endif
-
-#define _FLOAT2 PPCAT(_FLOAT, TWO)
-#define _FLOAT4 PPCAT(_FLOAT, FOUR)
-#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
-#define _AS_FLOAT PPCAT(as_, _FLOAT)
-#define UNUSED __attribute__((__unused__))
-
-#ifndef MIO_BN_LDS_SIZE
-#define MIO_BN_LDS_SIZE 1
-#endif
-
-#ifndef MIO_BN_C
-#define MIO_BN_C 1
-#endif
-
-#ifndef MIO_BN_N
-#define MIO_BN_N 1
-#endif
-
-#ifndef MIO_BN_NHW
-#define MIO_BN_NHW 1
-#endif
-
-#ifndef MIO_BN_CHW
-#define MIO_BN_CHW 1
-#endif
-
-#ifndef MIO_BN_INHW
-#define MIO_BN_INHW 1
-#endif
-
-#ifndef MIO_BN_HW
-#define MIO_BN_HW 1
-#endif
-
-#ifndef MIO_BN_NCHW
-#define MIO_BN_NCHW 1
-#endif
-
-#ifndef MIO_BN_NODPP
-#define MIO_BN_NODPP 0
-#elif(MIO_BN_NODPP == 1)
-#undef __AMDGCN__
-#endif
-
-/*#ifdef __AMDGCN__
-#undef __AMDGCN__
-#endif*/
 
 // Disable specific warnings
 
@@ -112,7 +33,13 @@
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
+/*#ifdef __AMDGCN__
+#undef __AMDGCN__
+#endif*/
+
+#include "batchnorm_functions.h"
 #include "activation_functions.h"
+#include "reduction_functions.h"
 
 __kernel void
 MIOpenBatchNormActivBwdPerActivation(const __global _FLOAT* __restrict x_in,
@@ -150,6 +77,10 @@ MIOpenBatchNormActivBwdPerActivation(const __global _FLOAT* __restrict x_in,
     _FLOAT_PREC tmp1, tmp2, tmp3;
     _FLOAT_PREC dxhat    = (_FLOAT_PREC)0.;
     _FLOAT_PREC dxhathat = (_FLOAT_PREC)0.;
+    _FLOAT_PREC bn_dyin  = (_FLOAT_PREC)0.;
+    _FLOAT_PREC act_dyin = (_FLOAT_PREC)0.;
+    _FLOAT_PREC act_out  = (_FLOAT_PREC)0.;
+    _FLOAT_PREC bn_out   = (_FLOAT_PREC)0.;
 
     // move across the sections of an image in the mini_batch stack
     for(int img_offset = 0; img_offset < MIO_BN_HW; img_offset += yglb_sz)
@@ -172,13 +103,11 @@ MIOpenBatchNormActivBwdPerActivation(const __global _FLOAT* __restrict x_in,
             for(int n = 0; n < MIO_BN_N; n++)
             {
                 // per (x-dims) channel load a block of data into LDS
-                index = MIO_BN_CHW * n + adjIndex;
-                xhat  = ((_FLOAT_PREC)(*(x_in + index)) - mean) * invVar;
-                // dyelem = dy_in[index];
-                _FLOAT_PREC act_dyin = *(dy_in + index);
-                _FLOAT_PREC act_out  = *(y_in + index);
-                _FLOAT_PREC bn_out   = mad(xhat, pvt_scale, pvt_bias);
-                _FLOAT_PREC bn_dyin;
+                index    = MIO_BN_CHW * n + adjIndex;
+                xhat     = ((_FLOAT_PREC)(*(x_in + index)) - mean) * invVar;
+                act_dyin = *(dy_in + index);
+                act_out  = *(y_in + index);
+                bn_out   = mad(xhat, pvt_scale, pvt_bias);
                 ActivationFunction_Diff(
                     1, &bn_dyin, &act_dyin, &bn_out, &act_out, diff_scale, gamma, beta, alpha);
 #if MIO_BN_CBA_WRITE_INTERMEDIATE
@@ -186,7 +115,6 @@ MIOpenBatchNormActivBwdPerActivation(const __global _FLOAT* __restrict x_in,
                 bn_out_dev[index]  = bn_out;
                 bn_dyin_dev[index] = bn_dyin;
 #endif
-
                 dyelem = bn_dyin;
                 pvt_dbias += dyelem;
                 pvt_dscale = mad(xhat, dyelem, pvt_dscale);
@@ -197,10 +125,15 @@ MIOpenBatchNormActivBwdPerActivation(const __global _FLOAT* __restrict x_in,
 
             for(int n = 0; n < MIO_BN_N; n++)
             {
-                index         = MIO_BN_CHW * n + adjIndex;
-                xhat          = ((_FLOAT_PREC)(*(x_in + index)) - mean) * invVar;
-                tmp1          = mad(xhat, dxhathat, dxhat);
-                tmp2          = mad((_FLOAT_PREC)MIO_BN_N, dxhat, -tmp1);
+                index    = MIO_BN_CHW * n + adjIndex;
+                xhat     = ((_FLOAT_PREC)(*(x_in + index)) - mean) * invVar;
+                tmp1     = mad(xhat, dxhathat, dxhat);
+                bn_out   = mad(xhat, pvt_scale, pvt_bias);
+                act_dyin = *(dy_in + index);
+                act_out  = *(y_in + index);
+                ActivationFunction_Diff(
+                    1, &bn_dyin, &act_dyin, &bn_out, &act_out, diff_scale, gamma, beta, alpha);
+                tmp2          = mad((_FLOAT_PREC)MIO_BN_N, bn_dyin * pvt_scale, -tmp1);
                 tmp3          = invVar / ((_FLOAT_PREC)MIO_BN_N);
                 dx_out[index] = (_FLOAT)(tmp3 * tmp2);
             }

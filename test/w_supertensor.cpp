@@ -506,6 +506,7 @@ struct superTensorTest : test_driver
 
     superTensorTest()
     {
+        disabled_cache = true;
         miopenCreateRNNDescriptor(&rnnDesc);
 
         dataType = miopenFloat;

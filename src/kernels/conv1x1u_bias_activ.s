@@ -1132,31 +1132,7 @@ s_endpgm
 .end
 .endif
 
-.macro metadata_conv wg_x
-  .if ROCM_METADATA_VERSION == 3
-    .amdgpu_code_object_metadata
-    { Version: [ 3, 0 ],
-        Kernels:
-        - { Name: gcnAsmConv1x1U, Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-            Attrs:
-              { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
-            Args:
-            - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: H       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: W       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: K       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: n_groups, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: unused_0, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: unused_1, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-            - { Name: w       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-            - { Name: y       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
-            - { Name: ret_addr, Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: I32, TypeName: 'int*'  , AddrSpaceQual: Global, AccQual: Default }
-          }
-    }
-    .end_amdgpu_code_object_metadata
-  .endif
+.macro metadata_conv wg_x, lds_size
   .if ROCM_METADATA_VERSION == 4
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
@@ -1165,7 +1141,7 @@ s_endpgm
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
-              { KernargSegmentSize: 64, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
+              { KernargSegmentSize: 64, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
             Args:
             - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
@@ -1182,30 +1158,13 @@ s_endpgm
           }
     }
     .end_amd_amdgpu_hsa_metadata
+  .else
+    .error "Unsupported ROCM_METADATA_VERSION"
+    .end
   .endif
 .endm
 
-.macro metadata_conv_bias_activ_half wg_x
-  .if ROCM_METADATA_VERSION == 3
-    .amdgpu_code_object_metadata
-    { Version: [ 3, 0 ],
-        Kernels:
-        - { Name: gcnAsmConv1x1U, Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-            Attrs:
-              { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
-            Args:
-            - { Name: alpha   , Size: 2, Align: 2, ValueKind: ByValue, ValueType: F16, TypeName: 'float16', AccQual: Default, IsConst: true }
-            - { Name: beta    , Size: 2, Align: 2, ValueKind: ByValue, ValueType: F16, TypeName: 'float16', AccQual: Default, IsConst: true }
-            - { Name: gamma   , Size: 2, Align: 2, ValueKind: ByValue, ValueType: F16, TypeName: 'float16', AccQual: Default, IsConst: true }
-            - { Name: unused  , Size: 2, Align: 2, ValueKind: ByValue, ValueType: F16, TypeName: 'float16', AccQual: Default, IsConst: true }
-            - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-            - { Name: y       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
-            - { Name: w       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-            - { Name: bias    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'float16*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-          }
-    }
-    .end_amdgpu_code_object_metadata
-  .endif
+.macro metadata_conv_bias_activ_half wg_x, lds_size
   .if ROCM_METADATA_VERSION == 4
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
@@ -1214,7 +1173,7 @@ s_endpgm
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
-              { KernargSegmentSize: 40, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
+              { KernargSegmentSize: 40, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
             Args:
             - { Name: alpha   , Size: 2, Align: 2, ValueKind: ByValue, ValueType: F16, TypeName: 'float16', AccQual: Default, IsConst: true }
             - { Name: beta    , Size: 2, Align: 2, ValueKind: ByValue, ValueType: F16, TypeName: 'float16', AccQual: Default, IsConst: true }
@@ -1227,30 +1186,13 @@ s_endpgm
           }
     }
     .end_amd_amdgpu_hsa_metadata
+  .else
+    .error "Unsupported ROCM_METADATA_VERSION"
+    .end
   .endif
 .endm
 
-.macro metadata_conv_bias_activ_float wg_x
-  .if ROCM_METADATA_VERSION == 3
-    .amdgpu_code_object_metadata
-    { Version: [ 3, 0 ],
-        Kernels:
-        - { Name: gcnAsmConv1x1U, Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-            Attrs:
-              { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
-            Args:
-            - { Name: alpha   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
-            - { Name: beta    , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
-            - { Name: gamma   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
-            - { Name: unused  , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
-            - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-            - { Name: y       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
-            - { Name: w       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-            - { Name: bias    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-          }
-    }
-    .end_amdgpu_code_object_metadata
-  .endif
+.macro metadata_conv_bias_activ_float wg_x, lds_size
   .if ROCM_METADATA_VERSION == 4
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
@@ -1259,7 +1201,7 @@ s_endpgm
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
-              { KernargSegmentSize: 48, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
+              { KernargSegmentSize: 48, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
             Args:
             - { Name: alpha   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
             - { Name: beta    , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
@@ -1272,29 +1214,13 @@ s_endpgm
           }
     }
     .end_amd_amdgpu_hsa_metadata
+  .else
+    .error "Unsupported ROCM_METADATA_VERSION"
+    .end
   .endif
 .endm
 
-.macro metadata_conv_activ_float wg_x
-  .if ROCM_METADATA_VERSION == 3
-    .amdgpu_code_object_metadata
-    { Version: [ 3, 0 ],
-        Kernels:
-        - { Name: gcnAsmConv1x1U, Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-            Attrs:
-              { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
-            Args:
-            - { Name: alpha   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
-            - { Name: beta    , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
-            - { Name: gamma   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
-            - { Name: unused  , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
-            - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-            - { Name: y       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
-            - { Name: w       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-          }
-    }
-    .end_amdgpu_code_object_metadata
-  .endif
+.macro metadata_conv_activ_float wg_x, lds_size
   .if ROCM_METADATA_VERSION == 4
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
@@ -1303,7 +1229,7 @@ s_endpgm
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
-              { KernargSegmentSize: 40, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
+              { KernargSegmentSize: 40, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
             Args:
             - { Name: alpha   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
             - { Name: beta    , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
@@ -1315,29 +1241,13 @@ s_endpgm
           }
     }
     .end_amd_amdgpu_hsa_metadata
+  .else
+    .error "Unsupported ROCM_METADATA_VERSION"
+    .end
   .endif
 .endm
 
-.macro metadata_conv_activ_half wg_x
-  .if ROCM_METADATA_VERSION == 3
-    .amdgpu_code_object_metadata
-    { Version: [ 3, 0 ],
-        Kernels:
-        - { Name: gcnAsmConv1x1U, Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-            Attrs:
-              { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
-            Args:
-            - { Name: alpha   , Size: 2, Align: 2, ValueKind: ByValue, ValueType: F16, TypeName: 'float16', AccQual: Default, IsConst: true }
-            - { Name: beta    , Size: 2, Align: 2, ValueKind: ByValue, ValueType: F16, TypeName: 'float16', AccQual: Default, IsConst: true }
-            - { Name: gamma   , Size: 2, Align: 2, ValueKind: ByValue, ValueType: F16, TypeName: 'float16', AccQual: Default, IsConst: true }
-            - { Name: unused  , Size: 2, Align: 2, ValueKind: ByValue, ValueType: F16, TypeName: 'float16', AccQual: Default, IsConst: true }
-            - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-            - { Name: y       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
-            - { Name: w       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-          }
-    }
-    .end_amdgpu_code_object_metadata
-  .endif
+.macro metadata_conv_activ_half wg_x, lds_size
   .if ROCM_METADATA_VERSION == 4
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
@@ -1346,7 +1256,7 @@ s_endpgm
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
-              { KernargSegmentSize: 32, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
+              { KernargSegmentSize: 32, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
             Args:
             - { Name: alpha   , Size: 2, Align: 2, ValueKind: ByValue, ValueType: F16, TypeName: 'float16', AccQual: Default, IsConst: true }
             - { Name: beta    , Size: 2, Align: 2, ValueKind: ByValue, ValueType: F16, TypeName: 'float16', AccQual: Default, IsConst: true }
@@ -1358,26 +1268,13 @@ s_endpgm
           }
     }
     .end_amd_amdgpu_hsa_metadata
+  .else
+    .error "Unsupported ROCM_METADATA_VERSION"
+    .end
   .endif
 .endm
 
-.macro metadata_conv_bias wg_x
-  .if ROCM_METADATA_VERSION == 3
-    .amdgpu_code_object_metadata
-    { Version: [ 3, 0 ],
-        Kernels:
-        - { Name: gcnAsmConv1x1U, Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-            Attrs:
-              { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
-            Args:
-            - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-            - { Name: y       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
-            - { Name: w       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-            - { Name: bias    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-          }
-    }
-    .end_amdgpu_code_object_metadata
-  .endif
+.macro metadata_conv_bias wg_x, lds_size
   .if ROCM_METADATA_VERSION == 4
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
@@ -1386,7 +1283,7 @@ s_endpgm
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
-              { KernargSegmentSize: 32, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
+              { KernargSegmentSize: 32, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
             Args:
             - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
             - { Name: y       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
@@ -1395,65 +1292,42 @@ s_endpgm
           }
     }
     .end_amd_amdgpu_hsa_metadata
+  .else
+    .error "Unsupported ROCM_METADATA_VERSION"
+    .end
   .endif
 .endm
 
-.macro metadata wg_x
+.macro METADATA wg_x, lds_size
   .if fusion_mode
     .if bias_mode && enable_activ
 		.if elements_in_dword == 2
-            metadata_conv_bias_activ_half \wg_x
+            metadata_conv_bias_activ_half \wg_x, \lds_size
         .else
-            metadata_conv_bias_activ_float \wg_x
+            metadata_conv_bias_activ_float \wg_x, \lds_size
         .endif
     .elseif bias_mode
-        metadata_conv_bias \wg_x
+        metadata_conv_bias \wg_x, \lds_size
     .elseif enable_activ
 		.if elements_in_dword == 2
-            metadata_conv_activ_half \wg_x
+            metadata_conv_activ_half \wg_x, \lds_size
         .else
-            metadata_conv_activ_float \wg_x
+            metadata_conv_activ_float \wg_x, \lds_size
         .endif
     .else
-        metadata_conv \wg_x
+        metadata_conv \wg_x, \lds_size
     .endif
   .else
-    metadata_conv \wg_x
+    metadata_conv \wg_x, \lds_size
   .endif
 .endm
 
 waves_in_group = waves_c_in_group * waves_k_in_group
+workgroup_size_x = waves_in_group * 64
 
-.if waves_in_group == 16
-    metadata 1024
-.elseif waves_in_group == 15
-    metadata 960
-.elseif waves_in_group == 14
-    metadata 896
-.elseif waves_in_group == 13
-    metadata 832
-.elseif waves_in_group == 12
-    metadata 768
-.elseif waves_in_group == 11
-    metadata 704
-.elseif waves_in_group == 10
-    metadata 640
-.elseif waves_in_group == 9
-    metadata 576
-.elseif waves_in_group == 8
-    metadata 512
-.elseif waves_in_group == 7
-    metadata 448
-.elseif waves_in_group == 6
-    metadata 384
-.elseif waves_in_group == 5
-    metadata 320
-.elseif waves_in_group == 4
-    metadata 256
-.elseif waves_in_group == 3
-    metadata 192
-.elseif waves_in_group == 2
-    metadata 128
-.else
-    metadata 64
-.endif
+.altmacro
+.macro METADATA_WRAPPER wg_x, lds_size
+    METADATA %\wg_x, %\lds_size
+.endm
+
+METADATA_WRAPPER workgroup_size_x, .AUTO_LDS_BYTE_SIZE

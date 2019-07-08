@@ -698,8 +698,9 @@ MIOpenConvUniBatchNormActiv(
     uint out_off = (b_index + stack) * MLO_OUT_BATCH_STRIDE + o_map * MLO_OUT_CHANNEL_STRIDE +
                    (y_out_grp + y_out_lcl) * MLO_OUT_STRIDE + x_out_grp + x_out_lcl;
 
-    _FLOAT conv_res;
-    _FLOAT bn_res;
+    _FLOAT conv_res   = 0.;
+    _FLOAT bn_res     = 0.;
+    _FLOAT output_res = 0.;
 #ifdef MIOPEN_YES_ACTIV
     _FLOAT actv_res;
 #endif
@@ -773,21 +774,25 @@ MIOpenConvUniBatchNormActiv(
                                 + conv_bias[o_map + o]
 #endif
                                 ;
+
 #ifdef NO_BN
                             bn_res = conv_res;
 #else
-                                bn_res = pscale * (conv_res - pmean) * pinvVariance + pbias;
-// bn_res  = mad(pscale, (conv_res - pmean) * pinvVariance, pbias);
+                                bn_res     = pscale * (conv_res - pmean) * pinvVariance + pbias;
 #endif
-#ifdef MIOPEN_NRN_OP_ID
+
+#if(MIOPEN_NRN_OP_ID > 0)
 #ifdef MIOPEN_YES_ACTIV
                             ActivationFunction(
                                 1, &actv_res, (const _FLOAT*)&bn_res, gamma, beta, alpha);
-                            out[out_off2 + i] = actv_res;
+                            output_res = actv_res;
+
 #endif
+
 #else
-                                out[out_off2 + i] = bn_res;
+                                output_res = bn_res;
 #endif
+                            out[out_off2 + i] = output_res;
                         }
                     }
                 }

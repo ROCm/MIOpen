@@ -31,17 +31,16 @@
 
 #include <cstdlib>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DB_PATH)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_SYSTEM_DB_PATH)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_USER_DB_PATH)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_DB_PATH)
 
 namespace miopen {
 
-std::string GetDbPath()
+std::string GetSystemDbPath()
 {
-    auto p = GetStringEnv(MIOPEN_DB_PATH{});
+    auto p = GetStringEnv(MIOPEN_SYSTEM_DB_PATH{});
     if(p == nullptr)
-        return "${MIOPEN_DB_PATH}";
+        return "${MIOPEN_SYSTEM_DB_PATH}";
     else
         return p;
 }
@@ -54,26 +53,15 @@ std::string PrepareUserDbPath()
         p = "${MIOPEN_USER_DB_PATH}";
     return ExpandUser(p);
 }
-
-std::string PrepareFindDbPath()
-{
-    auto p = GetStringEnv(MIOPEN_FIND_DB_PATH{});
-    if(p == nullptr)
-        p = "${MIOPEN_FIND_DB_PATH}";
-
-    return ExpandUser(p);
-}
 } // namespace
+
+std::string GetUserFindDbSuffix() { return "${MIOPEN_USER_FIND_DB_SUFFIX}"; }
+
+std::string GetSystemFindDbSuffix() { return "${MIOPEN_SYSTEM_FIND_DB_SUFFIX}"; }
 
 const std::string& GetUserDbPath()
 {
     static const auto instance = PrepareUserDbPath();
-    return instance;
-}
-
-const std::string& GetFindDbPath()
-{
-    static const auto instance = PrepareFindDbPath();
     return instance;
 }
 
