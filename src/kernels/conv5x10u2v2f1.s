@@ -1,19 +1,19 @@
 /*******************************************************************************
- * 
+ *
  * MIT License
- * 
+ *
  * Copyright (c) 2017 Advanced Micro Devices, Inc.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,7 +21,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  *******************************************************************************/
 /*
  * Convolution Kernel for 5x10 kernel with stride equal to 2 (i.e., -x 10 -y 5 -u 2 -v 2)
@@ -1204,87 +1204,37 @@ skip_write:
 .error "ROCM_METADATA_VERSION must be defined"
 .endif
 .if ROCM_METADATA_VERSION == 4
-.amd_amdgpu_hsa_metadata
-{ Version: [ 1, 0 ],
-    Kernels:
-    - { Name: conv5x10u2v2f1, SymbolName: 'conv5x10u2v2f1@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-        Attrs:
-          { ReqdWorkGroupSize: [ 64, 8, 1 ] }
-        CodeProps:
-          { KernargSegmentSize: 56, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 256 }
-        Args:
-        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: in,          AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: weights,     AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: out,         AddrSpaceQual: Global, AccQual: Default }
-        - { Size: 4, Align: 4, ValueKind: ByValue,      ValueType: F32, TypeName:  float,   Name: padding_val,                        AccQual: Default }
-        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetX, ValueType: I64 }
-        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetY, ValueType: I64 }
-        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetZ, ValueType: I64 }
-      }
-}
-.end_amd_amdgpu_hsa_metadata
+.macro METADATA lds_size
+    .amd_amdgpu_hsa_metadata
+    { Version: [ 1, 0 ],
+        Kernels:
+        - { Name: conv5x10u2v2f1, SymbolName: 'conv5x10u2v2f1@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+            Attrs:
+              { ReqdWorkGroupSize: [ 64, 8, 1 ] }
+            CodeProps:
+              { KernargSegmentSize: 56, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 256 }
+            Args:
+            - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: in,          AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+            - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: weights,     AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+            - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: out,         AddrSpaceQual: Global, AccQual: Default }
+            - { Size: 4, Align: 4, ValueKind: ByValue,      ValueType: F32, TypeName:  float,   Name: padding_val,                        AccQual: Default }
+            - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetX, ValueType: I64 }
+            - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetY, ValueType: I64 }
+            - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetZ, ValueType: I64 }
+          }
+    }
+    .end_amd_amdgpu_hsa_metadata
+.endm
+
+.altmacro
+.macro METADATA_WRAPPER lds_size
+    METADATA %\lds_size
+.endm
+
+METADATA_WRAPPER LDS_SIZE
+
+.else
+  .error "Unsupported ROCM_METADATA_VERSION"
+  .end
 .endif
-.if ROCM_METADATA_VERSION == 3
-.amdgpu_code_object_metadata
-{ Version: [ 3, 0 ],
-    Kernels:
-    - { Name: conv5x10u2v2f1, Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-        Attrs:
-          { ReqdWorkGroupSize: [ 64, 8, 1 ] }
-        Args:
-        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: in,          AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: weights,     AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: out,         AddrSpaceQual: Global, AccQual: Default }
-        - { Size: 4, Align: 4, ValueKind: ByValue,      ValueType: F32, TypeName:  float,   Name: padding_val,                        AccQual: Default }
-        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetX, ValueType: I64 }
-        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetY, ValueType: I64 }
-        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetZ, ValueType: I64 }
-      }
-}
-.end_amdgpu_code_object_metadata
-.endif
-.if ROCM_METADATA_VERSION == 2
-.amdgpu_runtime_metadata
-{ amd.MDVersion: [ 2, 1 ],
-    amd.Kernels:
-    - { amd.KernelName: conv5x10u2v2f1, amd.Language: OpenCL C, amd.LanguageVersion: [ 1, 2 ],
-        amd.ReqdWorkGroupSize: [ 64, 8, 1 ], 
-        amd.Args:
-        - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: in,          amd.ArgAddrQual: 1, amd.ArgAccQual: 0, amd.ArgIsConst: 1 }
-        - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: weights,     amd.ArgAddrQual: 1, amd.ArgAccQual: 0, amd.ArgIsConst: 1 }
-        - { amd.ArgSize: 8, amd.ArgAlign: 8, amd.ArgKind: 1, amd.ArgValueType: 8, amd.ArgTypeName: 'float*', amd.ArgName: out,         amd.ArgAddrQual: 1, amd.ArgAccQual: 0 }
-        - { amd.ArgSize: 4, amd.ArgAlign: 4, amd.ArgKind: 0, amd.ArgValueType: 8, amd.ArgTypeName:  float,   amd.ArgName: padding_val,                     amd.ArgAccQual: 0 }
-      }
-}
-.end_amdgpu_runtime_metadata
-.endif
-.if ROCM_METADATA_VERSION == 1
-.section .note
-    // old ROCm metadata
-    .long 4
-    .long .Lmeta_end - .Lmeta_begin
-    .long 7
-    .asciz "AMD"
-    .p2align 2
-    .Lmeta_begin:
-    .long  0x02010001, 0x00780300
-    .short 0x0604, 14, 0
-    .ascii "conv5x10u2v2f1"
-    .long  0x00080907, 0x080a0000, 0x0b000000, 0x00000006
-    .long  0x616f6c66, 0x030c2a74, 0x69000000, 0x010d706e
-    .long  0x1000080e, 0x08010f00, 0x00080907, 0x080a0000
-    .long  0x0b000000, 0x00000006, 0x616f6c66, 0x070c2a74
-    .long  0x77000000, 0x68676965, 0x010d7374, 0x1000080e
-    .long  0x08010f00, 0x00080907, 0x080a0000, 0x0b000000
-    .long  0x00000006, 0x616f6c66, 0x030c2a74, 0x6f000000
-    .long  0x010d7475, 0x1000080e, 0x08010f00, 0x00040907
-    .long  0x040a0000, 0x0b000000, 0x00000005, 0x616f6c66
-    .long  0x000b0c74, 0x61700000, 0x6e696464, 0x61765f67
-    .long  0x0e000d6c, 0x00100008, 0x08090708, 0x0a000000
-    .long  0x00000008, 0x090e070d, 0x09070800, 0x00000008
-    .long  0x0000080a, 0x0e080d00, 0x07080009, 0x00000809
-    .long  0x00080a00, 0x090d0000, 0x0800090e, 0x00004015
-    .long  0x00000800, 0x00000100, 0x00000500
-    .Lmeta_end:
-    .p2align 2
-.endif
+

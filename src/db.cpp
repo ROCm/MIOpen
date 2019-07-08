@@ -45,7 +45,6 @@
 #include <mutex>
 #include <shared_mutex>
 #include <string>
-#include "include/miopen/db.hpp"
 
 namespace miopen {
 
@@ -151,7 +150,7 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
         pos->end   = -1;
     }
 
-    MIOPEN_LOG_I2("Looking for key: " << key);
+    MIOPEN_LOG_I2("Looking for key " << key << " in file " << filename);
 
     std::ifstream file(filename);
 
@@ -160,7 +159,7 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
         if(warn_if_unreadable)
             MIOPEN_LOG_W("File is unreadable: " << filename);
         else
-            MIOPEN_LOG_I("File is unreadable: " << filename);
+            MIOPEN_LOG_I2("File is unreadable: " << filename);
 
         return boost::none;
     }

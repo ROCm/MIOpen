@@ -57,9 +57,10 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 1.8.1)
+rocm_setup_version(VERSION 2.0.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
+include(TargetFlags)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.3")
@@ -87,25 +88,35 @@ else()
     set(WINE_CMD)
 endif()
 
+list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/hcc /opt/rocm/hip)
+
 option(ENABLE_HIP_WORKAROUNDS Off)
-if(ENABLE_HIP_WORKAROUNDS)
-    # Add these to CMAKE_PREFIX_PATH to workaround installation problems with hip and hcc
-    list(APPEND CMAKE_PREFIX_PATH /opt/rocm/hcc /opt/rocm/hip)
-endif()
 
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
     OpenCL HIP HIPOC )
+
+# HIP is always required
+find_package(hip REQUIRED PATHS /opt/rocm)
+target_flags(HIP_COMPILER_FLAGS hip::device)
+
+message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
+
+add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
+
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set(MIOPEN_BACKEND_OPENCL 1)
     find_package( OpenCL REQUIRED )
+    find_program(HIP_COMPILER hcc
+        PATH_SUFFIXES bin
+        PATHS /opt/rocm
+    )
 endif()
 
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
-    list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/hip /opt/rocm/hcc)
     set(MIOPEN_BACKEND_HIP 1)
     find_program(HIP_OC_COMPILER clang-ocl
         PATH_SUFFIXES bin
@@ -117,7 +128,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     else()
         message(FATAL_ERROR "clang-ocl not found")
     endif()
-    find_package(hip REQUIRED)
+    
     link_libraries(stdc++)
 
     # A hack to make this work without the device enumerator
@@ -127,6 +138,9 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
         link_libraries(-amdgpu-target=gfx906)
     endif()
     # end hack
+
+    set(HIP_COMPILER ${CMAKE_CXX_COMPILER} CACHE PATH "")
+
 
     # rocblas
     set(MIOPEN_USE_ROCBLAS ON CACHE BOOL "")
@@ -138,6 +152,17 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     endif()
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
+# look for and register extractkernel
+find_program(EXTRACTKERNEL_BIN extractkernel
+    PATH_SUFFIXES bin
+    PATHS /opt/rocm
+)
+if(EXTRACTKERNEL_BIN)
+    message(STATUS "extractkernel found: ${EXTRACTKERNEL_BIN}")
+    set(EXTRACTKERNEL_BIN "${EXTRACTKERNEL_BIN}")
+else()
+    message(FATAL_ERROR "extractkernel not found")
+endif()
 
 # Online assembler
 find_program(MIOPEN_AMDGCN_ASSEMBLER
@@ -169,23 +194,25 @@ option( BUILD_SHARED_LIBS "Build as a shared library" ON )
 
 option( BUILD_DEV "Build for development only" OFF)
 
+option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" OFF)
+
 set( MIOPEN_INSTALL_DIR miopen)
 set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen )
 
 set(MIOPEN_GPU_SYNC Off CACHE BOOL "")
 if(BUILD_DEV)
     set(MIOPEN_BUILD_DEV 1)
-    set(MIOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/kernels" CACHE PATH "Default path to search for installed db")
-    set(MIOPEN_USER_DB_PATH "${CMAKE_SOURCE_DIR}/src/kernels" CACHE PATH "Default path to search for user db")
-    set(MIOPEN_FIND_DB_PATH "${CMAKE_SOURCE_DIR}/src/kernels" CACHE PATH "Default path to search for find db")
+    set(MIOPEN_SYSTEM_DB_PATH "${CMAKE_SOURCE_DIR}/src/kernels" CACHE PATH "Default path of system db files")
+    set(MIOPEN_USER_DB_PATH "${CMAKE_SOURCE_DIR}/src/kernels" CACHE PATH "Default path of user db files")
     set(MIOPEN_CACHE_DIR "" CACHE STRING "")
 else()
     set(MIOPEN_BUILD_DEV 0)
-    set(MIOPEN_DB_PATH "${CMAKE_INSTALL_PREFIX}/${DATA_INSTALL_DIR}/db" CACHE PATH "Default path to search for installed db")
-    set(MIOPEN_USER_DB_PATH "~/.config/miopen/" CACHE STRING "Default path to search for user db")
-    set(MIOPEN_FIND_DB_PATH "~/.config/miopen/" CACHE STRING "Default path to search for find db")
+    set(MIOPEN_SYSTEM_DB_PATH "${CMAKE_INSTALL_PREFIX}/${DATA_INSTALL_DIR}/db" CACHE PATH "Default path of system db files")
+    set(MIOPEN_USER_DB_PATH "~/.config/miopen/" CACHE STRING "Default path of user db files")
     set(MIOPEN_CACHE_DIR "~/.cache/miopen/" CACHE STRING "")
 endif()
+set(MIOPEN_USER_FIND_DB_SUFFIX "${MIOPEN_BACKEND}.${MIOpen_VERSION_MAJOR}_${MIOpen_VERSION_MINOR}_${MIOpen_VERSION_PATCH}" CACHE PATH "Filename suffix for the user find-db files")
+set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix for the system find-db files")
 
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "rocm-opencl-dev, rocm-utils, hip_hcc, miopengemm")
 set(CPACK_RPM_PACKAGE_REQUIRES "rocm-opencl-devel, rocm-utils, hip_hcc, miopengemm")
@@ -266,7 +293,7 @@ enable_clang_tidy(
         -cert-msc32-c
         -cert-msc51-cpp
         -bugprone-exception-escape
-        
+
         ${CLANG_TIDY_CHECKS}
     ERRORS
         *
@@ -294,6 +321,9 @@ enable_cppcheck(
         useInitializationList:*test/*.cpp
         *:*.cl
         *:*src/kernels/*.h
+        knownConditionTrueFalse:*src/kernels/composable_kernel/*/*
+        wrongPrintfScanfArgNum:*src/kernels/composable_kernel/*/*
+        unusedScopedObject:*src/kernels/composable_kernel/*/*
     FORCE
     SOURCES
         addkernels/

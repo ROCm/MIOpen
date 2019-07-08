@@ -75,7 +75,7 @@ extern "C" miopenStatus_t miopenFusionPlanGetOp(miopenFusionPlanDescriptor_t fus
 extern "C" miopenStatus_t miopenCompileFusionPlan(miopenHandle_t handle,
                                                   miopenFusionPlanDescriptor_t fusePlanDesc)
 {
-    MIOPEN_LOG_FUNCTION(/*handle,*/ fusePlanDesc);
+    MIOPEN_LOG_FUNCTION(handle, fusePlanDesc);
     miopenStatus_t res = miopenStatusUnknownError;
     miopen::try_([&] { res = miopen::deref(fusePlanDesc).Compile(miopen::deref(handle)); });
     return res;
@@ -87,7 +87,7 @@ miopenFusionPlanGetWorkSpaceSize(miopenHandle_t handle,
                                  size_t* workSpaceSize,
                                  miopenConvFwdAlgorithm_t algo)
 {
-    MIOPEN_LOG_FUNCTION(fusePlanDesc, workSpaceSize);
+    MIOPEN_LOG_FUNCTION(handle, fusePlanDesc, workSpaceSize);
     miopenStatus_t res = miopenStatusUnknownError;
     miopen::try_([&] {
         size_t sz;
@@ -430,7 +430,7 @@ extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenHandle_t handle,
                                                   void* output,
                                                   miopenOperatorArgs_t args)
 {
-    MIOPEN_LOG_FUNCTION(fusePlanDesc, inputDesc, input, outputDesc, output, args);
+    MIOPEN_LOG_FUNCTION(handle, fusePlanDesc, inputDesc, input, outputDesc, output, args);
     return miopen::try_([&] {
 
         miopen::deref(fusePlanDesc)

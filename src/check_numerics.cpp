@@ -34,9 +34,9 @@ namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_CHECK_NUMERICS)
 
-int CheckNumericsEnabled(int bitMask)
+bool CheckNumericsEnabled(const int bitMask)
 {
-    return static_cast<int>((miopen::Value(MIOPEN_CHECK_NUMERICS{}))) & bitMask;
+    return (miopen::Value(MIOPEN_CHECK_NUMERICS{}) & bitMask) != 0;
 }
 
 // Must keep this structure synchronized with one in MIOpenCheckNumerics

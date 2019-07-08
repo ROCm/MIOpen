@@ -28,9 +28,10 @@
 #include <miopen/miopengemm.hpp>
 #include <miopen/float_equal.hpp>
 
+#if MIOPEN_USE_MIOPENGEMM
+
 #define MIOPENGEMM_CPP_DEBUG 0
 
-#if MIOPEN_USE_MIOPENGEMM
 namespace miopen {
 
 // so that MIOpen works whether or not recent MIOpenGEMM changes pulled:

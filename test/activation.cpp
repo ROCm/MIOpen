@@ -193,6 +193,7 @@ struct activation_driver : test_driver
 
     activation_driver()
     {
+        disabled_cache = true;
         add_mode(miopenActivationPASTHRU,
                  [=](double x) { return x; },
                  [=](double dy, double, double) { return dy; });
@@ -260,7 +261,24 @@ struct activation_driver : test_driver
         return miopen::RemovePrefix(miopen::ToUpper(s), "MIOPENACTIVATION");
     }
 
-    void run() { lookup[transform_mode(mode)](); }
+    void run()
+    {
+
+        std::size_t n, c, h, w;
+        std::tie(n, c, h, w) = miopen::tien<4>(input.desc.GetLengths());
+        size_t total_mem  = 4 * input.desc.GetNumBytes(); // estimate based on backward pass
+        size_t device_mem = get_handle().GetGlobalMemorySize();
+        if(total_mem >= device_mem)
+        {
+            show_command();
+            std::cout << "Config requires " << total_mem
+                      << " Bytes to write all necessary tensors to GPU. GPU has " << device_mem
+                      << " Bytes of memory." << std::endl;
+            return;
+        }
+
+        lookup[transform_mode(mode)]();
+    }
 
     template <class Forward, class Backward>
     void run(miopenActivationMode_t m, Forward f, Backward b)

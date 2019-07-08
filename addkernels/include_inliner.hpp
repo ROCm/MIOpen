@@ -121,7 +121,8 @@ class IncludeInliner
                  const std::string& root,
                  const std::string& file_name,
                  const std::string& directive,
-                 bool allow_angle_brackets);
+                 bool allow_angle_brackets,
+                 bool recurse);
     std::string GetIncludeStackTrace(int line);
 
     private:
@@ -134,7 +135,8 @@ class IncludeInliner
                      const std::string& file_name,
                      int line_number,
                      const std::string& directive,
-                     bool allow_angle_brackets);
+                     bool allow_angle_brackets,
+                     bool recurse);
 };
 
 #endif // !SOURCE_INLINER_HPP

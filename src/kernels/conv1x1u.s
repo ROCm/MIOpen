@@ -228,10 +228,10 @@ double_lds = 0
 raw_filter_dword_k_cnt = 1
 .if(weights_layout == 0)
     static_assert ((hi_c_per_wave * vec_c_in) % c_mult == 0 && (last_wave_hi_c_per_wave * vec_c_in )% c_mult == 0)
-    
+
     filter_c_gpr_stride = 1
-    filter_k_gpr_stride = c_mult / elements_in_dword 
-    sequential_read_size= c_mult / elements_in_dword 
+    filter_k_gpr_stride = c_mult / elements_in_dword
+    sequential_read_size= c_mult / elements_in_dword
     sequential_read_stride = filter_k_stride
     sequential_reads_cnt = k_mult
     static_assert(c_mult % vec_c_filter == 0)
@@ -298,7 +298,7 @@ raw_filter_dword_k_cnt = 1
 max_waves_per_CU = (256 / .AUTO_VGPR_COUNT) * 4
 static_assert( max_waves_per_CU >= waves_c_in_group * waves_k_in_group)
 
-.macro get_rcp reg, val 
+.macro get_rcp reg, val
    .if \val == 1
       s_mov_b32 s[\reg], 1.0
    .elseif \val == 2
@@ -361,12 +361,12 @@ gcnAsmConv1x1U:
     //wave_k_id = wave_id / waves_c_in_group
     v_cvt_f32_u32 v[vtmp], v[vtmp]
     get_rcp stmp, waves_c_in_group
-    v_mul_f32 v[vtmp], v[vtmp], s[stmp] 
+    v_mul_f32 v[vtmp], v[vtmp], s[stmp]
     v_cvt_u32_f32 v[vtmp], v[vtmp]
     v_readfirstlane_b32 s[wave_k_id], v[vtmp]
     // wave_c_id = wave_id % waves_c_in_group
     s_mul_i32 s[stmp], s[wave_k_id], waves_c_in_group
-    s_sub_i32 s[wave_c_id], s[wave_c_id], s[stmp] 
+    s_sub_i32 s[wave_c_id], s[wave_c_id], s[stmp]
     v_and_b32 v[tid], 0x3f, v[tid]
 
     // calculate input/output offsets
@@ -401,7 +401,7 @@ gcnAsmConv1x1U:
     s_mul_i32 s[soffset_wei], s[gid_k], 0 + k_mult * filter_k_stride * waves_k_in_group
     s_mul_i32 s[stmp], s[wave_k_id], 0 + k_mult * filter_k_stride
     s_add_u32 s[soffset_wei], s[soffset_wei], s[stmp]
-    
+
     static_assert(vec_c_in == vec_c_filter)
     s_mul_i32 s[stmp], s[wave_c_id], 0 + hi_c_per_wave * filter_c_stride
     s_add_u32 s[soffset_wei], s[soffset_wei], s[stmp]
@@ -470,7 +470,7 @@ gcnAsmConv1x1U:
                 s_cmpk_le_i32 s[loop_cnt], 0 + c_it
                 s_cmov_b32 s[stmp_offset], 0 + invalid_addr_lit
 
-                ld_it = 0 
+                ld_it = 0
                 imm_off = 0
                 current_read_cnt = read_size
                 rem_ibase = ibase
@@ -485,12 +485,12 @@ gcnAsmConv1x1U:
                     //TODO change step size
                 .endr
                 .if elements_in_dword == 2 && rem_hw_in
-                
+
                     chunk_id = img_hw / (chunks_per_wave)
                     rem_dword_id = (img_hw % (chunks_per_wave)) / input_dword_chunks_cnt
                     rem_ibase = rem_ibase + rem_dword_id
                     v_cmpx_eq_i32 vcc, 0 + chunk_id * (chunks_per_wave), v[current_hw_in]
-                    
+
                     m_buffer_load_ushort 1,  rem_ibase, voffset_in, desc_in, stmp_offset, rem_dword_id * 4
                     s_mov_b32 exec_lo, active_mask_lo
                     s_mov_b32 exec_hi, active_mask_hi
@@ -529,7 +529,7 @@ gcnAsmConv1x1U:
 	.macro exch_filter filter_c0, filter_c1, tmp0, tmp1
         static_assert(\filter_c0 != \filter_c1 && \filter_c0 != \tmp0 && \filter_c1 != \tmp0)
         .if s_pack_instructions_available
-            s_mov_b32         s[\tmp0],       s[\filter_c0] 
+            s_mov_b32         s[\tmp0],       s[\filter_c0]
             s_pack_ll_b32_b16 s[\filter_c0],  s[\filter_c0],  s[\filter_c1]
             s_pack_hh_b32_b16 s[\filter_c1],  s[stmp_offset], s[\filter_c1]
         .else
@@ -541,7 +541,7 @@ gcnAsmConv1x1U:
             s_and_b32  s[\filter_c1], s[\filter_c1], 0xffff0000
             s_or_b32   s[\filter_c1], s[\filter_c1], s[\tmp1]
         .endif
-    .endm    
+    .endm
 
     //repack input across channels
     .macro trans_input ibase
@@ -607,7 +607,7 @@ gcnAsmConv1x1U:
                         k_hi = (k / raw_filter_dword_k_cnt) * k_hi_gpr_stride
                         k_gpr_filter = k_lo + k_hi
 
-                        c_gpr_filter = c_hi * c_hi_ftrans_gpr_stride 
+                        c_gpr_filter = c_hi * c_hi_ftrans_gpr_stride
                         f_gpr = \fbase + k_gpr_filter + c_gpr_filter
 
                         c_gpr_inp = c_hi * c_hi_intrans_gpr_stride
@@ -714,7 +714,7 @@ gcnAsmConv1x1U:
 
     load_input inputA
     load_filters filtersA, sequential_read_size, sequential_reads_cnt, sequential_read_stride
-    
+
     // zeroing accums
     i = 0
     .rept accums_cnt
@@ -786,7 +786,7 @@ loop_end:
             s_barrier
             sync_loop = sync_loop + 1
         .endr
-        
+
         s_endpgm
 last_wave:
         acc_id = 0
@@ -905,12 +905,12 @@ last_wave:
 
     // store output
     .GPR_REUSE stmp_offset, current_k
-        
+
     s_mul_i32 s[current_k], s[gid_k], 0 + k_mult * waves_k_in_group / vec_k_out
     s_mul_i32 s[stmp], s[wave_k_id], 0 + k_mult / vec_k_out
     s_add_u32 s[current_k], s[current_k], s[stmp]
 
-    
+
     .if(!rem_hw_in)
         .GPR_REUSE inputA, current_hw
         v_and_b32 v[current_hw], 0 + chunk_size - 1, v[tid]
@@ -920,7 +920,7 @@ last_wave:
     .else
         .GPR_REUSE current_hw_in, current_hw
     .endif
-    .macro store_result 
+    .macro store_result
         rem_hw_out = (img_h * img_w) % output_dword_chunks_cnt
         k = 0
         .rept k_mult / vec_k_out
@@ -942,10 +942,10 @@ last_wave:
                     //TODO add support for int8
                     s_mov_b32 exec_lo, active_mask_lo
                     s_mov_b32 exec_hi, active_mask_hi
-                    
+
                     chunk_id = img_hw / (chunks_per_wave)
-                    
-                    v_cmpx_eq_i32 vcc, 0 + chunk_id * chunks_per_wave, v[current_hw] 
+
+                    v_cmpx_eq_i32 vcc, 0 + chunk_id * chunks_per_wave, v[current_hw]
 
                     last_dword = (img_hw % chunks_per_wave) / output_dword_chunks_cnt
                     get_acc_idx acc, vec_k_out * k, nb, last_dword * output_dword_chunks_cnt
@@ -961,8 +961,8 @@ last_wave:
             k = k + 1
         .endr
     .endm
-    
-    store_result 
+
+    store_result
 
 s_endpgm
 
@@ -974,31 +974,7 @@ s_endpgm
 .end
 .endif
 
-.macro metadata wg_x
-  .if ROCM_METADATA_VERSION == 3
-    .amdgpu_code_object_metadata
-    { Version: [ 3, 0 ],
-        Kernels:
-        - { Name: gcnAsmConv1x1U, Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-            Attrs:
-              { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
-            Args:
-            - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: H       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: W       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: K       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: n_groups, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: unused_0, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: unused_1, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-            - { Name: w       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-            - { Name: y       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
-            - { Name: ret_addr, Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: I32, TypeName: 'int*'  , AddrSpaceQual: Global, AccQual: Default }
-          }
-    }
-    .end_amdgpu_code_object_metadata
-  .endif
+.macro METADATA wg_x, lds_size
   .if ROCM_METADATA_VERSION == 4
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
@@ -1007,7 +983,7 @@ s_endpgm
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
-              { KernargSegmentSize: 64, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
+              { KernargSegmentSize: 64, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
             Args:
             - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
@@ -1024,41 +1000,18 @@ s_endpgm
           }
     }
     .end_amd_amdgpu_hsa_metadata
+  .else
+    .error "Unsupported ROCM_METADATA_VERSION"
+    .end
   .endif
 .endm
 
 waves_in_group = waves_c_in_group * waves_k_in_group
+workgroup_size_x = waves_in_group * 64
 
-.if waves_in_group == 16
-    metadata 1024
-.elseif waves_in_group == 15
-    metadata 960
-.elseif waves_in_group == 14
-    metadata 896
-.elseif waves_in_group == 13
-    metadata 832
-.elseif waves_in_group == 12
-    metadata 768
-.elseif waves_in_group == 11
-    metadata 704
-.elseif waves_in_group == 10
-    metadata 640
-.elseif waves_in_group == 9
-    metadata 576
-.elseif waves_in_group == 8
-    metadata 512
-.elseif waves_in_group == 7
-    metadata 448
-.elseif waves_in_group == 6
-    metadata 384
-.elseif waves_in_group == 5
-    metadata 320
-.elseif waves_in_group == 4
-    metadata 256
-.elseif waves_in_group == 3
-    metadata 192
-.elseif waves_in_group == 2
-    metadata 128
-.else
-    metadata 64
-.endif
+.altmacro
+.macro METADATA_WRAPPER wg_x, lds_size
+    METADATA %\wg_x, %\lds_size
+.endm
+
+METADATA_WRAPPER workgroup_size_x, .AUTO_LDS_BYTE_SIZE

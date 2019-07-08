@@ -137,8 +137,11 @@ bool KernelCache::HasKernels(const std::string& algorithm, const std::string& ne
     if(it == kernel_map.end())
         return false;
 
-    assert(!it->second.empty() &&
-           "There should be at least one kernel in kernel cache if an entry exists");
+    if(it->second.empty())
+    {
+        MIOPEN_THROW("There should be at least one kernel in kernel cache if an entry exists");
+    }
+
     return true;
 }
 
@@ -150,7 +153,9 @@ Kernel KernelCache::AddKernel(Handle& h,
                               const std::vector<size_t>& vld,
                               const std::vector<size_t>& vgd,
                               std::string params,
-                              std::size_t cache_index)
+                              std::size_t cache_index,
+                              bool is_kernel_miopengemm_str,
+                              const std::string& kernel_src)
 {
     if(params.length() > 0)
     {
@@ -175,17 +180,21 @@ Kernel KernelCache::AddKernel(Handle& h,
     }
     else
     {
-        const bool is_kernel_str = algorithm.find("GEMM") != std::string::npos;
+        if(!is_kernel_miopengemm_str) // default value
+            is_kernel_miopengemm_str = algorithm.find("ImplicitGEMM") == std::string::npos &&
+                                       algorithm.find("GEMM") != std::string::npos;
+
         if(miopen::IsLogging(miopen::LoggingLevel::Info2))
         {
-            AddKernelDumpKernelParams(is_kernel_str ? std::string("(source provided by gemm)")
-                                                    : program_name,
+            AddKernelDumpKernelParams(is_kernel_miopengemm_str
+                                          ? std::string("(source provided by miopengemm)")
+                                          : program_name,
                                       kernel_name,
                                       vld,
                                       vgd,
                                       params);
         }
-        program = h.LoadProgram(program_name, params, is_kernel_str);
+        program = h.LoadProgram(program_name, params, is_kernel_miopengemm_str, kernel_src);
         program_map[std::make_pair(program_name, params)] = program;
     }
     Kernel kernel{program, kernel_name, vld, vgd};
@@ -208,7 +217,10 @@ void KernelCache::AddKernel(Key key, Kernel k, std::size_t cache_index)
 
 void KernelCache::ClearKernels(const std::string& algorithm, const std::string& network_config)
 {
-    assert(!network_config.empty() && !algorithm.empty());
+    if(network_config.empty() || algorithm.empty())
+    {
+        MIOPEN_THROW("Network config or algorithm empty.");
+    }
     const std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
     auto&& v = this->kernel_map[key];
     if(!v.empty())

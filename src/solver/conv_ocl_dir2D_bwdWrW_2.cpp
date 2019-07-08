@@ -24,9 +24,12 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
-#include "miopen/mlo_utils.hpp"
+#include <miopen/solver.hpp>
+
+#include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
+#include <miopen/bfloat16.hpp>
+#include <miopen/mlo_utils.hpp>
 #include <algorithm>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_OCL_WRW2_SEARCH_OPTIMIZED)
@@ -135,7 +138,7 @@ static bool IsTunable(const ConvolutionContext& params)
 
 bool ConvOclBwdWrW2NonTunable::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!(params.IsFp32() || params.IsFp16()))
+    if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
 
     // At present, auto-tuning is disabled for non-group 3x3 and 1x1 filters for multiple
@@ -499,7 +502,7 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& p
 template <int N_BATCH_LOOPS>
 bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!params.IsFp32() && !params.IsFp16())
+    if(!params.IsFp32() && !params.IsFp16() && !params.IsBfp16())
         return false;
 
     return IsTunable(params) && IsApplicableBase(params);
@@ -722,10 +725,10 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
 template <int N_BATCH_LOOPS>
 template <typename Tgpu>
 int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolutionImpl(miopen::Handle& profile_h,
-                                                             Data_t bot_ocl_buf,
-                                                             Data_t top_ocl_buf,
+                                                             ConstData_t bot_ocl_buf,
+                                                             ConstData_t top_ocl_buf,
                                                              Data_t wei_ocl_buf,
-                                                             Data_t bias_ocl_buf,
+                                                             ConstData_t bias_ocl_buf,
                                                              const ConvolutionContext&,
                                                              const ConvSolution& solution,
                                                              float& elapsed_time) const
@@ -769,10 +772,10 @@ int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolutionImpl(miopen::Handle& pro
 
 template <int N_BATCH_LOOPS>
 int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                                         Data_t bot_ocl_buf,
-                                                         Data_t top_ocl_buf,
+                                                         ConstData_t bot_ocl_buf,
+                                                         ConstData_t top_ocl_buf,
                                                          Data_t wei_ocl_buf,
-                                                         Data_t bias_ocl_buf,
+                                                         ConstData_t bias_ocl_buf,
                                                          const ConvolutionContext& context,
                                                          const ConvSolution& solution,
                                                          float& elapsed_time) const
@@ -795,6 +798,15 @@ int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolution(miopen::Handle& profile
                                                 context,
                                                 solution,
                                                 elapsed_time);
+    else if(context.IsBfp16())
+        return RunAndMeasureSolutionImpl<bfloat16>(profile_h,
+                                                   bot_ocl_buf,
+                                                   top_ocl_buf,
+                                                   wei_ocl_buf,
+                                                   bias_ocl_buf,
+                                                   context,
+                                                   solution,
+                                                   elapsed_time);
     else
     {
         MIOPEN_THROW("Unsupported float_size");
@@ -806,9 +818,9 @@ PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
 ConvOclBwdWrW2<N_BATCH_LOOPS>::Search(const ConvolutionContext& context) const
 {
     if(GetNBatchBlks<N_BATCH_LOOPS>(context) > 1)
-        return GenericSearch(*this, context, SearchTweak::OverrideWeightBufferSizeByWorkspaceSize);
+        return GenericSearchWrW(*this, context, SearchTweak::WorkspaceInsteadOfWeightsBuffer);
     else
-        return GenericSearch(*this, context);
+        return GenericSearchWrW(*this, context);
 }
 
 /// We need to instantiate required classes implicitly.

@@ -24,83 +24,6 @@
  *
  *******************************************************************************/
 
-#define PPCAT_NX(A, B) A##B
-#define PPCAT(A, B) PPCAT_NX(A, B)
-#define TWO 2
-#define FOUR 4
-#define EIGHT 8
-
-#if MIOPEN_USE_FP16 == 1
-#define MIO_BN_NODPP 1
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
-#define _FLOAT half
-#define _FLOAT_PREC half
-#ifndef HALF_MAX
-#define MAX_VAL 65504 /* max value */
-#else
-#define MAX_VAL HALF_MAX
-#endif
-#endif
-#if MIOPEN_USE_FP32 == 1
-#define _FLOAT float
-#define _FLOAT_PREC float
-#ifndef FLT_MAX
-#define MAX_VAL 3.402823466e+38F /* max value */
-#else
-#define MAX_VAL FLT_MAX
-#endif
-#endif
-#if MIOPEN_USE_FPMIX == 1
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
-#define _FLOAT half
-#define _FLOAT_PREC float
-/*
-#ifndef HALF_MAX
-#define MAX_VAL 65504
-#else
-#define MAX_VAL HALF_MAX
-#endif
-*/
-#endif
-
-#define _FLOAT2 PPCAT(_FLOAT, TWO)
-#define _FLOAT4 PPCAT(_FLOAT, FOUR)
-#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
-
-#ifndef MIO_BN_LDS_SIZE
-#define MIO_BN_LDS_SIZE 1
-#endif
-
-#ifndef MIO_BN_C
-#define MIO_BN_C 1
-#endif
-
-#ifndef MIO_BN_N
-#define MIO_BN_N 1
-#endif
-
-#ifndef MIO_BN_NHW
-#define MIO_BN_NHW 1
-#endif
-
-#ifndef MIO_BN_CHW
-#define MIO_BN_CHW 1
-#endif
-
-#ifndef MIO_BN_INHW
-#define MIO_BN_INHW 1
-#endif
-
-#ifndef MIO_BN_HW
-#define MIO_BN_HW 1
-#endif
-
-#ifndef MIO_BN_NODPP
-#define MIO_BN_NODPP 0
-#elif(MIO_BN_NODPP == 1)
-#undef __AMDGCN__
-#endif
-
 // Disable specific warnings
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -108,6 +31,8 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
+
+#include "batchnorm_functions.h"
 
 __kernel void MIOpenBatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
                                                    const __global _FLOAT* dy_in,
@@ -153,6 +78,7 @@ __kernel void MIOpenBatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
             dxhat      = (_FLOAT_PREC)0.;
             dxhathat   = (_FLOAT_PREC)0.;
 
+#pragma unroll
             for(int n = 0; n < N; n++)
             {
                 // per (x-dims) channel load a block of data into LDS
@@ -166,12 +92,13 @@ __kernel void MIOpenBatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
                 dxhathat = mad(tmp1, xhat, dxhathat);
             } // end for(n)
 
+#pragma unroll
             for(int n = 0; n < N; n++)
             {
                 index         = in_nstride * n + adjIndex;
                 xhat          = ((_FLOAT_PREC)(*(x_in + index)) - mean) * invVar;
                 tmp1          = mad(xhat, dxhathat, dxhat);
-                tmp2          = mad((_FLOAT_PREC)N, dxhat, -tmp1);
+                tmp2          = mad((_FLOAT_PREC)N, dy_in[index] * pvt_scale, -tmp1);
                 tmp3          = invVar / ((_FLOAT_PREC)N);
                 dx_out[index] = (_FLOAT)(tmp3 * tmp2);
             }
@@ -243,7 +170,6 @@ __kernel void MIOpenBatchNormBwdPerActivation(const __global _FLOAT* x_in,
             dxhat      = (_FLOAT_PREC)0.;
             dxhathat   = (_FLOAT_PREC)0.;
 
-#pragma unroll
             for(int n = 0; n < MIO_BN_N; n++)
             {
                 // per (x-dims) channel load a block of data into LDS
@@ -257,13 +183,12 @@ __kernel void MIOpenBatchNormBwdPerActivation(const __global _FLOAT* x_in,
                 dxhathat = mad(tmp1, xhat, dxhathat);
             } // end for(n)
 
-#pragma unroll
             for(int n = 0; n < MIO_BN_N; n++)
             {
                 index         = in_nstride * n + adjIndex;
                 xhat          = ((_FLOAT_PREC)(*(x_in + index)) - mean) * invVar;
                 tmp1          = mad(xhat, dxhathat, dxhat);
-                tmp2          = mad((_FLOAT_PREC)N, dxhat, -tmp1);
+                tmp2          = mad((_FLOAT_PREC)N, dy_in[index] * pvt_scale, -tmp1);
                 tmp3          = invVar / ((_FLOAT_PREC)N);
                 dx_out[index] = (_FLOAT)(tmp3 * tmp2);
             }

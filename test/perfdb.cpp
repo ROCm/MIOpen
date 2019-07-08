@@ -965,12 +965,16 @@ class DbMultiFileTest : public DbTest
     }
 };
 
+template <bool merge_records>
 class DbMultiFileReadTest : public DbMultiFileTest
 {
     public:
     void Run() const
     {
-        std::cout << "Running multifile read test..." << std::endl;
+        std::cout << "Running multifile read test";
+        if(merge_records)
+            std::cout << " with merge";
+        std::cout << "..." << std::endl;
 
         ResetDb();
         MergedAndMissing();
@@ -988,7 +992,7 @@ class DbMultiFileReadTest : public DbMultiFileTest
     private:
     static const std::array<std::pair<const char*, TestData>, 1>& single_item_data()
     {
-        static const std::array<std::pair<const char*, TestData>, 1> data{{{id0(), value0()}}};
+        static const std::array<std::pair<const char*, TestData>, 1> data{{{id0(), value2()}}};
 
         return data;
     }
@@ -996,9 +1000,17 @@ class DbMultiFileReadTest : public DbMultiFileTest
     void MergedAndMissing() const
     {
         RawWrite(temp_file, key(), common_data());
+        RawWrite(user_db_path, key(), single_item_data());
 
-        MultiFileDb db(temp_file, user_db_path);
-        ValidateSingleEntry(key(), common_data(), db);
+        static const std::array<std::pair<const char*, TestData>, 2> merged_data{{
+            {id1(), value1()}, {id0(), value2()},
+        }};
+
+        MultiFileDb<Db, Db, merge_records> db(temp_file, user_db_path);
+        if(merge_records)
+            ValidateSingleEntry(key(), merged_data, db);
+        else
+            ValidateSingleEntry(key(), single_item_data(), db);
 
         const TestData invalid_key(100, 200);
         auto record1 = db.FindRecord(invalid_key);
@@ -1008,13 +1020,15 @@ class DbMultiFileReadTest : public DbMultiFileTest
     void ReadUser() const
     {
         RawWrite(user_db_path, key(), single_item_data());
-        ValidateSingleEntry(key(), single_item_data(), MultiFileDb(temp_file, user_db_path));
+        ValidateSingleEntry(
+            key(), single_item_data(), MultiFileDb<Db, Db, merge_records>(temp_file, user_db_path));
     }
 
     void ReadInstalled() const
     {
         RawWrite(temp_file, key(), single_item_data());
-        ValidateSingleEntry(key(), single_item_data(), MultiFileDb(temp_file, user_db_path));
+        ValidateSingleEntry(
+            key(), single_item_data(), MultiFileDb<Db, Db, merge_records>(temp_file, user_db_path));
     }
 
     void ReadConflict() const
@@ -1038,7 +1052,7 @@ class DbMultiFileWriteTest : public DbMultiFileTest
         EXPECT(record.SetValues(id1(), value1()));
 
         {
-            MultiFileDb db(temp_file, user_db_path);
+            MultiFileDb<Db, Db, true> db(temp_file, user_db_path);
 
             EXPECT(db.StoreRecord(record));
         }
@@ -1047,7 +1061,8 @@ class DbMultiFileWriteTest : public DbMultiFileTest
         EXPECT(!std::getline(std::ifstream(temp_file), read).good());
         EXPECT(std::getline(std::ifstream(user_db_path), read).good());
 
-        ValidateSingleEntry(key(), common_data(), MultiFileDb(temp_file, user_db_path));
+        ValidateSingleEntry(
+            key(), common_data(), MultiFileDb<Db, Db, true>(temp_file, user_db_path));
     }
 };
 
@@ -1083,7 +1098,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
         std::cout << "Update test..." << std::endl;
 
         {
-            MultiFileDb db(temp_file, user_db_path);
+            MultiFileDb<Db, Db, true> db(temp_file, user_db_path);
             EXPECT(db.Update(key(), id1(), value1()));
         }
 
@@ -1105,7 +1120,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
     {
         std::cout << "Load test..." << std::endl;
 
-        MultiFileDb db(temp_file, user_db_path);
+        MultiFileDb<Db, Db, true> db(temp_file, user_db_path);
         ValidateData(db, value1());
     }
 
@@ -1113,7 +1128,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
     {
         std::cout << "Remove test..." << std::endl;
 
-        MultiFileDb db(temp_file, user_db_path);
+        MultiFileDb<Db, Db, true> db(temp_file, user_db_path);
         EXPECT(!db.Remove(key(), id0()));
         EXPECT(db.Remove(key(), id1()));
 
@@ -1124,7 +1139,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
     {
         std::cout << "Remove record test..." << std::endl;
 
-        MultiFileDb db(temp_file, user_db_path);
+        MultiFileDb<Db, Db, true> db(temp_file, user_db_path);
         EXPECT(db.Update(key(), id1(), value1()));
         EXPECT(db.RemoveRecord(key()));
 
@@ -1155,7 +1170,7 @@ class DbMultiFileMultiThreadedReadTest : public DbMultiFileTest
         std::cout << "Initializing test data..." << std::endl;
         const std::string p = temp_file;
         const auto& up      = user_db_path;
-        const auto c        = [&p, up]() { return MultiFileDb(p, up); };
+        const auto c        = [&p, up]() { return MultiFileDb<Db, Db, true>(p, up); };
         ResetDb();
         DBMultiThreadedTestWork::FillForReading(c);
 
@@ -1198,7 +1213,7 @@ class DbMultiFileMultiThreadedTest : public DbMultiFileTest
         threads.reserve(DBMultiThreadedTestWork::threads_count);
         const std::string p = temp_file;
         const auto up       = user_db_path;
-        const auto c        = [&p, &up]() { return MultiFileDb(p, up); };
+        const auto c        = [&p, &up]() { return MultiFileDb<Db, Db, true>(p, up); };
 
         {
             std::unique_lock<std::mutex> lock(mutex);
@@ -1269,7 +1284,8 @@ struct PerfDbDriver : test_driver
         DbMultiThreadedTest().Run();
         DbMultiProcessTest().Run();
 
-        DbMultiFileReadTest().Run();
+        DbMultiFileReadTest<true>().Run();
+        DbMultiFileReadTest<false>().Run();
         DbMultiFileWriteTest().Run();
         DbMultiFileOperationsTest().Run();
         DbMultiFileMultiThreadedReadTest().Run();

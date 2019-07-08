@@ -90,7 +90,15 @@ extern "C" miopenStatus_t miopenLRNForward(miopenHandle_t handle,
                                            void* workSpace)
 {
 
-    MIOPEN_LOG_FUNCTION(lrnDesc, alpha, xDesc, x, beta, yDesc, y, do_backward, workSpace);
+    MIOPEN_LOG_FUNCTION(handle, lrnDesc, alpha, xDesc, x, beta, yDesc, y, do_backward, workSpace);
+
+    // bfloat16 not supported for lrn operation
+    if(miopen::deref(yDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(xDesc).GetType() == miopenBFloat16)
+    {
+        return miopenStatusNotImplemented;
+    }
+
     return miopen::try_([&] {
         miopen::deref(lrnDesc).Forward(miopen::deref(handle),
                                        alpha,
@@ -120,7 +128,17 @@ extern "C" miopenStatus_t miopenLRNBackward(miopenHandle_t handle,
 {
 
     MIOPEN_LOG_FUNCTION(
-        lrnDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx, workSpace);
+        handle, lrnDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx, workSpace);
+
+    // bfloat16 not supported for lrn operation
+    if(miopen::deref(yDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(dyDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(xDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(dxDesc).GetType() == miopenBFloat16)
+    {
+        return miopenStatusNotImplemented;
+    }
+
     return miopen::try_([&] {
         miopen::deref(lrnDesc).Backward(miopen::deref(handle),
                                         alpha,

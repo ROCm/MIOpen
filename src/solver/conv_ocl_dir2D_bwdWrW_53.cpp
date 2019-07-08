@@ -37,7 +37,7 @@ static bool WorkaroundSwdev168168() { return true; }
 
 bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!(params.IsFp32() || params.IsFp16()))
+    if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
 
     bool workaround = false;
@@ -119,7 +119,8 @@ static inline miopenStatus_t ComputeInputParams(
     int out_lcl_width,
     int& num_out_channels, // No. of input channels to be processed in a single workgroup
     int& out_n_horizon_reads,
-    int& out_n_vert_reads)
+    int& out_n_vert_reads,
+    size_t workgroup_size)
 {
     // In case where input (x) rows are splitted into chunks so that each chunk fits into LDS,
     // each chunk should also include pixels covering the complete filter size in horizonal
@@ -152,11 +153,23 @@ static inline miopenStatus_t ComputeInputParams(
         }
         else
         {
-            MIOPEN_LOG_E("Can't fit input data into LDS of size " << lds_size
-                                                                  << "bytes despite row splitting");
+            MIOPEN_LOG_I2("Can't fit input data into LDS of size "
+                          << lds_size
+                          << " bytes despite row splitting");
             return miopenStatusNotInitialized;
         }
     }
+
+    // LDS check based on weight blob
+    // Kernel uses LDS for storing input data and weight accumulation
+    if(workgroup_size * params.kernel_size_w > max_lds_elements)
+    {
+        MIOPEN_LOG_I2("For large filter size " << params.kernel_size_w
+                                               << ", running out of LDS size (bytes) "
+                                               << lds_size);
+        return miopenStatusNotInitialized;
+    }
+
     return miopenStatusSuccess;
 }
 
@@ -320,9 +333,12 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
 
     // Given the availability of LDS, recomputes the params
     int out_n_horizon_reads = out_lcl_width;
-    if(ComputeInputParams(
-           params, out_lcl_width, result.n_in_data_tiles, out_n_horizon_reads, out_n_vert_reads) !=
-           miopenStatusSuccess ||
+    if(ComputeInputParams(params,
+                          out_lcl_width,
+                          result.n_in_data_tiles,
+                          out_n_horizon_reads,
+                          out_n_vert_reads,
+                          GRP_SZ) != miopenStatusSuccess ||
        out_n_vert_reads <= 0)
     {
         return ConvSolution(miopenStatusNotInitialized);
@@ -347,12 +363,12 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
                               out_horizon_last_chunk_valid_pixels);
     if(out_n_horizon_read_loops > 2 && params.pad_w != 0)
     {
-        MIOPEN_LOG_I("Padding where split is more than 2 ways is not supported.");
+        MIOPEN_LOG_I2("Padding where split is more than 2 ways is not supported.");
         return ConvSolution(miopenStatusNotInitialized);
     }
     if(out_n_horizon_read_loops > 1 && params.group_counts > 1)
     {
-        MIOPEN_LOG_I("For large images, group support is missing.");
+        MIOPEN_LOG_I2("For large images, group support is missing.");
         return ConvSolution(miopenStatusNotInitialized);
     }
 
@@ -396,19 +412,6 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     // select output mapping
     int total_out_maps = result.n_out_pix_tiles * n_out_stacks;
     total_out_maps     = (total_out_maps > params.n_inputs) ? params.n_inputs : total_out_maps;
-
-    // LDS check based on weight blob
-    // Kernel uses LDS for storing input data and weight accumulation
-    // Div by 2 to allow atleast 2 waves on CU.
-    const auto lds_size         = (64 * 1024) / 2;
-    const auto max_lds_elements = lds_size / (GetTypeSize(params.in_data_type));
-    if(GRP_SZ * params.kernel_size_w > max_lds_elements)
-    {
-        MIOPEN_LOG_I("For large filter size " << params.kernel_size_w
-                                              << ", running out of LDS size (bytes) "
-                                              << lds_size);
-        return ConvSolution(miopenStatusNotInitialized);
-    }
 
     result.grp_tile0 = GRP_SZ;
     result.grp_tile1 = 1;
