@@ -35,6 +35,7 @@
 #include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/type_name.hpp>
 #include <miopen/miopen.h>
+#include <miopen/buffer_info.hpp>
 
 #include <memory>
 #include <string>
@@ -459,6 +460,25 @@ struct ConvBinWinogradRxS : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
+};
+
+struct ConvWinograd3x3MultipassWrW : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& params) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
+
+    // kernel_file_name for solver identification
+    static std::vector<std::string> GetSolverFileNames()
+    {
+        return std::vector<std::string>{"xform_data.s", "xform_filter.s", "xform_out.s"};
+    }
+    static std::vector<std::string> GetSolverKernelNames()
+    {
+        return std::vector<std::string>{
+            "gcnAsmWinogradXformData", "gcnAsmWinogradXformFilter", "gcnAsmWinogradXformOut"};
+    }
+    static int GetGroupCountMult() { return 4; }
 };
 
 struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirect3x3WrW>
