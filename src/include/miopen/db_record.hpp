@@ -161,6 +161,7 @@ class DbRecord
 
     bool ParseContents(std::istream& contents);
     void WriteContents(std::ostream& stream) const;
+    void WriteIdsAndValues(std::ostream& stream) const;
     bool SetValues(const std::string& id, const std::string& values);
     bool GetValues(const std::string& id, std::string& values) const;
 

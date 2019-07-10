@@ -30,12 +30,14 @@
 
 #include <boost/optional.hpp>
 
-#include <ctime>
+#include <chrono>
 #include <unordered_map>
 #include <string>
 #include <sstream>
 
 namespace miopen {
+
+using ramdb_clock = std::chrono::steady_clock;
 
 class LockFile;
 
@@ -108,14 +110,16 @@ class RamDb : protected Db
         std::string content;
     };
 
-    std::time_t file_read_time = 0;
+    ramdb_clock::time_point file_read_time;
     std::unordered_map<std::string, CacheItem> cache;
 
     boost::optional<miopen::DbRecord> FindRecordUnsafe(const std::string& problem);
 
     void Invalidate();
     void Validate();
+    bool ValidateUnsafe();
     void Prefetch();
+    void UpdateCacheEntryUnsafe(const DbRecord& record);
 };
 
 } // namespace miopen

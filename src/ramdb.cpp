@@ -37,10 +37,41 @@
 #include <chrono>
 #include <ctime>
 #include <fstream>
+#include <limits>
+#include <map>
 #include <mutex>
 #include <sstream>
 
 namespace miopen {
+
+static ramdb_clock::time_point GetDbModificationTime(const std::string& path)
+{
+    const auto time_file_path = path + ".time";
+    auto file                 = std::ifstream{time_file_path};
+
+    if(!file)
+        // Zero time from epoch, considering file ancient if time can't be retrieved.
+        return {};
+
+    ramdb_clock::rep time;
+    file >> time;
+    return ramdb_clock::time_point{ramdb_clock::duration{time}};
+}
+
+static void UpdateDbModificationTime(const std::string& path)
+{
+    const auto time_file_path = path + ".time";
+    auto file                 = std::ofstream{time_file_path};
+
+    if(!file)
+    {
+        MIOPEN_LOG_E("Cannot update database modification time: " + time_file_path);
+        return;
+    }
+
+    const auto time = ramdb_clock::now().time_since_epoch();
+    file << time.count();
+}
 
 #define MIOPEN_VALIDATE_LOCK(lock)                       \
     do                                                   \
@@ -54,24 +85,32 @@ static std::chrono::seconds GetLockTimeout() { return std::chrono::seconds{60}; 
 using exclusive_lock = std::unique_lock<LockFile>;
 using shared_lock    = std::shared_lock<LockFile>;
 
-RamDb::RamDb(std::string path, bool warn_if_unreadable_) : Db(path, warn_if_unreadable_) {}
+RamDb::RamDb(std::string path, bool warn_if_unreadable_)
+    : Db(path, warn_if_unreadable_), file_read_time()
+{
+}
 
 RamDb& RamDb::GetCached(const std::string& path, bool warn_if_unreadable)
 {
     static std::mutex mutex;
     static const std::lock_guard<std::mutex> lock{mutex};
 
-    static auto instances = std::unordered_map<std::string, RamDb>{};
-    const auto it         = instances.find(path);
+    static auto instances = std::map<std::string, RamDb>{};
 
-    if(it != instances.end())
-        return it->second;
+    {
+        const auto it = instances.find(path);
+        if(it != instances.end())
+            return it->second;
+    }
 
-    auto& instance = instances
-                         .emplace(std::piecewise_construct,
-                                  std::forward_as_tuple(path),
-                                  std::forward_as_tuple(path, warn_if_unreadable))
-                         .first->second;
+    // map::emplace(std::piecewise_construct, ...) is constructing map entry in-place allowing use
+    // of non-copiable non-movable type as key/value type which RamDb is.
+    auto emplace_ret = instances.emplace(std::piecewise_construct,
+                                         std::forward_as_tuple(path),
+                                         std::forward_as_tuple(path, warn_if_unreadable));
+    const auto it    = emplace_ret.first;
+    auto& instance   = it->second;
+
     instance.Prefetch();
     return instance;
 }
@@ -90,7 +129,8 @@ bool RamDb::StoreRecord(const DbRecord& record)
     if(!StoreRecordUnsafe(record))
         return false;
 
-    Invalidate();
+    UpdateDbModificationTime(GetFileName());
+    UpdateCacheEntryUnsafe(record);
     return true;
 }
 
@@ -102,7 +142,8 @@ bool RamDb::UpdateRecord(DbRecord& record)
     if(!UpdateRecordUnsafe(record))
         return false;
 
-    Invalidate();
+    UpdateDbModificationTime(GetFileName());
+    UpdateCacheEntryUnsafe(record);
     return true;
 }
 
@@ -114,7 +155,14 @@ bool RamDb::RemoveRecord(const std::string& key)
     if(!RemoveRecordUnsafe(key))
         return false;
 
-    Invalidate();
+    UpdateDbModificationTime(GetFileName());
+
+    if(ValidateUnsafe())
+    {
+        file_read_time = ramdb_clock::now();
+        cache.erase(key);
+    }
+
     return true;
 }
 
@@ -124,14 +172,28 @@ bool RamDb::Remove(const std::string& key, const std::string& id)
     MIOPEN_VALIDATE_LOCK(lock);
 
     auto record = FindRecordUnsafe(key);
-    if(!record)
-        return false;
-    bool erased = record->EraseValues(id);
-    if(!erased)
+    if(!record || !record->EraseValues(id) || !StoreRecordUnsafe(*record))
         return false;
 
-    Invalidate();
-    return StoreRecordUnsafe(*record);
+    UpdateDbModificationTime(GetFileName());
+
+    if(ValidateUnsafe())
+    {
+        file_read_time = ramdb_clock::now();
+
+        if(record->GetSize() == 0)
+        {
+            cache.erase(key);
+            return true;
+        }
+
+        auto it = cache.find(key);
+        auto ss = std::ostringstream{};
+        record->WriteIdsAndValues(ss);
+        it->second.content = ss.str();
+    }
+
+    return true;
 }
 
 boost::optional<miopen::DbRecord> RamDb::FindRecordUnsafe(const std::string& problem)
@@ -145,10 +207,8 @@ boost::optional<miopen::DbRecord> RamDb::FindRecordUnsafe(const std::string& pro
 
     if(!record.ParseContents(it->second.content))
     {
-        MIOPEN_LOG_E("Error parsing payload under the key: " << problem << " form file "
-                                                             << GetFileName()
-                                                             << "#"
-                                                             << it->second.line);
+        MIOPEN_LOG_E("Error parsing payload under the key: "
+                     << problem << " form file " << GetFileName() << "#" << it->second.line);
         MIOPEN_LOG_E("Contents: " << it->second.content);
         return boost::none;
     }
@@ -169,32 +229,32 @@ static auto Measure(const std::string& funcName, TFunc&& func)
     MIOPEN_LOG_I("RamDb::" << funcName << " time: " << (end - start).count() * .000001f << " ms");
 }
 
-void RamDb::Invalidate() { file_read_time = 0; }
+void RamDb::Invalidate() { file_read_time = ramdb_clock::time_point{}; }
 
 void RamDb::Validate()
 {
     const auto lock = shared_lock(GetLockFile(), GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
 
-    if(!boost::filesystem::exists(GetFileName()))
+    if(!ValidateUnsafe())
     {
-        if(!cache.empty())
-            Prefetch();
-        return;
+        MIOPEN_LOG_I2("RamDb file is newer than cache, prefetching");
+        Prefetch();
     }
+}
 
-    const auto file_mod_time = boost::filesystem::last_write_time(GetFileName());
-
-    if(file_mod_time < file_read_time)
-        return;
-
-    Prefetch();
+bool RamDb::ValidateUnsafe()
+{
+    if(!boost::filesystem::exists(GetFileName()))
+        return cache.empty();
+    const auto file_mod_time = GetDbModificationTime(GetFileName());
+    return file_mod_time < file_read_time;
 }
 
 void RamDb::Prefetch()
 {
     Measure("Prefetch", [this]() {
-        file_read_time = std::time(nullptr);
+        file_read_time = ramdb_clock::now();
         auto file      = std::ifstream{GetFileName()};
 
         if(!file)
@@ -232,4 +292,25 @@ void RamDb::Prefetch()
         }
     });
 }
+
+void RamDb::UpdateCacheEntryUnsafe(const DbRecord& record)
+{
+    if(ValidateUnsafe())
+    {
+        file_read_time  = ramdb_clock::now();
+        const auto& key = record.GetKey();
+        const auto it   = cache.find(key);
+        auto ss         = std::ostringstream{};
+        record.WriteIdsAndValues(ss);
+
+        if(it != cache.end())
+        {
+            auto& item   = it->second;
+            item.content = ss.str();
+        }
+
+        cache.emplace(key, CacheItem{-1, ss.str()});
+    }
+}
+
 } // namespace miopen
