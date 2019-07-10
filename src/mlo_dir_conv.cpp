@@ -107,7 +107,8 @@ static auto GetWindogradSolvers()
 
 static auto GetWindogradWrWSolvers()
 {
-    return miopen::solver::SolverContainer<miopen::solver::ConvBinWinogradRxS>{};
+    return miopen::solver::SolverContainer<miopen::solver::ConvBinWinogradRxS,
+                                           miopen::solver::ConvWinograd3x3MultipassWrW>{};
 }
 
 static auto GetBwdWrW2DSolvers()
@@ -144,6 +145,12 @@ miopen::solver::ConvSolution FindWinogradSolution(const miopen::ConvolutionConte
 miopen::solver::ConvSolution FindWinogradWrWSolution(const miopen::ConvolutionContext& ctx)
 {
     return GetWindogradWrWSolvers().SearchForSolution(ctx, GetDb(ctx));
+}
+
+std::vector<miopen::solver::ConvSolution>
+FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx)
+{
+    return GetWindogradWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
 }
 
 std::vector<miopen::solver::ConvSolution>

@@ -49,71 +49,71 @@ TYPE_INT8  = 7
 TYPE_INT4  = 8
 
 .macro log2 lg2, num, max_bits=8
-	\lg2 = 0
-	lg_i = \num
-	.rept \max_bits
-		lg_i = lg_i / 2
-		.if lg_i > 0
-			\lg2 = \lg2 + 1
-		.endif
-	.endr
+    \lg2 = 0
+    lg_i = \num
+    .rept \max_bits
+        lg_i = lg_i / 2
+        .if lg_i > 0
+            \lg2 = \lg2 + 1
+        .endif
+    .endr
 .endm
 
 .macro default symbol, value
-	.ifnotdef \symbol
-		\symbol = \value
-	.endif
+    .ifnotdef \symbol
+        \symbol = \value
+    .endif
 .endm
 
 .macro static_assert fufufu
-	.if !\fufufu
-		.error "\fufufu is false"
-		.end
-	.endif
+    .if !\fufufu
+        .error "\fufufu is false"
+        .end
+    .endif
 .endm
 
 .macro swap a, b
-	__tmp = \a
-	\a = \b
-	\b = __tmp
+    __tmp = \a
+    \a = \b
+    \b = __tmp
 .endm
 
 .macro m_bpermute vgpr, cnt, addr
-	v = \vgpr
-	.rept \cnt
-		ds_bpermute_b32 v[v], v[\addr], v[v]
-		v = v + 1
-	.endr
+    v = \vgpr
+    .rept \cnt
+        ds_bpermute_b32 v[v], v[\addr], v[v]
+        v = v + 1
+    .endr
 .endm
 
 .macro m_swizzle vgpr, cnt, pattern
-	v = \vgpr
-	.rept \cnt
-		ds_swizzle_b32 v[v], v[v] offset:\pattern
-		v = v + 1
-	.endr
+    v = \vgpr
+    .rept \cnt
+        ds_swizzle_b32 v[v], v[v] offset:\pattern
+        v = v + 1
+    .endr
 .endm
 
 .if (.option.machine_version_major == 8)
-	.set max_hw_vctn, 15
+    .set max_hw_vctn, 15
 .elseif (.option.machine_version_major == 9)
-	.set max_hw_vctn, 63
+    .set max_hw_vctn, 63
 .endif
 max_hw_lcnt = 15
 .macro s_wait vmcnt=max_hw_vctn, lgkmcnt=max_hw_lcnt
-	vm_cnt = \vmcnt
-	lgkm_cnt = \lgkmcnt
-	.if vm_cnt > max_hw_vctn
-		vm_cnt = max_hw_vctn
-	.elseif vm_cnt < 0
-		vm_cnt = 0
-	.endif
-	.if lgkm_cnt > max_hw_lcnt
-		lgkm_cnt = max_hw_lcnt
-	.elseif lgkm_cnt < 0
-		lgkm_cnt = 0
-	.endif
-	s_waitcnt vmcnt(0 + vm_cnt) & lgkmcnt(0 + lgkm_cnt)
+    vm_cnt = \vmcnt
+    lgkm_cnt = \lgkmcnt
+    .if vm_cnt > max_hw_vctn
+        vm_cnt = max_hw_vctn
+    .elseif vm_cnt < 0
+        vm_cnt = 0
+    .endif
+    .if lgkm_cnt > max_hw_lcnt
+        lgkm_cnt = max_hw_lcnt
+    .elseif lgkm_cnt < 0
+        lgkm_cnt = 0
+    .endif
+    s_waitcnt vmcnt(0 + vm_cnt) & lgkmcnt(0 + lgkm_cnt)
 .endm
 
 
@@ -147,29 +147,174 @@ log2 wave_size_log2, wave_size
 .endm
 
 .macro u32_div numer, denom, uquo, v_tmp, s_tmp
-    v_cvt_f32_u32 v[\v_tmp+0], v[\denom]
-    v_rcp_f32     v[\v_tmp+0], v[\v_tmp+0]
-    v_mul_f32     v[\v_tmp+0], 0x4f800000, v[\v_tmp+0]
-    v_cvt_u32_f32 v[\v_tmp+0], v[\v_tmp+0]
-    v_mul_lo_u32  v[\v_tmp+1], v[\denom], v[\v_tmp+0]
-    v_mul_hi_u32  v[\v_tmp+2], v[\denom], v[\v_tmp+0]
-   _v_sub_co_u32  v[\v_tmp+3], vcc, 0, v[\v_tmp+1]
-    v_cmp_ne_i32  s[\s_tmp:\s_tmp+1], 0, v[\v_tmp+2]
-    v_cndmask_b32 v[\v_tmp+1], v[\v_tmp+3], v[\v_tmp+1], s[\s_tmp:\s_tmp+1]
-    v_mul_hi_u32  v[\v_tmp+1], v[\v_tmp+1], v[\v_tmp+0]
-   _v_sub_co_u32  v[\v_tmp+2], vcc, v[\v_tmp+0], v[\v_tmp+1]
-   _v_add_co_u32  v[\v_tmp+0], vcc, v[\v_tmp+0], v[\v_tmp+1]
-    v_cndmask_b32 v[\v_tmp+0], v[\v_tmp+0], v[\v_tmp+2], s[\s_tmp:\s_tmp+1]
-    v_mul_hi_u32  v[\v_tmp+0], v[\v_tmp+0], v[\numer]
-    v_mul_lo_u32  v[\v_tmp+1], v[\v_tmp+0], v[\denom]
-   _v_sub_co_u32  v[\v_tmp+2], vcc, v[\numer], v[\v_tmp+1]
-    v_cmp_ge_u32  s[\s_tmp:\s_tmp+1], v[\numer], v[\v_tmp+1]
-    v_cmp_ge_u32  s[\s_tmp+2:\s_tmp+3], v[\v_tmp+2], v[\denom]
-   _v_add_co_u32  v[\v_tmp+2], vcc, 1, v[\v_tmp+0]
-    s_and_b64     s[\s_tmp+2:\s_tmp+3], s[\s_tmp:\s_tmp+1], s[\s_tmp+2:\s_tmp+3]
-   _v_add_co_u32  v[\v_tmp+1], vcc, -1, v[\v_tmp+0]
-    v_cndmask_b32 v[\v_tmp+2], v[\v_tmp+0], v[\v_tmp+2], s[\s_tmp+2:\s_tmp+3]
-    v_cndmask_b32 v[\v_tmp+2], v[\v_tmp+1], v[\v_tmp+2], s[\s_tmp:\s_tmp+1]
-    v_cmp_ne_i32  vcc, 0, v[\denom]
-    v_cndmask_b32 v[\uquo], -1,  v[\v_tmp+2], vcc
+    u_div   v[\numer], v[\denom] v[\uquo], \v_tmp, \s_tmp, \s_tmp + 2 
+.endm
+
+
+// Unsigned division function from the SC implementation
+// 4 s_tmps, 4 v_tmps
+//
+.macro u_div numer, denom, uquo, vtmp, stmp1, stmp2
+    v_cvt_f32_u32     v[\vtmp],     \denom
+    v_rcp_f32         v[\vtmp],     v[\vtmp]
+    v_mul_f32         v[\vtmp],     0x4f800000,   v[\vtmp]
+    v_cvt_u32_f32     v[\vtmp],     v[\vtmp]
+
+    v_mul_lo_u32      v[\vtmp+1],   \denom,       v[\vtmp]
+    v_mul_hi_u32      v[\vtmp+2],   \denom,       v[\vtmp]
+   _v_sub_co_u32      v[\vtmp+3],   vcc,          0,           v[\vtmp+1]
+    v_cmp_ne_i32      s[\stmp1:\stmp1+1], 0,      v[\vtmp+2]
+    v_cndmask_b32     v[\vtmp+1],   v[\vtmp+3],   v[\vtmp+1],  s[\stmp1:\stmp1+1]
+    v_mul_hi_u32      v[\vtmp+1],   v[\vtmp+1],   v[\vtmp]
+   _v_sub_co_u32      v[\vtmp+2],   vcc,          v[\vtmp],    v[\vtmp+1]
+    v_add_co_u32      v[\vtmp],     vcc,          v[\vtmp],    v[\vtmp+1]
+    v_cndmask_b32     v[\vtmp],     v[\vtmp],     v[\vtmp+2],  s[\stmp1:\stmp1+1]
+    v_mul_hi_u32      v[\vtmp],     v[\vtmp],     \numer
+    v_mul_lo_u32      v[\vtmp+1],   v[\vtmp],     \denom
+   _v_sub_co_u32      v[\vtmp+2],   vcc,          \numer,      v[\vtmp+1]
+    v_cmp_ge_u32      s[\stmp1:\stmp1+1],         \numer,      v[\vtmp+1]
+    v_cmp_ge_u32      s[\stmp2:\stmp2+1],         v[\vtmp+2],  \denom
+   _v_add_co_u32      v[\vtmp+2],   vcc,          1,           v[\vtmp]
+    s_and_b64         s[\stmp2:\stmp2+1], s[\stmp1:\stmp1+1],  s[\stmp2:\stmp2+1]
+   _v_add_co_u32      v[\vtmp+1],   vcc, -1,      v[\vtmp]
+    v_cndmask_b32     v[\vtmp+2],   v[\vtmp],     v[\vtmp+2],  s[\stmp2:\stmp2+1]
+    v_cndmask_b32     v[\vtmp+2],   v[\vtmp+1],   v[\vtmp+2],  s[\stmp1:\stmp1+1]
+    v_cmp_ne_i32      vcc,          0,            \denom
+    v_cndmask_b32     \uquo,        -1,           v[\vtmp+2],  vcc
+.endm
+
+.altmacro
+.macro ceil_2_32_div_u16 m, denom, vtmp, stmp
+	v_cvt_f32_u32     v[\vtmp],     \denom
+	v_rcp_f32         v[\vtmp],     v[\vtmp]
+	v_mul_f32         v[\vtmp],     0x4f800000,   v[\vtmp]
+	v_cvt_u32_f32     v[\vtmp],     v[\vtmp]
+
+	v_mul_lo_u32      v[\vtmp+1],   \denom,       v[\vtmp]
+	v_mul_hi_u32      v[\vtmp+2],   \denom,       v[\vtmp]
+	v_sub_u32         v[\vtmp+3],   0,            v[\vtmp+1]
+	v_cmp_ne_i32      s[\stmp:\stmp+1], 0,        v[\vtmp+2]
+	v_cndmask_b32     v[\vtmp+1],   v[\vtmp+3],   v[\vtmp+1],  s[\stmp:\stmp+1]
+	v_mul_hi_u32      v[\vtmp+1],   v[\vtmp+1],   v[\vtmp]
+	v_sub_u32         v[\vtmp+2],   v[\vtmp],     v[\vtmp+1]
+	v_add_co_u32      v[\vtmp],     vcc,          v[\vtmp],    v[\vtmp+1]
+	v_cndmask_b32     v[\vtmp],     v[\vtmp],     v[\vtmp+2],  s[\stmp:\stmp+1]
+	v_mul_hi_u32      v[\vtmp],     -1,           v[\vtmp]
+	v_mul_lo_u32      v[\vtmp+1],   v[\vtmp],     \denom
+	v_sub_u32         v[\vtmp+2],   -1,           v[\vtmp+1]
+	v_cmp_ge_u32      s[\stmp:\stmp+1],           v[\vtmp+2],  \denom
+	v_add_u32         v[\vtmp+2],   1,            v[\vtmp]
+	v_add_co_u32      v[\vtmp+1],   vcc, -1,      v[\vtmp]
+	v_cndmask_b32     v[\vtmp+2],   v[\vtmp],     v[\vtmp+2],  s[\stmp:\stmp+1]
+	v_add_u32         v[\vtmp+2],   1,            v[\vtmp+2]
+	v_cmp_ne_i32      vcc,          0,            \denom
+	v_cndmask_b32     \m,        -1,           v[\vtmp+2],  vcc
+.endm
+
+.macro disable_srd srd
+	s_mov_b32 s[\srd+3], 0
+.endm
+.macro enable_srd srd
+	s_mov_b32 s[\srd+3], 0x00020000            // DATA_FORMAT, need to just be non-zero;
+.endm
+
+.macro label l, n
+	\l\n:
+.endm
+.macro _s_cbranch cond, l, n
+	s_cbranch_\cond \l\n
+.endm
+.macro _s_branch l, n
+	s_branch \l\n
+.endm
+
+
+div_const_1_2=0x80000000
+div_const_1_3=0x55555556
+div_const_1_4=0x40000000
+div_const_1_5=0x33333334
+div_const_1_6=0x2aaaaaab
+div_const_1_7=0x24924925
+div_const_1_8=0x20000000
+div_const_1_9=0x1c71c71d
+div_const_1_10=0x1999999a
+div_const_1_11=0x1745d175
+div_const_1_12=0x15555556
+div_const_1_13=0x13b13b14
+div_const_1_14=0x12492493
+div_const_1_15=0x11111112
+div_const_1_16=0x10000000
+div_const_1_17=0x0f0f0f10
+div_const_1_18=0x0e38e38f
+div_const_1_19=0x0d79435f
+div_const_1_20=0x0ccccccd
+div_const_1_21=0x0c30c30d
+div_const_1_22=0x0ba2e8bb
+div_const_1_23=0x0b21642d
+div_const_1_24=0x0aaaaaab
+div_const_1_25=0x0a3d70a4
+div_const_1_26=0x09d89d8a
+div_const_1_27=0x097b425f
+div_const_1_28=0x0924924a
+div_const_1_29=0x08d3dcb1
+div_const_1_30=0x08888889
+div_const_1_31=0x08421085
+div_const_1_32=0x08000000
+div_const_1_33=0x07c1f07d
+div_const_1_34=0x07878788
+div_const_1_35=0x07507508
+div_const_1_36=0x071c71c8
+div_const_1_37=0x06eb3e46
+div_const_1_38=0x06bca1b0
+div_const_1_39=0x06906907
+div_const_1_40=0x06666667
+div_const_1_41=0x063e7064
+div_const_1_42=0x06186187
+div_const_1_43=0x05f417d1
+div_const_1_44=0x05d1745e
+div_const_1_45=0x05b05b06
+div_const_1_46=0x0590b217
+div_const_1_47=0x0572620b
+div_const_1_48=0x05555556
+div_const_1_49=0x0539782a
+div_const_1_50=0x051eb852
+div_const_1_51=0x05050506
+div_const_1_52=0x04ec4ec5
+div_const_1_53=0x04d4873f
+div_const_1_54=0x04bda130
+div_const_1_55=0x04a7904b
+div_const_1_56=0x04924925
+div_const_1_57=0x047dc120
+div_const_1_58=0x0469ee59
+div_const_1_59=0x0456c798
+div_const_1_60=0x04444445
+div_const_1_61=0x04325c54
+div_const_1_62=0x04210843
+div_const_1_63=0x04104105
+div_const_1_64=0x04000000
+
+.macro _s_div_const_u32_u16 dst, src, denum
+	.if \denum == 1
+		s_mov_b32 \dst, \src
+	.elseif \denum >=2 && \denum <= 64
+		s_mul_hi_u32 \dst, div_const_1_\denum, \src
+	.else
+		static_assert(0)
+	.endif
+.endm
+
+.macro _v_div_const_u32_u16 dst, src, denum, tmp
+	.if \denum == 1
+		v_mov_b32 \dst, \src
+	.elseif \denum >=2 && \denum <= 64
+		s_mov_b32 \tmp, div_const_1_\denum
+		v_mul_hi_u32 \dst, \tmp, \src
+	.else
+		static_assert(0)
+	.endif
+.endm
+
+.macro _s_ceil_u32 dst, src, denum
+	s_add_u32 \dst, \denum - 1, \src
+	_s_div_const_u32_u16 \dst, \dst, \denum
 .endm

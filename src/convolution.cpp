@@ -753,6 +753,43 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
 }
 
 std::size_t
+ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeWinograd(Handle& handle,
+                                                               const TensorDescriptor& dyDesc,
+                                                               const TensorDescriptor& xDesc,
+                                                               const TensorDescriptor& dwDesc) const
+{
+    if(GetSpatialDimension() != 2)
+    {
+        return 0;
+    }
+
+    auto ctx = ConvolutionContext(xDesc, dwDesc, dyDesc, *this, 0);
+    ctx.direction.SetBackwardWrW();
+    ctx.do_search = false;
+    ctx.SetStream(&handle);
+    ctx.workaround_disable_search_enforce = true;
+    ctx.DetectRocm();
+
+    try
+    {
+        const auto ss  = FindWinogradWrWAllSolutions(ctx);
+        std::size_t sz = 0;
+        for(const auto& solution : ss)
+        {
+            if(sz < solution.workspce_sz)
+            {
+                MIOPEN_LOG_I2(sz << " < " << solution.workspce_sz);
+                sz = solution.workspce_sz;
+            }
+        }
+        return sz;
+    }
+    catch(const miopen::Exception&)
+    {
+        return 0;
+    }
+}
+std::size_t
 ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
                                                        const TensorDescriptor& dyDesc,
                                                        const TensorDescriptor& xDesc,
@@ -778,7 +815,11 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
                 ? BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc)
                 : 0;
 
-        workspace_size = std::max(direct_workspace, workspace_size_gemm);
+        size_t winograd_workspace =
+            BackwardWeightsGetWorkSpaceSizeWinograd(handle, dyDesc, xDesc, dwDesc);
+
+        workspace_size =
+            std::max(winograd_workspace, std::max(direct_workspace, workspace_size_gemm));
     }
 
     return workspace_size;
