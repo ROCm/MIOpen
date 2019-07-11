@@ -34,6 +34,8 @@ All logging messages output to standard error stream (`stderr`). The following e
 
 * `MIOPEN_ENABLE_LOGGING_MPMT` - When enabled, each log line is prefixed with information which allows the user to identify records printed from different processes and/or threads. Useful for debugging multi-process/multi-threaded apps.
 
+* `MIOPEN_ENABLE_LOGGING_ELAPSED_TIME` - Adds a timestamp to each log line. Indicates the time elapsed since the previous log message, in milliseconds.
+
 ## Layer Filtering
 
 The following list of environment variables allow for enabling/disabling various kinds of kernels and algorithms. This can be helpful for both debugging MIOpen and integration with frameworks.
@@ -46,10 +48,10 @@ The following list of environment variables allow for enabling/disabling various
 
 If a variable is not set, then MIOpen behaves as if it is set to `enabled`, unless otherwise specified. So all kinds of kernels/algorithms are enabled by default and the below variables can be used for disabling them. The exception to this rule is `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM` which is disabled by default:
 
-* `MIOPEN_DEBUG_CONV_FFT` – FFT convolution algorithm. 
-* `MIOPEN_DEBUG_CONV_DIRECT` – Direct convolution algorithm.
+* `MIOPEN_DEBUG_CONV_FFT` - FFT convolution algorithm. 
+* `MIOPEN_DEBUG_CONV_DIRECT` - Direct convolution algorithm.
 * `MIOPEN_DEBUG_CONV_GEMM` - GEMM convolution algorithm. These are implemented on top of miopengemm or rocBlas.
-* `MIOPEN_DEBUG_GCN_ASM_KERNELS` – Kernels written in assembly language. So far, the most of the assembly kernels are implementing the Direct convolution algorithm.
+* `MIOPEN_DEBUG_GCN_ASM_KERNELS` - Kernels written in assembly language. So far, the most of the assembly kernels are implementing the Direct convolution algorithm.
 * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM` – FP32 implicit GEMM convolution algorithm, disabled by default due to compatibility issue with older compiler. Set to 1 to turn on implicit GEMM algorithm.
 * `MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES` - Binary kernels. Right now all the binary kernels are Winograd ones, however, not all Winograds are binaries. To disable all Winograd algorithms, the following two vars can be used:
 * `MIOPEN_DEBUG_AMD_WINOGRAD_3X3` - FP32 Winograd Fwd/Bwd, filter size fixed to 3x3.
