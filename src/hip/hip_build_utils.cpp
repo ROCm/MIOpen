@@ -25,12 +25,10 @@
 *******************************************************************************/
 
 #include <miopen/hip_build_utils.hpp>
+#include <miopen/stringutils.hpp>
 #include <miopen/logger.hpp>
-#include <sstream>
 #include <boost/optional.hpp>
-
-#define MIOPEN_STRINGIZE_1(...) #__VA_ARGS__
-#define MIOPEN_STRINGIZE(...) MIOPEN_STRINGIZE_1(__VA_ARGS__)
+#include <sstream>
 
 namespace miopen {
 
