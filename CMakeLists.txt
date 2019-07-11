@@ -194,7 +194,7 @@ option( BUILD_SHARED_LIBS "Build as a shared library" ON )
 
 option( BUILD_DEV "Build for development only" OFF)
 
-option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" OFF)
+option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 
 set( MIOPEN_INSTALL_DIR miopen)
 set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen )
