@@ -907,11 +907,9 @@ typedef struct
 /*! @brief Query the maximum number of solutions applicable for the given input/output and weights
  *  tensor descriptor for Convolution in the Forward direction.
  *
- *  This call returns the maximum number of applicable solutions for a forward convolution problem,
- * the number
- *  returned may be used to allocate the memory required for the miopenConvAlgoPert2_t which is
- * required
- *  by miopenConvolutionGetSolution API calls.
+ * This call returns the maximum number of applicable solutions for a forward convolution problem.
+ * The \c solutionCount returned may be used to allocate the memory required for the
+ * \c miopenConvAlgoPerf_t which is required by miopenConvolutionGetSolution API calls.
  *
  * @param handle         MIOpen handle (input)
  * @param wDesc          Tensor descriptor for weight tensor w (input)
