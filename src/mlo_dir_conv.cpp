@@ -46,6 +46,7 @@
 #include <unordered_map>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 
 miopen::PerfDb mlo_construct_base::GetDb() const
 {
