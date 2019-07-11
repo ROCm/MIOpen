@@ -35,6 +35,8 @@
 #include <miopen/mlo_utils.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/readonlyramdb.hpp>
+#include <miopen/version.h>
+#include <miopen/stringutils.hpp>
 
 #include <cmath>
 #include <cstring>
@@ -231,7 +233,11 @@ static rocm_meta_version DetectAmdRocmMetadataVersion(const miopen::ConvolutionC
     (void)context;
     rocm_meta_version rmv = rocm_meta_version::Default;
 #endif // MIOPEN_BACKEND_OPENCL
-    MIOPEN_LOG_I(rmv);
+    MIOPEN_LOG_I(
+        "ROCm MD version "
+        << rmv
+        << ", MIOpen version " MIOPEN_STRINGIZE(MIOPEN_VERSION_MAJOR) "." MIOPEN_STRINGIZE(
+               MIOPEN_VERSION_MINOR) "." MIOPEN_STRINGIZE(MIOPEN_VERSION_PATCH) "." MIOPEN_STRINGIZE(MIOPEN_VERSION_TWEAK));
     return rmv;
 }
 
