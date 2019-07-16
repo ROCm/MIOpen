@@ -109,10 +109,16 @@ add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set(MIOPEN_BACKEND_OPENCL 1)
     find_package( OpenCL REQUIRED )
-    find_program(HIP_COMPILER hcc
+    find_program(MIOPEN_HIP_COMPILER hcc
         PATH_SUFFIXES bin
         PATHS /opt/rocm
     )
+    
+    if(MIOPEN_HIP_COMPILER)
+        message("hip compiler: ${MIOPEN_HIP_COMPILER}")
+    else()
+        message(FATAL_ERROR "hip compiler not found")
+    endif()
 endif()
 
 # HIP
@@ -139,7 +145,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     endif()
     # end hack
 
-    set(HIP_COMPILER ${CMAKE_CXX_COMPILER} CACHE PATH "")
+    set(MIOPEN_HIP_COMPILER ${CMAKE_CXX_COMPILER} CACHE PATH "")
 
 
     # rocblas
