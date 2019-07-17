@@ -254,18 +254,18 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 
 std::string LoggingParseFunction(const char* func, const char* pretty_func);
 
-#define MIOPEN_LOG_CUSTOM(level, category, ...)                                              \
-    do                                                                                       \
-    {                                                                                        \
-        if(miopen::IsLogging(level))                                                         \
-        {                                                                                    \
-            std::ostringstream miopen_log_ss;                                                \
-            miopen_log_ss << miopen::LoggingPrefix() << category << " ["                     \
-                          << miopen::LoggingParseFunction(__func__,            /* NOLINT */  \
-                                                          __PRETTY_FUNCTION__) /* NOLINT */  \
-                          << "] " << __VA_ARGS__ << std::endl;                               \
-            std::cerr << miopen_log_ss.str();                                                \
-        }                                                                                    \
+#define MIOPEN_LOG_CUSTOM(level, category, ...)                                             \
+    do                                                                                      \
+    {                                                                                       \
+        if(miopen::IsLogging(level))                                                        \
+        {                                                                                   \
+            std::ostringstream miopen_log_ss;                                               \
+            miopen_log_ss << miopen::LoggingPrefix() << category << " ["                    \
+                          << miopen::LoggingParseFunction(__func__,            /* NOLINT */ \
+                                                          __PRETTY_FUNCTION__) /* NOLINT */ \
+                          << "] " << __VA_ARGS__ << std::endl;                              \
+            std::cerr << miopen_log_ss.str();                                               \
+        }                                                                                   \
     } while(false)
 
 #define MIOPEN_LOG(level, ...) MIOPEN_LOG_CUSTOM(level, LoggingLevelToCString(level), __VA_ARGS__)
@@ -276,16 +276,15 @@ std::string LoggingParseFunction(const char* func, const char* pretty_func);
 #define MIOPEN_LOG_I2(...) MIOPEN_LOG(miopen::LoggingLevel::Info2, __VA_ARGS__)
 #define MIOPEN_LOG_T(...) MIOPEN_LOG(miopen::LoggingLevel::Trace, __VA_ARGS__)
 
-#define MIOPEN_LOG_DRIVER_CMD(...)                                                             \
-    do                                                                                         \
-    {                                                                                          \
-        std::ostringstream miopen_driver_cmd_ss;                                               \
-        miopen_driver_cmd_ss << miopen::LoggingPrefix() << "Command"                           \
-                             << " ["                                                           \
-                             << miopen::LoggingParseFunction(__func__,                         \
-                                                             __PRETTY_FUNCTION__) /* NOLINT */ \
-                             << "] ./bin/MIOpenDriver " << __VA_ARGS__ << std::endl;           \
-        std::cerr << miopen_driver_cmd_ss.str();                                               \
+#define MIOPEN_LOG_DRIVER_CMD(...)                                                      \
+    do                                                                                  \
+    {                                                                                   \
+        std::ostringstream miopen_driver_cmd_ss;                                        \
+        miopen_driver_cmd_ss << miopen::LoggingPrefix() << "Command"                    \
+                             << " [" << miopen::LoggingParseFunction(                   \
+                                            __func__, __PRETTY_FUNCTION__) /* NOLINT */ \
+                             << "] ./bin/MIOpenDriver " << __VA_ARGS__ << std::endl;    \
+        std::cerr << miopen_driver_cmd_ss.str();                                        \
     } while(false)
 
 } // namespace miopen

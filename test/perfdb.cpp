@@ -199,8 +199,7 @@ class DbTest
     static const std::array<std::pair<const char*, TestData>, 2>& common_data()
     {
         static const std::array<std::pair<const char*, TestData>, 2> data{{
-            {id1(), value1()},
-            {id0(), value0()},
+            {id1(), value1()}, {id0(), value0()},
         }};
 
         return data;
@@ -572,9 +571,7 @@ class DbParallelTest : public DbTest
         }
 
         const std::array<std::pair<const char*, TestData>, 3> data{{
-            {id0(), value0()},
-            {id1(), value1()},
-            {id2(), value2()},
+            {id0(), value0()}, {id1(), value1()}, {id2(), value2()},
         }};
 
         TDb db{temp_file};
@@ -799,7 +796,7 @@ class DBMultiThreadedTestWork
     {
         static std::vector<TestData> data(common_part_size, TestData{TestData::NoInit{}});
 
-        for(auto i = 0u; i < common_part_size; i++)
+        for(auto i  = 0u; i < common_part_size; i++)
             data[i] = TestData::Seeded<common_part_seed>();
 
         return data;
@@ -898,17 +895,19 @@ class DbMultiProcessTest : public DbTest
     public:
     void Run() const
     {
-       MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Testing " << ArgsHelper::db_class::Get<TDb>()
-                  << " for multiprocess write access...");
+        MIOPEN_LOG_CUSTOM(LoggingLevel::Default,
+                          "Test",
+                          "Testing " << ArgsHelper::db_class::Get<TDb>()
+                                     << " for multiprocess write access...");
 
         ResetDb();
         std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
         const auto lock_file_path = LockFilePath(temp_file);
 
-       MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
+        MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
         DBMultiThreadedTestWork::Initialize();
 
-       MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test processes...");
+        MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test processes...");
         {
             auto& file_lock = LockFile::Get(lock_file_path.c_str());
             std::shared_lock<LockFile> lock(file_lock);
@@ -933,7 +932,7 @@ class DbMultiProcessTest : public DbTest
             }
         }
 
-       MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test processes...");
+        MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test processes...");
         for(auto child : children)
         {
             auto status          = pclose(child);
@@ -947,9 +946,9 @@ class DbMultiProcessTest : public DbTest
         const std::string p = temp_file;
         const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p));
 
-       MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Validating results...");
+        MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Validating results...");
         DBMultiThreadedTestWork::ValidateCommonPart(c);
-       MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Validation passed...");
+        MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Validation passed...");
     }
 
     static void WorkItem(unsigned int id, const std::string& db_path, bool write)
@@ -977,18 +976,20 @@ class DbMultiProcessReadTest : public DbTest
     public:
     void Run() const
     {
-       MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Testing " << ArgsHelper::db_class::Get<TDb>()
-                  << " for multiprocess read access...");
+        MIOPEN_LOG_CUSTOM(LoggingLevel::Default,
+                          "Test",
+                          "Testing " << ArgsHelper::db_class::Get<TDb>()
+                                     << " for multiprocess read access...");
 
         std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
         const auto lock_file_path = LockFilePath(temp_file);
 
-       MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
+        MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
         std::string p = temp_file;
         const auto c  = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p));
         DBMultiThreadedTestWork::FillForReading(c);
 
-       MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test processes...");
+        MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test processes...");
         {
             auto& file_lock = LockFile::Get(lock_file_path.c_str());
             std::shared_lock<LockFile> lock(file_lock);
@@ -1009,12 +1010,12 @@ class DbMultiProcessReadTest : public DbTest
                 if(full_set())
                     command += " --all";
 
-               MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", command);
+                MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", command);
                 child = popen(command.c_str(), "w");
             }
         }
 
-       MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test processes...");
+        MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test processes...");
         for(auto child : children)
         {
             auto status          = pclose(child);
@@ -1092,8 +1093,7 @@ class DbMultiFileReadTest : public DbMultiFileTest
         RawWrite(user_db_path, key(), single_item_data());
 
         static const std::array<std::pair<const char*, TestData>, 2> merged_data{{
-            {id1(), value1()},
-            {id0(), value2()},
+            {id1(), value1()}, {id0(), value2()},
         }};
 
         MultiFileDb<Db, Db, merge_records> db(temp_file, user_db_path);
@@ -1133,7 +1133,7 @@ class DbMultiFileWriteTest : public DbMultiFileTest
     public:
     void Run() const
     {
-       MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Running multifile write test...");
+        MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Running multifile write test...");
 
         ResetDb();
 
@@ -1171,7 +1171,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
 
     void PrepareDb() const
     {
-       MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Running multifile operations test...");
+        MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Running multifile operations test...");
 
         {
             DbRecord record(key());
@@ -1185,7 +1185,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
 
     void UpdateTest() const
     {
-       MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Update test...");
+        MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Update test...");
 
         {
             MultiFileDb<Db, Db, true> db(temp_file, user_db_path);
@@ -1208,7 +1208,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
 
     void LoadTest() const
     {
-       MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Load test...");
+        MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Load test...");
 
         MultiFileDb<Db, Db, true> db(temp_file, user_db_path);
         ValidateData(db, value1());
@@ -1216,7 +1216,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
 
     void RemoveTest() const
     {
-       MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Remove test...");
+        MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Remove test...");
 
         MultiFileDb<Db, Db, true> db(temp_file, user_db_path);
         EXPECT(!db.Remove(key(), id0()));
@@ -1227,7 +1227,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
 
     void RemoveRecordTest() const
     {
-       MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Remove record test...");
+        MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Remove record test...");
 
         MultiFileDb<Db, Db, true> db(temp_file, user_db_path);
         EXPECT(db.Update(key(), id1(), value1()));
@@ -1252,7 +1252,8 @@ class DbMultiFileMultiThreadedReadTest : public DbMultiFileTest
     public:
     void Run() const
     {
-        MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Testing db for multifile multithreaded read access...");
+        MIOPEN_LOG_CUSTOM(
+            LoggingLevel::Default, "Test", "Testing db for multifile multithreaded read access...");
 
         std::mutex mutex;
         std::vector<std::thread> threads;
@@ -1290,7 +1291,9 @@ class DbMultiFileMultiThreadedTest : public DbMultiFileTest
 
     void Run() const
     {
-        MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Testing db for multifile multithreaded write access...");
+        MIOPEN_LOG_CUSTOM(LoggingLevel::Default,
+                          "Test",
+                          "Testing db for multifile multithreaded write access...");
 
         ResetDb();
         std::mutex mutex;
