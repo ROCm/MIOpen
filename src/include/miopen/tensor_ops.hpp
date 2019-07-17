@@ -193,6 +193,8 @@ void TransformTensor(Handle& handle,
                      ConstData_t x,
                      const void* beta,
                      const TensorDescriptor& yDesc,
-                     Data_t y);
+                     Data_t y,
+                     size_t Xoffset = 0,
+                     size_t Yoffset = 0);
 } // namespace miopen
 #endif // GUARD_MIOPEN_TENSOR_OPPS_HPP_

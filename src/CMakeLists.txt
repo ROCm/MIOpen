@@ -266,6 +266,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenSubTensorOpWithScalarKernel.cl
         kernels/MIOpenSubTensorOpWithSubTensorKernel.cl
         kernels/MIOpenSubTensorOpWithCastTensorKernel.cl
+        kernels/MIOpenSubTensorOpWithTransformKernel.cl
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride1.s
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dec.s
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dil.s
