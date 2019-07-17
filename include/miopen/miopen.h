@@ -593,7 +593,11 @@ MIOPEN_EXPORT miopenStatus_t miopenScaleTensor(miopenHandle_t handle,
 MIOPEN_EXPORT miopenStatus_t miopenGetTensorNumBytes(miopenTensorDescriptor_t tensorDesc,
                                                      size_t* numBytes);
 
-/*! @brief Copies one tensor to another tensor with a different layout.
+/*! @brief Copies one tensor to another tensor with a different layout/scale.
+ *
+ * This function implements:
+ * 1. \f$ Y = alpha * X + beta * Y \f$ for fp32 and fp16 datatype
+ * 2. Vectorize/de-vectorize along channel dimension C for int8 datatype
  *
  * Currently this is used for transforming from int8 to int8x4 vector datatypes
  *
