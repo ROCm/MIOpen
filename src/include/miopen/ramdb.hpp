@@ -44,7 +44,7 @@ class LockFile;
 class RamDb : protected Db
 {
     public:
-    RamDb(std::string path, bool warn_if_unreadable_);
+    RamDb(std::string path, bool warn_if_unreadable_ = true);
 
     RamDb(const RamDb&) = delete;
     RamDb(RamDb&&)      = delete;

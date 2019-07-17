@@ -108,8 +108,8 @@ RamDb& RamDb::GetCached(const std::string& path, bool warn_if_unreadable)
     auto emplace_ret = instances.emplace(std::piecewise_construct,
                                          std::forward_as_tuple(path),
                                          std::forward_as_tuple(path, warn_if_unreadable));
-    const auto it    = emplace_ret.first;
-    auto& instance   = it->second;
+    const auto it  = emplace_ret.first;
+    auto& instance = it->second;
 
     instance.Prefetch();
     return instance;
@@ -155,14 +155,13 @@ bool RamDb::RemoveRecord(const std::string& key)
     if(!RemoveRecordUnsafe(key))
         return false;
 
-    UpdateDbModificationTime(GetFileName());
-
     if(ValidateUnsafe())
     {
         file_read_time = ramdb_clock::now();
         cache.erase(key);
     }
 
+    UpdateDbModificationTime(GetFileName());
     return true;
 }
 
@@ -174,8 +173,6 @@ bool RamDb::Remove(const std::string& key, const std::string& id)
     auto record = FindRecordUnsafe(key);
     if(!record || !record->EraseValues(id) || !StoreRecordUnsafe(*record))
         return false;
-
-    UpdateDbModificationTime(GetFileName());
 
     if(ValidateUnsafe())
     {
@@ -193,6 +190,7 @@ bool RamDb::Remove(const std::string& key, const std::string& id)
         it->second.content = ss.str();
     }
 
+    UpdateDbModificationTime(GetFileName());
     return true;
 }
 
@@ -207,8 +205,10 @@ boost::optional<miopen::DbRecord> RamDb::FindRecordUnsafe(const std::string& pro
 
     if(!record.ParseContents(it->second.content))
     {
-        MIOPEN_LOG_E("Error parsing payload under the key: "
-                     << problem << " form file " << GetFileName() << "#" << it->second.line);
+        MIOPEN_LOG_E("Error parsing payload under the key: " << problem << " form file "
+                                                             << GetFileName()
+                                                             << "#"
+                                                             << it->second.line);
         MIOPEN_LOG_E("Contents: " << it->second.content);
         return boost::none;
     }

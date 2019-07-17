@@ -167,6 +167,24 @@ class Db
     }
 };
 
+template <class TDb, class TRet = decltype(TDb::GetCached("", true))>
+static TRet GetDbInstance(rank<1>, const std::string& path, bool warn_if_unreadable)
+{
+    return TDb::GetCached(path, warn_if_unreadable);
+};
+
+template <class TDb>
+static TDb GetDbInstance(rank<0>, const std::string& path, bool warn_if_unreadable)
+{
+    return {path, warn_if_unreadable};
+};
+
+template <class TDb, class TRet = decltype(GetDbInstance<TDb>(rank<1>{}, {}, {}))>
+static TRet GetDbInstance(const std::string& path, bool warn_if_unreadable = true)
+{
+    return GetDbInstance<TDb>(rank<1>{}, path, warn_if_unreadable);
+}
+
 template <class TInstalled, class TUser, bool merge_records>
 class MultiFileDb
 {
@@ -237,24 +255,6 @@ class MultiFileDb
     }
 
     private:
-    template <class TDb, class TRet = decltype(TDb::GetCached("", true))>
-    static TRet GetDbInstance(rank<1>, const std::string& path, bool warn_if_unreadable)
-    {
-        return TDb::GetCached(path, warn_if_unreadable);
-    };
-
-    template <class TDb>
-    static TDb GetDbInstance(rank<0>, const std::string& path, bool warn_if_unreadable)
-    {
-        return {path, warn_if_unreadable};
-    };
-
-    template <class TDb, class TRet = decltype(GetDbInstance<TDb>(rank<1>{}, {}, {}))>
-    static TRet GetDbInstance(const std::string& path, bool warn_if_unreadable)
-    {
-        return GetDbInstance<TDb>(rank<1>{}, path, warn_if_unreadable);
-    }
-
     decltype(GetDbInstance<TInstalled>("", true)) _installed;
     decltype(GetDbInstance<TUser>("", false)) _user;
 };

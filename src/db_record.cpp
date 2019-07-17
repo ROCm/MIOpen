@@ -120,7 +120,7 @@ void DbRecord::WriteContents(std::ostream& stream) const
         return;
 
     stream << key << '=';
-	WriteIdsAndValues(stream);
+    WriteIdsAndValues(stream);
 }
 
 void DbRecord::WriteIdsAndValues(std::ostream& stream) const
