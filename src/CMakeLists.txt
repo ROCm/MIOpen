@@ -75,6 +75,7 @@ function(add_kernel_includes KERNEL_FILES)
 endfunction()
 
 set( MIOpen_Source
+    buffer_info.cpp
     check_numerics.cpp
     convolution.cpp
     convolution_api.cpp
@@ -108,6 +109,7 @@ set( MIOpen_Source
     find_db.cpp
     conv_algo_name.cpp
     readonlyramdb.cpp
+    include/miopen/buffer_info.hpp
 	ramdb.cpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -165,6 +167,7 @@ set( MIOpen_Source
     solver/conv_asm_7x7c3h224w224k64u2v2p3q3f1.cpp
     solver/conv_asm_dir_BwdWrW3x3.cpp
     solver/conv_asm_dir_BwdWrW1x1.cpp
+    solver/conv_multipass_wino3x3WrW.cpp
     solver/conv_bin_wino3x3U.cpp
     solver/conv_bin_winoRxS.cpp
     solver/conv_ocl_dir2D_bwdWrW_2.cpp
@@ -201,6 +204,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v16_3_0_stride1.inc
         kernels/inst_wrappers.inc
         kernels/common.inc
+        kernels/xform_data_filter.inc
         kernels/neuron.inc
         kernels/conv_sizes.inc
         kernels/gpr_alloc.inc)
@@ -258,11 +262,13 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv5x10u2v2b1.s
         kernels/conv7x7c3h224w224k64u2v2p3q3f1.s
         kernels/gcnAsmBNFwdTrainSpatial.s
+        kernels/xform_out.s
         kernels/gcnAsmBNBwdTrainSpatial.s
         kernels/MIOpenTensorKernels.cl
         kernels/MIOpenSubTensorOpWithScalarKernel.cl
         kernels/MIOpenSubTensorOpWithSubTensorKernel.cl
         kernels/MIOpenSubTensorOpWithCastTensorKernel.cl
+        kernels/MIOpenSubTensorOpWithTransformKernel.cl
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride1.s
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dec.s
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dil.s
@@ -290,7 +296,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_md10.so
         kernels/MIOpenConvBwdBias.cl
         kernels/MIOpenBatchNormActivInfer.cl
-        kernels/MIOpenCTCLoss.cl)
+        kernels/MIOpenCTCLoss.cl
+        kernels/xform_data.s
+        kernels/xform_filter.s)
     add_kernels("${MIOPEN_KERNELS}")
     add_kernel_includes("${MIOPEN_KERNEL_INCLUDES}")
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)

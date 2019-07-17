@@ -1158,11 +1158,9 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
                                                  &count);
     if(rc != miopenStatusSuccess)
         return rc;
-    std::cout << "Solutions available: " << count << std::endl;
     if(count < 1)
         return miopenStatusNotImplemented;
 
-    std::cout << "Forward Conv solutions available: " << count << std::endl;
     auto solutions = std::vector<miopenConvSolution_t>(count);
     rc             = miopenConvolutionForwardGetSolution(handle,
                                              (is_transform ? weightTensor_vect4 : weightTensor),
@@ -1174,13 +1172,12 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
                                              solutions.data());
     if(rc != miopenStatusSuccess)
         return rc;
+
+    std::cout << "Forward Conv solutions available: " << count << std::endl;
     if(count < 1)
         return miopenStatusNotImplemented;
 
     solutions.resize(count);
-    std::sort(solutions.begin(), solutions.end(), [](auto& l, auto& r) {
-        return l.time < r.time;
-    }); /// FIXME sort this in the library
     const miopenConvSolution_t* selected = nullptr;
 
     for(const auto& s : solutions)
@@ -1188,12 +1185,15 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
                   << "] - algo: " << miopen::ConvolutionAlgoToString(s.algorithm)
                   << ", time: " << s.time << " ms, ws: " << s.workspace_size << std::endl;
 
-    for(const auto& s : solutions)
-        if(*immediate_solution == s.solution_id)
-            selected = &s;
-
     if(*immediate_solution == 0)
         selected = &solutions.front();
+    else
+        for(const auto& s : solutions)
+            if(*immediate_solution == s.solution_id)
+            {
+                selected = &s;
+                break;
+            }
 
     if(selected == nullptr)
     {
@@ -1719,37 +1719,37 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
 
     auto rc = miopenConvolutionBackwardDataGetSolutionCount(
         handle, outputTensor, weightTensor, convDesc, inputTensor, &count);
-
-    if(rc == miopenStatusNotImplemented)
-    {
-        std::cout << "Using immediate mode with no record in find-db is not implemented yet."
-                  << std::endl;
+    if(rc != miopenStatusSuccess)
         return rc;
-    }
+    if(count < 1)
+        return miopenStatusNotImplemented;
 
-    std::cout << "Backward Data Conv solutions available: " << count << std::endl;
     auto solutions = std::vector<miopenConvSolution_t>(count);
-
-    rc = miopenConvolutionBackwardDataGetSolution(
+    rc             = miopenConvolutionBackwardDataGetSolution(
         handle, outputTensor, weightTensor, convDesc, inputTensor, count, &count, solutions.data());
+    if(rc != miopenStatusSuccess)
+        return rc;
+    std::cout << "Backward Data Conv solutions available: " << count << std::endl;
+    if(count < 1)
+        return miopenStatusNotImplemented;
 
     solutions.resize(count);
-    std::sort(solutions.begin(), solutions.end(), [](auto& l, auto& r) { return l.time < r.time; });
     const miopenConvSolution_t* selected = nullptr;
 
-    for(const auto& solution : solutions)
-    {
-        if(*immediate_solution == solution.solution_id)
-            selected = &solution;
-
-        std::cout << "Solution[" << solution.solution_id
-                  << "] - algo: " << miopen::ConvolutionAlgoToString(solution.algorithm)
-                  << ", time: " << solution.time << " ms, ws: " << solution.workspace_size
-                  << std::endl;
-    }
+    for(const auto& s : solutions)
+        std::cout << "Solution[" << s.solution_id
+                  << "] - algo: " << miopen::ConvolutionAlgoToString(s.algorithm)
+                  << ", time: " << s.time << " ms, ws: " << s.workspace_size << std::endl;
 
     if(*immediate_solution == 0)
         selected = &solutions.front();
+    else
+        for(const auto& s : solutions)
+            if(*immediate_solution == s.solution_id)
+            {
+                selected = &s;
+                break;
+            }
 
     if(selected == nullptr)
     {
@@ -1847,37 +1847,37 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
     std::size_t count;
     auto rc = miopenConvolutionBackwardWeightsGetSolutionCount(
         handle, outputTensor, inputTensor, convDesc, weightTensor, &count);
-
-    if(rc == miopenStatusNotImplemented)
-    {
-        std::cout << "Using immediate mode with no record in find-db is not implemented yet."
-                  << std::endl;
+    if(rc != miopenStatusSuccess)
         return rc;
-    }
+    if(count < 1)
+        return miopenStatusNotImplemented;
 
-    std::cout << "Backward Weights Conv solutions available: " << count << std::endl;
     auto solutions = std::vector<miopenConvSolution_t>(count);
-
-    rc = miopenConvolutionBackwardWeightsGetSolution(
+    rc             = miopenConvolutionBackwardWeightsGetSolution(
         handle, outputTensor, inputTensor, convDesc, weightTensor, count, &count, solutions.data());
+    if(rc != miopenStatusSuccess)
+        return rc;
+    std::cout << "Backward Weights Conv solutions available: " << count << std::endl;
+    if(count < 1)
+        return miopenStatusNotImplemented;
 
     solutions.resize(count);
-    std::sort(solutions.begin(), solutions.end(), [](auto& l, auto& r) { return l.time < r.time; });
     const miopenConvSolution_t* selected = nullptr;
 
-    for(const auto& solution : solutions)
-    {
-        if(*immediate_solution == solution.solution_id)
-            selected = &solution;
-
-        std::cout << "Solution[" << solution.solution_id
-                  << "] - algo: " << miopen::ConvolutionAlgoToString(solution.algorithm)
-                  << ", time: " << solution.time << " ms, ws: " << solution.workspace_size
-                  << std::endl;
-    }
+    for(const auto& s : solutions)
+        std::cout << "Solution[" << s.solution_id
+                  << "] - algo: " << miopen::ConvolutionAlgoToString(s.algorithm)
+                  << ", time: " << s.time << " ms, ws: " << s.workspace_size << std::endl;
 
     if(*immediate_solution == 0)
         selected = &solutions.front();
+    else
+        for(const auto& s : solutions)
+            if(*immediate_solution == s.solution_id)
+            {
+                selected = &s;
+                break;
+            }
 
     if(selected == nullptr)
     {

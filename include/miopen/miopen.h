@@ -300,7 +300,7 @@ MIOPEN_DECLARE_OBJECT(miopenCTCLossDescriptor);
 typedef enum {
     miopenHalf  = 0, /*!< 16-bit floating point (Fully supported) */
     miopenFloat = 1, /*!< 32-bit floating point (Fully supported) */
-    miopenInt32 = 2, /*!< 32-bit int point (Not supported) */
+    miopenInt32 = 2, /*!< 32-bit int point (Partially supported) */
     miopenInt8  = 3, /*!< 8-bit int point (Partially supported) */
     miopenInt8x4 =
         4, /*!< Pack of four 8-bit int points in NCHW_VECT_C format (Partially supported) */
@@ -556,6 +556,8 @@ MIOPEN_EXPORT miopenStatus_t miopenOpTensor(miopenHandle_t handle,
 
 /*! @brief Fills a tensor with a single value.
  *
+ * Supported datatypes are fp32, fp16, and bfp16
+ *
  * @param handle     MIOpen handle (input)
  * @param yDesc      Tensor descriptor for tensor y (input)
  * @param y          Tensor y (input)
@@ -568,6 +570,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensor(miopenHandle_t handle,
                                              const void* alpha);
 
 /*! @brief Scales all elements in a tensor by a single value.
+ *
+ * Supported datatypes are fp32 and fp16
  *
  * @param handle     MIOpen handle (input)
  * @param yDesc      Tensor descriptor for tensor y (input)
@@ -589,7 +593,13 @@ MIOPEN_EXPORT miopenStatus_t miopenScaleTensor(miopenHandle_t handle,
 MIOPEN_EXPORT miopenStatus_t miopenGetTensorNumBytes(miopenTensorDescriptor_t tensorDesc,
                                                      size_t* numBytes);
 
-/*! @brief Copies one tensor to another tensor with a different layout.
+/*! @brief Copies one tensor to another tensor with a different layout/scale.
+ *
+ * This function implements:
+ * 1. \f$ Y = alpha * X + beta * Y \f$ for fp32 and fp16 datatype
+ * 2. Vectorize/de-vectorize along channel dimension C for int8 datatype
+ *
+ * Currently this is used for transforming from int8 to int8x4 vector datatypes
  *
  * @param handle     MIOpen handle (input)
  * @param alpha      Floating point scaling factor, allocated on the host (input)
@@ -815,11 +825,12 @@ miopenDestroyConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc);
  * convolution implementation.
  */
 typedef enum {
-    miopenConvolutionFwdAlgoGEMM         = 0, /*!< GEMM variant */
-    miopenConvolutionFwdAlgoDirect       = 1, /*!< Direct convolutions */
-    miopenConvolutionFwdAlgoFFT          = 2, /*!< Fast Fourier Transform indirect convolutions */
-    miopenConvolutionFwdAlgoWinograd     = 3, /*!< Winograd indirect convolutions */
-    miopenConvolutionFwdAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions */
+    miopenConvolutionFwdAlgoGEMM     = 0, /*!< GEMM variant */
+    miopenConvolutionFwdAlgoDirect   = 1, /*!< Direct convolutions */
+    miopenConvolutionFwdAlgoFFT      = 2, /*!< Fast Fourier Transform indirect convolutions */
+    miopenConvolutionFwdAlgoWinograd = 3, /*!< Winograd indirect convolutions */
+    miopenConvolutionFwdAlgoImplicitGEMM =
+        5, /*!< Implicit GEMM convolutions, fp32 only and disabled by default */
 } miopenConvFwdAlgorithm_t;
 
 /*! @enum miopenConvBwdWeightsAlgorithm_t
@@ -841,15 +852,17 @@ typedef enum {
     miopenConvolutionBwdDataAlgoWinograd = 3, /*!< Winograd indirect convolutions */
     miopenTransposeBwdDataAlgoGEMM =
         4, /*!< Deprecated Transpose GEMM variant legacy, ToBe Removed */
-    miopenConvolutionBwdDataAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions */
+    miopenConvolutionBwdDataAlgoImplicitGEMM =
+        5, /*!< Implicit GEMM convolutions, fp32 only and disabled by default */
 } miopenConvBwdDataAlgorithm_t;
 
 typedef enum {
-    miopenConvolutionAlgoGEMM         = 0, /*!< GEMM variant */
-    miopenConvolutionAlgoDirect       = 1, /*!< Direct convolutions */
-    miopenConvolutionAlgoFFT          = 2, /*!< Fast Fourier Transform indirect convolutions */
-    miopenConvolutionAlgoWinograd     = 3, /*!< Winograd indirect convolutions */
-    miopenConvolutionAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions */
+    miopenConvolutionAlgoGEMM     = 0, /*!< GEMM variant */
+    miopenConvolutionAlgoDirect   = 1, /*!< Direct convolutions */
+    miopenConvolutionAlgoFFT      = 2, /*!< Fast Fourier Transform indirect convolutions */
+    miopenConvolutionAlgoWinograd = 3, /*!< Winograd indirect convolutions */
+    miopenConvolutionAlgoImplicitGEMM =
+        5, /*!< Implicit GEMM convolutions, fp32 only and disabled by default */
 } miopenConvAlgorithm_t;
 
 /*! @struct miopenConvAlgoPerf_t
@@ -898,11 +911,9 @@ typedef struct
 /*! @brief Query the maximum number of solutions applicable for the given input/output and weights
  *  tensor descriptor for Convolution in the Forward direction.
  *
- *  This call returns the maximum number of applicable solutions for a forward convolution problem,
- * the number
- *  returned may be used to allocate the memory required for the miopenConvAlgoPert2_t which is
- * required
- *  by miopenConvolutionGetSolution API calls.
+ * This call returns the maximum number of applicable solutions for a forward convolution problem.
+ * The \c solutionCount returned may be used to allocate the memory required for the
+ * \c miopenConvAlgoPerf_t which is required by miopenConvolutionGetSolution API calls.
  *
  * @param handle         MIOpen handle (input)
  * @param wDesc          Tensor descriptor for weight tensor w (input)
@@ -1006,6 +1017,7 @@ miopenConvolutionForwardCompileSolution(miopenHandle_t handle,
 
 /*! @brief Executes the Forward convolution operation based on the provided solution ID.
  *
+ * Supported datatypes are fp32, fp16, bfp16, and int8
  *
  * @param handle         MIOpen handle (input)
  * @param wDesc          Tensor descriptor for weight tensor w (input)

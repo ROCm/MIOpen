@@ -406,6 +406,10 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                                       const TensorDescriptor& dyDesc,
                                                       const TensorDescriptor& xDesc,
                                                       const TensorDescriptor& dwDesc) const;
+    std::size_t BackwardWeightsGetWorkSpaceSizeWinograd(Handle& handle,
+                                                        const TensorDescriptor& dyDesc,
+                                                        const TensorDescriptor& xDesc,
+                                                        const TensorDescriptor& dwDesc) const;
 
     void FindConvBwdWeightsAlgorithm(Handle& handle,
                                      const TensorDescriptor& dyDesc,
@@ -482,10 +486,12 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                const ConvWrwTensors& tensors,
                                Data_t workSpace,
                                const TKernels& kernels) const;
-
-    void BackwardWeightsWinograd(const ConvolutionContext& ctx,
+    template <class TKernels>
+    void BackwardWeightsWinograd(Handle& handle,
+                                 const ConvolutionContext& ctx,
                                  const ConvWrwTensors& tensors,
-                                 const KernelInvoke& kernel) const;
+                                 Data_t workSpace,
+                                 const TKernels& kernels) const;
 
     std::size_t GetFwdSolutionWorkspaceSizeFallback(Handle& handle,
                                                     const TensorDescriptor& wDesc,
@@ -514,9 +520,25 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                  size_t* solutionCount,
                                  miopenConvSolution_t* solutions) const;
 
+    bool IsGemmApplicableFwd(const TensorDescriptor& wDesc,
+                             const TensorDescriptor& xDesc,
+                             const TensorDescriptor& yDesc) const;
+
+    bool IsGemmApplicableBwd(const TensorDescriptor& dyDesc,
+                             const TensorDescriptor& wDesc,
+                             const TensorDescriptor& dxDesc) const;
+
     bool IsGemmApplicableWrw(const TensorDescriptor& dyDesc,
                              const TensorDescriptor& xDesc,
                              const TensorDescriptor& dwDesc) const;
+
+    std::size_t GetFwdSolutionCountFallback(const TensorDescriptor& wDesc,
+                                            const TensorDescriptor& xDesc,
+                                            const TensorDescriptor& yDesc) const;
+
+    std::size_t GetBwdSolutionCountFallback(const TensorDescriptor& dyDesc,
+                                            const TensorDescriptor& wDesc,
+                                            const TensorDescriptor& dxDesc) const;
 
     std::size_t GetWrwSolutionCountFallback(const TensorDescriptor& dyDesc,
                                             const TensorDescriptor& xDesc,

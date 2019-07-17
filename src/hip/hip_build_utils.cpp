@@ -25,12 +25,10 @@
 *******************************************************************************/
 
 #include <miopen/hip_build_utils.hpp>
+#include <miopen/stringutils.hpp>
 #include <miopen/logger.hpp>
-#include <sstream>
 #include <boost/optional.hpp>
-
-#define MIOPEN_STRINGIZE_1(...) #__VA_ARGS__
-#define MIOPEN_STRINGIZE(...) MIOPEN_STRINGIZE_1(__VA_ARGS__)
+#include <sstream>
 
 namespace miopen {
 
@@ -62,7 +60,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     auto bin_file = tmp_dir->path / (filename + ".o");
     // compile with hcc
     auto env = std::string("KMOPTLLC=-mattr=+enable-ds128");
-    tmp_dir->Execute(env + std::string(" ") + HIP_COMPILER,
+    tmp_dir->Execute(env + std::string(" ") + MIOPEN_HIP_COMPILER,
                      params + filename + " -o " + bin_file.string());
     if(!boost::filesystem::exists(bin_file))
         MIOPEN_THROW(filename + " failed to compile");

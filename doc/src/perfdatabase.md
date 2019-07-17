@@ -11,7 +11,7 @@ User PerfDb **always takes precedence** over System PerfDb.
 
 MIOpen also has auto-tuning functionality, which is able to find optimized kernel parameter values for a specific configuration. The auto-tune process may take a substantial amount of time, however, once the optimized values are found, they are stored in the User PerfDb. MIOpen then will automatically read and use these parameter values when needed again instead of running the expensive auto-tuning search.
 
-By default, System PerfDb resides within MIOpen's install location, while User PerfDb resides in the user's home directory. See [Setting up locations](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/master/README.md#setting-up-locations) for more information.
+By default, System PerfDb resides within MIOpen's install location, while User PerfDb resides in the user's home directory. See [Setting up locations](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/install.html#setting-up-locations) for more information.
 
 The System PerfDb is not modified upon installation of MIOpen.
 

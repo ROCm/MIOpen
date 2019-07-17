@@ -25,12 +25,12 @@
  *******************************************************************************/
 
 #include <miopen/readonlyramdb.hpp>
-
 #include <miopen/logger.hpp>
 
 #include <fstream>
 #include <mutex>
 #include <sstream>
+#include <map>
 
 namespace miopen {
 ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path, bool warn_if_unreadable)
@@ -38,19 +38,23 @@ ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path, bool warn_if_un
     static std::mutex mutex;
     static const std::lock_guard<std::mutex> lock{mutex};
 
-    static auto instances = std::unordered_map<std::string, ReadonlyRamDb>{};
+    static auto instances = std::map<std::string, ReadonlyRamDb*>{};
     const auto it         = instances.find(path);
 
     if(it != instances.end())
-        return it->second;
+        return *it->second;
 
-    auto& instance = instances
-                         .emplace(std::piecewise_construct,
-                                  std::forward_as_tuple(path),
-                                  std::forward_as_tuple(path))
-                         .first->second;
-    instance.Prefetch(warn_if_unreadable);
-    return instance;
+    // The ReadonlyRamDb objects allocated here by "new" shall be alive during
+    // the calling app lifetime. Size of each is very small, and there couldn't
+    // be many of them (max number is number of _different_ GPU board installed
+    // in the user's system, which is _one_ for now). Therefore the total
+    // footprint in heap is very small. That is why we can omit deletion of
+    // these objects thus avoiding bothering with MP/MT syncronization.
+    // These will be destroyed altogether with heap.
+    auto instance = new ReadonlyRamDb{path};
+    instances.emplace(path, instance);
+    instance->Prefetch(path, warn_if_unreadable);
+    return *instance;
 }
 
 template <class TFunc>

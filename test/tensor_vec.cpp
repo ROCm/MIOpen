@@ -42,7 +42,8 @@
 #include "verify.hpp"
 
 template <class T>
-void tensor_vec_forward(const tensor<T>& src, tensor<T>& dst, const bool trans, int vec_size)
+void tensor_vec_forward(
+    const tensor<T>& src, tensor<T>& dst, const bool trans, int vec_size, float alpha, float beta)
 {
     int n_dst, c_dst, h, w;
     std::tie(n_dst, c_dst, h, w) = miopen::tien<4>(dst.desc.GetLengths());
@@ -74,7 +75,10 @@ void tensor_vec_forward(const tensor<T>& src, tensor<T>& dst, const bool trans, 
                         int n_lo_i  = n_i & lo_mask;
                         int out_offset =
                             c_i * out_nhw + n_hi_i * out_hw + h_i * out_w + w_i * vec_size + n_lo_i;
-                        dst.data[out_offset] = (n_i < n_src) ? src.data[in_offset] : 0;
+                        dst.data[out_offset] = (n_i < n_src)
+                                                   ? T(alpha * float(src.data[in_offset]) +
+                                                       beta * float(dst.data[out_offset]))
+                                                   : 0;
                     }
                     else
                     {
@@ -83,7 +87,10 @@ void tensor_vec_forward(const tensor<T>& src, tensor<T>& dst, const bool trans, 
                         int c_lo_i  = c_i & lo_mask;
                         int out_offset =
                             n_i * out_chw + c_hi_i * out_hw + h_i * out_w + w_i * vec_size + c_lo_i;
-                        dst.data[out_offset] = (c_i < c_src) ? src.data[in_offset] : 0;
+                        dst.data[out_offset] = (c_i < c_src)
+                                                   ? T(alpha * float(src.data[in_offset]) +
+                                                       beta * float(dst.data[out_offset]))
+                                                   : 0;
                     }
                 }
             }
@@ -92,7 +99,8 @@ void tensor_vec_forward(const tensor<T>& src, tensor<T>& dst, const bool trans, 
 }
 
 template <class T>
-void tensor_vec_backward(const tensor<T>& src, tensor<T>& dst, const bool trans, int vec_size)
+void tensor_vec_backward(
+    const tensor<T>& src, tensor<T>& dst, const bool trans, int vec_size, float alpha, float beta)
 {
     int n_dst, c_dst, h, w;
     std::tie(n_dst, c_dst, h, w) = miopen::tien<4>(dst.desc.GetLengths());
@@ -125,7 +133,8 @@ void tensor_vec_backward(const tensor<T>& src, tensor<T>& dst, const bool trans,
                         int in_offset =
                             c_i * in_nhw + n_hi_i * in_hw + h_i * in_w + w_i * vec_size + n_lo_i;
                         if(n_i < n_dst)
-                            dst.data[out_offset] = src.data[in_offset];
+                            dst.data[out_offset] = T(alpha * float(src.data[in_offset]) +
+                                                     beta * float(dst.data[out_offset]));
                     }
                     else
                     {
@@ -135,7 +144,8 @@ void tensor_vec_backward(const tensor<T>& src, tensor<T>& dst, const bool trans,
                         int in_offset =
                             n_i * in_chw + c_hi_i * in_hw + h_i * in_w + w_i * vec_size + c_lo_i;
                         if(c_i < c_dst)
-                            dst.data[out_offset] = src.data[in_offset];
+                            dst.data[out_offset] = T(alpha * float(src.data[in_offset]) +
+                                                     beta * float(dst.data[out_offset]));
                     }
                 }
             }
@@ -149,19 +159,27 @@ struct verify_tensor_vec_forward
     tensor<T> src;
     tensor<T> dst;
     bool trans;
+    float alpha;
+    float beta;
 
-    verify_tensor_vec_forward(const tensor<T>& p_src, const tensor<T>& p_dst, const bool p_trans)
+    verify_tensor_vec_forward(const tensor<T>& p_src,
+                              const tensor<T>& p_dst,
+                              const bool p_trans,
+                              const float palpha,
+                              const float pbeta)
     {
         trans = p_trans;
         src   = p_src;
         dst   = p_dst;
+        alpha = palpha;
+        beta  = pbeta;
     }
 
     tensor<T> cpu() const
     {
         auto r       = dst;
         int vec_size = 4 / sizeof(T);
-        tensor_vec_forward(src, r, trans, vec_size);
+        tensor_vec_forward(src, r, trans, vec_size, alpha, beta);
         return r;
     }
 
@@ -172,8 +190,15 @@ struct verify_tensor_vec_forward
         auto src_dev  = handle.Write(src.data);
         auto dst_dev  = handle.Write(r.data);
         int vec_size  = 4 / sizeof(T);
-        miopen::transpose_NCHW2Vec(
-            handle, src.desc.GetLengths(), src_dev.get(), dst_dev.get(), vec_size, trans, true);
+        miopen::transpose_NCHW2Vec(handle,
+                                   src.desc.GetLengths(),
+                                   src_dev.get(),
+                                   dst_dev.get(),
+                                   vec_size,
+                                   trans,
+                                   true,
+                                   &alpha,
+                                   &beta);
         r.data = handle.Read<T>(dst_dev, dst.data.size());
         return r;
     }
@@ -192,19 +217,27 @@ struct verify_tensor_vec_backward
     tensor<T> src;
     tensor<T> dst;
     bool trans;
+    float alpha;
+    float beta;
 
-    verify_tensor_vec_backward(const tensor<T>& p_src, const tensor<T>& p_dst, const bool p_trans)
+    verify_tensor_vec_backward(const tensor<T>& p_src,
+                               const tensor<T>& p_dst,
+                               const bool p_trans,
+                               const float palpha,
+                               const float pbeta)
     {
         trans = p_trans;
         src   = p_src;
         dst   = p_dst;
+        alpha = palpha;
+        beta  = pbeta;
     }
 
     tensor<T> cpu() const
     {
         auto r       = dst;
         int vec_size = 4 / sizeof(T);
-        tensor_vec_backward(src, r, trans, vec_size);
+        tensor_vec_backward(src, r, trans, vec_size, alpha, beta);
         return r;
     }
 
@@ -215,8 +248,15 @@ struct verify_tensor_vec_backward
         auto src_dev  = handle.Write(src.data);
         auto dst_dev  = handle.Write(r.data);
         int vec_size  = 4 / sizeof(T);
-        miopen::transpose_NCHW2Vec(
-            handle, dst.desc.GetLengths(), src_dev.get(), dst_dev.get(), vec_size, trans, false);
+        miopen::transpose_NCHW2Vec(handle,
+                                   dst.desc.GetLengths(),
+                                   src_dev.get(),
+                                   dst_dev.get(),
+                                   vec_size,
+                                   trans,
+                                   false,
+                                   &alpha,
+                                   &beta);
         r.data = handle.Read<T>(dst_dev, r.data.size());
 
         return r;
@@ -240,6 +280,7 @@ struct tensor_vec_driver : test_driver
     bool forw  = true;
 
     std::vector<int> src_lens;
+    std::vector<float> scales;
 
     std::vector<std::vector<int>> get_tensor_src()
     {
@@ -261,6 +302,7 @@ struct tensor_vec_driver : test_driver
         add(src_lens, "srcLens", generate_data(get_tensor_src()));
         add(trans, "trans", generate_data({false, true}));
         add(forw, "forw", generate_data({true, false}));
+        add(scales, "scales", generate_data({{1.f, 0.f}, {float(0.5), float(0.5)}}));
 
         auto&& handle = get_handle();
         handle.EnableProfiling();
@@ -268,11 +310,18 @@ struct tensor_vec_driver : test_driver
 
     void run()
     {
+        float alpha = scales[0];
+        float beta  = scales[1];
+
         if(std::is_same<T, float>::value)
         {
             std::cout << "VEC2 transpose does not support float type" << std::endl;
             return;
         }
+
+        if(!(miopen::float_equal(static_cast<const float>(alpha), 1.0) &&
+             miopen::float_equal(static_cast<const float>(beta), 0.0)))
+            return;
 
         auto dst_lens = src_lens;
 
@@ -294,9 +343,9 @@ struct tensor_vec_driver : test_driver
         dst = tensor<T>{dst_lens}.generate(tensor_elem_gen_integer{max_value});
 
         if(forw)
-            verify_equals(verify_tensor_vec_forward<T>{src, dst, trans});
+            verify_equals(verify_tensor_vec_forward<T>{src, dst, trans, alpha, beta});
         else
-            verify_equals(verify_tensor_vec_backward<T>{dst, src, trans});
+            verify_equals(verify_tensor_vec_backward<T>{dst, src, trans, alpha, beta});
     }
 };
 

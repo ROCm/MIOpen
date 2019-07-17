@@ -35,6 +35,8 @@
 #include <miopen/mlo_utils.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/readonlyramdb.hpp>
+#include <miopen/version.h>
+#include <miopen/stringutils.hpp>
 
 #include <cmath>
 #include <cstring>
@@ -44,6 +46,7 @@
 #include <unordered_map>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 
 miopen::PerfDb mlo_construct_base::GetDb() const
 {
@@ -107,7 +110,8 @@ static auto GetWindogradSolvers()
 
 static auto GetWindogradWrWSolvers()
 {
-    return miopen::solver::SolverContainer<miopen::solver::ConvBinWinogradRxS>{};
+    return miopen::solver::SolverContainer<miopen::solver::ConvBinWinogradRxS,
+                                           miopen::solver::ConvWinograd3x3MultipassWrW>{};
 }
 
 static auto GetBwdWrW2DSolvers()
@@ -144,6 +148,12 @@ miopen::solver::ConvSolution FindWinogradSolution(const miopen::ConvolutionConte
 miopen::solver::ConvSolution FindWinogradWrWSolution(const miopen::ConvolutionContext& ctx)
 {
     return GetWindogradWrWSolvers().SearchForSolution(ctx, GetDb(ctx));
+}
+
+std::vector<miopen::solver::ConvSolution>
+FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx)
+{
+    return GetWindogradWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
 }
 
 std::vector<miopen::solver::ConvSolution>
@@ -224,7 +234,11 @@ static rocm_meta_version DetectAmdRocmMetadataVersion(const miopen::ConvolutionC
     (void)context;
     rocm_meta_version rmv = rocm_meta_version::Default;
 #endif // MIOPEN_BACKEND_OPENCL
-    MIOPEN_LOG_I(rmv);
+    MIOPEN_LOG_I(
+        "ROCm MD version "
+        << rmv
+        << ", MIOpen version " MIOPEN_STRINGIZE(MIOPEN_VERSION_MAJOR) "." MIOPEN_STRINGIZE(
+               MIOPEN_VERSION_MINOR) "." MIOPEN_STRINGIZE(MIOPEN_VERSION_PATCH) "." MIOPEN_STRINGIZE(MIOPEN_VERSION_TWEAK));
     return rmv;
 }
 
