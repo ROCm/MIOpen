@@ -33,7 +33,7 @@ def cmake_build(compiler, flags){
         mkdir build
         cd build
         CXX=${compiler} CXXFLAGS='-Werror' cmake -DMIOPEN_GPU_SYNC=On -DCMAKE_CXX_FLAGS_DEBUG='-g -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=undefined' ${flags} .. 
-        CTEST_PARALLEL_LEVEL=4 MIOPEN_VERIFY_CACHE_PATH=${vcache} MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_DEBUG_CONV_IMPLICIT_GEMM=1 dumb-init make -j32 ${config_targets}
+        CTEST_PARALLEL_LEVEL=4 MIOPEN_VERIFY_CACHE_PATH=${vcache} MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 dumb-init make -j32 ${config_targets}
     """
     echo cmd
     sh cmd
