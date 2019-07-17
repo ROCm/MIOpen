@@ -464,18 +464,21 @@ if(NOT WIN32 AND NOT APPLE)
 MIOPEN_${MIOPEN_BACKEND}_1
 {
 global:
-    *;
+    miopen*;
+    extern \"C++\" {
+        miopen::*;
+    };
 local:
-    *;
+    *boost*;
+    extern \"C++\" {
+        std::*;
+    };
 };
 ")
     target_link_libraries(MIOpen PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_BINARY_DIR}/lib.def")
-    if(NOT BUILD_DEV)
-        # set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET hidden)
-        if(NOT APPLE)
-            target_link_libraries(MIOpen PRIVATE "-Wl,--exclude-libs,ALL")
-        endif()
-    endif()
+    target_link_libraries(MIOpen PRIVATE "-Wl,--exclude-libs,ALL")
+    # set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET protected)
+    set_target_properties(MIOpen PROPERTIES VISIBILITY_INLINES_HIDDEN 1)
 endif()
 
 ############################################################
