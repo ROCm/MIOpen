@@ -28,6 +28,15 @@ cmake_policy(SET CMP0057 NEW)
 
 include (GenerateExportHeader)
 
+# Truncation rounding or (default) rounding to nearest even (RNE) is enabled.
+# This switch controls two related but different aspects of MIOpen behavior
+# 1.  How host code performs conversions of float to bfloat16, important only
+#     for testing.
+# 2.  How BF16 kernels (which are kind of mixed-precision now and expected to
+#     remain in the future)  perform final conversion (and rounding) of FP32
+#     to BF16 results. This affects the main functionality of the library.
+option( MIOPEN_USE_RNE_BFLOAT16 "Sets rounding scheme for bfloat16 type" ON )
+
 configure_file("${PROJECT_SOURCE_DIR}/include/miopen/config.h.in" "${PROJECT_BINARY_DIR}/include/miopen/config.h")
 
 # configure a header file to pass the CMake version settings to the source, and package the header files in the output archive
