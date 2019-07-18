@@ -59,7 +59,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     }
     else
     {
-        params += " --cuda-arch=" + dev_name;
+        params += " --cuda-gpu-arch=" + dev_name;
         params += " --cuda-device-only";
     }
     // params += " -Wno-unused-command-line-argument -c -fno-gpu-rdc -I. ";
