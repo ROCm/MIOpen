@@ -715,8 +715,6 @@ int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
 
     if(UseSubsample(params))
         k_info = solution.construction_params[1];
-    else if(UseUpsample(params))
-        k_info = solution.construction_params[0];
     else
         k_info = solution.construction_params[0];
 
