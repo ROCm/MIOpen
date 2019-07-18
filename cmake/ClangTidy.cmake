@@ -79,7 +79,10 @@ macro(enable_clang_tidy)
     cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
     string(REPLACE ";" "," CLANG_TIDY_CHECKS "${PARSE_CHECKS}")
     string(REPLACE ";" "," CLANG_TIDY_ERRORS "${PARSE_ERRORS}")
-    string(REPLACE ";" " " CLANG_TIDY_EXTRA_ARGS "${PARSE_EXTRA_ARGS}")
+    set(CLANG_TIDY_EXTRA_ARGS)
+    foreach(ARG ${PARSE_EXTRA_ARGS})
+        list(APPEND CLANG_TIDY_EXTRA_ARGS "-extra-arg=${ARG}")
+    endforeach()
     
     message(STATUS "Clang tidy checks: ${CLANG_TIDY_CHECKS}")
 
@@ -111,7 +114,7 @@ macro(enable_clang_tidy)
         -p ${CMAKE_BINARY_DIR} 
         -checks='${CLANG_TIDY_CHECKS}'
         ${CLANG_TIDY_ERRORS_ARG}
-        "-extra-arg=${CLANG_TIDY_EXTRA_ARGS}"
+        ${CLANG_TIDY_EXTRA_ARGS}
         ${CLANG_TIDY_ANALYZE_TEMPORARY_DTORS}
         -header-filter='${CLANG_TIDY_HEADER_FILTER}'
     )

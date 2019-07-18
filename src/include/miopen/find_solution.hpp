@@ -24,7 +24,8 @@
  *
  *******************************************************************************/
 
-#pragma once
+#ifndef MIOPEN_GUARD_MLOPEN_FIND_SOLUTION_HPP
+#define MIOPEN_GUARD_MLOPEN_FIND_SOLUTION_HPP
 
 #include <miopen/env.hpp>
 #include <miopen/conv_solution.hpp>
@@ -206,3 +207,5 @@ struct SolverContainer
 
 } // namespace solver
 } // namespace miopen
+
+#endif

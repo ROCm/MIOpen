@@ -248,14 +248,11 @@ static int FindFFTKernel(Handle& handle,
     // cgemm kernel options
     int cgemm_choice = 0;
 
-    if((in_h == 28) && (in_w == 28))
+    if(((in_h == 28) && (in_w == 28)) || ((in_h == 14) && (in_w == 14)) ||
+       ((in_h == 7) && (in_w == 7)))
         cgemm_choice = 2;
     else if((in_h == 27) && (in_w == 27))
         cgemm_choice = 1;
-    else if((in_h == 14) && (in_w == 14))
-        cgemm_choice = 2;
-    else if((in_h == 7) && (in_w == 7))
-        cgemm_choice = 2;
 
     if((in_n < 16) || (in_c < 16) || (out_c < 16))
         cgemm_choice = 0;
@@ -428,8 +425,6 @@ static float ExecuteFFTKernel(Handle& handle,
         {
         case 0: k(x, workSpace); break;
         case 1: k(w, workSpace); break;
-        case 2: k(workSpace); break;
-        case 3: k(workSpace); break;
         case 4:
         {
             k(workSpace,
@@ -446,10 +441,12 @@ static float ExecuteFFTKernel(Handle& handle,
               in_n,
               N,
               in_c);
+            break;
         }
-        break;
-        case 5: k(workSpace); break;
         case 6: k(workSpace, y); break;
+        case 2:
+        case 3:
+        case 5: k(workSpace); break;
         default: assert(false);
         }
 
