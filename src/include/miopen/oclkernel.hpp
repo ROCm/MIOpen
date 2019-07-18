@@ -62,11 +62,12 @@ struct OCLSetKernelArg
     template <class I, class T>
     void operator()(cl_kernel kernel, I i, const T& x) const
     {
-        cl_int status = clSetKernelArg(kernel, i, sizeof(T), reinterpret_cast<const void*>(&x));
+        cl_int status =
+            clSetKernelArg(kernel, i, sizeof(T), reinterpret_cast<const void*>(&x)); // NOLINT
         if(status != CL_SUCCESS)
         {
             MIOPEN_THROW("Error setting argument #" + std::to_string(i) + " to kernel (size = " +
-                         std::to_string(sizeof(T)) + "): " + OpenCLErrorMessage(status));
+                         std::to_string(sizeof(T)) + "): " + OpenCLErrorMessage(status)); // NOLINT
         }
     }
 

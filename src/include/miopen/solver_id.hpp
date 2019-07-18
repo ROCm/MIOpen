@@ -24,7 +24,8 @@
  *
  *******************************************************************************/
 
-#pragma once
+#ifndef MIOPEN_GUARD_MLOPEN_SOLVER_ID_HPP
+#define MIOPEN_GUARD_MLOPEN_SOLVER_ID_HPP
 
 #include <miopen/logger.hpp>
 #include <miopen/any_solver.hpp>
@@ -78,3 +79,5 @@ struct Id
 
 } // namespace solver
 } // namespace miopen
+
+#endif

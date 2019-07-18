@@ -1,4 +1,7 @@
-#pragma once
+
+#ifndef MIOPEN_GUARD_MLOPEN_FUSION_PLAN_HPP
+#define MIOPEN_GUARD_MLOPEN_FUSION_PLAN_HPP
+
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <miopen/fusion.hpp>
@@ -92,3 +95,5 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
 } // namespace miopen
 
 MIOPEN_DEFINE_OBJECT(miopenFusionPlanDescriptor, miopen::FusionPlanDescriptor);
+
+#endif

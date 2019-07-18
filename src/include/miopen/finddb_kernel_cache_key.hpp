@@ -24,7 +24,8 @@
  *
  *******************************************************************************/
 
-#pragma once
+#ifndef MIOPEN_GUARD_MLOPEN_FINDDB_KERNEL_CACHE_KEY_HPP
+#define MIOPEN_GUARD_MLOPEN_FINDDB_KERNEL_CACHE_KEY_HPP
 
 #include <miopen/errors.hpp>
 
@@ -59,3 +60,5 @@ struct FindDbKCacheKey
 };
 
 } // namespace miopen
+
+#endif

@@ -37,9 +37,7 @@
 
 inline int pick_batch_size(int x, int y)
 {
-    if(y == 0)
-        return 1;
-    else if(y > x)
+    if(y == 0 || y > x)
         return 1;
     else
         return x / y;
