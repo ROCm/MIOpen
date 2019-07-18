@@ -1120,11 +1120,7 @@ int main(int argc, const char* argv[])
     bool do_conv3d = std::any_of(as.begin(), as.end(), [](auto&& arg) { return arg == "conv3d"; });
     bool do_all    = std::any_of(as.begin(), as.end(), [](auto&& arg) { return arg == "--all"; });
 
-    if(do_conv2d and !do_conv3d)
-    {
-        test_drive<conv2d_driver>(argc, argv);
-    }
-    else if(!do_conv2d and do_conv3d)
+    if(!do_conv2d and do_conv3d)
     {
         test_drive<conv3d_driver>(argc, argv);
     }
