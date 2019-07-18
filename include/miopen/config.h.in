@@ -33,8 +33,16 @@
 #cmakedefine01 MIOPEN_USE_ROCBLAS
 #cmakedefine01 MIOPEN_BUILD_DEV
 #cmakedefine01 MIOPEN_GPU_SYNC
-#cmakedefine01 MIOPEN_USE_TRUNC_ROUNDING_BFLOAT16
 #cmakedefine01 MIOPEN_DEBUG_FIND_DB_CACHING
+
+// Truncation rounding or (default) rounding to nearest even (RNE) is enabled.
+// This switch controls two related but different aspects of MIOpen behavior:
+// 1.  How host code performs conversions of float to bfloat16, important only
+//     for testing.
+// 2.  How BF16 kernels (which are kind of mixed-precision now and expected to
+//     remain in the future)  perform final conversion (and rounding) of FP32
+//     to BF16 results. This affects the main functionality of the library.
+#cmakedefine01 MIOPEN_USE_RNE_BFLOAT16
 
 #cmakedefine MIOPEN_AMDGCN_ASSEMBLER "@MIOPEN_AMDGCN_ASSEMBLER@"
 #cmakedefine HIP_OC_COMPILER "@HIP_OC_COMPILER@"
@@ -50,20 +58,6 @@
 #define MIOPEN_NDEBUG 1
 #else
 #define MIOPEN_NDEBUG 0
-#endif
-
-// Truncation rounding or (default) rounding to nearest even (RNE) is enabled.
-// This switch controls two related but different aspects of MIOpen behavior:
-// 1.  How host code performs conversions of float to bfloat16, important only
-//     for testing.
-// 2.  How BF16 kernels (which are kind of mixed-precision now and expected to
-//     remain in the future)  perform final conversion (and rounding) of FP32
-//     to BF16 results. This affects the main functionality of the library.
-
-#if MIOPEN_USE_TRUNC_ROUNDING_BFLOAT16 == 0
-#define MIOPEN_USE_RNE_BFLOAT16 1
-#else
-#define MIOPEN_USE_RNE_BFLOAT16 0
 #endif
 
 // Installable builds are those which aren't intended for debugging.
