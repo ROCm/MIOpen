@@ -2395,6 +2395,8 @@ void ConvolutionDescriptor::CompileForwardSolution(Handle& handle,
 
     auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, 1};
     ctx.SetStream(&handle);
+    ctx.workaround_disable_search_enforce = true;
+
     CompileSolution(handle, solver_id, ctx, [&]() {
         const auto workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
         std::vector<KernelInvoke> ignore0;
@@ -3711,6 +3713,8 @@ void ConvolutionDescriptor::CompileBackwardSolution(Handle& handle,
 
     auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, 0};
     ctx.SetStream(&handle);
+    ctx.workaround_disable_search_enforce = true;
+
     CompileSolution(handle, solver_id, ctx, [&]() {
         const auto workspace_fft = BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc);
         std::vector<KernelInvoke> ignore0;
@@ -5009,6 +5013,8 @@ void ConvolutionDescriptor::CompileWrwSolution(Handle& handle,
     auto ctx = ConvolutionContext{xDesc, dwDesc, dyDesc, *this, 0};
     ctx.direction.SetBackwardWrW();
     ctx.SetStream(&handle);
+    ctx.workaround_disable_search_enforce = true;
+
     CompileSolution(handle, solver_id, ctx, [&]() { MIOPEN_THROW("FFT is not supported in WrW"); });
 }
 
