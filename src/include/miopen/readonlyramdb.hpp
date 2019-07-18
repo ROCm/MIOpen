@@ -23,7 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
+#ifndef MIOPEN_GUARD_MLOPEN_READONLYRAMDB_HPP
+#define MIOPEN_GUARD_MLOPEN_READONLYRAMDB_HPP
 
 #include <miopen/db_record.hpp>
 
@@ -103,3 +104,5 @@ class ReadonlyRamDb
 };
 
 } // namespace miopen
+
+#endif

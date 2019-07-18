@@ -24,7 +24,9 @@
  *
  *******************************************************************************/
 
-#pragma once
+#ifndef MIOPEN_GUARD_MLOPEN_MD_GRAPH_HPP
+#define MIOPEN_GUARD_MLOPEN_MD_GRAPH_HPP
+
 #include <miopen/miopen.h>
 #include <miopen/fusion_ops.hpp>
 #include <miopen/fusion.hpp>
@@ -116,3 +118,5 @@ struct FusionMDGraph
 };
 
 } // namespace miopen
+
+#endif

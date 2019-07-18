@@ -1,4 +1,6 @@
-#pragma once
+#ifndef MIOPEN_MDG_EXPR_H
+#define MIOPEN_MDG_EXPR_H
+
 // #define BOOST_SPIRIT_DEBUG
 
 #include <miopen/common.hpp>
@@ -9,11 +11,14 @@
 #include <memory>
 #include <iostream>
 #include <unordered_map>
+// Workaround tidy issues when using BOOST_FOREACH
+#ifdef MIOPEN_USE_CLANG_TIDY
+#define BOOST_FOREACH(x, y) for(x : y) // NOLINT
+#endif
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix.hpp>
 #include <boost/fusion/adapted.hpp>
 #include <boost/spirit/include/support_utree.hpp>
-
 #include <miopen/fusion_ops.hpp>
 
 namespace miopen {
@@ -260,3 +265,5 @@ struct tree_visit
     visit_res operator()(spirit::function_base const&) const { return visit_res(); }
 };
 } // namespace miopen
+
+#endif
