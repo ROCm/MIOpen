@@ -51,6 +51,8 @@ include(ROCMInstallSymlinks)
 include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 
+option( BUILD_DEV "Build for development only" OFF)
+
 # Strip symbols for release
 if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
@@ -204,8 +206,6 @@ find_path(HALF_INCLUDE_DIR half.hpp)
 
 option( BUILD_SHARED_LIBS "Build as a shared library" ON )
 
-option( BUILD_DEV "Build for development only" OFF)
-
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 
 set( MIOPEN_INSTALL_DIR miopen)
@@ -249,16 +249,24 @@ include(ClangTidy)
 enable_clang_tidy(
     CHECKS
         *
-        -cert-env33-c
         -android-cloexec-fopen
         # Yea we shouldn't be using rand()
         -cert-msc30-c
+        -bugprone-exception-escape
+        -cert-env33-c
+        -cert-msc32-c
         -cert-msc50-cpp
+        -cert-msc51-cpp
         -clang-analyzer-alpha.core.CastToStruct
         -clang-analyzer-optin.performance.Padding
         -clang-diagnostic-deprecated-declarations
         -clang-diagnostic-extern-c-compat
         -clang-diagnostic-unused-command-line-argument
+        -cppcoreguidelines-avoid-c-arrays
+        -cppcoreguidelines-avoid-magic-numbers
+        -cppcoreguidelines-explicit-virtual-functions
+        -cppcoreguidelines-macro-usage
+        -cppcoreguidelines-non-private-member-variables-in-classes
         -cppcoreguidelines-pro-bounds-array-to-pointer-decay
         -cppcoreguidelines-pro-bounds-constant-array-index
         -cppcoreguidelines-pro-bounds-pointer-arithmetic
@@ -278,37 +286,31 @@ enable_clang_tidy(
         -hicpp-no-array-decay
         # We really shouldn't use bitwise operators with signed integers, but
         # opencl leaves us no choice
+        -hicpp-avoid-c-arrays
         -hicpp-signed-bitwise
         -hicpp-special-member-functions
+        -hicpp-uppercase-literal-suffix
+        -hicpp-use-auto
         -hicpp-use-equals-default
         -hicpp-use-override
         -llvm-header-guard
         -llvm-include-order
         -misc-misplaced-const
+        -misc-non-private-member-variables-in-classes
+        -modernize-avoid-c-arrays
         -modernize-pass-by-value
+        -modernize-use-auto
         -modernize-use-default-member-init
         -modernize-use-equals-default
+        -modernize-use-trailing-return-type
         -modernize-use-transparent-functors
         -performance-unnecessary-value-param
         -readability-braces-around-statements
         -readability-else-after-return
-        -readability-named-parameter
-        -hicpp-use-auto
-	    -modernize-use-auto
-        -cppcoreguidelines-avoid-magic-numbers
-        -readability-magic-numbers
-        -cppcoreguidelines-macro-usage
-        -misc-non-private-member-variables-in-classes
-        -cppcoreguidelines-non-private-member-variables-in-classes
         -readability-isolate-declaration
-        -cppcoreguidelines-avoid-c-arrays
-        -hicpp-avoid-c-arrays
-        -modernize-avoid-c-arrays
+        -readability-magic-numbers
+        -readability-named-parameter
         -readability-uppercase-literal-suffix
-        -hicpp-uppercase-literal-suffix
-        -cert-msc32-c
-        -cert-msc51-cpp
-        -bugprone-exception-escape
 
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}

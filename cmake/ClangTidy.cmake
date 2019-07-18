@@ -119,7 +119,7 @@ macro(enable_clang_tidy)
         -p ${CMAKE_BINARY_DIR} 
         -checks='${CLANG_TIDY_CHECKS}'
         ${CLANG_TIDY_ERRORS_ARG}
-        "-extra-arg=${CLANG_TIDY_EXTRA_ARGS}"
+        ${CLANG_TIDY_EXTRA_ARGS}
         ${CLANG_TIDY_ANALYZE_TEMPORARY_DTORS}
         -header-filter='${CLANG_TIDY_HEADER_FILTER}'
     )

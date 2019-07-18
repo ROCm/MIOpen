@@ -391,11 +391,7 @@ BatchNormBwdTrainFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
 
     if(mode == miopenBNSpatial)
     {
-        if(in_cstride > 1024)
-        {
-            xlocalsize = 1024;
-        }
-        else if(in_cstride > 512)
+        if(in_cstride <= 1024 && in_cstride > 512)
         {
             xlocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned long>(1024));
         }
