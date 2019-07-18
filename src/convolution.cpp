@@ -316,17 +316,11 @@ ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMMTranspose(const TensorDescript
 
 bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(miopen::ConvolutionContext& ctx) const
 {
-    bool rv                     = false;
-    const bool save_do_search   = ctx.do_search;
-    const bool save_dis_enforce = ctx.workaround_disable_search_enforce;
+    // Filter out configs where 3x3 Winograd does not have high WTI.
+    if(!(ctx.n_outputs >= 16 && ctx.n_outputs % 2 == 0))
+        return false;
 
-    // 3x3 Winograd is the fastest one (high WTI) here:
-    if(ctx.n_outputs >= 16 && ctx.n_outputs % 2 == 0)
-        rv = solver::ConvBinWinograd3x3U{}.IsApplicable(ctx);
-
-    ctx.do_search                         = save_do_search;
-    ctx.workaround_disable_search_enforce = save_dis_enforce;
-    return rv;
+    return solver::ConvBinWinograd3x3U{}.IsApplicable(ctx);
 }
 
 /// \todo Merge with ForwardGetWorkSpaceSizeGEMM
