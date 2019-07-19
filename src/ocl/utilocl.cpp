@@ -721,13 +721,6 @@ float transpose_NCHW2CNHW(Handle& handle,
     {
         std::string params = GetDataTypeKernelParams(type);
 
-        // TBD: Why Int32 is being treated as fp32
-        if(type == miopenInt32)
-        {
-            params = " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_BFP16=0 "
-                     " -DMIOPEN_USE_INT8=0 -DMIOPEN_USE_INT8x4=0";
-        }
-
         if(type == miopenInt8x4)
         {
             c /= 4;
@@ -852,13 +845,6 @@ float transpose_CNHW2NCHW(Handle& handle,
     else
     {
         std::string params = GetDataTypeKernelParams(type);
-
-        // TBD: Why Int32 is being treated as fp32
-        if(type == miopenInt32)
-        {
-            params = " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_BFP16=0 "
-                     " -DMIOPEN_USE_INT8=0 -DMIOPEN_USE_INT8x4=0";
-        }
 
         if(type == miopenInt8x4)
         {

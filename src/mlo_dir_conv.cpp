@@ -35,6 +35,7 @@
 #include <miopen/mlo_utils.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/readonlyramdb.hpp>
+#include <miopen/datatype.hpp>
 #include <miopen/version.h>
 #include <miopen/stringutils.hpp>
 
@@ -260,20 +261,9 @@ static bool mloIsAmdRocmOpencl(miopen::ConvolutionContext& context)
 
 void miopen::ConvolutionContext::SetupFloats()
 {
-    if(IsFp32())
+    if(IsFp32() || IsFp16() || IsBfp16())
     {
-        general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_BFP16=0";
-    }
-    else if(IsFp16())
-    {
-        general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_BFP16=0";
-    }
-    else if(IsBfp16())
-    {
-        general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_BFP16=1";
-#if MIOPEN_USE_RNE_BFLOAT16 == 1
-        general_compile_options += " -DMIOPEN_USE_RNE_BFLOAT16=1";
-#endif
+        general_compile_options += GetDataTypeKernelParams(in_data_type);
     }
     else
     {
