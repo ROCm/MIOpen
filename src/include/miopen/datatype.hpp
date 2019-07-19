@@ -26,6 +26,7 @@
 #ifndef GUARD_MIOPEN_DATATYPE_HPP
 #define GUARD_MIOPEN_DATATYPE_HPP
 
+#include <sstream>
 #include <string>
 #include <limits>
 
