@@ -984,7 +984,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                                  size_t workSpaceSize,
                                                  bool exhaustiveSearch) const
 {
-    MIOPEN_LOG_I("");
+    MIOPEN_LOG_I("requestAlgoCount = " << requestAlgoCount << ", workspace = " << workSpaceSize);
     if(x == nullptr || w == nullptr || y == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "Buffers cannot be NULL");
     if(returnedAlgoCount == nullptr)
@@ -1151,7 +1151,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                                                Data_t workSpace,
                                                size_t workSpaceSize) const
 {
-    MIOPEN_LOG_I2("algo = " << algo << ", workspace = " << workSpaceSize);
+    MIOPEN_LOG_I("algo = " << algo << ", workspace = " << workSpaceSize);
     const auto tensors = ConvFwdTensors{xDesc, x, wDesc, w, yDesc, y};
     ValidateConvTensors(tensors);
     ValidateAlphaBeta(alpha, beta);
@@ -2006,6 +2006,7 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionCount(Handle& handle,
                                                            const TensorDescriptor& xDesc,
                                                            const TensorDescriptor& yDesc) const
 {
+    MIOPEN_LOG_I("");
     const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, 1};
     const auto n       = GetSolutionCount(handle, problem);
     if(n > 0)
@@ -2093,7 +2094,7 @@ void GetSolutions(Handle& handle,
             if(!solver_id.GetSolver().IsApplicable(ctx))
                 continue;
 
-        interim.emplace_back(pair.second.time, pair.second.workspace, solver_id, algo);
+        interim.emplace_back(pair.second.time, pair.second.workspace, solver_id.Value(), algo);
     }
     std::sort(begin(interim), end(interim));
 
@@ -2130,7 +2131,7 @@ void ConvolutionDescriptor::GetForwardSolutionsFallback(Handle& handle,
             solutions[i].time      = -1.0; /// \todo Evaluate time.
             solutions[i].workspace_size =
                 ForwardGetValidWorkSpaceSizeGemm(handle, wDesc, xDesc, yDesc);
-            solutions[i].solution_id = solver::Id::gemm();
+            solutions[i].solution_id = solver::Id::gemm().Value();
             ++i;
         }
     }
@@ -2159,7 +2160,7 @@ void ConvolutionDescriptor::GetBwdSolutionsFallback(Handle& /*handle*/,
             solutions[i].algorithm      = miopenConvolutionAlgoGEMM;
             solutions[i].time           = -1.0; /// \todo Evaluate time.
             solutions[i].workspace_size = BackwardGetValidWorkSpaceSizeGemm(dyDesc, wDesc, dxDesc);
-            solutions[i].solution_id    = solver::Id::gemm();
+            solutions[i].solution_id    = solver::Id::gemm().Value();
             ++i;
         }
     }
@@ -2188,7 +2189,7 @@ void ConvolutionDescriptor::GetWrwSolutionsFallback(Handle& /*handle*/,
             solutions[i].algorithm      = miopenConvolutionAlgoGEMM;
             solutions[i].time           = -1.0; /// \todo Evaluate time.
             solutions[i].workspace_size = WrwGetValidWorkSpaceSizeGemm(dyDesc, xDesc, dwDesc);
-            solutions[i].solution_id    = solver::Id::gemm();
+            solutions[i].solution_id    = solver::Id::gemm().Value();
             ++i;
         }
     }
@@ -2225,8 +2226,7 @@ static boost::optional<std::size_t>
 GetSolutionWorkspaceSize(Handle& handle, const ProblemDescription& problem, solver::Id solver_id)
 {
     if(!solver_id.IsValid())
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "invalid solution id = " + std::to_string(static_cast<int>(solver_id)));
+        MIOPEN_THROW(miopenStatusBadParm, "invalid solution id = " + solver_id.ToString());
 
     const FindDbRecord fdb_record{handle, problem};
     if(fdb_record.empty())
@@ -2240,8 +2240,7 @@ GetSolutionWorkspaceSize(Handle& handle, const ProblemDescription& problem, solv
         return pair.second.workspace;
     }
     MIOPEN_THROW(miopenStatusBadParm,
-                 "workspace size is not known for solution id = " +
-                     std::to_string(static_cast<int>(solver_id)));
+                 "workspace size is not known for solution id = " + solver_id.ToString());
 }
 
 std::size_t
@@ -2349,8 +2348,7 @@ void CompileSolution(Handle& handle,
                      std::function<void()>&& fft_finder)
 {
     if(!solver_id.IsValid())
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "solver_id=" + std::to_string(static_cast<int>(solver_id)));
+        MIOPEN_THROW(miopenStatusBadParm, "solver_id = " + solver_id.ToString());
 
     if(solver_id == solver::Id::gemm())
     {
@@ -2391,7 +2389,7 @@ void ConvolutionDescriptor::CompileForwardSolution(Handle& handle,
                                                    const TensorDescriptor& yDesc,
                                                    const solver::Id solver_id) const
 {
-    MIOPEN_LOG_I2("solver_id = " << solver_id.ToString());
+    MIOPEN_LOG_I("solver_id = " << solver_id.ToString());
 
     auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, 1};
     ctx.SetStream(&handle);
@@ -2416,7 +2414,7 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
                                                         const std::size_t workSpaceSize,
                                                         const solver::Id solver_id) const
 {
-    MIOPEN_LOG_I2("solver_id = " << solver_id.ToString() << ", workspace = " << workSpaceSize);
+    MIOPEN_LOG_I("solver_id = " << solver_id.ToString() << ", workspace = " << workSpaceSize);
     const auto tensors = ConvFwdTensors{xDesc, x, wDesc, w, yDesc, y};
 
     ValidateConvTensors(tensors);
@@ -2518,7 +2516,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                                      size_t workSpaceSize,
                                                      bool exhaustiveSearch) const
 {
-    MIOPEN_LOG_I("");
+    MIOPEN_LOG_I("requestAlgoCount = " << requestAlgoCount << ", workspace = " << workSpaceSize);
     if(dx == nullptr || w == nullptr || dy == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "Buffers cannot be NULL");
     if(returnedAlgoCount == nullptr)
@@ -3669,6 +3667,7 @@ std::size_t ConvolutionDescriptor::GetBackwardSolutionCount(Handle& handle,
                                                             const TensorDescriptor& wDesc,
                                                             const TensorDescriptor& dxDesc) const
 {
+    MIOPEN_LOG_I("");
     ValidateGroupCount(dxDesc, wDesc, *this);
     const auto problem = ProblemDescription{dxDesc, wDesc, dyDesc, *this, 0};
     const auto count   = GetSolutionCount(handle, problem);
@@ -3685,6 +3684,7 @@ void ConvolutionDescriptor::GetBackwardSolutions(Handle& handle,
                                                  size_t* solutionCount,
                                                  miopenConvSolution_t* solutions) const
 {
+    MIOPEN_LOG_I("");
     if(solutionCount == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "solutionCount cannot be nullptr");
     if(solutions == nullptr)
@@ -3709,7 +3709,7 @@ void ConvolutionDescriptor::CompileBackwardSolution(Handle& handle,
                                                     const TensorDescriptor& dxDesc,
                                                     solver::Id solver_id) const
 {
-    MIOPEN_LOG_I2("solver_id = " << solver_id.ToString());
+    MIOPEN_LOG_I("solver_id = " << solver_id.ToString());
 
     auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, 0};
     ctx.SetStream(&handle);
@@ -3729,7 +3729,7 @@ std::size_t ConvolutionDescriptor::GetBackwardSolutionWorkspaceSize(Handle& hand
                                                                     const TensorDescriptor& dxDesc,
                                                                     solver::Id solver_id) const
 {
-    MIOPEN_LOG_I2("solver_id = " << solver_id.ToString());
+    MIOPEN_LOG_I("solver_id = " << solver_id.ToString());
     const auto problem   = ProblemDescription{dxDesc, wDesc, dyDesc, *this, 0};
     const auto workspace = GetSolutionWorkspaceSize(handle, problem, solver_id);
     if(workspace)
@@ -3748,7 +3748,7 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
                                                          std::size_t workSpaceSize,
                                                          solver::Id solver_id) const
 {
-    MIOPEN_LOG_I2("solver_id = " << solver_id.ToString() << ", workspace = " << workSpaceSize);
+    MIOPEN_LOG_I("solver_id = " << solver_id.ToString() << ", workspace = " << workSpaceSize);
     auto tensors = ConvBwdTensors{dyDesc, dy, wDesc, w, dxDesc, dx};
 
     ValidateConvTensors(tensors);
@@ -3932,21 +3932,21 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
     GetCompiledInParameters(
         ctx, &C, &K, &R, &S, &N, &n_groups, &H, &W, &out_H, &out_W, &unused, &unused);
     // clang-format off
-    BuffInfo 
+    BuffInfo
         in_buff_info(
-            GetSwappedNCLayout(GetMemLayout_t(ctx.in_layout)), 
-            N, C, H, W, 1, 
+            GetSwappedNCLayout(GetMemLayout_t(ctx.in_layout)),
+            N, C, H, W, 1,
             GetTypeSize(ctx.in_data_type)),
         out_buff_info(
             GetSwappedNCLayout(GetMemLayout_t(ctx.out_layout)),
-            N, K, out_H, out_W, 1, 
+            N, K, out_H, out_W, 1,
             GetTypeSize(ctx.out_data_type)),
         weights_buff_info(
             // weights_layout unsupported ... GetSwappedNCLayout(GetMemLayout_t(ctx.weights_layout))
             GetSwappedNCLayout(MemLayout_t::NCHW),
             K, C, R, S, 1,
             GetTypeSize(ctx.weights_data_type));
-    WinogradBufferInfo<3, 4> 
+    WinogradBufferInfo<3, 4>
         wino_in(N,K,C,out_H,out_W,R,S,
             MemLayout_t::HWNC,
             1,GetTypeSize(ctx.in_data_type),
@@ -4002,8 +4002,8 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
             // clang-format off
             GemmDescriptor wino_gemm_desc{false,false,true,m,n,k,
                 lda,ldb,ldc,batch_count,strideA,strideB,
-                strideC,alpha,beta,miopenDataType_t::miopenFloat};                                   
-            
+                strideC,alpha,beta,miopenDataType_t::miopenFloat};
+
             if(elapsed == nullptr)
                 CallGemmStridedBatched(handle,
                             wino_gemm_desc,
@@ -4152,7 +4152,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                         size_t workSpaceSize,
                                                         bool exhaustiveSearch) const
 {
-    MIOPEN_LOG_I("");
+    MIOPEN_LOG_I("requestAlgoCount = " << requestAlgoCount << ", workspace = " << workSpaceSize);
     if(x == nullptr || dw == nullptr || dy == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "Buffers cannot be NULL");
     if(returnedAlgoCount == nullptr)
@@ -5009,7 +5009,7 @@ void ConvolutionDescriptor::CompileWrwSolution(Handle& handle,
                                                const TensorDescriptor& dwDesc,
                                                solver::Id solver_id) const
 {
-    MIOPEN_LOG_I2("solver_id = " << solver_id.ToString());
+    MIOPEN_LOG_I("solver_id = " << solver_id.ToString());
     auto ctx = ConvolutionContext{xDesc, dwDesc, dyDesc, *this, 0};
     ctx.direction.SetBackwardWrW();
     ctx.SetStream(&handle);
@@ -5024,7 +5024,7 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionWorkspaceSize(Handle& handle,
                                                                const TensorDescriptor& dwDesc,
                                                                solver::Id solver_id) const
 {
-    MIOPEN_LOG_I2("solver_id = " << solver_id.ToString());
+    MIOPEN_LOG_I("solver_id = " << solver_id.ToString());
     const auto problem   = MakeWrwProblem(dyDesc, xDesc, dwDesc);
     const auto workspace = GetSolutionWorkspaceSize(handle, problem, solver_id);
     if(workspace)
@@ -5043,7 +5043,7 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
                                                     std::size_t workSpaceSize,
                                                     solver::Id solver_id) const
 {
-    MIOPEN_LOG_I("workspace = " << workSpaceSize);
+    MIOPEN_LOG_I("solver_id = " << solver_id.ToString() << ", workspace = " << workSpaceSize);
     auto tensors = ConvWrwTensors{dyDesc, dy, xDesc, x, dwDesc, dw};
     ValidateConvTensors(tensors);
 
