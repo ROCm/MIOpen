@@ -78,7 +78,8 @@ add_compile_options(-std=c++14)
 # OPTION - MIOpen Backend
 # - OpenCL
 # - HCC
-if(CMAKE_CXX_COMPILER MATCHES ".*hcc" OR CMAKE_CXX_COMPILER MATCHES ".*hipcc")
+check_cxx_compiler_flag("--cuda-host-only -x hip" HAS_HIP)
+if(CMAKE_CXX_COMPILER MATCHES ".*hcc" OR CMAKE_CXX_COMPILER MATCHES ".*hipcc" OR HAS_HIP)
     set(MIOPEN_DEFAULT_BACKEND "HIP")
 else()
     set(MIOPEN_DEFAULT_BACKEND "OpenCL")
@@ -137,15 +138,20 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
         message(FATAL_ERROR "clang-ocl not found")
     endif()
     
-    link_libraries(stdc++)
+    if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
+        link_libraries(stdc++)
 
-    # A hack to make this work without the device enumerator
-    link_libraries(-amdgpu-target=gfx803 -amdgpu-target=gfx900 -Wno-unused-command-line-argument)
-    CHECK_CXX_COMPILER_FLAG(-amdgpu-target=gfx906 -Werror, GFX_906_FLAG_VALID)
-    if(GFX_906_FLAG_VALID)
-        link_libraries(-amdgpu-target=gfx906)
+        # A hack to make this work without the device enumerator
+        link_libraries(-amdgpu-target=gfx803 -amdgpu-target=gfx900 -Wno-unused-command-line-argument)
+        CHECK_CXX_COMPILER_FLAG("-amdgpu-target=gfx906 -Werror" GFX_906_FLAG_VALID)
+        if(GFX_906_FLAG_VALID)
+            link_libraries(-amdgpu-target=gfx906)
+        endif()
+        # end hack
+    else()
+        # Hcc's clang always defines __HCC__ even when not using hcc driver
+        add_definitions(-U__HCC__)
     endif()
-    # end hack
 
     set(MIOPEN_HIP_COMPILER ${CMAKE_CXX_COMPILER} CACHE PATH "")
 
@@ -232,9 +238,13 @@ rocm_create_package(
 )
 
 include(EnableCompilerWarnings)
-if(CMAKE_CXX_COMPILER MATCHES ".*hcc" OR CMAKE_CXX_COMPILER MATCHES ".*hipcc" )
-    set(CLANG_TIDY_CHECKS -modernize-use-override -readability-non-const-parameter)
+set(MIOPEN_TIDY_ERRORS ERRORS * -readability-inconsistent-declaration-parameter-name)
+if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
+    set(MIOPEN_TIDY_CHECKS -modernize-use-override -readability-non-const-parameter)
+elseif(MIOPEN_BACKEND STREQUAL "HIP")
+    set(MIOPEN_TIDY_ERRORS ALL)
 endif()
+
 include(ClangTidy)
 enable_clang_tidy(
     CHECKS
@@ -302,10 +312,8 @@ enable_clang_tidy(
         -readability-named-parameter
         -readability-uppercase-literal-suffix
 
-        ${CLANG_TIDY_CHECKS}
-    ERRORS
-        *
-        -readability-inconsistent-declaration-parameter-name
+        ${MIOPEN_TIDY_CHECKS}
+    ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER
         ".*hpp"
     EXTRA_ARGS

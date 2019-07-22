@@ -72,7 +72,7 @@ file(MAKE_DIRECTORY ${CLANG_TIDY_FIXIT_DIR})
 set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${CLANG_TIDY_FIXIT_DIR})
 
 macro(enable_clang_tidy)
-    set(options ANALYZE_TEMPORARY_DTORS)
+    set(options ANALYZE_TEMPORARY_DTORS ALL)
     set(oneValueArgs HEADER_FILTER)
     set(multiValueArgs CHECKS ERRORS EXTRA_ARGS)
 
@@ -83,6 +83,11 @@ macro(enable_clang_tidy)
     foreach(ARG ${PARSE_EXTRA_ARGS})
         list(APPEND CLANG_TIDY_EXTRA_ARGS "-extra-arg=${ARG}")
     endforeach()
+
+    set(CLANG_TIDY_ALL)
+    if(PARSE_ALL)
+        set(CLANG_TIDY_ALL ALL)
+    endif()
     
     message(STATUS "Clang tidy checks: ${CLANG_TIDY_CHECKS}")
 
@@ -118,7 +123,7 @@ macro(enable_clang_tidy)
         ${CLANG_TIDY_ANALYZE_TEMPORARY_DTORS}
         -header-filter='${CLANG_TIDY_HEADER_FILTER}'
     )
-    add_custom_target(tidy)
+    add_custom_target(tidy ${CLANG_TIDY_ALL})
     mark_as_analyzer(tidy)
     add_custom_target(tidy-base)
     add_custom_target(tidy-make-fixit-dir COMMAND ${CMAKE_COMMAND} -E make_directory ${CLANG_TIDY_FIXIT_DIR})
