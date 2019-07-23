@@ -35,13 +35,11 @@ class bfloat16 : boost::totally_ordered<bfloat16, boost::arithmetic<bfloat16>>
     bfloat16() : data_{0} {}
     explicit bfloat16(float rhs)
     {
-        static union
+        union
         {
-            std::uint32_t bf16_st;
             float float_st;
-        } bits_st;
-
-        bits_st.float_st = rhs;
+            std::uint32_t bf16_st;
+        } bits_st = {rhs};
 
         // BF16 round and NaN preservation code matches
         // https://github.com/ROCmSoftwarePlatform/rocBLAS/blob/develop/library/include/rocblas_bfloat16.h
@@ -89,13 +87,12 @@ class bfloat16 : boost::totally_ordered<bfloat16, boost::arithmetic<bfloat16>>
     }
     operator float() const
     {
-        static union
+        union
         {
             std::uint32_t bf16_st;
             float float_st;
-        } bits_st;
+        } bits_st = {data_};
 
-        bits_st.bf16_st = data_;
         bits_st.bf16_st = bits_st.bf16_st << 16;
         return bits_st.float_st;
     }
