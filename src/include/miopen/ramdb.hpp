@@ -115,8 +115,6 @@ class RamDb : protected Db
 
     boost::optional<miopen::DbRecord> FindRecordUnsafe(const std::string& problem);
 
-    void Invalidate();
-    void Validate();
     bool ValidateUnsafe();
     void Prefetch();
     void UpdateCacheEntryUnsafe(const DbRecord& record);
