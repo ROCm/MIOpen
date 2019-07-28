@@ -122,6 +122,9 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     else()
         message(FATAL_ERROR "hip compiler not found")
     endif()
+
+    # scgemm not support opencl backend yet.
+    set(MIOPEN_USE_SCGEMM OFF)
 endif()
 
 # HIP
@@ -164,6 +167,14 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
         message(STATUS "Build with rocblas")
     else()
         message(STATUS "Build without rocblas")
+    endif()
+
+    # scgemm
+    set(MIOPEN_USE_SCGEMM ON CACHE BOOL "")
+    if(MIOPEN_USE_SCGEMM)
+        message(STATUS "Build with scgemm")
+    else()
+        message(STATUS "Build without scgemm")
     endif()
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
