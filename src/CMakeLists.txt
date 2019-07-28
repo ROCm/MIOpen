@@ -390,6 +390,20 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     add_dependencies(tidy miopen_tidy_inlining)
 endif()
 
+if(MIOPEN_USE_SCGEMM)
+    list(APPEND MIOpen_Source
+        scgemm/scgemm.cpp
+        include/miopen/scgemm/scgemm.hpp
+        include/miopen/scgemm/tensorshape.hpp
+        include/miopen/scgemm/conv.hpp
+        include/miopen/scgemm/gemm.hpp
+        include/miopen/scgemm/scgemm_op.hpp
+        scgemm/tensorshape.cpp
+        scgemm/conv.cpp
+        scgemm/gemm.cpp
+    )
+endif()
+
 # build library
 add_library( MIOpen
     ${MIOpen_Source}
