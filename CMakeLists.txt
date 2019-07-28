@@ -116,7 +116,7 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
         PATH_SUFFIXES bin
         PATHS /opt/rocm
     )
-    
+    set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
     if(MIOPEN_HIP_COMPILER)
         message("hip compiler: ${MIOPEN_HIP_COMPILER}")
     else()
@@ -127,6 +127,7 @@ endif()
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     set(MIOPEN_BACKEND_HIP 1)
+    set(MIOPEN_USE_MIOPENGEMM OFF CACHE BOOL "")
     find_program(HIP_OC_COMPILER clang-ocl
         PATH_SUFFIXES bin
         PATHS /opt/rocm
@@ -188,10 +189,15 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
 message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 
 # miopengemm
-find_package(miopengemm PATHS /opt/rocm)
-if(miopengemm_FOUND)
-    message(STATUS "Build with miopengemm")
-    set(MIOPEN_USE_MIOPENGEMM 1)
+if(MIOPEN_USE_MIOPENGEMM)
+    find_package(miopengemm PATHS /opt/rocm)
+    if(miopengemm_FOUND)
+        message(STATUS "Build with miopengemm")
+        set(MIOPEN_USE_MIOPENGEMM 1)
+    else()
+        message(STATUS "Build without miopengemm")
+        set(MIOPEN_USE_MIOPENGEMM 0)
+    endif()
 else()
     message(STATUS "Build without miopengemm")
     set(MIOPEN_USE_MIOPENGEMM 0)
