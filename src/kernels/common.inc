@@ -167,7 +167,7 @@ log2 wave_size_log2, wave_size
     v_cndmask_b32     v[\vtmp+1],   v[\vtmp+3],   v[\vtmp+1],  s[\stmp1:\stmp1+1]
     v_mul_hi_u32      v[\vtmp+1],   v[\vtmp+1],   v[\vtmp]
    _v_sub_co_u32      v[\vtmp+2],   vcc,          v[\vtmp],    v[\vtmp+1]
-    v_add_co_u32      v[\vtmp],     vcc,          v[\vtmp],    v[\vtmp+1]
+   _v_add_co_u32      v[\vtmp],     vcc,          v[\vtmp],    v[\vtmp+1]
     v_cndmask_b32     v[\vtmp],     v[\vtmp],     v[\vtmp+2],  s[\stmp1:\stmp1+1]
     v_mul_hi_u32      v[\vtmp],     v[\vtmp],     \numer
     v_mul_lo_u32      v[\vtmp+1],   v[\vtmp],     \denom
@@ -185,47 +185,47 @@ log2 wave_size_log2, wave_size
 
 .altmacro
 .macro ceil_2_32_div_u16 m, denom, vtmp, stmp
-	v_cvt_f32_u32     v[\vtmp],     \denom
-	v_rcp_f32         v[\vtmp],     v[\vtmp]
-	v_mul_f32         v[\vtmp],     0x4f800000,   v[\vtmp]
-	v_cvt_u32_f32     v[\vtmp],     v[\vtmp]
+    v_cvt_f32_u32     v[\vtmp],     \denom
+    v_rcp_f32         v[\vtmp],     v[\vtmp]
+    v_mul_f32         v[\vtmp],     0x4f800000,   v[\vtmp]
+    v_cvt_u32_f32     v[\vtmp],     v[\vtmp]
 
-	v_mul_lo_u32      v[\vtmp+1],   \denom,       v[\vtmp]
-	v_mul_hi_u32      v[\vtmp+2],   \denom,       v[\vtmp]
-	v_sub_u32         v[\vtmp+3],   0,            v[\vtmp+1]
-	v_cmp_ne_i32      s[\stmp:\stmp+1], 0,        v[\vtmp+2]
-	v_cndmask_b32     v[\vtmp+1],   v[\vtmp+3],   v[\vtmp+1],  s[\stmp:\stmp+1]
-	v_mul_hi_u32      v[\vtmp+1],   v[\vtmp+1],   v[\vtmp]
-	v_sub_u32         v[\vtmp+2],   v[\vtmp],     v[\vtmp+1]
-	v_add_co_u32      v[\vtmp],     vcc,          v[\vtmp],    v[\vtmp+1]
-	v_cndmask_b32     v[\vtmp],     v[\vtmp],     v[\vtmp+2],  s[\stmp:\stmp+1]
-	v_mul_hi_u32      v[\vtmp],     -1,           v[\vtmp]
-	v_mul_lo_u32      v[\vtmp+1],   v[\vtmp],     \denom
-	v_sub_u32         v[\vtmp+2],   -1,           v[\vtmp+1]
-	v_cmp_ge_u32      s[\stmp:\stmp+1],           v[\vtmp+2],  \denom
-	v_add_u32         v[\vtmp+2],   1,            v[\vtmp]
-	v_add_co_u32      v[\vtmp+1],   vcc, -1,      v[\vtmp]
-	v_cndmask_b32     v[\vtmp+2],   v[\vtmp],     v[\vtmp+2],  s[\stmp:\stmp+1]
-	v_add_u32         v[\vtmp+2],   1,            v[\vtmp+2]
-	v_cmp_ne_i32      vcc,          0,            \denom
-	v_cndmask_b32     \m,        -1,           v[\vtmp+2],  vcc
+    v_mul_lo_u32      v[\vtmp+1],   \denom,       v[\vtmp]
+    v_mul_hi_u32      v[\vtmp+2],   \denom,       v[\vtmp]
+   _v_sub_nc_u32      v[\vtmp+3],   0,            v[\vtmp+1]
+    v_cmp_ne_i32      s[\stmp:\stmp+1], 0,        v[\vtmp+2]
+    v_cndmask_b32     v[\vtmp+1],   v[\vtmp+3],   v[\vtmp+1],  s[\stmp:\stmp+1]
+    v_mul_hi_u32      v[\vtmp+1],   v[\vtmp+1],   v[\vtmp]
+   _v_sub_nc_u32      v[\vtmp+2],   v[\vtmp],     v[\vtmp+1]
+    v_add_co_u32      v[\vtmp],     vcc,          v[\vtmp],    v[\vtmp+1]
+    v_cndmask_b32     v[\vtmp],     v[\vtmp],     v[\vtmp+2],  s[\stmp:\stmp+1]
+    v_mul_hi_u32      v[\vtmp],     -1,           v[\vtmp]
+    v_mul_lo_u32      v[\vtmp+1],   v[\vtmp],     \denom
+   _v_sub_nc_u32      v[\vtmp+2],   -1,           v[\vtmp+1]
+    v_cmp_ge_u32      s[\stmp:\stmp+1],           v[\vtmp+2],  \denom
+    v_add_u32         v[\vtmp+2],   1,            v[\vtmp]
+    v_add_co_u32      v[\vtmp+1],   vcc, -1,      v[\vtmp]
+    v_cndmask_b32     v[\vtmp+2],   v[\vtmp],     v[\vtmp+2],  s[\stmp:\stmp+1]
+    v_add_u32         v[\vtmp+2],   1,            v[\vtmp+2]
+    v_cmp_ne_i32      vcc,          0,            \denom
+    v_cndmask_b32     \m,        -1,           v[\vtmp+2],  vcc
 .endm
 
 .macro disable_srd srd
-	s_mov_b32 s[\srd+3], 0
+    s_mov_b32 s[\srd+3], 0
 .endm
 .macro enable_srd srd
-	s_mov_b32 s[\srd+3], 0x00020000            // DATA_FORMAT, need to just be non-zero;
+    s_mov_b32 s[\srd+3], 0x00020000            // DATA_FORMAT, need to just be non-zero;
 .endm
 
 .macro label l, n
-	\l\n:
+    \l\n:
 .endm
 .macro _s_cbranch cond, l, n
-	s_cbranch_\cond \l\n
+    s_cbranch_\cond \l\n
 .endm
 .macro _s_branch l, n
-	s_branch \l\n
+    s_branch \l\n
 .endm
 
 
@@ -294,27 +294,27 @@ div_const_1_63=0x04104105
 div_const_1_64=0x04000000
 
 .macro _s_div_const_u32_u16 dst, src, denum
-	.if \denum == 1
-		s_mov_b32 \dst, \src
-	.elseif \denum >=2 && \denum <= 64
-		s_mul_hi_u32 \dst, div_const_1_\denum, \src
-	.else
-		static_assert(0)
-	.endif
+    .if \denum == 1
+        s_mov_b32 \dst, \src
+    .elseif \denum >=2 && \denum <= 64
+        s_mul_hi_u32 \dst, div_const_1_\denum, \src
+    .else
+        static_assert(0)
+    .endif
 .endm
 
 .macro _v_div_const_u32_u16 dst, src, denum, tmp
-	.if \denum == 1
-		v_mov_b32 \dst, \src
-	.elseif \denum >=2 && \denum <= 64
-		s_mov_b32 \tmp, div_const_1_\denum
-		v_mul_hi_u32 \dst, \tmp, \src
-	.else
-		static_assert(0)
-	.endif
+    .if \denum == 1
+        v_mov_b32 \dst, \src
+    .elseif \denum >=2 && \denum <= 64
+        s_mov_b32 \tmp, div_const_1_\denum
+        v_mul_hi_u32 \dst, \tmp, \src
+    .else
+        static_assert(0)
+    .endif
 .endm
 
 .macro _s_ceil_u32 dst, src, denum
-	s_add_u32 \dst, \denum - 1, \src
-	_s_div_const_u32_u16 \dst, \dst, \denum
+    s_add_u32 \dst, \denum - 1, \src
+   _s_div_const_u32_u16 \dst, \dst, \denum
 .endm
