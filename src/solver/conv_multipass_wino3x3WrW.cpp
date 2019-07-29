@@ -79,6 +79,11 @@ struct InTransform
         const size_t chw_step       = tiles_per_wave 
             * params.GetStream().GetMaxComputeUnits() 
             * ConvWinograd3x3MultipassWrW::GetGroupCountMult();
+        const std::string name = params.GetStream().GetDeviceName();
+        if(name.find("gfx8") != std::string::npos)
+        {
+            return false;
+        }
         
         return params.IsFp32()
                 && H < u16limit
@@ -131,7 +136,11 @@ struct FilterTransform
         const size_t chw_step       = tiles_per_wave 
             * params.GetStream().GetMaxComputeUnits() 
             * ConvWinograd3x3MultipassWrW::GetGroupCountMult();
-
+        const std::string name = params.GetStream().GetDeviceName();
+        if(name.find("gfx8") != std::string::npos)
+        {
+            return false;
+        }
         return params.IsFp32()
                 && H < u16limit
                 && W < u16limit
