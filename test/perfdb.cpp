@@ -199,7 +199,8 @@ class DbTest
     static const std::array<std::pair<const char*, TestData>, 2>& common_data()
     {
         static const std::array<std::pair<const char*, TestData>, 2> data{{
-            {id1(), value1()}, {id0(), value0()},
+            {id1(), value1()},
+            {id0(), value0()},
         }};
 
         return data;
@@ -571,7 +572,9 @@ class DbParallelTest : public DbTest
         }
 
         const std::array<std::pair<const char*, TestData>, 3> data{{
-            {id0(), value0()}, {id1(), value1()}, {id2(), value2()},
+            {id0(), value0()},
+            {id1(), value1()},
+            {id2(), value2()},
         }};
 
         TDb db{temp_file};
@@ -796,7 +799,7 @@ class DBMultiThreadedTestWork
     {
         static std::vector<TestData> data(common_part_size, TestData{TestData::NoInit{}});
 
-        for(auto i  = 0u; i < common_part_size; i++)
+        for(auto i = 0u; i < common_part_size; i++)
             data[i] = TestData::Seeded<common_part_seed>();
 
         return data;
@@ -834,10 +837,14 @@ class DbMultiThreadedTest : public DbTest
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
-                threads.emplace_back([c, &mutex, i]() {
+            {
+                auto thread_body = [c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::WorkItem(i, c, "mt");
-                });
+                };
+
+                threads.emplace_back(thread_body);
+            }
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test threads...");
@@ -1093,7 +1100,8 @@ class DbMultiFileReadTest : public DbMultiFileTest
         RawWrite(user_db_path, key(), single_item_data());
 
         static const std::array<std::pair<const char*, TestData>, 2> merged_data{{
-            {id1(), value1()}, {id0(), value2()},
+            {id1(), value1()},
+            {id0(), value2()},
         }};
 
         MultiFileDb<Db, Db, merge_records> db(temp_file, user_db_path);

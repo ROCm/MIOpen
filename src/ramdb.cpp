@@ -60,6 +60,8 @@ static ramdb_clock::time_point GetDbModificationTime(const std::string& path)
 
 static void UpdateDbModificationTime(const std::string& path)
 {
+    MIOPEN_LOG_I2("Updating db modification time for " << path);
+
     const auto time           = ramdb_clock::now().time_since_epoch();
     const auto time_file_path = path + ".time";
     auto file                 = std::ofstream{time_file_path};
@@ -132,61 +134,72 @@ boost::optional<DbRecord> RamDb::FindRecord(const std::string& problem)
 
 bool RamDb::StoreRecord(const DbRecord& record)
 {
+    const auto& key = record.GetKey();
+    MIOPEN_LOG_I2("Trying to store record at key " << key << " in cache for file "
+                                                   << GetFileName());
     const auto lock = exclusive_lock(GetLockFile(), GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
 
     if(!StoreRecordUnsafe(record))
         return false;
 
-    UpdateCacheEntryUnsafe(record);
+    UpdateDbModificationTime(GetFileName());
+    // UpdateCacheEntryUnsafe(record);
     return true;
 }
 
 bool RamDb::UpdateRecord(DbRecord& record)
 {
+    const auto& key = record.GetKey();
+    MIOPEN_LOG_I2("Trying to update record at key " << key << " in cache for file "
+                                                    << GetFileName());
     const auto lock = exclusive_lock(GetLockFile(), GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
 
     if(!UpdateRecordUnsafe(record))
         return false;
 
-    UpdateCacheEntryUnsafe(record);
+    UpdateDbModificationTime(GetFileName());
+    // UpdateCacheEntryUnsafe(record);
     return true;
 }
 
 bool RamDb::RemoveRecord(const std::string& key)
 {
+    MIOPEN_LOG_I2("Trying to remove record at key " << key << " from cache for file "
+                                                   << GetFileName());
     const auto lock = exclusive_lock(GetLockFile(), GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
 
-    const auto is_valid = ValidateUnsafe();
+    // const auto is_valid = ValidateUnsafe();
     if(!RemoveRecordUnsafe(key))
         return false;
 
     UpdateDbModificationTime(GetFileName());
 
-    if(is_valid)
+    /*if(is_valid)
     {
         cache.erase(key);
         file_read_time = ramdb_clock::now();
-    }
+    }*/
 
     return true;
 }
 
 bool RamDb::Remove(const std::string& key, const std::string& id)
 {
+    MIOPEN_LOG_I2("Trying to remove value at key " << key << " and id " << id << " from cache for file " << GetFileName());
     const auto lock = exclusive_lock(GetLockFile(), GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
 
-    const auto is_valid = ValidateUnsafe();
+    // const auto is_valid = ValidateUnsafe();
     auto record         = FindRecordUnsafe(key);
     if(!record || !record->EraseValues(id) || !StoreRecordUnsafe(*record))
         return false;
 
     UpdateDbModificationTime(GetFileName());
 
-    if(is_valid)
+    /*if(is_valid)
     {
         if(record->GetSize() == 0)
         {
@@ -201,7 +214,7 @@ bool RamDb::Remove(const std::string& key, const std::string& id)
         }
 
         file_read_time = ramdb_clock::now();
-    }
+    }*/
 
     return true;
 }
@@ -244,7 +257,11 @@ bool RamDb::ValidateUnsafe()
     if(!boost::filesystem::exists(GetFileName()))
         return cache.empty();
     const auto file_mod_time = GetDbModificationTime(GetFileName());
-    return file_mod_time < file_read_time;
+    const auto validation_result = file_mod_time < file_read_time;
+    MIOPEN_LOG_I2("DB file is " << (validation_result ? "older" : "newer")
+                                << " than cache: " << file_mod_time.time_since_epoch().count()
+                                << ", " << file_read_time.time_since_epoch().count());
+    return validation_result;
 }
 
 void RamDb::Prefetch()
@@ -260,6 +277,7 @@ void RamDb::Prefetch()
             return;
         }
 
+        cache.clear();
         auto line   = std::string{};
         auto n_line = 0;
 
@@ -290,7 +308,7 @@ void RamDb::Prefetch()
     });
 }
 
-void RamDb::UpdateCacheEntryUnsafe(const DbRecord& record)
+/*void RamDb::UpdateCacheEntryUnsafe(const DbRecord& record)
 {
     const auto is_valid = ValidateUnsafe();
     UpdateDbModificationTime(GetFileName());
@@ -313,6 +331,6 @@ void RamDb::UpdateCacheEntryUnsafe(const DbRecord& record)
         }
         file_read_time = ramdb_clock::now();
     }
-}
+}*/
 
 } // namespace miopen
