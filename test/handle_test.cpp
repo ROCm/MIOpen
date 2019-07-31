@@ -152,6 +152,7 @@ void test_warnings(kernel_type_t kern_type)
                         WriteNop(miopenHIPKernelType));
         }));
 #else
+    (void)kern_type;
     (void)h; // To silence warnings.
 #endif
 }

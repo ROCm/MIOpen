@@ -29,21 +29,23 @@
 #include <iterator>
 #include <limits>
 #include <memory>
+
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
+#include <miopen/stringutils.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/solver.hpp>
+#include <miopen/algorithm.hpp>
 #include <utility>
 
 #include "driver.hpp"
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
-#include <miopen/stringutils.hpp>
+
 #include "tensor_util.hpp"
-#include <miopen/algorithm.hpp>
 #include "cpu_conv.hpp"
 #include "network_data.hpp"
 #include "miopen/find_db.hpp"
