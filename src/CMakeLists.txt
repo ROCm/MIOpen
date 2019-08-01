@@ -209,6 +209,17 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v16_3_0_epilogue.inc
         kernels/Conv_Winograd_v16_3_0_prologue.inc
         kernels/Conv_Winograd_v16_3_0_stride1.inc
+        kernels/conv_3x3_wheel_alpha_v3_0b_epilogue.inc
+        kernels/conv_3x3_wheel_alpha_v3_0b_prologue.inc
+        kernels/conv_3x3_wheel_alpha_v3_0b.inc
+        kernels/conv_3x3_wheel_alpha_v7_0_3b_epilogue.inc
+        kernels/conv_3x3_wheel_alpha_v7_0_3b_prologue.inc
+        kernels/conv_3x3_wheel_alpha_v7_0_3b.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15_epilogue.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15_prologue.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15.inc
         kernels/inst_wrappers.inc
         kernels/common.inc
         kernels/xform_data_filter.inc
@@ -289,18 +300,11 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec_gfx803_md10.so
         kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec_gfx900_md10.so
         kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec_gfx906_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx803_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx803_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec_gfx803_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx900_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx900_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec_gfx900_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx906_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx906_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec_gfx906_md10.so
-        kernels/conv_3x3_wheel_alpha_v7_0_3b_gfx900_md10.so
-        kernels/conv_3x3_wheel_alpha_v7_0_3b_gfx906_md10.so
-        kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_md10.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil.s
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec.s
+        kernels/conv_3x3_wheel_alpha_v9_0_15.s
+        kernels/conv_3x3_wheel_alpha_v7_0_3b.s
+        kernels/conv_3x3_wheel_alpha_v3_0b.s
         kernels/MIOpenConvBwdBias.cl
         kernels/MIOpenBatchNormActivInfer.cl
         kernels/MIOpenCTCLoss.cl

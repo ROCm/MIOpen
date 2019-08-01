@@ -26,6 +26,7 @@
 
 #include "miopen/solver.hpp"
 #include "miopen/env.hpp"
+#include "miopen/stringutils.hpp"
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
 
@@ -34,28 +35,18 @@ namespace solver {
 
 bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!params.use_binaries)
-    {
-        return false;
-    }
-
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_3X3{}))
-    {
         return false;
-    }
+    if(!(params.rmv == rocm_meta_version::AMDHSA_1_0 && params.use_asm_kernels))
+        return false;
 
-    // Check if device is able to run this kernel.
     const auto name = params.GetStream().GetDeviceName();
-    // clang-format off
-    if (! ((name == "gfx803" && params.rmv == rocm_meta_version::AMDHSA_1_0)
-        || (name == "gfx900" && params.rmv == rocm_meta_version::AMDHSA_1_0)
-        || (name == "gfx906" && params.rmv == rocm_meta_version::AMDHSA_1_0)))
+    if(!(name == "gfx803" || name == "gfx900" || name == "gfx906"))
         return false;
-    // clang-format on
 
     // Check if kernel is suitable for the problem description
     // and able to correctly run with given parameters.
-    const auto device_is_gfx8         = (name.find("gfx8") != std::string::npos);
+    const auto device_is_gfx8         = StartsWith(name, "gfx8");
     const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
     assert(params.weights_layout.length() == 0); // weights_layout is not supported yet.
     // clang-format off
@@ -77,16 +68,14 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
         && (params.n_outputs * params.in_height * params.in_width) <= std::pow(2, 28)
         && (params.n_inputs * params.kernel_size_w * params.kernel_size_h) <= std::pow(2, 28)
         && (params.n_outputs * params.kernel_size_w * params.kernel_size_h) <= std::pow(2, 28)
-        && params.n_inputs % 2 == 0 && params.n_inputs >= (device_is_gfx8 ? 16 : 18)
+        && params.n_inputs % 2 == 0
+        && params.n_inputs >= (device_is_gfx8 ? 16 : 18)
         && params.IsFp32()
         && params.group_counts == 1
         && params.in_layout == "NCHW";
-        /// \todo _n_inputs > 18 is a requirement of the v7 shader and NOT a dependency on gfx9
-        /// The current way of implemenation is a hack as gfx8 uses v3.0 shader and gfx9 uses v7.
         /// && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
         /// Actually, K<->C flpping is controlled by separate flag, so we can support either
         /// layout in both directions.
-
     // clang-format on
 }
 
@@ -109,31 +98,17 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params) 
     kernel.l_wk.push_back(1);
 
     kernel.kernel_name = "sp3AsmConv3x3F";
-    if(name == "gfx803")
-    {
-        if(params.rmv == rocm_meta_version::AMDHSA_1_0)
-            kernel.kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_md10.so";
-        else
-            MIOPEN_THROW("conv_3x3_wheel_alpha_v3_0b_gfx803: Unsupported metadata version.");
-    }
-    else if(name == "gfx900")
-    {
-        if(params.rmv == rocm_meta_version::AMDHSA_1_0)
-            kernel.kernel_file = "conv_3x3_wheel_alpha_v7_0_3b_gfx900_md10.so";
-        else
-            MIOPEN_THROW("conv_3x3_wheel_alpha_v7_0_3b_gfx900: Unsupported metadata version.");
-    }
-    else if(name == "gfx906")
-    {
-        if(params.rmv == rocm_meta_version::AMDHSA_1_0)
-            kernel.kernel_file = "conv_3x3_wheel_alpha_v7_0_3b_gfx906_md10.so";
-        else
-            MIOPEN_THROW("conv_3x3_wheel_alpha_v7_0_3b_gfx906: Unsupported metadata version.");
-    }
+
+    if(params.rmv != rocm_meta_version::AMDHSA_1_0)
+        MIOPEN_THROW("Unsupported metadata version.");
+
+    if(StartsWith(name, "gfx8"))
+        kernel.kernel_file = "conv_3x3_wheel_alpha_v3_0b.s";
+    else if(StartsWith(name, "gfx9"))
+        kernel.kernel_file = "conv_3x3_wheel_alpha_v7_0_3b.s";
     else
-    {
-        MIOPEN_THROW("conv_3x3_wheel_alpha_v7_0_3b: Unsupported device.");
-    }
+        MIOPEN_THROW("Unsupported device.");
+
     result.construction_params.push_back(kernel);
     return result;
 }
