@@ -344,7 +344,7 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
                                                const ConvolutionUserBuffers& bufs) const
 {
 
-    if(GetSpatialDimension() != 2 || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
         return {};
 
     auto ctx                    = ConvolutionContext{xDesc, wDesc, yDesc, *this, isForward ? 1 : 0};
@@ -761,7 +761,6 @@ static void DirConvFindCore(Handle& handle,
         (void)workSpaceSize; // Suppress warning
 #endif
 
-        if(conv.GetSpatialDimension() == 2)
         {
             // Winograd algo
             WinogradKernelParams k_p;
@@ -2536,168 +2535,156 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     const ProblemDescription problem(dxDesc, wDesc, dyDesc, *this, 0);
     std::vector<PerfField> perf_db = FindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
 
-        if(GetSpatialDimension() == 2 && GetConvDilations()[0] == 1 && GetConvDilations()[1] == 1)
+        // Winograd algo
         {
-            // Winograd algo
-            {
-                std::string network_config;
-                WinogradKernelParams k_p;
-                KernelInvoke kernel_wino;
-                std::string solver;
-                if(FindWinogradKernel(handle,
-                                      dxDesc,
-                                      wDesc,
-                                      dyDesc,
-                                      k_p,
-                                      kernel_wino,
-                                      solver,
-                                      0,
-                                      false,
-                                      &network_config) == 0)
-                { // TODO: be more graceful
-                    float time_wino = 0;
-                    /// \todo Move Flags into Solution.
-                    /// Flags:
-                    ///  - Any combination of flags is allowed.
-                    ///  - The last two (F_FLIP_DATA_N_C, F_FLIP_OUT_N_K) are for RxS version only.
-                    ///
-                    /// Reverse indexing of r, r -> R-1-r if set.
-                    static const int F_REVERSE_R = 1 << 0;
-                    /// Reverse indexing of s, s -> S-1-s if set.
-                    static const int F_REVERSE_S = 1 << 1;
-                    /// The w ("filter_addr") to be interpreted as float F [C][K][3][3] instead of
-                    /// float F [K][C][3][3].
-                    static const int F_FLIP_K_C = 1 << 2;
-                    /// Causes the dy ("data_addr") to be interpreted as float D [C][N][H][W] with
-                    /// the following restrictions:
-                    ///  - Read several stacks, no restrictions when reading single C
-                    ///  - When reading 2x C, ((N * H * W) <= 2^28)
-                    /// instead of float D [N][C][H][W] with the following restrictions:
-                    ///  - Read several stacks, if (H * W) >= 128 not more than 2, distance at most
-                    ///  one
-                    ///    stack, else  (C * H * W) <= 2^23 and it can do 32 stacks, so
-                    ///    (C * H * W) <= 2^28.
-                    ///  - Reading 2x C at once not a problem if it can read one.
-                    // static const int F_FLIP_DATA_N_C = 1 << 3;
-                    /// Causes the dx ("output_addr") to be interpreted as
-                    /// float OUT[K][N][out_h][out_w] (no specific restrictions)
-                    /// instead of float OUT [N][K][out_h][out_w] with the
-                    /// following restrictions:
-                    ///  - (K * out_h * out_w) <= 2^28
-                    // static const int F_FLIP_OUT_N_K = 1 << 4;
-                    /// <End of Flags>
-                    // (void)F_FLIP_DATA_N_C;
-                    // (void)F_FLIP_OUT_N_K;
-                    int flags        = F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
-                    int reserved     = 0;
-                    int* return_addr = nullptr;
-                    int N, C, H, W, K, n_groups, out_H, out_W, R, S, pad_H, pad_W;
-                    bool isRxS;
-                    std::tie(N, C, H, W, K, n_groups, out_H, out_W, R, S, pad_H, pad_W, isRxS) =
-                        k_p;
-                    // clang-format off
-                    MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
-                            << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
-                            << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W); // clang-format on
-                    if(isRxS)
+            std::string network_config;
+            WinogradKernelParams k_p;
+            KernelInvoke kernel_wino;
+            std::string solver;
+            if(FindWinogradKernel(handle,
+                                  dxDesc,
+                                  wDesc,
+                                  dyDesc,
+                                  k_p,
+                                  kernel_wino,
+                                  solver,
+                                  0,
+                                  false,
+                                  &network_config) == 0)
+            { // TODO: be more graceful
+                float time_wino = 0;
+                /// \todo Move Flags into Solution.
+                /// Flags:
+                ///  - Any combination of flags is allowed.
+                ///  - The last two (F_FLIP_DATA_N_C, F_FLIP_OUT_N_K) are for RxS version only.
+                ///
+                /// Reverse indexing of r, r -> R-1-r if set.
+                static const int F_REVERSE_R = 1 << 0;
+                /// Reverse indexing of s, s -> S-1-s if set.
+                static const int F_REVERSE_S = 1 << 1;
+                /// The w ("filter_addr") to be interpreted as float F [C][K][3][3] instead of
+                /// float F [K][C][3][3].
+                static const int F_FLIP_K_C = 1 << 2;
+                /// Causes the dy ("data_addr") to be interpreted as float D [C][N][H][W] with
+                /// the following restrictions:
+                ///  - Read several stacks, no restrictions when reading single C
+                ///  - When reading 2x C, ((N * H * W) <= 2^28)
+                /// instead of float D [N][C][H][W] with the following restrictions:
+                ///  - Read several stacks, if (H * W) >= 128 not more than 2, distance at most
+                ///  one
+                ///    stack, else  (C * H * W) <= 2^23 and it can do 32 stacks, so
+                ///    (C * H * W) <= 2^28.
+                ///  - Reading 2x C at once not a problem if it can read one.
+                // static const int F_FLIP_DATA_N_C = 1 << 3;
+                /// Causes the dx ("output_addr") to be interpreted as
+                /// float OUT[K][N][out_h][out_w] (no specific restrictions)
+                /// instead of float OUT [N][K][out_h][out_w] with the
+                /// following restrictions:
+                ///  - (K * out_h * out_w) <= 2^28
+                // static const int F_FLIP_OUT_N_K = 1 << 4;
+                /// <End of Flags>
+                // (void)F_FLIP_DATA_N_C;
+                // (void)F_FLIP_OUT_N_K;
+                int flags        = F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
+                int reserved     = 0;
+                int* return_addr = nullptr;
+                int N, C, H, W, K, n_groups, out_H, out_W, R, S, pad_H, pad_W;
+                bool isRxS;
+                std::tie(N, C, H, W, K, n_groups, out_H, out_W, R, S, pad_H, pad_W, isRxS) = k_p;
+                // clang-format off
+                MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
+                        << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
+                        << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W); // clang-format on
+                if(isRxS)
+                {
+                    kernel_wino(N,
+                                C,
+                                H,
+                                W,
+                                K,
+                                n_groups,
+                                flags,
+                                reserved,
+                                dy,
+                                w,
+                                dx,
+                                return_addr,
+                                R,
+                                S,
+                                pad_H,
+                                pad_W,
+                                out_H,
+                                out_W);
+                }
+                else
+                {
+                    kernel_wino(N, C, H, W, K, n_groups, flags, reserved, dy, w, dx, return_addr);
+                }
+                time_wino = handle.GetKernelTime();
+                record.SetValues("miopenConvolutionBwdDataAlgoWinograd",
+                                 FindDbData{
+                                     solver,
+                                     time_wino,
+                                     0,
+                                     {"miopenConvolutionBwdDataAlgoWinograd", network_config},
+                                 });
+            }
+        }
+
+        // Direct algo
+        {
+            std::string network_config;
+            ExtraKernelArgs eka;
+            ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
+            bufs.SetBwd(dx, w, dy);
+            const auto all = FindDataDirectSolutions(
+                handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, network_config, eka, bufs);
+            miopen::solver::ConvSolution selected{miopenStatusUnknownError};
+            float best = std::numeric_limits<float>::max();
+            visit_float(dyDesc.GetType(), [&](auto as_float) {
+                for(const auto& sol : all)
+                {
+                    float elapsed = 0.0f;
+                    const int rc  = EvaluateDataDirectSolution(handle,
+                                                              sol,
+                                                              eka,
+                                                              dy,
+                                                              w,
+                                                              dx,
+                                                              dyDesc,
+                                                              workSpace,
+                                                              workSpaceSize,
+                                                              as_float(0.0f),
+                                                              elapsed);
+                    if(rc != 0)
                     {
-                        kernel_wino(N,
-                                    C,
-                                    H,
-                                    W,
-                                    K,
-                                    n_groups,
-                                    flags,
-                                    reserved,
-                                    dy,
-                                    w,
-                                    dx,
-                                    return_addr,
-                                    R,
-                                    S,
-                                    pad_H,
-                                    pad_W,
-                                    out_H,
-                                    out_W);
+                        MIOPEN_LOG_E(sol << " returns " << rc);
                     }
                     else
                     {
-                        kernel_wino(
-                            N, C, H, W, K, n_groups, flags, reserved, dy, w, dx, return_addr);
+                        MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
+                                         << best);
+                        if(elapsed < best)
+                        {
+                            best     = elapsed;
+                            selected = sol;
+                        }
                     }
-                    time_wino = handle.GetKernelTime();
-                    record.SetValues("miopenConvolutionBwdDataAlgoWinograd",
-                                     FindDbData{
-                                         solver,
-                                         time_wino,
-                                         0,
-                                         {"miopenConvolutionBwdDataAlgoWinograd", network_config},
-                                     });
                 }
-            }
-
-            // Direct algo
+            });
+            if(selected.Succeeded())
             {
-                std::string network_config;
-                ExtraKernelArgs eka;
-                ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
-                bufs.SetBwd(dx, w, dy);
-                const auto all = FindDataDirectSolutions(handle,
-                                                         dxDesc,
-                                                         wDesc,
-                                                         dyDesc,
-                                                         exhaustiveSearch,
-                                                         false,
-                                                         network_config,
-                                                         eka,
-                                                         bufs);
-                miopen::solver::ConvSolution selected{miopenStatusUnknownError};
-                float best = std::numeric_limits<float>::max();
-                visit_float(dyDesc.GetType(), [&](auto as_float) {
-                    for(const auto& sol : all)
-                    {
-                        float elapsed = 0.0f;
-                        const int rc  = EvaluateDataDirectSolution(handle,
-                                                                  sol,
-                                                                  eka,
-                                                                  dy,
-                                                                  w,
-                                                                  dx,
-                                                                  dyDesc,
-                                                                  workSpace,
-                                                                  workSpaceSize,
-                                                                  as_float(0.0f),
-                                                                  elapsed);
-                        if(rc != 0)
-                        {
-                            MIOPEN_LOG_E(sol << " returns " << rc);
-                        }
-                        else
-                        {
-                            MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
-                                             << best);
-                            if(elapsed < best)
-                            {
-                                best     = elapsed;
-                                selected = sol;
-                            }
-                        }
-                    }
-                });
-                if(selected.Succeeded())
-                {
-                    const std::string algorithm_name = "miopenConvolutionBwdDataAlgoDirect";
-                    AddKernels(handle, algorithm_name, network_config, selected, nullptr);
-                    MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
-                                              << selected.workspce_sz);
-                    record.SetValues(algorithm_name,
-                                     FindDbData{
-                                         selected.solver_id,
-                                         best,
-                                         selected.workspce_sz,
-                                         {algorithm_name, network_config},
-                                     });
-                }
+                const std::string algorithm_name = "miopenConvolutionBwdDataAlgoDirect";
+                AddKernels(handle, algorithm_name, network_config, selected, nullptr);
+                MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
+                                          << selected.workspce_sz);
+                record.SetValues(algorithm_name,
+                                 FindDbData{
+                                     selected.solver_id,
+                                     best,
+                                     selected.workspce_sz,
+                                     {algorithm_name, network_config},
+                                 });
             }
         }
 
@@ -4318,7 +4305,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         ctx.mloBuildConf_Key(network_config);
         // direct convolution
         {
-            if(GetSpatialDimension() == 2 && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+            if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
             {
                 const std::string algorithm_name = "miopenConvolutionBwdWeightsAlgoDirect";
 
@@ -4359,123 +4346,119 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             }
         }
 
-        if(GetSpatialDimension() == 2)
+        try
         {
-            try
+            const auto all = FindWinogradWrWAllSolutions(ctx);
+            float elapsed  = 0.0f;
+            if(!all.empty())
             {
-                const auto all = FindWinogradWrWAllSolutions(ctx);
-                float elapsed  = 0.0f;
-                if(!all.empty())
+                float best = std::numeric_limits<float>::max();
+                miopen::solver::ConvSolution selected{miopenStatusUnknownError};
+                for(const auto& sol : all)
                 {
-                    float best = std::numeric_limits<float>::max();
-                    miopen::solver::ConvSolution selected{miopenStatusUnknownError};
-                    for(const auto& sol : all)
+                    elapsed = 0.0f;
+                    std::vector<KernelInvoke> kernels;
+                    const auto& kernels_info = sol.construction_params;
+                    AddKernels(handle,
+                               "miopenConvolutionBwdWeightsAlgoWinograd",
+                               network_config,
+                               sol,
+                               &kernels);
+                    if(kernels.size() > 1 &&
+                       kernels_info[0].kernel_file ==
+                           miopen::solver::ConvWinograd3x3MultipassWrW::GetSolverFileNames()[0])
                     {
-                        elapsed = 0.0f;
-                        std::vector<KernelInvoke> kernels;
-                        const auto& kernels_info = sol.construction_params;
-                        AddKernels(handle,
-                                   "miopenConvolutionBwdWeightsAlgoWinograd",
-                                   network_config,
-                                   sol,
-                                   &kernels);
-                        if(kernels.size() > 1 &&
-                           kernels_info[0].kernel_file ==
-                               miopen::solver::ConvWinograd3x3MultipassWrW::GetSolverFileNames()[0])
-                        {
-                            auto tensors = ConvWrwTensors{dyDesc, dy, xDesc, x, dwDesc, dw};
-                            if(workSpaceSize >= sol.workspce_sz) // clang-format off
-                                EvaluateWinograd3x3MultipassWrW(
-                                    handle, ctx, tensors, workSpace, kernels, GetConvPads()[0], GetConvPads()[1],&elapsed);//clang-format on
-                            else
-                                continue;
-                        }
+                        auto tensors = ConvWrwTensors{dyDesc, dy, xDesc, x, dwDesc, dw};
+                        if(workSpaceSize >= sol.workspce_sz) // clang-format off
+                            EvaluateWinograd3x3MultipassWrW(
+                                handle, ctx, tensors, workSpace, kernels, GetConvPads()[0], GetConvPads()[1],&elapsed);//clang-format on
                         else
-                        {
-                            int unused                     = 0;
-                            using dataType                 = float;
-                            static const int F_FLIP_K_C    = 1 << 2;
-                            static const int F_NKC_STRIDES = 1 << 9;
-                            int flags                      = F_FLIP_K_C + F_NKC_STRIDES;
-                            int reserved                   = 0;
-                            int* reserved_ptr              = nullptr;
-                            int pad_H                      = GetConvPads()[0];
-                            int pad_W                      = GetConvPads()[1];
-                            // clang-format off
-                            int N, C, H, W, K, n_groups, out_H, out_W, R, S;
-                            GetCompiledInParameters(ctx, &N,&K,&out_H,&out_W,
-                                &C,&n_groups,&H,&W,&R,&S,&unused,&unused);
-                            // clang-format on
-                            int d_N_stride = H * W * static_cast<int>(sizeof(dataType));
-                            int d_C_stride = C * d_N_stride;
-                            int f_K_stride = out_H * out_W * static_cast<int>(sizeof(dataType));
-                            int f_C_stride = K * f_K_stride;
-                            int o_N_stride = R * S * static_cast<int>(sizeof(dataType));
-                            int o_K_stride = C * o_N_stride;
-                            // clang-format off
-			                MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
-			                        << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
-			                        << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
-			                        << " d_N_stride=" << d_N_stride << " d_C_stride=" << d_C_stride
-			                        << " f_K_stride=" << f_K_stride << " f_C_stride=" << f_C_stride
-			                        << " o_N_stride=" << o_N_stride << " o_K_stride=" << o_K_stride); // clang-format on
-                            kernels[0](C,
-                                       N,
-                                       H,
-                                       W,
-                                       K,
-                                       n_groups,
-                                       flags,
-                                       reserved,
-                                       x,
-                                       dy,
-                                       dw,
-                                       reserved_ptr, // Unused return_addr.
-                                       out_H,
-                                       out_W,
-                                       pad_H, // Like Fwd wino.
-                                       pad_W,
-                                       R,
-                                       S,
-                                       reserved_ptr, // Unused bias_addr.
-                                       reserved,     // Unused relu_alpha.
-                                       d_N_stride,
-                                       d_C_stride,
-                                       f_K_stride,
-                                       f_C_stride,
-                                       o_N_stride,
-                                       o_K_stride);
-                            elapsed = handle.GetKernelTime();
-                        }
-                        MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
-                                         << best);
-                        if(elapsed < best)
-                        {
-                            best     = elapsed;
-                            selected = sol;
-                        }
+                            continue;
                     }
-                    if(selected.Succeeded())
+                    else
                     {
-                        const std::string algorithm_name =
-                            "miopenConvolutionBwdWeightsAlgoWinograd";
-                        AddKernels(handle, algorithm_name, network_config, selected, nullptr);
-                        MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
-                                                  << selected.workspce_sz);
-                        record.SetValues(algorithm_name,
-                                         FindDbData{
-                                             selected.solver_id,
-                                             best,
-                                             selected.workspce_sz,
-                                             {algorithm_name, network_config},
-                                         });
+                        int unused                     = 0;
+                        using dataType                 = float;
+                        static const int F_FLIP_K_C    = 1 << 2;
+                        static const int F_NKC_STRIDES = 1 << 9;
+                        int flags                      = F_FLIP_K_C + F_NKC_STRIDES;
+                        int reserved                   = 0;
+                        int* reserved_ptr              = nullptr;
+                        int pad_H                      = GetConvPads()[0];
+                        int pad_W                      = GetConvPads()[1];
+                        // clang-format off
+                        int N, C, H, W, K, n_groups, out_H, out_W, R, S;
+                        GetCompiledInParameters(ctx, &N,&K,&out_H,&out_W,
+                            &C,&n_groups,&H,&W,&R,&S,&unused,&unused);
+                        // clang-format on
+                        int d_N_stride = H * W * static_cast<int>(sizeof(dataType));
+                        int d_C_stride = C * d_N_stride;
+                        int f_K_stride = out_H * out_W * static_cast<int>(sizeof(dataType));
+                        int f_C_stride = K * f_K_stride;
+                        int o_N_stride = R * S * static_cast<int>(sizeof(dataType));
+                        int o_K_stride = C * o_N_stride;
+                        // clang-format off
+		                MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
+		                        << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
+		                        << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
+		                        << " d_N_stride=" << d_N_stride << " d_C_stride=" << d_C_stride
+		                        << " f_K_stride=" << f_K_stride << " f_C_stride=" << f_C_stride
+		                        << " o_N_stride=" << o_N_stride << " o_K_stride=" << o_K_stride); // clang-format on
+                        kernels[0](C,
+                                   N,
+                                   H,
+                                   W,
+                                   K,
+                                   n_groups,
+                                   flags,
+                                   reserved,
+                                   x,
+                                   dy,
+                                   dw,
+                                   reserved_ptr, // Unused return_addr.
+                                   out_H,
+                                   out_W,
+                                   pad_H, // Like Fwd wino.
+                                   pad_W,
+                                   R,
+                                   S,
+                                   reserved_ptr, // Unused bias_addr.
+                                   reserved,     // Unused relu_alpha.
+                                   d_N_stride,
+                                   d_C_stride,
+                                   f_K_stride,
+                                   f_C_stride,
+                                   o_N_stride,
+                                   o_K_stride);
+                        elapsed = handle.GetKernelTime();
+                    }
+                    MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
+                                     << best);
+                    if(elapsed < best)
+                    {
+                        best     = elapsed;
+                        selected = sol;
                     }
                 }
+                if(selected.Succeeded())
+                {
+                    const std::string algorithm_name = "miopenConvolutionBwdWeightsAlgoWinograd";
+                    AddKernels(handle, algorithm_name, network_config, selected, nullptr);
+                    MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
+                                              << selected.workspce_sz);
+                    record.SetValues(algorithm_name,
+                                     FindDbData{
+                                         selected.solver_id,
+                                         best,
+                                         selected.workspce_sz,
+                                         {algorithm_name, network_config},
+                                     });
+                }
             }
-            catch(const miopen::Exception& ex)
-            {
-                MIOPEN_LOG_W("Find Winograd WrW failed:" << ex.what());
-            }
+        }
+        catch(const miopen::Exception& ex)
+        {
+            MIOPEN_LOG_W("Find Winograd WrW failed:" << ex.what());
         }
     });
 

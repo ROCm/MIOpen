@@ -76,8 +76,8 @@ struct InTransform
         const size_t u16limit       = 1 << 16;
         const size_t tiles_per_wave = wave_size / xformy_d_size;
         // clang-format off
-        const size_t chw_step       = tiles_per_wave 
-            * params.GetStream().GetMaxComputeUnits() 
+        const size_t chw_step       = tiles_per_wave
+            * params.GetStream().GetMaxComputeUnits()
             * ConvWinograd3x3MultipassWrW::GetGroupCountMult();
         const std::string name = params.GetStream().GetDeviceName();
         if(name.find("gfx8") != std::string::npos)
@@ -85,13 +85,13 @@ struct InTransform
             return false;
         }
         
-        return params.IsFp32()
+        return params.IsFp32() && params.Is2d()
                 && H < u16limit
                 && W < u16limit
                 && wino_info.wino_c < (1<<30)
                 && N < u16limit
                 && chw_step < u16limit
-                && params.pad_h <= 1 
+                && params.pad_h <= 1
                 && params.pad_w <= 1;
         // clang-format on
     }
@@ -133,21 +133,21 @@ struct FilterTransform
         const size_t u16limit       = 1 << 16;
         const size_t tiles_per_wave = wave_size / xformy_d_size;
         // clang-format off
-        const size_t chw_step       = tiles_per_wave 
-            * params.GetStream().GetMaxComputeUnits() 
+        const size_t chw_step       = tiles_per_wave
+            * params.GetStream().GetMaxComputeUnits()
             * ConvWinograd3x3MultipassWrW::GetGroupCountMult();
         const std::string name = params.GetStream().GetDeviceName();
         if(name.find("gfx8") != std::string::npos)
         {
             return false;
         }
-        return params.IsFp32()
+        return params.IsFp32() && params.Is2d()
                 && H < u16limit
                 && W < u16limit
                 && wino_info.wino_c < (1<<30)
                 && K < u16limit
                 && chw_step < u16limit
-                && params.pad_h <= 1 
+                && params.pad_h <= 1
                 && params.pad_w <= 1;
         // clang-format on
     }
@@ -171,7 +171,10 @@ struct FilterTransform
 
 struct OutTransform
 {
-    static bool IsApplicable(const ConvolutionContext& params) { return params.IsFp32(); }
+    static bool IsApplicable(const ConvolutionContext& params)
+    {
+        return params.IsFp32() && params.Is2d();
+    }
     static KernelInfo GetKernel(const ConvolutionContext& params)
     {
         DEFINE_SHADER_ALIASES(params)
@@ -218,7 +221,8 @@ bool ConvWinograd3x3MultipassWrW::IsApplicable(const ConvolutionContext& params)
         return false;
     if(params.rmv != rocm_meta_version::AMDHSA_1_0)
         return false;
-
+    if(!params.Is2d())
+        return false;
     if(!(params.IsFp32()))
         return false;
 

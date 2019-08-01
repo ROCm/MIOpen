@@ -200,6 +200,8 @@ namespace solver {
 
 bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
 {
+    if(!params.Is2d())
+        return false;
     if(!(params.IsFp32() || params.IsFp16()))
         return false;
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}))

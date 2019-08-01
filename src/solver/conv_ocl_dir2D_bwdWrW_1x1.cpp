@@ -33,11 +33,14 @@ namespace solver {
 
 bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
+    if(!params.Is2d())
+        return false;
     if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
 
     bool result =
-        (params.kernel_size_w == 1) && (params.kernel_size_h == 1) && params.group_counts == 1;
+        (params.kernel_size_w == 1 && params.kernel_size_h == 1 && params.kernel_dilation_w == 1 &&
+         params.kernel_dilation_h == 1 && params.group_counts == 1);
 
     // Does not support strides > 1 if not multiple of 16
     if((params.n_inputs & 0xF) > 0 || (params.n_outputs & 0xF) > 0)
