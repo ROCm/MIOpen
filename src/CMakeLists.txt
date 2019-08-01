@@ -310,6 +310,14 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenCTCLoss.cl
         kernels/xform_data.s
         kernels/xform_filter.s)
+
+    if(MIOPEN_USE_SCGEMM)
+        list(APPEND MIOPEN_KERNELS
+            kernels/scgemm_v0_5_0_gfx906.so
+            kernels/SCGemmUtils.cl
+        )
+    endif()
+
     add_kernels("${MIOPEN_KERNELS}")
     add_kernel_includes("${MIOPEN_KERNEL_INCLUDES}")
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
