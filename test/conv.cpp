@@ -790,6 +790,9 @@ struct conv_driver : test_driver
         // lack of transposeConv or groupConv for int8 type
         if(is_int8 && (filter.mode == miopenTranspose || filter.group_count > 1))
         {
+            show_command();
+            std::cout << "MIOpen doesn't support int8 type transpose or group convolution."
+                      << std::endl;
             return;
         }
 
@@ -910,6 +913,13 @@ struct conv_driver : test_driver
                     is_int8 &&
                     !is_gemm_workspace_valid(
                         get_handle(), filter, input.desc, weights.desc, output.desc);
+                if(skip_forward)
+                {
+                    show_command();
+                    std::cout << "This config in int8 type is not supported." << std::endl;
+                    return;
+                }
+
                 bool skip_backward_data    = is_int8;
                 bool skip_backward_weights = is_int8;
 
@@ -917,6 +927,8 @@ struct conv_driver : test_driver
                 if(input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4 ||
                    input.desc.GetType() == miopenBFloat16)
                 {
+                    show_command();
+                    std::cout << "Direct path doesn't support Int8 or BFloat16 type." << std::endl;
                     return;
                 }
                 if(input.desc.GetType() == miopenHalf && filter.mode == miopenConvolution)
