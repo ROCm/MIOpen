@@ -97,7 +97,7 @@
 .endm
 
 .macro v_dot2 acc, in, out
-    .if (.option.machine_version_major == 9) && (.option.machine_version_minor == 0) && (.option.machine_version_stepping == 6)
+    .if (.option.machine_version_major == 9) && (.option.machine_version_minor == 0) && (.option.machine_version_stepping >= 6)
         v_dot2_f32_f16 v[\acc], v[\in], v[\out], v[\acc]
     .elseif (.option.machine_version_major == 9) && (.option.machine_version_stepping > 2)
         v_fma_mix_f32 v[\acc], v[\in], v[\out], v[\acc] op_sel:[0,0,0] op_sel_hi:[1,1,0]

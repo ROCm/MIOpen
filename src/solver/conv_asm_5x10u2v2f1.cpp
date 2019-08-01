@@ -41,7 +41,7 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ConvolutionContext& params) const
     const std::string name = params.GetStream().GetDeviceName();
     const bool device_is_gfx8_9_no_xnack =
         (name == "gfx800" || name == "gfx802" || name == "gfx803" || name == "gfx804" ||
-         name == "gfx900" || name == "gfx904" || name == "gfx906");
+         name == "gfx900" || name == "gfx904" || name == "gfx906" || name == "gfx908");
     if(!device_is_gfx8_9_no_xnack)
     {
         return false;

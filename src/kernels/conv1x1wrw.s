@@ -121,7 +121,7 @@ static_assert(output_channels % sequential_k_channels == 0)
 
 bfp16_native_support = 0
 dot_instructions_available = 0
-.if (.option.machine_version_major == 9) && (.option.machine_version_minor == 0) && (.option.machine_version_stepping == 6)
+.if (.option.machine_version_major == 9) && (.option.machine_version_minor == 0) && (.option.machine_version_stepping >= 6)
     dot_instructions_available = 1
 .endif
 madmix_instructions_available = 0

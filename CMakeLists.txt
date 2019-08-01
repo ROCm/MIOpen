@@ -151,11 +151,17 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
         if(GFX_906_FLAG_VALID)
             link_libraries(-amdgpu-target=gfx906)
         endif()
+
+        CHECK_CXX_COMPILER_FLAG(-amdgpu-target=gfx908 -Werror, GFX_908_FLAG_VALID)
+        if(GFX_908_FLAG_VALID)
+            link_libraries(-amdgpu-target=gfx908)
+        endif()
         # end hack
     else()
         # Hcc's clang always defines __HCC__ even when not using hcc driver
         add_definitions(-U__HCC__)
     endif()
+    # end hack
 
     set(MIOPEN_HIP_COMPILER ${CMAKE_CXX_COMPILER} CACHE PATH "")
 
