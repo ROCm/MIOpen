@@ -145,6 +145,8 @@ struct ProblemDescription
     int GetBackwardPadW() const { return kernel_size_w - pad_w - 1; }
     int GetBackwardPadH() const { return kernel_size_h - pad_h - 1; }
 
+    bool Is2d() const { return spatial_dims == 2; }
+
     bool IsFp32() const
     {
         return in_data_type == miopenFloat && weights_data_type == miopenFloat &&

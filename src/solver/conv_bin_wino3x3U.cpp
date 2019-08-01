@@ -35,9 +35,11 @@ namespace solver {
 
 bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_3X3{}))
+    if(!params.use_binaries)
         return false;
-    if(!(params.rmv == rocm_meta_version::AMDHSA_1_0 && params.use_asm_kernels))
+    if(!params.Is2d())
+        return false;
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_3X3{}))
         return false;
 
     const auto name = params.GetStream().GetDeviceName();
