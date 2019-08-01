@@ -35,9 +35,17 @@ option( MIOPEN_TEST_INT8 "Test in int8 mode" OFF )
 option( MIOPEN_TEST_BFLOAT16 "Test in bfloat16 mode" OFF )
 option(MIOPEN_TEST_CONV Off)
 option(MIOPEN_TEST_DEEPBENCH Off)
+option(MIOPEN_TEST_DRIVER_ITER_MODE Off)
 
 set(MIOPEN_TEST_FLAGS "" CACHE STRING "")
 set(MIOPEN_TEST_GDB On CACHE BOOL "")
+
+
+if(MIOPEN_TEST_DRIVER_ITER_MODE)
+    add_definitions(-DMIOPEN_TEST_DRIVER_MODE=2)
+else()
+    add_definitions(-DMIOPEN_TEST_DRIVER_MODE=1)   
+endif()
 
 find_package(Threads REQUIRED)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})

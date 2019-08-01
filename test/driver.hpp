@@ -43,6 +43,8 @@
 #include <miopen/type_name.hpp>
 #include <miopen/env.hpp>
 #include <miopen/bfloat16.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
 
 template <class U, class T>
 constexpr std::is_same<T, U> is_same(const T&)
@@ -140,7 +142,6 @@ struct test_driver
                     post_write();
                     callback();
                 }
-
             });
         }
     };
@@ -169,6 +170,7 @@ struct test_driver
     int repeat             = 1;
     bool rethrow           = false;
     bool disabled_cache    = false;
+    int config_iter_start  = 0;
 
     argument& get_argument(const std::string& s)
     {
@@ -193,6 +195,12 @@ struct test_driver
         v(rethrow, {"--rethrow"}, "Rethrow any exceptions found during verify");
         v(cache_path, {"--verification-cache", "-C"}, "Path to verification cache");
         v(disabled_cache, {"--disable-verification-cache"}, "Disable verification cache");
+        v(config_iter_start,
+          {"--config-iter-start", "-i"},
+          "index of config at which to start a "
+          "test when MIOPEN_TEST_DRIVER_MODE=2. "
+          "Can be used to restart a test after a "
+          "failing config.");
     }
 
     struct per_arg
@@ -272,6 +280,36 @@ struct test_driver
             }
         }
         return ss.str();
+    }
+
+    std::vector<std::string> get_config()
+    {
+        std::vector<std::string> ret;
+
+        switch(this->type)
+        {
+        case miopenHalf: ret.emplace_back("--half"); break;
+        case miopenBFloat16: ret.emplace_back("--bf16"); break;
+        case miopenInt8x4:
+        case miopenInt8: ret.emplace_back("--int8"); break;
+        case miopenInt32: ret.emplace_back("--int32"); break;
+        case miopenFloat: ret.emplace_back("--float"); break;
+        }
+
+        for(auto&& arg : this->arguments)
+        {
+            std::string value = arg.read_value();
+            std::vector<std::string> value_vector;
+            boost::split(value_vector, value, boost::is_any_of(" "), boost::token_compress_on);
+            if(not value.empty())
+            {
+                ret.emplace_back("--" + arg.name);
+                if(value != arg.name)
+                    ret.insert(ret.end(), value_vector.begin(), value_vector.end());
+            }
+        }
+
+        return ret;
     }
 
     void show_command()
@@ -822,7 +860,215 @@ struct parser
 };
 
 template <class Driver>
-void test_drive_impl(std::string program_name, std::vector<std::string> as)
+void check_unparsed_args(Driver& d,
+                         std::unordered_map<std::string, std::vector<std::string>>& arg_map,
+                         std::set<std::string>& keywords)
+{
+    for(auto&& p : arg_map)
+    {
+        if(p.first.empty())
+        {
+            std::cerr << "Unused arguments: " << std::endl;
+            for(auto&& s : p.second)
+                std::cerr << "    " << s << std::endl;
+            std::abort();
+        }
+        else if(keywords.count(p.first) == 0)
+        {
+            assert(p.first.length() > 2);
+            auto name = p.first.substr(2);
+            try
+            {
+                auto&& arg = d.get_argument(name);
+                arg.write(p.second);
+            }
+            catch(const std::exception& ex)
+            {
+                std::cerr << "Invalid argument: " << name << std::endl;
+                std::cerr << "With parameters: " << std::endl;
+                for(auto&& s : p.second)
+                    std::cerr << "    " << s << std::endl;
+                std::cerr << ex.what() << std::endl;
+                std::abort();
+            }
+            catch(...)
+            {
+                std::cerr << "Invalid argument: " << name << std::endl;
+                std::cerr << "With parameters: " << std::endl;
+                for(auto&& s : p.second)
+                    std::cerr << "    " << s << std::endl;
+                throw;
+            }
+        }
+    }
+}
+
+template <class Driver>
+std::vector<typename Driver::argument*>
+get_data_args(Driver& d, std::unordered_map<std::string, std::vector<std::string>>& arg_map)
+{
+    // Run data on arguments that are not passed in
+    std::vector<typename Driver::argument*> data_args;
+    for(auto&& arg : d.arguments)
+    {
+        if(arg_map.count("--" + arg.name) == 0)
+        {
+            data_args.push_back(&arg);
+        }
+    }
+
+    return data_args;
+}
+
+template <class Driver>
+void set_driver_datatype(Driver& d,
+                         std::unordered_map<std::string, std::vector<std::string>>& arg_map)
+{
+    if(arg_map.count("--half") > 0)
+    {
+        d.type = miopenHalf;
+    }
+    else if(arg_map.count("--int8") > 0)
+    {
+        d.type = miopenInt8;
+    }
+    else if(arg_map.count("--double") > 0)
+    {
+        throw std::runtime_error("Double is not supported");
+    }
+    else
+    {
+        d.type = miopenFloat;
+    }
+}
+
+template <class Driver>
+std::vector<std::vector<std::string>>
+build_configs(Driver& d,
+              std::unordered_map<std::string, std::vector<std::string>>& arg_map,
+              std::set<std::string>& keywords)
+{
+    std::cout << "Building configs...";
+    std::vector<std::vector<std::string>> configs;
+
+    d.parse(parser{arg_map});
+    check_unparsed_args<Driver>(d, arg_map, keywords);
+    std::vector<typename Driver::argument*> data_args = get_data_args<Driver>(d, arg_map);
+
+    run_data(data_args.begin(), data_args.end(), [&] {
+        std::srand(65521);
+        std::vector<std::string> config = d.get_config();
+        configs.push_back(config);
+        std::srand(65521);
+    });
+    std::cout << " done." << std::endl;
+    return configs;
+}
+
+template <class Driver>
+std::unordered_map<std::string, std::vector<std::string>>
+create_arg_map(Driver& d, std::set<std::string>& keywords, std::vector<std::string>& args)
+{
+    d.parse(keyword_set{keywords});
+    return args::parse(args, [&](std::string x) {
+        return (keywords.count(x) > 0) or
+               ((x.compare(0, 2, "--") == 0) and d.has_argument(x.substr(2)));
+    });
+}
+
+// simple rolling average equation taken from
+// https://stackoverflow.com/questions/12636613/how-to-calculate-moving-average-without-keeping-the-count-and-data-total
+inline double approxRollingAverage(double avg, double new_sample, int N)
+{
+    avg -= avg / N;
+    avg += new_sample / N;
+    return avg;
+}
+
+template <class Driver>
+void run_config(std::vector<std::string>& config,
+                std::unordered_map<std::string, std::vector<std::string>>& arg_map,
+                std::string& program_name,
+                std::set<std::string>& keywords,
+                int& test_repeat_count)
+{
+    Driver config_driver{};
+    config_driver.program_name = program_name;
+    auto config_arg_map        = create_arg_map<Driver>(config_driver, keywords, config);
+    set_driver_datatype<Driver>(config_driver, config_arg_map);
+    config_driver.parse(parser{config_arg_map});
+    check_unparsed_args<Driver>(config_driver, config_arg_map, keywords);
+
+    std::vector<typename Driver::argument*> config_data_args =
+        get_data_args<Driver>(config_driver, config_arg_map);
+
+    if(arg_map.count("--verbose") > 0)
+    {
+        config_driver.verbose = true;
+    }
+
+    if(arg_map.count("--disable-verification-cache") > 0)
+    {
+        config_driver.disabled_cache = true;
+    }
+
+    for(int j = 0; j < test_repeat_count; j++)
+    {
+        run_data(config_data_args.begin(), config_data_args.end(), [&] {
+            std::srand(65521);
+            config_driver.run();
+            std::srand(65521);
+        });
+    }
+}
+
+template <class Driver>
+void test_drive_impl_2(std::string program_name, std::vector<std::string> as)
+{
+    Driver d{};
+    d.program_name = program_name;
+
+    std::set<std::string> keywords{"--help", "-h", "--half", "--float", "--double", "--int8"};
+    auto arg_map          = create_arg_map<Driver>(d, keywords, as);
+    int test_repeat_count = d.repeat;
+
+    // Show help
+    if((arg_map.count("-h") > 0) or (arg_map.count("--help") > 0))
+    {
+        d.show_help();
+        return;
+    }
+
+    set_driver_datatype<Driver>(d, arg_map);
+    std::vector<std::vector<std::string>> configs = build_configs<Driver>(d, arg_map, keywords);
+    size_t config_count                           = configs.size();
+    double running_average                        = 0;
+
+    // iterate through and run configs
+    for(size_t i = d.config_iter_start; i < config_count; ++i)
+    {
+        std::cout << "Config " << i + 1 << "/" << config_count << std::endl;
+        auto start = std::chrono::high_resolution_clock::now(); // Record start time
+        run_config<Driver>(configs[i], arg_map, program_name, keywords, test_repeat_count);
+        auto finish = std::chrono::high_resolution_clock::now(); // Record end time
+        std::chrono::duration<double> elapsed = finish - start;
+        if(i == 0)
+        {
+            running_average = elapsed.count();
+        }
+        else
+        {
+            running_average = approxRollingAverage(running_average, elapsed.count(), config_count);
+        }
+
+        std::cout << "Elapsed time: " << elapsed.count() << " s"
+                  << ", "
+                  << "Running Average: " << running_average << " s" << std::endl;
+    }
+}
+
+template <class Driver>
+void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
 {
     Driver d{};
     d.program_name = program_name;
@@ -919,6 +1165,18 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
             d.run();
             std::srand(65521);
         });
+}
+
+template <class Driver>
+void test_drive_impl(std::string program_name, std::vector<std::string> as)
+{
+#if(MIOPEN_TEST_DRIVER_MODE == 2)
+    std::cout << "MIOPEN_TEST_DRIVER_MODE 2." << std::endl;
+    test_drive_impl_2<Driver>(program_name, as);
+#else
+    std::cout << "MIOPEN_TEST_DRIVER_MODE not defined. Using default test_driver." << std::endl;
+    test_drive_impl_1<Driver>(program_name, as);
+#endif
 }
 
 template <class Driver>
