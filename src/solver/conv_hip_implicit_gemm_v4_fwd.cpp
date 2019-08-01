@@ -32,7 +32,7 @@ namespace solver {
 
 bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
 {
-    return ctx.IsFp32() && ctx.direction.IsForward() && ctx.spatial_dims == 2 && ctx.pad_h == 0 &&
+    return ctx.Is2d() && ctx.IsFp32() && ctx.direction.IsForward() && ctx.pad_h == 0 &&
            ctx.pad_w == 0 && ctx.group_counts == 1 && ctx.batch_sz % 8 == 0 &&
            (ctx.batch_sz * ctx.out_height * ctx.out_width) % 128 == 0 &&
            (ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % 16 == 0 &&
@@ -81,7 +81,7 @@ ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx
         "gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_lds_double_buffer";
 
     // clang-format off
-    construction_parameters.comp_options = 
+    construction_parameters.comp_options =
         std::string(" -std=c++14 ") +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ctx.batch_sz) +
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ctx.n_outputs) +
