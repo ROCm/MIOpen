@@ -50,6 +50,7 @@ std::string inline GetDeviceNameFromMap(const std::string& name)
         {"gfx900", "gfx900"},
         {"gfx901", "gfx900"},
         {"gfx906", "gfx906"},
+        {"gfx908", "gfx908"},
     };
 
     auto device_name_iterator = device_name_map.find(name);
