@@ -1,28 +1,28 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2019 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 
 #include <miopen/ramdb.hpp>
 
@@ -114,7 +114,12 @@ RamDb& RamDb::GetCached(const std::string& path, bool warn_if_unreadable)
     const auto it    = emplace_ret.first;
     auto& instance   = it->second;
 
-    instance.Prefetch();
+    {
+        const auto lock = exclusive_lock(instance.GetLockFile(), GetLockTimeout());
+        MIOPEN_VALIDATE_LOCK(lock);
+        instance.Prefetch();
+    }
+
     return instance;
 }
 
@@ -167,7 +172,7 @@ bool RamDb::UpdateRecord(DbRecord& record)
 bool RamDb::RemoveRecord(const std::string& key)
 {
     MIOPEN_LOG_I2("Trying to remove record at key " << key << " from cache for file "
-                                                   << GetFileName());
+                                                    << GetFileName());
     const auto lock = exclusive_lock(GetLockFile(), GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
 
@@ -188,12 +193,13 @@ bool RamDb::RemoveRecord(const std::string& key)
 
 bool RamDb::Remove(const std::string& key, const std::string& id)
 {
-    MIOPEN_LOG_I2("Trying to remove value at key " << key << " and id " << id << " from cache for file " << GetFileName());
+    MIOPEN_LOG_I2("Trying to remove value at key " << key << " and id " << id
+                                                   << " from cache for file " << GetFileName());
     const auto lock = exclusive_lock(GetLockFile(), GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
 
     // const auto is_valid = ValidateUnsafe();
-    auto record         = FindRecordUnsafe(key);
+    auto record = FindRecordUnsafe(key);
     if(!record || !record->EraseValues(id) || !StoreRecordUnsafe(*record))
         return false;
 
@@ -256,7 +262,7 @@ bool RamDb::ValidateUnsafe()
 {
     if(!boost::filesystem::exists(GetFileName()))
         return cache.empty();
-    const auto file_mod_time = GetDbModificationTime(GetFileName());
+    const auto file_mod_time     = GetDbModificationTime(GetFileName());
     const auto validation_result = file_mod_time < file_read_time;
     MIOPEN_LOG_I2("DB file is " << (validation_result ? "older" : "newer")
                                 << " than cache: " << file_mod_time.time_since_epoch().count()
