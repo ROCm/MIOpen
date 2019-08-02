@@ -390,7 +390,6 @@ struct softmax_driver : test_driver
         std::set<std::vector<int>> in_dim_set = get_inputs(batch_factor);
         std::vector<std::vector<int>> in_dim_vec(in_dim_set.begin(), in_dim_set.end());
 
-        disabled_cache = true;
         add(in_dim, "input-dim", generate_data(in_dim_vec, {16, 32, 8, 8}));
 
         add(algo_cmd, "algorithm", generate_data({0, 1, 2}));
