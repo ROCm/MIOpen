@@ -31,7 +31,7 @@
 #include <boost/optional.hpp>
 
 #include <chrono>
-#include <unordered_map>
+#include <map>
 #include <string>
 #include <sstream>
 
@@ -111,7 +111,7 @@ class RamDb : protected Db
     };
 
     ramdb_clock::time_point file_read_time;
-    std::unordered_map<std::string, CacheItem> cache;
+    std::map<std::string, CacheItem> cache;
 
     boost::optional<miopen::DbRecord> FindRecordUnsafe(const std::string& problem);
 
