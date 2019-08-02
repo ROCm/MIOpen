@@ -1001,7 +1001,6 @@ struct conv_driver : test_driver
     bool do_backward_weights = true;
     int search               = 0;
     bool gen_float           = false;
-    bool dry_run             = false;
 
     std::unordered_map<std::string, std::size_t> conv_dim_lookup = {{"CONV2D", 2}, {"CONV3D", 3}};
 
@@ -1031,13 +1030,6 @@ struct conv_driver : test_driver
 
     void run()
     {
-        // Dry run prints just the entire command. One way to list all configs
-        if(dry_run)
-        {
-            show_command();
-            return;
-        }
-
         filter.spatialDim       = conv_dim_lookup[miopen::ToUpper(conv_dim_type)];
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];
