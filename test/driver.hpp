@@ -635,11 +635,19 @@ struct test_driver
         })(std::integral_constant<std::size_t, sizeof...(CpuRanges)>{});
     }
 
+    bool is_cache_disabled() const
+    {
+        if(disabled_cache)
+            return true;
+        auto p = boost::filesystem::path{miopen::ExpandUser(cache_path)} / ".disabled";
+        return boost::filesystem::exists(p);
+    }
+
     template <class V, class... Ts>
     auto run_cpu(bool retry, bool& miss, V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
     {
         using result_type = decltype(v.cpu(xs...));
-        if(disabled_cache)
+        if(is_cache_disabled())
             return cpu_async(v, xs...);
         auto key = miopen::get_type_name<V>() + "-" + miopen::md5(get_command_args());
         auto p =

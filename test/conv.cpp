@@ -729,7 +729,6 @@ struct conv_driver : test_driver
 
     conv_driver()
     {
-        disabled_cache = true;
         add(conv_mode, "cmode", generate_data({"conv"}));
         add(pad_mode, "pmode", generate_data({"default", "same", "valid"}));
         add(groupCount, "group-count", generate_data({1}));
