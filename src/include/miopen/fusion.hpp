@@ -46,7 +46,7 @@ enum FusionKernelSourceType
 {
     OpenclText,
     AsmText,
-    Binary,
+    Binary, /// \todo Unused, consider removing.
 };
 
 struct OperatorArgs : miopenOperatorArgs
@@ -303,6 +303,12 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     private:
     mlo_construct_direct2D_fusion ConstructParams(Handle& handle);
 };
+
+namespace fusion {
+
+bool IsWinograd(const std::vector<solver::AnySolver>& ss);
+
+} // namespace fusion
 
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenFusionOpDescriptor, miopen::FusionOpDescriptor);
