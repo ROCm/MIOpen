@@ -170,7 +170,9 @@ struct test_driver
     int repeat             = 1;
     bool rethrow           = false;
     bool disabled_cache    = false;
+    bool dry_run           = false;
     int config_iter_start  = 0;
+    int iteration          = 0;
 
     argument& get_argument(const std::string& s)
     {
@@ -195,12 +197,11 @@ struct test_driver
         v(rethrow, {"--rethrow"}, "Rethrow any exceptions found during verify");
         v(cache_path, {"--verification-cache", "-C"}, "Path to verification cache");
         v(disabled_cache, {"--disable-verification-cache"}, "Disable verification cache");
+        v(dry_run, {"--dry-run"}, "Dry run. Does not run the test, just prints the command.");
         v(config_iter_start,
           {"--config-iter-start", "-i"},
-          "index of config at which to start a "
-          "test when MIOPEN_TEST_DRIVER_MODE=2. "
-          "Can be used to restart a test after a "
-          "failing config.");
+          "index of config at which to start a test."
+          "Can be used to restart a test after a failing config.");
     }
 
     struct per_arg
@@ -559,6 +560,7 @@ struct test_driver
                     std::cout << "FAILED: " << std::endl;
                 if(not verbose)
                 {
+                    std::cout << "Iteration: " << this->iteration << std::endl;
                     show_command();
                     fail(-1);
                 }
@@ -795,6 +797,26 @@ struct test_driver
             v,
             xs...);
     }
+
+    template <class Derived>
+    void base_run()
+    {
+        if(this->iteration >= this->config_iter_start)
+        {
+            if(this->dry_run)
+            {
+                std::cout << "Iteration: " << this->iteration << std::endl;
+                show_command();
+            }
+            else
+            {
+                std::srand(65521);
+                static_cast<Derived*>(this)->run();
+                std::srand(65521);
+            }
+        }
+        this->iteration++;
+    }
 };
 
 template <class Iterator, class Action>
@@ -910,7 +932,7 @@ void check_unparsed_args(Driver& d,
         }
     }
 }
-
+#if(MIOPEN_TEST_DRIVER_MODE == 2)
 template <class Driver>
 std::vector<typename Driver::argument*>
 get_data_args(Driver& d, std::unordered_map<std::string, std::vector<std::string>>& arg_map)
@@ -1074,7 +1096,7 @@ void test_drive_impl_2(std::string program_name, std::vector<std::string> as)
                   << "Running Average: " << running_average << " s" << std::endl;
     }
 }
-
+#endif
 template <class Driver>
 void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
 {
@@ -1168,21 +1190,41 @@ void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
     }
     std::srand(65521);
     for(int i = 0; i < d.repeat; i++)
-        run_data(data_args.begin(), data_args.end(), [&] {
-            std::srand(65521);
-            d.run();
-            std::srand(65521);
-        });
+    {
+        d.iteration = 0;
+        run_data(data_args.begin(), data_args.end(), [&] { d.template base_run<Driver>(); });
+    }
 }
 
 template <class Driver>
 void test_drive_impl(std::string program_name, std::vector<std::string> as)
 {
+    static bool called = false;
+    if(called)
+    {
+        std::cout << "*****************************************************************************"
+                     "*******************************************"
+                  << std::endl;
+        std::cout << "*****************************************************************************"
+                     "*******************************************"
+                  << std::endl;
+        std::cout << "***** WARNING: test_drive was called more than once. This should function "
+                     "should only be called once."
+                  << std::endl;
+        std::cout << "***** This may abort in the future. Please update the test driver. "
+                  << std::endl;
+        std::cout << "*****************************************************************************"
+                     "*******************************************"
+                  << std::endl;
+        std::cout << "*****************************************************************************"
+                     "*******************************************"
+                  << std::endl;
+    }
+    called = true;
 #if(MIOPEN_TEST_DRIVER_MODE == 2)
     std::cout << "MIOPEN_TEST_DRIVER_MODE 2." << std::endl;
     test_drive_impl_2<Driver>(program_name, as);
 #else
-    std::cout << "MIOPEN_TEST_DRIVER_MODE not defined. Using default test_driver." << std::endl;
     test_drive_impl_1<Driver>(program_name, as);
 #endif
 }
