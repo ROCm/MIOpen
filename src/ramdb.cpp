@@ -96,23 +96,17 @@ RamDb& RamDb::GetCached(const std::string& path, bool warn_if_unreadable)
     static std::mutex mutex;
     static const std::lock_guard<std::mutex> lock{mutex};
 
-    static auto instances = std::map<std::string, RamDb>{};
+    static auto instances = std::map<std::string, RamDb*>{};
 
     {
         const auto it = instances.find(path);
         if(it != instances.end())
-            return it->second;
+            return *it->second;
     }
 
-    // map::emplace(std::piecewise_construct, ...) is constructing map entry in-place allowing use
-    // of non-copiable non-movable type as key/value type which RamDb is.
-    auto emplace_ret = instances.emplace(std::piecewise_construct,
-                                         // This are parameters of key ctor:
-                                         std::forward_as_tuple(path),
-                                         // This are parameters of value ctor:
-                                         std::forward_as_tuple(path, warn_if_unreadable));
+    auto emplace_ret = instances.emplace(path, new RamDb{path, warn_if_unreadable});
     const auto it  = emplace_ret.first;
-    auto& instance = it->second;
+    auto& instance = *it->second;
 
     {
         const auto prefetch_lock = exclusive_lock(instance.GetLockFile(), GetLockTimeout());
