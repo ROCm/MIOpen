@@ -41,7 +41,8 @@ ConvForwardOpDescriptor::GetCompileParms(std::string& compile_config,
     kernel_info_valid     = true;
     conv_compiler_options = solution.construction_params[0].comp_options;
     compile_config += conv_compiler_options;
-    if(source == AsmText)
+
+    if(source == AsmText && !fusion::IsWinograd(solvers))
     {
         std::ostringstream options;
         GenerateClangDefsym(options, "fusion_mode", 1);

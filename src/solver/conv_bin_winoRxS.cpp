@@ -343,5 +343,33 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     result.construction_params.push_back(kernel);
     return result;
 }
+
+bool ConvBinWinogradRxSFused::IsApplicable(const ConvolutionContext&) const
+{
+    return true; // Actual checks moved to FusionMDGraph.
+}
+
+ConvSolution ConvBinWinogradRxSFused::GetSolution(const ConvolutionContext& params) const
+{
+    ConvSolution result;
+    KernelInfo kernel;
+
+    const auto n_groups = params.GetStream().GetMaxComputeUnits();
+    kernel.g_wk.push_back(512 * n_groups);
+    kernel.g_wk.push_back(1);
+    kernel.g_wk.push_back(1);
+
+    kernel.l_wk.push_back(512);
+    kernel.l_wk.push_back(1);
+    kernel.l_wk.push_back(1);
+
+    // File and name are defined in FusionMDGraph, so no need (and harmful)
+    // to duplicate this information here.
+    kernel.kernel_name = "<name not set>";
+    kernel.kernel_file = "<file not set>";
+    result.construction_params.push_back(kernel);
+    return result;
+}
+
 } // namespace solver
 } // namespace miopen
