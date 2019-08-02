@@ -115,8 +115,8 @@ RamDb& RamDb::GetCached(const std::string& path, bool warn_if_unreadable)
     auto& instance   = it->second;
 
     {
-        const auto lock = exclusive_lock(instance.GetLockFile(), GetLockTimeout());
-        MIOPEN_VALIDATE_LOCK(lock);
+        const auto prefetch_lock = exclusive_lock(instance.GetLockFile(), GetLockTimeout());
+        MIOPEN_VALIDATE_LOCK(prefetch_lock);
         instance.Prefetch();
     }
 
