@@ -111,8 +111,8 @@ RamDb& RamDb::GetCached(const std::string& path, bool warn_if_unreadable)
                                          std::forward_as_tuple(path),
                                          // This are parameters of value ctor:
                                          std::forward_as_tuple(path, warn_if_unreadable));
-    const auto it    = emplace_ret.first;
-    auto& instance   = it->second;
+    const auto it  = emplace_ret.first;
+    auto& instance = it->second;
 
     {
         const auto prefetch_lock = exclusive_lock(instance.GetLockFile(), GetLockTimeout());
@@ -194,7 +194,8 @@ bool RamDb::RemoveRecord(const std::string& key)
 bool RamDb::Remove(const std::string& key, const std::string& id)
 {
     MIOPEN_LOG_I2("Trying to remove value at key " << key << " and id " << id
-                                                   << " from cache for file " << GetFileName());
+                                                   << " from cache for file "
+                                                   << GetFileName());
     const auto lock = exclusive_lock(GetLockFile(), GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
 
@@ -237,8 +238,10 @@ boost::optional<miopen::DbRecord> RamDb::FindRecordUnsafe(const std::string& pro
 
     if(!record.ParseContents(it->second.content))
     {
-        MIOPEN_LOG_E("Error parsing payload under the key: "
-                     << problem << " form file " << GetFileName() << "#" << it->second.line);
+        MIOPEN_LOG_E("Error parsing payload under the key: " << problem << " form file "
+                                                             << GetFileName()
+                                                             << "#"
+                                                             << it->second.line);
         MIOPEN_LOG_E("Contents: " << it->second.content);
         return boost::none;
     }
@@ -264,9 +267,10 @@ bool RamDb::ValidateUnsafe()
         return cache.empty();
     const auto file_mod_time     = GetDbModificationTime(GetFileName());
     const auto validation_result = file_mod_time < file_read_time;
-    MIOPEN_LOG_I2("DB file is " << (validation_result ? "older" : "newer")
-                                << " than cache: " << file_mod_time.time_since_epoch().count()
-                                << ", " << file_read_time.time_since_epoch().count());
+    MIOPEN_LOG_I2("DB file is " << (validation_result ? "older" : "newer") << " than cache: "
+                                << file_mod_time.time_since_epoch().count()
+                                << ", "
+                                << file_read_time.time_since_epoch().count());
     return validation_result;
 }
 
