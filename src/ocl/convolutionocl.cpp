@@ -1842,28 +1842,27 @@ void ConvolutionDescriptor::ConvFwdFFT(Handle& handle,
     if(group_count > 1)
         MIOPEN_THROW("FFT is not supported for group conv");
 
-    std::size_t workspace_fft =
-        ForwardGetWorkSpaceSizeFFT(tensors.wDesc, tensors.xDesc, tensors.yDesc);
-    if(workSpace != nullptr && workSpaceSize >= workspace_fft)
-    {
-        bool timed  = handle.IsProfilingEnabled();
-        float timev = ExecuteFwdFFTKernel(handle,
-                                          tensors.xDesc,
-                                          tensors.x,
-                                          tensors.wDesc,
-                                          tensors.w,
-                                          tensors.yDesc,
-                                          tensors.y,
-                                          workSpace,
-                                          workSpaceSize,
-                                          timed);
-        // FIXME: Is workSpaceSize correct here? It seems that workspace_fft is.
+    assert(workSpaceSize >=
+           ForwardGetWorkSpaceSizeFFT(tensors.wDesc, tensors.xDesc, tensors.yDesc));
 
-        if(timed)
-        {
-            handle.ResetKernelTime();
-            handle.AccumKernelTime(timev);
-        }
+    if(workSpace == nullptr || workSpaceSize == 0)
+        MIOPEN_THROW("Error running FFT: none workspace");
+
+    bool timed  = handle.IsProfilingEnabled();
+    float timev = ExecuteFwdFFTKernel(handle,
+                                      tensors.xDesc,
+                                      tensors.x,
+                                      tensors.wDesc,
+                                      tensors.w,
+                                      tensors.yDesc,
+                                      tensors.y,
+                                      workSpace,
+                                      workSpaceSize,
+                                      timed);
+    if(timed)
+    {
+        handle.ResetKernelTime();
+        handle.AccumKernelTime(timev);
     }
 }
 
@@ -3625,27 +3624,28 @@ void ConvolutionDescriptor::ConvBwdFFT(Handle& handle,
                                        Data_t workSpace,
                                        size_t workSpaceSize) const
 {
-    size_t workspace_fft =
-        BackwardGetWorkSpaceSizeFFT(tensors.wDesc, tensors.dyDesc, tensors.dxDesc);
-    if(workSpace != nullptr && workSpaceSize >= workspace_fft)
-    {
-        bool timed  = handle.IsProfilingEnabled();
-        float timev = ExecuteBwdFFTKernel(handle,
-                                          tensors.dyDesc,
-                                          tensors.dy,
-                                          tensors.wDesc,
-                                          tensors.w,
-                                          tensors.dxDesc,
-                                          tensors.dx,
-                                          workSpace,
-                                          workSpaceSize,
-                                          timed);
+    assert(workSpaceSize >=
+           BackwardGetWorkSpaceSizeFFT(tensors.wDesc, tensors.dyDesc, tensors.dxDesc));
 
-        if(timed)
-        {
-            handle.ResetKernelTime();
-            handle.AccumKernelTime(timev);
-        }
+    if(workSpace == nullptr || workSpaceSize == 0)
+        MIOPEN_THROW("Error running FFT: none workspace");
+
+    bool timed  = handle.IsProfilingEnabled();
+    float timev = ExecuteBwdFFTKernel(handle,
+                                      tensors.dyDesc,
+                                      tensors.dy,
+                                      tensors.wDesc,
+                                      tensors.w,
+                                      tensors.dxDesc,
+                                      tensors.dx,
+                                      workSpace,
+                                      workSpaceSize,
+                                      timed);
+
+    if(timed)
+    {
+        handle.ResetKernelTime();
+        handle.AccumKernelTime(timev);
     }
 }
 
