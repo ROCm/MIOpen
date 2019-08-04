@@ -378,7 +378,7 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
                                                      const TensorDescriptor& xDesc,
                                                      const TensorDescriptor& wDesc,
                                                      const TensorDescriptor& yDesc,
-                                                     bool /*exhaustiveSearch*/,
+                                                     bool exhaustiveSearch,
                                                      bool isForward,
                                                      std::string& network_config,
                                                      ExtraKernelArgs& extraArgs,
@@ -389,8 +389,8 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
         return {};
 
     auto ctx                    = ConvolutionContext{xDesc, wDesc, yDesc, *this, isForward ? 1 : 0};
-    ctx.do_search               = false;
-    ctx.save_srch_req           = false;
+    ctx.do_search               = exhaustiveSearch;
+    ctx.save_srch_req           = true;
     ctx.general_compile_options = "";
     ctx.SetStream(&handle);
     ctx.SetBufs(bufs);
