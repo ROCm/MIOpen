@@ -113,6 +113,50 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_v2
     }
 
 #if CK_USE_AMD_INLINE_ASM
+    __device__ void outerProduct(const typename vector_type<float, 4>::MemoryType& a,
+                                 const typename vector_type<float, 4>::MemoryType& b,
+                                 typename vector_type<float, 4>::MemoryType* c) const
+    {
+        constexpr index_t NRepeat = 2;
+
+        outerProduct1x4(a.x, b, c[0 * NRepeat]);
+        outerProduct1x4(a.y, b, c[1 * NRepeat]);
+        outerProduct1x4(a.z, b, c[2 * NRepeat]);
+        outerProduct1x4(a.w, b, c[3 * NRepeat]);
+    }
+
+    __device__ void outerProduct(const typename vector_type<float, 2>::MemoryType& a,
+                                 const typename vector_type<float, 4>::MemoryType& b,
+                                 typename vector_type<float, 4>::MemoryType* c) const
+    {
+        constexpr index_t NRepeat = 2;
+
+        outerProduct1x4(a.x, b, c[0 * NRepeat]);
+        outerProduct1x4(a.y, b, c[1 * NRepeat]);
+    }
+
+    __device__ void outerProduct(const typename vector_type<float, 4>::MemoryType& a,
+                                 const typename vector_type<float, 2>::MemoryType& b,
+                                 typename vector_type<float, 2>::MemoryType* c) const
+    {
+        constexpr index_t NRepeat = 2;
+
+        outerProduct1x2(a.x, b, c[0 * NRepeat]);
+        outerProduct1x2(a.y, b, c[1 * NRepeat]);
+        outerProduct1x2(a.z, b, c[2 * NRepeat]);
+        outerProduct1x2(a.w, b, c[3 * NRepeat]);
+    }
+
+    __device__ void outerProduct(const typename vector_type<float, 2>::MemoryType& a,
+                                 const typename vector_type<float, 2>::MemoryType& b,
+                                 typename vector_type<float, 2>::MemoryType* c) const
+    {
+        constexpr index_t NRepeat = 2;
+
+        outerProduct1x2(a.x, b, c[0 * NRepeat]);
+        outerProduct1x2(a.y, b, c[1 * NRepeat]);
+    }
+
     template <class FloatA, class FloatB, class FloatC>
     __device__ void Run_amd_asm(const FloatA* __restrict__ p_a_block,
                                 const FloatB* __restrict__ p_b_block,
@@ -147,42 +191,48 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_v2
                           is_same<FloatC, float>{},
                       "Run_amd_asm only deal with float");
 
-        static_assert(MPerThreadSubC == 4 && NPerThreadSubC == 4 && KPerThreadLoop == 1 &&
-                          MPerThread == 8 && NPerThread == 8,
-                      "Run_amd_asm cannot deal with this GEMM shape yet");
+        static_assert((MPerThreadSubC == 4 || MPerThreadSubC == 2) &&
+                          (NPerThreadSubC == 4 || NPerThreadSubC == 2) && KPerThreadLoop == 1,
+                      "M/NPerThreadSubC wrong!");
 
-        static_assert(DataPerReadA == 4 && DataPerReadB == 4, "Run_amd_asm only do float4 read");
+        static_assert(MPerThread % 4 == 0 && NPerThread % 4 == 0, "M/NPerThread % 4 != 0");
 
-        using Float4 = vector_type<float, 4>::MemoryType;
+        constexpr index_t MRepeat = M / (MPerThreadSubC * MLevel0Cluster * MLevel1Cluster);
+        constexpr index_t NRepeat = N / (NPerThreadSubC * NLevel0Cluster * NLevel1Cluster);
 
-        Float4* reg_a = reinterpret_cast<Float4*>(p_a_thread);
-        Float4* reg_b = reinterpret_cast<Float4*>(p_b_thread);
-        Float4* reg_c = reinterpret_cast<Float4*>(p_c_thread);
+        static_assert(MRepeat == 2 && NRepeat == 2, "M/NRepeat != 2");
 
-        reg_a[0] = *reinterpret_cast<const Float4*>(&p_a_block[mMyThreadOffsetA]);
-        reg_b[0] = *reinterpret_cast<const Float4*>(&p_b_block[mMyThreadOffsetB]);
+        using typeA = typename vector_type<float, MPerThreadSubC>::MemoryType;
+        using typeB = typename vector_type<float, NPerThreadSubC>::MemoryType;
+
+        typeA* reg_a = reinterpret_cast<typeA*>(p_a_thread);
+        typeB* reg_b = reinterpret_cast<typeB*>(p_b_thread);
+        typeB* reg_c = reinterpret_cast<typeB*>(p_c_thread);
+
+        reg_a[0] = *reinterpret_cast<const typeA*>(&p_a_block[mMyThreadOffsetA]);
+        reg_b[0] = *reinterpret_cast<const typeB*>(&p_b_block[mMyThreadOffsetB]);
         reg_b[1] =
-            *reinterpret_cast<const Float4*>(&p_b_block[mMyThreadOffsetB + NPerLevel1Cluster]);
+            *reinterpret_cast<const typeB*>(&p_b_block[mMyThreadOffsetB + NPerLevel1Cluster]);
         reg_a[1] =
-            *reinterpret_cast<const Float4*>(&p_a_block[mMyThreadOffsetA + MPerLevel1Cluster]);
-        outerProduct4x4(reg_a[0], reg_b[0], reg_c[0], reg_c[2], reg_c[4], reg_c[6]);
-        outerProduct4x4(reg_a[0], reg_b[1], reg_c[1], reg_c[3], reg_c[5], reg_c[7]);
+            *reinterpret_cast<const typeA*>(&p_a_block[mMyThreadOffsetA + MPerLevel1Cluster]);
+        outerProduct(reg_a[0], reg_b[0], &reg_c[0]);
+        outerProduct(reg_a[0], reg_b[1], &reg_c[1]);
 #pragma unroll
         for(index_t k = 1; k < K; ++k)
         {
-            reg_a[0] = *reinterpret_cast<const Float4*>(&p_a_block[mMyThreadOffsetA + k * M]);
-            outerProduct4x4(reg_a[1], reg_b[0], reg_c[8], reg_c[10], reg_c[12], reg_c[14]);
-            reg_b[0] = *reinterpret_cast<const Float4*>(&p_b_block[mMyThreadOffsetB + k * N]);
-            outerProduct4x4(reg_a[1], reg_b[1], reg_c[9], reg_c[11], reg_c[13], reg_c[15]);
-            reg_b[1] = *reinterpret_cast<const Float4*>(
+            reg_a[0] = *reinterpret_cast<const typeA*>(&p_a_block[mMyThreadOffsetA + k * M]);
+            outerProduct(reg_a[1], reg_b[0], &reg_c[NRepeat * MPerThreadSubC]);
+            reg_b[0] = *reinterpret_cast<const typeB*>(&p_b_block[mMyThreadOffsetB + k * N]);
+            outerProduct(reg_a[1], reg_b[1], &reg_c[NRepeat * MPerThreadSubC + 1]);
+            reg_b[1] = *reinterpret_cast<const typeB*>(
                 &p_b_block[mMyThreadOffsetB + k * N + NPerLevel1Cluster]);
-            reg_a[1] = *reinterpret_cast<const Float4*>(
+            reg_a[1] = *reinterpret_cast<const typeA*>(
                 &p_a_block[mMyThreadOffsetA + k * M + MPerLevel1Cluster]);
-            outerProduct4x4(reg_a[0], reg_b[0], reg_c[0], reg_c[2], reg_c[4], reg_c[6]);
-            outerProduct4x4(reg_a[0], reg_b[1], reg_c[1], reg_c[3], reg_c[5], reg_c[7]);
+            outerProduct(reg_a[0], reg_b[0], &reg_c[0]);
+            outerProduct(reg_a[0], reg_b[1], &reg_c[1]);
         }
-        outerProduct4x4(reg_a[1], reg_b[0], reg_c[8], reg_c[10], reg_c[12], reg_c[14]);
-        outerProduct4x4(reg_a[1], reg_b[1], reg_c[9], reg_c[11], reg_c[13], reg_c[15]);
+        outerProduct(reg_a[1], reg_b[0], &reg_c[NRepeat * MPerThreadSubC]);
+        outerProduct(reg_a[1], reg_b[1], &reg_c[NRepeat * MPerThreadSubC + 1]);
     }
 #endif
 

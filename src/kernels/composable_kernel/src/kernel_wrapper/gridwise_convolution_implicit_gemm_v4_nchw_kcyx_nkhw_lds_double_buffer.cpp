@@ -44,17 +44,17 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_
     using ConvStrides   = Sequence<ConvStrideH, ConvStrideW>;
     using ConvDilations = Sequence<ConvDilationH, ConvDilationW>;
 
-    constexpr index_t GemmMPerThreadSubC = 4;
-    constexpr index_t GemmNPerThreadSubC = 4;
+    constexpr index_t GemmMPerThreadSubC = CK_PARAM_GEMM_M_PER_THREAD_SUB_C;
+    constexpr index_t GemmNPerThreadSubC = CK_PARAM_GEMM_N_PER_THREAD_SUB_C;
     constexpr index_t GemmMLevel0Cluster = CK_PARAM_GEMM_M_LEVEL0_CLUSTER;
     constexpr index_t GemmNLevel0Cluster = CK_PARAM_GEMM_N_LEVEL0_CLUSTER;
     constexpr index_t GemmMLevel1Cluster = CK_PARAM_GEMM_M_LEVEL1_CLUSTER;
     constexpr index_t GemmNLevel1Cluster = CK_PARAM_GEMM_N_LEVEL1_CLUSTER;
     constexpr index_t GemmKPerThreadLoop = 1;
-    constexpr index_t GemmDataPerReadA   = 4;
-    constexpr index_t GemmDataPerReadB   = 4;
+    constexpr index_t GemmDataPerReadA   = GemmMPerThreadSubC;
+    constexpr index_t GemmDataPerReadB   = GemmNPerThreadSubC;
 
-    constexpr index_t GemmNRepeat = 2;
+    constexpr index_t GemmNRepeat = CK_PARAM_GEMM_N_REPEAT;
     constexpr index_t N1          = GemmNRepeat;
     constexpr index_t N2          = GemmNPerThreadSubC;
 
