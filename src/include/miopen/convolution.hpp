@@ -228,7 +228,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                   bool exhaustiveSearch,
                                   bool isForward,
                                   std::string& network_config,
-                                  ExtraKernelArgs& extraArgs,
                                   const ConvolutionUserBuffers& bufs) const;
 
     void ConvolutionForward(Handle& handle,
