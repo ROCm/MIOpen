@@ -337,6 +337,59 @@ extern "C" miopenStatus_t miopenSetRNNLayerBias(miopenHandle_t handle,
     });
 }
 
+static void LogCmdRNN(const miopenTensorDescriptor_t* xDesc,
+                      const miopenRNNDescriptor_t rnnDesc,
+                      const int seqLength,
+                      const int fwdtype)
+{
+    if(miopen::IsLoggingCmd())
+    {
+        std::string mode;
+        miopenRNNMode_t rnnMode = miopen::deref(rnnDesc).rnnMode;
+        if(rnnMode == miopenRNNRELU)
+            mode = "relu";
+        else if(rnnMode == miopenRNNTANH)
+            mode = "tanh";
+        else if(rnnMode == miopenLSTM)
+            mode = "lstm";
+        else if(rnnMode == miopenGRU)
+            mode = "gru";
+        else
+            mode = "<UNKNOWN>";
+
+        std::string batch_sz;
+        if(miopen::deref(xDesc[0]).GetLengths()[0] ==
+           miopen::deref(xDesc[seqLength - 1]).GetLengths()[0])
+        {
+            batch_sz = std::to_string(miopen::deref(xDesc[0]).GetLengths()[0]);
+        }
+        else
+        {
+            for(int i = 0; i < seqLength; i++)
+            {
+                batch_sz += std::to_string(miopen::deref(xDesc[i]).GetLengths()[0]);
+                batch_sz += ",";
+            }
+            batch_sz.pop_back();
+        }
+
+        std::stringstream ss;
+        ss << "rnn"
+           << " -n " << batch_sz // clang-format off
+           << " -W " << miopen::deref(xDesc[0]).GetLengths()[1]
+           << " -H " << miopen::deref(rnnDesc).hsize
+           << " -l " << miopen::deref(rnnDesc).nLayers
+           << " -b " << (miopen::deref(rnnDesc).biasMode == miopenRNNNoBias ? "0" : "1")
+           << " -m " << mode
+           << " -p " << (miopen::deref(rnnDesc).inputMode == miopenRNNlinear ? "0" : "1")
+           << " -r " << (miopen::deref(rnnDesc).dirMode == miopenRNNunidirection ? "0" : "1")
+           << " -k " << seqLength
+           << " -c " << fwdtype
+           << " -t 1 -w 1"; // clang-format on
+        MIOPEN_LOG_DRIVER_CMD(ss.str());
+    }
+}
+
 extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
                                                    const miopenRNNDescriptor_t rnnDesc,
                                                    const int sequenceLen,
@@ -381,6 +434,7 @@ extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
                         workSpaceNumBytes,
                         reserveSpace,
                         reserveSpaceNumBytes);
+    LogCmdRNN(xDesc, rnnDesc, sequenceLen, 0);
 
     // bfloat16 not supported for rnn operation
     if(miopen::deref(wDesc).GetType() == miopenBFloat16 ||
@@ -615,6 +669,7 @@ extern "C" miopenStatus_t miopenRNNForwardInference(miopenHandle_t handle,
                         cy,
                         workSpace,
                         workSpaceNumBytes);
+    LogCmdRNN(xDesc, rnnDesc, sequenceLen, 1);
     return miopen::try_([&] {
         miopen::c_array_view<const miopenTensorDescriptor_t> xDescArray{xDesc, size_t(sequenceLen)};
         miopen::c_array_view<const miopenTensorDescriptor_t> yDescArray{yDesc, size_t(sequenceLen)};

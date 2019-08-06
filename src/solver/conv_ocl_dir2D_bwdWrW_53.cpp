@@ -37,6 +37,8 @@ static bool WorkaroundSwdev168168() { return true; }
 
 bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 {
+    if(!params.Is2d())
+        return false;
     if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
 

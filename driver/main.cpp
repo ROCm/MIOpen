@@ -144,36 +144,46 @@ int main(int argc, char* argv[])
     }
 
     drv->AddCmdLineArgs();
-    drv->ParseCmdLineArgs(argc, argv);
+    int rc = drv->ParseCmdLineArgs(argc, argv);
+    if(rc != 0)
+    {
+        std::cout << "ParseCmdLineArgs() failed, rc = " << rc << std::endl;
+        return rc;
+    }
     drv->GetandSetData();
-    drv->AllocateBuffersAndCopy();
+    rc = drv->AllocateBuffersAndCopy();
+    if(rc != 0)
+    {
+        std::cout << "AllocateBuffersAndCopy() failed, rc = " << rc << std::endl;
+        return rc;
+    }
 
     int fargval = ((base_arg != "CBAInfer") && (base_arg != "CBAInferfp16"))
                       ? drv->GetInputFlags().GetValueInt("forw")
                       : 1;
-    bool bnFwdInVer = (fargval == 2 && (base_arg == "bnorm"));
-    bool verifyarg  = (drv->GetInputFlags().GetValueInt("verify") == 1);
+    bool bnFwdInVer   = (fargval == 2 && (base_arg == "bnorm"));
+    bool verifyarg    = (drv->GetInputFlags().GetValueInt("verify") == 1);
+    int cumulative_rc = 0; // Do not stop running tests in case of errors.
 
     if(fargval & 1 || fargval == 0 || bnFwdInVer)
     {
-        int rc = drv->RunForwardGPU();
+        rc = drv->RunForwardGPU();
+        cumulative_rc |= rc;
         if(rc != 0)
-        {
             std::cout << "RunForwardGPU() failed, rc = " << rc << std::endl;
-            return rc;
-        }
-        if(verifyarg)
-            drv->VerifyForward();
+        if(verifyarg) // Verify even if Run() failed.
+            cumulative_rc |= drv->VerifyForward();
     }
 
     if(fargval != 1)
     {
-        drv->RunBackwardGPU();
-        if(verifyarg)
-        {
-            drv->VerifyBackward();
-        }
+        rc = drv->RunBackwardGPU();
+        cumulative_rc |= rc;
+        if(rc != 0)
+            std::cout << "RunBackwardGPU() failed, rc = " << rc << std::endl;
+        if(verifyarg) // Verify even if Run() failed.
+            cumulative_rc |= drv->VerifyBackward();
     }
 
-    return 0;
+    return cumulative_rc;
 }

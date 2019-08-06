@@ -26,6 +26,7 @@
 #ifndef GUARD_MIOPEN_DATATYPE_HPP
 #define GUARD_MIOPEN_DATATYPE_HPP
 
+#include <sstream>
 #include <string>
 #include <limits>
 
@@ -96,53 +97,37 @@ inline std::size_t get_index_max(miopenIndexType_t index_type)
 
 inline std::string GetDataTypeKernelParams(miopenDataType_t type)
 {
-    std::string s{};
+    // values for MIOPEN_USE_ macros
+    int use_fp16               = 0;
+    int use_fp32               = 0;
+    int use_int8               = 0;
+    int use_int8x4             = 0;
+    int use_int32              = 0;
+    int use_bfp16              = 0;
+    const int use_rne_bfloat16 = MIOPEN_USE_RNE_BFLOAT16;
 
     switch(type)
     {
-    case miopenHalf:
-    {
-        s = " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_BFP16=0 -DMIOPEN_USE_INT8=0 "
-            "-DMIOPEN_USE_INT8x4=0";
-        break;
-    }
-    case miopenFloat:
-    {
-        s = " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_BFP16=0  -DMIOPEN_USE_INT8=0 "
-            "-DMIOPEN_USE_INT8x4=0";
-        break;
-    }
-    case miopenInt8:
-    {
-        s = " -DMIOPEN_USE_INT8=1 -DMIOPEN_USE_INT8x4=0 -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=0 "
-            "-DMIOPEN_USE_BFP16=0";
-        break;
-    }
-    case miopenInt8x4:
-    {
-        s = " -DMIOPEN_USE_INT8x4=1 -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_BFP16=0 "
-            "-DMIOPEN_USE_INT8=0";
-        break;
-    }
-    case miopenBFloat16:
-    {
-        s = " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_BFP16=1 -DMIOPEN_USE_INT8=0 "
-            "-DMIOPEN_USE_INT8x4=0";
-#if MIOPEN_USE_RNE_BFLOAT16 == 1
-        s += " -DMIOPEN_USE_RNE_BFLOAT16=1";
-#endif
-        break;
-    }
-    // In special case of int8 and int8x4, the output datatype is specified to be in32
-    // by frameworks. However, inside the kernel the outputs are marked fp32. That setting
-    // is done outside of this function.
-    case miopenInt32: break;
+    case miopenHalf: use_fp16      = 1; break;
+    case miopenFloat: use_fp32     = 1; break;
+    case miopenInt8: use_int8      = 1; break;
+    case miopenInt8x4: use_int8x4  = 1; break;
+    case miopenBFloat16: use_bfp16 = 1; break;
+    case miopenInt32: use_int32    = 1; break;
     default:
         MIOPEN_THROW("Only float, half, bfloat16, int8, int8x4 data type is supported.");
         break;
     }
 
-    return s;
+    std::ostringstream ss;
+    ss << " -DMIOPEN_USE_FP16=" << use_fp16;
+    ss << " -DMIOPEN_USE_FP32=" << use_fp32;
+    ss << " -DMIOPEN_USE_INT8=" << use_int8;
+    ss << " -DMIOPEN_USE_INT8x4=" << use_int8x4;
+    ss << " -DMIOPEN_USE_BFP16=" << use_bfp16;
+    ss << " -DMIOPEN_USE_INT32=" << use_int32;
+    ss << " -DMIOPEN_USE_RNE_BFLOAT16=" << use_rne_bfloat16;
+    return ss.str();
 }
 
 } // namespace miopen

@@ -29,21 +29,23 @@
 #include <iterator>
 #include <limits>
 #include <memory>
+
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
+#include <miopen/stringutils.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/solver.hpp>
+#include <miopen/algorithm.hpp>
 #include <utility>
 
 #include "driver.hpp"
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
-#include <miopen/stringutils.hpp>
+
 #include "tensor_util.hpp"
-#include <miopen/algorithm.hpp>
 #include "cpu_conv.hpp"
 #include "network_data.hpp"
 #include "miopen/find_db.hpp"
@@ -999,7 +1001,6 @@ struct conv_driver : test_driver
     bool do_backward_weights = true;
     int search               = 0;
     bool gen_float           = false;
-    bool dry_run             = false;
 
     std::unordered_map<std::string, std::size_t> conv_dim_lookup = {{"CONV2D", 2}, {"CONV3D", 3}};
 
@@ -1029,13 +1030,6 @@ struct conv_driver : test_driver
 
     void run()
     {
-        // Dry run prints just the entire command. One way to list all configs
-        if(dry_run)
-        {
-            show_command();
-            return;
-        }
-
         filter.spatialDim       = conv_dim_lookup[miopen::ToUpper(conv_dim_type)];
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];
@@ -1445,11 +1439,7 @@ int main(int argc, const char* argv[])
     /// "--all" has any effect here only if both 2D and 3D flags are *cleared*.
     /// Is it what we really want? This piece of code looks ofbuscated. And yes, I do
     /// understand that "--all" could affect other aspects of the test. --atamazov 12 Jun 2019
-    if(do_conv2d and !do_conv3d)
-    {
-        test_drive<conv2d_driver>(argc, argv);
-    }
-    else if(!do_conv2d and do_conv3d)
+    if(!do_conv2d and do_conv3d)
     {
         test_drive<conv3d_driver>(argc, argv);
     }

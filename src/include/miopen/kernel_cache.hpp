@@ -39,7 +39,6 @@
  * limitations under the License.
  * ************************************************************************ */
 
-#pragma once
 #ifndef GUARD_MIOPEN_KERNEL_CACHE_HPP_
 #define GUARD_MIOPEN_KERNEL_CACHE_HPP_
 

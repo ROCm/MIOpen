@@ -2624,13 +2624,10 @@ struct lstm_driver : test_driver
 
     lstm_driver()
     {
-        // this->tolerance = 1024;
-        // this->batch_factor = 4;
         std::vector<int> modes(2, 0);
         modes[1] = 1;
         std::vector<int> defaultBS(1);
 
-        // this->verbose=true;
         add(batchSize, "batch-size", generate_data(get_lstm_batchSize(), {17}));
         add(seqLength, "seq-len", generate_data(get_lstm_seq_len(), {2}));
         add(inVecLen, "vector-len", generate_data(get_lstm_vector_len()));

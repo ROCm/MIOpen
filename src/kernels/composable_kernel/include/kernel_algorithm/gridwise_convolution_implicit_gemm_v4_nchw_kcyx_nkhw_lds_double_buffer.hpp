@@ -23,8 +23,7 @@ template <index_t GridSize,
           index_t BPerBlock,
           index_t KPerBlock,
           index_t EPerBlock,
-          index_t N1,
-          index_t N2,
+          index_t GemmNRepeat,
           index_t GemmMPerThreadSubC,
           index_t GemmNPerThreadSubC,
           index_t GemmMLevel0Cluster,
@@ -50,13 +49,16 @@ template <index_t GridSize,
           index_t WeiBlockCopyDstDataPerWrite_K>
 struct GridwiseConvolutionImplicitGemm_v4_nchw_kcyx_nkhw_lds_double_buffer
 {
-    __device__ void Run(const Float* const __restrict__ p_in_global,
-                        const Float* const __restrict__ p_wei_global,
-                        Float* const __restrict__ p_out_global) const
+    __device__ void __launch_bounds__(BlockSize, 2)
+        Run(const Float* const __restrict__ p_in_global,
+            const Float* const __restrict__ p_wei_global,
+            Float* const __restrict__ p_out_global) const
     {
         // this is a mess
         // TODO: find more elegent way of specifying (or calculating) performance parameters
-        static_assert(N2 == GemmNPerThreadSubC, "wrong!");
+        constexpr index_t N1 = GemmNRepeat;
+        constexpr index_t N2 = GemmNPerThreadSubC;
+
         static_assert((N1 * N2 * BPerBlock) %
                               (GemmNPerThreadSubC * GemmNLevel0Cluster * GemmNLevel1Cluster) ==
                           0,

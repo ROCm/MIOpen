@@ -28,6 +28,15 @@ cmake_policy(SET CMP0057 NEW)
 
 include (GenerateExportHeader)
 
+# Truncation rounding or (default) rounding to nearest even (RNE) is enabled.
+# This switch controls two related but different aspects of MIOpen behavior
+# 1.  How host code performs conversions of float to bfloat16, important only
+#     for testing.
+# 2.  How BF16 kernels (which are kind of mixed-precision now and expected to
+#     remain in the future)  perform final conversion (and rounding) of FP32
+#     to BF16 results. This affects the main functionality of the library.
+option( MIOPEN_USE_RNE_BFLOAT16 "Sets rounding scheme for bfloat16 type" ON )
+
 configure_file("${PROJECT_SOURCE_DIR}/include/miopen/config.h.in" "${PROJECT_BINARY_DIR}/include/miopen/config.h")
 
 # configure a header file to pass the CMake version settings to the source, and package the header files in the output archive
@@ -202,6 +211,21 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v16_3_0_epilogue.inc
         kernels/Conv_Winograd_v16_3_0_prologue.inc
         kernels/Conv_Winograd_v16_3_0_stride1.inc
+        kernels/conv_3x3_wheel_alpha_v9_2_7.inc
+        kernels/conv_3x3_wheel_alpha_v9_2_7_epilogue.inc
+        kernels/conv_3x3_wheel_alpha_v9_2_7_prologue.inc
+        kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec.inc
+        kernels/conv_3x3_wheel_alpha_v3_0b_epilogue.inc
+        kernels/conv_3x3_wheel_alpha_v3_0b_prologue.inc
+        kernels/conv_3x3_wheel_alpha_v3_0b.inc
+        kernels/conv_3x3_wheel_alpha_v7_0_3b_epilogue.inc
+        kernels/conv_3x3_wheel_alpha_v7_0_3b_prologue.inc
+        kernels/conv_3x3_wheel_alpha_v7_0_3b.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15_epilogue.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15_prologue.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15.inc
         kernels/inst_wrappers.inc
         kernels/common.inc
         kernels/xform_data_filter.inc
@@ -276,29 +300,26 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v14_3_3_fp16dot_stride2_dec.s
         kernels/Conv_Winograd_v14_3_3_fp16dot_stride2_dil.s
         kernels/Conv_Winograd_v16_3_0_stride1.s
-        kernels/conv_3x3_wheel_alpha_v9_2_7_gfx803_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_2_7_gfx900_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_2_7_gfx906_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec_gfx803_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec_gfx900_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec_gfx906_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx803_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx803_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec_gfx803_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx900_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx900_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec_gfx900_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx906_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx906_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec_gfx906_md10.so
-        kernels/conv_3x3_wheel_alpha_v7_0_3b_gfx900_md10.so
-        kernels/conv_3x3_wheel_alpha_v7_0_3b_gfx906_md10.so
-        kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_md10.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil.s
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec.s
+        kernels/conv_3x3_wheel_alpha_v9_0_15.s
+        kernels/conv_3x3_wheel_alpha_v7_0_3b.s
+        kernels/conv_3x3_wheel_alpha_v3_0b.s
+        kernels/conv_3x3_wheel_alpha_v9_2_7.s
+        kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec.s
         kernels/MIOpenConvBwdBias.cl
         kernels/MIOpenBatchNormActivInfer.cl
         kernels/MIOpenCTCLoss.cl
         kernels/xform_data.s
         kernels/xform_filter.s)
+
+    if(MIOPEN_USE_SCGEMM)
+        list(APPEND MIOPEN_KERNELS
+            kernels/scgemm_v0_5_0_gfx906.so
+            kernels/SCGemmUtils.cl
+        )
+    endif()
+
     add_kernels("${MIOPEN_KERNELS}")
     add_kernel_includes("${MIOPEN_KERNEL_INCLUDES}")
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
@@ -383,6 +404,20 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     add_dependencies(tidy miopen_tidy_inlining)
 endif()
 
+if(MIOPEN_USE_SCGEMM)
+    list(APPEND MIOpen_Source
+        scgemm/scgemm.cpp
+        include/miopen/scgemm/scgemm.hpp
+        include/miopen/scgemm/tensorshape.hpp
+        include/miopen/scgemm/conv.hpp
+        include/miopen/scgemm/gemm.hpp
+        include/miopen/scgemm/scgemm_op.hpp
+        scgemm/tensorshape.cpp
+        scgemm/conv.cpp
+        scgemm/gemm.cpp
+    )
+endif()
+
 # build library
 add_library( MIOpen
     ${MIOpen_Source}
@@ -454,7 +489,7 @@ if(WIN32 AND NOT MSVC)
     target_link_libraries(MIOpen PUBLIC -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
 endif()
 
-target_include_directories(MIOpen PUBLIC $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>)
+target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>)
 target_internal_library(MIOpen
     optimized ${Boost_FILESYSTEM_LIBRARY_RELEASE}
     optimized ${Boost_SYSTEM_LIBRARY_RELEASE}
@@ -466,18 +501,21 @@ if(NOT WIN32 AND NOT APPLE)
 MIOPEN_${MIOPEN_BACKEND}_1
 {
 global:
-    *;
+    miopen*;
+    extern \"C++\" {
+        miopen::*;
+    };
 local:
-    *;
+    *boost*;
+    extern \"C++\" {
+        std::*;
+    };
 };
 ")
     target_link_libraries(MIOpen PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_BINARY_DIR}/lib.def")
-    if(NOT BUILD_DEV)
-        # set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET hidden)
-        if(NOT APPLE)
-            target_link_libraries(MIOpen PRIVATE "-Wl,--exclude-libs,ALL")
-        endif()
-    endif()
+    target_link_libraries(MIOpen PRIVATE "-Wl,--exclude-libs,ALL")
+    # set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET protected)
+    set_target_properties(MIOpen PROPERTIES VISIBILITY_INLINES_HIDDEN 1)
 endif()
 
 ############################################################

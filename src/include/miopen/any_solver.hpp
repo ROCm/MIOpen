@@ -24,7 +24,8 @@
  *
  *******************************************************************************/
 
-#pragma once
+#ifndef MIOPEN_GUARD_MLOPEN_ANY_SOLVER_HPP
+#define MIOPEN_GUARD_MLOPEN_ANY_SOLVER_HPP
 
 #include <miopen/conv_solution.hpp>
 #include <miopen/find_solution.hpp>
@@ -65,6 +66,11 @@ struct AnySolver
         assert(ptr_value != nullptr);
         return ptr_value->FindSolution(ctx, db);
     };
+    std::string GetSolverDbId() const
+    {
+        assert(ptr_value != nullptr);
+        return ptr_value->GetSolverDbId();
+    }
 
     // virtual base class
     struct AnySolver_base
@@ -75,6 +81,7 @@ struct AnySolver
         virtual bool IsApplicable(const ConvolutionContext& ctx) const = 0;
         virtual bool IsFast(const ConvolutionContext& ctx) const       = 0;
         virtual const std::type_info& Type() const                     = 0;
+        virtual std::string GetSolverDbId() const                      = 0;
         virtual ConvSolution FindSolution(const ConvolutionContext& ctx, Db& db) const = 0;
     };
 
@@ -86,13 +93,14 @@ struct AnySolver
         bool IsApplicable(const ConvolutionContext& ctx) const override
         {
             return value.IsApplicable(ctx);
-        };
-        bool IsFast(const ConvolutionContext& ctx) const override { return value.IsFast(ctx); };
+        }
+        bool IsFast(const ConvolutionContext& ctx) const override { return value.IsFast(ctx); }
         ConvSolution FindSolution(const ConvolutionContext& ctx, Db& db) const override
         {
             return miopen::solver::FindSolution(value, ctx, db);
-        };
-        const std::type_info& Type() const override { return typeid(T); };
+        }
+        const std::type_info& Type() const override { return typeid(T); }
+        std::string GetSolverDbId() const override { return ComputeSolverDbId(value); }
 
         private:
         T value;
@@ -103,3 +111,5 @@ struct AnySolver
 
 } // namespace solver
 } // namespace miopen
+
+#endif

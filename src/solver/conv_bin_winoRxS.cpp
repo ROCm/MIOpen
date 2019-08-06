@@ -200,6 +200,8 @@ namespace solver {
 
 bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
 {
+    if(!params.Is2d())
+        return false;
     if(!(params.IsFp32() || params.IsFp16()))
         return false;
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}))
@@ -211,43 +213,33 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         if(!(params.IsFp32() && params.kernel_stride_w == 1 && params.kernel_stride_h == 1))
             return false; // WrW is only for fp32 and no stride for now.
     }
-
-    const bool fp16 = params.IsFp16();
-    if(fp16 || params.direction.IsBackwardWrW())
-    { // These are supplied in asm source format.
-        if(!params.use_asm_kernels)
-            return false;
-    }
-    else
-    { // fp32 Fwd/Bwd tile=3 kernels are in binary format.
-        if(!params.use_binaries)
-            return false;
-    }
+    if(!params.use_asm_kernels)
+        return false;
+    if(params.rmv != rocm_meta_version::AMDHSA_1_0)
+        return false;
 
     const auto name = params.GetStream().GetDeviceName();
-    // clang-format off
-    if (fp16)
+    const bool fp16 = params.IsFp16();
+    if(fp16)
     {
-        if (! (name == "gfx906" && params.rmv == rocm_meta_version::AMDHSA_1_0))
+        if(!(name == "gfx906"))
             return false;
     }
     else
     {
-        if (params.direction.IsBackwardWrW())
+        if(params.direction.IsBackwardWrW())
         {
-            if (! ((name == "gfx900" && params.rmv == rocm_meta_version::AMDHSA_1_0)
-                || (name == "gfx906" && params.rmv == rocm_meta_version::AMDHSA_1_0)))
+            if(!(name == "gfx900" || name == "gfx906"))
                 return false;
         }
         else
         {
-            if (! ((name == "gfx803" && params.rmv == rocm_meta_version::AMDHSA_1_0)
-                || (name == "gfx900" && params.rmv == rocm_meta_version::AMDHSA_1_0)
-                || (name == "gfx906" && params.rmv == rocm_meta_version::AMDHSA_1_0)))
+            if(!(name == "gfx803" || name == "gfx900" || name == "gfx906"))
                 return false;
         }
     }
 
+    // clang-format off
     if (! (params.kernel_stride_w <= 2 // -u inp_u 1 or 2
         && params.kernel_stride_w == params.kernel_stride_h
         && params.kernel_dilation_w == 1
@@ -298,7 +290,6 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
 {
     ConvSolution result;
     const auto n_groups = params.GetStream().GetMaxComputeUnits();
-    const auto name     = params.GetStream().GetDeviceName();
     KernelInfo kernel;
 
     kernel.g_wk.push_back(512 * n_groups);
@@ -309,9 +300,10 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
+    kernel.kernel_name = "sp3AsmConvRxSU";
+
     if(params.IsFp16())
     {
-        kernel.kernel_name = "sp3AsmConvRxSU";
         kernel.kernel_file = "Conv_Winograd_";
         if(miopen::IsEnabled(MIOPEN_DEBUG_SRAM_EDC_DISABLED{}))
             kernel.kernel_file += "v13_3_12";
@@ -330,18 +322,14 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
         {
             kernel.kernel_file += "1";
         }
-        kernel.kernel_file += ".s";
     }
     else if(params.direction.IsBackwardWrW())
     {
-        kernel.kernel_name = "sp3AsmConvRxSU";
-        kernel.kernel_file = "Conv_Winograd_v16_3_0_stride1.s";
+        kernel.kernel_file = "Conv_Winograd_v16_3_0_stride1";
     }
     else
     {
-        kernel.kernel_name = "sp3AsmConvRxSU";
         kernel.kernel_file = "conv_3x3_wheel_alpha_v9_0_15";
-
         if(params.kernel_stride_w == 2)
         {
             if(params.direction.IsForward())
@@ -349,18 +337,39 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
             else
                 kernel.kernel_file += "_stride_2_dil";
         }
-
-        kernel.kernel_file += ("_" + name);
-
-        if(params.rmv == rocm_meta_version::AMDHSA_1_0)
-            kernel.kernel_file += "_md10";
-        else
-            MIOPEN_THROW("ConvBinWinogradRxS: Unsupported metadata version.");
-
-        kernel.kernel_file += ".so";
     }
+    kernel.kernel_file += ".s";
+
     result.construction_params.push_back(kernel);
     return result;
 }
+
+bool ConvBinWinogradRxSFused::IsApplicable(const ConvolutionContext&) const
+{
+    return true; // Actual checks moved to FusionMDGraph.
+}
+
+ConvSolution ConvBinWinogradRxSFused::GetSolution(const ConvolutionContext& params) const
+{
+    ConvSolution result;
+    KernelInfo kernel;
+
+    const auto n_groups = params.GetStream().GetMaxComputeUnits();
+    kernel.g_wk.push_back(512 * n_groups);
+    kernel.g_wk.push_back(1);
+    kernel.g_wk.push_back(1);
+
+    kernel.l_wk.push_back(512);
+    kernel.l_wk.push_back(1);
+    kernel.l_wk.push_back(1);
+
+    // File and name are defined in FusionMDGraph, so no need (and harmful)
+    // to duplicate this information here.
+    kernel.kernel_name = "<name not set>";
+    kernel.kernel_file = "<file not set>";
+    result.construction_params.push_back(kernel);
+    return result;
+}
+
 } // namespace solver
 } // namespace miopen

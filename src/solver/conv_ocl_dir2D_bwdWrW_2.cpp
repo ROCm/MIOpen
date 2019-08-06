@@ -138,14 +138,10 @@ static bool IsTunable(const ConvolutionContext& params)
 
 bool ConvOclBwdWrW2NonTunable::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
-        return false;
-
     // At present, auto-tuning is disabled for non-group 3x3 and 1x1 filters for multiple
     // reasons: after tuning ocl kernel for 3x3 and 1x1 filters, assembly kernel still
-    // dominates.
-    // Thus, this solver is used for non-group 3x3 and 1x1 filters only.
-    return !IsTunable(params) && ConvOclBwdWrW2<1>::IsApplicableBase(params);
+    // dominates. Thus, this solver is used for non-group 3x3 and 1x1 filters only.
+    return ConvOclBwdWrW2<1>::IsApplicableBase(params) && !IsTunable(params);
 }
 
 ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ConvolutionContext& params) const
@@ -466,6 +462,11 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsValidPerformanceConfig(
 template <int N_BATCH_LOOPS>
 bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& params) const
 {
+    if(!params.Is2d())
+        return false;
+    if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
+        return false;
+
     return params.kernel_dilation_w == 1 && params.kernel_dilation_h == 1 &&
 #if 0
            // There is a stronger restriction than this one, which make this one unnecessary.
@@ -502,10 +503,7 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& p
 template <int N_BATCH_LOOPS>
 bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!params.IsFp32() && !params.IsFp16() && !params.IsBfp16())
-        return false;
-
-    return IsTunable(params) && IsApplicableBase(params);
+    return IsApplicableBase(params) && IsTunable(params);
 }
 
 template <int N_BATCH_LOOPS>

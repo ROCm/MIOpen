@@ -1,4 +1,5 @@
 .include "gpr_alloc.inc"
+.include "inst_wrappers.inc"
 .include "common.inc"
 
 .altmacro		 

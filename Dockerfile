@@ -1,6 +1,6 @@
 FROM ubuntu:16.04
 
-ARG PREFIX=/opt/rocm
+ARG PREFIX=/usr/local
 
 # Support multiarch
 RUN dpkg --add-architecture i386
@@ -17,6 +17,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     clang-format-3.8 \
     clang-tidy-3.8 \
     cmake \
+    comgr \
     curl \
     doxygen \
     g++-mingw-w64 \
@@ -37,6 +38,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     python \
     python-dev \
     python-pip \
+    rocm-device-libs \
     rocm-opencl \
     rocm-opencl-dev \
     software-properties-common \
@@ -65,12 +67,13 @@ RUN cget -p $PREFIX/x86_64-w64-mingw32 init -t $PREFIX/x86_64-w64-mingw32/cmake/
 RUN pip install https://github.com/pfultz2/rclone/archive/master.tar.gz
 
 # Install hcc
-RUN rclone -b roc-2.1.x  -c fea3e2b4625f55b40b8c51c6e445117b3f16166f https://github.com/RadeonOpenCompute/hcc.git /hcc
+RUN rclone -b extractkernels-path -c f460d4eb92 https://github.com/RadeonOpenCompute/hcc.git /hcc
 RUN cget -p $PREFIX install hcc,/hcc  && rm -rf /hcc
 
-# This is a workaround for broken installations
-RUN ln -s $PREFIX /opt/rocm/hip
-RUN ln -s $PREFIX /opt/rocm/hcc
+# Workaround hip: It doesn't use cmake's compiler, only the compiler at /opt/rocm/hcc/bin/hcc
+RUN mkdir -p /opt/rocm/hcc/bin
+RUN ln -s $PREFIX/bin/hcc /opt/rocm/hcc/bin/hcc
+RUN ln -s $PREFIX/bin/hcc-config /opt/rocm/hcc/bin/hcc-config
 
 # Build using hcc
 RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc --std=c++14

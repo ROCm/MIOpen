@@ -23,7 +23,8 @@
 * SOFTWARE.
 *
 *******************************************************************************/
-#pragma once
+#ifndef MIOPEN_GUARD_MLOPEN_HIP_BUILD_UTILS_HPP
+#define MIOPEN_GUARD_MLOPEN_HIP_BUILD_UTILS_HPP
 
 #include <miopen/kernel.hpp>
 #include <miopen/tmp_dir.hpp>
@@ -39,3 +40,5 @@ boost::filesystem::path HipBuild(boost::optional<miopen::TmpDir>& tmp_dir,
 
 void bin_file_to_str(const boost::filesystem::path& file, std::string& buf);
 } // namespace miopen
+
+#endif

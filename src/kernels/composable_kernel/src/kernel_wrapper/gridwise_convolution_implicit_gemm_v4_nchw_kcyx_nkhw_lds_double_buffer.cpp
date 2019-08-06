@@ -44,35 +44,58 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_
     using ConvStrides   = Sequence<ConvStrideH, ConvStrideW>;
     using ConvDilations = Sequence<ConvDilationH, ConvDilationW>;
 
-    constexpr index_t N1 = 2;
-    constexpr index_t N2 = 4;
-
     constexpr index_t GemmMPerThreadSubC = 4;
     constexpr index_t GemmNPerThreadSubC = 4;
-    constexpr index_t GemmMLevel0Cluster = 4;
-    constexpr index_t GemmNLevel0Cluster = 4;
-    constexpr index_t GemmMLevel1Cluster = 4;
-    constexpr index_t GemmNLevel1Cluster = 4;
+    constexpr index_t GemmMLevel0Cluster = CK_PARAM_GEMM_M_LEVEL0_CLUSTER;
+    constexpr index_t GemmNLevel0Cluster = CK_PARAM_GEMM_N_LEVEL0_CLUSTER;
+    constexpr index_t GemmMLevel1Cluster = CK_PARAM_GEMM_M_LEVEL1_CLUSTER;
+    constexpr index_t GemmNLevel1Cluster = CK_PARAM_GEMM_N_LEVEL1_CLUSTER;
     constexpr index_t GemmKPerThreadLoop = 1;
     constexpr index_t GemmDataPerReadA   = 4;
     constexpr index_t GemmDataPerReadB   = 4;
 
-    using InBlockCopySubLengths_E_N1_B_N2      = Sequence<1, 1, 1, 4>;
-    using InBlockCopyClusterLengths_E_N1_B_N2  = Sequence<8, 2, 16, 1>;
+    constexpr index_t GemmNRepeat = 2;
+    constexpr index_t N1          = GemmNRepeat;
+    constexpr index_t N2          = GemmNPerThreadSubC;
+
+    constexpr index_t InBlockCopyClusterLengths_E  = CK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_E;
+    constexpr index_t InBlockCopyClusterLengths_B  = CK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_B;
+    constexpr index_t InBlockCopyClusterLengths_N1 = CK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_N1;
+    constexpr index_t InBlockCopyClusterLengths_N2 = CK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_N2;
+
+    constexpr index_t InBlockCopySubLengths_E  = EPerBlock / InBlockCopyClusterLengths_E;
+    constexpr index_t InBlockCopySubLengths_B  = BPerBlock / InBlockCopyClusterLengths_B;
+    constexpr index_t InBlockCopySubLengths_N1 = N1 / InBlockCopyClusterLengths_N1;
+    constexpr index_t InBlockCopySubLengths_N2 = N2 / InBlockCopyClusterLengths_N2;
+
+    using InBlockCopySubLengths_E_N1_B_N2 = Sequence<InBlockCopySubLengths_E,
+                                                     InBlockCopySubLengths_N1,
+                                                     InBlockCopySubLengths_B,
+                                                     InBlockCopySubLengths_N2>;
+    using InBlockCopyClusterLengths_E_N1_B_N2 = Sequence<InBlockCopyClusterLengths_E,
+                                                         InBlockCopyClusterLengths_N1,
+                                                         InBlockCopyClusterLengths_B,
+                                                         InBlockCopyClusterLengths_N2>;
     using InBlockCopyThreadClusterArrangeOrder = Sequence<0, 1, 3, 2>; // [E, N1, N2, B]
     using InBlockCopySrcAccessOrder            = Sequence<0, 1, 3, 2>; // [E, N1, N2, B]
     using InBlockCopyDstAccessOrder            = Sequence<0, 1, 2, 3>; // [E, N1, B, N2]
 
     constexpr index_t InBlockCopySrcDataPerRead_B   = 1;
-    constexpr index_t InBlockCopyDstDataPerWrite_N2 = 4;
+    constexpr index_t InBlockCopyDstDataPerWrite_N2 = CK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_N2;
 
-    using WeiBlockCopySubLengths_E_K            = Sequence<4, 1>;
-    using WeiBlockCopyClusterLengths_E_K        = Sequence<2, 128>;
+    constexpr index_t WeiBlockCopyClusterLengths_E = CK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_E;
+    constexpr index_t WeiBlockCopyClusterLengths_K = CK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K;
+    constexpr index_t WeiBlockCopySubLengths_E     = EPerBlock / WeiBlockCopyClusterLengths_E;
+    constexpr index_t WeiBlockCopySubLengths_K     = KPerBlock / WeiBlockCopyClusterLengths_K;
+
+    using WeiBlockCopySubLengths_E_K = Sequence<WeiBlockCopySubLengths_E, WeiBlockCopySubLengths_K>;
+    using WeiBlockCopyClusterLengths_E_K =
+        Sequence<WeiBlockCopyClusterLengths_E, WeiBlockCopyClusterLengths_K>;
     using WeiBlockCopyThreadClusterArrangeOrder = Sequence<1, 0>; // [K, E]
     using WeiBlockCopySrcAccessOrder            = Sequence<1, 0>; // [K, E]
     using WeiBlockCopyDstAccessOrder            = Sequence<0, 1>; // [E, K]
 
-    constexpr index_t WeiBlockCopySrcDataPerRead_E  = 4;
+    constexpr index_t WeiBlockCopySrcDataPerRead_E  = CK_PARAM_WEI_BLOCK_COPY_SRC_DATE_PER_READ_E;
     constexpr index_t WeiBlockCopyDstDataPerWrite_K = 1;
 
     constexpr auto gridwise_conv =
@@ -88,8 +111,7 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_
             BPerBlock,
             KPerBlock,
             EPerBlock,
-            N1,
-            N2,
+            GemmNRepeat,
             GemmMPerThreadSubC,
             GemmNPerThreadSubC,
             GemmMLevel0Cluster,

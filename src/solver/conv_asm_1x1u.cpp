@@ -372,6 +372,8 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
 {
     if(!params.use_asm_kernels)
         return false;
+    if(!params.Is2d())
+        return false;
     if(params.rmv != rocm_meta_version::AMDHSA_1_0)
         return false;
     if(!(params.IsFp32() || params.IsFp16()))
@@ -715,8 +717,6 @@ int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
 
     if(UseSubsample(params))
         k_info = solution.construction_params[1];
-    else if(UseUpsample(params))
-        k_info = solution.construction_params[0];
     else
         k_info = solution.construction_params[0];
 

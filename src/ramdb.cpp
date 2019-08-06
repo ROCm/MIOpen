@@ -111,11 +111,11 @@ RamDb& RamDb::GetCached(const std::string& path, bool warn_if_unreadable)
     // footprint in heap is very small. That is why we can omit deletion of
     // these objects thus avoiding bothering with MP/MT syncronization.
     // These will be destroyed altogether with heap.
-	// Changed piecewise_construct to pointer due to HIP compiler issue with
-	// piecewise_construct in MP/MT environments.
+    // Changed piecewise_construct to pointer due to HIP compiler issue with
+    // piecewise_construct in MP/MT environments.
     auto emplace_ret = instances.emplace(path, new RamDb{path, warn_if_unreadable});
-    const auto it  = emplace_ret.first;
-    auto& instance = *it->second;
+    const auto it    = emplace_ret.first;
+    auto& instance   = *it->second;
 
     {
         const auto prefetch_lock = exclusive_lock(instance.GetLockFile(), GetLockTimeout());

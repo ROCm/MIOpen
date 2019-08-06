@@ -30,25 +30,20 @@
 namespace miopen {
 namespace solver {
 
-static bool WorkaroundGithub1826() { return true; }
-
 bool ConvHipImplicitGemmV4_1x1::IsApplicable(const ConvolutionContext& ctx) const
 {
-    bool workaround = false;
+    if(!ctx.Is2d())
+        return false;
 
-    if(WorkaroundGithub1826())
-    {
-        // workaround for Github issue 1826
-        workaround = workaround ||
-                     ((!ctx.direction.IsForward()) &&
-                      (ctx.kernel_stride_h > 1 || ctx.kernel_stride_w > 1) && ctx.n_outputs > 128);
-    }
+    /// \todo workaround for Github issue 1826
+    if(!ctx.direction.IsForward() && (ctx.kernel_stride_h > 1 || ctx.kernel_stride_w > 1) &&
+       ctx.n_outputs > 128)
+        return false;
 
-    return !workaround &&
-           (ctx.IsFp32() && ctx.spatial_dims == 2 && ctx.pad_h == 0 && ctx.pad_w == 0 &&
-            ctx.group_counts == 1 && ctx.batch_sz % 8 == 0 &&
-            (ctx.batch_sz * ctx.out_height * ctx.out_width) % 128 == 0 && ctx.n_inputs % 16 == 0 &&
-            ctx.n_outputs % 128 == 0 && ctx.kernel_size_h == 1 && ctx.kernel_size_w == 1);
+    return ctx.IsFp32() && ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.group_counts == 1 &&
+           ctx.batch_sz % 8 == 0 && (ctx.batch_sz * ctx.out_height * ctx.out_width) % 128 == 0 &&
+           ctx.n_inputs % 16 == 0 && ctx.n_outputs % 128 == 0 && ctx.kernel_size_h == 1 &&
+           ctx.kernel_size_w == 1 && ctx.kernel_dilation_h == 1 && ctx.kernel_dilation_w == 1;
 }
 
 ConvSolution ConvHipImplicitGemmV4_1x1::GetSolution(const ConvolutionContext& ctx) const
@@ -102,7 +97,7 @@ ConvSolution ConvHipImplicitGemmV4_1x1::GetSolution(const ConvolutionContext& ct
         "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer";
 
     // clang-format off
-    construction_parameters.comp_options = 
+    construction_parameters.comp_options =
         std::string(" -std=c++14 ") +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(n) +
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(k) +

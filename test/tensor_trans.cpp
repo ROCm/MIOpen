@@ -197,6 +197,7 @@ struct tensor_vec_driver : test_driver
 
     tensor_vec_driver()
     {
+        disabled_cache = true;
         add(src_lens, "srcLens", generate_data(get_tensor_src()));
         add(forw, "forw", generate_data({true, false}));
         add(stride_h, "stride", generate_data({1, 2}));

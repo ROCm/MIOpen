@@ -47,8 +47,18 @@ class Timer
 {
     public:
     Timer(){};
-    void start() { st = std::chrono::steady_clock::now(); }
-    void stop() { et = std::chrono::steady_clock::now(); }
+    void start(const bool enabled = true)
+    {
+        if(!enabled)
+            return;
+        st = std::chrono::steady_clock::now();
+    }
+    void stop(const bool enabled = true)
+    {
+        if(!enabled)
+            return;
+        et = std::chrono::steady_clock::now();
+    }
     float gettime_ms()
     {
         return std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(et - st)
@@ -56,6 +66,68 @@ class Timer
     }
 
     private:
+    std::chrono::time_point<std::chrono::steady_clock> st;
+    std::chrono::time_point<std::chrono::steady_clock> et;
+};
+
+class Timer2
+{
+    public:
+    Timer2(){};
+    void start(const bool enabled = true)
+    {
+        if(!enabled)
+            return;
+        st     = std::chrono::steady_clock::now();
+        paused = 0.0f;
+        state  = Started;
+    }
+    void pause(const bool enabled = true)
+    {
+        if(!enabled)
+            return;
+        assert(state == Started || state == Resumed);
+        pst   = std::chrono::steady_clock::now();
+        state = Paused;
+    }
+    void resume(const bool enabled = true)
+    {
+        if(!enabled)
+            return;
+        assert(state == Paused);
+        const auto pet = std::chrono::steady_clock::now();
+        paused +=
+            std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(pet - pst).count();
+        state = Resumed;
+    }
+    void stop(const bool enabled = true)
+    {
+        if(!enabled)
+            return;
+        assert(state != Stopped);
+        if(state == Paused)
+            resume();
+        et    = std::chrono::steady_clock::now();
+        state = Stopped;
+    }
+    float gettime_ms()
+    {
+        assert(state == Stopped);
+        return std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(et - st)
+                   .count() -
+               paused;
+    }
+
+    private:
+    enum
+    {
+        Started,
+        Paused,
+        Resumed,
+        Stopped
+    } state      = Stopped;
+    float paused = 0.0f;
+    std::chrono::time_point<std::chrono::steady_clock> pst;
     std::chrono::time_point<std::chrono::steady_clock> st;
     std::chrono::time_point<std::chrono::steady_clock> et;
 };
