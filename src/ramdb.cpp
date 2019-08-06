@@ -1,28 +1,28 @@
 /*******************************************************************************
- *
- * MIT License
- *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
- *******************************************************************************/
+*
+* MIT License
+*
+* Copyright (c) 2019 Advanced Micro Devices, Inc.
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*
+*******************************************************************************/
 
 #include <miopen/ramdb.hpp>
 
@@ -104,6 +104,15 @@ RamDb& RamDb::GetCached(const std::string& path, bool warn_if_unreadable)
             return *it->second;
     }
 
+    // The ReadonlyRamDb objects allocated here by "new" shall be alive during
+    // the calling app lifetime. Size of each is very small, and there couldn't
+    // be many of them (max number is number of _different_ GPU board installed
+    // in the user's system, which is _one_ for now). Therefore the total
+    // footprint in heap is very small. That is why we can omit deletion of
+    // these objects thus avoiding bothering with MP/MT syncronization.
+    // These will be destroyed altogether with heap.
+	// Changed piecewise_construct to pointer due to HIP compiler issue with
+	// piecewise_construct in MP/MT environments.
     auto emplace_ret = instances.emplace(path, new RamDb{path, warn_if_unreadable});
     const auto it  = emplace_ret.first;
     auto& instance = *it->second;
@@ -276,7 +285,7 @@ void RamDb::Prefetch()
         if(!file)
         {
             const auto log_level =
-                GetWarnIfUnreadable() ? LoggingLevel::Warning : LoggingLevel::Info;
+                IsWarningIfUnreadable() ? LoggingLevel::Warning : LoggingLevel::Info;
             MIOPEN_LOG(log_level, "File is unreadable: " << GetFileName());
             return;
         }

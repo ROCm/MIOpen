@@ -110,7 +110,7 @@ set( MIOpen_Source
     conv_algo_name.cpp
     readonlyramdb.cpp
     include/miopen/buffer_info.hpp
-	ramdb.cpp
+    ramdb.cpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
     include/miopen/db.hpp
