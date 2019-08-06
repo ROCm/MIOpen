@@ -403,6 +403,11 @@ struct PerformanceImplicitGemm : Serializable<PerformanceImplicitGemm>
     int KPerBlock; // 2^n[32..128]
     int EPerBlock; // 2^n[4..16]
 
+    int GemmNRepeat; // == 2
+
+    int GemmMPerThreadSubC; // 2^n[2..4]
+    int GemmNPerThreadSubC; // 2^n[2..4]
+
     int GemmMLevel0Cluster; // 2^n[1..4]
     int GemmNLevel0Cluster; // 2^n[1..4]
     int GemmMLevel1Cluster; // 2^n[1..4]
@@ -416,9 +421,10 @@ struct PerformanceImplicitGemm : Serializable<PerformanceImplicitGemm>
     int WeiBlockCopyClusterLengths_E; // 2^n[1..4]
     int WeiBlockCopyClusterLengths_K; // 2^n[16..128]
 
-    PerformanceImplicitGemm(int, int, int, int, int, int, int, int, int, int, int, int, int);
+    PerformanceImplicitGemm(
+        int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int);
     PerformanceImplicitGemm()
-        : PerformanceImplicitGemm(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+        : PerformanceImplicitGemm(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
     {
     }
 
@@ -430,6 +436,9 @@ struct PerformanceImplicitGemm : Serializable<PerformanceImplicitGemm>
         f(self.BPerBlock, "BPerBlock");
         f(self.KPerBlock, "KPerBlock");
         f(self.EPerBlock, "EPerBlock");
+        f(self.GemmNRepeat, "GemmNRepeat");
+        f(self.GemmMPerThreadSubC, "GemmMPerThreadSubC");
+        f(self.GemmNPerThreadSubC, "GemmNPerThreadSubC");
         f(self.GemmMLevel0Cluster, "GemmMLevel0Cluster");
         f(self.GemmNLevel0Cluster, "GemmNLevel0Cluster");
         f(self.GemmMLevel1Cluster, "GemmMLevel1Cluster");
