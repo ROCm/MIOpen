@@ -146,7 +146,7 @@ class Db
     protected:
     LockFile& GetLockFile() { return lock_file; }
     const std::string& GetFileName() const { return filename; }
-    bool GetWarnIfUnreadable() const { return warn_if_unreadable; }
+    bool IsWarningIfUnreadable() const { return warning_if_unreadable; }
     boost::optional<DbRecord> FindRecordUnsafe(const std::string& key, RecordPositions* pos);
     bool StoreRecordUnsafe(const DbRecord& record);
     bool UpdateRecordUnsafe(DbRecord& record);
@@ -155,7 +155,7 @@ class Db
     private:
     std::string filename;
     LockFile& lock_file;
-    const bool warn_if_unreadable;
+    const bool warning_if_unreadable;
 
     bool FlushUnsafe(const DbRecord& record, const RecordPositions* pos);
 
