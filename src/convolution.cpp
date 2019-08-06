@@ -314,6 +314,11 @@ ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMMTranspose(const TensorDescript
     return x_t_size + y_t_size;
 }
 
+/// There is assumption that if Winograd is applicable and granularity loss is low, then there is no
+/// advantage in trying other algorithms as those either slower or use more workspace. This allows
+/// for some related host-side optimizations.
+///
+/// These optimizations are kind of cutting corners, but advantages are quite high.
 bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(miopen::ConvolutionContext& ctx) const
 {
     // Filter out configs where 3x3 Winograd does not have high WTI.
@@ -404,85 +409,67 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
                                                            const TensorDescriptor& yDesc) const
 {
     MIOPEN_LOG_I("");
+
+    auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, 1}; // Forward
+    ctx.SetStream(&handle);
+    ctx.DetectRocm();
+
+    if(IsWinograd3x3SupportedAndFast(ctx))
+        return 0;
+
+    ctx.SetupFloats();
+    ctx.do_search                         = false;
+    ctx.workaround_disable_search_enforce = true;
+
+    const size_t direct_workspace = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
+
+    const size_t implicit_gemm_workspace = ForwardGetWorkSpaceSizeImplicitGemm(ctx);
+
+#if MIOPEN_USE_GEMM
+    const std::size_t spatial_dim = GetSpatialDimension();
+    const auto wei_spatial        = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+    const auto in_spatial         = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
+
+    size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc) * group_count;
+    /// \todo WORKAROUND for issue 1430
+    if(workspace_size_gemm > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
+        workspace_size_gemm = 0;
+
+    // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
+    // 1x1_stride=2
+    if(GetSpatialDimension() == 2 &&
+       (miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+        miopen::all_of(GetConvPads(), [](auto v) { return v == 0; })) &&
+       ((miopen::all_of(in_spatial, [](auto v) { return v <= 14; }) &&
+         miopen::all_of(GetConvStrides(), [](auto v) { return v == 1; })) ||
+        miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; })))
     {
-        const std::size_t spatial_dim = GetSpatialDimension();
-
-        auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
-        auto in_spatial  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
-
-        bool is_datatype_int8 =
-            (wDesc.GetType() == miopenInt8 ||
-             wDesc.GetType() == miopenInt8x4); /// \todo This seems needed for FFT only
-
-        auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, 1}; // Forward
-        ctx.SetStream(&handle);
-        ctx.DetectRocm();
-        ctx.SetupFloats();
-        ctx.do_search                         = false;
-        ctx.workaround_disable_search_enforce = true;
-
-        const size_t direct_workspace = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
-
-        const size_t implicit_gemm_workspace = ForwardGetWorkSpaceSizeImplicitGemm(ctx);
-
-        size_t workspace_size_gemm =
-#if MIOPEN_USE_GEMM
-            ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc) * group_count;
+        size_t gemm_trans = ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
         /// \todo WORKAROUND for issue 1430
-        if(workspace_size_gemm > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
-            workspace_size_gemm =
-#endif
-                0;
-
-#if MIOPEN_USE_GEMM
-        // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
-        // 1x1_stride=2
-        if(GetSpatialDimension() == 2 &&
-           (miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-            miopen::all_of(GetConvPads(), [](auto v) { return v == 0; })) &&
-           ((miopen::all_of(in_spatial, [](auto v) { return v <= 14; }) &&
-             miopen::all_of(GetConvStrides(), [](auto v) { return v == 1; })) ||
-            miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; })))
-        {
-            size_t gemm_trans = ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
-            /// \todo WORKAROUND for issue 1430
-            if(gemm_trans > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
-                gemm_trans = 0;
-            return std::max(gemm_trans, direct_workspace);
-        }
-
-        if(miopen::any_of(GetConvDilations(), [](auto v) { return v > 1; }))
-        {
-            return std::max(workspace_size_gemm, direct_workspace);
-        }
-#else
-        std::ignore = wei_spatial;
-        std::ignore = in_spatial;
-#endif
-
-        // Check if Winograd is available
-        // If Winograd is present, there is no advantage in letting
-        // the user run another algorithm as those both slower and
-        // use more workspace.
-        if(IsWinograd3x3SupportedAndFast(ctx))
-        {
-            return 0;
-        }
-        else
-        {
-            size_t workspace_size_fft =
-                (GetSpatialDimension() == 2 &&
-                 miopen::all_of(GetConvDilations(), [](auto v) { return v == 1; }) &&
-                 !is_datatype_int8)
-                    ? ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc)
-                    : 0;
-
-            return std::max({workspace_size_fft,
-                             workspace_size_gemm,
-                             direct_workspace,
-                             implicit_gemm_workspace});
-        }
+        if(gemm_trans > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
+            gemm_trans = 0;
+        return std::max(gemm_trans, direct_workspace);
     }
+
+    if(miopen::any_of(GetConvDilations(), [](auto v) { return v > 1; }))
+    {
+        return std::max(workspace_size_gemm, direct_workspace);
+    }
+#else
+    size_t workspace_size_gemm = 0;
+#endif
+
+    const bool is_datatype_int8 =
+        (wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4);
+
+    const size_t workspace_size_fft =
+        (GetSpatialDimension() == 2 &&
+         miopen::all_of(GetConvDilations(), [](auto v) { return v == 1; }) && !is_datatype_int8)
+            ? ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc)
+            : 0;
+
+    return std::max(
+        {workspace_size_fft, workspace_size_gemm, direct_workspace, implicit_gemm_workspace});
 }
 
 std::size_t
@@ -492,27 +479,29 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
                                                     const TensorDescriptor& dxDesc) const
 {
     MIOPEN_LOG_I("");
-    auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + GetSpatialDimension());
 
     auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, 0}; // Backward
     ctx.SetStream(&handle);
     ctx.DetectRocm();
+
+    if(IsWinograd3x3SupportedAndFast(ctx))
+        return 0;
+
     ctx.SetupFloats();
     ctx.do_search                         = false;
     ctx.workaround_disable_search_enforce = true;
 
     const size_t direct_workspace = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
 
-    size_t workspace_size_gemm =
 #if MIOPEN_USE_GEMM
-        BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc) * group_count;
+    size_t workspace_size_gemm = BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc) * group_count;
     /// \todo WORKAROUND for issue 1430
     if(workspace_size_gemm > MAX_MEM_ALLOC_SZ /*  handle.GetMaxMemoryAllocSize() */)
-        workspace_size_gemm =
-#endif
-            0;
+        workspace_size_gemm = 0;
 
-#if MIOPEN_USE_GEMM
+    const auto wei_spatial =
+        boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + GetSpatialDimension());
+
     if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
        miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
        miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; }))
@@ -526,28 +515,17 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
     if(miopen::any_of(GetConvDilations(), [](auto v) { return v > 1; }))
         return std::max(workspace_size_gemm, direct_workspace);
 #else
-    std::ignore     = wei_spatial;
+    size_t workspace_size_gemm = 0;
 #endif
 
-    // Check if Winograd is available
-    // If Winograd is present, there is no advantage in letting
-    // the user run another algorithm as those both slower and
-    // use more workspace.
-    if(IsWinograd3x3SupportedAndFast(ctx))
-    {
-        return 0;
-    }
-    else
-    {
-        const size_t workspace_size_fft =
-            (GetSpatialDimension() == 2 &&
-             miopen::all_of(GetConvDilations(), [](auto v) { return v == 1; }) &&
-             wDesc.GetType() != miopenInt8)
-                ? BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc)
-                : 0;
+    const size_t workspace_size_fft =
+        (GetSpatialDimension() == 2 &&
+         miopen::all_of(GetConvDilations(), [](auto v) { return v == 1; }) &&
+         wDesc.GetType() != miopenInt8)
+            ? BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc)
+            : 0;
 
-        return std::max({workspace_size_fft, workspace_size_gemm, direct_workspace});
-    }
+    return std::max({workspace_size_fft, workspace_size_gemm, direct_workspace});
 }
 
 std::size_t
