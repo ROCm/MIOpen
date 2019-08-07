@@ -32,14 +32,6 @@ namespace solver {
 
 bool ConvHipImplicitGemmV4_1x1::IsApplicable(const ConvolutionContext& ctx) const
 {
-    if(!ctx.Is2d())
-        return false;
-
-    /// \todo workaround for Github issue 1826
-    if(!ctx.direction.IsForward() && (ctx.kernel_stride_h > 1 || ctx.kernel_stride_w > 1) &&
-       ctx.n_outputs > 128)
-        return false;
-
     return ctx.IsFp32() && ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.group_counts == 1 &&
            ctx.batch_sz % 8 == 0 && (ctx.batch_sz * ctx.out_height * ctx.out_width) % 128 == 0 &&
            ctx.n_inputs % 16 == 0 && ctx.n_outputs % 128 == 0 && ctx.kernel_size_h == 1 &&

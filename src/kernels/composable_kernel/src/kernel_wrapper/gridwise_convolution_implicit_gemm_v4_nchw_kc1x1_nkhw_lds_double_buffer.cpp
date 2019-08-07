@@ -2,12 +2,6 @@
 #include "ConstantTensorDescriptor.hpp"
 #include "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer.hpp"
 
-template <bool isForw, class weiDescForw, class weiDescBack>
-struct GetWeiDesc
-{
-    typename std::conditional<isForw, weiDescForw, weiDescBack>::type Desc;
-};
-
 extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer(
     const float* const __restrict__ p_in_global,
     const float* const __restrict__ p_wei_global,
@@ -43,11 +37,13 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw
     constexpr auto in_nchw_desc  = make_ConstantTensorDescriptor_packed(Sequence<N, C, Hi, Wi>{});
     constexpr auto out_nkhw_desc = make_ConstantTensorDescriptor_packed(Sequence<N, K, Ho, Wo>{});
 
-    constexpr auto wei_kc_desc_forw = make_ConstantTensorDescriptor_packed(Sequence<K, C>{});
-    constexpr auto wei_kc_desc_back = make_ConstantTensorDescriptor_packed(Sequence<C, K>{})
-                                          .ReorderGivenNew2Old(Sequence<1, 0>{});
-    constexpr auto wei_kc_desc =
-        GetWeiDesc<Direction, decltype(wei_kc_desc_forw), decltype(wei_kc_desc_back)>{}.Desc;
+    constexpr auto wei_ck_desc_back =
+        make_ConstantTensorDescriptor(Sequence<C, K>{}, Sequence<K, 1>{});
+    constexpr auto wei_ck_desc_forw =
+        make_ConstantTensorDescriptor(Sequence<C, K>{}, Sequence<1, C>{});
+    constexpr auto wei_ck_desc = typename std::conditional<Direction,
+                                                           decltype(wei_ck_desc_forw),
+                                                           decltype(wei_ck_desc_back)>::type{};
 
     using ConvStrides = Sequence<ConvStrideH, ConvStrideW>;
 
@@ -88,7 +84,7 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw
             BlockSize,
             float,
             decltype(in_nchw_desc),
-            decltype(wei_kc_desc),
+            decltype(wei_ck_desc),
             decltype(out_nkhw_desc),
             ConvStrides,
             Direction,
