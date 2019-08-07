@@ -351,6 +351,9 @@ FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx);
 std::vector<miopen::solver::ConvSolution>
 FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx);
 
+std::vector<miopen::solver::ConvSolution>
+FindAllFwdSCGemmSolutions(const miopen::ConvolutionContext& ctx);
+
 /*
  * returns parameter values that are compiled in legacy kernels for kernels using them as
  * arguments.
@@ -879,5 +882,4 @@ struct mlo_construct_neuron : mlo_construct_activ_lrn_pooling_common
     double _beta;
     double _alpha;
 };
-
 #endif
