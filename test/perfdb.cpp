@@ -42,6 +42,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <mutex>
+#include <limits>
 #include <random>
 #include <string>
 #include <thread>
@@ -189,12 +190,12 @@ std::ostream& operator<<(std::ostream& s, const TestData& td)
 class DbTest
 {
     public:
-    DbTest() : temp_file("miopen.tests.perfdb") {}
+    DbTest(TempFile& temp_file_) : temp_file(temp_file_) { ResetDb(); }
 
     virtual ~DbTest() { std::remove(LockFilePath(temp_file.Path()).c_str()); }
 
     protected:
-    TempFile temp_file;
+    TempFile& temp_file;
 
     static const std::array<std::pair<const char*, TestData>, 2>& common_data()
     {
@@ -205,7 +206,18 @@ class DbTest
         return data;
     }
 
-    void ResetDb() const { (void)std::ofstream(temp_file); }
+	static void ResetDbFile(const std::string& path)
+    {
+        (void)std::ofstream(path);
+        const auto time_file_path = RamDb::GetTimeFilePath(path);
+        auto time_file            = std::ofstream(time_file_path);
+        time_file << std::numeric_limits<long long>::max() << std::endl;
+	}
+
+    void ResetDb() const
+	{
+        ResetDbFile(temp_file);
+	}
 
     static const TestData& key()
     {
@@ -280,6 +292,8 @@ template <class TDb>
 class DbFindTest : public DbTest
 {
     public:
+    DbFindTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+
     void Run() const
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default,
@@ -287,7 +301,6 @@ class DbFindTest : public DbTest
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for reading premade file by FindRecord...");
 
-        ResetDb();
         RawWrite(temp_file, key(), common_data());
 
         TDb db(temp_file);
@@ -303,6 +316,8 @@ template <class TDb>
 class DbStoreTest : public DbTest
 {
     public:
+    DbStoreTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+
     void Run() const
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default,
@@ -310,7 +325,6 @@ class DbStoreTest : public DbTest
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for reading stored data...");
 
-        ResetDb();
         DbRecord record(key());
         EXPECT(record.SetValues(id0(), value0()));
         EXPECT(record.SetValues(id1(), value1()));
@@ -333,6 +347,8 @@ template <class TDb>
 class DbUpdateTest : public DbTest
 {
     public:
+    DbUpdateTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+
     void Run() const
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default,
@@ -340,7 +356,6 @@ class DbUpdateTest : public DbTest
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for updating existing records...");
 
-        ResetDb();
         // Store record0 (key=id0:value0)
         DbRecord record0(key());
         EXPECT(record0.SetValues(id0(), value0()));
@@ -378,6 +393,8 @@ template <class TDb>
 class DbRemoveTest : public DbTest
 {
     public:
+    DbRemoveTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+
     void Run() const
     {
 
@@ -386,7 +403,6 @@ class DbRemoveTest : public DbTest
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for removing records...");
 
-        ResetDb();
         DbRecord record(key());
         EXPECT(record.SetValues(id0(), value0()));
         EXPECT(record.SetValues(id1(), value1()));
@@ -411,6 +427,8 @@ template <class TDb>
 class DbReadTest : public DbTest
 {
     public:
+    DbReadTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+
     void Run() const
     {
 
@@ -419,7 +437,6 @@ class DbReadTest : public DbTest
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for reading premade file by Load...");
 
-        ResetDb();
         RawWrite(temp_file, key(), common_data());
         TDb db{temp_file};
         ValidateSingleEntry(key(), common_data(), db);
@@ -430,14 +447,14 @@ template <class TDb>
 class DbWriteTest : public DbTest
 {
     public:
+    DbWriteTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+
     void Run() const
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default,
                           "Test",
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for storing unexistent records by update...");
-
-        ResetDb();
 
         {
             TDb db(temp_file);
@@ -458,6 +475,8 @@ template <class TDb>
 class DbOperationsTest : public DbTest
 {
     public:
+    DbOperationsTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+
     void Run() const
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default,
@@ -465,7 +484,6 @@ class DbOperationsTest : public DbTest
                           "Testing different " << ArgsHelper::db_class::Get<TDb>()
                                                << " operations...");
 
-        ResetDb();
         const TestData to_be_rewritten(7, 8);
 
         {
@@ -538,6 +556,8 @@ template <class TDb>
 class DbParallelTest : public DbTest
 {
     public:
+    DbParallelTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+
     void Run() const
     {
         MIOPEN_LOG_CUSTOM(
@@ -545,8 +565,6 @@ class DbParallelTest : public DbTest
             "Test",
             "Testing " << ArgsHelper::db_class::Get<TDb>()
                        << " for using two objects targeting one file existing in one scope...");
-
-        ResetDb();
 
         {
             TDb db(temp_file);
@@ -811,6 +829,8 @@ template <class TDb>
 class DbMultiThreadedTest : public DbTest
 {
     public:
+    DbMultiThreadedTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+
     void Run() const
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default,
@@ -818,7 +838,6 @@ class DbMultiThreadedTest : public DbTest
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for multithreaded write access...");
 
-        ResetDb();
         std::mutex mutex;
         std::vector<std::thread> threads;
 
@@ -858,6 +877,8 @@ template <class TDb>
 class DbMultiThreadedReadTest : public DbTest
 {
     public:
+    DbMultiThreadedReadTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+
     void Run() const
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default,
@@ -871,7 +892,6 @@ class DbMultiThreadedReadTest : public DbTest
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
         const std::string p = temp_file;
         const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p));
-        ResetDb();
         DBMultiThreadedTestWork::FillForReading(c);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test threads...");
@@ -897,6 +917,8 @@ template <class TDb>
 class DbMultiProcessTest : public DbTest
 {
     public:
+    DbMultiProcessTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+
     void Run() const
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default,
@@ -904,7 +926,6 @@ class DbMultiProcessTest : public DbTest
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for multiprocess write access...");
 
-        ResetDb();
         std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
         const auto lock_file_path = LockFilePath(temp_file);
 
@@ -978,6 +999,8 @@ template <class TDb>
 class DbMultiProcessReadTest : public DbTest
 {
     public:
+    DbMultiProcessReadTest(TempFile& temp_file_) : DbTest(temp_file_) {}
+
     void Run() const
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default,
@@ -1050,12 +1073,14 @@ class DbMultiProcessReadTest : public DbTest
 class DbMultiFileTest : public DbTest
 {
     protected:
+    DbMultiFileTest(TempFile& temp_file_) : DbTest(temp_file_) { ResetDbFile(user_db_path); }
+
     const std::string user_db_path = temp_file.Path() + ".user";
 
     void ResetDb() const
     {
         DbTest::ResetDb();
-        (void)std::ofstream(user_db_path);
+        ResetDbFile(user_db_path);
     }
 };
 
@@ -1063,6 +1088,8 @@ template <bool merge_records>
 class DbMultiFileReadTest : public DbMultiFileTest
 {
     public:
+    DbMultiFileReadTest(TempFile& temp_file_) : DbMultiFileTest(temp_file_) {}
+
     void Run() const
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default,
@@ -1070,7 +1097,6 @@ class DbMultiFileReadTest : public DbMultiFileTest
                           "Running multifile read test" << (merge_records ? " with merge" : "")
                                                         << "...");
 
-        ResetDb();
         MergedAndMissing();
 
         ResetDb();
@@ -1135,11 +1161,11 @@ class DbMultiFileReadTest : public DbMultiFileTest
 class DbMultiFileWriteTest : public DbMultiFileTest
 {
     public:
+    DbMultiFileWriteTest(TempFile& temp_file_) : DbMultiFileTest(temp_file_) {}
+
     void Run() const
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Running multifile write test...");
-
-        ResetDb();
 
         DbRecord record(key());
         EXPECT(record.SetValues(id0(), value0()));
@@ -1163,9 +1189,10 @@ class DbMultiFileWriteTest : public DbMultiFileTest
 class DbMultiFileOperationsTest : public DbMultiFileTest
 {
     public:
+    DbMultiFileOperationsTest(TempFile& temp_file_) : DbMultiFileTest(temp_file_) {}
+
     void Run() const
     {
-        ResetDb();
         PrepareDb();
         UpdateTest();
         LoadTest();
@@ -1254,6 +1281,8 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
 class DbMultiFileMultiThreadedReadTest : public DbMultiFileTest
 {
     public:
+    DbMultiFileMultiThreadedReadTest(TempFile& temp_file_) : DbMultiFileTest(temp_file_) {}
+
     void Run() const
     {
         MIOPEN_LOG_CUSTOM(
@@ -1266,7 +1295,6 @@ class DbMultiFileMultiThreadedReadTest : public DbMultiFileTest
         const std::string p = temp_file;
         const auto& up      = user_db_path;
         const auto c        = [&p, up]() { return MultiFileDb<Db, Db, true>(p, up); };
-        ResetDb();
         DBMultiThreadedTestWork::FillForReading(c);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test threads...");
@@ -1291,6 +1319,8 @@ class DbMultiFileMultiThreadedReadTest : public DbMultiFileTest
 class DbMultiFileMultiThreadedTest : public DbMultiFileTest
 {
     public:
+    DbMultiFileMultiThreadedTest(TempFile& temp_file_) : DbMultiFileTest(temp_file_) {}
+
     static constexpr const char* logs_path_arg = "thread-logs-root";
 
     void Run() const
@@ -1299,7 +1329,6 @@ class DbMultiFileMultiThreadedTest : public DbMultiFileTest
                           "Test",
                           "Testing db for multifile multithreaded write access...");
 
-        ResetDb();
         std::mutex mutex;
         std::vector<std::thread> threads;
 
@@ -1371,9 +1400,11 @@ struct PerfDbDriver : test_driver
             return;
         }
 
-        DbTests<Db>();
-        DbTests<RamDb>();
-        MultiFileDbTests();
+		TempFile temp_file{"miopen.tests.perfdb"};
+
+        DbTests<Db>(temp_file);
+        DbTests<RamDb>(temp_file);
+        MultiFileDbTests(temp_file);
     }
 
     private:
@@ -1385,31 +1416,31 @@ struct PerfDbDriver : test_driver
     std::string mt_child_db_class;
 
     template <class TDb>
-    void DbTests() const
+    void DbTests(TempFile& temp_file) const
     {
-        DbFindTest<TDb>().Run();
-        DbStoreTest<TDb>().Run();
-        DbUpdateTest<TDb>().Run();
-        DbRemoveTest<TDb>().Run();
-        DbReadTest<TDb>().Run();
-        DbWriteTest<TDb>().Run();
-        DbOperationsTest<TDb>().Run();
-        DbParallelTest<TDb>().Run();
+        DbFindTest<TDb>{temp_file}.Run();
+        DbStoreTest<TDb>{temp_file}.Run();
+        DbUpdateTest<TDb>{temp_file}.Run();
+        DbRemoveTest<TDb>{temp_file}.Run();
+        DbReadTest<TDb>{temp_file}.Run();
+        DbWriteTest<TDb>{temp_file}.Run();
+        DbOperationsTest<TDb>{temp_file}.Run();
+        DbParallelTest<TDb>{temp_file}.Run();
 
-        DbMultiThreadedReadTest<TDb>().Run();
-        DbMultiProcessReadTest<TDb>().Run();
-        DbMultiThreadedTest<TDb>().Run();
-        DbMultiProcessTest<TDb>().Run();
+        DbMultiThreadedReadTest<TDb>{temp_file}.Run();
+        DbMultiProcessReadTest<TDb>{temp_file}.Run();
+        DbMultiThreadedTest<TDb>{temp_file}.Run();
+        DbMultiProcessTest<TDb>{temp_file}.Run();
     }
 
-    void MultiFileDbTests() const
+    void MultiFileDbTests(TempFile& temp_file) const
     {
-        DbMultiFileReadTest<true>().Run();
-        DbMultiFileReadTest<false>().Run();
-        DbMultiFileWriteTest().Run();
-        DbMultiFileOperationsTest().Run();
-        DbMultiFileMultiThreadedReadTest().Run();
-        DbMultiFileMultiThreadedTest().Run();
+        DbMultiFileReadTest<true>{temp_file}.Run();
+        DbMultiFileReadTest<false>{temp_file}.Run();
+        DbMultiFileWriteTest{temp_file}.Run();
+        DbMultiFileOperationsTest{temp_file}.Run();
+        DbMultiFileMultiThreadedReadTest{temp_file}.Run();
+        DbMultiFileMultiThreadedTest{temp_file}.Run();
     }
 };
 

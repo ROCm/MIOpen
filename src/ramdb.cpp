@@ -1,28 +1,28 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2019 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 
 #include <miopen/ramdb.hpp>
 
@@ -44,9 +44,11 @@
 
 namespace miopen {
 
+std::string RamDb::GetTimeFilePath(const std::string& path) { return path + ".time"; }
+
 static ramdb_clock::time_point GetDbModificationTime(const std::string& path)
 {
-    const auto time_file_path = path + ".time";
+    const auto time_file_path = RamDb::GetTimeFilePath(path);
     auto file                 = std::ifstream{time_file_path};
 
     if(!file)
@@ -63,7 +65,7 @@ static void UpdateDbModificationTime(const std::string& path)
     MIOPEN_LOG_I2("Updating db modification time for " << path);
 
     const auto time           = ramdb_clock::now().time_since_epoch();
-    const auto time_file_path = path + ".time";
+    const auto time_file_path = RamDb::GetTimeFilePath(path);
     auto file                 = std::ofstream{time_file_path};
 
     if(!file)
@@ -96,33 +98,22 @@ RamDb& RamDb::GetCached(const std::string& path, bool warn_if_unreadable)
     static std::mutex mutex;
     static const std::lock_guard<std::mutex> lock{mutex};
 
-    static auto instances = std::map<std::string, RamDb*>{};
+    static bool saved      = false;
+    static auto saved_path = path;
+    static RamDb instance{path, warn_if_unreadable};
 
+    if(saved)
     {
-        const auto it = instances.find(path);
-        if(it != instances.end())
-            return *it->second;
+        if(saved_path != path)
+            MIOPEN_LOG(LoggingLevel::Fatal, "Trying to use db cache with two different GPUs");
+
+        return instance;
     }
 
-    // The ReadonlyRamDb objects allocated here by "new" shall be alive during
-    // the calling app lifetime. Size of each is very small, and there couldn't
-    // be many of them (max number is number of _different_ GPU board installed
-    // in the user's system, which is _one_ for now). Therefore the total
-    // footprint in heap is very small. That is why we can omit deletion of
-    // these objects thus avoiding bothering with MP/MT syncronization.
-    // These will be destroyed altogether with heap.
-    // Changed piecewise_construct to pointer due to HIP compiler issue with
-    // piecewise_construct in MP/MT environments.
-    auto emplace_ret = instances.emplace(path, new RamDb{path, warn_if_unreadable});
-    const auto it    = emplace_ret.first;
-    auto& instance   = *it->second;
-
-    {
-        const auto prefetch_lock = exclusive_lock(instance.GetLockFile(), GetLockTimeout());
-        MIOPEN_VALIDATE_LOCK(prefetch_lock);
-        instance.Prefetch();
-    }
-
+    saved                    = true;
+    const auto prefetch_lock = exclusive_lock(instance.GetLockFile(), GetLockTimeout());
+    MIOPEN_VALIDATE_LOCK(prefetch_lock);
+    instance.Prefetch();
     return instance;
 }
 
@@ -197,8 +188,7 @@ bool RamDb::RemoveRecord(const std::string& key)
 bool RamDb::Remove(const std::string& key, const std::string& id)
 {
     MIOPEN_LOG_I2("Trying to remove value at key " << key << " and id " << id
-                                                   << " from cache for file "
-                                                   << GetFileName());
+                                                   << " from cache for file " << GetFileName());
     const auto lock = exclusive_lock(GetLockFile(), GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
 
@@ -241,10 +231,8 @@ boost::optional<miopen::DbRecord> RamDb::FindRecordUnsafe(const std::string& pro
 
     if(!record.ParseContents(it->second.content))
     {
-        MIOPEN_LOG_E("Error parsing payload under the key: " << problem << " form file "
-                                                             << GetFileName()
-                                                             << "#"
-                                                             << it->second.line);
+        MIOPEN_LOG_E("Error parsing payload under the key: "
+                     << problem << " form file " << GetFileName() << "#" << it->second.line);
         MIOPEN_LOG_E("Contents: " << it->second.content);
         return boost::none;
     }
@@ -270,10 +258,9 @@ bool RamDb::ValidateUnsafe()
         return cache.empty();
     const auto file_mod_time     = GetDbModificationTime(GetFileName());
     const auto validation_result = file_mod_time < file_read_time;
-    MIOPEN_LOG_I2("DB file is " << (validation_result ? "older" : "newer") << " than cache: "
-                                << file_mod_time.time_since_epoch().count()
-                                << ", "
-                                << file_read_time.time_since_epoch().count());
+    MIOPEN_LOG_I2("DB file is " << (validation_result ? "older" : "newer")
+                                << " than cache: " << file_mod_time.time_since_epoch().count()
+                                << ", " << file_read_time.time_since_epoch().count());
     return validation_result;
 }
 
