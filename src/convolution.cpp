@@ -34,6 +34,7 @@
 #include <miopen/solver.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/algorithm.hpp>
+#include <miopen/scgemm_utils.hpp>
 
 #include <cassert>
 #include <cstddef>
@@ -46,6 +47,7 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_SCGEMM)
 
 // Workaround for issue 1430.
 // Vega20 fails to access GPU memory larger than the return value of GetMaxMemoryAllocSize() of
@@ -425,6 +427,8 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
 
     const size_t implicit_gemm_workspace = ForwardGetWorkSpaceSizeImplicitGemm(ctx);
 
+    const size_t workspace_size_scgemm = ForwardBackwardDataGetWorkSpaceSizeSCGemm(handle, ctx);
+
 #if MIOPEN_USE_GEMM
     const std::size_t spatial_dim = GetSpatialDimension();
     const auto wei_spatial        = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
@@ -468,8 +472,11 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
             ? ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc)
             : 0;
 
-    return std::max(
-        {workspace_size_fft, workspace_size_gemm, direct_workspace, implicit_gemm_workspace});
+    return std::max({workspace_size_fft,
+                     workspace_size_gemm,
+                     direct_workspace,
+                     implicit_gemm_workspace,
+                     workspace_size_scgemm});
 }
 
 std::size_t
@@ -664,6 +671,28 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
     {
         return 0;
     }
+}
+
+std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeSCGemm(
+    Handle& handle, const miopen::ConvolutionContext& ctx) const
+{
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_SCGEMM{}))
+    {
+        return 0;
+    }
+
+    std::size_t sz = 0;
+
+#if MIOPEN_USE_SCGEMM
+    sz = GetMaximumSCGemmConvFwdWorkSpaceSize(ctx);
+    if(sz > MAX_MEM_ALLOC_SZ)
+        sz = 0;
+#else
+    (void)handle;
+    (void)ctx;
+#endif
+
+    return sz;
 }
 
 std::size_t

@@ -413,7 +413,11 @@ if(MIOPEN_USE_SCGEMM)
         scgemm/tensorshape.cpp
         scgemm/conv.cpp
         scgemm/gemm.cpp
+        include/miopen/scgemm_utils.hpp
+        scgemm_utils.cpp
+        solver/conv_scgemm_fwd.cpp
     )
+
 endif()
 
 # build library
