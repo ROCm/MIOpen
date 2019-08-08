@@ -10,6 +10,10 @@
 #define CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_BLOCKWISE_GENERIC_SLICE_COPY_V1 1
 #endif
 
+#define JOINTCAT(x, y) x##y
+#define ASSERT_MSG_ARG1(msg, var1) JOINTCAT(msg, var1)
+#define ASSERT_MSG_ARG2(msg, var1, va2) ASSERT_MSG_ARG1(JOINTCAT(msg, var1), var2)
+
 namespace ck {
 
 // slice a (normal or merged) tensor, and copy it into another (normal or merged) tensor
@@ -78,7 +82,8 @@ struct BlockwiseGenericTensorSliceCopy_v1
             DataClusterLengths{}.ReorderGivenNew2Old(ThreadClusterArrangeOrder{}));
 
         // BlockSize
-        static_assert(BlockSize == thread_cluster_desc.GetElementSize(), "wrong! BlockSize");
+        static_assert(BlockSize == thread_cluster_desc.GetElementSize(),
+                      "wrong! block size doesn't match with thread cluster size.");
 
         // divide work
         constexpr auto data_per_cluster_per_dims = SubLengths{} * DataClusterLengths{};
@@ -101,7 +106,7 @@ struct BlockwiseGenericTensorSliceCopy_v1
             static_assert(SubLengths::Get(IDim) == 1 ||
                               (!SrcDesc::ContainMultipleOriginalDimensions(IDim) &&
                                !DstDesc::ContainMultipleOriginalDimensions(IDim)),
-                          "wrong! only surpport Sub-Length == 1 on a merged dimension");
+                          "wrong! only support Sub-Length == 1 on a merged dimension");
         });
 
         // calculate mThreadSrcOffset, mThreadDstOffset

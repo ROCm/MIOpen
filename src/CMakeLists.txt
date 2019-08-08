@@ -230,7 +230,10 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/xform_data_filter.inc
         kernels/neuron.inc
         kernels/conv_sizes.inc
-        kernels/gpr_alloc.inc)
+        kernels/gpr_alloc.inc
+        kernels/bfloat16_dev.hpp
+        kernels/float_types.h
+        )
 
     set(MIOPEN_KERNELS
         ${COMPOSABLE_KERNEL_SOURCE}
