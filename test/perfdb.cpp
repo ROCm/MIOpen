@@ -206,18 +206,15 @@ class DbTest
         return data;
     }
 
-	static void ResetDbFile(const std::string& path)
+    static void ResetDbFile(const std::string& path)
     {
         (void)std::ofstream(path);
         const auto time_file_path = RamDb::GetTimeFilePath(path);
         auto time_file            = std::ofstream(time_file_path);
         time_file << std::numeric_limits<long long>::max() << std::endl;
-	}
+    }
 
-    void ResetDb() const
-	{
-        ResetDbFile(temp_file);
-	}
+    void ResetDb() const { ResetDbFile(temp_file); }
 
     static const TestData& key()
     {
@@ -1400,7 +1397,7 @@ struct PerfDbDriver : test_driver
             return;
         }
 
-		TempFile temp_file{"miopen.tests.perfdb"};
+        TempFile temp_file{"miopen.tests.perfdb"};
 
         DbTests<Db>(temp_file);
         DbTests<RamDb>(temp_file);

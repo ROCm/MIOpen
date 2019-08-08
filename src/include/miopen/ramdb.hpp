@@ -51,7 +51,7 @@ class RamDb : protected Db
     RamDb& operator=(const RamDb&) = delete;
     RamDb& operator=(RamDb&&) = delete;
 
-	static std::string GetTimeFilePath(const std::string& path);
+    static std::string GetTimeFilePath(const std::string& path);
     static RamDb& GetCached(const std::string& path, bool warn_if_unreadable);
 
     boost::optional<DbRecord> FindRecord(const std::string& problem);
