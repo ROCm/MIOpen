@@ -15,7 +15,19 @@ namespace ck {
 // instruction
 typedef float float2_t __attribute__((ext_vector_type(2)));
 typedef float float4_t __attribute__((ext_vector_type(4)));
-
+typedef half2 half2_t;
+typedef struct
+{
+    half2_t scalar[2];
+} half4_t;
+typedef struct
+{
+    ushort scalar[2];
+} ushort2_t;
+typedef struct
+{
+    ushort2_t scalar[2];
+} ushort4_t;
 using index_t = uint32_t;
 
 __device__ void fused_multiply_accumulate(float& d, const float& s0, const float& s1)

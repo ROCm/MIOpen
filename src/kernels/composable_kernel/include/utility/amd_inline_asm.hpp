@@ -113,6 +113,88 @@ __device__ void outerProduct1x2(const float& a,
     outerProduct1x2(&a, reinterpret_cast<const float*>(&b), reinterpret_cast<float*>(&c));
 }
 
+__device__ void outerProduct1x4dot2TwoTimes(const half2* a, const half2* b, float* c)
+{
+    asm volatile("\n \
+            v_dot2_f32_f16 %0, %4, %6  %0\n \
+            v_dot2_f32_f16 %1, %4, %8  %1\n \
+            v_dot2_f32_f16 %2, %4, %10 %2\n \
+            v_dot2_f32_f16 %3, %4, %12 %3\n \
+            v_dot2_f32_f16 %0, %5, %7  %0\n \
+            v_dot2_f32_f16 %1, %5, %9  %1\n \
+            v_dot2_f32_f16 %2, %5, %11 %2\n \
+            v_dot2_f32_f16 %3, %5, %13 %3\n \
+            "
+                 : "=v"(c[0]), "=v"(c[1]), "=v"(c[2]), "=v"(c[3]) // Dest registers
+                 : "v"(a[0]),
+                   "v"(a[1]), // 1st Src registers for 2 half2 registers
+                   "v"(b[0]),
+                   "v"(b[1]),
+                   "v"(b[2]),
+                   "v"(b[3]), // 2nd Src registers for 2 half2 registers
+                   "v"(b[4]),
+                   "v"(b[5]),
+                   "v"(b[6]),
+                   "v"(b[7]), // 2nd Src registers for 2 half2 registers
+                   "0"(c[0]),
+                   "1"(c[1]),
+                   "2"(c[2]),
+                   "3"(c[3])); // 3rd Src Acc registers for 2 half2 registers
+}
+
+__device__ void outerProduct1x4dot2(const half2* a, const half2* b, float* c)
+{
+    asm volatile("\n \
+            v_dot2_f32_f16 %0, %4, %5  %0\n \
+            v_dot2_f32_f16 %1, %4, %6  %1\n \
+            v_dot2_f32_f16 %2, %4, %7  %2\n \
+            v_dot2_f32_f16 %3, %4, %8  %3\n \
+            "
+                 : "=v"(c[0]), "=v"(c[1]), "=v"(c[2]), "=v"(c[3]) // Dest registers
+                 : "v"(a[0]), // 1st Src register for 1 half2 registers
+                   "v"(b[0]), // 2nd Src register
+                   "v"(b[1]),
+                   "v"(b[2]),
+                   "v"(b[3]),
+                   "0"(c[0]), // 3rd Src register
+                   "1"(c[1]),
+                   "2"(c[2]),
+                   "3"(c[3]));
+}
+
+__device__ void outerProduct1x2dot2TwoTimes(const half2* a, const half2* b, float* c)
+{
+    asm volatile("\n \
+            v_dot2_f32_f16 %0, %4, %6  %0\n \
+            v_dot2_f32_f16 %1, %4, %8  %1\n \
+            v_dot2_f32_f16 %0, %5, %7  %0\n \
+            v_dot2_f32_f16 %1, %5, %9  %1\n \
+            "
+                 : "=v"(c[0]), "=v"(c[1]) // Dest registers
+                 : "v"(a[0]),
+                   "v"(a[1]), // 1st Src registers for 2 half2 registers
+                   "v"(b[0]),
+                   "v"(b[1]),
+                   "v"(b[2]),
+                   "v"(b[3]), // 2nd Src registers for 2 half2 registers
+                   "0"(c[0]),
+                   "1"(c[1])); // 3rd Src Acc registers for 2 half2 registers
+}
+
+__device__ void outerProduct1x2dot2(const half2* a, const half2* b, float* c)
+{
+    asm volatile("\n \
+            v_dot2_f32_f16 %0, %2, %3  %0\n \
+            v_dot2_f32_f16 %1, %2, %4  %1\n \
+            "
+                 : "=v"(c[0]), "=v"(c[1]) // Dest registers
+                 : "v"(a[0]),             // 1st Src register for 1 half2 registers
+                   "v"(b[0]),             // 2nd Src register
+                   "v"(b[1]),
+                   "0"(c[0]), // 3rd Src register
+                   "1"(c[1]));
+}
+
 __device__ void ds_read_b32(float& r, const void* lds, index_t offset = 0) { DS_READ_B32(0) }
 
 __device__ void

@@ -440,6 +440,12 @@ COMMAND	$<TARGET_FILE:test_immed_conv>	--verbose	--input	128	128	55	55	--weights
 COMMAND	$<TARGET_FILE:test_immed_conv>	--verbose	--input	128	128	28	28	--weights	 16 128 	1	1	--pads_strides_dilations	0	0	2	2	1	2		--disable-forward   --disable-backward-weights
 COMMAND	$<TARGET_FILE:test_immed_conv>	--verbose	--input	128	128	14	14	--weights	 16 128 	1	1	--pads_strides_dilations	0	0	2	2	1	2		--disable-forward   --disable-backward-weights
 COMMAND	$<TARGET_FILE:test_immed_conv>	--verbose	--input	128	128	 7	 7	--weights	 16 128 	1	1	--pads_strides_dilations	0	0	2	2	1	2		--disable-forward   --disable-backward-weights
+COMMAND $<TARGET_FILE:test_immed_conv>  --verbose   --input 128  32 28  28  --weights   192  32     3   3   --pads_strides_dilations    0   0   2   2   2   2       --disable-backward-data   --disable-backward-weights
+COMMAND $<TARGET_FILE:test_immed_conv>  --verbose   --input 128  32 14  14  --weights   160  32     3   3   --pads_strides_dilations    0   0   2   2   2   2       --disable-backward-data   --disable-backward-weights
+COMMAND $<TARGET_FILE:test_immed_conv>  --verbose   --input 128  32  7   7  --weights   128  32     3   3   --pads_strides_dilations    0   0   2   2   2   2       --disable-backward-data   --disable-backward-weights
+COMMAND $<TARGET_FILE:test_immed_conv>  --verbose   --input 128  32 55  55  --weights    96  32     1   7   --pads_strides_dilations    0   0   2   2   1   2       --disable-backward-data   --disable-backward-weights
+COMMAND $<TARGET_FILE:test_immed_conv>  --verbose   --input 128  32 28  28  --weights    64  32     1   7   --pads_strides_dilations    0   0   2   2   1   2       --disable-backward-data   --disable-backward-weights
+COMMAND $<TARGET_FILE:test_immed_conv>  --verbose   --input 128  32 14  14  --weights    32  32     1   7   --pads_strides_dilations    0   0   2   2   1   2       --disable-backward-data   
 )
 
 if(MIOPEN_TEST_DEEPBENCH)

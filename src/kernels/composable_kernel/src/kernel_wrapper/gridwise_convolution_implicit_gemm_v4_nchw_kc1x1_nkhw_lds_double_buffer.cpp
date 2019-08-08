@@ -1,11 +1,12 @@
 #include "common_header.hpp"
 #include "ConstantTensorDescriptor.hpp"
 #include "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer.hpp"
+#include "float_types.h"
 
 extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer(
-    const float* const __restrict__ p_in_global,
-    const float* const __restrict__ p_wei_global,
-    float* const __restrict__ p_out_global)
+    const FLOAT* const __restrict__ p_in_global,
+    const FLOAT* const __restrict__ p_wei_global,
+    FLOAT* const __restrict__ p_out_global)
 {
     using namespace ck;
 
@@ -82,7 +83,8 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw
         GridwiseConvolutionImplicitGemm_v4_nchw_kc1x1_nkhw_lds_double_buffer<
             GridSize,
             BlockSize,
-            float,
+            FLOAT,
+            FLOAT_ACCUM,
             decltype(in_nchw_desc),
             decltype(wei_ck_desc),
             decltype(out_nkhw_desc),

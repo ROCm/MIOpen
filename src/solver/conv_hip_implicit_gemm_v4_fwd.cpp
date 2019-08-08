@@ -33,10 +33,17 @@ namespace solver {
 
 bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
 {
-    return ctx.Is2d() && ctx.IsFp32() && ctx.direction.IsForward() && ctx.pad_h == 0 &&
+    bool isTypeSupported = (ctx.IsFp32() || ctx.IsFp16());
+
+    // For fp16, when c*x*y % 64 == 0, 4 channels are accumulated through dot4 (2 * dot2) operation
+    // when c*x*y % 32 == 0,  channels are accumulated through dot2 operation.
+    bool isNumInputsInMultiple =
+        ctx.IsFp16() ? ((ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % 32 == 0)
+                     : ((ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % 8 == 0);
+
+    return ctx.Is2d() && isTypeSupported && ctx.direction.IsForward() && ctx.pad_h == 0 &&
            ctx.pad_w == 0 && ctx.group_counts == 1 && ctx.batch_sz % 8 == 0 &&
-           (ctx.batch_sz * ctx.out_height * ctx.out_width) % 64 == 0 &&
-           (ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % 8 == 0 &&
+           (ctx.batch_sz * ctx.out_height * ctx.out_width) % 64 == 0 && isNumInputsInMultiple &&
            ctx.n_outputs % 16 == 0;
 }
 
@@ -107,7 +114,16 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
     const int N0 = N / (N1 * N2);
 
     const int B = N0 * Ho * Wo;
-    const int E = C * Y * X;
+
+    // Based on data type, Pack E so as to use dot2 operator
+    int EPACK = 1;
+    if(ctx.IsFp16())
+        EPACK = 4;
+    else if(ctx.IsBfp16())
+        EPACK = 2;
+
+    const int nonVectorizedC = C / EPACK;
+    const int E              = nonVectorizedC * Y * X;
 
     if(!(EPerBlock % InBlockCopyClusterLengths_E == 0 &&
          EPerBlock % WeiBlockCopyClusterLengths_E == 0 &&
@@ -423,7 +439,6 @@ ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx
 
     const int ThreadPerLevel1Cluster = config.GemmMLevel0Cluster * config.GemmNLevel0Cluster *
                                        config.GemmMLevel1Cluster * config.GemmNLevel1Cluster;
-
     const int block_size = ThreadPerLevel1Cluster;
 
     std::size_t grid_size = (b / BPerBlock) * (k / KPerBlock);
@@ -453,8 +468,12 @@ ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx
     const int WeiBlockCopySrcDataPerRead_E = 1;
 
     const int InBlockCopySubLengths_N2 = N2 / config.InBlockCopyClusterLengths_N2;
+
+    // TBD: Due to underlying bug, we need to restrict writing only 1 fp16 value at a time
     const int InBlockCopyDstDataPerWrite_N2 =
-        InBlockCopySubLengths_N2 % 4 == 0 ? 4 : (InBlockCopySubLengths_N2 % 2 == 0 ? 2 : 1);
+        ctx.IsFp16()
+            ? 1
+            : (InBlockCopySubLengths_N2 % 4 == 0 ? 4 : (InBlockCopySubLengths_N2 % 2 == 0 ? 2 : 1));
 
     // clang-format off
     construction_parameters.comp_options =
@@ -491,7 +510,9 @@ ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx
         std::string(" -DCK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_N2=") + std::to_string(InBlockCopyDstDataPerWrite_N2) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_E=") + std::to_string(config.WeiBlockCopyClusterLengths_E) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
-        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATE_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E);
+        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATE_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) + 
+        std::string(" -D__HIP_PLATFORM_HCC__=1") +
+        ctx.general_compile_options;
     // clang-format on
 
     result.construction_params.push_back(construction_parameters);
