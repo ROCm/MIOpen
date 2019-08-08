@@ -106,6 +106,7 @@ static auto GetImplicitGemmSolvers()
 static auto GetWindogradSolvers()
 {
     return miopen::solver::SolverContainer<miopen::solver::ConvBinWinograd3x3U,
+                                           miopen::solver::ConvBinWinogradRxSf3x2,
                                            miopen::solver::ConvBinWinogradRxS>{};
 }
 
@@ -146,14 +147,15 @@ FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx)
     return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
 }
 
+std::vector<miopen::solver::ConvSolution>
+FindAllWinogradSolutions(const miopen::ConvolutionContext& ctx)
+{
+    return GetWindogradSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+}
+
 miopen::solver::ConvSolution FindWinogradSolution(const miopen::ConvolutionContext& ctx)
 {
     return GetWindogradSolvers().SearchForSolution(ctx, GetDb(ctx));
-}
-
-miopen::solver::ConvSolution FindWinogradWrWSolution(const miopen::ConvolutionContext& ctx)
-{
-    return GetWindogradWrWSolvers().SearchForSolution(ctx, GetDb(ctx));
 }
 
 std::vector<miopen::solver::ConvSolution>

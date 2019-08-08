@@ -202,6 +202,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
         registry, ++id, ConvWinograd3x3MultipassWrW{}, miopenConvolutionAlgoWinograd);
     RegisterWithSolver(
         registry, ++id, ConvSCGemmFwd<SCGemmOpFGemm>{}, miopenConvolutionAlgoStaticCompiledGEMM);
+    RegisterWithSolver(registry, ++id, ConvBinWinogradRxSf3x2{}, miopenConvolutionAlgoWinograd);
 }
 
 } // namespace solver

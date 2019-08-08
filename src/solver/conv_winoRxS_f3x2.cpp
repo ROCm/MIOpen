@@ -26,11 +26,9 @@
 
 #include "miopen/solver.hpp"
 #include "miopen/env.hpp"
+#include "miopen/stringutils.hpp"
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW)
-/// \todo Detect at runtime and remove this var:
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2)
 
 /// \return v rounded up (towards +inf) to the nearest multiple of m.
 /// Defined for positive values only.
@@ -60,6 +58,7 @@ static inline int FloorDiv(const int x, const int y)
     return x / y;
 }
 
+/// \todo Consider re-using code from RxS.
 static inline bool IsShaderContraintsMet(const int R,
                                          const int S,
                                          const int R_stride,
@@ -165,6 +164,7 @@ static inline bool IsShaderContraintsMet(const int R,
             return false;
     }
     // Padding for bwd data shall not be negative.
+    /// \todo Either remove WrW related code or re-use function from RxS
     if(params.direction.IsBackwardData() || params.direction.IsBackwardWrW())
     {
         if(!(0 <= params.GetBackwardPadW() && params.GetBackwardPadW() < std::pow(2, 16)))
@@ -198,49 +198,27 @@ static inline bool IsShaderContraintsMet(const int R,
 namespace miopen {
 namespace solver {
 
-bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
+bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) const
 {
     if(!params.Is2d())
         return false;
-    if(!(params.IsFp32() || params.IsFp16()))
+    if(!params.IsFp32())
         return false;
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}))
         return false;
     if(params.direction.IsBackwardWrW())
-    {
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW{}))
-            return false;
-        if(!(params.IsFp32() && params.kernel_stride_w == 1 && params.kernel_stride_h == 1))
-            return false; // WrW is only for fp32 and no stride for now.
-    }
+        return false;
     if(!params.use_asm_kernels)
         return false;
     if(params.rmv != rocm_meta_version::AMDHSA_1_0)
         return false;
 
     const auto name = params.GetStream().GetDeviceName();
-    const bool fp16 = params.IsFp16();
-    if(fp16)
-    {
-        if(!(name == "gfx906"))
-            return false;
-    }
-    else
-    {
-        if(params.direction.IsBackwardWrW())
-        {
-            if(!(name == "gfx900" || name == "gfx906"))
-                return false;
-        }
-        else
-        {
-            if(!(name == "gfx803" || name == "gfx900" || name == "gfx906"))
-                return false;
-        }
-    }
+    if(!(StartsWith(name, "gfx9")))
+        return false;
 
     // clang-format off
-    if (! (params.kernel_stride_w <= 2 // -u inp_u 1 or 2
+    if (! (params.kernel_stride_w == 1
         && params.kernel_stride_w == params.kernel_stride_h
         && params.kernel_dilation_w == 1
         && params.kernel_dilation_h == 1
@@ -250,43 +228,23 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         return false;
     // clang-format on
 
-    if(params.direction.IsBackwardWrW())
-    {
-        return IsShaderContraintsMet(params.in_height,
-                                     params.in_width,
-                                     params.kernel_dilation_h,
-                                     params.kernel_dilation_w,
-                                     params.batch_sz, // N
-                                     params.n_inputs, // K
-                                     params.out_height,
-                                     params.out_width,
-                                     params.kernel_size_h,
-                                     params.kernel_size_w,
-                                     params.n_outputs, // C
-                                     params,
-                                     fp16,
-                                     2);
-    }
-    else
-    {
-        return IsShaderContraintsMet(params.kernel_size_h, // RxS
-                                     params.kernel_size_w,
-                                     params.kernel_stride_h,
-                                     params.kernel_stride_w,
-                                     params.n_inputs,  // C
-                                     params.n_outputs, // K
-                                     params.in_height, // HxW
-                                     params.in_width,
-                                     params.out_height, // OHxOW
-                                     params.out_width,
-                                     params.batch_sz, // N
-                                     params,
-                                     fp16,
-                                     3);
-    }
+    return IsShaderContraintsMet(params.kernel_size_h, // RxS
+                                 params.kernel_size_w,
+                                 params.kernel_stride_h,
+                                 params.kernel_stride_w,
+                                 params.n_inputs,  // C
+                                 params.n_outputs, // K
+                                 params.in_height, // HxW
+                                 params.in_width,
+                                 params.out_height, // OHxOW
+                                 params.out_width,
+                                 params.batch_sz, // N
+                                 params,
+                                 false,
+                                 2);
 }
 
-ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) const
+ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
     const auto n_groups = params.GetStream().GetMaxComputeUnits();
@@ -300,74 +258,9 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    if(params.IsFp16())
-    {
-        kernel.kernel_name = "sp3AsmConvRxSU";
-        kernel.kernel_file = "Conv_Winograd_";
-        if(miopen::IsEnabled(MIOPEN_DEBUG_SRAM_EDC_DISABLED{}))
-            kernel.kernel_file += "v13_3_12";
-        else
-            kernel.kernel_file += "v14_3_3";
-        kernel.kernel_file += "_fp16dot_stride";
+    kernel.kernel_name = "sp3AsmConvRxSf3x2";
+    kernel.kernel_file = "Conv_Winograd_v16_5_0_stride1.s";
 
-        if(params.kernel_stride_w == 2)
-        {
-            if(params.direction.IsForward())
-                kernel.kernel_file += "2_dec";
-            else
-                kernel.kernel_file += "2_dil";
-        }
-        else
-        {
-            kernel.kernel_file += "1";
-        }
-    }
-    else if(params.direction.IsBackwardWrW())
-    {
-        kernel.kernel_name = "sp3AsmConvRxSf3x2";
-        kernel.kernel_file = "Conv_Winograd_v16_5_0_stride1";
-    }
-    else
-    {
-        kernel.kernel_name = "sp3AsmConvRxSU";
-        kernel.kernel_file = "conv_3x3_wheel_alpha_v9_0_15";
-        if(params.kernel_stride_w == 2)
-        {
-            if(params.direction.IsForward())
-                kernel.kernel_file += "_stride_2_dec";
-            else
-                kernel.kernel_file += "_stride_2_dil";
-        }
-    }
-    kernel.kernel_file += ".s";
-
-    result.construction_params.push_back(kernel);
-    return result;
-}
-
-bool ConvBinWinogradRxSFused::IsApplicable(const ConvolutionContext&) const
-{
-    return true; // Actual checks moved to FusionMDGraph.
-}
-
-ConvSolution ConvBinWinogradRxSFused::GetSolution(const ConvolutionContext& params) const
-{
-    ConvSolution result;
-    KernelInfo kernel;
-
-    const auto n_groups = params.GetStream().GetMaxComputeUnits();
-    kernel.g_wk.push_back(512 * n_groups);
-    kernel.g_wk.push_back(1);
-    kernel.g_wk.push_back(1);
-
-    kernel.l_wk.push_back(512);
-    kernel.l_wk.push_back(1);
-    kernel.l_wk.push_back(1);
-
-    // File and name are defined in FusionMDGraph, so no need (and harmful)
-    // to duplicate this information here.
-    kernel.kernel_name = "<name not set>";
-    kernel.kernel_file = "<file not set>";
     result.construction_params.push_back(kernel);
     return result;
 }
