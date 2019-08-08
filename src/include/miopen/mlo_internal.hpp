@@ -342,8 +342,9 @@ FindAllDirectSolutions(const miopen::ConvolutionContext& ctx);
 std::vector<miopen::solver::ConvSolution>
 FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx);
 
+std::vector<miopen::solver::ConvSolution>
+FindAllWinogradSolutions(const miopen::ConvolutionContext& ctx);
 miopen::solver::ConvSolution FindWinogradSolution(const miopen::ConvolutionContext& ctx);
-miopen::solver::ConvSolution FindWinogradWrWSolution(const miopen::ConvolutionContext& ctx);
 
 std::vector<miopen::solver::ConvSolution>
 FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx);
