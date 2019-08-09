@@ -422,10 +422,14 @@ struct PerformanceImplicitGemm : Serializable<PerformanceImplicitGemm>
     int WeiBlockCopyClusterLengths_E; // 2^n[1..4]
     int WeiBlockCopyClusterLengths_K; // 2^n[16..128]
 
+    bool use_spare_set;
+
     PerformanceImplicitGemm(
-        int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int);
+        int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, bool);
+
     PerformanceImplicitGemm()
-        : PerformanceImplicitGemm(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+        : PerformanceImplicitGemm(
+              -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false)
     {
     }
 
