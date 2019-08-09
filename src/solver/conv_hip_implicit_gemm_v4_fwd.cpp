@@ -90,7 +90,9 @@ inline bool PerformanceImplicitGemm::operator==(const PerformanceImplicitGemm& o
         && InBlockCopyClusterLengths_N1 == other.InBlockCopyClusterLengths_N1
         && InBlockCopyClusterLengths_N2 == other.InBlockCopyClusterLengths_N2
         && WeiBlockCopyClusterLengths_E == other.WeiBlockCopyClusterLengths_E
-        && WeiBlockCopyClusterLengths_K == other.WeiBlockCopyClusterLengths_K; // clang-format on
+        && WeiBlockCopyClusterLengths_K == other.WeiBlockCopyClusterLengths_K
+        && use_spare_set == other.use_spare_set;
+    // clang-format on
 }
 
 bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
@@ -128,7 +130,8 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
     if(!(EPerBlock % InBlockCopyClusterLengths_E == 0 &&
          EPerBlock % WeiBlockCopyClusterLengths_E == 0 &&
          BPerBlock % InBlockCopyClusterLengths_B == 0 &&
-         KPerBlock % WeiBlockCopyClusterLengths_K == 0))
+         KPerBlock % WeiBlockCopyClusterLengths_K == 0 && N1 % InBlockCopyClusterLengths_N1 == 0 &&
+         N2 % InBlockCopyClusterLengths_N2 == 0))
         return false;
 
     // divide block work by [K, B]
@@ -168,14 +171,6 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
     if(GemmMRepeat != 2 || GemmNRepeat != 2)
         return false;
 
-    if(!((N * Ho * Wo) % 64 == 0 || GemmNPerThreadSubC == 4))
-        return false;
-
-    if(!(K % 16 == 0 || GemmMPerThreadSubC == 4))
-        return false;
-
-    // std::cerr << "MPerThread = " << MPerThread << " NPerThread = " << NPerThread << std::endl;
-
     const int InBlockCopySubLengths_E = EPerBlock / InBlockCopyClusterLengths_E;
     const int InBlockCopySubLengths_B = BPerBlock / InBlockCopyClusterLengths_B;
 
@@ -205,19 +200,38 @@ bool PerformanceImplicitGemm::IsValidValue() const
 
 bool PerformanceImplicitGemm::SetNextValue()
 {
+
+    GemmNRepeat = 2;
+
     do
     {
-        GemmNRepeat = 2;
+        if(!use_spare_set)
+        {
+            // use 8x8 thread-wise gemm as possible
+            GemmMPerThreadSubC = 4;
+            GemmNPerThreadSubC = 4;
+            // use block_size = 256 as possible
+            if(!NextTwoPower<2, 4>(WeiBlockCopyClusterLengths_E))
+                break;
+            WeiBlockCopyClusterLengths_K = 256 / WeiBlockCopyClusterLengths_E;
+        }
+        else
+        {
+            if(!NextTwoPower<2, 4>(GemmMPerThreadSubC))
+                break;
+            if(!NextTwoPower<2, 4>(GemmNPerThreadSubC))
+                break;
+            if(!NextTwoPower<1, 4>(WeiBlockCopyClusterLengths_E))
+                break;
+            if(!NextTwoPower<16, 128>(WeiBlockCopyClusterLengths_K))
+                break;
+        }
 
         if(!NextTwoPower<8, 16>(BPerBlock))
             break;
         if(!NextTwoPower<16, 128>(KPerBlock))
             break;
         if(!NextTwoPower<4, 16>(EPerBlock))
-            break;
-        if(!NextTwoPower<2, 4>(GemmMPerThreadSubC))
-            break;
-        if(!NextTwoPower<2, 4>(GemmNPerThreadSubC))
             break;
         if(!NextTwoPower<1, 4>(GemmMLevel0Cluster))
             break;
@@ -235,12 +249,9 @@ bool PerformanceImplicitGemm::SetNextValue()
             break;
         if(!NextTwoPower<1, 4>(InBlockCopyClusterLengths_N2))
             break;
-        if(!NextTwoPower<1, 4>(WeiBlockCopyClusterLengths_E))
-            break;
-        if(!NextTwoPower<16, 128>(WeiBlockCopyClusterLengths_K))
-            break;
         return false;
     } while(false);
+
     return true;
 }
 
@@ -374,8 +385,8 @@ bool ConvHipImplicitGemmV4Fwd::IsValidPerformanceConfig(const ConvolutionContext
     return c.IsValidValue() && c.IsValid(problem);
 }
 
-PerformanceImplicitGemm::PerformanceImplicitGemm(bool)
-    : PerformanceImplicitGemm(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+PerformanceImplicitGemm::PerformanceImplicitGemm(bool spare)
+    : PerformanceImplicitGemm(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, spare)
 {
 }
 
@@ -394,7 +405,8 @@ PerformanceImplicitGemm::PerformanceImplicitGemm(int BPerBlock_,
                                                  int InBlockCopyClusterLengths_N1_,
                                                  int InBlockCopyClusterLengths_N2_,
                                                  int WeiBlockCopyClusterLengths_E_,
-                                                 int WeiBlockCopyClusterLengths_K_)
+                                                 int WeiBlockCopyClusterLengths_K_,
+                                                 bool use_spare_set_)
     : BPerBlock(BPerBlock_),
       KPerBlock(KPerBlock_),
       EPerBlock(EPerBlock_),
@@ -410,7 +422,8 @@ PerformanceImplicitGemm::PerformanceImplicitGemm(int BPerBlock_,
       InBlockCopyClusterLengths_N1(InBlockCopyClusterLengths_N1_),
       InBlockCopyClusterLengths_N2(InBlockCopyClusterLengths_N2_),
       WeiBlockCopyClusterLengths_E(WeiBlockCopyClusterLengths_E_),
-      WeiBlockCopyClusterLengths_K(WeiBlockCopyClusterLengths_K_)
+      WeiBlockCopyClusterLengths_K(WeiBlockCopyClusterLengths_K_),
+      use_spare_set(use_spare_set_)
 {
 }
 
