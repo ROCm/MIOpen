@@ -30,13 +30,22 @@
 namespace miopen {
 namespace solver {
 
+static inline int ImgHeight(const ConvolutionContext& c)
+{
+    return c.direction.IsForward() ? c.out_height : c.in_height;
+}
+
+static inline int ImgWidth(const ConvolutionContext& c)
+{
+    return c.direction.IsForward() ? c.out_width : c.in_width;
+}
+
 bool ConvHipImplicitGemmV4_1x1::IsApplicable(const ConvolutionContext& ctx) const
 {
-
     return ctx.IsFp32() && ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.group_counts == 1 &&
-           ctx.batch_sz % 8 == 0 && (ctx.batch_sz * ctx.out_height * ctx.out_width) % 128 == 0 &&
+           ctx.batch_sz % 8 == 0 && (ctx.batch_sz * ImgHeight(ctx) * ImgWidth(ctx)) % 128 == 0 &&
            ctx.n_outputs % 128 == 0 && ctx.kernel_size_h == 1 && ctx.kernel_size_w == 1 &&
-           ctx.kernel_dilation_h == 1 && ctx.kernel_dilation_w == 1;
+           ctx.n_inputs % 16 == 0 && ctx.kernel_dilation_h == 1 && ctx.kernel_dilation_w == 1;
 }
 
 ConvSolution ConvHipImplicitGemmV4_1x1::GetSolution(const ConvolutionContext& ctx) const
