@@ -35,6 +35,9 @@
 #include <miopen/mlo_utils.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/readonlyramdb.hpp>
+#include <miopen/datatype.hpp>
+#include <miopen/version.h>
+#include <miopen/stringutils.hpp>
 
 #include <cmath>
 #include <cstring>
@@ -44,6 +47,7 @@
 #include <unordered_map>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 
 miopen::PerfDb mlo_construct_base::GetDb() const
 {
@@ -107,7 +111,8 @@ static auto GetWindogradSolvers()
 
 static auto GetWindogradWrWSolvers()
 {
-    return miopen::solver::SolverContainer<miopen::solver::ConvBinWinogradRxS>{};
+    return miopen::solver::SolverContainer<miopen::solver::ConvBinWinogradRxS,
+                                           miopen::solver::ConvWinograd3x3MultipassWrW>{};
 }
 
 static auto GetBwdWrW2DSolvers()
@@ -144,6 +149,12 @@ miopen::solver::ConvSolution FindWinogradSolution(const miopen::ConvolutionConte
 miopen::solver::ConvSolution FindWinogradWrWSolution(const miopen::ConvolutionContext& ctx)
 {
     return GetWindogradWrWSolvers().SearchForSolution(ctx, GetDb(ctx));
+}
+
+std::vector<miopen::solver::ConvSolution>
+FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx)
+{
+    return GetWindogradWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
 }
 
 std::vector<miopen::solver::ConvSolution>
@@ -224,7 +235,11 @@ static rocm_meta_version DetectAmdRocmMetadataVersion(const miopen::ConvolutionC
     (void)context;
     rocm_meta_version rmv = rocm_meta_version::Default;
 #endif // MIOPEN_BACKEND_OPENCL
-    MIOPEN_LOG_I(rmv);
+    MIOPEN_LOG_I(
+        "ROCm MD version "
+        << rmv
+        << ", MIOpen version " MIOPEN_STRINGIZE(MIOPEN_VERSION_MAJOR) "." MIOPEN_STRINGIZE(
+               MIOPEN_VERSION_MINOR) "." MIOPEN_STRINGIZE(MIOPEN_VERSION_PATCH) "." MIOPEN_STRINGIZE(MIOPEN_VERSION_TWEAK));
     return rmv;
 }
 
@@ -246,20 +261,9 @@ static bool mloIsAmdRocmOpencl(miopen::ConvolutionContext& context)
 
 void miopen::ConvolutionContext::SetupFloats()
 {
-    if(IsFp32())
+    if(IsFp32() || IsFp16() || IsBfp16())
     {
-        general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_BFP16=0";
-    }
-    else if(IsFp16())
-    {
-        general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_BFP16=0";
-    }
-    else if(IsBfp16())
-    {
-        general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_BFP16=1";
-#if MIOPEN_USE_RNE_BFLOAT16 == 1
-        general_compile_options += " -DMIOPEN_USE_RNE_BFLOAT16=1";
-#endif
+        general_compile_options += GetDataTypeKernelParams(in_data_type);
     }
     else
     {

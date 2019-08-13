@@ -34,8 +34,9 @@ bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
 {
     return ctx.IsFp32() && ctx.direction.IsForward() && ctx.spatial_dims == 2 && ctx.pad_h == 0 &&
            ctx.pad_w == 0 && ctx.group_counts == 1 && ctx.batch_sz % 8 == 0 &&
-           (ctx.batch_sz * ctx.out_height * ctx.out_width) % 128 == 0 && ctx.n_inputs % 16 == 0 &&
-           ctx.n_outputs % 128 == 0;
+           (ctx.batch_sz * ctx.out_height * ctx.out_width) % 128 == 0 &&
+           (ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % 16 == 0 &&
+           ctx.n_outputs % 32 == 0;
 }
 
 ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx) const
@@ -51,10 +52,9 @@ ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx
     std::size_t b = (n * ho * wo) / 8;
 
     std::size_t b_per_block = 16;
-    std::size_t k_per_block = 128;
-    std::size_t e_per_block = 8;
+    std::size_t k_per_block = ctx.n_outputs % 128 == 0 ? 128 : (ctx.n_outputs % 64 == 0 ? 64 : 32);
 
-    std::size_t block_size = 256;
+    std::size_t block_size = ctx.n_outputs % 128 == 0 ? 256 : (ctx.n_outputs % 64 == 0 ? 128 : 64);
 
     std::size_t grid_size = (b / b_per_block) * (k / k_per_block);
 
@@ -99,7 +99,6 @@ ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx
         std::string(" -DCK_PARAM_TUNABLE_BLOCK_SIZE=") + std::to_string(block_size) +
         std::string(" -DCK_PARAM_TUNABLE_B_PER_BLOCK=") + std::to_string(b_per_block) +
         std::string(" -DCK_PARAM_TUNABLE_K_PER_BLOCK=") + std::to_string(k_per_block) +
-        std::string(" -DCK_PARAM_TUNABLE_E_PER_BLOCK=") + std::to_string(e_per_block) +
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size);
     // clang-format on
 

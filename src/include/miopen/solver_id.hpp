@@ -24,7 +24,8 @@
  *
  *******************************************************************************/
 
-#pragma once
+#ifndef MIOPEN_GUARD_MLOPEN_SOLVER_ID_HPP
+#define MIOPEN_GUARD_MLOPEN_SOLVER_ID_HPP
 
 #include <miopen/logger.hpp>
 #include <miopen/any_solver.hpp>
@@ -38,7 +39,7 @@ namespace solver {
 
 struct Id
 {
-    static constexpr uint64_t invalid = 0;
+    static constexpr uint64_t invalid_value = 0;
 
     Id() = default;
     Id(uint64_t value_);
@@ -49,12 +50,15 @@ struct Id
     AnySolver GetSolver() const;
     std::string GetAlgo(miopenConvDirection_t dir) const;
 
-    bool IsValid() const { return value != invalid; }
-    operator bool() const { return IsValid(); }
-    operator std::string() const { return ToString(); }
-    operator uint64_t() const { return value; }
-    bool operator==(const Id& other) const { return value == other.value; }
-    bool operator!=(const Id& other) const { return value != other.value; }
+    bool IsValid() const { return is_valid; }
+    uint64_t Value() const { return value; }
+    bool operator==(const Id& other) const
+    {
+        if(!is_valid && !other.is_valid)
+            return true; // invalids are equal regardless of their values
+        return value == other.value && is_valid == other.is_valid;
+    }
+    bool operator!=(const Id& other) const { return !(*this == other); }
 
     static solver::Id gemm()
     {
@@ -69,8 +73,11 @@ struct Id
     }
 
     private:
-    uint64_t value = invalid;
+    uint64_t value = invalid_value;
+    bool is_valid  = false;
 };
 
 } // namespace solver
 } // namespace miopen
+
+#endif

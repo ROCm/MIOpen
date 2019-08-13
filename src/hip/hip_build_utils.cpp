@@ -25,12 +25,10 @@
 *******************************************************************************/
 
 #include <miopen/hip_build_utils.hpp>
+#include <miopen/stringutils.hpp>
 #include <miopen/logger.hpp>
-#include <sstream>
 #include <boost/optional.hpp>
-
-#define MIOPEN_STRINGIZE_1(...) #__VA_ARGS__
-#define MIOPEN_STRINGIZE(...) MIOPEN_STRINGIZE_1(__VA_ARGS__)
+#include <sstream>
 
 namespace miopen {
 
@@ -43,6 +41,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
 #ifdef __linux__
     if(dev_name.find("gfx80") != std::string::npos)
         MIOPEN_THROW("HIP kernel are not supported on " + dev_name + " architecture");
+    const auto isHCC = EndsWith(MIOPEN_HIP_COMPILER, "hcc");
     // write out the include files
     auto inc_list = GetKernelIncList();
     auto inc_path = tmp_dir->path;
@@ -54,30 +53,46 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     }
     src += "\nint main() {}\n";
     WriteFile(src, tmp_dir->path / filename);
-    params += " -amdgpu-target=" + dev_name;
+    if(isHCC)
+    {
+        params += " -amdgpu-target=" + dev_name;
+    }
+    else
+    {
+        params += " --cuda-gpu-arch=" + dev_name;
+        params += " --cuda-device-only -c";
+    }
     // params += " -Wno-unused-command-line-argument -c -fno-gpu-rdc -I. ";
     params += " -Wno-unused-command-line-argument -I. ";
     params += MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
     params += " ";
     auto bin_file = tmp_dir->path / (filename + ".o");
-    // compile with hcc
+    // compile
     auto env = std::string("KMOPTLLC=-mattr=+enable-ds128");
-    tmp_dir->Execute(env + std::string(" ") + HIP_COMPILER,
+    tmp_dir->Execute(env + std::string(" ") + MIOPEN_HIP_COMPILER,
                      params + filename + " -o " + bin_file.string());
     if(!boost::filesystem::exists(bin_file))
         MIOPEN_THROW(filename + " failed to compile");
-    // call extract kernel
-    tmp_dir->Execute(EXTRACTKERNEL_BIN, " -i " + bin_file.string());
-    auto hsaco = std::find_if(boost::filesystem::directory_iterator{tmp_dir->path},
-                              {},
-                              [](auto entry) { return (entry.path().extension() == ".hsaco"); });
-
-    if(hsaco == boost::filesystem::directory_iterator{})
+    if(isHCC)
     {
-        MIOPEN_LOG_E("failed to find *.hsaco in " << hsaco->path().string());
-    }
+        // call extract kernel
+        tmp_dir->Execute(EXTRACTKERNEL_BIN, " -i " + bin_file.string());
+        auto hsaco =
+            std::find_if(boost::filesystem::directory_iterator{tmp_dir->path},
+                         {},
+                         [](auto entry) { return (entry.path().extension() == ".hsaco"); });
 
-    return hsaco->path();
+        if(hsaco == boost::filesystem::directory_iterator{})
+        {
+            MIOPEN_LOG_E("failed to find *.hsaco in " << hsaco->path().string());
+        }
+
+        return hsaco->path();
+    }
+    else
+    {
+        return bin_file;
+    }
 #else
     (void)filename;
     (void)params;

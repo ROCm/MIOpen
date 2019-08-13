@@ -79,26 +79,22 @@ static auto& IdRegistry()
 
 Id::Id(uint64_t value_) : value(value_)
 {
-    if(IdRegistry().value_to_str.find(value_) == IdRegistry().value_to_str.end())
-        value = invalid;
+    is_valid = (IdRegistry().value_to_str.find(value) != IdRegistry().value_to_str.end());
 }
 
-Id::Id(const std::string& str)
-{
-    const auto it = IdRegistry().str_to_value.find(str);
-    value         = it != IdRegistry().str_to_value.end() ? it->second : invalid;
-}
+Id::Id(const std::string& str) : Id(str.c_str()) {}
 
 Id::Id(const char* str)
 {
     const auto it = IdRegistry().str_to_value.find(str);
-    value         = it != IdRegistry().str_to_value.end() ? it->second : invalid;
+    is_valid      = (it != IdRegistry().str_to_value.end());
+    value         = is_valid ? it->second : invalid_value;
 }
 
 std::string Id::ToString() const
 {
     if(!IsValid())
-        return "invalid solver::Id";
+        return "INVALID_SOLVER_ID_" + std::to_string(value);
     return IdRegistry().value_to_str[value];
 }
 
@@ -122,9 +118,10 @@ inline bool Register(IdRegistryData& registry,
                      const std::string& str,
                      miopenConvAlgorithm_t algo)
 {
-    if(value == Id::invalid)
+    if(value == Id::invalid_value)
     {
-        MIOPEN_LOG_E(Id::invalid << " is special id value for invalid solver (" << str << ")");
+        MIOPEN_LOG_E(Id::invalid_value << " is special id value for invalid solver (" << str
+                                       << ")");
         return false;
     }
 
@@ -201,6 +198,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     // Several ids w/o solver for immediate mode
     Register(registry, ++id, "gemm", miopenConvolutionAlgoGEMM);
     Register(registry, ++id, "fft", miopenConvolutionAlgoFFT);
+    RegisterWithSolver(
+        registry, ++id, ConvWinograd3x3MultipassWrW{}, miopenConvolutionAlgoWinograd);
 }
 
 } // namespace solver

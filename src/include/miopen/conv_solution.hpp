@@ -24,7 +24,8 @@
  *
  *******************************************************************************/
 
-#pragma once
+#ifndef MIOPEN_GUARD_MLOPEN_CONV_SOLUTION_HPP
+#define MIOPEN_GUARD_MLOPEN_CONV_SOLUTION_HPP
 
 #include <miopen/miopen.h>
 
@@ -93,3 +94,5 @@ std::ostream& operator<<(std::ostream& os, const ConvSolution& s);
 
 } // namespace solver
 } // namespace miopen
+
+#endif
