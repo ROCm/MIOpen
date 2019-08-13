@@ -118,7 +118,10 @@ class RamDb : protected Db
 
     bool ValidateUnsafe();
     void Prefetch();
-    // void UpdateCacheEntryUnsafe(const DbRecord& record);
+
+#ifdef MIOPEN_RW_DB_CACHE_WRITE_THROUGH
+    void UpdateCacheEntryUnsafe(const DbRecord& record);
+#endif
 };
 
 } // namespace miopen
