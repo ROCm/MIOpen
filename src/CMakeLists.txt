@@ -179,6 +179,7 @@ set( MIOpen_Source
     solver/conv_multipass_wino3x3WrW.cpp
     solver/conv_bin_wino3x3U.cpp
     solver/conv_bin_winoRxS.cpp
+    solver/conv_winoRxS_f3x2.cpp
     solver/conv_ocl_dir2D_bwdWrW_2.cpp
     solver/conv_ocl_dir2D_bwdWrW_53.cpp
     solver/conv_ocl_dir2D_bwdWrW_1x1.cpp
@@ -208,9 +209,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v14_3_3_fp16dot_stride2_dil.inc
         kernels/Conv_Winograd_v13_3_12_epilogue.inc
         kernels/Conv_Winograd_v13_3_12_prologue.inc
-        kernels/Conv_Winograd_v16_3_0_epilogue.inc
-        kernels/Conv_Winograd_v16_3_0_prologue.inc
-        kernels/Conv_Winograd_v16_3_0_stride1.inc
+        kernels/Conv_Winograd_v16_5_0_epilogue.inc
+        kernels/Conv_Winograd_v16_5_0_prologue.inc
+        kernels/Conv_Winograd_v16_5_0_stride1.inc
         kernels/conv_3x3_wheel_alpha_v9_2_7.inc
         kernels/conv_3x3_wheel_alpha_v9_2_7_epilogue.inc
         kernels/conv_3x3_wheel_alpha_v9_2_7_prologue.inc
@@ -231,7 +232,10 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/xform_data_filter.inc
         kernels/neuron.inc
         kernels/conv_sizes.inc
-        kernels/gpr_alloc.inc)
+        kernels/gpr_alloc.inc
+        kernels/bfloat16_dev.hpp
+        kernels/float_types.h
+        )
 
     set(MIOPEN_KERNELS
         ${COMPOSABLE_KERNEL_SOURCE}
@@ -299,7 +303,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v14_3_3_fp16dot_stride1.s
         kernels/Conv_Winograd_v14_3_3_fp16dot_stride2_dec.s
         kernels/Conv_Winograd_v14_3_3_fp16dot_stride2_dil.s
-        kernels/Conv_Winograd_v16_3_0_stride1.s
+        kernels/Conv_Winograd_v16_5_0_stride1.s
         kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil.s
         kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec.s
         kernels/conv_3x3_wheel_alpha_v9_0_15.s
@@ -415,7 +419,11 @@ if(MIOPEN_USE_SCGEMM)
         scgemm/tensorshape.cpp
         scgemm/conv.cpp
         scgemm/gemm.cpp
+        include/miopen/scgemm_utils.hpp
+        scgemm_utils.cpp
+        solver/conv_scgemm_fwd.cpp
     )
+
 endif()
 
 # build library

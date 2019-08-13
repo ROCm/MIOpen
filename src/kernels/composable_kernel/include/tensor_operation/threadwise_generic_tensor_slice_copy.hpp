@@ -4,6 +4,7 @@
 #include "common_header.hpp"
 #include "ConstantTensorDescriptor.hpp"
 #include "ConstantMergedTensorDescriptor.hpp"
+#include "float_types.h"
 
 #ifndef CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1
 #define CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1 0
@@ -12,7 +13,8 @@
 namespace ck {
 
 // user need to make sure alignment requirement is satisfied when setting DataPerAccesss > 1
-template <class Float,
+template <class SrcFloat,
+          class DesFloat,
           class SrcDesc,
           class DstDesc,
           class SliceLengths,
@@ -20,10 +22,10 @@ template <class Float,
           index_t DataPerAccess>
 __device__ void threadwise_generic_tensor_slice_copy_v1(
     SrcDesc,
-    const Float* __restrict__ p_src,
+    const SrcFloat* __restrict__ p_src,
     Array<index_t, SrcDesc::GetNumOfDimension()> src_multi_id_begin,
     DstDesc,
-    Float* __restrict__ p_dst,
+    DesFloat* __restrict__ p_dst,
     Array<index_t, DstDesc::GetNumOfDimension()> dst_multi_id_begin,
     SliceLengths,
     DimAccessOrder,
@@ -64,7 +66,8 @@ __device__ void threadwise_generic_tensor_slice_copy_v1(
     constexpr auto access_lengths = slice_lengths_in_access_order.Modify(
         Number<nDim - 1>{}, Number<num_access_on_lowest_access_dimension>{});
 
-    using vector_t = typename vector_type<Float, DataPerAccess>::MemoryType;
+    using vector_src_t  = typename vector_type<SrcFloat, DataPerAccess>::MemoryType;
+    using vector_dest_t = typename vector_type<DesFloat, DataPerAccess>::MemoryType;
 
 #if CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1
     static_ford<decltype(access_lengths)>{}([&](auto access_multi_id) {
@@ -82,8 +85,15 @@ __device__ void threadwise_generic_tensor_slice_copy_v1(
         const index_t dst_index =
             DstDesc::GetOffsetFromMultiIndex(dst_multi_id_begin + data_multi_id);
 
-        *reinterpret_cast<vector_t*>(&p_dst[dst_index]) =
-            *reinterpret_cast<const vector_t*>(&p_src[src_index]);
+        static_if<std::is_same<vector_src_t, vector_dest_t>::value>{}([&](auto) {
+            *reinterpret_cast<vector_dest_t*>(&p_dst[dst_index]) =
+                *reinterpret_cast<const vector_src_t*>(&p_src[src_index]);
+        }).Else([&](auto) {
+            for(index_t data_idx = 0; data_idx < DataPerAccess; ++data_idx)
+            {
+                p_dst[dst_index + data_idx] = CVT_ACCUM2FLOAT(p_src[src_index + data_idx]);
+            }
+        });
     });
 #else
     ford<decltype(access_lengths)>{}([&](auto access_multi_id) {
@@ -99,8 +109,15 @@ __device__ void threadwise_generic_tensor_slice_copy_v1(
         const index_t dst_index =
             DstDesc::GetOffsetFromMultiIndex(dst_multi_id_begin + data_multi_id);
 
-        *reinterpret_cast<vector_t*>(&p_dst[dst_index]) =
-            *reinterpret_cast<const vector_t*>(&p_src[src_index]);
+        static_if<std::is_same<vector_src_t, vector_dest_t>::value>{}([&](auto) {
+            *reinterpret_cast<vector_dest_t*>(&p_dst[dst_index]) =
+                *reinterpret_cast<const vector_src_t*>(&p_src[src_index]);
+        }).Else([&](auto) {
+            for(index_t data_idx = 0; data_idx < DataPerAccess; ++data_idx)
+            {
+                p_dst[dst_index + data_idx] = CVT_ACCUM2FLOAT(p_src[src_index + data_idx]);
+            }
+        });
     });
 #endif
 }

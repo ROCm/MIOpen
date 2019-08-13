@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2018 Advanced Micro Devices, Inc.
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,32 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "Conv_Winograd_v16_3_0_prologue.inc"
-.include "Conv_Winograd_v16_3_0_stride1.inc"
-.include "Conv_Winograd_v16_3_0_epilogue.inc"
+#ifndef GUARD_MIOPEN_SCGEMM_PARAM_HPP_
+#define GUARD_MIOPEN_SCGEMM_PARAM_HPP_
+#include <miopen/manage_ptr.hpp>
+#include <miopen/common.hpp>
+#include <miopen/allocator.hpp>
+#include <miopen/scgemm/scgemm.hpp>
+namespace miopen {
+
+enum SCGemmOpType
+{
+    SCGemmOpFConv = scgemm::scgemm_fconv,
+    SCGemmOpFGemm = scgemm::scgemm_fgemm,
+};
+
+struct SCGemmKernelParams
+{
+    SCGemmOpType type;
+    int routine;
+    std::string kernel_name;
+    std::vector<uint32_t> grids;
+    std::vector<uint32_t> blocks;
+    scgemm::scgemm_params_t params;
+    SCGemmKernelParams()
+        : type(SCGemmOpFGemm), routine(0), grids({0, 0, 0}), blocks({0, 0, 0}), params(nullptr){};
+};
+
+} // namespace miopen
+
+#endif

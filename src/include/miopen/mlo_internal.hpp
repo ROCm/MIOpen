@@ -342,14 +342,18 @@ FindAllDirectSolutions(const miopen::ConvolutionContext& ctx);
 std::vector<miopen::solver::ConvSolution>
 FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx);
 
+std::vector<miopen::solver::ConvSolution>
+FindAllWinogradSolutions(const miopen::ConvolutionContext& ctx);
 miopen::solver::ConvSolution FindWinogradSolution(const miopen::ConvolutionContext& ctx);
-miopen::solver::ConvSolution FindWinogradWrWSolution(const miopen::ConvolutionContext& ctx);
 
 std::vector<miopen::solver::ConvSolution>
 FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx);
 
 std::vector<miopen::solver::ConvSolution>
 FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx);
+
+std::vector<miopen::solver::ConvSolution>
+FindAllFwdSCGemmSolutions(const miopen::ConvolutionContext& ctx);
 
 /*
  * returns parameter values that are compiled in legacy kernels for kernels using them as
@@ -879,5 +883,4 @@ struct mlo_construct_neuron : mlo_construct_activ_lrn_pooling_common
     double _beta;
     double _alpha;
 };
-
 #endif
