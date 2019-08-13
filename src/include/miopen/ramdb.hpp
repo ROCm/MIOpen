@@ -35,7 +35,7 @@
 #include <string>
 #include <sstream>
 
-// MIOPEN_DB_CACHE_WRITE_THROUGH set to non-zero enables experimental write-through feature of RamDb.
+// Value of one enables experimental write-through feature of RamDb.
 // It provides some performance gain in case of multi-threaded cache write operations.
 // The feature is not fully tested and any performance gain possible on db write operations are low
 // due to they happen on find stage.

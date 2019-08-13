@@ -140,7 +140,7 @@ bool RamDb::StoreRecord(const DbRecord& record)
         return false;
 
     UpdateDbModificationTime(GetFileName());
-#if MIOPEN_DB_CACHE_WRITE_THROUGH != 0
+#if MIOPEN_DB_CACHE_WRITE_THROUGH
     UpdateCacheEntryUnsafe(record);
 #endif
     return true;
@@ -158,7 +158,7 @@ bool RamDb::UpdateRecord(DbRecord& record)
         return false;
 
     UpdateDbModificationTime(GetFileName());
-#if MIOPEN_DB_CACHE_WRITE_THROUGH != 0
+#if MIOPEN_DB_CACHE_WRITE_THROUGH
 	UpdateCacheEntryUnsafe(record);
 #endif
     return true;
@@ -171,7 +171,7 @@ bool RamDb::RemoveRecord(const std::string& key)
     const auto lock = exclusive_lock(GetLockFile(), GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
 
-#if MIOPEN_DB_CACHE_WRITE_THROUGH != 0
+#if MIOPEN_DB_CACHE_WRITE_THROUGH
 	const auto is_valid = ValidateUnsafe();
 #endif
     if(!RemoveRecordUnsafe(key))
@@ -179,7 +179,7 @@ bool RamDb::RemoveRecord(const std::string& key)
 
     UpdateDbModificationTime(GetFileName());
 
-#if MIOPEN_DB_CACHE_WRITE_THROUGH != 0
+#if MIOPEN_DB_CACHE_WRITE_THROUGH
 	if(is_valid)
     {
         cache.erase(key);
@@ -198,7 +198,7 @@ bool RamDb::Remove(const std::string& key, const std::string& id)
     const auto lock = exclusive_lock(GetLockFile(), GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
 
-#if MIOPEN_DB_CACHE_WRITE_THROUGH != 0
+#if MIOPEN_DB_CACHE_WRITE_THROUGH
     const auto is_valid = ValidateUnsafe();
 #endif
     auto record = FindRecordUnsafe(key);
@@ -207,7 +207,7 @@ bool RamDb::Remove(const std::string& key, const std::string& id)
 
     UpdateDbModificationTime(GetFileName());
 
-#if MIOPEN_DB_CACHE_WRITE_THROUGH != 0
+#if MIOPEN_DB_CACHE_WRITE_THROUGH
     if(is_valid)
     {
         if(record->GetSize() == 0)
@@ -321,7 +321,7 @@ void RamDb::Prefetch()
     });
 }
 
-#if MIOPEN_DB_CACHE_WRITE_THROUGH != 0
+#if MIOPEN_DB_CACHE_WRITE_THROUGH
 void RamDb::UpdateCacheEntryUnsafe(const DbRecord& record)
 {
     const auto is_valid = ValidateUnsafe();
