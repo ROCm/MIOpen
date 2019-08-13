@@ -452,12 +452,12 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         /// \todo WORKAROUND for issue 1430
         if(gemm_trans > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
             gemm_trans = 0;
-        return std::max(gemm_trans, direct_workspace);
+        return std::max({gemm_trans, direct_workspace, workspace_size_scgemm});
     }
 
     if(miopen::any_of(GetConvDilations(), [](auto v) { return v > 1; }))
     {
-        return std::max(workspace_size_gemm, direct_workspace);
+        return std::max({workspace_size_gemm, direct_workspace, workspace_size_scgemm});
     }
 #else
     size_t workspace_size_gemm = 0;
