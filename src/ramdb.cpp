@@ -159,7 +159,7 @@ bool RamDb::UpdateRecord(DbRecord& record)
 
     UpdateDbModificationTime(GetFileName());
 #if MIOPEN_DB_CACHE_WRITE_THROUGH
-	UpdateCacheEntryUnsafe(record);
+    UpdateCacheEntryUnsafe(record);
 #endif
     return true;
 }
@@ -172,7 +172,7 @@ bool RamDb::RemoveRecord(const std::string& key)
     MIOPEN_VALIDATE_LOCK(lock);
 
 #if MIOPEN_DB_CACHE_WRITE_THROUGH
-	const auto is_valid = ValidateUnsafe();
+    const auto is_valid = ValidateUnsafe();
 #endif
     if(!RemoveRecordUnsafe(key))
         return false;
@@ -180,7 +180,7 @@ bool RamDb::RemoveRecord(const std::string& key)
     UpdateDbModificationTime(GetFileName());
 
 #if MIOPEN_DB_CACHE_WRITE_THROUGH
-	if(is_valid)
+    if(is_valid)
     {
         cache.erase(key);
         file_read_time = ramdb_clock::now();
