@@ -75,8 +75,8 @@ static inline bool IsShaderContraintsMet(const int R,
                                          const bool fp16,
                                          const unsigned filter_tile_size)
 {
-    static const auto TILE   = static_cast<int>(filter_tile_size);
-    static const int TILE_X2 = TILE * 2;
+    const auto TILE   = static_cast<int>(filter_tile_size);
+    const int TILE_X2 = TILE * 2;
     // Calculate padded filter size first.
     // If stride = 1: if S <= 3 it is padded to 3,
     // otherwise S is padded to smallest 6*n for some integer n

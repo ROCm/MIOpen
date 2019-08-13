@@ -2,6 +2,26 @@
 ## MIOpen Release notes
 
 
+### 08/01/2019 [ 2.0.1 ]
+
+- This release contains bug fixes and performance improvements.
+- Additionally, the convolution algorithm Implicit GEMM is now enabled by default
+- Known issues: 
+    - Backward propagation for batch normalization in fp16 mode may trigger NaN in some cases
+    - Softmax Log mode may produce an incorrect result in back propagation
+
+Changes:
+
+- Added Winograd multi-pass convolution kernel
+- Fixed issue with hip compiler paths
+- Fixed immediate mode behavior with auto-tuning environment variable
+- Fixed issue with system find-db in-memory cache, the fix enable the cache by default
+- Improved logging
+- Improved how symbols are hidden in the library
+- Updated default behavior to enable implicit GEMM
+
+
+
 ### 07/08/2019 [ 2.0.0 ]
 
 - This release contains several new features including an immediate mode for selecting convolutions, bfloat16 support, new layers, modes, and algorithms.
