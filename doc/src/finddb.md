@@ -36,9 +36,9 @@ By default MIOpen will use the Find-Db. Users can disable the Find-Db by setting
 export MIOPEN_DEBUG_DISABLE_FIND_DB=1
 ```
 
-**Note:** The System Find-Db has the ability to be cached into memory and may increase performance dramatically. To enable this option use the cmake configuration flag:
+**Note:** The System Find-Db has the ability to be cached into memory and may increase performance dramatically. To disable this option use the cmake configuration flag:
 ```
--DMIOPEN_DEBUG_FIND_DB_CACHING=On
+-DMIOPEN_DEBUG_FIND_DB_CACHING=Off
 ```
 
 
