@@ -125,7 +125,7 @@ class RamDb : protected Db
     bool ValidateUnsafe();
     void Prefetch();
 
-#ifdef MIOPEN_RW_DB_CACHE_WRITE_THROUGH
+#if MIOPEN_DB_CACHE_WRITE_THROUGH
     void UpdateCacheEntryUnsafe(const DbRecord& record);
 #endif
 };
