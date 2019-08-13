@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MIOPEN_GUARD_MLOPEN_OP_KERNEL_ARGS_HPP
+#define MIOPEN_GUARD_MLOPEN_OP_KERNEL_ARGS_HPP
 
 #include <type_traits>
 #include <cstdint>
@@ -30,3 +31,5 @@ struct OpKernelArg
     boost::container::small_vector<char, 8> buffer;
     bool is_ptr = false;
 };
+
+#endif

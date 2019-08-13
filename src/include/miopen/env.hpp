@@ -120,7 +120,4 @@ inline unsigned long int Value(T)
 }
 } // namespace miopen
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
-MIOPEN_DECLARE_ENV_VAR(HOME)
-
 #endif

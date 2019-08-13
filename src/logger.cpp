@@ -23,10 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cstdlib>
 #include <miopen/env.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/config.h>
+
+#include <cstdlib>
+#include <chrono>
+#include <ios>
+#include <iomanip>
 
 #ifdef __linux__
 #include <unistd.h>
@@ -48,6 +52,10 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_CMD)
 /// to uniquiely identify log records printed from different processes
 /// or threads. Useful for debugging multi-process/multi-threaded apps.
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_MPMT)
+
+/// Add timestamps to each log line.
+/// Not useful  with multi-process/multi-threaded apps.
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_ELAPSED_TIME)
 
 /// See LoggingLevel in the header.
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_LOG_LEVEL)
@@ -73,6 +81,16 @@ inline int GetProcessAndThreadId()
 #else
     return 0; // Not implemented.
 #endif
+}
+
+inline float GetTimeDiff()
+{
+    static auto prev = std::chrono::steady_clock::now();
+    auto now         = std::chrono::steady_clock::now();
+    auto rv =
+        std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(now - prev).count();
+    prev = now;
+    return rv;
 }
 
 } // namespace
@@ -129,6 +147,10 @@ std::string LoggingPrefix()
 #elif MIOPEN_BACKEND_HIP
     ss << "(HIP)";
 #endif
+    if(miopen::IsEnabled(MIOPEN_ENABLE_LOGGING_ELAPSED_TIME{}))
+    {
+        ss << std::fixed << std::setprecision(3) << std::setw(8) << GetTimeDiff();
+    }
     ss << ": ";
     return ss.str();
 }

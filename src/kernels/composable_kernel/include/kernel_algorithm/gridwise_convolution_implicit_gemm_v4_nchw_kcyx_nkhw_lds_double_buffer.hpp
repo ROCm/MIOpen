@@ -50,9 +50,10 @@ template <index_t GridSize,
           index_t WeiBlockCopyDstDataPerWrite_K>
 struct GridwiseConvolutionImplicitGemm_v4_nchw_kcyx_nkhw_lds_double_buffer
 {
-    __device__ void Run(const Float* const __restrict__ p_in_global,
-                        const Float* const __restrict__ p_wei_global,
-                        Float* const __restrict__ p_out_global) const
+    __device__ void __launch_bounds__(BlockSize, 2)
+        Run(const Float* const __restrict__ p_in_global,
+            const Float* const __restrict__ p_wei_global,
+            Float* const __restrict__ p_out_global) const
     {
         // this is a mess
         // TODO: find more elegent way of specifying (or calculating) performance parameters

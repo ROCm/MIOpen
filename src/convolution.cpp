@@ -316,17 +316,11 @@ ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMMTranspose(const TensorDescript
 
 bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(miopen::ConvolutionContext& ctx) const
 {
-    bool rv                     = false;
-    const bool save_do_search   = ctx.do_search;
-    const bool save_dis_enforce = ctx.workaround_disable_search_enforce;
+    // Filter out configs where 3x3 Winograd does not have high WTI.
+    if(!(ctx.spatial_dims == 2 && ctx.n_outputs >= 16 && ctx.n_outputs % 2 == 0))
+        return false;
 
-    // 3x3 Winograd is the fastest one (high WTI) here:
-    if(ctx.n_outputs >= 16 && ctx.n_outputs % 2 == 0)
-        rv = solver::ConvBinWinograd3x3U{}.IsApplicable(ctx);
-
-    ctx.do_search                         = save_do_search;
-    ctx.workaround_disable_search_enforce = save_dis_enforce;
-    return rv;
+    return solver::ConvBinWinograd3x3U{}.IsApplicable(ctx);
 }
 
 /// \todo Merge with ForwardGetWorkSpaceSizeGEMM
@@ -649,7 +643,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(const TensorDescripto
 std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeImplicitGemm(
     const miopen::ConvolutionContext& ctx) const
 {
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
     {
         return 0;
     }
@@ -753,6 +747,43 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
 }
 
 std::size_t
+ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeWinograd(Handle& handle,
+                                                               const TensorDescriptor& dyDesc,
+                                                               const TensorDescriptor& xDesc,
+                                                               const TensorDescriptor& dwDesc) const
+{
+    if(GetSpatialDimension() != 2)
+    {
+        return 0;
+    }
+
+    auto ctx = ConvolutionContext(xDesc, dwDesc, dyDesc, *this, 0);
+    ctx.direction.SetBackwardWrW();
+    ctx.do_search = false;
+    ctx.SetStream(&handle);
+    ctx.workaround_disable_search_enforce = true;
+    ctx.DetectRocm();
+
+    try
+    {
+        const auto ss  = FindWinogradWrWAllSolutions(ctx);
+        std::size_t sz = 0;
+        for(const auto& solution : ss)
+        {
+            if(sz < solution.workspce_sz)
+            {
+                MIOPEN_LOG_I2(sz << " < " << solution.workspce_sz);
+                sz = solution.workspce_sz;
+            }
+        }
+        return sz;
+    }
+    catch(const miopen::Exception&)
+    {
+        return 0;
+    }
+}
+std::size_t
 ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
                                                        const TensorDescriptor& dyDesc,
                                                        const TensorDescriptor& xDesc,
@@ -778,7 +809,11 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
                 ? BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc)
                 : 0;
 
-        workspace_size = std::max(direct_workspace, workspace_size_gemm);
+        size_t winograd_workspace =
+            BackwardWeightsGetWorkSpaceSizeWinograd(handle, dyDesc, xDesc, dwDesc);
+
+        workspace_size =
+            std::max(winograd_workspace, std::max(direct_workspace, workspace_size_gemm));
     }
 
     return workspace_size;

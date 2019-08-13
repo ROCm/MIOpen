@@ -1445,11 +1445,7 @@ int main(int argc, const char* argv[])
     /// "--all" has any effect here only if both 2D and 3D flags are *cleared*.
     /// Is it what we really want? This piece of code looks ofbuscated. And yes, I do
     /// understand that "--all" could affect other aspects of the test. --atamazov 12 Jun 2019
-    if(do_conv2d and !do_conv3d)
-    {
-        test_drive<conv2d_driver>(argc, argv);
-    }
-    else if(!do_conv2d and do_conv3d)
+    if(!do_conv2d and do_conv3d)
     {
         test_drive<conv3d_driver>(argc, argv);
     }
