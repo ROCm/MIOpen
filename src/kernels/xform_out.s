@@ -61,17 +61,33 @@ default xformx_f_size, 4 // 2, 3, 4, 5, 6
 default xformy_f_size, 4 // 2, 3, 4, 5, 6
 default xformx_o_size, 3
 default xformy_o_size, 3
+default acc_type, TYPE_FP32
+default buf_type, TYPE_FP32
+
 static_assert(xformx_f_size >=2 && xformx_f_size <= 6)
 static_assert(xformy_f_size >=2 && xformy_f_size <= 6)
 static_assert(xformx_o_size == 3)
 static_assert(xformy_o_size == 3)
 static_assert(xformx_f_size == xformy_f_size)
 static_assert(xformx_o_size == xformy_o_size)
+
+static_assert(acc_type == TYPE_FP32)
+static_assert(buf_type == TYPE_FP32 || buf_type == TYPE_FP16 || buf_type == TYPE_BFP16) 
+.if(buf_type == TYPE_FP32)
+    elem_size = 4
+    lds_elem_size = 4
+.elseif (buf_type == TYPE_FP16 || buf_type == TYPE_BFP16)
+    static_assert(read_size == 1)
+    elem_size = 2
+    lds_elem_size = 4
+.endif
+
 xform_f_size = xformx_f_size
 xform_o_size = xformx_o_size
 xform_d_size = xform_f_size + xform_o_size - 1
+out_points = xformx_o_size * xformy_o_size
 
-static_assert(read_size == 1)														 
+static_assert(read_size == 1)
 .GPR_ALLOC_BEGIN
 // initial state
 // s[0:1] - kernarg address
@@ -166,7 +182,7 @@ gcnAsmWinogradXformOut:
     s_load_dwordx16 s[R:f_R_stride], s[kernarg:kernarg+1], 0x4 * 16
     s_load_dwordx4 s[f_S_stride:o_H_stride], s[kernarg:kernarg+1], 0x4 * 32
     s_load_dword   s[o_W_stride], s[kernarg:kernarg+1], 0x4 * 36
-    
+
     .GPR_REUSE pad_w, const0_25
     s_mov_b32 s[const0_25], 0.25
 
@@ -174,7 +190,7 @@ gcnAsmWinogradXformOut:
     //v_readfirstlane_b32 s[wave_id], v[vtmp]
     s_mov_b32 s[wave_id], s[gid_x]
     v_and_b32 v[tid], 0x3f, v[tid]
-    
+
     s_waitcnt 0
 
     // compute addresses
@@ -210,9 +226,11 @@ gcnAsmWinogradXformOut:
     v_cmpx_lt_i32 vcc, v[vcur_tile], s[tiles]
 
     // construct descriptors
-    .GPR_REUSE d_addr, d_desc
-    .GPR_REUSE o_addr, o_desc
-    .GPR_INVALIDATE unused2
+    .GPR_REUSE d_addr, d_desc //s[4]
+    .GPR_REUSE o_addr, o_desc //s[4]
+    .GPR_REUSE  R, s2_tmp
+    .GPR_INVALIDATE unused
+    .GPR_INVALIDATE S
     .GPR_INVALIDATE dbg_addr
     s_mov_b32 s[d_desc+3], 0x00020000
     s_mov_b32 s[o_desc+3], 0x00020000
@@ -224,7 +242,9 @@ gcnAsmWinogradXformOut:
     i=0
     .rept xform_d_size * xform_d_size
         acc = accums + read_size * i
-        .if read_size == 1
+        .if (elem_size == 2 && read_size == 1)
+            buffer_load_short_d16 v[acc], v[voff_d], s[d_desc:d_desc+3], s[soff] offen
+        .elseif read_size == 1
             buffer_load_dword v[acc], v[voff_d], s[d_desc:d_desc+3], s[soff] offen
         .elseif read_size == 2
             buffer_load_dwordx2 v[acc:acc+1], v[voff_d], s[d_desc:d_desc+3], s[soff] offen
@@ -238,6 +258,15 @@ gcnAsmWinogradXformOut:
     .endr
     
     s_waitcnt 0
+    
+    .if(buf_type != TYPE_FP32)
+        static_assert(read_size == 1)
+        .rept i
+            //if acc_type == buf_type do nothing
+            v_reg_data_type_convert v[accums + i - 1], acc_type, v[accums + i - 1], buf_type
+            i = i - 1
+        .endr
+    .endif
     
     // inplace xform that could store output in lower addresses
     .macro m_xform_down f_size, o_size
@@ -409,14 +438,22 @@ gcnAsmWinogradXformOut:
             i=i+1
         .endr
         tile=tile+1
-    
-        buffer_store_dwordx4 v[accums+0:accums+3], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:0
-        buffer_store_dwordx4 v[accums+4:accums+7], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:16
-        buffer_store_dword v[accums+8], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:32
+        
+        .if(elem_size == 2)
+            st_id = 0
+            .rept out_points
+                v_reg_data_type_convert v[accums + st_id], buf_type, v[accums + st_id], acc_type, v[vtmp], s[s2_tmp:s2_tmp+1]
+                buffer_store_short v[accums + st_id], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:0+elem_size*st_id
+                st_id = st_id + 1
+            .endr
+        .else
+            static_assert(out_points == 9)
+            buffer_store_dwordx4 v[accums+0:accums+3], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:0
+            buffer_store_dwordx4 v[accums+4:accums+7], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:16
+            buffer_store_dword v[accums+8], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:32
+        .endif
         s_add_u32 s[soff], s[buf_step], s[soff]
     .endr
-
-
 
     s_endpgm
 
