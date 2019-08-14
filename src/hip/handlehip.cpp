@@ -410,6 +410,16 @@ std::size_t Handle::GetMaxComputeUnits()
     return result;
 }
 
+std::size_t Handle::GetImage3dMaxWidth()
+{
+    int result;
+    auto status = hipDeviceGetAttribute(&result, hipDeviceAttributeMaxGridDimX, this->impl->device);
+    if(status != hipSuccess)
+        MIOPEN_THROW_HIP_STATUS(status);
+
+    return result;
+}
+
 // No HIP API that could return maximum memory allocation size
 // for a single object.
 std::size_t Handle::GetMaxMemoryAllocSize()

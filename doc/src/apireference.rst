@@ -19,3 +19,4 @@ API Reference
     softmax
     fusion
     loss
+    dropout
