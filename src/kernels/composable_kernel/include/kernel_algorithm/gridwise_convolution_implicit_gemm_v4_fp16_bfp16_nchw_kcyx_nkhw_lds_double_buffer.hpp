@@ -160,7 +160,7 @@ struct GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_b
         // input blockwise copy
         //     slice a merged tensor, reorder and copy to a normal tensor
         //     this copy operator already has blockwise offset built-in
-        auto blockwise_in_copy = BlockwiseGenericTensorSliceCopy_v1<
+        auto blockwise_in_copy = BlockwiseGenericTensorSliceCopy_v1_deprecated<
             BlockSize,
             Float,
             decltype(in_e_n1_b_n2_2eor4e_global_merged_desc),
@@ -190,20 +190,19 @@ struct GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_b
         // operator for blockwise copy of weight into LDS
         //     slice a tensor, and copy it into another tensor
         //     this copy operator already have blockwise offset built-in
-        auto blockwise_wei_copy =
-            BlockwiseGenericTensorSliceCopy_v1<BlockSize,
-                                               Float,
-                                               decltype(wei_e_k_2eor4e_global_desc),
-                                               decltype(wei_e_k_2eor4e_block_desc),
-                                               decltype(wei_e_k_2eor4e_block_desc.GetLengths()),
-                                               WeiBlockCopySubLengths_E_K_EPACK,
-                                               WeiBlockCopyClusterLengths_E_K_EPACK,
-                                               WeiBlockCopyThreadClusterArrangeOrder,
-                                               WeiBlockCopySrcAccessOrder,
-                                               WeiBlockCopyDstAccessOrder,
-                                               WeiBlockCopySrcDataPerRead_E,
-                                               WeiBlockCopyDstDataPerWrite_K>(
-                {0, k_block_data_on_global, 0}, {0, 0, 0});
+        auto blockwise_wei_copy = BlockwiseGenericTensorSliceCopy_v1_deprecated<
+            BlockSize,
+            Float,
+            decltype(wei_e_k_2eor4e_global_desc),
+            decltype(wei_e_k_2eor4e_block_desc),
+            decltype(wei_e_k_2eor4e_block_desc.GetLengths()),
+            WeiBlockCopySubLengths_E_K_EPACK,
+            WeiBlockCopyClusterLengths_E_K_EPACK,
+            WeiBlockCopyThreadClusterArrangeOrder,
+            WeiBlockCopySrcAccessOrder,
+            WeiBlockCopyDstAccessOrder,
+            WeiBlockCopySrcDataPerRead_E,
+            WeiBlockCopyDstDataPerWrite_K>({0, k_block_data_on_global, 0}, {0, 0, 0});
 
         // GEMM definition
         // c_mtx += transpose(a_mtx) * b_mtx
@@ -213,10 +212,10 @@ struct GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_b
         //     c_mtx[KPerBlock, N1 * BPerBlock * N2] is distributed among threads, and saved in
         //     register
         constexpr auto a_e_k_block_mtx_desc =
-            make_ConstantMatrixDescriptor(Number<EPerBlock>{}, Number<KPerBlock>{});
+            make_ConstantMatrixDescriptor_packed(Number<EPerBlock>{}, Number<KPerBlock>{});
 
-        constexpr auto b_e_n1bn2_block_mtx_desc =
-            make_ConstantMatrixDescriptor(Number<EPerBlock>{}, Number<N1 * BPerBlock * N2>{});
+        constexpr auto b_e_n1bn2_block_mtx_desc = make_ConstantMatrixDescriptor_packed(
+            Number<EPerBlock>{}, Number<N1 * BPerBlock * N2>{});
 
         // sanity check
         static_assert(KPerBlock % (GemmMPerThreadSubC * GemmMLevel0Cluster * GemmMLevel1Cluster) ==
@@ -228,7 +227,7 @@ struct GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_b
 
         // c_thread_mtx definition: this is a mess
         // TODO:: more elegent way of defining c_thread_mtx
-        constexpr auto c_k0k2_n1n2_thread_mtx_desc = make_ConstantMatrixDescriptor(
+        constexpr auto c_k0k2_n1n2_thread_mtx_desc = make_ConstantMatrixDescriptor_packed(
             Number<GemmMRepeat * GemmMPerThreadSubC>{}, Number<N1 * N2>{});
 
         const auto blockwise_gemm = BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_v2<
@@ -406,7 +405,7 @@ struct GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_b
                 out_k_n1_b_n2_global_merged_desc.GetOffsetFromMultiIndex(
                     k_thread_data_on_global, 0, b_thread_data_on_global, 0);
 
-            threadwise_generic_tensor_slice_copy_v1(
+            threadwise_generic_tensor_slice_copy_v1_deprecated(
                 out_n0_n1_n2_k0_k1_k2_h_w_thread_desc,
                 p_out_thread,
                 {0, 0, 0, 0, 0, 0, 0, 0},

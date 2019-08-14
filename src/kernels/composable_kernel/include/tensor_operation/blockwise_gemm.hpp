@@ -256,10 +256,10 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_v2
 
         // thread A, B for GEMM
         constexpr auto a_thread_mtx =
-            make_ConstantMatrixDescriptor(Number<KPerThreadLoop>{}, Number<MPerThread>{});
+            make_ConstantMatrixDescriptor_packed(Number<KPerThreadLoop>{}, Number<MPerThread>{});
 
         constexpr auto b_thread_mtx =
-            make_ConstantMatrixDescriptor(Number<KPerThreadLoop>{}, Number<NPerThread>{});
+            make_ConstantMatrixDescriptor_packed(Number<KPerThreadLoop>{}, Number<NPerThread>{});
 
         constexpr index_t MPerLevel1Cluster = MPerThreadSubC * MLevel0Cluster * MLevel1Cluster;
         constexpr index_t NPerLevel1Cluster = NPerThreadSubC * NLevel0Cluster * NLevel1Cluster;
@@ -447,141 +447,6 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_v2
         }
     }
 
-    template <class FloatA, class FloatB, class FloatC>
-    __device__ void RunRegisterDoubleBuffer_source(FloatA* const p_a_block,
-                                                   FloatB* const p_b_block,
-                                                   FloatC* p_c_thread) const
-    {
-        constexpr auto True  = integral_constant<bool, true>{};
-        constexpr auto False = integral_constant<bool, false>{};
-
-        constexpr auto a_block_mtx  = BlockMatrixA{};
-        constexpr auto b_block_mtx  = BlockMatrixB{};
-        constexpr auto c_thread_mtx = ThreadMatrixC{};
-
-        constexpr index_t K = a_block_mtx.NRow();
-
-        constexpr index_t MPerThread = c_thread_mtx.NRow();
-        constexpr index_t NPerThread = c_thread_mtx.NCol();
-
-        // thread A, B for GEMM
-        constexpr auto a_thread_mtx =
-            make_ConstantMatrixDescriptor(Number<KPerThreadLoop>{}, Number<MPerThread>{});
-
-        constexpr auto b_thread_mtx =
-            make_ConstantMatrixDescriptor(Number<KPerThreadLoop>{}, Number<NPerThread>{});
-
-        // thread A-sub, B-sub for copy
-        constexpr auto a_thread_sub_mtx = make_ConstantMatrixDescriptor(
-            Number<KPerThreadLoop>{}, Number<MPerThreadSubC>{}, Number<MPerThread>{});
-
-        constexpr auto b_thread_sub_mtx = make_ConstantMatrixDescriptor(
-            Number<KPerThreadLoop>{}, Number<NPerThreadSubC>{}, Number<NPerThread>{});
-
-        // register
-        FloatA p_a_thread_0[a_thread_mtx.GetElementSpace()];
-        FloatB p_b_thread_0[b_thread_mtx.GetElementSpace()];
-
-        FloatA p_a_thread_1[a_thread_mtx.GetElementSpace()];
-        FloatB p_b_thread_1[b_thread_mtx.GetElementSpace()];
-
-        constexpr index_t MPerLevel1Cluster = MPerThreadSubC * MLevel0Cluster * MLevel1Cluster;
-        constexpr index_t NPerLevel1Cluster = NPerThreadSubC * NLevel0Cluster * NLevel1Cluster;
-
-        constexpr index_t MRepeat = MPerThread / MPerThreadSubC;
-        constexpr index_t NRepeat = NPerThread / NPerThreadSubC;
-
-// preload A, B
-#pragma unroll
-        for(index_t m_repeat = 0; m_repeat < MRepeat; ++m_repeat)
-        { // copy A-sub to form A
-            threadwise_matrix_copy(a_block_mtx,
-                                   p_a_block + mMyThreadOffsetA + m_repeat * MPerLevel1Cluster,
-                                   a_thread_sub_mtx,
-                                   p_a_thread_0 + m_repeat * MPerThreadSubC,
-                                   a_thread_sub_mtx.GetLengths(),
-                                   Number<DataPerReadA>{});
-        }
-
-#pragma unroll
-        for(index_t n_repeat = 0; n_repeat < NRepeat; ++n_repeat)
-        { // copy B-sub to form B
-            threadwise_matrix_copy(b_block_mtx,
-                                   p_b_block + mMyThreadOffsetB + n_repeat * NPerLevel1Cluster,
-                                   b_thread_sub_mtx,
-                                   p_b_thread_0 + n_repeat * NPerThreadSubC,
-                                   b_thread_sub_mtx.GetLengths(),
-                                   Number<DataPerReadB>{});
-        }
-
-        bool even_loop = true;
-
-#pragma unroll
-        for(index_t k_begin = 0; k_begin + KPerThreadLoop < K;
-            k_begin += KPerThreadLoop, even_loop = !even_loop)
-        { // loop over k
-            FloatA* p_a_thread_now = even_loop ? p_a_thread_0 : p_a_thread_1;
-            FloatB* p_b_thread_now = even_loop ? p_b_thread_0 : p_b_thread_1;
-
-            FloatA* p_a_thread_next = even_loop ? p_a_thread_1 : p_a_thread_0;
-            FloatB* p_b_thread_next = even_loop ? p_b_thread_1 : p_b_thread_0;
-
-// preload next A, B
-#pragma unroll
-            for(index_t m_repeat = 0; m_repeat < MRepeat; ++m_repeat)
-            { // copy A-sub to form A
-                threadwise_matrix_copy(a_block_mtx,
-                                       p_a_block + mMyThreadOffsetA +
-                                           (k_begin + 1) * a_block_mtx.RowStride() +
-                                           m_repeat * MPerLevel1Cluster,
-                                       a_thread_sub_mtx,
-                                       p_a_thread_next + m_repeat * MPerThreadSubC,
-                                       a_thread_sub_mtx.GetLengths(),
-                                       Number<DataPerReadA>{});
-            }
-
-#pragma unroll
-            for(index_t n_repeat = 0; n_repeat < NRepeat; ++n_repeat)
-            { // copy B-sub to form B
-                threadwise_matrix_copy(b_block_mtx,
-                                       p_b_block + mMyThreadOffsetB +
-                                           (k_begin + 1) * b_block_mtx.RowStride() +
-                                           n_repeat * NPerLevel1Cluster,
-                                       b_thread_sub_mtx,
-                                       p_b_thread_next + n_repeat * NPerThreadSubC,
-                                       b_thread_sub_mtx.GetLengths(),
-                                       Number<DataPerReadB>{});
-            }
-
-            // C = A * B
-            threadwise_gemm(a_thread_mtx,
-                            True,
-                            p_a_thread_now,
-                            b_thread_mtx,
-                            False,
-                            p_b_thread_now,
-                            c_thread_mtx,
-                            False,
-                            p_c_thread);
-        }
-
-        // last loop
-        {
-            FloatA* p_a_thread_now = even_loop ? p_a_thread_0 : p_a_thread_1;
-            FloatB* p_b_thread_now = even_loop ? p_b_thread_0 : p_b_thread_1;
-
-            // C = A * B
-            threadwise_gemm(a_thread_mtx,
-                            True,
-                            p_a_thread_now,
-                            b_thread_mtx,
-                            False,
-                            p_b_thread_now,
-                            c_thread_mtx,
-                            False,
-                            p_c_thread);
-        }
-    }
     template <class FloatA, class FloatB, class FloatC>
     __device__ void Run(const FloatA* __restrict__ p_a_block,
                         const FloatB* __restrict__ p_b_block,
