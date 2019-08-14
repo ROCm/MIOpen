@@ -37,6 +37,7 @@
 #include "softmax_driver.hpp"
 #include "rnn_driver.hpp"
 #include "ctc_driver.hpp"
+#include "dropout_driver.hpp"
 #include "miopen/config.h"
 
 int main(int argc, char* argv[])
@@ -136,6 +137,14 @@ int main(int argc, char* argv[])
     else if(base_arg == "ctc")
     {
         drv = new CTCDriver<float>();
+    }
+    else if(base_arg == "dropout")
+    {
+        drv = new DropoutDriver<float, float>();
+    }
+    else if(base_arg == "dropoutfp16")
+    {
+        drv = new DropoutDriver<float16, float>();
     }
     else
     {
