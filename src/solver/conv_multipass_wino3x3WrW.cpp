@@ -85,7 +85,8 @@ struct InTransform
             return false;
         }
         
-        return params.IsFp32() && params.Is2d()
+        return (params.IsFp32() || params.IsFp16() || params.IsBfp16())
+                && params.Is2d()
                 && H < u16limit
                 && W < u16limit
                 && wino_info.wino_c < (1<<30)
@@ -103,8 +104,14 @@ struct InTransform
 
         const std::vector<size_t> g_wk{g_wk_0, 1, 1};
 
+        std::ostringstream options;
+        GenerateClangDefsym(options, "acc_type", 1);
+        GenerateClangDefsym(options, "buf_type", (params.IsFp32() ? 1 : (params.IsFp16() ? 2 : 3)));
+        GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 4);
+        GenerateClangDefsym(options, "MIOPEN_USE_RNE_BFLOAT16", MIOPEN_USE_RNE_BFLOAT16);
+
         return KernelInfo{
-            "-Wa,-defsym,ROCM_METADATA_VERSION=4",
+            options.str(),
             l_wk,
             g_wk,
             ConvWinograd3x3MultipassWrW::GetSolverFileNames()[0],
@@ -141,7 +148,8 @@ struct FilterTransform
         {
             return false;
         }
-        return params.IsFp32() && params.Is2d()
+        return (params.IsFp32() || params.IsFp16() || params.IsBfp16()) 
+                && params.Is2d()
                 && H < u16limit
                 && W < u16limit
                 && wino_info.wino_c < (1<<30)
@@ -159,8 +167,13 @@ struct FilterTransform
 
         const std::vector<size_t> g_wk{g_wk_0, 1, 1};
 
+        std::ostringstream options;
+        GenerateClangDefsym(options, "acc_type", 1);
+        GenerateClangDefsym(options, "buf_type", (params.IsFp32() ? 1 : (params.IsFp16() ? 2 : 3)));
+        GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 4);
+        GenerateClangDefsym(options, "MIOPEN_USE_RNE_BFLOAT16", MIOPEN_USE_RNE_BFLOAT16);
         return KernelInfo{
-            "-Wa,-defsym,ROCM_METADATA_VERSION=4",
+            options.str(),
             l_wk,
             g_wk,
             ConvWinograd3x3MultipassWrW::GetSolverFileNames()[1],
@@ -173,7 +186,7 @@ struct OutTransform
 {
     static bool IsApplicable(const ConvolutionContext& params)
     {
-        return params.IsFp32() && params.Is2d();
+        return (params.IsFp32() || params.IsFp16() || params.IsBfp16()) && params.Is2d();
     }
     static KernelInfo GetKernel(const ConvolutionContext& params)
     {
@@ -200,8 +213,13 @@ struct OutTransform
         (void)H;
         (void)W;
 
+        std::ostringstream options;
+        GenerateClangDefsym(options, "acc_type", 1);
+        GenerateClangDefsym(options, "buf_type", (params.IsFp32() ? 1 : (params.IsFp16() ? 2 : 3)));
+        GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 4);
+        GenerateClangDefsym(options, "MIOPEN_USE_RNE_BFLOAT16", MIOPEN_USE_RNE_BFLOAT16);
         return KernelInfo{
-            "-Wa,-defsym,ROCM_METADATA_VERSION=4",
+            options.str(),
             l_wk,
             g_wk,
             ConvWinograd3x3MultipassWrW::GetSolverFileNames()[2],
@@ -223,7 +241,7 @@ bool ConvWinograd3x3MultipassWrW::IsApplicable(const ConvolutionContext& params)
         return false;
     if(!params.Is2d())
         return false;
-    if(!(params.IsFp32()))
+    if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
 
     if(!(InTransform::IsApplicable(params) && OutTransform::IsApplicable(params) &&

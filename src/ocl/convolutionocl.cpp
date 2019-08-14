@@ -4129,7 +4129,7 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
             // clang-format off
             GemmDescriptor wino_gemm_desc{false,false,true,m,n,k,
                 lda,ldb,ldc,batch_count,strideA,strideB,
-                strideC,alpha,beta,miopenDataType_t::miopenFloat};
+                strideC,alpha,beta,ctx.in_data_type};
 
             if(elapsed == nullptr)
                 CallGemmStridedBatched(handle,
