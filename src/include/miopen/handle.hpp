@@ -126,6 +126,7 @@ struct Handle : miopenHandle
     std::size_t GetLocalMemorySize();
     std::size_t GetGlobalMemorySize();
     std::size_t GetMaxComputeUnits();
+    std::size_t GetImage3dMaxWidth();
 
     std::size_t m_MaxMemoryAllocSizeCached = 0;
     std::size_t GetMaxMemoryAllocSize();

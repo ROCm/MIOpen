@@ -117,6 +117,8 @@ set( MIOpen_Source
     kernel_build_params.cpp
     find_db.cpp
     conv_algo_name.cpp
+    dropout.cpp
+    dropout_api.cpp
     readonlyramdb.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
@@ -159,6 +161,7 @@ set( MIOpen_Source
     include/miopen/any_solver.hpp
     include/miopen/conv_solution.hpp
     include/miopen/conv_algo_name.hpp
+    include/miopen/dropout.hpp
     include/miopen/readonlyramdb.hpp
     md_graph.cpp
     mdg_expr.cpp
@@ -312,6 +315,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvBwdBias.cl
         kernels/MIOpenBatchNormActivInfer.cl
         kernels/MIOpenCTCLoss.cl
+        kernels/MIOpenDropout.cl
         kernels/xform_data.s
         kernels/xform_filter.s)
 
@@ -344,6 +348,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/rnnocl.cpp
         ocl/utilocl.cpp
         ocl/ctcocl.cpp
+        ocl/dropoutocl.cpp
         ocl/gcn_asm_utils.cpp
         hip/hip_build_utils.cpp
         pooling.cpp
