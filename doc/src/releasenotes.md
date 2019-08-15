@@ -2,7 +2,7 @@
 ## MIOpen Release notes
 
 
-### 08/01/2019 [ 2.0.1 ]
+### 08/13/2019 [ 2.0.1 ]
 
 - This release contains bug fixes and performance improvements.
 - Additionally, the convolution algorithm Implicit GEMM is now enabled by default
