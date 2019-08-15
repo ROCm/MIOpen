@@ -1064,8 +1064,6 @@ void BatchNormBackward(Handle& handle,
                 std::string program_name;
                 std::string parms;
 
-// \todo: This code is disabled to temporarily bypass potential NaN issue in the backwards pass
-#if(0)
                 if((n > 64) && (n % 2 == 0) && (variant == 3) && (bfpmixparm) && (useSaved))
                 {
                     kernel_name  = "gcnAsmBNBwdTrainSpatial";
@@ -1105,7 +1103,6 @@ void BatchNormBackward(Handle& handle,
                             " -Wa,-defsym,MIO_BN_GRP2=" + std::to_string(zlocalsize);
                 }
                 else
-#endif
                 {
                     program_name = "MIOpenBatchNormBwdSpatial.cl";
                     kernel_name  = "MIOpenBatchNormBwdSpatial";
