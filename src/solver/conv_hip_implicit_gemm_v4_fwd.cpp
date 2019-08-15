@@ -72,6 +72,11 @@ inline static bool NextTwoPower(int& v)
     return false;
 }
 
+inline static int GetReadWriteVectorSize(const int v)
+{
+    return (v & 3) == 0 ? 4 : ((v & 1) == 0 ? 2 : 1);
+}
+
 inline bool PerformanceImplicitGemm::operator==(const PerformanceImplicitGemm& other) const
 {
     // clang-format off
@@ -478,19 +483,41 @@ ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx
     construction_parameters.kernel_name =
         "gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_lds_double_buffer";
 
-    const int WeiBlockCopySrcDataPerRead_E = 1;
+    std::size_t WeiBlockCopySubLengths_E = EPerBlock / config.WeiBlockCopyClusterLengths_E;
+    std::size_t WeiBlockCopySubLengths_K = KPerBlock / config.WeiBlockCopyClusterLengths_K;
 
-    const int InBlockCopySubLengths_N2 = N2 / config.InBlockCopyClusterLengths_N2;
+    int WeiBlockCopySrcDataPerRead_E  = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
+    int WeiBlockCopyDstDataPerWrite_K = GetReadWriteVectorSize(WeiBlockCopySubLengths_K);
 
-    // TBD: Due to underlying bug, we need to restrict writing only 1 fp16 value at a time
-    const int InBlockCopyDstDataPerWrite_N2 =
-        ctx.IsFp16()
-            ? 1
-            : (InBlockCopySubLengths_N2 % 4 == 0 ? 4 : (InBlockCopySubLengths_N2 % 2 == 0 ? 2 : 1));
+    std::size_t InBlockCopySubLengths_B  = BPerBlock / config.InBlockCopyClusterLengths_B;
+    std::size_t InBlockCopySubLengths_N2 = N2 / config.InBlockCopyClusterLengths_N2;
+
+    int InBlockCopySrcDataPerRead_B   = GetReadWriteVectorSize(InBlockCopySubLengths_B);
+    int InBlockCopyDstDataPerWrite_N2 = GetReadWriteVectorSize(InBlockCopySubLengths_N2);
+
+    if(ctx.kernel_size_w > 1)
+    {
+        InBlockCopySrcDataPerRead_B =
+            std::min(InBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(ctx.kernel_dilation_w));
+    }
+
+    if(ctx.kernel_stride_w > 1)
+    {
+        InBlockCopySrcDataPerRead_B = 1;
+    }
+
+    // TBD: Due to underlying bug, we need to restrict reading/writing only 1 fp16 value at a time
+    if(ctx.IsFp16())
+    {
+        WeiBlockCopySrcDataPerRead_E  = 1;
+        WeiBlockCopyDstDataPerWrite_K = 1;
+        InBlockCopyDstDataPerWrite_N2 = 1;
+        InBlockCopySrcDataPerRead_B   = 1;
+    }
 
     // clang-format off
     construction_parameters.comp_options =
-        std::string(" -std=c++14 ") +
+        std::string(" -std=c++14") +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ctx.batch_sz) +
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ctx.n_outputs) +
         std::string(" -DCK_PARAM_PROBLEM_C=") + std::to_string(ctx.n_inputs) +
@@ -520,10 +547,12 @@ ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx
         std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_N1=") + std::to_string(config.InBlockCopyClusterLengths_N1) +
         std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_B=") + std::to_string(config.InBlockCopyClusterLengths_B) +
         std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_N2=") + std::to_string(config.InBlockCopyClusterLengths_N2) +
+        std::string(" -DCK_PARAM_IN_BLOCK_COPY_SRC_DATA_PER_READ_B=") + std::to_string(InBlockCopySrcDataPerRead_B) +
         std::string(" -DCK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_N2=") + std::to_string(InBlockCopyDstDataPerWrite_N2) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_E=") + std::to_string(config.WeiBlockCopyClusterLengths_E) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATE_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) + 
+        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATE_PER_WRITE_K=") + std::to_string(WeiBlockCopyDstDataPerWrite_K) + 
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
