@@ -338,7 +338,8 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 
             result.construction_params.push_back(kernel);
 
-            result.workspce_sz = in_batch_stride * params.batch_sz * sizeof(float);
+            result.workspce_sz =
+                in_batch_stride * params.batch_sz * GetTypeSize(params.out_data_type);
         }
 
         {
