@@ -40,7 +40,7 @@ template <int WinoDataW, int WinoFilterW, int WinoDataH = WinoDataW, int WinoFil
 struct WinogradBufferInfo
 {
 
-    const int WinoDataHW[2] = {WinoDataW, WinoDataW}, WinoFilterHW[2] = {WinoFilterW, WinoFilterH};
+    const int WinoDataHW[2] = {WinoDataH, WinoDataW}, WinoFilterHW[2] = {WinoFilterH, WinoFilterW};
     const bool direct[2] = {(WinoDataW == 1) && (WinoFilterW == 1),
                             (WinoDataH == 1) && (WinoFilterH == 1)};
     const int wino_xtile[2] = {WinoDataW + WinoFilterW - 1, WinoDataH + WinoFilterH - 1};
@@ -66,8 +66,8 @@ struct WinogradBufferInfo
                        ConvWinoBuffType buff_type)
     {
         WinoInfo wino_in, wino_out, wino_wei;
-        int out_HW[2] = {out_w, out_h};
-        int wei_HW[2] = {wei_w, wei_h};
+        int out_HW[2] = {out_h, out_w};
+        int wei_HW[2] = {wei_h, wei_w};
         wino_c        = c;
         for(int i = 0; i < 2; i++)
         {
@@ -86,17 +86,17 @@ struct WinogradBufferInfo
         {
         case ConvWinoBuffType::Input:
             buff_info = BuffInfo(
-                layout, n, wino_c, wino_in.wino_HW[1], wino_in.wino_HW[0], vec_c, data_len_t);
+                layout, n, wino_c, wino_in.wino_HW[0], wino_in.wino_HW[1], vec_c, data_len_t);
             wino_info = wino_in;
             break;
         case ConvWinoBuffType::Weight:
             buff_info = BuffInfo(
-                layout, k, wino_c, wino_wei.wino_HW[1], wino_wei.wino_HW[0], vec_c, data_len_t);
+                layout, k, wino_c, wino_wei.wino_HW[0], wino_wei.wino_HW[1], vec_c, data_len_t);
             wino_info = wino_wei;
             break;
         case ConvWinoBuffType::Output:
             buff_info =
-                BuffInfo(layout, n, k, wino_out.wino_HW[1], wino_out.wino_HW[0], vec_c, data_len_t);
+                BuffInfo(layout, n, k, wino_out.wino_HW[0], wino_out.wino_HW[1], vec_c, data_len_t);
             wino_info = wino_out;
             break;
         default: break;

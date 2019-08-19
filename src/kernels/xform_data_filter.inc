@@ -86,15 +86,6 @@ slot_size = xformx_d_size
 
 .text
 .p2align 8
-.if xform_filter
-    .globl gcnAsmWinogradXformFilter
-    .type gcnAsmWinogradXformFilter,@function
-    .amdgpu_hsa_kernel gcnAsmWinogradXformFilter
-.else
-    .globl gcnAsmWinogradXformData
-    .type gcnAsmWinogradXformData,@function
-    .amdgpu_hsa_kernel gcnAsmWinogradXformData
-.endif
 
 static_assert(xformx_f_size >=2 && xformx_f_size <= 6)
 static_assert(xformy_f_size >=2 && xformy_f_size <= 6)
@@ -210,12 +201,22 @@ lds_buf_size = xformy_d_size * lds_hstride
 
 .GPR_ALLOC_END
 
-.if xform_filter
-    gcnAsmWinogradXformFilter:
-.else
-    gcnAsmWinogradXformData:
-.endif
 
+.macro kernel_begin  x_o_size, y_o_size, x_f_size, y_f_size
+    .if xform_filter
+        .globl gcnAsmWinogradXformFilter_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
+        .type gcnAsmWinogradXformFilter_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size,@function
+        .amdgpu_hsa_kernel gcnAsmWinogradXformFilter_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
+        gcnAsmWinogradXformFilter_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size:
+    .else
+        .globl gcnAsmWinogradXformData_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
+        .type gcnAsmWinogradXformData_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size,@function
+        .amdgpu_hsa_kernel gcnAsmWinogradXformData_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
+        gcnAsmWinogradXformData_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size:
+    .endif
+.endm
+
+kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
 
     .amd_kernel_code_t
         enable_sgpr_kernarg_segment_ptr = 1
@@ -398,19 +399,19 @@ lds_buf_size = xformy_d_size * lds_hstride
                 // { 1.0/6, 1.0/3, 2.0/3 },
                 // { 0, 0, 1 }},
             .elseif \o_size == 3 && \f_size == 4
-                    v_fma_f32 v[t0], 4.0, v[d2], v[d0]
-                    v_fma_f32 v[t1], 4.0, v[d3], v[d1]
-                    v_add_f32 v[d4], v[d0], v[d2]
-                    v_add_f32 v[d5], v[d1], v[d3]
-                    v_mul_f32 v[d0], 0.25, v[d0]
-                    v_add_f32 v[d1], v[d4], v[d5]
-                    v_mul_f32 v[d1], -0.16666666667, v[d1] // -1/6
-                    v_sub_f32 v[d2], v[d4], v[d5]
-                    v_mul_f32 v[d2], -0.16666666667, v[d2] // -1/6
-                    v_mov_b32 v[d5], v[d3]
-                    v_fma_f32 v[d3],  2.0, v[t1], v[t0]
-                    v_fma_f32 v[d4], -2.0, v[t1], v[t0]
-                    v_mul_f32 v[d3], 0.04166666667, v[d3] // 1/24
+                v_fma_f32 v[t0], 4.0, v[d2], v[d0]
+                v_fma_f32 v[t1], 4.0, v[d3], v[d1]
+                v_add_f32 v[d4], v[d0], v[d2]
+                v_add_f32 v[d5], v[d1], v[d3]
+                v_mul_f32 v[d0], 0.25, v[d0]
+                v_add_f32 v[d1], v[d4], v[d5]
+                v_mul_f32 v[d1], -0.16666666667, v[d1] // -1/6
+                v_sub_f32 v[d2], v[d4], v[d5]
+                v_mul_f32 v[d2], -0.16666666667, v[d2] // -1/6
+                v_mov_b32 v[d5], v[d3]
+                v_fma_f32 v[d3],  2.0, v[t1], v[t0]
+                v_fma_f32 v[d4], -2.0, v[t1], v[t0]
+                v_mul_f32 v[d3], 0.04166666667, v[d3] // 1/24
                     v_mul_f32 v[d4], 0.04166666667, v[d4] // 1/24                    
 
                 //d[5] = d[3];
@@ -791,12 +792,12 @@ lds_buf_size = xformy_d_size * lds_hstride
             .error "wrong single_load args"
         .endif
         .rept \count
-			.if (\short == 1)
+            .if (\short == 1)
                 buffer_load_short_d16 v[\vgpr], v[voff_d], s[d_desc:d_desc+3], 0, offen offset:0+\soffset  
             .elseif \dwords == 1
-				buffer_load_dword v[\vgpr], v[voff_d], s[d_desc:d_desc+3], 0, offen offset:0+\soffset
-			.elseif( \dwords > 1)
-				buffer_load_dwordx\dwords v[\vgpr:\vgpr+\dwords-1], v[voff_d], s[d_desc:d_desc+3], 0, offen offset:0+\soffset
+                buffer_load_dword v[\vgpr], v[voff_d], s[d_desc:d_desc+3], 0, offen offset:0+\soffset
+            .elseif( \dwords > 1)
+                buffer_load_dwordx\dwords v[\vgpr:\vgpr+\dwords-1], v[voff_d], s[d_desc:d_desc+3], 0, offen offset:0+\soffset
             .endif
             \dwords_left = \dwords_left - \dwords - \short
             \soffset = \soffset + 4 * \dwords + (\short) * 2
@@ -809,23 +810,23 @@ lds_buf_size = xformy_d_size * lds_hstride
         vgpr = \buf 
         soffset = 0
         dwords_left = in_tile_width
-		.if( elem_size == 4 )
-            .if !xform_filter
-                // first single dword load required because of possible padding
-                single_load vgpr, 1, dwords_left, 1, soffset, \reads
-            .endif
+        .if( elem_size == 4 )
+        .if !xform_filter
+            // first single dword load required because of possible padding
+            single_load vgpr, 1, dwords_left, 1, soffset, \reads
+        .endif
         
-            single_load vgpr, 4, dwords_left, (dwords_left / 4), soffset, \reads
-            single_load vgpr, 3, dwords_left, (dwords_left / 3), soffset, \reads
-            single_load vgpr, 2, dwords_left, (dwords_left / 2), soffset, \reads
-            single_load vgpr, 1, dwords_left, (dwords_left / 1), soffset, \reads
+        single_load vgpr, 4, dwords_left, (dwords_left / 4), soffset, \reads
+        single_load vgpr, 3, dwords_left, (dwords_left / 3), soffset, \reads
+        single_load vgpr, 2, dwords_left, (dwords_left / 2), soffset, \reads
+        single_load vgpr, 1, dwords_left, (dwords_left / 1), soffset, \reads
         .endif
         .if( elem_size == 2 && dwords_left > 0)
             single_load vgpr, 0, dwords_left, dwords_left, soffset, \reads, 1
         .endif
     .endm
 
-	.macro write_data buf, voff
+    .macro write_data buf, voff
         i\@ = 0
         .rept xformy_d_size
             .if i\@ == 0
@@ -834,7 +835,7 @@ lds_buf_size = xformy_d_size * lds_hstride
                 s_add_u32 s[soff_o], s[soff_o], s[o_H_stride]
             .endif
             .if(elem_size == 4)
-                buffer_store_dword v[\buf+i\@], v[\voff], s[o_desc:o_desc+3], s[soff_o], offen
+            buffer_store_dword v[\buf+i\@], v[\voff], s[o_desc:o_desc+3], s[soff_o], offen
             .else
                 buffer_store_short v[\buf+i\@], v[\voff], s[o_desc:o_desc+3], s[soff_o], offen
             .endif
@@ -983,11 +984,11 @@ label skip_frontend, %slot
         
         // transform each column
         s_waitcnt lgkmcnt(0+xformx_d_size)
-		winograd_xform xformy_o_size, xformy_f_size, xformx_d_size, wrbuf, vtmp
-		
+        winograd_xform xformy_o_size, xformy_f_size, xformx_d_size, wrbuf, vtmp
+        
         data_convert wrbuf, xformx_d_size, vtmp, stmp, buf_type, acc_type
-		// store result
-		write_data wrbuf, oaddrbuf+rd_slot
+        // store result
+        write_data wrbuf, oaddrbuf+rd_slot
         v_mov_b32 v[oaddrbuf+rd_slot], v[voff_o]
 
         slot = slot + 1
@@ -1003,112 +1004,54 @@ endpgm:
 
 s_endpgm
 
-.Lfunc_end0:
-.if xform_filter
-    .size gcnAsmWinogradXformFilter, .Lfunc_end0 - gcnAsmWinogradXformFilter
-.else
-    .size gcnAsmWinogradXformData, .Lfunc_end0 - gcnAsmWinogradXformData
-.endif
+.altmacro
 
-
-.ifndef ROCM_METADATA_VERSION
-    .error "ROCM_METADATA_VERSION must be defined"
-.end
-.endif
-
-.macro METADATA wg_x, lds_size
+.macro METADATA wg_x, lds_size, kernel_name, kernel_symbol_name
   .if ROCM_METADATA_VERSION == 4
-    .if xform_filter
-        .amd_amdgpu_hsa_metadata
-            { Version: [ 1, 0 ],
-                Kernels:
-                - { Name: gcnAsmWinogradXformFilter, SymbolName: 'gcnAsmWinogradXformFilter@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-                    Attrs:
-                      { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
-                    CodeProps:
-                      { KernargSegmentSize: 148, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
-                    Args:
-                    - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: H       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: W       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
-                    - { Name: K       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: n_groups, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: flags   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: unused_1, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: filter_ptr      , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default}
-                    - { Name: reserved2       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default}
-                    - { Name: x_filter_ptr    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default}
-                    - { Name: ret_addr        , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*'  , AddrSpaceQual: Global, AccQual: Default }
-                    - { Name: R       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
-                    - { Name: S       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: pad_h, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: pad_w, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: out_h, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: out_w, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: reserved3       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
-                    - { Name: reserved4       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
-                    - { Name: d_N_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: d_C_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: d_H_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: d_W_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: reserved5       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
-                    - { Name: reserved6       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
-                    - { Name: reserved7       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
-                    - { Name: reserved8       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: o_N_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: o_C_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: o_H_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: o_W_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                  }
-            }
-        .end_amd_amdgpu_hsa_metadata
-    .else
-        .amd_amdgpu_hsa_metadata
-            { Version: [ 1, 0 ],
-                Kernels:
-                - { Name: gcnAsmWinogradXformData, SymbolName: 'gcnAsmWinogradXformData@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-                    Attrs:
-                      { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
-                    CodeProps:
-                      { KernargSegmentSize: 148, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
-                    Args:
-                    - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: H       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: W       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
-                    - { Name: K       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: n_groups, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: flags   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: unused_1, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: filter_ptr      , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default}
-                    - { Name: reserved2       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default}
-                    - { Name: x_filter_ptr    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default}
-                    - { Name: ret_addr        , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*'  , AddrSpaceQual: Global, AccQual: Default }
-                    - { Name: R       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
-                    - { Name: S       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: pad_h, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: pad_w, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: out_h, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: out_w, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: reserved3       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
-                    - { Name: reserved4       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
-                    - { Name: d_N_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: d_C_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: d_H_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: d_W_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: reserved5       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
-                    - { Name: reserved6       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
-                    - { Name: reserved7       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
-                    - { Name: reserved8       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: o_N_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: o_C_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: o_H_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                    - { Name: o_W_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                  }
-            }
-        .end_amd_amdgpu_hsa_metadata
-    .endif
+    .amd_amdgpu_hsa_metadata
+        { Version: [ 1, 0 ],
+            Kernels:
+            - { Name: \kernel_name, SymbolName: \kernel_symbol_name, Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+                Attrs:
+                    { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
+                CodeProps:
+                    { KernargSegmentSize: 148, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
+                Args:
+                - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: H       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: W       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
+                - { Name: K       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: n_groups, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: flags   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: unused_1, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: filter_ptr      , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default}
+                - { Name: reserved2       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default}
+                - { Name: x_filter_ptr    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default}
+                - { Name: ret_addr        , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*'  , AddrSpaceQual: Global, AccQual: Default }
+                - { Name: R       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
+                - { Name: S       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: pad_h, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: pad_w, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: out_h, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: out_w, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: reserved3       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
+                - { Name: reserved4       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
+                - { Name: d_N_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: d_C_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: d_H_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: d_W_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: reserved5       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
+                - { Name: reserved6       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
+                - { Name: reserved7       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
+                - { Name: reserved8       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: o_N_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: o_C_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: o_H_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: o_W_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                }
+        }
+    .end_amd_amdgpu_hsa_metadata
     
   .else
     .error "Unsupported ROCM_METADATA_VERSION"
@@ -1116,10 +1059,31 @@ s_endpgm
   .endif
 .endm
 
-.altmacro
-.macro METADATA_WRAPPER wg_x, lds_size
-    METADATA %\wg_x, %\lds_size
+
+.macro METADATA_WRAPPER wg_x, lds_size, kernel_suf
+    .if (xform_filter)
+        METADATA %\wg_x, %\lds_size, <gcnAsmWinogradXformFilter\kernel_suf>, <gcnAsmWinogradXformFilter\kernel_suf@kd>
+    .else
+        METADATA %\wg_x, %\lds_size, <gcnAsmWinogradXformData\kernel_suf>, <gcnAsmWinogradXformData\kernel_suf@kd>
+    .endif
 .endm
 
-METADATA_WRAPPER 64, .AUTO_LDS_BYTE_SIZE
+.macro kernel_end x_o_size, y_o_size, x_f_size, y_f_size
+    .if (xform_filter)
+        .size gcnAsmWinogradXformFilter_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size, .Lfunc_end0 - gcnAsmWinogradXformFilter_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
+    .else
+        .size gcnAsmWinogradXformData_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size, .Lfunc_end0 - gcnAsmWinogradXformData_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
+    .endif
+    METADATA_WRAPPER 64, .AUTO_LDS_BYTE_SIZE, _\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size 
+.endm
+
+.ifndef ROCM_METADATA_VERSION
+    .error "ROCM_METADATA_VERSION must be defined"
+.end
+.endif
+
+.Lfunc_end0:
+
+kernel_end %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
+
 
