@@ -6,40 +6,62 @@
 
 namespace ck {
 
-template <class Seq>
+template <index_t...>
+struct Sequence;
+
+template <class Seq, index_t I>
+struct sequence_split;
+
+template <class>
+struct sequence_reverse;
+
+template <class>
+struct sequence_map_inverse;
+
+template <class>
 struct is_valid_sequence_map;
+
+template <index_t I, index_t... Is>
+__host__ __device__ constexpr auto sequence_pop_front(Sequence<I, Is...>);
+
+template <class Seq>
+__host__ __device__ constexpr auto sequence_pop_back(Seq);
 
 template <index_t... Is>
 struct Sequence
 {
-    using Type = Sequence;
+    using Type      = Sequence;
+    using data_type = index_t;
 
     static constexpr index_t mSize = sizeof...(Is);
 
-    __host__ __device__ static constexpr index_t GetSize() { return mSize; }
+    __host__ __device__ static constexpr auto GetSize() { return Number<mSize>{}; }
 
-    template <index_t I>
-    __host__ __device__ static constexpr index_t Get(Number<I>)
+    __host__ __device__ static constexpr index_t GetImpl(index_t I)
     {
-        static_assert(I < mSize, "wrong! I too large");
-
         // the last dummy element is to prevent compiler complain about empty array, when mSize = 0
         const index_t mData[mSize + 1] = {Is..., 0};
         return mData[I];
     }
 
     template <index_t I>
-    __host__ __device__ constexpr auto operator[](Number<I>) const
+    __host__ __device__ static constexpr auto Get(Number<I>)
     {
-        return Number<Get(Number<I>{})>{};
+        static_assert(I < mSize, "wrong! I too large");
+
+        return Number<GetImpl(Number<I>{})>{};
     }
 
-    // make sure I is constepxr
-    __host__ __device__ constexpr index_t operator[](index_t I) const
+    __host__ __device__ static constexpr auto Get(index_t I) { return GetImpl(I); }
+
+    template <index_t I>
+    __host__ __device__ constexpr auto operator[](Number<I>) const
     {
-        const index_t mData[mSize + 1] = {Is..., 0};
-        return mData[I];
+        return Get(Number<I>{});
     }
+
+    // make sure I is constepxr if you want a constexpr return type
+    __host__ __device__ constexpr index_t operator[](index_t I) const { return GetImpl(I); }
 
     template <index_t... IRs>
     __host__ __device__ static constexpr auto ReorderGivenNew2Old(Sequence<IRs...> /*new2old*/)
@@ -52,23 +74,38 @@ struct Sequence
         return Sequence<Type::Get(Number<IRs>{})...>{};
     }
 
-    __host__ __device__ static constexpr auto Reverse();
-
-    __host__ __device__ static constexpr index_t Front()
+    // MapOld2New is Sequence<...>
+    template <class MapOld2New>
+    __host__ __device__ static constexpr auto ReorderGivenOld2New(MapOld2New)
     {
-        const index_t mData[mSize + 1] = {Is..., 0};
-        return mData[0];
+        static_assert(MapOld2New::GetSize() == GetSize(),
+                      "wrong! reorder map should have the same size as Sequence to be rerodered");
+
+        static_assert(is_valid_sequence_map<MapOld2New>::value, "wrong! invalid reorder map");
+
+        return ReorderGivenNew2Old(typename sequence_map_inverse<MapOld2New>::type{});
     }
 
-    __host__ __device__ static constexpr index_t Back()
+    __host__ __device__ static constexpr auto Reverse()
     {
-        const index_t mData[mSize + 1] = {Is..., 0};
-        return mData[mSize - 1];
+        return typename sequence_reverse<Type>::type{};
     }
 
-    __host__ __device__ static constexpr auto PopFront();
+    __host__ __device__ static constexpr auto Front()
+    {
+        static_assert(mSize > 0, "wrong!");
+        return Get(Number<0>{});
+    }
 
-    __host__ __device__ static constexpr auto PopBack();
+    __host__ __device__ static constexpr auto Back()
+    {
+        static_assert(mSize > 0, "wrong!");
+        return Get(Number<mSize - 1>{});
+    }
+
+    __host__ __device__ static constexpr auto PopFront() { return sequence_pop_front(Type{}); }
+
+    __host__ __device__ static constexpr auto PopBack() { return sequence_pop_back(Type{}); }
 
     template <index_t... Xs>
     __host__ __device__ static constexpr auto PushFront(Sequence<Xs...>)
@@ -107,7 +144,16 @@ struct Sequence
     }
 
     template <index_t I, index_t X>
-    __host__ __device__ static constexpr auto Modify(Number<I>, Number<X>);
+    __host__ __device__ static constexpr auto Modify(Number<I>, Number<X>)
+    {
+        static_assert(I < GetSize(), "wrong!");
+
+        using seq_split          = sequence_split<Type, I>;
+        constexpr auto seq_left  = typename seq_split::SeqType0{};
+        constexpr auto seq_right = typename seq_split::SeqType1{}.PopFront();
+
+        return seq_left.PushBack(Number<X>{}).PushBack(seq_right);
+    }
 
     template <class F>
     __host__ __device__ static constexpr auto Transform(F f)
@@ -126,48 +172,63 @@ struct sequence_merge<Sequence<Xs...>, Sequence<Ys...>>
     using type = Sequence<Xs..., Ys...>;
 };
 
-// arithmetic sqeuence
-template <index_t IBegin, index_t NSize, index_t Increment>
-struct arithmetic_sequence_gen_impl
+// generate sequence
+template <index_t IBegin, index_t NRemain, class F>
+struct sequence_gen_impl
 {
-    static constexpr index_t NSizeLeft = NSize / 2;
+    static constexpr index_t NRemainLeft  = NRemain / 2;
+    static constexpr index_t NRemainRight = NRemain - NRemainLeft;
+    static constexpr index_t IMiddle      = IBegin + NRemainLeft;
 
-    using type = typename sequence_merge<
-        typename arithmetic_sequence_gen_impl<IBegin, NSizeLeft, Increment>::type,
-        typename arithmetic_sequence_gen_impl<IBegin + NSizeLeft * Increment,
-                                              NSize - NSizeLeft,
-                                              Increment>::type>::type;
+    using type =
+        typename sequence_merge<typename sequence_gen_impl<IBegin, NRemainLeft, F>::type,
+                                typename sequence_gen_impl<IMiddle, NRemainRight, F>::type>::type;
 };
 
-template <index_t IBegin, index_t Increment>
-struct arithmetic_sequence_gen_impl<IBegin, 1, Increment>
+template <index_t I, class F>
+struct sequence_gen_impl<I, 1, F>
 {
-    using type = Sequence<IBegin>;
+    static constexpr index_t Is = F{}(Number<I>{});
+    using type                  = Sequence<Is>;
 };
 
-template <index_t IBegin, index_t Increment>
-struct arithmetic_sequence_gen_impl<IBegin, 0, Increment>
+template <index_t I, class F>
+struct sequence_gen_impl<I, 0, F>
 {
     using type = Sequence<>;
 };
 
+template <index_t NSize, class F>
+struct sequence_gen
+{
+    using type = typename sequence_gen_impl<0, NSize, F>::type;
+};
+
+// arithmetic sequence
 template <index_t IBegin, index_t IEnd, index_t Increment>
 struct arithmetic_sequence_gen
 {
-    using type = typename arithmetic_sequence_gen_impl<IBegin, IEnd - IBegin, Increment>::type;
+    struct F
+    {
+        __host__ __device__ constexpr index_t operator()(index_t i) const
+        {
+            return i * Increment + IBegin;
+        }
+    };
+
+    using type = typename sequence_gen<(IEnd - IBegin) / Increment, F>::type;
 };
 
 // uniform sequence
 template <index_t NSize, index_t I>
 struct uniform_sequence_gen
 {
-    struct return_constant
+    struct F
     {
         __host__ __device__ constexpr index_t operator()(index_t) const { return I; }
     };
 
-    using type = decltype(
-        typename arithmetic_sequence_gen<0, NSize, 1>::type{}.Transform(return_constant{}));
+    using type = typename sequence_gen<NSize, F>::type;
 };
 
 // reverse inclusive scan (with init) sequence
@@ -236,12 +297,41 @@ struct sequence_reverse<Sequence<I0, I1>>
 template <class Seq>
 struct is_valid_sequence_map
 {
+    // not implemented yet, always return true
     static constexpr integral_constant<bool, true> value = integral_constant<bool, true>{};
 
     // TODO: add proper check for is_valid, something like:
     // static constexpr bool value =
     //     is_same<typename arithmetic_sequence_gen<0, Seq::GetSize(), 1>::type,
     //             typename sequence_sort<Seq>::SortedSeqType>{};
+};
+
+template <class X2Y, class WorkingY2X, index_t XBegin, index_t XRemain>
+struct sequence_map_inverse_impl
+{
+    private:
+    static constexpr auto new_y2x =
+        WorkingY2X::Modify(X2Y::Get(Number<XBegin>{}), Number<XBegin>{});
+
+    public:
+    using type =
+        typename sequence_map_inverse_impl<X2Y, decltype(new_y2x), XBegin + 1, XRemain - 1>::type;
+};
+
+template <class X2Y, class WorkingY2X, index_t XBegin>
+struct sequence_map_inverse_impl<X2Y, WorkingY2X, XBegin, 0>
+{
+    using type = WorkingY2X;
+};
+
+template <class X2Y>
+struct sequence_map_inverse
+{
+    using type =
+        typename sequence_map_inverse_impl<X2Y,
+                                           typename uniform_sequence_gen<X2Y::GetSize(), 0>::type,
+                                           0,
+                                           X2Y::GetSize()>::type;
 };
 
 template <index_t... Xs, index_t... Ys>
@@ -355,8 +445,8 @@ __host__ __device__ constexpr auto sequence_pop_front(Sequence<I, Is...>)
 template <class Seq>
 __host__ __device__ constexpr auto sequence_pop_back(Seq)
 {
-    static_assert(Seq{}.GetSize() > 0, "wrong! cannot pop an empty Sequence!");
-    return sequence_pop_front(Seq{}.Reverse()).Reverse();
+    static_assert(Seq::GetSize() > 0, "wrong! cannot pop an empty Sequence!");
+    return sequence_pop_front(Seq::Reverse()).Reverse();
 }
 
 template <class F, index_t... Xs>
@@ -394,37 +484,6 @@ template <class Seq, class Reduce, index_t Init>
 __host__ __device__ constexpr auto inclusive_scan_sequence(Seq, Reduce, Number<Init>)
 {
     return reverse_inclusive_scan_sequence(Seq{}.Reverse(), Reduce{}, Number<Init>{}).Reverse();
-}
-
-template <index_t... Is>
-__host__ __device__ constexpr auto Sequence<Is...>::PopFront()
-{
-    return sequence_pop_front(Type{});
-}
-
-template <index_t... Is>
-__host__ __device__ constexpr auto Sequence<Is...>::PopBack()
-{
-    return sequence_pop_back(Type{});
-}
-
-template <index_t... Is>
-__host__ __device__ constexpr auto Sequence<Is...>::Reverse()
-{
-    return typename sequence_reverse<Sequence<Is...>>::type{};
-}
-
-template <index_t... Is>
-template <index_t I, index_t X>
-__host__ __device__ constexpr auto Sequence<Is...>::Modify(Number<I>, Number<X>)
-{
-    static_assert(I < GetSize(), "wrong!");
-
-    using seq_split          = sequence_split<Type, I>;
-    constexpr auto seq_left  = typename seq_split::SeqType0{};
-    constexpr auto seq_right = typename seq_split::SeqType1{}.PopFront();
-
-    return seq_left.PushBack(Number<X>{}).PushBack(seq_right);
 }
 
 template <index_t... Xs>

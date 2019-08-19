@@ -42,20 +42,16 @@ struct integer_divide_ceiler
     }
 };
 
-template <class T>
-__host__ __device__ constexpr T integer_divide_ceil(T a, T b)
+template <class X, class Y>
+__host__ __device__ constexpr auto integer_divide_ceil(X x, Y y)
 {
-    static_assert(is_same<T, index_t>{} || is_same<T, int>{}, "wrong type");
-
-    return (a + b - 1) / b;
+    return (x + y - 1) / y;
 }
 
-template <class T>
-__host__ __device__ constexpr T integer_least_multiple(T a, T b)
+template <class X, class Y>
+__host__ __device__ constexpr auto integer_least_multiple(X x, Y y)
 {
-    static_assert(is_same<T, index_t>{} || is_same<T, int>{}, "wrong type");
-
-    return b * integer_divide_ceil(a, b);
+    return y * integer_divide_ceil(x, y);
 }
 
 template <class T>

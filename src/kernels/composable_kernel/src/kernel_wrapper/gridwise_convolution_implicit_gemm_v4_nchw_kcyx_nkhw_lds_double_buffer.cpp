@@ -98,7 +98,7 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_
     using InBlockCopySrcAccessOrder            = Sequence<0, 1, 3, 2>; // [E, N1, N2, B]
     using InBlockCopyDstAccessOrder            = Sequence<0, 1, 2, 3>; // [E, N1, B, N2]
 
-    constexpr index_t InBlockCopySrcDataPerRead_B   = 1;
+    constexpr index_t InBlockCopySrcDataPerRead_B   = CK_PARAM_IN_BLOCK_COPY_SRC_DATA_PER_READ_B;
     constexpr index_t InBlockCopyDstDataPerWrite_N2 = CK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_N2;
 
     using WeiBlockCopySubLengths_E_K = Sequence<WeiBlockCopySubLengths_E, WeiBlockCopySubLengths_K>;
@@ -110,7 +110,7 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_
     using WeiBlockCopyDstAccessOrder            = Sequence<0, 1>; // [E, K]
 
     constexpr index_t WeiBlockCopySrcDataPerRead_E  = CK_PARAM_WEI_BLOCK_COPY_SRC_DATE_PER_READ_E;
-    constexpr index_t WeiBlockCopyDstDataPerWrite_K = 1;
+    constexpr index_t WeiBlockCopyDstDataPerWrite_K = CK_PARAM_WEI_BLOCK_COPY_DST_DATE_PER_WRITE_K;
 
 #elif MIOPEN_USE_FP16 == 1 || MIOPEN_USE_BFP16 == 1
 

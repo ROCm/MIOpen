@@ -49,11 +49,17 @@ std::vector<int> GetTensorLengths(miopenTensorDescriptor_t& tensor)
         miopenGet5dTensorDescriptorLengths(tensor, &n, &c, &d, &h, &w);
         return std::vector<int>({n, c, d, h, w});
     }
-    else
+    else if(size == 4)
     {
         miopenGet4dTensorDescriptorLengths(tensor, &n, &c, &h, &w);
         return std::vector<int>({n, c, h, w});
     }
+
+    std::vector<int> tensor_len;
+    tensor_len.resize(miopen::deref(tensor).GetSize());
+    miopenGetTensorDescriptor(tensor, nullptr, tensor_len.data(), nullptr);
+
+    return tensor_len;
 }
 
 std::vector<int> GetTensorStrides(miopenTensorDescriptor_t& tensor)

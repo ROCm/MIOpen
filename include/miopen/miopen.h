@@ -293,6 +293,11 @@ MIOPEN_DECLARE_OBJECT(miopenRNNDescriptor);
 */
 MIOPEN_DECLARE_OBJECT(miopenCTCLossDescriptor);
 
+/*! @ingroup Dropout
+* @brief Creates the miopenDropoutDescriptor_t type
+*/
+MIOPEN_DECLARE_OBJECT(miopenDropoutDescriptor);
+
 /*! @ingroup tensor
  * @enum miopenDataType_t
  * MIOpen floating point datatypes. Both 32-bit and 16-bit floats are supported in MIOpen.
@@ -3999,6 +4004,192 @@ MIOPEN_EXPORT miopenStatus_t miopenCTCLoss(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT LossFunction DOXYGEN GROUP
+
+// Dropout APIs
+/** @addtogroup dropout
+ *
+ *  @{
+ */
+
+/*!  @enum miopenRNGType_t
+* random number generator type
+*/
+typedef enum {
+    MIOPEN_RNG_PSEUDO_XORWOW = 0, /*!< XORWOW pseudorandom generator */
+} miopenRNGType_t;
+
+/*! @brief Creates the dropout descriptor object
+ *
+ * @param dropoutDesc Pointer to a dropout descriptor type
+ * @return            miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenCreateDropoutDescriptor(miopenDropoutDescriptor_t* dropoutDesc);
+
+/*! @brief Destroys the dropout descriptor object
+ *
+ * @param dropoutDesc Dropout descriptor type (input)
+ * @return            miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenDestroyDropoutDescriptor(miopenDropoutDescriptor_t dropoutDesc);
+
+/*! @brief Query the amount of memory required to run dropout
+ *
+ * This function calculates the amount of memory required to run dropout.
+ * @param xDesc                    Tensor descriptor for data tensor x (input)
+ * @param reserveSpaceSizeInBytes  Number of bytes of reservespace required for executing dropout
+ * (Output)
+ * @return                         miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenDropoutGetReserveSpaceSize(const miopenTensorDescriptor_t xDesc,
+                                                              size_t* reserveSpaceSizeInBytes);
+
+/*! @brief Query the amount of memory required to store the states of the random number generators
+ *
+ * This function calculates the amount of memory required to store the states of the random number
+ * generators used by miopenDropoutForward.
+ * @param handle            MIOpen handle (input)
+ * @param stateSizeInBytes  Number of bytes required to store random generator states (Output)
+ * @return                  miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenDropoutGetStatesSize(miopenHandle_t handle,
+                                                        size_t* stateSizeInBytes);
+
+/*! @brief Get the details of the dropout descriptor
+ *
+ * Interface for querying the dropout descriptor
+ * @param dropoutDesc  Dropout layer descriptor (input)
+ * @param handle       MIOpen handle (input)
+ * @param dropout      The probability by which the input is set to 0 in the dropout layer (Output)
+ * @param states       Pointer to memory that holds random number generator states (Output)
+ * @param seed         Seed used to initialize random number generator states (Output)
+ * @param use_mask     Boolean flag indicating whether to use a saved mask (an existing or
+ * user-defined dropout layout) in reserveSpace (Output)
+ * @param state_evo    Boolean flag indicating whether to adopt state evolution strategy to update
+ * the PRNG states by the end of each implementation (Output)
+ * @param rng_mode     Random number generator used to generate parallel random number sequences
+ * (Output)
+ * @return             miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenGetDropoutDescriptor(miopenDropoutDescriptor_t dropoutDesc,
+                                                        miopenHandle_t handle,
+                                                        float* dropout,
+                                                        void** states,
+                                                        unsigned long long* seed,
+                                                        bool* use_mask,
+                                                        bool* state_evo,
+                                                        miopenRNGType_t* rng_mode);
+
+/*! @brief Restore the dropout descriptor to a saved state
+ *
+ * This function restores the state of dropout descriptor using the address of a state buffer with
+ * previously saved PRNG state pattern, without launching the expensive PRNG initialization process.
+ *
+ * Interface for restoring the dropout descriptor
+ * @param dropoutDesc       Dropout layer descriptor (input/Output)
+ * @param handle            MIOpen handle (input)
+ * @param dropout           The probability by which the input is set to 0 in the dropout layer
+ * (input)
+ * @param states            Pointer to memory that holds random number generator states (input)
+ * @param stateSizeInBytes  Number of bytes holding random generator states (input)
+ * @param seed              Seed used to initialize random number generator states (input)
+ * @param use_mask          Boolean flag indicating whether to use a saved mask (an existing or
+ * user-defined dropout layout) in reserveSpace (input)
+ * @param state_evo         Boolean flag indicating whether to adopt state evolution strategy to
+ * update the PRNG states by the end of each implementation (input)
+ * @param rng_mode          Random number generator used to generate parallel random number
+ * sequences (input)
+ * @return                  miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenRestoreDropoutDescriptor(miopenDropoutDescriptor_t dropoutDesc,
+                                                            miopenHandle_t handle,
+                                                            float dropout,
+                                                            void* states,
+                                                            size_t stateSizeInBytes,
+                                                            unsigned long long seed,
+                                                            bool use_mask,
+                                                            bool state_evo,
+                                                            miopenRNGType_t rng_mode);
+
+/*! @brief Initialize the dropout descriptor
+ *
+ * Interface for setting up the dropout descriptor
+ * @param dropoutDesc       Dropout layer descriptor (input/Output)
+ * @param handle            MIOpen handle (input)
+ * @param dropout           The probability by which the input is set to 0 in the dropout layer
+ * (input)
+ * @param states            Pointer to memory that holds random number generator states (input)
+ * @param stateSizeInBytes  Number of bytes provided for random generator states (input)
+ * @param seed              Seed used to initialize random number generator states (input)
+ * @param use_mask          Boolean flag indicating whether to use a saved mask (an existing or
+ * user-defined dropout layout) in reserveSpace (input)
+ * @param state_evo         Boolean flag indicating whether to adopt state evolution strategy to
+ * update the PRNG states by the end of each implementation (input)
+ * @param rng_mode          Random number generator used to generate parallel random number
+ * sequences (input)
+ * @return                  miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetDropoutDescriptor(miopenDropoutDescriptor_t dropoutDesc,
+                                                        miopenHandle_t handle,
+                                                        float dropout,
+                                                        void* states,
+                                                        size_t stateSizeInBytes,
+                                                        unsigned long long seed,
+                                                        bool use_mask,
+                                                        bool state_evo,
+                                                        miopenRNGType_t rng_mode);
+
+/*! @brief Execute forward dropout operation
+ *
+ * Interface for executing the forward pass on a Dropout.
+ * @param handle                   MIOpen handle (input)
+ * @param dropoutDesc              Dropout layer descriptor (input)
+ * @param noise_shape              Tensor descriptor for noise shape (input)
+ * @param xDesc                    Tensor descriptor for data tensor x (input)
+ * @param x                        Data tensor x (input)
+ * @param yDesc                    Tensor descriptor for data tensor y (input)
+ * @param y                        Data tensor y (Output)
+ * @param reserveSpace             Pointer to memory allocated for executing forward dropout,
+ * expecting reserveSpace unchanged before next call of miopenDropoutBackward (Output)
+ * @param reserveSpaceSizeInBytes  Number of bytes of reservespace required for executing forward
+ * dropout (input)
+ * @return                         miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenDropoutForward(miopenHandle_t handle,
+                                                  const miopenDropoutDescriptor_t dropoutDesc,
+                                                  const miopenTensorDescriptor_t noise_shape,
+                                                  const miopenTensorDescriptor_t xDesc,
+                                                  const void* x,
+                                                  const miopenTensorDescriptor_t yDesc,
+                                                  void* y,
+                                                  void* reserveSpace,
+                                                  size_t reserveSpaceSizeInBytes);
+
+/*! @brief Execute backward dropout operation
+ *
+ * Interface for executing the backward pass on a Dropout.
+ * @param handle                   MIOpen handle (input)
+ * @param dropoutDesc              Dropout layer descriptor (input)
+ * @param dyDesc                   Tensor descriptor for data delta tensor dy (input)
+ * @param dy                       Data delta tensor dy (input)
+ * @param dxDesc                   Tensor descriptor for data delta tensor dx (input)
+ * @param dx                       Data delta tensor dx (Output)
+ * @param reserveSpace             Pointer to memory allocated for executing backward dropout,
+ * expecting reserveSpace unchanged after previous call of miopenDropoutForward (input)
+ * @param reserveSpaceSizeInBytes  Number of bytes of reservespace required for executing backward
+ * dropout (input)
+ * @return                         miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenDropoutBackward(miopenHandle_t handle,
+                                                   const miopenDropoutDescriptor_t dropoutDesc,
+                                                   const miopenTensorDescriptor_t dyDesc,
+                                                   const void* dy,
+                                                   const miopenTensorDescriptor_t dxDesc,
+                                                   void* dx,
+                                                   void* reserveSpace,
+                                                   size_t reserveSpaceSizeInBytes);
+
+/** @} */
+// CLOSEOUT DROPOUT DOXYGEN GROUP
 
 #ifdef __cplusplus
 }

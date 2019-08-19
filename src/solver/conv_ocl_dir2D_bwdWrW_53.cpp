@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include "miopen/solver.hpp"
+#include "miopen/stringutils.hpp"
 #include <miopen/env.hpp>
 
 namespace miopen {
@@ -434,7 +435,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     if(!params.direction.IsBackwardWrW())
         MIOPEN_THROW("!params.direction.IsBackwardWrW()");
     // it's backward - inputs are outputs and vs versa
-    const auto comp_options =
+    auto comp_options =
         std::string(" -DMLO_DIR_FORWARD=0") + std::string(" -DMLO_GRP_SZ=") +
         std::to_string(GRP_SZ) + std::string(" -DMLO_GRP_SZ0=") + std::to_string(result.grp_tile0) +
         std::string(" -DMLO_GRP_SZ1=") + std::to_string(result.grp_tile1) +
@@ -504,6 +505,14 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
 
         //		+ std::string(" -limit-vector-registers=64 ")
         + params.general_compile_options;
+
+    // On MI100 hardware, the compiler doesn't seem to support #pragam unroll correctly
+    // References: PR: #1962 and SWDEV-200074
+    const auto name = params.GetStream().GetDeviceName();
+    if(StartsWith(name, "gfx908"))
+    {
+        comp_options += " -DMLO_DISABLE_PRAGMA_UNROLL_COMPILER_SWDEV_200074_WORKAROUND=1";
+    }
 
     // wrt to W
     {
