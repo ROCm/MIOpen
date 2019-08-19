@@ -37,6 +37,9 @@
 
 namespace miopen {
 namespace solver {
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6)
 
 // Introduces a number of shader-specific aliases (names) in the current scope at zero cost.
 // These names represent shader parameters, e.g. shader C is batch_size etc and useful for
@@ -52,33 +55,34 @@ namespace solver {
     const auto& H     = (params).out_height;    \
     const auto& W     = (params).out_width;
 
-const int xform_f_size  = 4;
-const int xform_o_size  = 3;
-const int xformy_d_size = (xform_f_size + xform_o_size - 1);
+#define xform_f_size WinoFilterW
+#define xform_o_size WinoDataW
+#define xformy_d_size (xform_f_size + xform_o_size - 1)
 
+template <int WinoDataW, int WinoFilterW>
 struct InTransform
 {
     static bool IsApplicable(const ConvolutionContext& params)
     {
         DEFINE_SHADER_ALIASES(params)
-        WinogradBufferInfo<3, 4> wino_info(N,
-                                           K,
-                                           C,
-                                           out_H,
-                                           out_W,
-                                           R,
-                                           S,
-                                           GetSwappedNCLayout(MemLayout_t::HWCN),
-                                           1,
-                                           GetTypeSize(params.in_data_type),
-                                           ConvWinoBuffType::Input);
+        WinogradBufferInfo<WinoDataW, WinoFilterW> wino_info(N,
+                                                             K,
+                                                             C,
+                                                             out_H,
+                                                             out_W,
+                                                             R,
+                                                             S,
+                                                             GetSwappedNCLayout(MemLayout_t::HWCN),
+                                                             1,
+                                                             GetTypeSize(params.in_data_type),
+                                                             ConvWinoBuffType::Input);
 
         const size_t u16limit       = 1 << 16;
         const size_t tiles_per_wave = wave_size / xformy_d_size;
         // clang-format off
         const size_t chw_step       = tiles_per_wave
             * params.GetStream().GetMaxComputeUnits()
-            * ConvWinograd3x3MultipassWrW::GetGroupCountMult();
+            * ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::GetGroupCountMult();
         const std::string name = params.GetStream().GetDeviceName();
         if(name.find("gfx8") != std::string::npos)
         {
@@ -99,50 +103,55 @@ struct InTransform
     static KernelInfo GetKernel(const ConvolutionContext& params)
     {
         const std::vector<size_t> l_wk{wave_size, 1, 1};
-        const size_t g_wk_0 = params.GetStream().GetMaxComputeUnits() *
-                              ConvWinograd3x3MultipassWrW::GetGroupCountMult() * l_wk[0];
+        const size_t g_wk_0 =
+            params.GetStream().GetMaxComputeUnits() *
+            ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::GetGroupCountMult() * l_wk[0];
 
         const std::vector<size_t> g_wk{g_wk_0, 1, 1};
-
         std::ostringstream options;
         GenerateClangDefsym(options, "acc_type", 1);
         GenerateClangDefsym(options, "buf_type", (params.IsFp32() ? 1 : (params.IsFp16() ? 2 : 3)));
         GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 4);
+        GenerateClangDefsym(options, "xformx_o_size", WinoDataW);
+        GenerateClangDefsym(options, "xformy_o_size", WinoDataW);
+        GenerateClangDefsym(options, "xformx_f_size", WinoFilterW);
+        GenerateClangDefsym(options, "xformy_f_size", WinoFilterW);
         GenerateClangDefsym(options, "MIOPEN_USE_RNE_BFLOAT16", MIOPEN_USE_RNE_BFLOAT16);
 
         return KernelInfo{
             options.str(),
             l_wk,
             g_wk,
-            ConvWinograd3x3MultipassWrW::GetSolverFileNames()[0],
-            ConvWinograd3x3MultipassWrW::GetSolverKernelNames()[0],
+            ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::GetSolverFileNames()[0],
+            ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::GetSolverKernelNames()[0],
         };
     }
 };
 
+template <int WinoDataW, int WinoFilterW>
 struct FilterTransform
 {
     static bool IsApplicable(const ConvolutionContext& params)
     {
         DEFINE_SHADER_ALIASES(params)
-        WinogradBufferInfo<3, 4> wino_info(N,
-                                           K,
-                                           C,
-                                           out_H,
-                                           out_W,
-                                           R,
-                                           S,
-                                           GetSwappedNCLayout(MemLayout_t::HWCN),
-                                           1,
-                                           GetTypeSize(params.in_data_type),
-                                           ConvWinoBuffType::Input);
+        WinogradBufferInfo<WinoDataW, WinoFilterW> wino_info(N,
+                                                             K,
+                                                             C,
+                                                             out_H,
+                                                             out_W,
+                                                             R,
+                                                             S,
+                                                             GetSwappedNCLayout(MemLayout_t::HWCN),
+                                                             1,
+                                                             GetTypeSize(params.in_data_type),
+                                                             ConvWinoBuffType::Input);
 
         const size_t u16limit       = 1 << 16;
         const size_t tiles_per_wave = wave_size / xformy_d_size;
         // clang-format off
         const size_t chw_step       = tiles_per_wave
             * params.GetStream().GetMaxComputeUnits()
-            * ConvWinograd3x3MultipassWrW::GetGroupCountMult();
+            * ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::GetGroupCountMult();
         const std::string name = params.GetStream().GetDeviceName();
         if(name.find("gfx8") != std::string::npos)
         {
@@ -162,8 +171,9 @@ struct FilterTransform
     static KernelInfo GetKernel(const ConvolutionContext& params)
     {
         const std::vector<size_t> l_wk{wave_size, 1, 1};
-        const size_t g_wk_0 = params.GetStream().GetMaxComputeUnits() *
-                              ConvWinograd3x3MultipassWrW::GetGroupCountMult() * l_wk[0];
+        const size_t g_wk_0 =
+            params.GetStream().GetMaxComputeUnits() *
+            ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::GetGroupCountMult() * l_wk[0];
 
         const std::vector<size_t> g_wk{g_wk_0, 1, 1};
 
@@ -172,16 +182,21 @@ struct FilterTransform
         GenerateClangDefsym(options, "buf_type", (params.IsFp32() ? 1 : (params.IsFp16() ? 2 : 3)));
         GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 4);
         GenerateClangDefsym(options, "MIOPEN_USE_RNE_BFLOAT16", MIOPEN_USE_RNE_BFLOAT16);
+        GenerateClangDefsym(options, "xformx_o_size", WinoDataW);
+        GenerateClangDefsym(options, "xformy_o_size", WinoDataW);
+        GenerateClangDefsym(options, "xformx_f_size", WinoFilterW);
+        GenerateClangDefsym(options, "xformy_f_size", WinoFilterW);
         return KernelInfo{
             options.str(),
             l_wk,
             g_wk,
-            ConvWinograd3x3MultipassWrW::GetSolverFileNames()[1],
-            ConvWinograd3x3MultipassWrW::GetSolverKernelNames()[1],
+            ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::GetSolverFileNames()[1],
+            ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::GetSolverKernelNames()[1],
         };
     }
 };
 
+template <int WinoDataW, int WinoFilterW>
 struct OutTransform
 {
     static bool IsApplicable(const ConvolutionContext& params)
@@ -192,17 +207,18 @@ struct OutTransform
     {
         DEFINE_SHADER_ALIASES(params)
 
-        WinogradBufferInfo<3, 4> wino_weight(N,
-                                             K,
-                                             C,
-                                             out_H,
-                                             out_W,
-                                             R,
-                                             S,
-                                             GetSwappedNCLayout(MemLayout_t::HWCN),
-                                             1,
-                                             GetTypeSize(params.in_data_type),
-                                             ConvWinoBuffType::Weight);
+        WinogradBufferInfo<WinoDataW, WinoFilterW> wino_weight(
+            N,
+            K,
+            C,
+            out_H,
+            out_W,
+            R,
+            S,
+            GetSwappedNCLayout(MemLayout_t::HWCN),
+            1,
+            GetTypeSize(params.in_data_type),
+            ConvWinoBuffType::Weight);
         auto dwords_per_ld = 1;
         const std::vector<size_t> l_wk{wave_size, 1, 1};
         auto ceil_val       = dwords_per_ld * l_wk[0];
@@ -218,23 +234,39 @@ struct OutTransform
         GenerateClangDefsym(options, "buf_type", (params.IsFp32() ? 1 : (params.IsFp16() ? 2 : 3)));
         GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 4);
         GenerateClangDefsym(options, "MIOPEN_USE_RNE_BFLOAT16", MIOPEN_USE_RNE_BFLOAT16);
+        GenerateClangDefsym(options, "xformx_o_size", WinoDataW);
+        GenerateClangDefsym(options, "xformy_o_size", WinoDataW);
+        GenerateClangDefsym(options, "xformx_f_size", WinoFilterW);
+        GenerateClangDefsym(options, "xformy_f_size", WinoFilterW);
+
         return KernelInfo{
             options.str(),
             l_wk,
             g_wk,
-            ConvWinograd3x3MultipassWrW::GetSolverFileNames()[2],
-            ConvWinograd3x3MultipassWrW::GetSolverKernelNames()[2],
+            ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::GetSolverFileNames()[2],
+            ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::GetSolverKernelNames()[2],
 
         };
     }
 };
 
-bool ConvWinograd3x3MultipassWrW::IsApplicable(const ConvolutionContext& params) const
+template <int WinoDataW, int WinoFilterW>
+bool ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::IsApplicable(
+    const ConvolutionContext& params) const
 {
 // HIP backend required for sending ptr (buffer + offset)
 // ROCBLAS for GEMM step
 #if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
 
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4{}) && WinoDataW == 3 &&
+       WinoFilterW == 4)
+        return false;
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5{}) && WinoDataW == 3 &&
+       WinoFilterW == 5)
+        return false;
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6{}) && WinoDataW == 3 &&
+       WinoFilterW == 6)
+        return false;
     if(!params.use_asm_kernels)
         return false;
     if(params.rmv != rocm_meta_version::AMDHSA_1_0)
@@ -244,8 +276,9 @@ bool ConvWinograd3x3MultipassWrW::IsApplicable(const ConvolutionContext& params)
     if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
 
-    if(!(InTransform::IsApplicable(params) && OutTransform::IsApplicable(params) &&
-         FilterTransform::IsApplicable(params)))
+    if(!(InTransform<WinoDataW, WinoFilterW>::IsApplicable(params) &&
+         OutTransform<WinoDataW, WinoFilterW>::IsApplicable(params) &&
+         FilterTransform<WinoDataW, WinoFilterW>::IsApplicable(params)))
         return false;
 
     const std::string name = params.GetStream().GetDeviceName();
@@ -293,45 +326,51 @@ bool ConvWinograd3x3MultipassWrW::IsApplicable(const ConvolutionContext& params)
     return false;
 #endif
 }
-size_t ConvWinograd3x3MultipassWrW::GetWorkspaceSize(const ConvolutionContext& params) const
+
+template <int WinoDataW, int WinoFilterW>
+size_t ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::GetWorkspaceSize(
+    const ConvolutionContext& params) const
 {
     DEFINE_SHADER_ALIASES(params)
 
-    WinogradBufferInfo<3, 4> InTransform_info(N,
-                                              K,
-                                              C,
-                                              out_H,
-                                              out_W,
-                                              R,
-                                              S,
-                                              GetSwappedNCLayout(MemLayout_t::HWNC),
-                                              1,
-                                              GetTypeSize(params.in_data_type),
-                                              ConvWinoBuffType::Input);
+    WinogradBufferInfo<WinoDataW, WinoFilterW> InTransform_info(
+        N,
+        K,
+        C,
+        out_H,
+        out_W,
+        R,
+        S,
+        GetSwappedNCLayout(MemLayout_t::HWNC),
+        1,
+        GetTypeSize(params.in_data_type),
+        ConvWinoBuffType::Input);
 
-    WinogradBufferInfo<3, 4> FilterTransform_info(N,
-                                                  K,
-                                                  C,
-                                                  out_H,
-                                                  out_W,
-                                                  R,
-                                                  S,
-                                                  MemLayout_t::HWNC,
-                                                  1,
-                                                  GetTypeSize(params.in_data_type),
-                                                  ConvWinoBuffType::Weight);
+    WinogradBufferInfo<WinoDataW, WinoFilterW> FilterTransform_info(
+        N,
+        K,
+        C,
+        out_H,
+        out_W,
+        R,
+        S,
+        MemLayout_t::HWNC,
+        1,
+        GetTypeSize(params.in_data_type),
+        ConvWinoBuffType::Weight);
 
-    WinogradBufferInfo<3, 4> OutTransform_info(N,
-                                               K,
-                                               C,
-                                               out_H,
-                                               out_W,
-                                               R,
-                                               S,
-                                               GetSwappedNCLayout(MemLayout_t::HWNC),
-                                               1,
-                                               GetTypeSize(params.in_data_type),
-                                               ConvWinoBuffType::Output);
+    WinogradBufferInfo<WinoDataW, WinoFilterW> OutTransform_info(
+        N,
+        K,
+        C,
+        out_H,
+        out_W,
+        R,
+        S,
+        GetSwappedNCLayout(MemLayout_t::HWNC),
+        1,
+        GetTypeSize(params.in_data_type),
+        ConvWinoBuffType::Output);
 
     (void)H;
     (void)W;
@@ -340,17 +379,24 @@ size_t ConvWinograd3x3MultipassWrW::GetWorkspaceSize(const ConvolutionContext& p
            OutTransform_info.buff_info.total_byte_size;
 }
 
-ConvSolution ConvWinograd3x3MultipassWrW::GetSolution(const ConvolutionContext& params) const
+template <int WinoDataW, int WinoFilterW>
+ConvSolution ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::GetSolution(
+    const ConvolutionContext& params) const
 {
     ConvSolution result;
     result.workspce_sz = GetWorkspaceSize(params);
 
-    result.construction_params.push_back(InTransform::GetKernel(params));
-    result.construction_params.push_back(FilterTransform::GetKernel(params));
-    result.construction_params.push_back(OutTransform::GetKernel(params));
+    result.construction_params.push_back(InTransform<WinoDataW, WinoFilterW>::GetKernel(params));
+    result.construction_params.push_back(
+        FilterTransform<WinoDataW, WinoFilterW>::GetKernel(params));
+    result.construction_params.push_back(OutTransform<WinoDataW, WinoFilterW>::GetKernel(params));
 
     return result;
 }
+
+template struct ConvWinograd3x3MultipassWrW<3, 4>;
+template struct ConvWinograd3x3MultipassWrW<3, 5>;
+template struct ConvWinograd3x3MultipassWrW<3, 6>;
 
 } // namespace solver
 } // namespace miopen
