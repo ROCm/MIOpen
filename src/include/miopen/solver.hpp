@@ -42,6 +42,7 @@
 #include <string>
 #include <vector>
 #include <ostream>
+#include <algorithm>
 
 namespace miopen {
 
@@ -51,9 +52,13 @@ const int wave_size = 64;
 template <class Solver>
 std::string ComputeSolverDbId(Solver)
 {
-    const auto& name = get_type_name<Solver>();
-    auto idx         = name.find_last_of(':');
-    return name.substr(idx + 1);
+    const auto& const_name = get_type_name<Solver>();
+    auto idx               = const_name.find_last_of(':');
+    auto name              = const_name.substr(idx + 1);
+    std::replace(name.begin(), name.end(), ',', '-');
+    name.erase(std::remove(name.begin(), name.end(), ' '), name.end());
+
+    return name;
 }
 
 // This will retrieve the id of the solver to write to the database. By
@@ -556,6 +561,7 @@ struct ConvBinWinogradRxSFused : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
+template <int WinoDataW, int WinoFilterW>
 struct ConvWinograd3x3MultipassWrW : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
@@ -569,11 +575,19 @@ struct ConvWinograd3x3MultipassWrW : SolverBase<ConvolutionContext>
     }
     static std::vector<std::string> GetSolverKernelNames()
     {
-        return std::vector<std::string>{
-            "gcnAsmWinogradXformData", "gcnAsmWinogradXformFilter", "gcnAsmWinogradXformOut"};
+        std::stringstream name_suffix;
+        name_suffix << '_' << WinoDataW << '_' << WinoDataW << '_' << WinoFilterW << '_'
+                    << WinoFilterW;
+        return std::vector<std::string>{"gcnAsmWinogradXformData" + name_suffix.str(),
+                                        "gcnAsmWinogradXformFilter" + name_suffix.str(),
+                                        "gcnAsmWinogradXformOut" + name_suffix.str()};
     }
     static int GetGroupCountMult() { return 4; }
 };
+
+extern template struct ConvWinograd3x3MultipassWrW<3, 4>;
+extern template struct ConvWinograd3x3MultipassWrW<3, 5>;
+extern template struct ConvWinograd3x3MultipassWrW<3, 6>;
 
 struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirect3x3WrW>
 {
