@@ -27,6 +27,7 @@
 #include "miopen/solver.hpp"
 #include "miopen/handle.hpp"
 #include <miopen/generic_search.hpp>
+#include "miopen/stringutils.hpp"
 
 namespace miopen {
 namespace solver {
@@ -515,6 +516,10 @@ ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx
         InBlockCopySrcDataPerRead_B   = 1;
     }
 
+    bool use_amd_inline_asm = true;
+    if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx8"))
+        use_amd_inline_asm = false;
+
     // clang-format off
     construction_parameters.comp_options =
         std::string(" -std=c++14") +
@@ -553,6 +558,7 @@ ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATE_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) + 
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATE_PER_WRITE_K=") + std::to_string(WeiBlockCopyDstDataPerWrite_K) + 
+        std::string(" -DCK_BLOCKWISE_GEMM_USE_AMD_INLINE_ASM=") + std::to_string(use_amd_inline_asm ? 1 : 0) +
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
