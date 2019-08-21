@@ -506,7 +506,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         //		+ std::string(" -limit-vector-registers=64 ")
         + params.general_compile_options;
 
-    // On MI100 hardware, the compiler doesn't seem to support #pragam unroll correctly
+    // On gfx908 hardware, the compiler doesn't seem to support #pragam unroll correctly
     // References: PR: #1962 and SWDEV-200074
     const auto name = params.GetStream().GetDeviceName();
     if(StartsWith(name, "gfx908"))
