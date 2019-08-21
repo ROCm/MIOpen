@@ -26,6 +26,7 @@
 
 #include "miopen/solver.hpp"
 #include "miopen/handle.hpp"
+#include "miopen/stringutils.hpp"
 
 namespace miopen {
 namespace solver {
@@ -98,6 +99,10 @@ ConvSolution ConvHipImplicitGemmV4_1x1::GetSolution(const ConvolutionContext& ct
     construction_parameters.kernel_name =
         "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer";
 
+    bool use_amd_inline_asm = true;
+    if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx8"))
+        use_amd_inline_asm = false;
+
     // clang-format off
     construction_parameters.comp_options =
         std::string(" -std=c++14 ") +
@@ -116,6 +121,7 @@ ConvSolution ConvHipImplicitGemmV4_1x1::GetSolution(const ConvolutionContext& ct
         std::string(" -DCK_PARAM_TUNABLE_K_PER_BLOCK=") + std::to_string(k_per_block) +
         std::string(" -DCK_PARAM_TUNABLE_C_PER_BLOCK=") + std::to_string(c_per_block) +
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
+        std::string(" -DCK_BLOCKWISE_GEMM_USE_AMD_INLINE_ASM=") + std::to_string(use_amd_inline_asm ? 1 : 0) +
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
