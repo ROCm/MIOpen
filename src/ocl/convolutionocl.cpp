@@ -4058,6 +4058,9 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
 
     GetCompiledInParameters(
         ctx, &C, &K, &R, &S, &N, &n_groups, &H, &W, &out_H, &out_W, &unused, &unused);
+    // In wrw direction kernel_stride converted into filter_dilation
+    const auto& wrw_filter_dilation_h = ctx.kernel_stride_h;
+    const auto& wrw_filter_dilation_w = ctx.kernel_stride_w;
     // clang-format off
     BuffInfo
         in_buff_info(
@@ -4074,15 +4077,15 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
             K, C, R, S, 1,
             GetTypeSize(ctx.weights_data_type));
     WinogradBufferInfo<WinoDataW, WinoFilterW>
-        wino_in(N,K,C,out_H,out_W,R,S,
+        wino_in(N,K,C,out_H,out_W,R,S,wrw_filter_dilation_h,wrw_filter_dilation_w,
             MemLayout_t::HWNC,
             1,GetTypeSize(ctx.in_data_type),
             ConvWinoBuffType::Input),
-        wino_out(N,K,C,out_H,out_W,R,S,
+        wino_out(N,K,C,out_H,out_W,R,S,wrw_filter_dilation_h,wrw_filter_dilation_w,
             MemLayout_t::HWNC,
             1,GetTypeSize(ctx.out_data_type),
             ConvWinoBuffType::Output),
-        wino_wei(N,K,C,out_H,out_W,R,S,
+        wino_wei(N,K,C,out_H,out_W,R,S,wrw_filter_dilation_h,wrw_filter_dilation_w,
             MemLayout_t::HWNC,
             1,GetTypeSize(ctx.weights_data_type),
             ConvWinoBuffType::Weight);
@@ -4107,8 +4110,8 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
 
         if(cur_kernel.GetName() ==
            solver::ConvWinograd3x3MultipassWrW<WinoDataW,
-                                               WinoFilterW>::GetSolverKernelNames()[0]) // Input
-                                                                                        // Transform
+                                               WinoFilterW>::GetSolverKernelNames(0)) // Input
+                                                                                      // Transform
         {
             d_buf               = &in_buff_info;
             o_buf               = &(wino_in.buff_info);
@@ -4120,10 +4123,9 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
                 solver::ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::GetGroupCountMult();
         }
         else if(cur_kernel.GetName() ==
-                solver::ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::GetSolverKernelNames()
-                    [1]) // filter
-                         // Transform
-                         // and GEMM
+                solver::ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::GetSolverKernelNames(
+                    1)) // filter
+                        // Transform
         {
             d_buf                = &weights_buff_info;
             o_buf                = &(wino_wei.buff_info);
@@ -4135,6 +4137,7 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
                 solver::ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::GetGroupCountMult();
         }
         else // Output
+             // and GEMM
         {
             const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
             int m = N, n = K, k = wino_in.wino_c;
@@ -4242,7 +4245,7 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
             {
                 if(!(cur_kernel.GetName() ==
                      solver::ConvWinograd3x3MultipassWrW<WinoDataW,
-                                                         WinoFilterW>::GetSolverKernelNames()[2]))
+                                                         WinoFilterW>::GetSolverKernelNames(2)))
                 {
                     total_time += handle.GetKernelTime();
                 }
@@ -4514,26 +4517,23 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     auto tensors = ConvWrwTensors{dyDesc, dy, xDesc, x, dwDesc, dw};
                     if(workSpaceSize < sol.workspce_sz)
                         continue;
-                    if(sol.solver_id == miopen::solver::ComputeSolverDbId(
-                                            miopen::solver::ConvWinograd3x3MultipassWrW<3, 4>()))
-                    {
-                        // clang-format off
+                    // clang-format off
+                    if(sol.solver_id == SolverDbId(miopen::solver::ConvWinograd3x3MultipassWrW<3, 2>()))                                            
+                        EvaluateWinograd3x3MultipassWrW<3,2>(
+                            handle, ctx, tensors, workSpace, kernels, GetConvPads()[0], GetConvPads()[1],&elapsed);
+                    else if(sol.solver_id == SolverDbId(miopen::solver::ConvWinograd3x3MultipassWrW<3, 3>()))
+                        EvaluateWinograd3x3MultipassWrW<3,3>(
+                            handle, ctx, tensors, workSpace, kernels, GetConvPads()[0], GetConvPads()[1],&elapsed);
+                    else if(sol.solver_id == SolverDbId(miopen::solver::ConvWinograd3x3MultipassWrW<3, 4>()))
                         EvaluateWinograd3x3MultipassWrW<3,4>(
                             handle, ctx, tensors, workSpace, kernels, GetConvPads()[0], GetConvPads()[1],&elapsed);
-                        //clang-format on
-                    }else if(sol.solver_id == miopen::solver::ComputeSolverDbId(
-                                            miopen::solver::ConvWinograd3x3MultipassWrW<3, 5>())){
-                        // clang-format off
+                    else if(sol.solver_id == SolverDbId(miopen::solver::ConvWinograd3x3MultipassWrW<3, 5>()))
                         EvaluateWinograd3x3MultipassWrW<3,5>(
                             handle, ctx, tensors, workSpace, kernels, GetConvPads()[0], GetConvPads()[1],&elapsed);
-                        //clang-format on
-                    } else if(sol.solver_id == miopen::solver::ComputeSolverDbId(
-                                            miopen::solver::ConvWinograd3x3MultipassWrW<3, 6>())){
-                        // clang-format off
+                    else if(sol.solver_id == SolverDbId(miopen::solver::ConvWinograd3x3MultipassWrW<3, 6>()))
                         EvaluateWinograd3x3MultipassWrW<3,6>(
                             handle, ctx, tensors, workSpace, kernels, GetConvPads()[0], GetConvPads()[1],&elapsed);
-                        //clang-format on
-                    }else
+                    else // clang-format on
                     {
                         int unused                     = 0;
                         using dataType                 = float;
@@ -4556,12 +4556,12 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         int o_N_stride = R * S * static_cast<int>(sizeof(dataType));
                         int o_K_stride = C * o_N_stride;
                         // clang-format off
-		                MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
-		                        << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
-		                        << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
-		                        << " d_N_stride=" << d_N_stride << " d_C_stride=" << d_C_stride
-		                        << " f_K_stride=" << f_K_stride << " f_C_stride=" << f_C_stride
-		                        << " o_N_stride=" << o_N_stride << " o_K_stride=" << o_K_stride); // clang-format on
+                        MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
+                                << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
+                                << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
+                                << " d_N_stride=" << d_N_stride << " d_C_stride=" << d_C_stride
+                                << " f_K_stride=" << f_K_stride << " f_C_stride=" << f_C_stride
+                                << " o_N_stride=" << o_N_stride << " o_K_stride=" << o_K_stride); // clang-format on
                         kernels[0](C,
                                    N,
                                    H,
@@ -5036,16 +5036,23 @@ void ConvolutionDescriptor::BackwardWeightsWinograd(Handle& handle,
     if(kernels.size() > 1)
     {
         auto kernel_1 = kernels.front();
-        if(kernel_1.GetName() ==
-           solver::ConvWinograd3x3MultipassWrW<3, 4>::GetSolverKernelNames()[0])
+        if(kernel_1.GetName() == solver::ConvWinograd3x3MultipassWrW<3, 2>::GetSolverKernelNames(0))
+            EvaluateWinograd3x3MultipassWrW<3, 2>(
+                handle, ctx, tensors, workSpace, kernels, GetConvPads()[0], GetConvPads()[1]);
+        else if(kernel_1.GetName() ==
+                solver::ConvWinograd3x3MultipassWrW<3, 3>::GetSolverKernelNames(0))
+            EvaluateWinograd3x3MultipassWrW<3, 3>(
+                handle, ctx, tensors, workSpace, kernels, GetConvPads()[0], GetConvPads()[1]);
+        else if(kernel_1.GetName() ==
+                solver::ConvWinograd3x3MultipassWrW<3, 4>::GetSolverKernelNames(0))
             EvaluateWinograd3x3MultipassWrW<3, 4>(
                 handle, ctx, tensors, workSpace, kernels, GetConvPads()[0], GetConvPads()[1]);
         else if(kernel_1.GetName() ==
-                solver::ConvWinograd3x3MultipassWrW<3, 5>::GetSolverKernelNames()[0])
+                solver::ConvWinograd3x3MultipassWrW<3, 5>::GetSolverKernelNames(0))
             EvaluateWinograd3x3MultipassWrW<3, 5>(
                 handle, ctx, tensors, workSpace, kernels, GetConvPads()[0], GetConvPads()[1]);
         else if(kernel_1.GetName() ==
-                solver::ConvWinograd3x3MultipassWrW<3, 6>::GetSolverKernelNames()[0])
+                solver::ConvWinograd3x3MultipassWrW<3, 6>::GetSolverKernelNames(0))
             EvaluateWinograd3x3MultipassWrW<3, 6>(
                 handle, ctx, tensors, workSpace, kernels, GetConvPads()[0], GetConvPads()[1]);
     }
