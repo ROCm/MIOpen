@@ -436,7 +436,7 @@ MIOpenBatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
         pvt_bias    = lcl_bias;
         __attribute__((opencl_unroll_hint(2))) for(unsigned int n = 0; n < MIO_BN_N; n++)
         { // apply normalization
-            index        = n * MIO_BN_CHW + cidx + ygid;
+            index = n * MIO_BN_CHW + cidx + ygid;
             inhat = (*(in + index) - mean) * invVariance;
             // #5 Gamma and Beta adjust :: y_i = gamma*x_hat + beta
             out[index] = mad(pvt_scale, inhat, pvt_bias);
