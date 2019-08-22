@@ -686,7 +686,9 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 // point to the start of the local buffer
                 sc_lcl_off = lcl_bot_off;
 
+#ifndef MLO_DISABLE_PRAGMA_UNROLL_COMPILER_SWDEV_200074_WORKAROUND
 #pragma unroll 3
+#endif
                 for(; sc < MLO_IN_HEIGHT + MLO_FILTER_PAD1 - MLO_FILTER_SIZE1 + 1;
                     ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += lcl_width)
                 {
