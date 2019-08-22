@@ -1,3 +1,29 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
 .include "gpr_alloc.inc"
 .include "inst_wrappers.inc"
 .include "common.inc"
@@ -56,8 +82,8 @@
 // dwords 36	uint32_t o_W_stride;
 
 default pipe_depth, 4
-default xformx_f_size, 4 // 2..6
-default xformy_f_size, 4 // 2..6
+default xformx_f_size, 2 // 2..6
+default xformy_f_size, 2 // 2..6
 default xformx_o_size, 3 // 3
 default xformy_o_size, 3 // 3
 
@@ -75,8 +101,8 @@ static_assert(buf_type == TYPE_FP32 || buf_type == TYPE_FP16 || buf_type == TYPE
     lds_elem_size = 4
 .endif
 
-xformx_d_size = xformx_f_size + xformx_o_size - 1
-xformy_d_size = xformy_f_size + xformy_o_size - 1
+xformx_d_size = xformx_o_size + (xformx_f_size - 1) * fdilation_w
+xformy_d_size = xformy_o_size + (xformy_f_size - 1) * fdilation_h
 .if xformx_d_size > xformy_d_size
     tiles_per_wave = wave_size / xformx_d_size
 .else
@@ -94,15 +120,22 @@ static_assert(xformy_o_size == 3)
 static_assert(elem_size == 4 || elem_size == 2)
 static_assert(pipe_depth & 1 == 0)
 
+static_assert(fdilation_w == 1 || fdilation_w == 2)
+static_assert(fdilation_h == 1 || fdilation_h == 2)
+
 .if xform_filter
     in_tile_width  = xformx_f_size
     in_tile_height = xformy_f_size
+    tile_step_x = xformx_f_size
+    tile_step_y = xformy_f_size
     NK = K
     HR = R
     WS = S
 .else
     in_tile_width  = xformx_d_size
     in_tile_height = xformy_d_size
+    tile_step_x = xformx_f_size * fdilation_w
+    tile_step_y = xformy_f_size * fdilation_h
     NK = N
     HR = H
     WS = W
@@ -355,8 +388,8 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
         .endr
     .endm
 
-    .macro winograd_xform o_size, f_size, d_size, base_gpr, vtmp
-        .irp i,0,1,2,3,4,5,6,7
+    .macro winograd_xform o_size, f_size, d_size, fdil, base_gpr, vtmp
+        .irp i,0,1,2,3,4,5,6,7,8,9,10,11,12
             .if \i < (\d_size)
                 d\i = \base_gpr + \i
             .endif
@@ -365,16 +398,12 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
             .endif
         .endr
         .if xform_filter
-            .if \o_size == 3 && \f_size == 2
+            .if \o_size == 3 && \f_size == 2 && \fdil == 1
                 v_mov_b32 v[d3], v[d1]
                 v_sub_f32 v[d2], v[d0], v[d1] div:2
                 v_add_f32 v[d1], v[d0], v[d1] div:2
 
-                //{{ 1, 0 },
-                // { 0.5, 0.5 },
-                // { 0.5,-0.5 },
-                // { 0, 1 }},
-            .elseif \o_size == 3 && \f_size == 3
+            .elseif \o_size == 3 && \f_size == 3 && \fdil == 1
                 v_mov_b32 v[d4], v[d2]
                 v_fma_f32 v[d3], 2.0, v[d1], v[d0]
                 v_mac_f32 v[d3], 4.0, v[d2]
@@ -386,52 +415,23 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_add_f32 v[d1], v[d1], v[t0]
                 v_mul_f32 v[d1], -0.5, v[d1]
 
-                //d[4] = d[2];
-                //d[3] = ((d[0] + 2*d[1]) + 4*d[2]) * 0.16666666667f; // 1/6;
-                //float f = d[0] + d[2];
-                //d[0] = d[0] * 0.5f;
-                //d[2] = (d[1] - f) * 0.16666666667f; // 1/6;
-                //d[1] = -0.5f * (d[1] + f);
-
-                //{{ 0.5, 0, 0 },
-                // {-0.5,-0.5,-0.5 },
-                // {-1.0/6, 1.0/6, -1.0/6 },
-                // { 1.0/6, 1.0/3, 2.0/3 },
-                // { 0, 0, 1 }},
-            .elseif \o_size == 3 && \f_size == 4
-                v_fma_f32 v[t0], 4.0, v[d2], v[d0]
-                v_fma_f32 v[t1], 4.0, v[d3], v[d1]
-                v_add_f32 v[d4], v[d0], v[d2]
-                v_add_f32 v[d5], v[d1], v[d3]
-                v_mul_f32 v[d0], 0.25, v[d0]
-                v_add_f32 v[d1], v[d4], v[d5]
-                v_mul_f32 v[d1], -0.16666666667, v[d1] // -1/6
-                v_sub_f32 v[d2], v[d4], v[d5]
-                v_mul_f32 v[d2], -0.16666666667, v[d2] // -1/6
-                v_mov_b32 v[d5], v[d3]
-                v_fma_f32 v[d3],  2.0, v[t1], v[t0]
-                v_fma_f32 v[d4], -2.0, v[t1], v[t0]
-                v_mul_f32 v[d3], 0.04166666667, v[d3] // 1/24
+            .elseif \o_size == 3 && \f_size == 4 && \fdil == 1
+                    v_fma_f32 v[t0], 4.0, v[d2], v[d0]
+                    v_fma_f32 v[t1], 4.0, v[d3], v[d1]
+                    v_add_f32 v[d4], v[d0], v[d2]
+                    v_add_f32 v[d5], v[d1], v[d3]
+                    v_mul_f32 v[d0], 0.25, v[d0]
+                    v_add_f32 v[d1], v[d4], v[d5]
+                    v_mul_f32 v[d1], -0.16666666667, v[d1] // -1/6
+                    v_sub_f32 v[d2], v[d4], v[d5]
+                    v_mul_f32 v[d2], -0.16666666667, v[d2] // -1/6
+                    v_mov_b32 v[d5], v[d3]
+                    v_fma_f32 v[d3],  2.0, v[t1], v[t0]
+                    v_fma_f32 v[d4], -2.0, v[t1], v[t0]
+                    v_mul_f32 v[d3], 0.04166666667, v[d3] // 1/24
                     v_mul_f32 v[d4], 0.04166666667, v[d4] // 1/24                    
 
-                //d[5] = d[3];
-                //float f1 = -d[0] - d[2];
-                //float f2 = d[1] + d[3];
-                //float f3 = d[0] + 4 * d[2];
-                //float f4 = 2*d[1] + 8*d[3];
-                //d[0] = d[0]*0.25f;
-                //d[1] = (f1 - f2) * 0.16666666667f; // 1/6;
-                //d[2] = (f1 + f2) * 0.16666666667f; // 1/6;
-                //d[3] = (f3 + f4) * 0.04166666667f; // 1/24;
-                //d[4] = (f3 - f4) * 0.04166666667f; // 1/24;
-
-                //{{ 0.25, 0, 0, 0 },
-                // {-1.0/6, -1.0/6, -1.0/6,-1.0/6 },
-                // {-1.0/6,  1.0/6, -1.0/6, 1.0/6 },
-                // { 1.0/24, 1.0/12, 1.0/6, 1.0/3 },
-                // { 1.0/24,-1.0/12, 1.0/6,-1.0/3 },
-                // { 0, 0, 0, 1 }},
-            .elseif \o_size == 3 && \f_size == 5
+            .elseif \o_size == 3 && \f_size == 5 && \fdil == 1
                 v_mov_b32 v[d6], v[d4] //d[6]
 
                 v_mul_f32 v[d5], 2.0, v[d4]
@@ -465,26 +465,8 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 //--------------------------------------
                 v_sub_f32 v[d4], v[t3], v[t2]
                 v_mul_f32 v[d4], 0.01666666667, v[d4]     //d[4]
-                //d[6] = d[4];
-                //d[5] = (32*d[0] + (16*d[1] + (8*d[2] + (4*d[3] + 2*d[4])))) * 0.02222222222f; // 1/45;
-                //float f1 = d[0] + d[2] + d[4];
-                //float f2 = d[1] + d[3];
-                //float f3 = (d[0] + 4*d[2]) + 16*d[4];
-                //float f4 = 2*d[1] + 8*d[3];
-                //d[0] = 0.5f * d[0];
-                //d[1] = (-f1 - f2) * 0.33333333333f; // 1/3;
-                //d[2] = (f1 - f2)  * 0.11111111111f; // 1/9;
-                //d[3] = (f3 + f4)  * 0.02777777778f; // 1/36;
-                //d[4] = (-f3 + f4) * 0.01666666667f; // 1/60;
 
-                //{{ 0.5, 0, 0, 0, 0, 0 },
-                // { -1.0/3,  -1.0/3,  -1.0/3, -1.0/3,  -1.0/3 },
-                // {  1.0/9,  -1.0/9,   1.0/9, -1.0/9,   1.0/9 },
-                // { 1.0/36,  1.0/18,   1.0/9,  2.0/9,   4.0/9 },
-                // {-1.0/60,  1.0/30, -1.0/15, 2.0/15, -4.0/15 },
-                // {32.0/45, 16.0/45,  8.0/45, 4.0/45,  2.0/45 },
-                // { 0, 0, 0, 0, 1 }},
-            .elseif \o_size == 3 && \f_size == 6
+            .elseif \o_size == 3 && \f_size == 6 && \fdil == 1
                 v_mov_b32 v[d7], v[d5]   //d[7]]
                 //------------------------------
                 v_add_f32 v[t0], v[d0], v[d2]
@@ -530,51 +512,113 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_sub_f32 v[d6], v[t4], v[t5]
                 v_mul_f32 v[d6], 0.02222222222, v[d6]  //d[6]
 
-                //d[0] = d[0];
-                //d[7] = d[5];
-                //float f1 = -d[0] - d[2] - d[4];
-                //float f2 = d[1] + d[3] + d[5];
-                //float f3 = (d[0] + 4*d[2]) + 16*d[4];
-                //float f4 = (2*d[1] + 8*d[3]) + 32*d[5];
-                //float f5 = 32*d[0] + (8*d[2] + 2*d[4]);
-                //float f6 = 16*d[1] + (4*d[3] + d[5]);
-                //d[1] = (f1 - f2) * 0.22222222222f; // 2/9;
-                //d[2] = (f1 + f2) * 0.22222222222f; // 2/9;
-                //d[3] = (f3 + f4) * 0.01111111111f; // 1/90;
-                //d[4] = (f3 - f4) * 0.01111111111f; // 1/90;
-                //d[5] = (f5 + f6) * 0.02222222222f; // 1/45;
-                //d[6] = (f5 - f6) * 0.02222222222f; // 1/45;
+            .elseif \o_size == 3 && \f_size == 2 && \fdil == 2
+                v_add_f32 v[d2], v[d0], v[d1]
+                v_mov_b32 v[d3], v[d1]
+                v_mov_b32 v[d4], v[d1]
+                v_mov_b32 v[d1], v[d0]
 
-                //{{ 1, 0, 0, 0, 0, 0 },
-                // {  -2.0/9,   -2.0/9, -2.0/9,  -2.0/9, -2.0/9,   -2.0/9 },
-                // {  -2.0/9,    2.0/9, -2.0/9,   2.0/9, -2.0/9,    2.0/9 },
-                // {  1.0/90,   1.0/45, 2.0/45,  4.0/45, 8.0/45,  16.0/45 },
-                // {  1.0/90,  -1.0/45, 2.0/45, -4.0/45, 8.0/45, -16.0/45 },
-                // { 32.0/45,  16.0/45, 8.0/45,  4.0/45, 2.0/45,   1.0/45 },
-                // { 32.0/45, -16.0/45, 8.0/45, -4.0/45, 2.0/45,  -1.0/45 },
-                // { 0, 0, 0, 0, 0, 1 }},
+            .elseif \o_size == 3 && \f_size == 3 && \fdil == 2
+                v_mov_b32 v[d5], v[d2]
+                v_mov_b32 v[d6], v[d2]
+                v_mov_b32 v[d3], v[d1]
+                v_mov_b32 v[d1], v[d0]
+                v_add_f32 v[d2], v[d0], v[d6]
+                v_sub_f32 v[d4], v[d2], v[d3] div:2
+                v_add_f32 v[d2], v[d2], v[d3] div:2
+
+            .elseif \o_size == 3 && \f_size == 4 && \fdil == 2
+                v_add_f32 v[d6], v[d0], v[d2]
+                v_add_f32 v[d8], v[d1], v[d3]
+                v_mov_b32 v[d7], v[d3]
+                v_mov_b32 v[d5], v[d2]
+                v_mov_b32 v[d3], v[d1]
+                v_mov_b32 v[d1], v[d0]
+                v_mul_f32 v[d0], 0.5, v[d1]
+                v_add_f32 v[d2], v[d6], v[d8]
+                v_mul_f32 v[d2], -0.5, v[d2]
+                v_sub_f32 v[d4], v[d8], v[d6]
+                v_mul_f32 v[d4], 0.16666666667, v[d4] // 1/6
+                v_mov_b32 v[d8], v[d7]
+                v_fma_f32 v[d6], 0.5, v[d1], v[d3]
+                v_mac_f32 v[d6], 2.0, v[d5]
+                v_mac_f32 v[d6], 4.0, v[d7]
+                v_mul_f32 v[d6], 0.33333333333, v[d6] // 2/3
+
+            .elseif \o_size == 3 && \f_size == 5 && \fdil == 2
+                v_mov_b32 v[d9], v[d4]
+                v_mov_b32 v[d7], v[d3]
+                v_mov_b32 v[d5], v[d2]
+                v_mov_b32 v[d3], v[d1]
+                v_mov_b32 v[d1], v[d0]
+                v_add_f32 v[d0], v[d1], v[d5]
+                v_add_f32 v[d0], v[d0], v[d9]
+                v_add_f32 v[d10], v[d3], v[d7]
+                v_add_f32 v[d2], v[d0], v[d10]
+                v_mul_f32 v[d2], -0.16666666667, v[d2] // -1/6
+                v_sub_f32 v[d4], v[d0], v[d10]
+                v_mul_f32 v[d4], -0.16666666667, v[d4] // -1/6
+                v_fma_f32 v[d6], 0.5, v[d1], v[d3]
+                v_mac_f32 v[d6], 2.0, v[d5]
+                v_mac_f32 v[d6], 4.0, v[d7]
+                v_mac_f32 v[d6], 8.0, v[d9]
+                v_mul_f32 v[d6], 0.083333333333, v[d6] // 1/12
+                v_fma_f32 v[d8], -0.5, v[d1], v[d3]
+                v_mac_f32 v[d8], -2.0, v[d5]
+                v_mac_f32 v[d8],  4.0, v[d7]
+                v_mac_f32 v[d8], -8.0, v[d9]
+                v_mul_f32 v[d8], -0.083333333333, v[d8] // -1/12
+                v_mul_f32 v[d0], 0.25, v[d1]
+                v_mov_b32 v[d10], v[d9]
+
+            .elseif \o_size == 3 && \f_size == 6 && \fdil == 2
+                v_mov_b32 v[d11], v[d5]
+                v_mov_b32 v[d9], v[d4]
+                v_mov_b32 v[d7], v[d3]
+                v_mov_b32 v[d5], v[d2]
+                v_mov_b32 v[d3], v[d1]
+                v_mov_b32 v[d1], v[d0]
+
+                v_add_f32 v[d0], v[d1], v[d5]
+                v_add_f32 v[d0], v[d0], v[d9]
+                v_add_f32 v[d12], v[d3], v[d7]
+                v_add_f32 v[d12], v[d12], v[d11]
+                v_add_f32 v[d2], v[d0], v[d12]
+                v_mul_f32 v[d2], -0.333333333333, v[d2] // -1/3
+                v_sub_f32 v[d4], v[d0], v[d12]
+                v_mul_f32 v[d4],  0.111111111111, v[d4] // 1/9
+
+                v_fma_f32 v[d0],  4.0, v[d9],  v[d5]
+                v_fma_f32 v[d0],  4.0, v[d0],  v[d1]
+                v_fma_f32 v[d12], 4.0, v[d11], v[d7]
+                v_fma_f32 v[d12], 4.0, v[d12], v[d3]
+                v_fma_f32 v[d6], 2.0, v[d12], v[d0]
+                v_mul_f32 v[d6], 0.0277777778, v[d6] // 1/36
+                v_fma_f32 v[d8], -2.0, v[d12], v[d0]
+                v_mul_f32 v[d8],-0.0166666667, v[d8] //-1/60
+
+                v_fma_f32 v[d10],  2.0, v[d9], v[d11]
+                v_mac_f32 v[d10],  4.0, v[d7]
+                v_mac_f32 v[d10],  8.0, v[d5]
+                v_mac_f32 v[d10], 16.0, v[d3]
+                v_mac_f32 v[d10], 32.0, v[d1]
+                v_mul_f32 v[d10], 0.0222222222, v[d10] // 1/45
+
+                v_mul_f32 v[d0], 0.5, v[d1]
+                v_mov_b32 v[d12], v[d11]
+
             .else
                 static_assert(0)
             .endif
         .else
-            .if \o_size == 3 && \f_size == 2
+            .if \o_size == 3 && \f_size == 2 && \fdil == 1
                 v_sub_f32 v[d0], v[d0], v[d2]
                 v_sub_f32 v[d3], v[d3], v[d1]
                 v_sub_f32 v[t0], v[d2], v[d1]
                 v_add_f32 v[d1], v[d1], v[d2]
                 v_mov_b32 v[d2], v[t0]
 
-                //d[0] = d[0] - d[2];
-                //d[3] = d[3] - d[1];
-                //float f = d[2] - d[1];
-                //d[1] = d[1] + d[2];
-                //d[2] = f;
-
-                //{{ 1, 0,-1, 0 },
-                // { 0, 1, 1, 0 },
-                // { 0,-1, 1, 0 },
-                // { 0,-1, 0, 1 }},
-            .elseif \o_size == 3 && \f_size == 3
+            .elseif \o_size == 3 && \f_size == 3 && \fdil == 1
                 v_sub_f32 v[d0], v[d0], v[d2] mul:2
                 v_sub_f32 v[d4], v[d4], v[d2]
                 v_fma_f32 v[t0], -2.0, v[d1], v[d3]
@@ -586,21 +630,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_mul_f32 v[t0], -3.0, v[d2]
                 v_add_f32 v[d2], v[t0], v[t1]
 
-                //float f = d[3] - d[1];
-                //d[0] = 2*(d[0] - d[2]) + f;
-                //d[4] = d[4] - d[2] - 2*f;
-                //float f2 = -2*d[1] - d[2] + d[3];
-                //float f3 = 2*d[1] - 3*d[2] + d[3];
-                //d[1] = f2;
-                //d[2] = f3;
-                //d[3] = f;
-
-                //{{ 2,-1,-2, 1, 0 },
-                // { 0,-2,-1, 1, 0 },
-                // { 0, 2,-3, 1, 0 },
-                // { 0,-1, 0, 1, 0 },
-                // { 0, 2,-1,-2, 1 }},
-            .elseif \o_size == 3 && \f_size == 4
+            .elseif \o_size == 3 && \f_size == 4 && \fdil == 1
                 v_fma_f32 v[d0], 4.0, v[d0], v[d4]
                 v_mac_f32 v[d0], -5.0, v[d2]
                 v_fma_f32 v[d5], 4.0, v[d1], v[d5]
@@ -616,24 +646,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_add_f32 v[d3], v[t1], v[t0]
                 v_sub_f32 v[d4], v[t1], v[t0]
 
-                //d[0] = (4*d[0] + d[4]) - 5 * d[2];
-                //d[5] = (4*d[1] + d[5]) - 5 * d[3];
-                //float f1 = d[3] - 4*d[1];
-                //float f2 = d[4] - 4*d[2];
-                //float f3 = d[3] - d[1];
-                //float f4 = d[4] - d[2];
-                //d[1] = f2 + f1;
-                //d[2] = f2 - f1;
-                //d[3] = f4 + 2*f3;
-                //d[4] = f4 - 2*f3;
-
-                //{{ 4, 0,-5, 0, 1, 0 },
-                // { 0,-4,-4, 1, 1, 0 },
-                // { 0, 4,-4,-1, 1, 0 },
-                // { 0,-2,-1, 2, 1, 0 },
-                // { 0, 2,-1,-2, 1, 0 },
-                // { 0, 4, 0,-5, 0, 1 }},
-            .elseif \o_size == 3 && \f_size == 5
+            .elseif \o_size == 3 && \f_size == 5 && \fdil == 1
                 v_sub_f32 v[t0], v[d4], v[d2]  //f
 
                 v_mul_f32 v[d0], 2.0, v[d0]
@@ -691,27 +704,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_mov_b32 v[d1], v[t1] //d[1]
                 v_mov_b32 v[d3], v[t2] //d[3]
 
-                //d[0] = ((2*d[0] - 2.5f*d[2]) + (0.5f*d[4] - d[5])) + (5*d[3] - 4*d[1]);
-                //d[6] = ((-2*d[1] + 2.5f*d[3]) - (0.5f*d[5] - d[6])) - (5*d[4] - 4*d[2]);
-                //float d1 = ((d[5] + 0.5f*d[4]) + 2*d[1]) - (2*d[2] + 4.5f*d[3]);
-                //float d2 = ((d[5] - 1.5f*d[4]) - 2*d[1]) + (6*d[2] - 3.5f*d[3]);
-                //float f = d[4] - d[2];
-                //float d3 = ((d[5] + d[1]) + 1.5f*f) - 2*d[3];
-                //float d4 = ((d[5] - d[1]) - 2.5f*f);
-                //d[5] += 4*d[1] - 5*d[3];
-                //d[1] = d1;
-                //d[2] = d2;
-                //d[3] = d3;
-                //d[4] = d4;
-
-                //{{ 2, -4, -2.5,    5,  0.5,   -1, 0 },
-                // { 0,  2,   -2, -4.5,  0.5,    1, 0 },
-                // { 0, -2,    6, -3.5, -1.5,    1, 0 },
-                // { 0,  1, -1.5,   -2,  1.5,    1, 0 },
-                // { 0, -1,  2.5,    0, -2.5,    1, 0 },
-                // { 0,  4,    0,   -5,    0,    1, 0 },
-                // { 0, -2,    4,  2.5,   -5, -0.5, 1 }},
-            .elseif \o_size == 3 && \f_size == 6
+            .elseif \o_size == 3 && \f_size == 6 && \fdil == 1
                 
                 v_sub_f32 v[t0], v[d4], v[d2]
                 v_mul_f32 v[t0], 5.25, v[t0]
@@ -757,30 +750,80 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_add_f32 v[d5], v[t6], v[t5]
                 v_sub_f32 v[d6], v[t6], v[t5]
 
-                //d[0] = (d[0] - d[6]) + 5.25f*(d[4] - d[2]);
-                //d[7] = (d[7] - d[1]) + 5.25f*(d[3] - d[5]);
-                //float f1 = (d[1] + d[5]) - 4.25f*d[3];
-                //float f2 = (d[2] + d[6]) - 4.25f*d[4];
-                //float a = 2.5f * d[3];
-                //float f3 = (0.5f*d[1] + 2*d[5]) - a;
-                //float f4 = (0.25f*d[2] + d[6]) - 1.25f*d[4];
-                //float f5 = (2*d[1] + 0.5f*d[5]) - a;
-                //float f6 = (4*d[2] + d[6]) - 5*d[4];
-                //d[1] = f2 + f1;
-                //d[2] = f2 - f1;
-                //d[3] = f4 + f3;
-                //d[4] = f4 - f3;
-                //d[5] = f6 + f5;
-                //d[6] = f6 - f5;
+            .elseif \o_size == 3 && \f_size == 2 && \fdil == 2
+                v_sub_f32 v[d0], v[d0], v[d2]
+                v_sub_f32 v[d4], v[d4], v[d2]
 
-                //{{ 1,    0, -5.25,     0,  5.25,    0, -1, 0 },
-                // { 0,    1,     1, -4.25, -4.25,    1,  1, 0 },
-                // { 0,   -1,     1,  4.25, -4.25,   -1,  1, 0 },
-                // { 0,  0.5,  0.25,  -2.5, -1.25,    2,  1, 0 },
-                // { 0, -0.5,  0.25,   2.5, -1.25,   -2,  1, 0 },
-                // { 0,    2,     4,  -2.5,    -5,  0.5,  1, 0 },
-                // { 0,   -2,     4,   2.5,    -5, -0.5,  1, 0 },
-                // { 0,   -1,     0,  5.25,     0,-5.25,  0, 1 }},
+            .elseif \o_size == 3 && \f_size == 3 && \fdil == 2
+                v_sub_f32 v[d0], v[d0], v[d4]
+                v_sub_f32 v[d6], v[d6], v[d2]
+                v_add_f32 v[t0], v[d2], v[d4]
+                v_sub_f32 v[d4], v[d4], v[d2]
+                v_mov_b32 v[d2], v[t0]
+
+            .elseif \o_size == 3 && \f_size == 4 && \fdil == 2
+                v_sub_f32 v[d0], v[d0], v[d4]
+                v_sub_f32 v[d8], v[d8], v[d4]
+                v_fma_f32 v[t0],-2.0, v[d2], v[d6]
+                v_fma_f32 v[t1], 2.0, v[d2], v[d6]
+                v_sub_f32 v[d6], v[d6], v[d2]
+                v_fma_f32 v[d0], 2.0, v[d0], v[d6]
+                v_fma_f32 v[d8],-2.0, v[d6], v[d8]
+                v_sub_f32 v[d2], v[t0], v[d4]
+                v_mul_f32 v[d4], -3.0, v[d4]
+                v_add_f32 v[d4], v[d4], v[t1]
+
+            .elseif \o_size == 3 && \f_size == 5 && \fdil == 2
+                v_fma_f32 v[d0],  4.0, v[d0], v[d8]
+                v_mac_f32 v[d0], -5.0, v[d4]
+                v_mac_f32 v[d10], 4.0, v[d2]
+                v_mac_f32 v[d10],-5.0, v[d6]
+                v_add_f32 v[t0], v[d8], v[d6]
+                v_sub_f32 v[t1], v[d8], v[d6]
+                v_sub_f32 v[d8], v[d8], v[d4]
+                v_sub_f32 v[t3], v[d6], v[d2]
+                v_fma_f32 v[d6], 2.0, v[t3], v[d8]
+                v_mac_f32 v[d8], -2.0, v[t3]
+                v_add_f32 v[t2], v[d2], v[d4]
+                v_sub_f32 v[t3], v[d2], v[d4]
+                v_fma_f32 v[d2], -4.0, v[t2], v[t0]
+                v_fma_f32 v[d4],  4.0, v[t3], v[t1]
+
+            .elseif \o_size == 3 && \f_size == 6 && \fdil == 2
+                v_mac_f32 v[d12],  4.0, v[d4]
+                v_mac_f32 v[d12], -5.0, v[d8]
+                v_mul_f32 v[d0],   2.0, v[d0]
+                v_mac_f32 v[d0],   0.5, v[d8]
+                v_mac_f32 v[d0],  -2.5, v[d4]
+                v_mul_f32 v[t4], -2.5, v[d4]
+                v_mac_f32 v[t4],  0.5, v[d8]
+
+                v_fma_f32 v[t0],  0.5, v[d8], v[d10]
+                v_mac_f32 v[t0], -2.0, v[d4]
+                v_mac_f32 v[t0], -4.5, v[d6]
+
+                v_fma_f32 v[t1], -2.0, v[d2], v[d10]
+                v_mac_f32 v[t1], -1.5, v[d8]
+                v_mac_f32 v[t1], -3.5, v[d6]
+
+                v_sub_f32 v[t3], v[d8], v[d4]
+                v_fma_f32 v[t2], -2.0, v[d6], v[d10]
+                v_mac_f32 v[t2], 1.5, v[t3]
+
+                v_sub_f32 v[d8], v[d10], v[d2]
+                v_mac_f32 v[d8], -2.5, v[t3]
+
+                v_mac_f32 v[d10], 4.0, v[d2]
+                v_mac_f32 v[d10],-5.0, v[d6]
+
+                v_mac_f32 v[d12],-0.5, v[d10]
+                v_sub_f32 v[d0], v[d0], v[d10]
+
+                v_add_f32 v[d6], v[d2], v[t2]
+                v_mul_f32 v[d4], 6.0, v[d4]
+                v_add_f32 v[d4], v[t1], v[d4]
+                v_fma_f32 v[d2], 2.0, v[d2], v[t0]
+
             .else
                 static_assert(0)
             .endif
@@ -811,15 +854,15 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
         soffset = 0
         dwords_left = in_tile_width
         .if( elem_size == 4 )
-        .if !xform_filter
-            // first single dword load required because of possible padding
-            single_load vgpr, 1, dwords_left, 1, soffset, \reads
-        .endif
+            .if !xform_filter
+                // first single dword load required because of possible padding
+                single_load vgpr, 1, dwords_left, 1, soffset, \reads
+            .endif
         
-        single_load vgpr, 4, dwords_left, (dwords_left / 4), soffset, \reads
-        single_load vgpr, 3, dwords_left, (dwords_left / 3), soffset, \reads
-        single_load vgpr, 2, dwords_left, (dwords_left / 2), soffset, \reads
-        single_load vgpr, 1, dwords_left, (dwords_left / 1), soffset, \reads
+            single_load vgpr, 4, dwords_left, (dwords_left / 4), soffset, \reads
+            single_load vgpr, 3, dwords_left, (dwords_left / 3), soffset, \reads
+            single_load vgpr, 2, dwords_left, (dwords_left / 2), soffset, \reads
+            single_load vgpr, 1, dwords_left, (dwords_left / 1), soffset, \reads
         .endif
         .if( elem_size == 2 && dwords_left > 0)
             single_load vgpr, 0, dwords_left, dwords_left, soffset, \reads, 1
@@ -835,7 +878,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 s_add_u32 s[soff_o], s[soff_o], s[o_H_stride]
             .endif
             .if(elem_size == 4)
-            buffer_store_dword v[\buf+i\@], v[\voff], s[o_desc:o_desc+3], s[soff_o], offen
+                buffer_store_dword v[\buf+i\@], v[\voff], s[o_desc:o_desc+3], s[soff_o], offen
             .else
                 buffer_store_short v[\buf+i\@], v[\voff], s[o_desc:o_desc+3], s[soff_o], offen
             .endif
@@ -879,8 +922,8 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
         v_cmp_gt_i32 vcc, 0 + tiles_per_wave * xformy_d_size, v[tid]
         v_cndmask_b32 \off_o, \vtmp, \off_o, vcc
 
-        v_mul_u32_u24 \w, 0 + xformx_f_size, \tw
-        v_mad_u32_u24 \vtmp, 0 + xformy_f_size, \th, v[vlocal_h]
+        v_mul_u32_u24 \w, 0 + tile_step_x, \tw
+        v_mad_u32_u24 \vtmp, 0 + tile_step_y, \th, v[vlocal_h]
         v_cmp_gt_i32 vcc, 0 + tiles_per_wave * in_tile_height, v[tid]
         s_and_b64 s[valid_mask:valid_mask+1], vcc, s[valid_mask:valid_mask+1]
         .if !xform_filter
@@ -958,8 +1001,8 @@ label skip_frontend, %slot
         read_data rd_base, reads_per_slot
 
         writes_per_slot = xformy_d_size
-        s_waitcnt vmcnt(0+(pipe_depth - 1) * (reads_per_slot+xformy_d_size))        
-
+        s_waitcnt vmcnt(0+(pipe_depth - 1) * (reads_per_slot+xformy_d_size))
+        
         i = 0
         .rept in_tile_width
             v_cmp_lt_u32 vcc, v[waddrbuf+xf_slot], s[WS]
@@ -972,7 +1015,7 @@ label skip_frontend, %slot
 
         data_convert xf_base, xformx_d_size, vtmp, stmp, acc_type, buf_type
         // transform each row
-        winograd_xform xformx_o_size, xformx_f_size, xformx_d_size, xf_base, vtmp
+        winograd_xform xformx_o_size, xformx_f_size, xformx_d_size, fdilation_w, xf_base, vtmp
 
         // write rows to lds
         i = 0
@@ -984,7 +1027,7 @@ label skip_frontend, %slot
         
         // transform each column
         s_waitcnt lgkmcnt(0+xformx_d_size)
-        winograd_xform xformy_o_size, xformy_f_size, xformx_d_size, wrbuf, vtmp
+        winograd_xform xformy_o_size, xformy_f_size, xformx_d_size, fdilation_h, wrbuf, vtmp
         
         data_convert wrbuf, xformx_d_size, vtmp, stmp, buf_type, acc_type
         // store result
