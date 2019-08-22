@@ -569,22 +569,27 @@ struct ConvWinograd3x3MultipassWrW : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 
     // kernel_file_name for solver identification
-    static std::vector<std::string> GetSolverFileNames()
+    static std::string GetSolverFileNames(int id)
     {
-        return std::vector<std::string>{"xform_data.s", "xform_filter.s", "xform_out.s"};
+        static const std::string names[3] = {"xform_data.s", "xform_filter.s", "xform_out.s"};
+        return names[id];
     }
-    static std::vector<std::string> GetSolverKernelNames()
+    static std::string GetSolverKernelNames(int id)
     {
-        std::stringstream name_suffix;
-        name_suffix << '_' << WinoDataW << '_' << WinoDataW << '_' << WinoFilterW << '_'
-                    << WinoFilterW;
-        return std::vector<std::string>{"gcnAsmWinogradXformData" + name_suffix.str(),
-                                        "gcnAsmWinogradXformFilter" + name_suffix.str(),
-                                        "gcnAsmWinogradXformOut" + name_suffix.str()};
+        static const std::string name_suffix =
+            '_' + std::to_string(WinoDataW) + '_' + std::to_string(WinoDataW) + '_' +
+            std::to_string(WinoFilterW) + '_' + std::to_string(WinoFilterW);
+        static const std::string names[3] = {"gcnAsmWinogradXformData" + name_suffix,
+                                             "gcnAsmWinogradXformFilter" + name_suffix,
+                                             "gcnAsmWinogradXformOut" + name_suffix};
+
+        return names[id];
     }
     static int GetGroupCountMult() { return 4; }
 };
 
+extern template struct ConvWinograd3x3MultipassWrW<3, 2>;
+extern template struct ConvWinograd3x3MultipassWrW<3, 3>;
 extern template struct ConvWinograd3x3MultipassWrW<3, 4>;
 extern template struct ConvWinograd3x3MultipassWrW<3, 5>;
 extern template struct ConvWinograd3x3MultipassWrW<3, 6>;
