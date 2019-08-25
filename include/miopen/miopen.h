@@ -145,17 +145,17 @@ MIOPEN_EXPORT miopenStatus_t miopenCreate(miopenHandle_t* handle);
 
 /*! @brief Create a MIOpen handle with an accelerator stream.
  *
- * The HIP side returns a hipStream_t type for the stream, while OpenCL will return a
+ * The HIP side uses a hipStream_t type for the stream, while OpenCL will use a
  * cl_command_queue.
  *
  * Create a handle with a previously created accelerator command queue.
- * @param handle     A pointer to a MIOpen handle type (input)
- * @param stream      An accelerator queue type (output)
+ * @param handle     A pointer to a MIOpen handle type (output)
+ * @param stream     An accelerator queue type (input)
  *
  * @return           miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenCreateWithStream(miopenHandle_t* handle,
-                                                    miopenAcceleratorQueue_t stream);
+                                                    miopenAcceleratorQueue_t streamID);
 
 /*! @brief Destroys the MIOpen handle.
  *
