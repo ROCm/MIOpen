@@ -45,6 +45,11 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
     -> decltype(s.GetSolution(context, s.Search(context)))
 {
     const FindEnforce enforce;
+    if(context.disable_perfdb_access)
+    {
+        MIOPEN_LOG_I(SolverDbId(s) << " (db access disabled)");
+        return s.GetSolution(context, s.GetPerformanceConfig(context));
+    }
     MIOPEN_LOG_I(SolverDbId(s));
     if(enforce.IsDbClean(context))
     {
