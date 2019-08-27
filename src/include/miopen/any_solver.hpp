@@ -72,6 +72,12 @@ struct AnySolver
         return ptr_value->GetSolverDbId();
     }
 
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
+    {
+        assert(ptr_value != nullptr);
+        return ptr_value->GetWorkspaceSize(ctx);
+    }
+
     // virtual base class
     struct AnySolver_base
     {
@@ -83,6 +89,7 @@ struct AnySolver
         virtual const std::type_info& Type() const                     = 0;
         virtual std::string GetSolverDbId() const                      = 0;
         virtual ConvSolution FindSolution(const ConvolutionContext& ctx, Db& db) const = 0;
+        virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const = 0;
     };
 
     // templated derived class
@@ -98,8 +105,12 @@ struct AnySolver
         ConvSolution FindSolution(const ConvolutionContext& ctx, Db& db) const override
         {
             return miopen::solver::FindSolution(value, ctx, db);
+        };
+        size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
+        {
+            return value.GetWorkspaceSize(ctx);
         }
-        const std::type_info& Type() const override { return typeid(T); }
+        const std::type_info& Type() const override { return typeid(T); };
         std::string GetSolverDbId() const override { return ComputeSolverDbId(value); }
 
         private:
