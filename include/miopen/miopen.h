@@ -145,12 +145,12 @@ MIOPEN_EXPORT miopenStatus_t miopenCreate(miopenHandle_t* handle);
 
 /*! @brief Create a MIOpen handle with an accelerator stream.
  *
- * The HIP side returns a hipStream_t type for the stream, while OpenCL will return a
+ * The HIP side uses a hipStream_t type for the stream, while OpenCL will use a
  * cl_command_queue.
  *
  * Create a handle with a previously created accelerator command queue.
- * @param handle     A pointer to a MIOpen handle type (input)
- * @param stream      An accelerator queue type (output)
+ * @param handle     A pointer to a MIOpen handle type (output)
+ * @param stream      An accelerator queue type (input)
  *
  * @return           miopenStatus_t
 */
@@ -4065,7 +4065,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDropoutGetStatesSize(miopenHandle_t handle,
  * @param use_mask     Boolean flag indicating whether to use a saved mask (an existing or
  * user-defined dropout layout) in reserveSpace (Output)
  * @param state_evo    Boolean flag indicating whether to adopt state evolution strategy to update
- * the PRNG states by the end of each implementation (Output)
+ * the PRNG states by the end of each implementation (Output placeholder, currently not enabled)
  * @param rng_mode     Random number generator used to generate parallel random number sequences
  * (Output)
  * @return             miopenStatus_t
@@ -4095,7 +4095,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGetDropoutDescriptor(miopenDropoutDescriptor_
  * @param use_mask          Boolean flag indicating whether to use a saved mask (an existing or
  * user-defined dropout layout) in reserveSpace (input)
  * @param state_evo         Boolean flag indicating whether to adopt state evolution strategy to
- * update the PRNG states by the end of each implementation (input)
+ * update the PRNG states by the end of each implementation (input placeholder, currently not
+ * enabled)
  * @param rng_mode          Random number generator used to generate parallel random number
  * sequences (input)
  * @return                  miopenStatus_t
@@ -4123,7 +4124,8 @@ MIOPEN_EXPORT miopenStatus_t miopenRestoreDropoutDescriptor(miopenDropoutDescrip
  * @param use_mask          Boolean flag indicating whether to use a saved mask (an existing or
  * user-defined dropout layout) in reserveSpace (input)
  * @param state_evo         Boolean flag indicating whether to adopt state evolution strategy to
- * update the PRNG states by the end of each implementation (input)
+ * update the PRNG states by the end of each implementation (input placeholder, currently not
+ * enabled)
  * @param rng_mode          Random number generator used to generate parallel random number
  * sequences (input)
  * @return                  miopenStatus_t
@@ -4143,7 +4145,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSetDropoutDescriptor(miopenDropoutDescriptor_
  * Interface for executing the forward pass on a Dropout.
  * @param handle                   MIOpen handle (input)
  * @param dropoutDesc              Dropout layer descriptor (input)
- * @param noise_shape              Tensor descriptor for noise shape (input)
+ * @param noise_shape              Tensor descriptor for noise shape (input placeholder, currently
+ * not enabled)
  * @param xDesc                    Tensor descriptor for data tensor x (input)
  * @param x                        Data tensor x (input)
  * @param yDesc                    Tensor descriptor for data tensor y (input)
