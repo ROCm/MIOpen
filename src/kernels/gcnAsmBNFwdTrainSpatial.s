@@ -380,8 +380,6 @@ end_of_program:
 .Lfunc_end0:
     .size gcnAsmBNFwdTrainSpatial, .Lfunc_end0 - gcnAsmBNFwdTrainSpatial
 
-ROCM_METADATA_VERSION = 4 /// \todo This should come from the host.
-
 .macro metadata wg_x, save_flag, result_running_flag
   .if ROCM_METADATA_VERSION == 4
     .if (\save_flag == 1) && (\result_running_flag == 1)

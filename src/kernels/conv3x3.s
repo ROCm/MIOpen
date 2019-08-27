@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-.ifnotdef EXPERIMENTAL_COv3
+.if ROCM_METADATA_VERSION == 4
 .hsa_code_object_version 2,1
 .hsa_code_object_isa
 .endif
@@ -34,7 +34,7 @@
 .p2align 8
 .type gcnAsmConv3x3U,@function
 
-.ifnotdef EXPERIMENTAL_COv3
+.if ROCM_METADATA_VERSION == 4
 .amdgpu_hsa_kernel gcnAsmConv3x3U
 .endif
 
@@ -575,7 +575,7 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
 //.p2align 8
 gcnAsmConv3x3U:
 
-.ifnotdef EXPERIMENTAL_COv3
+.if ROCM_METADATA_VERSION == 4
   .amd_kernel_code_t
      enable_sgpr_kernarg_segment_ptr = 1
      compute_pgm_rsrc2_tgid_x_en = 1
@@ -628,7 +628,7 @@ gcnAsmConv3x3U:
   num_wavefronts = output_channels / filters_per_wave
   //to-do add support of uneven_outputs into grouped conv
   static_assert(group_counts == 1 || ((num_wavefronts % group_counts == 0) && uneven_outputs == 0))
-  static_assert(input_channels % (4 * group_counts) == 0) //to-do remove restriction that (n_inputs/group_counts) must be multiple of 4 
+  static_assert(input_channels % (4 * group_counts) == 0) //to-do remove restriction that (n_inputs/group_counts) must be multiple of 4
   k_group_size = output_channels / filters_per_wave / group_counts
   c_group_size = input_channels / group_counts
   s_group_id = loop_cnt
@@ -983,7 +983,7 @@ loop_end:
 .Lfunc_end0:
     .size gcnAsmConv3x3U, .Lfunc_end0 - gcnAsmConv3x3U
 
-.ifdef EXPERIMENTAL_COv3
+.if ROCM_METADATA_VERSION == 5
 .rodata
 .p2align 6
 .amdhsa_kernel gcnAsmConv3x3U
@@ -1062,16 +1062,14 @@ amdhsa.kernels:
     METADATA %\sc, %\wc, %\wg_x
 .endm
 
-.ifnotdef workgroup_size_x
-  .error "workgroup_size_x must be defined"
-  .end
-.endif
+    .ifnotdef workgroup_size_x
+    .error "workgroup_size_x must be defined"
+    .end
+    .endif
 METADATA_WRAPPER .AUTO_SGPR_COUNT,.AUTO_VGPR_COUNT,workgroup_size_x
-.endif // .ifdef EXPERIMENTAL_COv3
 
-.ifnotdef EXPERIMENTAL_COv3
+.elseif ROCM_METADATA_VERSION == 4
 .macro METADATA wg_x
-  .if ROCM_METADATA_VERSION == 4
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
         Kernels:
@@ -1091,20 +1089,18 @@ METADATA_WRAPPER .AUTO_SGPR_COUNT,.AUTO_VGPR_COUNT,workgroup_size_x
           }
     }
     .end_amd_amdgpu_hsa_metadata
-  .else
-    .error "Unsupported ROCM_METADATA_VERSION"
-    .end
-  .endif
 .endm // METADATA
-
 .altmacro
 .macro METADATA_WRAPPER wg_x
     METADATA %\wg_x
 .endm
-
-.ifnotdef workgroup_size_x
-  .error "workgroup_size_x must be defined"
-  .end
-.endif
+    .ifnotdef workgroup_size_x
+    .error "workgroup_size_x must be defined"
+    .end
+    .endif
 METADATA_WRAPPER workgroup_size_x
-.endif //.ifnotdef EXPERIMENTAL_COv3
+
+.else
+.error "Unsupported ROCM_METADATA_VERSION"
+.end
+.endif

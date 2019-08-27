@@ -48,6 +48,8 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_NEWER)
 
 miopen::PerfDb mlo_construct_base::GetDb() const
 {
@@ -223,35 +225,80 @@ static bool IsAmdRocmOpencl(const miopen::ConvolutionContext& context)
 }
 #endif // MIOPEN_BACKEND_OPENCL
 
+/// This is intended to use only in Asm Solvers which support both CO v2 and CO v3.
+/// It says which code object format shall be selected during the build process.
+///
+/// If ROCm supports only v2 or v3, the answer is trivial. When Solver supports
+/// single CO version, the logic is trivial as well.
+///
+/// However, when both ROCm and Solver are able to support both code object formats,
+/// these is no objective criterion for making a decision. The following behavior
+/// is implemented:
+/// * By default, the older format is used (CO v2).
+/// * If MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_NEWER is set to 1, then
+///   the behavior is reversed and CO v3 is selected.
+///
+/// FIXME move this out of the rocm_meta_version class.
+bool rocm_meta_version::UseV3() const
+{
+    if(miopen::IsEnabled(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_NEWER{}))
+        return val == AMDHSA_COv3 || val == AMDHSA_COv2_COv3;
+    else
+        return val == AMDHSA_COv3;
+}
+
 static std::ostream& operator<<(std::ostream& os, const rocm_meta_version& rmv)
 {
-    switch(rmv)
+    switch(rmv.getValue())
     {
     case rocm_meta_version::Unknown: return os << "Unknown";
-    case rocm_meta_version::AMDHSA_1_0: return os << "AMDHSA_1_0";
+    case rocm_meta_version::AMDHSA_COv2: return os << "AMDHSA_COv2";
+    case rocm_meta_version::AMDHSA_COv2_COv3: return os << "AMDHSA_COv2_COv3";
+    case rocm_meta_version::AMDHSA_COv3: return os << "AMDHSA_COv3";
+    default: break;
     }
     return os << "<Error>";
 }
 
-static rocm_meta_version DetectAmdRocmMetadataVersion(const miopen::ConvolutionContext& context)
+static rocm_meta_version AmdRocmMetadataVersionGetEnv()
 {
-#if MIOPEN_BACKEND_OPENCL
-    const auto dev                     = miopen::GetDevice(context.GetStream().GetStream());
-    const auto platform                = miopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
-    const std::string platform_version = miopen::GetPlatformInfo<CL_PLATFORM_VERSION>(
-        platform); // e.g. "OpenCL 2.0 AMD-APP.internal (2334.0)"
-    size_t num_begin      = platform_version.find('(');
-    rocm_meta_version rmv = rocm_meta_version::Unknown;
-    if(num_begin != std::string::npos)
+    const rocm_meta_version val(
+        static_cast<int>(miopen::Value(MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE{})));
+    if(!val.IsValid())
     {
-        // int num = std::stoi(platform_version.substr(num_begin + 1));
-        rmv = rocm_meta_version::AMDHSA_1_0;
+        MIOPEN_LOG_W("Incorrect MIOPEN_DEBUG_AMD_ROCM_ENFORCE_MDVERSION = " << val.getValue()
+                                                                            << ", using default.");
+        return rocm_meta_version::Unknown;
     }
+    return val;
+}
+
+static rocm_meta_version AmdRocmMetadataVersionDetect(const miopen::ConvolutionContext& context)
+{
+    rocm_meta_version rmv = AmdRocmMetadataVersionGetEnv();
+    if(rmv.IsUnknown())
+    {
+#if MIOPEN_BACKEND_OPENCL
+        const auto dev                     = miopen::GetDevice(context.GetStream().GetStream());
+        const auto platform                = miopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
+        const std::string platform_version = miopen::GetPlatformInfo<CL_PLATFORM_VERSION>(
+            platform); // e.g. "OpenCL 2.0 AMD-APP.internal (2334.0)"
+        size_t num_begin = platform_version.find('(');
+        if(num_begin != std::string::npos)
+        {
+            // int num = std::stoi(platform_version.substr(num_begin + 1));
+            rmv = rocm_meta_version::AMDHSA_COv2;
+        }
+        else
+        {
+            rmv = rocm_meta_version::Default;
+        }
 #else
-    /// \todo Rework this using clang-ocl.
-    (void)context;
-    rocm_meta_version rmv = rocm_meta_version::Default;
+        /// \todo Rework this using clang-ocl.
+        (void)context;
+        rmv = rocm_meta_version::Default;
 #endif // MIOPEN_BACKEND_OPENCL
+    }
     MIOPEN_LOG_I(
         "ROCm MD version "
         << rmv
@@ -270,7 +317,7 @@ static bool mloIsAmdRocmOpencl(miopen::ConvolutionContext& context)
 #endif // MIOPEN_BACKEND_OPENCL
     if(ret_bool)
     {
-        static const rocm_meta_version ret_rmv = DetectAmdRocmMetadataVersion(context);
+        static const rocm_meta_version ret_rmv = AmdRocmMetadataVersionDetect(context);
         context.rmv                            = ret_rmv;
     }
     return ret_bool;

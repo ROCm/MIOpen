@@ -210,7 +210,7 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
         return false;
     if(!params.use_asm_kernels)
         return false;
-    if(params.rmv != rocm_meta_version::AMDHSA_1_0)
+    if(!params.rmv.IsV2())
         return false;
 
     const auto name = params.GetStream().GetDeviceName();

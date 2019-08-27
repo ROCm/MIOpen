@@ -374,7 +374,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.Is2d())
         return false;
-    if(params.rmv != rocm_meta_version::AMDHSA_1_0)
+    if(!params.rmv.IsV2())
         return false;
     if(!(params.IsFp32() || params.IsFp16()))
         return false;

@@ -32,10 +32,13 @@
 #include <miopen/stringutils.hpp>
 #include <miopen/tmp_dir.hpp>
 #include <miopen/write_file.hpp>
+#include <miopen/env.hpp>
 #include <boost/optional.hpp>
 #include <sstream>
 
 #include <unistd.h>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_OPENCL_ENFORCE_COV3)
 
 namespace miopen {
 
@@ -114,6 +117,11 @@ struct HIPOCProgramImpl
 #else
             params += " -Wno-everything";
 #endif
+            if(miopen::IsEnabled(MIOPEN_DEBUG_AMD_OPENCL_ENFORCE_COV3{}))
+            {
+                /// \todo Requires modification of clang-ocl
+                params += " -Xclang -target-feature -Xclang +code-object-v3";
+            }
             dir->Execute(HIP_OC_COMPILER, params + " " + filename + " -o " + hsaco_file.string());
         }
         if(!boost::filesystem::exists(hsaco_file))

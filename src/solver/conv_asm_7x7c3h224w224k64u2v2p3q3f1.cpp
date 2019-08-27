@@ -38,7 +38,7 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& p
         return false;
     if(!params.Is2d())
         return false;
-    if(params.rmv != rocm_meta_version::AMDHSA_1_0)
+    if(!params.rmv.IsV2())
         return false;
 
     const std::string name = params.GetStream().GetDeviceName();
