@@ -39,7 +39,7 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.Is2d())
         return false;
-    if(!(params.rmv == rocm_meta_version::AMDHSA_1_0 && params.use_asm_kernels))
+    if(!(params.rmv.IsV2() && params.use_asm_kernels))
         return false;
 
     const auto name = params.GetStream().GetDeviceName();
@@ -101,7 +101,7 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params) 
 
     kernel.kernel_name = "sp3AsmConv3x3F";
 
-    if(params.rmv != rocm_meta_version::AMDHSA_1_0)
+    if(!params.rmv.IsV2())
         MIOPEN_THROW("Unsupported metadata version.");
 
     if(StartsWith(name, "gfx8"))

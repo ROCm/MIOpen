@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-.ifdef EXPERIMENTAL_COv3
+.if ROCM_METADATA_VERSION == 5
     .ifdef .option.machine_version_major
         .error ".option.machine_version_major already defined"
         .end
@@ -147,7 +147,7 @@ log2 wave_size_log2, wave_size
 .endm
 
 .macro u32_div numer, denom, uquo, v_tmp, s_tmp
-    u_div   v[\numer], v[\denom] v[\uquo], \v_tmp, \s_tmp, \s_tmp + 2 
+    u_div   v[\numer], v[\denom] v[\uquo], \v_tmp, \s_tmp, \s_tmp + 2
 .endm
 
 

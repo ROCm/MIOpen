@@ -52,7 +52,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH)
 
 static const char option_no_co_v3[] = "-mno-code-object-v3";
 
-static bool GcnAssemblerSupportsCOv3();
+static bool GcnAssemblerSupportsNoCOv3();
 static std::string CleanupPath(const char* p);
 
 // Redirecting both input and output is not supported.
@@ -207,16 +207,17 @@ void AmdgcnAssemble(std::string& source, const std::string& params)
 
     std::ostringstream options;
     options << " -x assembler -target amdgcn--amdhsa";
-    if(GcnAssemblerSupportsCOv3())
-    {
-        options << ' ' << option_no_co_v3;
-    }
+    /// \todo Hacky way to find out which CO version we need to assemble for.
+    if(params.find("ROCM_METADATA_VERSION=5", 0) == std::string::npos) // Assume that !COv3 == COv2.
+        if(GcnAssemblerSupportsNoCOv3()) // If assembling for COv2, then disable COv3.
+            options << ' ' << option_no_co_v3;
+
     options << ' ' << params;
     if(GcnAssemblerHasBug34765())
-    {
         GenerateClangDefsym(options, "WORKAROUND_BUG_34765", 1);
-    }
+
     options << " - -o " << outfile.Path();
+    MIOPEN_LOG_I2("'" << options.str() << "'");
 
     std::istringstream clang_stdin(source);
     const auto clang_path = GetGcnAssemblerPath();
@@ -324,7 +325,7 @@ static bool GcnAssemblerSupportsOption(const std::string& option)
     }
 }
 
-static bool GcnAssemblerSupportsCOv3()
+static bool GcnAssemblerSupportsNoCOv3()
 {
     const static bool b = GcnAssemblerSupportsOption(option_no_co_v3);
     return b;
