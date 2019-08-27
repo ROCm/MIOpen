@@ -93,10 +93,10 @@ struct WinogradBufferInfo
                        ConvWinoBuffType buff_type)
     {
         WinoInfo wino_in, wino_out, wino_wei;
-        int out_HW[2]  = {out_h, out_w};
-        int wei_HW[2]  = {wei_h, wei_w};
-        int fdil_HW[2] = {fdil_h, fdil_w};
-        wino_c         = c;
+        const int out_HW[2]  = {out_h, out_w};
+        const int wei_HW[2]  = {wei_h, wei_w};
+        const int fdil_HW[2] = {fdil_h, fdil_w};
+        wino_c               = c;
         for(int i = 0; i < 2; i++)
         {
             wino_xtile[i]             = WinoDataHW[i] + (WinoFilterHW[i] * fdil_HW[i]) - fdil_HW[i];
