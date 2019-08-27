@@ -14,7 +14,7 @@ MIOpen supports two programming models -
   * HIP - 
     * HIP and HCC libraries and header files
     * [clang-ocl](https://github.com/RadeonOpenCompute/clang-ocl) -- **required**
-* [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) to enable various functionalities including transposed and dilated convolutions
+* [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) to enable various functionalities including transposed and dilated convolutions. This is optional on the HIP backend. Users can enable this library using the cmake configuration flag `-DMIOPEN_USE_MIOPENGEMM=On`.
 * ROCm cmake modules can be installed from [here](https://github.com/RadeonOpenCompute/rocm-cmake)
 * [Half](http://half.sourceforge.net/) - IEEE 754-based half-precision floating point library
 * [Boost](http://www.boost.org/) at least version 1.58
@@ -238,5 +238,7 @@ Then to enter the development environment use `docker run`:
 ```
 docker run --device='/dev/kfd' --device='/dev/dri' -v=`pwd`:/data -w /data --group-add video -it miopen
 ```
+
+Prebuilt docker images can be found on [ROCm's public docker hub here](https://hub.docker.com/r/rocm/miopen/tags).
 
 

@@ -51,11 +51,14 @@ If a variable is not set, then MIOpen behaves as if it is set to `enabled`, unle
 * `MIOPEN_DEBUG_CONV_FFT` - FFT convolution algorithm. 
 * `MIOPEN_DEBUG_CONV_DIRECT` - Direct convolution algorithm.
 * `MIOPEN_DEBUG_CONV_GEMM` - GEMM convolution algorithm. These are implemented on top of miopengemm or rocBlas.
-* `MIOPEN_DEBUG_GCN_ASM_KERNELS` - Kernels written in assembly language. So far, the most of the assembly kernels are implementing the Direct convolution algorithm.
+* `MIOPEN_DEBUG_GCN_ASM_KERNELS` - Kernels written in assembly language; includes direct algorithms and Winograd kernels.
 * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM` – FP32 implicit GEMM convolution algorithm.
-* `MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES` - Binary kernels. Right now all the binary kernels are Winograd ones, however, not all Winograds are binaries. To disable all Winograd algorithms, the following two vars can be used:
+* `MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES` - Binary kernels. Right now all the binary kernels are from the SCGEMM algorithm.
+
+To disable all Winograd algorithms, the following three vars can be used:
 * `MIOPEN_DEBUG_AMD_WINOGRAD_3X3` - FP32 Winograd Fwd/Bwd, filter size fixed to 3x3.
 * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS` - FP32 and FP16 Winograd Fwd/Bwd, variable filter size.
+* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2` - FP32 and FP16 Winograd Fwd, variable filter size.
 * `MIOPEN_DEBUG_AMD_FUSED_WINOGRAD` - Fused FP32 Winograd kernels, variable filter size.
 
 ## rocBlas Logging and Behavior
