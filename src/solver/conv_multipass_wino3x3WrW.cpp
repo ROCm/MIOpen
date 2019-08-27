@@ -32,6 +32,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
+#include <miopen/tensor.hpp>
 
 #include "miopen/solver.hpp"
 
@@ -69,19 +70,20 @@ struct InTransform
     static bool IsApplicable(const ConvolutionContext& params)
     {
         DEFINE_SHADER_ALIASES(params)
-        WinogradBufferInfo<WinoDataW, WinoFilterW> wino_info(N,
-                                                             K,
-                                                             C,
-                                                             out_H,
-                                                             out_W,
-                                                             R,
-                                                             S,
-                                                             fdil_H,
-                                                             fdil_W,
-                                                             GetSwappedNCLayout(MemLayout_t::HWCN),
-                                                             1,
-                                                             GetTypeSize(params.in_data_type),
-                                                             ConvWinoBuffType::Input);
+        const WinogradBufferInfo<WinoDataW, WinoFilterW> wino_info(
+            N,
+            K,
+            C,
+            out_H,
+            out_W,
+            R,
+            S,
+            fdil_H,
+            fdil_W,
+            GetSwappedNCLayout(MemLayout_t::HWCN),
+            1,
+            GetTypeSize(params.in_data_type),
+            ConvWinoBuffType::Input);
 
         const size_t u16limit       = 1 << 16;
         const size_t tiles_per_wave = wave_size / xformy_d_size;
@@ -135,6 +137,27 @@ struct InTransform
             ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::GetSolverKernelNames(0),
         };
     }
+    static size_t GetBufferSize(const ConvolutionContext& params)
+    {
+        DEFINE_SHADER_ALIASES(params)
+        const WinogradBufferInfo<WinoDataW, WinoFilterW> InTransform_info(
+            N,
+            K,
+            C,
+            out_H,
+            out_W,
+            R,
+            S,
+            fdil_H,
+            fdil_W,
+            MemLayout_t::HWNC,
+            1,
+            GetTypeSize(params.in_data_type),
+            ConvWinoBuffType::Input);
+        (void)H;
+        (void)W;
+        return InTransform_info.buff_info.total_byte_size;
+    }
 };
 
 template <int WinoDataW, int WinoFilterW>
@@ -143,19 +166,20 @@ struct FilterTransform
     static bool IsApplicable(const ConvolutionContext& params)
     {
         DEFINE_SHADER_ALIASES(params)
-        WinogradBufferInfo<WinoDataW, WinoFilterW> wino_info(N,
-                                                             K,
-                                                             C,
-                                                             out_H,
-                                                             out_W,
-                                                             R,
-                                                             S,
-                                                             fdil_H,
-                                                             fdil_W,
-                                                             GetSwappedNCLayout(MemLayout_t::HWCN),
-                                                             1,
-                                                             GetTypeSize(params.in_data_type),
-                                                             ConvWinoBuffType::Input);
+        const WinogradBufferInfo<WinoDataW, WinoFilterW> wino_info(
+            N,
+            K,
+            C,
+            out_H,
+            out_W,
+            R,
+            S,
+            fdil_H,
+            fdil_W,
+            GetSwappedNCLayout(MemLayout_t::HWCN),
+            1,
+            GetTypeSize(params.in_data_type),
+            ConvWinoBuffType::Input);
 
         const size_t u16limit       = 1 << 16;
         const size_t tiles_per_wave = wave_size / xformy_d_size;
@@ -207,6 +231,27 @@ struct FilterTransform
             ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::GetSolverKernelNames(1),
         };
     }
+    static size_t GetBufferSize(const ConvolutionContext& params)
+    {
+        DEFINE_SHADER_ALIASES(params)
+        const WinogradBufferInfo<WinoDataW, WinoFilterW> FilterTransform_info(
+            N,
+            K,
+            C,
+            out_H,
+            out_W,
+            R,
+            S,
+            fdil_H,
+            fdil_W,
+            MemLayout_t::HWNC,
+            1,
+            GetTypeSize(params.in_data_type),
+            ConvWinoBuffType::Weight);
+        (void)H;
+        (void)W;
+        return FilterTransform_info.buff_info.total_byte_size;
+    }
 };
 
 template <int WinoDataW, int WinoFilterW>
@@ -220,7 +265,7 @@ struct OutTransform
     {
         DEFINE_SHADER_ALIASES(params)
 
-        WinogradBufferInfo<WinoDataW, WinoFilterW> wino_weight(
+        const WinogradBufferInfo<WinoDataW, WinoFilterW> wino_weight(
             N,
             K,
             C,
@@ -264,6 +309,28 @@ struct OutTransform
             ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::GetSolverKernelNames(2),
         };
     }
+    static size_t GetBufferSize(const ConvolutionContext& params)
+    {
+        DEFINE_SHADER_ALIASES(params)
+
+        const WinogradBufferInfo<WinoDataW, WinoFilterW> OutTransform_info(
+            N,
+            K,
+            C,
+            out_H,
+            out_W,
+            R,
+            S,
+            fdil_H,
+            fdil_W,
+            GetSwappedNCLayout(MemLayout_t::HWNC),
+            1,
+            GetTypeSize(params.in_data_type),
+            ConvWinoBuffType::Output);
+        (void)H;
+        (void)W;
+        return OutTransform_info.buff_info.total_byte_size;
+    }
 };
 
 template <int WinoDataW, int WinoFilterW>
@@ -272,6 +339,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::IsApplicable(
 {
 // HIP backend required for sending ptr (buffer + offset)
 // ROCBLAS for GEMM step
+
 #if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
 
     if(WinoDataW == 3 && WinoFilterW == 2)
@@ -312,7 +380,10 @@ bool ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::IsApplicable(
     }
 
     // int offset for Workspace buffers.
-    if(!(GetWorkspaceSize(params) < (1LL << 31)))
+    if((InTransform<WinoDataW, WinoFilterW>::GetBufferSize(params) /
+            GetTypeSize(params.in_data_type) +
+        OutTransform<WinoDataW, WinoFilterW>::GetBufferSize(params) /
+            GetTypeSize(params.in_data_type)) >= (1LL << 31))
     {
         return false;
     }
@@ -355,58 +426,9 @@ template <int WinoDataW, int WinoFilterW>
 size_t ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::GetWorkspaceSize(
     const ConvolutionContext& params) const
 {
-    DEFINE_SHADER_ALIASES(params)
-
-    WinogradBufferInfo<WinoDataW, WinoFilterW> InTransform_info(
-        N,
-        K,
-        C,
-        out_H,
-        out_W,
-        R,
-        S,
-        fdil_H,
-        fdil_W,
-        GetSwappedNCLayout(MemLayout_t::HWNC),
-        1,
-        GetTypeSize(params.in_data_type),
-        ConvWinoBuffType::Input);
-
-    WinogradBufferInfo<WinoDataW, WinoFilterW> FilterTransform_info(
-        N,
-        K,
-        C,
-        out_H,
-        out_W,
-        R,
-        S,
-        fdil_H,
-        fdil_W,
-        MemLayout_t::HWNC,
-        1,
-        GetTypeSize(params.in_data_type),
-        ConvWinoBuffType::Weight);
-
-    WinogradBufferInfo<WinoDataW, WinoFilterW> OutTransform_info(
-        N,
-        K,
-        C,
-        out_H,
-        out_W,
-        R,
-        S,
-        fdil_H,
-        fdil_W,
-        GetSwappedNCLayout(MemLayout_t::HWNC),
-        1,
-        GetTypeSize(params.in_data_type),
-        ConvWinoBuffType::Output);
-
-    (void)H;
-    (void)W;
-    return InTransform_info.buff_info.total_byte_size +
-           FilterTransform_info.buff_info.total_byte_size +
-           OutTransform_info.buff_info.total_byte_size;
+    return InTransform<WinoDataW, WinoFilterW>::GetBufferSize(params) +
+           OutTransform<WinoDataW, WinoFilterW>::GetBufferSize(params) +
+           FilterTransform<WinoDataW, WinoFilterW>::GetBufferSize(params);
 }
 
 template <int WinoDataW, int WinoFilterW>
