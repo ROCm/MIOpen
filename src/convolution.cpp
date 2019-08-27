@@ -420,8 +420,8 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         return 0;
 
     ctx.SetupFloats();
-    ctx.do_search                         = false;
-    ctx.workaround_disable_search_enforce = true;
+    ctx.do_search             = false;
+    ctx.disable_perfdb_access = true;
 
     const size_t direct_workspace = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
 
@@ -495,8 +495,8 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         return 0;
 
     ctx.SetupFloats();
-    ctx.do_search                         = false;
-    ctx.workaround_disable_search_enforce = true;
+    ctx.do_search             = false;
+    ctx.disable_perfdb_access = true;
 
     const size_t direct_workspace = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
 
@@ -705,7 +705,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
     ctx.direction.SetBackwardWrW();
     ctx.do_search = false;
     ctx.SetStream(&handle);
-    ctx.workaround_disable_search_enforce = true;
+    ctx.disable_perfdb_access = true;
     ctx.SetupFloats();
     ctx.DetectRocm();
 
@@ -739,7 +739,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeWinograd(Handle& handle,
     ctx.direction.SetBackwardWrW();
     ctx.do_search = false;
     ctx.SetStream(&handle);
-    ctx.workaround_disable_search_enforce = true;
+    ctx.disable_perfdb_access = true;
     ctx.DetectRocm();
 
     try
