@@ -147,6 +147,12 @@ FindAllDirectSolutions(const miopen::ConvolutionContext& ctx)
     return GetDirectSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
 }
 
+std::vector<std::pair<std::string, size_t>>
+AllDirectForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
+{
+    return GetDirectSolvers().GetWorkspaceSize(ctx);
+}
+
 std::vector<miopen::solver::ConvSolution>
 FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx)
 {
@@ -168,6 +174,11 @@ std::vector<miopen::solver::ConvSolution>
 FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx)
 {
     return GetWindogradWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+}
+std::vector<std::pair<std::string, size_t>>
+AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx)
+{
+    return GetBwdWrW2DSolvers().GetWorkspaceSize(ctx);
 }
 
 std::vector<miopen::solver::ConvSolution>

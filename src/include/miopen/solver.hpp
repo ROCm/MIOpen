@@ -114,6 +114,8 @@ struct SolverBase
     /// Intended to be used for performance optimization.
     /// Warning: Non-trivial implementations introduce implicit dependencies between solutions.
     bool IsFast(const Context&) const { return true; }
+    // Returns the workspace size required by the solver for a given ConvolutionContext
+    size_t GetWorkspaceSize(const Context&) const { return 0; };
 
     /// Takes problem config, optimization parameters and other info
     /// and computes information required to build and run the kernel(s).
@@ -244,6 +246,7 @@ struct ConvAsm1x1U : SolverBase<ConvolutionContext>
     PerformanceConfigConvAsm1x1U Search(const ConvolutionContext&) const;
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsFast(const ConvolutionContext& params) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsm1x1U& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -758,6 +761,7 @@ struct ConvAsmBwdWrW1x1 : SolverBase<ConvolutionContext>
     PerformanceConfigConvAsmBwdWrW1x1 Search(const ConvolutionContext&) const;
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsFast(const ConvolutionContext& params) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsmBwdWrW1x1& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -841,6 +845,7 @@ struct ConvOclBwdWrW2 : SolverBase<ConvolutionContext>
                                   const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&) const;
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS> Search(const ConvolutionContext&) const;
     bool IsApplicable(const ConvolutionContext& params) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -895,6 +900,7 @@ struct ConvOclBwdWrW2NonTunable : ConvOclBwdWrW2<1>
 struct ConvOclBwdWrW53 : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
@@ -902,6 +908,7 @@ struct ConvOclBwdWrW1x1 : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& params) const;
 };
 
 #if MIOPEN_USE_SCGEMM
