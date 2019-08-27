@@ -303,6 +303,8 @@ struct ConvolutionContext : ProblemDescription
         return GetUserDbPath()
              + "/"
              + GetStream().GetDbBasename()
+			 + "."
+			 + GetUserDbSuffix()
              + ".cd.updb.txt";
         // clang-format on
     }
