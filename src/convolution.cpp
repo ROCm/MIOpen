@@ -655,14 +655,14 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
 
     try
     {
-        const auto ss  = FindAllDirectSolutions(ctx);
-        std::size_t sz = 0;
-        for(const auto& solution : ss)
+        const auto sz_v = AllDirectForwardBackwardDataWorkspaceSize(ctx);
+        std::size_t sz  = 0;
+        for(const auto& pr : sz_v)
         {
-            if(sz < solution.workspce_sz)
+            if(sz < pr.second)
             {
-                MIOPEN_LOG_I2(sz << " < " << solution.workspce_sz);
-                sz = solution.workspce_sz;
+                MIOPEN_LOG_I2(sz << " < " << pr.second); // solution.workspce_sz);
+                sz = pr.second;                          // solution.workspce_sz;
             }
         }
         return sz;
@@ -711,14 +711,14 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
 
     try
     {
-        const auto ss  = FindAllBwdWrW2DSolutions(ctx);
-        std::size_t sz = 0;
-        for(const auto& solution : ss)
+        const auto sz_v = AllDirectBwdWrW2DWorkspaceSize(ctx);
+        std::size_t sz  = 0;
+        for(const auto& pr : sz_v)
         {
-            if(sz < solution.workspce_sz)
+            if(sz < pr.second)
             {
-                MIOPEN_LOG_I2(sz << " < " << solution.workspce_sz);
-                sz = solution.workspce_sz;
+                MIOPEN_LOG_I2(sz << " < " << pr.second);
+                sz = pr.second;
             }
         }
         return sz;
