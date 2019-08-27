@@ -520,12 +520,12 @@ struct dropout_driver : test_driver
                           get_3d_conv_input_shapes_set.end());
 #else
         auto itr = get_inputs_set.begin();
-        for(int i = 0; i < get_inputs_set.size(); itr++, i++)
+        for(std::size_t i = 0; i < get_inputs_set.size(); itr++, i++)
             if(i % 6 == 0)
                 input_dims.push_back(*itr);
 
         itr = get_3d_conv_input_shapes_set.begin();
-        for(int i = 0; i < get_3d_conv_input_shapes_set.size(); itr++, i++)
+        for(std::size_t i = 0; i < get_3d_conv_input_shapes_set.size(); itr++, i++)
             if(i % 3 == 0)
                 input_dims.push_back(*itr);
 #endif
