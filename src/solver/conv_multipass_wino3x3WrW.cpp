@@ -96,7 +96,7 @@ struct InTransform
         {
             return false;
         }
-        
+
         return (params.IsFp32() || params.IsFp16() || params.IsBfp16())
                 && params.Is2d()
                 && H < u16limit
@@ -361,7 +361,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::IsApplicable(
         return false;
     if(!params.use_asm_kernels)
         return false;
-    if(params.rmv != rocm_meta_version::AMDHSA_1_0)
+    if(!params.rmv.IsV2())
         return false;
     if(!params.Is2d())
         return false;
