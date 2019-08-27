@@ -277,6 +277,26 @@ static inline void ComputeNumInputWidthLoops(
     }
 }
 
+size_t ConvOclBwdWrW53::GetWorkspaceSize(const ConvolutionContext& params) const
+{
+    int n_stacks = std::min(params.batch_sz, 1);
+    int N_BATCH_LOOPS =
+        (params.n_inputs * params.n_outputs <= 8 * 1024)
+            ? 1
+            : (params.batch_sz <= 16 || params.in_width <= 32) ? (params.batch_sz / n_stacks) : 4;
+    int n_batch_blks =
+        (params.batch_sz + N_BATCH_LOOPS * n_stacks - 1) / (N_BATCH_LOOPS * n_stacks);
+    if(n_batch_blks > 1)
+    {
+        int wei_bstride = (params.n_outputs / params.group_counts) *
+                          (params.kernel_size_w * params.kernel_size_h);
+        int data_len = GetTypeSize(params.out_data_type);
+        return wei_bstride * params.n_inputs * n_batch_blks * data_len;
+    }
+    else
+        return 0;
+}
+
 ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
@@ -549,7 +569,6 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
 
         kernel.comp_options = comp_options;
         result.construction_params.push_back(kernel);
-        result.workspce_sz = 0;
     }
 
     // sum over batch
@@ -571,11 +590,9 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         kernel.g_wk.push_back(1);
         kernel.g_wk.push_back(1);
 
-        int data_len = GetTypeSize(params.out_data_type);
-
         result.construction_params.push_back(kernel);
-        result.workspce_sz = wei_bstride * params.n_inputs * n_batch_blks * data_len;
     }
+    result.workspce_sz = GetWorkspaceSize(params);
     return result;
 }
 } // namespace solver
