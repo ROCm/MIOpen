@@ -37,38 +37,18 @@ __device__ void threadwise_matrix_copy(SrcMatrix,
 
     constexpr auto src_mtx = SrcMatrix{};
     constexpr auto dst_mtx = DstMatrix{};
-
-    // Depending upon datatype i.e float/half/bfloat16, carry out data movement
-    // in appropriate vector_typeized form
-    // float - 4, half - 4, bfloat16 - 2
-    static_if<std::is_same<Float, float>::value>{}([&](auto) {
-        using vector_t = typename vector_type<float, DataPerRead>::MemoryType;
-
-        for(index_t i = 0; i < NRow; ++i)
+    using vector_t         = typename vector_type<Float, DataPerRead>::MemoryType;
+    for(index_t i = 0; i < NRow; ++i)
+    {
+        for(index_t j = 0; j < NCol; j += DataPerRead)
         {
-            for(index_t j = 0; j < NCol; j += DataPerRead)
-            {
-                const index_t src_index = src_mtx.GetOffsetFromMultiIndex(i, j);
-                const index_t dst_index = dst_mtx.GetOffsetFromMultiIndex(i, j);
+            const index_t src_index = src_mtx.GetOffsetFromMultiIndex(i, j);
+            const index_t dst_index = dst_mtx.GetOffsetFromMultiIndex(i, j);
 
-                *reinterpret_cast<vector_t*>(&p_dst[dst_index]) =
-                    *reinterpret_cast<const vector_t*>(&p_src[src_index]);
-            }
+            *reinterpret_cast<vector_t*>(&p_dst[dst_index]) =
+                *reinterpret_cast<const vector_t*>(&p_src[src_index]);
         }
-
-    }).Else([&](auto) { // fp16/bfp16
-        for(index_t i = 0; i < NRow; ++i)
-        {
-            for(index_t j = 0; j < NCol; ++j)
-            {
-                const index_t src_index = src_mtx.GetOffsetFromMultiIndex(i, j);
-                const index_t dst_index = dst_mtx.GetOffsetFromMultiIndex(i, j);
-
-                *reinterpret_cast<Float*>(&p_dst[dst_index]) =
-                    *reinterpret_cast<const Float*>(&p_src[src_index]);
-            }
-        }
-    });
+    }
 }
 
 template <class Accum>
