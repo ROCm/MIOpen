@@ -36,11 +36,13 @@ bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
 {
     bool isTypeSupported = (ctx.IsFp32() || ctx.IsFp16());
 
-    // For fp16, when c*x*y % 64 == 0, 4 channels are accumulated through dot4 (2 * dot2) operation
-    // when c*x*y % 32 == 0,  channels are accumulated through dot2 operation.
-    bool isNumInputsInMultiple =
-        ctx.IsFp16() ? ((ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % 32 == 0)
-                     : ((ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % 8 == 0);
+    // For fp16, when E=c*x*y % 32 == 0, 4 channels are accumulated through dot4 (2 * dot2)
+    // operation
+    // For bfp16/fp16, when E=c*x*y % 16 == 0, 2 channels are accumulated through dot2 operation
+    // For fp32, when E=c*x*y % 8 == 0, no dot2 operation exist.
+    bool isEInMultiple = (ctx.IsFp16() || ctx.IsBfp16())
+                             ? ((ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % 16 == 0)
+                             : ((ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % 8 == 0);
 
     // padding support required for out_of_bound configs
     bool no_out_of_bound = (ctx.in_width >= ((ctx.kernel_size_w - 1) * ctx.kernel_dilation_w + 1) +
@@ -50,7 +52,7 @@ bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
 
     return ctx.Is2d() && isTypeSupported && ctx.direction.IsForward() && ctx.pad_h == 0 &&
            ctx.pad_w == 0 && ctx.group_counts == 1 && ctx.batch_sz % 8 == 0 &&
-           (ctx.batch_sz * ctx.out_height * ctx.out_width) % 64 == 0 && isNumInputsInMultiple &&
+           (ctx.batch_sz * ctx.out_height * ctx.out_width) % 64 == 0 && isEInMultiple &&
            ctx.n_outputs % 16 == 0 && no_out_of_bound;
 }
 
@@ -107,6 +109,21 @@ inline bool PerformanceImplicitGemm::operator==(const PerformanceImplicitGemm& o
     // clang-format on
 }
 
+uint32_t PerformanceImplicitGemm::GetEPackLength(const ConvolutionContext& ctx) const
+{
+    const int C = ctx.n_inputs;
+    const int Y = ctx.kernel_size_h;
+    const int X = ctx.kernel_size_w;
+
+    // Based on data type, Es are packed
+    int EPACK = 1;
+    if(ctx.IsFp16()) // for fp16, either 2 or 4 Es could be packed
+        EPACK = (C * Y * X % 32) == 0 ? 4 : 2;
+    else if(ctx.IsBfp16()) // for bfp16, only 2 Es could be packed
+        EPACK = 2;
+    return EPACK;
+}
+
 bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
 {
     const int N = ctx.batch_sz;
@@ -129,15 +146,8 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
 
     const int B = N0 * Ho * Wo;
 
-    // Based on data type, Pack E so as to use dot2 operator
-    int EPACK = 1;
-    if(ctx.IsFp16())
-        EPACK = 4;
-    else if(ctx.IsBfp16())
-        EPACK = 2;
-
-    const int nonVectorizedC = C / EPACK;
-    const int E              = nonVectorizedC * Y * X;
+    const auto nonVectorizedC = C / GetEPackLength(ctx);
+    const auto E              = nonVectorizedC * Y * X;
 
     if(!(EPerBlock % InBlockCopyClusterLengths_E == 0 &&
          EPerBlock % WeiBlockCopyClusterLengths_E == 0 &&
@@ -514,7 +524,7 @@ ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx
     }
 
     // TBD: Due to underlying bug, we need to restrict reading/writing only 1 fp16 value at a time
-    if(ctx.IsFp16())
+    if(ctx.IsFp16() || ctx.IsBfp16())
     {
         WeiBlockCopySrcDataPerRead_E  = 1;
         WeiBlockCopyDstDataPerWrite_K = 1;
@@ -564,6 +574,7 @@ ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATE_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) + 
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATE_PER_WRITE_K=") + std::to_string(WeiBlockCopyDstDataPerWrite_K) + 
+        std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(config.GetEPackLength(ctx)) + 
         std::string(" -DCK_BLOCKWISE_GEMM_USE_AMD_INLINE_ASM=") + std::to_string(use_amd_inline_asm ? 1 : 0) +
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
