@@ -46,15 +46,6 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_
     using ConvStrides   = Sequence<ConvStrideH, ConvStrideW>;
     using ConvDilations = Sequence<ConvDilationH, ConvDilationW>;
 
-#if MIOPEN_USE_FP16 == 1
-    constexpr index_t EPACK = 4;
-#elif MIOPEN_USE_BFP16 == 1
-    // EPACK (ES) set to 2 as dot2 operator is supported on bfp16
-    constexpr index_t EPACK = 2;
-#else
-// do nothing
-#endif
-
     constexpr index_t GemmMPerThreadSubC = CK_PARAM_GEMM_M_PER_THREAD_SUB_C;
     constexpr index_t GemmNPerThreadSubC = CK_PARAM_GEMM_N_PER_THREAD_SUB_C;
     constexpr index_t GemmMLevel0Cluster = CK_PARAM_GEMM_M_LEVEL0_CLUSTER;
@@ -62,8 +53,6 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_
     constexpr index_t GemmMLevel1Cluster = CK_PARAM_GEMM_M_LEVEL1_CLUSTER;
     constexpr index_t GemmNLevel1Cluster = CK_PARAM_GEMM_N_LEVEL1_CLUSTER;
     constexpr index_t GemmKPerThreadLoop = 1;
-    constexpr index_t GemmDataPerReadA   = GemmMPerThreadSubC;
-    constexpr index_t GemmDataPerReadB   = GemmNPerThreadSubC;
 
     constexpr index_t GemmNRepeat = CK_PARAM_GEMM_N_REPEAT;
     constexpr index_t N1          = GemmNRepeat;
@@ -85,6 +74,9 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_
     constexpr index_t WeiBlockCopySubLengths_K     = KPerBlock / WeiBlockCopyClusterLengths_K;
 
 #if MIOPEN_USE_FP32 == 1
+    constexpr index_t GemmDataPerReadA = GemmMPerThreadSubC;
+    constexpr index_t GemmDataPerReadB = GemmNPerThreadSubC;
+
     using InBlockCopySubLengths_E_N1_B_N2 = Sequence<InBlockCopySubLengths_E,
                                                      InBlockCopySubLengths_N1,
                                                      InBlockCopySubLengths_B,
@@ -113,7 +105,9 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_
     constexpr index_t WeiBlockCopyDstDataPerWrite_K = CK_PARAM_WEI_BLOCK_COPY_DST_DATE_PER_WRITE_K;
 
 #elif MIOPEN_USE_FP16 == 1 || MIOPEN_USE_BFP16 == 1
-
+    constexpr index_t GemmDataPerReadA          = 1;
+    constexpr index_t GemmDataPerReadB          = 1;
+    constexpr index_t EPACK                     = CK_PARAM_EPACK_LENGTH;
     using InBlockCopySubLengths_E_N1_B_N2_EPACK = Sequence<InBlockCopySubLengths_E,
                                                            InBlockCopySubLengths_N1,
                                                            InBlockCopySubLengths_B,

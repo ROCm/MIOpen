@@ -321,11 +321,11 @@ struct ThreadwiseGenericTensorSliceCopy_v1r2
         mDstSliceOrigin = dst_slice_origin;
     }
 
-    template <class TData>
-    __device__ void Run(const TData* p_src, TData* p_dst) const
+    template <class SrcTData, class DstTData>
+    __device__ void Run(const SrcTData* p_src, DstTData* p_dst) const
     {
-        using src_vector_t = typename vector_type<TData, SrcDataPerAccess>::MemoryType;
-        using dst_vector_t = typename vector_type<TData, DstDataPerAccess>::MemoryType;
+        using src_vector_t = typename vector_type<SrcTData, SrcDataPerAccess>::MemoryType;
+        using dst_vector_t = typename vector_type<DstTData, DstDataPerAccess>::MemoryType;
 
         constexpr auto vector_access_dim = Number<VectorAccessDim>{};
 
@@ -346,7 +346,7 @@ struct ThreadwiseGenericTensorSliceCopy_v1r2
                 vector_access_dim, long_vector_access_id[vector_access_dim] * long_vector_size);
 
             // buffer to hold a long-vector
-            TData p_long_vector[long_vector_size];
+            SrcTData p_long_vector[long_vector_size];
 
             // load data from src to the long-vector buffer
             static_for<0, long_vector_size / src_data_per_access, 1>{}([&](auto i) {
@@ -372,8 +372,16 @@ struct ThreadwiseGenericTensorSliceCopy_v1r2
                 const index_t dst_offset = DstDesc::GetOffsetFromMultiIndex(
                     mDstSliceOrigin + (long_vector_data_begin_id + scalar_id));
 
-                *reinterpret_cast<dst_vector_t*>(&p_dst[dst_offset]) =
-                    *reinterpret_cast<dst_vector_t*>(&p_long_vector[buffer_offset]);
+                static_if<std::is_same<src_vector_t, dst_vector_t>::value>{}([&](auto) {
+                    *reinterpret_cast<dst_vector_t*>(&p_dst[dst_offset]) =
+                        *reinterpret_cast<dst_vector_t*>(&p_long_vector[buffer_offset]);
+                }).Else([&](auto) {
+                    for(index_t data_idx = 0; data_idx < dst_data_per_access; ++data_idx)
+                    {
+                        p_dst[dst_offset + data_idx] =
+                            CVT_ACCUM2FLOAT(p_long_vector[buffer_offset + data_idx]);
+                    }
+                });
             });
         });
 #else
@@ -386,7 +394,7 @@ struct ThreadwiseGenericTensorSliceCopy_v1r2
                     long_vector_size * long_vector_access_id[vector_access_dim];
 
                 // buffer to hold a long-vector
-                TData p_long_vector[long_vector_size];
+                SrcTData p_long_vector[long_vector_size];
 
                 // load data from src to the long-vector buffer
                 for(index_t i = 0; i < long_vector_size / src_data_per_access; ++i)
@@ -414,8 +422,16 @@ struct ThreadwiseGenericTensorSliceCopy_v1r2
                     const index_t dst_offset = DstDesc::GetOffsetFromMultiIndex(
                         mDstSliceOrigin + (long_vector_data_begin_id + scalar_id));
 
-                    *reinterpret_cast<dst_vector_t*>(&p_dst[dst_offset]) =
-                        *reinterpret_cast<dst_vector_t*>(&p_long_vector[buffer_offset]);
+                    static_if<std::is_same<src_vector_t, dst_vector_t>::value>{}([&](auto) {
+                        *reinterpret_cast<dst_vector_t*>(&p_dst[dst_offset]) =
+                            *reinterpret_cast<dst_vector_t*>(&p_long_vector[buffer_offset]);
+                    }).Else([&](auto) {
+                        for(index_t data_idx = 0; data_idx < dst_data_per_access; ++data_idx)
+                        {
+                            p_dst[dst_offset + data_idx] =
+                                CVT_ACCUM2FLOAT(p_long_vector[buffer_offset + data_idx]);
+                        }
+                    });
                 }
             });
 #endif

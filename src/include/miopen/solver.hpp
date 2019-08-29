@@ -470,6 +470,7 @@ struct PerformanceImplicitGemm : Serializable<PerformanceImplicitGemm>
     bool IsValid(const ConvolutionContext& ctx) const;
     bool operator==(const PerformanceImplicitGemm& other) const;
     std::string ToString() const;
+    uint32_t GetEPackLength(const ConvolutionContext& ctx) const;
 };
 
 struct ConvHipImplicitGemmV4Fwd : SolverBase<ConvolutionContext>
