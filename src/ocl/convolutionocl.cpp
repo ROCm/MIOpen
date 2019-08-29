@@ -2093,7 +2093,7 @@ void ConvFwdSCGemm(const ConvolutionContext& ctx,
 
     if(handle.IsProfilingEnabled())
     {
-        MIOPEN_LOG_I("CallSCGemm elapsed time = " << elapsed << " ms");
+        MIOPEN_LOG_I2("CallSCGemm elapsed time = " << elapsed << " ms");
         handle.ResetKernelTime();
         handle.AccumKernelTime(elapsed);
     }
