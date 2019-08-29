@@ -233,9 +233,12 @@ bool PerformanceImplicitGemm::SetNextValue()
             GemmMPerThreadSubC = 4;
             GemmNPerThreadSubC = 4;
             // use block_size = 256 as possible
-            if(!NextTwoPower<2, 4>(WeiBlockCopyClusterLengths_E))
-                break;
-            WeiBlockCopyClusterLengths_K = 256 / WeiBlockCopyClusterLengths_E;
+            {
+                const bool wrap              = NextTwoPower<2, 4>(WeiBlockCopyClusterLengths_E);
+                WeiBlockCopyClusterLengths_K = 256 / WeiBlockCopyClusterLengths_E;
+                if(!wrap)
+                    break;
+            }
         }
         else
         {
