@@ -47,10 +47,21 @@ bool PerformanceConfigSCGemmFwd<T>::SetNextValue()
     do
     {
         auto routines = m_type::GetSCGemmRoutines();
-        ++index;
-        if(index < routines.size())
+        auto it       = routines.begin();
+        if(routine != -1)
         {
-            routine = m_type::Routine2Int(routines[index]);
+            // find the index of the current routine from routine list.
+            it = std::find_if(routines.begin(), routines.end(), [&](auto r) {
+                return m_type::Routine2Int(r) == routine;
+            });
+
+            // set to next index
+            if(it != routines.end())
+                ++it;
+        }
+        if(it != routines.end())
+        {
+            routine = m_type::Routine2Int(*it);
             break;
         }
         return false;
@@ -59,43 +70,49 @@ bool PerformanceConfigSCGemmFwd<T>::SetNextValue()
 }
 
 template <SCGemmOpType T>
-PerformanceConfigSCGemmFwd<T>::PerformanceConfigSCGemmFwd(bool spare)
-    : routine_type(T), index(0), use_spare_set(spare)
+PerformanceConfigSCGemmFwd<T>::PerformanceConfigSCGemmFwd() : routine(-1)
 {
-    using m_type  = scgemm_op_type<T>;
-    auto routines = m_type::GetSCGemmRoutines();
-    routine       = m_type::Routine2Int(routines[index]);
+}
+
+template <SCGemmOpType T>
+PerformanceConfigSCGemmFwd<T>::PerformanceConfigSCGemmFwd(bool)
+{
+    // get the minimal routine
+    routine = scgemm_op_type<T>::Routine2Int(scgemm_op_type<T>::GetSCGemmRoutines()[0]);
 }
 
 template <SCGemmOpType T>
 bool PerformanceConfigSCGemmFwd<T>::operator==(const PerformanceConfigSCGemmFwd<T>& other) const
 {
     // clang-format off
-    return routine_type == other.routine_type 
-           && routine == other.routine 
-           && use_spare_set == other.use_spare_set;
+    return routine == other.routine;
     // clang-format on
 }
 
 template <SCGemmOpType T>
 bool PerformanceConfigSCGemmFwd<T>::IsValidValue() const
 {
-    auto routines = scgemm_op_type<T>::GetSCGemmRoutines();
-    return (index < routines.size());
+    using m_type  = scgemm_op_type<T>;
+    auto routines = m_type::GetSCGemmRoutines();
+
+    // Check if the routine inside the routine list.
+    auto it = std::find_if(routines.begin(), routines.end(), [&](auto r) {
+        return m_type::Routine2Int(r) == routine;
+    });
+
+    return it != routines.end();
 }
 
 template <SCGemmOpType T>
 bool PerformanceConfigSCGemmFwd<T>::IsValid(const ConvolutionContext& /*config*/) const
 {
-    return true;
+    return IsValidValue();
 }
 
 template <SCGemmOpType T>
 void PerformanceConfigSCGemmFwd<T>::EuristicInit(const ConvolutionContext& /*config*/)
 {
     using m_type  = scgemm_op_type<T>;
-    index         = 0;
-    routine_type  = T;
     auto routines = m_type::GetSCGemmRoutines();
     routine       = m_type::Routine2Int(routines[0]);
 }
@@ -126,7 +143,7 @@ bool ConvSCGemmFwd<T>::IsValidPerformanceConfig(const ConvolutionContext& proble
 }
 
 template <SCGemmOpType T>
-bool ConvSCGemmFwd<T>::IsApplicable(const ConvolutionContext& params) const
+bool ConvSCGemmFwd<T>::IsApplicableBase(const ConvolutionContext& params) const
 {
     if(!params.use_binaries)
     {
@@ -207,23 +224,59 @@ bool ConvSCGemmFwd<T>::IsApplicable(const ConvolutionContext& params) const
     }
 
     static const size_t MAX_BUFFER_SIZE = (1LLU << 32); // 4 GB
-    if(src_size * params.batch_sz * params.n_inputs * sizeof(float) >= MAX_BUFFER_SIZE ||
-       dst_size * params.batch_sz * params.n_outputs * sizeof(float) >= MAX_BUFFER_SIZE ||
-       filter_size * params.n_inputs * params.n_outputs * sizeof(float) >= MAX_BUFFER_SIZE ||
-       auxbuf_size >= MAX_BUFFER_SIZE)
-    {
-        return false;
-    }
-
-    return IsApplicableBase(params);
+    return !(
+        (src_size * params.batch_sz * params.n_inputs * sizeof(float) >= MAX_BUFFER_SIZE) ||
+        (dst_size * params.batch_sz * params.n_outputs * sizeof(float) >= MAX_BUFFER_SIZE) ||
+        (filter_size * params.n_inputs * params.n_outputs * sizeof(float) >= MAX_BUFFER_SIZE) ||
+        (auxbuf_size >= MAX_BUFFER_SIZE));
 }
 
 template <SCGemmOpType T>
-bool ConvSCGemmFwd<T>::IsApplicableBase(const ConvolutionContext& /*params*/) const
+bool ConvSCGemmFwd<T>::IsApplicable(const ConvolutionContext& /*params*/) const
 {
     MIOPEN_LOG_E("SCGemmOpType: " << T << " is not supported");
     // TODO SCGemmOpFConv
     return false;
+}
+
+template <>
+bool ConvSCGemmFwd<SCGemmOpFGemm>::IsApplicable(const ConvolutionContext& params) const
+{
+    if(!IsApplicableBase(params))
+    {
+        return false;
+    }
+
+    if(params.kernel_size_w != 1 || params.kernel_size_h != 1)
+    {
+        return false;
+    }
+
+    if(params.kernel_stride_w != 1 || params.kernel_stride_h != 1)
+    {
+        return false;
+    }
+
+    if(params.kernel_dilation_w != 1 || params.kernel_dilation_h != 1)
+    {
+        return false;
+    }
+
+    // TODO: if 3-dimensional is supported.
+    /*
+    if(!params.Is2d() && (params.kernel_size_d != 1 || params.kernel_stride_d != 1 ||
+                          params.kernel_dilation_d != 1))
+    {
+        return false;
+    }
+    */
+
+    if(params.n_inputs > 8192 || params.n_outputs > 8192)
+    {
+        return false;
+    }
+
+    return true;
 }
 
 template <SCGemmOpType T>
@@ -233,15 +286,24 @@ bool ConvSCGemmFwd<T>::IsFast(const ConvolutionContext&) const
 }
 
 template <SCGemmOpType T>
-ConvSolution ConvSCGemmFwd<T>::GetSolution(const ConvolutionContext& params,
-                                           const PerformanceConfigSCGemmFwd<T>& config,
+ConvSolution ConvSCGemmFwd<T>::GetSolution(const ConvolutionContext& /*params*/,
+                                           const PerformanceConfigSCGemmFwd<T>& /*config*/,
                                            const bool /*disableConfigOverrideFromEnv*/) const
 {
-    ConvSolution result;
-    result.workspce_sz = 0;
+    MIOPEN_LOG_E("SCGemmOpType: " << T << " is not supported");
+    // TODO SCGemmOpFConv
+    return {};
+}
 
+template <>
+ConvSolution
+ConvSCGemmFwd<SCGemmOpFGemm>::GetSolution(const ConvolutionContext& params,
+                                          const PerformanceConfigSCGemmFwd<SCGemmOpFGemm>& config,
+                                          const bool /*disableConfigOverrideFromEnv*/) const
+{
+    ConvSolution result;
     SCGemmKernelParams scgParams;
-    scgParams.type    = static_cast<SCGemmOpType>(config.routine_type);
+    scgParams.type    = SCGemmOpFGemm;
     scgParams.routine = config.routine;
     CompiledSCGemmKernelParams(params, scgParams);
 
@@ -259,8 +321,7 @@ ConvSolution ConvSCGemmFwd<T>::GetSolution(const ConvolutionContext& params,
     kernel.l_wk.push_back(scgParams.blocks[1]);
     kernel.l_wk.push_back(scgParams.blocks[2]);
 
-    size_t m_ws = GetSCGemmConvFwdWorkSpaceSize(
-        params, static_cast<SCGemmOpType>(config.routine_type), config.routine);
+    size_t m_ws        = GetSCGemmConvFwdWorkSpaceSize(params, scgParams.type, config.routine);
     result.workspce_sz = m_ws;
     result.construction_params.push_back(kernel);
 
@@ -270,22 +331,13 @@ ConvSolution ConvSCGemmFwd<T>::GetSolution(const ConvolutionContext& params,
     size_t local_size  = 128;
     size_t global_size = ((m_ws + local_size - 1) / local_size) * local_size;
 
-    switch(scgParams.type)
-    {
-    case SCGemmOpFGemm:
-        aux_kernel.kernel_file = "SCGemmUtils.cl";
-        aux_kernel.kernel_name = "cl_gemm_generate_amap";
-        aux_kernel.l_wk.clear();
-        aux_kernel.l_wk.push_back(128);
-        aux_kernel.g_wk.clear();
-        aux_kernel.g_wk.push_back(global_size);
-        result.construction_params.push_back(aux_kernel);
-        break;
-    case SCGemmOpFConv:
-        MIOPEN_LOG_E("Static Compiled GEMM forward conv is not supported.");
-        return {};
-    }
-
+    aux_kernel.kernel_file = "SCGemmUtils.cl";
+    aux_kernel.kernel_name = "cl_gemm_generate_amap";
+    aux_kernel.l_wk.clear();
+    aux_kernel.l_wk.push_back(128);
+    aux_kernel.g_wk.clear();
+    aux_kernel.g_wk.push_back(global_size);
+    result.construction_params.push_back(aux_kernel);
     return result;
 }
 
@@ -346,39 +398,6 @@ PerformanceConfigSCGemmFwd<T> ConvSCGemmFwd<T>::Search(const ConvolutionContext&
 
 template struct PerformanceConfigSCGemmFwd<SCGemmOpFGemm>;
 template struct ConvSCGemmFwd<SCGemmOpFGemm>;
-template <>
-bool ConvSCGemmFwd<SCGemmOpFGemm>::IsApplicableBase(const ConvolutionContext& params) const
-{
-    if(params.kernel_size_w != 1 || params.kernel_size_h != 1)
-    {
-        return false;
-    }
 
-    if(params.kernel_stride_w != 1 || params.kernel_stride_h != 1)
-    {
-        return false;
-    }
-
-    if(params.kernel_dilation_w != 1 || params.kernel_dilation_h != 1)
-    {
-        return false;
-    }
-
-    // TODO: if 3-dimensional is supported.
-    /*
-    if(!params.Is2d() && (params.kernel_size_d != 1 || params.kernel_stride_d != 1 ||
-                          params.kernel_dilation_d != 1))
-    {
-        return false;
-    }
-    */
-
-    if(params.n_inputs > 8192 || params.n_outputs > 8192)
-    {
-        return false;
-    }
-
-    return true;
-}
 } // namespace solver
 } // namespace miopen

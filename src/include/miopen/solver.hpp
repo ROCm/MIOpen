@@ -916,18 +916,14 @@ struct ConvOclBwdWrW1x1 : SolverBase<ConvolutionContext>
 template <SCGemmOpType T>
 struct PerformanceConfigSCGemmFwd : Serializable<PerformanceConfigSCGemmFwd<T>>
 {
-    int routine_type   = 0;
-    int routine        = 0;
-    int index          = 0;
-    bool use_spare_set = false;
+    int routine = -1; //[0..6]
 
+    PerformanceConfigSCGemmFwd();
     PerformanceConfigSCGemmFwd(bool);
-    PerformanceConfigSCGemmFwd() : PerformanceConfigSCGemmFwd(false) {}
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
-        f(self.routine_type, "routine_type");
         f(self.routine, "routine");
     }
 
@@ -967,7 +963,12 @@ struct ConvSCGemmFwd : SolverBase<ConvolutionContext>
 
 extern template struct PerformanceConfigSCGemmFwd<SCGemmOpFGemm>;
 template <>
-bool ConvSCGemmFwd<SCGemmOpFGemm>::IsApplicableBase(const ConvolutionContext& params) const;
+bool ConvSCGemmFwd<SCGemmOpFGemm>::IsApplicable(const ConvolutionContext& params) const;
+template <>
+ConvSolution
+ConvSCGemmFwd<SCGemmOpFGemm>::GetSolution(const ConvolutionContext& params,
+                                          const PerformanceConfigSCGemmFwd<SCGemmOpFGemm>& config,
+                                          bool disableConfigOverrideFromEnv) const;
 extern template struct ConvSCGemmFwd<SCGemmOpFGemm>;
 #else
 template <SCGemmOpType T>
