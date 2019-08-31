@@ -383,4 +383,10 @@ void miopen::ConvolutionContext::DetectRocm()
         use_binaries = !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
 #endif
     }
+
+    if(StartsWith(GetStream().GetDeviceName(), "gfx8"))
+    {
+        use_asm_kernels = false;
+        use_binaries    = false;
+    }
 }
