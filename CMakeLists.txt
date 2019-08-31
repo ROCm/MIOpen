@@ -249,8 +249,13 @@ endif()
 set(MIOPEN_USER_DB_SUFFIX "${MIOPEN_BACKEND}.${MIOpen_VERSION_MAJOR}_${MIOpen_VERSION_MINOR}_${MIOpen_VERSION_PATCH}" CACHE PATH "Filename suffix for the user find-db files")
 set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix for the system find-db files")
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "rocm-opencl-dev, rocm-utils, hip_hcc, miopengemm")
-set(CPACK_RPM_PACKAGE_REQUIRES "rocm-opencl-devel, rocm-utils, hip_hcc, miopengemm")
+
+set(MIOPEN_PACKAGE_REQS "rocm-utils, hip_hcc")
+if(MIOPEN_USE_MIOPENGEMM)
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, miopengemm")
+endif()
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}, rocm-opencl-dev")
+set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}, rocm-opencl-devel")
 
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}
