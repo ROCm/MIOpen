@@ -185,7 +185,7 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         return false;
 
     const std::string name = params.GetStream().GetDeviceName();
-    if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
+    if(name.find("gfx9") == std::string::npos)
     {
         return false;
     }
