@@ -353,10 +353,10 @@ bool ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::IsApplicable(
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4{}) && WinoDataW == 3 &&
        WinoFilterW == 4)
         return false;
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5{}) && WinoDataW == 3 &&
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5{}) && WinoDataW == 3 &&
        WinoFilterW == 5)
         return false;
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6{}) && WinoDataW == 3 &&
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6{}) && WinoDataW == 3 &&
        WinoFilterW == 6)
         return false;
     if(!params.use_asm_kernels)
