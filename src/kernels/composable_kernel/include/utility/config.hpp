@@ -3,6 +3,7 @@
 
 #include "hip/hip_runtime.h"
 #include "hip/hip_fp16.h"
+#include "bfloat16_dev.hpp"
 
 #define CK_DEVICE_BACKEND_AMD 1
 #define CK_USE_AMD_INLINE_ASM 1
@@ -11,30 +12,57 @@
 
 namespace ck {
 
-// For some reason, HIP compiler need this definition to generate optimal load and store
-// instruction
+// float
+//   For some reason, HIP compiler need this definition to generate optimal load and store
+//   instruction
 typedef float float2_t __attribute__((ext_vector_type(2)));
 typedef float float4_t __attribute__((ext_vector_type(4)));
+
+// half
 typedef half2 half2_t;
+
 typedef struct
 {
     half2_t scalar[2];
 } half4_t;
+
+// bfloat16: use ushort
 typedef struct
 {
     ushort scalar[2];
 } ushort2_t;
+
 typedef struct
 {
     ushort2_t scalar[2];
 } ushort4_t;
+
+// index_t: used for index calculation
 using index_t = uint32_t;
 
-__device__ void fused_multiply_accumulate(float& d, const float& s0, const float& s1)
+// data type conversion
+template <class T>
+struct type_convert
 {
-    d += s0 * s1;
+    template <class X>
+    __device__ T operator()(X x) const
+    {
+        return static_cast<T>(x);
+    }
+};
+
+template <>
+template <>
+__device__ float type_convert<float>::operator()<ushort>(ushort x) const
+{
+    return bfloat16_to_float(x);
 }
 
-} // namespace ck
-
+template <>
+template <>
+__device__ ushort type_convert<ushort>::operator()<float>(float x) const
+{
+    return float_to_bfloat16(x);
+}
+}
 #endif
