@@ -2,7 +2,7 @@
 ## MIOpen Release notes
 
 
-### 09/01/2019 [2.1.0]
+### 09/06/2019 [2.1.0]
 
 - This release contains new layers, bug fixes, and a new convolution algorithm.
 
@@ -14,7 +14,8 @@ Changes:
 - Added a [docker hub link](https://hub.docker.com/r/rocm/miopen/tags) for MIOpen docker images.
 - Fixed issue with NaN appearing on batch normalization backwards pass in fp16
 - Fixed softmax kernel bug in log mode [#112](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/112)
-- Fixed ROCm gfx803 support issue [#869](https://github.com/RadeonOpenCompute/ROCm/issues/869)
+- Fixed gfx803 support issue [#869](https://github.com/RadeonOpenCompute/ROCm/issues/869)
+- Fixed gfx803 kernel issue [#117](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/117)
 - Improved performance of batch normalization fp16 forward training layers
 - Improved performance of convolutions layers
 - Removed MIOpenGEMM as a requirement for the HIP backend. It is now optional.
