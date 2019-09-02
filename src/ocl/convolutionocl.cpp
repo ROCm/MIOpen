@@ -65,7 +65,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_SCGEMM)
 
 #if MIOPEN_USE_GEMM
 static const bool IsUseRocBlas = (MIOPEN_USE_ROCBLAS == 1);
-#endif
 
 static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
                                    const TensorDescriptor& yDesc,
@@ -74,6 +73,7 @@ static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
     return xDesc.GetType() == miopenBFloat16 || yDesc.GetType() == miopenBFloat16 ||
            wDesc.GetType() == miopenBFloat16;
 }
+#endif
 
 static inline void AddKernels(Handle& handle,
                               const std::string& algorithm_name,
@@ -4528,7 +4528,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     if(workSpaceSize < sol.workspce_sz)
                         continue;
                     // clang-format off
-                    if(sol.solver_id == SolverDbId(miopen::solver::ConvWinograd3x3MultipassWrW<3, 2>()))                                            
+                    if(sol.solver_id == SolverDbId(miopen::solver::ConvWinograd3x3MultipassWrW<3, 2>()))
                         EvaluateWinograd3x3MultipassWrW<3,2>(
                             handle, ctx, tensors, workSpace, kernels, GetConvPads()[0], GetConvPads()[1],&elapsed);
                     else if(sol.solver_id == SolverDbId(miopen::solver::ConvWinograd3x3MultipassWrW<3, 3>()))
@@ -4941,6 +4941,7 @@ void ConvolutionDescriptor::BackwardWeightsGemm(Handle& handle,
     std::ignore = handle;
     std::ignore = tensors;
     std::ignore = workSpace;
+    std::ignore = workSpaceSize;
     MIOPEN_THROW("GEMM is not supported");
 #endif
 }
