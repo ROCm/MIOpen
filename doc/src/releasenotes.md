@@ -16,6 +16,7 @@ Changes:
 - Fixed softmax kernel bug in log mode [#112](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/112)
 - Fixed gfx803 support issue [#869](https://github.com/RadeonOpenCompute/ROCm/issues/869)
 - Fixed gfx803 kernel issue [#117](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/117)
+- Fixed issue with disabled GEMM [#119](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/119)
 - Improved performance of batch normalization fp16 forward training layers
 - Improved performance of convolutions layers
 - Removed MIOpenGEMM as a requirement for the HIP backend. It is now optional.
