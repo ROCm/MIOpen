@@ -4,7 +4,6 @@
 #include "common_header.hpp"
 #include "ConstantTensorDescriptor.hpp"
 #include "ConstantMergedTensorDescriptor.hpp"
-#include "float_types.h"
 
 #ifndef CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1R1
 #define CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1R1 0
@@ -107,17 +106,17 @@ struct ThreadwiseGenericTensorSliceCopy_v1r1
         mDstSliceOrigin = dst_slice_origin;
     }
 
-    template <class TData>
-    __device__ void Run(const TData* p_src, TData* p_dst) const
+    template <class SrcData, class DstData>
+    __device__ void Run(const SrcData* p_src, DstData* p_dst) const
     {
         constexpr auto buffer_desc = make_ConstantTensorDescriptor_packed(SliceLengths{});
 
-        TData p_buffer_[buffer_desc.GetElementSpace()];
-        TData* p_buffer = p_buffer_;
+        SrcData p_src_buffer_[buffer_desc.GetElementSpace()];
+        SrcData* p_src_buffer = p_src_buffer_;
 
-        // copy data from src into buffer
+        // copy data from src into src buffer
         {
-            using vector_t = typename vector_type<TData, SrcDataPerAccess>::MemoryType;
+            using src_vector_t = typename vector_type<SrcData, SrcDataPerAccess>::MemoryType;
 
             constexpr auto src_vector_access_dim = Number<SrcVectorAccessDim>{};
             constexpr auto src_data_per_access   = Number<SrcDataPerAccess>{};
@@ -136,7 +135,8 @@ struct ThreadwiseGenericTensorSliceCopy_v1r1
                     SrcDesc::GetOffsetFromMultiIndex(mSrcSliceOrigin + src_data_begin_id);
 
                 // load vector from src
-                const vector_t vector_data = *reinterpret_cast<const vector_t*>(&p_src[src_offset]);
+                const src_vector_t src_vector_data =
+                    *reinterpret_cast<const src_vector_t*>(&p_src[src_offset]);
 
                 // unpack vector into buffer
                 static_for<0, SrcDataPerAccess, 1>{}([&](auto i) {
@@ -147,7 +147,8 @@ struct ThreadwiseGenericTensorSliceCopy_v1r1
                     constexpr index_t buffer_offset =
                         buffer_desc.GetOffsetFromMultiIndex(src_data_begin_id + scalar_id);
 
-                    p_buffer[buffer_offset] = reinterpret_cast<const TData*>(&vector_data)[i];
+                    p_src_buffer[buffer_offset] =
+                        reinterpret_cast<const SrcData*>(&src_vector_data)[i];
                 });
             });
 #else
@@ -160,7 +161,8 @@ struct ThreadwiseGenericTensorSliceCopy_v1r1
                     SrcDesc::GetOffsetFromMultiIndex(mSrcSliceOrigin + src_data_begin_id);
 
                 // load vector from src
-                const vector_t vector_data = *reinterpret_cast<const vector_t*>(&p_src[src_offset]);
+                const src_vector_t src_vector_data =
+                    *reinterpret_cast<const src_vector_t*>(&p_src[src_offset]);
 
                 // unpack vector into buffer
                 for(index_t i = 0; i < SrcDataPerAccess; ++i)
@@ -171,7 +173,8 @@ struct ThreadwiseGenericTensorSliceCopy_v1r1
                     const index_t buffer_offset =
                         buffer_desc.GetOffsetFromMultiIndex(src_data_begin_id + scalar_id);
 
-                    p_buffer[buffer_offset] = reinterpret_cast<const TData*>(&vector_data)[i];
+                    p_src_buffer[buffer_offset] =
+                        reinterpret_cast<const SrcData*>(&src_vector_data)[i];
                 }
             });
 #endif
@@ -179,7 +182,7 @@ struct ThreadwiseGenericTensorSliceCopy_v1r1
 
         // copy data from buffer to dst
         {
-            using vector_t = typename vector_type<TData, DstDataPerAccess>::MemoryType;
+            using dst_vector_t = typename vector_type<DstData, DstDataPerAccess>::MemoryType;
 
             constexpr auto dst_vector_access_dim = Number<DstVectorAccessDim>{};
             constexpr auto dst_data_per_access   = Number<DstDataPerAccess>{};
@@ -194,9 +197,9 @@ struct ThreadwiseGenericTensorSliceCopy_v1r1
                     dst_vector_access_dim,
                     dst_access_id[dst_vector_access_dim] * dst_data_per_access);
 
-                vector_t vector_data;
+                dst_vector_t dst_vector_data;
 
-                // pack vector from buffer
+                // pack vector from buffer and type conversion
                 static_for<0, DstDataPerAccess, 1>{}([&](auto i) {
                     constexpr auto scalar_id =
                         typename uniform_sequence_gen<nDim, 0>::type{}.Modify(dst_vector_access_dim,
@@ -205,14 +208,16 @@ struct ThreadwiseGenericTensorSliceCopy_v1r1
                     constexpr index_t buffer_offset =
                         buffer_desc.GetOffsetFromMultiIndex(dst_data_begin_id + scalar_id);
 
-                    reinterpret_cast<TData*>(&vector_data)[i] = p_buffer[buffer_offset];
+                    // SrcData to DstData type conversion is done here
+                    reinterpret_cast<DstData*>(&dst_vector_data)[i] =
+                        type_convert<DstData>{}(p_src_buffer[buffer_offset]);
                 });
 
                 const index_t dst_offset =
                     DstDesc::GetOffsetFromMultiIndex(mDstSliceOrigin + dst_data_begin_id);
 
                 // store vector into dst
-                *reinterpret_cast<vector_t*>(&p_dst[dst_offset]) = vector_data;
+                *reinterpret_cast<dst_vector_t*>(&p_dst[dst_offset]) = dst_vector_data;
             });
 #else
             ford<decltype(dst_access_lengths), DstDimAccessOrder>{}([&](auto dst_access_id) {
@@ -220,9 +225,9 @@ struct ThreadwiseGenericTensorSliceCopy_v1r1
                 dst_data_begin_id(dst_vector_access_dim) =
                     dst_access_id[dst_vector_access_dim] * dst_data_per_access;
 
-                vector_t vector_data;
+                dst_vector_t dst_vector_data;
 
-                // pack vector from buffer
+                // pack vector from buffer and type conversion
                 for(index_t i = 0; i < DstDataPerAccess; ++i)
                 {
                     auto scalar_id                   = make_zero_array<index_t, nDim>();
@@ -231,14 +236,16 @@ struct ThreadwiseGenericTensorSliceCopy_v1r1
                     const index_t buffer_offset =
                         buffer_desc.GetOffsetFromMultiIndex(dst_data_begin_id + scalar_id);
 
-                    reinterpret_cast<TData*>(&vector_data)[i] = p_buffer[buffer_offset];
+                    // SrcData to DstData type conversion is done here
+                    reinterpret_cast<DstData*>(&dst_vector_data)[i] =
+                        type_convert<DstData>{}(p_src_buffer[buffer_offset]);
                 }
 
                 const index_t dst_offset =
                     DstDesc::GetOffsetFromMultiIndex(mDstSliceOrigin + dst_data_begin_id);
 
                 // store vector into dst
-                *reinterpret_cast<vector_t*>(&p_dst[dst_offset]) = vector_data;
+                *reinterpret_cast<dst_vector_t*>(&p_dst[dst_offset]) = dst_vector_data;
             });
 #endif
         }
@@ -321,11 +328,11 @@ struct ThreadwiseGenericTensorSliceCopy_v1r2
         mDstSliceOrigin = dst_slice_origin;
     }
 
-    template <class SrcTData, class DstTData>
-    __device__ void Run(const SrcTData* p_src, DstTData* p_dst) const
+    template <class SrcData, class DstData>
+    __device__ void Run(const SrcData* p_src, DstData* p_dst) const
     {
-        using src_vector_t = typename vector_type<SrcTData, SrcDataPerAccess>::MemoryType;
-        using dst_vector_t = typename vector_type<DstTData, DstDataPerAccess>::MemoryType;
+        using src_vector_t = typename vector_type<SrcData, SrcDataPerAccess>::MemoryType;
+        using dst_vector_t = typename vector_type<DstData, DstDataPerAccess>::MemoryType;
 
         constexpr auto vector_access_dim = Number<VectorAccessDim>{};
 
@@ -346,7 +353,8 @@ struct ThreadwiseGenericTensorSliceCopy_v1r2
                 vector_access_dim, long_vector_access_id[vector_access_dim] * long_vector_size);
 
             // buffer to hold a long-vector
-            SrcTData p_long_vector[long_vector_size];
+            SrcData p_src_long_vector[long_vector_size];
+            DstData p_dst_long_vector[long_vector_size];
 
             // load data from src to the long-vector buffer
             static_for<0, long_vector_size / src_data_per_access, 1>{}([&](auto i) {
@@ -358,9 +366,15 @@ struct ThreadwiseGenericTensorSliceCopy_v1r2
 
                 constexpr index_t buffer_offset = i * src_data_per_access;
 
-                *reinterpret_cast<src_vector_t*>(&p_long_vector[buffer_offset]) =
+                *reinterpret_cast<src_vector_t*>(&p_src_long_vector[buffer_offset]) =
                     *reinterpret_cast<const src_vector_t*>(&p_src[src_offset]);
             });
+
+            // type conversion
+            for(index_t i = 0; i < long_vector_size; ++i)
+            {
+                p_dst_long_vector[i] = type_convert<DstType>{}(p_src_long_vector[i]);
+            }
 
             // store data from the long-vector buffer to dst
             static_for<0, long_vector_size / dst_data_per_access, 1>{}([&](auto i) {
@@ -372,16 +386,8 @@ struct ThreadwiseGenericTensorSliceCopy_v1r2
                 const index_t dst_offset = DstDesc::GetOffsetFromMultiIndex(
                     mDstSliceOrigin + (long_vector_data_begin_id + scalar_id));
 
-                static_if<std::is_same<src_vector_t, dst_vector_t>::value>{}([&](auto) {
-                    *reinterpret_cast<dst_vector_t*>(&p_dst[dst_offset]) =
-                        *reinterpret_cast<dst_vector_t*>(&p_long_vector[buffer_offset]);
-                }).Else([&](auto) {
-                    for(index_t data_idx = 0; data_idx < dst_data_per_access; ++data_idx)
-                    {
-                        p_dst[dst_offset + data_idx] =
-                            CVT_ACCUM2FLOAT(p_long_vector[buffer_offset + data_idx]);
-                    }
-                });
+                *reinterpret_cast<dst_vector_t*>(&p_dst[dst_offset]) =
+                    *reinterpret_cast<dst_vector_t*>(&p_dst_long_vector[buffer_offset]);
             });
         });
 #else
@@ -394,7 +400,8 @@ struct ThreadwiseGenericTensorSliceCopy_v1r2
                     long_vector_size * long_vector_access_id[vector_access_dim];
 
                 // buffer to hold a long-vector
-                SrcTData p_long_vector[long_vector_size];
+                SrcData p_src_long_vector[long_vector_size];
+                DstData p_dst_long_vector[long_vector_size];
 
                 // load data from src to the long-vector buffer
                 for(index_t i = 0; i < long_vector_size / src_data_per_access; ++i)
@@ -407,8 +414,14 @@ struct ThreadwiseGenericTensorSliceCopy_v1r2
 
                     const index_t buffer_offset = i * src_data_per_access;
 
-                    *reinterpret_cast<src_vector_t*>(&p_long_vector[buffer_offset]) =
+                    *reinterpret_cast<src_vector_t*>(&p_src_long_vector[buffer_offset]) =
                         *reinterpret_cast<const src_vector_t*>(&p_src[src_offset]);
+                }
+
+                // type conversion
+                for(index_t i = 0; i < long_vector_size; ++i)
+                {
+                    p_dst_long_vector[i] = type_convert<DstData>{}(p_src_long_vector[i]);
                 }
 
                 // store data from the long-vector buffer to dst
@@ -422,16 +435,8 @@ struct ThreadwiseGenericTensorSliceCopy_v1r2
                     const index_t dst_offset = DstDesc::GetOffsetFromMultiIndex(
                         mDstSliceOrigin + (long_vector_data_begin_id + scalar_id));
 
-                    static_if<std::is_same<src_vector_t, dst_vector_t>::value>{}([&](auto) {
-                        *reinterpret_cast<dst_vector_t*>(&p_dst[dst_offset]) =
-                            *reinterpret_cast<dst_vector_t*>(&p_long_vector[buffer_offset]);
-                    }).Else([&](auto) {
-                        for(index_t data_idx = 0; data_idx < dst_data_per_access; ++data_idx)
-                        {
-                            p_dst[dst_offset + data_idx] =
-                                CVT_ACCUM2FLOAT(p_long_vector[buffer_offset + data_idx]);
-                        }
-                    });
+                    *reinterpret_cast<dst_vector_t*>(&p_dst[dst_offset]) =
+                        *reinterpret_cast<dst_vector_t*>(&p_dst_long_vector[buffer_offset]);
                 }
             });
 #endif
@@ -441,116 +446,6 @@ struct ThreadwiseGenericTensorSliceCopy_v1r2
     Array<index_t, nDim> mSrcSliceOrigin;
     Array<index_t, nDim> mDstSliceOrigin;
 };
-
-// this will be deprecated due to bug
-template <class SrcFloat,
-          class DesFloat,
-          class SrcDesc,
-          class DstDesc,
-          class SliceLengths,
-          class DimAccessOrder,
-          index_t DataPerAccess>
-__device__ void threadwise_generic_tensor_slice_copy_v1_deprecated(
-    SrcDesc,
-    const SrcFloat* __restrict__ p_src,
-    Array<index_t, SrcDesc::GetNumOfDimension()> src_multi_id_begin,
-    DstDesc,
-    DesFloat* __restrict__ p_dst,
-    Array<index_t, DstDesc::GetNumOfDimension()> dst_multi_id_begin,
-    SliceLengths,
-    DimAccessOrder,
-    Number<DataPerAccess>)
-{
-    constexpr index_t nDim = SrcDesc::GetNumOfDimension();
-
-    static_assert(nDim == SrcDesc::GetNumOfDimension() && nDim == DstDesc::GetNumOfDimension() &&
-                      nDim == SliceLengths::GetSize() && nDim == DimAccessOrder::GetSize(),
-                  "wrong! # of dimensions not the same");
-
-    static_assert(is_valid_sequence_map<DimAccessOrder>::value, "wrong! map is not valid");
-
-    // TODO: do more sanity-check here, something like:
-    // constexpr auto src_strides_in_access_order =
-    //     SrcDesc::ReorderGivenNew2Old(DimAccessOrder{}).GetStride(Number<nDim-1>{});
-
-    // constexpr auto dst_strides_in_access_order =
-    //     SrcDesc::ReorderGivenNew2Old(DimAccessOrder{}).GetStride(Number<nDim-1>{});
-
-    // // check src/dst stride on the lowest access dimension
-    // static_assert((DataPerAccess == 1 || src_strides_in_access_order.Back() == 1) &&
-    //                   (DataPerAccess == 1 || dst_strides_in_access_order.Back() == 1),
-    //               "wrong! src/dst stride on the lowest access dimension needs to be 1 for "
-    //               "vectorized read/write");
-
-    constexpr auto slice_lengths_in_access_order =
-        SliceLengths::ReorderGivenNew2Old(DimAccessOrder{});
-
-    // check slice length on the lowest access dimension
-    static_assert(slice_lengths_in_access_order.Back() % DataPerAccess == 0,
-                  "wrong! slice length on the lowest access dimension should be evenly divided by "
-                  "DataPerAccess");
-
-    constexpr index_t num_access_on_lowest_access_dimension =
-        slice_lengths_in_access_order.Back() / DataPerAccess;
-
-    constexpr auto access_lengths = slice_lengths_in_access_order.Modify(
-        Number<nDim - 1>{}, Number<num_access_on_lowest_access_dimension>{});
-
-    using vector_src_t  = typename vector_type<SrcFloat, DataPerAccess>::MemoryType;
-    using vector_dest_t = typename vector_type<DesFloat, DataPerAccess>::MemoryType;
-
-#if CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1
-    static_ford<decltype(access_lengths)>{}([&](auto access_multi_id) {
-        constexpr index_t itmp = access_multi_id.Back() * DataPerAccess;
-
-        constexpr auto data_multi_id_in_access_order =
-            access_multi_id.Modify(Number<nDim - 1>{}, Number<itmp>{});
-
-        constexpr auto data_multi_id = reorder_array_given_old2new(
-            sequence2array(data_multi_id_in_access_order), DimAccessOrder{});
-
-        const index_t src_index =
-            SrcDesc::GetOffsetFromMultiIndex(src_multi_id_begin + data_multi_id);
-
-        const index_t dst_index =
-            DstDesc::GetOffsetFromMultiIndex(dst_multi_id_begin + data_multi_id);
-
-        static_if<std::is_same<vector_src_t, vector_dest_t>::value>{}([&](auto) {
-            *reinterpret_cast<vector_dest_t*>(&p_dst[dst_index]) =
-                *reinterpret_cast<const vector_src_t*>(&p_src[src_index]);
-        }).Else([&](auto) {
-            for(index_t data_idx = 0; data_idx < DataPerAccess; ++data_idx)
-            {
-                p_dst[dst_index + data_idx] = CVT_ACCUM2FLOAT(p_src[src_index + data_idx]);
-            }
-        });
-    });
-#else
-    ford<decltype(access_lengths)>{}([&](auto access_multi_id) {
-        auto data_multi_id_in_access_order      = access_multi_id;
-        data_multi_id_in_access_order(nDim - 1) = access_multi_id[nDim - 1] * DataPerAccess;
-
-        const auto data_multi_id =
-            reorder_array_given_old2new(data_multi_id_in_access_order, DimAccessOrder{});
-
-        const index_t src_index =
-            SrcDesc::GetOffsetFromMultiIndex(src_multi_id_begin + data_multi_id);
-
-        const index_t dst_index =
-            DstDesc::GetOffsetFromMultiIndex(dst_multi_id_begin + data_multi_id);
-
-        static_if<std::is_same<vector_src_t, vector_dest_t>::value>{}([&](auto) {
-            *reinterpret_cast<vector_dest_t*>(&p_dst[dst_index]) =
-                *reinterpret_cast<const vector_src_t*>(&p_src[src_index]);
-        }).Else([&](auto) {
-            for(index_t data_idx = 0; data_idx < DataPerAccess; ++data_idx)
-            {
-                p_dst[dst_index + data_idx] = CVT_ACCUM2FLOAT(p_src[src_index + data_idx]);
-            }
-        });
-    });
-#endif
-}
 
 } // namespace ck
 #endif

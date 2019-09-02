@@ -150,14 +150,15 @@ struct GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_b
 
         //     memory layout descriptor in LDS [E, N1, B, N2, {2C/4C}], dst of blockwise copy
         //     be careful of LDS alignment
-        constexpr auto in_e_n1_b_n2_2eor4e_block_desc = make_ConstantTensorDescriptor_aligned(
-            Sequence<EPerBlock, N1, BPerBlock, N2, EPACK>{},
-            Number<math::lcm(InBlockCopyDstDataPerWrite_EPACK, GemmDataPerReadB)>{});
+        constexpr auto in_e_n1_b_n2_2eor4e_block_desc =
+            make_ConstantTensorDescriptor_aligned(Sequence<EPerBlock, N1, BPerBlock, N2, EPACK>{},
+                                                  Number<InBlockCopyDstDataPerWrite_EPACK>{});
 
-        //     this check is ad-hoc
+        //     this check for GEMM is ad-hoc
         //     TODO: need to properly implement tensor descriptor with multiple alignment
         //     requirements
-        static_assert(in_e_n1_b_n2_2eor4e_block_desc.GetStride(I1) % GemmDataPerReadB == 0,
+        static_assert(in_e_n1_b_n2_2eor4e_block_desc.GetStride(I1) % (EPACK * GemmDataPerReadB) ==
+                          0,
                       "GemmDataPerReadB alignment requirement is not satisfied");
 
         // input blockwise copy
@@ -190,10 +191,12 @@ struct GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_b
         //     tensor descriptor in LDS, dst of blockwise copy
         //     be careful of LDS alignment
         constexpr auto wei_e_k_2eor4e_block_desc = make_ConstantTensorDescriptor_aligned(
-            Sequence<EPerBlock, KPerBlock, EPACK>{},
-            Number<math::lcm(WeiBlockCopyDstDataPerWrite_EPACK, GemmDataPerReadA)>{});
+            Sequence<EPerBlock, KPerBlock, EPACK>{}, Number<WeiBlockCopyDstDataPerWrite_EPACK>{});
 
-        static_assert(wei_e_k_2eor4e_block_desc.GetStride(I1) % GemmDataPerReadA == 0,
+        //     this check for GEMM is ad-hoc
+        //     TODO: need to properly implement tensor descriptor with multiple alignment
+        //     requirements
+        static_assert(wei_e_k_2eor4e_block_desc.GetStride(I1) % (EPACK * GemmDataPerReadA) == 0,
                       "GemmDataPerReadA alignment requirement is not satisfied");
 
         // operator for blockwise copy of weight into LDS
@@ -258,16 +261,16 @@ struct GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_b
             GemmDataPerReadB>{};
 
         // LDS allocation for input and weight: be careful of alignment
-        constexpr index_t max_align = math::lcm(InBlockCopyDstDataPerWrite_EPACK,
-                                                WeiBlockCopyDstDataPerWrite_EPACK,
-                                                GemmDataPerReadA,
-                                                GemmDataPerReadB);
+        constexpr index_t lds_allocation_align = math::lcm(InBlockCopyDstDataPerWrite_EPACK,
+                                                           WeiBlockCopyDstDataPerWrite_EPACK,
+                                                           EPACK * GemmDataPerReadA,
+                                                           EPACK * GemmDataPerReadB);
 
         constexpr index_t in_block_space = math::integer_least_multiple(
-            in_e_n1_b_n2_2eor4e_block_desc.GetElementSpace(), max_align);
+            in_e_n1_b_n2_2eor4e_block_desc.GetElementSpace(), lds_allocation_align);
 
-        constexpr index_t wei_block_space =
-            math::integer_least_multiple(wei_e_k_2eor4e_block_desc.GetElementSpace(), max_align);
+        constexpr index_t wei_block_space = math::integer_least_multiple(
+            wei_e_k_2eor4e_block_desc.GetElementSpace(), lds_allocation_align);
 
         __shared__ Float p_in_block_double[2 * in_block_space];
         __shared__ Float p_wei_block_double[2 * wei_block_space];

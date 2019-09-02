@@ -425,7 +425,6 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_v2
     __device__ void Run(const FloatA* __restrict__ p_a_block,
                         const FloatB* __restrict__ p_b_block,
                         FloatC* __restrict__ p_c_thread) const
-
     {
 #if CK_USE_AMD_INLINE_ASM && CK_BLOCKWISE_GEMM_USE_AMD_INLINE_ASM
 // The assembly path doesn't support bfloat16 using asm instructions
