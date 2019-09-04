@@ -346,6 +346,7 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
 }
 
 void DropoutDescriptor::DropoutBackward(Handle& handle,
+                                        const TensorDescriptor& noise_shape,
                                         const TensorDescriptor& dyDesc,
                                         ConstData_t dy,
                                         const TensorDescriptor& dxDesc,
@@ -374,6 +375,12 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
     if(dxDesc.GetElementSize() != dyDesc.GetElementSize())
     {
         MIOPEN_THROW("Input/Output element size does not match");
+    }
+
+    if(dxDesc.GetElementSize() != noise_shape.GetElementSize() ||
+       dxDesc.GetSize() != noise_shape.GetSize())
+    {
+        MIOPEN_THROW("Only support dropout with regular noise shape currently");
     }
 
     if(dxDesc.GetType() != dyDesc.GetType())
@@ -435,7 +442,11 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
         std::to_string(out_str[4]) + "-dropout" + std::to_string(dropout) + "-seed" +
         std::to_string(seed) + "-rng" + std::to_string(rng_mode) + "-mask" +
         std::to_string(static_cast<int>(use_mask)) + "-evo" +
-        std::to_string(static_cast<int>(state_evo));
+        std::to_string(static_cast<int>(state_evo)) + "-noise" +
+        std::to_string(noise_shape.GetLengths()[0]);
+
+    for(int i = 1; i < noise_shape.GetSize(); i++)
+        network_config += "x" + std::to_string(noise_shape.GetLengths()[i]);
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
