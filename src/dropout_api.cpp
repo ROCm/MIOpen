@@ -163,6 +163,7 @@ extern "C" miopenStatus_t miopenDropoutForward(miopenHandle_t handle,
 
 extern "C" miopenStatus_t miopenDropoutBackward(miopenHandle_t handle,
                                                 const miopenDropoutDescriptor_t dropoutDesc,
+                                                const miopenTensorDescriptor_t noise_shape,
                                                 const miopenTensorDescriptor_t dyDesc,
                                                 const void* dy,
                                                 const miopenTensorDescriptor_t dxDesc,
@@ -175,6 +176,7 @@ extern "C" miopenStatus_t miopenDropoutBackward(miopenHandle_t handle,
     return miopen::try_([&] {
         miopen::deref(dropoutDesc)
             .DropoutBackward(miopen::deref(handle),
+                             miopen::deref(noise_shape),
                              miopen::deref(dyDesc),
                              DataCast(dy),
                              miopen::deref(dxDesc),

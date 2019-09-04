@@ -4172,6 +4172,8 @@ MIOPEN_EXPORT miopenStatus_t miopenDropoutForward(miopenHandle_t handle,
  * Interface for executing the backward pass on a Dropout.
  * @param handle                   MIOpen handle (input)
  * @param dropoutDesc              Dropout layer descriptor (input)
+ * @param noise_shape              Tensor descriptor for noise shape (input placeholder, currently
+ * not enabled)
  * @param dyDesc                   Tensor descriptor for data delta tensor dy (input)
  * @param dy                       Data delta tensor dy (input)
  * @param dxDesc                   Tensor descriptor for data delta tensor dx (input)
@@ -4184,6 +4186,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDropoutForward(miopenHandle_t handle,
 */
 MIOPEN_EXPORT miopenStatus_t miopenDropoutBackward(miopenHandle_t handle,
                                                    const miopenDropoutDescriptor_t dropoutDesc,
+                                                   const miopenTensorDescriptor_t noise_shape,
                                                    const miopenTensorDescriptor_t dyDesc,
                                                    const void* dy,
                                                    const miopenTensorDescriptor_t dxDesc,
