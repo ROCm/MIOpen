@@ -476,6 +476,7 @@ struct verify_backward_dropout
         auto rsvsp_dev = handle.Write(rsvsp);
 
         DropoutDesc.DropoutBackward(handle,
+                                    din.desc,
                                     dout.desc,
                                     dout_dev.get(),
                                     din.desc,
