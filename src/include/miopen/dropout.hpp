@@ -23,7 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
+
+#ifndef GUARD_MIOPEN_DROPOUT_HPP_
+#define GUARD_MIOPEN_DROPOUT_HPP_
 
 #include <miopen/common.hpp>
 #include <miopen/miopen.h>
@@ -84,6 +86,7 @@ struct DropoutDescriptor : miopenDropoutDescriptor
                         size_t rsvsp_offset = 0) const;
 
     void DropoutBackward(Handle& handle,
+                         const TensorDescriptor& noise_shape,
                          const TensorDescriptor& dyDesc,
                          ConstData_t dy,
                          const TensorDescriptor& dxDesc,
@@ -99,3 +102,5 @@ std::ostream& operator<<(std::ostream& stream, const DropoutDescriptor& x);
 
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenDropoutDescriptor, miopen::DropoutDescriptor);
+
+#endif // GUARD_MIOPEN_DROPOUT_HPP_
