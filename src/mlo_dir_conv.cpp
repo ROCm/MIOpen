@@ -112,6 +112,11 @@ static auto GetWindogradSolvers()
                                            miopen::solver::ConvBinWinogradRxS>{};
 }
 
+static auto GetImplicitGemmWrWSolvers()
+{
+    return miopen::solver::SolverContainer<miopen::solver::ConvHipImplicitGemmV4WrW>{};
+}
+
 static auto GetWindogradWrWSolvers()
 {
     return miopen::solver::SolverContainer<miopen::solver::ConvBinWinogradRxS,
@@ -179,6 +184,12 @@ std::vector<std::pair<std::string, size_t>>
 AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx)
 {
     return GetBwdWrW2DSolvers().GetWorkspaceSize(ctx);
+}
+
+std::vector<miopen::solver::ConvSolution>
+FindImplicitGemmWrWAllSolutions(const miopen::ConvolutionContext& ctx)
+{
+    return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
 }
 
 std::vector<miopen::solver::ConvSolution>

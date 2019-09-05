@@ -842,9 +842,10 @@ typedef enum {
  * Convolutional algorithm mode for back propagation on weights.
  */
 typedef enum {
-    miopenConvolutionBwdWeightsAlgoGEMM     = 0, /*!< GEMM variant */
-    miopenConvolutionBwdWeightsAlgoDirect   = 1, /*!< Direct convolution algorithm */
-    miopenConvolutionBwdWeightsAlgoWinograd = 3, /*!< Winograd convolutions */
+    miopenConvolutionBwdWeightsAlgoGEMM         = 0, /*!< GEMM variant */
+    miopenConvolutionBwdWeightsAlgoDirect       = 1, /*!< Direct convolution algorithm */
+    miopenConvolutionBwdWeightsAlgoWinograd     = 3, /*!< Winograd convolutions */
+    miopenConvolutionBwdWeightsAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions */
 } miopenConvBwdWeightsAlgorithm_t;
 
 /*! @enum miopenConvBwdDataAlgorithm_t

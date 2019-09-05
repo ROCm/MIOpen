@@ -759,6 +759,37 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeWinograd(Handle& handle,
         return 0;
     }
 }
+std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeImplicitGemm(
+    Handle& handle,
+    const TensorDescriptor& dyDesc,
+    const TensorDescriptor& xDesc,
+    const TensorDescriptor& dwDesc) const
+{
+    auto ctx = ConvolutionContext(xDesc, dwDesc, dyDesc, *this, 0);
+    ctx.direction.SetBackwardWrW();
+    ctx.do_search = false;
+    ctx.SetStream(&handle);
+    ctx.disable_search_enforce = true;
+    ctx.DetectRocm();
+    try
+    {
+        const auto ss  = FindImplicitGemmWrWAllSolutions(ctx);
+        std::size_t sz = 0;
+        for(const auto& solution : ss)
+        {
+            if(sz < solution.workspce_sz)
+            {
+                MIOPEN_LOG_I2(sz << " < " << solution.workspce_sz);
+                sz = solution.workspce_sz;
+            }
+        }
+        return sz;
+    }
+    catch(const miopen::Exception&)
+    {
+        return 0;
+    }
+}
 std::size_t
 ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
                                                        const TensorDescriptor& dyDesc,
@@ -783,9 +814,11 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
 
         size_t winograd_workspace =
             BackwardWeightsGetWorkSpaceSizeWinograd(handle, dyDesc, xDesc, dwDesc);
+        size_t implicitgemm_workspace =
+            BackwardWeightsGetWorkSpaceSizeImplicitGemm(handle, dyDesc, xDesc, dwDesc);
 
-        workspace_size =
-            std::max(winograd_workspace, std::max(direct_workspace, workspace_size_gemm));
+        workspace_size = std::max(
+            {implicitgemm_workspace, winograd_workspace, direct_workspace, workspace_size_gemm});
     }
 
     return workspace_size;

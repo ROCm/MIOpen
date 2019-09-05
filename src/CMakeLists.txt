@@ -190,7 +190,7 @@ set( MIOpen_Source
     solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
-    solver/conv_hip_implicit_gemm_v4_fwd.cpp
+    solver/conv_hip_implicit_gemm_v4.cpp
     solver/conv_hip_implicit_gemm_v4_1x1.cpp
     )
 

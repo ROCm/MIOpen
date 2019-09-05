@@ -4628,6 +4628,44 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         {
             MIOPEN_LOG_W("Find Winograd WrW failed:" << ex.what());
         }
+
+        // Implicit GEMM
+        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
+        {
+            const auto all = FindImplicitGemmWrWAllSolutions(ctx);
+            float best     = std::numeric_limits<float>::max();
+            miopen::solver::ConvSolution selected{miopenStatusUnknownError};
+            const auto algo_name = "miopenConvolutionBwdWeightsAlgoImplicitGEMM";
+            float elapsed        = 0.0f;
+            for(const auto& sol : all)
+            {
+                std::vector<KernelInvoke> kernels;
+                AddKernels(handle, algo_name, network_config, sol, &kernels);
+                if(!kernels.empty())
+                {
+                    kernels[0](x, dy, dw);
+                    elapsed = handle.GetKernelTime();
+                }
+
+                if(elapsed < best)
+                {
+                    best     = elapsed;
+                    selected = sol;
+                }
+            }
+            if(selected.Succeeded())
+            {
+                AddKernels(handle, algo_name, network_config, selected, nullptr);
+                MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
+                                          << selected.workspce_sz);
+                record.SetValues(algo_name,
+                                 FindDbData{selected.solver_id,
+                                            best,
+                                            selected.workspce_sz,
+                                            {algo_name, network_config}});
+            }
+        }
+
     });
 
     if(perf_db.empty())
@@ -4735,6 +4773,21 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             BackwardWeightsWinograd(handle, ctx, tensors, workSpace, kernels);
         }
         break;
+        case miopenConvolutionBwdWeightsAlgoImplicitGEMM:
+        {
+            auto ctx = ConvolutionContext{xDesc, dwDesc, dyDesc, *this, 0};
+            ctx.direction.SetBackwardWrW();
+            ctx.SetStream(&handle);
+
+            std::string network_config;
+            ctx.mloBuildConf_Key(network_config);
+
+            auto&& kernels =
+                handle.GetKernels("miopenConvolutionBwdWeightsAlgoImplicitGEMM", network_config);
+            if(kernels.empty())
+                MIOPEN_THROW("Error running Implicit GEMM Bwd Weights. Was Find() run previously?");
+            kernels[0](x, dy, dw);
+        }
         }
     });
 }
@@ -5262,6 +5315,8 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
                 BackwardWeightsWinograd(handle, ctx, tensors, workSpace, v_chk_kernels);
             else if(algo_name == "miopenConvolutionBwdWeightsAlgoDirect")
                 BackwardWeightsDirect(handle, ctx, tensors, workSpace, v_chk_kernels);
+            else if(algo_name == "miopenConvolutionBwdWeightsAlgoImplicitGEMM")
+                v_chk_kernels[0](x, dy, dw);
             else
                 MIOPEN_THROW("Invalid algorithm: " + algo_name);
             return;
@@ -5286,6 +5341,9 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
             else if(pair.second.kcache_key.algorithm_name ==
                     "miopenConvolutionBwdWeightsAlgoDirect")
                 BackwardWeightsDirect(handle, ctx, tensors, workSpace, v_kernels);
+            else if(pair.second.kcache_key.algorithm_name ==
+                    "miopenConvolutionBwdWeightsAlgoImplicitGEMM")
+                v_kernels[0](x, dy, dw);
             else
                 MIOPEN_THROW("Invalid algorithm: " + pair.second.kcache_key.algorithm_name);
             return;

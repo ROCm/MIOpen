@@ -55,6 +55,17 @@ bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
            (ctx.batch_sz * ctx.out_height * ctx.out_width) % 64 == 0 && isEInMultiple &&
            ctx.n_outputs % 16 == 0 && no_out_of_bound;
 }
+bool ConvHipImplicitGemmV4WrW::IsApplicable(const ConvolutionContext& ctx) const
+{
+    bool isTypeSupported = ctx.IsFp32();
+
+    bool isNumInputsInMultiple = (ctx.batch_sz * ctx.in_height * ctx.in_width) % 8 == 0;
+
+    return ctx.Is2d() && isTypeSupported && ctx.direction.IsBackwardWrW() && ctx.pad_h == 0 &&
+           ctx.pad_w == 0 && ctx.group_counts == 1 && ctx.n_outputs % 8 == 0 &&
+           (ctx.n_outputs * ctx.kernel_size_h * ctx.kernel_size_w) % 64 == 0 &&
+           isNumInputsInMultiple && ctx.n_inputs % 16 == 0;
+}
 
 /// \todo move to separate header and use in other solvers.
 template <int L, int H>
@@ -126,19 +137,29 @@ uint32_t PerformanceImplicitGemm::GetEPackLength(const ConvolutionContext& ctx) 
 
 bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
 {
-    const int N = ctx.batch_sz;
-    const int K = ctx.n_outputs;
-    const int C = ctx.n_inputs;
+    int N = ctx.batch_sz;
+    int K = ctx.n_outputs;
+    int C = ctx.n_inputs;
 
-    const int Ho = ctx.out_height;
-    const int Wo = ctx.out_width;
+    int Ho = ctx.out_height;
+    int Wo = ctx.out_width;
 
-    const int Y = ctx.kernel_size_h;
-    const int X = ctx.kernel_size_w;
+    int Y = ctx.kernel_size_h;
+    int X = ctx.kernel_size_w;
+    if(ctx.direction.IsBackwardWrW())
+    {
+        N  = ctx.n_outputs; // swapped
+        K  = ctx.n_inputs;  // swapped
+        C  = ctx.batch_sz;  // swapped
+        Ho = ctx.kernel_size_h;
+        Wo = ctx.kernel_size_w;
+        Y  = ctx.in_height; // swapped
+        X  = ctx.in_width;  // swapped
+    }
 
     const int N1 = GemmNRepeat;
     const int N2 = GemmNPerThreadSubC;
-
+    assert(N1 * N2 != 0);
     if(N % (N1 * N2) != 0)
         return false; // wrong! cannot divice N evenly among thread
 
@@ -155,7 +176,11 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
          KPerBlock % WeiBlockCopyClusterLengths_K == 0 && N1 % InBlockCopyClusterLengths_N1 == 0 &&
          N2 % InBlockCopyClusterLengths_N2 == 0))
         return false;
-
+    if(ctx.direction.IsBackwardWrW())
+    {
+        if(!((X * Y) % (EPerBlock / WeiBlockCopyClusterLengths_E) == 0))
+            return false;
+    }
     // divide block work by [K, B]
     if(!(K % KPerBlock == 0 && B % BPerBlock == 0 && E % (2 * EPerBlock) == 0))
         return false; // wrong! cannot divice N evenly among thread
@@ -394,13 +419,24 @@ std::string PerformanceImplicitGemm::ToString() const
     return ss.str();
 }
 
-PerformanceImplicitGemm
-ConvHipImplicitGemmV4Fwd::GetPerformanceConfig(const ConvolutionContext& params) const
+static inline PerformanceImplicitGemm GetPerformanceConfigBase(const ConvolutionContext& params)
 {
     PerformanceImplicitGemm pp;
     pp.EuristicInit(params);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
+}
+
+PerformanceImplicitGemm
+ConvHipImplicitGemmV4Fwd::GetPerformanceConfig(const ConvolutionContext& params) const
+{
+    return GetPerformanceConfigBase(params);
+}
+
+PerformanceImplicitGemm
+ConvHipImplicitGemmV4WrW::GetPerformanceConfig(const ConvolutionContext& params) const
+{
+    return GetPerformanceConfigBase(params);
 }
 
 bool ConvHipImplicitGemmV4Fwd::IsValidPerformanceConfig(const ConvolutionContext& problem,
@@ -410,9 +446,37 @@ bool ConvHipImplicitGemmV4Fwd::IsValidPerformanceConfig(const ConvolutionContext
     return c.IsValidValue() && c.IsValid(problem);
 }
 
-PerformanceImplicitGemm::PerformanceImplicitGemm(bool spare)
-    : PerformanceImplicitGemm(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, spare)
+bool ConvHipImplicitGemmV4WrW::IsValidPerformanceConfig(const ConvolutionContext& problem,
+                                                        const PerformanceImplicitGemm& c) const
 {
+    MIOPEN_LOG_I("");
+    return c.IsValidValue() && c.IsValid(problem);
+}
+
+PerformanceImplicitGemm::PerformanceImplicitGemm(bool spare)
+{
+    BPerBlock = 8;
+    KPerBlock = 16;
+    EPerBlock = 4;
+
+    GemmNRepeat = 2;
+
+    GemmMPerThreadSubC = 2;
+    GemmNPerThreadSubC = 2;
+
+    GemmMLevel0Cluster = 1;
+    GemmNLevel0Cluster = 1;
+    GemmMLevel1Cluster = 1;
+    GemmNLevel1Cluster = 1;
+
+    InBlockCopyClusterLengths_E  = 4;
+    InBlockCopyClusterLengths_N1 = 1;
+    InBlockCopyClusterLengths_B  = 8;
+    InBlockCopyClusterLengths_N2 = 1;
+
+    WeiBlockCopyClusterLengths_E = 2;
+    WeiBlockCopyClusterLengths_K = 16;
+    use_spare_set                = spare;
 }
 
 PerformanceImplicitGemm::PerformanceImplicitGemm(int BPerBlock_,
@@ -452,9 +516,12 @@ PerformanceImplicitGemm::PerformanceImplicitGemm(int BPerBlock_,
 {
 }
 
-ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx,
-                                                   const PerformanceImplicitGemm& config,
-                                                   const bool) const
+static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
+                                           const PerformanceImplicitGemm& config,
+                                           const int n,
+                                           const int k,
+                                           const int ho,
+                                           const int wo)
 {
     ConvSolution result;
     KernelInfo construction_parameters;
@@ -463,11 +530,6 @@ ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx
 
     const int N1 = config.GemmNRepeat;
     const int N2 = config.GemmNPerThreadSubC;
-
-    std::size_t n  = ctx.batch_sz;
-    std::size_t k  = ctx.n_outputs;
-    std::size_t ho = ctx.out_height;
-    std::size_t wo = ctx.out_width;
 
     std::size_t b = (n * ho * wo) / (N1 * N2);
 
@@ -538,17 +600,36 @@ ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx
     bool use_amd_inline_asm = true;
     if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx8"))
         use_amd_inline_asm = false;
-
-    // clang-format off
-    construction_parameters.comp_options =
-        std::string(" -std=c++14") +
-        std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ctx.batch_sz) +
+    if(ctx.direction.IsBackwardWrW())
+    {
+        // clang-format off
+        construction_parameters.comp_options =
+        std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ctx.n_inputs) + // swapped
+        std::string(" -DCK_PARAM_PROBLEM_C=") + std::to_string(ctx.n_outputs) + // swapped
+        std::string(" -DCK_PARAM_PROBLEM_HI=") + std::to_string(ctx.out_height) + // swapped
+        std::string(" -DCK_PARAM_PROBLEM_WI=") + std::to_string(ctx.out_width) + // swapped
+        std::string(" -DCK_PARAM_PROBLEM_HO=") + std::to_string(ctx.in_height) +  // swapped
+        std::string(" -DCK_PARAM_PROBLEM_WO=") + std::to_string(ctx.in_width) +
+        std::string(" -DCK_PARAM_DIR_WRW=") + std::to_string(1);
+        // clang-format on
+    }
+    else
+    {
+        // clang-format off
+        construction_parameters.comp_options =
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ctx.n_outputs) +
         std::string(" -DCK_PARAM_PROBLEM_C=") + std::to_string(ctx.n_inputs) +
         std::string(" -DCK_PARAM_PROBLEM_HI=") + std::to_string(ctx.in_height) +
         std::string(" -DCK_PARAM_PROBLEM_WI=") + std::to_string(ctx.in_width) +
         std::string(" -DCK_PARAM_PROBLEM_HO=") + std::to_string(ctx.out_height) +
         std::string(" -DCK_PARAM_PROBLEM_WO=") + std::to_string(ctx.out_width) +
+        std::string(" -DCK_PARAM_DIR_WRW=") + std::to_string(0);
+        // clang-format on
+    }
+    // clang-format off
+    construction_parameters.comp_options +=
+        std::string(" -std=c++14") +
+        std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ctx.batch_sz) +
         std::string(" -DCK_PARAM_PROBLEM_Y=") + std::to_string(ctx.kernel_size_h) +
         std::string(" -DCK_PARAM_PROBLEM_X=") + std::to_string(ctx.kernel_size_w) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_H=") + std::to_string(ctx.kernel_stride_h) +
@@ -587,18 +668,27 @@ ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx
     return result;
 }
 
-int ConvHipImplicitGemmV4Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                                    ConstData_t bot_ocl_buf,
-                                                    Data_t top_ocl_buf,
-                                                    ConstData_t wei_ocl_buf,
-                                                    ConstData_t bias_ocl_buf,
-                                                    const ConvolutionContext&,
-                                                    const ConvSolution& solution,
-                                                    float& elapsed_time) const
+ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx,
+                                                   const PerformanceImplicitGemm& config,
+                                                   const bool) const
 {
-    assert(bias_ocl_buf == nullptr);
-    (void)bias_ocl_buf;
-
+    return GetSolutionBase(ctx, config, ctx.batch_sz, ctx.n_outputs, ctx.out_height, ctx.out_width);
+}
+ConvSolution ConvHipImplicitGemmV4WrW::GetSolution(const ConvolutionContext& ctx,
+                                                   const PerformanceImplicitGemm& config,
+                                                   const bool) const
+{
+    return GetSolutionBase(
+        ctx, config, ctx.n_outputs, ctx.n_inputs, ctx.kernel_size_h, ctx.kernel_size_w);
+}
+static inline int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
+                                            ConstData_t bot_buf,
+                                            Data_t top_buf,
+                                            ConstData_t wei_buf,
+                                            const ConvolutionContext& ctx,
+                                            const ConvSolution& solution,
+                                            float& elapsed_time)
+{
     KernelInfo k_info;
 
     k_info = solution.construction_params[0];
@@ -608,9 +698,7 @@ int ConvHipImplicitGemmV4Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
 #endif
     {
         elapsed_time = std::numeric_limits<float>::max();
-        // ConvolutionContext::general_compile_options is for OpenCL kernels
-        // and thus not applicable for assembly.
-        auto kernel = profile_h.AddKernel("",
+        auto kernel  = profile_h.AddKernel("",
                                           "",
                                           k_info.kernel_file,
                                           k_info.kernel_name,
@@ -618,7 +706,14 @@ int ConvHipImplicitGemmV4Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
                                           k_info.g_wk,
                                           k_info.comp_options);
 
-        kernel(bot_ocl_buf, wei_ocl_buf, top_ocl_buf);
+        if(ctx.direction.IsBackwardWrW())
+        {
+            kernel(bot_buf, top_buf, wei_buf);
+        }
+        else
+        {
+            kernel(bot_buf, wei_buf, top_buf);
+        }
 
         elapsed_time = profile_h.GetKernelTime();
     }
@@ -631,7 +726,42 @@ int ConvHipImplicitGemmV4Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
     return 0;
 }
 
+int ConvHipImplicitGemmV4Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
+                                                    ConstData_t bot_ocl_buf,
+                                                    Data_t top_ocl_buf,
+                                                    ConstData_t wei_ocl_buf,
+                                                    ConstData_t bias_ocl_buf,
+                                                    const ConvolutionContext& ctx,
+                                                    const ConvSolution& solution,
+                                                    float& elapsed_time) const
+{
+    assert(bias_ocl_buf == nullptr);
+    (void)bias_ocl_buf;
+
+    return RunAndMeasureSolutionBase(
+        profile_h, bot_ocl_buf, top_ocl_buf, wei_ocl_buf, ctx, solution, elapsed_time);
+}
+
+int ConvHipImplicitGemmV4WrW::RunAndMeasureSolution(miopen::Handle& profile_h,
+                                                    ConstData_t bot_buf,
+                                                    Data_t top_buf,
+                                                    ConstData_t wei_buf,
+                                                    ConstData_t bias_buf,
+                                                    const ConvolutionContext& ctx,
+                                                    const ConvSolution& solution,
+                                                    float& elapsed_time) const
+{
+    assert(bias_buf == nullptr);
+    (void)bias_buf;
+    return RunAndMeasureSolutionBase(
+        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
+}
+
 PerformanceImplicitGemm ConvHipImplicitGemmV4Fwd::Search(const ConvolutionContext& context) const
+{
+    return GenericSearchFwd(*this, context);
+}
+PerformanceImplicitGemm ConvHipImplicitGemmV4WrW::Search(const ConvolutionContext& context) const
 {
     return GenericSearchFwd(*this, context);
 }

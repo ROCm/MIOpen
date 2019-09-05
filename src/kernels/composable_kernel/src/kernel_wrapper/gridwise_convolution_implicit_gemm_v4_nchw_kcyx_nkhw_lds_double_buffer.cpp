@@ -38,13 +38,36 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_
     // read params: dependent params
     constexpr index_t GridSize = CK_PARAM_DEPENDENT_GRID_SIZE;
 
-    // calculate dependent params amd heuristic params
+// calculate dependent params amd heuristic params
+#if CK_PARAM_DIR_WRW == 1
+    // In the WrW direction the filter is the output, while the output image is the input being
+    // convolved with the (original) input image. This requires that the tensordescriptors be
+    // swapped
+    // To reuse the fwd kernel for this operation we need to swap the n and c dimension of the
+    // input descriptor, the n and k dimension of the output descriptor
+    // This change is necessary so that reduction dimensions are consistent with the requirement
+    // of the wrw convolution when used in a fwd context
+    constexpr auto tmp_in_nchw_desc =
+        make_ConstantTensorDescriptor_packed(Sequence<N, C, Hi, Wi>{});
+    constexpr auto tmp_wei_kcyx_desc = make_ConstantTensorDescriptor_packed(Sequence<K, C, Y, X>{});
+    constexpr auto tmp_out_nkhw_desc =
+        make_ConstantTensorDescriptor_packed(Sequence<N, K, Ho, Wo>{});
+    constexpr auto in_nchw_desc = tmp_in_nchw_desc.ReorderGivenNew2Old(Sequence<1, 0, 2, 3>{});
+    // wei and out are swapped in the solver
+    constexpr auto wei_kcyx_desc = tmp_out_nkhw_desc.ReorderGivenNew2Old(Sequence<1, 0, 2, 3>{});
+    constexpr auto out_nkhw_desc = tmp_wei_kcyx_desc.ReorderGivenNew2Old(Sequence<1, 0, 2, 3>{});
+    constexpr auto dir           = ConvolutionDirection::BackwardWeights;
+    // swap stride and dilation
+    using ConvDilations = Sequence<ConvStrideH, ConvStrideW>;
+    using ConvStrides   = Sequence<ConvDilationH, ConvDilationW>;
+#else
     constexpr auto in_nchw_desc  = make_ConstantTensorDescriptor_packed(Sequence<N, C, Hi, Wi>{});
     constexpr auto wei_kcyx_desc = make_ConstantTensorDescriptor_packed(Sequence<K, C, Y, X>{});
     constexpr auto out_nkhw_desc = make_ConstantTensorDescriptor_packed(Sequence<N, K, Ho, Wo>{});
-
-    using ConvStrides   = Sequence<ConvStrideH, ConvStrideW>;
-    using ConvDilations = Sequence<ConvDilationH, ConvDilationW>;
+    constexpr auto dir           = ConvolutionDirection::Forward;
+    using ConvStrides            = Sequence<ConvStrideH, ConvStrideW>;
+    using ConvDilations          = Sequence<ConvDilationH, ConvDilationW>;
+#endif
 
     constexpr index_t GemmMPerThreadSubC = CK_PARAM_GEMM_M_PER_THREAD_SUB_C;
     constexpr index_t GemmNPerThreadSubC = CK_PARAM_GEMM_N_PER_THREAD_SUB_C;
@@ -180,7 +203,8 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_
             WeiBlockCopySrcAccessOrder,
             WeiBlockCopyDstAccessOrder,
             WeiBlockCopySrcDataPerRead_E,
-            WeiBlockCopyDstDataPerWrite_K>{};
+            WeiBlockCopyDstDataPerWrite_K,
+            dir>{};
 #elif MIOPEN_USE_FP16 == 1 || MIOPEN_USE_BFP16 == 1
     constexpr auto gridwise_conv =
         GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_buffer<
