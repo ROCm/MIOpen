@@ -867,7 +867,7 @@ static void DirConvFindCore(Handle& handle,
         // (i.e. types and sizes of kernel parameters) does not depend on tensor data types.
         for(const auto& sol : all)
         {
-            float elapsed = 0.0f;
+            float elapsed = std::numeric_limits<float>::max();
             const int rc  = EvaluateWinogradSolution(handle, ctx, sol, tensors, elapsed);
             if(rc != 0)
             {
@@ -911,7 +911,7 @@ static void DirConvFindCore(Handle& handle,
         visit_float(xDesc.GetType(), [&](auto as_float) {
             for(const auto& sol : all)
             {
-                float elapsed = 0.0f;
+                float elapsed = std::numeric_limits<float>::max();
                 const int rc  = EvaluateDataDirectSolution(handle,
                                                           sol,
                                                           eka,
@@ -966,7 +966,7 @@ static void DirConvFindCore(Handle& handle,
         visit_float(xDesc.GetType(), [&](auto as_float) {
             for(const auto& sol : all)
             {
-                float elapsed = 0.0f;
+                float elapsed = std::numeric_limits<float>::max();
                 const int rc  = EvaluateDataImplicitGemmSolution(handle,
                                                                 sol,
                                                                 x,
@@ -1054,7 +1054,7 @@ static void DirConvFindCore(Handle& handle,
             for(const auto& sol : all)
             {
 
-                float elapsed = 0.0f;
+                float elapsed = 0.0f; // this init gets overwritten.
                 const int rc  = EvaluateSCGemmSolution(handle,
                                                       sol,
                                                       x,
@@ -2809,7 +2809,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             // (i.e. types and sizes of kernel parameters) does not depend on tensor data types.
             for(const auto& sol : all)
             {
-                float elapsed = 0.0f;
+                float elapsed = std::numeric_limits<float>::max();
                 const int rc  = EvaluateWinogradSolution(handle, ctx, sol, tensors, elapsed);
                 if(rc != 0)
                 {
@@ -2854,7 +2854,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             visit_float(dyDesc.GetType(), [&](auto as_float) {
                 for(const auto& sol : all)
                 {
-                    float elapsed = 0.0f;
+                    float elapsed = std::numeric_limits<float>::max();
                     const int rc  = EvaluateDataDirectSolution(handle,
                                                               sol,
                                                               eka,
@@ -2911,7 +2911,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             visit_float(dxDesc.GetType(), [&](auto as_float) {
                 for(const auto& sol : all)
                 {
-                    float elapsed = 0.0f;
+                    float elapsed = std::numeric_limits<float>::max();
                     const int rc  = EvaluateDataImplicitGemmSolution(handle,
                                                                     sol,
                                                                     dy,
@@ -3990,7 +3990,7 @@ inline float EvaluateWrWDirectSolution(Handle& handle,
                                        const size_t workSpaceSize,
                                        T padding_val)
 {
-    float elapsed            = 0;
+    float elapsed            = std::numeric_limits<float>::max();
     const auto& kernels_info = s.construction_params;
     assert((s.workspce_sz != 0 && kernels_info.size() == 2) ||
            (s.workspce_sz == 0 && kernels_info.size() == 1));
