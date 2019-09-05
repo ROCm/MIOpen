@@ -400,6 +400,10 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                                         const TensorDescriptor& dyDesc,
                                                         const TensorDescriptor& xDesc,
                                                         const TensorDescriptor& dwDesc) const;
+    std::size_t BackwardWeightsGetWorkSpaceSizeImplicitGemm(Handle& handle,
+                                                            const TensorDescriptor& dyDesc,
+                                                            const TensorDescriptor& xDesc,
+                                                            const TensorDescriptor& dwDesc) const;
 
     void FindConvBwdWeightsAlgorithm(Handle& handle,
                                      const TensorDescriptor& dyDesc,

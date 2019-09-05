@@ -194,6 +194,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
         registry, ++id, ConvHipImplicitGemmV4Fwd{}, miopenConvolutionAlgoImplicitGEMM);
     RegisterWithSolver(
         registry, ++id, ConvHipImplicitGemmV4_1x1{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmV4WrW{}, miopenConvolutionAlgoImplicitGEMM);
 
     // Several ids w/o solver for immediate mode
     Register(registry, ++id, "gemm", miopenConvolutionAlgoGEMM);
