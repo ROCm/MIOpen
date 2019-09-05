@@ -382,6 +382,9 @@ std::vector<miopen::solver::ConvSolution>
 FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx);
 
 std::vector<miopen::solver::ConvSolution>
+FindImplicitGemmWrWAllSolutions(const miopen::ConvolutionContext& ctx);
+
+std::vector<miopen::solver::ConvSolution>
 FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx);
 
 std::vector<miopen::solver::ConvSolution>
