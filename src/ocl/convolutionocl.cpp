@@ -1457,10 +1457,12 @@ void ConvFwdImplicitGemm(const ConvolutionContext& /*ctx*/,
     auto kernel = kernels[0];
 
     float elapsed = 0;
-    if((kernel.GetName() ==
-            "gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_lds_double_buffer" ||
-        kernel.GetName() ==
-            "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer"))
+    if(kernel.GetName() ==
+           "gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_lds_double_buffer" ||
+       kernel.GetName() ==
+           "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer" ||
+       kernel.GetName() ==
+           "gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buffer")
     {
         kernel(tensors.x, tensors.w, tensors.y);
 
