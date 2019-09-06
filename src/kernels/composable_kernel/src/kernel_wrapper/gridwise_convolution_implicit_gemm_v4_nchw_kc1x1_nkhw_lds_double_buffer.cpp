@@ -1,6 +1,7 @@
 #include "common_header.hpp"
 #include "ConstantTensorDescriptor.hpp"
 #include "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer.hpp"
+#include "float_types.h"
 
 extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer(
     const FLOAT* const __restrict__ p_in_global,
