@@ -246,6 +246,7 @@ struct GridwiseConvolutionImplicitGemm_v4_nchw_kcyx_nkhw_lds_double_buffer
         //     b_mtx[EPerBlocl, N1 * BPerBlock * N2] is in LDS
         //     c_mtx[KPerBlock, N1 * BPerBlock * N2] is distributed among threads, and saved in
         //     register
+
         constexpr auto a_e_k_block_mtx_desc = make_ConstantMatrixDescriptor(wei_e_k_block_desc);
 
         constexpr auto b_e_n1bn2_block_mtx_desc =
