@@ -867,7 +867,7 @@ static void DirConvFindCore(Handle& handle,
         // (i.e. types and sizes of kernel parameters) does not depend on tensor data types.
         for(const auto& sol : all)
         {
-            float elapsed = std::numeric_limits<float>::max();
+            float elapsed = 0.0f;
             const int rc  = EvaluateWinogradSolution(handle, ctx, sol, tensors, elapsed);
             if(rc != 0)
             {
@@ -911,7 +911,7 @@ static void DirConvFindCore(Handle& handle,
         visit_float(xDesc.GetType(), [&](auto as_float) {
             for(const auto& sol : all)
             {
-                float elapsed = std::numeric_limits<float>::max();
+                float elapsed = 0.0f;
                 const int rc  = EvaluateDataDirectSolution(handle,
                                                           sol,
                                                           eka,
@@ -966,7 +966,7 @@ static void DirConvFindCore(Handle& handle,
         visit_float(xDesc.GetType(), [&](auto as_float) {
             for(const auto& sol : all)
             {
-                float elapsed = std::numeric_limits<float>::max();
+                float elapsed = 0.0f;
                 const int rc  = EvaluateDataImplicitGemmSolution(handle,
                                                                 sol,
                                                                 x,
@@ -1054,7 +1054,7 @@ static void DirConvFindCore(Handle& handle,
             for(const auto& sol : all)
             {
 
-                float elapsed = 0.0f; // this init gets overwritten.
+                float elapsed = 0.0f;
                 const int rc  = EvaluateSCGemmSolution(handle,
                                                       sol,
                                                       x,
@@ -2811,7 +2811,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             // (i.e. types and sizes of kernel parameters) does not depend on tensor data types.
             for(const auto& sol : all)
             {
-                float elapsed = std::numeric_limits<float>::max();
+                float elapsed = 0.0f;
                 const int rc  = EvaluateWinogradSolution(handle, ctx, sol, tensors, elapsed);
                 if(rc != 0)
                 {
@@ -2856,7 +2856,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             visit_float(dyDesc.GetType(), [&](auto as_float) {
                 for(const auto& sol : all)
                 {
-                    float elapsed = std::numeric_limits<float>::max();
+                    float elapsed = 0.0f;
                     const int rc  = EvaluateDataDirectSolution(handle,
                                                               sol,
                                                               eka,
@@ -2913,7 +2913,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             visit_float(dxDesc.GetType(), [&](auto as_float) {
                 for(const auto& sol : all)
                 {
-                    float elapsed = std::numeric_limits<float>::max();
+                    float elapsed = 0.0f;
                     const int rc  = EvaluateDataImplicitGemmSolution(handle,
                                                                     sol,
                                                                     dy,
@@ -3982,26 +3982,30 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
 }
 
 template <typename T>
-inline float EvaluateWrWDirectSolution(Handle& handle,
-                                       const ConvolutionContext& ctx,
-                                       const solver::ConvSolution& s,
-                                       ConstData_t dy,
-                                       ConstData_t x,
-                                       Data_t dw,
-                                       Data_t workSpace,
-                                       const size_t workSpaceSize,
-                                       T padding_val)
+inline int EvaluateWrWDirectSolution(Handle& handle,
+                                     const ConvolutionContext& ctx,
+                                     const solver::ConvSolution& s,
+                                     ConstData_t dy,
+                                     ConstData_t x,
+                                     Data_t dw,
+                                     Data_t workSpace,
+                                     const size_t workSpaceSize,
+                                     T padding_val,
+                                     float& elapsed)
 {
-    float elapsed            = std::numeric_limits<float>::max();
-    const auto& kernels_info = s.construction_params;
-    assert((s.workspce_sz != 0 && kernels_info.size() == 2) ||
-           (s.workspce_sz == 0 && kernels_info.size() == 1));
+    if(s.workspce_sz != 0)
+        if(workSpace == nullptr || workSpaceSize < s.workspce_sz)
+            return -1;
+
     std::vector<KernelInvoke> kernels;
     AddKernels(handle, "", "", s, &kernels);
-    const auto& k_info = kernels_info[0];
-    if(kernels_info.size() == 1)
+    const auto& k_info = s.construction_params;
+
+    elapsed = 0.0f;
+    if(k_info.size() == 1)
     {
-        if(k_info.kernel_name == "gcnAsmConv3x3WrW" || k_info.kernel_name == "gcnAsmConv1x1WrW")
+        if(k_info[0].kernel_name == "gcnAsmConv3x3WrW" ||
+           k_info[0].kernel_name == "gcnAsmConv1x1WrW")
         {
             int unused       = 0;
             int* return_addr = nullptr;
@@ -4017,37 +4021,33 @@ inline float EvaluateWrWDirectSolution(Handle& handle,
     }
     else
     {
-        if(workSpace != nullptr && workSpaceSize >= s.workspce_sz)
+        if(k_info[0].kernel_name == "SubSample")
         {
-            if(k_info.kernel_name == "SubSample") // bwd stride 2
+            kernels[0](x, workSpace);
+            elapsed = handle.GetKernelTime();
+            if(k_info[1].kernel_name == "gcnAsmConv1x1WrW")
             {
-                kernels[0](x, workSpace);
-                elapsed = handle.GetKernelTime();
-                if(kernels_info[1].kernel_name == "gcnAsmConv1x1WrW")
-                {
-                    int unused       = 0;
-                    int* return_addr = nullptr;
-                    int N, C, H, W, K, n_groups;
-                    GetCompiledInParameters(ctx, &N, &C, &H, &W, &K, &n_groups);
-                    kernels[1](
-                        N, C, H, W, K, n_groups, unused, unused, workSpace, dw, dy, return_addr);
-                }
-                else
-                {
-                    kernels[1](dy, workSpace, dw, padding_val);
-                }
-                elapsed += handle.GetKernelTime();
+                int unused       = 0;
+                int* return_addr = nullptr;
+                int N, C, H, W, K, n_groups;
+                GetCompiledInParameters(ctx, &N, &C, &H, &W, &K, &n_groups);
+                kernels[1](N, C, H, W, K, n_groups, unused, unused, workSpace, dw, dy, return_addr);
             }
             else
             {
-                kernels[0](dy, x, workSpace, padding_val);
-                elapsed = handle.GetKernelTime();
-                kernels[1](workSpace, dw); // reduction
-                elapsed += handle.GetKernelTime();
+                kernels[1](dy, workSpace, dw, padding_val);
             }
+            elapsed += handle.GetKernelTime();
+        }
+        else
+        {
+            kernels[0](dy, x, workSpace, padding_val);
+            elapsed = handle.GetKernelTime();
+            kernels[1](workSpace, dw); // reduction
+            elapsed += handle.GetKernelTime();
         }
     }
-    return elapsed;
+    return 0;
 }
 
 template <int WinoDataW, int WinoFilterW, typename T>
@@ -4481,14 +4481,30 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         /// \todo If there is only one solution available,
                         /// we can avoid wasting time for building kernels with empty
                         /// algorithm_name and network_config.
-                        float elapsed = EvaluateWrWDirectSolution(
-                            handle, ctx, sol, dy, x, dw, workSpace, workSpaceSize, as_float(0.0f));
-                        MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
-                                         << best);
-                        if(elapsed < best)
+                        float elapsed = 0.0f;
+                        const int rc  = EvaluateWrWDirectSolution(handle,
+                                                                 ctx,
+                                                                 sol,
+                                                                 dy,
+                                                                 x,
+                                                                 dw,
+                                                                 workSpace,
+                                                                 workSpaceSize,
+                                                                 as_float(0.0f),
+                                                                 elapsed);
+                        if(rc != 0)
                         {
-                            best     = elapsed;
-                            selected = sol;
+                            MIOPEN_LOG_E(sol << " returns " << rc);
+                        }
+                        else
+                        {
+                            MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
+                                             << best);
+                            if(elapsed < best)
+                            {
+                                best     = elapsed;
+                                selected = sol;
+                            }
                         }
                     }
                 });
