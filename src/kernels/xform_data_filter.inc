@@ -92,7 +92,7 @@ default buf_type, TYPE_FP32
 
 
 static_assert(acc_type == TYPE_FP32)
-static_assert(buf_type == TYPE_FP32 || buf_type == TYPE_FP16 || buf_type == TYPE_BFP16) 
+static_assert(buf_type == TYPE_FP32 || buf_type == TYPE_FP16 || buf_type == TYPE_BFP16)
 .if(buf_type == TYPE_FP32)
     elem_size = 4
     lds_elem_size = 4
@@ -265,7 +265,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
         float_mode = 192
         workgroup_group_segment_byte_size = .AUTO_LDS_BYTE_SIZE
     .end_amd_kernel_code_t
-    
+
 
 
     s_load_dwordx16 s[N:dbg_addr+1], s[kernarg:kernarg+1], 0x0
@@ -292,7 +292,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
     s_sub_i32 s[neg_tiles_h], 0, s[tiles_h]
     s_sub_i32 s[neg_tiles_w], 0, s[tiles_w]
     s_sub_i32 s[neg_c],  0, s[C]
-    
+
     // early exit
     err = stmp+1
     u16limit = frontend_finished
@@ -334,7 +334,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
     s_mulk_i32 s[d_desc+2], 0 + elem_size
     s_mul_i32 s[o_desc+2], s[wino_c], s[NK]
     s_mulk_i32 s[o_desc+2], 0 + elem_size * xformx_d_size * xformy_d_size
-    
+
     // compute divisors
     //.GPR_REUSE f_K_stride, div_n
     .GPR_REUSE f_C_stride, soff_o
@@ -373,7 +373,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
     // init pipe related variables
     s_mov_b32 s[frontend_finished], 0
     s_sub_i32 s[pipe_cnt], 0, pipe_depth
-    
+
     // enter main loop
     disable_srd o_desc
     s_branch loop_entrance
@@ -429,7 +429,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                     v_fma_f32 v[d3],  2.0, v[t1], v[t0]
                     v_fma_f32 v[d4], -2.0, v[t1], v[t0]
                     v_mul_f32 v[d3], 0.04166666667, v[d3] // 1/24
-                    v_mul_f32 v[d4], 0.04166666667, v[d4] // 1/24                    
+                    v_mul_f32 v[d4], 0.04166666667, v[d4] // 1/24
 
             .elseif \o_size == 3 && \f_size == 5 && \fdil == 1
                 v_mov_b32 v[d6], v[d4] //d[6]
@@ -639,7 +639,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_sub_f32 v[t0], v[d3], v[d1] mul:2
                 v_sub_f32 v[t1], v[d4], v[d2]
                 v_fma_f32 v[t2], -4.0, v[d2], v[d4]
-                
+
                 v_fma_f32 v[d1], -4.0, v[d1], v[d3]
                 v_sub_f32 v[d2], v[t2], v[d1]
                 v_add_f32 v[d1], v[t2], v[d1]
@@ -705,7 +705,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_mov_b32 v[d3], v[t2] //d[3]
 
             .elseif \o_size == 3 && \f_size == 6 && \fdil == 1
-                
+
                 v_sub_f32 v[t0], v[d4], v[d2]
                 v_mul_f32 v[t0], 5.25, v[t0]
                 v_sub_f32 v[d0], v[d0], v[d6]
@@ -836,7 +836,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
         .endif
         .rept \count
             .if (\short == 1)
-                buffer_load_short_d16 v[\vgpr], v[voff_d], s[d_desc:d_desc+3], 0, offen offset:0+\soffset  
+                buffer_load_short_d16 v[\vgpr], v[voff_d], s[d_desc:d_desc+3], 0, offen offset:0+\soffset
             .elseif \dwords == 1
                 buffer_load_dword v[\vgpr], v[voff_d], s[d_desc:d_desc+3], 0, offen offset:0+\soffset
             .elseif( \dwords > 1)
@@ -849,8 +849,8 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
         .endr
     .endm
 
-    .macro read_data buf, reads 
-        vgpr = \buf 
+    .macro read_data buf, reads
+        vgpr = \buf
         soffset = 0
         dwords_left = in_tile_width
         .if( elem_size == 4 )
@@ -858,7 +858,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 // first single dword load required because of possible padding
                 single_load vgpr, 1, dwords_left, 1, soffset, \reads
             .endif
-        
+
             single_load vgpr, 4, dwords_left, (dwords_left / 4), soffset, \reads
             single_load vgpr, 3, dwords_left, (dwords_left / 3), soffset, \reads
             single_load vgpr, 2, dwords_left, (dwords_left / 2), soffset, \reads
@@ -906,7 +906,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
 
         v_add_u32 \n, \tmp, \n
     .endm
-    
+
     .macro compute_voff off_d, off_o, w, n, c, th, tw, vtmp
         v_mul_lo_u32 \off_o, s[o_W_stride], v[vlocal_h]
         v_mad_u32_u24 \vtmp, s[tiles_h], \c, \th
@@ -942,7 +942,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
         v_add_u32 \off_d, \off_d, \vtmp
         v_mul_lo_u32 \vtmp, s[d_N_stride], \n
         v_add_u32 \off_d, \off_d, \vtmp
-        
+
         v_mov_b32 \vtmp, 0x80000000
         v_cndmask_b32 \off_d, \vtmp, \off_d, s[valid_mask:valid_mask+1]
     .endm
@@ -966,7 +966,7 @@ main_loop:
 
         s_add_u32 s[pipe_cnt], s[frontend_finished], s[pipe_cnt]
         s_cbranch_scc1 endpgm
-        
+
         s_cmp_eq_u32 s[frontend_finished], 1
         _s_cbranch scc1, skip_frontend, %slot
 
@@ -1001,8 +1001,8 @@ label skip_frontend, %slot
         read_data rd_base, reads_per_slot
 
         writes_per_slot = xformy_d_size
-        s_waitcnt vmcnt(0+(pipe_depth - 1) * (reads_per_slot+xformy_d_size))
-        
+        s_wait (0+(pipe_depth - 1) * (reads_per_slot+xformy_d_size))
+
         i = 0
         .rept in_tile_width
             v_cmp_lt_u32 vcc, v[waddrbuf+xf_slot], s[WS]
@@ -1024,11 +1024,11 @@ label skip_frontend, %slot
             lds_woff = lds_woff + lds_elem_size * tiles_per_wave
             i = i + 1
         .endr
-        
+
         // transform each column
         s_waitcnt lgkmcnt(0+xformx_d_size)
         winograd_xform xformy_o_size, xformy_f_size, xformx_d_size, fdilation_h, wrbuf, vtmp
-        
+
         data_convert wrbuf, xformx_d_size, vtmp, stmp, buf_type, acc_type
         // store result
         write_data wrbuf, oaddrbuf+rd_slot
@@ -1063,7 +1063,7 @@ s_endpgm
                 - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
                 - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
                 - { Name: H       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: W       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
+                - { Name: W       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
                 - { Name: K       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
                 - { Name: n_groups, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
                 - { Name: flags   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
@@ -1072,21 +1072,21 @@ s_endpgm
                 - { Name: reserved2       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default}
                 - { Name: x_filter_ptr    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default}
                 - { Name: ret_addr        , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*'  , AddrSpaceQual: Global, AccQual: Default }
-                - { Name: R       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
+                - { Name: R       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
                 - { Name: S       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
                 - { Name: pad_h, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
                 - { Name: pad_w, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
                 - { Name: out_h, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
                 - { Name: out_w, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: reserved3       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
+                - { Name: reserved3       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
                 - { Name: reserved4       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
                 - { Name: d_N_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
                 - { Name: d_C_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
                 - { Name: d_H_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
                 - { Name: d_W_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: reserved5       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
-                - { Name: reserved6       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
-                - { Name: reserved7       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
+                - { Name: reserved5       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: reserved6       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+                - { Name: reserved7       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
                 - { Name: reserved8       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
                 - { Name: o_N_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
                 - { Name: o_C_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
@@ -1095,7 +1095,7 @@ s_endpgm
                 }
         }
     .end_amd_amdgpu_hsa_metadata
-    
+
   .else
     .error "Unsupported ROCM_METADATA_VERSION"
     .end
@@ -1117,7 +1117,7 @@ s_endpgm
     .else
         .size gcnAsmWinogradXformData_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size, .Lfunc_end0 - gcnAsmWinogradXformData_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
     .endif
-    METADATA_WRAPPER 64, .AUTO_LDS_BYTE_SIZE, _\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size 
+    METADATA_WRAPPER 64, .AUTO_LDS_BYTE_SIZE, _\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
 .endm
 
 .ifndef ROCM_METADATA_VERSION
