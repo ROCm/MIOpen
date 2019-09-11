@@ -34,7 +34,9 @@ namespace solver {
 
 bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
 {
-    bool isTypeSupported = (ctx.IsFp32() || ctx.IsFp16());
+    // disable IsFp16 due to NaN (issue #2071);
+    ///\todo: 1) Fixed NaN issue in Fp16, 2) enable Fp16 and 3) add Fp16 tests
+    bool isTypeSupported = ctx.IsFp32();
 
     // For fp16, when E=c*x*y % 32 == 0, 4 channels are accumulated through dot4 (2 * dot2)
     // operation
