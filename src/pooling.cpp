@@ -117,14 +117,12 @@ PoolingDescriptor::GetForwardOutputDim(const TensorDescriptor& xDesc) const
 
     auto output_h = std::max<std::ptrdiff_t>(
         1,
-        std::ptrdiff_t(std::ceil(static_cast<float>(input_h + 2 * pad_h - window_h) /
-                                 static_cast<float>(stride_h)) +
-                       1));
+        std::ptrdiff_t(static_cast<float>(input_h + 2 * pad_h - window_h + stride_h - 1) /
+                       static_cast<float>(stride_h)));
     auto output_w = std::max<std::ptrdiff_t>(
         1,
-        std::ptrdiff_t(std::ceil(static_cast<float>(input_w + 2 * pad_w - window_w) /
-                                 static_cast<float>(stride_w)) +
-                       1));
+        std::ptrdiff_t(static_cast<float>(input_w + 2 * pad_w - window_w + stride_w - 1) /
+                       static_cast<float>(stride_w)));
 
     if(_pMode == miopenPaddingSame)
     {
