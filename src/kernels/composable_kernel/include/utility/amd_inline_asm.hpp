@@ -7,6 +7,8 @@
 #define CK_USE_INLINE_ASM_XDLOPS 1
 #endif
 
+#define WORKAROUND_SWDEV_202749 1
+
 namespace ck {
 
 // A, B, C, cbsz, abid, blgp
@@ -136,12 +138,19 @@ __device__ void outerProduct1x4(const float* a, const float* b, float* c)
 
 __device__ void outerProduct1x2(const float* a, const float* b, float* c)
 {
+// disable inline asm due to the compiler issue: SWDEV-202749
+///\to-do: enable the inline asm after the compiler fix
+#if WORKAROUND_SWDEV_202749
+    c[0] += a[0] * b[0];
+    c[1] += a[0] * b[1];
+#else
     asm volatile("\n \
             v_mac_f32 %0, %2, %3 \n \
             v_mac_f32 %1, %2, %4 \n \
             "
                  : "=v"(c[0]), "=v"(c[1])
                  : "v"(a[0]), "v"(b[0]), "v"(b[1]), "0"(c[0]), "1"(c[1]));
+#endif
 }
 
 __device__ void outerProduct1x4(const float& a,
