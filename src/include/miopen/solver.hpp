@@ -485,11 +485,11 @@ struct ConvHipImplicitGemmV4Fwd : SolverBase<ConvolutionContext>
 
     PerformanceImplicitGemm Search(const ConvolutionContext&) const;
     int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_ocl_buf,
-                              Data_t top_ocl_buf,
-                              ConstData_t wei_ocl_buf,
-                              ConstData_t bias_ocl_buf,
-                              const ConvolutionContext& params,
+                              ConstData_t bot_buf,
+                              Data_t top_buf,
+                              ConstData_t wei_buf,
+                              ConstData_t bias_buf,
+                              const ConvolutionContext& ctx,
                               const ConvSolution& solution,
                               float& elapsed_time) const;
 };
@@ -565,8 +565,23 @@ struct ConvHipImplicitGemmV4R4FwdXdlops : SolverBase<ConvolutionContext>
 
 struct ConvHipImplicitGemmV4_1x1 : SolverBase<ConvolutionContext>
 {
+    PerformanceImplicitGemm GetPerformanceConfig(const ConvolutionContext& params) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& problem,
+                                  const PerformanceImplicitGemm& c) const;
     bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceImplicitGemm& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+
+    PerformanceImplicitGemm Search(const ConvolutionContext&) const;
+    int RunAndMeasureSolution(miopen::Handle& profile_h,
+                              ConstData_t bot_buf,
+                              Data_t top_buf,
+                              ConstData_t wei_buf,
+                              ConstData_t bias_buf,
+                              const ConvolutionContext& ctx,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
 };
 
 struct ConvHipImplicitGemmV4WrW : SolverBase<ConvolutionContext>
@@ -585,7 +600,7 @@ struct ConvHipImplicitGemmV4WrW : SolverBase<ConvolutionContext>
                               Data_t top_buf,
                               ConstData_t wei_buf,
                               ConstData_t bias_buf,
-                              const ConvolutionContext& params,
+                              const ConvolutionContext& ctx,
                               const ConvSolution& solution,
                               float& elapsed_time) const;
 };
