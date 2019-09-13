@@ -39,7 +39,7 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_
     constexpr index_t GridSize = CK_PARAM_DEPENDENT_GRID_SIZE;
 
 // calculate dependent params amd heuristic params
-#if CK_PARAM_DIR_WRW == 1
+#if CK_PARAM_PROBLEM_DIRECTION == 2
     // In the WrW direction the filter is the output, while the output image is the input being
     // convolved with the (original) input image. This requires that the tensordescriptors be
     // swapped

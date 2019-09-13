@@ -29,44 +29,9 @@
 #include <miopen/generic_search.hpp>
 #include "miopen/stringutils.hpp"
 
-namespace miopen {
-namespace solver {
-
-bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
+inline static int GetReadWriteVectorSize(const int v)
 {
-    // disable IsFp16 due to NaN (issue #2071);
-    ///\todo: 1) Fixed NaN issue in Fp16, 2) enable Fp16 and 3) add Fp16 tests
-    bool isTypeSupported = ctx.IsFp32();
-
-    // For fp16, when E=c*x*y % 32 == 0, 4 channels are accumulated through dot4 (2 * dot2)
-    // operation
-    // For bfp16/fp16, when E=c*x*y % 16 == 0, 2 channels are accumulated through dot2 operation
-    // For fp32, when E=c*x*y % 8 == 0, no dot2 operation exist.
-    bool isEInMultiple = (ctx.IsFp16() || ctx.IsBfp16())
-                             ? ((ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % 16 == 0)
-                             : ((ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % 8 == 0);
-
-    // padding support required for out_of_bound configs
-    bool no_out_of_bound = (ctx.in_width >= ((ctx.kernel_size_w - 1) * ctx.kernel_dilation_w + 1) +
-                                                (ctx.out_width - 1) * ctx.kernel_stride_w) &&
-                           (ctx.in_height >= ((ctx.kernel_size_h - 1) * ctx.kernel_dilation_h + 1) +
-                                                 (ctx.out_height - 1) * ctx.kernel_stride_h);
-
-    return ctx.Is2d() && isTypeSupported && ctx.direction.IsForward() && ctx.pad_h == 0 &&
-           ctx.pad_w == 0 && ctx.group_counts == 1 && ctx.batch_sz % 8 == 0 &&
-           (ctx.batch_sz * ctx.out_height * ctx.out_width) % 64 == 0 && isEInMultiple &&
-           ctx.n_outputs % 16 == 0 && no_out_of_bound;
-}
-bool ConvHipImplicitGemmV4WrW::IsApplicable(const ConvolutionContext& ctx) const
-{
-    bool isTypeSupported = ctx.IsFp32();
-
-    bool isNumInputsInMultiple = (ctx.batch_sz * ctx.in_height * ctx.in_width) % 8 == 0;
-
-    return ctx.Is2d() && isTypeSupported && ctx.direction.IsBackwardWrW() && ctx.pad_h == 0 &&
-           ctx.pad_w == 0 && ctx.group_counts == 1 && ctx.n_outputs % 8 == 0 &&
-           (ctx.n_outputs * ctx.kernel_size_h * ctx.kernel_size_w) % 64 == 0 &&
-           isNumInputsInMultiple && ctx.n_inputs % 16 == 0;
+    return v % 4 == 0 ? 4 : (v % 2 == 0 ? 2 : 1);
 }
 
 /// \todo move to separate header and use in other solvers.
@@ -94,12 +59,35 @@ inline static bool NextTwoPower(int& v)
     return false;
 }
 
-inline static int GetReadWriteVectorSize(const int v)
+namespace miopen {
+namespace solver {
+
+static inline int ImgHeight(const ConvolutionContext& c)
 {
-    return (v & 3) == 0 ? 4 : ((v & 1) == 0 ? 2 : 1);
+    return c.direction.IsBackwardData() ? c.in_height : c.out_height;
 }
 
-inline bool PerformanceImplicitGemm::operator==(const PerformanceImplicitGemm& other) const
+static inline int ImgWidth(const ConvolutionContext& c)
+{
+    return c.direction.IsBackwardData() ? c.in_width : c.out_width;
+}
+
+uint32_t PerformanceImplicitGemm::GetEPackLength(const ConvolutionContext& ctx) const
+{
+    const int C = ctx.n_inputs;
+    const int Y = ctx.kernel_size_h;
+    const int X = ctx.kernel_size_w;
+
+    // Based on data type, Es are packed
+    int EPACK = 1;
+    if(ctx.IsFp16()) // for fp16, either 2 or 4 Es could be packed
+        EPACK = (C * Y * X % 32) == 0 ? 4 : 2;
+    else if(ctx.IsBfp16()) // for bfp16, only 2 Es could be packed
+        EPACK = 2;
+    return EPACK;
+}
+
+bool PerformanceImplicitGemm::operator==(const PerformanceImplicitGemm& other) const
 {
     // clang-format off
     return BPerBlock == other.BPerBlock
@@ -122,32 +110,18 @@ inline bool PerformanceImplicitGemm::operator==(const PerformanceImplicitGemm& o
     // clang-format on
 }
 
-uint32_t PerformanceImplicitGemm::GetEPackLength(const ConvolutionContext& ctx) const
-{
-    const int C = ctx.n_inputs;
-    const int Y = ctx.kernel_size_h;
-    const int X = ctx.kernel_size_w;
-
-    // Based on data type, Es are packed
-    int EPACK = 1;
-    if(ctx.IsFp16()) // for fp16, either 2 or 4 Es could be packed
-        EPACK = (C * Y * X % 32) == 0 ? 4 : 2;
-    else if(ctx.IsBfp16()) // for bfp16, only 2 Es could be packed
-        EPACK = 2;
-    return EPACK;
-}
-
 bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
 {
     int N = ctx.batch_sz;
     int K = ctx.n_outputs;
     int C = ctx.n_inputs;
 
-    int Ho = ctx.out_height;
-    int Wo = ctx.out_width;
+    int Ho = ImgHeight(ctx);
+    int Wo = ImgWidth(ctx);
 
     int Y = ctx.kernel_size_h;
     int X = ctx.kernel_size_w;
+
     if(ctx.direction.IsBackwardWrW())
     {
         N  = ctx.n_outputs; // swapped
@@ -161,7 +135,6 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
 
     const int N1 = GemmNRepeat;
     const int N2 = GemmNPerThreadSubC;
-    assert(N1 * N2 != 0);
     if(N % (N1 * N2) != 0)
         return false; // wrong! cannot divice N evenly among thread
 
@@ -178,6 +151,7 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
          KPerBlock % WeiBlockCopyClusterLengths_K == 0 && N1 % InBlockCopyClusterLengths_N1 == 0 &&
          N2 % InBlockCopyClusterLengths_N2 == 0))
         return false;
+
     if(ctx.direction.IsBackwardWrW())
     {
         if(!((X * Y) % (EPerBlock / WeiBlockCopyClusterLengths_E) == 0))
@@ -217,94 +191,13 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
     const int GemmMRepeat =
         KPerBlock / (GemmMPerThreadSubC * GemmMLevel0Cluster * GemmMLevel1Cluster);
 
-    if(GemmMRepeat != 2 || GemmNRepeat != 2)
+    if(!(GemmMRepeat == 2 && GemmNRepeat == 2))
         return false;
 
     const int InBlockCopySubLengths_E = EPerBlock / InBlockCopyClusterLengths_E;
     const int InBlockCopySubLengths_B = BPerBlock / InBlockCopyClusterLengths_B;
 
     return (InBlockCopySubLengths_E == 1 && InBlockCopySubLengths_B == 1);
-}
-
-bool PerformanceImplicitGemm::IsValidValue() const
-{
-    // clang-format off
-    return IsTwoPower<8,16>(BPerBlock)
-        && IsTwoPower<16,128>(KPerBlock)
-        && IsTwoPower<4,16>(EPerBlock)
-        && GemmNRepeat == 2 
-        && IsTwoPower<2,4>(GemmMPerThreadSubC)
-        && IsTwoPower<2,4>(GemmNPerThreadSubC)
-        && IsTwoPower<1,4>(GemmMLevel0Cluster)
-        && IsTwoPower<1,4>(GemmNLevel0Cluster)
-        && IsTwoPower<1,4>(GemmMLevel1Cluster)
-        && IsTwoPower<1,4>(GemmNLevel1Cluster)
-        && IsTwoPower<4,16>(InBlockCopyClusterLengths_E)
-        && IsTwoPower<8,16>(InBlockCopyClusterLengths_B)
-        && IsTwoPower<1,2>(InBlockCopyClusterLengths_N1)
-        && IsTwoPower<1,4>(InBlockCopyClusterLengths_N2)
-        && IsTwoPower<1,4>(WeiBlockCopyClusterLengths_E)
-        && IsTwoPower<16,128>(WeiBlockCopyClusterLengths_K); // clang-format on
-}
-
-bool PerformanceImplicitGemm::SetNextValue()
-{
-
-    GemmNRepeat = 2;
-
-    do
-    {
-        if(!use_spare_set)
-        {
-            // use 8x8 thread-wise gemm as possible
-            GemmMPerThreadSubC = 4;
-            GemmNPerThreadSubC = 4;
-            // use block_size = 256 as possible
-            {
-                const bool wrap              = NextTwoPower<2, 4>(WeiBlockCopyClusterLengths_E);
-                WeiBlockCopyClusterLengths_K = 256 / WeiBlockCopyClusterLengths_E;
-                if(!wrap)
-                    break;
-            }
-        }
-        else
-        {
-            if(!NextTwoPower<2, 4>(GemmMPerThreadSubC))
-                break;
-            if(!NextTwoPower<2, 4>(GemmNPerThreadSubC))
-                break;
-            if(!NextTwoPower<1, 4>(WeiBlockCopyClusterLengths_E))
-                break;
-            if(!NextTwoPower<16, 128>(WeiBlockCopyClusterLengths_K))
-                break;
-        }
-
-        if(!NextTwoPower<8, 16>(BPerBlock))
-            break;
-        if(!NextTwoPower<16, 128>(KPerBlock))
-            break;
-        if(!NextTwoPower<4, 16>(EPerBlock))
-            break;
-        if(!NextTwoPower<1, 4>(GemmMLevel0Cluster))
-            break;
-        if(!NextTwoPower<1, 4>(GemmNLevel0Cluster))
-            break;
-        if(!NextTwoPower<1, 4>(GemmMLevel1Cluster))
-            break;
-        if(!NextTwoPower<1, 4>(GemmNLevel1Cluster))
-            break;
-        if(!NextTwoPower<4, 16>(InBlockCopyClusterLengths_E))
-            break;
-        if(!NextTwoPower<8, 16>(InBlockCopyClusterLengths_B))
-            break;
-        if(!NextTwoPower<1, 2>(InBlockCopyClusterLengths_N1))
-            break;
-        if(!NextTwoPower<1, 4>(InBlockCopyClusterLengths_N2))
-            break;
-        return false;
-    } while(false);
-
-    return true;
 }
 
 void PerformanceImplicitGemm::EuristicInit(const ConvolutionContext& config)
@@ -414,6 +307,83 @@ void PerformanceImplicitGemm::EuristicInit(const ConvolutionContext& config)
     MIOPEN_LOG_I(ToString());
 }
 
+bool PerformanceImplicitGemm::IsValidValue() const
+{
+    // clang-format off
+    return IsTwoPower<8,16>(BPerBlock)
+        && IsTwoPower<16,128>(KPerBlock)
+        && IsTwoPower<4,16>(EPerBlock)
+        && GemmNRepeat == 2 
+        && IsTwoPower<2,4>(GemmMPerThreadSubC)
+        && IsTwoPower<2,4>(GemmNPerThreadSubC)
+        && IsTwoPower<1,4>(GemmMLevel0Cluster)
+        && IsTwoPower<1,4>(GemmNLevel0Cluster)
+        && IsTwoPower<1,4>(GemmMLevel1Cluster)
+        && IsTwoPower<1,4>(GemmNLevel1Cluster)
+        && IsTwoPower<4,16>(InBlockCopyClusterLengths_E)
+        && IsTwoPower<8,16>(InBlockCopyClusterLengths_B)
+        && IsTwoPower<1,2>(InBlockCopyClusterLengths_N1)
+        && IsTwoPower<1,4>(InBlockCopyClusterLengths_N2)
+        && IsTwoPower<1,4>(WeiBlockCopyClusterLengths_E)
+        && IsTwoPower<16,128>(WeiBlockCopyClusterLengths_K); // clang-format on
+}
+
+bool PerformanceImplicitGemm::SetNextValue()
+{
+    // GemmNRepeat = 2 cosntant
+    do
+    {
+        // BPerBlock == 16 constant for no-spare
+        // GemmNLevel0Cluster = 4 constant for no-spare
+        // GemmNLevel1Cluster = 4 constant for no-spare
+        // InBlockCopyClusterLengths_B = 16 constant for no-spare
+        if(!use_spare_set)
+        {
+            if(!NextTwoPower<2, 4>(GemmMLevel0Cluster))
+                break;
+            if(!NextTwoPower<2, 4>(GemmMLevel1Cluster))
+                break;
+        }
+        else
+        {
+            if(!NextTwoPower<8, 16>(BPerBlock))
+                break;
+            if(!NextTwoPower<1, 4>(GemmNLevel0Cluster))
+                break;
+            if(!NextTwoPower<1, 4>(GemmNLevel1Cluster))
+                break;
+            if(!NextTwoPower<8, 16>(InBlockCopyClusterLengths_B))
+                break;
+            if(!NextTwoPower<1, 4>(GemmMLevel0Cluster))
+                break;
+            if(!NextTwoPower<1, 4>(GemmMLevel1Cluster))
+                break;
+        }
+
+        if(!NextTwoPower<1, 4>(WeiBlockCopyClusterLengths_E))
+            break;
+        if(!NextTwoPower<16, 128>(WeiBlockCopyClusterLengths_K))
+            break;
+        if(!NextTwoPower<2, 4>(GemmMPerThreadSubC))
+            break;
+        if(!NextTwoPower<2, 4>(GemmNPerThreadSubC))
+            break;
+        if(!NextTwoPower<16, 128>(KPerBlock))
+            break;
+        if(!NextTwoPower<4, 16>(EPerBlock))
+            break;
+        if(!NextTwoPower<4, 16>(InBlockCopyClusterLengths_E))
+            break;
+        if(!NextTwoPower<1, 2>(InBlockCopyClusterLengths_N1))
+            break;
+        if(!NextTwoPower<1, 2>(InBlockCopyClusterLengths_N2))
+            break;
+        return false;
+    } while(false);
+
+    return true;
+}
+
 std::string PerformanceImplicitGemm::ToString() const
 {
     std::ostringstream ss;
@@ -421,62 +391,28 @@ std::string PerformanceImplicitGemm::ToString() const
     return ss.str();
 }
 
-static inline PerformanceImplicitGemm GetPerformanceConfigBase(const ConvolutionContext& params)
-{
-    PerformanceImplicitGemm pp;
-    pp.EuristicInit(params);
-    MIOPEN_LOG_I(pp.ToString());
-    return pp;
-}
-
-PerformanceImplicitGemm
-ConvHipImplicitGemmV4Fwd::GetPerformanceConfig(const ConvolutionContext& params) const
-{
-    return GetPerformanceConfigBase(params);
-}
-
-PerformanceImplicitGemm
-ConvHipImplicitGemmV4WrW::GetPerformanceConfig(const ConvolutionContext& params) const
-{
-    return GetPerformanceConfigBase(params);
-}
-
-bool ConvHipImplicitGemmV4Fwd::IsValidPerformanceConfig(const ConvolutionContext& problem,
-                                                        const PerformanceImplicitGemm& c) const
-{
-    MIOPEN_LOG_I("");
-    return c.IsValidValue() && c.IsValid(problem);
-}
-
-bool ConvHipImplicitGemmV4WrW::IsValidPerformanceConfig(const ConvolutionContext& problem,
-                                                        const PerformanceImplicitGemm& c) const
-{
-    MIOPEN_LOG_I("");
-    return c.IsValidValue() && c.IsValid(problem);
-}
-
 PerformanceImplicitGemm::PerformanceImplicitGemm(bool spare)
 {
-    BPerBlock = 8;
+    BPerBlock = spare ? 8 : 16; // constant for no-spare
     KPerBlock = 16;
     EPerBlock = 4;
 
-    GemmNRepeat = 2;
+    GemmNRepeat = 2; // constant for all
 
     GemmMPerThreadSubC = 2;
     GemmNPerThreadSubC = 2;
 
-    GemmMLevel0Cluster = 1;
-    GemmNLevel0Cluster = 1;
-    GemmMLevel1Cluster = 1;
-    GemmNLevel1Cluster = 1;
+    GemmMLevel0Cluster = spare ? 1 : 2;
+    GemmNLevel0Cluster = spare ? 1 : 4; // constant for no-spare
+    GemmMLevel1Cluster = spare ? 1 : 2;
+    GemmNLevel1Cluster = spare ? 1 : 4; // constant for no-spare
 
     InBlockCopyClusterLengths_E  = 4;
     InBlockCopyClusterLengths_N1 = 1;
-    InBlockCopyClusterLengths_B  = 8;
+    InBlockCopyClusterLengths_B  = spare ? 8 : 16; // constant for no-spare
     InBlockCopyClusterLengths_N2 = 1;
 
-    WeiBlockCopyClusterLengths_E = 2;
+    WeiBlockCopyClusterLengths_E = 1;
     WeiBlockCopyClusterLengths_K = 16;
     use_spare_set                = spare;
 }
@@ -518,8 +454,110 @@ PerformanceImplicitGemm::PerformanceImplicitGemm(int BPerBlock_,
 {
 }
 
+bool ConvHipImplicitGemmV4_1x1::IsApplicable(const ConvolutionContext& ctx) const
+{
+    if(!ctx.Is2d())
+        return false;
+
+    return ctx.IsFp32() && ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.group_counts == 1 &&
+           ctx.batch_sz % 8 == 0 && (ctx.batch_sz * ImgHeight(ctx) * ImgWidth(ctx)) % 64 == 0 &&
+           ctx.n_outputs % 16 == 0 && ctx.kernel_size_h == 1 && ctx.kernel_size_w == 1 &&
+           ctx.n_inputs % 8 == 0 && ctx.kernel_dilation_h == 1 && ctx.kernel_dilation_w == 1;
+}
+
+bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
+{
+    // disable IsFp16 due to NaN (issue #2071);
+    ///\todo: 1) Fixed NaN issue in Fp16, 2) enable Fp16 and 3) add Fp16 tests
+    bool isTypeSupported = ctx.IsFp32();
+
+    // For fp16, when E=c*x*y % 32 == 0, 4 channels are accumulated through dot4 (2 * dot2)
+    // operation
+    // For bfp16/fp16, when E=c*x*y % 16 == 0, 2 channels are accumulated through dot2 operation
+    // For fp32, when E=c*x*y % 8 == 0, no dot2 operation exist.
+    bool isEInMultiple = (ctx.IsFp16() || ctx.IsBfp16())
+                             ? ((ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % 16 == 0)
+                             : ((ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % 8 == 0);
+
+    // padding support required for out_of_bound configs
+    bool no_out_of_bound = (ctx.in_width >= ((ctx.kernel_size_w - 1) * ctx.kernel_dilation_w + 1) +
+                                                (ctx.out_width - 1) * ctx.kernel_stride_w) &&
+                           (ctx.in_height >= ((ctx.kernel_size_h - 1) * ctx.kernel_dilation_h + 1) +
+                                                 (ctx.out_height - 1) * ctx.kernel_stride_h);
+
+    return ctx.Is2d() && isTypeSupported && ctx.direction.IsForward() && ctx.pad_h == 0 &&
+           ctx.pad_w == 0 && ctx.group_counts == 1 && ctx.batch_sz % 8 == 0 &&
+           (ctx.batch_sz * ctx.out_height * ctx.out_width) % 64 == 0 && isEInMultiple &&
+           ctx.n_outputs % 16 == 0 && no_out_of_bound;
+}
+
+bool ConvHipImplicitGemmV4WrW::IsApplicable(const ConvolutionContext& ctx) const
+{
+    bool isTypeSupported = ctx.IsFp32();
+
+    bool isNumInputsInMultiple = (ctx.batch_sz * ctx.in_height * ctx.in_width) % 8 == 0;
+
+    return ctx.Is2d() && isTypeSupported && ctx.direction.IsBackwardWrW() && ctx.pad_h == 0 &&
+           ctx.pad_w == 0 && ctx.group_counts == 1 && ctx.n_outputs % 8 == 0 &&
+           (ctx.n_outputs * ctx.kernel_size_h * ctx.kernel_size_w) % 64 == 0 &&
+           isNumInputsInMultiple && ctx.n_inputs % 16 == 0;
+}
+
+static inline PerformanceImplicitGemm GetPerformanceConfigBase(const ConvolutionContext& params)
+{
+    PerformanceImplicitGemm pp;
+    pp.EuristicInit(params);
+    MIOPEN_LOG_I(pp.ToString());
+    return pp;
+}
+
+PerformanceImplicitGemm
+ConvHipImplicitGemmV4Fwd::GetPerformanceConfig(const ConvolutionContext& params) const
+{
+    return GetPerformanceConfigBase(params);
+}
+
+PerformanceImplicitGemm
+ConvHipImplicitGemmV4WrW::GetPerformanceConfig(const ConvolutionContext& params) const
+{
+    return GetPerformanceConfigBase(params);
+}
+
+PerformanceImplicitGemm
+ConvHipImplicitGemmV4_1x1::GetPerformanceConfig(const ConvolutionContext& params) const
+{
+    return GetPerformanceConfigBase(params);
+}
+
+bool ConvHipImplicitGemmV4Fwd::IsValidPerformanceConfig(const ConvolutionContext& problem,
+                                                        const PerformanceImplicitGemm& c) const
+{
+    MIOPEN_LOG_I("");
+    return c.IsValidValue() && c.IsValid(problem);
+}
+
+bool ConvHipImplicitGemmV4WrW::IsValidPerformanceConfig(const ConvolutionContext& problem,
+                                                        const PerformanceImplicitGemm& c) const
+{
+    MIOPEN_LOG_I("");
+    return c.IsValidValue() && c.IsValid(problem);
+}
+
+bool ConvHipImplicitGemmV4_1x1::IsValidPerformanceConfig(const ConvolutionContext& problem,
+                                                         const PerformanceImplicitGemm& c) const
+{
+    MIOPEN_LOG_I("");
+    return c.IsValidValue() && c.IsValid(problem);
+}
+
+using ImplicitGemmKernel_t = enum {
+    ImplicitGemmV4     = 0,
+    ImplicitGemmV4_1x1 = 1,
+};
+
 static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
                                            const PerformanceImplicitGemm& config,
+                                           const ImplicitGemmKernel_t kernel,
                                            const int n,
                                            const int k,
                                            const int ho,
@@ -528,12 +566,10 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     ConvSolution result;
     KernelInfo construction_parameters;
 
-    // const int GemmNPerThreadSubC = 4;
-
     const int N1 = config.GemmNRepeat;
     const int N2 = config.GemmNPerThreadSubC;
 
-    std::size_t b = (n * ho * wo) / (N1 * N2);
+    std::size_t b = (static_cast<std::size_t>(n) * ho * wo) / (static_cast<std::size_t>(N1) * N2);
 
     std::size_t BPerBlock = config.BPerBlock;
     std::size_t KPerBlock = config.KPerBlock;
@@ -541,6 +577,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
 
     const int ThreadPerLevel1Cluster = config.GemmMLevel0Cluster * config.GemmNLevel0Cluster *
                                        config.GemmMLevel1Cluster * config.GemmNLevel1Cluster;
+
     const int block_size = ThreadPerLevel1Cluster;
 
     std::size_t grid_size = (b / BPerBlock) * (k / KPerBlock);
@@ -561,11 +598,23 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     construction_parameters.g_wk.push_back(gbl_wk1);
     construction_parameters.g_wk.push_back(gbl_wk2);
 
-    construction_parameters.kernel_file =
-        "gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_lds_double_buffer.cpp";
+    if(kernel == ImplicitGemmV4)
+    {
+        construction_parameters.kernel_file =
+            "gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_lds_double_buffer.cpp";
 
-    construction_parameters.kernel_name =
-        "gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_lds_double_buffer";
+        construction_parameters.kernel_name =
+            "gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_lds_double_buffer";
+    }
+
+    if(kernel == ImplicitGemmV4_1x1)
+    {
+        construction_parameters.kernel_file =
+            "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer.cpp";
+
+        construction_parameters.kernel_name =
+            "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer";
+    }
 
     std::size_t WeiBlockCopySubLengths_E = EPerBlock / config.WeiBlockCopyClusterLengths_E;
     std::size_t WeiBlockCopySubLengths_K = KPerBlock / config.WeiBlockCopyClusterLengths_K;
@@ -579,16 +628,15 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     int InBlockCopySrcDataPerRead_B   = GetReadWriteVectorSize(InBlockCopySubLengths_B);
     int InBlockCopyDstDataPerWrite_N2 = GetReadWriteVectorSize(InBlockCopySubLengths_N2);
 
-    if(ctx.kernel_size_w > 1)
-    {
-        InBlockCopySrcDataPerRead_B =
-            std::min(InBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(ctx.kernel_dilation_w));
-    }
+    InBlockCopySrcDataPerRead_B =
+        ctx.kernel_size_w > 1
+            ? std::min(InBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(ctx.kernel_dilation_w))
+            : InBlockCopySrcDataPerRead_B;
 
-    if(ctx.kernel_stride_w > 1)
-    {
-        InBlockCopySrcDataPerRead_B = 1;
-    }
+    InBlockCopySrcDataPerRead_B = ctx.kernel_stride_w > 1 ? 1 : InBlockCopySrcDataPerRead_B;
+
+    WeiBlockCopySrcDataPerRead_E =
+        ctx.direction.IsBackwardData() ? 1 : WeiBlockCopySrcDataPerRead_E;
 
     // TBD: Due to underlying bug, we need to restrict reading/writing only 1 fp16 value at a time
     if(ctx.IsFp16() || ctx.IsBfp16())
@@ -602,6 +650,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     bool use_amd_inline_asm = true;
     if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx8"))
         use_amd_inline_asm = false;
+
     if(ctx.direction.IsBackwardWrW())
     {
         // clang-format off
@@ -611,8 +660,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_PROBLEM_HI=") + std::to_string(ctx.out_height) + // swapped
         std::string(" -DCK_PARAM_PROBLEM_WI=") + std::to_string(ctx.out_width) + // swapped
         std::string(" -DCK_PARAM_PROBLEM_HO=") + std::to_string(ctx.in_height) +  // swapped
-        std::string(" -DCK_PARAM_PROBLEM_WO=") + std::to_string(ctx.in_width) +
-        std::string(" -DCK_PARAM_DIR_WRW=") + std::to_string(1);
+        std::string(" -DCK_PARAM_PROBLEM_WO=") + std::to_string(ctx.in_width);
         // clang-format on
     }
     else
@@ -624,13 +672,16 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_PROBLEM_HI=") + std::to_string(ctx.in_height) +
         std::string(" -DCK_PARAM_PROBLEM_WI=") + std::to_string(ctx.in_width) +
         std::string(" -DCK_PARAM_PROBLEM_HO=") + std::to_string(ctx.out_height) +
-        std::string(" -DCK_PARAM_PROBLEM_WO=") + std::to_string(ctx.out_width) +
-        std::string(" -DCK_PARAM_DIR_WRW=") + std::to_string(0);
+        std::string(" -DCK_PARAM_PROBLEM_WO=") + std::to_string(ctx.out_width);
         // clang-format on
     }
+
+    int direction = ctx.direction.IsForward() ? 0 : (ctx.direction.IsBackwardData() ? 1 : 2);
+
     // clang-format off
     construction_parameters.comp_options +=
         std::string(" -std=c++14") +
+        std::string(" -DCK_PARAM_PROBLEM_DIRECTION=") + std::to_string(direction) +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ctx.batch_sz) +
         std::string(" -DCK_PARAM_PROBLEM_Y=") + std::to_string(ctx.kernel_size_h) +
         std::string(" -DCK_PARAM_PROBLEM_X=") + std::to_string(ctx.kernel_size_w) +
@@ -674,15 +725,35 @@ ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx
                                                    const PerformanceImplicitGemm& config,
                                                    const bool) const
 {
-    return GetSolutionBase(ctx, config, ctx.batch_sz, ctx.n_outputs, ctx.out_height, ctx.out_width);
+    return GetSolutionBase(
+        ctx, config, ImplicitGemmV4, ctx.batch_sz, ctx.n_outputs, ctx.out_height, ctx.out_width);
 }
 ConvSolution ConvHipImplicitGemmV4WrW::GetSolution(const ConvolutionContext& ctx,
                                                    const PerformanceImplicitGemm& config,
                                                    const bool) const
 {
-    return GetSolutionBase(
-        ctx, config, ctx.n_outputs, ctx.n_inputs, ctx.kernel_size_h, ctx.kernel_size_w);
+    return GetSolutionBase(ctx,
+                           config,
+                           ImplicitGemmV4,
+                           ctx.n_outputs,
+                           ctx.n_inputs,
+                           ctx.kernel_size_h,
+                           ctx.kernel_size_w);
 }
+
+ConvSolution ConvHipImplicitGemmV4_1x1::GetSolution(const ConvolutionContext& ctx,
+                                                    const PerformanceImplicitGemm& config,
+                                                    const bool) const
+{
+    return GetSolutionBase(ctx,
+                           config,
+                           ImplicitGemmV4_1x1,
+                           ctx.batch_sz,
+                           ctx.n_outputs,
+                           ImgHeight(ctx),
+                           ImgWidth(ctx));
+}
+
 static inline int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
                                             ConstData_t bot_buf,
                                             Data_t top_buf,
@@ -712,7 +783,11 @@ static inline int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
         {
             kernel(bot_buf, top_buf, wei_buf);
         }
-        else
+        if(ctx.direction.IsBackwardData())
+        {
+            kernel(top_buf, wei_buf, bot_buf);
+        }
+        if(ctx.direction.IsForward())
         {
             kernel(bot_buf, wei_buf, top_buf);
         }
@@ -729,19 +804,19 @@ static inline int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
 }
 
 int ConvHipImplicitGemmV4Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                                    ConstData_t bot_ocl_buf,
-                                                    Data_t top_ocl_buf,
-                                                    ConstData_t wei_ocl_buf,
-                                                    ConstData_t bias_ocl_buf,
+                                                    ConstData_t bot_buf,
+                                                    Data_t top_buf,
+                                                    ConstData_t wei_buf,
+                                                    ConstData_t bias_buf,
                                                     const ConvolutionContext& ctx,
                                                     const ConvSolution& solution,
                                                     float& elapsed_time) const
 {
-    assert(bias_ocl_buf == nullptr);
-    (void)bias_ocl_buf;
+    assert(bias_buf == nullptr);
+    (void)bias_buf;
 
     return RunAndMeasureSolutionBase(
-        profile_h, bot_ocl_buf, top_ocl_buf, wei_ocl_buf, ctx, solution, elapsed_time);
+        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
 int ConvHipImplicitGemmV4WrW::RunAndMeasureSolution(miopen::Handle& profile_h,
@@ -759,11 +834,31 @@ int ConvHipImplicitGemmV4WrW::RunAndMeasureSolution(miopen::Handle& profile_h,
         profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
+int ConvHipImplicitGemmV4_1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
+                                                     ConstData_t bot_buf,
+                                                     Data_t top_buf,
+                                                     ConstData_t wei_buf,
+                                                     ConstData_t bias_buf,
+                                                     const ConvolutionContext& ctx,
+                                                     const ConvSolution& solution,
+                                                     float& elapsed_time) const
+{
+    assert(bias_buf == nullptr);
+    (void)bias_buf;
+    return RunAndMeasureSolutionBase(
+        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
+}
+
 PerformanceImplicitGemm ConvHipImplicitGemmV4Fwd::Search(const ConvolutionContext& context) const
 {
     return GenericSearchFwd(*this, context);
 }
 PerformanceImplicitGemm ConvHipImplicitGemmV4WrW::Search(const ConvolutionContext& context) const
+{
+    return GenericSearchFwd(*this, context);
+}
+
+PerformanceImplicitGemm ConvHipImplicitGemmV4_1x1::Search(const ConvolutionContext& context) const
 {
     return GenericSearchFwd(*this, context);
 }

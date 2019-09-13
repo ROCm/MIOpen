@@ -56,7 +56,7 @@ struct GridwiseConvolutionImplicitGemm_v4_nchw_kc1x1_nkhw_lds_double_buffer
             const Float* const __restrict__ p_wei_global,
             Float* const __restrict__ p_out_global) const
     {
-        constexpr bool isForward = Direction == 1;
+        constexpr bool isForward = Direction == 0;
 
         // this is a mess
         // TODO: find more elegent way of specifying (or calculating) performance parameters
@@ -179,7 +179,14 @@ struct GridwiseConvolutionImplicitGemm_v4_nchw_kc1x1_nkhw_lds_double_buffer
 
         // weight tensor
         //     tensor descriptor in device memory, src of blockwise copy
-        constexpr auto wei_e_k_global_desc = wei_c_k_global_desc;
+        constexpr auto wei_e_k_global_desc_forw = wei_c_k_global_desc;
+        constexpr auto wei_e_k_global_desc_back =
+            make_ConstantTensorDescriptor_packed(Sequence<C, K>{});
+
+        constexpr auto wei_e_k_global_desc =
+            typename std::conditional<isForward,
+                                      decltype(wei_e_k_global_desc_forw),
+                                      decltype(wei_e_k_global_desc_back)>::type{};
 
         //     tensor descriptor in LDS, dst of blockwise copy
         //     be careful of LDS alignment
