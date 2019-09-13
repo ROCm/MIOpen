@@ -1040,17 +1040,15 @@ struct PerformanceConfigSCGemmFwd : Serializable<PerformanceConfigSCGemmFwd<T>>
     std::string ToString() const;
 };
 
-template <SCGemmOpType T>
-struct ConvSCGemmFwd : SolverBase<ConvolutionContext>
+struct ConvSCGemmFGemm : SolverBase<ConvolutionContext>
 {
-    PerformanceConfigSCGemmFwd<T> GetPerformanceConfig(const ConvolutionContext&) const;
+    PerformanceConfigSCGemmFwd<SCGemmOpFGemm> GetPerformanceConfig(const ConvolutionContext&) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const PerformanceConfigSCGemmFwd<T>&) const;
-    PerformanceConfigSCGemmFwd<T> Search(const ConvolutionContext&) const;
+                                  const PerformanceConfigSCGemmFwd<SCGemmOpFGemm>&) const;
+    PerformanceConfigSCGemmFwd<SCGemmOpFGemm> Search(const ConvolutionContext&) const;
     bool IsApplicable(const ConvolutionContext& params) const;
-    bool IsFast(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfigSCGemmFwd<T>& config,
+                             const PerformanceConfigSCGemmFwd<SCGemmOpFGemm>& config,
                              bool disableConfigOverrideFromEnv = false) const;
     template <typename B, typename TopT>
     int RunAndMeasureSolution(miopen::Handle& profile_h,
@@ -1061,28 +1059,10 @@ struct ConvSCGemmFwd : SolverBase<ConvolutionContext>
                               const ConvolutionContext& params,
                               const ConvSolution& solution,
                               float& elapsed_time) const;
-
-    protected:
-    bool IsApplicableBase(const ConvolutionContext& params) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& params) const;
 };
 
 extern template struct PerformanceConfigSCGemmFwd<SCGemmOpFGemm>;
-template <>
-bool ConvSCGemmFwd<SCGemmOpFGemm>::IsApplicable(const ConvolutionContext& params) const;
-template <>
-ConvSolution
-ConvSCGemmFwd<SCGemmOpFGemm>::GetSolution(const ConvolutionContext& params,
-                                          const PerformanceConfigSCGemmFwd<SCGemmOpFGemm>& config,
-                                          bool disableConfigOverrideFromEnv) const;
-extern template struct ConvSCGemmFwd<SCGemmOpFGemm>;
-#else
-template <SCGemmOpType T>
-struct ConvSCGemmFwd : SolverBase<ConvolutionContext>
-{
-    bool IsApplicable(const ConvolutionContext&) const { return false; };
-    ConvSolution GetSolution(const ConvolutionContext&) const { return ConvSolution{}; };
-};
-template struct ConvSCGemmFwd<SCGemmOpFGemm>;
 #endif
 
 /// Partial implementation.
