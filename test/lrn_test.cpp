@@ -188,8 +188,10 @@ struct verify_lrn_bwd
                         }
                     }
 
-                    routputDX(b, c, h, w) = pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
-                                            cache_ratio_value * inputX(b, c, h, w) * ydy;
+                    routputDX(b, c, h, w) =
+                        static_cast<T>(std::pow(static_cast<double>(scale(b, c, h, w)), -beta) *
+                                           inputDY(b, c, h, w) -
+                                       cache_ratio_value * inputX(b, c, h, w) * ydy);
                 });
             });
         }
@@ -209,8 +211,10 @@ struct verify_lrn_bwd
                                 double(scale(b, k, h, w)));
                     }
 
-                    routputDX(b, c, h, w) = pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
-                                            cache_ratio_value * inputX(b, c, h, w) * ydy;
+                    routputDX(b, c, h, w) =
+                        static_cast<T>(std::pow(static_cast<double>(scale(b, c, h, w)), -beta) *
+                                           inputDY(b, c, h, w) -
+                                       cache_ratio_value * inputX(b, c, h, w) * ydy);
                 });
             });
         }
@@ -317,6 +321,15 @@ struct lrn_driver : test_driver
 
         auto bwd_output = verify(verify_lrn_bwd<T>{lrn, input, out, inputX, OutputDX, scale});
     };
+};
+
+// To address compiler issue for bfloat1 type in SWDEV-202752
+// creating explicit instance of lrn_driver with bfloat16 with noop
+template <>
+struct lrn_driver<bfloat16> : test_driver
+{
+    lrn_driver() {}
+    void run() { std::cout << "bfloat16 is not supported in lrn" << std::endl; };
 };
 
 int main(int argc, const char* argv[]) { test_drive<lrn_driver>(argc, argv); };
