@@ -420,6 +420,14 @@ std::size_t Handle::GetImage3dMaxWidth()
     return result;
 }
 
+std::size_t Handle::GetWavefrontWidth()
+{
+    hipDeviceProp_t props{};
+    hipGetDeviceProperties(&props, this->impl->device);
+    auto result = static_cast<size_t>(props.warpSize);
+    return result;
+}
+
 // No HIP API that could return maximum memory allocation size
 // for a single object.
 std::size_t Handle::GetMaxMemoryAllocSize()
