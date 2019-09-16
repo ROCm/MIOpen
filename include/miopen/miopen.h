@@ -2906,7 +2906,10 @@ typedef enum {
  * Recurrent Neural Network algorithm mode
 */
 typedef enum {
-    miopenRNNdefault = 0, /*!< Supported */
+    miopenRNNdefault = 0, /*!< Use dedicated gate-operation kernel for LSTM and fundamental
+                             algorithm for vanilla RNN & GRU */
+    miopenRNNfundamental =
+        1, /*!< Function by basic tesnsor operations, supported for vanilla RNN, LSTM, GRU */
 } miopenRNNAlgo_t;
 
 /*! @enum miopenRNNDirectionMode_t
