@@ -43,6 +43,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX)
 
 // Introduces a number of shader-specific aliases (names) in the current scope at zero cost.
 // These names represent shader parameters, e.g. shader C is batch_size etc and useful for
@@ -378,7 +379,10 @@ bool ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::IsApplicable(
     {
         return false;
     }
-
+    if(miopen::Value(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX{}) != 0)
+        if(miopen::Value(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX{}) <
+           GetWorkspaceSize(params))
+            return false;
     // int offset for Workspace buffers.
     if((InTransform<WinoDataW, WinoFilterW>::GetBufferSize(params) /
             GetTypeSize(params.in_data_type) +
