@@ -217,8 +217,10 @@ void OpTensor3d(Handle& handle,
         }
         else if(blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2])
         {
-            network_config += std::to_string(clens[2]) + std::to_string(clens[1]) +
-                              std::to_string(float_equal(miopen_beta, 0.0)) +
+            network_config += std::to_string(clens[2]) + "x" + std::to_string(clens[1]) + "x" +
+                              std::to_string(float_equal(miopen_alpha0, 0.0)) + "x" +
+                              std::to_string(float_equal(miopen_alpha1, 0.0)) + "x" +
+                              std::to_string(float_equal(miopen_beta, 0.0)) + "x" +
                               std::to_string(max_num_wg);
 
             auto&& kernels = handle.GetKernels("Op2dTensorSquash", network_config);
