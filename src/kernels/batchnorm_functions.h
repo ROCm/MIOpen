@@ -109,6 +109,10 @@
 #define MIO_BN_NGRPS 1
 #endif
 
+#ifndef MIO_BN_LOOP_UNROLL_MAXN
+#define MIO_BN_LOOP_UNROLL_MAXN 768
+#endif
+
 #ifndef MIO_BN_NCHW
 #define MIO_BN_NCHW 1
 #endif
