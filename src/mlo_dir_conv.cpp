@@ -51,6 +51,11 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_NEWER)
 
+// Only select first applicable implicitgemm kernel due to slow compilation time
+// (issue SWDEV-201055) and tuning
+/// \todo enable multiple or all applicable solver search after fixing slow compilation
+#define IMPLICIT_GEMM_FIND_FIRST_SOLUTION 1
+
 miopen::PerfDb mlo_construct_base::GetDb() const
 {
     return {{db_path(), _search_params.GetUserPerfDbPath()}};
@@ -101,9 +106,9 @@ static auto GetDirectSolvers()
 
 static auto GetImplicitGemmSolvers()
 {
-    return miopen::solver::SolverContainer<miopen::solver::ConvHipImplicitGemmV4Fwd,
+    return miopen::solver::SolverContainer<miopen::solver::ConvHipImplicitGemmV4R4FwdXdlops,
                                            miopen::solver::ConvHipImplicitGemmV4_1x1,
-                                           miopen::solver::ConvHipImplicitGemmV4R4FwdXdlops>{};
+                                           miopen::solver::ConvHipImplicitGemmV4Fwd>{};
 }
 
 static auto GetWindogradSolvers()
@@ -164,7 +169,15 @@ AllDirectForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
 std::vector<miopen::solver::ConvSolution>
 FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx)
 {
+#if IMPLICIT_GEMM_FIND_FIRST_SOLUTION
+    auto ss = GetImplicitGemmSolvers().SearchForSolution(ctx, GetDb(ctx));
+    if(ss.Succeeded())
+        return {ss};
+    else
+        return {};
+#else
     return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+#endif
 }
 
 std::vector<miopen::solver::ConvSolution>
