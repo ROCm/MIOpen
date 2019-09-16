@@ -34,14 +34,18 @@ namespace solver {
 
 bool ConvHipImplicitGemmV4R4FwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+    bool use_xdlops = false;
+    if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx908"))
+        use_xdlops = true;
+
     // padding support required for out_of_bound configs
     bool no_out_of_bound = (ctx.in_width >= ((ctx.kernel_size_w - 1) * ctx.kernel_dilation_w + 1) +
                                                 (ctx.out_width - 1) * ctx.kernel_stride_w) &&
                            (ctx.in_height >= ((ctx.kernel_size_h - 1) * ctx.kernel_dilation_h + 1) +
                                                  (ctx.out_height - 1) * ctx.kernel_stride_h);
 
-    return no_out_of_bound && ctx.Is2d() && ctx.IsFp32() && ctx.direction.IsForward() &&
-           ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.group_counts == 1 &&
+    return use_xdlops && no_out_of_bound && ctx.Is2d() && ctx.IsFp32() &&
+           ctx.direction.IsForward() && ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.group_counts == 1 &&
            (ctx.batch_sz * ctx.out_height * ctx.out_width) % 64 == 0 && ctx.n_outputs % 32 == 0 &&
            (ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % 8 == 0;
 }
