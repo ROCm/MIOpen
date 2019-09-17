@@ -61,14 +61,13 @@ enum class ConvWinoBuffType
     Weight,
     Output,
 };
-template <int WinoDataW, int WinoFilterW, int WinoDataH = WinoDataW, int WinoFilterH = WinoFilterW>
+template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFilterW = WinoFilterH>
 struct WinogradBufferInfo
 {
 
     const int WinoDataHW[2] = {WinoDataH, WinoDataW}, WinoFilterHW[2] = {WinoFilterH, WinoFilterW};
     const bool direct[2] = {(WinoDataW == 1) && (WinoFilterW == 1),
                             (WinoDataH == 1) && (WinoFilterH == 1)};
-    int wino_xtile[2] = {0, 0};
 
     struct WinoInfo
     {
@@ -85,27 +84,26 @@ struct WinogradBufferInfo
                        int out_w,
                        int wei_h,
                        int wei_w,
-                       int fdil_h,
-                       int fdil_w,
                        MemLayout_t layout,
                        int vec_c,
                        int data_len_t,
-                       ConvWinoBuffType buff_type)
+                       ConvWinoBuffType buff_type,
+                       int wino_xform_h,
+                       int wino_xform_w)
     {
         WinoInfo wino_in, wino_out, wino_wei;
-        const int out_HW[2]  = {out_h, out_w};
-        const int wei_HW[2]  = {wei_h, wei_w};
-        const int fdil_HW[2] = {fdil_h, fdil_w};
-        wino_c               = c;
+        const int out_HW[2] = {out_h, out_w};
+        const int wei_HW[2] = {wei_h, wei_w};
+
+        const int wino_xtile[2] = {wino_xform_h, wino_xform_w};
+        wino_c                  = c;
         for(int i = 0; i < 2; i++)
         {
-            wino_xtile[i]             = WinoDataHW[i] + (WinoFilterHW[i] * fdil_HW[i]) - fdil_HW[i];
             wino_out.wino_tiles_HW[i] = (out_HW[i] + WinoDataHW[i] - 1) / WinoDataHW[i];
             wino_wei.wino_tiles_HW[i] = (wei_HW[i] + WinoFilterHW[i] - 1) / WinoFilterHW[i];
-            wino_in.wino_tiles_HW[i] =
-                direct[i] ? (out_HW[i] + wei_HW[i] - 1) : wino_out.wino_tiles_HW[i];
+            wino_in.wino_tiles_HW[i]  = wino_out.wino_tiles_HW[i];
 
-            wino_c *= direct[i] ? 1 : wino_wei.wino_tiles_HW[i];
+            wino_c *= wino_wei.wino_tiles_HW[i];
 
             wino_in.wino_HW[i]  = wino_xtile[i] * wino_in.wino_tiles_HW[i];
             wino_wei.wino_HW[i] = wino_xtile[i];
