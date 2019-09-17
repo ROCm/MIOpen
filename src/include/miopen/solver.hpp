@@ -670,7 +670,7 @@ struct ConvBinWinogradRxSFused : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-template <int WinoDataW, int WinoFilterW>
+template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFilterW = WinoFilterH>
 struct ConvWinograd3x3MultipassWrW : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
@@ -686,8 +686,8 @@ struct ConvWinograd3x3MultipassWrW : SolverBase<ConvolutionContext>
     static std::string GetSolverKernelNames(int id)
     {
         static const std::string name_suffix =
-            '_' + std::to_string(WinoDataW) + '_' + std::to_string(WinoDataW) + '_' +
-            std::to_string(WinoFilterW) + '_' + std::to_string(WinoFilterW);
+            '_' + std::to_string(WinoDataH) + '_' + std::to_string(WinoDataW) + '_' +
+            std::to_string(WinoFilterH) + '_' + std::to_string(WinoFilterW);
         static const std::string names[3] = {"gcnAsmWinogradXformData" + name_suffix,
                                              "gcnAsmWinogradXformFilter" + name_suffix,
                                              "gcnAsmWinogradXformOut" + name_suffix};
@@ -695,6 +695,14 @@ struct ConvWinograd3x3MultipassWrW : SolverBase<ConvolutionContext>
         return names[id];
     }
     static int GetGroupCountMult() { return 4; }
+
+    static int GetSolverWinoXformHWSize(const miopen::ConvolutionContext& ctx, int id)
+    {
+        if(id == 0)
+            return WinoDataH + (WinoFilterH - 1) * (WinoDataH == 7 ? 2 : ctx.kernel_stride_h);
+        else
+            return WinoDataW + (WinoFilterW - 1) * (WinoDataW == 7 ? 2 : ctx.kernel_stride_w);
+    }
 };
 
 extern template struct ConvWinograd3x3MultipassWrW<3, 2>;
@@ -702,6 +710,12 @@ extern template struct ConvWinograd3x3MultipassWrW<3, 3>;
 extern template struct ConvWinograd3x3MultipassWrW<3, 4>;
 extern template struct ConvWinograd3x3MultipassWrW<3, 5>;
 extern template struct ConvWinograd3x3MultipassWrW<3, 6>;
+extern template struct ConvWinograd3x3MultipassWrW<7, 2>;
+extern template struct ConvWinograd3x3MultipassWrW<7, 3>;
+extern template struct ConvWinograd3x3MultipassWrW<1, 1, 7, 2>;
+extern template struct ConvWinograd3x3MultipassWrW<1, 1, 7, 3>;
+extern template struct ConvWinograd3x3MultipassWrW<7, 2, 1, 1>;
+extern template struct ConvWinograd3x3MultipassWrW<7, 3, 1, 1>;
 
 struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirect3x3WrW>
 {

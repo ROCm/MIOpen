@@ -80,19 +80,14 @@
 
 default read_size, 1
 default elem_size, 4
-default xformx_f_size, 2 // 2, 3, 4, 5, 6
-default xformy_f_size, 2 // 2, 3, 4, 5, 6
-default xformx_o_size, 3
-default xformy_o_size, 3
 default acc_type, TYPE_FP32
 default buf_type, TYPE_FP32
 
-static_assert(xformx_f_size >=2 && xformx_f_size <= 6)
-static_assert(xformy_f_size >=2 && xformy_f_size <= 6)
-static_assert(xformx_o_size == 3)
-static_assert(xformy_o_size == 3)
-static_assert(xformx_f_size == xformy_f_size)
-static_assert(xformx_o_size == xformy_o_size)
+
+static_assert(xformx_f_size <= 6)
+static_assert(xformy_f_size <= 6)
+static_assert(xformx_o_size == 1 || xformx_o_size == 3 || xformx_o_size == 7)
+static_assert(xformy_o_size == 1 || xformy_o_size == 3 || xformy_o_size == 7)
 static_assert(fdilation_w == fdilation_h)
 
 static_assert(acc_type == TYPE_FP32)
@@ -106,10 +101,7 @@ static_assert(buf_type == TYPE_FP32 || buf_type == TYPE_FP16 || buf_type == TYPE
     lds_elem_size = 4
 .endif
 
-xform_f_size = xformx_f_size
-xform_o_size = xformx_o_size
 fdilation = fdilation_w
-xform_d_size = xform_o_size + (xform_f_size - 1) * fdilation
 out_points = xformx_o_size * xformy_o_size
 
 static_assert(read_size == 1) // TODO: remove restriction
@@ -171,7 +163,7 @@ stmp = 3
 .VGPR_ALLOC_FROM 0
 .VGPR_ALLOC tid
 .VGPR_ALLOC vtmp
-accums_cnt = read_size * xform_d_size * xform_d_size
+accums_cnt = read_size * xformx_d_size * xformy_d_size
 .VGPR_ALLOC accums, accums_cnt
 .VGPR_ALLOC voff_d
 .VGPR_ALLOC voff_o
@@ -180,14 +172,13 @@ accums_cnt = read_size * xform_d_size * xform_d_size
 .VGPR_ALLOC vcur_tile
 
 
-
 .GPR_ALLOC_END
 
 .macro kernel_begin  x_o_size, y_o_size, x_f_size, y_f_size
-    .globl gcnAsmWinogradXformOut_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
-    .type gcnAsmWinogradXformOut_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size,@function
-    .amdgpu_hsa_kernel gcnAsmWinogradXformOut_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
-    gcnAsmWinogradXformOut_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size:
+    .globl gcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
+    .type gcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size,@function
+    .amdgpu_hsa_kernel gcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
+    gcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size:
 .endm
 
 kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
@@ -219,8 +210,10 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
 
     s_waitcnt 0
 
+    .GPR_REUSE out_h, const8_0
     .GPR_REUSE pad_w, const0_25
     s_mov_b32 s[const0_25], 0.25
+    s_mov_b32 s[const8_0], 8.0
 
     // compute addresses
     v_mul_lo_u32 v[vcur_tile], 0+read_size, v[tid]
@@ -263,13 +256,13 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
     .GPR_INVALIDATE dbg_addr
     s_mov_b32 s[d_desc+3], 0x00020000
     s_mov_b32 s[o_desc+3], 0x00020000
-    s_mul_i32 s[d_desc+2], xform_d_size * xform_d_size, s[d_W_stride]
+    s_mul_i32 s[d_desc+2], xformx_d_size * xformy_d_size, s[d_W_stride]
     s_min_i32 s[stmp], s[o_C_stride], s[o_N_stride]
     s_mul_i32 s[o_desc+2], s[stmp], s[tiles]
 
 
     i=0
-    .rept xform_d_size * xform_d_size
+    .rept xformx_d_size * xformy_d_size
         acc = accums + read_size * i
         .if (elem_size == 2 && read_size == 1)
             buffer_load_short_d16 v[acc], v[voff_d], s[d_desc:d_desc+3], s[soff] offen
@@ -285,9 +278,9 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
         s_add_u32 s[soff], s[soff], s[buf_step]
         i=i+1
     .endr
-    
+
     s_waitcnt 0
-    
+
     .if(buf_type != TYPE_FP32)
         static_assert(read_size == 1)
         .rept i
@@ -296,7 +289,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
             i = i - 1
         .endr
     .endif
-    
+
     // inplace xform that could store output in lower or upper addresses
     .macro m_xform_out o_size, f_size, f_dil, lower
         .if \o_size == 3 && \f_size == 2 && \f_dil == 1
@@ -350,6 +343,60 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
             v_add_f32 v[dx0], v[dx0], v[vtmp]
             v_fma_f32 v[dx1], v[dx2], 2.0, v[dx1]
             v_fma_f32 v[dx2], v[vtmp], 4.0, v[dx7]
+        .elseif \o_size == 7 && \f_size == 2 && \f_dil == 1
+             v_fma_f32 v[vtmp], v[dx3], s[const8_0], v[dx4]
+
+             v_add_f32 v[dx4], v[dx7], v[dx6]
+             v_add_f32 v[dx4], v[dx4], v[dx5]
+             v_sub_f32 v[dx5], v[dx6], v[dx7]
+             v_add_f32 v[dx6], v[dx6], v[dx7]
+             v_add_f32 v[dx6], v[dx6], v[dx8]
+
+             v_add_f32 v[dx8], v[dx1], v[dx2]
+             v_sub_f32 v[dx7], v[dx1], v[dx2]
+
+             v_add_f32 v[dx0], v[dx0], v[dx3]
+             v_add_f32 v[dx0], v[dx0], v[dx8]
+
+             v_fma_f32 v[dx2], v[dx3], 4.0, v[dx8]
+             v_fma_f32 v[dx1], v[dx3], 2.0, v[dx7]
+
+             v_add_f32 v[dx3], v[dx7], v[vtmp]
+
+        .elseif \o_size == 7 && \f_size == 3 && \f_dil == 1
+
+             v_fma_f32 v[dx10], v[dx9], 4.0, v[dx10]
+             v_mov_b32 v[vtmp], v[dx6]
+
+             v_add_f32 v[dx7],  v[dx7], v[dx8]
+             v_add_f32 v[dx6],  v[dx7], v[dx10]
+
+
+             v_add_f32 v[vtmp],  v[vtmp], v[dx9]
+
+             v_mov_b32 v[dx10], v[dx5]
+             
+             v_fma_f32 v[dx9], v[dx9], 2.0, v[dx7]
+             v_fma_f32 v[dx5], v[dx8], -2.0, v[dx9]
+             
+             v_mov_b32 v[dx9], v[dx4]
+             
+             v_add_f32 v[dx4], v[vtmp], v[dx7]
+
+             v_add_f32 v[vtmp], v[dx9], v[dx3]
+             v_add_f32 v[dx8], v[dx1], v[dx2]
+             v_sub_f32 v[dx7], v[dx1], v[dx2]
+
+             v_add_f32 v[dx0], v[dx0], v[vtmp]
+             v_add_f32 v[dx0], v[dx0], v[dx8]
+
+             v_fma_f32 v[dx2], v[vtmp], 4.0, v[dx8]
+
+             v_sub_f32 v[vtmp], v[dx3], v[dx9]
+
+             v_fma_f32 v[dx1], v[vtmp], 2.0, v[dx7]
+             v_fma_f32 v[dx3], v[vtmp], s[const8_0], v[dx7]
+             v_add_f32 v[dx3], v[dx3], v[dx10]
         .elseif \o_size == 3 && \f_size == 2 && \f_dil == 2
             v_add_f32 v[dx0], v[dx0], v[dx2]
             v_add_f32 v[dx1], v[dx1], v[dx3]
@@ -408,74 +455,80 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
             v_mac_f32 v[dx2],-2.0, v[dx8]
             v_mac_f32 v[dx2], 0.5, v[dx10]
             v_add_f32 v[dx2], v[dx2], v[dx12]
+        .elseif \o_size == 1 || \f_size == 1
+            //nop
         .else
             static_assert(0)
         .endif
+
         .if \lower
-            v_mov_b32 v[ox0], v[dx0]
-            v_mov_b32 v[ox1], v[dx1]
-            v_mov_b32 v[ox2], v[dx2]
+            .irp ii,0,1,2,3,4,5,6
+                .if(\ii < \o_size)
+                    v_mov_b32 v[ox\ii], v[dx\ii]
+                .endif
+            .endr
         .else
-            v_mov_b32 v[ox2], v[dx2]
-            v_mov_b32 v[ox1], v[dx1]
-            v_mov_b32 v[ox0], v[dx0]
+            .irp ii,6,5,4,3,2,1,0
+                .if(\ii < \o_size)
+                    v_mov_b32 v[ox\ii], v[dx\ii]
+                .endif
+            .endr
         .endif
     .endm
 
+
     // backtransform each column
-    tile=0
-    .rept read_size
-        i=0
-        .rept xform_d_size
-            dx0 = accums + tile + read_size * i
-            .irp ii,1,2,3,4,5,6,7,8,9,10,11,12
-                dx\ii = dx0 + read_size * xform_d_size * \ii
-            .endr
-            ox0 = dx0 + read_size * xform_d_size * (xform_d_size - xform_o_size)
-            ox1 = ox0 + read_size * xform_d_size * 1
-            ox2 = ox0 + read_size * xform_d_size * 2
-            m_xform_out xform_o_size, xform_f_size, fdilation, 0
-            i=i+1
+    i=0
+    .rept xformx_d_size
+        dx0 = accums + read_size * i
+        ox0 = dx0 + read_size * xformx_d_size * (xformy_d_size - xformy_o_size)
+        .irp ii,1,2,3,4,5,6,7,8,9,10,11,12
+            dx\ii = dx0 + read_size * xformx_d_size * \ii
+            ox\ii = ox0 + read_size * xformx_d_size * \ii
         .endr
-        tile=tile+1
+
+        m_xform_out xformy_o_size, xformy_f_size, fdilation, 0
+        i=i+1
     .endr
     
     // compute output offset
     s_mov_b32 s[soff], 0
-    s_mov_b32 s[buf_step], elem_size * xform_o_size * xform_o_size
+    s_mov_b32 s[buf_step], elem_size * out_points
     
     // backtransform each row
-    tile=0
-    .rept read_size
         i=0
-        .rept xform_o_size
-            dx0 = accums + tile + read_size * xform_d_size * (xform_d_size - xform_o_size) + read_size * xform_d_size * i
+
+        .rept xformy_o_size
+            dx0 = accums + read_size * xformx_d_size * (xformy_d_size - xformy_o_size) + read_size * xformx_d_size * i
+            ox0 = accums + i * xformx_o_size
             .irp ii,1,2,3,4,5,6,7,8,9,10,11,12
                 dx\ii = dx0 + read_size * \ii
+                ox\ii = ox0 + \ii
             .endr
-            ox0 = accums + i * xform_o_size
-            ox1 = ox0 + 1
-            ox2 = ox0 + 2
-            m_xform_out xform_o_size, xform_f_size, fdilation, 1
+            m_xform_out xformx_o_size, xformx_f_size, fdilation, 1
             i=i+1
         .endr
-        tile=tile+1
-        
+
+        out_reg_id = 0
+       
         .if(elem_size == 2)
-            st_id = 0
             .rept out_points
-                v_reg_data_type_convert v[accums + st_id], buf_type, v[accums + st_id], acc_type, v[vtmp], s[s2_tmp:s2_tmp+1]
-                buffer_store_short v[accums + st_id], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:0+elem_size*st_id
-                st_id = st_id + 1
+                v_reg_data_type_convert v[accums + out_reg_id], buf_type, v[accums + out_reg_id], acc_type, v[vtmp], s[s2_tmp:s2_tmp+1]
+                buffer_store_short v[accums + out_reg_id], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:0+elem_size*out_reg_id
+                out_reg_id = out_reg_id + 1
             .endr
         .else
-            static_assert(out_points == 9)
-            buffer_store_dwordx4 v[accums+0:accums+3], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:0
-            buffer_store_dwordx4 v[accums+4:accums+7], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:16
-            buffer_store_dword v[accums+8], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:32
+            .rept (out_points / 4)
+                buffer_store_dwordx4 v[accums+out_reg_id:accums+out_reg_id+3], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:0+out_reg_id*elem_size
+                out_reg_id = out_reg_id + 4
+            .endr
+
+            .rept (out_points % 4)
+                buffer_store_dword v[accums+out_reg_id], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:0+out_reg_id*elem_size
+                out_reg_id = out_reg_id + 1
+            .endr
         .endif
         s_add_u32 s[soff], s[buf_step], s[soff]
-    .endr
 
     s_endpgm
 
@@ -501,7 +554,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
             - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: H       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: W       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
+            - { Name: W       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: K       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: n_groups, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: flags   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
@@ -510,21 +563,21 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
             - { Name: reserved2       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default}
             - { Name: x_filter_ptr    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default}
             - { Name: ret_addr        , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*'  , AddrSpaceQual: Global, AccQual: Default }
-            - { Name: R       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
+            - { Name: R       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: S       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: pad_h, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: pad_w, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: out_h, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: out_w, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: reserved3       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
+            - { Name: reserved3       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: reserved4       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
             - { Name: d_N_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: d_C_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: d_H_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: d_W_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: reserved5       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
-            - { Name: reserved6       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
-            - { Name: reserved7       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }                    
+            - { Name: reserved5       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+            - { Name: reserved6       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+            - { Name: reserved7       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: reserved8       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: o_N_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: o_C_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
@@ -542,12 +595,12 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
 .altmacro
 
 .macro METADATA_WRAPPER  wg_x, lds_size, kernel_suf
-    METADATA %\wg_x, %\lds_size, <gcnAsmWinogradXformData\kernel_suf>, <gcnAsmWinogradXformData\kernel_suf@kd>
+    METADATA %\wg_x, %\lds_size, <gcnAsmWinogradXformOut_\kernel_suf>, <gcnAsmWinogradXformOut_\kernel_suf@kd>
 .endm
 
 .macro kernel_end x_o_size, y_o_size, x_f_size, y_f_size
-    .size gcnAsmWinogradXformOut_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size, .Lfunc_end0 - gcnAsmWinogradXformOut_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
-    METADATA_WRAPPER 64, .AUTO_LDS_BYTE_SIZE, _\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size 
+    .size gcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size, .Lfunc_end0 - gcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
+    METADATA_WRAPPER 64, .AUTO_LDS_BYTE_SIZE, _\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
 .endm
 
 
