@@ -219,10 +219,10 @@ __device__ void outerProduct1x4dot2(const half2* a, const half2* b, float* c)
 __device__ void outerProduct1x2dot2TwoTimes(const half2* a, const half2* b, float* c)
 {
     asm volatile("\n \
-            v_dot2_f32_f16 %0, %4, %6  %0\n \
-            v_dot2_f32_f16 %1, %4, %8  %1\n \
-            v_dot2_f32_f16 %0, %5, %7  %0\n \
-            v_dot2_f32_f16 %1, %5, %9  %1\n \
+            v_dot2_f32_f16 %0, %2, %4  %0\n \
+            v_dot2_f32_f16 %1, %2, %6  %1\n \
+            v_dot2_f32_f16 %0, %3, %5  %0\n \
+            v_dot2_f32_f16 %1, %3, %7  %1\n \
             "
                  : "=v"(c[0]), "=v"(c[1]) // Dest registers
                  : "v"(a[0]),
