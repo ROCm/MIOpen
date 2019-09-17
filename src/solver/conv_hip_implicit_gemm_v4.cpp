@@ -164,6 +164,9 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
     if((N1 * N2 * BPerBlock) % (GemmNPerThreadSubC * GemmNLevel0Cluster * GemmNLevel1Cluster) != 0)
         return false;
 
+    if(ctx.IsFp16() && GemmNPerThreadSubC != GemmMPerThreadSubC)
+        return false;
+
     // sanity check
     if((KPerBlock % (GemmMPerThreadSubC * GemmMLevel0Cluster * GemmMLevel1Cluster)) != 0)
         return false;
@@ -467,9 +470,7 @@ bool ConvHipImplicitGemmV4_1x1::IsApplicable(const ConvolutionContext& ctx) cons
 
 bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
 {
-    // disable IsFp16 due to NaN (issue #2071);
-    ///\todo: 1) Fixed NaN issue in Fp16, 2) enable Fp16 and 3) add Fp16 tests
-    bool isTypeSupported = ctx.IsFp32();
+    bool isTypeSupported = ctx.IsFp32() || ctx.IsFp16();
 
     // For fp16, when E=c*x*y % 32 == 0, 4 channels are accumulated through dot4 (2 * dot2)
     // operation

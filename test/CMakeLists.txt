@@ -485,6 +485,12 @@ COMMAND $<TARGET_FILE:test_immed_conv>  --verbose	--input	64	512 	14	14	--weight
 COMMAND $<TARGET_FILE:test_immed_conv>  --verbose	--input	64	512 	14	14	--weights	24	512   	1	1	--pads_strides_dilations	0	0	1	1	1	1
 COMMAND $<TARGET_FILE:test_immed_conv>  --verbose	--input	64	512 	14	14	--weights	32	512   	1	1	--pads_strides_dilations	0	0	1	1	1	1
 COMMAND $<TARGET_FILE:test_immed_conv>  --verbose	--input	64	512 	14	14	--weights	64	512   	1	1	--pads_strides_dilations	0	0	1	1	1	1
+COMMAND $<TARGET_FILE:test_immed_conv>  --verbose   --input 128  832    7  7  --weights   32  832  1   1   --pads_strides_dilations    0   0   1   1   1   1
+COMMAND $<TARGET_FILE:test_immed_conv>  --verbose   --input 128  832    7  7  --weights   192  832  1   1   --pads_strides_dilations    0   0   1   1   1   1
+COMMAND $<TARGET_FILE:test_immed_conv>  --verbose   --input 128  832    7  7  --weights   128  832  1   1   --pads_strides_dilations    0   0   1   1   1   1
+COMMAND $<TARGET_FILE:test_immed_conv>  --verbose   --input 128  768    7  7  --weights   32  768  1   1   --pads_strides_dilations    0   0   1   1   1   1
+COMMAND $<TARGET_FILE:test_immed_conv>  --verbose   --input 128  768    7  7  --weights   192  768  1   1   --pads_strides_dilations    0   0   1   1   1   1
+COMMAND $<TARGET_FILE:test_immed_conv>  --verbose   --input 128  768    7  7  --weights   128  768  1   1   --pads_strides_dilations    0   0   1   1   1   1
 )
 
 if(MIOPEN_TEST_DEEPBENCH)
