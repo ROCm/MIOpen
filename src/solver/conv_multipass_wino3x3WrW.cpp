@@ -28,13 +28,17 @@
 #include <limits>
 #include <cassert>
 #include <miopen/gcn_asm_utils.hpp>
+#include <miopen/stringutils.hpp>
 #include <miopen/env.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/solver.hpp>
 
-#include "miopen/solver.hpp"
+#if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
+#define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
+#endif
 
 namespace miopen {
 namespace solver {
@@ -193,7 +197,7 @@ struct FilterTransform
         {
             return false;
         }
-        return (params.IsFp32() || params.IsFp16() || params.IsBfp16()) 
+        return (params.IsFp32() || params.IsFp16() || params.IsBfp16())
                 && params.Is2d()
                 && H < u16limit
                 && W < u16limit
@@ -375,14 +379,33 @@ bool ConvWinograd3x3MultipassWrW<WinoDataW, WinoFilterW>::IsApplicable(
         return false;
 
     const std::string name = params.GetStream().GetDeviceName();
-    if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
-    {
+    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
+
+    {
+        std::size_t limit = miopen::Value(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX{});
+#if WORKAROUND_SWDEV_203031
+        if(limit == 0)
+        {
+            if(name == "gfx900" ||
+               (name == "gfx906" && params.GetStream().GetMaxComputeUnits() <= 60))
+                limit = 2000000000ULL; // ~1.862 GiB
+            else
+                limit = std::numeric_limits<std::size_t>::max();
+        }
+#else
+        if(limit == 0)
+            limit = std::numeric_limits<std::size_t>::max();
+#endif
+        if(limit != std::numeric_limits<std::size_t>::max())
+        {
+            const auto required = GetWorkspaceSize(params);
+            MIOPEN_LOG_I2("Workspace required: " << required << ", limit: " << limit);
+            if(required > limit)
+                return false;
+        }
     }
-    if(miopen::Value(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX{}) != 0)
-        if(miopen::Value(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX{}) <
-           GetWorkspaceSize(params))
-            return false;
+
     // int offset for Workspace buffers.
     if((InTransform<WinoDataW, WinoFilterW>::GetBufferSize(params) /
             GetTypeSize(params.in_data_type) +
