@@ -3661,9 +3661,9 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
                                                       void* reserveSpace,
                                                       size_t reserveSpaceNumBytes);
 
-/*! @brief Execute forward training for recurrent layer
+/*! @brief Execute backward data for recurrent layer
  *
- * Interface for executing the forward training pass on a RNN.
+ * Interface for executing the backward data pass on a RNN.
  *
  * @param handle                MIOpen handle (input)
  * @param rnnDesc               RNN layer descriptor type (input)
@@ -3761,9 +3761,9 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardData(miopenHandle_t handle,
                                                    void* reserveSpace,
                                                    size_t reserveSpaceNumBytes);
 
-/*! @brief Execute forward training for recurrent layer
+/*! @brief Execute backward weights for recurrent layer
  *
- * Interface for executing the forward training pass on a RNN.
+ * Interface for executing the backward weights pass on a RNN.
  *
  * @param handle                MIOpen handle (input)
  * @param rnnDesc               RNN layer descriptor type (input)
