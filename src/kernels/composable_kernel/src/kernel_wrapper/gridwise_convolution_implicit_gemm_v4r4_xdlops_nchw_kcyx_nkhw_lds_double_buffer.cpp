@@ -1,6 +1,7 @@
 #include "common_header.hpp"
 #include "ConstantTensorDescriptor.hpp"
 #include "gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buffer.hpp"
+#include "gridwise_convolution_implicit_gemm_v4r4_xdlops_fp16_bfp16_nchw_kcyx_nkhw_lds_double_buffer.hpp"
 #include "float_types.h"
 
 extern "C" __global__ void
@@ -58,16 +59,16 @@ gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buffer(
     constexpr index_t WeiBlockCopySubLengths_E = EPerBlock / WeiBlockCopyClusterLengths_E;
     constexpr index_t WeiBlockCopySubLengths_K = KPerBlock / WeiBlockCopyClusterLengths_K;
 
-    using InBlockCopySubLengths_E_B = Sequence<InBlockCopySubLengths_E, InBlockCopySubLengths_B>;
+    constexpr index_t EPack = CK_PARAM_EPACK_LENGTH;
 
+#if MIOPEN_USE_FP32
+    using InBlockCopySubLengths_E_B = Sequence<InBlockCopySubLengths_E, InBlockCopySubLengths_B>;
     using InBlockCopyClusterLengths_E_B =
         Sequence<InBlockCopyClusterLengths_E, InBlockCopyClusterLengths_B>;
 
     using InBlockCopyThreadClusterArrangeOrder = Sequence<0, 1>; // [E, B]
     using InBlockCopySrcAccessOrder            = Sequence<0, 1>; // [E, B]
     using InBlockCopyDstAccessOrder            = Sequence<0, 1>; // [E, B]
-
-    constexpr index_t InBlockCopyDataPerAccess_B = CK_PARAM_IN_BLOCK_COPY_DATA_PER_ACCESS_B;
 
     using WeiBlockCopySubLengths_E_K = Sequence<WeiBlockCopySubLengths_E, WeiBlockCopySubLengths_K>;
     using WeiBlockCopyClusterLengths_E_K =
@@ -76,25 +77,45 @@ gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buffer(
     using WeiBlockCopyThreadClusterArrangeOrder = Sequence<1, 0>; // [K, E]
     using WeiBlockCopySrcAccessOrder            = Sequence<1, 0>; // [K, E]
     using WeiBlockCopyDstAccessOrder            = Sequence<0, 1>; // [E, K]
+#elif MIOPEN_USE_FP16 || MIOPEN_USE_BFP16
+    using InBlockCopySubLengths_E_B =
+        Sequence<InBlockCopySubLengths_E, InBlockCopySubLengths_B, EPack>;
+    using InBlockCopyClusterLengths_E_B =
+        Sequence<InBlockCopyClusterLengths_E, InBlockCopyClusterLengths_B, 1>;
 
+    using InBlockCopyThreadClusterArrangeOrder = Sequence<0, 1, 2>; // [E, B, EPack]
+    using InBlockCopySrcAccessOrder            = Sequence<0, 1, 2>; // [E, B, EPack]
+    using InBlockCopyDstAccessOrder            = Sequence<0, 1, 2>; // [E, B, EPack]
+
+    using WeiBlockCopySubLengths_E_K =
+        Sequence<WeiBlockCopySubLengths_E, WeiBlockCopySubLengths_K, EPack>;
+    using WeiBlockCopyClusterLengths_E_K =
+        Sequence<WeiBlockCopyClusterLengths_E, WeiBlockCopyClusterLengths_K, 1>;
+
+    using WeiBlockCopyThreadClusterArrangeOrder = Sequence<1, 0, 2>; // [K, E, EPack]
+    using WeiBlockCopySrcAccessOrder            = Sequence<1, 0, 2>; // [K, E, EPack]
+    using WeiBlockCopyDstAccessOrder            = Sequence<0, 1, 2>; // [E, K, EPack]
+#endif
+
+    constexpr index_t InBlockCopyDataPerAccess_B    = CK_PARAM_IN_BLOCK_COPY_DATA_PER_ACCESS_B;
     constexpr index_t WeiBlockCopySrcDataPerRead_E  = CK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E;
     constexpr index_t WeiBlockCopyDstDataPerWrite_K = CK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K;
+    constexpr index_t OutThreadCopyDataPerAccess_B  = CK_PARAM_OUT_THREAD_COPY_DATA_PER_ACCESS_B;
 
-    constexpr index_t OutThreadCopyDataPerAccess_B = CK_PARAM_OUT_THREAD_COPY_DATA_PER_ACCESS_B;
-
-    constexpr auto GemmMPerWave     = CK_PARAM_GEMM_M_PER_WAVE;
-    constexpr auto GemmNPerWave     = CK_PARAM_GEMM_N_PER_WAVE;
-    constexpr auto GemmMWaves       = KPerBlock / GemmMPerWave;
-    constexpr auto GemmNWaves       = BPerBlock / GemmNPerWave;
-    constexpr auto GemmDataPerReadA = 1;
-    constexpr auto GemmDataPerReadB = 1;
-    constexpr auto EnableXdlops     = CK_ENABLE_XDLOPS == 1;
+    constexpr auto GemmMPerWave        = CK_PARAM_GEMM_M_PER_WAVE;
+    constexpr auto GemmNPerWave        = CK_PARAM_GEMM_N_PER_WAVE;
+    constexpr auto GemmMWaves          = KPerBlock / GemmMPerWave;
+    constexpr auto GemmNWaves          = BPerBlock / GemmNPerWave;
+    constexpr index_t GemmDataPerReadA = 1;
+    constexpr index_t GemmDataPerReadB = 1;
 
     constexpr auto gridwise_conv =
+#if MIOPEN_USE_FP32
         GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buffer<
             GridSize,
             BlockSize,
             FLOAT,
+            FLOAT_ACCUM,
             decltype(in_nchw_desc),
             decltype(wei_kcyx_desc),
             decltype(out_nkhw_desc),
@@ -103,13 +124,14 @@ gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buffer(
             BPerBlock,
             KPerBlock,
             EPerBlock,
+            EPack,
             GemmMPerWave,
             GemmNPerWave,
             GemmMWaves,
             GemmNWaves,
             GemmDataPerReadA,
             GemmDataPerReadB,
-            EnableXdlops,
+            (CK_ENABLE_XDLOPS == 1),
             InBlockCopySubLengths_E_B,
             InBlockCopyClusterLengths_E_B,
             InBlockCopyThreadClusterArrangeOrder,
@@ -124,6 +146,44 @@ gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buffer(
             WeiBlockCopySrcDataPerRead_E,
             WeiBlockCopyDstDataPerWrite_K,
             OutThreadCopyDataPerAccess_B>{};
-
+#elif MIOPEN_USE_FP16 || MIOPEN_USE_BFP16
+        GridwiseConvolutionImplicitGemm_v4r4_xdlops_fp16_bfp16_nchw_kcyx_nkhw_lds_double_buffer<
+            GridSize,
+            BlockSize,
+            FLOAT,
+            FLOAT_ACCUM,
+            decltype(in_nchw_desc),
+            decltype(wei_kcyx_desc),
+            decltype(out_nkhw_desc),
+            ConvStrides,
+            ConvDilations,
+            BPerBlock,
+            KPerBlock,
+            EPerBlock,
+            EPack,
+            GemmMPerWave,
+            GemmNPerWave,
+            GemmMWaves,
+            GemmNWaves,
+            GemmDataPerReadA,
+            GemmDataPerReadB,
+            (CK_ENABLE_XDLOPS == 1),
+            InBlockCopySubLengths_E_B,
+            InBlockCopyClusterLengths_E_B,
+            InBlockCopyThreadClusterArrangeOrder,
+            InBlockCopySrcAccessOrder,
+            InBlockCopyDstAccessOrder,
+            InBlockCopyDataPerAccess_B,
+            WeiBlockCopySubLengths_E_K,
+            WeiBlockCopyClusterLengths_E_K,
+            WeiBlockCopyThreadClusterArrangeOrder,
+            WeiBlockCopySrcAccessOrder,
+            WeiBlockCopyDstAccessOrder,
+            WeiBlockCopySrcDataPerRead_E,
+            WeiBlockCopyDstDataPerWrite_K,
+            OutThreadCopyDataPerAccess_B>{};
+#else
+        static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
+#endif
     gridwise_conv.Run(p_in_global, p_wei_global, p_out_global);
 }

@@ -1,5 +1,5 @@
-#ifndef CK_GRIDWISE_CONVOLUTION_IMPLICIT_GEMM_V4R4_XDLOPS_NCHW_KCYX_NKHW_HPP_LDS_DOUBLE_BUFFER_HPP
-#define CK_GRIDWISE_CONVOLUTION_IMPLICIT_GEMM_V4R4_XDLOPS_NCHW_KCYX_NKHW_HPP_LDS_DOUBLE_BUFFER_HPP
+#ifndef CK_GRIDWISE_CONVOLUTION_IMPLICIT_GEMM_V4R4_FP16_BFP16_NCHW_KCYX_NKHW_HPP_LDS_DOUBLE_BUFFER_HPP
+#define CK_GRIDWISE_CONVOLUTION_IMPLICIT_GEMM_V4R4_FP16_BFP16_NCHW_KCYX_NKHW_HPP_LDS_DOUBLE_BUFFER_HPP
 
 #include "common_header.hpp"
 #include "ConstantTensorDescriptor.hpp"
@@ -46,16 +46,16 @@ template <index_t GridSize,
           index_t WeiBlockCopySrcDataPerRead_E,
           index_t WeiBlockCopyDstDataPerWrite_K,
           index_t OutThreadCopyDataPerAccess_B>
-struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buffer
+struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_fp16_bfp16_nchw_kcyx_nkhw_lds_double_buffer
 {
     __device__ void Run(const Float* const __restrict__ p_in_global,
                         const Float* const __restrict__ p_wei_global,
                         Float* const __restrict__ p_out_global) const
     {
-        constexpr auto I0 = Number<0>{};
         constexpr auto I1 = Number<1>{};
         constexpr auto I2 = Number<2>{};
         constexpr auto I3 = Number<3>{};
+        constexpr auto I4 = Number<4>{};
 
         constexpr auto True = integral_constant<bool, true>{};
 
@@ -104,61 +104,68 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buf
         const index_t b_block_data_on_global = block_work_multi_id[1] * BPerBlock;
 
         // input tensor
-        //     tensor descriptor in device memory [N, Ho, Wo]
-        constexpr auto in_n_ho_wo_global_desc =
-            in_n_c_h_w_global_desc.Extract(I0, I2, I3)
-                .StridedSlice(I1, Number<Ho>{}, Number<ConvStrideH>{})
-                .StridedSlice(I2, Number<Wo>{}, Number<ConvStrideW>{});
+        //     tensor descriptor in device memory [N, Ho, Wo, {2C/4C}]
+        constexpr auto in_n_ho_wo_2cor4c_global_desc =
+            in_n_c_h_w_global_desc.StridedSlice(I2, Number<Ho>{}, Number<ConvStrideH>{})
+                .StridedSlice(I3, Number<Wo>{}, Number<ConvStrideW>{})
+                .Fold(I1, Number<nonVectorizedC>{})
+                .Extract(Sequence<0, 1, 3, 4>{})
+                .ReorderGivenNew2Old(Sequence<0, 2, 3, 1>{});
 
         //     batch descritpor for device memory
         constexpr auto in_c_y_x_global_desc =
             in_n_c_h_w_global_desc.StridedSlice(I2, Number<Y>{}, Number<ConvDilationH>{})
                 .StridedSlice(I3, Number<X>{}, Number<ConvDilationW>{})
-                .Extract(Sequence<1, 2, 3>{});
+                .Fold(I1, Number<nonVectorizedC>{})
+                .Extract(Sequence<2, 3, 4>{});
 
         //     merged tensor descriptor in device memory [E, B], src of blockwise copy
-        constexpr auto in_e_b_global_desc =
-            make_ConstantMergedTensorDescriptor(in_c_y_x_global_desc.Embed(in_n_ho_wo_global_desc),
-                                                Sequence<0, 1, 2>{},
-                                                Sequence<3, 4, 5>{});
+        constexpr auto in_e_b_global_desc = make_ConstantMergedTensorDescriptor(
+            in_c_y_x_global_desc.Embed(in_n_ho_wo_2cor4c_global_desc),
+            Sequence<0, 1, 2>{},
+            Sequence<3, 4, 5>{},
+            Sequence<6>{});
 
-        //     memory layout descriptor in LDS [E, B], dst of blockwise copy
+        //     memory layout descriptor in LDS [E, B, 2Cor4C], dst of blockwise copy
         //     be careful of LDS alignment
         constexpr auto in_e_b_block_desc = make_ConstantTensorDescriptor_aligned(
-            Sequence<EPerBlock, BPerBlock>{},
-            Number<math::lcm(InBlockCopyDataPerAccess_B, GemmDataPerReadB)>{});
+            Sequence<EPerBlock, BPerBlock, EPack>{},
+            Number<math::lcm(InBlockCopyDataPerAccess_B, GemmDataPerReadB, EPack)>{});
 
         // input blockwise copy
         //     slice a merged tensor, reorder and copy to a normal tensor
         //     this copy operator already has blockwise offset built-in
-        auto blockwise_in_copy =
-            BlockwiseGenericTensorSliceCopy_v2<BlockSize,
-                                               decltype(in_e_b_global_desc),
-                                               decltype(in_e_b_block_desc),
-                                               MergedTensorCoordinate<decltype(in_e_b_global_desc)>,
-                                               NormalTensorCoordinate<decltype(in_e_b_block_desc)>,
-                                               decltype(in_e_b_block_desc.GetLengths()),
-                                               InBlockCopySubLengths_E_B,
-                                               InBlockCopyClusterLengths_E_B,
-                                               InBlockCopyThreadClusterArrangeOrder,
-                                               InBlockCopySrcAccessOrder,
-                                               InBlockCopyDstAccessOrder,
-                                               1,
-                                               1,
-                                               InBlockCopyDataPerAccess_B,
-                                               InBlockCopyDataPerAccess_B>(
-                {0, b_block_data_on_global}, {0, 0});
+        auto blockwise_in_copy = BlockwiseGenericTensorSliceCopy_v2<
+            BlockSize,
+            decltype(in_e_b_global_desc),
+            decltype(in_e_b_block_desc),
+            MergedTensorCoordinate<decltype(in_e_b_global_desc)>,
+            NormalTensorCoordinate<decltype(in_e_b_block_desc)>,
+            decltype(in_e_b_block_desc.GetLengths()),
+            InBlockCopySubLengths_E_B,
+            InBlockCopyClusterLengths_E_B,
+            InBlockCopyThreadClusterArrangeOrder,
+            InBlockCopySrcAccessOrder,
+            InBlockCopyDstAccessOrder,
+            1,                           // Src dim to be read in vector form (B dimension)
+            2,                           // Dst dim to be written in vector form (EPack dimension)
+            InBlockCopyDataPerAccess_B,  // Src dim vector len
+            InBlockCopyDataPerAccess_B>( // Dst dim vector len
+            {0, b_block_data_on_global, 0},
+            {0, 0, 0});
 
         // weight tensor
         //     tensor descriptor in device memory, src of blockwise copy
         constexpr auto wei_e_k_global_desc =
-            wei_k_c_y_x_global_desc.Unfold(I1, I3).ReorderGivenNew2Old(Sequence<1, 0>{});
+            wei_k_c_y_x_global_desc.Fold(I1, Number<nonVectorizedC>{})
+                .Unfold(I2, I4)
+                .ReorderGivenNew2Old(Sequence<2, 0, 1>{});
 
         //     tensor descriptor in LDS, dst of blockwise copy
         //     be careful of LDS alignment
         constexpr auto wei_e_k_block_desc = make_ConstantTensorDescriptor_aligned(
-            Sequence<EPerBlock, KPerBlock>{},
-            Number<math::lcm(WeiBlockCopyDstDataPerWrite_K, GemmDataPerReadA)>{});
+            Sequence<EPerBlock, KPerBlock, EPack>{},
+            Number<math::lcm(WeiBlockCopyDstDataPerWrite_K, GemmDataPerReadA, EPack)>{});
 
         // operator for blockwise copy of weight into LDS
         //     slice a tensor, and copy it into another tensor
@@ -175,21 +182,25 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buf
             WeiBlockCopyThreadClusterArrangeOrder,
             WeiBlockCopySrcAccessOrder,
             WeiBlockCopyDstAccessOrder,
-            0,
-            1,
-            WeiBlockCopySrcDataPerRead_E,
-            WeiBlockCopyDstDataPerWrite_K>({0, k_block_data_on_global}, {0, 0});
+            0,                            // Src dim to be read in vector form (E dimension)
+            2,                            // Dst dim to be written in vector form (EPack dimension)
+            WeiBlockCopySrcDataPerRead_E, // Src dim vector len
+            WeiBlockCopyDstDataPerWrite_K>( // Dst dim vector len
+            {0, k_block_data_on_global, 0},
+            {0, 0, 0});
 
         // GEMM definition
-        constexpr auto a_e_k_block_mtx_desc = make_ConstantMatrixDescriptor(wei_e_k_block_desc);
+        constexpr auto a_e_k_block_mtx_desc =
+            make_ConstantMatrixDescriptor_packed(Number<EPerBlock>{}, Number<KPerBlock>{});
 
-        constexpr auto b_e_b_block_mtx_desc = make_ConstantMatrixDescriptor(in_e_b_block_desc);
+        constexpr auto b_e_b_block_mtx_desc =
+            make_ConstantMatrixDescriptor_packed(Number<EPerBlock>{}, Number<BPerBlock>{});
 
         const auto blockwise_gemm = BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops<
             BlockSize,
             decltype(a_e_k_block_mtx_desc),
             decltype(b_e_b_block_mtx_desc),
-            decltype(mfma_info<float>{}),
+            decltype(mfma_info<Float>{}),
             EnableXdlops,
             GemmMPerWave,
             GemmNPerWave,
@@ -203,7 +214,8 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buf
         constexpr index_t max_align = math::lcm(InBlockCopyDataPerAccess_B,
                                                 WeiBlockCopyDstDataPerWrite_K,
                                                 GemmDataPerReadA,
-                                                GemmDataPerReadB);
+                                                GemmDataPerReadB,
+                                                EPack);
 
         constexpr index_t in_block_space =
             math::integer_least_multiple(in_e_b_block_desc.GetElementSpace(), max_align);
@@ -252,7 +264,7 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buf
                 Float p_in_register_buffer[blockwise_in_copy.GetRegisterBufferSize()];
                 Float p_wei_register_buffer[blockwise_wei_copy.GetRegisterBufferSize()];
 
-                blockwise_in_copy.MoveSrcSlicingWindow(Sequence<EPerBlock, 0>{}, True);
+                blockwise_in_copy.MoveSrcSlicingWindow(Sequence<EPerBlock, 0, 0>{}, True);
                 p_wei_block_on_global += EPerBlock * wei_e_k_global_desc.GetStrides()[0];
 
                 __syncthreads();
@@ -263,7 +275,13 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buf
                                                          p_wei_register_buffer);
 
                 // LDS double buffer: GEMM on current data
-                blockwise_gemm.Run(p_wei_block_now, p_in_block_now, p_out_thread);
+                const typename vector_type<Float, EPack>::MemoryType* p_a_block_vec =
+                    reinterpret_cast<const typename vector_type<Float, EPack>::MemoryType*>(
+                        p_wei_block_now);
+                const typename vector_type<Float, EPack>::MemoryType* p_b_block_vec =
+                    reinterpret_cast<const typename vector_type<Float, EPack>::MemoryType*>(
+                        p_in_block_now);
+                blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_out_thread);
 
                 // LDS double buffer: store next data to LDS
                 blockwise_in_copy.RunStoreRegisterBuffer(p_in_register_buffer, p_in_block_next);
@@ -277,7 +295,7 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buf
             Float p_wei_register_buffer[blockwise_wei_copy.GetRegisterBufferSize()];
 
             // even iteration
-            blockwise_in_copy.MoveSrcSlicingWindow(Sequence<EPerBlock, 0>{}, True);
+            blockwise_in_copy.MoveSrcSlicingWindow(Sequence<EPerBlock, 0, 0>{}, True);
             p_wei_block_on_global += EPerBlock * wei_e_k_global_desc.GetStrides()[0];
 
             __syncthreads();
@@ -287,7 +305,20 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buf
             blockwise_wei_copy.RunLoadRegisterBuffer(p_wei_block_on_global, p_wei_register_buffer);
 
             // LDS double buffer: GEMM on current data
-            blockwise_gemm.Run(p_wei_block_double, p_in_block_double, p_out_thread);
+            // Vectorize the pointer to match with how half/bfloat16 datatypes are
+            // processed in gemm operation. Half type packs 4 half values while
+            // bfloat16 packs 2 bfloat16 values. Since gemm's matrix A and B
+            // 2D indexes are computed with a single value in mind (e.g. float),
+            // to retain the same 2D indexes for half/bfloat16, we recast datatype
+            // from a single half to 4 packed half/2 packed bfloat16 respectively.
+            const typename vector_type<Float, EPack>::MemoryType* p_a_block_vec =
+                reinterpret_cast<const typename vector_type<Float, EPack>::MemoryType*>(
+                    p_wei_block_double);
+            const typename vector_type<Float, EPack>::MemoryType* p_b_block_vec =
+                reinterpret_cast<const typename vector_type<Float, EPack>::MemoryType*>(
+                    p_in_block_double);
+
+            blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_out_thread);
 
             // LDS double buffer: store next data to LDS
             blockwise_in_copy.RunStoreRegisterBuffer(p_in_register_buffer,
@@ -298,10 +329,13 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buf
             // odd iteration
             __syncthreads();
 
+            p_a_block_vec = reinterpret_cast<const typename vector_type<Float, EPack>::MemoryType*>(
+                p_wei_block_double + wei_block_space);
+            p_b_block_vec = reinterpret_cast<const typename vector_type<Float, EPack>::MemoryType*>(
+                p_in_block_double + in_block_space);
+
             // LDS double buffer: GEMM on current data
-            blockwise_gemm.Run(p_wei_block_double + wei_block_space,
-                               p_in_block_double + in_block_space,
-                               p_out_thread);
+            blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_out_thread);
         }
 
         // load data from xldop_acc_regs
@@ -354,14 +388,15 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buf
                     OutThreadCopySliceLengths,
                     arithmetic_sequence_gen<0, 4, 1>::type,
                     arithmetic_sequence_gen<0, 4, 1>::type,
-                    3,
-                    3,
-                    OutThreadCopyDataPerAccess_B,
-                    OutThreadCopyDataPerAccess_B>({0, 0, 0, 0},
-                                                  {k_thread_data_on_global / (K0 * K1),
-                                                   k_thread_data_on_global % (K0 * K1) / K0,
-                                                   k_thread_data_on_global % K0,
-                                                   b_thread_data_on_global});
+                    3, // Src dim to be read in vector form (B dimension)
+                    3, // Dst dim to be written in vector form (B dimension)
+                    OutThreadCopyDataPerAccess_B,  // Src dim vector len
+                    OutThreadCopyDataPerAccess_B>( // Dst dim vector len
+                    {0, 0, 0, 0},
+                    {k_thread_data_on_global / (K0 * K1),
+                     k_thread_data_on_global % (K0 * K1) / K0,
+                     k_thread_data_on_global % K0,
+                     b_thread_data_on_global});
 
                 threadwise_out_copy.Run(p_out_thread + i * NumKPerBlk, p_out_global);
             }

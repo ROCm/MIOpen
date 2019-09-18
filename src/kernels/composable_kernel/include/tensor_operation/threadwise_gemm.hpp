@@ -3,6 +3,7 @@
 
 #include "common_header.hpp"
 #include "ConstantMatrixDescriptor.hpp"
+#include "math.hpp"
 
 namespace ck {
 
@@ -50,72 +51,6 @@ __device__ void threadwise_matrix_copy(SrcMatrix,
     }
 }
 
-template <class T>
-struct inner_product_with_conversion
-{
-    static constexpr auto convert = type_convert<T>();
-
-    __device__ T operator()(float a, float b) const { return convert(a) * convert(b); }
-
-    __device__ T operator()(const vector_type<half, 2>::MemoryType& a,
-                            const vector_type<half, 2>::MemoryType& b) const
-    {
-        const half* p_a_half = reinterpret_cast<const half*>(&a);
-        const half* p_b_half = reinterpret_cast<const half*>(&b);
-
-        T acc = 0;
-        for(index_t v = 0; v < 2; ++v)
-        {
-            acc += convert(p_a_half[v]) * convert(p_b_half[v]);
-        }
-
-        return acc;
-    }
-
-    __device__ T operator()(const vector_type<half, 4>::MemoryType& a,
-                            const vector_type<half, 4>::MemoryType& b) const
-    {
-        const half* p_a_half = reinterpret_cast<const half*>(&a);
-        const half* p_b_half = reinterpret_cast<const half*>(&b);
-
-        T acc = 0;
-        for(index_t v = 0; v < 4; ++v)
-        {
-            acc += convert(p_a_half[v]) * convert(p_b_half[v]);
-        }
-        return acc;
-    }
-
-    __device__ T operator()(const vector_type<ushort, 2>::MemoryType& a,
-                            const vector_type<ushort, 2>::MemoryType& b) const
-    {
-        const ushort* p_a_bfloat16 = reinterpret_cast<const ushort*>(&a);
-        const ushort* p_b_bfloat16 = reinterpret_cast<const ushort*>(&b);
-
-        T acc = 0;
-        for(index_t v = 0; v < 2; ++v)
-        {
-            acc += convert(p_a_bfloat16[v]) * convert(p_b_bfloat16[v]);
-        }
-
-        return acc;
-    }
-
-    __device__ T operator()(const vector_type<ushort, 4>::MemoryType& a,
-                            const vector_type<ushort, 4>::MemoryType& b) const
-    {
-        const ushort* p_a_bfloat16 = reinterpret_cast<const ushort*>(&a);
-        const ushort* p_b_bfloat16 = reinterpret_cast<const ushort*>(&b);
-
-        T acc = 0;
-        for(index_t v = 0; v < 4; ++v)
-        {
-            acc += convert(p_a_bfloat16[v]) * convert(p_b_bfloat16[v]);
-        }
-        return acc;
-    }
-};
-
 template <class MatrixA,
           class MatrixB,
           class MatrixC,
@@ -154,7 +89,7 @@ __device__ void threadwise_gemm(MatrixA,
                     const index_t bindex = b_mtx.GetOffsetFromMultiIndex(k, j);
                     const index_t cindex = c_mtx.GetOffsetFromMultiIndex(i, j);
 
-                    p_c_thread[cindex] += inner_product_with_conversion<FloatC>{}(
+                    p_c_thread[cindex] += math::inner_product_with_conversion<FloatC>{}(
                         p_a_thread[aindex], p_b_thread[bindex]);
                 }
             }
