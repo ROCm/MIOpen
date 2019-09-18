@@ -548,17 +548,17 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1
         }
     };
 
-    template <class TData>
-    __device__ void Run(const TData* p_src, TData* p_dst) const
+    template <class SrcTData, class DstTData>
+    __device__ void Run(const SrcTData* p_src, DstTData* p_dst) const
     {
         constexpr auto buffer_desc = make_ConstantTensorDescriptor_packed(SliceLengths{});
 
-        TData p_buffer_[buffer_desc.GetElementSpace()];
-        TData* p_buffer = p_buffer_;
+        SrcTData p_buffer_[buffer_desc.GetElementSpace()];
+        SrcTData* p_buffer = p_buffer_;
 
         // copy data from src into buffer
         {
-            using src_vector_t = typename vector_type<TData, SrcDataPerAccess>::MemoryType;
+            using src_vector_t = typename vector_type<SrcTData, SrcDataPerAccess>::MemoryType;
 
             constexpr auto src_vector_access_dim = Number<SrcVectorAccessDim>{};
             constexpr auto src_data_per_access   = Number<SrcDataPerAccess>{};
@@ -593,7 +593,7 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1
                     src_vector_access_dim,
                     src_merged_dim_access_id[src_vector_access_dim] * src_data_per_access);
 
-                const TData* p_src_tmp =
+                const SrcTData* p_src_tmp =
                     p_src + (mSrcSliceOrigin + src_merged_dim_data_id).GetOffset();
 
                 // offset w.r.t. normal dimension can be computed at compile-time
@@ -622,55 +622,57 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1
                         constexpr index_t buffer_offset = buffer_desc.GetOffsetFromMultiIndex(
                             src_merged_dim_data_id + src_normal_dim_data_id + scalar_id);
 
-                        p_buffer[buffer_offset] = reinterpret_cast<const TData*>(&vector_data)[i];
+                        p_buffer[buffer_offset] =
+                            reinterpret_cast<const SrcTData*>(&vector_data)[i];
                     });
                 });
             });
 #else
-            ford<decltype(src_merged_dim_access_lengths), SrcDimAccessOrder>{}([&](
-                auto src_merged_dim_access_id) {
+            ford<decltype(src_merged_dim_access_lengths), SrcDimAccessOrder>{}(
+                [&](auto src_merged_dim_access_id) {
 
-                auto src_merged_dim_data_id = src_merged_dim_access_id;
-                src_merged_dim_data_id(src_vector_access_dim) =
-                    src_merged_dim_access_id[src_vector_access_dim] * src_data_per_access;
+                    auto src_merged_dim_data_id = src_merged_dim_access_id;
+                    src_merged_dim_data_id(src_vector_access_dim) =
+                        src_merged_dim_access_id[src_vector_access_dim] * src_data_per_access;
 
-                const TData* p_src_tmp =
-                    p_src + (mSrcSliceOrigin + src_merged_dim_data_id).GetOffset();
+                    const SrcTData* p_src_tmp =
+                        p_src + (mSrcSliceOrigin + src_merged_dim_data_id).GetOffset();
 
-                // these should be compile-time known
-                ford<decltype(src_normal_dim_access_lengths), SrcDimAccessOrder>{}([&](
-                    auto src_normal_dim_access_id) {
+                    // these should be compile-time known
+                    ford<decltype(src_normal_dim_access_lengths), SrcDimAccessOrder>{}([&](
+                        auto src_normal_dim_access_id) {
 
-                    auto src_normal_dim_data_id = src_normal_dim_access_id;
-                    src_normal_dim_data_id(src_vector_access_dim) =
-                        src_normal_dim_access_id[src_vector_access_dim] * src_data_per_access;
+                        auto src_normal_dim_data_id = src_normal_dim_access_id;
+                        src_normal_dim_data_id(src_vector_access_dim) =
+                            src_normal_dim_access_id[src_vector_access_dim] * src_data_per_access;
 
-                    const index_t src_normal_offset =
-                        SrcDesc::GetOffsetFromMultiIndex(src_normal_dim_data_id);
+                        const index_t src_normal_offset =
+                            SrcDesc::GetOffsetFromMultiIndex(src_normal_dim_data_id);
 
-                    // load vector from src
-                    const src_vector_t vector_data =
-                        *reinterpret_cast<const src_vector_t*>(&p_src_tmp[src_normal_offset]);
+                        // load vector from src
+                        const src_vector_t vector_data =
+                            *reinterpret_cast<const src_vector_t*>(&p_src_tmp[src_normal_offset]);
 
-                    // unpack vector into buffer
-                    for(index_t i = 0; i < SrcDataPerAccess; ++i)
-                    {
-                        auto scalar_id                   = make_zero_array<index_t, nDim>();
-                        scalar_id(src_vector_access_dim) = i;
+                        // unpack vector into buffer
+                        for(index_t i = 0; i < SrcDataPerAccess; ++i)
+                        {
+                            auto scalar_id                   = make_zero_array<index_t, nDim>();
+                            scalar_id(src_vector_access_dim) = i;
 
-                        const index_t buffer_offset = buffer_desc.GetOffsetFromMultiIndex(
-                            src_merged_dim_data_id + src_normal_dim_data_id + scalar_id);
+                            const index_t buffer_offset = buffer_desc.GetOffsetFromMultiIndex(
+                                src_merged_dim_data_id + src_normal_dim_data_id + scalar_id);
 
-                        p_buffer[buffer_offset] = reinterpret_cast<const TData*>(&vector_data)[i];
-                    }
+                            p_buffer[buffer_offset] =
+                                reinterpret_cast<const SrcTData*>(&vector_data)[i];
+                        }
+                    });
                 });
-            });
 #endif
         }
 
         // copy data from buffer into dst
         {
-            using dst_vector_t = typename vector_type<TData, DstDataPerAccess>::MemoryType;
+            using dst_vector_t = typename vector_type<DstTData, DstDataPerAccess>::MemoryType;
 
             constexpr auto dst_vector_access_dim = Number<DstVectorAccessDim>{};
             constexpr auto dst_data_per_access   = Number<DstDataPerAccess>{};
@@ -697,7 +699,8 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1
                     dst_vector_access_dim,
                     dst_merged_dim_access_id[dst_vector_access_dim] * dst_data_per_access);
 
-                TData* p_dst_tmp = p_dst + (mDstSliceOrigin + dst_merged_dim_data_id).GetOffset();
+                DstTData* p_dst_tmp =
+                    p_dst + (mDstSliceOrigin + dst_merged_dim_data_id).GetOffset();
 
                 // offset w.r.t. normal dimension can be computed at compile-time
                 static_ford<decltype(dst_normal_dim_access_lengths), DstDimAccessOrder>{}([&](
@@ -719,7 +722,8 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1
                         constexpr index_t buffer_offset = buffer_desc.GetOffsetFromMultiIndex(
                             dst_merged_dim_data_id + dst_normal_dim_data_id + scalar_id);
 
-                        reinterpret_cast<TData*>(&vector_data)[i] = p_buffer[buffer_offset];
+                        reinterpret_cast<DstTData*>(&vector_data)[i] =
+                            type_convert<DstTData>{}(p_buffer[buffer_offset]);
                     });
 
                     constexpr index_t dst_normal_offset =
@@ -738,7 +742,8 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1
                 dst_merged_dim_data_id(dst_vector_access_dim) =
                     dst_merged_dim_access_id[dst_vector_access_dim] * dst_data_per_access;
 
-                TData* p_dst_tmp = p_dst + (mDstSliceOrigin + dst_merged_dim_data_id).GetOffset();
+                DstTData* p_dst_tmp =
+                    p_dst + (mDstSliceOrigin + dst_merged_dim_data_id).GetOffset();
 
                 // offset w.r.t. normal dimension can be computed at compile-time
                 ford<decltype(dst_normal_dim_access_lengths), DstDimAccessOrder>{}([&](
@@ -759,7 +764,8 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1
                         const index_t buffer_offset = buffer_desc.GetOffsetFromMultiIndex(
                             dst_merged_dim_data_id + dst_normal_dim_data_id + scalar_id);
 
-                        reinterpret_cast<TData*>(&vector_data)[i] = p_buffer[buffer_offset];
+                        reinterpret_cast<DstTData*>(&vector_data)[i] =
+                            type_convert<DstTData>{}(p_buffer[buffer_offset]);
                     }
 
                     const index_t dst_normal_offset =
