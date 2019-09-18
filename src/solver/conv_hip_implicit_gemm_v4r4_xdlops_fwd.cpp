@@ -34,9 +34,22 @@ namespace solver {
 
 bool ConvHipImplicitGemmV4R4FwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
-    bool use_xdlops = false;
-    if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx908"))
-        use_xdlops = true;
+    if(!StartsWith(ctx.GetStream().GetDeviceName(), "gfx908"))
+        return false;
+
+    if(!(ctx.IsFp32() || ctx.IsFp16()))
+        return false;
+
+    if(!ctx.direction.IsForward())
+        return false;
+
+    if(!ctx.Is2d())
+        return false;
+
+    // For fp16, when c*x*y % 4 == 0, 4 channels are accumulated through dot4 (2 * dot2) operation
+    const int MultipleOf = ctx.IsFp16() ? 32 : 8;
+    if((ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % MultipleOf != 0)
+        return false;
 
     // padding support required for out_of_bound configs
     bool no_out_of_bound = (ctx.in_width >= ((ctx.kernel_size_w - 1) * ctx.kernel_dilation_w + 1) +
@@ -44,10 +57,8 @@ bool ConvHipImplicitGemmV4R4FwdXdlops::IsApplicable(const ConvolutionContext& ct
                            (ctx.in_height >= ((ctx.kernel_size_h - 1) * ctx.kernel_dilation_h + 1) +
                                                  (ctx.out_height - 1) * ctx.kernel_stride_h);
 
-    return use_xdlops && no_out_of_bound && ctx.Is2d() && ctx.IsFp32() &&
-           ctx.direction.IsForward() && ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.group_counts == 1 &&
-           (ctx.batch_sz * ctx.out_height * ctx.out_width) % 64 == 0 && ctx.n_outputs % 32 == 0 &&
-           (ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % 8 == 0;
+    return no_out_of_bound && ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.group_counts == 1 &&
+           ctx.n_outputs % 32 == 0 && (ctx.batch_sz * ctx.out_height * ctx.out_width) % 64 == 0;
 }
 
 /// \todo move to separate header and use in other solvers.
@@ -111,15 +122,8 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
 
     const int B = N * Ho * Wo;
 
-    // Based on data type, Pack E so as to use dot2 operator
-    int EPACK = 1;
-    if(ctx.IsFp16())
-        EPACK = 4;
-    else if(ctx.IsBfp16())
-        EPACK = 2;
-
-    const int nonVectorizedC = C / EPACK;
-    const int E              = nonVectorizedC * Y * X;
+    const auto nonVectorizedC = C / GetEPackLength(ctx);
+    const int E               = static_cast<int>(nonVectorizedC) * Y * X;
 
     if(!(EPerBlock % InBlockCopyClusterLengths_E == 0 &&
          EPerBlock % WeiBlockCopyClusterLengths_E == 0 &&
@@ -300,6 +304,17 @@ PerformanceImplicitGemmXdlops::PerformanceImplicitGemmXdlops(bool spare)
 {
 }
 
+uint32_t PerformanceImplicitGemmXdlops::GetEPackLength(const ConvolutionContext& ctx) const
+{
+    // Based on data type, Es are packed
+    int EPACK = 1;
+    if(ctx.IsFp16()) // for fp16, 4 Es could be packed
+        EPACK = 4;
+    else if(ctx.IsBfp16()) // for bfp16, only 2 Es could be packed
+        EPACK = 2;
+    return EPACK;
+}
+
 PerformanceImplicitGemmXdlops::PerformanceImplicitGemmXdlops(int BPerBlock_,
                                                              int KPerBlock_,
                                                              int EPerBlock_,
@@ -418,6 +433,7 @@ ConvSolution ConvHipImplicitGemmV4R4FwdXdlops::GetSolution(
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) + 
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K=") + std::to_string(WeiBlockCopyDstDataPerWrite_K) + 
         std::string(" -DCK_PARAM_OUT_THREAD_COPY_DATA_PER_ACCESS_B=") + std::to_string(OutThreadCopyDataPerAccess_B) + 
+        std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(config.GetEPackLength(ctx)) + 
         std::string(" -DCK_ENABLE_XDLOPS=") + std::to_string(use_xdlops ? 1 : 0) +
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;

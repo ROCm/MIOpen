@@ -56,9 +56,11 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_
     // wei and out are swapped in the solver
     constexpr auto wei_kcyx_desc = tmp_out_nkhw_desc.ReorderGivenNew2Old(Sequence<1, 0, 2, 3>{});
     constexpr auto out_nkhw_desc = tmp_wei_kcyx_desc.ReorderGivenNew2Old(Sequence<1, 0, 2, 3>{});
+// Until bwd wrw supports exists in fp16
 #if MIOPEN_USE_FP32
     constexpr auto dir = ConvolutionDirection::BackwardWeights;
 #endif
+
     // swap stride and dilation
     using ConvDilations = Sequence<ConvStrideH, ConvStrideW>;
     using ConvStrides   = Sequence<ConvDilationH, ConvDilationW>;
@@ -66,12 +68,13 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_
     constexpr auto in_nchw_desc  = make_ConstantTensorDescriptor_packed(Sequence<N, C, Hi, Wi>{});
     constexpr auto wei_kcyx_desc = make_ConstantTensorDescriptor_packed(Sequence<K, C, Y, X>{});
     constexpr auto out_nkhw_desc = make_ConstantTensorDescriptor_packed(Sequence<N, K, Ho, Wo>{});
+
 #if MIOPEN_USE_FP32
     constexpr auto dir  = ConvolutionDirection::Forward;
 #endif
     using ConvStrides   = Sequence<ConvStrideH, ConvStrideW>;
     using ConvDilations = Sequence<ConvDilationH, ConvDilationW>;
-#endif
+#endif // CK_PARAM_PROBLEM_DIRECTION == 2
 
     constexpr index_t GemmMPerThreadSubC = CK_PARAM_GEMM_M_PER_THREAD_SUB_C;
     constexpr index_t GemmNPerThreadSubC = CK_PARAM_GEMM_N_PER_THREAD_SUB_C;
@@ -249,7 +252,8 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_
             WeiBlockCopyDstAccessOrder,
             WeiBlockCopySrcDataPerRead_E,
             WeiBlockCopyDstDataPerWrite_K>{};
-
+#else
+    static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
 #endif
     gridwise_conv.Run(p_in_global, p_wei_global, p_out_global);
 }

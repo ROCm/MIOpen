@@ -27,6 +27,36 @@ struct mfma_info<float>
     static constexpr index_t wave_size       = 64;
 };
 
+template <>
+struct mfma_info<half>
+{
+    static const index_t group_size      = 4;
+    static const index_t num_groups_blk  = 4;
+    static const index_t num_blks_wave   = 2;
+    static const index_t num_regs_blk    = group_size * num_groups_blk;
+    static const index_t num_regs_xdlops = num_regs_blk * num_blks_wave;
+    static const index_t num_threads_blk = 32;
+    static const index_t m               = 32;
+    static const index_t n               = 32;
+    static const index_t k               = 4;
+    static const index_t wave_size       = 64;
+};
+
+template <>
+struct mfma_info<ushort>
+{
+    static const index_t group_size      = 4;
+    static const index_t num_groups_blk  = 4;
+    static const index_t num_blks_wave   = 2;
+    static const index_t num_regs_blk    = group_size * num_groups_blk;
+    static const index_t num_regs_xdlops = num_regs_blk * num_blks_wave;
+    static const index_t num_threads_blk = 32;
+    static const index_t m               = 32;
+    static const index_t n               = 32;
+    static const index_t k               = 2;
+    static const index_t wave_size       = 64;
+};
+
 // emulate xdlops
 template <index_t M,
           index_t N,
@@ -34,10 +64,13 @@ template <index_t M,
           index_t MPerWave,
           index_t GemmDataPerReadA,
           index_t GemmDataPerReadB,
-          class mfma_info>
-__device__ void WaveWiseGemmMx64(const float* const __restrict__ p_a_wave,
-                                 const float* const __restrict__ p_b_wave,
-                                 float* const __restrict__ p_c_thread)
+          class mfma_info,
+          class FloatA,
+          class FloatB,
+          class FloatC>
+__device__ void WaveWiseGemmMx64(const FloatA* const __restrict__ p_a_wave,
+                                 const FloatB* const __restrict__ p_b_wave,
+                                 FloatC* const __restrict__ p_c_thread)
 {
     static_assert(GemmDataPerReadA == 1 && GemmDataPerReadB == 1, "GemmDataPerReadA/B != 1");
 
@@ -57,14 +90,14 @@ __device__ void WaveWiseGemmMx64(const float* const __restrict__ p_a_wave,
                 index_t output_m = mfma_info::num_regs_blk;
                 for(index_t m = 0; m < output_m; ++m)
                 {
-                    float reg_a =
-                        p_a_wave[m % mfma_info::group_size + blk_id * mfma_info::group_size +
-                                 m / mfma_info::group_size *
-                                     (mfma_info::group_size * mfma_info::num_blks_wave) +
-                                 a_off]; // A is transposed
-                    float reg_b = p_b_wave[b_off + lane_b + n * mfma_info::num_threads_blk];
+                    index_t aindex = m % mfma_info::group_size + blk_id * mfma_info::group_size +
+                                     m / mfma_info::group_size *
+                                         (mfma_info::group_size * mfma_info::num_blks_wave) +
+                                     a_off; // A is transposed
+                    index_t bindex = b_off + lane_b + n * mfma_info::num_threads_blk;
                     p_c_thread[m + n * output_m + b * output_m * mfma_info::num_blks_wave] +=
-                        reg_a * reg_b;
+                        math::inner_product_with_conversion<FloatC>{}(p_a_wave[aindex],
+                                                                      p_b_wave[bindex]);
                 }
             }
         }
@@ -94,6 +127,56 @@ __device__ void WaveWiseGemmMx64_xdlops(const float* const __restrict__ p_a_wave
         float reg_b      = p_b_wave[k * N + laneId];
         float32_t* reg_c = reinterpret_cast<float32_t*>(p_c_thread);
         gcnasm_mfma_f32_32x32x1f32<MPerWave>(reg_a, reg_b, reg_c);
+    }
+}
+
+template <index_t M,
+          index_t N,
+          index_t K,
+          index_t MPerWave,
+          index_t GemmDataPerReadA,
+          index_t GemmDataPerReadB,
+          class mfma_info>
+__device__ void WaveWiseGemmMx64_xdlops(
+    const typename vector_type<half, 4>::MemoryType* const __restrict__ p_a_wave,
+    const typename vector_type<half, 4>::MemoryType* const __restrict__ p_b_wave,
+    float* const __restrict__ p_c_thread)
+{
+    static_assert(MPerWave == 32 || MPerWave == 64, "only support MPerWave = 32/64");
+
+    const index_t laneId = threadIdx.x % mfma_info::wave_size;
+
+    for(index_t k = 0; k < K; k += mfma_info::k / 4)
+    {
+        typename vector_type<half, 4>::MemoryType reg_a = p_a_wave[k * M + laneId];
+        typename vector_type<half, 4>::MemoryType reg_b = p_b_wave[k * N + laneId];
+        float32_t* reg_c = reinterpret_cast<float32_t*>(p_c_thread);
+        gcnasm_mfma_f32_32x32x4f16<MPerWave>(reg_a, reg_b, reg_c);
+    }
+}
+
+template <index_t M,
+          index_t N,
+          index_t K,
+          index_t MPerWave,
+          index_t GemmDataPerReadA,
+          index_t GemmDataPerReadB,
+          class mfma_info>
+__device__ void WaveWiseGemmMx64_xdlops(
+    const typename vector_type<ushort, 2>::MemoryType* const __restrict__ p_a_wave,
+    const typename vector_type<ushort, 2>::MemoryType* const __restrict__ p_b_wave,
+    float* const __restrict__ p_c_thread)
+{
+    static_assert(MPerWave == 32 || MPerWave == 64, "only support MPerWave = 32/64");
+
+    const index_t laneId = threadIdx.x % mfma_info::wave_size;
+
+    for(index_t k = 0; k < K; k += mfma_info::k / 2)
+    {
+        typename vector_type<ushort, 2>::MemoryType reg_a = p_a_wave[k * M + laneId];
+        typename vector_type<ushort, 2>::MemoryType reg_b = p_b_wave[k * N + laneId];
+        float32_t* reg_c = reinterpret_cast<float32_t*>(p_c_thread);
+        gcnasm_mfma_f32_32x32x2bf16<MPerWave>(reg_a, reg_b, reg_c);
     }
 }
 
