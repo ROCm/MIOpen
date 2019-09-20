@@ -1462,6 +1462,8 @@ void ConvFwdImplicitGemm(const ConvolutionContext& /*ctx*/,
        kernel.GetName() ==
            "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer" ||
        kernel.GetName() ==
+           "gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kc1x1_nkhw_lds_double_buffer" ||
+       kernel.GetName() ==
            "gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buffer")
     {
         kernel(tensors.x, tensors.w, tensors.y);
@@ -3446,7 +3448,9 @@ void ConvBwdImplicitGemm(const ConvolutionContext& /*ctx*/,
     // Miminum checks. Only check what is required to select
     // proper invocation procedure & workspace sanity.
     if((kernel.GetName() ==
-        "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer"))
+        "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer") ||
+       (kernel.GetName() ==
+        "gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kc1x1_nkhw_lds_double_buffer"))
     {
         kernel(tensors.dy, tensors.w, tensors.dx);
 

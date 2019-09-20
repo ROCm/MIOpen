@@ -28,64 +28,11 @@
 #include "miopen/handle.hpp"
 #include <miopen/generic_search.hpp>
 #include "miopen/stringutils.hpp"
-
-inline static int GetReadWriteVectorSize(const int v)
-{
-    return v % 4 == 0 ? 4 : (v % 2 == 0 ? 2 : 1);
-}
-
-/// \todo move to separate header and use in other solvers.
-template <int L, int H>
-inline static bool IsTwoPower(const int v)
-{
-    static_assert(L <= H, "L <= H");
-    if(((v - 1) & v) != 0)
-        return false;
-    return L <= v && v <= H;
-}
-
-template <int L, int H>
-inline static bool NextTwoPower(int& v)
-{
-    static_assert((((L - 1) & L) == 0), "L is not power of 2");
-    static_assert((((H - 1) & H) == 0), "H is not power of 2");
-    assert((IsTwoPower<L, H>(v)));
-    if(v == H)
-    {
-        v = L;
-        return true;
-    }
-    v *= 2;
-    return false;
-}
+#include "implicitgemm_util.hpp"
+#include "miopen/implicitgemm_params.hpp"
 
 namespace miopen {
 namespace solver {
-
-static inline int ImgHeight(const ConvolutionContext& c)
-{
-    return c.direction.IsBackwardData() ? c.in_height : c.out_height;
-}
-
-static inline int ImgWidth(const ConvolutionContext& c)
-{
-    return c.direction.IsBackwardData() ? c.in_width : c.out_width;
-}
-
-uint32_t PerformanceImplicitGemm::GetEPackLength(const ConvolutionContext& ctx) const
-{
-    const int C = ctx.n_inputs;
-    const int Y = ctx.kernel_size_h;
-    const int X = ctx.kernel_size_w;
-
-    // Based on data type, Es are packed
-    int EPACK = 1;
-    if(ctx.IsFp16()) // for fp16, either 2 or 4 Es could be packed
-        EPACK = (C * Y * X % 32) == 0 ? 4 : 2;
-    else if(ctx.IsBfp16()) // for bfp16, only 2 Es could be packed
-        EPACK = 2;
-    return EPACK;
-}
 
 bool PerformanceImplicitGemm::operator==(const PerformanceImplicitGemm& other) const
 {
@@ -504,30 +451,22 @@ bool ConvHipImplicitGemmV4WrW::IsApplicable(const ConvolutionContext& ctx) const
            isNumInputsInMultiple && ctx.n_inputs % 16 == 0;
 }
 
-static inline PerformanceImplicitGemm GetPerformanceConfigBase(const ConvolutionContext& params)
+PerformanceImplicitGemm
+ConvHipImplicitGemmV4Fwd::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
-    PerformanceImplicitGemm pp;
-    pp.EuristicInit(params);
-    MIOPEN_LOG_I(pp.ToString());
-    return pp;
+    return GetPerformanceConfigBase<PerformanceImplicitGemm>(ctx);
 }
 
 PerformanceImplicitGemm
-ConvHipImplicitGemmV4Fwd::GetPerformanceConfig(const ConvolutionContext& params) const
+ConvHipImplicitGemmV4WrW::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
-    return GetPerformanceConfigBase(params);
+    return GetPerformanceConfigBase<PerformanceImplicitGemm>(ctx);
 }
 
 PerformanceImplicitGemm
-ConvHipImplicitGemmV4WrW::GetPerformanceConfig(const ConvolutionContext& params) const
+ConvHipImplicitGemmV4_1x1::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
-    return GetPerformanceConfigBase(params);
-}
-
-PerformanceImplicitGemm
-ConvHipImplicitGemmV4_1x1::GetPerformanceConfig(const ConvolutionContext& params) const
-{
-    return GetPerformanceConfigBase(params);
+    return GetPerformanceConfigBase<PerformanceImplicitGemm>(ctx);
 }
 
 bool ConvHipImplicitGemmV4Fwd::IsValidPerformanceConfig(const ConvolutionContext& problem,
@@ -677,12 +616,16 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         // clang-format on
     }
 
-    int direction = ctx.direction.IsForward() ? 0 : (ctx.direction.IsBackwardData() ? 1 : 2);
+    const ImplicitGemmDirection direction =
+        ctx.direction.IsForward()
+            ? ImplicitGemmDirection::ForwardData
+            : (ctx.direction.IsBackwardData() ? ImplicitGemmDirection::BackwardData
+                                              : ImplicitGemmDirection::BackwardWeight);
 
     // clang-format off
     construction_parameters.comp_options +=
         std::string(" -std=c++14") +
-        std::string(" -DCK_PARAM_PROBLEM_DIRECTION=") + std::to_string(direction) +
+        std::string(" -DCK_PARAM_PROBLEM_DIRECTION=") + std::to_string(static_cast<int>(direction)) +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ctx.batch_sz) +
         std::string(" -DCK_PARAM_PROBLEM_Y=") + std::to_string(ctx.kernel_size_h) +
         std::string(" -DCK_PARAM_PROBLEM_X=") + std::to_string(ctx.kernel_size_w) +
@@ -712,7 +655,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATE_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) + 
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATE_PER_WRITE_K=") + std::to_string(WeiBlockCopyDstDataPerWrite_K) + 
-        std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(config.GetEPackLength(ctx)) + 
+        std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx)) + 
         std::string(" -DCK_BLOCKWISE_GEMM_USE_AMD_INLINE_ASM=") + std::to_string(use_amd_inline_asm ? 1 : 0) +
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
@@ -753,55 +696,6 @@ ConvSolution ConvHipImplicitGemmV4_1x1::GetSolution(const ConvolutionContext& ct
                            ctx.n_outputs,
                            ImgHeight(ctx),
                            ImgWidth(ctx));
-}
-
-static inline int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
-                                            ConstData_t bot_buf,
-                                            Data_t top_buf,
-                                            ConstData_t wei_buf,
-                                            const ConvolutionContext& ctx,
-                                            const ConvSolution& solution,
-                                            float& elapsed_time)
-{
-    KernelInfo k_info;
-
-    k_info = solution.construction_params[0];
-
-#ifdef NDEBUG
-    try
-#endif
-    {
-        elapsed_time = std::numeric_limits<float>::max();
-        auto kernel  = profile_h.AddKernel("",
-                                          "",
-                                          k_info.kernel_file,
-                                          k_info.kernel_name,
-                                          k_info.l_wk,
-                                          k_info.g_wk,
-                                          k_info.comp_options);
-
-        if(ctx.direction.IsBackwardWrW())
-        {
-            kernel(bot_buf, top_buf, wei_buf);
-        }
-        if(ctx.direction.IsBackwardData())
-        {
-            kernel(top_buf, wei_buf, bot_buf);
-        }
-        if(ctx.direction.IsForward())
-        {
-            kernel(bot_buf, wei_buf, top_buf);
-        }
-
-        elapsed_time = profile_h.GetKernelTime();
-    }
-#ifdef NDEBUG
-    catch(miopen::Exception&)
-    {
-        return -1;
-    }
-#endif
-    return 0;
 }
 
 int ConvHipImplicitGemmV4Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
