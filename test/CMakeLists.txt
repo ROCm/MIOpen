@@ -157,13 +157,13 @@ endforeach()
 # add_sanitize_test(type_name.cpp)
 
 function(add_custom_test NAME)
-    if(NOT (MIOPEN_TEST_INT8 OR MIOPEN_TEST_BFLOAT16))
-        set(options ALL)
-        set(oneValueArgs)
-        set(multiValueArgs)
+    set(options ALL ALLOW_BFLOAT16)
+    set(oneValueArgs)
+    set(multiValueArgs)
+    cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-        cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-
+    # See test_conv_for_implicit_gemm target, it is invoked with ALLOW_BFLOAT16
+    if((NOT (MIOPEN_TEST_INT8 OR MIOPEN_TEST_BFLOAT16)) OR ${PARSE_ALLOW_BFLOAT16})
         add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
         if(NOT PARSE_ALL OR MIOPEN_TEST_ALL)
             add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
@@ -422,11 +422,11 @@ COMMAND $<TARGET_FILE:test_conv> --verbose --conv_dim_type conv3d --input 16    
 )
 
 set(IMPLICITGEMM_ARGS ${MIOPEN_TEST_FLOAT_ARG})
-if(MIOPEN_TEST_FLOAT_ARG STREQUAL "--half")
+if(MIOPEN_TEST_FLOAT_ARG STREQUAL "--half" OR MIOPEN_TEST_FLOAT_ARG STREQUAL "--bfloat16")
     list(APPEND IMPLICITGEMM_ARGS ";--disable-backward-data;--disable-backward-weights")
 endif()
 
-add_custom_test(test_conv_for_implicit_gemm ALL
+add_custom_test(test_conv_for_implicit_gemm ALL ALLOW_BFLOAT16
 COMMAND	$<TARGET_FILE:test_conv> ${IMPLICITGEMM_ARGS} --verbose	--input	64	 16 	28	28	--weights	192  16 	3	3	--pads_strides_dilations	0	0	2	2	1	1
 COMMAND	$<TARGET_FILE:test_conv> ${IMPLICITGEMM_ARGS} --verbose	--input	64	 16 	14	14	--weights	160  16 	3	3	--pads_strides_dilations	0	0	2	2	1	1
 COMMAND	$<TARGET_FILE:test_conv> ${IMPLICITGEMM_ARGS} --verbose	--input	64	 16 	 7	 7	--weights	128  16 	3	3	--pads_strides_dilations	0	0	2	2	1	1
@@ -486,6 +486,12 @@ COMMAND $<TARGET_FILE:test_conv> ${IMPLICITGEMM_ARGS} --verbose	--input	64	512 	
 COMMAND $<TARGET_FILE:test_conv> ${IMPLICITGEMM_ARGS} --verbose	--input	64	512 	14	14	--weights	24	512   	1	1	--pads_strides_dilations	0	0	1	1	1	1
 COMMAND $<TARGET_FILE:test_conv> ${IMPLICITGEMM_ARGS} --verbose	--input	64	512 	14	14	--weights	32	512   	1	1	--pads_strides_dilations	0	0	1	1	1	1
 COMMAND $<TARGET_FILE:test_conv> ${IMPLICITGEMM_ARGS} --verbose	--input	64	512 	14	14	--weights	64	512   	1	1	--pads_strides_dilations	0	0	1	1	1	1
+COMMAND $<TARGET_FILE:test_conv> ${IMPLICITGEMM_ARGS} --verbose   --input 128  832    7  7  --weights   32  832  1   1   --pads_strides_dilations    0   0   1   1   1   1
+COMMAND $<TARGET_FILE:test_conv> ${IMPLICITGEMM_ARGS} --verbose   --input 128  832    7  7  --weights   192  832  1   1   --pads_strides_dilations    0   0   1   1   1   1
+COMMAND $<TARGET_FILE:test_conv> ${IMPLICITGEMM_ARGS} --verbose   --input 128  832    7  7  --weights   128  832  1   1   --pads_strides_dilations    0   0   1   1   1   1
+COMMAND $<TARGET_FILE:test_conv> ${IMPLICITGEMM_ARGS} --verbose   --input 128  832    7  7  --weights   32  832  1   1   --pads_strides_dilations    0   0   1   1   2   2
+COMMAND $<TARGET_FILE:test_conv> ${IMPLICITGEMM_ARGS} --verbose   --input 128  832    7  7  --weights   192  832  1   1   --pads_strides_dilations    0   0   1   1   2   2
+COMMAND $<TARGET_FILE:test_conv> ${IMPLICITGEMM_ARGS} --verbose   --input 128  832    7  7  --weights   128  832  1   1   --pads_strides_dilations    0   0   1   1   2   2
 )
 
 if(MIOPEN_TEST_DEEPBENCH)
