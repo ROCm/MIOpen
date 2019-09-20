@@ -417,7 +417,7 @@ bool ConvHipImplicitGemmV4_1x1::IsApplicable(const ConvolutionContext& ctx) cons
 
 bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
 {
-    bool isTypeSupported = ctx.IsFp32() || ctx.IsFp16();
+    bool isTypeSupported = ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16();
 
     // For fp16, when E=c*x*y % 32 == 0, 4 channels are accumulated through dot4 (2 * dot2)
     // operation
