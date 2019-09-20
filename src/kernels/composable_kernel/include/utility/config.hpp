@@ -70,5 +70,6 @@ __device__ ushort type_convert<ushort>::operator()<float>(float x) const
 {
     return float_to_bfloat16(x);
 }
-}
+
+} // namespace ck
 #endif

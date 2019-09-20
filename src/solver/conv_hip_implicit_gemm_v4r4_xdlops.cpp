@@ -28,68 +28,11 @@
 #include "miopen/handle.hpp"
 #include <miopen/generic_search.hpp>
 #include "miopen/stringutils.hpp"
+#include "implicitgemm_util.hpp"
+#include "miopen/implicitgemm_params.hpp"
 
 namespace miopen {
 namespace solver {
-
-bool ConvHipImplicitGemmV4R4FwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
-{
-    if(!StartsWith(ctx.GetStream().GetDeviceName(), "gfx908"))
-        return false;
-
-    if(!(ctx.IsFp32() || ctx.IsFp16()))
-        return false;
-
-    if(!ctx.direction.IsForward())
-        return false;
-
-    if(!ctx.Is2d())
-        return false;
-
-    // For fp16, when c*x*y % 4 == 0, 4 channels are accumulated through dot4 (2 * dot2) operation
-    const int MultipleOf = ctx.IsFp16() ? 32 : 8;
-    if((ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % MultipleOf != 0)
-        return false;
-
-    // padding support required for out_of_bound configs
-    bool no_out_of_bound = (ctx.in_width >= ((ctx.kernel_size_w - 1) * ctx.kernel_dilation_w + 1) +
-                                                (ctx.out_width - 1) * ctx.kernel_stride_w) &&
-                           (ctx.in_height >= ((ctx.kernel_size_h - 1) * ctx.kernel_dilation_h + 1) +
-                                                 (ctx.out_height - 1) * ctx.kernel_stride_h);
-
-    return no_out_of_bound && ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.group_counts == 1 &&
-           ctx.n_outputs % 32 == 0 && (ctx.batch_sz * ctx.out_height * ctx.out_width) % 64 == 0;
-}
-
-/// \todo move to separate header and use in other solvers.
-template <int L, int H>
-inline static bool IsTwoPower(const int v)
-{
-    static_assert(L <= H, "L <= H");
-    if(((v - 1) & v) != 0)
-        return false;
-    return L <= v && v <= H;
-}
-
-template <int L, int H>
-inline static bool NextTwoPower(int& v)
-{
-    static_assert((((L - 1) & L) == 0), "L is not power of 2");
-    static_assert((((H - 1) & H) == 0), "H is not power of 2");
-    assert((IsTwoPower<L, H>(v)));
-    if(v == H)
-    {
-        v = L;
-        return true;
-    }
-    v *= 2;
-    return false;
-}
-
-inline static int GetReadWriteVectorSize(const int v)
-{
-    return (v & 3) == 0 ? 4 : ((v & 1) == 0 ? 2 : 1);
-}
 
 inline bool PerformanceImplicitGemmXdlops::
 operator==(const PerformanceImplicitGemmXdlops& other) const
@@ -114,8 +57,8 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
     const int K = ctx.n_outputs;
     const int C = ctx.n_inputs;
 
-    const int Ho = ctx.out_height;
-    const int Wo = ctx.out_width;
+    const int Ho = ImgHeight(ctx);
+    const int Wo = ImgWidth(ctx);
 
     const int Y = ctx.kernel_size_h;
     const int X = ctx.kernel_size_w;
@@ -123,7 +66,7 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
     const int B = N * Ho * Wo;
 
     const auto nonVectorizedC = C / GetEPackLength(ctx);
-    const int E               = static_cast<int>(nonVectorizedC) * Y * X;
+    const auto E              = static_cast<int>(nonVectorizedC) * Y * X;
 
     if(!(EPerBlock % InBlockCopyClusterLengths_E == 0 &&
          EPerBlock % WeiBlockCopyClusterLengths_E == 0 &&
@@ -135,27 +78,25 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
     if(!(K % KPerBlock == 0 && B % BPerBlock == 0 && E % (2 * EPerBlock) == 0))
         return false; // wrong! cannot divice N evenly among thread
 
-    std::size_t block_size = BPerBlock * KPerBlock / (GemmMPerWave * GemmNPerWave) * 64;
+    const int WaveSize  = 64;
+    const int BlockSize = BPerBlock * KPerBlock / (GemmMPerWave * GemmNPerWave) * WaveSize;
 
-    if(block_size < 64 || block_size > 512)
+    if(BlockSize < 64 || BlockSize > 512)
         return false;
 
-    if(block_size != InBlockCopyClusterLengths_E * InBlockCopyClusterLengths_B)
+    if(BlockSize != InBlockCopyClusterLengths_E * InBlockCopyClusterLengths_B)
         return false;
 
-    if(block_size != WeiBlockCopyClusterLengths_K * WeiBlockCopyClusterLengths_E)
+    if(BlockSize != WeiBlockCopyClusterLengths_K * WeiBlockCopyClusterLengths_E)
+        return false;
+
+    if((KPerBlock % GemmMPerWave) != 0 || (BPerBlock % GemmNPerWave) != 0)
         return false;
 
     const int GemmMWaves = KPerBlock / GemmMPerWave;
     const int GemmNWaves = BPerBlock / GemmNPerWave;
 
-    if(!(GemmMPerWave == 32 || GemmMPerWave == 64))
-        return false;
-
-    if(GemmMPerWave * GemmMWaves != KPerBlock || GemmNPerWave * GemmNWaves != BPerBlock)
-        return false;
-
-    return true;
+    return (GemmMPerWave * GemmMWaves == KPerBlock && GemmNPerWave * GemmNWaves == BPerBlock);
 }
 
 bool PerformanceImplicitGemmXdlops::IsValidValue() const
@@ -174,7 +115,6 @@ bool PerformanceImplicitGemmXdlops::IsValidValue() const
 
 bool PerformanceImplicitGemmXdlops::SetNextValue()
 {
-    GemmNPerWave = 64;
     do
     {
         if(!NextTwoPower<64, 128>(BPerBlock))
@@ -199,33 +139,32 @@ bool PerformanceImplicitGemmXdlops::SetNextValue()
     return true;
 }
 
-void PerformanceImplicitGemmXdlops::EuristicInit(const ConvolutionContext& config)
+void PerformanceImplicitGemmXdlops::EuristicInit(const ConvolutionContext& ctx)
 {
+    GemmNPerWave = 64;
     // default
     {
         BPerBlock = 128;
         KPerBlock = 128;
-        EPerBlock = 8;
+        EPerBlock = 16;
 
         GemmMPerWave = 64;
-        GemmNPerWave = 64;
 
-        InBlockCopyClusterLengths_E = 8;
-        InBlockCopyClusterLengths_B = 32;
+        InBlockCopyClusterLengths_E = 16;
+        InBlockCopyClusterLengths_B = 16;
 
-        WeiBlockCopyClusterLengths_E = 2;
-        WeiBlockCopyClusterLengths_K = 128;
+        WeiBlockCopyClusterLengths_E = 4;
+        WeiBlockCopyClusterLengths_K = 64;
     }
 
     // 64,32,8,32,64,8,8,4,16
-    if(!IsValid(config))
+    if(!IsValid(ctx))
     {
         BPerBlock = 64;
         KPerBlock = 32;
         EPerBlock = 8;
 
         GemmMPerWave = 32;
-        GemmNPerWave = 64;
 
         InBlockCopyClusterLengths_E = 8;
         InBlockCopyClusterLengths_B = 8;
@@ -235,14 +174,13 @@ void PerformanceImplicitGemmXdlops::EuristicInit(const ConvolutionContext& confi
     }
 
     // 64,32,4,32,64,4,16,2,32
-    if(!IsValid(config))
+    if(!IsValid(ctx))
     {
         BPerBlock = 64;
         KPerBlock = 32;
         EPerBlock = 4;
 
         GemmMPerWave = 32;
-        GemmNPerWave = 64;
 
         InBlockCopyClusterLengths_E = 4;
         InBlockCopyClusterLengths_B = 16;
@@ -252,14 +190,13 @@ void PerformanceImplicitGemmXdlops::EuristicInit(const ConvolutionContext& confi
     }
 
     // 64,32,4,32,64,4,16,4,16
-    if(!IsValid(config))
+    if(!IsValid(ctx))
     {
         BPerBlock = 64;
         KPerBlock = 32;
         EPerBlock = 4;
 
         GemmMPerWave = 32;
-        GemmNPerWave = 64;
 
         InBlockCopyClusterLengths_E = 4;
         InBlockCopyClusterLengths_B = 16;
@@ -268,7 +205,7 @@ void PerformanceImplicitGemmXdlops::EuristicInit(const ConvolutionContext& confi
         WeiBlockCopyClusterLengths_K = 16;
     }
 
-    if(!IsValid(config))
+    if(!IsValid(ctx))
     {
         MIOPEN_LOG_E("All attempts failed");
         assert(false);
@@ -284,35 +221,27 @@ std::string PerformanceImplicitGemmXdlops::ToString() const
 }
 
 PerformanceImplicitGemmXdlops
-ConvHipImplicitGemmV4R4FwdXdlops::GetPerformanceConfig(const ConvolutionContext& params) const
+ConvHipImplicitGemmV4R4FwdXdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
-    PerformanceImplicitGemmXdlops pp;
-    pp.EuristicInit(params);
-    MIOPEN_LOG_I(pp.ToString());
-    return pp;
-}
-
-bool ConvHipImplicitGemmV4R4FwdXdlops::IsValidPerformanceConfig(
-    const ConvolutionContext& problem, const PerformanceImplicitGemmXdlops& c) const
-{
-    MIOPEN_LOG_I("");
-    return c.IsValidValue() && c.IsValid(problem);
+    return GetPerformanceConfigBase<PerformanceImplicitGemmXdlops>(ctx);
 }
 
 PerformanceImplicitGemmXdlops::PerformanceImplicitGemmXdlops(bool spare)
-    : PerformanceImplicitGemmXdlops(1, 1, 1, 1, 1, 1, 1, 1, 1, spare)
 {
-}
+    BPerBlock = 64;
+    KPerBlock = 32;
+    EPerBlock = 4;
 
-uint32_t PerformanceImplicitGemmXdlops::GetEPackLength(const ConvolutionContext& ctx) const
-{
-    // Based on data type, Es are packed
-    int EPACK = 1;
-    if(ctx.IsFp16()) // for fp16, 4 Es could be packed
-        EPACK = 4;
-    else if(ctx.IsBfp16()) // for bfp16, only 2 Es could be packed
-        EPACK = 2;
-    return EPACK;
+    GemmMPerWave = 32;
+    GemmNPerWave = 64; // constant
+
+    InBlockCopyClusterLengths_E = 4;
+    InBlockCopyClusterLengths_B = 8;
+
+    WeiBlockCopyClusterLengths_E = 1;
+    WeiBlockCopyClusterLengths_K = 16;
+
+    use_spare_set = spare;
 }
 
 PerformanceImplicitGemmXdlops::PerformanceImplicitGemmXdlops(int BPerBlock_,
@@ -338,16 +267,16 @@ PerformanceImplicitGemmXdlops::PerformanceImplicitGemmXdlops(int BPerBlock_,
 {
 }
 
-ConvSolution ConvHipImplicitGemmV4R4FwdXdlops::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceImplicitGemmXdlops& config, bool) const
+static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
+                                           const PerformanceImplicitGemmXdlops& config,
+                                           const ImplicitGemmXdlopsKernel kernel,
+                                           const int n,
+                                           const int k,
+                                           const int ho,
+                                           const int wo)
 {
     ConvSolution result;
     KernelInfo construction_parameters;
-
-    std::size_t n  = ctx.batch_sz;
-    std::size_t k  = ctx.n_outputs;
-    std::size_t ho = ctx.out_height;
-    std::size_t wo = ctx.out_width;
 
     std::size_t b = (n * ho * wo);
 
@@ -376,11 +305,22 @@ ConvSolution ConvHipImplicitGemmV4R4FwdXdlops::GetSolution(
     construction_parameters.g_wk.push_back(gbl_wk1);
     construction_parameters.g_wk.push_back(gbl_wk2);
 
-    construction_parameters.kernel_file =
-        "gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buffer.cpp";
+    if(kernel == ImplicitGemmXdlopsKernel::KernelFwd)
+    {
+        construction_parameters.kernel_file =
+            "gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buffer.cpp";
 
-    construction_parameters.kernel_name =
-        "gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buffer";
+        construction_parameters.kernel_name =
+            "gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buffer";
+    }
+    else
+    {
+        construction_parameters.kernel_file =
+            "gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kc1x1_nkhw_lds_double_buffer.cpp";
+
+        construction_parameters.kernel_name =
+            "gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kc1x1_nkhw_lds_double_buffer";
+    }
 
     std::size_t WeiBlockCopySubLengths_E = EPerBlock / config.WeiBlockCopyClusterLengths_E;
     std::size_t WeiBlockCopySubLengths_K = KPerBlock / config.WeiBlockCopyClusterLengths_K;
@@ -391,6 +331,9 @@ ConvSolution ConvHipImplicitGemmV4R4FwdXdlops::GetSolution(
     int OutThreadCopyDataPerAccess_B = 1;
     int InBlockCopyDataPerAccess_B   = 1;
 
+    WeiBlockCopySrcDataPerRead_E =
+        ctx.direction.IsBackwardData() ? 1 : WeiBlockCopySrcDataPerRead_E;
+
     // TBD: Due to underlying bug, we need to restrict reading/writing only 1 fp16 value at a time
     if(ctx.IsFp16())
     {
@@ -398,13 +341,16 @@ ConvSolution ConvHipImplicitGemmV4R4FwdXdlops::GetSolution(
         WeiBlockCopyDstDataPerWrite_K = 1;
     }
 
-    bool use_xdlops = false;
-    if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx908"))
-        use_xdlops = true;
+    const ImplicitGemmDirection direction =
+        ctx.direction.IsForward()
+            ? ImplicitGemmDirection::ForwardData
+            : (ctx.direction.IsBackwardData() ? ImplicitGemmDirection::BackwardData
+                                              : ImplicitGemmDirection::BackwardWeight);
 
     // clang-format off
     construction_parameters.comp_options =
         std::string(" -std=c++14 ") +
+        std::string(" -DCK_PARAM_PROBLEM_DIRECTION=") + std::to_string(static_cast<int>(direction)) +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ctx.batch_sz) +
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ctx.n_outputs) +
         std::string(" -DCK_PARAM_PROBLEM_C=") + std::to_string(ctx.n_inputs) +
@@ -433,8 +379,8 @@ ConvSolution ConvHipImplicitGemmV4R4FwdXdlops::GetSolution(
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) + 
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K=") + std::to_string(WeiBlockCopyDstDataPerWrite_K) + 
         std::string(" -DCK_PARAM_OUT_THREAD_COPY_DATA_PER_ACCESS_B=") + std::to_string(OutThreadCopyDataPerAccess_B) + 
-        std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(config.GetEPackLength(ctx)) + 
-        std::string(" -DCK_ENABLE_XDLOPS=") + std::to_string(use_xdlops ? 1 : 0) +
+        std::string(" -DCK_ENABLE_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
+        std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx)) + 
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
@@ -443,54 +389,128 @@ ConvSolution ConvHipImplicitGemmV4R4FwdXdlops::GetSolution(
     return result;
 }
 
+ConvSolution ConvHipImplicitGemmV4R4FwdXdlops::GetSolution(
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmXdlops& config, bool) const
+{
+    return GetSolutionBase(ctx,
+                           config,
+                           ImplicitGemmXdlopsKernel::KernelFwd,
+                           ctx.batch_sz,
+                           ctx.n_outputs,
+                           ctx.out_height,
+                           ctx.out_width);
+}
+
+ConvSolution ConvHipImplicitGemmV4R4Xdlops_1x1::GetSolution(
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmXdlops& config, bool) const
+{
+    return GetSolutionBase(ctx,
+                           config,
+                           ImplicitGemmXdlopsKernel::Kernel1x1,
+                           ctx.batch_sz,
+                           ctx.n_outputs,
+                           ImgHeight(ctx),
+                           ImgWidth(ctx));
+}
+
 int ConvHipImplicitGemmV4R4FwdXdlops::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                                            ConstData_t bot_ocl_buf,
-                                                            Data_t top_ocl_buf,
-                                                            ConstData_t wei_ocl_buf,
-                                                            ConstData_t bias_ocl_buf,
-                                                            const ConvolutionContext&,
+                                                            ConstData_t bot_buf,
+                                                            Data_t top_buf,
+                                                            ConstData_t wei_buf,
+                                                            ConstData_t bias_buf,
+                                                            const ConvolutionContext& ctx,
                                                             const ConvSolution& solution,
                                                             float& elapsed_time) const
 {
-    assert(bias_ocl_buf == nullptr);
-    (void)bias_ocl_buf;
+    assert(bias_buf == nullptr);
+    (void)bias_buf;
 
-    KernelInfo k_info;
+    return RunAndMeasureSolutionBase(
+        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
+}
 
-    k_info = solution.construction_params[0];
+int ConvHipImplicitGemmV4R4Xdlops_1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
+                                                             ConstData_t bot_buf,
+                                                             Data_t top_buf,
+                                                             ConstData_t wei_buf,
+                                                             ConstData_t bias_buf,
+                                                             const ConvolutionContext& ctx,
+                                                             const ConvSolution& solution,
+                                                             float& elapsed_time) const
+{
+    assert(bias_buf == nullptr);
+    (void)bias_buf;
 
-#ifdef NDEBUG
-    try
-#endif
-    {
-        elapsed_time = std::numeric_limits<float>::max();
-        // ConvolutionContext::general_compile_options is for OpenCL kernels
-        // and thus not applicable for assembly.
-        auto kernel = profile_h.AddKernel("",
-                                          "",
-                                          k_info.kernel_file,
-                                          k_info.kernel_name,
-                                          k_info.l_wk,
-                                          k_info.g_wk,
-                                          k_info.comp_options);
+    return RunAndMeasureSolutionBase(
+        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
+}
 
-        kernel(bot_ocl_buf, wei_ocl_buf, top_ocl_buf);
+bool ConvHipImplicitGemmV4R4FwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
+{
+    if(!(ctx.IsFp32() || ctx.IsFp16()))
+        return false;
 
-        elapsed_time = profile_h.GetKernelTime();
-    }
-#ifdef NDEBUG
-    catch(miopen::Exception&)
-    {
-        return -1;
-    }
-#endif
-    return 0;
+    if(!ctx.direction.IsForward())
+        return false;
+
+    if(!ctx.Is2d())
+        return false;
+
+    // For fp16, when c*x*y % 4 == 0, 4 channels are accumulated through dot4 (2 * dot2) operation
+    const int MultipleOf = ctx.IsFp16() ? 32 : 8;
+    if((ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % MultipleOf != 0)
+        return false;
+
+    // padding support required for out_of_bound configs
+    bool no_out_of_bound = (ctx.in_width >= ((ctx.kernel_size_w - 1) * ctx.kernel_dilation_w + 1) +
+                                                (ctx.out_width - 1) * ctx.kernel_stride_w) &&
+                           (ctx.in_height >= ((ctx.kernel_size_h - 1) * ctx.kernel_dilation_h + 1) +
+                                                 (ctx.out_height - 1) * ctx.kernel_stride_h);
+
+    return IsXdlopsSupport(ctx) && no_out_of_bound && ctx.pad_h == 0 && ctx.pad_w == 0 &&
+           ctx.group_counts == 1 && ctx.n_outputs % 32 == 0 &&
+           (ctx.batch_sz * ctx.out_height * ctx.out_width) % 64 == 0;
+}
+
+bool ConvHipImplicitGemmV4R4Xdlops_1x1::IsApplicable(const ConvolutionContext& ctx) const
+{
+    return IsXdlopsSupport(ctx) && ctx.Is2d() && ctx.IsFp32() && ctx.pad_h == 0 && ctx.pad_w == 0 &&
+           ctx.group_counts == 1 && (ctx.batch_sz * ImgHeight(ctx) * ImgWidth(ctx)) % 64 == 0 &&
+           ctx.n_outputs % 32 == 0 &&
+           (ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % 8 == 0 &&
+           ctx.kernel_size_h == 1 && ctx.kernel_size_w == 1;
 }
 
 PerformanceImplicitGemmXdlops
-ConvHipImplicitGemmV4R4FwdXdlops::Search(const ConvolutionContext& context) const
+ConvHipImplicitGemmV4R4Xdlops_1x1::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
-    return GenericSearchFwd(*this, context);
+    return GetPerformanceConfigBase<PerformanceImplicitGemmXdlops>(ctx);
+}
+
+bool ConvHipImplicitGemmV4R4FwdXdlops::IsValidPerformanceConfig(
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmXdlops& c) const
+{
+    MIOPEN_LOG_I("");
+    return c.IsValidValue() && c.IsValid(ctx);
+}
+
+bool ConvHipImplicitGemmV4R4Xdlops_1x1::IsValidPerformanceConfig(
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmXdlops& c) const
+{
+    MIOPEN_LOG_I("");
+    return c.IsValidValue() && c.IsValid(ctx);
+}
+
+PerformanceImplicitGemmXdlops
+ConvHipImplicitGemmV4R4Xdlops_1x1::Search(const ConvolutionContext& ctx) const
+{
+    return GenericSearchFwd(*this, ctx);
+}
+
+PerformanceImplicitGemmXdlops
+ConvHipImplicitGemmV4R4FwdXdlops::Search(const ConvolutionContext& ctx) const
+{
+    return GenericSearchFwd(*this, ctx);
 }
 
 } // namespace solver

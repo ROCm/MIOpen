@@ -2,6 +2,7 @@
 #include "ConstantTensorDescriptor.hpp"
 #include "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer.hpp"
 #include "float_types.h"
+#include "implicitgemm_params.hpp"
 
 extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer(
     const FLOAT* const __restrict__ p_in_global,
@@ -18,8 +19,6 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw
     constexpr index_t Wi = CK_PARAM_PROBLEM_WI;
     constexpr index_t Ho = CK_PARAM_PROBLEM_HO;
     constexpr index_t Wo = CK_PARAM_PROBLEM_WO;
-
-    constexpr index_t Direction = CK_PARAM_PROBLEM_DIRECTION;
 
     constexpr index_t ConvStrideH = CK_PARAM_PROBLEM_CONV_STRIDE_H;
     constexpr index_t ConvStrideW = CK_PARAM_PROBLEM_CONV_STRIDE_W;
@@ -105,7 +104,7 @@ extern "C" __global__ void gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw
             decltype(wei_ck_desc),
             decltype(out_nkhw_desc),
             ConvStrides,
-            Direction,
+            static_cast<ImplicitGemmDirection>(CK_PARAM_PROBLEM_DIRECTION),
             BPerBlock,
             KPerBlock,
             CPerBlock,

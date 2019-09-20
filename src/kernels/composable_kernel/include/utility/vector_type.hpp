@@ -208,7 +208,6 @@ struct vector_type<ushort, 4>
         return data.vector;
     }
 };
-
 } // namespace ck
 
 #endif
