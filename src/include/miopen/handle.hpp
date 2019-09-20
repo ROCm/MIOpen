@@ -28,6 +28,8 @@
 
 #include <cstdio>
 #include <cstring>
+#include <ios>
+#include <sstream>
 #include <memory>
 #include <miopen/config.h>
 #include <miopen/common.hpp>
@@ -171,11 +173,16 @@ struct Handle : miopenHandle
 
     std::string GetDbBasename()
     {
-        // clang-format off
-        return GetDeviceName()
-             + "_"
-             + std::to_string(GetMaxComputeUnits());
-        // clang-format on
+        const auto ret = GetDeviceName() + [&]() {
+            std::ostringstream ss;
+            const auto ncu = GetMaxComputeUnits();
+            if(ncu <= 64)
+                ss << '_' << ncu;
+            else
+                ss << std::hex << ncu;
+            return std::string(ss.str());
+        }();
+        return ret;
     }
 
     std::unique_ptr<HandleImpl> impl;
