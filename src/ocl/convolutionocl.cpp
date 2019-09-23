@@ -58,6 +58,7 @@ namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_WINOGRAD)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
@@ -336,6 +337,8 @@ inline int EvaluateSCGemmSolution(Handle& handle,
 std::vector<miopen::solver::ConvSolution>
 ConvolutionDescriptor::FindWinogradSolutions(const ConvolutionContext& ctx) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
+        return {};
     try
     {
         return FindAllWinogradSolutions(ctx);
@@ -2270,7 +2273,7 @@ static inline bool IsAlgorithmDisabled(const miopenConvAlgorithm_t algo)
     case miopenConvolutionAlgoFFT:
         return miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{});
     case miopenConvolutionAlgoWinograd:
-        return false; // No dedicated control(s).
+        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{});
     case miopenConvolutionAlgoImplicitGEMM:
         return miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{});
     case miopenConvolutionAlgoStaticCompiledGEMM:
@@ -4104,9 +4107,9 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
             K, C, R, S, 1,
             GetTypeSize(ctx.weights_data_type));
 
-    int wino_xform_h = 
+    int wino_xform_h =
             solver::ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolverWinoXformHWSize(ctx,0),
-        wino_xform_w = 
+        wino_xform_w =
             solver::ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolverWinoXformHWSize(ctx,1);
     WinogradBufferInfo <WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
         wino_in(N,K,C,out_H,out_W,R,S,
@@ -4118,14 +4121,14 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
         wino_out(N,K,C,out_H,out_W,R,S,
             MemLayout_t::HWNC,
             1,GetTypeSize(ctx.out_data_type),
-            ConvWinoBuffType::Output, 
-            wino_xform_h, 
+            ConvWinoBuffType::Output,
+            wino_xform_h,
             wino_xform_w),
         wino_wei(N,K,C,out_H,out_W,R,S,
             MemLayout_t::HWNC,
             1,GetTypeSize(ctx.weights_data_type),
-            ConvWinoBuffType::Weight, 
-            wino_xform_h, 
+            ConvWinoBuffType::Weight,
+            wino_xform_h,
             wino_xform_w);
     float total_time = 0;
     // clang-format on
@@ -4562,8 +4565,11 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
         try
         {
-            const auto all = FindWinogradWrWAllSolutions(ctx);
-            float elapsed  = 0.0f;
+            const auto all = miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{})
+                                 ? std::vector<miopen::solver::ConvSolution>()
+                                 : FindWinogradWrWAllSolutions(ctx);
+
+            float elapsed = 0.0f;
             if(!all.empty())
             {
                 float best = std::numeric_limits<float>::max();

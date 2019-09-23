@@ -48,6 +48,7 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_SCGEMM)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_WINOGRAD)
 
 // Workaround for issue 1430.
 // Vega20 fails to access GPU memory larger than the return value of GetMaxMemoryAllocSize() of
@@ -323,6 +324,9 @@ ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMMTranspose(const TensorDescript
 /// These optimizations are kind of cutting corners, but advantages are quite high.
 bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(miopen::ConvolutionContext& ctx) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
+        return false;
+
     // Filter out configs where 3x3 Winograd does not have high WTI.
     if(!(ctx.n_outputs >= 16 && ctx.n_outputs % 2 == 0))
         return false;
@@ -733,6 +737,9 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeWinograd(Handle& handle,
                                                                const TensorDescriptor& xDesc,
                                                                const TensorDescriptor& dwDesc) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
+        return 0;
+
     auto ctx = ConvolutionContext(xDesc, dwDesc, dyDesc, *this, 0);
     ctx.direction.SetBackwardWrW();
     ctx.do_search = false;
