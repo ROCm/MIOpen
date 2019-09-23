@@ -48,18 +48,38 @@ The following list of environment variables allow for enabling/disabling various
 
 If a variable is not set, then MIOpen behaves as if it is set to `enabled`, unless otherwise specified. So all kinds of kernels/algorithms are enabled by default and the below variables can be used for disabling them.
 
+### Filtering by algorithm
+
+These variables control the sets (families) of convolution Solvers. For example, Direct algorithm is implemented by several Solvers written in openCL and assembly languages. The corresponding variable can disable them all.
 * `MIOPEN_DEBUG_CONV_FFT` - FFT convolution algorithm. 
 * `MIOPEN_DEBUG_CONV_DIRECT` - Direct convolution algorithm.
-* `MIOPEN_DEBUG_CONV_GEMM` - GEMM convolution algorithm. These are implemented on top of miopengemm or rocBlas.
-* `MIOPEN_DEBUG_GCN_ASM_KERNELS` - Kernels written in assembly language; includes direct algorithms and Winograd kernels.
-* `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM` – FP32 implicit GEMM convolution algorithm.
-* `MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES` - Binary kernels. Right now all the binary kernels are from the SCGEMM algorithm.
+* `MIOPEN_DEBUG_CONV_GEMM` - GEMM convolution algorithm.
+* `MIOPEN_DEBUG_CONV_WINOGRAD` - Winograd convolution algorithm.
+* `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM` – Implicit GEMM convolution algorithm.
+* `MIOPEN_DEBUG_CONV_SCGEMM` – Statically Compiled GEMM convolution algorithm.
 
-To disable all Winograd algorithms, the following three vars can be used:
-* `MIOPEN_DEBUG_AMD_WINOGRAD_3X3` - FP32 Winograd Fwd/Bwd, filter size fixed to 3x3.
-* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS` - FP32 and FP16 Winograd Fwd/Bwd, variable filter size.
-* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2` - FP32 and FP16 Winograd Fwd, variable filter size.
+### Filtering by build method
+
+* `MIOPEN_DEBUG_GCN_ASM_KERNELS` - Kernels written in assembly language. Currently these include some Direct solvers, Winograd kernels and SCGEMM.
+* `MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES` - Binary kernels. Right now the library does not use binaries.
+
+### Controlling the Solvers on individual basis
+
+Some of the available Solvers have individual controls:
+* `MIOPEN_DEBUG_AMD_WINOGRAD_3X3` - FP32 Winograd Fwd/Bwd, filter size fixed to 3x3. Solver name: `ConvBinWinograd3x3U`.
+* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS` - FP32 and FP16 Winograd Fwd/Bwd/WrW. Solver name: `ConvBinWinogradRxS`.
+* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW` - Subset of previous, controls only WrW (backward weights) convolutions of the `ConvBinWinogradRxS` solver.
+* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2` - FP32 and FP16 Fwd/Bwd F(3,2) Winograd. Solver name: `ConvBinWinogradRxSf3x2`.
 * `MIOPEN_DEBUG_AMD_FUSED_WINOGRAD` - Fused FP32 Winograd kernels, variable filter size.
+
+Family of Multi-pass Winograd Solvers:
+* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2`
+* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3`
+* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4`
+* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5`
+* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6`
+* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X2`
+* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X3`
 
 ## rocBlas Logging and Behavior
 The `ROCBLAS_LAYER` environmental variable can be set to output GEMM information:
@@ -79,3 +99,37 @@ both MIOpenGEMM and rocBlas depending on the input configuration:
 To disable using rocBlas entirely, set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off` during MIOpen configuration.
 
 More information on logging with RocBlas can be found [here](https://github.com/ROCmSoftwarePlatform/rocBLAS/wiki/5.Logging).
+
+## Experimental controls
+
+> **_NOTE: Using experimental controls may result in:_**
+> * Performance drops
+> * Computation inaccuracies
+> * Run-time errors
+> * Other kinds of unexpected behavior
+>
+> **_It is strongly recommended to use them only with the explicit permission or request of the library developers._**
+
+### Code Object (CO) version selection (EXPERIMENTAL)
+
+currently, ROCm fully supports Code Object version 2 (Co v2). The support for version 3 (CO v3) is being gradually introduced. These variables allows for experimenting and triaging problems related to CO version:
+* `MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE` - Overrides CO version auto-detection implemented in the library. `0` or unset - disable overriding (the default), `1` - enforces CO v2, `2` - behave as if both CO v2 and v3 are supported, `2` - enforces CO v3.
+* `MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_NEWER` - This variable affects only Solvers that able to produce either v2 or v3 code objects, and is intended to use only when ROCm supports both CO v2 and CO v3. By default, the older format is used (CO v2) by Solvers. When this variable is _enabled_, the behavior is reversed.
+* `MIOPEN_DEBUG_AMD_OPENCL_ENFORCE_COV3` - Enforces CO v3 for OpenCL kernels.
+
+### `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX`
+
+Syntax of value:
+* decimal or hex (with `0x` prefix) value that should fit into `unsigned long` (64 bits).
+* If syntax is violated, then the behavior is unspecified.
+
+Semantics:
+* Sets the **_limit_** (max allowed workspace size) for Multi-pass (MP) Winograd Solvers, in bytes.
+* Affects all MP Winograd Solvers. If a solver needs more workspace than the limit, then it does not apply.
+* If unset, then _the default_ limit is used. Current default is `2000000000` (~1.862 GiB) for gfx900 and gfx906/60 (or less CUs). No default limit is set for other GPUs and MP Winograd Solvers will try to make the most of the workspace.
+* Special values:
+```
+ 0 - Use the default limit, as if the variable is unset.
+ 1 - Completely prohibit the use of workspace.
+-1 - Remove the default limit.
+```
