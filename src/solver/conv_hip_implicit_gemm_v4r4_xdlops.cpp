@@ -335,7 +335,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         ctx.direction.IsBackwardData() ? 1 : WeiBlockCopySrcDataPerRead_E;
 
     // TBD: Due to underlying bug, we need to restrict reading/writing only 1 fp16 value at a time
-    if(ctx.IsFp16())
+    if(ctx.IsFp16() || ctx.IsBfp16())
     {
         WeiBlockCopySrcDataPerRead_E  = 1;
         WeiBlockCopyDstDataPerWrite_K = 1;
@@ -447,7 +447,7 @@ int ConvHipImplicitGemmV4R4Xdlops_1x1::RunAndMeasureSolution(miopen::Handle& pro
 
 bool ConvHipImplicitGemmV4R4FwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
-    if(!(ctx.IsFp32() || ctx.IsFp16()))
+    if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 
     if(!ctx.direction.IsForward())
@@ -457,7 +457,7 @@ bool ConvHipImplicitGemmV4R4FwdXdlops::IsApplicable(const ConvolutionContext& ct
         return false;
 
     // For fp16, when c*x*y % 4 == 0, 4 channels are accumulated through dot4 (2 * dot2) operation
-    const int MultipleOf = ctx.IsFp16() ? 32 : 8;
+    const int MultipleOf = ctx.IsFp16() ? 32 : ctx.IsBfp16() ? 16 : 8;
     if((ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % MultipleOf != 0)
         return false;
 
