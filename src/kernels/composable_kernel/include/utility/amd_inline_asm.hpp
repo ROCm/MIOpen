@@ -404,7 +404,7 @@ __device__ void gcnasm_mfma_f32_32x32x2bf16<64>(typename vector_type<ushort, 2>:
 {
 #if CK_USE_INLINE_ASM_XDLOPS
     (void)reg_c;
-    MFMA_F32_32x32x2BF16(0, reg_a, reg_b, 1, 0, 0) MFMA_F32_32x32x1F32(32, reg_a, reg_b, 1, 1, 0)
+    MFMA_F32_32x32x2BF16(0, reg_a, reg_b, 1, 0, 0) MFMA_F32_32x32x2BF16(32, reg_a, reg_b, 1, 1, 0)
 #else
     reg_c[0] = __llvm_amdgcn_mfma_f32_32x32x2bf16(reg_a, reg_b, reg_c[0], 1, 0, 0);
     reg_c[1] = __llvm_amdgcn_mfma_f32_32x32x2bf16(reg_a, reg_b, reg_c[1], 1, 1, 0);
