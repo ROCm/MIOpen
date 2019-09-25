@@ -82,9 +82,9 @@ typedef MLO_POOLING_INDEX_TYPE index_t;
 **********************************************************************************/
 
 #define MLO_BOT_DATA_SZ0 \
-    (MLO_POOLING_N_HORIZ_OUT_PIX * MLO_POOLING_STRIDE0 + MLO_POOLING_KERNEL_SZ0 - 1)
+    ((MLO_POOLING_N_HORIZ_OUT_PIX - 1) * MLO_POOLING_STRIDE0 + MLO_POOLING_KERNEL_SZ0)
 #define MLO_BOT_DATA_SZ1 \
-    (MLO_POOLING_N_VERT_OUT_PIX * MLO_POOLING_STRIDE1 + MLO_POOLING_KERNEL_SZ1 - 1)
+    ((MLO_POOLING_N_VERT_OUT_PIX - 1) * MLO_POOLING_STRIDE1 + MLO_POOLING_KERNEL_SZ1)
 
 __attribute__((reqd_work_group_size(MLO_POOLING_GROUP_SZ0,
                                     MLO_POOLING_GROUP_SZ1,
