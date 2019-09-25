@@ -29,21 +29,23 @@
 #include <iterator>
 #include <limits>
 #include <memory>
+
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
+#include <miopen/stringutils.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/solver.hpp>
+#include <miopen/algorithm.hpp>
 #include <utility>
 
 #include "driver.hpp"
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
-#include <miopen/stringutils.hpp>
+
 #include "tensor_util.hpp"
-#include <miopen/algorithm.hpp>
 #include "cpu_conv.hpp"
 #include "network_data.hpp"
 #include "miopen/find_db.hpp"
@@ -67,8 +69,8 @@ static bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
         auto ctx          = miopen::ConvolutionContext{xDesc, wDesc, yDesc, convDesc, direction};
         ctx.do_search     = false;
         ctx.save_srch_req = false;
-        ctx.workaround_disable_search_enforce = true;
-        ctx.general_compile_options           = "";
+        ctx.disable_perfdb_access   = true;
+        ctx.general_compile_options = "";
         ctx.SetStream(&handle);
         ctx.SetupFloats();
         ctx.DetectRocm();
@@ -90,10 +92,10 @@ static bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
     auto ctx = miopen::ConvolutionContext{xDesc, wDesc, yDesc, convDesc, 0};
 
     ctx.direction.SetBackwardWrW();
-    ctx.do_search                         = false;
-    ctx.save_srch_req                     = false;
-    ctx.general_compile_options           = "";
-    ctx.workaround_disable_search_enforce = true;
+    ctx.do_search               = false;
+    ctx.save_srch_req           = false;
+    ctx.general_compile_options = "";
+    ctx.disable_perfdb_access   = true;
     ctx.SetStream(&handle);
     ctx.SetupFloats();
     ctx.DetectRocm();
@@ -999,7 +1001,6 @@ struct conv_driver : test_driver
     bool do_backward_weights = true;
     int search               = 0;
     bool gen_float           = false;
-    bool dry_run             = false;
 
     std::unordered_map<std::string, std::size_t> conv_dim_lookup = {{"CONV2D", 2}, {"CONV3D", 3}};
 
@@ -1029,13 +1030,6 @@ struct conv_driver : test_driver
 
     void run()
     {
-        // Dry run prints just the entire command. One way to list all configs
-        if(dry_run)
-        {
-            show_command();
-            return;
-        }
-
         filter.spatialDim       = conv_dim_lookup[miopen::ToUpper(conv_dim_type)];
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];

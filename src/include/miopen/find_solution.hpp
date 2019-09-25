@@ -45,6 +45,11 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
     -> decltype(s.GetSolution(context, s.Search(context)))
 {
     const FindEnforce enforce;
+    if(context.disable_perfdb_access)
+    {
+        MIOPEN_LOG_I(SolverDbId(s) << " (db access disabled)");
+        return s.GetSolution(context, s.GetPerformanceConfig(context));
+    }
     MIOPEN_LOG_I(SolverDbId(s));
     if(enforce.IsDbClean(context))
     {
@@ -202,6 +207,25 @@ struct SolverContainer
             },
             Solvers{}...);
         return ss;
+    }
+    template <class Context>
+    std::vector<std::pair<std::string, size_t>> GetWorkspaceSize(const Context& search_params) const
+    {
+        std::vector<std::pair<std::string, size_t>> res;
+        miopen::each_args(
+            [&](auto solver) {
+                if(solver.IsApplicable(search_params))
+                {
+                    auto sz = solver.GetWorkspaceSize(search_params);
+                    res.push_back(std::make_pair(SolverDbId(solver), sz));
+                }
+                else
+                {
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
+                }
+            },
+            Solvers{}...);
+        return res;
     }
 };
 

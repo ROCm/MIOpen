@@ -651,6 +651,7 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
             int i2 = (i % (INPUT_W * INPUT_H)) % INPUT_W;
 #endif
 
+#if !USE_SOFTMAX_LOG
             int y_gidx = OUT_OFFSET;
 #if IS_OUTPUT_PACKED
             y_gidx += mad24(n, vector_size, i) * spatial_dim + s;
@@ -660,6 +661,7 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
             y_gidx += i0 * OUTPUT_C_STRIDE + i1 * OUTPUT_H_STRIDE + i2;
 #else
             y_gidx += i * OUTPUT_C_STRIDE + s0 * OUTPUT_H_STRIDE + s1;
+#endif
 #endif
 #endif
 
@@ -675,7 +677,11 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
 #endif
 #endif
 
-            channel_dot += y[y_gidx] * dy[dy_gidx];
+            channel_dot +=
+#if !USE_SOFTMAX_LOG
+                y[y_gidx] *
+#endif
+                dy[dy_gidx];
         }
 
         // Now we have to compute the sum from 256 values (one per each thread)
@@ -716,8 +722,6 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
 #endif
 #endif
 
-            _FLOAT value = dy[dy_gidx] - channel_dot;
-
             int dx_gidx = DIN_OFFSET;
 #if IS_DINPUT_PACKED
             dx_gidx += mad24(n, vector_size, i) * spatial_dim + s;
@@ -730,7 +734,6 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
 #endif
 #endif
 
-#if !USE_SOFTMAX_LOG
             int y_gidx = OUT_OFFSET;
 #if IS_OUTPUT_PACKED
             y_gidx += mad24(n, vector_size, i) * spatial_dim + s;
@@ -742,7 +745,12 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
             y_gidx += i * OUTPUT_C_STRIDE + s0 * OUTPUT_H_STRIDE + s1;
 #endif
 #endif
-            value *= y[y_gidx];
+
+            _FLOAT value = dy[dy_gidx];
+#if USE_SOFTMAX_LOG
+            value -= channel_dot * exp(y[y_gidx]);
+#else
+            value = (value - channel_dot) * y[y_gidx];
 #endif
 
 #if USE_ALPHA
@@ -842,11 +850,19 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
             y_value[lid * U_BATCH_SIZE + index]  = tmp1;
             _FLOAT tmp2                          = dy[dy_gidx];
             dx_value[lid * U_BATCH_SIZE + index] = tmp2;
-            channel_dot += tmp1 * tmp2;
+            channel_dot +=
+#if !USE_SOFTMAX_LOG
+                tmp1 *
+#endif
+                tmp2;
 #else
             y_value[index]  = y[y_gidx];
             dx_value[index] = dy[dy_gidx];
-            channel_dot += y_value[index] * dx_value[index];
+            channel_dot +=
+#if !USE_SOFTMAX_LOG
+                y_value[index] *
+#endif
+                dx_value[index];
 #endif
         }
     }
@@ -894,11 +910,12 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
         v_idx += lid * U_BATCH_SIZE;
 #endif
 
-        dx_value[v_idx] -= channel_dot;
         if(mad24(batch_n, vector_size, i) * spatial_dim + batch_s < vector_size * grid_size)
         {
-#if !USE_SOFTMAX_LOG
-            dx_value[v_idx] *= y_value[v_idx];
+#if USE_SOFTMAX_LOG
+            dx_value[v_idx] -= channel_dot * exp(y_value[v_idx]);
+#else
+            dx_value[v_idx] = (dx_value[v_idx] - channel_dot) * y_value[v_idx];
 #endif
 
 #if USE_ALPHA

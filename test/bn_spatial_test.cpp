@@ -1113,8 +1113,6 @@ struct batch_norm_spatial_driver : test_driver
     batch_norm_spatial_driver()
     {
         this->batch_factor = 4;
-
-        // this->verbose=true;
         add(input,
             "input",
             get_bn_spatial_input_tensor(

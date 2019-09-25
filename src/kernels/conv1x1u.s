@@ -125,7 +125,7 @@ hi_output_channels = (output_channels + vec_k_out - 1) / vec_k_out
 
 s_pack_instructions_available = 0
 dot_instructions_available = 0
-.if (.option.machine_version_major == 9) && (.option.machine_version_minor == 0) && (.option.machine_version_stepping == 6)
+.if (.option.machine_version_major == 9) && (.option.machine_version_minor == 0) && (.option.machine_version_stepping >= 6)
     dot_instructions_available = 1
 .endif
 madmix_instructions_available = 0

@@ -39,6 +39,7 @@ miopenConvFwdAlgorithm_t StringToConvolutionFwdAlgo(const std::string& s)
         {"miopenConvolutionFwdAlgoFFT", miopenConvolutionFwdAlgoFFT},
         {"miopenConvolutionFwdAlgoWinograd", miopenConvolutionFwdAlgoWinograd},
         {"miopenConvolutionFwdAlgoImplicitGEMM", miopenConvolutionFwdAlgoImplicitGEMM},
+        {"miopenConvolutionFwdAlgoStaticCompiledGEMM", miopenConvolutionFwdAlgoStaticCompiledGEMM},
     };
     return data.at(s);
 }
@@ -75,6 +76,7 @@ std::string ConvolutionAlgoToString(const miopenConvAlgorithm_t algo)
     case miopenConvolutionAlgoFFT: return "miopenConvolutionAlgoFFT";
     case miopenConvolutionAlgoWinograd: return "miopenConvolutionAlgoWinograd";
     case miopenConvolutionAlgoImplicitGEMM: return "miopenConvolutionAlgoImplicitGEMM";
+    case miopenConvolutionAlgoStaticCompiledGEMM: return "miopenConvolutionAlgoStaticCompiledGEMM";
     }
     return "<invalid algorithm>";
 }
@@ -94,7 +96,10 @@ std::string ConvolutionAlgoToDirectionalString(const miopenConvAlgorithm_t algo,
         case miopenConvolutionAlgoFFT: return "miopenConvolutionFwdAlgoFFT";
         case miopenConvolutionAlgoWinograd: return "miopenConvolutionFwdAlgoWinograd";
         case miopenConvolutionAlgoImplicitGEMM: return "miopenConvolutionFwdAlgoImplicitGEMM";
+        case miopenConvolutionAlgoStaticCompiledGEMM:
+            return "miopenConvolutionFwdAlgoStaticCompiledGEMM";
         }
+        break;
     }
     case miopenConvBwdData:
     {
@@ -105,7 +110,9 @@ std::string ConvolutionAlgoToDirectionalString(const miopenConvAlgorithm_t algo,
         case miopenConvolutionAlgoFFT: return "miopenConvolutionBwdDataAlgoFFT";
         case miopenConvolutionAlgoWinograd: return "miopenConvolutionBwdDataAlgoWinograd";
         case miopenConvolutionAlgoImplicitGEMM: return "miopenConvolutionBwdDataAlgoImplicitGEMM";
+        case miopenConvolutionAlgoStaticCompiledGEMM: break;
         }
+        break;
     }
     case miopenConvBwdWeights:
     {
@@ -117,7 +124,9 @@ std::string ConvolutionAlgoToDirectionalString(const miopenConvAlgorithm_t algo,
         case miopenConvolutionAlgoWinograd: return "miopenConvolutionBwdWeigthtsAlgoWinograd";
         case miopenConvolutionAlgoImplicitGEMM:
             return "miopenConvolutionBwdWeightsAlgoImplicitGEMM";
+        case miopenConvolutionAlgoStaticCompiledGEMM: break;
         }
+        break;
     }
     }
     return "<invalid algorithm>";

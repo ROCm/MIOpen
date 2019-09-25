@@ -237,6 +237,7 @@ Allocator::ManageDataPtr Handle::Create(std::size_t sz)
     this->Finish();
     return this->impl->allocator(sz);
 }
+
 Allocator::ManageDataPtr&
 Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz)
 {
@@ -247,6 +248,7 @@ Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t s
         MIOPEN_THROW_HIP_STATUS(status, "Hip error writing to buffer: ");
     return ddata;
 }
+
 void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz)
 {
     MIOPEN_HANDLE_LOCK
@@ -402,6 +404,16 @@ std::size_t Handle::GetMaxComputeUnits()
     int result;
     auto status =
         hipDeviceGetAttribute(&result, hipDeviceAttributeMultiprocessorCount, this->impl->device);
+    if(status != hipSuccess)
+        MIOPEN_THROW_HIP_STATUS(status);
+
+    return result;
+}
+
+std::size_t Handle::GetImage3dMaxWidth()
+{
+    int result;
+    auto status = hipDeviceGetAttribute(&result, hipDeviceAttributeMaxGridDimX, this->impl->device);
     if(status != hipSuccess)
         MIOPEN_THROW_HIP_STATUS(status);
 

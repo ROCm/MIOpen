@@ -242,12 +242,17 @@ struct ConvolutionContext : ProblemDescription
     // Solution-specific
     std::string general_compile_options;
     // Operation modes & environment
-    bool do_search                         = false;
-    bool save_srch_req                     = false;
-    bool use_asm_kernels                   = false;
-    bool use_binaries                      = true;
-    rocm_meta_version rmv                  = rocm_meta_version::Default;
-    bool workaround_disable_search_enforce = false;
+    bool do_search              = false;
+    bool save_srch_req          = false;
+    bool use_asm_kernels        = false;
+    bool use_binaries           = true;
+    rocm_meta_version rmv       = rocm_meta_version::Default;
+    bool disable_search_enforce = false;
+    // Skip perf-db reads and use the default performance configuration. This is used, for example,
+    // to optimize the getWorkspaceSize() calls for speed. This specific optimization is correct
+    // because Solvers shall be written so that the required workspace size does not depend on the
+    // performance config.
+    bool disable_perfdb_access = false;
 
     inline Handle& GetStream() const { return *_stream; }
     inline void SetStream(Handle* stream) { _stream = stream; }
@@ -283,6 +288,8 @@ struct ConvolutionContext : ProblemDescription
         return GetUserDbPath()
              + "/"
              + GetStream().GetDbBasename()
+			 + "."
+			 + GetUserDbSuffix()
              + ".cd.updb.txt";
         // clang-format on
     }
@@ -339,17 +346,29 @@ auto FindAllSolutions(T& x) -> decltype(x.FindAllSolutions())
 std::vector<miopen::solver::ConvSolution>
 FindAllDirectSolutions(const miopen::ConvolutionContext& ctx);
 
+std::vector<std::pair<std::string, size_t>>
+AllDirectForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx);
+std::vector<std::pair<std::string, size_t>>
+AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx);
+
 std::vector<miopen::solver::ConvSolution>
 FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx);
 
+std::vector<miopen::solver::ConvSolution>
+FindAllWinogradSolutions(const miopen::ConvolutionContext& ctx);
 miopen::solver::ConvSolution FindWinogradSolution(const miopen::ConvolutionContext& ctx);
-miopen::solver::ConvSolution FindWinogradWrWSolution(const miopen::ConvolutionContext& ctx);
+
+std::vector<miopen::solver::ConvSolution>
+FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx);
 
 std::vector<miopen::solver::ConvSolution>
 FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx);
 
 std::vector<miopen::solver::ConvSolution>
 FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx);
+
+std::vector<miopen::solver::ConvSolution>
+FindAllFwdSCGemmSolutions(const miopen::ConvolutionContext& ctx);
 
 /*
  * returns parameter values that are compiled in legacy kernels for kernels using them as
@@ -879,5 +898,4 @@ struct mlo_construct_neuron : mlo_construct_activ_lrn_pooling_common
     double _beta;
     double _alpha;
 };
-
 #endif

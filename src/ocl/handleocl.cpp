@@ -605,6 +605,11 @@ std::size_t Handle::GetMaxComputeUnits()
     return miopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(miopen::GetDevice(this->GetStream()));
 }
 
+std::size_t Handle::GetImage3dMaxWidth()
+{
+    return miopen::GetDeviceInfo<CL_DEVICE_IMAGE3D_MAX_WIDTH>(miopen::GetDevice(this->GetStream()));
+}
+
 Allocator::ManageDataPtr Handle::Create(std::size_t sz)
 {
     MIOPEN_HANDLE_LOCK
