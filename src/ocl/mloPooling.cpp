@@ -53,6 +53,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <miopen/mlo_utils.hpp>
 #include <miopen/logger.hpp>
 
+// get the previous (less or equal to v) power of 2
+int prePow2(int v)
+{
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    return (v + 1) >> 1;
+}
+
 static std::string get_pooling_index_type_name(miopenIndexType_t index_type)
 {
     switch(index_type)
@@ -108,21 +119,23 @@ int mlo_construct_pooling2D::mloConstructFwd()
 {
     int ret = 0;
 
-    _grp_tile0 = 8;
-    _grp_tile1 = 8;
+    _out_pix_tile0 = 1;
+    _out_pix_tile1 = _search_params.out_height <= 8 ? 1 : _search_params.out_height <= 32 ? 4 : 8;
+    if(_search_params.out_height > 16 && _search_params.out_height % 32 > 16)
+        _out_pix_tile1 =
+            std::min(16, std::max(1, prePow2(_out_pix_tile1 * _search_params.kernel_stride_h)));
 
-    _out_pix_tile0 = std::max(1, 8 / _search_params.kernel_stride_w);
-    _out_pix_tile1 = std::max(1, 8 / _search_params.kernel_stride_h);
-
-    while(_out_pix_tile0 * _grp_tile0 > _search_params.out_width * 2 && _out_pix_tile0 > 1)
-    {
-        _out_pix_tile0 >>= 1;
-    }
-
-    while(_out_pix_tile1 * _grp_tile1 > _search_params.out_height * 2 && _out_pix_tile1 > 1)
-    {
-        _out_pix_tile1 >>= 1;
-    }
+    _grp_tile0 =
+        _search_params.out_width <= 8 ? 8 : (_search_params.out_width % 32 <= 16 ? 16 : 32);
+    _grp_tile1 =
+        _search_params.out_height <= 8 ? 8 : _search_params.out_height < 16
+                                                 ? 16
+                                                 : _search_params.out_height <= 32
+                                                       ? 32
+                                                       : _search_params.out_height <= 64 ? 64 : 128;
+    _grp_tile1 /= _out_pix_tile1;
+    while(_grp_tile0 * _grp_tile1 > 256 && _grp_tile0 > 1)
+        _grp_tile0 >>= 1;
 
     _comp_options = std::string(" -DMLO_POOLING_OP_ID=") +
                     std::to_string(static_cast<long long>(_pooling_method)) +
