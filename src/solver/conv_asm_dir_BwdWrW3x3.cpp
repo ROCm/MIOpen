@@ -337,11 +337,13 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
 {
     if(!params.use_asm_kernels)
         return false;
+    if(!params.Is2d())
+        return false;
     if(params.rmv != rocm_meta_version::AMDHSA_1_0)
         return false;
 
     const std::string name = params.GetStream().GetDeviceName();
-    if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
+    if(name.find("gfx9") == std::string::npos)
     {
         return false;
     }

@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include "miopen/solver.hpp"
+#include "miopen/stringutils.hpp"
 #include <miopen/env.hpp>
 
 namespace miopen {
@@ -37,6 +38,8 @@ static bool WorkaroundSwdev168168() { return true; }
 
 bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 {
+    if(!params.Is2d())
+        return false;
     if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
 
@@ -274,6 +277,26 @@ static inline void ComputeNumInputWidthLoops(
     }
 }
 
+size_t ConvOclBwdWrW53::GetWorkspaceSize(const ConvolutionContext& params) const
+{
+    int n_stacks = std::min(params.batch_sz, 1);
+    int N_BATCH_LOOPS =
+        (params.n_inputs * params.n_outputs <= 8 * 1024)
+            ? 1
+            : (params.batch_sz <= 16 || params.in_width <= 32) ? (params.batch_sz / n_stacks) : 4;
+    int n_batch_blks =
+        (params.batch_sz + N_BATCH_LOOPS * n_stacks - 1) / (N_BATCH_LOOPS * n_stacks);
+    if(n_batch_blks > 1)
+    {
+        int wei_bstride = (params.n_outputs / params.group_counts) *
+                          (params.kernel_size_w * params.kernel_size_h);
+        int data_len = GetTypeSize(params.out_data_type);
+        return wei_bstride * params.n_inputs * n_batch_blks * data_len;
+    }
+    else
+        return 0;
+}
+
 ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
@@ -432,7 +455,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     if(!params.direction.IsBackwardWrW())
         MIOPEN_THROW("!params.direction.IsBackwardWrW()");
     // it's backward - inputs are outputs and vs versa
-    const auto comp_options =
+    auto comp_options =
         std::string(" -DMLO_DIR_FORWARD=0") + std::string(" -DMLO_GRP_SZ=") +
         std::to_string(GRP_SZ) + std::string(" -DMLO_GRP_SZ0=") + std::to_string(result.grp_tile0) +
         std::string(" -DMLO_GRP_SZ1=") + std::to_string(result.grp_tile1) +
@@ -503,6 +526,14 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         //		+ std::string(" -limit-vector-registers=64 ")
         + params.general_compile_options;
 
+    // On gfx908 hardware, the compiler doesn't seem to support #pragam unroll correctly
+    // References: PR: #1962 and SWDEV-200074
+    const auto name = params.GetStream().GetDeviceName();
+    if(StartsWith(name, "gfx908"))
+    {
+        comp_options += " -DMLO_DISABLE_PRAGMA_UNROLL_COMPILER_SWDEV_200074_WORKAROUND=1";
+    }
+
     // wrt to W
     {
         KernelInfo kernel;
@@ -538,7 +569,6 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
 
         kernel.comp_options = comp_options;
         result.construction_params.push_back(kernel);
-        result.workspce_sz = 0;
     }
 
     // sum over batch
@@ -560,11 +590,9 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         kernel.g_wk.push_back(1);
         kernel.g_wk.push_back(1);
 
-        int data_len = GetTypeSize(params.out_data_type);
-
         result.construction_params.push_back(kernel);
-        result.workspce_sz = wei_bstride * params.n_inputs * n_batch_blks * data_len;
     }
+    result.workspce_sz = GetWorkspaceSize(params);
     return result;
 }
 } // namespace solver

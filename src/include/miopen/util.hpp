@@ -101,7 +101,9 @@ float transpose_NCHW2Vec(Handle& handle,
                          Data_t out,
                          std::size_t vec_size,
                          bool trans,
-                         bool forward);
+                         bool forward,
+                         const void* alpha,
+                         const void* beta);
 
 float transpose_packed_MN2NM(Handle& handle,
                              int m,

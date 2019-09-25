@@ -43,23 +43,15 @@ struct ConstantTensorDescriptor
         return Sequence<IDim>{};
     }
 
-    __host__ __device__ static constexpr index_t GetNumOfDimension() { return nDim; }
+    __host__ __device__ static constexpr auto GetNumOfDimension() { return Number<nDim>{}; }
 
     __host__ __device__ static constexpr auto GetLengths() { return Lengths{}; }
 
     __host__ __device__ static constexpr auto GetStrides() { return Strides{}; }
 
-    template <index_t I>
-    __host__ __device__ static constexpr index_t GetLength(Number<I>)
-    {
-        return Lengths::Get(Number<I>{});
-    }
+    __host__ __device__ static constexpr auto GetLength(index_t IDim) { return Lengths{}[IDim]; }
 
-    template <index_t I>
-    __host__ __device__ static constexpr index_t GetStride(Number<I>)
-    {
-        return Strides::Get(Number<I>{});
-    }
+    __host__ __device__ static constexpr auto GetStride(index_t IDim) { return Strides{}[IDim]; }
 
     struct lambda_AreDimensionsContinuous
     {
@@ -102,17 +94,18 @@ struct ConstantTensorDescriptor
         return false;
     }
 
-    __host__ __device__ static constexpr index_t GetElementSize()
+    __host__ __device__ static constexpr auto GetElementSize()
     {
-        return accumulate_on_sequence(Lengths{}, math::multiplies<index_t>{}, Number<1>{});
+        return Number<accumulate_on_sequence(
+            Lengths{}, math::multiplies<index_t>{}, Number<1>{})>{};
     }
 
-    __host__ __device__ static constexpr index_t GetElementSpace()
+    __host__ __device__ static constexpr auto GetElementSpace()
     {
         constexpr index_t element_space_unaligned = accumulate_on_sequence(
             (GetLengths() - Number<1>{}) * GetStrides(), math::plus<index_t>{}, Number<1>{});
 
-        return element_space_unaligned;
+        return Number<element_space_unaligned>{};
     }
 
     // emulate constexpr lambda
@@ -156,13 +149,14 @@ struct ConstantTensorDescriptor
     }
 
     template <index_t... Is>
-    __host__ __device__ static constexpr index_t GetOffsetFromMultiIndex(Sequence<Is...>)
+    __host__ __device__ static constexpr auto GetOffsetFromMultiIndex(Sequence<Is...>)
     {
         static_assert(sizeof...(Is) == nDim, "wrong! Dimension not consistent");
 
         constexpr auto multi_id = Sequence<Is...>{};
 
-        return accumulate_on_sequence(multi_id * GetStrides(), math::plus<index_t>{}, Number<0>{});
+        return Number<accumulate_on_sequence(
+            multi_id * GetStrides(), math::plus<index_t>{}, Number<0>{})>{};
     }
 
     // emulate constexpr lambda
@@ -369,6 +363,12 @@ struct ConstantTensorDescriptor
         return ConstantTensorDescriptor<decltype(new_lengths), decltype(new_strides)>{};
     }
 
+    template <index_t IDim, index_t... FoldIntervals>
+    __host__ __device__ static constexpr auto Fold(Number<IDim>, Sequence<FoldIntervals...>)
+    {
+        return Fold(Number<IDim>{}, Number<FoldIntervals>{}...);
+    }
+
     // this function unfold dimension [FirstUnfoldDim, ..., LastUnfoldDim] into 1 dimension
     template <index_t FirstUnfoldDim, index_t LastUnfoldDim>
     __host__ __device__ static constexpr auto Unfold(Number<FirstUnfoldDim>, Number<LastUnfoldDim>)
@@ -407,6 +407,12 @@ struct ConstantTensorDescriptor
         return ConstantTensorDescriptor<decltype(new_lengths), decltype(new_strides)>{};
     }
 
+    __host__ __device__ static constexpr auto Pack()
+    {
+        using packed_strides = decltype(calculate_tensor_strides_packed(Lengths{}));
+        return ConstantTensorDescriptor<Lengths, packed_strides>{};
+    }
+
     template <class MapNew2Old>
     __host__ __device__ static constexpr auto ReorderGivenNew2Old(MapNew2Old)
     {
@@ -414,14 +420,12 @@ struct ConstantTensorDescriptor
                                         decltype(Strides::ReorderGivenNew2Old(MapNew2Old{}))>{};
     }
 
-#if 0 // require sequence_sort, which is not implemented yet
     template <class MapOld2New>
     __host__ __device__ static constexpr auto ReorderGivenOld2New(MapOld2New)
     {
         return ConstantTensorDescriptor<decltype(Lengths::ReorderGivenOld2New(MapOld2New{})),
-                                        decltype(Strides::ReorderGivenOld2New(MapOld2New{}))>{}
+                                        decltype(Strides::ReorderGivenOld2New(MapOld2New{}))>{};
     }
-#endif
 };
 
 template <class Lengths>
@@ -451,7 +455,7 @@ print_ConstantTensorDescriptor(const char* s,
 {
     constexpr index_t ndim = sizeof...(Lengths);
 
-    static_assert(ndim > 0 && ndim <= 10, "wrong!");
+    static_assert(ndim > 0 && ndim <= 12, "wrong!");
 
     static_if<ndim == 1>{}([&](auto) {
         printf("%s dim %u, lengths {%u}, strides {%u}\n", s, ndim, Lengths..., Strides...);
@@ -517,6 +521,26 @@ print_ConstantTensorDescriptor(const char* s,
 
     static_if<ndim == 10>{}([&](auto) {
         printf("%s dim %u, lengths {%u %u %u %u %u %u %u %u %u %u}, strides {%u %u %u %u %u %u %u "
+               "%u %u %u}\n",
+               s,
+               ndim,
+               Lengths...,
+               Strides...);
+    });
+
+    static_if<ndim == 11>{}([&](auto) {
+        printf("%s dim %u, lengths {%u %u %u %u %u %u %u %u %u %u %u}, strides {%u %u %u %u %u %u "
+               "%u %u "
+               "%u %u %u}\n",
+               s,
+               ndim,
+               Lengths...,
+               Strides...);
+    });
+
+    static_if<ndim == 12>{}([&](auto) {
+        printf("%s dim %u, lengths {%u %u %u %u %u %u %u %u %u %u %u %u}, strides {%u %u %u %u %u "
+               "%u %u %u %u "
                "%u %u %u}\n",
                s,
                ndim,

@@ -52,8 +52,7 @@ std::string FindDbRecord::GetInstalledPath(Handle& handle)
 
 std::string FindDbRecord::GetUserPath(Handle& handle)
 {
-    return GetUserDbPath() + "/" + handle.GetDbBasename() + "." + GetUserFindDbSuffix() +
-           ".ufdb.txt";
+    return GetUserDbPath() + "/" + handle.GetDbBasename() + "." + GetUserDbSuffix() + ".ufdb.txt";
 }
 
 bool FindDbRecord::CopyValidating(Handle& handle, std::vector<PerfField>& to) const

@@ -36,12 +36,14 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& p
 {
     if(!params.use_asm_kernels)
         return false;
+    if(!params.Is2d())
+        return false;
     if(params.rmv != rocm_meta_version::AMDHSA_1_0)
         return false;
 
     const std::string name = params.GetStream().GetDeviceName();
     if(!(name == "gfx800" || name == "gfx802" || name == "gfx803" || name == "gfx804" ||
-         name == "gfx900" || name == "gfx904" || name == "gfx906"))
+         name == "gfx900" || name == "gfx904" || name == "gfx906" || name == "gfx908"))
     {
         return false;
     }

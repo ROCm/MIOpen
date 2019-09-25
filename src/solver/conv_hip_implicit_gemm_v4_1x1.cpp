@@ -26,29 +26,27 @@
 
 #include "miopen/solver.hpp"
 #include "miopen/handle.hpp"
+#include "miopen/stringutils.hpp"
 
 namespace miopen {
 namespace solver {
 
-static bool WorkaroundGithub1826() { return true; }
+static inline int ImgHeight(const ConvolutionContext& c)
+{
+    return c.direction.IsForward() ? c.out_height : c.in_height;
+}
+
+static inline int ImgWidth(const ConvolutionContext& c)
+{
+    return c.direction.IsForward() ? c.out_width : c.in_width;
+}
 
 bool ConvHipImplicitGemmV4_1x1::IsApplicable(const ConvolutionContext& ctx) const
 {
-    bool workaround = false;
-
-    if(WorkaroundGithub1826())
-    {
-        // workaround for Github issue 1826
-        workaround = workaround ||
-                     ((!ctx.direction.IsForward()) &&
-                      (ctx.kernel_stride_h > 1 || ctx.kernel_stride_w > 1) && ctx.n_outputs > 128);
-    }
-
-    return !workaround &&
-           (ctx.IsFp32() && ctx.spatial_dims == 2 && ctx.pad_h == 0 && ctx.pad_w == 0 &&
-            ctx.group_counts == 1 && ctx.batch_sz % 8 == 0 &&
-            (ctx.batch_sz * ctx.out_height * ctx.out_width) % 128 == 0 && ctx.n_inputs % 16 == 0 &&
-            ctx.n_outputs % 128 == 0 && ctx.kernel_size_h == 1 && ctx.kernel_size_w == 1);
+    return ctx.IsFp32() && ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.group_counts == 1 &&
+           ctx.batch_sz % 8 == 0 && (ctx.batch_sz * ImgHeight(ctx) * ImgWidth(ctx)) % 128 == 0 &&
+           ctx.n_outputs % 128 == 0 && ctx.kernel_size_h == 1 && ctx.kernel_size_w == 1 &&
+           ctx.n_inputs % 16 == 0 && ctx.kernel_dilation_h == 1 && ctx.kernel_dilation_w == 1;
 }
 
 ConvSolution ConvHipImplicitGemmV4_1x1::GetSolution(const ConvolutionContext& ctx) const
@@ -101,8 +99,12 @@ ConvSolution ConvHipImplicitGemmV4_1x1::GetSolution(const ConvolutionContext& ct
     construction_parameters.kernel_name =
         "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer";
 
+    bool use_amd_inline_asm = true;
+    if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx8"))
+        use_amd_inline_asm = false;
+
     // clang-format off
-    construction_parameters.comp_options = 
+    construction_parameters.comp_options =
         std::string(" -std=c++14 ") +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(n) +
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(k) +
@@ -118,7 +120,10 @@ ConvSolution ConvHipImplicitGemmV4_1x1::GetSolution(const ConvolutionContext& ct
         std::string(" -DCK_PARAM_TUNABLE_B_PER_BLOCK=") + std::to_string(b_per_block) +
         std::string(" -DCK_PARAM_TUNABLE_K_PER_BLOCK=") + std::to_string(k_per_block) +
         std::string(" -DCK_PARAM_TUNABLE_C_PER_BLOCK=") + std::to_string(c_per_block) +
-        std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size);
+        std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
+        std::string(" -DCK_BLOCKWISE_GEMM_USE_AMD_INLINE_ASM=") + std::to_string(use_amd_inline_asm ? 1 : 0) +
+        std::string(" -D__HIP_PLATFORM_HCC__=1") +
+        ctx.general_compile_options;
     // clang-format on
 
     result.construction_params.push_back(construction_parameters);

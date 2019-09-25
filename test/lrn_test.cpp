@@ -274,6 +274,7 @@ struct lrn_driver : test_driver
 
     lrn_driver()
     {
+        disabled_cache = true;
         add(input,
             "input",
             get_input_tensor(tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}));

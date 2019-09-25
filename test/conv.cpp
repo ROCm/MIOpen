@@ -65,8 +65,8 @@ static bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
         auto ctx          = miopen::ConvolutionContext{xDesc, wDesc, yDesc, convDesc, direction};
         ctx.do_search     = false;
         ctx.save_srch_req = false;
-        ctx.workaround_disable_search_enforce = true;
-        ctx.general_compile_options           = "";
+        ctx.disable_perfdb_access   = true;
+        ctx.general_compile_options = "";
         ctx.SetStream(&handle);
         ctx.SetupFloats();
         ctx.DetectRocm();
@@ -88,10 +88,10 @@ static bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
     auto ctx = miopen::ConvolutionContext{xDesc, wDesc, yDesc, convDesc, 0};
 
     ctx.direction.SetBackwardWrW();
-    ctx.do_search                         = false;
-    ctx.save_srch_req                     = false;
-    ctx.general_compile_options           = "";
-    ctx.workaround_disable_search_enforce = true;
+    ctx.do_search               = false;
+    ctx.save_srch_req           = false;
+    ctx.general_compile_options = "";
+    ctx.disable_perfdb_access   = true;
     ctx.SetStream(&handle);
     ctx.SetupFloats();
     ctx.DetectRocm();
@@ -712,7 +712,6 @@ struct conv_driver : test_driver
     bool do_backward_weights = true;
     int search               = 0;
     bool gen_float           = false;
-    bool dry_run             = false;
 
     std::unordered_map<std::string, std::size_t> conv_dim_lookup = {{"CONV2D", 2}, {"CONV3D", 3}};
 
@@ -737,17 +736,10 @@ struct conv_driver : test_driver
         add(do_backward_weights, "disable-backward-weights", set_value(false));
         add(search, "search", set_value(1));
         add(gen_float, "generate-float", set_value(true));
-        add(dry_run, "dry-run", set_value(true));
     }
 
     void run()
     {
-        // Dry run prints just the entire command. One way to list all configs
-        if(dry_run)
-        {
-            show_command();
-            return;
-        }
         filter.spatialDim       = conv_dim_lookup[miopen::ToUpper(conv_dim_type)];
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];
@@ -789,6 +781,9 @@ struct conv_driver : test_driver
         // lack of transposeConv or groupConv for int8 type
         if(is_int8 && (filter.mode == miopenTranspose || filter.group_count > 1))
         {
+            show_command();
+            std::cout << "MIOpen doesn't support int8 type transpose or group convolution."
+                      << std::endl;
             return;
         }
 
@@ -909,6 +904,13 @@ struct conv_driver : test_driver
                     is_int8 &&
                     !is_gemm_workspace_valid(
                         get_handle(), filter, input.desc, weights.desc, output.desc);
+                if(skip_forward)
+                {
+                    show_command();
+                    std::cout << "This config in int8 type is not supported." << std::endl;
+                    return;
+                }
+
                 bool skip_backward_data    = is_int8;
                 bool skip_backward_weights = is_int8;
 
@@ -916,6 +918,8 @@ struct conv_driver : test_driver
                 if(input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4 ||
                    input.desc.GetType() == miopenBFloat16)
                 {
+                    show_command();
+                    std::cout << "Direct path doesn't support Int8 or BFloat16 type." << std::endl;
                     return;
                 }
                 if(input.desc.GetType() == miopenHalf && filter.mode == miopenConvolution)

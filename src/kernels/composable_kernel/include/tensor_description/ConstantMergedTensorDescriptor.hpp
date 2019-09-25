@@ -37,7 +37,7 @@ struct ConstantMergedTensorDescriptor
         return OriginalTensorDesc{};
     }
 
-    __host__ __device__ static constexpr index_t GetNumOfDimension() { return nDim; }
+    __host__ __device__ static constexpr auto GetNumOfDimension() { return Number<nDim>{}; }
 
     template <index_t IDim>
     __host__ __device__ static constexpr auto GetContainedOriginalDimensions(Number<IDim>)
@@ -52,7 +52,7 @@ struct ConstantMergedTensorDescriptor
     }
 
     template <index_t IDim>
-    __host__ __device__ static constexpr index_t GetLength(Number<IDim>)
+    __host__ __device__ static constexpr auto GetLength(Number<IDim>)
     {
         constexpr auto original_dims_partial = std::get<IDim>(mOriginalDimMergeSeqs);
 
@@ -60,14 +60,24 @@ struct ConstantMergedTensorDescriptor
     }
 
     template <index_t IDim>
-    __host__ __device__ static constexpr index_t GetStride(Number<IDim>)
+    __host__ __device__ static constexpr auto GetStride(Number<IDim>)
     {
         static_assert(!ContainMultipleOriginalDimensions(Number<IDim>{}),
                       "wrong! stride of a merged dimension is undefined");
 
-        constexpr auto idim_original = std::get<IDim>(mOriginalDimMergeSeqs).Front();
+        constexpr auto idim_original = std::get<IDim>(mOriginalDimMergeSeqs).Back();
 
         return OriginalTensorDesc::GetStride(Number<idim_original>{});
+    }
+
+    // this is a hack to return the stride of the last original dimension of a merged dimension
+    // TODO: refactor this once the concept of "dimension" is used
+    template <index_t IDim>
+    __host__ __device__ static constexpr auto GetLastOriginalDimensionStride(Number<IDim>)
+    {
+        constexpr auto idim_last_original = std::get<IDim>(mOriginalDimMergeSeqs).Back();
+
+        return OriginalTensorDesc::GetStride(Number<idim_last_original>{});
     }
 
     __host__ __device__ static constexpr auto GetLengths()
@@ -75,7 +85,7 @@ struct ConstantMergedTensorDescriptor
         return Sequence<OriginalTensorDesc::Extract(OriginalDimMergeSeqs{}).GetElementSize()...>{};
     }
 
-    __host__ __device__ static constexpr index_t GetElementSize()
+    __host__ __device__ static constexpr auto GetElementSize()
     {
         return OriginalTensorDesc::GetElementSize();
     }
@@ -173,6 +183,13 @@ struct ConstantMergedTensorDescriptor
         constexpr auto packed_desc = make_ConstantTensorDescriptor_packed(GetLengths());
 
         return packed_desc.GetMultiIndexFrom1dIndex(id);
+    }
+
+    __host__ __device__ static constexpr auto Pack()
+    {
+        constexpr auto lengths = GetLengths();
+        constexpr auto strides = calculate_tensor_strides_packed(lengths);
+        return ConstantTensorDescriptor<decltype(lengths), decltype(strides)>{};
     }
 };
 

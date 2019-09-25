@@ -23,14 +23,16 @@ struct static_for_impl<Sequence<Is...>>
 template <index_t NBegin, index_t NEnd, index_t Increment>
 struct static_for
 {
+    __host__ __device__ constexpr static_for()
+    {
+        static_assert(NBegin <= NEnd, "wrongs! should have NBegin <= NEnd");
+        static_assert((NEnd - NBegin) % Increment == 0,
+                      "Wrong! should satisfy (NEnd - NBegin) % Increment == 0");
+    }
+
     template <class F>
     __host__ __device__ constexpr void operator()(F f) const
     {
-        static_assert(NBegin <= NEnd, "wrongs! should have NBegin <= NEnd");
-
-        static_assert((NEnd - NBegin) % Increment == 0,
-                      "Wrong! should satisfy (NEnd - NBegin) % Increment == 0");
-
         static_for_impl<typename arithmetic_sequence_gen<NBegin, NEnd, Increment>::type>{}(f);
     }
 };

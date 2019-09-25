@@ -489,10 +489,10 @@ struct superTensorTest : test_driver
     int wei_hh{};
     int batch_size{};
 
-    miopenRNNMode_t mode{};
-    miopenRNNBiasMode_t biasMode{};
-    miopenRNNDirectionMode_t directionMode{};
-    miopenRNNInputMode_t inMode{};
+    std::string mode;
+    std::string biasMode;
+    std::string directionMode;
+    std::string inMode;
     miopenRNNAlgo_t algo = miopenRNNdefault;
     miopenDataType_t dataType{};
 
@@ -503,6 +503,15 @@ struct superTensorTest : test_driver
     miopenTensorDescriptor_t weightTensor{};
     miopenTensorDescriptor_t paramTensor{};
     miopenTensorDescriptor_t biasTensor{};
+
+    std::unordered_map<std::string, miopenRNNMode_t> mode_lookup = {
+        {"RNNRELU", miopenRNNRELU}, {"LSTM", miopenLSTM}, {"GRU", miopenGRU}};
+    std::unordered_map<std::string, miopenRNNBiasMode_t> biasMode_lookup = {
+        {"RNNwithBias", miopenRNNwithBias}, {"RNNNoBias", miopenRNNNoBias}};
+    std::unordered_map<std::string, miopenRNNDirectionMode_t> directionMode_lookup = {
+        {"RNNunidirection", miopenRNNunidirection}, {"RNNbidirection", miopenRNNbidirection}};
+    std::unordered_map<std::string, miopenRNNInputMode_t> inMode_lookup = {
+        {"RNNskip", miopenRNNskip}, {"RNNlinear", miopenRNNlinear}};
 
     superTensorTest()
     {
@@ -525,21 +534,15 @@ struct superTensorTest : test_driver
         std::vector<int> get_wei_hh     = {6};
 #endif
 
-        std::vector<miopenRNNMode_t> get_mode         = {miopenRNNRELU, miopenLSTM, miopenGRU};
-        std::vector<miopenRNNBiasMode_t> get_biasMode = {miopenRNNwithBias, miopenRNNNoBias};
-        std::vector<miopenRNNDirectionMode_t> get_directionMode = {miopenRNNunidirection,
-                                                                   miopenRNNbidirection};
-        std::vector<miopenRNNInputMode_t> get_inMode = {miopenRNNskip, miopenRNNlinear};
-
         add(seqLen, "seqLen", generate_data(get_seqLen));
         add(in_size, "in_size", generate_data(get_in_size));
         add(batch_size, "batch_size", generate_data(get_batch_size));
         add(num_layer, "num_layer", generate_data(get_num_layer));
         add(wei_hh, "wei_hh", generate_data(get_wei_hh));
-        add(mode, "mode", generate_data(get_mode));
-        add(biasMode, "biasMode", generate_data(get_biasMode));
-        add(directionMode, "directionMode", generate_data(get_directionMode));
-        add(inMode, "inMode", generate_data(get_inMode));
+        add(mode, "mode", generate_data({"RNNRELU", "LSTM", "GRU"}));
+        add(biasMode, "biasMode", generate_data({"RNNwithBias", "RNNNoBias"}));
+        add(directionMode, "directionMode", generate_data({"RNNunidirection", "RNNbidirection"}));
+        add(inMode, "inMode", generate_data({"RNNskip", "RNNlinear"}));
         // add(algo, "algo", generate_data(get_algo));
 
         miopenCreateTensorDescriptor(&inputTensor);
@@ -550,18 +553,26 @@ struct superTensorTest : test_driver
 
     void run()
     {
-        miopenSetRNNDescriptor(
-            rnnDesc, wei_hh, num_layer, inMode, directionMode, mode, biasMode, algo, dataType);
+
+        miopenSetRNNDescriptor(rnnDesc,
+                               wei_hh,
+                               num_layer,
+                               inMode_lookup[inMode],
+                               directionMode_lookup[directionMode],
+                               mode_lookup[mode],
+                               biasMode_lookup[biasMode],
+                               algo,
+                               dataType);
 
         std::array<int, 2> in_lens = {{batch_size, in_size}};
         miopenSetTensorDescriptor(inputTensor, dataType, 2, in_lens.data(), nullptr);
         miopenSetTensorDescriptor(weightTensor, dataType, 2, in_lens.data(), nullptr);
 
         verify_equals(verify_w_tensor_set(rnnDesc,
-                                          mode,
-                                          inMode,
-                                          directionMode,
-                                          biasMode,
+                                          mode_lookup[mode],
+                                          inMode_lookup[inMode],
+                                          directionMode_lookup[directionMode],
+                                          biasMode_lookup[biasMode],
                                           inputTensor,
                                           weightTensor,
                                           paramTensor,
@@ -569,10 +580,10 @@ struct superTensorTest : test_driver
                                           num_layer));
 
         verify_equals(verify_w_tensor_get(rnnDesc,
-                                          mode,
-                                          inMode,
-                                          directionMode,
-                                          biasMode,
+                                          mode_lookup[mode],
+                                          inMode_lookup[inMode],
+                                          directionMode_lookup[directionMode],
+                                          biasMode_lookup[biasMode],
                                           inputTensor,
                                           weightTensor,
                                           paramTensor,

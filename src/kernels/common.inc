@@ -167,7 +167,7 @@ log2 wave_size_log2, wave_size
     v_cndmask_b32     v[\vtmp+1],   v[\vtmp+3],   v[\vtmp+1],  s[\stmp1:\stmp1+1]
     v_mul_hi_u32      v[\vtmp+1],   v[\vtmp+1],   v[\vtmp]
    _v_sub_co_u32      v[\vtmp+2],   vcc,          v[\vtmp],    v[\vtmp+1]
-    v_add_co_u32      v[\vtmp],     vcc,          v[\vtmp],    v[\vtmp+1]
+   _v_add_co_u32      v[\vtmp],     vcc,          v[\vtmp],    v[\vtmp+1]
     v_cndmask_b32     v[\vtmp],     v[\vtmp],     v[\vtmp+2],  s[\stmp1:\stmp1+1]
     v_mul_hi_u32      v[\vtmp],     v[\vtmp],     \numer
     v_mul_lo_u32      v[\vtmp+1],   v[\vtmp],     \denom
@@ -185,49 +185,82 @@ log2 wave_size_log2, wave_size
 
 .altmacro
 .macro ceil_2_32_div_u16 m, denom, vtmp, stmp
-	v_cvt_f32_u32     v[\vtmp],     \denom
-	v_rcp_f32         v[\vtmp],     v[\vtmp]
-	v_mul_f32         v[\vtmp],     0x4f800000,   v[\vtmp]
-	v_cvt_u32_f32     v[\vtmp],     v[\vtmp]
+    v_cvt_f32_u32     v[\vtmp],     \denom
+    v_rcp_f32         v[\vtmp],     v[\vtmp]
+    v_mul_f32         v[\vtmp],     0x4f800000,   v[\vtmp]
+    v_cvt_u32_f32     v[\vtmp],     v[\vtmp]
 
-	v_mul_lo_u32      v[\vtmp+1],   \denom,       v[\vtmp]
-	v_mul_hi_u32      v[\vtmp+2],   \denom,       v[\vtmp]
-	v_sub_u32         v[\vtmp+3],   0,            v[\vtmp+1]
-	v_cmp_ne_i32      s[\stmp:\stmp+1], 0,        v[\vtmp+2]
-	v_cndmask_b32     v[\vtmp+1],   v[\vtmp+3],   v[\vtmp+1],  s[\stmp:\stmp+1]
-	v_mul_hi_u32      v[\vtmp+1],   v[\vtmp+1],   v[\vtmp]
-	v_sub_u32         v[\vtmp+2],   v[\vtmp],     v[\vtmp+1]
-	v_add_co_u32      v[\vtmp],     vcc,          v[\vtmp],    v[\vtmp+1]
-	v_cndmask_b32     v[\vtmp],     v[\vtmp],     v[\vtmp+2],  s[\stmp:\stmp+1]
-	v_mul_hi_u32      v[\vtmp],     -1,           v[\vtmp]
-	v_mul_lo_u32      v[\vtmp+1],   v[\vtmp],     \denom
-	v_sub_u32         v[\vtmp+2],   -1,           v[\vtmp+1]
-	v_cmp_ge_u32      s[\stmp:\stmp+1],           v[\vtmp+2],  \denom
-	v_add_u32         v[\vtmp+2],   1,            v[\vtmp]
-	v_add_co_u32      v[\vtmp+1],   vcc, -1,      v[\vtmp]
-	v_cndmask_b32     v[\vtmp+2],   v[\vtmp],     v[\vtmp+2],  s[\stmp:\stmp+1]
-	v_add_u32         v[\vtmp+2],   1,            v[\vtmp+2]
-	v_cmp_ne_i32      vcc,          0,            \denom
-	v_cndmask_b32     \m,        -1,           v[\vtmp+2],  vcc
+    v_mul_lo_u32      v[\vtmp+1],   \denom,       v[\vtmp]
+    v_mul_hi_u32      v[\vtmp+2],   \denom,       v[\vtmp]
+   _v_sub_nc_u32      v[\vtmp+3],   0,            v[\vtmp+1]
+    v_cmp_ne_i32      s[\stmp:\stmp+1], 0,        v[\vtmp+2]
+    v_cndmask_b32     v[\vtmp+1],   v[\vtmp+3],   v[\vtmp+1],  s[\stmp:\stmp+1]
+    v_mul_hi_u32      v[\vtmp+1],   v[\vtmp+1],   v[\vtmp]
+   _v_sub_nc_u32      v[\vtmp+2],   v[\vtmp],     v[\vtmp+1]
+    v_add_co_u32      v[\vtmp],     vcc,          v[\vtmp],    v[\vtmp+1]
+    v_cndmask_b32     v[\vtmp],     v[\vtmp],     v[\vtmp+2],  s[\stmp:\stmp+1]
+    v_mul_hi_u32      v[\vtmp],     -1,           v[\vtmp]
+    v_mul_lo_u32      v[\vtmp+1],   v[\vtmp],     \denom
+   _v_sub_nc_u32      v[\vtmp+2],   -1,           v[\vtmp+1]
+    v_cmp_ge_u32      s[\stmp:\stmp+1],           v[\vtmp+2],  \denom
+    v_add_u32         v[\vtmp+2],   1,            v[\vtmp]
+    v_add_co_u32      v[\vtmp+1],   vcc, -1,      v[\vtmp]
+    v_cndmask_b32     v[\vtmp+2],   v[\vtmp],     v[\vtmp+2],  s[\stmp:\stmp+1]
+    v_add_u32         v[\vtmp+2],   1,            v[\vtmp+2]
+    v_cmp_ne_i32      vcc,          0,            \denom
+    v_cndmask_b32     \m,        -1,           v[\vtmp+2],  vcc
 .endm
 
 .macro disable_srd srd
-	s_mov_b32 s[\srd+3], 0
+    s_mov_b32 s[\srd+3], 0
 .endm
 .macro enable_srd srd
-	s_mov_b32 s[\srd+3], 0x00020000            // DATA_FORMAT, need to just be non-zero;
+    s_mov_b32 s[\srd+3], 0x00020000            // DATA_FORMAT, need to just be non-zero;
 .endm
 
 .macro label l, n
-	\l\n:
+    \l\n:
 .endm
 .macro _s_cbranch cond, l, n
-	s_cbranch_\cond \l\n
+    s_cbranch_\cond \l\n
 .endm
 .macro _s_branch l, n
-	s_branch \l\n
+    s_branch \l\n
 .endm
 
+.macro v_reg_data_type_convert v_dst_reg, dst_type, v_src_reg, src_type, v_tmp_reg = 0x7fffffff, s2_tmp_b64 = 0x7fffffff
+    .if(\src_type == TYPE_FP16 && \dst_type == TYPE_FP32)
+        v_cvt_f32_f16 \v_dst_reg, \v_src_reg
+    .elseif(\src_type == TYPE_FP32 && \dst_type == TYPE_FP16)
+        v_cvt_f16_f32 \v_dst_reg, \v_src_reg
+    .elseif(\src_type == TYPE_FP32 && \dst_type == TYPE_BFP16)
+        v_mov_b32 \v_tmp_reg, 0x1
+        v_cmp_class_f32 \s2_tmp_b64, \v_src_reg, \v_tmp_reg //Signaling NaN  
+        s_and_saveexec_b64 \s2_tmp_b64, \s2_tmp_b64
+        
+        v_or_b32 \v_src_reg,  0x10000, \v_src_reg
+        s_mov_b64 exec, \s2_tmp_b64        
+        .ifdef MIOPEN_USE_RNE_BFLOAT16
+            .if(MIOPEN_USE_RNE_BFLOAT16 == 1)
+                v_mov_b32 \v_tmp_reg, 0x207
+                v_cmp_class_f32 exec, \v_src_reg, \v_tmp_reg //check NANs and INFs
+                
+                s_xor_b64 exec, exec, \s2_tmp_b64
+                v_bfe_u32 \v_tmp_reg, \v_src_reg, 16, 1
+                v_add_u32 \v_tmp_reg, 0x7fff, \v_tmp_reg
+                v_add_u32 \v_dst_reg, \v_src_reg, \v_tmp_reg
+
+                s_mov_b64 exec, \s2_tmp_b64
+            .endif
+        .endif        
+        
+        v_lshrrev_b32 \v_dst_reg, 16, \v_src_reg
+    .elseif(\src_type == TYPE_BFP16 && \dst_type == TYPE_FP32)
+        v_lshlrev_b32 \v_dst_reg, 16, \v_src_reg
+    .elseif (\dst_type != \src_type)
+        .error "wrong convertion type" 
+    .endif
+.endm
 
 div_const_1_2=0x80000000
 div_const_1_3=0x55555556
@@ -294,27 +327,27 @@ div_const_1_63=0x04104105
 div_const_1_64=0x04000000
 
 .macro _s_div_const_u32_u16 dst, src, denum
-	.if \denum == 1
-		s_mov_b32 \dst, \src
-	.elseif \denum >=2 && \denum <= 64
-		s_mul_hi_u32 \dst, div_const_1_\denum, \src
-	.else
-		static_assert(0)
-	.endif
+    .if \denum == 1
+        s_mov_b32 \dst, \src
+    .elseif \denum >=2 && \denum <= 64
+        s_mul_hi_u32 \dst, div_const_1_\denum, \src
+    .else
+        static_assert(0)
+    .endif
 .endm
 
 .macro _v_div_const_u32_u16 dst, src, denum, tmp
-	.if \denum == 1
-		v_mov_b32 \dst, \src
-	.elseif \denum >=2 && \denum <= 64
-		s_mov_b32 \tmp, div_const_1_\denum
-		v_mul_hi_u32 \dst, \tmp, \src
-	.else
-		static_assert(0)
-	.endif
+    .if \denum == 1
+        v_mov_b32 \dst, \src
+    .elseif \denum >=2 && \denum <= 64
+        s_mov_b32 \tmp, div_const_1_\denum
+        v_mul_hi_u32 \dst, \tmp, \src
+    .else
+        static_assert(0)
+    .endif
 .endm
 
 .macro _s_ceil_u32 dst, src, denum
-	s_add_u32 \dst, \denum - 1, \src
-	_s_div_const_u32_u16 \dst, \dst, \denum
+    s_add_u32 \dst, \denum - 1, \src
+   _s_div_const_u32_u16 \dst, \dst, \denum
 .endm

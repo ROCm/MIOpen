@@ -33,11 +33,14 @@ namespace solver {
 
 bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
+    if(!params.Is2d())
+        return false;
     if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
 
     bool result =
-        (params.kernel_size_w == 1) && (params.kernel_size_h == 1) && params.group_counts == 1;
+        (params.kernel_size_w == 1 && params.kernel_size_h == 1 && params.kernel_dilation_w == 1 &&
+         params.kernel_dilation_h == 1 && params.group_counts == 1);
 
     // Does not support strides > 1 if not multiple of 16
     if((params.n_inputs & 0xF) > 0 || (params.n_outputs & 0xF) > 0)
@@ -46,9 +49,8 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     return result;
 }
 
-ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) const
+static inline int GetNPasses(const ConvolutionContext& params)
 {
-    ConvSolution result;
     const int n_passes =
 #if TWO_PASSES
         ((params.batch_sz >= 16 || 2 * params.n_outputs > params.n_inputs) && params.pad_h == 0 &&
@@ -57,6 +59,28 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
             :
 #endif
             1;
+    return n_passes;
+}
+
+size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext& params) const
+{
+    const int n_passes = GetNPasses(params);
+    if(((params.n_inputs & 0xF) == 0 && (params.n_outputs & 0xF) == 0) &&
+       (n_passes > 1 && params.pad_h == 0 && params.pad_w == 0 &&
+        (params.kernel_stride_w > 1 || params.kernel_stride_h > 1)))
+    {
+        const auto in_channel_stride = params.in_stride * params.in_height;
+        const auto in_batch_stride   = in_channel_stride * params.n_outputs;
+        return in_batch_stride * params.batch_sz * GetTypeSize(params.out_data_type);
+    }
+    else
+        return 0;
+}
+
+ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) const
+{
+    ConvSolution result;
+    const int n_passes = GetNPasses(params);
 
     // FIX ME! FIX ME! FIX ME! Does not support C, K != 16X yet
     // NON-Stride/PAD mode NON-16X will be supported by MIOpenConvBwdWrW1x1.CL
@@ -308,8 +332,6 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
             std::to_string(out_pad_height) + std::string(" -DMLO_TWO_PASSES=") +
             std::to_string((n_passes == 1) ? 0 : 1) + params.general_compile_options;
 
-        result.workspce_sz = 0;
-
         if(n_passes > 1 && params.pad_h == 0 && params.pad_w == 0 &&
            (params.kernel_stride_w > 1 || params.kernel_stride_h > 1))
         {
@@ -334,9 +356,8 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
             kernel.comp_options = comp_options;
 
             result.construction_params.push_back(kernel);
-
-            result.workspce_sz = in_batch_stride * params.batch_sz * sizeof(float);
         }
+        result.workspce_sz = GetWorkspaceSize(params);
 
         {
             // std::cout << comp_options << std::endl;

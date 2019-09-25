@@ -215,6 +215,33 @@ void OpTensor3d(Handle& handle,
                 return;
             }
         }
+        else if(blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2])
+        {
+            network_config += std::to_string(clens[2]) + std::to_string(clens[1]) +
+                              std::to_string(float_equal(miopen_beta, 0.0)) +
+                              std::to_string(max_num_wg);
+
+            auto&& kernels = handle.GetKernels("Op2dTensorSquash", network_config);
+
+            if(!kernels.empty())
+            {
+                auto kernel = kernels.front();
+
+                kernel(ATensor,
+                       BTensor,
+                       int(blens[1]),    // b_c,
+                       int(bstrides[1]), // b_cstride,
+                       CTensor,
+                       miopen_alpha0,
+                       miopen_alpha1,
+                       miopen_beta,
+                       long(Aoffset),
+                       long(Boffset),
+                       long(Coffset));
+
+                return;
+            }
+        }
         else
         {
 
@@ -281,7 +308,7 @@ void OpTensor3d(Handle& handle,
             const std::string READ_TYPE =
                 (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
 
-            size_t MAP_RD = clens[2] / RD_BLCK;
+            size_t MAP_RD = std::max(size_t(clens[2] / RD_BLCK), size_t(1));
             parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" +
                      std::to_string(MAP_RD) + " -DREAD_TYPE=" + READ_TYPE;
 
@@ -316,6 +343,57 @@ void OpTensor3d(Handle& handle,
                 long(Boffset),
                 long(Coffset),
                 int(clens[1]));
+        }
+        else if(blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2])
+        {
+            parms += " -DUSE_2D_TENSOR_SQUASH";
+
+            // for naive tensor ops
+            size_t RD_BLCK              = (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
+            const std::string data_type = GetDataType(bTensorDesc.GetType());
+            const std::string READ_TYPE =
+                (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
+
+            size_t MAP_RD = std::max(size_t(clens[2] / RD_BLCK), size_t(1));
+            parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" +
+                     std::to_string(MAP_RD) + " -DREAD_TYPE=" + READ_TYPE;
+
+            if(!float_equal(miopen_alpha0, 0.0))
+            {
+                parms += " -DALPHA0";
+            }
+
+            if(!float_equal(miopen_alpha1, 0.0))
+            {
+                parms += " -DALPHA1";
+            }
+
+            if(!float_equal(miopen_beta, 0.0))
+            {
+                parms += " -DBETA";
+            }
+
+            parms += " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
+            size_t total_work = std::min(max_num_wg * local_threads, MAP_RD);
+            const std::vector<size_t> vgd1{total_work, 1, 1};
+
+            handle.AddKernel("Op2dTensorSquash",
+                             network_config,
+                             program_name,
+                             "Op2dTensorSquash",
+                             vld,
+                             vgd1,
+                             parms)(ATensor,
+                                    BTensor,
+                                    int(blens[1]),    // b_c,
+                                    int(bstrides[1]), // b_cstride,
+                                    CTensor,
+                                    miopen_alpha0,
+                                    miopen_alpha1,
+                                    miopen_beta,
+                                    long(Aoffset),
+                                    long(Boffset),
+                                    long(Coffset));
         }
         else
         {
@@ -752,7 +830,7 @@ void OpTensor4d(Handle& handle,
 
             size_t TENS_LEN = cTensorDesc.GetElementSize();
             size_t RD_BLCK  = (TENS_LEN % 4 == 0) ? 4 : (TENS_LEN % 2 == 0) ? 2 : 1;
-            size_t MAP_RD   = TENS_LEN / RD_BLCK;
+            size_t MAP_RD   = std::max(size_t(TENS_LEN / RD_BLCK), size_t(1));
 
             const std::string READ_TYPE =
                 (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
@@ -1221,11 +1299,17 @@ void OpTensor(Handle& handle,
                      std::to_string(blens.size()) + ", " + std::to_string(clens.size()));
     }
 
-    for(unsigned long i = 0; i < clens.size(); i++)
+    bool is_squash = clens.size() == 3 && blens[0] == 1 && clens[0] == 1 && clens[1] == 1 &&
+                     blens[1] != clens[1] && blens[2] == clens[2];
+    if(!is_squash)
     {
-        if(blens[i] != 1 && blens[i] != clens[i])
+        for(unsigned long i = 0; i < clens.size(); i++)
         {
-            MIOPEN_THROW("BTensor dim != 1 && BTensor dim != CTensor dim: " + std::to_string(i));
+            if(blens[i] != 1 && blens[i] != clens[i])
+            {
+                MIOPEN_THROW("BTensor dim != 1 && BTensor dim != CTensor dim: " +
+                             std::to_string(i));
+            }
         }
     }
 
@@ -2069,9 +2153,16 @@ void TransformTensor(Handle& handle,
                      ConstData_t x,
                      const void* beta,
                      const TensorDescriptor& yDesc,
-                     Data_t y)
+                     Data_t y,
+                     size_t Xoffset,
+                     size_t Yoffset)
 {
     if(x == nullptr || y == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    if(alpha == nullptr || beta == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -2089,17 +2180,7 @@ void TransformTensor(Handle& handle,
         MIOPEN_THROW("Tensor x and y batch sizes do not match");
     }
 
-    auto x_y_len          = boost::combine(x_len, y_len);
-    bool same_spatial_len = std::all_of(x_y_len.begin() + 2, x_y_len.end(), [](auto v) {
-        return boost::get<0>(v) == boost::get<1>(v);
-    });
-
-    if(!same_spatial_len)
-    {
-        MIOPEN_THROW("Tensor x and y spatial sizes do not match");
-    }
-
-    if(xDesc.GetType() == miopenInt8 && yDesc.GetType() == miopenInt8)
+    if(xDesc.GetType() == miopenInt8 && yDesc.GetType() == miopenInt8 && x_len.size() >= 3)
     {
         if(x_len[1] <= y_len[1])
         {
@@ -2133,36 +2214,259 @@ void TransformTensor(Handle& handle,
             size_t x_offset = i * x_batch_sz;
             size_t y_offset = i * y_batch_sz;
 
-            CopyTensor(handle,
-                       ((x_len[1] <= y_len[1]) ? x_batch_desc : y_batch_desc),
-                       x,
-                       ((x_len[1] <= y_len[1]) ? x_batch_desc : y_batch_desc),
-                       y,
-                       x_offset,
-                       y_offset);
+            if(float_equal(*(static_cast<const float*>(alpha)), 1) &&
+               float_equal(*(static_cast<const float*>(beta)), 0))
+            {
+                CopyTensor(handle,
+                           ((x_len[1] <= y_len[1]) ? x_batch_desc : y_batch_desc),
+                           x,
+                           ((x_len[1] <= y_len[1]) ? x_batch_desc : y_batch_desc),
+                           y,
+                           x_offset,
+                           y_offset);
+            }
+            else
+            {
+                // TODO: support y=alpha*x+beta*y
+            }
         }
     }
-    else if(xDesc.GetType() == miopenInt8 && yDesc.GetType() == miopenInt8x4)
+    else if(xDesc.GetType() == miopenInt8 && yDesc.GetType() == miopenInt8x4 && x_len.size() >= 3)
     {
         if(x_len[1] <= (y_len[1] - 4) || y_len[1] % 4 != 0)
         {
             MIOPEN_THROW("Invalid y channel size");
         }
 
-        transpose_NCHW2Vec(handle, x_len, x, y, 4, false, true);
+        transpose_NCHW2Vec(handle, x_len, x, y, 4, false, true, alpha, beta);
     }
-    else if(xDesc.GetType() == miopenInt8x4 && yDesc.GetType() == miopenInt8)
+    else if(xDesc.GetType() == miopenInt8x4 && yDesc.GetType() == miopenInt8 && x_len.size() >= 3)
     {
         if(y_len[1] <= (x_len[1] - 4) || x_len[1] % 4 != 0)
         {
             MIOPEN_THROW("Invalid x channel size");
         }
 
-        transpose_NCHW2Vec(handle, y_len, x, y, 4, false, false);
+        transpose_NCHW2Vec(handle, y_len, x, y, 4, false, false, alpha, beta);
     }
+    else
+    {
+        auto x_y_len          = boost::combine(x_len, y_len);
+        bool same_spatial_len = std::all_of(x_y_len.begin(), x_y_len.end(), [](auto v) {
+            return boost::get<0>(v) == boost::get<1>(v);
+        });
 
-    (void)alpha;
-    (void)beta;
+        if(!same_spatial_len)
+        {
+            MIOPEN_THROW("Tensor x and y spatial sizes do not match");
+        }
+
+        auto flat_descriptors              = GetConsistentFlattenedTensorDescriptors(xDesc, yDesc);
+        const TensorDescriptor& xDesc_flat = std::get<0>(flat_descriptors);
+        const TensorDescriptor& yDesc_flat = std::get<1>(flat_descriptors);
+
+#ifndef NDEBUG
+        if(xDesc.GetSize() != xDesc_flat.GetSize())
+        {
+            std::cout << __func__ << std::endl
+                      << "real descritor: " << xDesc << std::endl
+                      << "flat descritor: " << xDesc_flat << std::endl;
+        }
+
+        if(yDesc.GetSize() != yDesc_flat.GetSize())
+        {
+            std::cout << __func__ << std::endl
+                      << "real descritor: " << yDesc << std::endl
+                      << "flat descritor: " << yDesc_flat << std::endl;
+        }
+#endif
+
+        const std::size_t yDim_flat = yDesc_flat.GetSize();
+
+        assert(yDim_flat > 0 && yDim_flat <= 5);
+
+        const miopenDataType_t dataTypex = xDesc_flat.GetType();
+        const miopenDataType_t dataTypey = yDesc_flat.GetType();
+
+        if(dataTypex == miopenInt8 || dataTypex == miopenInt8x4)
+        {
+            MIOPEN_THROW("Tensor x is a unsupported data type");
+        }
+
+        if(dataTypey == miopenInt8 || dataTypey == miopenInt8x4)
+        {
+            MIOPEN_THROW("Tensor y is a unsupported data type");
+        }
+
+        if(dataTypex != dataTypey)
+        {
+            MIOPEN_THROW("Tensor x and y have different data types");
+        }
+
+        std::string kernel_name = "SubTensorOpWithTransform" + std::to_string(yDim_flat) + "d";
+
+        const std::vector<std::size_t>& lens = yDesc_flat.GetLengths();
+
+        std::string network_config = "transform " + std::to_string(yDesc_flat.GetType());
+        for(auto& len : lens)
+        {
+            network_config += "x" + std::to_string(len);
+        }
+
+        auto&& kernels = handle.GetKernels(kernel_name, network_config);
+
+        KernelInvoke kernel;
+
+        if(!kernels.empty())
+        {
+            kernel = kernels.front();
+        }
+        else
+        {
+            std::string program_name = "MIOpenSubTensorOpWithTransformKernel.cl";
+
+            std::vector<std::size_t> worker_sizes = get_worker_sizes(lens);
+
+            std::size_t wgd = std::accumulate(worker_sizes.begin(),
+                                              worker_sizes.end(),
+                                              std::size_t{1},
+                                              std::multiplies<std::size_t>());
+
+            std::size_t wld = 256 < wgd ? 256 : wgd;
+
+            std::string parms = "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_MAD" +
+                                GetDataTypeKernelParams(dataTypey);
+
+            for(int i = 0; i < yDim_flat; ++i)
+            {
+                parms +=
+                    " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
+            }
+
+            kernel = handle.AddKernel(kernel_name,
+                                      network_config,
+                                      program_name,
+                                      kernel_name,
+                                      {wld, 1, 1},
+                                      {wgd, 1, 1},
+                                      parms);
+        }
+
+        switch(yDim_flat)
+        {
+        case 1:
+        {
+            visit_float(dataTypey, [&](auto as_float) {
+                kernel(x,
+                       *as_float(alpha),
+                       y,
+                       *as_float(beta),
+                       uint(Xoffset),
+                       uint(Yoffset),
+                       uint(xDesc_flat.GetStrides()[0]),
+                       uint(yDesc_flat.GetStrides()[0]),
+                       uint(yDesc_flat.GetLengths()[0]));
+            });
+
+            break;
+        }
+        case 2:
+        {
+            visit_float(dataTypey, [&](auto as_float) {
+                kernel(x,
+                       *as_float(alpha),
+                       y,
+                       *as_float(beta),
+                       uint(Xoffset),
+                       uint(Yoffset),
+                       uint(xDesc_flat.GetStrides()[0]),
+                       uint(xDesc_flat.GetStrides()[1]),
+                       uint(yDesc_flat.GetStrides()[0]),
+                       uint(yDesc_flat.GetStrides()[1]),
+                       uint(yDesc_flat.GetLengths()[0]),
+                       uint(yDesc_flat.GetLengths()[1]));
+            });
+
+            break;
+        }
+        case 3:
+        {
+            visit_float(dataTypey, [&](auto as_float) {
+                kernel(x,
+                       *as_float(alpha),
+                       y,
+                       *as_float(beta),
+                       uint(Xoffset),
+                       uint(Yoffset),
+                       uint(xDesc_flat.GetStrides()[0]),
+                       uint(xDesc_flat.GetStrides()[1]),
+                       uint(xDesc_flat.GetStrides()[2]),
+                       uint(yDesc_flat.GetStrides()[0]),
+                       uint(yDesc_flat.GetStrides()[1]),
+                       uint(yDesc_flat.GetStrides()[2]),
+                       uint(yDesc_flat.GetLengths()[0]),
+                       uint(yDesc_flat.GetLengths()[1]),
+                       uint(yDesc_flat.GetLengths()[2]));
+            });
+
+            break;
+        }
+        case 4:
+        {
+            visit_float(dataTypey, [&](auto as_float) {
+                kernel(x,
+                       *as_float(alpha),
+                       y,
+                       *as_float(beta),
+                       uint(Xoffset),
+                       uint(Yoffset),
+                       uint(xDesc_flat.GetStrides()[0]),
+                       uint(xDesc_flat.GetStrides()[1]),
+                       uint(xDesc_flat.GetStrides()[2]),
+                       uint(xDesc_flat.GetStrides()[3]),
+                       uint(yDesc_flat.GetStrides()[0]),
+                       uint(yDesc_flat.GetStrides()[1]),
+                       uint(yDesc_flat.GetStrides()[2]),
+                       uint(yDesc_flat.GetStrides()[3]),
+                       uint(yDesc_flat.GetLengths()[0]),
+                       uint(yDesc_flat.GetLengths()[1]),
+                       uint(yDesc_flat.GetLengths()[2]),
+                       uint(yDesc_flat.GetLengths()[3]));
+            });
+
+            break;
+        }
+        case 5:
+        {
+            visit_float(dataTypey, [&](auto as_float) {
+                kernel(x,
+                       *as_float(alpha),
+                       y,
+                       *as_float(beta),
+                       uint(Xoffset),
+                       uint(Yoffset),
+                       uint(xDesc_flat.GetStrides()[0]),
+                       uint(xDesc_flat.GetStrides()[1]),
+                       uint(xDesc_flat.GetStrides()[2]),
+                       uint(xDesc_flat.GetStrides()[3]),
+                       uint(xDesc_flat.GetStrides()[4]),
+                       uint(yDesc_flat.GetStrides()[0]),
+                       uint(yDesc_flat.GetStrides()[1]),
+                       uint(yDesc_flat.GetStrides()[2]),
+                       uint(yDesc_flat.GetStrides()[3]),
+                       uint(yDesc_flat.GetStrides()[4]),
+                       uint(yDesc_flat.GetLengths()[0]),
+                       uint(yDesc_flat.GetLengths()[1]),
+                       uint(yDesc_flat.GetLengths()[2]),
+                       uint(yDesc_flat.GetLengths()[3]),
+                       uint(yDesc_flat.GetLengths()[4]));
+            });
+
+            break;
+        }
+        default: assert(false);
+        }
+    }
 }
 
 } // namespace miopen

@@ -45,20 +45,6 @@ struct Handle;
 struct TensorDescriptor;
 struct ConvolutionUserBuffers;
 
-using WinogradKernelParams = std::tuple<int /*N*/,
-                                        int /*C*/,
-                                        int /*H*/,
-                                        int /*W*/,
-                                        int /*K*/,
-                                        int /*n_groups*/,
-                                        int /*out_H*/,
-                                        int /*out_W*/,
-                                        int /*R*/,
-                                        int /*S*/,
-                                        int /*pad_H*/,
-                                        int /*pad_W*/,
-                                        bool /*isRxS*/>;
-
 using ExtraKernelArgs = std::tuple<int /*N*/,
                                    int /*C*/,
                                    int /*H*/,
@@ -121,6 +107,9 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     ForwardBackwardDataGetWorkSpaceSizeDirect(const miopen::ConvolutionContext& ctx) const;
 
     std::size_t ForwardGetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx) const;
+    std::size_t
+    ForwardBackwardDataGetWorkSpaceSizeSCGemm(Handle& handle,
+                                              const miopen::ConvolutionContext& ctx) const;
 
     std::size_t ForwardGetWorkSpaceSizeFFT(const TensorDescriptor& wDesc,
                                            const TensorDescriptor& xDesc,
@@ -159,17 +148,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               Data_t workSpace,
                               std::size_t workSpaceSize,
                               bool exhaustiveSearch) const;
-
-    int FindWinogradKernel(Handle& handle,
-                           const TensorDescriptor& xDesc,
-                           const TensorDescriptor& wDesc,
-                           const TensorDescriptor& yDesc,
-                           WinogradKernelParams& k_p,
-                           KernelInvoke& kernel,
-                           std::string& solver_id,
-                           int direction,
-                           bool is_wrw,
-                           std::string* kcache_key = nullptr) const;
 
     int FindFwdFFTKernel(Handle& handle,
                          const TensorDescriptor& xDesc,
@@ -221,6 +199,9 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                             const ConvolutionUserBuffers& bufs) const;
 
     std::vector<miopen::solver::ConvSolution>
+    FindWinogradSolutions(const ConvolutionContext& ctx) const;
+
+    std::vector<miopen::solver::ConvSolution>
     FindDataImplicitGemmSolutions(Handle& handle,
                                   const TensorDescriptor& xDesc,
                                   const TensorDescriptor& wDesc,
@@ -228,8 +209,17 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                   bool exhaustiveSearch,
                                   bool isForward,
                                   std::string& network_config,
-                                  ExtraKernelArgs& extraArgs,
                                   const ConvolutionUserBuffers& bufs) const;
+
+    std::vector<miopen::solver::ConvSolution>
+    FindSCGemmSolutions(Handle& handle,
+                        const TensorDescriptor& xDesc,
+                        const TensorDescriptor& wDesc,
+                        const TensorDescriptor& yDesc,
+                        bool exhaustiveSearch,
+                        bool isForward,
+                        std::string& network_config,
+                        const ConvolutionUserBuffers& bufs) const;
 
     void ConvolutionForward(Handle& handle,
                             const void* alpha,
@@ -449,9 +439,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     float lowp_quant; // quantization factor for low precision
 
     private:
-    void ConvFwdWino(const ConvolutionContext& ctx,
-                     const ConvFwdTensors& tensors,
-                     const KernelInvoke& kernel) const;
     void ConvFwdGemm(Handle& handle,
                      const ConvFwdTensors& tensors,
                      Data_t workSpace,

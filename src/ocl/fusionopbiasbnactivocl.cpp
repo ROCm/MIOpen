@@ -1,6 +1,17 @@
 #include <miopen/fusion.hpp>
 
 namespace miopen {
+
+namespace fusion {
+
+bool IsWinograd(const std::vector<solver::AnySolver>& ss)
+{
+    assert(ss.size() == 1);
+    return ss[0].GetSolverDbId() == "ConvBinWinogradRxSFused";
+}
+
+} // namespace fusion
+
 miopenStatus_t FusionOpDescriptor::GetNetworkConfig(std::string& /*network_config*/,
                                                     Handle& /*handle*/)
 {
@@ -40,12 +51,15 @@ miopenStatus_t
 BiasFusionOpDescriptor::GetCompileParms(std::string& compile_config,
                                         Handle& /*handle*/,
                                         FusionKernelSourceType source,
-                                        const std::vector<solver::AnySolver>& /*solvers*/)
+                                        const std::vector<solver::AnySolver>& solvers)
 {
     std::string add;
     switch(source)
     {
-    case AsmText: add    = " -Wa,-defsym,bias_mode=" + std::to_string(1); break;
+    case AsmText:
+        if(!fusion::IsWinograd(solvers))
+            add = " -Wa,-defsym,bias_mode=" + std::to_string(1);
+        break;
     case OpenclText: add = " -DMLO_CONV_BIAS=" + std::to_string(1); break;
     case Binary: break;
     }
@@ -77,13 +91,14 @@ miopenStatus_t
 ActivFwdFusionOpDescriptor::GetCompileParms(std::string& compile_config,
                                             Handle& /*handle*/,
                                             const FusionKernelSourceType source,
-                                            const std::vector<solver::AnySolver>& /*solvers*/)
+                                            const std::vector<solver::AnySolver>& solvers)
 {
     std::string add;
     switch(source)
     {
     case AsmText:
-        add = " -Wa,-defsym,enable_activ=1 -Wa,-defsym,activ_mode=" + std::to_string(activMode);
+        if(!fusion::IsWinograd(solvers))
+            add = " -Wa,-defsym,enable_activ=1 -Wa,-defsym,activ_mode=" + std::to_string(activMode);
         break;
     case OpenclText:
         add = " -DMIOPEN_YES_ACTIV=1 -DMIOPEN_NRN_OP_ID=" + std::to_string(activMode);
@@ -119,13 +134,14 @@ miopenStatus_t
 ActivBwdFusionOpDescriptor::GetCompileParms(std::string& compile_config,
                                             Handle& /*handle*/,
                                             const FusionKernelSourceType source,
-                                            const std::vector<solver::AnySolver>& /*solvers*/)
+                                            const std::vector<solver::AnySolver>& solvers)
 {
     std::string add;
     switch(source)
     {
     case AsmText:
-        add = " -Wa,-defsym,enable_activ=1 -Wa,-defsym,activ_mode=" + std::to_string(activMode);
+        if(!fusion::IsWinograd(solvers))
+            add = " -Wa,-defsym,enable_activ=1 -Wa,-defsym,activ_mode=" + std::to_string(activMode);
         break;
     case OpenclText:
         add = " -DMIOPEN_YES_ACTIV=1 -DMIOPEN_NRN_OP_ID=" + std::to_string(activMode);

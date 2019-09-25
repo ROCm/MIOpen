@@ -289,15 +289,21 @@ struct verify_backward_sofmax
             par_ford(in_n)([&](int o) {
                 double sum = 0;
                 ford(in_c, in_h, in_w)([&](int c, int i, int j) {
-                    sum += out[o * out_nstr + c * out_cstr + i * out_hstr + j] *
-                           dout[o * out_nstr + c * out_cstr + i * out_hstr + j];
+                    if(algo == MIOPEN_SOFTMAX_LOG)
+                        sum += dout[o * out_nstr + c * out_cstr + i * out_hstr + j];
+                    else
+                        sum += out[o * out_nstr + c * out_cstr + i * out_hstr + j] *
+                               dout[o * out_nstr + c * out_cstr + i * out_hstr + j];
                 });
 
                 ford(in_c, in_h, in_w)([&](int c, int i, int j) {
                     if(algo == MIOPEN_SOFTMAX_LOG)
                         din[o * in_nstr + c * in_cstr + i * in_hstr + j] =
-                            alpha * (dout[o * out_nstr + c * out_cstr + i * out_hstr + j] - sum) +
-                            beta * din[o * in_nstr + c * in_cstr + i * in_hstr + j];
+                            T(alpha *
+                                  (dout[o * out_nstr + c * out_cstr + i * out_hstr + j] -
+                                   sum * std::exp(
+                                             out[o * out_nstr + c * out_cstr + i * out_hstr + j])) +
+                              beta * din[o * in_nstr + c * in_cstr + i * in_hstr + j]);
                     else
                         din[o * in_nstr + c * in_cstr + i * in_hstr + j] =
                             alpha * (out[o * out_nstr + c * out_cstr + i * out_hstr + j] *
@@ -309,14 +315,20 @@ struct verify_backward_sofmax
             par_ford(in_n, in_h, in_w)([&](int o, int i, int j) {
                 double sum = 0;
                 ford(in_c)([&](int c) {
-                    sum += out[o * out_nstr + c * out_cstr + i * out_hstr + j] *
-                           dout[o * out_nstr + c * out_cstr + i * out_hstr + j];
+                    if(algo == MIOPEN_SOFTMAX_LOG)
+                        sum += dout[o * out_nstr + c * out_cstr + i * out_hstr + j];
+                    else
+                        sum += out[o * out_nstr + c * out_cstr + i * out_hstr + j] *
+                               dout[o * out_nstr + c * out_cstr + i * out_hstr + j];
                 });
 
                 ford(in_c)([&](int c) {
                     if(algo == MIOPEN_SOFTMAX_LOG)
                         din[o * in_nstr + c * in_cstr + i * in_hstr + j] =
-                            alpha * (dout[o * out_nstr + c * out_cstr + i * out_hstr + j] - sum) +
+                            alpha *
+                                (dout[o * out_nstr + c * out_cstr + i * out_hstr + j] -
+                                 sum * std::exp(
+                                           out[o * out_nstr + c * out_cstr + i * out_hstr + j])) +
                             beta * din[o * in_nstr + c * in_cstr + i * in_hstr + j];
                     else
                         din[o * in_nstr + c * in_cstr + i * in_hstr + j] =
@@ -370,9 +382,8 @@ struct softmax_driver : test_driver
 
     std::vector<int> in_dim;
     std::vector<float> scales;
-
-    miopenSoftmaxAlgorithm_t algo{};
-    miopenSoftmaxMode_t mode{};
+    int algo_cmd = 1;
+    int mode_cmd = 1;
 
     softmax_driver()
     {
@@ -381,12 +392,8 @@ struct softmax_driver : test_driver
 
         add(in_dim, "input-dim", generate_data(in_dim_vec, {16, 32, 8, 8}));
 
-        add(algo,
-            "algorithm",
-            generate_data({MIOPEN_SOFTMAX_FAST, MIOPEN_SOFTMAX_ACCURATE, MIOPEN_SOFTMAX_LOG}));
-        add(mode,
-            "mode",
-            generate_data({MIOPEN_SOFTMAX_MODE_INSTANCE, MIOPEN_SOFTMAX_MODE_CHANNEL}));
+        add(algo_cmd, "algorithm", generate_data({0, 1, 2}));
+        add(mode_cmd, "mode", generate_data({0, 1}));
 
         add(scales, "scales", generate_data({{1.f, 0.f}, {float(0.5), float(0.5)}}));
         add(tolerance, "tolerance", generate_data({8000})); // 80 for MIOPEN_SOFTMAX_MODE_CHANNEL
@@ -394,7 +401,10 @@ struct softmax_driver : test_driver
 
     void run()
     {
-        unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
+        miopenSoftmaxAlgorithm_t algo = miopenSoftmaxAlgorithm_t(algo_cmd);
+        miopenSoftmaxMode_t mode      = miopenSoftmaxMode_t(mode_cmd);
+        unsigned long max_value =
+            miopen_type<T>{} == miopenHalf ? (algo == MIOPEN_SOFTMAX_LOG ? 3 : 5) : 17;
 
         /// \todo Apply mix-precision in softmax to improve the stability of fp16
         if((in_dim[1] * in_dim[2] * in_dim[3] >= 2048) && mode == MIOPEN_SOFTMAX_MODE_INSTANCE &&

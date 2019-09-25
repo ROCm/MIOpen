@@ -24,6 +24,13 @@
  *
  */
 
+#ifndef USE_ALPHA
+#define USE_ALPHA 0
+#endif
+#ifndef USE_BETA
+#define USE_BETA 0
+#endif
+
 __attribute__((always_inline)) uint iDiv(uint v, uint d)
 {
     uint r = v / d;
@@ -220,7 +227,16 @@ static inline void global_trans(const uint in_off,
     }
 }
 
-__kernel void transpose_NCHW2Vec(const global DATA_TYPE* in, global DATA_TYPE* out)
+__kernel void transpose_NCHW2Vec(const global DATA_TYPE* in,
+                                 global DATA_TYPE* out,
+#if !USE_ALPHA
+                                 UNUSED
+#endif
+                                 const float alpha,
+#if !USE_BETA
+                                 UNUSED
+#endif
+                                 const float beta)
 {
     // to reduce granularity loss
     const uint c_p_blck = get_global_id(0);
@@ -256,5 +272,14 @@ __kernel void transpose_NCHW2Vec(const global DATA_TYPE* in, global DATA_TYPE* o
             global_trans(in_off, out_off, p_blck, n, c, in, out);
         }
 #endif
+
+        // TODO: support y=alpha*x+beta*y
     }
+
+#if USE_ALPHA
+    (void)alpha;
+#endif
+#if USE_BETA
+    (void)beta;
+#endif
 }

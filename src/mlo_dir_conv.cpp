@@ -106,13 +106,18 @@ static auto GetImplicitGemmSolvers()
 static auto GetWindogradSolvers()
 {
     return miopen::solver::SolverContainer<miopen::solver::ConvBinWinograd3x3U,
+                                           miopen::solver::ConvBinWinogradRxSf3x2,
                                            miopen::solver::ConvBinWinogradRxS>{};
 }
 
 static auto GetWindogradWrWSolvers()
 {
     return miopen::solver::SolverContainer<miopen::solver::ConvBinWinogradRxS,
-                                           miopen::solver::ConvWinograd3x3MultipassWrW>{};
+                                           miopen::solver::ConvWinograd3x3MultipassWrW<3, 2>,
+                                           miopen::solver::ConvWinograd3x3MultipassWrW<3, 3>,
+                                           miopen::solver::ConvWinograd3x3MultipassWrW<3, 4>,
+                                           miopen::solver::ConvWinograd3x3MultipassWrW<3, 5>,
+                                           miopen::solver::ConvWinograd3x3MultipassWrW<3, 6>>{};
 }
 
 static auto GetBwdWrW2DSolvers()
@@ -129,10 +134,21 @@ static auto GetBwdWrW2DSolvers()
                                            miopen::solver::ConvOclBwdWrW1x1>{};
 }
 
+static auto GetFwdSCGemmSolvers()
+{
+    return miopen::solver::SolverContainer<miopen::solver::ConvSCGemmFwd<miopen::SCGemmOpFGemm>>{};
+}
+
 std::vector<miopen::solver::ConvSolution>
 FindAllDirectSolutions(const miopen::ConvolutionContext& ctx)
 {
     return GetDirectSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+}
+
+std::vector<std::pair<std::string, size_t>>
+AllDirectForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
+{
+    return GetDirectSolvers().GetWorkspaceSize(ctx);
 }
 
 std::vector<miopen::solver::ConvSolution>
@@ -141,14 +157,15 @@ FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx)
     return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
 }
 
+std::vector<miopen::solver::ConvSolution>
+FindAllWinogradSolutions(const miopen::ConvolutionContext& ctx)
+{
+    return GetWindogradSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+}
+
 miopen::solver::ConvSolution FindWinogradSolution(const miopen::ConvolutionContext& ctx)
 {
     return GetWindogradSolvers().SearchForSolution(ctx, GetDb(ctx));
-}
-
-miopen::solver::ConvSolution FindWinogradWrWSolution(const miopen::ConvolutionContext& ctx)
-{
-    return GetWindogradWrWSolvers().SearchForSolution(ctx, GetDb(ctx));
 }
 
 std::vector<miopen::solver::ConvSolution>
@@ -156,11 +173,22 @@ FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx)
 {
     return GetWindogradWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
 }
+std::vector<std::pair<std::string, size_t>>
+AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx)
+{
+    return GetBwdWrW2DSolvers().GetWorkspaceSize(ctx);
+}
 
 std::vector<miopen::solver::ConvSolution>
 FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx)
 {
     return GetBwdWrW2DSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+}
+
+std::vector<miopen::solver::ConvSolution>
+FindAllFwdSCGemmSolutions(const miopen::ConvolutionContext& ctx)
+{
+    return GetFwdSCGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
 }
 
 #if MIOPEN_BACKEND_OPENCL
@@ -307,5 +335,11 @@ void miopen::ConvolutionContext::DetectRocm()
 #ifndef HIP_OC_FINALIZER
         use_binaries = !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
 #endif
+    }
+
+    if(StartsWith(GetStream().GetDeviceName(), "gfx8"))
+    {
+        use_asm_kernels = false;
+        use_binaries    = false;
     }
 }
