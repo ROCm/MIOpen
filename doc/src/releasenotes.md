@@ -2,7 +2,7 @@
 ## MIOpen Release notes
 
 
-### 09/06/2019 [2.1.0]
+### 09/25/2019 [2.1.0]
 
 - This release contains new layers, bug fixes, and a new convolution algorithm.
 
