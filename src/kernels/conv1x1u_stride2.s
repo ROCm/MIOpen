@@ -367,7 +367,7 @@ gcnAsmConv1x1U_stride2:
         // v_dest = Item.w_img_id in wave part
 
         v_mul_u32_u24 v[\v_tmp_reg], 0 + waves_per_xDim, v[\v_group_id]
-        v_sub_u32 v[\v_tmp_reg], s[gid_hw], v[\v_tmp_reg]
+        _v_sub_nc_u32 v[\v_tmp_reg], s[gid_hw], v[\v_tmp_reg]
         //v_tmp_reg = group_id_w
 
         v_mul_u32_u24 v[\v_tmp_reg], 0 + w_per_wave, v[\v_tmp_reg]

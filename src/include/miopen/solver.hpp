@@ -36,11 +36,13 @@
 #include <miopen/type_name.hpp>
 #include <miopen/miopen.h>
 #include <miopen/buffer_info.hpp>
+#include <miopen/scgemm_param.hpp>
 
 #include <memory>
 #include <string>
 #include <vector>
 #include <ostream>
+#include <algorithm>
 
 namespace miopen {
 
@@ -50,9 +52,13 @@ const int wave_size = 64;
 template <class Solver>
 std::string ComputeSolverDbId(Solver)
 {
-    const auto& name = get_type_name<Solver>();
-    auto idx         = name.find_last_of(':');
-    return name.substr(idx + 1);
+    const auto& const_name = get_type_name<Solver>();
+    auto idx               = const_name.find_last_of(':');
+    auto name              = const_name.substr(idx + 1);
+    std::replace(name.begin(), name.end(), ',', '-');
+    name.erase(std::remove(name.begin(), name.end(), ' '), name.end());
+
+    return name;
 }
 
 // This will retrieve the id of the solver to write to the database. By
@@ -108,6 +114,8 @@ struct SolverBase
     /// Intended to be used for performance optimization.
     /// Warning: Non-trivial implementations introduce implicit dependencies between solutions.
     bool IsFast(const Context&) const { return true; }
+    // Returns the workspace size required by the solver for a given ConvolutionContext
+    size_t GetWorkspaceSize(const Context&) const { return 0; };
 
     /// Takes problem config, optimization parameters and other info
     /// and computes information required to build and run the kernel(s).
@@ -238,6 +246,7 @@ struct ConvAsm1x1U : SolverBase<ConvolutionContext>
     PerformanceConfigConvAsm1x1U Search(const ConvolutionContext&) const;
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsFast(const ConvolutionContext& params) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsm1x1U& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -397,10 +406,91 @@ struct ConvOclDirectFwd3x3 : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
+struct PerformanceImplicitGemm : Serializable<PerformanceImplicitGemm>
+{
+    int BPerBlock; // 2^n[8..16]
+    int KPerBlock; // 2^n[32..128]
+    int EPerBlock; // 2^n[4..16]
+
+    int GemmNRepeat; // == 2
+
+    int GemmMPerThreadSubC; // 2^n[2..4]
+    int GemmNPerThreadSubC; // 2^n[2..4]
+
+    int GemmMLevel0Cluster; // 2^n[1..4]
+    int GemmNLevel0Cluster; // 2^n[1..4]
+    int GemmMLevel1Cluster; // 2^n[1..4]
+    int GemmNLevel1Cluster; // 2^n[1..4]
+
+    int InBlockCopyClusterLengths_E;  // 2^n[4..16]
+    int InBlockCopyClusterLengths_B;  // 2^n[8..16]
+    int InBlockCopyClusterLengths_N1; // 2^n[1..2]
+    int InBlockCopyClusterLengths_N2; // 2^n[1..4]
+
+    int WeiBlockCopyClusterLengths_E; // 2^n[1..4]
+    int WeiBlockCopyClusterLengths_K; // 2^n[16..128]
+
+    bool use_spare_set;
+
+    PerformanceImplicitGemm(
+        int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, bool);
+
+    PerformanceImplicitGemm()
+        : PerformanceImplicitGemm(
+              -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false)
+    {
+    }
+
+    PerformanceImplicitGemm(bool spare);
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.BPerBlock, "BPerBlock");
+        f(self.KPerBlock, "KPerBlock");
+        f(self.EPerBlock, "EPerBlock");
+        f(self.GemmNRepeat, "GemmNRepeat");
+        f(self.GemmMPerThreadSubC, "GemmMPerThreadSubC");
+        f(self.GemmNPerThreadSubC, "GemmNPerThreadSubC");
+        f(self.GemmMLevel0Cluster, "GemmMLevel0Cluster");
+        f(self.GemmNLevel0Cluster, "GemmNLevel0Cluster");
+        f(self.GemmMLevel1Cluster, "GemmMLevel1Cluster");
+        f(self.GemmNLevel1Cluster, "GemmNLevel1Cluster");
+        f(self.InBlockCopyClusterLengths_E, "InBlockCopyClusterLengths_E");
+        f(self.InBlockCopyClusterLengths_N1, "InBlockCopyClusterLengths_N1");
+        f(self.InBlockCopyClusterLengths_B, "InBlockCopyClusterLengths_B");
+        f(self.InBlockCopyClusterLengths_N2, "InBlockCopyClusterLengths_N2");
+        f(self.WeiBlockCopyClusterLengths_E, "WeiBlockCopyClusterLengths_E");
+        f(self.WeiBlockCopyClusterLengths_K, "WeiBlockCopyClusterLengths_K");
+    }
+
+    void EuristicInit(const ConvolutionContext& config);
+    bool IsValidValue() const;
+    bool SetNextValue();
+    bool IsValid(const ConvolutionContext& ctx) const;
+    bool operator==(const PerformanceImplicitGemm& other) const;
+    std::string ToString() const;
+};
+
 struct ConvHipImplicitGemmV4Fwd : SolverBase<ConvolutionContext>
 {
+    PerformanceImplicitGemm GetPerformanceConfig(const ConvolutionContext& params) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& problem,
+                                  const PerformanceImplicitGemm& c) const;
     bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceImplicitGemm& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+
+    PerformanceImplicitGemm Search(const ConvolutionContext&) const;
+    int RunAndMeasureSolution(miopen::Handle& profile_h,
+                              ConstData_t bot_ocl_buf,
+                              Data_t top_ocl_buf,
+                              ConstData_t wei_ocl_buf,
+                              ConstData_t bias_ocl_buf,
+                              const ConvolutionContext& params,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
 };
 
 struct ConvHipImplicitGemmV4_1x1 : SolverBase<ConvolutionContext>
@@ -462,6 +552,19 @@ struct ConvBinWinogradRxS : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
+struct ConvBinWinogradRxSf3x2 : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
+};
+
+struct ConvBinWinogradRxSFused : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
+};
+
+template <int WinoDataW, int WinoFilterW>
 struct ConvWinograd3x3MultipassWrW : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
@@ -469,17 +572,30 @@ struct ConvWinograd3x3MultipassWrW : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 
     // kernel_file_name for solver identification
-    static std::vector<std::string> GetSolverFileNames()
+    static std::string GetSolverFileNames(int id)
     {
-        return std::vector<std::string>{"xform_data.s", "xform_filter.s", "xform_out.s"};
+        static const std::string names[3] = {"xform_data.s", "xform_filter.s", "xform_out.s"};
+        return names[id];
     }
-    static std::vector<std::string> GetSolverKernelNames()
+    static std::string GetSolverKernelNames(int id)
     {
-        return std::vector<std::string>{
-            "gcnAsmWinogradXformData", "gcnAsmWinogradXformFilter", "gcnAsmWinogradXformOut"};
+        static const std::string name_suffix =
+            '_' + std::to_string(WinoDataW) + '_' + std::to_string(WinoDataW) + '_' +
+            std::to_string(WinoFilterW) + '_' + std::to_string(WinoFilterW);
+        static const std::string names[3] = {"gcnAsmWinogradXformData" + name_suffix,
+                                             "gcnAsmWinogradXformFilter" + name_suffix,
+                                             "gcnAsmWinogradXformOut" + name_suffix};
+
+        return names[id];
     }
     static int GetGroupCountMult() { return 4; }
 };
+
+extern template struct ConvWinograd3x3MultipassWrW<3, 2>;
+extern template struct ConvWinograd3x3MultipassWrW<3, 3>;
+extern template struct ConvWinograd3x3MultipassWrW<3, 4>;
+extern template struct ConvWinograd3x3MultipassWrW<3, 5>;
+extern template struct ConvWinograd3x3MultipassWrW<3, 6>;
 
 struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirect3x3WrW>
 {
@@ -645,6 +761,7 @@ struct ConvAsmBwdWrW1x1 : SolverBase<ConvolutionContext>
     PerformanceConfigConvAsmBwdWrW1x1 Search(const ConvolutionContext&) const;
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsFast(const ConvolutionContext& params) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsmBwdWrW1x1& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -728,6 +845,7 @@ struct ConvOclBwdWrW2 : SolverBase<ConvolutionContext>
                                   const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&) const;
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS> Search(const ConvolutionContext&) const;
     bool IsApplicable(const ConvolutionContext& params) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -782,6 +900,7 @@ struct ConvOclBwdWrW2NonTunable : ConvOclBwdWrW2<1>
 struct ConvOclBwdWrW53 : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
@@ -789,7 +908,75 @@ struct ConvOclBwdWrW1x1 : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& params) const;
 };
+
+#if MIOPEN_USE_SCGEMM
+template <SCGemmOpType T>
+struct PerformanceConfigSCGemmFwd : Serializable<PerformanceConfigSCGemmFwd<T>>
+{
+    int routine_type   = 0;
+    int routine        = 0;
+    int index          = 0;
+    bool use_spare_set = false;
+
+    PerformanceConfigSCGemmFwd(bool);
+    PerformanceConfigSCGemmFwd() : PerformanceConfigSCGemmFwd(false) {}
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.routine_type, "routine_type");
+        f(self.routine, "routine");
+    }
+
+    void EuristicInit(const ConvolutionContext& config);
+    bool IsValidValue() const;
+    bool SetNextValue();
+    bool IsValid(const ConvolutionContext& config) const;
+    bool operator==(const PerformanceConfigSCGemmFwd& other) const;
+    std::string ToString() const;
+};
+
+template <SCGemmOpType T>
+struct ConvSCGemmFwd : SolverBase<ConvolutionContext>
+{
+    PerformanceConfigSCGemmFwd<T> GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConfigSCGemmFwd<T>&) const;
+    PerformanceConfigSCGemmFwd<T> Search(const ConvolutionContext&) const;
+    bool IsApplicable(const ConvolutionContext& params) const;
+    bool IsFast(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfigSCGemmFwd<T>& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+    template <typename B, typename TopT>
+    int RunAndMeasureSolution(miopen::Handle& profile_h,
+                              B bot_ocl_buf,
+                              TopT top_ocl_buf,
+                              ConstData_t wei_ocl_buf,
+                              ConstData_t bias_ocl_buf,
+                              const ConvolutionContext& params,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
+
+    protected:
+    bool IsApplicableBase(const ConvolutionContext& params) const;
+};
+
+extern template struct PerformanceConfigSCGemmFwd<SCGemmOpFGemm>;
+template <>
+bool ConvSCGemmFwd<SCGemmOpFGemm>::IsApplicableBase(const ConvolutionContext& params) const;
+extern template struct ConvSCGemmFwd<SCGemmOpFGemm>;
+#else
+template <SCGemmOpType T>
+struct ConvSCGemmFwd : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext&) const { return false; };
+    ConvSolution GetSolution(const ConvolutionContext&) const { return ConvSolution{}; };
+};
+template struct ConvSCGemmFwd<SCGemmOpFGemm>;
+#endif
 
 /// Partial implementation.
 struct gemm : SolverBase<ConvolutionContext>

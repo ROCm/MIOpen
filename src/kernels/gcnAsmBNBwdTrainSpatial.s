@@ -52,6 +52,8 @@ in_desc = 0
     .set inhw_off, 0x40
 .endif
 
+.set bn_bwd_lds_mask, 0x1C
+
 madmix_instructions_available = 0
 fmamix_instructions_available = 0
 .if (.option.machine_version_major == 9)
@@ -266,7 +268,7 @@ skip_delta_update:
 	s_nop 1                                             
 	s_and_saveexec_b64 s[stmp+4:stmp+5], vcc                      
 	v_lshrrev_b32 v[qtmp2], 4, v[tid]                         
-	v_and_b32 v[qtmp2], 12, v[qtmp2]                            
+	v_and_b32 v[qtmp2], 0x0+bn_bwd_lds_mask, v[qtmp2]                            
 	ds_write2_b32 v[qtmp2], v[v_db], v[v_ds] offset0:3 offset1:0+MIO_BN_LDSGCN_SIZE+3        
 	s_or_b64 exec, exec, s[stmp+4:stmp+5]                         
 	s_waitcnt lgkmcnt(0)                                

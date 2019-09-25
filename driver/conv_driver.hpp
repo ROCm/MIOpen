@@ -848,14 +848,19 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
         if(!dataRead)
         {
-            if(is_fwd || is_wrw)
-                for(int i = 0; i < in_sz; i++)
-                {
+            for(int i = 0; i < in_sz; i++)
+            {
+                if(is_fwd || is_wrw)
                     in.data[i] =
                         static_cast<Tgpu>(Data_scale * RAN_GEN<float>(static_cast<float>(0.0),
                                                                       static_cast<float>(1.0)));
-                    // printf("in  %d  %d \n",i,in.data[i]);
-                }
+                else /// \anchor move_rand
+                    /// Move rand() forward, even if buffer is unused. This provides the same
+                    /// initialization of input buffers regardless of which kinds of
+                    /// convolutions are currently selectedfor testing (see the "-F" option).
+                    /// Verification cache would be broken otherwise.
+                    rand();
+            }
         }
 
         if(inflags.GetValueInt("bias") != 0)
@@ -879,10 +884,12 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
         if(!weiRead)
         {
-            if(is_fwd || is_bwd)
-                for(int i = 0; i < wei_sz; i++)
+            for(int i = 0; i < wei_sz; i++)
+                if(is_fwd || is_bwd)
                     wei.data[i] =
                         static_cast<Tgpu>(Data_scale * 2 * detail::RanGenWeights<float>());
+                else /// \ref move_rand
+                    rand();
         }
     }
     else
@@ -896,20 +903,24 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
         if(!dataRead)
         {
-            if(is_fwd || is_wrw)
-                for(int i = 0; i < in_sz; i++)
-                {
+            for(int i = 0; i < in_sz; i++)
+            {
+                if(is_fwd || is_wrw)
                     in.data[i] =
                         Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-                }
+                else /// \ref move_rand
+                    rand();
+            }
         }
 
         if(!doutRead)
         {
-            if(is_bwd || is_wrw)
-                for(int i = 0; i < out_sz; i++)
+            for(int i = 0; i < out_sz; i++)
+                if(is_bwd || is_wrw)
                     dout.data[i] =
                         Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+                else /// \ref move_rand
+                    rand();
         }
 
         if(inflags.GetValueInt("bias") != 0)
@@ -939,9 +950,11 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
         if(!weiRead)
         {
-            if(is_fwd || is_bwd)
-                for(int i       = 0; i < wei_sz; i++)
+            for(int i = 0; i < wei_sz; i++)
+                if(is_fwd || is_bwd)
                     wei.data[i] = Data_scale * detail::RanGenWeights<Tgpu>();
+                else /// \ref move_rand
+                    rand();
         }
     }
 

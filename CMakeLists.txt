@@ -59,7 +59,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.0.1)
+rocm_setup_version(VERSION 2.1.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -116,17 +116,21 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
         PATH_SUFFIXES bin
         PATHS /opt/rocm
     )
-    
+    set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
     if(MIOPEN_HIP_COMPILER)
         message("hip compiler: ${MIOPEN_HIP_COMPILER}")
     else()
         message(FATAL_ERROR "hip compiler not found")
     endif()
+
+    # scgemm not support opencl backend yet.
+    set(MIOPEN_USE_SCGEMM OFF)
 endif()
 
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     set(MIOPEN_BACKEND_HIP 1)
+    set(MIOPEN_USE_MIOPENGEMM OFF CACHE BOOL "")
     find_program(HIP_OC_COMPILER clang-ocl
         PATH_SUFFIXES bin
         PATHS /opt/rocm
@@ -147,11 +151,17 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
         if(GFX_906_FLAG_VALID)
             link_libraries(-amdgpu-target=gfx906)
         endif()
+
+        CHECK_CXX_COMPILER_FLAG(-amdgpu-target=gfx908 -Werror, GFX_908_FLAG_VALID)
+        if(GFX_908_FLAG_VALID)
+            link_libraries(-amdgpu-target=gfx908)
+        endif()
         # end hack
     else()
         # Hcc's clang always defines __HCC__ even when not using hcc driver
         add_definitions(-U__HCC__)
     endif()
+    # end hack
 
     set(MIOPEN_HIP_COMPILER ${CMAKE_CXX_COMPILER} CACHE PATH "")
 
@@ -163,6 +173,14 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
         message(STATUS "Build with rocblas")
     else()
         message(STATUS "Build without rocblas")
+    endif()
+
+    # scgemm
+    set(MIOPEN_USE_SCGEMM ON CACHE BOOL "")
+    if(MIOPEN_USE_SCGEMM)
+        message(STATUS "Build with scgemm")
+    else()
+        message(STATUS "Build without scgemm")
     endif()
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
@@ -188,10 +206,15 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
 message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 
 # miopengemm
-find_package(miopengemm PATHS /opt/rocm)
-if(miopengemm_FOUND)
-    message(STATUS "Build with miopengemm")
-    set(MIOPEN_USE_MIOPENGEMM 1)
+if(MIOPEN_USE_MIOPENGEMM)
+    find_package(miopengemm PATHS /opt/rocm)
+    if(miopengemm_FOUND)
+        message(STATUS "Build with miopengemm")
+        set(MIOPEN_USE_MIOPENGEMM 1)
+    else()
+        message(STATUS "Build without miopengemm")
+        set(MIOPEN_USE_MIOPENGEMM 0)
+    endif()
 else()
     message(STATUS "Build without miopengemm")
     set(MIOPEN_USE_MIOPENGEMM 0)
@@ -223,11 +246,16 @@ else()
     set(MIOPEN_USER_DB_PATH "~/.config/miopen/" CACHE STRING "Default path of user db files")
     set(MIOPEN_CACHE_DIR "~/.cache/miopen/" CACHE STRING "")
 endif()
-set(MIOPEN_USER_FIND_DB_SUFFIX "${MIOPEN_BACKEND}.${MIOpen_VERSION_MAJOR}_${MIOpen_VERSION_MINOR}_${MIOpen_VERSION_PATCH}" CACHE PATH "Filename suffix for the user find-db files")
+set(MIOPEN_USER_DB_SUFFIX "${MIOPEN_BACKEND}.${MIOpen_VERSION_MAJOR}_${MIOpen_VERSION_MINOR}_${MIOpen_VERSION_PATCH}" CACHE PATH "Filename suffix for the user find-db files")
 set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix for the system find-db files")
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "rocm-opencl-dev, rocm-utils, hip_hcc, miopengemm")
-set(CPACK_RPM_PACKAGE_REQUIRES "rocm-opencl-devel, rocm-utils, hip_hcc, miopengemm")
+
+set(MIOPEN_PACKAGE_REQS "rocm-utils, hip_hcc")
+if(MIOPEN_USE_MIOPENGEMM)
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, miopengemm")
+endif()
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}, rocm-opencl-dev")
+set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}, rocm-opencl-devel")
 
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}
@@ -241,8 +269,9 @@ include(EnableCompilerWarnings)
 set(MIOPEN_TIDY_ERRORS ERRORS * -readability-inconsistent-declaration-parameter-name)
 if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
     set(MIOPEN_TIDY_CHECKS -modernize-use-override -readability-non-const-parameter)
-elseif(MIOPEN_BACKEND STREQUAL "HIP")
-    set(MIOPEN_TIDY_ERRORS ALL)
+# Enable tidy on hip
+# elseif(MIOPEN_BACKEND STREQUAL "HIP")
+#     set(MIOPEN_TIDY_ERRORS ALL)
 endif()
 
 include(ClangTidy)

@@ -117,6 +117,8 @@ set( MIOpen_Source
     kernel_build_params.cpp
     find_db.cpp
     conv_algo_name.cpp
+    dropout.cpp
+    dropout_api.cpp
     readonlyramdb.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
@@ -159,6 +161,7 @@ set( MIOpen_Source
     include/miopen/any_solver.hpp
     include/miopen/conv_solution.hpp
     include/miopen/conv_algo_name.hpp
+    include/miopen/dropout.hpp
     include/miopen/readonlyramdb.hpp
     md_graph.cpp
     mdg_expr.cpp
@@ -177,6 +180,7 @@ set( MIOpen_Source
     solver/conv_multipass_wino3x3WrW.cpp
     solver/conv_bin_wino3x3U.cpp
     solver/conv_bin_winoRxS.cpp
+    solver/conv_winoRxS_f3x2.cpp
     solver/conv_ocl_dir2D_bwdWrW_2.cpp
     solver/conv_ocl_dir2D_bwdWrW_53.cpp
     solver/conv_ocl_dir2D_bwdWrW_1x1.cpp
@@ -206,15 +210,33 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v14_3_3_fp16dot_stride2_dil.inc
         kernels/Conv_Winograd_v13_3_12_epilogue.inc
         kernels/Conv_Winograd_v13_3_12_prologue.inc
-        kernels/Conv_Winograd_v16_3_0_epilogue.inc
-        kernels/Conv_Winograd_v16_3_0_prologue.inc
-        kernels/Conv_Winograd_v16_3_0_stride1.inc
+        kernels/Conv_Winograd_v16_5_0_epilogue.inc
+        kernels/Conv_Winograd_v16_5_0_prologue.inc
+        kernels/Conv_Winograd_v16_5_0_stride1.inc
+        kernels/conv_3x3_wheel_alpha_v9_2_7.inc
+        kernels/conv_3x3_wheel_alpha_v9_2_7_epilogue.inc
+        kernels/conv_3x3_wheel_alpha_v9_2_7_prologue.inc
+        kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec.inc
+        kernels/conv_3x3_wheel_alpha_v3_0b_epilogue.inc
+        kernels/conv_3x3_wheel_alpha_v3_0b_prologue.inc
+        kernels/conv_3x3_wheel_alpha_v3_0b.inc
+        kernels/conv_3x3_wheel_alpha_v7_0_3b_epilogue.inc
+        kernels/conv_3x3_wheel_alpha_v7_0_3b_prologue.inc
+        kernels/conv_3x3_wheel_alpha_v7_0_3b.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15_epilogue.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15_prologue.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec.inc
+        kernels/conv_3x3_wheel_alpha_v9_0_15.inc
         kernels/inst_wrappers.inc
         kernels/common.inc
         kernels/xform_data_filter.inc
         kernels/neuron.inc
         kernels/conv_sizes.inc
-        kernels/gpr_alloc.inc)
+        kernels/gpr_alloc.inc
+        kernels/bfloat16_dev.hpp
+        kernels/float_types.h
+        )
 
     set(MIOPEN_KERNELS
         ${COMPOSABLE_KERNEL_SOURCE}
@@ -275,36 +297,35 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenSubTensorOpWithScalarKernel.cl
         kernels/MIOpenSubTensorOpWithSubTensorKernel.cl
         kernels/MIOpenSubTensorOpWithCastTensorKernel.cl
+        kernels/MIOpenSubTensorOpWithTransformKernel.cl
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride1.s
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dec.s
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dil.s
         kernels/Conv_Winograd_v14_3_3_fp16dot_stride1.s
         kernels/Conv_Winograd_v14_3_3_fp16dot_stride2_dec.s
         kernels/Conv_Winograd_v14_3_3_fp16dot_stride2_dil.s
-        kernels/Conv_Winograd_v16_3_0_stride1.s
-        kernels/conv_3x3_wheel_alpha_v9_2_7_gfx803_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_2_7_gfx900_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_2_7_gfx906_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec_gfx803_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec_gfx900_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec_gfx906_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx803_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx803_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec_gfx803_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx900_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx900_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec_gfx900_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx906_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx906_md10.so
-        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec_gfx906_md10.so
-        kernels/conv_3x3_wheel_alpha_v7_0_3b_gfx900_md10.so
-        kernels/conv_3x3_wheel_alpha_v7_0_3b_gfx906_md10.so
-        kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_md10.so
+        kernels/Conv_Winograd_v16_5_0_stride1.s
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil.s
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec.s
+        kernels/conv_3x3_wheel_alpha_v9_0_15.s
+        kernels/conv_3x3_wheel_alpha_v7_0_3b.s
+        kernels/conv_3x3_wheel_alpha_v3_0b.s
+        kernels/conv_3x3_wheel_alpha_v9_2_7.s
+        kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec.s
         kernels/MIOpenConvBwdBias.cl
         kernels/MIOpenBatchNormActivInfer.cl
         kernels/MIOpenCTCLoss.cl
+        kernels/MIOpenDropout.cl
         kernels/xform_data.s
         kernels/xform_filter.s)
+
+    if(MIOPEN_USE_SCGEMM)
+        list(APPEND MIOPEN_KERNELS
+            kernels/scgemm_v0_5_0_gfx906.so
+            kernels/SCGemmUtils.cl
+        )
+    endif()
+
     add_kernels("${MIOPEN_KERNELS}")
     add_kernel_includes("${MIOPEN_KERNEL_INCLUDES}")
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
@@ -327,6 +348,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/rnnocl.cpp
         ocl/utilocl.cpp
         ocl/ctcocl.cpp
+        ocl/dropoutocl.cpp
         ocl/gcn_asm_utils.cpp
         hip/hip_build_utils.cpp
         pooling.cpp
@@ -387,6 +409,24 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         )
 
     add_dependencies(tidy miopen_tidy_inlining)
+endif()
+
+if(MIOPEN_USE_SCGEMM)
+    list(APPEND MIOpen_Source
+        scgemm/scgemm.cpp
+        include/miopen/scgemm/scgemm.hpp
+        include/miopen/scgemm/tensorshape.hpp
+        include/miopen/scgemm/conv.hpp
+        include/miopen/scgemm/gemm.hpp
+        include/miopen/scgemm/scgemm_op.hpp
+        scgemm/tensorshape.cpp
+        scgemm/conv.cpp
+        scgemm/gemm.cpp
+        include/miopen/scgemm_utils.hpp
+        scgemm_utils.cpp
+        solver/conv_scgemm_fwd.cpp
+    )
+
 endif()
 
 # build library

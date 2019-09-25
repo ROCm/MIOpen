@@ -138,14 +138,10 @@ static bool IsTunable(const ConvolutionContext& params)
 
 bool ConvOclBwdWrW2NonTunable::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
-        return false;
-
     // At present, auto-tuning is disabled for non-group 3x3 and 1x1 filters for multiple
     // reasons: after tuning ocl kernel for 3x3 and 1x1 filters, assembly kernel still
-    // dominates.
-    // Thus, this solver is used for non-group 3x3 and 1x1 filters only.
-    return !IsTunable(params) && ConvOclBwdWrW2<1>::IsApplicableBase(params);
+    // dominates. Thus, this solver is used for non-group 3x3 and 1x1 filters only.
+    return ConvOclBwdWrW2<1>::IsApplicableBase(params) && !IsTunable(params);
 }
 
 ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ConvolutionContext& params) const
@@ -466,6 +462,11 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsValidPerformanceConfig(
 template <int N_BATCH_LOOPS>
 bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& params) const
 {
+    if(!params.Is2d())
+        return false;
+    if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
+        return false;
+
     return params.kernel_dilation_w == 1 && params.kernel_dilation_h == 1 &&
 #if 0
            // There is a stronger restriction than this one, which make this one unnecessary.
@@ -502,10 +503,7 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& p
 template <int N_BATCH_LOOPS>
 bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!params.IsFp32() && !params.IsFp16() && !params.IsBfp16())
-        return false;
-
-    return IsTunable(params) && IsApplicableBase(params);
+    return IsApplicableBase(params) && IsTunable(params);
 }
 
 template <int N_BATCH_LOOPS>
@@ -515,6 +513,23 @@ ConvOclBwdWrW2<N_BATCH_LOOPS>::GetPerformanceConfig(const ConvolutionContext& pa
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS> pp;
     pp.EuristicInit(params);
     return pp;
+}
+
+template <int N_BATCH_LOOPS>
+size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ConvolutionContext& params) const
+{
+    const size_t n_batch_blks = GetNBatchBlks<N_BATCH_LOOPS>(params);
+    if(n_batch_blks > 1)
+    {
+        const auto n_input_channels_per_group = params.n_outputs / params.group_counts;
+        const auto wei_cstride                = params.kernel_size_w * params.kernel_size_h;
+        const auto wei_bstride                = n_input_channels_per_group * wei_cstride;
+        int data_len                          = GetTypeSize(params.out_data_type);
+        return static_cast<std::size_t>(wei_bstride) * static_cast<std::size_t>(params.n_inputs) *
+               static_cast<std::size_t>(n_batch_blks) * static_cast<std::size_t>(data_len);
+    }
+    else
+        return 0;
 }
 
 template <int N_BATCH_LOOPS>
@@ -688,7 +703,6 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
         kernel.comp_options = comp_options;
 
         result.construction_params.push_back(kernel);
-        result.workspce_sz = 0;
     }
 
     // sum over batch
@@ -712,12 +726,8 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
         kernel.g_wk.push_back(1);
         kernel.g_wk.push_back(1);
         result.construction_params.push_back(kernel);
-
-        int data_len = GetTypeSize(params.out_data_type);
-        result.workspce_sz =
-            static_cast<std::size_t>(wei_bstride) * static_cast<std::size_t>(params.n_inputs) *
-            static_cast<std::size_t>(n_batch_blks) * static_cast<std::size_t>(data_len);
     }
+    result.workspce_sz = GetWorkspaceSize(params);
 
     return result;
 }

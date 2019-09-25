@@ -4130,7 +4130,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         {
             wei_shift = static_cast<int>(wei_shift_bias) + li * 2 * wei_stride;
 
-            sp_size[1] = 1;
+            sp_size[1] = batch_n;
             sp_size[2] = wei_stride;
             w_size[1]  = 1;
             w_size[2]  = wei_stride;
@@ -4138,30 +4138,27 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
             sp_desc =
                 miopen::TensorDescriptor(dwDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
-            alpha0 = 1;
-            alpha1 = 0;
+            alpha0 = 0;
+            alpha1 = 1;
             beta_t = 1;
 
-            for(int bs = 0; bs < batch_n; bs++)
-            {
-                OpTensor(handle,
-                         miopenTensorOpAdd,
-                         &alpha0,
-                         sp_desc,
-                         workSpace,
-                         &alpha1,
-                         sp_desc,
-                         workSpace,
-                         &beta_t,
-                         w_desc,
-                         dw,
-                         hid_shift + bs * hy_stride,
-                         hid_shift + bs * hy_stride,
-                         wei_shift);
+            OpTensor(handle,
+                     miopenTensorOpAdd,
+                     &alpha0,
+                     w_desc,
+                     dw,
+                     &alpha1,
+                     sp_desc,
+                     workSpace,
+                     &beta_t,
+                     w_desc,
+                     dw,
+                     wei_shift,
+                     hid_shift,
+                     wei_shift);
 
-                // Update time
-                profileRNNkernels(handle, 1, ctime);
-            }
+            // Update time
+            profileRNNkernels(handle, 1, ctime);
         }
 
         // between time
@@ -4200,7 +4197,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
             {
                 if(rnnMode == miopenGRU)
                 {
-                    sp_size[1] = 1;
+                    sp_size[1] = batch_n;
                     sp_size[2] = wei_stride;
                     w_size[1]  = 1;
                     w_size[2]  = wei_stride;
@@ -4209,26 +4206,23 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     sp_desc = miopen::TensorDescriptor(
                         dwDesc.GetType(), sp_size.data(), sp_stride.data(), 3);
 
-                    for(int bs = 0; bs < batch_n; bs++)
-                    {
-                        OpTensor(handle,
-                                 miopenTensorOpAdd,
-                                 &alpha0,
-                                 sp_desc,
-                                 workSpace,
-                                 &alpha1,
-                                 w_desc,
-                                 dw,
-                                 &beta_t,
-                                 w_desc,
-                                 dw,
-                                 hid_shift + bs * hy_stride,
-                                 wei_shift,
-                                 wei_shift);
+                    OpTensor(handle,
+                             miopenTensorOpAdd,
+                             &alpha0,
+                             w_desc,
+                             dw,
+                             &alpha1,
+                             sp_desc,
+                             workSpace,
+                             &beta_t,
+                             w_desc,
+                             dw,
+                             wei_shift,
+                             hid_shift,
+                             wei_shift);
 
-                        // Update time
-                        profileRNNkernels(handle, 1, ctime);
-                    }
+                    // Update time
+                    profileRNNkernels(handle, 1, ctime);
                 }
                 else
                 {

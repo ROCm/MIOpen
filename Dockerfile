@@ -1,6 +1,6 @@
 FROM ubuntu:16.04
 
-ARG PREFIX=/opt/rocm
+ARG PREFIX=/usr/local
 
 # Support multiarch
 RUN dpkg --add-architecture i386

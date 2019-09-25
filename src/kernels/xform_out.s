@@ -1,11 +1,34 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
 .hsa_code_object_version 2,1
 .hsa_code_object_isa
 
 .text
-.globl gcnAsmWinogradXformOut
 .p2align 8
-.type gcnAsmWinogradXformOut,@function
-.amdgpu_hsa_kernel gcnAsmWinogradXformOut
 
 .include "inst_wrappers.inc"
 .include "gpr_alloc.inc"
@@ -57,21 +80,39 @@
 
 default read_size, 1
 default elem_size, 4
-default xformx_f_size, 4 // 2, 3, 4, 5, 6
-default xformy_f_size, 4 // 2, 3, 4, 5, 6
+default xformx_f_size, 2 // 2, 3, 4, 5, 6
+default xformy_f_size, 2 // 2, 3, 4, 5, 6
 default xformx_o_size, 3
 default xformy_o_size, 3
+default acc_type, TYPE_FP32
+default buf_type, TYPE_FP32
+
 static_assert(xformx_f_size >=2 && xformx_f_size <= 6)
 static_assert(xformy_f_size >=2 && xformy_f_size <= 6)
 static_assert(xformx_o_size == 3)
 static_assert(xformy_o_size == 3)
 static_assert(xformx_f_size == xformy_f_size)
 static_assert(xformx_o_size == xformy_o_size)
+static_assert(fdilation_w == fdilation_h)
+
+static_assert(acc_type == TYPE_FP32)
+static_assert(buf_type == TYPE_FP32 || buf_type == TYPE_FP16 || buf_type == TYPE_BFP16) 
+.if(buf_type == TYPE_FP32)
+    elem_size = 4
+    lds_elem_size = 4
+.elseif (buf_type == TYPE_FP16 || buf_type == TYPE_BFP16)
+    static_assert(read_size == 1)
+    elem_size = 2
+    lds_elem_size = 4
+.endif
+
 xform_f_size = xformx_f_size
 xform_o_size = xformx_o_size
-xform_d_size = xform_f_size + xform_o_size - 1
+fdilation = fdilation_w
+xform_d_size = xform_o_size + (xform_f_size - 1) * fdilation
+out_points = xformx_o_size * xformy_o_size
 
-static_assert(read_size == 1)														 
+static_assert(read_size == 1) // TODO: remove restriction
 .GPR_ALLOC_BEGIN
 // initial state
 // s[0:1] - kernarg address
@@ -142,10 +183,14 @@ accums_cnt = read_size * xform_d_size * xform_d_size
 
 .GPR_ALLOC_END
 
+.macro kernel_begin  x_o_size, y_o_size, x_f_size, y_f_size
+    .globl gcnAsmWinogradXformOut_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
+    .type gcnAsmWinogradXformOut_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size,@function
+    .amdgpu_hsa_kernel gcnAsmWinogradXformOut_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
+    gcnAsmWinogradXformOut_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size:
+.endm
 
-//.text 0
-//.p2align 8
-gcnAsmWinogradXformOut:
+kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
 
     .amd_kernel_code_t
         enable_sgpr_kernarg_segment_ptr = 1
@@ -166,16 +211,16 @@ gcnAsmWinogradXformOut:
     s_load_dwordx16 s[R:f_R_stride], s[kernarg:kernarg+1], 0x4 * 16
     s_load_dwordx4 s[f_S_stride:o_H_stride], s[kernarg:kernarg+1], 0x4 * 32
     s_load_dword   s[o_W_stride], s[kernarg:kernarg+1], 0x4 * 36
-    
-    .GPR_REUSE pad_w, const0_25
-    s_mov_b32 s[const0_25], 0.25
 
     v_lshrrev_b32 v[vtmp], 6, v[tid]
     //v_readfirstlane_b32 s[wave_id], v[vtmp]
     s_mov_b32 s[wave_id], s[gid_x]
     v_and_b32 v[tid], 0x3f, v[tid]
-    
+
     s_waitcnt 0
+
+    .GPR_REUSE pad_w, const0_25
+    s_mov_b32 s[const0_25], 0.25
 
     // compute addresses
     v_mul_lo_u32 v[vcur_tile], 0+read_size, v[tid]
@@ -210,9 +255,11 @@ gcnAsmWinogradXformOut:
     v_cmpx_lt_i32 vcc, v[vcur_tile], s[tiles]
 
     // construct descriptors
-    .GPR_REUSE d_addr, d_desc
-    .GPR_REUSE o_addr, o_desc
-    .GPR_INVALIDATE unused2
+    .GPR_REUSE d_addr, d_desc //s[4]
+    .GPR_REUSE o_addr, o_desc //s[4]
+    .GPR_REUSE  R, s2_tmp
+    .GPR_INVALIDATE unused
+    .GPR_INVALIDATE S
     .GPR_INVALIDATE dbg_addr
     s_mov_b32 s[d_desc+3], 0x00020000
     s_mov_b32 s[o_desc+3], 0x00020000
@@ -224,7 +271,9 @@ gcnAsmWinogradXformOut:
     i=0
     .rept xform_d_size * xform_d_size
         acc = accums + read_size * i
-        .if read_size == 1
+        .if (elem_size == 2 && read_size == 1)
+            buffer_load_short_d16 v[acc], v[voff_d], s[d_desc:d_desc+3], s[soff] offen
+        .elseif read_size == 1
             buffer_load_dword v[acc], v[voff_d], s[d_desc:d_desc+3], s[soff] offen
         .elseif read_size == 2
             buffer_load_dwordx2 v[acc:acc+1], v[voff_d], s[d_desc:d_desc+3], s[soff] offen
@@ -239,34 +288,41 @@ gcnAsmWinogradXformOut:
     
     s_waitcnt 0
     
-    // inplace xform that could store output in lower addresses
-    .macro m_xform_down f_size, o_size
-        .if \f_size == 2 && \o_size == 3
+    .if(buf_type != TYPE_FP32)
+        static_assert(read_size == 1)
+        .rept i
+            //if acc_type == buf_type do nothing
+            v_reg_data_type_convert v[accums + i - 1], acc_type, v[accums + i - 1], buf_type
+            i = i - 1
+        .endr
+    .endif
+    
+    // inplace xform that could store output in lower or upper addresses
+    .macro m_xform_out o_size, f_size, f_dil, lower
+        .if \o_size == 3 && \f_size == 2 && \f_dil == 1
             v_add_f32 v[vtmp], v[dx1], v[dx2]
-            v_add_f32 v[ox0], v[vtmp], v[dx0]
-            v_sub_f32 v[ox1], v[dx1], v[dx2]
-            v_add_f32 v[ox2], v[vtmp], v[dx3]
-        .elseif \f_size == 3 && \o_size == 3
+            v_sub_f32 v[dx1], v[dx1], v[dx2]
+            v_add_f32 v[dx2], v[vtmp], v[dx3]
+            v_add_f32 v[dx0], v[dx0], v[vtmp]
+        .elseif \o_size == 3 && \f_size == 3 && \f_dil == 1
             v_add_f32 v[vtmp], v[dx1], v[dx2]
             v_sub_f32 v[dx1], v[dx1], v[dx2]
             v_add_f32 v[dx0], v[dx0], v[dx3]
             v_fma_f32 v[dx4], v[dx3], 4.0, v[dx4]
-            
-            v_add_f32 v[ox0], v[vtmp], v[dx0]
-            v_fma_f32 v[ox1], v[dx3], 2.0, v[dx1]
-            v_add_f32 v[ox2], v[dx4], v[vtmp]
-        .elseif \f_size == 4 && \o_size == 3
+            v_add_f32 v[dx0], v[vtmp], v[dx0]
+            v_fma_f32 v[dx1], v[dx3], 2.0, v[dx1]
+            v_add_f32 v[dx2], v[dx4], v[vtmp]
+        .elseif \o_size == 3 && \f_size == 4 && \f_dil == 1
             v_add_f32 v[vtmp], v[dx1], v[dx2]
             v_add_f32 v[dx0], v[dx0], v[vtmp]
             v_add_f32 v[dx5], v[dx5], v[vtmp]
             v_sub_f32 v[dx1], v[dx1], v[dx2]
             v_add_f32 v[vtmp], v[dx3], v[dx4]
             v_sub_f32 v[dx3], v[dx3], v[dx4]
-            
-            v_add_f32 v[ox0], v[vtmp], v[dx0]
-            v_fma_f32 v[ox1], v[dx3], 2.0, v[dx1]
-            v_fma_f32 v[ox2], v[vtmp], 4.0, v[dx5]
-        .elseif \f_size == 5 && \o_size == 3
+            v_add_f32 v[dx0], v[vtmp], v[dx0]
+            v_fma_f32 v[dx1], v[dx3], 2.0, v[dx1]
+            v_fma_f32 v[dx2], v[vtmp], 4.0, v[dx5]
+        .elseif \o_size == 3 && \f_size == 5 && \f_dil == 1
             v_add_f32 v[vtmp], v[dx1], v[dx2]
             v_add_f32 v[dx0], v[dx0], v[dx5]
             v_fma_f32 v[dx1], v[dx5], 0.5, v[dx1]
@@ -276,11 +332,10 @@ gcnAsmWinogradXformOut:
             v_add_f32 v[dx6], v[vtmp], v[dx6]
             v_sub_f32 v[dx5], v[dx3], v[dx4]
             v_add_f32 v[vtmp], v[dx3], v[dx4]
-            
-            v_add_f32 v[ox0], v[dx0], v[vtmp]
-            v_fma_f32 v[ox1], v[dx5], 2.0, v[dx1]
-            v_fma_f32 v[ox2], v[vtmp], 4.0, v[dx6]
-        .elseif \f_size == 6 && \o_size == 3
+            v_add_f32 v[dx0], v[dx0], v[vtmp]
+            v_fma_f32 v[dx1], v[dx5], 2.0, v[dx1]
+            v_fma_f32 v[dx2], v[vtmp], 4.0, v[dx6]
+        .elseif \o_size == 3 && \f_size == 6 && \f_dil == 1
             v_add_f32 v[vtmp], v[dx5], v[dx6]
             v_add_f32 v[dx0], v[vtmp], v[dx0]
             v_fma_f32 v[dx7], v[vtmp], s[const0_25], v[dx7]
@@ -292,94 +347,94 @@ gcnAsmWinogradXformOut:
             v_sub_f32 v[dx1], v[dx1], v[dx2]
             v_sub_f32 v[dx2], v[dx3], v[dx4]
             v_add_f32 v[vtmp], v[dx3], v[dx4]
-            
-            v_add_f32 v[ox0], v[dx0], v[vtmp]
-            v_fma_f32 v[ox1], v[dx2], 2.0, v[dx1]
-            v_fma_f32 v[ox2], v[vtmp], 4.0, v[dx7]
-        .else
-            static_assert(0)
-        .endif
-    .endm
-    
-    // inplace xform that could store output in upper addresses
-    .macro m_xform_up f_size, o_size
-        .if \f_size == 2 && \o_size == 3
-            v_add_f32 v[vtmp], v[dx1], v[dx2]
-            v_add_f32 v[ox2], v[vtmp], v[dx3]
-            v_sub_f32 v[ox1], v[dx1], v[dx2]
-            v_add_f32 v[ox0], v[vtmp], v[dx0]
-        .elseif \f_size == 3 && \o_size == 3
-            v_add_f32 v[vtmp], v[dx1], v[dx2]
-            v_sub_f32 v[dx1], v[dx1], v[dx2]
-            v_add_f32 v[dx0], v[dx0], v[dx3]
-            v_fma_f32 v[dx4], v[dx3], 4.0, v[dx4]
-            
-            v_add_f32 v[ox2], v[dx4], v[vtmp]
-            v_fma_f32 v[ox1], v[dx3], 2.0, v[dx1]
-            v_add_f32 v[ox0], v[vtmp], v[dx0]
-        .elseif \f_size == 4 && \o_size == 3
-            v_add_f32 v[vtmp], v[dx1], v[dx2]
             v_add_f32 v[dx0], v[dx0], v[vtmp]
-            v_add_f32 v[dx5], v[dx5], v[vtmp]
-            v_sub_f32 v[dx1], v[dx1], v[dx2]
-            v_add_f32 v[vtmp], v[dx3], v[dx4]
-            v_sub_f32 v[dx3], v[dx3], v[dx4]
-            
-            v_fma_f32 v[ox2], v[vtmp], 4.0, v[dx5]
-            v_fma_f32 v[ox1], v[dx3], 2.0, v[dx1]
-            v_add_f32 v[ox0], v[vtmp], v[dx0]
-        .elseif \f_size == 5 && \o_size == 3
-            v_add_f32 v[vtmp], v[dx1], v[dx2]
-            v_add_f32 v[dx0], v[dx0], v[dx5]
-            v_fma_f32 v[dx1], v[dx5], 0.5, v[dx1]
-            v_fma_f32 v[dx6], v[dx5], s[const0_25], v[dx6]
-            v_sub_f32 v[dx1], v[dx1], v[dx2]
-            v_add_f32 v[dx0], v[vtmp], v[dx0]
-            v_add_f32 v[dx6], v[vtmp], v[dx6]
-            v_sub_f32 v[dx5], v[dx3], v[dx4]
-            v_add_f32 v[vtmp], v[dx3], v[dx4]
-            
-            v_fma_f32 v[ox2], v[vtmp], 4.0, v[dx6]
-            v_fma_f32 v[ox1], v[dx5], 2.0, v[dx1]
-            v_add_f32 v[ox0], v[dx0], v[vtmp]
-        .elseif \f_size == 6 && \o_size == 3
-            v_add_f32 v[vtmp], v[dx5], v[dx6]
-            v_add_f32 v[dx0], v[vtmp], v[dx0]
-            v_fma_f32 v[dx7], v[vtmp], s[const0_25], v[dx7]
-            v_add_f32 v[vtmp], v[dx1], v[dx2]
-            v_add_f32 v[dx0], v[vtmp], v[dx0]
-            v_add_f32 v[dx7], v[vtmp], v[dx7]
-            v_sub_f32 v[vtmp], v[dx5], v[dx6]
-            v_fma_f32 v[dx1], v[vtmp], 0.5, v[dx1]
-            v_sub_f32 v[dx1], v[dx1], v[dx2]
-            v_sub_f32 v[dx5], v[dx3], v[dx4]
-            v_add_f32 v[vtmp], v[dx3], v[dx4]
-            
-            v_fma_f32 v[ox2], v[vtmp], 4.0, v[dx7]
-            v_fma_f32 v[ox1], v[dx5], 2.0, v[dx1]
-            v_add_f32 v[ox0], v[dx0], v[vtmp]
+            v_fma_f32 v[dx1], v[dx2], 2.0, v[dx1]
+            v_fma_f32 v[dx2], v[vtmp], 4.0, v[dx7]
+        .elseif \o_size == 3 && \f_size == 2 && \f_dil == 2
+            v_add_f32 v[dx0], v[dx0], v[dx2]
+            v_add_f32 v[dx1], v[dx1], v[dx3]
+            v_add_f32 v[dx2], v[dx2], v[dx4]
+        .elseif \o_size == 3 && \f_size == 3 && \f_dil == 2
+            v_add_f32 v[dx0], v[dx0], v[dx2]
+            v_add_f32 v[dx0], v[dx0], v[dx4]
+
+            v_add_f32 v[dx1], v[dx1], v[dx3]
+            v_add_f32 v[dx1], v[dx1], v[dx5]
+
+            v_sub_f32 v[dx2], v[dx2], v[dx4]
+            v_add_f32 v[dx2], v[dx2], v[dx6]
+        .elseif \o_size == 3 && \f_size == 4 && \f_dil == 2
+            v_add_f32 v[dx0], v[dx0], v[dx2]
+            v_add_f32 v[dx0], v[dx0], v[dx4]
+            v_add_f32 v[dx0], v[dx0], v[dx6]
+
+            v_add_f32 v[dx1], v[dx1], v[dx3]
+            v_add_f32 v[dx1], v[dx1], v[dx5]
+            v_add_f32 v[dx1], v[dx1], v[dx7]
+
+            v_sub_f32 v[dx2], v[dx2], v[dx4]
+            v_mac_f32 v[dx2], 2.0, v[dx6]
+            v_add_f32 v[dx2], v[dx2], v[dx8]
+        .elseif \o_size == 3 && \f_size == 5 && \f_dil == 2
+            v_add_f32 v[dx0], v[dx0], v[dx2]
+            v_add_f32 v[dx0], v[dx0], v[dx4]
+            v_add_f32 v[dx0], v[dx0], v[dx6]
+            v_add_f32 v[dx0], v[dx0], v[dx8]
+
+            v_add_f32 v[dx1], v[dx1], v[dx3]
+            v_add_f32 v[dx1], v[dx1], v[dx5]
+            v_add_f32 v[dx1], v[dx1], v[dx7]
+            v_add_f32 v[dx1], v[dx1], v[dx9]
+
+            v_sub_f32 v[dx2], v[dx2], v[dx4]
+            v_mac_f32 v[dx2], 2.0, v[dx6]
+            v_mac_f32 v[dx2],-2.0, v[dx8]
+            v_add_f32 v[dx2], v[dx2], v[dx10]
+        .elseif \o_size == 3 && \f_size == 6 && \f_dil == 2
+            v_add_f32 v[dx0], v[dx0], v[dx2]
+            v_add_f32 v[dx0], v[dx0], v[dx4]
+            v_add_f32 v[dx0], v[dx0], v[dx6]
+            v_add_f32 v[dx0], v[dx0], v[dx8]
+            v_add_f32 v[dx0], v[dx0], v[dx10]
+
+            v_add_f32 v[dx1], v[dx1], v[dx3]
+            v_add_f32 v[dx1], v[dx1], v[dx5]
+            v_add_f32 v[dx1], v[dx1], v[dx7]
+            v_add_f32 v[dx1], v[dx1], v[dx9]
+            v_add_f32 v[dx1], v[dx1], v[dx11]
+
+            v_sub_f32 v[dx2], v[dx2], v[dx4]
+            v_mac_f32 v[dx2], 2.0, v[dx6]
+            v_mac_f32 v[dx2],-2.0, v[dx8]
+            v_mac_f32 v[dx2], 0.5, v[dx10]
+            v_add_f32 v[dx2], v[dx2], v[dx12]
         .else
             static_assert(0)
         .endif
+        .if \lower
+            v_mov_b32 v[ox0], v[dx0]
+            v_mov_b32 v[ox1], v[dx1]
+            v_mov_b32 v[ox2], v[dx2]
+        .else
+            v_mov_b32 v[ox2], v[dx2]
+            v_mov_b32 v[ox1], v[dx1]
+            v_mov_b32 v[ox0], v[dx0]
+        .endif
     .endm
-        
+
     // backtransform each column
     tile=0
     .rept read_size
         i=0
         .rept xform_d_size
             dx0 = accums + tile + read_size * i
-            dx1 = dx0 + read_size * xform_d_size * 1
-            dx2 = dx0 + read_size * xform_d_size * 2
-            dx3 = dx0 + read_size * xform_d_size * 3 
-            dx4 = dx0 + read_size * xform_d_size * 4
-            dx5 = dx0 + read_size * xform_d_size * 5
-            dx6 = dx0 + read_size * xform_d_size * 6
-            dx7 = dx0 + read_size * xform_d_size * 7
+            .irp ii,1,2,3,4,5,6,7,8,9,10,11,12
+                dx\ii = dx0 + read_size * xform_d_size * \ii
+            .endr
             ox0 = dx0 + read_size * xform_d_size * (xform_d_size - xform_o_size)
             ox1 = ox0 + read_size * xform_d_size * 1
             ox2 = ox0 + read_size * xform_d_size * 2
-            m_xform_up xform_f_size, xform_o_size
+            m_xform_out xform_o_size, xform_f_size, fdilation, 0
             i=i+1
         .endr
         tile=tile+1
@@ -395,34 +450,36 @@ gcnAsmWinogradXformOut:
         i=0
         .rept xform_o_size
             dx0 = accums + tile + read_size * xform_d_size * (xform_d_size - xform_o_size) + read_size * xform_d_size * i
-            dx1 = dx0 + read_size * 1
-            dx2 = dx0 + read_size * 2
-            dx3 = dx0 + read_size * 3
-            dx4 = dx0 + read_size * 4
-            dx5 = dx0 + read_size * 5
-            dx6 = dx0 + read_size * 6
-            dx7 = dx0 + read_size * 7
+            .irp ii,1,2,3,4,5,6,7,8,9,10,11,12
+                dx\ii = dx0 + read_size * \ii
+            .endr
             ox0 = accums + i * xform_o_size
             ox1 = ox0 + 1
             ox2 = ox0 + 2
-            m_xform_down xform_f_size, xform_o_size
+            m_xform_out xform_o_size, xform_f_size, fdilation, 1
             i=i+1
         .endr
         tile=tile+1
-    
-        buffer_store_dwordx4 v[accums+0:accums+3], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:0
-        buffer_store_dwordx4 v[accums+4:accums+7], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:16
-        buffer_store_dword v[accums+8], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:32
+        
+        .if(elem_size == 2)
+            st_id = 0
+            .rept out_points
+                v_reg_data_type_convert v[accums + st_id], buf_type, v[accums + st_id], acc_type, v[vtmp], s[s2_tmp:s2_tmp+1]
+                buffer_store_short v[accums + st_id], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:0+elem_size*st_id
+                st_id = st_id + 1
+            .endr
+        .else
+            static_assert(out_points == 9)
+            buffer_store_dwordx4 v[accums+0:accums+3], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:0
+            buffer_store_dwordx4 v[accums+4:accums+7], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:16
+            buffer_store_dword v[accums+8], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:32
+        .endif
         s_add_u32 s[soff], s[buf_step], s[soff]
     .endr
 
-
-
     s_endpgm
 
-
 .Lfunc_end0:
-    .size gcnAsmWinogradXformOut, .Lfunc_end0 - gcnAsmWinogradXformOut
 
 
 .ifndef ROCM_METADATA_VERSION
@@ -430,12 +487,12 @@ gcnAsmWinogradXformOut:
 .end
 .endif
 
-.macro METADATA wg_x, lds_size
+.macro METADATA wg_x, lds_size, kernel_name, kernel_symbol_name
   .if ROCM_METADATA_VERSION == 4
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
         Kernels:
-        - { Name: gcnAsmWinogradXformOut, SymbolName: 'gcnAsmWinogradXformOut@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+        - { Name: \kernel_name, SymbolName: \kernel_symbol_name, Language: OpenCL C, LanguageVersion: [ 1, 2 ],
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
@@ -484,9 +541,15 @@ gcnAsmWinogradXformOut:
 
 .altmacro
 
-.macro METADATA_WRAPPER wg_x, lds_size
-    METADATA %\wg_x, %\lds_size
+.macro METADATA_WRAPPER  wg_x, lds_size, kernel_suf
+    METADATA %\wg_x, %\lds_size, <gcnAsmWinogradXformData\kernel_suf>, <gcnAsmWinogradXformData\kernel_suf@kd>
 .endm
 
-METADATA_WRAPPER 64, .AUTO_LDS_BYTE_SIZE
+.macro kernel_end x_o_size, y_o_size, x_f_size, y_f_size
+    .size gcnAsmWinogradXformOut_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size, .Lfunc_end0 - gcnAsmWinogradXformOut_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
+    METADATA_WRAPPER 64, .AUTO_LDS_BYTE_SIZE, _\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size 
+.endm
+
+
+kernel_end %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
 

@@ -27,6 +27,7 @@
 #include <miopen/kernel_cache.hpp>
 #include <miopen/util.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/float_equal.hpp>
 #include <miopen/datatype.hpp>
 
 #include <boost/range/adaptors.hpp>
@@ -937,7 +938,9 @@ float transpose_NCHW2Vec(Handle& handle,
                          Data_t out,
                          std::size_t vec_size,
                          bool trans,
-                         bool forward)
+                         bool forward,
+                         const void* alpha,
+                         const void* beta)
 {
     std::string program_name = "MIOpenUtilKernels5.cl";
 
@@ -945,6 +948,9 @@ float transpose_NCHW2Vec(Handle& handle,
     {
         MIOPEN_THROW("Only support type half and int8!");
     }
+
+    const auto alpha_fp = *(static_cast<const float*>(alpha));
+    const auto beta_fp  = *(static_cast<const float*>(beta));
 
     const auto n = lens[0];
     const auto c = lens[1];
@@ -960,7 +966,8 @@ float transpose_NCHW2Vec(Handle& handle,
         "hw" + std::to_string(hw) +
         "t" + std::to_string(static_cast<int>(trans)) +
         "v" + std::to_string(vec_size) +
-        "f" + std::to_string(static_cast<int>(forward));
+        "f" + std::to_string(static_cast<int>(forward)) + "alp" + std::to_string(alpha_fp) + "beta" +
+            std::to_string(beta_fp);
     // clang-format on
 
     std::string algo_name = "transpose_NCHWVecForward";
@@ -1022,6 +1029,12 @@ float transpose_NCHW2Vec(Handle& handle,
         params += " -DREAD_TYPE=" + READ_TYPE;
         params += " -DWRITE_TYPE=" + WRITE_TYPE;
 
+        if(!float_equal(alpha_fp, 1.0))
+            params += " -DUSE_ALPHA=1";
+
+        if(!float_equal(beta_fp, 0))
+            params += " -DUSE_BETA=1";
+
         vgd[0] = MAP_RD;
 
         uint gd1 = trans ? static_cast<size_t>(n_vec / vec_size) : static_cast<size_t>(n);
@@ -1040,7 +1053,7 @@ float transpose_NCHW2Vec(Handle& handle,
         //}
 
         handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, params)(
-            in, out);
+            in, out, alpha_fp, beta_fp);
     }
 
     return handle.GetKernelTime();

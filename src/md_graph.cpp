@@ -499,15 +499,16 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
     FusionMDGraph_Edge_Map empty_map;
     empty_map["constraints"] = {"weight === 0"};
 
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}))
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}) &&
+       !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}))
     {
         /// Fused Winograd.
-        static const std::string program("conv_3x3_wheel_alpha_v9_2_7_GFX*_md10.so");
+        static const std::string program("conv_3x3_wheel_alpha_v9_2_7.s");
         static const std::string kernel("sp3AsmConvRxSU_CBA");
         static const std::string algo("miopenConvolutionWinogradBiasActiv");
         auto vc_s1 =
             std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward, program, kernel, algo);
-        vc_s1->solver         = solver::ConvBinWinogradRxS{};
+        vc_s1->solver         = solver::ConvBinWinogradRxSFused{};
         vc_s1->default_args   = WinogradNodeArgs();
         vc_s1->supported_arch = {"gfx803", "gfx900", "gfx906"};
 
@@ -613,12 +614,11 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                     m["constraints"].end(), common_constr.begin(), common_constr.end());
             };
 
-            static const std::string program_s2(
-                "conv_3x3_wheel_alpha_v9_2_7_stride_2_dec_GFX*_md10.so");
+            static const std::string program_s2("conv_3x3_wheel_alpha_v9_2_7_stride_2_dec.s");
 
             auto vc_s2 = std::make_shared<MDGraph_vertex>(
                 miopenFusionOpConvForward, program_s2, kernel, algo);
-            vc_s2->solver         = solver::ConvBinWinogradRxS{};
+            vc_s2->solver         = solver::ConvBinWinogradRxSFused{};
             vc_s2->default_args   = WinogradNodeArgs();
             vc_s2->supported_arch = {"gfx803", "gfx900", "gfx906"};
 
@@ -749,7 +749,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                            "gcnAsmConv1x1U",
                                                            "miopenConvolutionDirectBiasActivAsm");
             conv_v->solver         = solver::ConvBiasActivAsm1x1U{};
-            conv_v->supported_arch = {"gfx900", "gfx906"};
+            conv_v->supported_arch = {"gfx900", "gfx906", "gfx908"};
 
             auto bias_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
                                                            "conv1x1u_bias_activ.s",

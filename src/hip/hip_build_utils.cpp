@@ -39,8 +39,6 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  const std::string& dev_name)
 {
 #ifdef __linux__
-    if(dev_name.find("gfx80") != std::string::npos)
-        MIOPEN_THROW("HIP kernel are not supported on " + dev_name + " architecture");
     const auto isHCC = EndsWith(MIOPEN_HIP_COMPILER, "hcc");
     // write out the include files
     auto inc_list = GetKernelIncList();

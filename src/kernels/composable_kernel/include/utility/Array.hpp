@@ -9,7 +9,8 @@ namespace ck {
 template <class TData, index_t NSize>
 struct Array
 {
-    using Type = Array<TData, NSize>;
+    using Type      = Array<TData, NSize>;
+    using data_type = TData;
 
     static constexpr index_t nSize = NSize;
 
@@ -20,7 +21,7 @@ struct Array
     {
     }
 
-    __host__ __device__ constexpr index_t GetSize() const { return NSize; }
+    __host__ __device__ static constexpr index_t GetSize() { return NSize; }
 
     template <index_t I>
     __host__ __device__ constexpr TData operator[](Number<I>) const
@@ -208,6 +209,21 @@ __host__ __device__ constexpr auto operator-(Array<TData, NSize> a, Array<TData,
     return result;
 }
 
+// Array += Array
+template <class TData, index_t NSize>
+__host__ __device__ constexpr auto operator+=(Array<TData, NSize>& a, Array<TData, NSize> b)
+{
+    a = a + b;
+    return a;
+}
+
+// Array -= Array
+template <class TData, index_t NSize>
+__host__ __device__ constexpr auto operator-=(Array<TData, NSize>& a, Array<TData, NSize> b)
+{
+    a = a - b;
+    return a;
+}
 // Array = Array + Sequence
 template <class TData, index_t NSize, index_t... Is>
 __host__ __device__ constexpr auto operator+(Array<TData, NSize> a, Sequence<Is...> b)
