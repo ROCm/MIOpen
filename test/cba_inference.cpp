@@ -266,24 +266,25 @@ struct cba_fusion_driver : test_driver
         add(alpha, "alpha", generate_data({/*1. , */ 0.5}));
         add(beta, "beta", generate_data({/*0. , */ 0.5}));
         add(gamma, "gamma", generate_data({/*1. ,*/ 0.5}));
-        add(bias_mode, "bmode", generate_data({true, false}));
+        add(bias_mode, "bmode", generate_data({true /*, false*/}));
         // \todo dlowell: fusion can't handle transpose right now.
         //       add(conv_mode, "cmode", generate_data({"conv"}/*, "trans"}*/));
         add(pad_mode, "pmode", generate_data({"default" /*, "same", "valid"*/}));
-        add(tactiv, "test_activ", generate_data({false, true}));
-        add(amode, "amode", generate_data({3, 6}));
+        add(tactiv, "test_activ", generate_data({/*false, */ true}));
+        add(amode, "amode", generate_data({3 /*, 6*/}));
     }
 
     std::vector<std::vector<int>> get_pads_strides_dilations()
     {
-        return {{0, 0, 1, 1, 1, 1},
-                {1, 1, 1, 1, 1, 1},
-                {0, 0, 2, 2, 1, 1},
-                {1, 1, 2, 2, 1, 1},
-                {2, 2, 1, 1, 1, 1},
-                {2, 2, 2, 2, 1, 1},
-                /*
-               {3, 3, 2, 2, 1, 1}*/};
+        return {
+            {0, 0, 1, 1, 1, 1},
+            //       {1, 1, 1, 1, 1, 1},
+            //       {0, 0, 2, 2, 1, 1},
+            {1, 1, 2, 2, 1, 1},
+            //       {2, 2, 1, 1, 1, 1},
+            //       {2, 2, 2, 2, 1, 1},
+            //       {3, 3, 2, 2, 1, 1}
+        };
     };
 
     void run()
