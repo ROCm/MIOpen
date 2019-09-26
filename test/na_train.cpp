@@ -750,7 +750,7 @@ struct na_fusion_driver : test_driver
     miopenActivationMode_t activ_mode = miopenActivationRELU;
     std::string amode;
     miopenBatchNormMode_t bnmode{};
-    int batchnormMode = 0;
+    int batchnormMode = 1;
 
     unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
     double alpha = 0., beta = 0., gamma = 0.;
@@ -759,7 +759,7 @@ struct na_fusion_driver : test_driver
     {
         this->batch_factor = 4;
 
-        add(batchnormMode, "batch-norm-mode", generate_data({0, 1}));
+        add(batchnormMode, "batch-norm-mode", generate_data({/*0, */ 1}));
         add(input,
             "input",
             (batchnormMode == 1) ? get_bn_spatial_input_tensor(tensor_elem_gen_integer{max_value})
@@ -770,7 +770,7 @@ struct na_fusion_driver : test_driver
         add(amode,
             "amode",
             generate_data(
-                {"MIOPENACTIVATIONRELU", "MIOPENACTIVATIONLOGISTIC", "MIOPENACTIVATIONABS"}));
+                {"MIOPENACTIVATIONRELU" /*, "MIOPENACTIVATIONLOGISTIC", "MIOPENACTIVATIONABS"*/}));
     }
 
     void run()
