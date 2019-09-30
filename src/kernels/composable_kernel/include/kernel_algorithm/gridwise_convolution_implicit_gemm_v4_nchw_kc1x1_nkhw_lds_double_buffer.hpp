@@ -52,10 +52,9 @@ template <index_t GridSize,
           index_t WeiBlockCopyDstDataPerWrite_K>
 struct GridwiseConvolutionImplicitGemm_v4_nchw_kc1x1_nkhw_lds_double_buffer
 {
-    __device__ void __launch_bounds__(BlockSize, 2)
-        Run(const Float* const __restrict__ p_in_global,
-            const Float* const __restrict__ p_wei_global,
-            Float* const __restrict__ p_out_global) const
+    __device__ void Run(const Float* const __restrict__ p_in_global,
+                        const Float* const __restrict__ p_wei_global,
+                        Float* const __restrict__ p_out_global) const
     {
         constexpr bool isForward = Direction == ImplicitGemmDirection::ForwardData;
 
