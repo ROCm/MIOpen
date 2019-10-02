@@ -125,8 +125,13 @@ extern "C" miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t ten
                                                     int* dimsA,
                                                     int* stridesA)
 {
+    if(miopen::IsLoggingFunctionCalls())
+    {
+        const miopen::logger::CArray<int, int> dim(dimsA, nbDims);
+        const miopen::logger::CArray<int, int> stride(stridesA, nbDims);
+        MIOPEN_LOG_FUNCTION(tensorDesc, dataType, nbDims, dim.values, stride.values);
+    }
 
-    MIOPEN_LOG_FUNCTION(tensorDesc, dataType, nbDims, dimsA, stridesA);
     return miopen::try_([&] {
         if(stridesA == nullptr)
         {
