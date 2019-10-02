@@ -299,7 +299,7 @@ class DbTimer
     template <class TFunc>
     static auto Measure(const std::string& funcName, TFunc&& func)
     {
-        if(!miopen::IsLogging(LoggingLevel::Info))
+        if(!miopen::IsLogging(LoggingLevel::Info2))
             return func();
 
         const auto start = std::chrono::high_resolution_clock::now();

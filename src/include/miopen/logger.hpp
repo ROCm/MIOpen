@@ -28,6 +28,7 @@
 
 #include <algorithm>
 #include <array>
+#include <vector>
 #include <iostream>
 #include <sstream>
 #include <type_traits>
@@ -193,6 +194,21 @@ bool IsLogging(LoggingLevel level = LoggingLevel::Error);
 bool IsLoggingCmd();
 bool IsLoggingFunctionCalls();
 
+namespace logger {
+
+template <typename T, typename S>
+struct CArray
+{
+    std::vector<T> values;
+    CArray(T* const x, const S& size)
+    {
+        if(x != nullptr)
+            values = {x, x + static_cast<std::size_t>(size)};
+    }
+};
+
+} // namespace logger
+
 template <class T>
 auto LogObjImpl(T* x) -> decltype(get_object(*x))
 {
@@ -219,6 +235,16 @@ template <class T, typename std::enable_if<(not std::is_pointer<T>{}), int>::typ
 std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 {
     os << '\t' << name << " = " << get_object(x);
+    return os;
+}
+
+template <class T>
+std::ostream& LogParam(std::ostream& os, std::string name, const std::vector<T>& vec)
+{
+    os << '\t' << name << " = { ";
+    for(auto& val : vec)
+        os << val << ' ';
+    os << '}';
     return os;
 }
 
