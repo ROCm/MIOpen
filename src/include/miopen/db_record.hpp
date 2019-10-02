@@ -178,6 +178,7 @@ class DbRecord
     }
 
     public:
+    DbRecord() : key(""){};
     /// T shall provide a db KEY by means of the "void Serialize(std::ostream&) const" member
     /// function.
     template <class T>
@@ -240,6 +241,7 @@ class DbRecord
     }
 
     friend class Db;
+    friend class SQLite_Db;
     friend class ReadonlyRamDb;
 };
 

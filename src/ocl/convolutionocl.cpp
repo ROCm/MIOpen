@@ -29,6 +29,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
+#include <miopen/db_record.hpp>
 #include <miopen/env.hpp>
 #include <miopen/find_db.hpp>
 #include <miopen/finddb_kernel_cache_key.hpp>
