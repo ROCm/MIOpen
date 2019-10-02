@@ -61,18 +61,6 @@
 
 #define UNUSED __attribute__((__unused__))
 
-#ifndef IN_OFFSET
-#define IN_OFFSET 0
-#endif
-
-#ifndef OUT_OFFSET
-#define OUT_OFFSET 0
-#endif
-
-#ifndef RSV_OFFSET
-#define RSV_OFFSET 0
-#endif
-
 #ifndef RUN_FORWARD
 #define RUN_FORWARD 0
 #endif
@@ -81,16 +69,11 @@
 #define RUN_INIT_PRNG 0
 #endif
 
-#ifndef USE_MASK
-#define USE_MASK 0
-#endif
-
 #if RUN_INIT_PRNG
 #include "precalc_xorwow_skipahead_matrices_kernel.h"
 #include "precalc_xorwow_skipahead_sequence_matrices_kernel.h"
 #endif
 
-#if RUN_INIT_PRNG || RUN_FORWARD
 typedef struct xorwowStates
 {
     // Xorshift values (160 bits)
@@ -123,7 +106,6 @@ uint xorwow_lite_next(prngStates* cur_state)
 #define ROCRAND_2POW32_INV (2.3283064e-10f)
 
 float uniform_distribution(uint v) { return ROCRAND_2POW32_INV + (v * ROCRAND_2POW32_INV); }
-#endif
 
 #if RUN_INIT_PRNG
 void copy_const_arr(uint* dst, constant uint* src, const int arr_size)
@@ -308,50 +290,81 @@ __kernel void InitKernelState(__global prngStates* state)
 #endif
 
 #if !RUN_INIT_PRNG
+#ifndef USE_MASK
+#define USE_MASK 0
+#endif
+
+#ifndef USE_RSVSP
+#define USE_RSVSP 0
+#endif
+
+#ifndef USE_PRNG
+#define USE_PRNG 0
+#endif
+
+#ifndef IN_OFFSET
+#define IN_OFFSET 0
+#endif
+
+#ifndef OUT_OFFSET
+#define OUT_OFFSET 0
+#endif
+
+#ifndef RSV_OFFSET
+#define RSV_OFFSET 0
+#endif
+
 __kernel void
 #if RUN_FORWARD
-DropoutForward(const __global prngStates* state,
+DropoutForward(
+#if USE_MASK
+    UNUSED
+#endif
 #else
 DropoutBackward(
+#if !USE_PRNG
+    UNUSED
 #endif
-               float dropout,
-               UNUSED int dim0,
-               int dim1,
-               int dim2,
-               int dim3,
-               int dim4,
+#endif
+    const __global prngStates* state,
+    float dropout,
+    UNUSED int dim0,
+    int dim1,
+    int dim2,
+    int dim3,
+    int dim4,
 #if !RUN_FORWARD
-               const
+    const
 #endif
-               __global _FLOAT* y,
-               int out_str0,
-               int out_str1,
-               int out_str2,
-               int out_str3,
-               UNUSED int out_str4,
+    __global _FLOAT* y,
+    int out_str0,
+    int out_str1,
+    int out_str2,
+    int out_str3,
+    UNUSED int out_str4,
 #if RUN_FORWARD
-               const
+    const
 #endif
-               __global _FLOAT* x,
-               int in_str0,
-               int in_str1,
-               int in_str2,
-               int in_str3,
-               UNUSED int in_str4,
-               __global uchar* reserveSpace)
+    __global _FLOAT* x,
+    int in_str0,
+    int in_str1,
+    int in_str2,
+    int in_str3,
+    UNUSED int in_str4,
+#if(RUN_FORWARD && !USE_RSVSP && !USE_MASK) || (!RUN_FORWARD && USE_PRNG)
+    UNUSED
+#endif
+        __global uchar* reserveSpace)
 {
     _FLOAT dat_blk[RD_BLCK];
     uchar is_kept[RD_BLCK];
     float scale = 1 / (1 - dropout);
-#if RUN_FORWARD
-#if USE_MASK
-    (void)state;
-#else
+#if(RUN_FORWARD && !USE_MASK) || (!RUN_FORWARD && USE_PRNG)
     uint sid = get_global_id(0);
     prngStates cur_state;
     cur_state = *((__global prngStates*)(state + sid));
 #endif
-#endif
+
     for(uint gid = get_global_id(0); gid < TOTAL_WORK; gid += get_global_size(0))
     {
         uint i0    = gid / dim1 / dim2 / dim3 / dim4;
@@ -372,14 +385,15 @@ DropoutBackward(
             y + OUT_OFFSET + y_idx
 #endif
             ));
-#if RUN_FORWARD && !USE_MASK
+#if(RUN_FORWARD && !USE_MASK) || (!RUN_FORWARD && USE_PRNG)
         for(int i = 0; i < RD_BLCK; ++i)
         {
             is_kept[i] = (uchar)(uniform_distribution(xorwow_lite_next(&cur_state)) > dropout);
         }
-
+#if RUN_FORWARD && USE_RSVSP
         *((global READ_BOOL_TYPE*)(reserveSpace + RSV_OFFSET + gid - i4 + i4_rd * RD_BLCK)) =
             *((READ_BOOL_TYPE*)is_kept);
+#endif
 #else
         *((READ_BOOL_TYPE*)is_kept) = *(
             (const global READ_BOOL_TYPE*)(reserveSpace + RSV_OFFSET + gid - i4 + i4_rd * RD_BLCK));

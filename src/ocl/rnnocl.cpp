@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include <miopen/rnn.hpp>
+#include <miopen/rnn_util.hpp>
 
 #include <miopen/activ.hpp>
 #include <miopen/env.hpp>
@@ -34,7 +35,6 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/util.hpp>
 
 #include <vector>
 #include <numeric>
@@ -739,6 +739,37 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                     }
                     else if(rnnMode == miopenLSTM)
                     {
+                        if(algoMode == miopenRNNdefault)
+                        {
+                            LSTMForwardHiddenStateUpdate(handle,
+                                                         wDesc.GetType(),
+                                                         true,
+                                                         ti == 0,
+                                                         ri,
+                                                         in_n.at(0),
+                                                         in_n.at(cur_time),
+                                                         in_n.at(use_time),
+                                                         hy_h,
+                                                         hy_stride,
+                                                         wei_len,
+                                                         wei_stride,
+                                                         cx,
+                                                         hx_shift + ri * hy_n * hy_h,
+                                                         workSpace,
+                                                         offset + ri * wei_len,
+                                                         offset + hy_h + ri * wei_len,
+                                                         offset + 2 * hy_h + ri * wei_len,
+                                                         offset + 3 * hy_h + ri * wei_len,
+                                                         offset + bi * wei_len + ri * hy_h,
+                                                         pretime_shift + bi * wei_len + ri * hy_h,
+                                                         0,
+                                                         offset + hid_off + ri * hy_h);
+
+                            // Update time
+                            profileRNNkernels(handle, 1, ctime);
+                            continue;
+                        }
+
                         // active gate i, f, o
                         sp_size[2] = hy_h * 3;
                         sp_desc    = miopen::TensorDescriptor(
@@ -1945,6 +1976,39 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     }
                     else if(rnnMode == miopenLSTM)
                     {
+                        if(algoMode == miopenRNNdefault)
+                        {
+                            LSTMForwardHiddenStateUpdate(handle,
+                                                         wDesc.GetType(),
+                                                         false,
+                                                         ti == 0,
+                                                         ri,
+                                                         in_n.at(0),
+                                                         in_n.at(cur_time),
+                                                         in_n.at(use_time),
+                                                         hy_h,
+                                                         hy_stride,
+                                                         wei_len,
+                                                         wei_stride,
+                                                         cx,
+                                                         hx_shift + ri * hy_n * hy_h,
+                                                         reserveSpace,
+                                                         offset + ri * wei_len,
+                                                         offset + hy_h + ri * wei_len,
+                                                         offset + 2 * hy_h + ri * wei_len,
+                                                         offset + 3 * hy_h + ri * wei_len,
+                                                         offset + bi * wei_len + ri * hy_h,
+                                                         pretime_shift + bi * wei_len + ri * hy_h,
+                                                         (li * batch_n + cur_batch) * bi * hy_h +
+                                                             ri * hy_h +
+                                                             nLayers * batch_n * hy_stride,
+                                                         offset + hid_off + ri * hy_h);
+
+                            // Update time
+                            profileRNNkernels(handle, 1, ctime);
+                            continue;
+                        }
+
                         // active gate i, f, o
                         sp_size[2] = hy_h * 3;
                         sp_desc    = miopen::TensorDescriptor(
@@ -2990,6 +3054,52 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                     }
                     else if(rnnMode == miopenLSTM)
                     {
+                        if(algoMode == miopenRNNdefault)
+                        {
+                            LSTMBackwardHiddenStateUpdate(
+                                handle,
+                                wDesc.GetType(),
+                                ti == 0,
+                                ti == seqLen - 1,
+                                ri,
+                                in_n.at(0),
+                                in_n.at(cur_time),
+                                in_n.at(use_time),
+                                in_n.at(use_time2),
+                                hy_h,
+                                hy_stride,
+                                wei_len,
+                                wei_stride,
+                                cx,
+                                hx_shift + ri * hy_n * hy_h,
+                                reserveSpace,
+                                offset + ri * wei_len,
+                                offset + hy_h + ri * wei_len,
+                                offset + 2 * hy_h + ri * wei_len,
+                                offset + 3 * hy_h + ri * wei_len,
+                                (li * batch_n + cur_batch) * bi * hy_h + ri * hy_h +
+                                    nLayers * batch_n * hy_stride,
+                                li * batch_n * hy_stride + pre_batch2 * hy_stride + bi * wei_len +
+                                    ri * hy_h,
+                                dcy,
+                                hx_shift + ri * hy_n * hy_h,
+                                workSpace,
+                                offset + ri * wei_len,
+                                offset + hy_h + ri * wei_len,
+                                offset + 2 * hy_h + ri * wei_len,
+                                offset + 3 * hy_h + ri * wei_len,
+                                offset + bi * wei_len + ri * hy_h,
+                                li * batch_n * hy_stride + pre_batch * hy_stride + bi * wei_len +
+                                    ri * hy_h,
+                                offset + dhd_off + ri * hy_h,
+                                li * batch_n * hy_stride + pre_batch * hy_stride + hy_h +
+                                    ri * wei_len);
+
+                            // Update time
+                            profileRNNkernels(handle, 1, ctime);
+                            continue;
+                        }
+
                         alpha0 = 1;
                         alpha1 = 1;
                         beta_t = 0;
@@ -3760,7 +3870,28 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                             alpha0 = 1;
                             alpha1 = 1;
                             beta_t = 1;
-
+                            if(algoMode == miopenRNNdefault)
+                            {
+                                OpTensor(handle,
+                                         miopenTensorOpMul,
+                                         &alpha0,
+                                         sp_desc,
+                                         workSpace,
+                                         &alpha1,
+                                         sp_desc,
+                                         reserveSpace,
+                                         &beta_t,
+                                         hx_desc,
+                                         dcx,
+                                         pretime_shift + bi * wei_len + ri * hy_h +
+                                             use_batch * hy_stride,
+                                         pretime_shift + hy_h + ri * wei_len +
+                                             use_batch * hy_stride,
+                                         hx_shift + ri * hy_n * hy_h + use_batch * hy_h);
+                                // Update time
+                                profileRNNkernels(handle, 1, ctime);
+                                continue;
+                            }
                             OpTensor(handle,
                                      miopenTensorOpMul,
                                      &alpha0,

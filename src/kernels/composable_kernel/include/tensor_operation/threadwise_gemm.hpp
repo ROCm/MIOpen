@@ -3,7 +3,7 @@
 
 #include "common_header.hpp"
 #include "ConstantMatrixDescriptor.hpp"
-#include "float_types.h"
+#include "math.hpp"
 
 namespace ck {
 
@@ -37,106 +37,19 @@ __device__ void threadwise_matrix_copy(SrcMatrix,
 
     constexpr auto src_mtx = SrcMatrix{};
     constexpr auto dst_mtx = DstMatrix{};
-
-    // Depending upon datatype i.e float/half/bfloat16, carry out data movement
-    // in appropriate vector_typeized form
-    // float - 4, half - 4, bfloat16 - 2
-    static_if<std::is_same<Float, float>::value>{}([&](auto) {
-        using vector_t = typename vector_type<float, DataPerRead>::MemoryType;
-
-        for(index_t i = 0; i < NRow; ++i)
+    using vector_t         = typename vector_type<Float, DataPerRead>::MemoryType;
+    for(index_t i = 0; i < NRow; ++i)
+    {
+        for(index_t j = 0; j < NCol; j += DataPerRead)
         {
-            for(index_t j = 0; j < NCol; j += DataPerRead)
-            {
-                const index_t src_index = src_mtx.GetOffsetFromMultiIndex(i, j);
-                const index_t dst_index = dst_mtx.GetOffsetFromMultiIndex(i, j);
+            const index_t src_index = src_mtx.GetOffsetFromMultiIndex(i, j);
+            const index_t dst_index = dst_mtx.GetOffsetFromMultiIndex(i, j);
 
-                *reinterpret_cast<vector_t*>(&p_dst[dst_index]) =
-                    *reinterpret_cast<const vector_t*>(&p_src[src_index]);
-            }
+            *reinterpret_cast<vector_t*>(&p_dst[dst_index]) =
+                *reinterpret_cast<const vector_t*>(&p_src[src_index]);
         }
-
-    }).Else([&](auto) { // fp16/bfp16
-        for(index_t i = 0; i < NRow; ++i)
-        {
-            for(index_t j = 0; j < NCol; ++j)
-            {
-                const index_t src_index = src_mtx.GetOffsetFromMultiIndex(i, j);
-                const index_t dst_index = dst_mtx.GetOffsetFromMultiIndex(i, j);
-
-                *reinterpret_cast<Float*>(&p_dst[dst_index]) =
-                    *reinterpret_cast<const Float*>(&p_src[src_index]);
-            }
-        }
-    });
+    }
 }
-
-template <class Accum>
-struct inner_product_with_conversion
-{
-    __device__ Accum operator()(float a, float b) const
-    {
-        return CVT_FLOAT2ACCUM(a) * CVT_FLOAT2ACCUM(b);
-    }
-
-    __device__ Accum operator()(const vector_type<half, 2>::MemoryType& a,
-                                const vector_type<half, 2>::MemoryType& b) const
-    {
-        const half* p_a_half = reinterpret_cast<const half*>(&a);
-        const half* p_b_half = reinterpret_cast<const half*>(&b);
-
-        Accum acc = 0.0;
-        for(index_t v = 0; v < 2; ++v)
-        {
-            acc += CVT_FLOAT2ACCUM(p_a_half[v]) * CVT_FLOAT2ACCUM(p_b_half[v]);
-        }
-
-        return acc;
-    }
-
-    __device__ Accum operator()(const vector_type<half, 4>::MemoryType& a,
-                                const vector_type<half, 4>::MemoryType& b) const
-    {
-        const half* p_a_half = reinterpret_cast<const half*>(&a);
-        const half* p_b_half = reinterpret_cast<const half*>(&b);
-
-        Accum acc = 0.0;
-        for(index_t v = 0; v < 4; ++v)
-        {
-            acc += CVT_FLOAT2ACCUM(p_a_half[v]) * CVT_FLOAT2ACCUM(p_b_half[v]);
-        }
-        return acc;
-    }
-
-    __device__ Accum operator()(const vector_type<ushort, 2>::MemoryType& a,
-                                const vector_type<ushort, 2>::MemoryType& b) const
-    {
-        const ushort* p_a_bfloat16 = reinterpret_cast<const ushort*>(&a);
-        const ushort* p_b_bfloat16 = reinterpret_cast<const ushort*>(&b);
-
-        Accum acc = 0.0;
-        for(index_t v = 0; v < 2; ++v)
-        {
-            acc += CVT_FLOAT2ACCUM(p_a_bfloat16[v]) * CVT_FLOAT2ACCUM(p_b_bfloat16[v]);
-        }
-
-        return acc;
-    }
-
-    __device__ Accum operator()(const vector_type<ushort, 4>::MemoryType& a,
-                                const vector_type<ushort, 4>::MemoryType& b) const
-    {
-        const ushort* p_a_bfloat16 = reinterpret_cast<const ushort*>(&a);
-        const ushort* p_b_bfloat16 = reinterpret_cast<const ushort*>(&b);
-
-        Accum acc = 0.0;
-        for(index_t v = 0; v < 4; ++v)
-        {
-            acc += CVT_FLOAT2ACCUM(p_a_bfloat16[v]) * CVT_FLOAT2ACCUM(p_b_bfloat16[v]);
-        }
-        return acc;
-    }
-};
 
 template <class MatrixA,
           class MatrixB,
@@ -176,7 +89,7 @@ __device__ void threadwise_gemm(MatrixA,
                     const index_t bindex = b_mtx.GetOffsetFromMultiIndex(k, j);
                     const index_t cindex = c_mtx.GetOffsetFromMultiIndex(i, j);
 
-                    p_c_thread[cindex] += inner_product_with_conversion<FloatC>{}(
+                    p_c_thread[cindex] += math::inner_product_with_conversion<FloatC>{}(
                         p_a_thread[aindex], p_b_thread[bindex]);
                 }
             }

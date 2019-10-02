@@ -258,7 +258,7 @@ void CompiledSCGemmKernelParams(const ConvolutionContext& params,
     scgemm::tensorshape_t in, dst, filter;
     std::tie(in, dst, filter) = GetSCGemmConvFwdTensorShape(params);
 
-    MIOPEN_LOG_I("type=" << scgParams.type << " routine=" << scgParams.routine);
+    MIOPEN_LOG_I2("type=" << scgParams.type << " routine=" << scgParams.routine);
     switch(scgParams.type)
     {
     case SCGemmOpFGemm:
@@ -357,7 +357,7 @@ float CallSCGemm(miopen::Handle& handle,
                  uint32_t mask,
                  float coef)
 {
-    MIOPEN_LOG_I("");
+    MIOPEN_LOG_I2("");
     float elapsed = 0.0f;
 
     {

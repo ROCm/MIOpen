@@ -45,6 +45,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <string>
+#include <vector>
 
 namespace miopen {
 
@@ -219,16 +220,17 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
 
 static void Copy(std::istream& from, std::ostream& to, std::streamoff count)
 {
-    constexpr auto buffer_size = 4 * 1024 * 1024;
-    char buffer[buffer_size];
-    auto left = count;
+    constexpr auto buffer_size_limit = 4 * 1024 * 1024;
+    const auto buffer_size           = std::min<std::streamoff>(buffer_size_limit, count);
+    auto buffer                      = std::vector<char>(buffer_size, 0);
+    auto left                        = count;
 
     while(left > 0 && !from.eof())
     {
         const auto to_read = std::min<std::streamoff>(left, buffer_size);
-        from.read(buffer, to_read);
+        from.read(buffer.data(), to_read);
         const auto read = from.gcount();
-        to.write(buffer, read);
+        to.write(buffer.data(), read);
         left -= read;
     }
 }

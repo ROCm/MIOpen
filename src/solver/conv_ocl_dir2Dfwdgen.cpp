@@ -60,6 +60,12 @@ bool ConvOclDirectFwdGen::IsApplicable(const ConvolutionContext& params) const
         if(!supported)
             return false;
     }
+    
+    { // Workaround for issue 1681
+        if(params.IsFp32() && params.n_inputs > 3)
+            return false;
+    }
+
     return params.direction.IsForward()
         && params.kernel_stride_w == params.kernel_stride_h
         && params.pad_w == params.pad_h

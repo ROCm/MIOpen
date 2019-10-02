@@ -55,7 +55,7 @@ std::string PrepareUserDbPath()
 }
 } // namespace
 
-std::string GetUserFindDbSuffix() { return "${MIOPEN_USER_FIND_DB_SUFFIX}"; }
+std::string GetUserDbSuffix() { return "${MIOPEN_USER_DB_SUFFIX}"; }
 
 std::string GetSystemFindDbSuffix() { return "${MIOPEN_SYSTEM_FIND_DB_SUFFIX}"; }
 

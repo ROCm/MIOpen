@@ -286,11 +286,11 @@ struct cbna_fusion_driver : test_driver
         add(beta, "beta", generate_data({/*0. , */ 0.5}));
         add(gamma, "gamma", generate_data({/*1. ,*/ 0.5}));
         add(weights, "weights", get_weights_tensor(tensor_elem_gen_integer{max_value}));
-        add(bias_mode, "bmode", generate_data({true, false}));
+        add(bias_mode, "bmode", generate_data({true /*, false*/}));
         add(pad_mode, "pmode", generate_data({"default" /*, "same", "valid"*/}));
-        add(tactiv, "test_activ", generate_data({false, true}));
+        add(tactiv, "test_activ", generate_data({/*false, */ true}));
         add(amode, "amode", generate_data({3}));
-        add(batchnormMode, "batch-norm-mode", generate_data({0, 1}));
+        add(batchnormMode, "batch-norm-mode", generate_data({/*0,*/ 1}));
     }
 
     ~cbna_fusion_driver()
@@ -301,13 +301,15 @@ struct cbna_fusion_driver : test_driver
 
     std::vector<std::vector<int>> get_pads_strides_dilations()
     {
-        return {{0, 0, 1, 1, 1, 1},
-                {0, 0, 2, 2, 1, 1},
-                {1, 1, 1, 1, 1, 1},
-                {1, 1, 2, 2, 1, 1},
-                {2, 2, 1, 1, 1, 1},
-                {2, 2, 2, 2, 1, 1},
-                {3, 3, 2, 2, 1, 1}};
+        return {
+            {0, 0, 1, 1, 1, 1},
+            //        {0, 0, 2, 2, 1, 1},
+            //        {1, 1, 1, 1, 1, 1},
+            {1, 1, 2, 2, 1, 1}
+            //        {2, 2, 1, 1, 1, 1},
+            //        {2, 2, 2, 2, 1, 1},
+            //        {3, 3, 2, 2, 1, 1}
+        };
     };
 
     void run()

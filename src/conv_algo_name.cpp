@@ -63,6 +63,8 @@ miopenConvBwdWeightsAlgorithm_t StringToConvolutionBwdWeightsAlgo(const std::str
         {"miopenConvolutionBwdWeightsAlgoGEMM", miopenConvolutionBwdWeightsAlgoGEMM},
         {"miopenConvolutionBwdWeightsAlgoDirect", miopenConvolutionBwdWeightsAlgoDirect},
         {"miopenConvolutionBwdWeightsAlgoWinograd", miopenConvolutionBwdWeightsAlgoWinograd},
+        {"miopenConvolutionBwdWeightsAlgoImplicitGEMM",
+         miopenConvolutionBwdWeightsAlgoImplicitGEMM},
     };
     return data.at(s);
 }
@@ -175,6 +177,9 @@ static_assert(miopenConvolutionAlgoImplicitGEMM ==
               "");
 static_assert(miopenConvolutionAlgoImplicitGEMM ==
                   static_cast<miopenConvAlgorithm_t>(miopenConvolutionBwdDataAlgoImplicitGEMM),
+              "");
+static_assert(miopenConvolutionAlgoImplicitGEMM ==
+                  static_cast<miopenConvAlgorithm_t>(miopenConvolutionBwdWeightsAlgoImplicitGEMM),
               "");
 
 } // namespace miopen

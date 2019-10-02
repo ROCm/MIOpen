@@ -3,6 +3,7 @@
 
 #include "config.hpp"
 #include "integral_constant.hpp"
+#include "vector_type.hpp"
 
 namespace ck {
 namespace math {
@@ -97,6 +98,72 @@ __host__ __device__ constexpr T lcm(T x, Ts... xs)
 {
     return max(x, xs...);
 }
+
+template <class T>
+struct inner_product_with_conversion
+{
+    static constexpr auto convert = type_convert<T>();
+
+    __device__ T operator()(float a, float b) const { return convert(a) * convert(b); }
+
+    __device__ T operator()(const vector_type<half, 2>::MemoryType& a,
+                            const vector_type<half, 2>::MemoryType& b) const
+    {
+        const half* p_a_half = reinterpret_cast<const half*>(&a);
+        const half* p_b_half = reinterpret_cast<const half*>(&b);
+
+        T acc = 0;
+        for(index_t v = 0; v < 2; ++v)
+        {
+            acc += convert(p_a_half[v]) * convert(p_b_half[v]);
+        }
+
+        return acc;
+    }
+
+    __device__ T operator()(const vector_type<half, 4>::MemoryType& a,
+                            const vector_type<half, 4>::MemoryType& b) const
+    {
+        const half* p_a_half = reinterpret_cast<const half*>(&a);
+        const half* p_b_half = reinterpret_cast<const half*>(&b);
+
+        T acc = 0;
+        for(index_t v = 0; v < 4; ++v)
+        {
+            acc += convert(p_a_half[v]) * convert(p_b_half[v]);
+        }
+        return acc;
+    }
+
+    __device__ T operator()(const vector_type<ushort, 2>::MemoryType& a,
+                            const vector_type<ushort, 2>::MemoryType& b) const
+    {
+        const ushort* p_a_bfloat16 = reinterpret_cast<const ushort*>(&a);
+        const ushort* p_b_bfloat16 = reinterpret_cast<const ushort*>(&b);
+
+        T acc = 0;
+        for(index_t v = 0; v < 2; ++v)
+        {
+            acc += convert(p_a_bfloat16[v]) * convert(p_b_bfloat16[v]);
+        }
+
+        return acc;
+    }
+
+    __device__ T operator()(const vector_type<ushort, 4>::MemoryType& a,
+                            const vector_type<ushort, 4>::MemoryType& b) const
+    {
+        const ushort* p_a_bfloat16 = reinterpret_cast<const ushort*>(&a);
+        const ushort* p_b_bfloat16 = reinterpret_cast<const ushort*>(&b);
+
+        T acc = 0;
+        for(index_t v = 0; v < 4; ++v)
+        {
+            acc += convert(p_a_bfloat16[v]) * convert(p_b_bfloat16[v]);
+        }
+        return acc;
+    }
+};
 
 } // namespace math
 } // namspace ck

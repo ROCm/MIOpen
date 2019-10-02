@@ -11,6 +11,37 @@
 
 namespace ck {
 
+enum struct ConvolutionDirection
+{
+    Forward,
+    BackwardWeights
+};
+
+template <ConvolutionDirection conv_dir, typename WeiDesc>
+struct make_WeiDesc
+{
+};
+template <typename WeiDesc>
+struct make_WeiDesc<ConvolutionDirection::Forward, WeiDesc>
+{
+    __device__ constexpr auto get(WeiDesc&)
+    {
+        constexpr auto I1 = Number<1>{};
+        constexpr auto I3 = Number<3>{};
+        return WeiDesc{}.Unfold(I1, I3).ReorderGivenNew2Old(Sequence<1, 0>{});
+    }
+};
+template <typename WeiDesc>
+struct make_WeiDesc<ConvolutionDirection::BackwardWeights, WeiDesc>
+{
+    __device__ constexpr auto get(WeiDesc& desc)
+    {
+        constexpr auto I2 = Number<2>{};
+        constexpr auto I3 = Number<3>{};
+        return make_ConstantMergedTensorDescriptor(
+            desc.Unfold(I2, I3), Sequence<1, 2>{}, Sequence<0>{});
+    }
+};
 // define B = merge(N0, Ho, Wo)
 template <index_t GridSize,
           index_t BlockSize,
@@ -47,13 +78,13 @@ template <index_t GridSize,
           class WeiBlockCopySrcAccessOrder,
           class WeiBlockCopyDstAccessOrder,
           index_t WeiBlockCopySrcDataPerRead_E,
-          index_t WeiBlockCopyDstDataPerWrite_K>
+          index_t WeiBlockCopyDstDataPerWrite_K,
+          ConvolutionDirection conv_dir>
 struct GridwiseConvolutionImplicitGemm_v4_nchw_kcyx_nkhw_lds_double_buffer
 {
-    __device__ void __launch_bounds__(BlockSize, 2)
-        Run(const Float* const __restrict__ p_in_global,
-            const Float* const __restrict__ p_wei_global,
-            Float* const __restrict__ p_out_global) const
+    __device__ void Run(const Float* const __restrict__ p_in_global,
+                        const Float* const __restrict__ p_wei_global,
+                        Float* const __restrict__ p_out_global) const
     {
         // this is a mess
         // TODO: find more elegent way of specifying (or calculating) performance parameters
@@ -180,7 +211,8 @@ struct GridwiseConvolutionImplicitGemm_v4_nchw_kcyx_nkhw_lds_double_buffer
         // weight tensor
         //     tensor descriptor in device memory, src of blockwise copy
         constexpr auto wei_e_k_global_desc =
-            wei_k_c_y_x_global_desc.Unfold(I1, I3).ReorderGivenNew2Old(Sequence<1, 0>{});
+            make_WeiDesc<conv_dir, decltype(wei_k_c_y_x_global_desc)>{}.get(
+                wei_k_c_y_x_global_desc);
 
         //     tensor descriptor in LDS, dst of blockwise copy
         //     be careful of LDS alignment
@@ -213,6 +245,7 @@ struct GridwiseConvolutionImplicitGemm_v4_nchw_kcyx_nkhw_lds_double_buffer
         //     b_mtx[EPerBlocl, N1 * BPerBlock * N2] is in LDS
         //     c_mtx[KPerBlock, N1 * BPerBlock * N2] is distributed among threads, and saved in
         //     register
+
         constexpr auto a_e_k_block_mtx_desc = make_ConstantMatrixDescriptor(wei_e_k_block_desc);
 
         constexpr auto b_e_n1bn2_block_mtx_desc =
@@ -299,7 +332,11 @@ struct GridwiseConvolutionImplicitGemm_v4_nchw_kcyx_nkhw_lds_double_buffer
                 Float p_wei_register_buffer[blockwise_wei_copy.GetRegisterBufferSize()];
 
                 blockwise_in_copy.MoveSrcSlicingWindow(Sequence<EPerBlock, 0, 0, 0>{}, True);
-                p_wei_block_on_global += EPerBlock * wei_e_k_global_desc.GetStride(I0);
+                static_if<conv_dir == ConvolutionDirection::BackwardWeights>{}([&](auto fwd) {
+                    fwd(blockwise_wei_copy).MoveSrcSlicingWindow(Sequence<EPerBlock, 0>{}, True);
+                }).Else([&](auto fwd) {
+                    p_wei_block_on_global += EPerBlock * fwd(wei_e_k_global_desc).GetStride(I0);
+                });
 
                 __syncthreads();
 
@@ -324,7 +361,11 @@ struct GridwiseConvolutionImplicitGemm_v4_nchw_kcyx_nkhw_lds_double_buffer
             Float p_wei_register_buffer[blockwise_wei_copy.GetRegisterBufferSize()];
 
             blockwise_in_copy.MoveSrcSlicingWindow(Sequence<EPerBlock, 0, 0, 0>{}, True);
-            p_wei_block_on_global += EPerBlock * wei_e_k_global_desc.GetStride(I0);
+            static_if<conv_dir == ConvolutionDirection::BackwardWeights>{}([&](auto) {
+                blockwise_wei_copy.MoveSrcSlicingWindow(Sequence<EPerBlock, 0>{}, True);
+            }).Else([&](auto fwd) {
+                p_wei_block_on_global += EPerBlock * fwd(wei_e_k_global_desc).GetStride(I0);
+            });
 
             __syncthreads();
 

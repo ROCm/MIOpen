@@ -35,13 +35,13 @@ BuffInfo::BuffInfo(MemLayout_t layout, int nk, int c, int h, int w, int vec_c, i
     if(!(vec_c != 0))
         MIOPEN_THROW(std::string("Internal error in BuffInfo: (vec_c != 0) "));
 
-    size_t c_hi     = (c + vec_c - 1) / vec_c;
-    size_t count    = nk * c_hi * h * w * vec_c;
-    total_byte_size = count * data_len_t;
-    size.nk         = nk;
-    size.c          = c;
-    size.h          = h;
-    size.w          = w;
+    const size_t c_hi  = (c + vec_c - 1) / vec_c;
+    const size_t count = nk * c_hi * h * w * vec_c;
+    total_byte_size    = count * data_len_t;
+    size.nk            = nk;
+    size.c             = c;
+    size.h             = h;
+    size.w             = w;
 
     switch(layout)
     {

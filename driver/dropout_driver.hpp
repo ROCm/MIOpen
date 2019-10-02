@@ -23,7 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
+#ifndef GUARD_MIOPEN_DROPOUT_DRIVER_HPP
+#define GUARD_MIOPEN_DROPOUT_DRIVER_HPP
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
@@ -394,6 +395,7 @@ int DropoutDriver<Tgpu, Tref>::RunBackwardGPU()
     {
         miopenDropoutBackward(GetHandle(),
                               DropoutDesc,
+                              inputTensor,
                               outputTensor,
                               dout_dev->GetMem(),
                               inputTensor,
@@ -479,3 +481,5 @@ int DropoutDriver<Tgpu, Tref>::VerifyBackward()
 
     return miopenStatusSuccess;
 }
+
+#endif // GUARD_MIOPEN_DROPOUT_DRIVER_HPP

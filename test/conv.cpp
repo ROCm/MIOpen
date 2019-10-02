@@ -65,8 +65,8 @@ static bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
         auto ctx          = miopen::ConvolutionContext{xDesc, wDesc, yDesc, convDesc, direction};
         ctx.do_search     = false;
         ctx.save_srch_req = false;
-        ctx.workaround_disable_search_enforce = true;
-        ctx.general_compile_options           = "";
+        ctx.disable_perfdb_access   = true;
+        ctx.general_compile_options = "";
         ctx.SetStream(&handle);
         ctx.SetupFloats();
         ctx.DetectRocm();
@@ -88,10 +88,10 @@ static bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
     auto ctx = miopen::ConvolutionContext{xDesc, wDesc, yDesc, convDesc, 0};
 
     ctx.direction.SetBackwardWrW();
-    ctx.do_search                         = false;
-    ctx.save_srch_req                     = false;
-    ctx.general_compile_options           = "";
-    ctx.workaround_disable_search_enforce = true;
+    ctx.do_search               = false;
+    ctx.save_srch_req           = false;
+    ctx.general_compile_options = "";
+    ctx.disable_perfdb_access   = true;
     ctx.SetStream(&handle);
     ctx.SetupFloats();
     ctx.DetectRocm();

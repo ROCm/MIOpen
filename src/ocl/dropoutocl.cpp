@@ -188,7 +188,10 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
         MIOPEN_THROW("Invalid dropout rate");
     }
 
-    if(reserveSpaceSizeInBytes < xDesc.GetElementSize() * sizeof(bool))
+    bool use_rsvsp = !(reserveSpace == nullptr);
+    if(((use_rsvsp || use_mask) &&
+        reserveSpaceSizeInBytes < xDesc.GetElementSize() * sizeof(bool)) ||
+       (use_mask && reserveSpace == nullptr))
     {
         MIOPEN_THROW("Insufficient reservespace size");
     }
@@ -236,7 +239,8 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
         std::to_string(out_str[0]) + "x" + std::to_string(out_str[1]) + "x" +
         std::to_string(out_str[2]) + "x" + std::to_string(out_str[3]) + "x" +
         std::to_string(out_str[4]) + "-dropout" + std::to_string(dropout) + "-seed" +
-        std::to_string(seed) + "-rng" + std::to_string(rng_mode) + "-mask" +
+        std::to_string(seed) + "-rng" + std::to_string(rng_mode) + "-rsvsp" +
+        std::to_string(static_cast<int>(use_rsvsp)) + "-mask" +
         std::to_string(static_cast<int>(use_mask)) + "-evo" +
         std::to_string(static_cast<int>(state_evo)) + "-noise" +
         std::to_string(noise_shape.GetLengths()[0]);
@@ -308,8 +312,8 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
 
         params += " -DRUN_FORWARD=1";
 
-        if(use_mask)
-            params += " -DUSE_MASK=1";
+        params += " -DUSE_RSVSP=" + std::to_string(static_cast<size_t>(use_rsvsp));
+        params += " -DUSE_MASK=" + std::to_string(static_cast<size_t>(use_mask));
 
         const std::vector<size_t> vld{256, 1, 1};
         const std::vector<size_t> vgd{wk_grp_num * 256, 1, 1};
@@ -346,6 +350,7 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
 }
 
 void DropoutDescriptor::DropoutBackward(Handle& handle,
+                                        const TensorDescriptor& noise_shape,
                                         const TensorDescriptor& dyDesc,
                                         ConstData_t dy,
                                         const TensorDescriptor& dxDesc,
@@ -376,6 +381,12 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
         MIOPEN_THROW("Input/Output element size does not match");
     }
 
+    if(dxDesc.GetElementSize() != noise_shape.GetElementSize() ||
+       dxDesc.GetSize() != noise_shape.GetSize())
+    {
+        MIOPEN_THROW("Only support dropout with regular noise shape currently");
+    }
+
     if(dxDesc.GetType() != dyDesc.GetType())
     {
         MIOPEN_THROW("Input/Output datatype does not match");
@@ -386,7 +397,10 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
         MIOPEN_THROW("Invalid dropout rate");
     }
 
-    if(reserveSpaceSizeInBytes < dyDesc.GetElementSize() * sizeof(bool))
+    bool use_prng = reserveSpace == nullptr;
+    if(((!use_prng || use_mask) &&
+        reserveSpaceSizeInBytes < dyDesc.GetElementSize() * sizeof(bool)) ||
+       (use_mask && use_prng))
     {
         MIOPEN_THROW("Insufficient reservespace size");
     }
@@ -433,15 +447,21 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
         std::to_string(out_str[0]) + "x" + std::to_string(out_str[1]) + "x" +
         std::to_string(out_str[2]) + "x" + std::to_string(out_str[3]) + "x" +
         std::to_string(out_str[4]) + "-dropout" + std::to_string(dropout) + "-seed" +
-        std::to_string(seed) + "-rng" + std::to_string(rng_mode) + "-mask" +
+        std::to_string(seed) + "-rng" + std::to_string(rng_mode) + "-prng" +
+        std::to_string(static_cast<int>(use_prng)) + "-mask" +
         std::to_string(static_cast<int>(use_mask)) + "-evo" +
-        std::to_string(static_cast<int>(state_evo));
+        std::to_string(static_cast<int>(state_evo)) + "-noise" +
+        std::to_string(noise_shape.GetLengths()[0]);
+
+    for(int i = 1; i < noise_shape.GetSize(); i++)
+        network_config += "x" + std::to_string(noise_shape.GetLengths()[i]);
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
     if(!kernels.empty())
     {
-        kernels.front()(dropout,
+        kernels.front()(pstates,
+                        dropout,
                         int(in_len[0]),
                         int(in_len[1]),
                         int(in_len[2]),
@@ -474,9 +494,21 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
                   " -DREAD_BOOL_TYPE=" +
                   std::string(RD_BLCK == 4 ? "uint" : RD_BLCK == 2 ? "ushort" : "uchar");
 
+        size_t max_wk_grp = use_prng ? std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth())
+                                     : MAX_WORKITEM_NUM;
         size_t wk_grp_num =
-            std::min(size_t(MAX_WORKITEM_NUM / 256),
+            std::min(max_wk_grp / 256,
                      ((in_len[4] * in_len[3] * in_len[2] * in_len[1] * in_len[0] + 255) / 256));
+
+        if(use_prng)
+        {
+            size_t states_num = stateSizeInBytes / sizeof(prngStates);
+            if(states_num < wk_grp_num * 256)
+            {
+                MIOPEN_THROW("Insufficient state size for parallel PRNG");
+            }
+            params += " -DUSE_PRNG=1";
+        }
 
         params +=
             " -DWK_GRP_NUM=" + std::to_string(wk_grp_num) + " -DTOTAL_WORK=" +
@@ -496,6 +528,7 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
         const std::vector<size_t> vgd{wk_grp_num * 256, 1, 1};
 
         handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
+            pstates,
             dropout,
             int(in_len[0]),
             int(in_len[1]),
