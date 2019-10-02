@@ -23,7 +23,7 @@
 # SOFTWARE.
 #
 ################################################################################
-cmake_minimum_required( VERSION 2.8.12 )
+cmake_minimum_required( VERSION 3.5 )
 
 # This has to be initialized before the project() command appears
 # Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.  MSVC_IDE does not use CMAKE_BUILD_TYPE
@@ -51,6 +51,10 @@ include(ROCMInstallSymlinks)
 include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 
+set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
+# MIOpen now depends on SQLite as well
+find_package(PkgConfig)
+pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 option( BUILD_DEV "Build for development only" OFF)
 
 # Strip symbols for release
