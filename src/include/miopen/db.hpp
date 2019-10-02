@@ -47,8 +47,6 @@ namespace miopen {
 struct RecordPositions;
 class LockFile;
 
-std::string LockFilePath(const boost::filesystem::path& filename_);
-
 /// No instance of this class should be used from several threads at the same time.
 class Db
 {
@@ -253,7 +251,7 @@ template <class TInnerDb>
 class DbTimer
 {
     public:
-    DbTimer(TInnerDb&& inner_) : inner(inner_) {}
+    DbTimer(TInnerDb&& inner_) : inner(std::move(inner_)) {}
 
     template <class TProblem>
     auto FindRecord(const TProblem& problem)

@@ -33,6 +33,8 @@
 #cmakedefine01 MIOPEN_USE_ROCBLAS
 #cmakedefine01 MIOPEN_BUILD_DEV
 #cmakedefine01 MIOPEN_GPU_SYNC
+
+#cmakedefine01 MIOPEN_ENABLE_SQLITE
 #cmakedefine01 MIOPEN_DEBUG_FIND_DB_CACHING
 #cmakedefine01 MIOPEN_USE_SCGEMM
 

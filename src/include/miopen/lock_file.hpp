@@ -41,6 +41,8 @@
 #include <string>
 
 namespace miopen {
+
+std::string LockFilePath(const boost::filesystem::path& filename_);
 // LockFile class is a wrapper around boost::interprocess::file_lock providing MT-safety.
 // One process should never have more than one instance of this class with same path at the same
 // time. It may lead to undefined behaviour on Windows.

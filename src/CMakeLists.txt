@@ -155,6 +155,7 @@ set( MIOpen_Source
     include/miopen/mdg_expr.hpp
     include/miopen/kernel_build_params.hpp
     include/miopen/algorithm.hpp
+    include/miopen/sqlite_db.hpp
     include/miopen/finddb_kernel_cache_key.hpp
     include/miopen/hip_build_utils.hpp
     include/miopen/solver_id.hpp
@@ -166,6 +167,7 @@ set( MIOpen_Source
     include/miopen/rnn_util.hpp
     md_graph.cpp
     mdg_expr.cpp
+    sqlite_db.cpp
     tensor.cpp
     tensor_api.cpp
     solver.cpp
@@ -532,7 +534,11 @@ local:
     # set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET protected)
     set_target_properties(MIOpen PROPERTIES VISIBILITY_INLINES_HIDDEN 1)
 endif()
-
+#######################################
+# MIOpen depends on SQLite
+target_include_directories(MIOpen SYSTEM PRIVATE ${SQLITE3_STATIC_INCLUDE_DIRS})
+target_include_directories(MIOpen SYSTEM INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_INCLUDE_DIRS}>)
+target_internal_library(MIOpen sqlite3)
 ############################################################
 # MIOpen depends on librt for Boost.Interprocess
 if(NOT WIN32 AND NOT APPLE)
@@ -561,14 +567,16 @@ rocm_export_targets(
 )
 
 
+
 # Install db files
 install(FILES
-    kernels/gfx803_36.cd.pdb.txt
+    kernels/gfx803_36.cd.pdb.txt 
     kernels/gfx803_64.cd.pdb.txt
     kernels/gfx900_64.cd.pdb.txt
     kernels/gfx900_56.cd.pdb.txt
     kernels/gfx906_64.cd.pdb.txt
     kernels/gfx906_60.cd.pdb.txt
+    kernels/miopen.db
     kernels/gfx803_36.HIP.fdb.txt
     kernels/gfx803_64.HIP.fdb.txt
     kernels/gfx900_64.HIP.fdb.txt
