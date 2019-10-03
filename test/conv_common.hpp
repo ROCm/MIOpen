@@ -1321,7 +1321,7 @@ struct conv_driver : test_driver
     int search               = 0;
     bool gen_float           = false;
     bool immed               = immed_mode;
-    bool enable_fdb          = false;
+    bool enable_fdb          = true;
 
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
         {"CONV", miopenConvolution},
@@ -1662,6 +1662,11 @@ struct conv_driver : test_driver
                               << " Bytes to write all necessary tensors to GPU. GPU has "
                               << device_mem << " Bytes of memory." << std::endl;
                     return;
+                }
+
+                if(immed)
+                {
+                    miopen::FindDbRecord::enabled = enable_fdb;
                 }
 
                 if(do_forward && !skip_forward)
