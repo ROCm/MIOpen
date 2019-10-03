@@ -474,7 +474,7 @@ struct PerformanceImplicitGemm : Serializable<PerformanceImplicitGemm>
 
 struct ConvHipImplicitGemmV4Fwd : SolverBase<ConvolutionContext>
 {
-    PerformanceImplicitGemm GetPerformanceConfig(const ConvolutionContext& params) const;
+    PerformanceImplicitGemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
     bool IsValidPerformanceConfig(const ConvolutionContext& problem,
                                   const PerformanceImplicitGemm& c) const;
     bool IsApplicable(const ConvolutionContext& ctx) const;
@@ -533,7 +533,7 @@ struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlop
         f(self.WeiBlockCopyClusterLengths_K, "WeiBlockCopyClusterLengths_K");
     }
 
-    void EuristicInit(const ConvolutionContext& config);
+    void EuristicInit(const ConvolutionContext& ctx);
     bool IsValidValue() const;
     bool SetNextValue();
     bool IsValid(const ConvolutionContext& ctx) const;
@@ -544,7 +544,7 @@ struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlop
 struct ConvHipImplicitGemmV4R4FwdXdlops : SolverBase<ConvolutionContext>
 {
     PerformanceImplicitGemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext& problem,
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const PerformanceImplicitGemmXdlops& c) const;
     bool IsApplicable(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx,
@@ -565,7 +565,7 @@ struct ConvHipImplicitGemmV4R4FwdXdlops : SolverBase<ConvolutionContext>
 struct ConvHipImplicitGemmV4R4Xdlops_1x1 : SolverBase<ConvolutionContext>
 {
     PerformanceImplicitGemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext& problem,
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const PerformanceImplicitGemmXdlops& c) const;
     bool IsApplicable(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx,
@@ -585,8 +585,8 @@ struct ConvHipImplicitGemmV4R4Xdlops_1x1 : SolverBase<ConvolutionContext>
 
 struct ConvHipImplicitGemmV4_1x1 : SolverBase<ConvolutionContext>
 {
-    PerformanceImplicitGemm GetPerformanceConfig(const ConvolutionContext& params) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext& problem,
+    PerformanceImplicitGemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const PerformanceImplicitGemm& c) const;
     bool IsApplicable(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx,
@@ -606,7 +606,7 @@ struct ConvHipImplicitGemmV4_1x1 : SolverBase<ConvolutionContext>
 
 struct ConvHipImplicitGemmV4WrW : SolverBase<ConvolutionContext>
 {
-    PerformanceImplicitGemm GetPerformanceConfig(const ConvolutionContext& params) const;
+    PerformanceImplicitGemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
     bool IsValidPerformanceConfig(const ConvolutionContext& problem,
                                   const PerformanceImplicitGemm& c) const;
     bool IsApplicable(const ConvolutionContext& ctx) const;

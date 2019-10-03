@@ -7,13 +7,16 @@
 
 #define CK_DEVICE_BACKEND_AMD 1
 #define CK_USE_AMD_INLINE_ASM 1
-#define CK_USE_INLINE_ASM_XDLOPS 1
 #define CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_BLOCKWISE_GENERIC_SLICE_COPY_V1 1
 #define CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1 0
 #define CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1R1 0
 #define CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1R2 0
 #define CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V2 0
 #define CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V2R1 0
+
+#ifndef CK_USE_INLINE_ASM_XDLOPS
+#define CK_USE_INLINE_ASM_XDLOPS 1
+#endif
 
 namespace ck {
 
@@ -24,24 +27,13 @@ typedef float float32_t __attribute__((ext_vector_type(32)));
 typedef float float2_t __attribute__((ext_vector_type(2)));
 typedef float float4_t __attribute__((ext_vector_type(4)));
 
+typedef _Float16 half4_t __attribute__((ext_vector_type(4)));
+
+typedef ushort ushort2_t __attribute__((ext_vector_type(2)));
+typedef ushort ushort4_t __attribute__((ext_vector_type(4)));
+
 // half
 typedef half2 half2_t;
-
-typedef struct
-{
-    half2_t scalar[2];
-} half4_t;
-
-// bfloat16: use ushort
-typedef struct
-{
-    ushort scalar[2];
-} ushort2_t;
-
-typedef struct
-{
-    ushort2_t scalar[2];
-} ushort4_t;
 
 // index_t: used for index calculation
 using index_t = uint32_t;
