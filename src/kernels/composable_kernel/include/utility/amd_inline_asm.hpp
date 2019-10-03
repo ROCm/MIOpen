@@ -3,10 +3,6 @@
 
 #include "vector_type.hpp"
 
-#ifndef CK_USE_INLINE_ASM_XDLOPS
-#define CK_USE_INLINE_ASM_XDLOPS 1
-#endif
-
 #define WORKAROUND_SWDEV_202749 1
 
 namespace ck {
@@ -17,10 +13,10 @@ extern "C" __device__ float32_t __llvm_amdgcn_mfma_f32_32x32x1f32(
     float, float, float32_t, int, int, int) __asm("llvm.amdgcn.mfma.f32.32x32x1f32");
 
 extern "C" __device__ float32_t __llvm_amdgcn_mfma_f32_32x32x4f16(
-    float, float, float32_t, int, int, int) __asm("llvm.amdgcn.mfma.f32.32x32x4f16");
+    half4_t, half4_t, float32_t, int, int, int) __asm("llvm.amdgcn.mfma.f32.32x32x4f16");
 
 extern "C" __device__ float32_t __llvm_amdgcn_mfma_f32_32x32x2bf16(
-    float, float, float32_t, int, int, int) __asm("llvm.amdgcn.mfma.f32.32x32x2bf16");
+    ushort2_t, ushort2_t, float32_t, int, int, int) __asm("llvm.amdgcn.mfma.f32.32x32x2bf16");
 #endif
 
 // cast a pointer of LDS to its address
@@ -109,30 +105,6 @@ extern "C" __attribute__((address_space(3))) __device__ void* __to_local(const v
         asm volatile("s_waitcnt lgkmcnt(" #id ")" ::); \
     }
 
-#define REPEATx4(f, off) f(off) f(off + 1) f(off + 2) f(off + 3)
-
-#define REPEATx16(f, off) \
-    REPEATx4(f, off) REPEATx4(f, off + 4) REPEATx4(f, off + 8) REPEATx4(f, off + 12)
-
-#define REPEATx64(f, off) \
-    REPEATx16(f, off) REPEATx16(f, off + 16) REPEATx16(f, off + 32) REPEATx16(f, off + 48)
-
-#define REPEAT_STRIDEx4(f, stride, off) \
-    f(off) f(off + 1 * stride) f(off + 2 * stride) f(off + 3 * stride)
-
-#define REPEAT_STRIDEx16(f, stride, off)                                             \
-    REPEAT_STRIDEx4(f, stride, off) REPEAT_STRIDEx4(f, stride, off + 1 * stride * 4) \
-        REPEAT_STRIDEx4(f, stride, off + 2 * stride * 4)                             \
-            REPEAT_STRIDEx4(f, stride, off + 3 * stride * 4)
-
-#define REPEAT_STRIDEx64(f, stride, off)                                                \
-    REPEAT_STRIDEx16(f, stride, off) REPEAT_STRIDEx16(f, stride, off + 1 * stride * 16) \
-        REPEAT_STRIDEx16(f, stride, off + 2 * stride * 16)                              \
-            REPEAT_STRIDEx16(f, stride, off + 3 * stride * 16)
-
-#define NOP(n) asm volatile("\n s_nop " #n " " : :);
-
-// clang-format on
 __device__ void s_wait_vmcnt(index_t cnt) { REPEATx4(S_WAIT_VMCNT, 0) }
 
 __device__ void s_wait_lgkmcnt(index_t cnt) { REPEATx4(S_WAIT_LGKMCNT, 0) }
@@ -284,29 +256,44 @@ ds_write_b128(const vector_type<float, 4>::MemoryType& r, const void* lds, index
     REPEAT_STRIDEx64(DS_WRITE_B128, 64, 0)
 }
 
-__device__ void gcnasm_accvgpr_wait() { NOP(16) }
-
 template <index_t Size>
 __device__ void gcnasm_accvgpr_read(float*)
 {
 }
 
 template <>
+__device__ void gcnasm_accvgpr_read<16>(float* arch_reg)
+{
+#if CK_USE_INLINE_ASM_XDLOPS
+    NOP(16)
+    REPEATx16(ACCVGPR_READ, 0)
+#else
+    (void)arch_reg;
+#endif
+}
+
+template <>
 __device__ void gcnasm_accvgpr_read<32>(float* arch_reg)
 {
-    // clang-format off
+#if CK_USE_INLINE_ASM_XDLOPS
+    NOP(16)
     REPEATx16(ACCVGPR_READ, 0)
     REPEATx16(ACCVGPR_READ, 16)
-    // clang-format on
+#else
+    (void)arch_reg;
+#endif
 }
 
 template <>
 __device__ void gcnasm_accvgpr_read<64>(float* arch_reg)
 {
+#if CK_USE_INLINE_ASM_XDLOPS
+    NOP(16)
     REPEATx64(ACCVGPR_READ, 0)
+#else
+    (void)arch_reg;
+#endif
 }
-
-__device__ void gcnasm_accvgpr_write(const float* arch_reg) { REPEATx64(ACCVGPR_WRITE, 0) }
 
 template <index_t MPerWave>
 __device__ void gcnasm_accvgpr_zero()
@@ -316,16 +303,18 @@ __device__ void gcnasm_accvgpr_zero()
 template <>
 __device__ void gcnasm_accvgpr_zero<32>()
 {
-    // clang-format off
+#if CK_USE_INLINE_ASM_XDLOPS
     REPEATx16(ACCVGPR_ZERO, 0)
     REPEATx16(ACCVGPR_ZERO, 16)
-    // clang-format on
+#endif
 }
 
 template <>
 __device__ void gcnasm_accvgpr_zero<64>()
 {
+#if CK_USE_INLINE_ASM_XDLOPS
     REPEATx64(ACCVGPR_ZERO, 0)
+#endif
 }
 
 template <index_t MPerWave>
@@ -337,8 +326,10 @@ template <>
 __device__ void gcnasm_mfma_f32_32x32x1f32<64>(float& reg_a, float& reg_b, float32_t* reg_c)
 {
 #if CK_USE_INLINE_ASM_XDLOPS
+    NOP(1)
     (void)reg_c;
-    MFMA_F32_32x32x1F32(0, reg_a, reg_b, 1, 0, 0) MFMA_F32_32x32x1F32(32, reg_a, reg_b, 1, 1, 0)
+    MFMA_F32_32x32x1F32(0, reg_a, reg_b, 1, 0, 0)
+    MFMA_F32_32x32x1F32(32, reg_a, reg_b, 1, 1, 0)
 #else
     reg_c[0] = __llvm_amdgcn_mfma_f32_32x32x1f32(reg_a, reg_b, reg_c[0], 1, 0, 0);
     reg_c[1] = __llvm_amdgcn_mfma_f32_32x32x1f32(reg_a, reg_b, reg_c[1], 1, 1, 0);
@@ -349,6 +340,7 @@ template <>
 __device__ void gcnasm_mfma_f32_32x32x1f32<32>(float& reg_a, float& reg_b, float32_t* reg_c)
 {
 #if CK_USE_INLINE_ASM_XDLOPS
+    NOP(1)
     (void)reg_c;
     MFMA_F32_32x32x1F32(0, reg_a, reg_b, 1, 0, 0)
 #else
@@ -369,8 +361,10 @@ __device__ void gcnasm_mfma_f32_32x32x4f16<64>(typename vector_type<half, 4>::Me
                                                float32_t* reg_c)
 {
 #if CK_USE_INLINE_ASM_XDLOPS
+    NOP(1)
     (void)reg_c;
-    MFMA_F32_32x32x4F16(0, reg_a, reg_b, 1, 0, 0) MFMA_F32_32x32x4F16(32, reg_a, reg_b, 1, 1, 0)
+    MFMA_F32_32x32x4F16(0, reg_a, reg_b, 1, 0, 0)
+    MFMA_F32_32x32x4F16(32, reg_a, reg_b, 1, 1, 0)
 #else
     reg_c[0] = __llvm_amdgcn_mfma_f32_32x32x4f16(reg_a, reg_b, reg_c[0], 1, 0, 0);
     reg_c[1] = __llvm_amdgcn_mfma_f32_32x32x4f16(reg_a, reg_b, reg_c[1], 1, 1, 0);
@@ -383,6 +377,7 @@ __device__ void gcnasm_mfma_f32_32x32x4f16<32>(typename vector_type<half, 4>::Me
                                                float32_t* reg_c)
 {
 #if CK_USE_INLINE_ASM_XDLOPS
+    NOP(1)
     (void)reg_c;
     MFMA_F32_32x32x4F16(0, reg_a, reg_b, 1, 0, 0)
 #else
@@ -403,8 +398,10 @@ __device__ void gcnasm_mfma_f32_32x32x2bf16<64>(typename vector_type<ushort, 2>:
                                                 float32_t* reg_c)
 {
 #if CK_USE_INLINE_ASM_XDLOPS
+    NOP(1)
     (void)reg_c;
-    MFMA_F32_32x32x2BF16(0, reg_a, reg_b, 1, 0, 0) MFMA_F32_32x32x2BF16(32, reg_a, reg_b, 1, 1, 0)
+    MFMA_F32_32x32x2BF16(0, reg_a, reg_b, 1, 0, 0)
+    MFMA_F32_32x32x2BF16(32, reg_a, reg_b, 1, 1, 0)
 #else
     reg_c[0] = __llvm_amdgcn_mfma_f32_32x32x2bf16(reg_a, reg_b, reg_c[0], 1, 0, 0);
     reg_c[1] = __llvm_amdgcn_mfma_f32_32x32x2bf16(reg_a, reg_b, reg_c[1], 1, 1, 0);
@@ -417,12 +414,15 @@ __device__ void gcnasm_mfma_f32_32x32x2bf16<32>(typename vector_type<ushort, 2>:
                                                 float32_t* reg_c)
 {
 #if CK_USE_INLINE_ASM_XDLOPS
+    NOP(1)
     (void)reg_c;
     MFMA_F32_32x32x2BF16(0, reg_a, reg_b, 1, 0, 0)
 #else
     reg_c[0] = __llvm_amdgcn_mfma_f32_32x32x2bf16(reg_a, reg_b, reg_c[0], 1, 0, 0);
 #endif
 }
+
+// clang-format on
 
 } // namespace ck
 #endif

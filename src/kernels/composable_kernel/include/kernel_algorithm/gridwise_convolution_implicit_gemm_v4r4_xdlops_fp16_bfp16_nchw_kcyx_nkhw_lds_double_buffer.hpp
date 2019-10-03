@@ -230,9 +230,9 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_fp16_bfp16_nchw_kcyx_nkhw_lds
         AccDataType p_out_thread[c_k_thread_mtx_desc.GetElementSpace()];
 
         // zero out threadwise output
-        static_if<EnableXdlops>{}([&](auto) {
-            gcnasm_accvgpr_zero<c_k_thread_mtx_desc.GetElementSpace()>();
-        }).Else([&](auto) { threadwise_matrix_set_zero(c_k_thread_mtx_desc, p_out_thread); });
+        threadwise_matrix_set_zero(c_k_thread_mtx_desc, p_out_thread);
+        static_if<EnableXdlops>{}(
+            [&](auto) { gcnasm_accvgpr_zero<c_k_thread_mtx_desc.GetElementSpace()>(); });
 
         const Float* p_wei_block_on_global = p_wei_global;
 
@@ -340,7 +340,6 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_fp16_bfp16_nchw_kcyx_nkhw_lds
 
         // load data from xldop_acc_regs
         static_if<EnableXdlops>{}([&](auto) {
-            gcnasm_accvgpr_wait();
             gcnasm_accvgpr_read<c_k_thread_mtx_desc.GetElementSpace()>(p_out_thread);
         });
 
