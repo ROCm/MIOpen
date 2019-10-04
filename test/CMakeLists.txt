@@ -423,7 +423,7 @@ COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input 16  
 
 set(IMPLICITGEMM_ARGS ${MIOPEN_TEST_FLOAT_ARG})
 if(MIOPEN_TEST_FLOAT_ARG STREQUAL "--half" OR MIOPEN_TEST_FLOAT_ARG STREQUAL "--bfloat16")
-    list(APPEND IMPLICITGEMM_ARGS ";--disable-backward-data;--disable-backward-weights")
+    list(APPEND IMPLICITGEMM_ARGS ";--disable-backward-data;")
 endif()
 
 add_custom_test(test_conv_for_implicit_gemm ALL ALLOW_BFLOAT16
