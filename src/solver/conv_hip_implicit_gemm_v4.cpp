@@ -441,14 +441,22 @@ bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
 
 bool ConvHipImplicitGemmV4WrW::IsApplicable(const ConvolutionContext& ctx) const
 {
-    bool isTypeSupported = ctx.IsFp32();
+    if(!ctx.direction.IsBackwardWrW())
+        return false;
 
-    bool isNumInputsInMultiple = (ctx.batch_sz * ctx.in_height * ctx.in_width) % 8 == 0;
+    if(!ctx.Is2d())
+        return false;
 
-    return ctx.Is2d() && isTypeSupported && ctx.direction.IsBackwardWrW() && ctx.pad_h == 0 &&
-           ctx.pad_w == 0 && ctx.group_counts == 1 && ctx.n_outputs % 8 == 0 &&
-           (ctx.n_outputs * ctx.kernel_size_h * ctx.kernel_size_w) % 64 == 0 &&
-           isNumInputsInMultiple && ctx.n_inputs % 16 == 0;
+    if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
+        return false;
+
+    bool isEInMultiple = (ctx.IsFp16() || ctx.IsBfp16())
+                             ? ((ctx.batch_sz * ctx.in_height * ctx.in_width) % 16 == 0)
+                             : ((ctx.batch_sz * ctx.in_height * ctx.in_width) % 8 == 0);
+
+    return ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.group_counts == 1 && ctx.n_outputs % 8 == 0 &&
+           (ctx.n_outputs * ctx.kernel_size_h * ctx.kernel_size_w) % 64 == 0 && isEInMultiple &&
+           ctx.n_inputs % 16 == 0;
 }
 
 PerformanceImplicitGemm
