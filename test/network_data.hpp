@@ -51,7 +51,7 @@ inline std::set<std::vector<int>> get_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_S
         { pick_batch_size(32,  n), 1,    14,  14  },
         { pick_batch_size(100, n), 1,    8,   8   },
         { pick_batch_size(256, n), 1,    27,  27  },
-        { pick_batch_size(100, n), 19,   1024,2048},
+        { pick_batch_size(64, n), 19,   1024,2048},
         { pick_batch_size(100, n), 3,    32,  32  },
         { pick_batch_size(100, n), 32,   16,  16  },
         { pick_batch_size(100, n), 32,   8,   8   },
