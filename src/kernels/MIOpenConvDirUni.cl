@@ -736,14 +736,15 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #endif
             {
                 // over output tile
-                uint out_off2 = out_off1;
+                uint out_off2      = out_off1;
+                const uint end_off = (uint)MLO_OUT_BATCH_STRIDE * (uint)MLO_BATCH_SZ;
 #if MLO_OUT_TILE0 == 1
                 for(uint j = 0; j < MLO_OUT_TILE1 && y_out_grp + y_out_lcl + j < MLO_OUT_HEIGHT;
                     ++j, out_off2 += MLO_OUT_STRIDE)
                 {
                     for(uint i = 0;
                         i < MLO_OUT_TILE0 && x_out_grp + x_out_lcl + i < MLO_OUT_WIDTH &&
-                        out_off2 + i < MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ;
+                        out_off2 + i < end_off;
                         ++i)
                     {
 #else
@@ -752,8 +753,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
                     if(y_out_grp + y_out_lcl + j < MLO_OUT_HEIGHT)
                         for(uint i = 0; i < MLO_OUT_TILE0; ++i)
                         {
-                            if(x_out_grp + x_out_lcl + i < MLO_OUT_WIDTH &&
-                               out_off2 + i < MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+                            if(x_out_grp + x_out_lcl + i < MLO_OUT_WIDTH && out_off2 + i < end_off)
 #endif
 
 #if MLO_CONV_BIAS
