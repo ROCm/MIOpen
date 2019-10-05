@@ -7,98 +7,160 @@
 
 namespace ck {
 
-template <class Float, class Matrix>
+template <typename Float, class Matrix>
 __device__ void threadwise_matrix_set_zero(Matrix, Float* __restrict__ p_thread)
 {
     for(index_t i = 0; i < Matrix::NRow(); ++i)
     {
         for(index_t j = 0; j < Matrix::NCol(); ++j)
         {
-            const index_t id = Matrix::GetOffsetFromMultiIndex(i, j);
+            const index_t id = Matrix::CalculateOffset(i, j);
             p_thread[id]     = Float(0);
         }
     }
 }
 
-template <class Float,
-          class SrcMatrix,
-          class DstMatrix,
-          index_t NRow,
-          index_t NCol,
-          index_t DataPerRead>
-__device__ void threadwise_matrix_copy(SrcMatrix,
-                                       const Float* __restrict__ p_src,
-                                       DstMatrix,
-                                       Float* __restrict__ p_dst,
-                                       Sequence<NRow, NCol>,
-                                       Number<DataPerRead>)
+template <typename SrcMatrix,
+          typename DstMatrix,
+          index_t NSliceRow,
+          index_t NSliceCol,
+          index_t DataPerAccess>
+struct ThreadwiseMatrixSliceCopy
 {
-    static_assert(NCol % DataPerRead == 0, "wrong! should be NCol % == DataPerRead == 0");
-
-    constexpr auto src_mtx = SrcMatrix{};
-    constexpr auto dst_mtx = DstMatrix{};
-    using vector_t         = typename vector_type<Float, DataPerRead>::MemoryType;
-    for(index_t i = 0; i < NRow; ++i)
+    __device__ constexpr ThreadwiseMatrixSliceCopy()
     {
-        for(index_t j = 0; j < NCol; j += DataPerRead)
-        {
-            const index_t src_index = src_mtx.GetOffsetFromMultiIndex(i, j);
-            const index_t dst_index = dst_mtx.GetOffsetFromMultiIndex(i, j);
+        static_assert(SrcMatrix::RowStride() % DataPerAccess == 0 &&
+                          DstMatrix::RowStride() % DataPerAccess == 0,
+                      "wrong! wrong alignment");
+        static_assert(NSliceCol % DataPerAccess == 0,
+                      "wrong! should be NSliceCol % DataPerAccess == 0");
+    }
 
-            *reinterpret_cast<vector_t*>(&p_dst[dst_index]) =
-                *reinterpret_cast<const vector_t*>(&p_src[src_index]);
+    template <typename Data>
+    __device__ static void Run(const Data* p_src, Data* p_dst)
+    {
+        using vector_t = typename vector_type<Data, DataPerAccess>::MemoryType;
+
+        for(index_t i = 0; i < NSliceRow; ++i)
+        {
+            for(index_t j = 0; j < NSliceCol; j += DataPerAccess)
+            {
+                const index_t src_index = SrcMatrix::CalculateOffset(i, j);
+                const index_t dst_index = DstMatrix::CalculateOffset(i, j);
+
+                *reinterpret_cast<vector_t*>(&p_dst[dst_index]) =
+                    *reinterpret_cast<const vector_t*>(&p_src[src_index]);
+            }
         }
     }
-}
+};
 
-template <class MatrixA,
-          class MatrixB,
-          class MatrixC,
-          bool TransA,
-          bool TransB,
-          bool TransC,
-          class FloatA,
-          class FloatB,
-          class FloatC>
-__device__ void threadwise_gemm(MatrixA,
-                                integral_constant<bool, TransA>,
-                                const FloatA* __restrict__ p_a_thread,
-                                MatrixB,
-                                integral_constant<bool, TransB>,
-                                const FloatB* __restrict__ p_b_thread,
-                                MatrixC,
-                                integral_constant<bool, TransC>,
-                                FloatC* __restrict__ p_c_thread)
+// C += transpose(A) * B
+//   Element of matrix can be vectorized data
+template <typename MatrixA, typename MatrixB, typename MatrixC>
+struct ThreadwiseGemmTransANormalBNormalC
 {
-    static_if<TransA && (!TransB) && (!TransC)>{}([&](auto) {
-        constexpr auto a_mtx = MatrixA{};
-        constexpr auto b_mtx = MatrixB{};
-        constexpr auto c_mtx = MatrixC{};
+    __device__ constexpr ThreadwiseGemmTransANormalBNormalC()
+    {
+        static_assert(MatrixA::NRow() == MatrixB::NRow() && MatrixA::NCol() == MatrixC::NRow() &&
+                          MatrixB::NCol() == MatrixC::NCol(),
+                      "wrong!");
+    }
 
-        constexpr index_t M = c_mtx.NRow();
-        constexpr index_t N = c_mtx.NCol();
-        constexpr index_t K = a_mtx.NRow(); // A is transposed
+    template <typename FloatA, typename FloatB, typename FloatC>
+    __device__ static void Run_source(const FloatA* p_a, const FloatB* p_b, FloatC* p_c)
+    {
+        constexpr index_t M = MatrixC::NRow();
+        constexpr index_t N = MatrixC::NCol();
+        constexpr index_t K = MatrixA::NRow(); // A is transposed
 
         for(index_t k = 0; k < K; ++k)
         {
-            for(index_t i = 0; i < M; ++i)
+            for(index_t m = 0; m < M; ++m)
             {
-                for(index_t j = 0; j < N; ++j)
+                for(index_t n = 0; n < N; ++n)
                 {
-                    const index_t aindex = a_mtx.GetOffsetFromMultiIndex(k, i); // A is transposed
-                    const index_t bindex = b_mtx.GetOffsetFromMultiIndex(k, j);
-                    const index_t cindex = c_mtx.GetOffsetFromMultiIndex(i, j);
+                    const index_t aindex = MatrixA::CalculateOffset(k, m); // A is transposed
+                    const index_t bindex = MatrixB::CalculateOffset(k, n);
+                    const index_t cindex = MatrixC::CalculateOffset(m, n);
 
-                    p_c_thread[cindex] += math::inner_product_with_conversion<FloatC>{}(
-                        p_a_thread[aindex], p_b_thread[bindex]);
+                    p_c[cindex] +=
+                        math::inner_product_with_conversion<FloatC>{}(p_a[aindex], p_b[bindex]);
                 }
             }
         }
-    }).Else([&](auto fwd) {
-        // not implemented
-        static_assert(fwd(false), "wrong! support for this config is not implemented");
-    });
-}
+    }
+
+#if CK_THREADWISE_GEMM_USE_AMD_INLINE_ASM
+    template <typename FloatA, typename FloatB, typename FloatC>
+    __device__ static void Run_amd_asm(const FloatA* p_a, const FloatB* p_b, FloatC* p_c)
+    {
+        constexpr index_t M = MatrixC::NRow();
+        constexpr index_t N = MatrixC::NCol();
+        constexpr index_t K = MatrixA::NRow(); // A is transposed
+
+        static_assert(N == 4 || N == 2, "wrong! this config not supported by asm yet");
+
+        for(index_t k = 0; k < K; ++k)
+        {
+            for(index_t m = 0; m < M; ++m)
+            {
+                const index_t aindex = MatrixA::CalculateOffset(k, m); // A is transposed
+
+                static_if<N == 2>{}([&](auto) {
+                    const index_t bindex_0 = MatrixB::CalculateOffset(k, 0);
+                    const index_t bindex_1 = MatrixB::CalculateOffset(k, 1);
+
+                    const index_t cindex_0 = MatrixC::CalculateOffset(m, 0);
+                    const index_t cindex_1 = MatrixC::CalculateOffset(m, 1);
+
+                    __outer_product_1x2(
+                        p_a[aindex], p_b[bindex_0], p_b[bindex_1], p_c[cindex_0], p_c[cindex_1]);
+                });
+
+                static_if<N == 4>{}([&](auto) {
+                    const index_t bindex_0 = MatrixB::CalculateOffset(k, 0);
+                    const index_t bindex_1 = MatrixB::CalculateOffset(k, 1);
+                    const index_t bindex_2 = MatrixB::CalculateOffset(k, 2);
+                    const index_t bindex_3 = MatrixB::CalculateOffset(k, 3);
+
+                    const index_t cindex_0 = MatrixC::CalculateOffset(m, 0);
+                    const index_t cindex_1 = MatrixC::CalculateOffset(m, 1);
+                    const index_t cindex_2 = MatrixC::CalculateOffset(m, 2);
+                    const index_t cindex_3 = MatrixC::CalculateOffset(m, 3);
+
+                    __outer_product_1x4(p_a[aindex],
+                                        p_b[bindex_0],
+                                        p_b[bindex_1],
+                                        p_b[bindex_2],
+                                        p_b[bindex_3],
+                                        p_c[cindex_0],
+                                        p_c[cindex_1],
+                                        p_c[cindex_2],
+                                        p_c[cindex_3]);
+                });
+            }
+        }
+    }
+#endif
+
+    template <typename FloatA, typename FloatB, typename FloatC>
+    __device__ static void Run(const FloatA* p_a, const FloatB* p_b, FloatC* p_c)
+    {
+#if CK_THREADWISE_GEMM_USE_AMD_INLINE_ASM
+        constexpr bool has_amd_asm = is_same<FloatC, float>{} &&
+                                     ((is_same<FloatA, float>{} && is_same<FloatB, float>{}) ||
+                                      (is_same<FloatA, half2_t>{} && is_same<FloatB, half2_t>{}) ||
+                                      (is_same<FloatA, half4_t>{} && is_same<FloatB, half4_t>{}));
+
+        static_if<has_amd_asm>{}([&](auto fwd) {
+            Run_amd_asm(p_a, p_b, fwd(p_c));
+        }).Else([&](auto) { Run_source(p_a, p_b, p_c); });
+#else
+        Run_source(p_a, p_b, p_c);
+#endif
+    }
+};
 
 } // namespace ck
 #endif
