@@ -31,6 +31,11 @@ struct ConstantMatrixDescriptor
         return irow * RowStride_ + icol;
     }
 
+    __host__ __device__ static index_t CalculateOffset(index_t irow, index_t icol)
+    {
+        return GetOffsetFromMultiIndex(irow, icol);
+    }
+
     template <index_t SubNRow, index_t SubNCol>
     __host__ __device__ static constexpr auto MakeSubMatrixDescriptor(Number<SubNRow>,
                                                                       Number<SubNCol>)
@@ -52,7 +57,7 @@ __host__ __device__ constexpr auto
     return ConstantMatrixDescriptor<NRow, NCol, RowStride>{};
 }
 
-template <class... Ts>
+template <typename... Ts>
 __host__ __device__ constexpr auto make_ConstantMatrixDescriptor(ConstantTensorDescriptor<Ts...>)
 {
     using TDesc = ConstantTensorDescriptor<Ts...>;
@@ -63,7 +68,7 @@ __host__ __device__ constexpr auto make_ConstantMatrixDescriptor(ConstantTensorD
                                     TDesc::GetStrides()[0]>{};
 }
 
-template <class TDesc>
+template <typename TDesc>
 __host__ __device__ void print_ConstantMatrixDescriptor(TDesc, const char* s)
 {
     printf(
