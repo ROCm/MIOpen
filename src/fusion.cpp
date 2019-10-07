@@ -922,9 +922,10 @@ OpKernelArg FusionPlanDescriptor::GetDevAttribute(const std::string& k, Handle& 
 miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
     miopenStatus_t status = miopenStatusUnknownError;
-    if(!isValid())
+    if(!isValid() || (lu.GetCurVertex(handle) == nullptr))
     {
-        MIOPEN_LOG_I2("A previous attempt to add an operator failed");
+        MIOPEN_LOG_I2("A previous attempt to add an operator failed or the GPU architecture is not "
+                      "supported for the fusion plan");
         MIOPEN_THROW(miopenStatusBadParm);
     }
     network_config =
@@ -1240,7 +1241,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                                              Data_t output,
                                              const OperatorArgs& op_args)
 {
-    if(!isValid())
+    if(!isValid() || (lu.GetCurVertex(handle) == nullptr))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Attempting to execute an invalid fusion plan.");
     }
