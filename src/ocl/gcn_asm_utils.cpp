@@ -93,7 +93,7 @@ bool ValidateGcnAssemblerImpl()
 
     std::stringstream clang_stdout;
     std::string clang_result_line;
-    MIOPEN_LOG_I2("Running: " << '\'' << path << " --version" << '\'');
+    MIOPEN_LOG_NQI2("Running: " << '\'' << path << " --version" << '\'');
     auto clang_rc = ExecuteGcnAssembler(path + " --version", nullptr, &clang_stdout);
 
     if(clang_rc != 0)
@@ -102,13 +102,13 @@ bool ValidateGcnAssemblerImpl()
     }
 
     std::getline(clang_stdout, clang_result_line);
-    MIOPEN_LOG_I2(clang_result_line);
+    MIOPEN_LOG_NQI2(clang_result_line);
     if(clang_result_line.find("clang") != std::string::npos)
     {
         while(!clang_stdout.eof())
         {
             std::getline(clang_stdout, clang_result_line);
-            MIOPEN_LOG_I2(clang_result_line);
+            MIOPEN_LOG_NQI2(clang_result_line);
             if(clang_result_line.find("Target: ") != std::string::npos)
             {
                 return clang_result_line.find("amdgcn") != std::string::npos;
@@ -272,7 +272,7 @@ static void AmdgcnAssembleQuiet(std::string& source, const std::string& params)
     const auto args       = " -x assembler -target amdgcn--amdhsa " + params + " " + source +
                       " -o /dev/null" + // We do not need output file
                       " 2>&1";          // Keep console clean from error messages.
-    MIOPEN_LOG_I2(clang_path << " " << args);
+    MIOPEN_LOG_NQI2(clang_path << " " << args);
     const int clang_rc =
         ExecuteGcnAssembler(clang_path + " " + args, nullptr, &clang_stdout_unused);
     if(clang_rc != 0)
@@ -296,7 +296,7 @@ static bool GcnAssemblerHasBug34765Impl()
     }
     catch(...)
     {
-        MIOPEN_LOG_I("Detected");
+        MIOPEN_LOG_NQI("Detected");
         return true;
     }
 }
@@ -315,12 +315,12 @@ static bool GcnAssemblerSupportsOption(const std::string& option)
     try
     {
         AmdgcnAssembleQuiet(src, "-mcpu=gfx900 " + option);
-        MIOPEN_LOG_I("Supported: '" << option << '\'');
+        MIOPEN_LOG_NQI("Supported: '" << option << '\'');
         return true;
     }
     catch(...)
     {
-        MIOPEN_LOG_I("Not supported: '" << option << '\'');
+        MIOPEN_LOG_NQI("Not supported: '" << option << '\'');
         return false;
     }
 }
