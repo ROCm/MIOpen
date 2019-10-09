@@ -370,7 +370,7 @@ static rocm_meta_version AmdRocmMetadataVersionDetect(const miopen::ConvolutionC
         rmv = rocm_meta_version::Default;
 #endif // MIOPEN_BACKEND_OPENCL
     }
-    MIOPEN_LOG_I(
+    MIOPEN_LOG_NQI(
         "ROCm MD version "
         << rmv
         << ", MIOpen version " MIOPEN_STRINGIZE(MIOPEN_VERSION_MAJOR) "." MIOPEN_STRINGIZE(

@@ -31,6 +31,15 @@
 
 namespace miopen {
 
+namespace debug {
+
+/// Disable observation of FIND_ENFORCE env.vars for debugging/testing purposes.
+/// Currently used during warm-up phase in MIOpenDriver.
+/// WARNING: This switch is not intended for use in multi-threaded applications.
+extern bool FindEnforceDisable;
+
+} // namespace debug
+
 enum class FindEnforceAction
 {
     First_ = 1, // 0 is returned for non-numeric env.vars.
@@ -63,7 +72,7 @@ class FindEnforce
     template <class Context>
     bool IsScopeMatch(const Context& context) const
     {
-        if(context.disable_search_enforce)
+        if(context.disable_search_enforce || debug::FindEnforceDisable)
             return false;
         switch(scope)
         {

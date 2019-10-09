@@ -35,6 +35,12 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_ENFORCE_SCOPE)
 
 namespace miopen {
 
+namespace debug {
+
+bool FindEnforceDisable = false;
+
+} // namespace debug
+
 namespace {
 
 const char* ToCString(const FindEnforceAction mode)
@@ -74,7 +80,7 @@ FindEnforceAction GetFindEnforceActionImpl()
     const auto val = static_cast<FindEnforceAction>(miopen::Value(MIOPEN_FIND_ENFORCE{}));
     if(FindEnforceAction::First_ <= val && val <= FindEnforceAction::Last_)
         return val;
-    MIOPEN_LOG_E("Wrong MIOPEN_FIND_ENFORCE, using default.");
+    MIOPEN_LOG_NQE("Wrong MIOPEN_FIND_ENFORCE, using default.");
     return FindEnforceAction::Default_;
 }
 
@@ -118,7 +124,7 @@ FindEnforceScope GetFindEnforceScopeImpl()
     const auto val = static_cast<FindEnforceScope>(miopen::Value(MIOPEN_FIND_ENFORCE_SCOPE{}));
     if(FindEnforceScope::First_ <= val && val <= FindEnforceScope::Last_)
         return val;
-    MIOPEN_LOG_E("Wrong MIOPEN_FIND_ENFORCE_SCOPE, using default.");
+    MIOPEN_LOG_NQE("Wrong MIOPEN_FIND_ENFORCE_SCOPE, using default.");
     return FindEnforceScope::Default_;
 }
 

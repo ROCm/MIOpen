@@ -175,22 +175,34 @@ std::ostream& LogEnum(std::ostream& os, T x, Range&& values)
 
 enum class LoggingLevel
 {
-    Default = 0, // Warning level for Release builds, Info for Debug builds.
-    Quiet   = 1, // None logging messages (except those controlled by MIOPEN_ENABLE_LOGGING*).
-    Fatal   = 2, // Fatal errors only (not used yet).
-    Error   = 3, // Errors and fatals.
-    Warning = 4, // All errors and warnings.
-    Info    = 5, // All above plus information for debugging purposes.
-    Info2   = 6, // All above  plus more detailed information for debugging.
-    Trace   = 7  // The most detailed debugging messages
+    Default       = 0, // Warning level for Release builds, Info for Debug builds.
+    Quiet         = 1, // None logging messages (except those controlled by MIOPEN_ENABLE_LOGGING*).
+    Fatal         = 2, // Fatal errors only (not used yet).
+    Error         = 3, // Errors and fatals.
+    Warning       = 4, // All errors and warnings.
+    Info          = 5, // All above plus information for debugging purposes.
+    Info2         = 6, // All above  plus more detailed information for debugging.
+    Trace         = 7, // The most detailed debugging messages
+    DebugQuietMax = Error
 };
+
+namespace debug {
+
+/// Quiet mode for debugging/testing purposes. All logging (including MIOPEN_ENABLE_LOGGING*)
+/// is switched OFF unless it happens at DebugQuietMax or higher priority level, OR invoked
+/// by MIOPEN_LOG_NQ* macros (that ignore this switch).
+///
+/// WARNING: This switch is not intended for use in multi-threaded applications.
+extern bool LoggingQuiet;
+
+} // namespace debug
 
 const char* LoggingLevelToCString(LoggingLevel level);
 std::string LoggingPrefix();
 
 /// \return true if level is enabled.
 /// \param level - one of the values defined in LoggingLevel.
-bool IsLogging(LoggingLevel level = LoggingLevel::Error);
+bool IsLogging(LoggingLevel level, bool disableQuieting = false);
 bool IsLoggingCmd();
 bool IsLoggingFunctionCalls();
 
@@ -280,10 +292,10 @@ std::ostream& LogParam(std::ostream& os, std::string name, const std::vector<T>&
 
 std::string LoggingParseFunction(const char* func, const char* pretty_func);
 
-#define MIOPEN_LOG(level, ...)                                                               \
+#define MIOPEN_LOG_XQ(level, disableQuieting, ...)                                           \
     do                                                                                       \
     {                                                                                        \
-        if(miopen::IsLogging(level))                                                         \
+        if(miopen::IsLogging(level, disableQuieting))                                        \
         {                                                                                    \
             std::ostringstream miopen_log_ss;                                                \
             miopen_log_ss << miopen::LoggingPrefix() << LoggingLevelToCString(level) << " [" \
@@ -294,11 +306,18 @@ std::string LoggingParseFunction(const char* func, const char* pretty_func);
         }                                                                                    \
     } while(false)
 
+#define MIOPEN_LOG(level, ...) MIOPEN_LOG_XQ(level, false, __VA_ARGS__)
+#define MIOPEN_LOG_NQ(level, ...) MIOPEN_LOG_XQ(level, true, __VA_ARGS__)
+
 #define MIOPEN_LOG_E(...) MIOPEN_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)
 #define MIOPEN_LOG_W(...) MIOPEN_LOG(miopen::LoggingLevel::Warning, __VA_ARGS__)
 #define MIOPEN_LOG_I(...) MIOPEN_LOG(miopen::LoggingLevel::Info, __VA_ARGS__)
 #define MIOPEN_LOG_I2(...) MIOPEN_LOG(miopen::LoggingLevel::Info2, __VA_ARGS__)
 #define MIOPEN_LOG_T(...) MIOPEN_LOG(miopen::LoggingLevel::Trace, __VA_ARGS__)
+
+#define MIOPEN_LOG_NQE(...) MIOPEN_LOG_NQ(miopen::LoggingLevel::Error, __VA_ARGS__)
+#define MIOPEN_LOG_NQI(...) MIOPEN_LOG_NQ(miopen::LoggingLevel::Info, __VA_ARGS__)
+#define MIOPEN_LOG_NQI2(...) MIOPEN_LOG_NQ(miopen::LoggingLevel::Info2, __VA_ARGS__)
 
 #define MIOPEN_LOG_DRIVER_CMD(...)                                                      \
     do                                                                                  \
