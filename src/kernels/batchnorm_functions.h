@@ -113,6 +113,10 @@
 #define MIO_BN_LOOP_UNROLL_MAXN 768
 #endif
 
+#ifndef MIO_BN_LOOP_UNROLL_MAXHW
+#define MIO_BN_LOOP_UNROLL_MAXHW 2500
+#endif
+
 #ifndef MIO_BN_NCHW
 #define MIO_BN_NCHW 1
 #endif
