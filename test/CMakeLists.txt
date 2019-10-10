@@ -62,12 +62,12 @@ if(MIOPEN_TEST_HALF)
 endif()
 
 if(MIOPEN_TEST_INT8)
-    set(SKIP_ALL_EXCEPT_TESTS test_tensor_vec test_tensor_cast test_tensor_trans test_tensor_copy test_tensor_set test_tensor_transform test_conv test_immed_conv)
+    set(SKIP_ALL_EXCEPT_TESTS test_tensor_vec test_tensor_cast test_tensor_trans test_tensor_copy test_tensor_set test_tensor_transform test_conv2d)
     set(MIOPEN_TEST_FLOAT_ARG --int8)
 endif()
 
 if(MIOPEN_TEST_BFLOAT16)
-    set(SKIP_ALL_EXCEPT_TESTS test_conv test_tensor_copy test_tensor_set test_tensor_vec test_immed_conv)
+    set(SKIP_ALL_EXCEPT_TESTS test_conv2d test_tensor_copy test_tensor_set test_tensor_vec test_immed_conv2d)
     set(MIOPEN_TEST_FLOAT_ARG --bfloat16)
 endif()
 

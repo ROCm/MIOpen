@@ -239,7 +239,6 @@ struct GridwiseConvolutionImplicitGemm_v4_nchw_kc1x1_nkhw_lds_double_buffer
 
         const auto blockwise_gemm = BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_v2<
             BlockSize,
-            1, // EPACK = 1
             decltype(a_e_k_block_mtx_desc),
             decltype(b_e_n1bn2_block_mtx_desc),
             decltype(c_k0k2_n1n2_thread_mtx_desc),
