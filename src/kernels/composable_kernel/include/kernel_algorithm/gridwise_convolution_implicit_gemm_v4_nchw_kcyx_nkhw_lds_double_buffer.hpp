@@ -8,21 +8,16 @@
 #include "blockwise_generic_tensor_slice_copy.hpp"
 #include "blockwise_gemm.hpp"
 #include "threadwise_generic_tensor_slice_copy.hpp"
+#include "implicitgemm_params.hpp"
 
 namespace ck {
 
-enum struct ConvolutionDirection
-{
-    Forward,
-    BackwardWeights
-};
-
-template <ConvolutionDirection conv_dir, typename WeiDesc>
+template <ImplicitGemmDirection conv_dir, typename WeiDesc>
 struct make_WeiDesc
 {
 };
 template <typename WeiDesc>
-struct make_WeiDesc<ConvolutionDirection::Forward, WeiDesc>
+struct make_WeiDesc<ImplicitGemmDirection::ForwardData, WeiDesc>
 {
     __device__ constexpr auto get(WeiDesc&)
     {
@@ -32,7 +27,7 @@ struct make_WeiDesc<ConvolutionDirection::Forward, WeiDesc>
     }
 };
 template <typename WeiDesc>
-struct make_WeiDesc<ConvolutionDirection::BackwardWeights, WeiDesc>
+struct make_WeiDesc<ImplicitGemmDirection::BackwardWeight, WeiDesc>
 {
     __device__ constexpr auto get(WeiDesc& desc)
     {
@@ -79,7 +74,7 @@ template <index_t GridSize,
           class WeiBlockCopyDstAccessOrder,
           index_t WeiBlockCopySrcDataPerRead_E,
           index_t WeiBlockCopyDstDataPerWrite_K,
-          ConvolutionDirection conv_dir>
+          ImplicitGemmDirection conv_dir>
 struct GridwiseConvolutionImplicitGemm_v4_nchw_kcyx_nkhw_lds_double_buffer
 {
     __device__ void Run(const Float* const __restrict__ p_in_global,
@@ -266,7 +261,6 @@ struct GridwiseConvolutionImplicitGemm_v4_nchw_kcyx_nkhw_lds_double_buffer
 
         const auto blockwise_gemm = BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_v2<
             BlockSize,
-            1, // EPACK = 1
             decltype(a_e_k_block_mtx_desc),
             decltype(b_e_n1bn2_block_mtx_desc),
             decltype(c_k0k2_n1n2_thread_mtx_desc),
@@ -332,7 +326,7 @@ struct GridwiseConvolutionImplicitGemm_v4_nchw_kcyx_nkhw_lds_double_buffer
                 Float p_wei_register_buffer[blockwise_wei_copy.GetRegisterBufferSize()];
 
                 blockwise_in_copy.MoveSrcSlicingWindow(Sequence<EPerBlock, 0, 0, 0>{}, True);
-                static_if<conv_dir == ConvolutionDirection::BackwardWeights>{}([&](auto fwd) {
+                static_if<conv_dir == ImplicitGemmDirection::BackwardWeight>{}([&](auto fwd) {
                     fwd(blockwise_wei_copy).MoveSrcSlicingWindow(Sequence<EPerBlock, 0>{}, True);
                 }).Else([&](auto fwd) {
                     p_wei_block_on_global += EPerBlock * fwd(wei_e_k_global_desc).GetStride(I0);
@@ -361,7 +355,7 @@ struct GridwiseConvolutionImplicitGemm_v4_nchw_kcyx_nkhw_lds_double_buffer
             Float p_wei_register_buffer[blockwise_wei_copy.GetRegisterBufferSize()];
 
             blockwise_in_copy.MoveSrcSlicingWindow(Sequence<EPerBlock, 0, 0, 0>{}, True);
-            static_if<conv_dir == ConvolutionDirection::BackwardWeights>{}([&](auto) {
+            static_if<conv_dir == ImplicitGemmDirection::BackwardWeight>{}([&](auto) {
                 blockwise_wei_copy.MoveSrcSlicingWindow(Sequence<EPerBlock, 0>{}, True);
             }).Else([&](auto fwd) {
                 p_wei_block_on_global += EPerBlock * fwd(wei_e_k_global_desc).GetStride(I0);

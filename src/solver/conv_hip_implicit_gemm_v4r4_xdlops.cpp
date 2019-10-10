@@ -30,9 +30,16 @@
 #include "miopen/stringutils.hpp"
 #include "implicitgemm_util.hpp"
 #include "miopen/implicitgemm_params.hpp"
+#include <miopen/env.hpp>
 
 namespace miopen {
 namespace solver {
+
+// fail with vector load for some cases
+/// \todo enable vector load after fix it
+#define WORKAROUND_FAILED_VECTOR_LOAD 1
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM)
 
 inline bool PerformanceImplicitGemmXdlops::
 operator==(const PerformanceImplicitGemmXdlops& other) const
@@ -81,7 +88,15 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
     const int WaveSize  = 64;
     const int BlockSize = BPerBlock * KPerBlock / (GemmMPerWave * GemmNPerWave) * WaveSize;
 
-    if(BlockSize < 64 || BlockSize > 512)
+    // fail with blockSize >= 512
+    /// \todo fix the issue with blockSize >= 512
+    if(BlockSize < 64 || BlockSize > 256)
+        return false;
+
+    const std::size_t lds_size =
+        (BPerBlock + KPerBlock) * EPerBlock * GetTypeSize(ctx.in_data_type) * 2;
+
+    if(lds_size > 64 * 1024)
         return false;
 
     if(BlockSize != InBlockCopyClusterLengths_E * InBlockCopyClusterLengths_B)
@@ -104,11 +119,11 @@ bool PerformanceImplicitGemmXdlops::IsValidValue() const
     // clang-format off
     return IsTwoPower<64,128>(BPerBlock)
         && IsTwoPower<32,128>(KPerBlock)
-        && IsTwoPower<4,16>(EPerBlock)
+        && IsTwoPower<4,32>(EPerBlock)
         && IsTwoPower<32,64>(GemmMPerWave)
         && GemmNPerWave == 64
         && IsTwoPower<4,16>(InBlockCopyClusterLengths_E)
-        && IsTwoPower<8,16>(InBlockCopyClusterLengths_B)
+        && IsTwoPower<8,32>(InBlockCopyClusterLengths_B)
         && IsTwoPower<1,4>(WeiBlockCopyClusterLengths_E)
         && IsTwoPower<16,128>(WeiBlockCopyClusterLengths_K); // clang-format on
 }
@@ -121,13 +136,13 @@ bool PerformanceImplicitGemmXdlops::SetNextValue()
             break;
         if(!NextTwoPower<32, 128>(KPerBlock))
             break;
-        if(!NextTwoPower<4, 16>(EPerBlock))
+        if(!NextTwoPower<4, 32>(EPerBlock))
             break;
         if(!NextTwoPower<32, 64>(GemmMPerWave))
             break;
         if(!NextTwoPower<4, 16>(InBlockCopyClusterLengths_E))
             break;
-        if(!NextTwoPower<8, 16>(InBlockCopyClusterLengths_B))
+        if(!NextTwoPower<8, 32>(InBlockCopyClusterLengths_B))
             break;
         if(!NextTwoPower<1, 4>(WeiBlockCopyClusterLengths_E))
             break;
@@ -141,17 +156,17 @@ bool PerformanceImplicitGemmXdlops::SetNextValue()
 
 void PerformanceImplicitGemmXdlops::EuristicInit(const ConvolutionContext& ctx)
 {
-    GemmNPerWave = 64;
-    // default
+    // default:128,128,16,64,64,8,32,4,64
     {
         BPerBlock = 128;
         KPerBlock = 128;
         EPerBlock = 16;
 
         GemmMPerWave = 64;
+        GemmNPerWave = 64; // constant
 
-        InBlockCopyClusterLengths_E = 16;
-        InBlockCopyClusterLengths_B = 16;
+        InBlockCopyClusterLengths_E = 8;
+        InBlockCopyClusterLengths_B = 32;
 
         WeiBlockCopyClusterLengths_E = 4;
         WeiBlockCopyClusterLengths_K = 64;
@@ -289,6 +304,20 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
 
     std::size_t grid_size = (b / BPerBlock) * (k / KPerBlock);
 
+    const int Y = ctx.kernel_size_h;
+    const int X = ctx.kernel_size_w;
+    const int C = ctx.n_inputs;
+    const int E = C * Y * X;
+
+    std::size_t global_load_size =
+        (BPerBlock + KPerBlock) * E * grid_size * GetTypeSize(ctx.in_data_type);
+    std::size_t global_store_size = k * b * GetTypeSize(ctx.in_data_type);
+    std::size_t global_size       = global_load_size + global_store_size;
+
+    MIOPEN_LOG_I2("global load/store size = "
+                  << static_cast<float>(global_size) / 1024 / 1024 / 1024
+                  << " GB.");
+
     std::size_t lkl_wk0 = block_size;
     std::size_t lkl_wk1 = 1;
     std::size_t lkl_wk2 = 1;
@@ -329,7 +358,13 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     int WeiBlockCopyDstDataPerWrite_K = GetReadWriteVectorSize(WeiBlockCopySubLengths_K);
 
     int OutThreadCopyDataPerAccess_B = 1;
-    int InBlockCopyDataPerAccess_B   = 1;
+
+#if WORKAROUND_FAILED_VECTOR_LOAD
+    int InBlockCopyDataPerAccess_B = 1;
+#else
+    std::size_t InBlockCopySubLengths_B = BPerBlock / config.InBlockCopyClusterLengths_B;
+    int InBlockCopyDataPerAccess_B      = GetReadWriteVectorSize(InBlockCopySubLengths_B);
+#endif
 
     WeiBlockCopySrcDataPerRead_E =
         ctx.direction.IsBackwardData() ? 1 : WeiBlockCopySrcDataPerRead_E;
@@ -381,6 +416,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_OUT_THREAD_COPY_DATA_PER_ACCESS_B=") + std::to_string(OutThreadCopyDataPerAccess_B) + 
         std::string(" -DCK_ENABLE_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx)) + 
+        std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(!miopen::IsDisabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on

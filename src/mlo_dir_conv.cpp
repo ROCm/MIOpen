@@ -46,6 +46,13 @@
 #include <sstream>
 #include <unordered_map>
 
+#include <miopen/solver.hpp>
+#include <miopen/sqlite_db.hpp>
+#include <miopen/db.hpp>
+#include <miopen/env.hpp>
+#include <miopen/gcn_asm_utils.hpp>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/mlo_utils.hpp>
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE)
@@ -55,7 +62,20 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_NEWER)
 // (issue SWDEV-201055) and tuning
 /// \todo enable multiple or all applicable solver search after fixing slow compilation
 #define IMPLICIT_GEMM_FIND_FIRST_SOLUTION 1
-
+#if MIOPEN_ENABLE_SQLITE
+miopen::PerfDb mlo_construct_base::GetDb() const
+{
+    auto& h = _search_params.GetStream();
+    return {
+        {db_path(), _search_params.GetUserPerfDbPath(), h.GetDeviceName(), h.GetMaxComputeUnits()}};
+}
+miopen::PerfDb miopen::GetDb(const miopen::ConvolutionContext& ctx)
+{
+    auto& h = ctx.GetStream();
+    return {
+        {ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath(), h.GetDeviceName(), h.GetMaxComputeUnits()}};
+}
+#else
 miopen::PerfDb mlo_construct_base::GetDb() const
 {
     return {{db_path(), _search_params.GetUserPerfDbPath()}};
@@ -65,7 +85,7 @@ miopen::PerfDb miopen::GetDb(const ConvolutionContext& ctx)
 {
     return {{ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath()}};
 }
-
+#endif
 miopen::solver::ConvSolution
 mlo_construct_direct2D_fusion::FindSolution(const std::vector<miopen::solver::AnySolver>& solvers)
 {
@@ -350,7 +370,7 @@ static rocm_meta_version AmdRocmMetadataVersionDetect(const miopen::ConvolutionC
         rmv = rocm_meta_version::Default;
 #endif // MIOPEN_BACKEND_OPENCL
     }
-    MIOPEN_LOG_I(
+    MIOPEN_LOG_NQI(
         "ROCm MD version "
         << rmv
         << ", MIOpen version " MIOPEN_STRINGIZE(MIOPEN_VERSION_MAJOR) "." MIOPEN_STRINGIZE(

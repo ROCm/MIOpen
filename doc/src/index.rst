@@ -14,6 +14,7 @@ Sources and binaries can be found at `MIOpen's GitHub site <https://github.com/R
     :caption: Contents:
 
     releasenotes
+    citation
     install
     driver
     DebugAndLogging

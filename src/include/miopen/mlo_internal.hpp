@@ -63,6 +63,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <miopen/ocldeviceinfo.hpp>
 #endif
 #include <miopen/db_path.hpp>
+#if MIOPEN_ENABLE_SQLITE
+#include <miopen/sqlite_db.hpp>
+#else
+#include <miopen/db.hpp>
+#endif
 #include <miopen/handle.hpp>
 #include <miopen/problem_description.hpp>
 
@@ -152,9 +157,13 @@ class rocm_meta_version
 namespace miopen {
 
 struct TensorDescriptor;
-
+#if MIOPEN_ENABLE_SQLITE
+template <bool merge_records>
+class SQLite_MultiFileDb;
+#else
 template <class TInstalled, class TUser, bool merge_records>
 class MultiFileDb;
+#endif
 
 class ReadonlyRamDb;
 class Db;
@@ -175,8 +184,12 @@ class StaticContainer
     }
 };
 
+#if MIOPEN_ENABLE_SQLITE
+using PerfDb = DbTimer<SQLite_MultiFileDb<true>>;
+#else
 using PerfDb = DbTimer<MultiFileDb<Db, Db, true>>;
-PerfDb GetDb(const ConvolutionContext& ctx);
+#endif
+miopen::PerfDb GetDb(const ConvolutionContext& ctx);
 
 template <class TTo>
 size_t setTopDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor)
@@ -296,9 +309,13 @@ struct ConvolutionContext : ProblemDescription
     {
         // clang-format off
         return GetSystemDbPath()
-             + "/"
-             + GetStream().GetDbBasename()
-             + ".cd.pdb.txt";
+#if MIOPEN_ENABLE_SQLITE
+            + "/miopen.db";
+#else
+            + "/"
+            + GetStream().GetDbPathFilename()
+            + ".cd.pdb.txt";
+#endif
         // clang-format on
     }
 
@@ -306,11 +323,15 @@ struct ConvolutionContext : ProblemDescription
     {
         // clang-format off
         return GetUserDbPath()
+#if MIOPEN_ENABLE_SQLITE
+             + "/miopen.udb";
+#else
              + "/"
              + GetStream().GetDbBasename()
 			 + "."
 			 + GetUserDbSuffix()
              + ".cd.updb.txt";
+#endif
         // clang-format on
     }
 

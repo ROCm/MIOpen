@@ -182,7 +182,7 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
 #if MIOPEN_USE_ROCBLAS
     rhandle_ = CreateRocblasHandle();
 #endif
-    MIOPEN_LOG_I(*this);
+    MIOPEN_LOG_NQI(*this);
 }
 
 Handle::Handle() : impl(new HandleImpl())
@@ -201,7 +201,7 @@ Handle::Handle() : impl(new HandleImpl())
 #if MIOPEN_USE_ROCBLAS
     rhandle_ = CreateRocblasHandle();
 #endif
-    MIOPEN_LOG_I(*this);
+    MIOPEN_LOG_NQI(*this);
 }
 
 Handle::~Handle() {}

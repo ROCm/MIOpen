@@ -57,10 +57,7 @@ extern "C" __global__
     // wei and out are swapped in the solver
     constexpr auto wei_kcyx_desc = tmp_out_nkhw_desc.ReorderGivenNew2Old(Sequence<1, 0, 2, 3>{});
     constexpr auto out_nkhw_desc = tmp_wei_kcyx_desc.ReorderGivenNew2Old(Sequence<1, 0, 2, 3>{});
-// Until bwd wrw supports exists in fp16
-#if MIOPEN_USE_FP32
-    constexpr auto dir = ConvolutionDirection::BackwardWeights;
-#endif
+    constexpr auto dir           = ImplicitGemmDirection::BackwardWeight;
 
     // swap stride and dilation
     using ConvDilations = Sequence<ConvStrideH, ConvStrideW>;
@@ -70,9 +67,7 @@ extern "C" __global__
     constexpr auto wei_kcyx_desc = make_ConstantTensorDescriptor_packed(Sequence<K, C, Y, X>{});
     constexpr auto out_nkhw_desc = make_ConstantTensorDescriptor_packed(Sequence<N, K, Ho, Wo>{});
 
-#if MIOPEN_USE_FP32
-    constexpr auto dir  = ConvolutionDirection::Forward;
-#endif
+    constexpr auto dir  = ImplicitGemmDirection::ForwardData;
     using ConvStrides   = Sequence<ConvStrideH, ConvStrideW>;
     using ConvDilations = Sequence<ConvDilationH, ConvDilationW>;
 #endif // CK_PARAM_PROBLEM_DIRECTION == 2
@@ -252,7 +247,8 @@ extern "C" __global__
             WeiBlockCopySrcAccessOrder,
             WeiBlockCopyDstAccessOrder,
             WeiBlockCopySrcDataPerRead_E,
-            WeiBlockCopyDstDataPerWrite_K>{};
+            WeiBlockCopyDstDataPerWrite_K,
+            dir>{};
 #else
     static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
 #endif

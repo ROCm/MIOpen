@@ -52,8 +52,6 @@ struct RecordPositions
 
 class LockFile;
 
-std::string LockFilePath(const boost::filesystem::path& filename_);
-
 /// No instance of this class should be used from several threads at the same time.
 class Db
 {
@@ -263,7 +261,7 @@ template <class TInnerDb>
 class DbTimer
 {
     public:
-    DbTimer(TInnerDb&& inner_) : inner(inner_) {}
+    DbTimer(TInnerDb&& inner_) : inner(std::move(inner_)) {}
 
     template <class TProblem>
     auto FindRecord(const TProblem& problem)
@@ -311,7 +309,7 @@ class DbTimer
     template <class TFunc>
     static auto Measure(const std::string& funcName, TFunc&& func)
     {
-        if(!miopen::IsLogging(LoggingLevel::Info))
+        if(!miopen::IsLogging(LoggingLevel::Info2))
             return func();
 
         const auto start = std::chrono::high_resolution_clock::now();

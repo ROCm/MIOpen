@@ -28,6 +28,7 @@
 
 #include <algorithm>
 #include <array>
+#include <vector>
 #include <iostream>
 #include <sstream>
 #include <type_traits>
@@ -174,15 +175,27 @@ std::ostream& LogEnum(std::ostream& os, T x, Range&& values)
 
 enum class LoggingLevel
 {
-    Default = 0, // Warning level for Release builds, Info for Debug builds.
-    Quiet   = 1, // None logging messages (except those controlled by MIOPEN_ENABLE_LOGGING*).
-    Fatal   = 2, // Fatal errors only (not used yet).
-    Error   = 3, // Errors and fatals.
-    Warning = 4, // All errors and warnings.
-    Info    = 5, // All above plus information for debugging purposes.
-    Info2   = 6, // All above  plus more detailed information for debugging.
-    Trace   = 7  // The most detailed debugging messages
+    Default       = 0, // Warning level for Release builds, Info for Debug builds.
+    Quiet         = 1, // None logging messages (except those controlled by MIOPEN_ENABLE_LOGGING*).
+    Fatal         = 2, // Fatal errors only (not used yet).
+    Error         = 3, // Errors and fatals.
+    Warning       = 4, // All errors and warnings.
+    Info          = 5, // All above plus information for debugging purposes.
+    Info2         = 6, // All above  plus more detailed information for debugging.
+    Trace         = 7, // The most detailed debugging messages
+    DebugQuietMax = Error
 };
+
+namespace debug {
+
+/// Quiet mode for debugging/testing purposes. All logging (including MIOPEN_ENABLE_LOGGING*)
+/// is switched OFF unless it happens at DebugQuietMax or higher priority level, OR invoked
+/// by MIOPEN_LOG_NQ* macros (that ignore this switch).
+///
+/// WARNING: This switch is not intended for use in multi-threaded applications.
+extern bool LoggingQuiet;
+
+} // namespace debug
 
 const char* LoggingLevelToCString(LoggingLevel level);
 std::string LoggingPrefix();
@@ -192,6 +205,21 @@ std::string LoggingPrefix();
 bool IsLogging(LoggingLevel level, bool disableQuieting = false);
 bool IsLoggingCmd();
 bool IsLoggingFunctionCalls();
+
+namespace logger {
+
+template <typename T, typename S>
+struct CArray
+{
+    std::vector<T> values;
+    CArray(T* const x, const S& size)
+    {
+        if(x != nullptr)
+            values = {x, x + static_cast<std::size_t>(size)};
+    }
+};
+
+} // namespace logger
 
 template <class T>
 auto LogObjImpl(T* x) -> decltype(get_object(*x))
@@ -219,6 +247,16 @@ template <class T, typename std::enable_if<(not std::is_pointer<T>{}), int>::typ
 std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 {
     os << '\t' << name << " = " << get_object(x);
+    return os;
+}
+
+template <class T>
+std::ostream& LogParam(std::ostream& os, std::string name, const std::vector<T>& vec)
+{
+    os << '\t' << name << " = { ";
+    for(auto& val : vec)
+        os << val << ' ';
+    os << '}';
     return os;
 }
 
