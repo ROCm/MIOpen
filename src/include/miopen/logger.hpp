@@ -189,7 +189,7 @@ std::string LoggingPrefix();
 
 /// \return true if level is enabled.
 /// \param level - one of the values defined in LoggingLevel.
-bool IsLogging(LoggingLevel level = LoggingLevel::Error);
+bool IsLogging(LoggingLevel level, bool disableQuieting = false);
 bool IsLoggingCmd();
 bool IsLoggingFunctionCalls();
 
@@ -254,10 +254,10 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 
 std::string LoggingParseFunction(const char* func, const char* pretty_func);
 
-#define MIOPEN_LOG_CUSTOM(level, category, ...)                                             \
+#define MIOPEN_LOG_XQ_CUSTOM(level, disableQuieting, category, ...)                         \
     do                                                                                      \
     {                                                                                       \
-        if(miopen::IsLogging(level))                                                        \
+        if(miopen::IsLogging(level, disableQuieting))                                       \
         {                                                                                   \
             std::ostringstream miopen_log_ss;                                               \
             miopen_log_ss << miopen::LoggingPrefix() << category << " ["                    \
@@ -268,13 +268,22 @@ std::string LoggingParseFunction(const char* func, const char* pretty_func);
         }                                                                                   \
     } while(false)
 
-#define MIOPEN_LOG(level, ...) MIOPEN_LOG_CUSTOM(level, LoggingLevelToCString(level), __VA_ARGS__)
+#define MIOPEN_LOG_CUSTOM(level, category, ...) \
+    MIOPEN_LOG_XQ_CUSTOM(level, false, category, __VA_ARGS__)
+#define MIOPEN_LOG(level, ...) \
+    MIOPEN_LOG_XQ_CUSTOM(level, false, LoggingLevelToCString(level), __VA_ARGS__)
+#define MIOPEN_LOG_NQ(level, ...) \
+    MIOPEN_LOG_XQ_CUSTOM(level, true, LoggingLevelToCString(level), __VA_ARGS__)
 
 #define MIOPEN_LOG_E(...) MIOPEN_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)
 #define MIOPEN_LOG_W(...) MIOPEN_LOG(miopen::LoggingLevel::Warning, __VA_ARGS__)
 #define MIOPEN_LOG_I(...) MIOPEN_LOG(miopen::LoggingLevel::Info, __VA_ARGS__)
 #define MIOPEN_LOG_I2(...) MIOPEN_LOG(miopen::LoggingLevel::Info2, __VA_ARGS__)
 #define MIOPEN_LOG_T(...) MIOPEN_LOG(miopen::LoggingLevel::Trace, __VA_ARGS__)
+
+#define MIOPEN_LOG_NQE(...) MIOPEN_LOG_NQ(miopen::LoggingLevel::Error, __VA_ARGS__)
+#define MIOPEN_LOG_NQI(...) MIOPEN_LOG_NQ(miopen::LoggingLevel::Info, __VA_ARGS__)
+#define MIOPEN_LOG_NQI2(...) MIOPEN_LOG_NQ(miopen::LoggingLevel::Info2, __VA_ARGS__)
 
 #define MIOPEN_LOG_DRIVER_CMD(...)                                                      \
     do                                                                                  \
