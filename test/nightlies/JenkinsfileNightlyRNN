@@ -57,7 +57,6 @@ pipeline {
     environment{
         image = "miopen"
         buildflag = '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_TEST_FLAGS="-n 8 --verbose --disable-verification-cache"'
-        test = "test_conv"
     }
     stages{
         stage("HIP Release RNN fp32"){

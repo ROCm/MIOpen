@@ -477,25 +477,25 @@ ConvHipImplicitGemmV4_1x1::GetPerformanceConfig(const ConvolutionContext& ctx) c
     return GetPerformanceConfigBase<PerformanceImplicitGemm>(ctx);
 }
 
-bool ConvHipImplicitGemmV4Fwd::IsValidPerformanceConfig(const ConvolutionContext& problem,
+bool ConvHipImplicitGemmV4Fwd::IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                                         const PerformanceImplicitGemm& c) const
 {
     MIOPEN_LOG_I("");
-    return c.IsValidValue() && c.IsValid(problem);
+    return c.IsValidValue() && c.IsValid(ctx);
 }
 
-bool ConvHipImplicitGemmV4WrW::IsValidPerformanceConfig(const ConvolutionContext& problem,
+bool ConvHipImplicitGemmV4WrW::IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                                         const PerformanceImplicitGemm& c) const
 {
     MIOPEN_LOG_I("");
-    return c.IsValidValue() && c.IsValid(problem);
+    return c.IsValidValue() && c.IsValid(ctx);
 }
 
-bool ConvHipImplicitGemmV4_1x1::IsValidPerformanceConfig(const ConvolutionContext& problem,
+bool ConvHipImplicitGemmV4_1x1::IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                                          const PerformanceImplicitGemm& c) const
 {
     MIOPEN_LOG_I("");
-    return c.IsValidValue() && c.IsValid(problem);
+    return c.IsValidValue() && c.IsValid(ctx);
 }
 
 using ImplicitGemmKernel_t = enum {

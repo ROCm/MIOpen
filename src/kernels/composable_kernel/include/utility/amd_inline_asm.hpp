@@ -78,6 +78,35 @@ __device__ void __outer_product_1x2(half4_t a, half4_t b0, half4_t b1, float& c0
 }
 
 // outer-product: c[i,j] += inner_product(a[i], b[j])
+__device__ void __outer_product_1x4(half2_t a,
+                                    half2_t b0,
+                                    half2_t b1,
+                                    half2_t b2,
+                                    half2_t b3,
+                                    float& c0,
+                                    float& c1,
+                                    float& c2,
+                                    float& c3)
+{
+    asm volatile("\n \
+            v_dot2_f32_f16 %0, %4, %5  %0\n \
+            v_dot2_f32_f16 %1, %4, %6  %1\n \
+            v_dot2_f32_f16 %2, %4, %7  %2\n \
+            v_dot2_f32_f16 %3, %4, %8  %3\n \
+            "
+                 : "=v"(c0), "=v"(c1), "=v"(c2), "=v"(c3) // Dest registers
+                 : "v"(a),                                // 1st Src register for 1 half2 registers
+                   "v"(b0),                               // 2nd Src register
+                   "v"(b1),
+                   "v"(b2),
+                   "v"(b3),
+                   "0"(c0), // 3rd Src register
+                   "1"(c1),
+                   "2"(c2),
+                   "3"(c3));
+}
+
+// outer-product: c[i,j] += inner_product(a[i], b[j])
 __device__ void __outer_product_1x4(half4_t a,
                                     half4_t b0,
                                     half4_t b1,
