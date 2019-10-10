@@ -142,6 +142,8 @@ bool RamDb::StoreRecord(const DbRecord& record)
     UpdateDbModificationTime(GetFileName());
 #if MIOPEN_DB_CACHE_WRITE_THROUGH
     UpdateCacheEntryUnsafe(record);
+#else
+    Prefetch();
 #endif
     return true;
 }
@@ -160,6 +162,8 @@ bool RamDb::UpdateRecord(DbRecord& record)
     UpdateDbModificationTime(GetFileName());
 #if MIOPEN_DB_CACHE_WRITE_THROUGH
     UpdateCacheEntryUnsafe(record);
+#else
+    Prefetch();
 #endif
     return true;
 }
@@ -185,6 +189,8 @@ bool RamDb::RemoveRecord(const std::string& key)
         cache.erase(key);
         file_read_time = ramdb_clock::now();
     }
+#else
+    Prefetch();
 #endif
 
     return true;
@@ -224,6 +230,8 @@ bool RamDb::Remove(const std::string& key, const std::string& id)
 
         file_read_time = ramdb_clock::now();
     }
+#else
+    Prefetch();
 #endif
 
     return true;
