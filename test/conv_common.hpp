@@ -290,7 +290,7 @@ struct verify_forward_conv : conv_base<T, Tout>
 
             if(filter.mode == miopenTranspose)
             {
-                if(miopen::FindDbRecord::enabled)
+                if(miopen::testing_find_db_enabled)
                 {
                     filter.FindConvBwdDataAlgorithm(handle,
                                                     input.desc,
@@ -356,7 +356,7 @@ struct verify_forward_conv : conv_base<T, Tout>
             }
             else
             {
-                if(miopen::FindDbRecord::enabled)
+                if(miopen::testing_find_db_enabled)
                 {
                     filter.FindConvFwdAlgorithm(handle,
                                                 input.desc,
@@ -679,7 +679,7 @@ struct verify_backward_conv : conv_base<T>
 
             if(filter.mode == miopenTranspose)
             {
-                if(miopen::FindDbRecord::enabled)
+                if(miopen::testing_find_db_enabled)
                 {
                     filter.FindConvFwdAlgorithm(handle,
                                                 out.desc,
@@ -744,7 +744,7 @@ struct verify_backward_conv : conv_base<T>
             }
             else
             {
-                if(miopen::FindDbRecord::enabled)
+                if(miopen::testing_find_db_enabled)
                 {
                     filter.FindConvBwdDataAlgorithm(handle,
                                                     out.desc,
@@ -977,7 +977,7 @@ struct verify_backward_weights_conv : conv_base<T>
             int ret_algo_count;
             miopenConvAlgoPerf_t perf;
 
-            if(miopen::FindDbRecord::enabled)
+            if(miopen::testing_find_db_enabled)
             {
                 filter.FindConvBwdWeightsAlgorithm(
                     handle,
@@ -1215,7 +1215,7 @@ struct verify_forward_conv_int8 : conv_base<T>
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;
 
-        if(miopen::FindDbRecord::enabled)
+        if(miopen::testing_find_db_enabled)
         {
             filter.FindConvFwdAlgorithm(handle,
                                         (is_transform ? input_vpad_desc : input.desc),
@@ -1666,7 +1666,7 @@ struct conv_driver : test_driver
 
                 if(immed)
                 {
-                    miopen::FindDbRecord::enabled = enable_fdb;
+                    miopen::testing_find_db_enabled = enable_fdb;
                 }
 
                 if(do_forward && !skip_forward)
