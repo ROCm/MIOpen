@@ -624,16 +624,12 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         // clang-format on
     }
 
-    const ImplicitGemmDirection direction =
-        ctx.direction.IsForward()
-            ? ImplicitGemmDirection::ForwardData
-            : (ctx.direction.IsBackwardData() ? ImplicitGemmDirection::BackwardData
-                                              : ImplicitGemmDirection::BackwardWeight);
-
     // clang-format off
     construction_parameters.comp_options +=
         std::string(" -std=c++14") +
-        std::string(" -DCK_PARAM_PROBLEM_DIRECTION=") + std::to_string(static_cast<int>(direction)) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_FORWARD=") + std::to_string(static_cast<std::size_t>(ctx.direction.IsForward())) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_DATA=") + std::to_string(static_cast<std::size_t>(ctx.direction.IsBackwardData())) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_WEIGHT=") + std::to_string(static_cast<std::size_t>(ctx.direction.IsBackwardWrW())) +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ctx.batch_sz) +
         std::string(" -DCK_PARAM_PROBLEM_Y=") + std::to_string(ctx.kernel_size_h) +
         std::string(" -DCK_PARAM_PROBLEM_X=") + std::to_string(ctx.kernel_size_w) +
@@ -661,8 +657,8 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_N2=") + std::to_string(InBlockCopyDstDataPerWrite_N2) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_E=") + std::to_string(config.WeiBlockCopyClusterLengths_E) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
-        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATE_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) + 
-        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATE_PER_WRITE_K=") + std::to_string(WeiBlockCopyDstDataPerWrite_K) + 
+        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) + 
+        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K=") + std::to_string(WeiBlockCopyDstDataPerWrite_K) + 
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx)) + 
         std::string(" -DCK_BLOCKWISE_GEMM_USE_AMD_INLINE_ASM=") + std::to_string(use_amd_inline_asm ? 1 : 0) +
         std::string(" -D__HIP_PLATFORM_HCC__=1") +

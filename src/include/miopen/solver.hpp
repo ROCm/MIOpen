@@ -472,6 +472,12 @@ struct PerformanceImplicitGemm : Serializable<PerformanceImplicitGemm>
     std::string ToString() const;
 };
 
+struct ConvHipImplicitGemmV4R1Fwd : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
 struct ConvHipImplicitGemmV4Fwd : SolverBase<ConvolutionContext>
 {
     PerformanceImplicitGemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
@@ -602,6 +608,12 @@ struct ConvHipImplicitGemmV4_1x1 : SolverBase<ConvolutionContext>
                               const ConvolutionContext& ctx,
                               const ConvSolution& solution,
                               float& elapsed_time) const;
+};
+
+struct ConvHipImplicitGemmV4R1WrW : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
 struct ConvHipImplicitGemmV4WrW : SolverBase<ConvolutionContext>

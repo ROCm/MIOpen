@@ -2,10 +2,12 @@
 #define CK_FUNCTIONAL_HPP
 
 #include "integral_constant.hpp"
-#include "Sequence.hpp"
+#include "sequence.hpp"
+#include "type.hpp"
 
 namespace ck {
 
+// TODO: right? wrong?
 struct forwarder
 {
     template <typename T>
@@ -17,10 +19,28 @@ struct forwarder
 
 struct swallow
 {
-    template <class... Ts>
+    template <typename... Ts>
     __host__ __device__ constexpr swallow(Ts&&...)
     {
     }
+};
+
+template <typename T>
+struct logical_and
+{
+    constexpr bool operator()(const T& x, const T& y) const { return x && y; }
+};
+
+template <typename T>
+struct logical_or
+{
+    constexpr bool operator()(const T& x, const T& y) const { return x || y; }
+};
+
+template <typename T>
+struct logical_not
+{
+    constexpr bool operator()(const T& x) const { return !x; }
 };
 
 // Emulate if constexpr
@@ -32,7 +52,7 @@ struct static_if<true>
 {
     using Type = static_if<true>;
 
-    template <class F>
+    template <typename F>
     __host__ __device__ constexpr auto operator()(F f) const
     {
         // This is a trick for compiler:
@@ -43,7 +63,7 @@ struct static_if<true>
         return Type{};
     }
 
-    template <class F>
+    template <typename F>
     __host__ __device__ static constexpr auto Else(F)
     {
         return Type{};
@@ -55,13 +75,13 @@ struct static_if<false>
 {
     using Type = static_if<false>;
 
-    template <class F>
+    template <typename F>
     __host__ __device__ constexpr auto operator()(F) const
     {
         return Type{};
     }
 
-    template <class F>
+    template <typename F>
     __host__ __device__ static constexpr auto Else(F f)
     {
         // This is a trick for compiler:
@@ -72,6 +92,24 @@ struct static_if<false>
         return Type{};
     }
 };
+
+template <bool predicate, class X, class Y>
+struct conditional;
+
+template <class X, class Y>
+struct conditional<true, X, Y>
+{
+    using type = X;
+};
+
+template <class X, class Y>
+struct conditional<false, X, Y>
+{
+    using type = Y;
+};
+
+template <bool predicate, class X, class Y>
+using conditional_t = typename conditional<predicate, X, Y>::type;
 
 } // namespace ck
 #endif
