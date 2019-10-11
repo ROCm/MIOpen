@@ -45,22 +45,48 @@ namespace miopen {
 
 struct Handle;
 
-class FindDbRecord
+template <class TDb>
+class FindDbRecord_t;
+
+#if MIOPEN_DEBUG_FIND_DB_CACHING
+using SystemFindDb = ReadonlyRamDb;
+using UserFindDb   = Db;
+#else
+using SystemFindDb = Db;
+using UserFindDb   = Db;
+#endif
+
+using FindDb           = MultiFileDb<SystemFindDb, UserFindDb, false>;
+using FindDbRecord     = FindDbRecord_t<FindDb>;
+using UserFindDbRecord = FindDbRecord_t<UserFindDb>;
+
+extern bool testing_find_db_enabled; // For unit tests.
+extern boost::optional<std::string>&
+testing_find_db_path_override(); /// \todo Remove when #1723 is resolved.
+
+template <class TDb>
+class FindDbRecord_t
 {
+    private:
+    template <class TTestDb>
+    using is_find_t = std::enable_if_t<std::is_same<TTestDb, UserFindDb>::value, int>;
+
+    template <class TTestDb>
+    using is_immediate_t = std::enable_if_t<std::is_same<TTestDb, FindDb>::value, int>;
+
     public:
-    static bool enabled;                                  // For unit tests.
-    static boost::optional<std::string>& path_override(); /// \todo Remove when #1723 is resolved.
+    FindDbRecord_t(const FindDbRecord_t&) = delete;
+    FindDbRecord_t& operator=(const FindDbRecord_t&) = delete;
 
-    FindDbRecord(const FindDbRecord&) = delete;
-    FindDbRecord& operator=(const FindDbRecord&) = delete;
-
-    template <class TProblemDescription>
-    FindDbRecord(Handle& handle, const TProblemDescription& problem)
-        : path(path_override() ? *path_override() : GetUserPath(handle)),
-          db(!enabled || IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{})
-                 ? boost::none
-                 : boost::optional<DbClass>{DbClass{
-                       {path_override() ? *path_override() : GetInstalledPath(handle), path}}})
+    template <class TProblemDescription, class TTestDb = TDb>
+    FindDbRecord_t(Handle& handle, const TProblemDescription& problem, is_immediate_t<TTestDb> = 0)
+        : path(testing_find_db_path_override() ? *testing_find_db_path_override()
+                                               : GetUserPath(handle)),
+          installed_path(testing_find_db_path_override() ? *testing_find_db_path_override()
+                                                         : GetInstalledPath(handle)),
+          db(boost::make_optional<DbTimer<TDb>>(testing_find_db_enabled &&
+                                                    !IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}),
+                                                DbTimer<TDb>{installed_path, path}))
     {
         if(!db.is_initialized())
             return;
@@ -69,7 +95,22 @@ class FindDbRecord
         in_sync = content.is_initialized();
     }
 
-    ~FindDbRecord()
+    template <class TProblemDescription, class TTestDb = TDb>
+    FindDbRecord_t(Handle& handle, const TProblemDescription& problem, is_find_t<TTestDb> = 0)
+        : path(testing_find_db_path_override() ? *testing_find_db_path_override()
+                                               : GetUserPath(handle)),
+          db(boost::make_optional<DbTimer<TDb>>(testing_find_db_enabled &&
+                                                    !IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}),
+                                                DbTimer<TDb>{path, false}))
+    {
+        if(!db.is_initialized())
+            return;
+
+        content = db->FindRecord(problem);
+        in_sync = content.is_initialized();
+    }
+
+    ~FindDbRecord_t()
     {
         if(!db.is_initialized() || !content.is_initialized() || in_sync)
             return;
@@ -89,7 +130,7 @@ class FindDbRecord
                                           const std::function<void(DbRecord&)>& regenerator)
     {
         auto ret = std::vector<PerfField>{};
-        FindDbRecord record{handle, problem};
+        FindDbRecord_t<TDb> record{handle, problem};
 
         if(record.in_sync && !record.CopyValidating(handle, ret))
             return ret;
@@ -109,14 +150,9 @@ class FindDbRecord
     }
 
     private:
-#if MIOPEN_DEBUG_FIND_DB_CACHING == 1
-    using DbClass = DbTimer<MultiFileDb<ReadonlyRamDb, Db, false>>;
-#else
-    using DbClass = DbTimer<MultiFileDb<Db, Db, false>>;
-#endif
-
     std::string path;
-    boost::optional<DbClass> db;
+    std::string installed_path;
+    boost::optional<DbTimer<TDb>> db;
     boost::optional<DbRecord> content{boost::none};
     bool in_sync = false;
 
@@ -130,6 +166,9 @@ class FindDbRecord
 
     void LogFindDbItem(bool is_valid, const std::pair<std::string, FindDbData>& pair) const;
 };
+
+extern template class FindDbRecord_t<FindDb>;
+extern template class FindDbRecord_t<UserFindDb>;
 
 } // namespace miopen
 

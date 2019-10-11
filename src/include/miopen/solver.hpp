@@ -592,7 +592,7 @@ struct ConvHipImplicitGemmV4R4Xdlops_1x1 : SolverBase<ConvolutionContext>
 struct ConvHipImplicitGemmV4_1x1 : SolverBase<ConvolutionContext>
 {
     PerformanceImplicitGemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+    bool IsValidPerformanceConfig(const ConvolutionContext& problem,
                                   const PerformanceImplicitGemm& c) const;
     bool IsApplicable(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx,
