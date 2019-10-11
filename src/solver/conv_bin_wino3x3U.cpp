@@ -43,7 +43,7 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
         return false;
 
     const auto name = params.GetStream().GetDeviceName();
-    if(!(name == "gfx803" || name == "gfx900" || name == "gfx906"))
+    if(!(name == "gfx803" || name == "gfx900" || name == "gfx906" || name == "gfx908"))
         return false;
 
     // Check if kernel is suitable for the problem description
