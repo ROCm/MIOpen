@@ -36,26 +36,29 @@
 
 namespace miopen {
 
-bool FindDbRecord::enabled = true;
+bool testing_find_db_enabled = true;
 
-boost::optional<std::string>& FindDbRecord::path_override()
+boost::optional<std::string>& testing_find_db_path_override()
 {
     static boost::optional<std::string> data = boost::none;
     return data;
 }
 
-std::string FindDbRecord::GetInstalledPath(Handle& handle)
+template <class TDb>
+std::string FindDbRecord_t<TDb>::GetInstalledPath(Handle& handle)
 {
     return GetSystemDbPath() + "/" + handle.GetDbBasename() + "." + GetSystemFindDbSuffix() +
            ".fdb.txt";
 }
 
-std::string FindDbRecord::GetUserPath(Handle& handle)
+template <class TDb>
+std::string FindDbRecord_t<TDb>::GetUserPath(Handle& handle)
 {
     return GetUserDbPath() + "/" + handle.GetDbBasename() + "." + GetUserDbSuffix() + ".ufdb.txt";
 }
 
-bool FindDbRecord::CopyValidating(Handle& handle, std::vector<PerfField>& to) const
+template <class TDb>
+bool FindDbRecord_t<TDb>::CopyValidating(Handle& handle, std::vector<PerfField>& to) const
 {
     auto unbuilt = false;
     auto any     = false;
@@ -81,8 +84,9 @@ bool FindDbRecord::CopyValidating(Handle& handle, std::vector<PerfField>& to) co
     return !any || unbuilt;
 }
 
-void FindDbRecord::LogFindDbItem(bool is_valid,
-                                 const std::pair<std::string, FindDbData>& pair) const
+template <class TDb>
+void FindDbRecord_t<TDb>::LogFindDbItem(bool is_valid,
+                                        const std::pair<std::string, FindDbData>& pair) const
 {
     const auto log_level = is_valid ? LoggingLevel::Info2 : LoggingLevel::Error;
 
@@ -105,9 +109,13 @@ void FindDbRecord::LogFindDbItem(bool is_valid,
                                                << pair2.second.kcache_key.algorithm_name);
 }
 
-bool FindDbRecord::HasKernel(Handle& handle, const FindDbKCacheKey& key)
+template <class TDb>
+bool FindDbRecord_t<TDb>::HasKernel(Handle& handle, const FindDbKCacheKey& key)
 {
     return handle.HasKernel(key.algorithm_name, key.network_config);
 }
+
+template class FindDbRecord_t<FindDb>;
+template class FindDbRecord_t<UserFindDb>;
 
 } // namespace miopen

@@ -72,7 +72,7 @@ struct FindDbTest : test_driver
         y_dev = handle.Write(y.data);
 
         const TempFile temp_file{"miopen.test.find_db"};
-        FindDbRecord::path_override() = temp_file;
+        testing_find_db_path_override() = temp_file;
 
         TestForward();
         TestBwdData();
@@ -182,14 +182,14 @@ struct FindDbTest : test_driver
         const auto time0ms = std::chrono::duration_cast<mSeconds>(time0);
         MIOPEN_LOG_I("Find(), 1st call (populating kcache, updating find-db): " << time0ms.count());
 
-        FindDbRecord::enabled = false;
-        const auto time1      = Duration(func);
-        const auto time1ms    = std::chrono::duration_cast<mSeconds>(time1);
+        testing_find_db_enabled = false;
+        const auto time1        = Duration(func);
+        const auto time1ms      = std::chrono::duration_cast<mSeconds>(time1);
         MIOPEN_LOG_I("Find(), find-db disabled: " << time1ms.count());
 
-        FindDbRecord::enabled = true;
-        const auto time2      = Duration(func);
-        const auto time2ms    = std::chrono::duration_cast<mSeconds>(time2);
+        testing_find_db_enabled = true;
+        const auto time2        = Duration(func);
+        const auto time2ms      = std::chrono::duration_cast<mSeconds>(time2);
         MIOPEN_LOG_I("Find(), find-db enabled: " << time2ms.count());
 
         const auto find_db_speedup = time1ms / time2ms;
