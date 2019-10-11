@@ -96,8 +96,7 @@ __device__ void WaveWiseGemmMx64(const FloatA* const __restrict__ p_a_wave,
                                      a_off; // A is transposed
                     index_t bindex = b_off + lane_b + n * mfma_info::num_threads_blk;
                     p_c_thread[m + n * output_m + b * output_m * mfma_info::num_blks_wave] +=
-                        math::inner_product_with_conversion<FloatC>{}(p_a_wave[aindex],
-                                                                      p_b_wave[bindex]);
+                        inner_product_with_conversion<FloatC>{}(p_a_wave[aindex], p_b_wave[bindex]);
                 }
             }
         }
