@@ -222,19 +222,19 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     const bool fp16 = params.IsFp16();
     if(fp16)
     {
-        if(!(name == "gfx906"))
+        if(!(name == "gfx906" || name == "gfx908"))
             return false;
     }
     else
     {
         if(params.direction.IsBackwardWrW())
         {
-            if(!(name == "gfx900" || name == "gfx906"))
+            if(!(name == "gfx900" || name == "gfx906" || name == "gfx908"))
                 return false;
         }
         else
         {
-            if(!(name == "gfx803" || name == "gfx900" || name == "gfx906"))
+            if(!(name == "gfx803" || name == "gfx900" || name == "gfx906" || name == "gfx908"))
                 return false;
         }
     }
