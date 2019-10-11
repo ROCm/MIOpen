@@ -85,7 +85,7 @@ struct ThreadwiseGemmTransANormalBNormalC
                     const index_t cindex = MatrixC::CalculateOffset(m, n);
 
                     p_c[cindex] +=
-                        math::inner_product_with_conversion<FloatC>{}(p_a[aindex], p_b[bindex]);
+                        inner_product_with_conversion<FloatC>{}(p_a[aindex], p_b[bindex]);
                 }
             }
         }
