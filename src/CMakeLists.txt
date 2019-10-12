@@ -155,7 +155,6 @@ set( MIOpen_Source
     include/miopen/mdg_expr.hpp
     include/miopen/kernel_build_params.hpp
     include/miopen/algorithm.hpp
-    include/miopen/sqlite_db.hpp
     include/miopen/finddb_kernel_cache_key.hpp
     include/miopen/hip_build_utils.hpp
     include/miopen/solver_id.hpp
@@ -167,7 +166,6 @@ set( MIOpen_Source
     include/miopen/rnn_util.hpp
     md_graph.cpp
     mdg_expr.cpp
-    sqlite_db.cpp
     tensor.cpp
     tensor_api.cpp
     solver.cpp
@@ -199,6 +197,9 @@ set( MIOpen_Source
     )
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
+if(MIOPEN_ENABLE_SQLITE)
+    list(APPEND MIOpen_Source sqlite_db.cpp include/miopen/sqlite_db.hpp )
+endif()
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_INCLUDE "kernels/composable_kernel/include/*/*.hpp")
@@ -536,13 +537,15 @@ local:
     set_target_properties(MIOpen PROPERTIES VISIBILITY_INLINES_HIDDEN 1)
 endif()
 #######################################
-# MIOpen depends on SQLite
-target_include_directories(MIOpen SYSTEM PRIVATE ${SQLITE3_STATIC_INCLUDE_DIRS})
-target_include_directories(MIOpen SYSTEM INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_INCLUDE_DIRS}>)
-target_compile_options(MIOpen PRIVATE ${SQLITE3_STATIC_CFLAGS})
-target_compile_options(MIOpen INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_CFLAGS}>)
-target_link_libraries(MIOpen PRIVATE ${SQLITE3_STATIC_LDFLAGS})
-target_link_libraries(MIOpen INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_LDFLAGS}>)
+if(MIOPEN_ENABLE_SQLITE)
+    # MIOpen depends on SQLite
+    target_include_directories(MIOpen SYSTEM PRIVATE ${SQLITE3_STATIC_INCLUDE_DIRS})
+    target_include_directories(MIOpen SYSTEM INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_INCLUDE_DIRS}>)
+    target_compile_options(MIOpen PRIVATE ${SQLITE3_STATIC_CFLAGS})
+    target_compile_options(MIOpen INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_CFLAGS}>)
+    target_link_libraries(MIOpen PRIVATE ${SQLITE3_STATIC_LDFLAGS})
+    target_link_libraries(MIOpen INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_LDFLAGS}>)
+endif()
 ############################################################
 # MIOpen depends on librt for Boost.Interprocess
 if(NOT WIN32 AND NOT APPLE)
