@@ -52,9 +52,11 @@ include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
-# MIOpen now depends on SQLite as well
-find_package(PkgConfig)
-pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+if(MIOPEN_ENABLE_SQLITE)
+    # MIOpen now depends on SQLite as well
+    find_package(PkgConfig)
+    pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+endif()
 option( BUILD_DEV "Build for development only" OFF)
 
 # Strip symbols for release

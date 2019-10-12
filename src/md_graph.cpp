@@ -28,7 +28,9 @@
 #include <miopen/solver.hpp>
 #include <miopen/env.hpp>
 #include <miopen/mdg_expr.hpp>
+#if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
+#endif
 #include <miopen/db.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD)
