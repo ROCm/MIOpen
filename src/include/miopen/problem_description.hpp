@@ -28,8 +28,9 @@
 #define GUARD_PROBLEM_DESCRIPTION_HPP_
 
 #include <miopen/tensor.hpp>
+#if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
-
+#endif
 #include <cassert>
 #include <string>
 #include <unordered_map>
@@ -76,7 +77,10 @@ inline std::string GetDataTypeName(miopenDataType_t data_type)
     return "Unknown(" + std::to_string(data_type) + ")";
 }
 
-struct ProblemDescription : SQLiteSerializable<ProblemDescription>
+struct ProblemDescription
+#if MIOPEN_ENABLE_SQLITE
+    : SQLiteSerializable<ProblemDescription>
+#endif
 {
     int spatial_dims      = 2;
     int n_inputs          = 0;
