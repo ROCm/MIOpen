@@ -130,11 +130,13 @@ class RamDb : protected Db
 #endif
 };
 
-/// \todo make a proper fix
+/// \todo This is modified copy of code from db.hpp. Make a proper fix.
 template <>
+// cppcheck-suppress noConstructor
 class DbTimer<RamDb>
 {
-    private:
+    RamDb& inner;
+
     template <class TFunc>
     static auto Measure(const std::string& funcName, TFunc&& func)
     {
@@ -193,9 +195,6 @@ class DbTimer<RamDb>
     {
         return Measure("Remove", [&]() { return inner.Remove(problem, id); });
     }
-
-    private:
-    RamDb& inner;
 };
 
 } // namespace miopen
