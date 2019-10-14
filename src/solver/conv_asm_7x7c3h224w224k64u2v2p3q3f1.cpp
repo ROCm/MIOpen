@@ -24,16 +24,20 @@
  *
  *******************************************************************************/
 
-#include <unordered_map>
 #include <sstream>
-#include "miopen/solver.hpp"
-#include "miopen/gcn_asm_utils.hpp"
+#include <miopen/solver.hpp>
+#include <miopen/gcn_asm_utils.hpp>
+#include <miopen/env.hpp>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_7X7C3H224W224)
 
 namespace miopen {
 namespace solver {
 
 bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& params) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_7X7C3H224W224{}))
+        return false;
     if(!params.use_asm_kernels)
         return false;
     if(!params.Is2d())

@@ -50,7 +50,7 @@ If a variable is not set, then MIOpen behaves as if it is set to `enabled`, unle
 
 ### Filtering by algorithm
 
-These variables control the sets (families) of convolution Solvers. For example, Direct algorithm is implemented by several Solvers written in openCL and assembly languages. The corresponding variable can disable them all.
+These variables control the sets (families) of convolution Solutions. For example, Direct algorithm is implemented in several Solutions that use OpenCL, GCN assembly etc. The corresponding variable can disable them all.
 * `MIOPEN_DEBUG_CONV_FFT` - FFT convolution algorithm. 
 * `MIOPEN_DEBUG_CONV_DIRECT` - Direct convolution algorithm.
 * `MIOPEN_DEBUG_CONV_GEMM` - GEMM convolution algorithm.
@@ -63,23 +63,39 @@ These variables control the sets (families) of convolution Solvers. For example,
 * `MIOPEN_DEBUG_GCN_ASM_KERNELS` - Kernels written in assembly language. Currently these include some Direct solvers, Winograd kernels and SCGEMM.
 * `MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES` - Binary kernels. Right now the library does not use binaries.
 
-### Controlling the Solvers on individual basis
+### Controlling the Solutions on individual basis
 
-Some of the available Solvers have individual controls:
-* `MIOPEN_DEBUG_AMD_WINOGRAD_3X3` - FP32 Winograd Fwd/Bwd, filter size fixed to 3x3. Solver name: `ConvBinWinograd3x3U`.
-* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS` - FP32 and FP16 Winograd Fwd/Bwd/WrW. Solver name: `ConvBinWinogradRxS`.
+Some of the Solutions have individual controls available.
+
+Direct Solutions:
+* `MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U` - `ConvAsm3x3U`.
+* `MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U` - `ConvAsm1x1U`.
+* `MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2` - `ConvAsm1x1UV2`.
+* `MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2` - `ConvAsm5x10u2v2f1`, `ConvAsm5x10u2v2b1`.
+* `MIOPEN_DEBUG_CONV_DIRECT_ASM_7X7C3H224W224` - `ConvAsm7x7c3h224w224k64u2v2p3q3f1`.
+* `MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3` - `ConvAsmBwdWrW3x3`.
+* `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11` - `ConvOclDirectFwd11x11`.
+* `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN` - `ConvOclDirectFwdGen`.
+* `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD3X3` - `ConvOclDirectFwd3x3`.
+* `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD` - `ConvOclDirectFwd`.
+* `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1` - `ConvOclDirectFwd`.
+* `MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2` - `ConvOclBwdWrW2<n>` (where n = `{1,2,4,8,16}`), and `ConvOclBwdWrW2NonTunable`.
+* `MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW53` - `ConvOclBwdWrW53`.
+* `MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1` - `ConvOclBwdWrW1x1`
+
+Winograd  Solutions:
+* `MIOPEN_DEBUG_AMD_WINOGRAD_3X3` - `ConvBinWinograd3x3U`, FP32 Winograd Fwd/Bwd, filter size fixed to 3x3.
+* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS` - `ConvBinWinogradRxS`, FP32 and FP16 Winograd Fwd/Bwd/WrW.
 * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW` - Subset of previous, controls only WrW (backward weights) convolutions of the `ConvBinWinogradRxS` solver.
-* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2` - FP32 and FP16 Fwd/Bwd F(3,2) Winograd. Solver name: `ConvBinWinogradRxSf3x2`.
-* `MIOPEN_DEBUG_AMD_FUSED_WINOGRAD` - Fused FP32 Winograd kernels, variable filter size.
-
-Family of Multi-pass Winograd Solvers:
-* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2`
-* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3`
-* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4`
-* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5`
-* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6`
-* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X2`
-* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X3`
+* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2` - `ConvBinWinogradRxSf3x2`, FP32 and FP16 Fwd/Bwd F(3,2) Winograd.
+* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2` - `ConvWinograd3x3MultipassWrW<3-2>`, WrW F(3,2) Multi-pass Winograd (stride 2 only).
+* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3` - `ConvWinograd3x3MultipassWrW<3-3>`, WrW F(3,3) Multi-pass Winograd (stride 2 only).
+* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4` - `ConvWinograd3x3MultipassWrW<3-4>`, WrW F(3,4) Multi-pass Winograd.
+* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5` - `ConvWinograd3x3MultipassWrW<3-5>`, WrW F(3,5) Multi-pass Winograd.
+* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6` - `ConvWinograd3x3MultipassWrW<3-6>`, WrW F(3,6) Multi-pass Winograd.
+* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X2` - `ConvWinograd3x3MultipassWrW<7-2-1-1>`, WrW F(7x1,2x1) Multi-pass Winograd and `ConvWinograd3x3MultipassWrW<1-1-7-2>`, WrW F(1x7,1x2) Multi-pass Winograd.
+* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X3` - `ConvWinograd3x3MultipassWrW<7-3-1-1>`, WrW F(7x1,3x1) Multi-pass Winograd and `ConvWinograd3x3MultipassWrW<1-1-7-3>`, WrW F(1x7,1x3) Multi-pass Winograd
+* `MIOPEN_DEBUG_AMD_FUSED_WINOGRAD` - Fused FP32 Winograd, variable filter size.
 
 ## rocBlas Logging and Behavior
 The `ROCBLAS_LAYER` environmental variable can be set to output GEMM information:
@@ -114,7 +130,7 @@ More information on logging with RocBlas can be found [here](https://github.com/
 
 currently, ROCm fully supports Code Object version 2 (Co v2). The support for version 3 (CO v3) is being gradually introduced. These variables allows for experimenting and triaging problems related to CO version:
 * `MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE` - Overrides CO version auto-detection implemented in the library. `0` or unset - disable overriding (the default), `1` - enforces CO v2, `2` - behave as if both CO v2 and v3 are supported, `2` - enforces CO v3.
-* `MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_NEWER` - This variable affects only Solvers that able to produce either v2 or v3 code objects, and is intended to use only when ROCm supports both CO v2 and CO v3. By default, the older format is used (CO v2) by Solvers. When this variable is _enabled_, the behavior is reversed.
+* `MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_NEWER` - This variable affects only Solutions available in both v2 and v3 code objects, and is intended to use only when ROCm supports both CO v2 and CO v3. By default, the older format is used (CO v2). When this variable is _enabled_, the behavior is reversed.
 * `MIOPEN_DEBUG_AMD_OPENCL_ENFORCE_COV3` - Enforces CO v3 for OpenCL kernels.
 
 ### `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX`
@@ -124,9 +140,9 @@ Syntax of value:
 * If syntax is violated, then the behavior is unspecified.
 
 Semantics:
-* Sets the **_limit_** (max allowed workspace size) for Multi-pass (MP) Winograd Solvers, in bytes.
-* Affects all MP Winograd Solvers. If a solver needs more workspace than the limit, then it does not apply.
-* If unset, then _the default_ limit is used. Current default is `2000000000` (~1.862 GiB) for gfx900 and gfx906/60 (or less CUs). No default limit is set for other GPUs and MP Winograd Solvers will try to make the most of the workspace.
+* Sets the **_limit_** (max allowed workspace size) for Multi-pass (MP) Winograd Solutions, in bytes.
+* Affects all MP Winograd Solutions. If a Solution needs more workspace than the limit, then it does not apply.
+* If unset, then _the default_ limit is used. Current default is `2000000000` (~1.862 GiB) for gfx900 and gfx906/60 (or less CUs). No default limit is set for other GPUs.
 * Special values:
 ```
  0 - Use the default limit, as if the variable is unset.
