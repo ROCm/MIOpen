@@ -1,6 +1,6 @@
 #include "common_header.hpp"
-#include "ConstantTensorDescriptor.hpp"
-#include "gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_lds_double_buffer.hpp"
+#include "ConstantTensorDescriptor_deprecated.hpp"
+#include "gridwise_convolution_implicit_gemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer_deprecated.hpp"
 #include "gridwise_convolution_implicit_gemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_buffer.hpp"
 #include "float_types.h"
 
@@ -40,7 +40,18 @@ extern "C" __global__
     constexpr index_t GridSize = CK_PARAM_DEPENDENT_GRID_SIZE;
 
 // calculate dependent params amd heuristic params
-#if CK_PARAM_PROBLEM_DIRECTION == 2
+#if CK_PARAM_PROBLEM_CONV_DIRECTION_FORWARD
+    constexpr auto ConvDirection = ConvolutionDirection::Forward;
+
+    constexpr auto in_nchw_desc  = make_ConstantTensorDescriptor_packed(Sequence<N, C, Hi, Wi>{});
+    constexpr auto wei_kcyx_desc = make_ConstantTensorDescriptor_packed(Sequence<K, C, Y, X>{});
+    constexpr auto out_nkhw_desc = make_ConstantTensorDescriptor_packed(Sequence<N, K, Ho, Wo>{});
+
+    using ConvStrides   = Sequence<ConvStrideH, ConvStrideW>;
+    using ConvDilations = Sequence<ConvDilationH, ConvDilationW>;
+#elif CK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_WEIGHT
+    constexpr auto ConvDirection = ConvolutionDirection::BackwardWeight;
+
     // In the WrW direction the filter is the output, while the output image is the input being
     // convolved with the (original) input image. This requires that the tensordescriptors be
     // swapped
@@ -57,20 +68,14 @@ extern "C" __global__
     // wei and out are swapped in the solver
     constexpr auto wei_kcyx_desc = tmp_out_nkhw_desc.ReorderGivenNew2Old(Sequence<1, 0, 2, 3>{});
     constexpr auto out_nkhw_desc = tmp_wei_kcyx_desc.ReorderGivenNew2Old(Sequence<1, 0, 2, 3>{});
-    constexpr auto dir           = ImplicitGemmDirection::BackwardWeight;
 
     // swap stride and dilation
     using ConvDilations = Sequence<ConvStrideH, ConvStrideW>;
     using ConvStrides   = Sequence<ConvDilationH, ConvDilationW>;
 #else
-    constexpr auto in_nchw_desc  = make_ConstantTensorDescriptor_packed(Sequence<N, C, Hi, Wi>{});
-    constexpr auto wei_kcyx_desc = make_ConstantTensorDescriptor_packed(Sequence<K, C, Y, X>{});
-    constexpr auto out_nkhw_desc = make_ConstantTensorDescriptor_packed(Sequence<N, K, Ho, Wo>{});
-
-    constexpr auto dir  = ImplicitGemmDirection::ForwardData;
-    using ConvStrides   = Sequence<ConvStrideH, ConvStrideW>;
-    using ConvDilations = Sequence<ConvDilationH, ConvDilationW>;
-#endif // CK_PARAM_PROBLEM_DIRECTION == 2
+    static_assert(false,
+                  "wrong! convolution direction should be either forward of backward-weight");
+#endif
 
     constexpr index_t GemmMPerThreadSubC = CK_PARAM_GEMM_M_PER_THREAD_SUB_C;
     constexpr index_t GemmNPerThreadSubC = CK_PARAM_GEMM_N_PER_THREAD_SUB_C;
@@ -127,8 +132,8 @@ extern "C" __global__
     using WeiBlockCopySrcAccessOrder            = Sequence<1, 0>; // [K, E]
     using WeiBlockCopyDstAccessOrder            = Sequence<0, 1>; // [E, K]
 
-    constexpr index_t WeiBlockCopySrcDataPerRead_E  = CK_PARAM_WEI_BLOCK_COPY_SRC_DATE_PER_READ_E;
-    constexpr index_t WeiBlockCopyDstDataPerWrite_K = CK_PARAM_WEI_BLOCK_COPY_DST_DATE_PER_WRITE_K;
+    constexpr index_t WeiBlockCopySrcDataPerRead_E  = CK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E;
+    constexpr index_t WeiBlockCopyDstDataPerWrite_K = CK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K;
 
 #elif MIOPEN_USE_FP16 || MIOPEN_USE_BFP16
     constexpr index_t GemmDataPerReadA          = 1;
@@ -162,7 +167,7 @@ extern "C" __global__
     using WeiBlockCopySrcAccessOrder            = Sequence<1, 0, 2>; // [K, E, EPACK]
     using WeiBlockCopyDstAccessOrder            = Sequence<0, 1, 2>; // [E, K, EPACK]
 
-    constexpr index_t WeiBlockCopySrcDataPerRead_E  = CK_PARAM_WEI_BLOCK_COPY_SRC_DATE_PER_READ_E;
+    constexpr index_t WeiBlockCopySrcDataPerRead_E  = CK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E;
     constexpr index_t WeiBlockCopyDstDataPerWrite_K = 1;
 #else
     static_assert(false, "wrong! Only kperblock could be 32/64/128 not supported");
@@ -170,7 +175,7 @@ extern "C" __global__
 
 #if MIOPEN_USE_FP32
     constexpr auto gridwise_conv =
-        GridwiseConvolutionImplicitGemm_v4_nchw_kcyx_nkhw_lds_double_buffer<
+        GridwiseConvolutionImplicitGemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer_deprecated<
             GridSize,
             BlockSize,
             FLOAT,
@@ -180,6 +185,7 @@ extern "C" __global__
             decltype(out_nkhw_desc),
             ConvStrides,
             ConvDilations,
+            ConvDirection,
             BPerBlock,
             KPerBlock,
             EPerBlock,
@@ -206,8 +212,7 @@ extern "C" __global__
             WeiBlockCopySrcAccessOrder,
             WeiBlockCopyDstAccessOrder,
             WeiBlockCopySrcDataPerRead_E,
-            WeiBlockCopyDstDataPerWrite_K,
-            dir>{};
+            WeiBlockCopyDstDataPerWrite_K>{};
 #elif MIOPEN_USE_FP16 || MIOPEN_USE_BFP16
     constexpr auto gridwise_conv =
         GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_buffer<
@@ -220,6 +225,7 @@ extern "C" __global__
             decltype(out_nkhw_desc),
             ConvStrides,
             ConvDilations,
+            ConvDirection,
             BPerBlock,
             KPerBlock,
             EPerBlock,
@@ -247,8 +253,7 @@ extern "C" __global__
             WeiBlockCopySrcAccessOrder,
             WeiBlockCopyDstAccessOrder,
             WeiBlockCopySrcDataPerRead_E,
-            WeiBlockCopyDstDataPerWrite_K,
-            dir>{};
+            WeiBlockCopyDstDataPerWrite_K>{};
 #else
     static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
 #endif

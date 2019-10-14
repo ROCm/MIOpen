@@ -1,26 +1,26 @@
-#ifndef CK_CONSTANT_MERGED_TENSOR_DESCRIPTOR_HPP
-#define CK_CONSTANT_MERGED_TENSOR_DESCRIPTOR_HPP
+#ifndef CK_CONSTANT_MERGED_TENSOR_DESCRIPTOR_DEPRECATED_HPP
+#define CK_CONSTANT_MERGED_TENSOR_DESCRIPTOR_DEPRECATED_HPP
 
 #include "common_header.hpp"
-#include "ConstantTensorDescriptor.hpp"
+#include "ConstantTensorDescriptor_deprecated.hpp"
 
 namespace ck {
 
-// OriginalTensorDesc : ConstantTensorDescriptor<...>
+// OriginalTensorDesc : ConstantTensorDescriptor_deprecated<...>
 //     it's the tensor whose dimensions are to be merged
 // OriginalDimMergeSeqs : Sequence<...>...
 //     each is a sequence of original dimensions (of OriginalTensorDesc) to be merged
 template <class OriginalTensorDesc, class... OriginalDimMergeSeqs>
-struct ConstantMergedTensorDescriptor
+struct ConstantMergedTensorDescriptor_deprecated
 {
-    using Type = ConstantMergedTensorDescriptor;
+    using Type = ConstantMergedTensorDescriptor_deprecated;
 
     static constexpr auto mOriginalDimMergeSeqs = std::tuple<OriginalDimMergeSeqs...>{};
 
     static constexpr index_t nDim         = sizeof...(OriginalDimMergeSeqs);
     static constexpr index_t nOriginalDim = OriginalTensorDesc::GetNumOfDimension();
 
-    __host__ __device__ constexpr ConstantMergedTensorDescriptor()
+    __host__ __device__ constexpr ConstantMergedTensorDescriptor_deprecated()
     {
         static_assert(nDim <= nOriginalDim, "wrong!");
 
@@ -111,7 +111,7 @@ struct ConstantMergedTensorDescriptor
 
             index_t itmp = original_multi_id_partial[I];
 
-            original_multi_id.Set(Number<idim_original>{}, itmp);
+            original_multi_id(idim_original) = itmp;
         }
     };
 
@@ -189,7 +189,7 @@ struct ConstantMergedTensorDescriptor
     {
         constexpr auto lengths = GetLengths();
         constexpr auto strides = calculate_tensor_strides_packed(lengths);
-        return ConstantTensorDescriptor<decltype(lengths), decltype(strides)>{};
+        return ConstantTensorDescriptor_deprecated<decltype(lengths), decltype(strides)>{};
     }
 };
 
@@ -197,7 +197,7 @@ template <class OriginalTensorDesc, class... OriginalDimMergeSeqs>
 __host__ __device__ constexpr auto make_ConstantMergedTensorDescriptor(OriginalTensorDesc,
                                                                        OriginalDimMergeSeqs...)
 {
-    return ConstantMergedTensorDescriptor<OriginalTensorDesc, OriginalDimMergeSeqs...>{};
+    return ConstantMergedTensorDescriptor_deprecated<OriginalTensorDesc, OriginalDimMergeSeqs...>{};
 }
 
 template <class TDesc>

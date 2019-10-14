@@ -222,7 +222,7 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config)
         const std::string name = config.GetStream().GetDeviceName();
         /// \todo parsing "gfx[0-9]+" and finding major/minor/stepping from handle. using this
         /// information here and in all similar places across other Solvers.
-        const bool dot2_inst_avail = name >= "gfx906";
+        const bool dot2_inst_avail = (name == "gfx906" || name == "gfx908");
         const bool dot2_emulate    = (!dot2_inst_avail) && (elements_in_dword(config) == 2);
         const int v_instr          = (k_per_wave * config.kernel_size_h * gprs_per_line_out *
                              config.kernel_size_w * 4 * (dot2_emulate ? 2 : 1)) /

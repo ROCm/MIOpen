@@ -1,7 +1,7 @@
 #ifndef CK_AMD_XDLOPS_HPP
 #define CK_AMD_XDLOPS_HPP
 
-#include "vector_type.hpp"
+#include "float_type.hpp"
 
 namespace ck {
 

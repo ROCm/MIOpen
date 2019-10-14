@@ -261,7 +261,10 @@ template <class TInnerDb>
 class DbTimer
 {
     public:
-    DbTimer(TInnerDb&& inner_) : inner(std::move(inner_)) {}
+    template <class... TArgs>
+    DbTimer(TArgs&&... args) : inner(args...)
+    {
+    }
 
     template <class TProblem>
     auto FindRecord(const TProblem& problem)

@@ -28,7 +28,9 @@
 #include <miopen/solver.hpp>
 #include <miopen/env.hpp>
 #include <miopen/mdg_expr.hpp>
+#if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
+#endif
 #include <miopen/db.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD)
@@ -511,7 +513,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
             std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward, program, kernel, algo);
         vc_s1->solver         = solver::ConvBinWinogradRxSFused{};
         vc_s1->default_args   = WinogradNodeArgs();
-        vc_s1->supported_arch = {"gfx803", "gfx900", "gfx906"};
+        vc_s1->supported_arch = {"gfx803", "gfx900", "gfx906", "gfx908"};
 
         FusionMDGraph_Edge_Map map_wino_conv_s1;
         map_wino_conv_s1["constraints"] = {"stride_h == 1",
@@ -621,7 +623,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                 miopenFusionOpConvForward, program_s2, kernel, algo);
             vc_s2->solver         = solver::ConvBinWinogradRxSFused{};
             vc_s2->default_args   = WinogradNodeArgs();
-            vc_s2->supported_arch = {"gfx803", "gfx900", "gfx906"};
+            vc_s2->supported_arch = {"gfx803", "gfx900", "gfx906", "gfx908"};
 
             FusionMDGraph_Edge_Map map_wino_conv_s2;
             map_wino_conv_s2["constraints"] = {

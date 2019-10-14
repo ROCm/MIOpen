@@ -130,4 +130,72 @@ class RamDb : protected Db
 #endif
 };
 
+/// \todo make a proper fix
+template <>
+class DbTimer<RamDb>
+{
+    private:
+    template <class TFunc>
+    static auto Measure(const std::string& funcName, TFunc&& func)
+    {
+        if(!miopen::IsLogging(LoggingLevel::Info2))
+            return func();
+
+        const auto start = std::chrono::high_resolution_clock::now();
+        const auto ret   = func();
+        const auto end   = std::chrono::high_resolution_clock::now();
+        MIOPEN_LOG_I2("Db::" << funcName << " time: " << (end - start).count() * .000001f << " ms");
+        return ret;
+    }
+
+    public:
+    template <class... TArgs>
+    DbTimer(TArgs&&... args) : inner(RamDb::GetCached(args...))
+    {
+    }
+
+    template <class TProblem>
+    auto FindRecord(const TProblem& problem)
+    {
+        return Measure("FindRecord", [&]() { return inner.FindRecord(problem); });
+    }
+
+    bool StoreRecord(const DbRecord& record)
+    {
+        return Measure("StoreRecord", [&]() { return inner.StoreRecord(record); });
+    }
+
+    bool UpdateRecord(DbRecord& record)
+    {
+        return Measure("UpdateRecord", [&]() { return inner.UpdateRecord(record); });
+    }
+
+    template <class TProblem>
+    bool RemoveRecord(const TProblem& problem)
+    {
+        return Measure("RemoveRecord", [&]() { return inner.RemoveRecord(problem); });
+    }
+
+    template <class TProblem, class TValue>
+    auto Update(const TProblem& problem, const std::string& id, const TValue& value)
+    {
+        return Measure("Update", [&]() { return inner.Update(problem, id, value); });
+    }
+
+    template <class TProblem, class TValue>
+    bool Load(const TProblem& problem, const std::string& id, TValue& value)
+    {
+        return Measure("Load", [&]() { return inner.Load(problem, id, value); });
+    }
+
+    template <class TProblem>
+    bool Remove(const TProblem& problem, const std::string& id)
+    {
+        return Measure("Remove", [&]() { return inner.Remove(problem, id); });
+    }
+
+    private:
+    RamDb& inner;
+};
+
 } // namespace miopen

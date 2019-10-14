@@ -47,7 +47,9 @@
 #include <unordered_map>
 
 #include <miopen/solver.hpp>
+#if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
+#endif
 #include <miopen/db.hpp>
 #include <miopen/env.hpp>
 #include <miopen/gcn_asm_utils.hpp>
@@ -67,23 +69,23 @@ miopen::PerfDb mlo_construct_base::GetDb() const
 {
     auto& h = _search_params.GetStream();
     return {
-        {db_path(), _search_params.GetUserPerfDbPath(), h.GetDeviceName(), h.GetMaxComputeUnits()}};
+        db_path(), _search_params.GetUserPerfDbPath(), h.GetDeviceName(), h.GetMaxComputeUnits()};
 }
 miopen::PerfDb miopen::GetDb(const miopen::ConvolutionContext& ctx)
 {
     auto& h = ctx.GetStream();
     return {
-        {ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath(), h.GetDeviceName(), h.GetMaxComputeUnits()}};
+        ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath(), h.GetDeviceName(), h.GetMaxComputeUnits()};
 }
 #else
 miopen::PerfDb mlo_construct_base::GetDb() const
 {
-    return {{db_path(), _search_params.GetUserPerfDbPath()}};
+    return {db_path(), _search_params.GetUserPerfDbPath()};
 }
 
 miopen::PerfDb miopen::GetDb(const ConvolutionContext& ctx)
 {
-    return {{ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath()}};
+    return {ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath()};
 }
 #endif
 miopen::solver::ConvSolution
@@ -129,6 +131,7 @@ static auto GetImplicitGemmSolvers()
     return miopen::solver::SolverContainer<miopen::solver::ConvHipImplicitGemmV4R4Xdlops_1x1,
                                            miopen::solver::ConvHipImplicitGemmV4R4FwdXdlops,
                                            miopen::solver::ConvHipImplicitGemmV4_1x1,
+                                           miopen::solver::ConvHipImplicitGemmV4R1Fwd,
                                            miopen::solver::ConvHipImplicitGemmV4Fwd>{};
 }
 
@@ -141,7 +144,8 @@ static auto GetWindogradSolvers()
 
 static auto GetImplicitGemmWrWSolvers()
 {
-    return miopen::solver::SolverContainer<miopen::solver::ConvHipImplicitGemmV4WrW>{};
+    return miopen::solver::SolverContainer<miopen::solver::ConvHipImplicitGemmV4R1WrW,
+                                           miopen::solver::ConvHipImplicitGemmV4WrW>{};
 }
 
 static auto GetWindogradWrWSolvers()
