@@ -37,8 +37,9 @@
 
 #define MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED 0
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3)
 
 namespace miopen {
 namespace solver {
@@ -63,7 +64,7 @@ bool PerformanceConfigAsmDirect3x3WrW::SetNextValue()
     do
     {
 #if MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED == 0
-        if(miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_SEARCH_OPTIMIZED{}))
+        if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_SEARCH_OPTIMIZED{}))
         {
             // (0 <= limit_wave_cnt && limit_wave_cnt <= 9)
             if(++limit_wave_cnt <= 9)
@@ -335,6 +336,8 @@ bool ConvAsmBwdWrW3x3::IsValidPerformanceConfig(const ConvolutionContext& proble
 
 bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3{}))
+        return false;
     if(!params.use_asm_kernels)
         return false;
     if(!params.Is2d())
@@ -432,7 +435,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     if(!disableConfigOverrideFromEnv)
     {
         std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS{});
+        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS{});
         if(p_asciz != nullptr)
         {
             s = std::string(p_asciz);
@@ -440,7 +443,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
             {
                 if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
                 {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: "
+                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS: "
                                  "Bad format or invalid for the problem config: "
                                  << s);
                 }
