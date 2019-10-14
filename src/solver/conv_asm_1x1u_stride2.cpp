@@ -35,8 +35,9 @@
 #include <miopen/solver.hpp>
 #include <miopen/generic_search.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_STRIDE2_PERF_VALS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_STRIDE2_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2)
 
 namespace miopen {
 namespace solver {
@@ -189,7 +190,7 @@ bool PerformanceConfigConvAsm1x1UV2::SetNextValue()
     // Increment with wrap-around:
     do
     {
-        if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_STRIDE2_SEARCH_OPTIMIZED{}))
+        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_SEARCH_OPTIMIZED{}))
         {
             if(!IncPack<16, 32, 64>(chunk_size))
                 break;
@@ -250,7 +251,7 @@ bool PerformanceConfigConvAsm1x1UV2::SetNextValue()
 PerformanceConfigConvAsm1x1UV2::PerformanceConfigConvAsm1x1UV2(bool spare)
     : PerformanceConfigConvAsm1x1UV2(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, spare)
 {
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_STRIDE2_SEARCH_OPTIMIZED{}))
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_SEARCH_OPTIMIZED{}))
     {
         k_mult           = spare ? 1 : 8;
         chunk_size       = 16;
@@ -468,6 +469,8 @@ bool ConvAsm1x1UV2::IsValidPerformanceConfig(const ConvolutionContext& problem,
 
 bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2{}))
+        return false;
     if(!params.use_asm_kernels)
         return false;
     if(!params.Is2d())
@@ -575,8 +578,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
     if(!disableConfigOverrideFromEnv)
     {
         std::string s;
-        const auto p_asciz =
-            miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_STRIDE2_PERF_VALS{});
+        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_PERF_VALS{});
         if(p_asciz != nullptr)
         {
             s = std::string(p_asciz);
@@ -584,7 +586,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
             {
                 if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())
                 {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_STRIDE2_PERF_VALS: "
+                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_PERF_VALS: "
                                  "Bad format or invalid for the problem config: "
                                  << s);
                 }

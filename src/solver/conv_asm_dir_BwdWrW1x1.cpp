@@ -35,8 +35,9 @@
 #include <miopen/solver.hpp>
 #include <miopen/generic_search.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_PERF_VALS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1)
 
 namespace miopen {
 namespace solver {
@@ -143,7 +144,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue()
 {
     // Increment with wrap-around:
     // select fast or full method
-    if(miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_SEARCH_OPTIMIZED{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_SEARCH_OPTIMIZED{}))
     {
         do
         {
@@ -463,6 +464,8 @@ bool ConvAsmBwdWrW1x1::IsValidPerformanceConfig(const ConvolutionContext& proble
 
 bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1{}))
+        return false;
     if(!params.use_asm_kernels)
         return false;
     if(!params.Is2d())
@@ -706,7 +709,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     if(!disableConfigOverrideFromEnv)
     {
         std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_PERF_VALS{});
+        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS{});
         if(p_asciz != nullptr)
         {
             s = std::string(p_asciz);
@@ -714,7 +717,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
             {
                 if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
                 {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_PERF_VALS: "
+                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS: "
                                  "Bad format or invalid for the problem config: "
                                  << s);
                 }
