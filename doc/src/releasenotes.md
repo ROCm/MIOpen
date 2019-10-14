@@ -2,7 +2,27 @@
 ## MIOpen Release notes
 
 
-### 09/01/2019 [2.1.0]
+
+### 10/31/2019 [ 2.2.0 ]
+
+- This release contains bug fixes, performance improvements, and expanded applicability for specific convolutional algorithms
+
+Changes:
+
+- Added per solution algorithm filtering environmental variable for debugging
+- Added SQLite database and build dependency, replacing text-based performance database
+- Added citation page to documentation pointing to MIOpen's paper
+- Added to documentation
+- Fixed fusion compilation check issue
+- Improved performance of forward pooling
+- Improved performance of convolutions
+- Improved performance of spatial training batch normalization for some large batch size input configurations
+- Improved applicability of implicit GEMM convolution algorithm
+- Improved performance of calls to miopenConvolutionXXXGetWorkSpaceSize() functions
+
+
+
+### 09/01/2019 [ 2.1.0 ]
 
 - This release contains new layers, bug fixes, and a new convolution algorithm.
 
