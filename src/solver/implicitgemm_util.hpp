@@ -14,11 +14,6 @@ static inline int ImgWidth(const ConvolutionContext& c)
     return c.direction.IsForward() ? c.out_width : c.in_width;
 }
 
-static inline bool IsXdlopsSupport(const ConvolutionContext& c)
-{
-    return StartsWith(c.GetStream().GetDeviceName(), "gfx908");
-}
-
 /// \todo move to separate header and use in other solvers.
 template <int L, int H>
 inline static bool IsTwoPower(const int v)
