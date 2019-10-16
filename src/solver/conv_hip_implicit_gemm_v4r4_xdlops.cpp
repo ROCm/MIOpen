@@ -427,8 +427,8 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) + 
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K=") + std::to_string(WeiBlockCopyDstDataPerWrite_K) + 
         std::string(" -DCK_PARAM_OUT_THREAD_COPY_DATA_PER_ACCESS_B=") + std::to_string(OutThreadCopyDataPerAccess_B) + 
-        std::string(" -DCK_ENABLE_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx)) + 
+        std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(!miopen::IsDisabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
