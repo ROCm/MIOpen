@@ -83,7 +83,7 @@ extern "C" __global__
     constexpr auto GemmNWaves       = BPerBlock / GemmNPerWave;
     constexpr auto GemmDataPerReadA = 1;
     constexpr auto GemmDataPerReadB = 1;
-    constexpr auto EnableXdlops     = CK_ENABLE_XDLOPS == 1;
+    constexpr auto EnableXdlops     = CK_USE_AMD_XDLOPS == 1;
 
     constexpr auto gridwise_conv =
         GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kc1x1_nkhw_lds_double_buffer<
