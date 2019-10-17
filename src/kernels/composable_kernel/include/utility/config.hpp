@@ -13,11 +13,11 @@
 
 // AMD inline asm
 #ifndef CK_USE_AMD_INLINE_ASM
-#define CK_USE_AMD_INLINE_ASM 0
+#define CK_USE_AMD_INLINE_ASM 1
 #endif
 
 #ifndef CK_THREADWISE_GEMM_USE_AMD_INLINE_ASM
-#define CK_THREADWISE_GEMM_USE_AMD_INLINE_ASM 0
+#define CK_THREADWISE_GEMM_USE_AMD_INLINE_ASM 1
 #endif
 
 // AMD buffer addressing
@@ -31,11 +31,11 @@
 
 // AMD XDLOPS
 #ifndef CK_USE_AMD_XDLOPS
-#define CK_USE_AMD_XDLOPS 1
+#define CK_USE_AMD_XDLOPS 0
 #endif
 
 #ifndef CK_USE_AMD_XDLOPS_INLINE_ASM
-#define CK_USE_AMD_XDLOPS_INLINE_ASM 1
+#define CK_USE_AMD_XDLOPS_INLINE_ASM 0
 #endif
 
 // experimental implementation
