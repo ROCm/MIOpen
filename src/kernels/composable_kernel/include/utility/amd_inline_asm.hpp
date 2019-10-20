@@ -41,8 +41,8 @@ __device__ void __outer_product_1x4(
 __device__ void __outer_product_1x2(half2_t a, half2_t b0, half2_t b1, float& c0, float& c1)
 {
     asm volatile("\n \
-            v_dot2_f32_f16 %0, %2, %3  %0\n \
-            v_dot2_f32_f16 %1, %2, %4  %1\n \
+            v_dot2_f32_f16 %0, %2, %3, %0\n \
+            v_dot2_f32_f16 %1, %2, %4, %1\n \
             "
                  : "=v"(c0), "=v"(c1) // Dest registers
                  : "v"(a),            // 1st Src register for 1 half2 registers
@@ -61,10 +61,10 @@ __device__ void __outer_product_1x2(half4_t a, half4_t b0, half4_t b1, float& c0
 
     // do dot2 two times
     asm volatile("\n \
-            v_dot2_f32_f16 %0, %2, %4  %0\n \
-            v_dot2_f32_f16 %1, %2, %6  %1\n \
-            v_dot2_f32_f16 %0, %3, %5  %0\n \
-            v_dot2_f32_f16 %1, %3, %7  %1\n \
+            v_dot2_f32_f16 %0, %2, %4, %0\n \
+            v_dot2_f32_f16 %1, %2, %6, %1\n \
+            v_dot2_f32_f16 %0, %3, %5, %0\n \
+            v_dot2_f32_f16 %1, %3, %7, %1\n \
             "
                  : "=v"(c0), "=v"(c1) // Dest registers
                  : "v"(p_a_half2[0]),
@@ -89,10 +89,10 @@ __device__ void __outer_product_1x4(half2_t a,
                                     float& c3)
 {
     asm volatile("\n \
-            v_dot2_f32_f16 %0, %4, %5  %0\n \
-            v_dot2_f32_f16 %1, %4, %6  %1\n \
-            v_dot2_f32_f16 %2, %4, %7  %2\n \
-            v_dot2_f32_f16 %3, %4, %8  %3\n \
+            v_dot2_f32_f16 %0, %4, %5, %0\n \
+            v_dot2_f32_f16 %1, %4, %6, %1\n \
+            v_dot2_f32_f16 %2, %4, %7, %2\n \
+            v_dot2_f32_f16 %3, %4, %8, %3\n \
             "
                  : "=v"(c0), "=v"(c1), "=v"(c2), "=v"(c3) // Dest registers
                  : "v"(a),                                // 1st Src register for 1 half2 registers
@@ -125,14 +125,14 @@ __device__ void __outer_product_1x4(half4_t a,
 
     // do dot2 two times
     asm volatile("\n \
-            v_dot2_f32_f16 %0, %4, %6  %0\n \
-            v_dot2_f32_f16 %1, %4, %8  %1\n \
-            v_dot2_f32_f16 %2, %4, %10 %2\n \
-            v_dot2_f32_f16 %3, %4, %12 %3\n \
-            v_dot2_f32_f16 %0, %5, %7  %0\n \
-            v_dot2_f32_f16 %1, %5, %9  %1\n \
-            v_dot2_f32_f16 %2, %5, %11 %2\n \
-            v_dot2_f32_f16 %3, %5, %13 %3\n \
+            v_dot2_f32_f16 %0, %4, %6,  %0\n \
+            v_dot2_f32_f16 %1, %4, %8,  %1\n \
+            v_dot2_f32_f16 %2, %4, %10, %2\n \
+            v_dot2_f32_f16 %3, %4, %12, %3\n \
+            v_dot2_f32_f16 %0, %5, %7,  %0\n \
+            v_dot2_f32_f16 %1, %5, %9,  %1\n \
+            v_dot2_f32_f16 %2, %5, %11, %2\n \
+            v_dot2_f32_f16 %3, %5, %13, %3\n \
             "
                  : "=v"(c0), "=v"(c1), "=v"(c2), "=v"(c3) // Dest registers
                  : "v"(p_a_half2[0]),
