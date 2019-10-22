@@ -42,6 +42,7 @@
 #include <miopen/md5.hpp>
 #include <miopen/type_name.hpp>
 #include <miopen/env.hpp>
+#include <miopen/rank.hpp>
 #include <miopen/bfloat16.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -554,15 +555,21 @@ struct test_driver
                    auto fail) {
             if(not pass or verbose)
             {
-                if(not error.empty())
-                    std::cout << (pass ? "error: " : "FAILED: ") << error.front() << std::endl;
-                else if(not pass)
-                    std::cout << "FAILED: " << std::endl;
-                if(not verbose)
+                if(not error.empty() or not pass)
                 {
-                    std::cout << "Iteration: " << this->iteration << std::endl;
-                    show_command();
-                    fail(-1);
+                    if(not verbose)
+                        show_command();
+
+                    if(not error.empty())
+                        std::cout << (pass ? "error: " : "FAILED: ") << error.front() << std::endl;
+                    else
+                        std::cout << "FAILED: " << std::endl;
+
+                    if(not verbose)
+                    {
+                        std::cout << "Iteration: " << this->iteration << std::endl;
+                        fail(-1);
+                    }
                 }
 
                 auto mxdiff = miopen::max_diff(out_cpu, out_gpu);
@@ -596,8 +603,8 @@ struct test_driver
             }
             else if(miopen::range_zero(out_cpu) and miopen::range_zero(out_gpu))
             {
-                std::cout << "Warning: Both CPU and GPU data is all zero" << std::endl;
                 show_command();
+                std::cout << "Warning: Both CPU and GPU data is all zero" << std::endl;
                 fail(-1);
             }
             return true;
@@ -676,6 +683,28 @@ struct test_driver
         }
     }
 
+    template <class V>
+    void adjust_parameters_impl(miopen::rank<0>, V&&)
+    {
+    }
+
+    /// Winograd algorithm has worse precision than Direct and Gemm.
+    /// Winograd-specific precision loss is roughly 2+2 bits.
+    /// Let's adjust tolerance (only for FP32 WrW for now).
+    template <class V>
+    auto adjust_parameters_impl(miopen::rank<1>, V&& v)
+        -> decltype(v.stats, v.is_conv_wrw_f32, void())
+    {
+        if(v.is_conv_wrw_f32 && v.stats->algorithm == miopenConvolutionAlgoWinograd)
+            tolerance *= 16.0;
+    }
+
+    template <class V>
+    auto adjust_parameters(V&& v) -> decltype(adjust_parameters_impl(miopen::rank<1>{}, v))
+    {
+        return adjust_parameters_impl(miopen::rank<1>{}, v);
+    }
+
     template <class F, class V, class... Ts>
     auto verify_impl(F&& f, V&& v, Ts&&... xs)
         -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
@@ -684,10 +713,8 @@ struct test_driver
         decltype(v.gpu(xs...)) gpu;
 
         if(verbose or time)
-        {
             show_command();
-            v.fail(std::integral_constant<int, -1>{}, xs...);
-        }
+
         try
         {
             auto&& h = get_handle();
@@ -705,6 +732,8 @@ struct test_driver
                 h.ResetKernelTime();
             }
             gpu = v.gpu(xs...);
+            adjust_parameters(v);
+
             if(time)
             {
                 std::cout << "Kernel time: " << h.GetKernelTime() << " ms" << std::endl;
@@ -743,19 +772,22 @@ struct test_driver
                 if(retry)
                     compare_and_report(cpu, gpu, f, report, [&](int mode) { v.fail(mode, xs...); });
             }
+
+            if(verbose or time)
+                v.fail(std::integral_constant<int, -1>{}, xs...);
         }
         catch(const std::exception& ex)
         {
-            std::cout << "FAILED: " << ex.what() << std::endl;
             show_command();
+            std::cout << "FAILED: " << ex.what() << std::endl;
             v.fail(-1, xs...);
             if(rethrow)
                 throw;
         }
         catch(...)
         {
-            std::cout << "FAILED with unknown exception" << std::endl;
             show_command();
+            std::cout << "FAILED with unknown exception" << std::endl;
             v.fail(-1, xs...);
             if(rethrow)
                 throw;
