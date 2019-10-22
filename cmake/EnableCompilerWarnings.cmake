@@ -67,6 +67,7 @@ else()
             -Wunused
 
             -Wno-sign-compare
+            -Wno-extra-semi-stmt
         )
         if (CMAKE_${COMPILER}_COMPILER_ID MATCHES "Clang")
             list(APPEND CMAKE_COMPILER_WARNINGS
