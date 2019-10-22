@@ -54,6 +54,7 @@
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/convolution.hpp>
+#include <miopen/solver.hpp>
 #include "random.hpp"
 #include <numeric>
 #include <sstream>
@@ -324,6 +325,40 @@ class ConvDriver : public Driver
                                   miopenTensorDescriptor_t& tensorDesc,
                                   Tref* data) const;
     void TrySaveVerificationCache(const std::string& file_name, std::vector<Tref>& data) const;
+
+    // Helper functions, can be moved out of class.
+    void PrintImmedSolutionInfo(const miopenConvSolution_t& s) const
+    {
+        std::cout << "- id: " << s.solution_id << " algo: " << s.algorithm << ", time: " << s.time
+                  << " ms, ws: " << s.workspace_size
+                  << ", name: " << miopen::solver::Id(s.solution_id).ToString() << std::endl;
+    }
+
+    std::string AlgorithmSolutionToString(const miopenConvSolution_t& s) const
+    {
+        std::ostringstream oss;
+        oss << "Algorithm: " << s.algorithm << ", Solution: " << s.solution_id << '/'
+            << ((s.solution_id != 0) ? miopen::solver::Id(s.solution_id).ToString()
+                                     : std::string("UNKNOWN"));
+        return oss.str();
+    }
+
+    enum class Direction
+    {
+        Fwd,
+        Bwd,
+        WrW
+    };
+    /// Find() updates find-db with the most recent information (unless find-db is disabled).
+    /// Therefore, after Find(), Immediate mode returns the "best" found solution
+    /// as the 1st solution in the list, and we can use Immediate mode to find out
+    /// the name of the Solver selected during Find() and then used in Run().
+    void GetSolutionAfterFind(const miopenConvAlgoPerf_t& found,
+                              const Direction& direction,
+                              const miopenTensorDescriptor_t& inTensor,
+                              const miopenTensorDescriptor_t& weiTensor,
+                              const miopenTensorDescriptor_t& outTensor,
+                              miopenConvSolution_t& solution);
 };
 
 // Check if int8 type tensor x and w need to be transformed to a pack of 4 elements along channel
@@ -1458,6 +1493,57 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPU()
 }
 
 template <typename Tgpu, typename Tref>
+void ConvDriver<Tgpu, Tref>::GetSolutionAfterFind(
+    const miopenConvAlgoPerf_t& found,
+    const ConvDriver<Tgpu, Tref>::Direction& direction,
+    const miopenTensorDescriptor_t& in_tensor,
+    const miopenTensorDescriptor_t& wei_tensor,
+    const miopenTensorDescriptor_t& out_tensor,
+    miopenConvSolution_t& solution)
+{
+    AutoMiopenWarmupMode warmupMode; // Shut logging.
+    miopenConvAlgorithm_t found_algo;
+    switch(direction)
+    {
+    case Direction::Fwd: found_algo = static_cast<miopenConvAlgorithm_t>(found.fwd_algo); break;
+    case Direction::Bwd:
+        found_algo = static_cast<miopenConvAlgorithm_t>(found.bwd_data_algo);
+        break;
+    case Direction::WrW:
+        found_algo = static_cast<miopenConvAlgorithm_t>(found.bwd_weights_algo);
+        break;
+    }
+    std::size_t immed_count;
+    miopenStatus_t rc = miopenStatusUnknownError;
+    switch(direction)
+    {
+    case Direction::Fwd:
+        rc = miopenConvolutionForwardGetSolution(
+            handle, wei_tensor, in_tensor, convDesc, out_tensor, 1, &immed_count, &solution);
+        break;
+    case Direction::Bwd:
+        rc = miopenConvolutionBackwardDataGetSolution(
+            handle, out_tensor, wei_tensor, convDesc, in_tensor, 1, &immed_count, &solution);
+        break;
+    case Direction::WrW:
+        rc = miopenConvolutionBackwardWeightsGetSolution(
+            handle, out_tensor, in_tensor, convDesc, wei_tensor, 1, &immed_count, &solution);
+        break;
+    }
+    if(rc != miopenStatusSuccess // (formatting)
+       ||
+       immed_count < 1 // It should not be so if Find succeeded.
+       ||
+       found_algo != solution.algorithm // These must match.
+       ||
+       solution.time < 0) // Fallback mode (no entry in find-db -- disabled?)
+    {
+        // Ignore errors, just skip printing the solver information.
+        solution.solution_id = 0;
+    }
+}
+
+template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
 {
     int ret_algo_count;
@@ -1482,14 +1568,19 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
 
     wall.start(wall_enabled);
 
+    auto in_tens  = (is_transform ? inputTensor_vect4 : inputTensor);
+    auto in_buff  = (is_transform ? in_vect4_dev->GetMem() : in_dev->GetMem());
+    auto wei_tens = (is_transform ? weightTensor_vect4 : weightTensor);
+    auto wei_buff = (is_transform ? wei_vect4_dev->GetMem() : wei_dev->GetMem());
+
     for(int i = 0; i < num_iterations; i++)
     {
         rc = miopenConvolutionForward(GetHandle(),
                                       &alpha,
-                                      (is_transform ? inputTensor_vect4 : inputTensor),
-                                      (is_transform ? in_vect4_dev->GetMem() : in_dev->GetMem()),
-                                      (is_transform ? weightTensor_vect4 : weightTensor),
-                                      (is_transform ? wei_vect4_dev->GetMem() : wei_dev->GetMem()),
+                                      in_tens,
+                                      in_buff,
+                                      wei_tens,
+                                      wei_buff,
                                       convDesc,
                                       perf_results[0].fwd_algo, // use the fastest algo
                                       &beta,
@@ -1522,7 +1613,10 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
     }
     if(time_enabled)
     {
-        printf("MIOpen Forward Conv. Algorithm: %d\n", perf_results[0].fwd_algo);
+        miopenConvSolution_t solution;
+        GetSolutionAfterFind(
+            perf_results[0], Direction::Fwd, in_tens, wei_tens, outputTensor, solution);
+        std::cout << "MIOpen Forward Conv. " << AlgorithmSolutionToString(solution) << std::endl;
         PrintForwardTime(kernel_total_time, kernel_first_time);
     }
 
@@ -1569,9 +1663,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
     const miopenConvSolution_t* selected = nullptr;
 
     for(const auto& s : solutions)
-        std::cout << "Solution[" << s.solution_id
-                  << "] - algo: " << miopen::ConvolutionAlgoToString(s.algorithm)
-                  << ", time: " << s.time << " ms, ws: " << s.workspace_size << std::endl;
+        PrintImmedSolutionInfo(s);
 
     if(*immediate_solution == 0)
         selected = &solutions.front();
@@ -1676,9 +1768,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
     }
     if(time_enabled)
     {
-        std::cout << "MIOpen Forward Conv. Algorithm: "
-                  << miopen::ConvolutionAlgoToString(selected->algorithm) << "["
-                  << selected->solution_id << "]" << std::endl;
+        std::cout << "MIOpen Forward Conv. " << AlgorithmSolutionToString(*selected) << std::endl;
         PrintForwardTime(kernel_total_time, kernel_first_time);
     }
 
@@ -1911,7 +2001,15 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
     }
     if(time_enabled)
     {
-        printf("MIOpen Backward Data Conv. Algorithm: %d\n", perf_results_data[0].bwd_data_algo);
+        miopenConvSolution_t solution;
+        GetSolutionAfterFind(perf_results_data[0],
+                             Direction::Bwd,
+                             inputTensor,
+                             weightTensor,
+                             outputTensor,
+                             solution);
+        std::cout << "MIOpen Backward Data Conv. " << AlgorithmSolutionToString(solution)
+                  << std::endl;
         PrintBackwardDataTime(kernel_total_time, kernel_first_time);
     }
 
@@ -2045,7 +2143,15 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
     }
     if(time_enabled)
     {
-        printf("MIOpen Backward Weights Conv. Algorithm: %d\n", algo);
+        miopenConvSolution_t solution;
+        GetSolutionAfterFind(perf_results_weights[0],
+                             Direction::WrW,
+                             inputTensor,
+                             weightTensor,
+                             outputTensor,
+                             solution);
+        std::cout << "MIOpen Backward Weights Conv. " << AlgorithmSolutionToString(solution)
+                  << std::endl;
         PrintBackwardWrwTime(kernel_total_time, kernel_first_time);
     }
 
@@ -2137,9 +2243,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
     const miopenConvSolution_t* selected = nullptr;
 
     for(const auto& s : solutions)
-        std::cout << "Solution[" << s.solution_id
-                  << "] - algo: " << miopen::ConvolutionAlgoToString(s.algorithm)
-                  << ", time: " << s.time << " ms, ws: " << s.workspace_size << std::endl;
+        PrintImmedSolutionInfo(s);
 
     if(*immediate_solution == 0)
         selected = &solutions.front();
@@ -2229,9 +2333,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
     }
     if(time_enabled)
     {
-        std::cout << "MIOpen Backward Data Conv. Algorithm: "
-                  << miopen::ConvolutionAlgoToString(selected->algorithm) << "["
-                  << selected->solution_id << "]" << std::endl;
+        std::cout << "MIOpen Backward Data Conv. " << AlgorithmSolutionToString(*selected)
+                  << std::endl;
         PrintBackwardDataTime(kernel_total_time, kernel_first_time);
     }
 
@@ -2267,9 +2370,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
     const miopenConvSolution_t* selected = nullptr;
 
     for(const auto& s : solutions)
-        std::cout << "Solution[" << s.solution_id
-                  << "] - algo: " << miopen::ConvolutionAlgoToString(s.algorithm)
-                  << ", time: " << s.time << " ms, ws: " << s.workspace_size << std::endl;
+        PrintImmedSolutionInfo(s);
 
     if(*immediate_solution == 0)
         selected = &solutions.front();
@@ -2359,9 +2460,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
     }
     if(time_enabled)
     {
-        std::cout << "MIOpen Backward Weights Conv. Algorithm: "
-                  << miopen::ConvolutionAlgoToString(selected->algorithm) << "["
-                  << selected->solution_id << "]" << std::endl;
+        std::cout << "MIOpen Backward Weights Conv. " << AlgorithmSolutionToString(*selected)
+                  << std::endl;
         PrintBackwardWrwTime(kernel_total_time, kernel_first_time);
     }
 
