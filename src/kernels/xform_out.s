@@ -91,7 +91,7 @@ static_assert(xformy_o_size == 1 || xformy_o_size == 3 || xformy_o_size == 7)
 static_assert(fdilation_w == fdilation_h)
 
 static_assert(acc_type == TYPE_FP32)
-static_assert(buf_type == TYPE_FP32 || buf_type == TYPE_FP16 || buf_type == TYPE_BFP16) 
+static_assert(buf_type == TYPE_FP32 || buf_type == TYPE_FP16 || buf_type == TYPE_BFP16)
 .if(buf_type == TYPE_FP32)
     elem_size = 4
     lds_elem_size = 4
@@ -375,12 +375,12 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
              v_add_f32 v[vtmp],  v[vtmp], v[dx9]
 
              v_mov_b32 v[dx10], v[dx5]
-             
+
              v_fma_f32 v[dx9], v[dx9], 2.0, v[dx7]
              v_fma_f32 v[dx5], v[dx8], -2.0, v[dx9]
-             
+
              v_mov_b32 v[dx9], v[dx4]
-             
+
              v_add_f32 v[dx4], v[vtmp], v[dx7]
 
              v_add_f32 v[vtmp], v[dx9], v[dx3]
@@ -490,11 +490,11 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
         m_xform_out xformy_o_size, xformy_f_size, fdilation, 0
         i=i+1
     .endr
-    
+
     // compute output offset
     s_mov_b32 s[soff], 0
     s_mov_b32 s[buf_step], elem_size * out_points
-    
+
     // backtransform each row
         i=0
 
@@ -510,7 +510,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
         .endr
 
         out_reg_id = 0
-       
+
         .if(elem_size == 2)
             .rept out_points
                 v_reg_data_type_convert v[accums + out_reg_id], buf_type, v[accums + out_reg_id], acc_type, v[vtmp], s[s2_tmp:s2_tmp+1]
@@ -595,7 +595,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
 .altmacro
 
 .macro METADATA_WRAPPER  wg_x, lds_size, kernel_suf
-    METADATA %\wg_x, %\lds_size, <gcnAsmWinogradXformOut_\kernel_suf>, <gcnAsmWinogradXformOut_\kernel_suf@kd>
+    METADATA %\wg_x, %\lds_size, <gcnAsmWinogradXformOut\kernel_suf>, <gcnAsmWinogradXformOut\kernel_suf@kd>
 .endm
 
 .macro kernel_end x_o_size, y_o_size, x_f_size, y_f_size
