@@ -53,10 +53,11 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     WriteFile(src, tmp_dir->path / filename);
     if(isHCC)
     {
-        params += " -amdgpu-target=" + dev_name;
+        params += " --amdgpu-target=" + dev_name;
     }
     else
     {
+        params += " --amdgpu-target=" + dev_name;
         params += " --cuda-gpu-arch=" + dev_name;
         params += " --cuda-device-only -c";
     }
