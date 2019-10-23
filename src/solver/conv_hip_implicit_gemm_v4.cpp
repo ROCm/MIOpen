@@ -31,6 +31,8 @@
 #include "implicitgemm_util.hpp"
 #include "miopen/implicitgemm_params.hpp"
 
+#define WORKAROUND_ISSUE_2174 1
+
 namespace miopen {
 namespace solver {
 
@@ -263,7 +265,7 @@ bool PerformanceImplicitGemm::IsValidValue() const
     return IsTwoPower<8,16>(BPerBlock)
         && IsTwoPower<16,128>(KPerBlock)
         && IsTwoPower<4,16>(EPerBlock)
-        && GemmNRepeat == 2 
+        && GemmNRepeat == 2
         && IsTwoPower<2,4>(GemmMPerThreadSubC)
         && IsTwoPower<2,4>(GemmNPerThreadSubC)
         && IsTwoPower<1,4>(GemmMLevel0Cluster)
@@ -449,6 +451,11 @@ bool ConvHipImplicitGemmV4WrW::IsApplicable(const ConvolutionContext& ctx) const
 
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
+
+#if WORKAROUND_ISSUE_2174
+    if(!(ctx.kernel_stride_w == 1 && ctx.kernel_stride_h == 1))
+        return false;
+#endif
 
     bool isEInMultiple = (ctx.IsFp16() || ctx.IsBfp16())
                              ? ((ctx.batch_sz * ctx.in_height * ctx.in_width) % 16 == 0)
@@ -657,9 +664,9 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_N2=") + std::to_string(InBlockCopyDstDataPerWrite_N2) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_E=") + std::to_string(config.WeiBlockCopyClusterLengths_E) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
-        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) + 
-        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K=") + std::to_string(WeiBlockCopyDstDataPerWrite_K) + 
-        std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx)) + 
+        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) +
+        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K=") + std::to_string(WeiBlockCopyDstDataPerWrite_K) +
+        std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx)) +
         std::string(" -DCK_BLOCKWISE_GEMM_USE_AMD_INLINE_ASM=") + std::to_string(use_amd_inline_asm ? 1 : 0) +
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
