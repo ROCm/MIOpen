@@ -86,8 +86,8 @@ default buf_type, TYPE_FP32
 
 static_assert(xformx_f_size <= 6)
 static_assert(xformy_f_size <= 6)
-static_assert(xformx_o_size == 1 || xformx_o_size == 3 || xformx_o_size == 7)
-static_assert(xformy_o_size == 1 || xformy_o_size == 3 || xformy_o_size == 7)
+static_assert(xformx_o_size == 1 || xformx_o_size == 3 || xformx_o_size == 5 || xformx_o_size == 7)
+static_assert(xformy_o_size == 1 || xformy_o_size == 3 || xformy_o_size == 5 || xformy_o_size == 7)
 static_assert(fdilation_w == fdilation_h)
 
 static_assert(acc_type == TYPE_FP32)
@@ -198,6 +198,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
         workgroup_group_segment_byte_size = .AUTO_LDS_BYTE_SIZE
     .end_amd_kernel_code_t
 
+
     s_load_dwordx16 s[N:dbg_addr+1], s[kernarg:kernarg+1], 0x0
     s_load_dwordx16 s[R:f_R_stride], s[kernarg:kernarg+1], 0x4 * 16
     s_load_dwordx4 s[f_S_stride:o_H_stride], s[kernarg:kernarg+1], 0x4 * 32
@@ -278,9 +279,9 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
         s_add_u32 s[soff], s[soff], s[buf_step]
         i=i+1
     .endr
-
+    
     s_waitcnt 0
-
+    
     .if(buf_type != TYPE_FP32)
         static_assert(read_size == 1)
         .rept i
@@ -289,7 +290,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
             i = i - 1
         .endr
     .endif
-
+    
     // inplace xform that could store output in lower or upper addresses
     .macro m_xform_out o_size, f_size, f_dil, lower
         .if \o_size == 3 && \f_size == 2 && \f_dil == 1
@@ -351,29 +352,29 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
              v_sub_f32 v[dx5], v[dx6], v[dx7]
              v_add_f32 v[dx6], v[dx6], v[dx7]
              v_add_f32 v[dx6], v[dx6], v[dx8]
-
+             
              v_add_f32 v[dx8], v[dx1], v[dx2]
              v_sub_f32 v[dx7], v[dx1], v[dx2]
-
+             
              v_add_f32 v[dx0], v[dx0], v[dx3]
              v_add_f32 v[dx0], v[dx0], v[dx8]
 
              v_fma_f32 v[dx2], v[dx3], 4.0, v[dx8]
              v_fma_f32 v[dx1], v[dx3], 2.0, v[dx7]
-
+            
              v_add_f32 v[dx3], v[dx7], v[vtmp]
 
         .elseif \o_size == 7 && \f_size == 3 && \f_dil == 1
 
              v_fma_f32 v[dx10], v[dx9], 4.0, v[dx10]
              v_mov_b32 v[vtmp], v[dx6]
-
+             
              v_add_f32 v[dx7],  v[dx7], v[dx8]
              v_add_f32 v[dx6],  v[dx7], v[dx10]
 
-
+             
              v_add_f32 v[vtmp],  v[vtmp], v[dx9]
-
+             
              v_mov_b32 v[dx10], v[dx5]
 
              v_fma_f32 v[dx9], v[dx9], 2.0, v[dx7]
@@ -393,7 +394,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
              v_fma_f32 v[dx2], v[vtmp], 4.0, v[dx8]
 
              v_sub_f32 v[vtmp], v[dx3], v[dx9]
-
+            
              v_fma_f32 v[dx1], v[vtmp], 2.0, v[dx7]
              v_fma_f32 v[dx3], v[vtmp], s[const8_0], v[dx7]
              v_add_f32 v[dx3], v[dx3], v[dx10]
@@ -455,6 +456,56 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
             v_mac_f32 v[dx2],-2.0, v[dx8]
             v_mac_f32 v[dx2], 0.5, v[dx10]
             v_add_f32 v[dx2], v[dx2], v[dx12]
+        .elseif \o_size == 5 && \f_size == 3 && \f_dil == 1
+            
+            v_mul_f32 v[vtmp], 0.0625, v[dx5]
+            v_add_f32 v[dx6], v[dx6], v[vtmp]
+            v_add_f32 v[dx0], v[dx0], v[dx5]
+            v_add_f32 v[vtmp], v[dx1], v[dx2]
+            v_sub_f32 v[dx1], v[dx1], v[dx2]
+            v_add_f32 v[dx2], v[dx3], v[dx4]
+            v_sub_f32 v[dx3], v[dx3], v[dx4]
+            v_add_f32 v[dx4], v[vtmp], v[dx2]
+            v_add_f32 v[dx0], v[dx0], v[dx4]
+            v_mul_f32 v[dx4], 16.0, v[dx2]
+            v_add_f32 v[dx4], v[dx4], v[vtmp]
+            v_add_f32 v[dx4], v[dx6], v[dx4]
+            v_fma_f32 v[dx2], 4.0, v[dx2], v[vtmp]
+            v_mul_f32 v[dx6], 0.25, v[dx5]
+            v_add_f32 v[dx2], v[dx2], v[dx6]
+            v_fma_f32 v[vtmp], 2.0, v[dx3], v[dx1]
+            v_mul_f32 v[dx3], 8.0, v[dx3]
+            v_add_f32 v[dx3], v[dx3], v[dx1]
+            v_fma_f32 v[dx1], 0.5, v[dx5], v[vtmp]
+            v_mul_f32 v[dx5], 0.125, v[dx5]
+            v_add_f32 v[dx3], v[dx5], v[dx3]
+
+        .elseif \o_size == 5 && \f_size == 4 && \f_dil == 1
+            
+            v_add_f32 v[vtmp], v[dx1], v[dx2]
+            v_sub_f32 v[dx1],  v[dx1], v[dx2]
+            v_add_f32 v[dx2], v[dx3], v[dx4]
+            v_sub_f32 v[dx3], v[dx3], v[dx4]
+            v_add_f32 v[dx4], v[dx5], v[dx6]
+            v_sub_f32 v[dx5], v[dx5], v[dx6]
+            v_add_f32 v[dx6], v[vtmp], v[dx2]
+            v_add_f32 v[dx0], v[dx6],v[dx0]
+            v_add_f32 v[dx0], v[dx0],v[dx4]
+            v_mul_f32 v[dx6], 0.0625, v[dx4]
+            v_add_f32 v[dx7], v[dx6], v[dx7]
+            v_mul_f32 v[dx6], 16.0, v[dx2]
+            v_add_f32 v[dx7], v[dx6], v[dx7]
+            v_fma_f32 v[dx2], 4.0, v[dx2], v[vtmp]
+            v_mul_f32 v[dx6], 0.25, v[dx4]
+            v_add_f32 v[dx2], v[dx2], v[dx6]
+            v_add_f32 v[dx4], v[vtmp], v[dx7]
+            v_mul_f32 v[dx6], 0.125, v[dx5]
+            v_mul_f32 v[dx7], 8.0, v[dx3]
+            v_add_f32 v[dx7], v[dx7], v[dx6]
+            v_fma_f32 v[dx6], 2.0, v[dx3], v[dx1]
+            v_add_f32 v[dx3], v[dx1], v[dx7]
+            v_fma_f32 v[dx1], 0.5, v[dx5], v[dx6]
+
         .elseif \o_size == 1 || \f_size == 1
             //nop
         .else
@@ -522,7 +573,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 buffer_store_dwordx4 v[accums+out_reg_id:accums+out_reg_id+3], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:0+out_reg_id*elem_size
                 out_reg_id = out_reg_id + 4
             .endr
-
+            
             .rept (out_points % 4)
                 buffer_store_dword v[accums+out_reg_id], v[voff_o], s[o_desc:o_desc+3], s[soff], offen offset:0+out_reg_id*elem_size
                 out_reg_id = out_reg_id + 1
