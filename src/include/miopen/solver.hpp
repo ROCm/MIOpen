@@ -748,6 +748,8 @@ extern template struct ConvWinograd3x3MultipassWrW<1, 1, 7, 2>;
 extern template struct ConvWinograd3x3MultipassWrW<1, 1, 7, 3>;
 extern template struct ConvWinograd3x3MultipassWrW<7, 2, 1, 1>;
 extern template struct ConvWinograd3x3MultipassWrW<7, 3, 1, 1>;
+extern template struct ConvWinograd3x3MultipassWrW<5, 3>;
+extern template struct ConvWinograd3x3MultipassWrW<5, 4>;
 
 struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirect3x3WrW>
 {

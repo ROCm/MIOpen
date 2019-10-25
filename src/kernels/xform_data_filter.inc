@@ -112,8 +112,8 @@ static_assert(xformy_f_size <= 6)
 static_assert(xformx_d_size <= 13)
 static_assert(xformy_d_size <= 13)
 static_assert(xformx_f_size * xformy_f_size > 1)
-static_assert(xformx_o_size == 1 || xformx_o_size == 3 || xformx_o_size == 7)
-static_assert(xformy_o_size == 1 || xformy_o_size == 3 || xformy_o_size == 7)
+static_assert(xformx_o_size == 1 || xformx_o_size == 3 || xformx_o_size == 7 || xformx_o_size == 5)
+static_assert(xformy_o_size == 1 || xformy_o_size == 3 || xformy_o_size == 7 || xformy_o_size == 5)
 static_assert(xformx_o_size * xformy_o_size > 1)
 static_assert(elem_size == 4 || elem_size == 2)
 static_assert(pipe_depth & 1 == 0)
@@ -650,6 +650,64 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
 
                 v_mul_f32 v[d6], 0.5, v[d0]
                 v_mul_f32 v[d0], 0.25, v[d0]
+            .elseif \o_size == 5 && \f_size == 3 && \fdil == 1
+
+                v_mul_f32 v[d3], 0.0277777778, v[d0]
+                v_mul_f32 v[d4], 0.0555555556, v[d1]
+                v_mul_f32 v[d5], 0.1111111111, v[d2]
+
+                v_add_f32 v[d6], v[d3], v[d5]
+                v_sub_f32 v[d6], v[d4], v[d6]
+                v_add_f32 v[d3], v[d3], v[d4]
+                v_add_f32 v[d3], v[d3], v[d5]
+                v_mul_f32 v[d4], 0.6, v[d6]
+
+                v_mul_f32 v[t0], 0.711111111111,v[d0]
+                v_mul_f32 v[t1], 0.355555555556,v[d1]
+                v_add_f32 v[d5], v[t1], v[t0]
+                v_mul_f32 v[t2], 0.17777777778,v[d2]
+                v_add_f32 v[d5], v[d5], v[t2]
+
+                v_add_f32 v[t0], v[d0], v[d2]
+                v_mov_b32 v[d6], v[d2]
+                v_sub_f32 v[d2], v[t0], v[d1]
+                v_add_f32 v[d1], v[t0], v[d1]
+
+                v_mul_f32 v[d2], 0.111111111111, v[d2]
+                v_mul_f32 v[d1], -0.333333333333, v[d1]
+                v_mul_f32 v[d0], 0.5, v[d0]
+
+            .elseif \o_size == 5 && \f_size == 4 && \fdil == 1
+
+                v_add_f32 v[t0], v[d0], v[d2]
+                v_mul_f32 v[t0], -0.2222222222222, v[t0]
+                v_add_f32 v[t1], v[d1], v[d3]
+                v_mul_f32 v[t1], -0.2222222222222, v[t1]
+
+                v_mul_f32 v[d5], 0.71111111111111, v[d0]
+                v_mul_f32 v[d6], 0.17777777777778, v[d2]
+                v_add_f32 v[d5], v[d5], v[d6]
+
+                v_mul_f32 v[d6], 0.35555555555556, v[d1]
+                v_mul_f32 v[t4], 0.08888888888889, v[d3]
+                v_add_f32 v[d7], v[t4], v[d6]
+
+                v_sub_f32 v[d6], v[d5], v[d7]
+                v_add_f32 v[d5], v[d5], v[d7]
+
+                v_mov_b32 v[d7], v[d3]
+
+                v_mul_f32 v[t2], 0.01111111111111, v[d0]
+                v_mul_f32 v[t3], 0.04444444444444, v[d2]
+                v_add_f32 v[t2], v[t2], v[t3]
+
+                v_mul_f32 v[t3], 0.02222222222222, v[d1]
+                v_add_f32 v[t3], v[t3], v[t4]
+
+                v_sub_f32 v[d4], v[t2], v[t3]
+                v_add_f32 v[d3], v[t2], v[t3]
+                v_sub_f32 v[d2], v[t0], v[t1]
+                v_add_f32 v[d1], v[t0], v[t1]
             .elseif \o_size == 1 || \f_size == 1
                 //nop
             .else
@@ -908,15 +966,105 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_add_f32 v[d2], v[t5], v[t6]
                 v_sub_f32 v[d1], v[t5], v[t6]
                 v_mov_b32 v[t3], -3.0
-                
+
                 v_fma_f32 v[d10], -2.0, v[d9], v[d8]
                 v_sub_f32 v[d10], v[d10], v[d6]
                 v_sub_f32 v[t1],  v[d7] , v[t2]
                 v_fma_f32 v[d8], v[t3], v[d6], v[d7]
                 v_add_f32 v[d8], v[d8], v[t2]
                 v_sub_f32 v[d7], v[t1], v[d6]
-                
                 v_fma_f32 v[d6], -2.0, v[d6], v[t0]
+            .elseif \o_size == 5 && \f_size == 3 && \fdil == 1
+
+                v_sub_f32 v[t0], 0, v[d5]
+                v_fma_f32 v[d0], 2.0, v[d0], v[t0]
+                v_fma_f32 v[d6], 0.5, v[t0], v[d6]
+                v_sub_f32 v[t0], v[d2], v[d4]
+
+                v_mul_f32 v[t1], 2.5, v[t0]
+                v_add_f32 v[t1], v[t1], v[d5]
+                v_sub_f32 v[t1], v[t1], v[d1]
+
+                v_mul_f32 v[t0], -1.5, v[t0]
+                v_add_f32 v[t0], v[t0], v[d5]
+                v_add_f32 v[t0], v[t0], v[d1]
+                v_mul_f32 v[t2], -2.0, v[d3]
+                v_add_f32 v[t0], v[t0], v[t2]
+
+                v_mul_f32 v[t2], -5.0, v[d3]
+                v_fma_f32 v[t2], 4.0, v[d1], v[t2]
+
+                v_sub_f32 v[d0], v[d0], v[t2]
+
+                v_mul_f32 v[t3], -5.0, v[d2]
+                v_add_f32 v[t3], v[d4], v[t3]
+                v_fma_f32 v[d0], 0.5, v[t3], v[d0]
+
+                v_mov_b32 v[t3], v[d5]
+                v_add_f32 v[d5], v[d5], v[t2]
+                v_mul_f32 v[d1], 2.0, v[d1]
+                v_mul_f32 v[d3], 0.5, v[d3]
+
+                v_sub_f32 v[t4], v[d3], v[d4]
+                v_mul_f32 v[t4], 5.0, v[t4]
+                v_fma_f32 v[t4], 4.0, v[d2], v[t4]
+                v_sub_f32 v[t4], v[t4], v[d1]
+                v_add_f32 v[d6], v[d6], v[t4]
+
+                v_mul_f32 v[d2], -2.0, v[d2]
+                v_fma_f32 v[d4], 0.5, v[d4], v[d2]
+
+                v_mul_f32 v[d2], -3.0, v[d4]
+
+                v_mul_f32 v[t4], -7.0, v[d3]
+                v_add_f32 v[t4], v[t4], v[t3]
+                v_add_f32 v[d2], v[t4], v[d2]
+                v_sub_f32 v[d2], v[d2], v[d1]
+
+                v_mul_f32 v[t4], -9.0, v[d3]
+                v_add_f32 v[d1], v[d1], v[t3]
+                v_add_f32 v[d1], v[d4], v[d1]
+                v_add_f32 v[d1], v[d1], v[t4]
+
+                v_mov_b32 v[d3], v[t0]
+                v_mov_b32 v[d4], v[t1]
+            .elseif \o_size == 5 && \f_size == 4 && \fdil == 1
+                v_sub_f32 v[t0], v[d3], v[d5]
+                v_mul_f32 v[t0], 5.25, v[t0]
+                v_sub_f32 v[d7], v[d7], v[d1]
+                v_add_f32 v[d7], v[d7], v[t0]
+
+                v_mul_f32 v[t2], -2.5, v[d3]
+                v_fma_f32 v[t0], 0.5, v[d5], v[t2]
+                v_fma_f32 v[t0], 2.0, v[d1], v[t0]
+                v_mul_f32 v[t1], -5.0, v[d4]
+                v_fma_f32 v[t1], 4.0, v[d2], v[t1]
+                v_add_f32 v[t1], v[t1], v[d6]
+                v_fma_f32 v[t2], 2.0, v[d5], v[t2]
+                v_fma_f32 v[t2], 0.5, v[d1], v[t2]
+
+                v_mul_f32 v[t3], -1.25, v[d4]
+                v_mul_f32 v[t4], 0.25, v[d2]
+                v_add_f32 v[t3], v[t4], v[t3]
+                v_add_f32 v[t3], v[t3], v[d6]
+                v_sub_f32 v[t4], v[d4], v[d2]
+                v_mul_f32 v[t4], 5.25, v[t4]
+                v_sub_f32 v[d0], v[d0], v[d6]
+                v_add_f32 v[d0], v[t4], v[d0]
+                v_mul_f32 v[t4], -4.25, v[d3]
+                v_add_f32 v[t4], v[d1], v[t4]
+                v_add_f32 v[t4], v[d5], v[t4]
+
+                v_mul_f32 v[t5], -4.25, v[d4]
+                v_add_f32 v[t5], v[d2], v[t5]
+                v_add_f32 v[t5], v[t5], v[d6]
+                v_add_f32 v[d1], v[t5], v[t4]
+                v_sub_f32 v[d2], v[t5], v[t4]
+                v_add_f32 v[d3], v[t3], v[t2]
+                v_sub_f32 v[d4], v[t3], v[t2]
+                v_add_f32 v[d5], v[t1], v[t0]
+                v_sub_f32 v[d6], v[t1], v[t0]
+
             .elseif \o_size == 1 || \f_size == 1
                 //nop
             .else
@@ -1047,11 +1195,11 @@ main_loop:
     slot = 0
     .rept pipe_depth
         .if slot & 1
-            lds_roff = lds_buf_even	
+            lds_roff = lds_buf_even
             lds_woff = lds_buf_odd
         .else
             lds_roff = lds_buf_odd
-            lds_woff = lds_buf_even	
+            lds_woff = lds_buf_even
         .endif
         rd_slot = slot
         xf_slot = (rd_slot + 1) % pipe_depth
@@ -1097,14 +1245,14 @@ label skip_frontend, %slot
         read_data rd_base, reads_per_slot
 
         writes_per_slot = xformy_d_size
-        s_wait (0+(pipe_depth - 1) * (reads_per_slot+xformy_d_size))
-        
+        s_wait 0+(pipe_depth - 1) * (reads_per_slot+xformy_d_size)
+
         i = 0
         .rept in_tile_width
             v_cmp_lt_u32 vcc, v[waddrbuf+xf_slot], s[WS]
             v_cndmask_b32 v[xf_base+i], 0, v[xf_base+i], vcc
             i = i + 1
-            v_add_u32 v[waddrbuf+xf_slot], 1, v[waddrbuf+xf_slot]
+                v_add_u32 v[waddrbuf+xf_slot], 1, v[waddrbuf+xf_slot]
         .endr
 
         data_convert xf_base, xformx_d_size, vtmp, stmp, acc_type, buf_type
