@@ -49,7 +49,6 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     rm -rf /var/lib/apt/lists/*
 
 # Setup ubsan environment to printstacktrace
-RUN ln -s /usr/bin/llvm-symbolizer-3.8 /usr/local/bin/llvm-symbolizer
 ENV UBSAN_OPTIONS=print_stacktrace=1
 
 # Install an init system
@@ -66,8 +65,8 @@ RUN cget -p $PREFIX/x86_64-w64-mingw32 init -t $PREFIX/x86_64-w64-mingw32/cmake/
 # Install rclone
 RUN pip install https://github.com/pfultz2/rclone/archive/master.tar.gz
 
-# Install hcc
-RUN rclone -b extractkernels-path -c f460d4eb92 https://github.com/RadeonOpenCompute/hcc.git /hcc
+# Install hcc from ROCm 2.9
+RUN rclone -b roc-2.9.x -c 9a7653cf047c4c263af628320992afb32f98fcb7 https://github.com/RadeonOpenCompute/hcc.git /hcc
 RUN cget -p $PREFIX install hcc,/hcc  && rm -rf /hcc
 
 # Workaround hip: It doesn't use cmake's compiler, only the compiler at /opt/rocm/hcc/bin/hcc
