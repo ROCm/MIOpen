@@ -346,6 +346,7 @@ enable_clang_tidy(
         -readability-magic-numbers
         -readability-named-parameter
         -readability-uppercase-literal-suffix
+        -readability-convert-member-functions-to-static
 
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
