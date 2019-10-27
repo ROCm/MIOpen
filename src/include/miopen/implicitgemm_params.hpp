@@ -36,8 +36,8 @@ enum struct ImplicitGemmDirection
 
 enum struct ImplicitGemmXdlopsKernel
 {
-    KernelFwd = 0,
-    Kernel1x1 = 1,
+    KernelFwdWrw = 0,
+    Kernel1x1    = 1,
 };
 
 #endif
