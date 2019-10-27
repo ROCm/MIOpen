@@ -8,8 +8,45 @@
 #include "blockwise_generic_tensor_slice_copy_deprecated.hpp"
 #include "blockwise_gemm_xdlops.hpp"
 #include "threadwise_generic_tensor_slice_copy_deprecated.hpp"
+#include "implicitgemm_params.hpp"
 
 namespace ck {
+
+template <ImplicitGemmDirection conv_dir, typename WeiDesc, index_t NonVectorizedC>
+struct make_vectorized_WeiDesc_Xdlops
+{
+};
+template <typename WeiDesc, index_t NonVectorizedC>
+struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::ForwardData, WeiDesc, NonVectorizedC>
+{
+    __device__ constexpr auto get(WeiDesc&)
+    {
+        constexpr auto I1 = Number<1>{};
+        constexpr auto I2 = Number<2>{};
+        constexpr auto I4 = Number<4>{};
+        return WeiDesc{}
+            .Fold(I1, Number<NonVectorizedC>{})
+            .Unfold(I2, I4)
+            .ReorderGivenNew2Old(Sequence<2, 0, 1>{});
+    }
+};
+template <typename WeiDesc, index_t NonVectorizedC>
+struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::BackwardWeight,
+                                      WeiDesc,
+                                      NonVectorizedC>
+{
+    __device__ constexpr auto get(WeiDesc& desc)
+    {
+        constexpr auto I1 = Number<1>{};
+        constexpr auto I3 = Number<3>{};
+        constexpr auto I4 = Number<4>{};
+        return make_ConstantMergedTensorDescriptor(
+            desc.Fold(I1, Number<NonVectorizedC>{}).Unfold(I3, I4),
+            Sequence<2, 3>{},
+            Sequence<0>{},
+            Sequence<1>{});
+    }
+};
 
 // B = merge(N, Ho, Wo)
 template <index_t GridSize,
@@ -45,7 +82,8 @@ template <index_t GridSize,
           class WeiBlockCopyDstAccessOrder,
           index_t WeiBlockCopySrcDataPerRead_E,
           index_t WeiBlockCopyDstDataPerWrite_K,
-          index_t OutThreadCopyDataPerAccess_B>
+          index_t OutThreadCopyDataPerAccess_B,
+          ImplicitGemmDirection conv_dir>
 struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_fp16_bfp16_nchw_kcyx_nkhw_lds_double_buffer
 {
     __device__ void Run(const Float* const __restrict__ p_in_global,
@@ -55,7 +93,6 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_fp16_bfp16_nchw_kcyx_nkhw_lds
         constexpr auto I1 = Number<1>{};
         constexpr auto I2 = Number<2>{};
         constexpr auto I3 = Number<3>{};
-        constexpr auto I4 = Number<4>{};
 
         constexpr auto True = integral_constant<bool, true>{};
 
@@ -155,9 +192,10 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_fp16_bfp16_nchw_kcyx_nkhw_lds
         // weight tensor
         //     tensor descriptor in device memory, src of blockwise copy
         constexpr auto wei_e_k_global_desc =
-            wei_k_c_y_x_global_desc.Fold(I1, Number<nonVectorizedC>{})
-                .Unfold(I2, I4)
-                .ReorderGivenNew2Old(Sequence<2, 0, 1>{});
+            make_vectorized_WeiDesc_Xdlops<conv_dir,
+                                           decltype(wei_k_c_y_x_global_desc),
+                                           nonVectorizedC>{}
+                .get(wei_k_c_y_x_global_desc);
 
         //     tensor descriptor in LDS, dst of blockwise copy
         //     be careful of LDS alignment
@@ -261,7 +299,7 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_fp16_bfp16_nchw_kcyx_nkhw_lds
                 Float p_wei_thread_buffer[blockwise_wei_copy.GetThreadBufferSize()];
 
                 blockwise_in_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0, 0>{}, True);
-                p_wei_block_on_global += EPerBlock * wei_e_k_global_desc.GetStrides()[0];
+                blockwise_wei_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0, 0>{}, True);
 
                 __syncthreads();
 
@@ -291,7 +329,7 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_fp16_bfp16_nchw_kcyx_nkhw_lds
 
             // even iteration
             blockwise_in_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0, 0>{}, True);
-            p_wei_block_on_global += EPerBlock * wei_e_k_global_desc.GetStrides()[0];
+            blockwise_wei_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0, 0>{}, True);
 
             __syncthreads();
 
