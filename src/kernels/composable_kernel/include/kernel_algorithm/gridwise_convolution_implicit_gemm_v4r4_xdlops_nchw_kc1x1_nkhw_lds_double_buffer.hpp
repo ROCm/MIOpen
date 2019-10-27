@@ -30,7 +30,6 @@ template <index_t GridSize,
           index_t GemmNWaves,
           index_t GemmDataPerReadA,
           index_t GemmDataPerReadB,
-          bool EnableXdlops,
           class InBlockCopySubLengths_E_B,
           class InBlockCopyClusterLengths_E_B,
           class InBlockCopyThreadClusterArrangeOrder,
@@ -190,8 +189,7 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kc1x1_nkhw_lds_double_bu
             BlockSize,
             decltype(a_e_k_block_mtx_desc),
             decltype(b_e_b_block_mtx_desc),
-            decltype(mfma_info<float>{}),
-            EnableXdlops,
+            Float,
             GemmMPerWave,
             GemmNPerWave,
             GemmMWaves,
@@ -220,8 +218,7 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kc1x1_nkhw_lds_double_bu
 
         // zero out threadwise output
         threadwise_matrix_set_zero(c_k_thread_mtx_desc, p_out_thread);
-        static_if<EnableXdlops>{}(
-            [&](auto) { gcnasm_accvgpr_zero<c_k_thread_mtx_desc.GetElementSpace()>(); });
+        blockwise_gemm.XdlopsMatrixCSetZero();
 
         const Float* p_wei_block_on_global = p_wei_global;
 
@@ -305,15 +302,14 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kc1x1_nkhw_lds_double_bu
         }
 
         // load data from xldop_acc_regs
-        static_if<EnableXdlops>{}([&](auto) {
-            gcnasm_accvgpr_read<c_k_thread_mtx_desc.GetElementSpace()>(p_out_thread);
-        });
+        blockwise_gemm.XdlopsMatrixCRead(p_out_thread);
 
         // copy output: register to global memory
         {
-            constexpr index_t K2 = blockwise_gemm.OutputLayout.M2;
-            constexpr index_t K1 = blockwise_gemm.OutputLayout.M1;
-            constexpr index_t K0 = blockwise_gemm.OutputLayout.M0;
+            constexpr auto OutputLayout = blockwise_gemm.GetOutputLayout();
+            constexpr index_t K2        = OutputLayout.M1();
+            constexpr index_t K1        = OutputLayout.N1();
+            constexpr index_t K0        = OutputLayout.M0();
 
             constexpr auto out_n_k_h_w_global_desc_forw = out_n_k_h_w_global_desc;
 
@@ -354,8 +350,9 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kc1x1_nkhw_lds_double_bu
 
             using OutThreadCopySliceLengths = Sequence<K2, 1, K0, 1>;
 
-            constexpr index_t NumKPerBlk = out_k0_k1_k2_b_thread_desc.GetElementSpace();
-            constexpr index_t NumBlks    = GemmMPerWave / NumKPerBlk;
+            constexpr index_t NumKPerBlk = OutputLayout.GetSizeM();
+            static_assert(OutputLayout.GetSizeM() == 16, "MSize != 16");
+            constexpr index_t NumBlks = c_k_thread_mtx_desc.GetElementSpace() / NumKPerBlk;
 
             for(index_t i = 0; i < NumBlks; ++i)
             {
