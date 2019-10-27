@@ -27,11 +27,22 @@
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/env.hpp>
 #include <boost/optional.hpp>
 #include <sstream>
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HCC_ENABLE_COV3)
+
 namespace miopen {
 
+static bool IsEnabledCoV3()
+{
+#if MIOPEN_HCC_ENABLE_COV3
+    return !IsDisabled(MIOPEN_DEBUG_HCC_ENABLE_COV3{}); // if enabled by default, env can disable.
+#else
+    return IsEnabled(MIOPEN_DEBUG_HCC_ENABLE_COV3{}); // if disabled by default, env can enable.
+#endif
+}
 boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  const std::string& filename,
                                  std::string src,
@@ -53,7 +64,11 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     WriteFile(src, tmp_dir->path / filename);
     if(isHCC)
     {
-        params += " --amdgpu-target=" + dev_name;
+        params += " -amdgpu-target=" + dev_name;
+        if(IsEnabledCoV3())
+        {
+            params += " --hcc-cov3 ";
+        }
     }
     else
     {

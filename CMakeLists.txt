@@ -59,6 +59,8 @@ if(MIOPEN_ENABLE_SQLITE)
 endif()
 option( BUILD_DEV "Build for development only" OFF)
 
+# Control Code Object V3 for HIP kernels
+set(MIOPEN_ENABLE_HCC_COV3 Off CACHE BOOL "Enable Code Object V3 for Hip kernels")
 # Strip symbols for release
 if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
