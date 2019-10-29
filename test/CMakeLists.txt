@@ -447,6 +447,14 @@ COMMAND	$<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose	--input	64	128
 COMMAND	$<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose	--input	64	128 	28	28	--weights	16  128 	1	1	--pads_strides_dilations	0	0	1	1	1	1
 COMMAND	$<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose	--input	64	128 	14	14	--weights	16  128 	1	1	--pads_strides_dilations	0	0	1	1	1	1
 COMMAND	$<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose	--input	64	128 	 7	 7	--weights	16  128 	1	1	--pads_strides_dilations	0	0	1	1	1	1
+COMMAND $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 16   64     56  56  --weights   256  64     1   1   --pads_strides_dilations    0   0   1   1   1   1
+COMMAND $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 16   64     56  56  --weights   64   64     1   1   --pads_strides_dilations    0   0   1   1   1   1
+COMMAND $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 16   64     73  73  --weights   80   64     1   1   --pads_strides_dilations    0   0   1   1   1   1
+COMMAND $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 16   64     56  56  --weights   64   64     1   1   --pads_strides_dilations    0   0   1   1   1   1
+COMMAND $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 16  128     55  55  --weights   16  128     1   1   --pads_strides_dilations    0   0   1   1   1   1
+COMMAND $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 16  128     28  28  --weights   16  128     1   1   --pads_strides_dilations    0   0   1   1   1   1
+COMMAND $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 16  128     14  14  --weights   16  128     1   1   --pads_strides_dilations    0   0   1   1   1   1
+COMMAND $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 16  128      7   7  --weights   16  128     1   1   --pads_strides_dilations    0   0   1   1   1   1
 COMMAND	$<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose	--input	64	128 	55	55	--weights	16  128 	1	1	--pads_strides_dilations	0	0	2	2	1	1
 COMMAND	$<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose	--input	64	128 	28	28	--weights	16  128 	1	1	--pads_strides_dilations	0	0	2	2	1	1
 COMMAND	$<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose	--input	64	128 	14	14	--weights	16  128 	1	1	--pads_strides_dilations	0	0	2	2	1	1
