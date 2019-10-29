@@ -46,9 +46,16 @@ inline static int GetReadWriteVectorSize(const int v)
 
 inline static uint32_t GetEPackLength(const ConvolutionContext& ctx)
 {
-    const int C = ctx.n_inputs;
-    const int Y = ctx.kernel_size_h;
-    const int X = ctx.kernel_size_w;
+    int C = ctx.n_inputs;
+    int Y = ctx.kernel_size_h;
+    int X = ctx.kernel_size_w;
+
+    if(ctx.direction.IsBackwardWrW())
+    {
+        C = ctx.batch_sz;  // swapped
+        Y = ctx.in_height; // swapped
+        X = ctx.in_width;  // swapped
+    }
 
     // Based on data type, Es are packed
     int EPACK = 1;
