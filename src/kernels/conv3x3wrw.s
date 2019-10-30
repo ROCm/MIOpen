@@ -29,10 +29,10 @@
 .hsa_code_object_isa
 
 .text
-.globl gcnAsmConv3x3WrW
+.globl miopenGcnAsmConv3x3WrW
 .p2align 8
-.type gcnAsmConv3x3WrW,@function
-.amdgpu_hsa_kernel gcnAsmConv3x3WrW
+.type miopenGcnAsmConv3x3WrW,@function
+.amdgpu_hsa_kernel miopenGcnAsmConv3x3WrW
 
 .include "gpr_alloc.inc"
 
@@ -250,7 +250,7 @@ max_waves_per_CU = (256 / .AUTO_VGPR_COUNT) * 4
 static_assert( max_waves_per_CU >= n_per_group )
 //.text 0
 //.p2align 8
-gcnAsmConv3x3WrW:
+miopenGcnAsmConv3x3WrW:
 
    .amd_kernel_code_t
     enable_sgpr_kernarg_segment_ptr = 1
@@ -921,7 +921,7 @@ last_wave:
 s_endpgm
 
 .Lfunc_end0:
-   .size gcnAsmConv3x3WrW, .Lfunc_end0 - gcnAsmConv3x3WrW
+   .size miopenGcnAsmConv3x3WrW, .Lfunc_end0 - miopenGcnAsmConv3x3WrW
 
 
 .ifndef ROCM_METADATA_VERSION
@@ -933,7 +933,7 @@ s_endpgm
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
         Kernels:
-        - { Name: gcnAsmConv3x3WrW, SymbolName: 'gcnAsmConv3x3WrW@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+        - { Name: miopenGcnAsmConv3x3WrW, SymbolName: 'miopenGcnAsmConv3x3WrW@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:

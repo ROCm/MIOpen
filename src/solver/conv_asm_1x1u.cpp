@@ -700,7 +700,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     kinfo.g_wk.push_back(divide_round_plus_inf(params.batch_sz, n_images_per_wave));
 
     kinfo.kernel_file = "conv1x1u.s";
-    kinfo.kernel_name = "gcnAsmConv1x1U";
+    kinfo.kernel_name = "miopenGcnAsmConv1x1U";
 
     if(UseSubsample(params))
         result.construction_params.push_back(kernel);

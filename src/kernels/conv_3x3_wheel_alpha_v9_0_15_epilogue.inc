@@ -25,13 +25,13 @@
  *******************************************************************************/
 s_endpgm
 .Lfunc_end0:
-   .size sp3AsmConvRxSU, .Lfunc_end0 - sp3AsmConvRxSU
+   .size miopenSp3AsmConvRxSU, .Lfunc_end0 - miopenSp3AsmConvRxSU
 
 .amd_amdgpu_hsa_metadata
 Version:         [ 1, 0 ]
 Kernels:         
-  - Name:            sp3AsmConvRxSU
-    SymbolName:      'sp3AsmConvRxSU@kd'
+  - Name:            miopenSp3AsmConvRxSU
+    SymbolName:      'miopenSp3AsmConvRxSU@kd'
     Language:        OpenCL C
     LanguageVersion: [ 1, 2 ]
     Attrs:           

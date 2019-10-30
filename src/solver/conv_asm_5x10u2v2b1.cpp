@@ -111,7 +111,7 @@ ConvSolution ConvAsm5x10u2v2b1::GetSolution(const ConvolutionContext& params) co
     constr_params.g_wk.push_back(params.batch_sz);
 
     constr_params.kernel_file = "conv5x10u2v2b1.s";
-    constr_params.kernel_name = "conv5x10u2v2b1";
+    constr_params.kernel_name = "miopenConv5x10u2v2b1";
 
     result.construction_params.push_back(constr_params);
     return result;

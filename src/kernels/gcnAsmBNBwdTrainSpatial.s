@@ -28,7 +28,7 @@
 	.hsa_code_object_isa
 
 	.text
-	.amdgpu_hsa_kernel gcnAsmBNBwdTrainSpatial
+	.amdgpu_hsa_kernel miopenGcnAsmBNBwdTrainSpatial
 
 .include "gpr_alloc.inc"
 .include "common.inc"
@@ -95,7 +95,7 @@ fmamix_instructions_available = 0
 
 .GPR_ALLOC_END
 
-gcnAsmBNBwdTrainSpatial:
+miopenGcnAsmBNBwdTrainSpatial:
 
 	.amd_kernel_code_t
 		kernel_code_entry_byte_offset = 256
@@ -384,7 +384,7 @@ skip_normalization:
 
 
 .Lfunc_end0:
-    .size gcnAsmBNBwdTrainSpatial, .Lfunc_end0 - gcnAsmBNBwdTrainSpatial
+    .size miopenGcnAsmBNBwdTrainSpatial, .Lfunc_end0 - miopenGcnAsmBNBwdTrainSpatial
 
 .macro metadata wg_x, use_save_flag
   .if ROCM_METADATA_VERSION == 4
@@ -392,7 +392,7 @@ skip_normalization:
       .amd_amdgpu_hsa_metadata
       { Version: [ 1, 0 ],
            Kernels:
-           -  { Name: gcnAsmBNBwdTrainSpatial, SymbolName: 'gcnAsmBNBwdTrainSpatial@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+           -  { Name: miopenGcnAsmBNBwdTrainSpatial, SymbolName: 'miopenGcnAsmBNBwdTrainSpatial@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
                Attrs:
                  { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
                  CodeProps:
@@ -416,7 +416,7 @@ skip_normalization:
       .amd_amdgpu_hsa_metadata
       { Version: [ 1, 0 ],
            Kernels:
-           -  { Name: gcnAsmBNBwdTrainSpatial, SymbolName: 'gcnAsmBNBwdTrainSpatial@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+           -  { Name: miopenGcnAsmBNBwdTrainSpatial, SymbolName: 'miopenGcnAsmBNBwdTrainSpatial@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
                Attrs:
                  { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
                  CodeProps:

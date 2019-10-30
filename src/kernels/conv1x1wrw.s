@@ -28,10 +28,10 @@
 .hsa_code_object_isa
 
 .text
-.globl gcnAsmConv1x1WrW
+.globl miopenGcnAsmConv1x1WrW
 .p2align 8
-.type gcnAsmConv1x1WrW,@function
-.amdgpu_hsa_kernel gcnAsmConv1x1WrW
+.type miopenGcnAsmConv1x1WrW,@function
+.amdgpu_hsa_kernel miopenGcnAsmConv1x1WrW
 
 .include "gpr_alloc.inc"
 .include "common.inc"
@@ -341,7 +341,7 @@ max_waves_per_CU = (256 / .AUTO_VGPR_COUNT) * 4
 static_assert( max_waves_per_CU >= group_size )
 //.text 0
 //.p2align 8
-gcnAsmConv1x1WrW:
+miopenGcnAsmConv1x1WrW:
 
     .amd_kernel_code_t
      enable_sgpr_kernarg_segment_ptr = 1
@@ -1123,7 +1123,7 @@ s_endpgm
 
 
 .Lfunc_end0:
-    .size gcnAsmConv1x1WrW, .Lfunc_end0 - gcnAsmConv1x1WrW
+    .size miopenGcnAsmConv1x1WrW, .Lfunc_end0 - miopenGcnAsmConv1x1WrW
 
 .ifndef ROCM_METADATA_VERSION
 .error "ROCM_METADATA_VERSION must be defined"
@@ -1141,7 +1141,7 @@ s_endpgm
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
         Kernels:
-        - { Name: gcnAsmConv1x1WrW, SymbolName: 'gcnAsmConv1x1WrW@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+        - { Name: miopenGcnAsmConv1x1WrW, SymbolName: 'miopenGcnAsmConv1x1WrW@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:

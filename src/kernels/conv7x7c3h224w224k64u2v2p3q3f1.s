@@ -31,10 +31,10 @@
 .endif
 .text
 .p2align 8
-.global gcnAsmConv7x7c3h224w224k64u2v2p3q3f1
-.type gcnAsmConv7x7c3h224w224k64u2v2p3q3f1, @function
-.amdgpu_hsa_kernel gcnAsmConv7x7c3h224w224k64u2v2p3q3f1
-gcnAsmConv7x7c3h224w224k64u2v2p3q3f1:
+.global miopenGcnAsmConv7x7c3h224w224k64u2v2p3q3f1
+.type miopenGcnAsmConv7x7c3h224w224k64u2v2p3q3f1, @function
+.amdgpu_hsa_kernel miopenGcnAsmConv7x7c3h224w224k64u2v2p3q3f1
+miopenGcnAsmConv7x7c3h224w224k64u2v2p3q3f1:
    .amd_kernel_code_t
       amd_machine_version_major = .option.machine_version_major
       amd_machine_version_minor = .option.machine_version_minor
@@ -751,7 +751,7 @@ loop_channel:
 { Version: [ 1, 0 ],
     Kernels:
     - {
-        Name: gcnAsmConv7x7c3h224w224k64u2v2p3q3f1, SymbolName: 'gcnAsmConv7x7c3h224w224k64u2v2p3q3f1@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+        Name: miopenGcnAsmConv7x7c3h224w224k64u2v2p3q3f1, SymbolName: 'miopenGcnAsmConv7x7c3h224w224k64u2v2p3q3f1@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
         Attrs: { ReqdWorkGroupSize: [ 64, 8, 1 ] }
         CodeProps:
           { KernargSegmentSize: 32, GroupSegmentFixedSize: 7040, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 256 }

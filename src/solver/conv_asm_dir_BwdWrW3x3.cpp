@@ -496,7 +496,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     }
 
     kernel.kernel_file = "conv3x3wrw.s";
-    kernel.kernel_name = "gcnAsmConv3x3WrW";
+    kernel.kernel_name = "miopenGcnAsmConv3x3WrW";
 
     result.construction_params.push_back(kernel);
     result.workspce_sz = 0;
