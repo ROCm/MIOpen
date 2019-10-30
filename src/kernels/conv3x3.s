@@ -30,12 +30,12 @@
 .endif
 
 .text
-.globl gcnAsmConv3x3U
+.globl miopenGcnAsmConv3x3U
 .p2align 8
-.type gcnAsmConv3x3U,@function
+.type miopenGcnAsmConv3x3U,@function
 
 .if ROCM_METADATA_VERSION == 4
-.amdgpu_hsa_kernel gcnAsmConv3x3U
+.amdgpu_hsa_kernel miopenGcnAsmConv3x3U
 .endif
 
 .include "gpr_alloc.inc"
@@ -573,7 +573,7 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
 
 //.text 0
 //.p2align 8
-gcnAsmConv3x3U:
+miopenGcnAsmConv3x3U:
 
 .if ROCM_METADATA_VERSION == 4
   .amd_kernel_code_t
@@ -981,12 +981,12 @@ loop_end:
   s_endpgm
 
 .Lfunc_end0:
-    .size gcnAsmConv3x3U, .Lfunc_end0 - gcnAsmConv3x3U
+    .size miopenGcnAsmConv3x3U, .Lfunc_end0 - miopenGcnAsmConv3x3U
 
 .if ROCM_METADATA_VERSION == 5
 .rodata
 .p2align 6
-.amdhsa_kernel gcnAsmConv3x3U
+.amdhsa_kernel miopenGcnAsmConv3x3U
     //enable_sgpr_kernarg_segment_ptr = 1
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
 
@@ -1033,8 +1033,8 @@ loop_end:
 ---
 amdhsa.version: [ 1, 0 ]
 amdhsa.kernels:
-  - .name: gcnAsmConv3x3U
-    .symbol: gcnAsmConv3x3U@kd
+  - .name: miopenGcnAsmConv3x3U
+    .symbol: miopenGcnAsmConv3x3U@kd
     .sgpr_count: \sc
     .vgpr_count: \wc
     .language: "OpenCL C"
@@ -1073,7 +1073,7 @@ METADATA_WRAPPER .AUTO_SGPR_COUNT,.AUTO_VGPR_COUNT,workgroup_size_x
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
         Kernels:
-        - { Name: gcnAsmConv3x3U, SymbolName: 'gcnAsmConv3x3U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+        - { Name: miopenGcnAsmConv3x3U, SymbolName: 'miopenGcnAsmConv3x3U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:

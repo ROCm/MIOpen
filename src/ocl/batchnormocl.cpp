@@ -173,7 +173,7 @@ void BatchNormForwardTraining(Handle& handle,
             ldsgcn     = xlocalsize / 64;
             ldsnogcn   = xlocalsize;
             xgridsize  = c * xlocalsize;
-            algo_name  = "gcnAsmBNFwdTrainSpatial";
+            algo_name  = "miopenGcnAsmBNFwdTrainSpatial";
         }
         else if(in_cstride <= 512)
         {
@@ -276,7 +276,7 @@ void BatchNormForwardTraining(Handle& handle,
                 if((variant == 3) && (bfpmixparm) && (n <= 64) && (n % 2 == 0) &&
                    ctx.use_asm_kernels && ctx.rmv.IsV2())
                 {
-                    kernel_name  = "gcnAsmBNFwdTrainSpatial";
+                    kernel_name  = "miopenGcnAsmBNFwdTrainSpatial";
                     program_name = "gcnAsmBNFwdTrainSpatial.s";
 
                     union nhw_val
@@ -453,7 +453,7 @@ void BatchNormForwardTraining(Handle& handle,
                 if((variant == 3) && (bfpmixparm) && (n <= 64) && (n % 2 == 0) &&
                    ctx.use_asm_kernels && ctx.rmv.IsV2())
                 {
-                    kernel_name  = "gcnAsmBNFwdTrainSpatial";
+                    kernel_name  = "miopenGcnAsmBNFwdTrainSpatial";
                     program_name = "gcnAsmBNFwdTrainSpatial.s";
 
                     union nhw_val
@@ -1096,7 +1096,7 @@ void BatchNormBackward(Handle& handle,
                 if((n > 64) && (n % 2 == 0) && (variant == 3) && (bfpmixparm) && (useSaved) &&
                    ctx.use_asm_kernels && ctx.rmv.IsV2())
                 {
-                    kernel_name  = "gcnAsmBNBwdTrainSpatial";
+                    kernel_name  = "miopenGcnAsmBNBwdTrainSpatial";
                     program_name = "gcnAsmBNBwdTrainSpatial.s";
 
                     union nhw_val

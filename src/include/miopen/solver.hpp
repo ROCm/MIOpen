@@ -741,9 +741,9 @@ struct ConvWinograd3x3MultipassWrW : SolverBase<ConvolutionContext>
         static const std::string name_suffix =
             '_' + std::to_string(WinoDataH) + '_' + std::to_string(WinoDataW) + '_' +
             std::to_string(WinoFilterH) + '_' + std::to_string(WinoFilterW);
-        static const std::string names[3] = {"gcnAsmWinogradXformData" + name_suffix,
-                                             "gcnAsmWinogradXformFilter" + name_suffix,
-                                             "gcnAsmWinogradXformOut" + name_suffix};
+        static const std::string names[3] = {"miopenGcnAsmWinogradXformData" + name_suffix,
+                                             "miopenGcnAsmWinogradXformFilter" + name_suffix,
+                                             "miopenGcnAsmWinogradXformOut" + name_suffix};
 
         return names[id];
     }

@@ -302,7 +302,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
 
     if(params.IsFp16())
     {
-        kernel.kernel_name = "sp3AsmConvRxSU";
+        kernel.kernel_name = "miopenSp3AsmConvRxSU";
         kernel.kernel_file = "Conv_Winograd_";
         if(miopen::IsEnabled(MIOPEN_DEBUG_SRAM_EDC_DISABLED{}))
             kernel.kernel_file += "v13_3_12";
@@ -324,12 +324,12 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     }
     else if(params.direction.IsBackwardWrW())
     {
-        kernel.kernel_name = "sp3AsmConvRxSf3x2";
+        kernel.kernel_name = "miopenSp3AsmConvRxSf3x2";
         kernel.kernel_file = "Conv_Winograd_v16_5_0_stride1";
     }
     else
     {
-        kernel.kernel_name = "sp3AsmConvRxSU";
+        kernel.kernel_name = "miopenSp3AsmConvRxSU";
         kernel.kernel_file = "conv_3x3_wheel_alpha_v9_0_15";
         if(params.kernel_stride_w == 2)
         {
