@@ -115,19 +115,19 @@ int main()
         // Winograd because c, x and y satisfy criteria
         ConvAlgTest(
             {100, 32, 8, 8}, {64, 32, 3, 3}, {1, 1, 1, 1, 1, 1}, pgm_name, krn_name, alg_name);
-        EXPECT(krn_name == "sp3AsmConvRxSU_CBA");
+        EXPECT(krn_name == "miopenSp3AsmConvRxSU_CBA");
         EXPECT(alg_name == "miopenConvolutionWinogradBiasActiv");
 
         // c is odd so winograd not supported and padding is zero
         ConvAlgTest(
             {100, 31, 8, 8}, {64, 31, 3, 3}, {0, 0, 1, 1, 1, 1}, pgm_name, krn_name, alg_name);
-        EXPECT(krn_name != "sp3AsmConvRxSU_CBA");
+        EXPECT(krn_name != "miopenSp3AsmConvRxSU_CBA");
         EXPECT(alg_name != "miopenConvolutionWinogradBiasActiv");
 
         // c is less than 18 so winograd not supported and padding is zero
         ConvAlgTest(
             {100, 15, 8, 8}, {64, 15, 3, 3}, {0, 0, 1, 1, 1, 1}, pgm_name, krn_name, alg_name);
-        EXPECT(krn_name != "sp3AsmConvRxSU_CBA");
+        EXPECT(krn_name != "miopenSp3AsmConvRxSU_CBA");
         EXPECT(alg_name != "miopenConvolutionWinogradBiasActiv");
     }
     // the asm kernel is the fastest for 1x1 and padding
@@ -136,7 +136,7 @@ int main()
         ConvAlgTest(
             {100, 32, 8, 8}, {64, 32, 1, 1}, {0, 0, 1, 1, 1, 1}, pgm_name, krn_name, alg_name);
         EXPECT(pgm_name == "conv1x1u_bias_activ.s");
-        EXPECT(krn_name == "gcnAsmConv1x1U");
+        EXPECT(krn_name == "miopenGcnAsmConv1x1U");
         EXPECT(alg_name == "miopenConvolutionDirectBiasActivAsm");
     }
 

@@ -175,10 +175,10 @@ accums_cnt = read_size * xformx_d_size * xformy_d_size
 .GPR_ALLOC_END
 
 .macro kernel_begin  x_o_size, y_o_size, x_f_size, y_f_size
-    .globl gcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
-    .type gcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size,@function
-    .amdgpu_hsa_kernel gcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
-    gcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size:
+    .globl miopenGcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
+    .type miopenGcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size,@function
+    .amdgpu_hsa_kernel miopenGcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
+    miopenGcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size:
 .endm
 
 kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
@@ -646,11 +646,11 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
 .altmacro
 
 .macro METADATA_WRAPPER  wg_x, lds_size, kernel_suf
-    METADATA %\wg_x, %\lds_size, <gcnAsmWinogradXformOut\kernel_suf>, <gcnAsmWinogradXformOut\kernel_suf@kd>
+    METADATA %\wg_x, %\lds_size, <miopenGcnAsmWinogradXformOut\kernel_suf>, <miopenGcnAsmWinogradXformOut\kernel_suf@kd>
 .endm
 
 .macro kernel_end x_o_size, y_o_size, x_f_size, y_f_size
-    .size gcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size, .Lfunc_end0 - gcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
+    .size miopenGcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size, .Lfunc_end0 - miopenGcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
     METADATA_WRAPPER 64, .AUTO_LDS_BYTE_SIZE, _\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
 .endm
 
