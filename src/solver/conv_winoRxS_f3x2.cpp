@@ -258,7 +258,7 @@ ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& param
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    kernel.kernel_name = "sp3AsmConvRxSf3x2";
+    kernel.kernel_name = "miopenSp3AsmConvRxSf3x2";
     kernel.kernel_file = "Conv_Winograd_v16_5_0_stride1.s";
 
     result.construction_params.push_back(kernel);

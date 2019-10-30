@@ -507,7 +507,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
     {
         /// Fused Winograd.
         static const std::string program("conv_3x3_wheel_alpha_v9_2_7.s");
-        static const std::string kernel("sp3AsmConvRxSU_CBA");
+        static const std::string kernel("miopenSp3AsmConvRxSU_CBA");
         static const std::string algo("miopenConvolutionWinogradBiasActiv");
         auto vc_s1 =
             std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward, program, kernel, algo);
@@ -704,17 +704,17 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         {
             auto conv_v = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
                                                            "conv1x1u_bias_activ.s",
-                                                           "gcnAsmConv1x1U",
+                                                           "miopenGcnAsmConv1x1U",
                                                            "miopenConvolutionDirectBiasActivAsm");
             conv_v->solver = solver::ConvBiasActivAsm1x1U{};
 
             auto bias_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
                                                            "conv1x1u_bias_activ.s",
-                                                           "gcnAsmConv1x1U",
+                                                           "miopenGcnAsmConv1x1U",
                                                            "miopenConvolutionDirectBiasActivAsm");
             auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
                                                             "conv1x1u_bias_activ.s",
-                                                            "gcnAsmConv1x1U",
+                                                            "miopenGcnAsmConv1x1U",
                                                             "miopenConvolutionDirectBiasActivAsm",
                                                             true);
             FusionMDGraph_Edge_Map map_asm_conv;
@@ -749,18 +749,18 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         {
             auto conv_v = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
                                                            "conv1x1u_bias_activ.s",
-                                                           "gcnAsmConv1x1U",
+                                                           "miopenGcnAsmConv1x1U",
                                                            "miopenConvolutionDirectBiasActivAsm");
             conv_v->solver         = solver::ConvBiasActivAsm1x1U{};
             conv_v->supported_arch = {"gfx900", "gfx906", "gfx908"};
 
             auto bias_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
                                                            "conv1x1u_bias_activ.s",
-                                                           "gcnAsmConv1x1U",
+                                                           "miopenGcnAsmConv1x1U",
                                                            "miopenConvolutionDirectBiasActivAsm");
             auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
                                                             "conv1x1u_bias_activ.s",
-                                                            "gcnAsmConv1x1U",
+                                                            "miopenGcnAsmConv1x1U",
                                                             "miopenConvolutionDirectBiasActivAsm",
                                                             true);
             FusionMDGraph_Edge_Map map_asm_conv;
