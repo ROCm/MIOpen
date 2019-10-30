@@ -27,12 +27,12 @@
 .hsa_code_object_isa
 
 .text
-.globl sp3AsmConvRxSU_CBA
+.globl miopenSp3AsmConvRxSU_CBA
 .p2align 8
-.type sp3AsmConvRxSU_CBA,@function
-.amdgpu_hsa_kernel sp3AsmConvRxSU_CBA
+.type miopenSp3AsmConvRxSU_CBA,@function
+.amdgpu_hsa_kernel miopenSp3AsmConvRxSU_CBA
 
-sp3AsmConvRxSU_CBA:
+miopenSp3AsmConvRxSU_CBA:
 .amd_kernel_code_t
     is_ptr64 = 1
     enable_vgpr_workitem_id = 1 // v1 is not used at all for now, but what the heck.

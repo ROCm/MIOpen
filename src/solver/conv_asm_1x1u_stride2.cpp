@@ -706,7 +706,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
     kinfo.g_wk.push_back(divide_round_plus_inf(params.batch_sz, n_per_wave));
 
     kinfo.kernel_file = "conv1x1u_stride2.s";
-    kinfo.kernel_name = "gcnAsmConv1x1U_stride2";
+    kinfo.kernel_name = "miopenGcnAsmConv1x1U_stride2";
 
     result.construction_params.push_back(kinfo);
 

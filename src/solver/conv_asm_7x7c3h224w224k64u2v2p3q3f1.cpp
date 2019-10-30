@@ -102,7 +102,7 @@ ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ConvolutionCon
     constr_params.g_wk.push_back(params.batch_sz);
 
     constr_params.kernel_file = "conv7x7c3h224w224k64u2v2p3q3f1.s";
-    constr_params.kernel_name = "gcnAsmConv7x7c3h224w224k64u2v2p3q3f1";
+    constr_params.kernel_name = "miopenGcnAsmConv7x7c3h224w224k64u2v2p3q3f1";
 
     result.construction_params.push_back(constr_params);
     return result;
