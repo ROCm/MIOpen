@@ -759,7 +759,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
         divide_round_plus_inf(params.n_inputs, pcfg->GetKPerGpr() * pcfg->GetKMult()));
 
     kernel.kernel_file = "conv1x1wrw.s";
-    kernel.kernel_name = "gcnAsmConv1x1WrW";
+    kernel.kernel_name = "miopenGcnAsmConv1x1WrW";
 
     result.construction_params.push_back(kernel);
 

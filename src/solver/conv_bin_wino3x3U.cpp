@@ -99,7 +99,7 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params) 
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    kernel.kernel_name = "sp3AsmConv3x3F";
+    kernel.kernel_name = "miopenSp3AsmConv3x3F";
 
     if(!params.rmv.IsV2())
         MIOPEN_THROW("Unsupported metadata version.");

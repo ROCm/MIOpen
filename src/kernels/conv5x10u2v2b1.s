@@ -98,10 +98,10 @@
 
 .text
 .p2align 8
-.global conv5x10u2v2b1
-.type conv5x10u2v2b1, @function
-.amdgpu_hsa_kernel conv5x10u2v2b1
-conv5x10u2v2b1:
+.global miopenConv5x10u2v2b1
+.type miopenConv5x10u2v2b1, @function
+.amdgpu_hsa_kernel miopenConv5x10u2v2b1
+miopenConv5x10u2v2b1:
    .amd_kernel_code_t
       amd_machine_version_major = .option.machine_version_major
       amd_machine_version_minor = .option.machine_version_minor
@@ -831,7 +831,7 @@ skip_write:
 .amd_amdgpu_hsa_metadata
 { Version: [ 1, 0 ],
     Kernels:
-    - { Name: conv5x10u2v2b1, SymbolName: 'conv5x10u2v2b1@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+    - { Name: miopenConv5x10u2v2b1, SymbolName: 'miopenConv5x10u2v2b1@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
         Attrs:
           { ReqdWorkGroupSize: [ 64, 8, 1 ] }
         CodeProps:
