@@ -184,7 +184,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     endif()
 
     # scgemm
-    set(MIOPEN_USE_SCGEMM ON CACHE BOOL "")
+    set(MIOPEN_USE_SCGEMM OFF CACHE BOOL "")
     if(MIOPEN_USE_SCGEMM)
         message(STATUS "Build with scgemm")
     else()
