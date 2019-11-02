@@ -641,7 +641,7 @@ bool ConvHipImplicitGemmV4R4WrWXdlops::IsApplicable(const ConvolutionContext& ct
     return IsXdlopsSupport(ctx) && ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.group_counts == 1 &&
            ctx.n_outputs % 8 == 0 &&
            (ctx.n_outputs * ctx.kernel_size_h * ctx.kernel_size_w) % 64 == 0 &&
-           ctx.n_inputs % 16 == 0;
+           ctx.n_inputs % 32 == 0;
 }
 
 PerformanceImplicitGemmXdlops
