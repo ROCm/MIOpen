@@ -19,40 +19,40 @@ __device__ float __llvm_amdgcn_buffer_load(int32x4_t rsrc,
                                            index_t vindex,
                                            index_t offset,
                                            bool glc,
-                                           bool slc) __asm("llvm.amdgcn.buffer.load");
+                                           bool slc) __asm("llvm.amdgcn.buffer.load.f32");
 
 __device__ float2_t __llvm_amdgcn_buffer_loadx2(int32x4_t rsrc,
                                                 index_t vindex,
                                                 index_t offset,
                                                 bool glc,
-                                                bool slc) __asm("llvm.amdgcn.buffer.load.dwordx2");
+                                                bool slc) __asm("llvm.amdgcn.buffer.load.v2f32");
 
 __device__ float4_t __llvm_amdgcn_buffer_loadx4(int32x4_t rsrc,
                                                 index_t vindex,
                                                 index_t offset,
                                                 bool glc,
-                                                bool slc) __asm("llvm.amdgcn.buffer.load.dwordx4");
+                                                bool slc) __asm("llvm.amdgcn.buffer.load.v4f32");
 
 __device__ void __llvm_amdgcn_buffer_store(float vdata,
                                            int32x4_t rsrc,
                                            index_t vindex,
                                            index_t offset,
                                            bool glc,
-                                           bool slc) __asm("llvm.amdgcn.buffer.store");
+                                           bool slc) __asm("llvm.amdgcn.buffer.store.f32");
 
 __device__ void __llvm_amdgcn_buffer_storex2(float2_t vdata,
                                              int32x4_t rsrc,
                                              index_t vindex,
                                              index_t offset,
                                              bool glc,
-                                             bool slc) __asm("llvm.amdgcn.buffer.store.dwordx2");
+                                             bool slc) __asm("llvm.amdgcn.buffer.store.v2f32");
 
 __device__ void __llvm_amdgcn_buffer_storex4(float4_t vdata,
                                              int32x4_t rsrc,
                                              index_t vindex,
                                              index_t offset,
                                              bool glc,
-                                             bool slc) __asm("llvm.amdgcn.buffer.store.dwordx4");
+                                             bool slc) __asm("llvm.amdgcn.buffer.store.v4f32");
 
 template <typename T, index_t VectorSize>
 __device__ typename vector_type<T, VectorSize>::MemoryType
