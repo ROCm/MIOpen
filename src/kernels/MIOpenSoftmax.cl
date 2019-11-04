@@ -105,22 +105,6 @@
 #define IS_DOUTPUT_PACKED 1
 #endif
 
-#ifndef IN_OFFSET
-#define IN_OFFSET 0
-#endif
-
-#ifndef OUT_OFFSET
-#define OUT_OFFSET 0
-#endif
-
-#ifndef DIN_OFFSET
-#define DIN_OFFSET 0
-#endif
-
-#ifndef DOUT_OFFSET
-#define DOUT_OFFSET 0
-#endif
-
 #if(USE_SOFTMAX_LOG && USE_SOFTMAX_ACCURATE) || (USE_SOFTMAX_LOG && USE_SOFTMAX_FAST) || \
     (USE_SOFTMAX_ACCURATE && USE_SOFTMAX_FAST) ||                                        \
     !(USE_SOFTMAX_LOG || USE_SOFTMAX_ACCURATE || USE_SOFTMAX_FAST)
@@ -172,6 +156,40 @@ __kernel void SoftmaxForward(global _FLOAT* x,
                              const int vector_size,
                              const int grid_size,
                              const int spatial_dim,
+#if IS_INPUT_PACKED && IS_OUTPUT_PACKED
+                             UNUSED
+#endif
+                             const int input_h,
+#if IS_INPUT_PACKED && IS_OUTPUT_PACKED
+                             UNUSED
+#endif
+                             const int input_w,
+#if IS_INPUT_PACKED
+                             UNUSED
+#endif
+                             const int in_nstr,
+#if IS_INPUT_PACKED
+                             UNUSED
+#endif
+                             const int in_cstr,
+#if IS_INPUT_PACKED
+                             UNUSED
+#endif
+                             const int in_hstr,
+#if IS_OUTPUT_PACKED
+                             UNUSED
+#endif
+                             const int out_nstr,
+#if IS_OUTPUT_PACKED
+                             UNUSED
+#endif
+                             const int out_cstr,
+#if IS_OUTPUT_PACKED
+                             UNUSED
+#endif
+                             const int out_hstr,
+                             const int x_offset,
+                             const int y_offset,
 #if !USE_ALPHA
                              UNUSED
 #endif
@@ -203,8 +221,8 @@ __kernel void SoftmaxForward(global _FLOAT* x,
         int n = gid / spatial_dim; // nth image
         int s = gid % spatial_dim; // spatial dimension (h*w)
 #if(!IS_INPUT_PACKED || !IS_OUTPUT_PACKED) && USE_SOFTMAX_MODE_CHANNEL
-        int s0 = s / INPUT_W;
-        int s1 = s % INPUT_W;
+        int s0 = s / input_w;
+        int s1 = s % input_w;
 #endif
 
 #if !USE_SOFTMAX_FAST
@@ -218,20 +236,20 @@ __kernel void SoftmaxForward(global _FLOAT* x,
         for(int i = lid; i < vector_size; i += get_local_size(0))
         {
 #if !IS_INPUT_PACKED && USE_SOFTMAX_MODE_INSTANCE
-            int i0 = i / (INPUT_W * INPUT_H);
-            int i1 = (i % (INPUT_W * INPUT_H)) / INPUT_W;
-            int i2 = (i % (INPUT_W * INPUT_H)) % INPUT_W;
+            int i0 = i / (input_w * input_h);
+            int i1 = (i % (input_w * input_h)) / input_w;
+            int i2 = (i % (input_w * input_h)) % input_w;
 #endif
 
-            int x_gidx = IN_OFFSET;
+            int x_gidx = x_offset;
 #if IS_INPUT_PACKED
             x_gidx += mad24(n, vector_size, i) * spatial_dim + s;
 #else
-            x_gidx += n * INPUT_N_STRIDE;
+            x_gidx += n * in_nstr;
 #if USE_SOFTMAX_MODE_INSTANCE
-            x_gidx += i0 * INPUT_C_STRIDE + i1 * INPUT_H_STRIDE + i2;
+            x_gidx += i0 * in_cstr + i1 * in_hstr + i2;
 #else
-            x_gidx += i * INPUT_C_STRIDE + s0 * INPUT_H_STRIDE + s1;
+            x_gidx += i * in_cstr + s0 * in_hstr + s1;
 #endif
 #endif
 
@@ -268,20 +286,20 @@ __kernel void SoftmaxForward(global _FLOAT* x,
         for(int i = lid; i < vector_size; i += get_local_size(0))
         {
 #if !IS_INPUT_PACKED && USE_SOFTMAX_MODE_INSTANCE
-            int i0 = i / (INPUT_W * INPUT_H);
-            int i1 = (i % (INPUT_W * INPUT_H)) / INPUT_W;
-            int i2 = (i % (INPUT_W * INPUT_H)) % INPUT_W;
+            int i0 = i / (input_w * input_h);
+            int i1 = (i % (input_w * input_h)) / input_w;
+            int i2 = (i % (input_w * input_h)) % input_w;
 #endif
 
-            int x_gidx = IN_OFFSET;
+            int x_gidx = x_offset;
 #if IS_INPUT_PACKED
             x_gidx += mad24(n, vector_size, i) * spatial_dim + s;
 #else
-            x_gidx += n * INPUT_N_STRIDE;
+            x_gidx += n * in_nstr;
 #if USE_SOFTMAX_MODE_INSTANCE
-            x_gidx += i0 * INPUT_C_STRIDE + i1 * INPUT_H_STRIDE + i2;
+            x_gidx += i0 * in_cstr + i1 * in_hstr + i2;
 #else
-            x_gidx += i * INPUT_C_STRIDE + s0 * INPUT_H_STRIDE + s1;
+            x_gidx += i * in_cstr + s0 * in_hstr + s1;
 #endif
 #endif
 
@@ -326,20 +344,20 @@ __kernel void SoftmaxForward(global _FLOAT* x,
         for(int i = lid; i < vector_size; i += get_local_size(0))
         {
 #if !IS_INPUT_PACKED && USE_SOFTMAX_MODE_INSTANCE
-            int i0 = i / (INPUT_W * INPUT_H);
-            int i1 = (i % (INPUT_W * INPUT_H)) / INPUT_W;
-            int i2 = (i % (INPUT_W * INPUT_H)) % INPUT_W;
+            int i0 = i / (input_w * input_h);
+            int i1 = (i % (input_w * input_h)) / input_w;
+            int i2 = (i % (input_w * input_h)) % input_w;
 #endif
 
-            int x_gidx = IN_OFFSET;
+            int x_gidx = x_offset;
 #if IS_INPUT_PACKED
             x_gidx += mad24(n, vector_size, i) * spatial_dim + s;
 #else
-            x_gidx += n * INPUT_N_STRIDE;
+            x_gidx += n * in_nstr;
 #if USE_SOFTMAX_MODE_INSTANCE
-            x_gidx += i0 * INPUT_C_STRIDE + i1 * INPUT_H_STRIDE + i2;
+            x_gidx += i0 * in_cstr + i1 * in_hstr + i2;
 #else
-            x_gidx += i * INPUT_C_STRIDE + s0 * INPUT_H_STRIDE + s1;
+            x_gidx += i * in_cstr + s0 * in_hstr + s1;
 #endif
 #endif
 
@@ -355,15 +373,15 @@ __kernel void SoftmaxForward(global _FLOAT* x,
             value = exp(value);
 #endif
 
-            int y_gidx = OUT_OFFSET;
+            int y_gidx = y_offset;
 #if IS_OUTPUT_PACKED
             y_gidx += mad24(n, vector_size, i) * spatial_dim + s;
 #else
-            y_gidx += n * OUTPUT_N_STRIDE;
+            y_gidx += n * out_nstr;
 #if USE_SOFTMAX_MODE_INSTANCE
-            y_gidx += i0 * OUTPUT_C_STRIDE + i1 * OUTPUT_H_STRIDE + i2;
+            y_gidx += i0 * out_cstr + i1 * out_hstr + i2;
 #else
-            y_gidx += i * OUTPUT_C_STRIDE + s0 * OUTPUT_H_STRIDE + s1;
+            y_gidx += i * out_cstr + s0 * out_hstr + s1;
 #endif
 #endif
 
@@ -410,8 +428,8 @@ __kernel void SoftmaxForward(global _FLOAT* x,
     int batch_n   = (NUM_BATCH * gid + batch) / spatial_dim; // nth image
     int batch_s   = (NUM_BATCH * gid + batch) % spatial_dim; // which spatial_dim/pixel
 #if(!IS_INPUT_PACKED || !IS_OUTPUT_PACKED) && USE_SOFTMAX_MODE_CHANNEL
-    int batch_s0  = batch_s / INPUT_W;
-    int batch_s1  = batch_s % INPUT_W;
+    int batch_s0  = batch_s / input_w;
+    int batch_s1  = batch_s % input_w;
 #endif
 #if !USE_SOFTMAX_FAST
     l_helper[lid] = (_FLOAT)-MAX_VAL;
@@ -442,20 +460,20 @@ __kernel void SoftmaxForward(global _FLOAT* x,
         if(mad24(batch_n, vector_size, i) * spatial_dim + batch_s < vector_size * grid_size)
         {
 #if !IS_INPUT_PACKED && USE_SOFTMAX_MODE_INSTANCE
-            int i0 = i / (INPUT_W * INPUT_H);
-            int i1 = (i % (INPUT_W * INPUT_H)) / INPUT_W;
-            int i2 = (i % (INPUT_W * INPUT_H)) % INPUT_W;
+            int i0 = i / (input_w * input_h);
+            int i1 = (i % (input_w * input_h)) / input_w;
+            int i2 = (i % (input_w * input_h)) % input_w;
 #endif
 
-            int x_gidx = IN_OFFSET;
+            int x_gidx = x_offset;
 #if IS_INPUT_PACKED
             x_gidx += mad24(batch_n, vector_size, i) * spatial_dim + batch_s;
 #else
-            x_gidx += batch_n * INPUT_N_STRIDE;
+            x_gidx += batch_n * in_nstr;
 #if USE_SOFTMAX_MODE_INSTANCE
-            x_gidx += i0 * INPUT_C_STRIDE + i1 * INPUT_H_STRIDE + i2;
+            x_gidx += i0 * in_cstr + i1 * in_hstr + i2;
 #else
-            x_gidx += i * INPUT_C_STRIDE + batch_s0 * INPUT_H_STRIDE + batch_s1;
+            x_gidx += i * in_cstr + batch_s0 * in_hstr + batch_s1;
 #endif
 #endif
 
@@ -560,20 +578,20 @@ __kernel void SoftmaxForward(global _FLOAT* x,
         if(mad24(batch_n, vector_size, i) * spatial_dim + batch_s < vector_size * grid_size)
         {
 #if !IS_INPUT_PACKED && USE_SOFTMAX_MODE_INSTANCE
-            int i0 = i / (INPUT_W * INPUT_H);
-            int i1 = (i % (INPUT_W * INPUT_H)) / INPUT_W;
-            int i2 = (i % (INPUT_W * INPUT_H)) % INPUT_W;
+            int i0 = i / (input_w * input_h);
+            int i1 = (i % (input_w * input_h)) / input_w;
+            int i2 = (i % (input_w * input_h)) % input_w;
 #endif
 
-            int y_gidx = OUT_OFFSET;
+            int y_gidx = y_offset;
 #if IS_OUTPUT_PACKED
             y_gidx += mad24(batch_n, vector_size, i) * spatial_dim + batch_s;
 #else
-            y_gidx += batch_n * OUTPUT_N_STRIDE;
+            y_gidx += batch_n * out_nstr;
 #if USE_SOFTMAX_MODE_INSTANCE
-            y_gidx += i0 * OUTPUT_C_STRIDE + i1 * OUTPUT_H_STRIDE + i2;
+            y_gidx += i0 * out_cstr + i1 * out_hstr + i2;
 #else
-            y_gidx += i * OUTPUT_C_STRIDE + batch_s0 * OUTPUT_H_STRIDE + batch_s1;
+            y_gidx += i * out_cstr + batch_s0 * out_hstr + batch_s1;
 #endif
 #endif
 
@@ -611,6 +629,53 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
                               const int vector_size,
                               const int grid_size,
                               const int spatial_dim,
+#if IS_OUTPUT_PACKED && IS_DOUTPUT_PACKED && IS_DINPUT_PACKED
+                              UNUSED
+#endif
+                              const int input_h,
+#if IS_OUTPUT_PACKED && IS_DOUTPUT_PACKED && IS_DINPUT_PACKED
+                              UNUSED
+#endif
+                              const int input_w,
+#if IS_OUTPUT_PACKED
+                              UNUSED
+#endif
+                              const int out_nstr,
+#if IS_OUTPUT_PACKED
+                              UNUSED
+#endif
+                              const int out_cstr,
+#if IS_OUTPUT_PACKED
+                              UNUSED
+#endif
+                              const int out_hstr,
+#if IS_DOUTPUT_PACKED
+                              UNUSED
+#endif
+                              const int dout_nstr,
+#if IS_DOUTPUT_PACKED
+                              UNUSED
+#endif
+                              const int dout_cstr,
+#if IS_DOUTPUT_PACKED
+                              UNUSED
+#endif
+                              const int dout_hstr,
+#if IS_DINPUT_PACKED
+                              UNUSED
+#endif
+                              const int din_nstr,
+#if IS_DINPUT_PACKED
+                              UNUSED
+#endif
+                              const int din_cstr,
+#if IS_DINPUT_PACKED
+                              UNUSED
+#endif
+                              const int din_hstr,
+                              const int y_offset,
+                              const int dy_offset,
+                              const int dx_offset,
 #if !USE_ALPHA
                               UNUSED
 #endif
@@ -634,8 +699,8 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
         int n = gid / spatial_dim; // nth image
         int s = gid % spatial_dim; // spatial dimension (h*w)
 #if(!IS_DINPUT_PACKED || !IS_DOUTPUT_PACKED || !IS_OUTPUT_PACKED) && USE_SOFTMAX_MODE_CHANNEL
-        int s0 = s / INPUT_W;
-        int s1 = s % INPUT_W;
+        int s0 = s / input_w;
+        int s1 = s % input_w;
 #endif
 
         _FLOAT channel_dot = (_FLOAT)0; // thread_local helper var
@@ -646,34 +711,34 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
         for(int i = lid; i < vector_size; i += get_local_size(0))
         {
 #if(!IS_OUTPUT_PACKED || !IS_DOUTPUT_PACKED) && USE_SOFTMAX_MODE_INSTANCE
-            int i0 = i / (INPUT_W * INPUT_H);
-            int i1 = (i % (INPUT_W * INPUT_H)) / INPUT_W;
-            int i2 = (i % (INPUT_W * INPUT_H)) % INPUT_W;
+            int i0 = i / (input_w * input_h);
+            int i1 = (i % (input_w * input_h)) / input_w;
+            int i2 = (i % (input_w * input_h)) % input_w;
 #endif
 
 #if !USE_SOFTMAX_LOG
-            int y_gidx = OUT_OFFSET;
+            int y_gidx = y_offset;
 #if IS_OUTPUT_PACKED
             y_gidx += mad24(n, vector_size, i) * spatial_dim + s;
 #else
-            y_gidx += n * OUTPUT_N_STRIDE;
+            y_gidx += n * out_nstr;
 #if USE_SOFTMAX_MODE_INSTANCE
-            y_gidx += i0 * OUTPUT_C_STRIDE + i1 * OUTPUT_H_STRIDE + i2;
+            y_gidx += i0 * out_cstr + i1 * out_hstr + i2;
 #else
-            y_gidx += i * OUTPUT_C_STRIDE + s0 * OUTPUT_H_STRIDE + s1;
+            y_gidx += i * out_cstr + s0 * out_hstr + s1;
 #endif
 #endif
 #endif
 
-            int dy_gidx = DOUT_OFFSET;
+            int dy_gidx = dy_offset;
 #if IS_DOUTPUT_PACKED
             dy_gidx += mad24(n, vector_size, i) * spatial_dim + s;
 #else
-            dy_gidx += n * DOUTPUT_N_STRIDE;
+            dy_gidx += n * dout_nstr;
 #if USE_SOFTMAX_MODE_INSTANCE
-            dy_gidx += i0 * DOUTPUT_C_STRIDE + i1 * DOUTPUT_H_STRIDE + i2;
+            dy_gidx += i0 * dout_cstr + i1 * dout_hstr + i2;
 #else
-            dy_gidx += i * DOUTPUT_C_STRIDE + s0 * DOUTPUT_H_STRIDE + s1;
+            dy_gidx += i * dout_cstr + s0 * dout_hstr + s1;
 #endif
 #endif
 
@@ -705,44 +770,44 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
         {
 #if((!USE_SOFTMAX_LOG && !IS_OUTPUT_PACKED) || !IS_DOUTPUT_PACKED || !IS_DINPUT_PACKED) && \
     USE_SOFTMAX_MODE_INSTANCE
-            int i0 = i / (INPUT_W * INPUT_H);
-            int i1 = (i % (INPUT_W * INPUT_H)) / INPUT_W;
-            int i2 = (i % (INPUT_W * INPUT_H)) % INPUT_W;
+            int i0 = i / (input_w * input_h);
+            int i1 = (i % (input_w * input_h)) / input_w;
+            int i2 = (i % (input_w * input_h)) % input_w;
 #endif
 
-            int dy_gidx = DOUT_OFFSET;
+            int dy_gidx = dy_offset;
 #if IS_DOUTPUT_PACKED
             dy_gidx += mad24(n, vector_size, i) * spatial_dim + s;
 #else
-            dy_gidx += n * DOUTPUT_N_STRIDE;
+            dy_gidx += n * dout_nstr;
 #if USE_SOFTMAX_MODE_INSTANCE
-            dy_gidx += i0 * DOUTPUT_C_STRIDE + i1 * DOUTPUT_H_STRIDE + i2;
+            dy_gidx += i0 * dout_cstr + i1 * dout_hstr + i2;
 #else
-            dy_gidx += i * DOUTPUT_C_STRIDE + s0 * DOUTPUT_H_STRIDE + s1;
+            dy_gidx += i * dout_cstr + s0 * dout_hstr + s1;
 #endif
 #endif
 
-            int dx_gidx = DIN_OFFSET;
+            int dx_gidx = dx_offset;
 #if IS_DINPUT_PACKED
             dx_gidx += mad24(n, vector_size, i) * spatial_dim + s;
 #else
-            dx_gidx += n * DINPUT_N_STRIDE;
+            dx_gidx += n * din_nstr;
 #if USE_SOFTMAX_MODE_INSTANCE
-            dx_gidx += i0 * DINPUT_C_STRIDE + i1 * DINPUT_H_STRIDE + i2;
+            dx_gidx += i0 * din_cstr + i1 * din_hstr + i2;
 #else
-            dx_gidx += i * DINPUT_C_STRIDE + s0 * DINPUT_H_STRIDE + s1;
+            dx_gidx += i * din_cstr + s0 * din_hstr + s1;
 #endif
 #endif
 
-            int y_gidx = OUT_OFFSET;
+            int y_gidx = y_offset;
 #if IS_OUTPUT_PACKED
             y_gidx += mad24(n, vector_size, i) * spatial_dim + s;
 #else
-            y_gidx += n * OUTPUT_N_STRIDE;
+            y_gidx += n * out_nstr;
 #if USE_SOFTMAX_MODE_INSTANCE
-            y_gidx += i0 * OUTPUT_C_STRIDE + i1 * OUTPUT_H_STRIDE + i2;
+            y_gidx += i0 * out_cstr + i1 * out_hstr + i2;
 #else
-            y_gidx += i * OUTPUT_C_STRIDE + s0 * OUTPUT_H_STRIDE + s1;
+            y_gidx += i * out_cstr + s0 * out_hstr + s1;
 #endif
 #endif
 
@@ -781,8 +846,8 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
     int batch_n        = (NUM_BATCH * gid + batch) / spatial_dim; // nth image
     int batch_s        = (NUM_BATCH * gid + batch) % spatial_dim; // which spatial_dim/pixel
 #if(!IS_DINPUT_PACKED || !IS_DOUTPUT_PACKED || !IS_OUTPUT_PACKED) && USE_SOFTMAX_MODE_CHANNEL
-    int batch_s0       = batch_s / INPUT_W;
-    int batch_s1       = batch_s % INPUT_W;
+    int batch_s0       = batch_s / input_w;
+    int batch_s1       = batch_s % input_w;
 #endif
     _FLOAT channel_dot = (_FLOAT)(0); // thread_local helper var
 
@@ -816,32 +881,32 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
         if(mad24(batch_n, vector_size, i) * spatial_dim + batch_s < vector_size * grid_size)
         {
 #if(!IS_OUTPUT_PACKED || !IS_DOUTPUT_PACKED) && USE_SOFTMAX_MODE_INSTANCE
-            int i0 = i / (INPUT_W * INPUT_H);
-            int i1 = (i % (INPUT_W * INPUT_H)) / INPUT_W;
-            int i2 = (i % (INPUT_W * INPUT_H)) % INPUT_W;
+            int i0 = i / (input_w * input_h);
+            int i1 = (i % (input_w * input_h)) / input_w;
+            int i2 = (i % (input_w * input_h)) % input_w;
 #endif
 
-            int y_gidx = OUT_OFFSET;
+            int y_gidx = y_offset;
 #if IS_OUTPUT_PACKED
             y_gidx += mad24(batch_n, vector_size, i) * spatial_dim + batch_s;
 #else
-            y_gidx += batch_n * OUTPUT_N_STRIDE;
+            y_gidx += batch_n * out_nstr;
 #if USE_SOFTMAX_MODE_INSTANCE
-            y_gidx += i0 * OUTPUT_C_STRIDE + i1 * OUTPUT_H_STRIDE + i2;
+            y_gidx += i0 * out_cstr + i1 * out_hstr + i2;
 #else
-            y_gidx += i * OUTPUT_C_STRIDE + batch_s0 * OUTPUT_H_STRIDE + batch_s1;
+            y_gidx += i * out_cstr + batch_s0 * out_hstr + batch_s1;
 #endif
 #endif
 
-            int dy_gidx = DOUT_OFFSET;
+            int dy_gidx = dy_offset;
 #if IS_DOUTPUT_PACKED
             dy_gidx += mad24(batch_n, vector_size, i) * spatial_dim + batch_s;
 #else
-            dy_gidx += batch_n * DOUTPUT_N_STRIDE;
+            dy_gidx += batch_n * dout_nstr;
 #if USE_SOFTMAX_MODE_INSTANCE
-            dy_gidx += i0 * DOUTPUT_C_STRIDE + i1 * DOUTPUT_H_STRIDE + i2;
+            dy_gidx += i0 * dout_cstr + i1 * dout_hstr + i2;
 #else
-            dy_gidx += i * DOUTPUT_C_STRIDE + batch_s0 * DOUTPUT_H_STRIDE + batch_s1;
+            dy_gidx += i * dout_cstr + batch_s0 * dout_hstr + batch_s1;
 #endif
 #endif
 
@@ -888,20 +953,20 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
     for(int i = batch_lid; i < vector_size; i += BATCH_SIZE, index++)
     {
 #if !IS_DINPUT_PACKED && USE_SOFTMAX_MODE_INSTANCE
-        int i0 = i / (INPUT_W * INPUT_H);
-        int i1 = (i % (INPUT_W * INPUT_H)) / INPUT_W;
-        int i2 = (i % (INPUT_W * INPUT_H)) % INPUT_W;
+        int i0 = i / (input_w * input_h);
+        int i1 = (i % (input_w * input_h)) / input_w;
+        int i2 = (i % (input_w * input_h)) % input_w;
 #endif
 
-        int dx_gidx = DIN_OFFSET;
+        int dx_gidx = dx_offset;
 #if IS_DINPUT_PACKED
         dx_gidx += mad24(batch_n, vector_size, i) * spatial_dim + batch_s;
 #else
-        dx_gidx += batch_n * DINPUT_N_STRIDE;
+        dx_gidx += batch_n * din_nstr;
 #if USE_SOFTMAX_MODE_INSTANCE
-        dx_gidx += i0 * DINPUT_C_STRIDE + i1 * DINPUT_H_STRIDE + i2;
+        dx_gidx += i0 * din_cstr + i1 * din_hstr + i2;
 #else
-        dx_gidx += i * DINPUT_C_STRIDE + batch_s0 * DINPUT_H_STRIDE + batch_s1;
+        dx_gidx += i * din_cstr + batch_s0 * din_hstr + batch_s1;
 #endif
 #endif
 

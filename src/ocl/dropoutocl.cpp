@@ -108,10 +108,12 @@ void DropoutDescriptor::InitPRNGState(Handle& handle,
     }
 
     size_t states_num = prng_stateSizeInBytes / sizeof(prngStates);
+    size_t wk_grp_num = std::min(size_t(MAX_PRNG_STATE / 256), (states_num + 255) / 256);
 
-    std::string network_config = std::to_string(states_num) + "x" +
+    std::string network_config = "initprngs-" + std::to_string(states_num) + "x" +
                                  std::to_string(sizeof(prngStates)) + "x" +
-                                 std::to_string(rng_mode) + "x" + std::to_string(prng_seed);
+                                 std::to_string(rng_mode) + "x" + std::to_string(prng_seed) + "x" +
+                                 std::to_string(wk_grp_num);
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
     if(!kernels.empty())
@@ -120,7 +122,6 @@ void DropoutDescriptor::InitPRNGState(Handle& handle,
     }
     else
     {
-        size_t wk_grp_num = std::min(size_t(MAX_PRNG_STATE / 256), (states_num + 255) / 256);
         const std::vector<size_t> vld{256, 1, 1};
         const std::vector<size_t> vgd{wk_grp_num * 256, 1, 1};
 
@@ -226,6 +227,21 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
                        out_len,
                        out_str);
 
+    size_t RD_BLCK    = /* (in_len[4] % 4 == 0) ? 4 : */ (in_len[2] % 2 == 0) ? 2 : 1;
+    size_t total_work = (in_len[4] / RD_BLCK) * in_len[3] * in_len[2] * in_len[1] * in_len[0];
+
+    size_t max_wk_grp =
+        use_mask ? MAX_WORKITEM_NUM : std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth());
+    size_t wk_grp_num =
+        std::min(max_wk_grp / 256,
+                 ((in_len[4] * in_len[3] * in_len[2] * in_len[1] * in_len[0] + 255) / 256));
+
+    size_t states_num = stateSizeInBytes / sizeof(prngStates);
+    if(states_num < wk_grp_num * 256 && !use_mask)
+    {
+        MIOPEN_THROW("Insufficient state size for parallel PRNG");
+    }
+
     std::string program_name = "MIOpenDropout.cl";
     std::string kernel_name  = "DropoutForward";
 
@@ -242,8 +258,8 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
         std::to_string(seed) + "-rng" + std::to_string(rng_mode) + "-rsvsp" +
         std::to_string(static_cast<int>(use_rsvsp)) + "-mask" +
         std::to_string(static_cast<int>(use_mask)) + "-evo" +
-        std::to_string(static_cast<int>(state_evo)) + "-noise" +
-        std::to_string(noise_shape.GetLengths()[0]);
+        std::to_string(static_cast<int>(state_evo)) + "-blk" + std::to_string(RD_BLCK) + "-wg" +
+        std::to_string(wk_grp_num) + "-noise" + std::to_string(noise_shape.GetLengths()[0]);
 
     for(int i = 1; i < noise_shape.GetSize(); i++)
         network_config += "x" + std::to_string(noise_shape.GetLengths()[i]);
@@ -254,7 +270,6 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
     {
         kernels.front()(pstates,
                         dropout,
-                        int(in_len[0]),
                         int(in_len[1]),
                         int(in_len[2]),
                         int(in_len[3]),
@@ -264,20 +279,21 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
                         int(out_str[1]),
                         int(out_str[2]),
                         int(out_str[3]),
-                        int(out_str[4]),
                         x,
                         int(in_str[0]),
                         int(in_str[1]),
                         int(in_str[2]),
                         int(in_str[3]),
-                        int(in_str[4]),
-                        reserveSpace);
+                        reserveSpace,
+                        uint(total_work),
+                        uint(in_offset),
+                        uint(out_offset),
+                        uint(rsvsp_offset));
     }
     else
     {
         std::string params;
 
-        size_t RD_BLCK              = /* (in_len[4] % 4 == 0) ? 4 : */ (in_len[2] % 2 == 0) ? 2 : 1;
         const std::string data_type = GetDataType(xDesc.GetType());
         const std::string READ_DAT_TYPE =
             RD_BLCK == 1 ? data_type : data_type + std::to_string(RD_BLCK);
@@ -285,25 +301,6 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
         params += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_DAT_TYPE=" + READ_DAT_TYPE +
                   " -DREAD_BOOL_TYPE=" +
                   std::string(RD_BLCK == 4 ? "uint" : RD_BLCK == 2 ? "ushort" : "uchar");
-
-        size_t max_wk_grp = use_mask ? MAX_WORKITEM_NUM : std::min(size_t(MAX_PRNG_STATE),
-                                                                   handle.GetImage3dMaxWidth());
-        size_t wk_grp_num =
-            std::min(max_wk_grp / 256,
-                     ((in_len[4] * in_len[3] * in_len[2] * in_len[1] * in_len[0] + 255) / 256));
-
-        size_t states_num = stateSizeInBytes / sizeof(prngStates);
-        if(states_num < wk_grp_num * 256 && !use_mask)
-        {
-            MIOPEN_THROW("Insufficient state size for parallel PRNG");
-        }
-
-        params +=
-            " -DWK_GRP_NUM=" + std::to_string(wk_grp_num) + " -DTOTAL_WORK=" +
-            std::to_string((in_len[4] / RD_BLCK) * in_len[3] * in_len[2] * in_len[1] * in_len[0]);
-
-        params += " -DIN_OFFSET=" + std::to_string(in_offset) + " -DOUT_OFFSET=" +
-                  std::to_string(out_offset) + " -DRSV_OFFSET=" + std::to_string(rsvsp_offset);
 
         if(xDesc.GetType() == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
@@ -321,7 +318,6 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
         handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
             pstates,
             dropout,
-            int(in_len[0]),
             int(in_len[1]),
             int(in_len[2]),
             int(in_len[3]),
@@ -331,14 +327,16 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
             int(out_str[1]),
             int(out_str[2]),
             int(out_str[3]),
-            int(out_str[4]),
             x,
             int(in_str[0]),
             int(in_str[1]),
             int(in_str[2]),
             int(in_str[3]),
-            int(in_str[4]),
-            reserveSpace);
+            reserveSpace,
+            uint(total_work),
+            uint(in_offset),
+            uint(out_offset),
+            uint(rsvsp_offset));
     }
 
     if(miopen::CheckNumericsEnabled())
@@ -434,6 +432,24 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
                        out_len,
                        out_str);
 
+    size_t RD_BLCK    = /* (in_len[4] % 4 == 0) ? 4 : */ (in_len[2] % 2 == 0) ? 2 : 1;
+    size_t total_work = (in_len[4] / RD_BLCK) * in_len[3] * in_len[2] * in_len[1] * in_len[0];
+
+    size_t max_wk_grp =
+        use_prng ? std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth()) : MAX_WORKITEM_NUM;
+    size_t wk_grp_num =
+        std::min(max_wk_grp / 256,
+                 ((in_len[4] * in_len[3] * in_len[2] * in_len[1] * in_len[0] + 255) / 256));
+
+    if(use_prng)
+    {
+        size_t states_num = stateSizeInBytes / sizeof(prngStates);
+        if(states_num < wk_grp_num * 256)
+        {
+            MIOPEN_THROW("Insufficient state size for parallel PRNG");
+        }
+    }
+
     std::string program_name = "MIOpenDropout.cl";
     std::string kernel_name  = "DropoutBackward";
 
@@ -450,8 +466,8 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
         std::to_string(seed) + "-rng" + std::to_string(rng_mode) + "-prng" +
         std::to_string(static_cast<int>(use_prng)) + "-mask" +
         std::to_string(static_cast<int>(use_mask)) + "-evo" +
-        std::to_string(static_cast<int>(state_evo)) + "-noise" +
-        std::to_string(noise_shape.GetLengths()[0]);
+        std::to_string(static_cast<int>(state_evo)) + "-blk" + std::to_string(RD_BLCK) + "-wg" +
+        std::to_string(wk_grp_num) + "-noise" + std::to_string(noise_shape.GetLengths()[0]);
 
     for(int i = 1; i < noise_shape.GetSize(); i++)
         network_config += "x" + std::to_string(noise_shape.GetLengths()[i]);
@@ -462,7 +478,6 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
     {
         kernels.front()(pstates,
                         dropout,
-                        int(in_len[0]),
                         int(in_len[1]),
                         int(in_len[2]),
                         int(in_len[3]),
@@ -472,20 +487,21 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
                         int(out_str[1]),
                         int(out_str[2]),
                         int(out_str[3]),
-                        int(out_str[4]),
                         dx,
                         int(in_str[0]),
                         int(in_str[1]),
                         int(in_str[2]),
                         int(in_str[3]),
-                        int(in_str[4]),
-                        reserveSpace);
+                        reserveSpace,
+                        uint(total_work),
+                        uint(in_offset),
+                        uint(out_offset),
+                        uint(rsvsp_offset));
     }
     else
     {
         std::string params;
 
-        size_t RD_BLCK              = /* (in_len[4] % 4 == 0) ? 4 : */ (in_len[2] % 2 == 0) ? 2 : 1;
         const std::string data_type = GetDataType(dyDesc.GetType());
         const std::string READ_DAT_TYPE =
             RD_BLCK == 1 ? data_type : data_type + std::to_string(RD_BLCK);
@@ -494,28 +510,10 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
                   " -DREAD_BOOL_TYPE=" +
                   std::string(RD_BLCK == 4 ? "uint" : RD_BLCK == 2 ? "ushort" : "uchar");
 
-        size_t max_wk_grp = use_prng ? std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth())
-                                     : MAX_WORKITEM_NUM;
-        size_t wk_grp_num =
-            std::min(max_wk_grp / 256,
-                     ((in_len[4] * in_len[3] * in_len[2] * in_len[1] * in_len[0] + 255) / 256));
-
         if(use_prng)
         {
-            size_t states_num = stateSizeInBytes / sizeof(prngStates);
-            if(states_num < wk_grp_num * 256)
-            {
-                MIOPEN_THROW("Insufficient state size for parallel PRNG");
-            }
             params += " -DUSE_PRNG=1";
         }
-
-        params +=
-            " -DWK_GRP_NUM=" + std::to_string(wk_grp_num) + " -DTOTAL_WORK=" +
-            std::to_string((in_len[4] / RD_BLCK) * in_len[3] * in_len[2] * in_len[1] * in_len[0]);
-
-        params += " -DIN_OFFSET=" + std::to_string(in_offset) + " -DOUT_OFFSET=" +
-                  std::to_string(out_offset) + " -DRSV_OFFSET=" + std::to_string(rsvsp_offset);
 
         if(dyDesc.GetType() == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
@@ -530,7 +528,6 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
         handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
             pstates,
             dropout,
-            int(in_len[0]),
             int(in_len[1]),
             int(in_len[2]),
             int(in_len[3]),
@@ -540,14 +537,16 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
             int(out_str[1]),
             int(out_str[2]),
             int(out_str[3]),
-            int(out_str[4]),
             dx,
             int(in_str[0]),
             int(in_str[1]),
             int(in_str[2]),
             int(in_str[3]),
-            int(in_str[4]),
-            reserveSpace);
+            reserveSpace,
+            uint(total_work),
+            uint(in_offset),
+            uint(out_offset),
+            uint(rsvsp_offset));
     }
 
     if(miopen::CheckNumericsEnabled())
