@@ -26,10 +26,12 @@
 
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/stringutils.hpp>
+#include <miopen/exec_utils.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
 #include <boost/optional.hpp>
 #include <sstream>
+#include <string>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HCC_ENABLE_COV3)
 
@@ -121,4 +123,58 @@ void bin_file_to_str(const boost::filesystem::path& file, std::string& buf)
     bin_file_strm << bin_file_ptr.rdbuf();
     buf = bin_file_strm.str();
 }
+
+static external_tool_version_t HipGetHccVersionImpl()
+{
+    external_tool_version_t hcc_version;
+    const std::string path(MIOPEN_HIP_COMPILER);
+    const std::string mandatory_prefix("(based on HCC ");
+    do
+    {
+        if(path.empty() || !std::ifstream(path).good())
+            break;
+
+        std::stringstream out;
+        MIOPEN_LOG_NQI2("Running: " << '\'' << path << " --version" << '\'');
+        if(miopen::exec::Run(path + " --version", nullptr, &out) != 0)
+            break;
+
+        std::string line;
+        while(!out.eof())
+        {
+            std::getline(out, line);
+            MIOPEN_LOG_NQI2(line);
+            auto begin = line.find(mandatory_prefix);
+            if(begin == std::string::npos)
+                continue;
+
+            begin += mandatory_prefix.size();
+            int v3, v2, v1 = v2 = v3 = -1;
+            char c2, c1 = c2 = 'X';
+            std::istringstream iss(line.substr(begin));
+            iss >> v1 >> c1 >> v2 >> c2 >> v3;
+            if(!iss.fail() && v1 >= 0)
+            {
+                hcc_version.major = v1;
+                if(c1 == '.' && v2 >= 0)
+                {
+                    hcc_version.minor = v2;
+                    if(c2 == '.' && v3 >= 0)
+                        hcc_version.patch = v3;
+                }
+            }
+            break;
+        }
+    } while(false);
+    MIOPEN_LOG_NQI("HCC base: " << hcc_version.major << '.' << hcc_version.minor << '.'
+                                << hcc_version.patch);
+    return hcc_version;
+}
+
+external_tool_version_t HipGetHccVersion()
+{
+    static auto once = HipGetHccVersionImpl();
+    return once;
+}
+
 } // namespace miopen
