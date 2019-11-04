@@ -156,6 +156,8 @@ set( MIOpen_Source
     include/miopen/kernel_build_params.hpp
     include/miopen/algorithm.hpp
     include/miopen/finddb_kernel_cache_key.hpp
+    include/miopen/exec_utils.hpp
+    include/miopen/gcn_asm_utils.hpp
     include/miopen/hip_build_utils.hpp
     include/miopen/solver_id.hpp
     include/miopen/any_solver.hpp
@@ -341,6 +343,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernel_cache.cpp
         lrn.cpp
         mlo_dir_conv.cpp
+        exec_utils.cpp
         ocl/activ_ocl.cpp
         ocl/batchnormocl.cpp
         ocl/convolutionocl.cpp
@@ -577,7 +580,7 @@ rocm_export_targets(
 
 # Install db files
 install(FILES
-    kernels/gfx803_36.cd.pdb.txt 
+    kernels/gfx803_36.cd.pdb.txt
     kernels/gfx803_64.cd.pdb.txt
     kernels/gfx900_64.cd.pdb.txt
     kernels/gfx900_56.cd.pdb.txt
