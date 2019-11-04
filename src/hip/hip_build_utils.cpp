@@ -84,7 +84,8 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     params += " ";
     auto bin_file = tmp_dir->path / (filename + ".o");
     // compile
-    auto env = std::string("KMOPTLLC=\"-mattr=+enable-ds128 -amdgpu-enable-global-sgpr-addr\"");
+    auto env = std::string("KMOPTLLC=\"-mattr=+enable-ds128 -amdgpu-enable-global-sgpr-addr "
+                           "--amdgpu-spill-vgpr-to-agpr=0\"");
     tmp_dir->Execute(env + std::string(" ") + MIOPEN_HIP_COMPILER,
                      params + filename + " -o " + bin_file.string());
     if(!boost::filesystem::exists(bin_file))
