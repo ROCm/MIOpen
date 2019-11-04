@@ -38,6 +38,7 @@
 #include <miopen/datatype.hpp>
 #include <miopen/version.h>
 #include <miopen/stringutils.hpp>
+#include <miopen/hip_build_utils.hpp>
 
 #include <cmath>
 #include <cstring>
@@ -371,9 +372,11 @@ static rocm_meta_version AmdRocmMetadataVersionDetect(const miopen::ConvolutionC
             rmv = rocm_meta_version::Default;
         }
 #else
-        /// \todo Rework this using clang-ocl.
         (void)context;
         rmv = rocm_meta_version::Default;
+        /// This is only to print information onto console.
+        /// \todo Remove as soon as miopen::HipGetHccVersion() taken into real use.
+        (void)miopen::HipGetHccVersion();
 #endif // MIOPEN_BACKEND_OPENCL
     }
     MIOPEN_LOG_NQI(
