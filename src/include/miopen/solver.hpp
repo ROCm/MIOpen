@@ -109,11 +109,6 @@ struct SolverBase
     /// says "I'm suitable" for a problem, it agrees to solve that problem correctly.
     bool IsApplicable(const Context&) const { return false; }
 
-    /// Legacy euristic method which shall return false when a solution
-    /// is known to be slower than some another solution for the same problem config.
-    /// Intended to be used for performance optimization.
-    /// Warning: Non-trivial implementations introduce implicit dependencies between solutions.
-    bool IsFast(const Context&) const { return true; }
     // Returns the workspace size required by the solver for a given ConvolutionContext
     size_t GetWorkspaceSize(const Context&) const { return 0; };
 
@@ -165,7 +160,6 @@ struct PerformanceConfigConvAsm3x3U : Serializable<PerformanceConfigConvAsm3x3U>
 struct ConvAsm3x3U : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
-    bool IsFast(const ConvolutionContext& params) const;
     PerformanceConfigConvAsm3x3U GetPerformanceConfig(const ConvolutionContext&) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const PerformanceConfigConvAsm3x3U&) const;
@@ -245,7 +239,6 @@ struct ConvAsm1x1U : SolverBase<ConvolutionContext>
                                   const PerformanceConfigConvAsm1x1U&) const;
     PerformanceConfigConvAsm1x1U Search(const ConvolutionContext&) const;
     bool IsApplicable(const ConvolutionContext& params) const;
-    bool IsFast(const ConvolutionContext& params) const;
     size_t GetWorkspaceSize(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsm1x1U& config,
@@ -355,7 +348,6 @@ struct ConvAsm1x1UV2 : SolverBase<ConvolutionContext>
                                   const PerformanceConfigConvAsm1x1UV2&) const;
     PerformanceConfigConvAsm1x1UV2 Search(const ConvolutionContext&) const;
     bool IsApplicable(const ConvolutionContext& params) const;
-    bool IsFast(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsm1x1UV2& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -822,7 +814,6 @@ struct ConvAsmBwdWrW3x3 : SolverBase<ConvolutionContext>
                                   const PerformanceConfigAsmDirect3x3WrW&) const;
     PerformanceConfigAsmDirect3x3WrW Search(const ConvolutionContext&) const;
     bool IsApplicable(const ConvolutionContext& params) const;
-    bool IsFast(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigAsmDirect3x3WrW& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -935,7 +926,6 @@ struct ConvAsmBwdWrW1x1 : SolverBase<ConvolutionContext>
                                   const PerformanceConfigConvAsmBwdWrW1x1&) const;
     PerformanceConfigConvAsmBwdWrW1x1 Search(const ConvolutionContext&) const;
     bool IsApplicable(const ConvolutionContext& params) const;
-    bool IsFast(const ConvolutionContext& params) const;
     size_t GetWorkspaceSize(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsmBwdWrW1x1& config,
