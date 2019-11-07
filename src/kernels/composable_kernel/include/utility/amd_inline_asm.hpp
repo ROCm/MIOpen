@@ -8,19 +8,12 @@ namespace ck {
 // outer-product: c[i,j] += inner_product(a[i], b[j])
 __device__ void __outer_product_1x2(float a, float b0, float b1, float& c0, float& c1)
 {
-// disable inline asm due to the compiler issue: SWDEV-202749
-///\to-do: enable the inline asm after the compiler fix
-#if CK_WORKAROUND_SWDEV_202749
-    c0 += a * b0;
-    c1 += a * b1;
-#else
     asm volatile("\n \
             v_mac_f32 %0, %2, %3 \n \
             v_mac_f32 %1, %2, %4 \n \
             "
                  : "=v"(c0), "=v"(c1)
                  : "v"(a), "v"(b0), "v"(b1), "0"(c0), "1"(c1));
-#endif
 }
 
 // outer-product: c[i,j] += inner_product(a[i], b[j])
