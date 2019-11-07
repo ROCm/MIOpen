@@ -405,8 +405,6 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
     return ok;
 }
 
-bool ConvAsmBwdWrW3x3::IsFast(const ConvolutionContext&) const { return true; }
-
 ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
                                            const PerformanceConfigAsmDirect3x3WrW& config,
                                            const bool disableConfigOverrideFromEnv) const

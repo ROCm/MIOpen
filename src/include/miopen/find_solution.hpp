@@ -31,11 +31,8 @@
 #include <miopen/conv_solution.hpp>
 #include <miopen/find_controls.hpp>
 
+#include <limits>
 #include <vector>
-
-/// Allows to explicitly disable performance filtering heuristics
-/// in "Find first convolution only" mode.
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 
 namespace miopen {
 namespace solver {
@@ -131,61 +128,25 @@ ConvSolution FindSolution(Solver s, const Context& context, Db& db)
 template <class... Solvers>
 struct SolverContainer
 {
-    template <class Context, class Db>
-    auto SearchForSolution(const Context& search_params, Db&& db) const
-    {
-        using Solution = typename std::common_type<decltype(
-            FindSolution(Solvers{}, search_params, db))...>::type;
-        Solution solution{miopenStatusUnknownError};
-
-// Using const here causes gcc to ICE
-#if(!defined(__GNUC__) || defined(__clang__))
-        const
-#endif
-            auto no_perf_filtering =
-                miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
-
-        miopen::each_args(
-            [&](auto solver) {
-                if(solver.IsApplicable(search_params) &&
-                   (no_perf_filtering || solver.IsFast(search_params)))
-                {
-                    if(!solution.Succeeded())
-                    {
-                        solution = FindSolution(solver, search_params, db);
-                        if(solution.Succeeded())
-                        {
-                            MIOPEN_LOG_I2(SolverDbId(solver) << ": Success.");
-                            if(solution.construction_params.empty())
-                            {
-                                MIOPEN_THROW(std::string("Internal error in solver: ") +
-                                             SolverDbId(solver));
-                            }
-                        }
-                    }
-                    else
-                        MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped");
-                }
-                else
-                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
-            },
-            Solvers{}...);
-
-        return solution;
-    }
-
     // Search for all applicable solutions among many solvers
     template <class Context, class Db, class Solution = miopen::solver::ConvSolution>
-    std::vector<Solution> SearchForAllSolutions(const Context& search_params, Db&& db) const
+    std::vector<Solution>
+    SearchForAllSolutions(const Context& search_params,
+                          Db&& db,
+                          std::size_t limit = std::numeric_limits<std::size_t>::max()) const
     {
         std::vector<Solution> ss;
+        std::size_t count = 0;
         miopen::each_args(
             [&](auto solver) {
+                if(count >= limit)
+                    return;
                 if(solver.IsApplicable(search_params))
                 {
                     const Solution s = FindSolution(solver, search_params, db);
                     if(s.Succeeded())
                     {
+                        ++count;
                         ss.push_back(s);
                         MIOPEN_LOG_I2(SolverDbId(solver) << ": Success.");
                     }

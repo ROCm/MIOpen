@@ -561,8 +561,6 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
     return ok;
 }
 
-bool ConvAsm1x1UV2::IsFast(const ConvolutionContext&) const { return true; }
-
 ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
                                         const PerformanceConfigConvAsm1x1UV2& config,
                                         const bool disableConfigOverrideFromEnv) const
