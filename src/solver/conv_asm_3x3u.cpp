@@ -212,8 +212,6 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
     // clang-format on
 }
 
-bool ConvAsm3x3U::IsFast(const ConvolutionContext& params) const { return params.in_width >= 50; }
-
 ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
                                       const PerformanceConfigConvAsm3x3U& config,
                                       const bool disableConfigOverrideFromEnv) const

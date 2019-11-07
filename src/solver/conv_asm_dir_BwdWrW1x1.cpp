@@ -516,8 +516,6 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     return ok;
 }
 
-bool ConvAsmBwdWrW1x1::IsFast(const ConvolutionContext&) const { return true; }
-
 static int divide_round_plus_inf(const int x, const int y)
 {
     assert(x >= 0 && y > 0);
