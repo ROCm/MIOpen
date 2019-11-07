@@ -457,8 +457,6 @@ size_t ConvAsm1x1U::GetWorkspaceSize(const ConvolutionContext& params) const
     }
     return 0;
 }
-bool ConvAsm1x1U::IsFast(const ConvolutionContext&) const { return true; }
-
 static int divide_round_plus_inf(const int x, const int y)
 {
     assert(x >= 0 && y > 0);
