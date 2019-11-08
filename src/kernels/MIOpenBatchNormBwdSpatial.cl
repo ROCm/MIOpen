@@ -135,7 +135,11 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     gcn_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
 #endif
 
-    variance               = mad(-mean, mean, variance);
+    variance = mad(-mean, mean, variance);
+    if(variance < 0)
+    {
+        variance = 0;
+    }
     invVariance            = rsqrt(variance + epsilon);
 #endif // end -- Recalc mean and variance
     //-------------------------------------------
@@ -374,7 +378,11 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #endif
 
     // REDUCTION COMPLETE ---------------------------
-    variance    = mad(-mean, mean, variance);
+    variance = mad(-mean, mean, variance);
+    if(variance < 0)
+    {
+        variance = 0;
+    }
     invVariance = rsqrt(variance + epsilon);
 
 #else // MIO_BN_USESAVED == 1
@@ -597,7 +605,11 @@ MIOpenBatchNormBwdSpatialFinalMeanVariance(__global _FLOAT* __restrict meanvarbu
 #endif
 
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
-    variance    = mad(-mean, mean, variance);
+    variance = mad(-mean, mean, variance);
+    if(variance < 0)
+    {
+        variance = 0;
+    }
     invVariance = rsqrt(variance + epsilon);
     if(lid == commitID)
     {
@@ -950,7 +962,11 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #endif
 
     // REDUCTION COMPLETE -----------------------
-    variance    = mad(-mean, mean, variance);
+    variance = mad(-mean, mean, variance);
+    if(variance < 0)
+    {
+        variance = 0;
+    }
     invVariance = rsqrt(variance + epsilon);
 
 // RECALC of MEAN and VARIANCE complete

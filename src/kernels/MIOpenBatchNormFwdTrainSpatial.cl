@@ -128,7 +128,11 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     gcn_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
 #endif
 
-    variance    = mad(-mean, mean, variance);
+    variance = mad(-mean, mean, variance);
+    if(variance < 0)
+    {
+        variance = 0;
+    }
     invVariance = rsqrt(variance + (_FLOAT_ACCUM)epsilon);
     pvscale     = (_FLOAT_ACCUM)lcl_scale;
     pvbias      = (_FLOAT_ACCUM)lcl_bias;
@@ -312,7 +316,11 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #endif
 
     // REDUCTION COMPLETE ---------------------------
-    variance    = mad(-mean, mean, variance);
+    variance = mad(-mean, mean, variance);
+    if(variance < 0)
+    {
+        variance = 0;
+    }
     invVariance = rsqrt(variance + epsilon);
 
     pvscale = lcl_scale;
@@ -506,7 +514,11 @@ MIOpenBatchNormFwdTrainSpatialFinalMeanVariance(
 #endif
 
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
-    variance    = mad(-mean, mean, variance);
+    variance = mad(-mean, mean, variance);
+    if(variance < 0)
+    {
+        variance = 0;
+    }
     invVariance = rsqrt(variance + epsilon);
     if(lid == commitID)
     {
@@ -654,7 +666,11 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     gcn_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
 #endif
 
-    variance    = mad(-mean, mean, variance);
+    variance = mad(-mean, mean, variance);
+    if(variance < 0)
+    {
+        variance = 0;
+    }
     invVariance = rsqrt(variance + (_FLOAT_PREC)epsilon);
 
     if(lid < MIO_BN_HW)
