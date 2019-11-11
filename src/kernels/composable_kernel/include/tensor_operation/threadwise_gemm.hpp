@@ -114,7 +114,7 @@ struct ThreadwiseGemmTransANormalBNormalC
                     const index_t cindex_0 = MatrixC::CalculateOffset(m, 0);
                     const index_t cindex_1 = MatrixC::CalculateOffset(m, 1);
 
-                    __outer_product_1x2(
+                    amd_assembly_outer_product_1x2(
                         p_a[aindex], p_b[bindex_0], p_b[bindex_1], p_c[cindex_0], p_c[cindex_1]);
                 });
 
@@ -129,15 +129,15 @@ struct ThreadwiseGemmTransANormalBNormalC
                     const index_t cindex_2 = MatrixC::CalculateOffset(m, 2);
                     const index_t cindex_3 = MatrixC::CalculateOffset(m, 3);
 
-                    __outer_product_1x4(p_a[aindex],
-                                        p_b[bindex_0],
-                                        p_b[bindex_1],
-                                        p_b[bindex_2],
-                                        p_b[bindex_3],
-                                        p_c[cindex_0],
-                                        p_c[cindex_1],
-                                        p_c[cindex_2],
-                                        p_c[cindex_3]);
+                    amd_assembly_outer_product_1x4(p_a[aindex],
+                                                   p_b[bindex_0],
+                                                   p_b[bindex_1],
+                                                   p_b[bindex_2],
+                                                   p_b[bindex_3],
+                                                   p_c[cindex_0],
+                                                   p_c[cindex_1],
+                                                   p_c[cindex_2],
+                                                   p_c[cindex_3]);
                 });
             }
         }
