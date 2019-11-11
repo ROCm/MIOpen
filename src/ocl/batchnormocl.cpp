@@ -162,7 +162,7 @@ void BatchNormForwardTraining(Handle& handle,
         unsigned int ldsgcn   = xlocalsize / 64;
         unsigned int ldsnogcn = xlocalsize;
         std::string algo_name = "miopenBatchNormForwardTrainingSpatial";
-        if(in_nhw < 33554432 && in_cstride > 1024)
+        if((in_nhw < 33554432 && in_cstride > 1024) || ((in_cstride > 60) && bfpmixparm))
         {
             //
         }
@@ -191,7 +191,7 @@ void BatchNormForwardTraining(Handle& handle,
             ldsgcn       = ylocalsize / 64;
             ldsnogcn     = ylocalsize;
         }
-        if((n > 768) && (in_cstride > 150))
+        if((n > 768) && (in_cstride > 150) && bfp32parm)
         {
             variant      = 2;
             xlocalsize   = 1;
@@ -1048,6 +1048,14 @@ void BatchNormBackward(Handle& handle,
             single       = false;
             ldsgcn       = ylocalsize / 64;
             ldsnogcn     = ylocalsize;
+        }
+        if((in_cstride < 200) && (in_cstride > 60) && bfpmixparm)
+        {
+            variant    = 1;
+            xlocalsize = 1024;
+            xgridsize  = c * xlocalsize;
+            ldsgcn     = xlocalsize / 64;
+            ldsnogcn   = xlocalsize;
         }
         std::string algo_name = "miopenBatchNormBackwardPropSpatial";
         std::string network_config =
