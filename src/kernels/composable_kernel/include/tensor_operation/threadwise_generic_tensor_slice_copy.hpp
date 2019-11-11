@@ -123,7 +123,7 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                     static_if<SrcAddressSpace == AddressSpace::global>{}([&](auto fwd) {
 #if CK_USE_AMD_BUFFER_ADDRESSING
                         *reinterpret_cast<src_vector_t*>(&p_src_long_vector[buffer_offset]) =
-                            __buffer_load<SrcData, SrcDataPerAccess>(
+                            amd_intrinsic_buffer_load<SrcData, SrcDataPerAccess>(
                                 fwd(p_src), src_coord.GetOffset(), 0);
 #else
                         *reinterpret_cast<src_vector_t*>(&p_src_long_vector[buffer_offset]) =
@@ -162,7 +162,7 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                 {
                     static_if<DstAddressSpace == AddressSpace::global>{}([&](auto fwd) {
 #if CK_USE_AMD_BUFFER_ADDRESSING
-                        __buffer_store<DstData, DstDataPerAccess>(
+                        amd_intrinsic_buffer_store<DstData, DstDataPerAccess>(
                             *reinterpret_cast<dst_vector_t*>(&p_dst_long_vector[buffer_offset]),
                             fwd(p_dst),
                             dst_coord.GetOffset(),
@@ -311,7 +311,7 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                         static_if<SrcAddressSpace == AddressSpace::global>{}([&](auto) {
 #if CK_USE_AMD_BUFFER_ADDRESSING
                             *reinterpret_cast<src_vector_t*>(&p_src_long_vector[buffer_offset]) =
-                                __buffer_load<SrcData, SrcDataPerAccess>(
+                                amd_intrinsic_buffer_load<SrcData, SrcDataPerAccess>(
                                     p_src, src_nonlinear_coord.GetOffset(), src_linear_offset);
 #else
                             *reinterpret_cast<src_vector_t*>(&p_src_long_vector[buffer_offset]) =
@@ -503,7 +503,7 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                     {
                         static_if<DstAddressSpace == AddressSpace::global>{}([&](auto) {
 #if CK_USE_AMD_BUFFER_ADDRESSING
-                            __buffer_store<DstData, DstDataPerAccess>(
+                            amd_intrinsic_buffer_store<DstData, DstDataPerAccess>(
                                 *reinterpret_cast<dst_vector_t*>(&p_dst_long_vector[buffer_offset]),
                                 p_dst,
                                 dst_nonlinear_coord.GetOffset(),
