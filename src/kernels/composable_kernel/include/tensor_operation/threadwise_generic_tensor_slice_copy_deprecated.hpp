@@ -335,7 +335,7 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1_deprecated
                         //     3. src_merged_offset can be runtime value (no assumption imposed)
                         static_if<SrcAddressSpace == AddressSpace::global>{}([&](auto fwd) {
 #if CK_USE_AMD_BUFFER_ADDRESSING
-                            vector_data = __buffer_load<SrcData, SrcDataPerAccess>(
+                            vector_data = amd_intrinsic_buffer_load<SrcData, SrcDataPerAccess>(
                                 fwd(p_src), src_merged_offset, src_normal_offset);
 #else
                             vector_data = *reinterpret_cast<const src_vector_t*>(
@@ -444,7 +444,7 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1_deprecated
                     //     3. dst_merged_offset can be runtime value (no assumption imposed)
                     static_if<DstAddressSpace == AddressSpace::global>{}([&](auto fwd) {
 #if CK_USE_AMD_BUFFER_ADDRESSING
-                        __buffer_store<DstData, DstDataPerAccess>(
+                        amd_intrinsic_buffer_store<DstData, DstDataPerAccess>(
                             vector_data, fwd(p_dst), dst_merged_offset, dst_normal_offset);
 #else
                         *reinterpret_cast<dst_vector_t*>(
