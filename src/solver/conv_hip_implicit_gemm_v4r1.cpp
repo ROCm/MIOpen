@@ -69,15 +69,16 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) con
     if(ctx.group_counts != 1)
         return false;
 
-    // remember: ConvolutionContext has swapped dimensions for you!
-    // undo the swap first to avoid confusion
+    // retrieve dimension from ConvolutionContext
+    // remember: ConvolutionContext has swapped some dimensions for you!
+    // undo the swap to avoid confusion
     std::size_t n  = ctx.batch_sz;
-    std::size_t k  = ctx.n_inputs;
-    std::size_t c  = ctx.n_outputs;
+    std::size_t k  = ctx.n_inputs;  // unswap
+    std::size_t c  = ctx.n_outputs; // unswap
     std::size_t y  = ctx.kernel_size_h;
     std::size_t x  = ctx.kernel_size_w;
-    std::size_t ho = ctx.in_height;
-    std::size_t wo = ctx.in_width;
+    std::size_t ho = ctx.in_height; // unswap
+    std::size_t wo = ctx.in_width;  // unswap
 
     // equivalent dimension for bwd-wrw
     std::size_t n_eqv  = c;
@@ -97,11 +98,32 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
     ConvSolution result;
     KernelInfo construction_parameters;
 
-    std::size_t n  = ctx.batch_sz;
-    std::size_t k  = ctx.n_outputs;
-    std::size_t ho = ctx.out_height;
-    std::size_t wo = ctx.out_width;
+    // retrieve dimension from ConvolutionContex
+    std::size_t n               = ctx.batch_sz;
+    std::size_t k               = ctx.n_outputs;
+    std::size_t c               = ctx.n_inputs;
+    std::size_t hi              = ctx.in_height;
+    std::size_t wi              = ctx.in_width;
+    std::size_t ho              = ctx.out_height;
+    std::size_t wo              = ctx.out_width;
+    std::size_t y               = ctx.kernel_size_h;
+    std::size_t x               = ctx.kernel_size_w;
+    std::size_t conv_stride_h   = ctx.kernel_stride_h;
+    std::size_t conv_stride_w   = ctx.kernel_stride_w;
+    std::size_t conv_dilation_h = ctx.kernel_dilation_h;
+    std::size_t conv_dilation_w = ctx.kernel_dilation_w;
 
+    // adjust padding size to align with the way MIOpen deal with padding
+    std::size_t left_pad_h = ctx.pad_h;
+    std::size_t left_pad_w = ctx.pad_w;
+
+    std::size_t hi_padded = 1 + (y - 1) * conv_dilation_h + (ho - 1) * conv_stride_h;
+    std::size_t wi_padded = 1 + (x - 1) * conv_dilation_w + (wo - 1) * conv_stride_w;
+
+    std::size_t right_pad_h = hi_padded > (left_pad_h + hi) ? hi_padded - (left_pad_h + hi) : 0;
+    std::size_t right_pad_w = wi_padded > (left_pad_w + wi) ? wi_padded - (left_pad_w + wi) : 0;
+
+    //
     std::size_t b = (n * ho * wo) / 8;
 
     std::size_t b_per_block = 16;
@@ -137,23 +159,23 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
     // clang-format off
     construction_parameters.comp_options = 
         std::string(" -std=c++14 ") +
-        std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ctx.batch_sz) +
-        std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ctx.n_outputs) +
-        std::string(" -DCK_PARAM_PROBLEM_C=") + std::to_string(ctx.n_inputs) +
-        std::string(" -DCK_PARAM_PROBLEM_HI=") + std::to_string(ctx.in_height) +
-        std::string(" -DCK_PARAM_PROBLEM_WI=") + std::to_string(ctx.in_width) +
-        std::string(" -DCK_PARAM_PROBLEM_HO=") + std::to_string(ctx.out_height) +
-        std::string(" -DCK_PARAM_PROBLEM_WO=") + std::to_string(ctx.out_width) +
-        std::string(" -DCK_PARAM_PROBLEM_Y=") + std::to_string(ctx.kernel_size_h) +
-        std::string(" -DCK_PARAM_PROBLEM_X=") + std::to_string(ctx.kernel_size_w) +
-        std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_H=") + std::to_string(ctx.kernel_stride_h) +
-        std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_W=") + std::to_string(ctx.kernel_stride_w) +
-        std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_H=") + std::to_string(ctx.kernel_dilation_h) +
-        std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_W=") + std::to_string(ctx.kernel_dilation_w) +
-        std::string(" -DCK_PARAM_PROBLEM_LEFT_PAD_H=") + std::to_string(ctx.pad_h) +
-        std::string(" -DCK_PARAM_PROBLEM_LEFT_PAD_W=") + std::to_string(ctx.pad_w) +
-        std::string(" -DCK_PARAM_PROBLEM_RIGHT_PAD_H=") + std::to_string(ctx.pad_h) +
-        std::string(" -DCK_PARAM_PROBLEM_RIGHT_PAD_W=") + std::to_string(ctx.pad_w) +
+        std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(n) +
+        std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(k) +
+        std::string(" -DCK_PARAM_PROBLEM_C=") + std::to_string(c) +
+        std::string(" -DCK_PARAM_PROBLEM_HI=") + std::to_string(hi) +
+        std::string(" -DCK_PARAM_PROBLEM_WI=") + std::to_string(wi) +
+        std::string(" -DCK_PARAM_PROBLEM_HO=") + std::to_string(ho) +
+        std::string(" -DCK_PARAM_PROBLEM_WO=") + std::to_string(wo) +
+        std::string(" -DCK_PARAM_PROBLEM_Y=") + std::to_string(y) +
+        std::string(" -DCK_PARAM_PROBLEM_X=") + std::to_string(x) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_H=") + std::to_string(conv_stride_h) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_W=") + std::to_string(conv_stride_w) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_H=") + std::to_string(conv_dilation_h) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_W=") + std::to_string(conv_dilation_w) +
+        std::string(" -DCK_PARAM_PROBLEM_LEFT_PAD_H=") + std::to_string(left_pad_h) +
+        std::string(" -DCK_PARAM_PROBLEM_LEFT_PAD_W=") + std::to_string(left_pad_w) +
+        std::string(" -DCK_PARAM_PROBLEM_RIGHT_PAD_H=") + std::to_string(right_pad_h) +
+        std::string(" -DCK_PARAM_PROBLEM_RIGHT_PAD_W=") + std::to_string(right_pad_w) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_FORWARD=") + std::to_string(1) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_DATA=") + std::to_string(0) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_WEIGHT=") + std::to_string(0) +
@@ -192,18 +214,39 @@ ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& c
     ConvSolution result;
     KernelInfo construction_parameters;
 
-    // remember: ConvolutionContext has swapped dimensions for you!
-    // undo the swap first to avoid confusion
-    std::size_t k = ctx.n_inputs;
-    std::size_t c = ctx.n_outputs;
-    std::size_t y = ctx.kernel_size_h;
-    std::size_t x = ctx.kernel_size_w;
+    // retrieve dimension from ConvolutionContex
+    // remember: ConvolutionContext has swapped some dimensions for you!
+    // undo the swap to avoid confusion
+    std::size_t n               = ctx.batch_sz;
+    std::size_t k               = ctx.n_inputs;   // unswap
+    std::size_t c               = ctx.n_outputs;  // unswap
+    std::size_t hi              = ctx.out_height; // unswap
+    std::size_t wi              = ctx.out_width;  // unswap
+    std::size_t ho              = ctx.in_height;  // unswap
+    std::size_t wo              = ctx.in_width;   // unswap
+    std::size_t y               = ctx.kernel_size_h;
+    std::size_t x               = ctx.kernel_size_w;
+    std::size_t conv_stride_h   = ctx.kernel_stride_h;
+    std::size_t conv_stride_w   = ctx.kernel_stride_w;
+    std::size_t conv_dilation_h = ctx.kernel_dilation_h;
+    std::size_t conv_dilation_w = ctx.kernel_dilation_w;
+
+    // adjust padding size to align with the way MIOpen deal with padding
+    std::size_t left_pad_h = ctx.pad_h;
+    std::size_t left_pad_w = ctx.pad_w;
+
+    std::size_t hi_padded = 1 + (y - 1) * conv_dilation_h + (ho - 1) * conv_stride_h;
+    std::size_t wi_padded = 1 + (x - 1) * conv_dilation_w + (wo - 1) * conv_stride_w;
+
+    std::size_t right_pad_h = hi_padded > (left_pad_h + hi) ? hi_padded - (left_pad_h + hi) : 0;
+    std::size_t right_pad_w = wi_padded > (left_pad_w + wi) ? wi_padded - (left_pad_w + wi) : 0;
 
     // equivalent dimension for bwd-wrw
     std::size_t n_eqv  = c;
     std::size_t ho_eqv = y;
     std::size_t wo_eqv = x;
 
+    //
     std::size_t b = (n_eqv * ho_eqv * wo_eqv) / 8;
 
     std::size_t b_per_block = 16;
@@ -239,23 +282,23 @@ ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& c
     // clang-format off
     construction_parameters.comp_options = 
         std::string(" -std=c++14 ") +
-        std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ctx.batch_sz) +
-        std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ctx.n_inputs) + // undo swap
-        std::string(" -DCK_PARAM_PROBLEM_C=") + std::to_string(ctx.n_outputs) + // undo swap
-        std::string(" -DCK_PARAM_PROBLEM_HI=") + std::to_string(ctx.out_height) + // undo swap
-        std::string(" -DCK_PARAM_PROBLEM_WI=") + std::to_string(ctx.out_width) + // undo swap
-        std::string(" -DCK_PARAM_PROBLEM_HO=") + std::to_string(ctx.in_height) +  // undo swap
-        std::string(" -DCK_PARAM_PROBLEM_WO=") + std::to_string(ctx.in_width) + // undo swap
-        std::string(" -DCK_PARAM_PROBLEM_Y=") + std::to_string(ctx.kernel_size_h) +
-        std::string(" -DCK_PARAM_PROBLEM_X=") + std::to_string(ctx.kernel_size_w) +
-        std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_H=") + std::to_string(ctx.kernel_stride_h) +
-        std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_W=") + std::to_string(ctx.kernel_stride_w) +
-        std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_H=") + std::to_string(ctx.kernel_dilation_h) +
-        std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_W=") + std::to_string(ctx.kernel_dilation_w) +
-        std::string(" -DCK_PARAM_PROBLEM_LEFT_PAD_H=") + std::to_string(ctx.pad_h) +
-        std::string(" -DCK_PARAM_PROBLEM_LEFT_PAD_W=") + std::to_string(ctx.pad_w) +
-        std::string(" -DCK_PARAM_PROBLEM_RIGHT_PAD_H=") + std::to_string(ctx.pad_h) +
-        std::string(" -DCK_PARAM_PROBLEM_RIGHT_PAD_W=") + std::to_string(ctx.pad_w) +
+        std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(n) +
+        std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(k) +
+        std::string(" -DCK_PARAM_PROBLEM_C=") + std::to_string(c) +
+        std::string(" -DCK_PARAM_PROBLEM_HI=") + std::to_string(hi) +
+        std::string(" -DCK_PARAM_PROBLEM_WI=") + std::to_string(wi) +
+        std::string(" -DCK_PARAM_PROBLEM_HO=") + std::to_string(ho) +
+        std::string(" -DCK_PARAM_PROBLEM_WO=") + std::to_string(wo) +
+        std::string(" -DCK_PARAM_PROBLEM_Y=") + std::to_string(y) +
+        std::string(" -DCK_PARAM_PROBLEM_X=") + std::to_string(x) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_H=") + std::to_string(conv_stride_h) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_W=") + std::to_string(conv_stride_w) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_H=") + std::to_string(conv_dilation_h) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_W=") + std::to_string(conv_dilation_w) +
+        std::string(" -DCK_PARAM_PROBLEM_LEFT_PAD_H=") + std::to_string(left_pad_h) +
+        std::string(" -DCK_PARAM_PROBLEM_LEFT_PAD_W=") + std::to_string(left_pad_w) +
+        std::string(" -DCK_PARAM_PROBLEM_RIGHT_PAD_H=") + std::to_string(right_pad_h) +
+        std::string(" -DCK_PARAM_PROBLEM_RIGHT_PAD_W=") + std::to_string(right_pad_w) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_FORWARD=") + std::to_string(0) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_DATA=") + std::to_string(0) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_WEIGHT=") + std::to_string(1) +
