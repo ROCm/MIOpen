@@ -84,8 +84,10 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     params += " ";
     auto bin_file = tmp_dir->path / (filename + ".o");
     // compile
-    auto env = std::string("KMOPTLLC=\"-mattr=+enable-ds128 -amdgpu-enable-global-sgpr-addr "
-                           "--amdgpu-spill-vgpr-to-agpr=0\"");
+    auto env = std::string("KMOPTLLC=\"-mattr=+enable-ds128 -amdgpu-enable-global-sgpr-addr");
+    if(miopen::HipGetHccVersion() >= external_tool_version_t{2, 8, 0})
+        env += " --amdgpu-spill-vgpr-to-agpr=0";
+    env += '\"';
     tmp_dir->Execute(env + std::string(" ") + MIOPEN_HIP_COMPILER,
                      params + filename + " -o " + bin_file.string());
     if(!boost::filesystem::exists(bin_file))
@@ -176,6 +178,23 @@ external_tool_version_t HipGetHccVersion()
 {
     static auto once = HipGetHccVersionImpl();
     return once;
+}
+
+bool external_tool_version_t::operator>=(const external_tool_version_t& rhs) const
+{
+    if(major > rhs.major)
+        return true;
+    else if(major == rhs.major)
+    {
+        if(minor > rhs.minor)
+            return true;
+        else if(minor == rhs.minor)
+            return (patch >= rhs.patch);
+        else
+            return false;
+    }
+    else
+        return false;
 }
 
 } // namespace miopen
