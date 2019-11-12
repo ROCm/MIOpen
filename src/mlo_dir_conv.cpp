@@ -365,7 +365,7 @@ static rocm_meta_version AmdRocmMetadataVersionDetect(const miopen::ConvolutionC
         (void)context;
         rmv = rocm_meta_version::Default;
         /// This is only to print information onto console.
-        /// \todo Remove as soon as miopen::HipGetHccVersion() taken into real use.
+        /// \todo Consider removing this call in installable builds.
         (void)miopen::HipGetHccVersion();
 #endif // MIOPEN_BACKEND_OPENCL
     }
