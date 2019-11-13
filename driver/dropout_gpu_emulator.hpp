@@ -23,7 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
+#ifndef GUARD_MIOPEN_DROPOUT_GPU_EMULATOR_HPP
+#define GUARD_MIOPEN_DROPOUT_GPU_EMULATOR_HPP
 
 #include <cmath>
 #include <cassert>
@@ -121,9 +122,9 @@ void xorwow_lite_init_emu(prngStates* cur_state,
     cur_state->v += t0;
     cur_state->d += t1 + t0;
 
-    xorwow_skipahead_emu(subsequence, cur_state, precalc_xorwow_skipahead_matrices);
+    xorwow_skipahead_emu(subsequence, cur_state, precalc_xorwow_skipahead_sequence_matrices);
 
-    xorwow_skipahead_emu(offset, cur_state, precalc_xorwow_skipahead_sequence_matrices);
+    xorwow_skipahead_emu(offset, cur_state, precalc_xorwow_skipahead_matrices);
     cur_state->d += static_cast<unsigned int>(offset) * 362437;
 }
 
@@ -346,3 +347,5 @@ void RunDropoutBackwardEmulator(const miopenDropoutDescriptor_t dropoutDesc,
                             bool(reservespace[ri]) ? dout[oi] / (1 - dropout_rate) : 0);
                     }
 }
+
+#endif // GUARD_MIOPEN_DROPOUT_GPU_EMULATOR_HPP
