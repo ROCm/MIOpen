@@ -209,9 +209,9 @@ void xorwow_lite_init_emu(prngStates* cur_state,
     cur_state->v += t0;
     cur_state->d += t1 + t0;
 
-    xorwow_skipahead_emu(subsequence, cur_state, precalc_xorwow_skipahead_matrices);
+    xorwow_skipahead_emu(subsequence, cur_state, precalc_xorwow_skipahead_sequence_matrices);
 
-    xorwow_skipahead_emu(offset, cur_state, precalc_xorwow_skipahead_sequence_matrices);
+    xorwow_skipahead_emu(offset, cur_state, precalc_xorwow_skipahead_matrices);
     cur_state->d += static_cast<unsigned int>(offset) * 362437;
 }
 
