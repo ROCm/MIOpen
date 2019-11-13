@@ -500,6 +500,8 @@ COMMAND $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 128 
 COMMAND $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 128  832    7  7  --weights   32  832  1   1   --pads_strides_dilations    0   0   1   1   2   2
 COMMAND $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 128  832    7  7  --weights   192  832  1   1   --pads_strides_dilations    0   0   1   1   2   2
 COMMAND $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 128  832    7  7  --weights   128  832  1   1   --pads_strides_dilations    0   0   1   1   2   2
+
+COMMAND $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 16  2048    7  7  --weights   192  2048 1   1   --pads_strides_dilations    0   0   1   1   2   2
 )
 
 if(MIOPEN_TEST_DEEPBENCH)
