@@ -1,6 +1,10 @@
 #ifndef CK_IMPLICITGEMM_UTIL_HPP_
 #define CK_IMPLICITGEMM_UTIL_HPP_
 
+#include <miopen/env.hpp>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS)
+
 namespace miopen {
 namespace solver {
 
@@ -39,6 +43,18 @@ inline static bool NextTwoPower(int& v)
     return false;
 }
 
+static inline bool IsXdlopsSupport(const ConvolutionContext& c)
+{
+
+    return StartsWith(c.GetStream().GetDeviceName(), "gfx908") &&
+           // disable xdlops kernels by default due to possible failures:
+           // 1) inline asm may crash
+           // 2) llvm intrin may has incorrect results
+           /// \todo enable xdlops kernels by default after llvm intrin fix (SWDEV-200782) in
+           /// release
+           miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{});
+}
+
 inline static int GetReadWriteVectorSize(const int v)
 {
     return v % 4 == 0 ? 4 : (v % 2 == 0 ? 2 : 1);
@@ -60,9 +76,16 @@ inline static uint32_t GetEPackLength(const ConvolutionContext& ctx)
     // Based on data type, Es are packed
     int EPACK = 1;
     if(ctx.IsFp16()) // for fp16, either 2 or 4 Es could be packed
-        EPACK = (C * Y * X % 32) == 0 ? 4 : 2;
+    {
+        if(IsXdlopsSupport(ctx)) // in xdlops, 4 fp16s are packed
+            EPACK = 4;
+        else // for fp16, either 2 or 4 Es could be packed in non-xdlops scenarios.
+            EPACK = (C * Y * X % 32) == 0 ? 4 : 2;
+    }
     else if(ctx.IsBfp16()) // for bfp16, only 2 Es could be packed
+    {
         EPACK = 2;
+    }
     return EPACK;
 }
 
