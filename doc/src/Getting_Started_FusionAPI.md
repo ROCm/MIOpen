@@ -188,6 +188,7 @@ Once the fusion plan object is destroyed, all the operations created are destroy
 
 ## Supported Fusions 
 The tables below outlines the supported fusions for fp32 and fp16 as well as any applicable constraints. **(C = convolution, B = bias, N = batch normalization, A = activation)**
+Fusion Plans with grouped convolutions are not supported.
 
 
 ![Convolution based fp32 fusion](fp32fusions.png)
