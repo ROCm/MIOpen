@@ -58,82 +58,96 @@ pipeline {
         image = "miopen"
         buildflag = '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=releasewithdebug'
         test = "test_conv2d"
+        baseargs = "--all --verbose --disable-verification-cache --disable-validation"
     }
     stages{
         stage("HIP Release Convolution fp32"){
             parallel{
-                stage("2D pads_strides_dilations 0 0 1 1 1 1") {
+                stage("Batch Factor 1") {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob("hcc", buildflag, image, test, '--all -n 4 --verbose --disable-verification-cache --pads_strides_dilations 0 0 1 1 1 1')
+                        buildJob("hcc", buildflag, image, test, '-n 1 ' + baseargs)
                     }
                 }
-                /*stage("2D pads_strides_dilations 0 0 2 2 1 1") {
+                stage("Batch Factor 2") {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob("hcc", buildflag, image, test, '--all -n 4 --verbose --disable-verification-cache --pads_strides_dilations 0 0 2 2 1 1')
-                    }
-                }*/
-                stage("2D pads_strides_dilations 2 2 1 1 1 1") {
-                    agent{ label rocmnode("vega") }
-                    steps{
-                        buildJob("hcc", buildflag, image, test, '--all -n 4 --verbose --disable-verification-cache --pads_strides_dilations 2 2 1 1 1 1')
+                        buildJob("hcc", buildflag, image, test, '-n 2 ' + baseargs)
                     }
                 }
-                
-                stage("2D pads_strides_dilations 3 3 2 2 1 1") {
+                stage("Batch Factor 4") {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob("hcc", buildflag, image, test, '--all -n 4 --verbose --disable-verification-cache --pads_strides_dilations 3 3 2 2 1 1')
+                        buildJob("hcc", buildflag, image, test, '-n 4 ' + baseargs)
                     }
                 }
-                
-                stage("2D pads_strides_dilations 0 0 1 1 2 2") {
-                    agent{ label rocmnode("vega") }
+            }
+        }
+        stage("HIP Release Convolution fp16"){
+            parallel{
+                stage("Batch Factor 1") {
+                    agent{ label rocmnode("vega20") }
                     steps{
-                        buildJob("hcc", buildflag, image, test, '--all -n 4 --verbose --disable-verification-cache --pads_strides_dilations 0 0 1 1 2 2')
+                        buildJob("hcc", buildflag, image, test, '-n 1 --half ' + baseargs)
                     }
                 }
-                
-                stage("2D pads_strides_dilations 2 2 1 1 4 3") {
-                    agent{ label rocmnode("vega") }
+                stage("Batch Factor 2") {
+                    agent{ label rocmnode("vega20") }
                     steps{
-                        buildJob("hcc", buildflag, image, test, '--all -n 4 --verbose --disable-verification-cache --pads_strides_dilations 2 2 1 1 4 3')
+                        buildJob("hcc", buildflag, image, test, '-n 2 --half' + baseargs)
                     }
                 }
+                stage("Batch Factor 4") {
+                    agent{ label rocmnode("vega20") }
+                    steps{
+                        buildJob("hcc", buildflag, image, test, '-n 4 --half' + baseargs)
+                    }
+                }
+            }
+        }
+        stage("HIP Release Convolution bfp16"){
+            parallel{
+                stage("Batch Factor 1") {
+                    agent{ label rocmnode("vega20") }
+                    steps{
+                        buildJob("hcc", buildflag, image, test, '-n 1 --bfloat16 ' + baseargs)
+                    }
+                }
+                stage("Batch Factor 2") {
+                    agent{ label rocmnode("vega20") }
+                    steps{
+                        buildJob("hcc", buildflag, image, test, '-n 2 --bfloat16 ' + baseargs)
+                    }
+                }
+                stage("Batch Factor 4") {
+                    agent{ label rocmnode("vega20") }
+                    steps{
+                        buildJob("hcc", buildflag, image, test, '-n 4 --bfloat16 ' + baseargs)
+                    }
+                }
+            }
+        }
 
-                stage("2D pads_strides_dilations 3 3 2 2 3 4") {
-                    agent{ label rocmnode("vega") }
+        stage("HIP Release Convolution on gfx908"){
+            parallel{
+                stage("Batch Factor 1 fp32") {
+                    agent{ label rocmnode("gfx908") }
                     steps{
-                        buildJob("hcc", buildflag, image, test, '--all -n 4 --verbose --disable-verification-cache --pads_strides_dilations 3 3 2 2 3 4')
+                        buildJob("hcc", buildflag, image, test, '-n 1 ' + baseargs)
                     }
                 }
-
-                stage("2D pads_strides_dilations 1 1 1 1 1 1") {
-                    agent{ label rocmnode("vega") }
+                stage("Batch Factor 1 fp16") {
+                    agent{ label rocmnode("gfx908") }
                     steps{
-                        buildJob("hcc", buildflag, image, test, '--all -n 4 --verbose --disable-verification-cache --pads_strides_dilations 1 1 1 1 1 1')
+                        buildJob("hcc", buildflag, image, test, '-n 1 --half ' + baseargs)
                     }
                 }
-                
-                /*stage("2D pads_strides_dilations 1 1 2 2 1 1") {
-                    agent{ label rocmnode("vega") }
+                stage("Batch Factor 1 bfp16") {
+                    agent{ label rocmnode("gfx908") }
                     steps{
-                        buildJob("hcc", buildflag, image, test, '--all -n 4 --verbose --disable-verification-cache --pads_strides_dilations 1 1 2 2 1 1')
+                        buildJob("hcc", buildflag, image, test, '-n 1 --bfloat16 ' + baseargs)
                     }
-                }*/
-                /*stage("2D pads_strides_dilations 3 3 2 2 4 4") {
-                    agent{ label rocmnode("vega") }
-                    steps{
-                        buildJob("hcc", buildflag, image, test, '--all -n 4 --verbose --disable-verification-cache --pads_strides_dilations 3 3 2 2 4 4')
-                    }
-                }*/
-                /*stage("2D pads_strides_dilations 1 1 2 2 2 1") {
-                    agent{ label rocmnode("vega") }
-                    steps{
-                        buildJob("hcc", buildflag, image, test, '--all -n 4 --verbose --disable-verification-cache --pads_strides_dilations 1 1 2 2 2 1')
-                    }
-                }*/
+                }
             }
         }
     }    
