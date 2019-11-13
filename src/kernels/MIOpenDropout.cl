@@ -208,7 +208,7 @@ void xorwow_skipahead(unsigned long long skp,
         uint mat[XORWOW_PRECALC_MATRICES_SZ];
         copy_const_arr(mat, skipahead_mat[mat_idx], XORWOW_PRECALC_MATRICES_SZ);
 
-        for(uint i = 0; i < (skp & XORWOW_JUMP_LOG2_MASK); i++)
+        if(skp & XORWOW_JUMP_LOG2_MASK)
         {
             mat_vec(mat, xor_vec);
         }
@@ -228,7 +228,7 @@ void xorwow_skipahead(unsigned long long skp,
             mat_pow(matrixB, matrixA, 1ULL << XORWOW_JUMP_LOG2);
             copy_arr(matrixA, matrixB, XORWOW_PRECALC_MATRICES_SZ);
 
-            for(uint i = 0; i < (skp & XORWOW_JUMP_LOG2_MASK); i++)
+            if(skp & XORWOW_JUMP_LOG2_MASK)
             {
                 mat_vec(matrixA, xor_vec);
             }
@@ -268,9 +268,9 @@ void xorwow_lite_init(prngStates* cur_state,
     cur_state->v += t0;
     cur_state->d += t1 + t0;
 
-    xorwow_skipahead(subsequence, cur_state, precalc_xorwow_skipahead_matrices);
+    xorwow_skipahead(subsequence, cur_state, precalc_xorwow_skipahead_sequence_matrices);
 
-    xorwow_skipahead(offset, cur_state, precalc_xorwow_skipahead_sequence_matrices);
+    xorwow_skipahead(offset, cur_state, precalc_xorwow_skipahead_matrices);
     cur_state->d += (uint)(offset)*362437;
 }
 

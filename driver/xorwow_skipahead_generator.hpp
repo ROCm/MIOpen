@@ -23,7 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
+#ifndef GUARD_MIOPEN_XORWOW_SKIPAHEAD_GENERATOR_HPP
+#define GUARD_MIOPEN_XORWOW_SKIPAHEAD_GENERATOR_HPP
 
 #include <cmath>
 #include <cassert>
@@ -48,6 +49,8 @@
 #define XORWOW_PRECALC_MATRICES_NUM 32
 #define XORWOW_JUMP_LOG2 2
 #define XORWOW_JUMP_LOG2_MASK ((1 << XORWOW_JUMP_LOG2) - 1)
+#define XORWOW_PRECALC_MATRICES_NUM_DEV 64
+#define XORWOW_JUMP_LOG2_DEV 1
 #define XORWOW_SEQUENCE_JUMP_LOG2 67
 
 unsigned int xorwow_next(prngStates* cur_state)
@@ -159,7 +162,7 @@ void skipahead_one_step(unsigned int* matrix)
 }
 
 // Generate (2^67)-step-ahead matrices
-void generate_skipahead_matrices(unsigned int* matrix, bool is_skip_seq)
+void generate_skipahead_matrices(unsigned int* matrix, bool is_skip_seq, bool is_device)
 {
     unsigned int matrixA[XORWOW_PRECALC_MATRICES_SZ];
     unsigned int matrixB[XORWOW_PRECALC_MATRICES_SZ];
@@ -177,22 +180,25 @@ void generate_skipahead_matrices(unsigned int* matrix, bool is_skip_seq)
     }
 
     std::copy(std::begin(matrixA), std::end(matrixA), matrix);
-    for(int k = 1; k < XORWOW_PRECALC_MATRICES_NUM; k++)
+    for(int k = 1; k < (is_device ? XORWOW_PRECALC_MATRICES_NUM_DEV : XORWOW_PRECALC_MATRICES_NUM);
+        k++)
     {
         std::copy(std::begin(matrixA), std::end(matrixA), std::begin(matrixB));
-        mat_pow(matrixA, matrixB, 1ULL << XORWOW_JUMP_LOG2);
+        mat_pow(matrixA, matrixB, 1ULL << (is_device ? XORWOW_JUMP_LOG2_DEV : XORWOW_JUMP_LOG2));
         std::copy(std::begin(matrixA), std::end(matrixA), &matrix[k * XORWOW_PRECALC_MATRICES_SZ]);
     }
 }
 
 // write macros in file
-void write_macro(std::ofstream& os)
+void write_macro(std::ofstream& os, bool is_device)
 {
     os << "#define XORWOW_DIM " << XORWOW_DIM << std::endl;
     os << "#define XORWOW_BITS " << XORWOW_BITS << std::endl;
     os << "#define XORWOW_PRECALC_MATRICES_SZ (XORWOW_BITS * XORWOW_DIM * XORWOW_DIM)" << std::endl;
-    os << "#define XORWOW_PRECALC_MATRICES_NUM " << XORWOW_PRECALC_MATRICES_NUM << std::endl;
-    os << "#define XORWOW_JUMP_LOG2 2" << std::endl;
+    os << "#define XORWOW_PRECALC_MATRICES_NUM "
+       << (is_device ? XORWOW_PRECALC_MATRICES_NUM_DEV : XORWOW_PRECALC_MATRICES_NUM) << std::endl;
+    os << "#define XORWOW_JUMP_LOG2 " << (is_device ? XORWOW_JUMP_LOG2_DEV : XORWOW_JUMP_LOG2)
+       << std::endl;
     os << "#define XORWOW_JUMP_LOG2_MASK ((1 << XORWOW_JUMP_LOG2) - 1)" << std::endl;
     os << "#define XORWOW_SEQUENCE_JUMP_LOG2 67" << std::endl;
     os << std::endl;
@@ -203,7 +209,8 @@ void write_mat(std::ofstream& os, const std::string name, unsigned int* matrix, 
 {
     os << "static " << (is_device ? "__constant " : "const ") << "unsigned int " << name
        << "[XORWOW_PRECALC_MATRICES_NUM][XORWOW_PRECALC_MATRICES_SZ] = {" << std::endl;
-    for(int k = 0; k < XORWOW_PRECALC_MATRICES_NUM; k++)
+    for(int k = 0; k < (is_device ? XORWOW_PRECALC_MATRICES_NUM_DEV : XORWOW_PRECALC_MATRICES_NUM);
+        k++)
     {
         os << "    {";
         for(int j = 0; j < XORWOW_PRECALC_MATRICES_SZ; j++)
@@ -223,12 +230,20 @@ void generate_skipahead_file()
     static unsigned int skipahead_matrices_sequence[XORWOW_PRECALC_MATRICES_NUM]
                                                    [XORWOW_PRECALC_MATRICES_SZ];
 
-    generate_skipahead_matrices(&skipahead_matrices[0][0], false);
-    generate_skipahead_matrices(&skipahead_matrices_sequence[0][0], true);
+    static unsigned int skipahead_matrices_dev[XORWOW_PRECALC_MATRICES_NUM_DEV]
+                                              [XORWOW_PRECALC_MATRICES_SZ];
+    static unsigned int skipahead_matrices_sequence_dev[XORWOW_PRECALC_MATRICES_NUM_DEV]
+                                                       [XORWOW_PRECALC_MATRICES_SZ];
+
+    generate_skipahead_matrices(&skipahead_matrices[0][0], false, false);
+    generate_skipahead_matrices(&skipahead_matrices_sequence[0][0], true, false);
+
+    generate_skipahead_matrices(&skipahead_matrices_dev[0][0], false, true);
+    generate_skipahead_matrices(&skipahead_matrices_sequence_dev[0][0], true, true);
 
     std::ofstream os;
     os.open("../src/include/miopen/precalc_xorwow_skipahead_matrices.hpp");
-    write_macro(os);
+    write_macro(os, false);
     write_mat(os,
               "precalc_xorwow_skipahead_matrices",
               static_cast<unsigned int*>(&skipahead_matrices[0][0]),
@@ -237,16 +252,16 @@ void generate_skipahead_file()
     os.clear();
 
     os.open("../src/kernels/precalc_xorwow_skipahead_matrices_kernel.h");
-    write_macro(os);
+    write_macro(os, true);
     write_mat(os,
               "precalc_xorwow_skipahead_matrices",
-              static_cast<unsigned int*>(&skipahead_matrices[0][0]),
+              static_cast<unsigned int*>(&skipahead_matrices_dev[0][0]),
               true);
     os.close();
     os.clear();
 
     os.open("../src/include/miopen/precalc_xorwow_skipahead_sequence_matrices.hpp");
-    write_macro(os);
+    write_macro(os, false);
     write_mat(os,
               "precalc_xorwow_skipahead_sequence_matrices",
               static_cast<unsigned int*>(&skipahead_matrices_sequence[0][0]),
@@ -255,10 +270,12 @@ void generate_skipahead_file()
     os.clear();
 
     os.open("../src/kernels/precalc_xorwow_skipahead_sequence_matrices_kernel.h");
-    write_macro(os);
+    write_macro(os, true);
     write_mat(os,
               "precalc_xorwow_skipahead_sequence_matrices",
-              static_cast<unsigned int*>(&skipahead_matrices_sequence[0][0]),
+              static_cast<unsigned int*>(&skipahead_matrices_sequence_dev[0][0]),
               true);
     os.close();
 }
+
+#endif // GUARD_MIOPEN_XORWOW_SKIPAHEAD_GENERATOR_HPP
