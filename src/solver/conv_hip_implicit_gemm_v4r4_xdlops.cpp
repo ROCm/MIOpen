@@ -40,13 +40,6 @@ namespace solver {
 #define WORKAROUND_FAILED_VECTOR_LOAD 1
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS)
-
-static inline bool IsXdlopsSupport(const ConvolutionContext& c)
-{
-    return StartsWith(c.GetStream().GetDeviceName(), "gfx908") &&
-           !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{});
-}
 
 inline bool PerformanceImplicitGemmXdlops::
 operator==(const PerformanceImplicitGemmXdlops& other) const
