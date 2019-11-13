@@ -479,25 +479,16 @@ static std::vector<DefaultKernelArg> WinogradNodeArgs()
 void FusionMDGraph::InitConv(FusionMDGraph& g)
 {
     const auto common_constr = {
-        "stride_h == stride_w",
-        "dilation_h == 1",
-        "dilation_w == 1",
-        "c * x * y <= (2^28)",
-        "k * x * y <= (2^28)",
-        "k * oH * oW <= (2^28)",
-        "c * iH * iW <= (2^28)",
-        "x <= (2^16)",
-        "y <= (2^16)",
-        "pad_h <= (2^16)",
-        "pad_w <= (2^16)",
-        "oH <= (2^16)",
-        "oW <= (2^16)",
-        "iH <= (2^16)",
-        "iW <= (2^16)",
-        "c <= (2^16)",
-        "k <= (2^16)",
-        "iN <= (2^16)",
-        "((padded_x / 3) * (padded_y / 3) * c ) >= 18",
+        "group_count == 1",      "stride_h == stride_w",
+        "dilation_h == 1",       "dilation_w == 1",
+        "c * x * y <= (2^28)",   "k * x * y <= (2^28)",
+        "k * oH * oW <= (2^28)", "c * iH * iW <= (2^28)",
+        "x <= (2^16)",           "y <= (2^16)",
+        "pad_h <= (2^16)",       "pad_w <= (2^16)",
+        "oH <= (2^16)",          "oW <= (2^16)",
+        "iH <= (2^16)",          "iW <= (2^16)",
+        "c <= (2^16)",           "k <= (2^16)",
+        "iN <= (2^16)",          "((padded_x / 3) * (padded_y / 3) * c ) >= 18",
     };
     FusionMDGraph_Edge_Map empty_map;
     empty_map["constraints"] = {"weight === 0"};
@@ -719,7 +710,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                             true);
             FusionMDGraph_Edge_Map map_asm_conv;
 
-            map_asm_conv["constraints"] = {"pad_h == 0",
+            map_asm_conv["constraints"] = {"group_count == 1",
+                                           "pad_h == 0",
                                            "pad_w == 0",
                                            "stride_h == 1",
                                            "stride_w == 1",
@@ -766,6 +758,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
             FusionMDGraph_Edge_Map map_asm_conv;
 
             map_asm_conv["constraints"] = {
+                "group_count == 1",
                 "pad_h == 0",
                 "pad_w == 0",
                 "stride_h == 1",
@@ -811,7 +804,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         for(auto len : lens)
         {
             FusionMDGraph_Edge_Map map_conv_bias;
-            map_conv_bias["constraints"] = {"dilation_h == 1",
+            map_conv_bias["constraints"] = {"group_count == 1",
+                                            "dilation_h == 1",
                                             "dilation_w == 1",
                                             "x == " + std::to_string(len),
                                             "y == " + std::to_string(len),
@@ -873,7 +867,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         for(auto len : lens)
         {
             FusionMDGraph_Edge_Map map_conv_bias;
-            map_conv_bias["constraints"] = {"dilation_h == 1",
+            map_conv_bias["constraints"] = {"group_count == 1",
+                                            "dilation_h == 1",
                                             "dilation_w == 1",
                                             "x == " + std::to_string(len),
                                             "y == " + std::to_string(len),

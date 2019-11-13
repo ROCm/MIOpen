@@ -387,6 +387,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
     inflags.AddInputFlag(
         "out_channels", 'k', "32", "Number of Output Channels (Default=32)", "int");
+    inflags.AddInputFlag(
+        "group_count", 'g', "1", "Number of groups in convolution (Default=1)", "int");
     inflags.AddInputFlag("fil_h", 'y', "3", "Filter Height (Default=3)", "int");
     inflags.AddInputFlag("fil_w", 'x', "3", "Filter Width (Default=3)", "int");
     inflags.AddInputFlag(
@@ -486,6 +488,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
     int stride_w              = inflags.GetValueInt("conv_stride_w");
     int dilation_h            = inflags.GetValueInt("dilation_h");
     int dilation_w            = inflags.GetValueInt("dilation_w");
+    int group_count           = inflags.GetValueInt("group_count");
 
     pmode = miopenPaddingDefault;
     mode  = miopenConvolution;
@@ -509,8 +512,14 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
         pad_w = 0;
     }
 
-    miopen::deref(convDesc) = miopen::ConvolutionDescriptor(
-        2, mode, pmode, {pad_h, pad_w}, {stride_h, stride_w}, {dilation_h, dilation_w});
+    miopen::deref(convDesc) = miopen::ConvolutionDescriptor(2,
+                                                            mode,
+                                                            pmode,
+                                                            {pad_h, pad_w},
+                                                            {stride_h, stride_w},
+                                                            {dilation_h, dilation_w},
+                                                            {0, 0},
+                                                            group_count);
     return miopenStatusSuccess;
 }
 
@@ -781,22 +790,32 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
     int stride_h, stride_w, pad_h, pad_w, dilation_h, dilation_w;
+    std::string plan_error_str;
+
     miopenConvolutionMode_t mode;
     miopenGetConvolutionDescriptor(
         convDesc, &mode, &pad_h, &pad_w, &stride_h, &stride_w, &dilation_h, &dilation_w);
 
     miopenCreateOpConvForward(fusePlanDesc, &convoOp, convDesc, weightTensor);
+    plan_error_str += "Convolution";
 
     if(bias_mode)
     {
         miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasTensor);
+        plan_error_str += "+Bias";
     }
 
     if(fusion_mode != miopen_fusion_cba)
+    {
         miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bn_mode, biasScaleTensor);
+        plan_error_str += "+BatchNorm";
+    }
 
     if(fusion_mode != miopen_fusion_cn)
+    {
         miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
+        plan_error_str += "+Activation";
+    }
 
     miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev->GetMem());
 
@@ -824,10 +843,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
     miopenError = miopenCompileFusionPlan(GetHandle(), fusePlanDesc);
     if(miopenError != miopenStatusSuccess)
     {
-        if(bias_mode)
-            std::cerr << "ConvBiasBatchNormActivInference plan not supported." << std::endl;
-        else
-            std::cerr << "ConvBatchNormActivInference plan not supported." << std::endl;
+        std::cerr << plan_error_str << " plan not supported." << std::endl;
         exit(EXIT_FAILURE);
     }
 
