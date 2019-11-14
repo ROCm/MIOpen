@@ -271,6 +271,23 @@ void PerformanceImplicitGemmXdlops::EuristicInit(const ConvolutionContext& ctx)
         WeiBlockCopyClusterLengths_K = 32;
     }
 
+    // 32,32,4,32,32,4,16,4,16
+    if(!IsValid(ctx))
+    {
+        BPerBlock = 32;
+        KPerBlock = 32;
+        EPerBlock = 4;
+
+        GemmMPerWave = 32;
+        GemmNPerWave = 32;
+
+        InBlockCopyClusterLengths_E = 4;
+        InBlockCopyClusterLengths_B = 16;
+
+        WeiBlockCopyClusterLengths_E = 4;
+        WeiBlockCopyClusterLengths_K = 16;
+    }
+
     if(!IsValid(ctx))
     {
         MIOPEN_LOG_E("All attempts failed");
@@ -633,7 +650,7 @@ bool ConvHipImplicitGemmV4R4WrWXdlops::IsApplicable(const ConvolutionContext& ct
 
     return IsXdlopsSupport(ctx) && ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.group_counts == 1 &&
            ctx.n_outputs % 8 == 0 &&
-           (ctx.n_outputs * ctx.kernel_size_h * ctx.kernel_size_w) % 64 == 0 &&
+           (ctx.n_outputs * ctx.kernel_size_h * ctx.kernel_size_w) % 32 == 0 &&
            ctx.n_inputs % 32 == 0;
 }
 
