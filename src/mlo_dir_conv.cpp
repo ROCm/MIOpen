@@ -56,8 +56,10 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_NEWER)
 
@@ -439,9 +441,10 @@ void mlo_construct_activ_lrn_pooling_common::setupFloats()
 void miopen::ConvolutionContext::DetectRocm()
 {
     // Detect assembly kernels
-    use_binaries    = false;
-    use_asm_kernels = false;
-    rmv             = rocm_meta_version::Default;
+    use_binaries            = false;
+    use_asm_kernels         = false;
+    use_opencl_convolutions = !miopen::IsDisabled(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS{});
+    rmv                     = rocm_meta_version::Default;
     if(mloIsAmdRocmOpencl(*this))
     {
         use_asm_kernels =
