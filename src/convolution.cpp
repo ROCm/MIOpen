@@ -653,9 +653,9 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeImplicitGemm(
         }
         return sz;
     }
-    catch(const miopen::Exception&)
+    catch(const miopen::Exception& ex)
     {
-        MIOPEN_LOG_E("failed in ForwardGetWorkSpaceSizeImplicitGemm");
+        MIOPEN_LOG_WE(ex.what());
         return 0;
     }
 }
@@ -682,8 +682,9 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
         }
         return sz;
     }
-    catch(const miopen::Exception&)
+    catch(const miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return 0;
     }
 }
@@ -744,8 +745,9 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
         }
         return sz;
     }
-    catch(const miopen::Exception&)
+    catch(const miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return 0;
     }
 }
@@ -780,8 +782,9 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeWinograd(Handle& handle,
         }
         return sz;
     }
-    catch(const miopen::Exception&)
+    catch(const miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return 0;
     }
 }
@@ -811,8 +814,9 @@ std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeImplicitGemm(
         }
         return sz;
     }
-    catch(const miopen::Exception&)
+    catch(const miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return 0;
     }
 }
