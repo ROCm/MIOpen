@@ -36,6 +36,8 @@
 namespace miopen {
 namespace solver {
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM)
+
 bool PerformanceImplicitGemm::operator==(const PerformanceImplicitGemm& other) const
 {
     // clang-format off
@@ -602,7 +604,8 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         InBlockCopySrcDataPerRead_B   = 1;
     }
 
-    bool use_amd_inline_asm = true;
+    bool use_amd_inline_asm =
+        !miopen::IsDisabled(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM{});
     if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx8"))
         use_amd_inline_asm = false;
 
@@ -667,7 +670,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K=") + std::to_string(WeiBlockCopyDstDataPerWrite_K) +
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx)) +
-        std::string(" -DCK_BLOCKWISE_GEMM_USE_AMD_INLINE_ASM=") + std::to_string(use_amd_inline_asm ? 1 : 0) +
+        std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + std::to_string(use_amd_inline_asm ? 1 : 0) +
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
