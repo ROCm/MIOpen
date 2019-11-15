@@ -233,11 +233,7 @@ std::vector<miopen::solver::ConvSolution>
 FindImplicitGemmWrWAllSolutions(const miopen::ConvolutionContext& ctx)
 {
 #if IMPLICIT_GEMM_FIND_FIRST_SOLUTION
-    auto ss = GetImplicitGemmWrWSolvers().SearchForSolution(ctx, GetDb(ctx));
-    if(ss.Succeeded())
-        return {ss};
-    else
-        return {};
+    return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), 1);
 #else
     return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
 #endif
