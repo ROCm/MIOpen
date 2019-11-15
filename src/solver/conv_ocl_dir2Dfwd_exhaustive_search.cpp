@@ -162,8 +162,7 @@ static int MeasurePerfConfig(Handle& handle,
 #if !MIOPEN_ALLOC_BUFFERS
     if(params.bias && bias_ocl_buf == nullptr)
     {
-        MIOPEN_LOG((MIOPEN_INSTALLABLE ? miopen::LoggingLevel::Info : miopen::LoggingLevel::Error),
-                   "Legacy search: Bias buffer required");
+        MIOPEN_LOG_WE("Legacy search: Bias buffer required");
         return 2;
     }
 #endif
@@ -197,8 +196,7 @@ static int MeasurePerfConfig(Handle& handle,
     }
     catch(miopen::Exception& ex)
     {
-        MIOPEN_LOG((MIOPEN_INSTALLABLE ? miopen::LoggingLevel::Info : miopen::LoggingLevel::Error),
-                   "Status: " << ex.status << ", Message: \"" << ex.what() << '\"');
+        MIOPEN_LOG_WE("Status: " << ex.status << ", Message: \"" << ex.what() << '\"');
         return -1;
     }
 

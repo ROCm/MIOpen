@@ -223,9 +223,8 @@ class DbRecord
 
         const bool ok = values.Deserialize(s);
         if(!ok)
-            MIOPEN_LOG((MIOPEN_INSTALLABLE ? LoggingLevel::Warning : miopen::LoggingLevel::Error),
-                       "Perf db record is obsolete or corrupt: " << s
-                                                                 << ". Performance may degrade.");
+            MIOPEN_LOG_WE(
+                "Perf db record is obsolete or corrupt: " << s << ". Performance may degrade.");
         return ok;
     }
 
