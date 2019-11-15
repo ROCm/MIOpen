@@ -25,11 +25,26 @@
  *******************************************************************************/
 
 .if ROCM_METADATA_VERSION == 5
+    // The ".option.machine..." symbols pre-defined by the Assember
+    // in code-object v2 mode are not exist in CO v3 mode, but we have
+    // ".amdgcn.gfx..." symbols instead. Let's define the ".option.machine..."
+    // symbols for backward compatibility of CO v2 assembly sources
+    // with the code-object-v3 assembly mode.
     .ifdef .option.machine_version_major
         .error ".option.machine_version_major already defined"
         .end
     .endif
+    .ifdef .option.machine_version_minor
+        .error ".option.machine_version_minor already defined"
+        .end
+    .endif
+    .ifdef .option.machine_version_stepping
+        .error ".option.machine_version_stepping already defined"
+        .end
+    .endif
     .set .option.machine_version_major, .amdgcn.gfx_generation_number
+    .set .option.machine_version_minor, .amdgcn.gfx_generation_minor
+    .set .option.machine_version_stepping, .amdgcn.gfx_generation_stepping
 .endif
 
 LAYOUT_DATA_NCHW = 0
@@ -235,16 +250,16 @@ log2 wave_size_log2, wave_size
         v_cvt_f16_f32 \v_dst_reg, \v_src_reg
     .elseif(\src_type == TYPE_FP32 && \dst_type == TYPE_BFP16)
         v_mov_b32 \v_tmp_reg, 0x1
-        v_cmp_class_f32 \s2_tmp_b64, \v_src_reg, \v_tmp_reg //Signaling NaN  
+        v_cmp_class_f32 \s2_tmp_b64, \v_src_reg, \v_tmp_reg //Signaling NaN
         s_and_saveexec_b64 \s2_tmp_b64, \s2_tmp_b64
-        
+
         v_or_b32 \v_src_reg,  0x10000, \v_src_reg
-        s_mov_b64 exec, \s2_tmp_b64        
+        s_mov_b64 exec, \s2_tmp_b64
         .ifdef MIOPEN_USE_RNE_BFLOAT16
             .if(MIOPEN_USE_RNE_BFLOAT16 == 1)
                 v_mov_b32 \v_tmp_reg, 0x207
                 v_cmp_class_f32 exec, \v_src_reg, \v_tmp_reg //check NANs and INFs
-                
+
                 s_xor_b64 exec, exec, \s2_tmp_b64
                 v_bfe_u32 \v_tmp_reg, \v_src_reg, 16, 1
                 v_add_u32 \v_tmp_reg, 0x7fff, \v_tmp_reg
@@ -252,13 +267,13 @@ log2 wave_size_log2, wave_size
 
                 s_mov_b64 exec, \s2_tmp_b64
             .endif
-        .endif        
-        
+        .endif
+
         v_lshrrev_b32 \v_dst_reg, 16, \v_src_reg
     .elseif(\src_type == TYPE_BFP16 && \dst_type == TYPE_FP32)
         v_lshlrev_b32 \v_dst_reg, 16, \v_src_reg
     .elseif (\dst_type != \src_type)
-        .error "wrong convertion type" 
+        .error "wrong conversion type"
     .endif
 .endm
 
