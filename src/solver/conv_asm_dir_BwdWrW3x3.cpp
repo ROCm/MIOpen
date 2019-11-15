@@ -548,8 +548,9 @@ int ConvAsmBwdWrW3x3::RunAndMeasureSolution(miopen::Handle& profile_h,
         elapsed_time = profile_h.GetKernelTime();
     }
 #ifdef NDEBUG
-    catch(miopen::Exception&)
+    catch(miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return -1;
     }
 #endif
