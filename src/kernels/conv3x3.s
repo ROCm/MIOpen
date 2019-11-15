@@ -1034,7 +1034,7 @@ loop_end:
 amdhsa.version: [ 1, 0 ]
 amdhsa.kernels:
   - .name: miopenGcnAsmConv3x3U
-    .symbol: miopenGcnAsmConv3x3U@kd
+    .symbol: miopenGcnAsmConv3x3U.kd
     .sgpr_count: \sc
     .vgpr_count: \wc
     .language: "OpenCL C"
