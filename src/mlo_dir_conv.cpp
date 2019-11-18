@@ -56,8 +56,10 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_NEWER)
 
@@ -131,8 +133,8 @@ static auto GetImplicitGemmSolvers()
     return miopen::solver::SolverContainer<miopen::solver::ConvHipImplicitGemmV4R4Xdlops_1x1,
                                            miopen::solver::ConvHipImplicitGemmV4R4FwdXdlops,
                                            miopen::solver::ConvHipImplicitGemmV4_1x1,
-                                           miopen::solver::ConvHipImplicitGemmV4R1Fwd,
-                                           miopen::solver::ConvHipImplicitGemmV4Fwd>{};
+                                           miopen::solver::ConvHipImplicitGemmV4Fwd,
+                                           miopen::solver::ConvHipImplicitGemmV4R1Fwd>{};
 }
 
 static auto GetWindogradSolvers()
@@ -144,9 +146,9 @@ static auto GetWindogradSolvers()
 
 static auto GetImplicitGemmWrWSolvers()
 {
-    return miopen::solver::SolverContainer<miopen::solver::ConvHipImplicitGemmV4R1WrW,
+    return miopen::solver::SolverContainer<miopen::solver::ConvHipImplicitGemmV4R4WrWXdlops,
                                            miopen::solver::ConvHipImplicitGemmV4WrW,
-                                           miopen::solver::ConvHipImplicitGemmV4R4WrWXdlops>{};
+                                           miopen::solver::ConvHipImplicitGemmV4R1WrW>{};
 }
 
 static auto GetWindogradWrWSolvers()
@@ -230,7 +232,11 @@ AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx)
 std::vector<miopen::solver::ConvSolution>
 FindImplicitGemmWrWAllSolutions(const miopen::ConvolutionContext& ctx)
 {
+#if IMPLICIT_GEMM_FIND_FIRST_SOLUTION
+    return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), 1);
+#else
     return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+#endif
 }
 
 std::vector<miopen::solver::ConvSolution>
@@ -431,9 +437,10 @@ void mlo_construct_activ_lrn_pooling_common::setupFloats()
 void miopen::ConvolutionContext::DetectRocm()
 {
     // Detect assembly kernels
-    use_binaries    = false;
-    use_asm_kernels = false;
-    rmv             = rocm_meta_version::Default;
+    use_binaries            = false;
+    use_asm_kernels         = false;
+    use_opencl_convolutions = !miopen::IsDisabled(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS{});
+    rmv                     = rocm_meta_version::Default;
     if(mloIsAmdRocmOpencl(*this))
     {
         use_asm_kernels =

@@ -222,14 +222,103 @@ struct XdlopsGemm_t
                                           mfma_info<mfma_instr::mfma_f32_32x32x4bf16>{})>::type{};
     }
 
+#if CK_USE_AMD_XDLOPS_EMULATE
+    // emulate xdlops
+    template <index_t M, index_t N, index_t K, class FloatA, class FloatB, class FloatC>
+    __device__ void XdlopsEmulate(const FloatA* const __restrict__ p_a_wave,
+                                  const FloatB* const __restrict__ p_b_wave,
+                                  FloatC* const __restrict__ p_c_thread) const
+    {
+        constexpr auto mfma_type = GetMFMAInfo();
+
+        const index_t laneId   = get_thread_local_1d_id() % mfma_type.wave_size;
+        const index_t blk_id   = laneId / mfma_type.num_threads_blk;
+        const index_t lane_b   = laneId % mfma_type.num_threads_blk;
+        const index_t num_blks = mfma_type.wave_size / mfma_type.num_threads_blk;
+
+        // one or two mfma with ABroadcast
+        static_if<IsABroadcast()>{}([&](auto) {
+            for(index_t k = 0; k < K; ++k)
+            {
+                for(index_t b = 0; b < MPerWave / mfma_type.m; ++b)
+                {
+                    for(index_t n = 0; n < num_blks; ++n)
+                    {
+                        index_t a_off = k * M + b * mfma_type.m;
+                        index_t b_off = k * N + n * mfma_type.num_threads_blk;
+                        index_t c_off = n * mfma_type.num_regs_blk + b * mfma_type.num_regs_xdlops;
+                        for(index_t m = 0; m < mfma_type.num_regs_blk; ++m)
+                        {
+                            index_t aindex =
+                                m % mfma_type.group_size + blk_id * mfma_type.group_size +
+                                m / mfma_type.group_size * (mfma_type.group_size * num_blks);
+                            index_t bindex = lane_b;
+                            p_c_thread[m + c_off] += inner_product_with_conversion<FloatC>{}(
+                                p_a_wave[aindex + a_off], p_b_wave[bindex + b_off]);
+                        }
+                    }
+                }
+            }
+        });
+
+        // a single mfma with BBroadcast
+        static_if<!(IsABroadcast() || IsOneBlk())>{}([&](auto) {
+            for(index_t k = 0; k < K; ++k)
+            {
+                for(index_t n = 0; n < num_blks; ++n)
+                {
+                    index_t a_off = k * M + n * mfma_type.m;
+                    index_t b_off = k * N;
+                    index_t c_off = n * mfma_type.num_regs_blk;
+                    for(index_t m = 0; m < mfma_type.num_regs_blk; ++m)
+                    {
+                        index_t aindex =
+                            m % mfma_type.group_size + blk_id * mfma_type.group_size +
+                            m / mfma_type.group_size * (mfma_type.group_size * num_blks);
+                        index_t bindex = lane_b;
+                        p_c_thread[m + c_off] += inner_product_with_conversion<FloatC>{}(
+                            p_a_wave[aindex + a_off], p_b_wave[bindex + b_off]);
+                    }
+                }
+            }
+        });
+
+        // a single mfma wth Broadcast on both A and B, but double k
+        static_if<IsOneBlk()>{}([&](auto) {
+            for(index_t k = 0; k < K; k += 2)
+            {
+                for(index_t n = 0; n < num_blks; ++n)
+                {
+                    index_t a_off = (k + n) * M;
+                    index_t b_off = (k + n) * N;
+                    index_t c_off = 0;
+                    for(index_t m = 0; m < mfma_type.num_regs_blk; ++m)
+                    {
+                        index_t aindex =
+                            m % mfma_type.group_size + blk_id * mfma_type.group_size +
+                            m / mfma_type.group_size * (mfma_type.group_size * num_blks);
+                        index_t bindex = lane_b;
+                        p_c_thread[m + c_off] += inner_product_with_conversion<FloatC>{}(
+                            p_a_wave[aindex + a_off], p_b_wave[bindex + b_off]);
+                    }
+                }
+            }
+        });
+    }
+#endif
+
     template <index_t M, index_t N, index_t K, class FloatA, class FloatB, class FloatC>
     __device__ void Run(const FloatA* const __restrict__ p_a_wave,
                         const FloatB* const __restrict__ p_b_wave,
                         FloatC* const __restrict__ p_c_thread) const
     {
-        constexpr auto mfma_type = GetMFMAInfo();
 
         static_assert(GemmDataPerReadA == 1 && GemmDataPerReadB == 1, "GemmDataPerReadA/B != 1");
+
+#if CK_USE_AMD_XDLOPS_EMULATE
+        XdlopsEmulate<M, N, K>(p_a_wave, p_b_wave, p_c_thread);
+#else
+        constexpr auto mfma_type = GetMFMAInfo();
 
         static_if<!IsOneBlk()>{}([&](auto) {
 
@@ -254,6 +343,7 @@ struct XdlopsGemm_t
             }
 
         });
+#endif
     }
 
     __device__ static MatrixIndex GetBeginOfThreadBlk(index_t i)
@@ -293,13 +383,19 @@ struct XdlopsGemm_t
     template <index_t Size>
     __device__ void SetZeroXdlopsRegs(Number<Size>) const
     {
+#if !CK_USE_AMD_XDLOPS_EMULATE
         gcnasm_accvgpr_zero<Size>();
+#endif
     }
 
     template <index_t Size, class FloatC>
     __device__ void ReadXdlopsRegs(Number<Size>, FloatC* const __restrict__ p_c_thread) const
     {
+#if !CK_USE_AMD_XDLOPS_EMULATE
         gcnasm_accvgpr_read<Size>(p_c_thread);
+#else
+        (void)p_c_thread;
+#endif
     }
 };
 

@@ -23,14 +23,19 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+.if ROCM_METADATA_VERSION == 4
 .hsa_code_object_version 2,1
 .hsa_code_object_isa
+.endif
 
 .text
 .globl miopenGcnAsmConv1x1U
 .p2align 8
 .type miopenGcnAsmConv1x1U,@function
+
+.if ROCM_METADATA_VERSION == 4
 .amdgpu_hsa_kernel miopenGcnAsmConv1x1U
+.endif
 
 .include "gpr_alloc.inc"
 .include "common.inc"
@@ -60,7 +65,7 @@ gid_n = gid_z
 .set wei_ptr_off, 0x28
 .set out_ptr_off, 0x30
 .set dbg_ptr_off, 0x38
-
+.set KERNEL_ARGUMENTS_SIZE, dbg_ptr_off + 8
 
 
 maxU24 = 1 << 24
@@ -321,6 +326,7 @@ static_assert( max_waves_per_CU >= waves_c_in_group * waves_k_in_group)
 .endm
 
 miopenGcnAsmConv1x1U:
+.if ROCM_METADATA_VERSION == 4
     .amd_kernel_code_t
      enable_sgpr_kernarg_segment_ptr = 1
      enable_sgpr_workgroup_id_x = 1
@@ -331,13 +337,13 @@ miopenGcnAsmConv1x1U:
      granulated_wavefront_sgpr_count = .AUTO_SGPR_GRANULATED_COUNT
      enable_vgpr_workitem_id = 1
      user_sgpr_count = 2
-     kernarg_segment_byte_size = 64
+     kernarg_segment_byte_size = KERNEL_ARGUMENTS_SIZE
      wavefront_sgpr_count = .AUTO_SGPR_COUNT
      workitem_vgpr_count = .AUTO_VGPR_COUNT
      float_mode = 192
      workgroup_group_segment_byte_size = .AUTO_LDS_BYTE_SIZE
     .end_amd_kernel_code_t
-
+.endif
 
     s_load_dwordx2 s[desc_in:desc_in+1], s[kernarg:kernarg+1], 0x0 + in_ptr_off
     s_load_dwordx2 s[desc_wei:desc_wei+1], s[kernarg:kernarg+1], 0x0 + wei_ptr_off
@@ -969,13 +975,75 @@ s_endpgm
 .Lfunc_end0:
     .size miopenGcnAsmConv1x1U, .Lfunc_end0 - miopenGcnAsmConv1x1U
 
-.ifndef ROCM_METADATA_VERSION
-    .error "ROCM_METADATA_VERSION must be defined"
-.end
-.endif
+waves_in_group = waves_c_in_group * waves_k_in_group
+workgroup_size_x = waves_in_group * 64
 
-.macro METADATA wg_x, lds_size
-  .if ROCM_METADATA_VERSION == 4
+.if ROCM_METADATA_VERSION == 5
+.rodata
+.p2align 6
+.amdhsa_kernel miopenGcnAsmConv1x1U
+        .amdhsa_user_sgpr_kernarg_segment_ptr 1
+        .amdhsa_system_sgpr_workgroup_id_x 1
+        .amdhsa_system_sgpr_workgroup_id_y 1
+        .amdhsa_system_sgpr_workgroup_id_z 1
+        .amdhsa_system_vgpr_workitem_id 1
+        .amdhsa_next_free_sgpr .AUTO_SGPR_COUNT
+        .amdhsa_next_free_vgpr .AUTO_VGPR_COUNT
+        .amdhsa_group_segment_fixed_size .AUTO_LDS_BYTE_SIZE
+        .amdhsa_dx10_clamp 0
+        .amdhsa_ieee_mode 0
+        .amdhsa_float_round_mode_32 0
+        .amdhsa_float_round_mode_16_64 0
+        .amdhsa_float_denorm_mode_32 0
+        .amdhsa_float_denorm_mode_16_64 3
+        .amdhsa_reserve_flat_scratch 0
+.end_amdhsa_kernel
+
+
+.macro METADATA sc,vc,wg_x,lds_sz,kernarg_size
+.amdgpu_metadata
+---
+amdhsa.version: [ 1, 0 ]
+amdhsa.kernels:
+  - .name: miopenGcnAsmConv1x1U
+    .symbol: miopenGcnAsmConv1x1U.kd
+    .sgpr_count: \sc
+    .vgpr_count: \vc
+    .language: "OpenCL C"
+    .language_version: [ 1, 2 ]
+    .kernarg_segment_size: \kernarg_size
+    .kernarg_segment_align: 8
+    .group_segment_fixed_size: \lds_sz
+    .private_segment_fixed_size: 0
+    .reqd_workgroup_size: [ \wg_x, 1, 1 ]
+    .max_flat_workgroup_size: \wg_x
+    .wavefront_size: 64
+    .args:
+    - { .size: 4, .offset:  0, .value_kind: by_value, .value_type: i32, .name: N }
+    - { .size: 4, .offset:  4, .value_kind: by_value, .value_type: i32, .name: C }
+    - { .size: 4, .offset:  8, .value_kind: by_value, .value_type: i32, .name: H }
+    - { .size: 4, .offset: 12, .value_kind: by_value, .value_type: i32, .name: W }
+    - { .size: 4, .offset: 16, .value_kind: by_value, .value_type: i32, .name: K }
+    - { .size: 4, .offset: 20, .value_kind: by_value, .value_type: i32, .name: n_groups }
+    - { .size: 4, .offset: 24, .value_kind: by_value, .value_type: i32, .name: unused_0 }
+    - { .size: 4, .offset: 28, .value_kind: by_value, .value_type: i32, .name: unused_1 }
+    - { .size: 8, .offset: 32, .value_kind: global_buffer, .value_type: f32, .name: x,        .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 40, .value_kind: global_buffer, .value_type: f32, .name: w,        .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 48, .value_kind: global_buffer, .value_type: f32, .name: y,        .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 56, .value_kind: global_buffer, .value_type: i32, .name: ret_addr, .address_space: global, .is_const: false }
+...
+.end_amdgpu_metadata
+.endm // METADATA
+
+.altmacro
+.macro METADATA_WRAPPER sc,vc,wg_x,lds_sz,kernarg_size
+    METADATA %\sc, %\vc, %\wg_x, %\lds_sz, %\kernarg_size
+.endm
+
+METADATA_WRAPPER .AUTO_SGPR_COUNT, .AUTO_VGPR_COUNT, workgroup_size_x, .AUTO_LDS_BYTE_SIZE, KERNEL_ARGUMENTS_SIZE
+
+.elseif ROCM_METADATA_VERSION == 4
+.macro METADATA wg_x, lds_size, kernarg_size
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
         Kernels:
@@ -983,7 +1051,7 @@ s_endpgm
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
-              { KernargSegmentSize: 64, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
+              { KernargSegmentSize: \kernarg_size, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
             Args:
             - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
@@ -1000,18 +1068,17 @@ s_endpgm
           }
     }
     .end_amd_amdgpu_hsa_metadata
-  .else
-    .error "Unsupported ROCM_METADATA_VERSION"
-    .end
-  .endif
 .endm
-
-waves_in_group = waves_c_in_group * waves_k_in_group
-workgroup_size_x = waves_in_group * 64
 
 .altmacro
-.macro METADATA_WRAPPER wg_x, lds_size
-    METADATA %\wg_x, %\lds_size
+.macro METADATA_WRAPPER wg_x, lds_size, kernarg_size
+    METADATA %\wg_x, %\lds_size, %\kernarg_size
 .endm
 
-METADATA_WRAPPER workgroup_size_x, .AUTO_LDS_BYTE_SIZE
+METADATA_WRAPPER workgroup_size_x, .AUTO_LDS_BYTE_SIZE, KERNEL_ARGUMENTS_SIZE
+
+.else
+.error "Unsupported ROCM_METADATA_VERSION"
+.end
+.endif
+

@@ -2,6 +2,7 @@
 #define CK_IMPLICITGEMM_UTIL_HPP_
 
 #include <miopen/env.hpp>
+#include <miopen/hip_build_utils.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS)
 
@@ -52,7 +53,9 @@ static inline bool IsXdlopsSupport(const ConvolutionContext& c)
            // 2) llvm intrin may has incorrect results
            /// \todo enable xdlops kernels by default after llvm intrin fix (SWDEV-200782) in
            /// release
-           miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{});
+           ((miopen::HipGetHccVersion() >= external_tool_version_t{2, 10, 19392})
+                ? !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{})
+                : miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{}));
 }
 
 inline static int GetReadWriteVectorSize(const int v)
@@ -60,7 +63,7 @@ inline static int GetReadWriteVectorSize(const int v)
     return v % 4 == 0 ? 4 : (v % 2 == 0 ? 2 : 1);
 }
 
-inline static uint32_t GetEPackLength(const ConvolutionContext& ctx)
+inline static uint32_t GetEPackLength(const ConvolutionContext& ctx, bool isXdlopsInvoked)
 {
     int C = ctx.n_inputs;
     int Y = ctx.kernel_size_h;
@@ -77,7 +80,7 @@ inline static uint32_t GetEPackLength(const ConvolutionContext& ctx)
     int EPACK = 1;
     if(ctx.IsFp16()) // for fp16, either 2 or 4 Es could be packed
     {
-        if(IsXdlopsSupport(ctx)) // in xdlops, 4 fp16s are packed
+        if(IsXdlopsSupport(ctx) && isXdlopsInvoked) // in xdlops, 4 fp16s are packed
             EPACK = 4;
         else // for fp16, either 2 or 4 Es could be packed in non-xdlops scenarios.
             EPACK = (C * Y * X % 32) == 0 ? 4 : 2;
@@ -139,8 +142,9 @@ static inline int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
         elapsed_time = profile_h.GetKernelTime();
     }
 #ifdef NDEBUG
-    catch(miopen::Exception&)
+    catch(miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return -1;
     }
 #endif

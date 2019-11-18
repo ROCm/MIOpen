@@ -263,8 +263,9 @@ static int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
         MIOPEN_LOG_I2("elapsed_time: " << elapsed_time);
     }
 #ifdef NDEBUG
-    catch(miopen::Exception&)
+    catch(miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return -1;
     }
 #endif
