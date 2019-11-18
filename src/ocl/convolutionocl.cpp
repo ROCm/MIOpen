@@ -345,8 +345,9 @@ ConvolutionDescriptor::FindWinogradSolutions(const ConvolutionContext& ctx) cons
     {
         return FindAllWinogradSolutions(ctx);
     }
-    catch(miopen::Exception&)
+    catch(miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return {};
     }
 }
@@ -383,8 +384,9 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
         ctx.mloBuildConf_Key(network_config);
         return FindAllDirectSolutions(ctx);
     }
-    catch(miopen::Exception&)
+    catch(miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return {};
     }
 }
@@ -417,9 +419,9 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
     {
         return FindAllImplicitGemmSolutions(ctx);
     }
-    catch(miopen::Exception&)
+    catch(miopen::Exception& ex)
     {
-        MIOPEN_LOG_E("failed in FindDataImplicitGemmSolutions");
+        MIOPEN_LOG_WE(ex.what());
         return {};
     }
 }
@@ -453,8 +455,9 @@ ConvolutionDescriptor::FindSCGemmSolutions(Handle& handle,
 
         return FindAllFwdSCGemmSolutions(ctx);
     }
-    catch(miopen::Exception&)
+    catch(miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return {};
     }
 }
@@ -4737,7 +4740,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         }
         catch(const miopen::Exception& ex)
         {
-            MIOPEN_LOG_W("Find Winograd WrW failed:" << ex.what());
+            MIOPEN_LOG_WE("Find Winograd WrW failed:" << ex.what());
         }
 
         // Implicit GEMM
