@@ -24,9 +24,10 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
-#include "miopen/env.hpp"
-#include "miopen/stringutils.hpp"
+#include <miopen/solver.hpp>
+#include <miopen/env.hpp>
+#include <miopen/stringutils.hpp>
+#include <miopen/kernel_build_params.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2)
 
@@ -210,7 +211,7 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
         return false;
     if(!params.use_asm_kernels)
         return false;
-    if(!params.rmv.IsV2())
+    if(!params.rmv.IsV2orV3())
         return false;
 
     const auto name = params.GetStream().GetDeviceName();
@@ -257,6 +258,11 @@ ConvSolution ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& param
     kernel.l_wk.push_back(512);
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
+
+    KernelBuildParameters options{
+        {"ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4},
+    };
+    kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 
     kernel.kernel_name = "miopenSp3AsmConvRxSf3x2";
     kernel.kernel_file = "Conv_Winograd_v16_5_0_stride1.s";
