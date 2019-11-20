@@ -55,12 +55,13 @@ These variables control the sets (families) of convolution Solutions. For exampl
 * `MIOPEN_DEBUG_CONV_DIRECT` - Direct convolution algorithm.
 * `MIOPEN_DEBUG_CONV_GEMM` - GEMM convolution algorithm.
 * `MIOPEN_DEBUG_CONV_WINOGRAD` - Winograd convolution algorithm.
-* `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM` – Implicit GEMM convolution algorithm.
-* `MIOPEN_DEBUG_CONV_SCGEMM` – Statically Compiled GEMM convolution algorithm.
+* `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM` - Implicit GEMM convolution algorithm.
+* `MIOPEN_DEBUG_CONV_SCGEMM` - Statically Compiled GEMM convolution algorithm.
 
 ### Filtering by build method
 
 * `MIOPEN_DEBUG_GCN_ASM_KERNELS` - Kernels written in assembly language. Currently these include some Direct solvers, Winograd kernels and SCGEMM.
+* `MIOPEN_DEBUG_OPENCL_CONVOLUTIONS` - Convolution kernels written in OpenCL (note that _only_ convolutions affected).
 * `MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES` - Binary kernels. Right now the library does not use binaries.
 
 ### Controlling the Solutions on individual basis
@@ -85,9 +86,10 @@ Direct Solutions:
 
 Winograd  Solutions:
 * `MIOPEN_DEBUG_AMD_WINOGRAD_3X3` - `ConvBinWinograd3x3U`, FP32 Winograd Fwd/Bwd, filter size fixed to 3x3.
-* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS` - `ConvBinWinogradRxS`, FP32 and FP16 Winograd Fwd/Bwd/WrW.
-* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW` - Subset of previous, controls only WrW (backward weights) convolutions of the `ConvBinWinogradRxS` solver.
-* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2` - `ConvBinWinogradRxSf3x2`, FP32 and FP16 Fwd/Bwd F(3,2) Winograd.
+* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS` - `ConvBinWinogradRxS`, FP32/FP16 F(3,3) Fwd/Bwd and FP32 F(3,2) WrW Winograd. Subsets:
+  * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW` - FP32 F(3,2) WrW convolutions only.
+  * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FWD_BWD` - FP32/FP16 F(3,3) Fwd/Bwd.
+* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2` - `ConvBinWinogradRxSf3x2`, FP32/FP16 Fwd/Bwd F(3,2) Winograd.
 * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2` - `ConvWinograd3x3MultipassWrW<3-2>`, WrW F(3,2) Multi-pass Winograd (stride 2 only).
 * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3` - `ConvWinograd3x3MultipassWrW<3-3>`, WrW F(3,3) Multi-pass Winograd (stride 2 only).
 * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4` - `ConvWinograd3x3MultipassWrW<3-4>`, WrW F(3,4) Multi-pass Winograd.
@@ -95,7 +97,7 @@ Winograd  Solutions:
 * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6` - `ConvWinograd3x3MultipassWrW<3-6>`, WrW F(3,6) Multi-pass Winograd.
 * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X2` - `ConvWinograd3x3MultipassWrW<7-2-1-1>`, WrW F(7x1,2x1) Multi-pass Winograd and `ConvWinograd3x3MultipassWrW<1-1-7-2>`, WrW F(1x7,1x2) Multi-pass Winograd.
 * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X3` - `ConvWinograd3x3MultipassWrW<7-3-1-1>`, WrW F(7x1,3x1) Multi-pass Winograd and `ConvWinograd3x3MultipassWrW<1-1-7-3>`, WrW F(1x7,1x3) Multi-pass Winograd
-* `MIOPEN_DEBUG_AMD_FUSED_WINOGRAD` - Fused FP32 Winograd, variable filter size.
+* `MIOPEN_DEBUG_AMD_FUSED_WINOGRAD` - Fused FP32 F(3,3) Winograd, variable filter size.
 
 ## rocBlas Logging and Behavior
 The `ROCBLAS_LAYER` environmental variable can be set to output GEMM information:
