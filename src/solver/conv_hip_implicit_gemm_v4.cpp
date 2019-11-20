@@ -32,7 +32,7 @@
 #include "miopen/implicitgemm_params.hpp"
 #include "miopen/hip_build_utils.hpp"
 
-#define WORKAROUND_ISSUE_2174_2222_2224 1
+#define WORKAROUND_ISSUE_2174_2222_2224_2243 1
 
 namespace miopen {
 namespace solver {
@@ -422,10 +422,10 @@ bool ConvHipImplicitGemmV4_1x1::IsApplicable(const ConvolutionContext& ctx) cons
 
 bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
 {
-#if WORKAROUND_ISSUE_2174_2222_2224
+#if WORKAROUND_ISSUE_2174_2222_2224_2243
     if(miopen::HipGetHccVersion() >= external_tool_version_t{2, 6, 0})
     {
-        if((ctx.kernel_dilation_h != 1 || ctx.kernel_dilation_w != 1) && ctx.n_outputs < 64)
+        if(!(ctx.kernel_dilation_h == 1 && ctx.kernel_dilation_w == 1))
             return false;
     }
 #endif
@@ -463,7 +463,7 @@ bool ConvHipImplicitGemmV4WrW::IsApplicable(const ConvolutionContext& ctx) const
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 
-#if WORKAROUND_ISSUE_2174_2222_2224
+#if WORKAROUND_ISSUE_2174_2222_2224_2243
     if(miopen::HipGetHccVersion() >= external_tool_version_t{2, 6, 0})
     {
         if(!(ctx.kernel_stride_w == 1 && ctx.kernel_stride_h == 1))
