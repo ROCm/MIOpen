@@ -30,6 +30,7 @@
 #include <miopen/db.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/stringutils.hpp>
+#include <miopen/any_solver.hpp>
 
 #include <boost/range/adaptor/transformed.hpp>
 #include <ostream>
