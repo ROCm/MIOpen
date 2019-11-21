@@ -31,6 +31,7 @@
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
 #include <miopen/solver_id.hpp>
+#include <miopen/mlo_internal.hpp>
 
 #include <string>
 #include <tuple>

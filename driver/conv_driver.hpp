@@ -55,6 +55,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/solver.hpp>
+#include <miopen/find_controls.hpp>
 #include "random.hpp"
 #include <numeric>
 #include <sstream>
