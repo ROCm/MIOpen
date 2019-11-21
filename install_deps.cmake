@@ -51,7 +51,13 @@ endif()
 
 # Set compiler to hcc if not set
 if(NOT DEFINED ENV{CXX} AND NOT DEFINED CMAKE_CXX_COMPILER AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-    find_program(HCC hcc PATHS /opt/rocm PATH_SUFFIXES bin)
+    find_program(HCC hcc
+        PATHS
+            /opt/rocm/hcc
+            /opt/rocm
+        PATH_SUFFIXES
+            bin
+    )
     if(HCC)
         set(ENV{CXX} ${HCC})
     else()
