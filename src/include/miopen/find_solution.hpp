@@ -30,6 +30,7 @@
 #include <miopen/env.hpp>
 #include <miopen/conv_solution.hpp>
 #include <miopen/find_controls.hpp>
+#include <miopen/solver_id.hpp>
 
 #include <limits>
 #include <vector>
@@ -135,12 +136,16 @@ struct SolverContainer
                           std::size_t limit = std::numeric_limits<std::size_t>::max()) const
     {
         std::vector<Solution> ss;
-        std::size_t count = 0;
+        std::size_t count    = 0;
+        const auto find_only = GetEnvFindOnlySolver();
         miopen::each_args(
             [&](auto solver) {
                 if(count >= limit)
                     return;
-                if(solver.IsApplicable(search_params))
+                if(find_only.IsValid() && find_only != Id{SolverDbId(solver)})
+                { // Do nothing (and keep silence for the sake of Tuna), just skip.
+                }
+                else if(solver.IsApplicable(search_params))
                 {
                     const Solution s = FindSolution(solver, search_params, db);
                     if(s.Succeeded())
@@ -172,9 +177,13 @@ struct SolverContainer
     std::vector<std::pair<std::string, size_t>> GetWorkspaceSize(const Context& search_params) const
     {
         std::vector<std::pair<std::string, size_t>> res;
+        const auto find_only = GetEnvFindOnlySolver();
         miopen::each_args(
             [&](auto solver) {
-                if(solver.IsApplicable(search_params))
+                if(find_only.IsValid() && find_only != Id{SolverDbId(solver)})
+                { // Do nothing (and keep silence for the sake of Tuna), just skip.
+                }
+                else if(solver.IsApplicable(search_params))
                 {
                     auto sz = solver.GetWorkspaceSize(search_params);
                     res.push_back(std::make_pair(SolverDbId(solver), sz));

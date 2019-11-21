@@ -1,4 +1,5 @@
 #include <miopen/fusion.hpp>
+#include <miopen/any_solver.hpp>
 
 namespace miopen {
 

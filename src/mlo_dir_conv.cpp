@@ -39,6 +39,7 @@
 #include <miopen/version.h>
 #include <miopen/stringutils.hpp>
 #include <miopen/hip_build_utils.hpp>
+#include <miopen/any_solver.hpp>
 
 #include <cmath>
 #include <cstring>

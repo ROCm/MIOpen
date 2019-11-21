@@ -9,7 +9,7 @@ All logging messages output to standard error stream (`stderr`). The following e
 
 * `MIOPEN_ENABLE_LOGGING_CMD` - A user can use this environmental variable to output the associated `MIOpenDriver` command line(s) onto console. Disabled by default.
 
-> **_NOTE:_ These two and other two-state ("boolean") environment variables can be set to the following values:**
+> **_NOTE 1:_ These two and other two-state ("boolean") environment variables can be set to the following values:**
 > ```
 > 1, yes, true, enable, enabled - to enable feature
 > 0, no, false, disable, disabled - to disable feature
@@ -25,7 +25,7 @@ All logging messages output to standard error stream (`stderr`). The following e
   * 6 - Detailed info. All the above plus more detailed information for debugging.
   * 7 - Trace: the most detailed debugging info plus all above.
 
-> **_NOTE:_ When asking for technical support, please include the console log obtained with the following settings:**
+> **_NOTE 2:_ When asking for technical support, please include the console log obtained with the following settings:**
 > ```
 > export MIOPEN_ENABLE_LOGGING=1
 > export MIOPEN_ENABLE_LOGGING_CMD=1
@@ -40,13 +40,19 @@ All logging messages output to standard error stream (`stderr`). The following e
 
 The following list of environment variables allow for enabling/disabling various kinds of kernels and algorithms. This can be helpful for both debugging MIOpen and integration with frameworks.
 
-> **_NOTE:_ These variables can be set to the following values:**
+> **_NOTE 3:_ These variables can be set to the following values:**
 > ```
 > 1, yes, true, enable, enabled - to enable kernels/algorithm
 > 0, no, false, disable, disabled - to disable kernels/algorithm
 > ```
 
 If a variable is not set, then MIOpen behaves as if it is set to `enabled`, unless otherwise specified. So all kinds of kernels/algorithms are enabled by default and the below variables can be used for disabling them.
+
+> **_WARNING:_** **When the library is used with layer filtering, the results of `Find()` calls become narrower than during normal operation. This means that relevant find-db entries would not include some solutions that normally should be there.** **_Therefore the subsequent Immediate mode `Get()` calls may return incomplete information or even run into Fallback path._**
+
+In order to rehabilitate the Immediate mode, the user can:
+- Re-enable all solvers and re-run the same `Find()` calls that have been run before,
+- Or, completely remove the User find-db.
 
 ### Filtering by algorithm
 
@@ -64,9 +70,18 @@ These variables control the sets (families) of convolution Solutions. For exampl
 * `MIOPEN_DEBUG_OPENCL_CONVOLUTIONS` - Convolution kernels written in OpenCL (note that _only_ convolutions affected).
 * `MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES` - Binary kernels. Right now the library does not use binaries.
 
-### Controlling the Solutions on individual basis
+### Filtering out all Solutions except one
 
-Some of the Solutions have individual controls available.
+* `MIOPEN_DEBUG_FIND_ONLY_SOLVER=solution_id`, where `solution_id` should be either numeric or string identifier of some Solution. Directly affects only `Find()` calls _(however there is some indirect connection to Immediate mode; please see the "Warning" above.)_
+  - If `solution_id` denotes some applicable Solution, then only that Solution will be found (plus GEMM and FFT, if these applicable, see _Note 4_).
+  - Else, if `solution_id` is valid but not applicable, then `Find()` would fail with all algorithms (again, except GEMM and FFT, see _Note 4_)
+  - Otherwise the `solution_id` is invalid (i.e. it doesn't match any existing Solution), and the `Find()` call would fail.
+
+> **_NOTE 4:_** This env. variable does not affect the "gemm" and "fft" solutions. For now, GEMM and FFT can be disabled only at algorithm level (see above).
+
+### Filtering the Solutions on individual basis
+
+Some of the Solutions have individual controls available. These affect both Find and Immediate modes. _Note the "Warning" above._
 
 Direct Solutions:
 * `MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U` - `ConvAsm3x3U`.
@@ -120,7 +135,7 @@ More information on logging with RocBlas can be found [here](https://github.com/
 
 ## Experimental controls
 
-> **_NOTE: Using experimental controls may result in:_**
+> **_NOTE 5: Using experimental controls may result in:_**
 > * Performance drops
 > * Computation inaccuracies
 > * Run-time errors
