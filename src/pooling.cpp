@@ -136,12 +136,69 @@ PoolingDescriptor::GetForwardOutputDim(const TensorDescriptor& xDesc) const
     return std::make_tuple(input_n, input_c, output_h, output_w);
 }
 
+void PoolingDescriptor::GetForwardOutputDimNd(const TensorDescriptor& xDesc,
+                                              int dims,
+                                              int* tensorDimArr) const
+{
+    assert(xDesc.GetLengths().size() == dims && xDesc.GetLengths().size() <= 5 &&
+           xDesc.GetLengths().size() >= 4); // currently only support 2D/3D pooling
+    std::vector<int> out_dim;
+    auto input_dim             = xDesc.GetLengths();
+    auto strs                  = GetStrides();
+    auto padd                  = GetPads();
+    auto kernels               = GetLengths();
+    miopenPaddingMode_t _pMode = GetPaddingMode();
+
+    assert(strs.size() + 2 == input_dim.size() && strs.size() == padd.size() &&
+           strs.size() == kernels.size());
+    assert(std::all_of(kernels.begin(), kernels.end(), [](int s) { return s > 0; }));
+    assert(std::all_of(strs.begin(), strs.end(), [](int s) { return s > 0; }));
+    assert(std::all_of(padd.begin(), padd.end(), [](int s) { return s >= 0; }));
+
+    auto in_itr = input_dim.begin();
+    out_dim.push_back(int(*(in_itr++))); // n
+    out_dim.push_back(int(*(in_itr++))); // c
+
+    auto str_itr = strs.begin();
+    auto pad_itr = padd.begin();
+    auto ker_itr = kernels.begin();
+
+    while(in_itr != input_dim.end())
+    {
+        int out_tmp = std::max<std::ptrdiff_t>(
+            1, std::ptrdiff_t((*in_itr + 2 * *pad_itr - *ker_itr) / (*str_itr) + 1));
+
+        if(_pMode == miopenPaddingSame)
+        {
+            out_tmp =
+                std::max<std::ptrdiff_t>(1,
+                                         std::ptrdiff_t(std::ceil(static_cast<double>(*in_itr) /
+                                                                  static_cast<double>(*str_itr))));
+        }
+        else if(_pMode == miopenPaddingValid)
+        {
+            out_tmp = std::max<std::ptrdiff_t>(
+                1,
+                std::ptrdiff_t(std::ceil(static_cast<double>(*in_itr - *ker_itr + 1) /
+                                         static_cast<double>(*str_itr))));
+        }
+
+        in_itr++;
+        str_itr++;
+        pad_itr++;
+        ker_itr++;
+
+        out_dim.push_back(out_tmp);
+    }
+
+    std::copy(out_dim.begin(), out_dim.begin() + dims, tensorDimArr);
+}
+
 TensorDescriptor PoolingDescriptor::GetForwardOutputTensor(const TensorDescriptor& xDesc) const
 {
-    auto dims = this->GetForwardOutputDim(xDesc);
-    return TensorDescriptor(
-        xDesc.GetType(),
-        {std::get<0>(dims), std::get<1>(dims), std::get<2>(dims), std::get<3>(dims)});
+    std::vector<int> out_dim(xDesc.GetSize());
+    GetForwardOutputDimNd(xDesc, xDesc.GetSize(), out_dim.data());
+    return TensorDescriptor(xDesc.GetType(), out_dim);
 }
 
 std::size_t PoolingDescriptor::GetWorkSpaceSize(const TensorDescriptor& yDesc) const

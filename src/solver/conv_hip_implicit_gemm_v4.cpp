@@ -31,13 +31,12 @@
 #include "implicitgemm_util.hpp"
 #include "miopen/implicitgemm_params.hpp"
 #include "miopen/hip_build_utils.hpp"
+#include "implicitgemm_util.hpp"
 
-#define WORKAROUND_ISSUE_2174_2222_2224 1
+#define WORKAROUND_ISSUE_2174_2222_2224_2243 1
 
 namespace miopen {
 namespace solver {
-
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM)
 
 bool PerformanceImplicitGemm::operator==(const PerformanceImplicitGemm& other) const
 {
@@ -422,15 +421,19 @@ bool ConvHipImplicitGemmV4_1x1::IsApplicable(const ConvolutionContext& ctx) cons
 
 bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
 {
-#if WORKAROUND_ISSUE_2174_2222_2224
+#if WORKAROUND_ISSUE_2174_2222_2224_2243
     if(miopen::HipGetHccVersion() >= external_tool_version_t{2, 6, 0})
     {
-        if((ctx.kernel_dilation_h != 1 || ctx.kernel_dilation_w != 1) && ctx.n_outputs < 64)
+        if(!(ctx.kernel_dilation_h == 1 && ctx.kernel_dilation_w == 1))
             return false;
     }
 #endif
 
     bool isTypeSupported = ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16();
+
+    // channels is divided by epack to pack 2/4 fp16/bfp16
+    if(ctx.n_inputs % GetEPackLength(ctx, false) != 0)
+        return false;
 
     // For fp16, when E=c*x*y % 32 == 0, 4 channels are accumulated through dot4 (2 * dot2)
     // operation
@@ -463,13 +466,17 @@ bool ConvHipImplicitGemmV4WrW::IsApplicable(const ConvolutionContext& ctx) const
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 
-#if WORKAROUND_ISSUE_2174_2222_2224
+#if WORKAROUND_ISSUE_2174_2222_2224_2243
     if(miopen::HipGetHccVersion() >= external_tool_version_t{2, 6, 0})
     {
         if(!(ctx.kernel_stride_w == 1 && ctx.kernel_stride_h == 1))
             return false;
     }
 #endif
+
+    // batch is divided by epack to pack 2/4 fp16/bfp16
+    if(ctx.batch_sz % GetEPackLength(ctx, false) != 0)
+        return false;
 
     bool isEInMultiple = (ctx.IsFp16() || ctx.IsBfp16())
                              ? ((ctx.batch_sz * ctx.in_height * ctx.in_width) % 16 == 0)
@@ -616,11 +623,6 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         InBlockCopySrcDataPerRead_B   = 1;
     }
 
-    bool use_amd_inline_asm =
-        !miopen::IsDisabled(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM{});
-    if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx8"))
-        use_amd_inline_asm = false;
-
     if(ctx.direction.IsBackwardWrW())
     {
         // clang-format off
@@ -682,7 +684,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K=") + std::to_string(WeiBlockCopyDstDataPerWrite_K) +
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, false)) +
-        std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + std::to_string(use_amd_inline_asm ? 1 : 0) +
+        std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
