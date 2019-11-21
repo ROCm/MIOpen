@@ -431,6 +431,10 @@ bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
 
     bool isTypeSupported = ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16();
 
+    // channels is divided by epack to pack 2/4 fp16/bfp16
+    if(ctx.n_inputs % GetEPackLength(ctx, false) != 0)
+        return false;
+
     // For fp16, when E=c*x*y % 32 == 0, 4 channels are accumulated through dot4 (2 * dot2)
     // operation
     // For bfp16/fp16, when E=c*x*y % 16 == 0, 2 channels are accumulated through dot2 operation
@@ -469,6 +473,10 @@ bool ConvHipImplicitGemmV4WrW::IsApplicable(const ConvolutionContext& ctx) const
             return false;
     }
 #endif
+
+    // batch is divided by epack to pack 2/4 fp16/bfp16
+    if(ctx.batch_sz % GetEPackLength(ctx, false) != 0)
+        return false;
 
     bool isEInMultiple = (ctx.IsFp16() || ctx.IsBfp16())
                              ? ((ctx.batch_sz * ctx.in_height * ctx.in_width) % 16 == 0)
