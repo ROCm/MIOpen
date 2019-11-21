@@ -69,7 +69,7 @@ def buildJob(compiler, flags, image, cmd = ""){
         }
 
         withDockerContainer(image: image, args: '--device=/dev/kfd --device=/dev/dri --group-add video -v=/var/jenkins/:/var/jenkins') {
-            timeout(time: 4, unit: 'HOURS')
+            timeout(time: 5, unit: 'HOURS')
             {
                 if(cmd == ""){
                     cmake_build(compiler, flags)

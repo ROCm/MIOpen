@@ -1844,6 +1844,70 @@ miopenGetPoolingForwardOutputDim(const miopenPoolingDescriptor_t poolDesc,
                                  int* h,
                                  int* w);
 
+/*! @brief Set details of a N-D pooling layer descriptor
+ *
+ * Set the window shape, padding, and stride for a previously created N-D pooling descriptor.
+ *
+ * @param poolDesc     Pointer to a pooling layer descriptor (input/output)
+ * @param mode         Pooling mode enum (input)
+ * @param nbDims       Dimension of the pooling (input)
+ * @param windowDimA   Array of input window dimensions with length equal to or larger than
+ * dimsRequested (input)
+ * @param padA         Array of number of elements to padding with length equal to or larger than
+ * dimsRequested (input)
+ * @param stridesA     Array of stride parameter with length equal to or larger than dimsRequested
+ * (input)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetNdPoolingDescriptor(miopenPoolingDescriptor_t poolDesc,
+                                                          const miopenPoolingMode_t mode,
+                                                          int nbDims,
+                                                          int* windowDimA,
+                                                          int* padA,
+                                                          int* stridesA);
+
+/*! @brief Get details of a N-D pooling layer descriptor
+ *
+ * Get the window shape, padding, and stride for a previously created N-D pooling descriptor.
+ *
+ * @param poolDesc         Pointer to a pooling layer descriptor (input)
+ * @param nbDimsRequested  Dimension of the expected pooling descriptor (input)
+ * @param mode             Pooling mode enum (output)
+ * @param nbDims           Actual dimension of the pooling descriptor (output)
+ * @param windowDimA       Array of input window dimensions with length equal to or larger than
+ * dimsRequested (output)
+ * @param padA             Array of number of elements to padding with length equal to or larger
+ * than dimsRequested (output)
+ * @param stridesA         Array of stride parameter with length equal to or larger than
+ * dimsRequested (output)
+ * @return                 miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetNdPoolingDescriptor(const miopenPoolingDescriptor_t poolDesc,
+                                                          int nbDimsRequested,
+                                                          miopenPoolingMode_t* mode,
+                                                          int* nbDims,
+                                                          int* windowDimA,
+                                                          int* padA,
+                                                          int* stridesA);
+
+/*! @brief Gets the shape of the output tensor for N-D pooling
+ *
+ * Retrieve the tensor dimensions for the forward N-D pooling. This call is required for
+ * the forward if the output dimensions are different than the input tensor
+ * dimensions.
+ *
+ * @param poolDesc      Pointer to a pooling layer descriptor (input)
+ * @param tensorDesc    Input tensor descriptor (input)
+ * @param dims          Dimension of the pooling (input)
+ * @param tensorDimArr  Array of tensor dimension (output)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetPoolingNdForwardOutputDim(const miopenPoolingDescriptor_t poolDesc,
+                                   const miopenTensorDescriptor_t tensorDesc,
+                                   int dims,
+                                   int* tensorDimArr);
+
 /*! @brief Get the amount of GPU memory required for pooling
  *
  * Retrieves the amount of workspace in bytes require for pooling. This call is required to
