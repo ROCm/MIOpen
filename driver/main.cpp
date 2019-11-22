@@ -179,10 +179,8 @@ int main(int argc, char* argv[])
         rc = drv->RunForwardGPU();
         cumulative_rc |= rc;
         if(rc != 0)
-        {
-            std::cout << "RunForwardGPU() failed, rc = " << rc << std::endl;
-            return rc;
-        }
+            std::cout << "RunForwardGPU() failed, rc = "
+                      << "0x" << std::hex << rc << std::dec << std::endl;
         if(verifyarg) // Verify even if Run() failed.
             cumulative_rc |= drv->VerifyForward();
     }
@@ -192,10 +190,8 @@ int main(int argc, char* argv[])
         rc = drv->RunBackwardGPU();
         cumulative_rc |= rc;
         if(rc != 0)
-        {
-            std::cout << "RunBackwardGPU() failed, rc = " << rc << std::endl;
-            return rc;
-        }
+            std::cout << "RunBackwardGPU() failed, rc = "
+                      << "0x" << std::hex << rc << std::dec << std::endl;
         if(verifyarg) // Verify even if Run() failed.
             cumulative_rc |= drv->VerifyBackward();
     }
