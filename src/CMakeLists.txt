@@ -239,6 +239,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/inst_wrappers.inc
         kernels/common.inc
         kernels/xform_data_filter.inc
+        kernels/xform_kd_cov2.inc
+        kernels/xform_metadata.inc
         kernels/neuron.inc
         kernels/conv_sizes.inc
         kernels/gpr_alloc.inc
