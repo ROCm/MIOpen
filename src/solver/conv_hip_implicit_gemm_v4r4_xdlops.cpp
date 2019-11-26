@@ -617,6 +617,11 @@ bool ConvHipImplicitGemmV4R4FwdXdlops::IsApplicable(const ConvolutionContext& ct
     if((ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % MultipleOf != 0)
         return false;
 
+    // In bfp16, channels are accumulated in size of 2 while in fp16, in size of 4, so
+    // abide by channel restriction.
+    if((ctx.IsFp16() && (ctx.n_inputs % 4 != 0)) || (ctx.IsBfp16() && (ctx.n_inputs % 2 != 0)))
+        return false;
+
     // padding support required for out_of_bound configs
     bool no_out_of_bound = (ctx.in_width >= ((ctx.kernel_size_w - 1) * ctx.kernel_dilation_w + 1) +
                                                 (ctx.out_width - 1) * ctx.kernel_stride_w) &&

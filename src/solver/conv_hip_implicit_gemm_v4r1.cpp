@@ -23,9 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
+#include <cstddef>
 #include "miopen/solver.hpp"
 #include "miopen/handle.hpp"
+#include <miopen/generic_search.hpp>
 #include "implicitgemm_util.hpp"
 
 namespace miopen {
@@ -39,21 +40,26 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx) con
     if(!ctx.Is2d())
         return false;
 
-    if(!ctx.IsFp32())
+    if(!ctx.IsFp32() && !ctx.IsFp16() && !ctx.IsBfp16())
         return false;
 
     if(ctx.group_counts != 1)
         return false;
 
-    std::size_t n  = ctx.batch_sz;
-    std::size_t k  = ctx.n_outputs;
-    std::size_t c  = ctx.n_inputs;
-    std::size_t y  = ctx.kernel_size_h;
-    std::size_t x  = ctx.kernel_size_w;
-    std::size_t ho = ctx.out_height;
-    std::size_t wo = ctx.out_width;
+    std::size_t n         = ctx.batch_sz;
+    std::size_t k         = ctx.n_outputs;
+    std::size_t c         = ctx.n_inputs;
+    std::size_t y         = ctx.kernel_size_h;
+    std::size_t x         = ctx.kernel_size_w;
+    std::size_t ho        = ctx.out_height;
+    std::size_t wo        = ctx.out_width;
+    std::size_t eMultiple = (ctx.IsFp16() || ctx.IsBfp16()) ? 16 : 8;
 
-    return n % 8 == 0 && (n * ho * wo) % 128 == 0 && (c * y * x) % 8 == 0 && k % 128 == 0;
+    // batch is divided by epack to pack 2/4 fp16/bfp16
+    if(c % GetEPackLength(ctx, false) != 0)
+        return false;
+
+    return n % 8 == 0 && (n * ho * wo) % 64 == 0 && (c * y * x) % eMultiple == 0 && k % 16 == 0;
 }
 
 bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) const
@@ -64,7 +70,7 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) con
     if(!ctx.Is2d())
         return false;
 
-    if(!ctx.IsFp32())
+    if(!ctx.IsFp32() && !ctx.IsFp16() && !ctx.IsBfp16())
         return false;
 
     if(ctx.group_counts != 1)
@@ -82,22 +88,98 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) con
     std::size_t wo = ctx.in_width;  // unswap
 
     // equivalent dimension for bwd-wrw
-    std::size_t n_eqv  = c;
-    std::size_t k_eqv  = k;
-    std::size_t c_eqv  = n;
-    std::size_t y_eqv  = ho;
-    std::size_t x_eqv  = wo;
-    std::size_t ho_eqv = y;
-    std::size_t wo_eqv = x;
+    std::size_t n_eqv     = c;
+    std::size_t k_eqv     = k;
+    std::size_t c_eqv     = n;
+    std::size_t y_eqv     = ho;
+    std::size_t x_eqv     = wo;
+    std::size_t ho_eqv    = y;
+    std::size_t wo_eqv    = x;
+    std::size_t eMultiple = (ctx.IsFp16() || ctx.IsBfp16()) ? 16 : 8;
 
-    return n_eqv % 8 == 0 && (n_eqv * ho_eqv * wo_eqv) % 128 == 0 &&
-           (c_eqv * y_eqv * x_eqv) % 8 == 0 && k_eqv % 128 == 0;
+    // batch is divided by epack to pack 2/4 fp16/bfp16
+    if(c_eqv % GetEPackLength(ctx, false) != 0)
+        return false;
+
+    return n_eqv % 8 == 0 && (n_eqv * ho_eqv * wo_eqv) % 64 == 0 &&
+           (c_eqv * y_eqv * x_eqv) % eMultiple == 0 && k_eqv % 16 == 0;
 }
 
-ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx) const
+PerformanceImplicitGemm
+ConvHipImplicitGemmV4R1Fwd::GetPerformanceConfig(const ConvolutionContext& ctx) const
+{
+    return GetPerformanceConfigBase<PerformanceImplicitGemm>(ctx);
+}
+
+PerformanceImplicitGemm
+ConvHipImplicitGemmV4R1WrW::GetPerformanceConfig(const ConvolutionContext& ctx) const
+{
+    return GetPerformanceConfigBase<PerformanceImplicitGemm>(ctx);
+}
+
+bool ConvHipImplicitGemmV4R1Fwd::IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                                          const PerformanceImplicitGemm& c) const
+{
+    MIOPEN_LOG_I("");
+    return c.IsValidValue() && c.IsValid(ctx);
+}
+
+bool ConvHipImplicitGemmV4R1WrW::IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                                          const PerformanceImplicitGemm& c) const
+{
+    MIOPEN_LOG_I("");
+    return c.IsValidValue() && c.IsValid(ctx);
+}
+
+int ConvHipImplicitGemmV4R1Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
+                                                      ConstData_t bot_buf,
+                                                      Data_t top_buf,
+                                                      ConstData_t wei_buf,
+                                                      ConstData_t bias_buf,
+                                                      const ConvolutionContext& ctx,
+                                                      const ConvSolution& solution,
+                                                      float& elapsed_time) const
+{
+    assert(bias_buf == nullptr);
+    (void)bias_buf;
+
+    return RunAndMeasureSolutionBase(
+        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
+}
+
+int ConvHipImplicitGemmV4R1WrW::RunAndMeasureSolution(miopen::Handle& profile_h,
+                                                      ConstData_t bot_buf,
+                                                      Data_t top_buf,
+                                                      ConstData_t wei_buf,
+                                                      ConstData_t bias_buf,
+                                                      const ConvolutionContext& ctx,
+                                                      const ConvSolution& solution,
+                                                      float& elapsed_time) const
+{
+    assert(bias_buf == nullptr);
+    (void)bias_buf;
+    return RunAndMeasureSolutionBase(
+        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
+}
+
+PerformanceImplicitGemm ConvHipImplicitGemmV4R1Fwd::Search(const ConvolutionContext& context) const
+{
+    return GenericSearchFwd(*this, context);
+}
+PerformanceImplicitGemm ConvHipImplicitGemmV4R1WrW::Search(const ConvolutionContext& context) const
+{
+    return GenericSearchFwd(*this, context);
+}
+
+ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
+                                                     const PerformanceImplicitGemm& config,
+                                                     bool) const
 {
     ConvSolution result;
     KernelInfo construction_parameters;
+
+    const int N1 = config.GemmNRepeat;
+    const int N2 = config.GemmNPerThreadSubC;
 
     // retrieve dimension from ConvolutionContex
     std::size_t n               = ctx.batch_sz;
@@ -124,14 +206,16 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
     std::size_t right_pad_h = hi_padded > (left_pad_h + hi) ? hi_padded - (left_pad_h + hi) : 0;
     std::size_t right_pad_w = wi_padded > (left_pad_w + wi) ? wi_padded - (left_pad_w + wi) : 0;
 
-    //
-    std::size_t b = (n * ho * wo) / 8;
+    std::size_t b = (static_cast<std::size_t>(n) * ho * wo) / (static_cast<std::size_t>(N1) * N2);
 
-    std::size_t b_per_block = 16;
-    std::size_t k_per_block = 128;
-    std::size_t e_per_block = 8;
+    std::size_t b_per_block = config.BPerBlock;
+    std::size_t k_per_block = config.KPerBlock;
+    std::size_t e_per_block = config.EPerBlock;
 
-    std::size_t block_size = 256;
+    const int ThreadPerLevel1Cluster = config.GemmMLevel0Cluster * config.GemmNLevel0Cluster *
+                                       config.GemmMLevel1Cluster * config.GemmNLevel1Cluster;
+
+    const int block_size = ThreadPerLevel1Cluster;
 
     std::size_t grid_size = (b / b_per_block) * (k / k_per_block);
 
@@ -156,6 +240,25 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
 
     construction_parameters.kernel_name =
         "gridwise_convolution_implicit_gemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer";
+
+    std::size_t WeiBlockCopySubLengths_E = e_per_block / config.WeiBlockCopyClusterLengths_E;
+    std::size_t WeiBlockCopySubLengths_K = k_per_block / config.WeiBlockCopyClusterLengths_K;
+
+    int WeiBlockCopySrcDataPerRead_E  = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
+    int WeiBlockCopyDstDataPerWrite_K = GetReadWriteVectorSize(WeiBlockCopySubLengths_K);
+
+    std::size_t InBlockCopySubLengths_B  = b_per_block / config.InBlockCopyClusterLengths_B;
+    std::size_t InBlockCopySubLengths_N2 = N2 / config.InBlockCopyClusterLengths_N2;
+
+    int InBlockCopySrcDataPerRead_B   = GetReadWriteVectorSize(InBlockCopySubLengths_B);
+    int InBlockCopyDstDataPerWrite_N2 = GetReadWriteVectorSize(InBlockCopySubLengths_N2);
+
+    // Borrowed from non-padded version of v4
+    InBlockCopySrcDataPerRead_B =
+        ctx.kernel_size_w > 1
+            ? std::min(InBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(ctx.kernel_dilation_w))
+            : InBlockCopySrcDataPerRead_B;
+    InBlockCopySrcDataPerRead_B = ctx.kernel_stride_w > 1 ? 1 : InBlockCopySrcDataPerRead_B;
 
     // clang-format off
     construction_parameters.comp_options = 
@@ -185,23 +288,24 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
         std::string(" -DCK_PARAM_TUNABLE_K_PER_BLOCK=") + std::to_string(k_per_block) +
         std::string(" -DCK_PARAM_TUNABLE_E_PER_BLOCK=") + std::to_string(e_per_block) +
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
-        std::string(" -DCK_PARAM_GEMM_N_REPEAT=") + std::to_string(2) +
-        std::string(" -DCK_PARAM_GEMM_M_PER_THREAD_SUB_C=") + std::to_string(4) +
-        std::string(" -DCK_PARAM_GEMM_N_PER_THREAD_SUB_C=") + std::to_string(4) +
-        std::string(" -DCK_PARAM_GEMM_M_LEVEL0_CLUSTER=") + std::to_string(4) +
-        std::string(" -DCK_PARAM_GEMM_N_LEVEL0_CLUSTER=") + std::to_string(4) +
-        std::string(" -DCK_PARAM_GEMM_M_LEVEL1_CLUSTER=") + std::to_string(4) +
-        std::string(" -DCK_PARAM_GEMM_N_LEVEL1_CLUSTER=") + std::to_string(4) +
-        std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_E=") + std::to_string(8) +
-        std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_N1=") + std::to_string(2) +
-        std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_B=") + std::to_string(16) +
-        std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_N2=") + std::to_string(1) +
-        std::string(" -DCK_PARAM_IN_BLOCK_COPY_SRC_DATA_PER_READ_B=") + std::to_string(1) +
-        std::string(" -DCK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_N2=") + std::to_string(4) +
-        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_E=") + std::to_string(2) +
-        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K=") + std::to_string(128) +
-        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(4) + 
-        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K=") + std::to_string(1) + 
+        std::string(" -DCK_PARAM_GEMM_N_REPEAT=") + std::to_string(config.GemmNRepeat) +
+        std::string(" -DCK_PARAM_GEMM_M_PER_THREAD_SUB_C=") + std::to_string(config.GemmMPerThreadSubC) +
+        std::string(" -DCK_PARAM_GEMM_N_PER_THREAD_SUB_C=") + std::to_string(config.GemmNPerThreadSubC) +
+        std::string(" -DCK_PARAM_GEMM_M_LEVEL0_CLUSTER=") + std::to_string(config.GemmMLevel0Cluster) +
+        std::string(" -DCK_PARAM_GEMM_N_LEVEL0_CLUSTER=") + std::to_string(config.GemmNLevel0Cluster) +
+        std::string(" -DCK_PARAM_GEMM_M_LEVEL1_CLUSTER=") + std::to_string(config.GemmMLevel1Cluster) +
+        std::string(" -DCK_PARAM_GEMM_N_LEVEL1_CLUSTER=") + std::to_string(config.GemmNLevel1Cluster) +
+        std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_E=") + std::to_string(config.InBlockCopyClusterLengths_E) +
+        std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_N1=") + std::to_string(config.InBlockCopyClusterLengths_N1) +
+        std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_B=") + std::to_string(config.InBlockCopyClusterLengths_B) +
+        std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_N2=") + std::to_string(config.InBlockCopyClusterLengths_N2) +
+        std::string(" -DCK_PARAM_IN_BLOCK_COPY_SRC_DATA_PER_READ_B=") + std::to_string(InBlockCopySrcDataPerRead_B) +
+        std::string(" -DCK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_N2=") + std::to_string(InBlockCopyDstDataPerWrite_N2) +
+        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_E=") + std::to_string(config.WeiBlockCopyClusterLengths_E) +
+        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
+        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) +
+        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K=") + std::to_string(WeiBlockCopyDstDataPerWrite_K) +
+        std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, false)) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
@@ -211,10 +315,15 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
     return result;
 }
 
-ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx) const
+ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
+                                                     const PerformanceImplicitGemm& config,
+                                                     bool) const
 {
     ConvSolution result;
     KernelInfo construction_parameters;
+
+    const int N1 = config.GemmNRepeat;
+    const int N2 = config.GemmNPerThreadSubC;
 
     // retrieve dimension from ConvolutionContex
     // remember: ConvolutionContext has swapped some dimensions for you!
@@ -248,15 +357,17 @@ ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& c
     std::size_t ho_eqv = y;
     std::size_t wo_eqv = x;
 
-    //
-    std::size_t b = (n_eqv * ho_eqv * wo_eqv) / 8;
+    std::size_t b =
+        (static_cast<std::size_t>(n_eqv) * ho_eqv * wo_eqv) / (static_cast<std::size_t>(N1) * N2);
 
-    std::size_t b_per_block = 16;
-    std::size_t k_per_block = 128;
-    std::size_t e_per_block = 8;
+    std::size_t b_per_block = config.BPerBlock;
+    std::size_t k_per_block = config.KPerBlock;
+    std::size_t e_per_block = config.EPerBlock;
 
-    std::size_t block_size = 256;
+    const int ThreadPerLevel1Cluster = config.GemmMLevel0Cluster * config.GemmNLevel0Cluster *
+                                       config.GemmMLevel1Cluster * config.GemmNLevel1Cluster;
 
+    const int block_size  = ThreadPerLevel1Cluster;
     std::size_t grid_size = (b / b_per_block) * (k / k_per_block);
 
     std::size_t lkl_wk0 = block_size;
@@ -280,6 +391,25 @@ ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& c
 
     construction_parameters.kernel_name =
         "gridwise_convolution_implicit_gemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer";
+
+    std::size_t WeiBlockCopySubLengths_E = e_per_block / config.WeiBlockCopyClusterLengths_E;
+    std::size_t WeiBlockCopySubLengths_K = k_per_block / config.WeiBlockCopyClusterLengths_K;
+
+    int WeiBlockCopySrcDataPerRead_E  = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
+    int WeiBlockCopyDstDataPerWrite_K = GetReadWriteVectorSize(WeiBlockCopySubLengths_K);
+
+    std::size_t InBlockCopySubLengths_B  = b_per_block / config.InBlockCopyClusterLengths_B;
+    std::size_t InBlockCopySubLengths_N2 = N2 / config.InBlockCopyClusterLengths_N2;
+
+    int InBlockCopySrcDataPerRead_B   = GetReadWriteVectorSize(InBlockCopySubLengths_B);
+    int InBlockCopyDstDataPerWrite_N2 = GetReadWriteVectorSize(InBlockCopySubLengths_N2);
+
+    // Borrowed from non-padded version of v4
+    InBlockCopySrcDataPerRead_B =
+        ctx.kernel_size_w > 1
+            ? std::min(InBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(ctx.kernel_dilation_w))
+            : InBlockCopySrcDataPerRead_B;
+    InBlockCopySrcDataPerRead_B = ctx.kernel_stride_w > 1 ? 1 : InBlockCopySrcDataPerRead_B;
 
     // clang-format off
     construction_parameters.comp_options = 
@@ -309,24 +439,25 @@ ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& c
         std::string(" -DCK_PARAM_TUNABLE_K_PER_BLOCK=") + std::to_string(k_per_block) +
         std::string(" -DCK_PARAM_TUNABLE_E_PER_BLOCK=") + std::to_string(e_per_block) +
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
-        std::string(" -DCK_PARAM_GEMM_N_REPEAT=") + std::to_string(2) +
-        std::string(" -DCK_PARAM_GEMM_M_PER_THREAD_SUB_C=") + std::to_string(4) +
-        std::string(" -DCK_PARAM_GEMM_N_PER_THREAD_SUB_C=") + std::to_string(4) +
-        std::string(" -DCK_PARAM_GEMM_M_LEVEL0_CLUSTER=") + std::to_string(4) +
-        std::string(" -DCK_PARAM_GEMM_N_LEVEL0_CLUSTER=") + std::to_string(4) +
-        std::string(" -DCK_PARAM_GEMM_M_LEVEL1_CLUSTER=") + std::to_string(4) +
-        std::string(" -DCK_PARAM_GEMM_N_LEVEL1_CLUSTER=") + std::to_string(4) +
-        std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_E=") + std::to_string(8) +
-        std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_N1=") + std::to_string(2) +
-        std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_B=") + std::to_string(16) +
-        std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_N2=") + std::to_string(1) +
-        std::string(" -DCK_PARAM_IN_BLOCK_COPY_SRC_DATA_PER_READ_B=") + std::to_string(1) +
-        std::string(" -DCK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_N2=") + std::to_string(4) +
-        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_E=") + std::to_string(8) +
-        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K=") + std::to_string(32) +
-        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(1) +
-        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K=") + std::to_string(4) +
-        std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
+        std::string(" -DCK_PARAM_GEMM_N_REPEAT=") + std::to_string(config.GemmNRepeat) +
+        std::string(" -DCK_PARAM_GEMM_M_PER_THREAD_SUB_C=") + std::to_string(config.GemmMPerThreadSubC) +
+        std::string(" -DCK_PARAM_GEMM_N_PER_THREAD_SUB_C=") + std::to_string(config.GemmNPerThreadSubC) +
+        std::string(" -DCK_PARAM_GEMM_M_LEVEL0_CLUSTER=") + std::to_string(config.GemmMLevel0Cluster) +
+        std::string(" -DCK_PARAM_GEMM_N_LEVEL0_CLUSTER=") + std::to_string(config.GemmNLevel0Cluster) +
+        std::string(" -DCK_PARAM_GEMM_M_LEVEL1_CLUSTER=") + std::to_string(config.GemmMLevel1Cluster) +
+        std::string(" -DCK_PARAM_GEMM_N_LEVEL1_CLUSTER=") + std::to_string(config.GemmNLevel1Cluster) +
+        std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_E=") + std::to_string(config.InBlockCopyClusterLengths_E) +
+        std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_N1=") + std::to_string(config.InBlockCopyClusterLengths_N1) +
+        std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_B=") + std::to_string(config.InBlockCopyClusterLengths_B) +
+        std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_N2=") + std::to_string(config.InBlockCopyClusterLengths_N2) +
+        std::string(" -DCK_PARAM_IN_BLOCK_COPY_SRC_DATA_PER_READ_B=") + std::to_string(InBlockCopySrcDataPerRead_B) +
+        std::string(" -DCK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_N2=") + std::to_string(InBlockCopyDstDataPerWrite_N2) +
+        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_E=") + std::to_string(config.WeiBlockCopyClusterLengths_E) +
+        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
+        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) +
+        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K=") + std::to_string(WeiBlockCopyDstDataPerWrite_K) +
+        std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, false)) + 
+        std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx)? '1' : '0') +
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
