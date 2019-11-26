@@ -196,6 +196,7 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_v4.cpp
     solver/conv_hip_implicit_gemm_v4r1.cpp
     solver/conv_hip_implicit_gemm_v4r4_xdlops.cpp
+    solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
     )
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
