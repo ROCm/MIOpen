@@ -244,14 +244,32 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
     std::size_t WeiBlockCopySubLengths_E = e_per_block / config.WeiBlockCopyClusterLengths_E;
     std::size_t WeiBlockCopySubLengths_K = k_per_block / config.WeiBlockCopyClusterLengths_K;
 
-    int WeiBlockCopySrcDataPerRead_E  = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
-    int WeiBlockCopyDstDataPerWrite_K = GetReadWriteVectorSize(WeiBlockCopySubLengths_K);
+    int WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
 
     std::size_t InBlockCopySubLengths_B  = b_per_block / config.InBlockCopyClusterLengths_B;
     std::size_t InBlockCopySubLengths_N2 = N2 / config.InBlockCopyClusterLengths_N2;
 
-    int InBlockCopySrcDataPerRead_B   = GetReadWriteVectorSize(InBlockCopySubLengths_B);
-    int InBlockCopyDstDataPerWrite_N2 = GetReadWriteVectorSize(InBlockCopySubLengths_N2);
+    int InBlockCopySrcDataPerRead_B = GetReadWriteVectorSize(InBlockCopySubLengths_B);
+
+    int WeiBlockCopyDstDataPerWrite_K     = 0;
+    int InBlockCopyDstDataPerWrite_N2     = 0;
+    int WeiBlockCopyDstDataPerWrite_EPack = 0;
+    int InBlockCopyDstDataPerWrite_EPack  = 0;
+
+    if(ctx.IsFp32())
+    {
+        WeiBlockCopyDstDataPerWrite_K = GetReadWriteVectorSize(WeiBlockCopySubLengths_K);
+        InBlockCopyDstDataPerWrite_N2 = GetReadWriteVectorSize(InBlockCopySubLengths_N2);
+        (void)WeiBlockCopyDstDataPerWrite_EPack;
+        (void)InBlockCopyDstDataPerWrite_EPack;
+    }
+    else
+    {
+        WeiBlockCopyDstDataPerWrite_EPack = GetEPackLength(ctx, false);
+        InBlockCopyDstDataPerWrite_EPack  = GetEPackLength(ctx, false);
+        (void)WeiBlockCopyDstDataPerWrite_K;
+        (void)InBlockCopyDstDataPerWrite_N2;
+    }
 
     // Borrowed from non-padded version of v4
     InBlockCopySrcDataPerRead_B =
@@ -300,16 +318,31 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
         std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_B=") + std::to_string(config.InBlockCopyClusterLengths_B) +
         std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_N2=") + std::to_string(config.InBlockCopyClusterLengths_N2) +
         std::string(" -DCK_PARAM_IN_BLOCK_COPY_SRC_DATA_PER_READ_B=") + std::to_string(InBlockCopySrcDataPerRead_B) +
-        std::string(" -DCK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_N2=") + std::to_string(InBlockCopyDstDataPerWrite_N2) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_E=") + std::to_string(config.WeiBlockCopyClusterLengths_E) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) +
-        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K=") + std::to_string(WeiBlockCopyDstDataPerWrite_K) +
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, false)) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
+
+    if(ctx.IsFp32())
+    {
+        construction_parameters.comp_options +=
+            std::string(" -DCK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_N2=") +
+            std::to_string(InBlockCopyDstDataPerWrite_N2) +
+            std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K=") +
+            std::to_string(WeiBlockCopyDstDataPerWrite_K);
+    }
+    else
+    {
+        construction_parameters.comp_options +=
+            std::string(" -DCK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_EPACK=") +
+            std::to_string(InBlockCopyDstDataPerWrite_EPack) +
+            std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_EPACK=") +
+            std::to_string(WeiBlockCopyDstDataPerWrite_EPack);
+    }
 
     result.construction_params.push_back(construction_parameters);
     return result;
@@ -395,15 +428,34 @@ ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& c
     std::size_t WeiBlockCopySubLengths_E = e_per_block / config.WeiBlockCopyClusterLengths_E;
     std::size_t WeiBlockCopySubLengths_K = k_per_block / config.WeiBlockCopyClusterLengths_K;
 
-    int WeiBlockCopySrcDataPerRead_E  = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
-    int WeiBlockCopyDstDataPerWrite_K = GetReadWriteVectorSize(WeiBlockCopySubLengths_K);
+    int WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
 
     std::size_t InBlockCopySubLengths_B  = b_per_block / config.InBlockCopyClusterLengths_B;
     std::size_t InBlockCopySubLengths_N2 = N2 / config.InBlockCopyClusterLengths_N2;
 
-    int InBlockCopySrcDataPerRead_B   = GetReadWriteVectorSize(InBlockCopySubLengths_B);
-    int InBlockCopyDstDataPerWrite_N2 = GetReadWriteVectorSize(InBlockCopySubLengths_N2);
+    int InBlockCopySrcDataPerRead_B = GetReadWriteVectorSize(InBlockCopySubLengths_B);
 
+    int WeiBlockCopyDstDataPerWrite_K     = 0;
+    int InBlockCopyDstDataPerWrite_N2     = 0;
+    int WeiBlockCopyDstDataPerWrite_EPack = 0;
+    int InBlockCopyDstDataPerWrite_EPack  = 0;
+
+    if(ctx.IsFp32())
+    {
+        WeiBlockCopyDstDataPerWrite_K = GetReadWriteVectorSize(WeiBlockCopySubLengths_K);
+        InBlockCopyDstDataPerWrite_N2 = GetReadWriteVectorSize(InBlockCopySubLengths_N2);
+        (void)WeiBlockCopyDstDataPerWrite_EPack;
+        (void)InBlockCopyDstDataPerWrite_EPack;
+    }
+    else
+    {
+        WeiBlockCopyDstDataPerWrite_EPack = GetEPackLength(ctx, false);
+        InBlockCopyDstDataPerWrite_EPack  = GetEPackLength(ctx, false);
+        (void)WeiBlockCopyDstDataPerWrite_K;
+        (void)InBlockCopyDstDataPerWrite_N2;
+    }
+
+    // clang-format off
     // Borrowed from non-padded version of v4
     InBlockCopySrcDataPerRead_B =
         ctx.kernel_size_w > 1
@@ -451,16 +503,31 @@ ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& c
         std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_B=") + std::to_string(config.InBlockCopyClusterLengths_B) +
         std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_N2=") + std::to_string(config.InBlockCopyClusterLengths_N2) +
         std::string(" -DCK_PARAM_IN_BLOCK_COPY_SRC_DATA_PER_READ_B=") + std::to_string(InBlockCopySrcDataPerRead_B) +
-        std::string(" -DCK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_N2=") + std::to_string(InBlockCopyDstDataPerWrite_N2) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_E=") + std::to_string(config.WeiBlockCopyClusterLengths_E) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) +
-        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K=") + std::to_string(WeiBlockCopyDstDataPerWrite_K) +
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, false)) + 
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx)? '1' : '0') +
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
+
+    if(ctx.IsFp32())
+    {
+        construction_parameters.comp_options +=
+            std::string(" -DCK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_N2=") +
+            std::to_string(InBlockCopyDstDataPerWrite_N2) +
+            std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K=") +
+            std::to_string(WeiBlockCopyDstDataPerWrite_K);
+    }
+    else
+    {
+        construction_parameters.comp_options +=
+            std::string(" -DCK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_EPACK=") +
+            std::to_string(InBlockCopyDstDataPerWrite_EPack) +
+            std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_EPACK=") +
+            std::to_string(WeiBlockCopyDstDataPerWrite_EPack);
+    }
 
     result.construction_params.push_back(construction_parameters);
     return result;
