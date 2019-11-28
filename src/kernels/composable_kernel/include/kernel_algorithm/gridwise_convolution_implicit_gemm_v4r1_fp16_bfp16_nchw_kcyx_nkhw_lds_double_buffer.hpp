@@ -118,20 +118,20 @@ template <index_t GridSize,
           index_t GemmKPerThreadLoop,
           index_t GemmDataPerReadA,
           index_t GemmDataPerReadB,
-          typename InBlockCopySubLengths_E_N1_B_N2,
-          typename InBlockCopyClusterLengths_E_N1_B_N2,
+          typename InBlockCopySubLengths_E_N1_B_N2_EPack,
+          typename InBlockCopyClusterLengths_E_N1_B_N2_EPack,
           typename InBlockCopyThreadClusterArrangeOrder,
           typename InBlockCopySrcAccessOrder,
           typename InBlockCopyDstAccessOrder,
           index_t InBlockCopySrcDataPerRead_B,
-          index_t InBlockCopyDstDataPerWrite_N2,
-          typename WeiBlockCopySubLengths_E_K,
-          typename WeiBlockCopyClusterLengths_E_K,
+          index_t InBlockCopyDstDataPerWrite_EPack,
+          typename WeiBlockCopySubLengths_E_K_EPack,
+          typename WeiBlockCopyClusterLengths_E_K_EPack,
           typename WeiBlockCopyThreadClusterArrangeOrder,
           typename WeiBlockCopySrcAccessOrder,
           typename WeiBlockCopyDstAccessOrder,
           index_t WeiBlockCopySrcDataPerRead_E,
-          index_t WeiBlockCopyDstDataPerWrite_K>
+          index_t WeiBlockCopyDstDataPerWrite_EPack>
 struct GridwiseConvolutionImplicitGemm_v4r1_fp16_bfp16_nchw_kcyx_nkhw_lds_double_buffer
 {
     __device__ void Run(const Float* const __restrict__ p_in_global,
@@ -250,67 +250,67 @@ struct GridwiseConvolutionImplicitGemm_v4r1_fp16_bfp16_nchw_kcyx_nkhw_lds_double
 
         //     block tensor in LDS memory, dst of blockwise copy
         //     be careful of LDS alignment
-        constexpr auto in_e_n1_b_n2_block_desc =
+        constexpr auto in_e_n1_b_n2_epack_block_desc =
             make_native_tensor_descriptor_aligned(Sequence<EPerBlock, N1, BPerBlock, N2, EPack>{},
-                                                  Number<InBlockCopyDstDataPerWrite_N2>{});
+                                                  Number<InBlockCopyDstDataPerWrite_EPack>{});
 
         //     this check is ad-hoc
         //     TODO: need to properly implement tensor descriptor with multiple alignment
         //     requirements
-        static_assert(in_e_n1_b_n2_block_desc.GetStride(I1) % (EPack * GemmDataPerReadB) == 0,
+        static_assert(in_e_n1_b_n2_epack_block_desc.GetStride(I1) % (EPack * GemmDataPerReadB) == 0,
                       "GemmDataPerReadB alignment requirement is not satisfied");
 
         // input tensor blockwise copy
         auto blockwise_in_copy =
             BlockwiseGenericTensorSliceCopy_v4<BlockSize,
                                                decltype(in_e_n1_b_n2_epack_global_desc),
-                                               decltype(in_e_n1_b_n2_block_desc),
-                                               decltype(in_e_n1_b_n2_block_desc.GetLengths()),
-                                               InBlockCopySubLengths_E_N1_B_N2,
-                                               InBlockCopyClusterLengths_E_N1_B_N2,
+                                               decltype(in_e_n1_b_n2_epack_block_desc),
+                                               decltype(in_e_n1_b_n2_epack_block_desc.GetLengths()),
+                                               InBlockCopySubLengths_E_N1_B_N2_EPack,
+                                               InBlockCopyClusterLengths_E_N1_B_N2_EPack,
                                                InBlockCopyThreadClusterArrangeOrder,
                                                InBlockCopySrcAccessOrder,
                                                InBlockCopyDstAccessOrder,
                                                2,
                                                4,
                                                InBlockCopySrcDataPerRead_B,
-                                               InBlockCopyDstDataPerWrite_N2>(
+                                               InBlockCopyDstDataPerWrite_EPack>(
                 {0, 0, b_block_data_on_global, 0, 0}, {0, 0, 0, 0, 0});
 
         // weight tensor
         //     global tensor in global memory, src of blockwise copy
         //     It is constructed differently, depending on whether forward or backward weight
         //       convolution
-        constexpr auto wei_e_k_global_desc =
+        constexpr auto wei_e_k_epack_global_desc =
             make_wei_e_k_epack_global_desc_v4r1<EPack, ConvDirection>{}(wei_k_c_y_x_global_desc);
 
         //     block tensor in LDS memory, dst of blockwise copy
         //     be careful of LDS alignment
-        constexpr auto wei_e_k_block_desc = make_native_tensor_descriptor_aligned(
+        constexpr auto wei_e_k_epack_block_desc = make_native_tensor_descriptor_aligned(
             Sequence<EPerBlock, KPerBlock, EPack>{},
-            Number<math::lcm(WeiBlockCopyDstDataPerWrite_K, GemmDataPerReadA, EPack)>{});
+            Number<math::lcm(WeiBlockCopyDstDataPerWrite_EPack)>{});
 
         //     this check is ad-hoc
         //     TODO: need to properly implement tensor descriptor with multiple alignment
         //     requirements
-        static_assert(wei_e_k_block_desc.GetStride(I0) % EPack * GemmDataPerReadA == 0,
+        static_assert(wei_e_k_epack_block_desc.GetStride(I0) % EPack * GemmDataPerReadA == 0,
                       "GemmDataPerReadA alignment requirement is not satisfied");
 
         // weight tensor blockwise copy
         auto blockwise_wei_copy =
             BlockwiseGenericTensorSliceCopy_v4<BlockSize,
-                                               decltype(wei_e_k_global_desc),
-                                               decltype(wei_e_k_block_desc),
-                                               decltype(wei_e_k_block_desc.GetLengths()),
-                                               WeiBlockCopySubLengths_E_K,
-                                               WeiBlockCopyClusterLengths_E_K,
+                                               decltype(wei_e_k_epack_global_desc),
+                                               decltype(wei_e_k_epack_block_desc),
+                                               decltype(wei_e_k_epack_block_desc.GetLengths()),
+                                               WeiBlockCopySubLengths_E_K_EPack,
+                                               WeiBlockCopyClusterLengths_E_K_EPack,
                                                WeiBlockCopyThreadClusterArrangeOrder,
                                                WeiBlockCopySrcAccessOrder,
                                                WeiBlockCopyDstAccessOrder,
                                                0,
                                                2,
                                                WeiBlockCopySrcDataPerRead_E,
-                                               WeiBlockCopyDstDataPerWrite_K>(
+                                               WeiBlockCopyDstDataPerWrite_EPack>(
                 {0, k_block_data_on_global, 0}, {0, 0, 0});
 
         // GEMM definition
@@ -353,16 +353,16 @@ struct GridwiseConvolutionImplicitGemm_v4r1_fp16_bfp16_nchw_kcyx_nkhw_lds_double
             GemmDataPerReadB>{};
 
         // LDS allocation for input and weight: be careful of alignment
-        constexpr index_t max_align = math::lcm(InBlockCopyDstDataPerWrite_N2,
-                                                WeiBlockCopyDstDataPerWrite_K,
+        constexpr index_t max_align = math::lcm(InBlockCopyDstDataPerWrite_EPack,
+                                                WeiBlockCopyDstDataPerWrite_EPack,
                                                 EPack * GemmDataPerReadA,
                                                 EPack * GemmDataPerReadB);
 
-        constexpr index_t in_block_space =
-            math::integer_least_multiple(in_e_n1_b_n2_block_desc.GetElementSpace(), max_align);
+        constexpr index_t in_block_space = math::integer_least_multiple(
+            in_e_n1_b_n2_epack_block_desc.GetElementSpace(), max_align);
 
         constexpr index_t wei_block_space =
-            math::integer_least_multiple(wei_e_k_block_desc.GetElementSpace(), max_align);
+            math::integer_least_multiple(wei_e_k_epack_block_desc.GetElementSpace(), max_align);
 
         __shared__ Float p_in_block_double[2 * in_block_space];
         __shared__ Float p_wei_block_double[2 * wei_block_space];
@@ -423,6 +423,12 @@ struct GridwiseConvolutionImplicitGemm_v4r1_fp16_bfp16_nchw_kcyx_nkhw_lds_double
                                                        generic_address_space);
 
                 // LDS double buffer: GEMM on current data
+                // Vectorize the pointer to match with how half/bfloat16 datatypes are
+                // processed in gemm operation. Half type packs 4 half values while
+                // bfloat16 packs 2 bfloat16 values. Since gemm's matrix A and B
+                // 2D indexes are computed with vectorized data in mind (e.g. float,half4, short2),
+                // we recast datatype from a single half/bfloat16 to 4 packed half/2 packed bfloat16
+                // respectively.
                 const typename vector_type<Float, EPack>::MemoryType* p_a_block_vec =
                     reinterpret_cast<const typename vector_type<Float, EPack>::MemoryType*>(
                         p_wei_block_now);
@@ -464,9 +470,9 @@ struct GridwiseConvolutionImplicitGemm_v4r1_fp16_bfp16_nchw_kcyx_nkhw_lds_double
                 // Vectorize the pointer to match with how half/bfloat16 datatypes are
                 // processed in gemm operation. Half type packs 4 half values while
                 // bfloat16 packs 2 bfloat16 values. Since gemm's matrix A and B
-                // 2D indexes are computed with a single value in mind (e.g. float),
-                // to retain the same 2D indexes for half/bfloat16, we recast datatype
-                // from a single half to 4 packed half/2 packed bfloat16 respectively.
+                // 2D indexes are computed with vectorized data in mind (e.g. float,half4, short2),
+                // we recast datatype from a single half/bfloat16 to 4 packed half/2 packed bfloat16
+                // respectively.
                 const typename vector_type<Float, EPack>::MemoryType* p_a_block_vec =
                     reinterpret_cast<const typename vector_type<Float, EPack>::MemoryType*>(
                         p_wei_block_double);
