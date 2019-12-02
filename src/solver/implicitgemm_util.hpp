@@ -67,17 +67,6 @@ inline static int GetReadWriteVectorSize(const int v)
 
 inline static uint32_t GetEPackLength(const ConvolutionContext& ctx, bool isXdlopsInvoked)
 {
-    int C = ctx.n_inputs;
-    int Y = ctx.kernel_size_h;
-    int X = ctx.kernel_size_w;
-
-    if(ctx.direction.IsBackwardWrW())
-    {
-        C = ctx.batch_sz;  // swapped
-        Y = ctx.in_height; // swapped
-        X = ctx.in_width;  // swapped
-    }
-
     // Based on data type, Es are packed
     int EPACK = 1;
     if(ctx.IsFp16()) // for fp16, either 2 or 4 Es could be packed
@@ -85,7 +74,8 @@ inline static uint32_t GetEPackLength(const ConvolutionContext& ctx, bool isXdlo
         if(IsXdlopsSupport(ctx) && isXdlopsInvoked) // in xdlops, 4 fp16s are packed
             EPACK = 4;
         else // for fp16, either 2 or 4 Es could be packed in non-xdlops scenarios.
-            EPACK = (C * Y * X % 32) == 0 ? 4 : 2;
+            // EPACK = (C * Y * X % 32) == 0 ? 4 : 2;
+            EPACK = 2;
     }
     else if(ctx.IsBfp16()) // for bfp16, only 2 Es could be packed
     {
