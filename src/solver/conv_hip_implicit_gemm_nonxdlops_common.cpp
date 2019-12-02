@@ -111,8 +111,17 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
     if((N1 * N2 * BPerBlock) % (GemmNPerThreadSubC * GemmNLevel0Cluster * GemmNLevel1Cluster) != 0)
         return false;
 
-    if(ctx.IsFp16() && GemmNPerThreadSubC != GemmMPerThreadSubC)
+    // fp16/bfp16: doesn't support asymmetric matrix mul
+    if((ctx.IsFp16() || ctx.IsBfp16()) && GemmNPerThreadSubC != GemmMPerThreadSubC)
         return false;
+
+    // fp16/bfp16: vector read of length 8 or greater is not supported
+    // as vector_type<vector<half,4>, 2> is not working. So, restrict epack*gemmreada <= 4
+    // and epack*gemmreadb <= 4
+    // if((ctx.IsFp16()  || ctx.IsBfp16()) && ((GetEPackLength(ctx, false)*GemmNPerThreadSubC > 4)
+    // ||
+    //   (GetEPackLength(ctx, false)*GemmMPerThreadSubC > 4)))
+    //  return false;
 
     // sanity check
     if((KPerBlock % (GemmMPerThreadSubC * GemmMLevel0Cluster * GemmMLevel1Cluster)) != 0)

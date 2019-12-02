@@ -77,14 +77,14 @@ template <index_t GridSize,
           class InBlockCopySrcAccessOrder,
           class InBlockCopyDstAccessOrder,
           index_t InBlockCopySrcDataPerRead_B,
-          index_t InBlockCopyDstDataPerWrite_N2,
+          index_t InBlockCopyDstDataPerWrite_EPACK,
           class WeiBlockCopySubLengths_E_K_EPACK,
           class WeiBlockCopyClusterLengths_E_K_EPACK,
           class WeiBlockCopyThreadClusterArrangeOrder,
           class WeiBlockCopySrcAccessOrder,
           class WeiBlockCopyDstAccessOrder,
           index_t WeiBlockCopySrcDataPerRead_E,
-          index_t WeiBlockCopyDstDataPerWrite_K>
+          index_t WeiBlockCopyDstDataPerWrite_EPACK>
 struct GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_buffer
 {
     __device__ void Run(const Float* const __restrict__ p_in_global,
@@ -136,15 +136,17 @@ struct GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_b
         constexpr auto nonVectorizedC = C / EPACK;
         constexpr index_t E           = nonVectorizedC * Y * X;
 
+        static_assert(InBlockCopyDstDataPerWrite_EPACK == EPACK,
+                      "Vector length of input block needs to be EPACK");
+        static_assert(WeiBlockCopyDstDataPerWrite_EPACK == EPACK,
+                      "Vector length of weight block needs to be EPACK");
+
         // divide block work by [K, B]
         static_assert(K % KPerBlock == 0 && B % BPerBlock == 0 && E % (2 * EPerBlock) == 0,
                       "wrong! cannot divide work evenly among block");
 
         constexpr index_t KBlockWork = K / KPerBlock;
         constexpr index_t BBlockWork = B / BPerBlock;
-
-        constexpr index_t InBlockCopyDstDataPerWrite_EPACK  = EPACK;
-        constexpr index_t WeiBlockCopyDstDataPerWrite_EPACK = EPACK;
 
         constexpr auto block_work_desc =
             make_ConstantTensorDescriptor_packed(Sequence<KBlockWork, BBlockWork>{});
@@ -184,14 +186,15 @@ struct GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_b
 
         //     memory layout descriptor in LDS [E, N1, B, N2, {2C/4C}], dst of blockwise copy
         //     be careful of LDS alignment
-        constexpr auto in_e_n1_b_n2_2eor4e_block_desc =
-            make_ConstantTensorDescriptor_aligned(Sequence<EPerBlock, N1, BPerBlock, N2, EPACK>{},
-                                                  Number<InBlockCopyDstDataPerWrite_EPACK>{});
+        constexpr auto in_e_n1_b_n2_2eor4e_block_desc = make_ConstantTensorDescriptor_aligned(
+            Sequence<EPerBlock, N1, BPerBlock, N2, EPACK>{},
+            Number<InBlockCopyDstDataPerWrite_EPACK * GemmDataPerReadB>{});
 
         //     this check for GEMM is ad-hoc
         //     TODO: need to properly implement tensor descriptor with multiple alignment
         //     requirements
-        static_assert(in_e_n1_b_n2_2eor4e_block_desc.GetStride(I1) % (EPACK * GemmDataPerReadB) ==
+        static_assert(in_e_n1_b_n2_2eor4e_block_desc.GetStride(I1) %
+                              (InBlockCopyDstDataPerWrite_EPACK * GemmDataPerReadB) ==
                           0,
                       "GemmDataPerReadB alignment requirement is not satisfied");
 
@@ -225,12 +228,15 @@ struct GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_b
         //     tensor descriptor in LDS, dst of blockwise copy
         //     be careful of LDS alignment
         constexpr auto wei_e_k_2eor4e_block_desc = make_ConstantTensorDescriptor_aligned(
-            Sequence<EPerBlock, KPerBlock, EPACK>{}, Number<WeiBlockCopyDstDataPerWrite_EPACK>{});
+            Sequence<EPerBlock, KPerBlock, EPACK>{},
+            Number<WeiBlockCopyDstDataPerWrite_EPACK * GemmDataPerReadA>{});
 
         //     this check for GEMM is ad-hoc
         //     TODO: need to properly implement tensor descriptor with multiple alignment
         //     requirements
-        static_assert(wei_e_k_2eor4e_block_desc.GetStride(I1) % (EPACK * GemmDataPerReadA) == 0,
+        static_assert(wei_e_k_2eor4e_block_desc.GetStride(I1) %
+                              (WeiBlockCopyDstDataPerWrite_EPACK * GemmDataPerReadA) ==
+                          0,
                       "GemmDataPerReadA alignment requirement is not satisfied");
 
         // operator for blockwise copy of weight into LDS
@@ -326,12 +332,7 @@ struct GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_b
             e_block_data_begin += 2 * EPerBlock)
         {
 
-            // hcc compilation error: loop not unrolled: the optimizer was unable to perform the
-            // requested transformation;
-            // the transformation might be disabled or specified as part of an unsupported
-            // transformation
-            // ordering [-Werror,-Wpass-failed=transform-warning]
-            //#pragma unroll
+#pragma unroll
             for(index_t iloop = 0; iloop < 2; ++iloop)
             {
                 const bool even_loop = (iloop % 2 == 0);
