@@ -59,35 +59,24 @@ bool PerformanceImplicitGemm::operator==(const PerformanceImplicitGemm& other) c
 
 bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
 {
-    int N = ctx.batch_sz;
-    int K = ctx.n_outputs;
-    int C = ctx.n_inputs;
+    std::size_t N = KernelBatchN(ctx);
+    std::size_t K = KernelOutputChannelK(ctx);
+    std::size_t C = KernelInputChannelC(ctx);
 
-    int Ho = ImgHeight(ctx);
-    int Wo = ImgWidth(ctx);
+    std::size_t Ho = KernelOutputHeightHo(ctx);
+    std::size_t Wo = KernelOutputWidthWo(ctx);
 
-    int Y = ctx.kernel_size_h;
-    int X = ctx.kernel_size_w;
-
-    if(ctx.direction.IsBackwardWrW())
-    {
-        N  = ctx.n_outputs; // swapped
-        K  = ctx.n_inputs;  // swapped
-        C  = ctx.batch_sz;  // swapped
-        Ho = ctx.kernel_size_h;
-        Wo = ctx.kernel_size_w;
-        Y  = ctx.in_height; // swapped
-        X  = ctx.in_width;  // swapped
-    }
+    std::size_t Y = KernelFilterHeightY(ctx);
+    std::size_t X = KernelFilterWidthX(ctx);
 
     const int N1 = GemmNRepeat;
     const int N2 = GemmNPerThreadSubC;
     if(N % (N1 * N2) != 0)
         return false; // wrong! cannot divice N evenly among thread
 
-    const int N0 = N / (N1 * N2);
+    const auto N0 = N / (N1 * N2);
 
-    const int B = N0 * Ho * Wo;
+    const auto B = N0 * Ho * Wo;
 
     const auto nonVectorizedC = C / GetEPackLength(ctx, false);
     const auto E              = nonVectorizedC * Y * X;

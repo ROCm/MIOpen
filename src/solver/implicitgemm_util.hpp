@@ -3,6 +3,7 @@
 
 #include <miopen/env.hpp>
 #include <miopen/hip_build_utils.hpp>
+#include <miopen/mlo_internal.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS)
 
@@ -11,14 +12,96 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM)
 namespace miopen {
 namespace solver {
 
-static inline int ImgHeight(const ConvolutionContext& c)
+static inline std::size_t KernelFilterStrideH(const ConvolutionContext& c)
 {
-    return c.direction.IsForward() ? c.out_height : c.in_height;
+    if(c.direction.IsBackwardWrW())
+        return c.kernel_dilation_h;
+    else
+        return c.kernel_stride_h;
 }
 
-static inline int ImgWidth(const ConvolutionContext& c)
+static inline std::size_t KernelFilterStrideW(const ConvolutionContext& c)
 {
-    return c.direction.IsForward() ? c.out_width : c.in_width;
+    if(c.direction.IsBackwardWrW())
+        return c.kernel_dilation_w;
+    else
+        return c.kernel_stride_w;
+}
+
+static inline std::size_t KernelFilterDilationH(const ConvolutionContext& c)
+{
+    if(c.direction.IsBackwardWrW())
+        return c.kernel_stride_h;
+    else
+        return c.kernel_dilation_h;
+}
+
+static inline std::size_t KernelFilterDilationW(const ConvolutionContext& c)
+{
+    if(c.direction.IsBackwardWrW())
+        return c.kernel_stride_w;
+    else
+        return c.kernel_dilation_w;
+}
+
+static inline std::size_t KernelOutputChannelK(const ConvolutionContext& c)
+{
+    if(c.direction.IsBackwardWrW())
+        return c.n_inputs;
+    else
+        return c.n_outputs;
+}
+
+static inline std::size_t KernelInputChannelC(const ConvolutionContext& c)
+{
+    if(c.direction.IsBackwardWrW())
+        return c.batch_sz;
+    else
+        return c.n_inputs;
+}
+
+static inline std::size_t KernelBatchN(const ConvolutionContext& c)
+{
+    if(c.direction.IsBackwardWrW())
+        return c.n_outputs;
+    else
+        return c.batch_sz;
+}
+
+static inline std::size_t KernelOutputHeightHo(const ConvolutionContext& c)
+{
+    if(c.direction.IsForward())
+        return c.out_height;
+    else if(c.direction.IsBackwardWrW())
+        return c.kernel_size_h;
+    else
+        return c.in_height;
+}
+
+static inline std::size_t KernelOutputWidthWo(const ConvolutionContext& c)
+{
+    if(c.direction.IsForward())
+        return c.out_width;
+    else if(c.direction.IsBackwardWrW())
+        return c.kernel_size_w;
+    else
+        return c.in_width;
+}
+
+static inline std::size_t KernelFilterWidthX(const ConvolutionContext& c)
+{
+    if(c.direction.IsBackwardWrW())
+        return c.in_width;
+    else
+        return c.kernel_size_w;
+}
+
+static inline std::size_t KernelFilterHeightY(const ConvolutionContext& c)
+{
+    if(c.direction.IsBackwardWrW())
+        return c.in_height;
+    else
+        return c.kernel_size_h;
 }
 
 /// \todo move to separate header and use in other solvers.

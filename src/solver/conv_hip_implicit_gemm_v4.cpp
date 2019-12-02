@@ -44,7 +44,8 @@ bool ConvHipImplicitGemmV4_1x1::IsApplicable(const ConvolutionContext& ctx) cons
         return false;
 
     return ctx.IsFp32() && ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.group_counts == 1 &&
-           ctx.batch_sz % 8 == 0 && (ctx.batch_sz * ImgHeight(ctx) * ImgWidth(ctx)) % 64 == 0 &&
+           ctx.batch_sz % 8 == 0 &&
+           (ctx.batch_sz * KernelOutputHeightHo(ctx) * KernelOutputWidthWo(ctx)) % 64 == 0 &&
            ctx.n_outputs % 16 == 0 && ctx.kernel_size_h == 1 && ctx.kernel_size_w == 1 &&
            ctx.n_inputs % 8 == 0 && ctx.kernel_dilation_h == 1 && ctx.kernel_dilation_w == 1;
 }
@@ -368,8 +369,13 @@ ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx
                                                    const PerformanceImplicitGemm& config,
                                                    const bool) const
 {
-    return GetSolutionBase(
-        ctx, config, ImplicitGemmV4, ctx.batch_sz, ctx.n_outputs, ctx.out_height, ctx.out_width);
+    return GetSolutionBase(ctx,
+                           config,
+                           ImplicitGemmV4,
+                           KernelBatchN(ctx),
+                           KernelOutputChannelK(ctx),
+                           KernelOutputHeightHo(ctx),
+                           KernelOutputWidthWo(ctx));
 }
 ConvSolution ConvHipImplicitGemmV4WrW::GetSolution(const ConvolutionContext& ctx,
                                                    const PerformanceImplicitGemm& config,
@@ -378,10 +384,10 @@ ConvSolution ConvHipImplicitGemmV4WrW::GetSolution(const ConvolutionContext& ctx
     return GetSolutionBase(ctx,
                            config,
                            ImplicitGemmV4,
-                           ctx.n_outputs,
-                           ctx.n_inputs,
-                           ctx.kernel_size_h,
-                           ctx.kernel_size_w);
+                           KernelBatchN(ctx),
+                           KernelOutputChannelK(ctx),
+                           KernelOutputHeightHo(ctx),
+                           KernelOutputWidthWo(ctx));
 }
 
 ConvSolution ConvHipImplicitGemmV4_1x1::GetSolution(const ConvolutionContext& ctx,
@@ -391,10 +397,10 @@ ConvSolution ConvHipImplicitGemmV4_1x1::GetSolution(const ConvolutionContext& ct
     return GetSolutionBase(ctx,
                            config,
                            ImplicitGemmV4_1x1,
-                           ctx.batch_sz,
-                           ctx.n_outputs,
-                           ImgHeight(ctx),
-                           ImgWidth(ctx));
+                           KernelBatchN(ctx),
+                           KernelOutputChannelK(ctx),
+                           KernelOutputHeightHo(ctx),
+                           KernelOutputWidthWo(ctx));
 }
 
 int ConvHipImplicitGemmV4Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
