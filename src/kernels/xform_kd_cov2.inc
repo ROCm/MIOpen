@@ -32,7 +32,7 @@
     compute_pgm_rsrc1_sgprs = .AUTO_SGPR_GRANULATED_COUNT
     compute_pgm_rsrc2_tidig_comp_cnt = 0
     compute_pgm_rsrc2_user_sgpr = 2
-    kernarg_segment_byte_size = 144
+    kernarg_segment_byte_size = KERNEL_ARGUMENTS_SIZE
     wavefront_sgpr_count = .AUTO_SGPR_COUNT
     workitem_vgpr_count = .AUTO_VGPR_COUNT
     float_mode = 192
