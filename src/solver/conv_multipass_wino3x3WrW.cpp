@@ -317,7 +317,7 @@ struct OutTransform
         std::ostringstream options;
         GenerateClangDefsym(options, "acc_type", 1);
         GenerateClangDefsym(options, "buf_type", (params.IsFp32() ? 1 : (params.IsFp16() ? 2 : 3)));
-        GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 4);
+        GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
         GenerateClangDefsym(options, "MIOPEN_USE_RNE_BFLOAT16", MIOPEN_USE_RNE_BFLOAT16);
         GenerateClangDefsym(options, "xformx_o_size", WinoDataW);
         GenerateClangDefsym(options, "xformy_o_size", WinoDataH);
@@ -404,9 +404,11 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
             return false;
     if(!params.use_asm_kernels)
         return false;
-    if(!params.rmv.IsV2())
+    if(!params.rmv.IsV2orV3())
         return false;
     if(!params.Is2d())
+        return false;
+    if(!params.direction.IsBackwardWrW())
         return false;
     if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
@@ -465,8 +467,8 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
     }
     bool ok = (
            (params.kernel_size_w == WinoDataW && params.kernel_size_h == WinoDataH)
-        && (params.kernel_stride_w == 1 
-            || 
+        && (params.kernel_stride_w == 1
+            ||
             (params.kernel_stride_w == 2 && params.kernel_size_h == 3 && params.kernel_size_w == 3)
             )
         && params.kernel_stride_h == params.kernel_stride_w
@@ -479,7 +481,6 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
         && params.in_width < std::pow(2, 24)
         && params.bias == 0
         && params.in_layout == "NCHW"
-        && params.direction.IsBackwardWrW()
         && params.group_counts == 1);
     // clang-format on
     return ok;
