@@ -43,12 +43,9 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx) con
     if(!ctx.IsFp32() && !ctx.IsFp16() && !ctx.IsBfp16())
         return false;
 
-    if(ctx.group_counts != 1)
-        return false;
-
     std::size_t n         = ctx.batch_sz;
-    std::size_t k         = ctx.n_outputs;
-    std::size_t c         = ctx.n_inputs;
+    std::size_t k         = ctx.n_outputs / ctx.group_counts;
+    std::size_t c         = ctx.n_inputs / ctx.group_counts;
     std::size_t y         = ctx.kernel_size_h;
     std::size_t x         = ctx.kernel_size_w;
     std::size_t ho        = ctx.out_height;
@@ -59,7 +56,7 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx) con
     if(c % GetEPackLength(ctx, false) != 0)
         return false;
 
-    return n % 8 == 0 && (n * ho * wo) % 64 == 0 && (c * y * x) % eMultiple == 0 && k % 16 == 0;
+    return n % 8 == 0 && (n * ho * wo) % 32 == 0 && (c * y * x) % eMultiple == 0 && k % 16 == 0;
 }
 
 bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) const
@@ -73,35 +70,32 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) con
     if(!ctx.IsFp32() && !ctx.IsFp16() && !ctx.IsBfp16())
         return false;
 
-    if(ctx.group_counts != 1)
-        return false;
-
     // retrieve dimension from ConvolutionContext
     // remember: ConvolutionContext has swapped some dimensions for you!
     // undo the swap to avoid confusion
-    std::size_t n  = ctx.batch_sz;
-    std::size_t k  = ctx.n_inputs;  // unswap
-    std::size_t c  = ctx.n_outputs; // unswap
-    std::size_t y  = ctx.kernel_size_h;
-    std::size_t x  = ctx.kernel_size_w;
-    std::size_t ho = ctx.in_height; // unswap
-    std::size_t wo = ctx.in_width;  // unswap
+    const auto& n  = ctx.batch_sz;
+    const auto& k  = ctx.n_inputs / ctx.group_counts;  // unswap
+    const auto& c  = ctx.n_outputs / ctx.group_counts; // unswap
+    const auto& y  = ctx.kernel_size_h;
+    const auto& x  = ctx.kernel_size_w;
+    const auto& ho = ctx.in_height; // unswap
+    const auto& wo = ctx.in_width;  // unswap
 
     // equivalent dimension for bwd-wrw
-    std::size_t n_eqv     = c;
-    std::size_t k_eqv     = k;
-    std::size_t c_eqv     = n;
-    std::size_t y_eqv     = ho;
-    std::size_t x_eqv     = wo;
-    std::size_t ho_eqv    = y;
-    std::size_t wo_eqv    = x;
-    std::size_t eMultiple = (ctx.IsFp16() || ctx.IsBfp16()) ? 16 : 8;
+    const auto& n_eqv     = c;
+    const auto& k_eqv     = k;
+    const auto& c_eqv     = n;
+    const auto& y_eqv     = ho;
+    const auto& x_eqv     = wo;
+    const auto& ho_eqv    = y;
+    const auto& wo_eqv    = x;
+    const auto& eMultiple = (ctx.IsFp16() || ctx.IsBfp16()) ? 16 : 8;
 
     // batch is divided by epack to pack 2/4 fp16/bfp16
     if(c_eqv % GetEPackLength(ctx, false) != 0)
         return false;
 
-    return n_eqv % 8 == 0 && (n_eqv * ho_eqv * wo_eqv) % 64 == 0 &&
+    return n_eqv % 8 == 0 && (n_eqv * ho_eqv * wo_eqv) % 32 == 0 &&
            (c_eqv * y_eqv * x_eqv) % eMultiple == 0 && k_eqv % 16 == 0;
 }
 
@@ -178,76 +172,89 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
     ConvSolution result;
     KernelInfo construction_parameters;
 
-    const int N1 = config.GemmNRepeat;
-    const int N2 = config.GemmNPerThreadSubC;
+    const auto& N1 = config.GemmNRepeat;
+    const auto& N2 = config.GemmNPerThreadSubC;
 
     // retrieve dimension from ConvolutionContex
-    std::size_t n               = ctx.batch_sz;
-    std::size_t k               = ctx.n_outputs;
-    std::size_t c               = ctx.n_inputs;
-    std::size_t hi              = ctx.in_height;
-    std::size_t wi              = ctx.in_width;
-    std::size_t ho              = ctx.out_height;
-    std::size_t wo              = ctx.out_width;
-    std::size_t y               = ctx.kernel_size_h;
-    std::size_t x               = ctx.kernel_size_w;
-    std::size_t conv_stride_h   = ctx.kernel_stride_h;
-    std::size_t conv_stride_w   = ctx.kernel_stride_w;
-    std::size_t conv_dilation_h = ctx.kernel_dilation_h;
-    std::size_t conv_dilation_w = ctx.kernel_dilation_w;
+    const auto& n               = ctx.batch_sz;
+    const auto& k               = ctx.n_outputs;
+    const auto& c               = ctx.n_inputs;
+    const auto& hi              = ctx.in_height;
+    const auto& wi              = ctx.in_width;
+    const auto& ho              = ctx.out_height;
+    const auto& wo              = ctx.out_width;
+    const auto& y               = ctx.kernel_size_h;
+    const auto& x               = ctx.kernel_size_w;
+    const auto& conv_stride_h   = ctx.kernel_stride_h;
+    const auto& conv_stride_w   = ctx.kernel_stride_w;
+    const auto& conv_dilation_h = ctx.kernel_dilation_h;
+    const auto& conv_dilation_w = ctx.kernel_dilation_w;
 
     // adjust padding size to align with the way MIOpen deal with padding
-    std::size_t left_pad_h = ctx.pad_h;
-    std::size_t left_pad_w = ctx.pad_w;
+    const auto& left_pad_h = ctx.pad_h;
+    const auto& left_pad_w = ctx.pad_w;
 
-    std::size_t hi_padded = 1 + (y - 1) * conv_dilation_h + (ho - 1) * conv_stride_h;
-    std::size_t wi_padded = 1 + (x - 1) * conv_dilation_w + (wo - 1) * conv_stride_w;
+    const auto& hi_padded = 1 + (y - 1) * conv_dilation_h + (ho - 1) * conv_stride_h;
+    const auto& wi_padded = 1 + (x - 1) * conv_dilation_w + (wo - 1) * conv_stride_w;
 
-    std::size_t right_pad_h = hi_padded > (left_pad_h + hi) ? hi_padded - (left_pad_h + hi) : 0;
-    std::size_t right_pad_w = wi_padded > (left_pad_w + wi) ? wi_padded - (left_pad_w + wi) : 0;
+    const auto& right_pad_h = hi_padded > (left_pad_h + hi) ? hi_padded - (left_pad_h + hi) : 0;
+    const auto& right_pad_w = wi_padded > (left_pad_w + wi) ? wi_padded - (left_pad_w + wi) : 0;
 
-    std::size_t b = (static_cast<std::size_t>(n) * ho * wo) / (static_cast<std::size_t>(N1) * N2);
+    const auto& b = (static_cast<std::size_t>(n) * ho * wo) / (static_cast<std::size_t>(N1) * N2);
 
-    std::size_t b_per_block = config.BPerBlock;
-    std::size_t k_per_block = config.KPerBlock;
-    std::size_t e_per_block = config.EPerBlock;
+    const auto& b_per_block = config.BPerBlock;
+    const auto& k_per_block = config.KPerBlock;
+    const auto& e_per_block = config.EPerBlock;
 
-    const int ThreadPerLevel1Cluster = config.GemmMLevel0Cluster * config.GemmNLevel0Cluster *
-                                       config.GemmMLevel1Cluster * config.GemmNLevel1Cluster;
+    const auto& ThreadPerLevel1Cluster = config.GemmMLevel0Cluster * config.GemmNLevel0Cluster *
+                                         config.GemmMLevel1Cluster * config.GemmNLevel1Cluster;
 
-    const int block_size = ThreadPerLevel1Cluster;
+    const auto& block_size = ThreadPerLevel1Cluster;
 
-    std::size_t grid_size = (b / b_per_block) * (k / k_per_block);
+    const auto& group_counts = ctx.group_counts;
 
-    std::size_t lkl_wk0 = block_size;
-    std::size_t lkl_wk1 = 1;
-    std::size_t lkl_wk2 = 1;
+    const auto& grid_size = (b / b_per_block) * (k / k_per_block);
+
+    const auto& lkl_wk0 = block_size;
+    const auto& lkl_wk1 = 1;
+    const auto& lkl_wk2 = 1;
 
     construction_parameters.l_wk.push_back(lkl_wk0);
     construction_parameters.l_wk.push_back(lkl_wk1);
     construction_parameters.l_wk.push_back(lkl_wk2);
 
-    std::size_t gbl_wk0 = lkl_wk0 * grid_size;
-    std::size_t gbl_wk1 = 1;
-    std::size_t gbl_wk2 = 1;
+    const auto& gbl_wk0 = lkl_wk0 * grid_size;
+    const auto& gbl_wk1 = 1;
+    const auto& gbl_wk2 = 1;
 
     construction_parameters.g_wk.push_back(gbl_wk0);
     construction_parameters.g_wk.push_back(gbl_wk1);
     construction_parameters.g_wk.push_back(gbl_wk2);
 
-    construction_parameters.kernel_file =
-        "gridwise_convolution_implicit_gemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer.cpp";
+    if(group_counts > 1)
+    {
+        construction_parameters.kernel_file =
+            "gridwise_convolution_implicit_gemm_v4r1_gnchw_gkcyx_gnkhw_lds_double_buffer.cpp";
 
-    construction_parameters.kernel_name =
-        "gridwise_convolution_implicit_gemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer";
+        construction_parameters.kernel_name =
+            "gridwise_convolution_implicit_gemm_v4r1_gnchw_gkcyx_gnkhw_lds_double_buffer";
+    }
+    else
+    {
+        construction_parameters.kernel_file =
+            "gridwise_convolution_implicit_gemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer.cpp";
 
-    std::size_t WeiBlockCopySubLengths_E = e_per_block / config.WeiBlockCopyClusterLengths_E;
-    std::size_t WeiBlockCopySubLengths_K = k_per_block / config.WeiBlockCopyClusterLengths_K;
+        construction_parameters.kernel_name =
+            "gridwise_convolution_implicit_gemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer";
+    }
 
-    int WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
+    const auto& WeiBlockCopySubLengths_E = e_per_block / config.WeiBlockCopyClusterLengths_E;
+    const auto& WeiBlockCopySubLengths_K = k_per_block / config.WeiBlockCopyClusterLengths_K;
 
-    std::size_t InBlockCopySubLengths_B  = b_per_block / config.InBlockCopyClusterLengths_B;
-    std::size_t InBlockCopySubLengths_N2 = N2 / config.InBlockCopyClusterLengths_N2;
+    const auto& WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
+
+    const auto& InBlockCopySubLengths_B  = b_per_block / config.InBlockCopyClusterLengths_B;
+    const auto& InBlockCopySubLengths_N2 = N2 / config.InBlockCopyClusterLengths_N2;
 
     int InBlockCopySrcDataPerRead_B = GetReadWriteVectorSize(InBlockCopySubLengths_B);
 
@@ -298,6 +305,7 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
         std::string(" -DCK_PARAM_PROBLEM_LEFT_PAD_W=") + std::to_string(left_pad_w) +
         std::string(" -DCK_PARAM_PROBLEM_RIGHT_PAD_H=") + std::to_string(right_pad_h) +
         std::string(" -DCK_PARAM_PROBLEM_RIGHT_PAD_W=") + std::to_string(right_pad_w) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_GROUP_COUNTS=") + std::to_string(group_counts) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_FORWARD=") + std::to_string(1) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_DATA=") + std::to_string(0) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_WEIGHT=") + std::to_string(0) +
@@ -355,83 +363,96 @@ ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& c
     ConvSolution result;
     KernelInfo construction_parameters;
 
-    const int N1 = config.GemmNRepeat;
-    const int N2 = config.GemmNPerThreadSubC;
+    const auto& N1 = config.GemmNRepeat;
+    const auto& N2 = config.GemmNPerThreadSubC;
 
     // retrieve dimension from ConvolutionContex
     // remember: ConvolutionContext has swapped some dimensions for you!
     // undo the swap to avoid confusion
-    std::size_t n               = ctx.batch_sz;
-    std::size_t k               = ctx.n_inputs;   // unswap
-    std::size_t c               = ctx.n_outputs;  // unswap
-    std::size_t hi              = ctx.out_height; // unswap
-    std::size_t wi              = ctx.out_width;  // unswap
-    std::size_t ho              = ctx.in_height;  // unswap
-    std::size_t wo              = ctx.in_width;   // unswap
-    std::size_t y               = ctx.kernel_size_h;
-    std::size_t x               = ctx.kernel_size_w;
-    std::size_t conv_stride_h   = ctx.kernel_stride_h;
-    std::size_t conv_stride_w   = ctx.kernel_stride_w;
-    std::size_t conv_dilation_h = ctx.kernel_dilation_h;
-    std::size_t conv_dilation_w = ctx.kernel_dilation_w;
+    const auto& n               = ctx.batch_sz;
+    const auto& k               = ctx.n_inputs;   // unswap
+    const auto& c               = ctx.n_outputs;  // unswap
+    const auto& hi              = ctx.out_height; // unswap
+    const auto& wi              = ctx.out_width;  // unswap
+    const auto& ho              = ctx.in_height;  // unswap
+    const auto& wo              = ctx.in_width;   // unswap
+    const auto& y               = ctx.kernel_size_h;
+    const auto& x               = ctx.kernel_size_w;
+    const auto& conv_stride_h   = ctx.kernel_stride_h;
+    const auto& conv_stride_w   = ctx.kernel_stride_w;
+    const auto& conv_dilation_h = ctx.kernel_dilation_h;
+    const auto& conv_dilation_w = ctx.kernel_dilation_w;
 
     // adjust padding size to align with the way MIOpen deal with padding
-    std::size_t left_pad_h = ctx.pad_h;
-    std::size_t left_pad_w = ctx.pad_w;
+    const auto& left_pad_h = ctx.pad_h;
+    const auto& left_pad_w = ctx.pad_w;
 
-    std::size_t hi_padded = 1 + (y - 1) * conv_dilation_h + (ho - 1) * conv_stride_h;
-    std::size_t wi_padded = 1 + (x - 1) * conv_dilation_w + (wo - 1) * conv_stride_w;
+    const auto& hi_padded = 1 + (y - 1) * conv_dilation_h + (ho - 1) * conv_stride_h;
+    const auto& wi_padded = 1 + (x - 1) * conv_dilation_w + (wo - 1) * conv_stride_w;
 
-    std::size_t right_pad_h = hi_padded > (left_pad_h + hi) ? hi_padded - (left_pad_h + hi) : 0;
-    std::size_t right_pad_w = wi_padded > (left_pad_w + wi) ? wi_padded - (left_pad_w + wi) : 0;
+    const auto& right_pad_h = hi_padded > (left_pad_h + hi) ? hi_padded - (left_pad_h + hi) : 0;
+    const auto& right_pad_w = wi_padded > (left_pad_w + wi) ? wi_padded - (left_pad_w + wi) : 0;
+
+    const auto& group_counts = ctx.group_counts;
 
     // equivalent dimension for bwd-wrw
-    std::size_t n_eqv  = c;
-    std::size_t ho_eqv = y;
-    std::size_t wo_eqv = x;
+    const auto& n_eqv  = c / group_counts;
+    const auto& ho_eqv = y;
+    const auto& wo_eqv = x;
 
-    std::size_t b =
+    const auto& b =
         (static_cast<std::size_t>(n_eqv) * ho_eqv * wo_eqv) / (static_cast<std::size_t>(N1) * N2);
 
-    std::size_t b_per_block = config.BPerBlock;
-    std::size_t k_per_block = config.KPerBlock;
-    std::size_t e_per_block = config.EPerBlock;
+    const auto& b_per_block = config.BPerBlock;
+    const auto& k_per_block = config.KPerBlock;
+    const auto& e_per_block = config.EPerBlock;
 
-    const int ThreadPerLevel1Cluster = config.GemmMLevel0Cluster * config.GemmNLevel0Cluster *
-                                       config.GemmMLevel1Cluster * config.GemmNLevel1Cluster;
+    const auto& ThreadPerLevel1Cluster = config.GemmMLevel0Cluster * config.GemmNLevel0Cluster *
+                                         config.GemmMLevel1Cluster * config.GemmNLevel1Cluster;
 
-    const int block_size  = ThreadPerLevel1Cluster;
-    std::size_t grid_size = (b / b_per_block) * (k / k_per_block);
+    const auto& block_size = ThreadPerLevel1Cluster;
+    const auto& grid_size  = (b / b_per_block) * (k / k_per_block);
 
-    std::size_t lkl_wk0 = block_size;
-    std::size_t lkl_wk1 = 1;
-    std::size_t lkl_wk2 = 1;
+    const auto& lkl_wk0 = block_size;
+    const auto& lkl_wk1 = 1;
+    const auto& lkl_wk2 = 1;
 
     construction_parameters.l_wk.push_back(lkl_wk0);
     construction_parameters.l_wk.push_back(lkl_wk1);
     construction_parameters.l_wk.push_back(lkl_wk2);
 
-    std::size_t gbl_wk0 = lkl_wk0 * grid_size;
-    std::size_t gbl_wk1 = 1;
-    std::size_t gbl_wk2 = 1;
+    const auto& gbl_wk0 = lkl_wk0 * grid_size;
+    const auto& gbl_wk1 = 1;
+    const auto& gbl_wk2 = 1;
 
     construction_parameters.g_wk.push_back(gbl_wk0);
     construction_parameters.g_wk.push_back(gbl_wk1);
     construction_parameters.g_wk.push_back(gbl_wk2);
 
-    construction_parameters.kernel_file =
-        "gridwise_convolution_implicit_gemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer.cpp";
+    if(ctx.group_counts > 1)
+    {
+        construction_parameters.kernel_file =
+            "gridwise_convolution_implicit_gemm_v4r1_gnchw_gkcyx_gnkhw_lds_double_buffer.cpp";
 
-    construction_parameters.kernel_name =
-        "gridwise_convolution_implicit_gemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer";
+        construction_parameters.kernel_name =
+            "gridwise_convolution_implicit_gemm_v4r1_gnchw_gkcyx_gnkhw_lds_double_buffer";
+    }
+    else
+    {
+        construction_parameters.kernel_file =
+            "gridwise_convolution_implicit_gemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer.cpp";
 
-    std::size_t WeiBlockCopySubLengths_E = e_per_block / config.WeiBlockCopyClusterLengths_E;
-    std::size_t WeiBlockCopySubLengths_K = k_per_block / config.WeiBlockCopyClusterLengths_K;
+        construction_parameters.kernel_name =
+            "gridwise_convolution_implicit_gemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer";
+    }
+
+    const auto& WeiBlockCopySubLengths_E = e_per_block / config.WeiBlockCopyClusterLengths_E;
+    const auto& WeiBlockCopySubLengths_K = k_per_block / config.WeiBlockCopyClusterLengths_K;
 
     int WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
 
-    std::size_t InBlockCopySubLengths_B  = b_per_block / config.InBlockCopyClusterLengths_B;
-    std::size_t InBlockCopySubLengths_N2 = N2 / config.InBlockCopyClusterLengths_N2;
+    const auto& InBlockCopySubLengths_B  = b_per_block / config.InBlockCopyClusterLengths_B;
+    const auto& InBlockCopySubLengths_N2 = N2 / config.InBlockCopyClusterLengths_N2;
 
     int InBlockCopySrcDataPerRead_B = GetReadWriteVectorSize(InBlockCopySubLengths_B);
 
@@ -483,6 +504,7 @@ ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& c
         std::string(" -DCK_PARAM_PROBLEM_LEFT_PAD_W=") + std::to_string(left_pad_w) +
         std::string(" -DCK_PARAM_PROBLEM_RIGHT_PAD_H=") + std::to_string(right_pad_h) +
         std::string(" -DCK_PARAM_PROBLEM_RIGHT_PAD_W=") + std::to_string(right_pad_w) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_GROUP_COUNTS=") + std::to_string(group_counts) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_FORWARD=") + std::to_string(0) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_DATA=") + std::to_string(0) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_WEIGHT=") + std::to_string(1) +

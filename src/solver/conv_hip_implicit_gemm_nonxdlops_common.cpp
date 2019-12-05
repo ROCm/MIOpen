@@ -94,8 +94,12 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
             return false;
     }
     // divide block work by [K, B]
-    if(!(K % KPerBlock == 0 && B % BPerBlock == 0 && E % (2 * EPerBlock) == 0))
+    if(!(K % KPerBlock == 0 && B % BPerBlock == 0 && E % EPerBlock == 0))
         return false; // wrong! cannot divice N evenly among thread
+
+    const auto KBlockWork = K / KPerBlock;
+    if(KBlockWork % ctx.group_counts != 0)
+        return false;
 
     if((N1 * N2 * BPerBlock) % (GemmNPerThreadSubC * GemmNLevel0Cluster * GemmNLevel1Cluster) != 0)
         return false;
@@ -245,6 +249,31 @@ void PerformanceImplicitGemm::EuristicInit(const ConvolutionContext& config)
         GemmNLevel0Cluster = 4;
         GemmMLevel1Cluster = 2;
         GemmNLevel1Cluster = 4;
+    }
+
+    if(!IsValid(config))
+    {
+        BPerBlock = 8;
+        KPerBlock = 32;
+        EPerBlock = 4;
+
+        GemmNRepeat = 2;
+
+        GemmMPerThreadSubC = 2;
+        GemmNPerThreadSubC = 2;
+
+        GemmMLevel0Cluster = 2;
+        GemmNLevel0Cluster = 4;
+        GemmMLevel1Cluster = 4;
+        GemmNLevel1Cluster = 2;
+
+        InBlockCopyClusterLengths_E  = 4;
+        InBlockCopyClusterLengths_N1 = 2;
+        InBlockCopyClusterLengths_B  = 8;
+        InBlockCopyClusterLengths_N2 = 1;
+
+        WeiBlockCopyClusterLengths_E = 4;
+        WeiBlockCopyClusterLengths_K = 16;
     }
 
     if(!IsValid(config))

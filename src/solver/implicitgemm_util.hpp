@@ -57,13 +57,13 @@ static inline std::size_t KernelInputChannelC(const ConvolutionContext& c)
     if(c.direction.IsBackwardWrW())
         return c.batch_sz;
     else
-        return c.n_inputs;
+        return c.n_inputs / c.group_counts;
 }
 
 static inline std::size_t KernelBatchN(const ConvolutionContext& c)
 {
     if(c.direction.IsBackwardWrW())
-        return c.n_outputs;
+        return c.n_outputs / c.group_counts;
     else
         return c.batch_sz;
 }
