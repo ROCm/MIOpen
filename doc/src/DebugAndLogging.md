@@ -105,13 +105,22 @@ Winograd  Solutions:
   * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW` - FP32 F(3,2) WrW convolutions only.
   * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FWD_BWD` - FP32/FP16 F(3,3) Fwd/Bwd.
 * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2` - `ConvBinWinogradRxSf3x2`, FP32/FP16 Fwd/Bwd F(3,2) Winograd.
-* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2` - `ConvWinograd3x3MultipassWrW<3-2>`, WrW F(3,2) Multi-pass Winograd (stride 2 only).
-* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3` - `ConvWinograd3x3MultipassWrW<3-3>`, WrW F(3,3) Multi-pass Winograd (stride 2 only).
-* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4` - `ConvWinograd3x3MultipassWrW<3-4>`, WrW F(3,4) Multi-pass Winograd.
-* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5` - `ConvWinograd3x3MultipassWrW<3-5>`, WrW F(3,5) Multi-pass Winograd.
-* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6` - `ConvWinograd3x3MultipassWrW<3-6>`, WrW F(3,6) Multi-pass Winograd.
-* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X2` - `ConvWinograd3x3MultipassWrW<7-2-1-1>`, WrW F(7x1,2x1) Multi-pass Winograd and `ConvWinograd3x3MultipassWrW<1-1-7-2>`, WrW F(1x7,1x2) Multi-pass Winograd.
-* `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X3` - `ConvWinograd3x3MultipassWrW<7-3-1-1>`, WrW F(7x1,3x1) Multi-pass Winograd and `ConvWinograd3x3MultipassWrW<1-1-7-3>`, WrW F(1x7,1x3) Multi-pass Winograd
+* Multi-pass Winograd:
+  * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2` - `ConvWinograd3x3MultipassWrW<3-2>`, WrW F(3,2), stride 2 only.
+  * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3` - `ConvWinograd3x3MultipassWrW<3-3>`, WrW F(3,3), stride 2 only.
+  * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4` - `ConvWinograd3x3MultipassWrW<3-4>`, WrW F(3,4).
+  * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5` - `ConvWinograd3x3MultipassWrW<3-5>`, WrW F(3,5).
+  * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6` - `ConvWinograd3x3MultipassWrW<3-6>`, WrW F(3,6).
+  * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X3` - `ConvWinograd3x3MultipassWrW<5-3>`, WrW F(5,3).
+  * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X4` - `ConvWinograd3x3MultipassWrW<5-4>`, WrW F(5,4).
+  * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X2`:
+    * `ConvWinograd3x3MultipassWrW<7-2>`, WrW F(7,2)
+    * `ConvWinograd3x3MultipassWrW<7-2-1-1>`, WrW F(7x1,2x1)
+    * `ConvWinograd3x3MultipassWrW<1-1-7-2>`, WrW F(1x7,1x2)
+  * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X3`:
+    * `ConvWinograd3x3MultipassWrW<7-3>`, WrW F(7,3)
+    * `ConvWinograd3x3MultipassWrW<7-3-1-1>`, WrW F(7x1,3x1)
+    * `ConvWinograd3x3MultipassWrW<1-1-7-3>`, WrW F(1x7,1x3)
 * `MIOPEN_DEBUG_AMD_FUSED_WINOGRAD` - Fused FP32 F(3,3) Winograd, variable filter size.
 
 ## rocBlas Logging and Behavior
