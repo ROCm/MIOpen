@@ -1469,6 +1469,8 @@ void ConvFwdImplicitGemm(const ConvolutionContext& /*ctx*/,
 
     float elapsed = 0;
     if(kernel.GetName() ==
+           "gridwise_convolution_implicit_gemm_v4r1_gnchw_gkcyx_gnkhw_lds_double_buffer" ||
+       kernel.GetName() ==
            "gridwise_convolution_implicit_gemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer" ||
        kernel.GetName() ==
            "gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_lds_double_buffer" ||
