@@ -449,7 +449,7 @@ int DropoutDriver<Tgpu, Tref>::VerifyForward()
 
     auto error = miopen::rms_range(outhost.data, out.data);
 
-    const double tolerance = 1e-6;
+    const double tolerance = std::is_same<Tgpu, float16>{} ? 5e-4 : 1e-6;
     if(!(error < tolerance))
     {
         std::cout << "Forward Dropout Failed: " << error << std::endl;
@@ -469,7 +469,7 @@ int DropoutDriver<Tgpu, Tref>::VerifyBackward()
 
     auto error = miopen::rms_range(din_host.data, din.data);
 
-    const double tolerance = 1e-6;
+    const double tolerance = std::is_same<Tgpu, float16>{} ? 5e-4 : 1e-6;
     if(!(error < tolerance))
     {
         std::cout << "Backward Dropout Failed: " << error << std::endl;
