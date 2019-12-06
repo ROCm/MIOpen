@@ -199,8 +199,9 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K=") + std::to_string(WeiBlockCopyDstDataPerWrite_K) + 
         std::string(" -DCK_PARAM_OUT_THREAD_COPY_DATA_PER_ACCESS_B=") + std::to_string(OutThreadCopyDataPerAccess_B) + 
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, true)) + 
-        std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
-        std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
+        std::string(" -DCK_USE_AMD_XDLOPS=") + (IsXdlopsSupport(ctx) ? '1' : '0') +
+        std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + (miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? '1' : '0') +
+        std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
@@ -313,6 +314,10 @@ bool ConvHipImplicitGemmV4R4FwdXdlops::IsApplicable(const ConvolutionContext& ct
     if((ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % MultipleOf != 0)
         return false;
 
+    const auto WaveSize       = 64;
+    const auto nonVectorizedC = ctx.n_inputs / GetEPackLength(ctx, true);
+    if((nonVectorizedC * ctx.n_outputs) % WaveSize != 0)
+        return false;
     // In bfp16, channels are accumulated in size of 2 while in fp16, in size of 4, so
     // abide by channel restriction.
     if((ctx.IsFp16() && (ctx.n_inputs % 4 != 0)) || (ctx.IsBfp16() && (ctx.n_inputs % 2 != 0)))
@@ -325,16 +330,21 @@ bool ConvHipImplicitGemmV4R4FwdXdlops::IsApplicable(const ConvolutionContext& ct
                                                  (ctx.out_height - 1) * ctx.kernel_stride_h);
 
     return IsXdlopsSupport(ctx) && no_out_of_bound && ctx.pad_h == 0 && ctx.pad_w == 0 &&
-           ctx.group_counts == 1 && ctx.n_outputs % 32 == 0 &&
-           (ctx.batch_sz * ctx.out_height * ctx.out_width) % 32 == 0;
+           ctx.group_counts == 1 && ctx.n_outputs % 4 == 0 &&
+           (ctx.batch_sz * ctx.out_height * ctx.out_width) % 8 == 0;
 }
 
 bool ConvHipImplicitGemmV4R4Xdlops_1x1::IsApplicable(const ConvolutionContext& ctx) const
 {
+    const auto WaveSize       = 64;
+    const auto nonVectorizedC = ctx.n_inputs / GetEPackLength(ctx, true);
+    if((nonVectorizedC * ctx.n_outputs) % WaveSize != 0)
+        return false;
+
     return IsXdlopsSupport(ctx) && ctx.Is2d() && ctx.IsFp32() && ctx.pad_h == 0 && ctx.pad_w == 0 &&
            ctx.group_counts == 1 &&
-           (ctx.batch_sz * KernelOutputHeightHo(ctx) * KernelOutputWidthWo(ctx)) % 32 == 0 &&
-           ctx.n_outputs % 32 == 0 &&
+           (ctx.batch_sz * KernelOutputHeightHo(ctx) * KernelOutputWidthWo(ctx)) % 4 == 0 &&
+           ctx.n_outputs % 8 == 0 &&
            (ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % 8 == 0 &&
            ctx.kernel_size_h == 1 && ctx.kernel_size_w == 1;
 }
@@ -357,6 +367,11 @@ bool ConvHipImplicitGemmV4R4WrWXdlops::IsApplicable(const ConvolutionContext& ct
     // For fp16, when c*x*y % 4 == 0, 4 channels are accumulated through dot4 (2 * dot2) operation
     const int MultipleOf = ctx.IsFp16() ? 32 : ctx.IsBfp16() ? 16 : 8;
     if((ctx.batch_sz * ctx.in_height * ctx.in_width) % MultipleOf != 0)
+        return false;
+
+    const auto WaveSize       = 64;
+    const auto nonVectorizedC = ctx.batch_sz / GetEPackLength(ctx, true);
+    if((nonVectorizedC * ctx.n_inputs) % WaveSize != 0)
         return false;
 
     return IsXdlopsSupport(ctx) && ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.group_counts == 1 &&

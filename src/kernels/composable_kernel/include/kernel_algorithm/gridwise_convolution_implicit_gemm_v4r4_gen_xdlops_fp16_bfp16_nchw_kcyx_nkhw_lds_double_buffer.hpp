@@ -36,7 +36,6 @@ struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::ForwardData, EPack>
 
         static_assert(C % EPack == 0, "C needs to be multiple of vectorized EPack");
         constexpr index_t nonVectorizedC = C / EPack;
-        constexpr index_t E              = nonVectorizedC * Y * X;
 
         constexpr auto wei_k_epack_c_y_x_global_desc = transform_tensor_descriptor(
             wei_k_c_y_x_global_desc,
@@ -62,7 +61,7 @@ template <index_t EPack>
 struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::BackwardWeight, EPack>
 {
     template <typename WeiDesc>
-    __device__ constexpr auto get(WeiDesc& desc)
+    __device__ constexpr auto get(WeiDesc&)
     {
 
         constexpr auto I0 = Number<0>{};
@@ -79,7 +78,6 @@ struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::BackwardWeight, EPa
 
         static_assert(C % EPack == 0, "C needs to be multiple of vectorized EPack");
         constexpr index_t nonVectorizedC = C / EPack;
-        constexpr index_t E              = nonVectorizedC * Y * X;
 
         constexpr auto wei_k_epack_c_yx_global_desc = transform_tensor_descriptor(
             unfold_tensor_descriptor(wei_k_c_y_x_global_desc, I2, I3),
@@ -466,9 +464,9 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw
         // copy output: register to global memory
         {
             constexpr auto OutputLayout = blockwise_gemm.GetOutputLayout();
-            constexpr index_t K2        = OutputLayout.M1();
+            constexpr index_t K0        = OutputLayout.M1();
             constexpr index_t K1        = OutputLayout.N1();
-            constexpr index_t K0        = OutputLayout.M0();
+            constexpr index_t K2        = OutputLayout.M0();
 
             constexpr auto out_k_b_global_desc = transform_tensor_descriptor(
                 out_n_k_ho_wo_global_desc,
@@ -484,13 +482,12 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw
 
             //     src descriptor
             constexpr auto out_k0_k1_k2_b_thread_desc =
-                make_native_tensor_descriptor_packed(Sequence<K2, 1, K0, 1>{});
+                make_native_tensor_descriptor_packed(Sequence<K0, 1, K2, 1>{});
 
-            using OutThreadCopySliceLengths = Sequence<K2, 1, K0, 1>;
+            using OutThreadCopySliceLengths = Sequence<K0, 1, K2, 1>;
 
-            constexpr index_t NumKPerBlk = OutputLayout.GetSizeM();
-            static_assert(OutputLayout.GetSizeM() == 16, "MSize != 16");
-            constexpr index_t NumBlks = c_k_thread_mtx_desc.GetElementSpace() / NumKPerBlk;
+            constexpr index_t BlkSize = OutputLayout.GetBlkSize();
+            constexpr index_t NumBlks = OutputLayout.GetNumBlks();
 
             for(index_t i = 0; i < NumBlks; ++i)
             {
@@ -512,11 +509,11 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw
                                                       OutThreadCopyDataPerAccess_B,
                                                       OutThreadCopyDataPerAccess_B>(
                     {0, 0, 0, 0},
-                    {k_thread_data_on_global / (K0 * K1),
-                     k_thread_data_on_global % (K0 * K1) / K0,
-                     k_thread_data_on_global % K0,
+                    {k_thread_data_on_global / (K2 * K1),
+                     k_thread_data_on_global % (K2 * K1) / K2,
+                     k_thread_data_on_global % K2,
                      b_thread_data_on_global})
-                    .Run(p_out_thread + i * NumKPerBlk,
+                    .Run(p_out_thread + i * BlkSize,
                          p_out_global,
                          generic_address_space,
                          generic_address_space);
