@@ -3017,6 +3017,9 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 }
             }
 
+/// The SCGemm Solver is applicable for Bwd Data convolutions, but it is not used here.
+/// \todo Decide & use SCGemm here and in GWSS. Or, make the Solver not applicable for Bwd.
+
 #if MIOPEN_USE_GEMM
             if(!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
                !(IsAnyBufferBF16(dxDesc, dyDesc, wDesc) && !IsUseRocBlas))
