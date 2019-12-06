@@ -349,7 +349,11 @@ bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext&
     if((c * y * x) % MultipleOf != 0)
         return false;
 
-    return ctx.group_counts == 1 && k % 32 == 0 && (n * ho * wo) % 32 == 0;
+    const auto nonVectorizedC = c / GetEPackLength(ctx, true);
+    if((nonVectorizedC * k) % 64 != 0)
+        return false;
+
+    return ctx.group_counts == 1 && k % 4 == 0 && (n * ho * wo) % 8 == 0;
 }
 
 bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext& ctx) const

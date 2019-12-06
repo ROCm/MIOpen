@@ -39,7 +39,7 @@
 #endif
 
 #ifndef CK_USE_AMD_XDLOPS_EMULATE
-#define CK_USE_AMD_XDLOPS_EMULATE 0
+#define CK_USE_AMD_XDLOPS_EMULATE 0 // For internal debug purposes
 #endif
 
 // experimental implementation
