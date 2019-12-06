@@ -107,7 +107,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     std::size_t
     ForwardBackwardDataGetWorkSpaceSizeDirect(const miopen::ConvolutionContext& ctx) const;
 
-    std::size_t ForwardGetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx) const;
+    std::size_t
+    ForwardBackwardGetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx) const;
     std::size_t
     ForwardBackwardDataGetWorkSpaceSizeSCGemm(Handle& handle,
                                               const miopen::ConvolutionContext& ctx) const;
@@ -393,18 +394,11 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     std::size_t BackwardWeightsGetWorkSpaceSizeGEMM(const TensorDescriptor& dyDesc,
                                                     const TensorDescriptor& dwDesc) const;
 
-    std::size_t BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
-                                                      const TensorDescriptor& dyDesc,
-                                                      const TensorDescriptor& xDesc,
-                                                      const TensorDescriptor& dwDesc) const;
-    std::size_t BackwardWeightsGetWorkSpaceSizeWinograd(Handle& handle,
-                                                        const TensorDescriptor& dyDesc,
-                                                        const TensorDescriptor& xDesc,
-                                                        const TensorDescriptor& dwDesc) const;
-    std::size_t BackwardWeightsGetWorkSpaceSizeImplicitGemm(Handle& handle,
-                                                            const TensorDescriptor& dyDesc,
-                                                            const TensorDescriptor& xDesc,
-                                                            const TensorDescriptor& dwDesc) const;
+    std::size_t BackwardWeightsGetWorkSpaceSizeDirect(const miopen::ConvolutionContext& ctx) const;
+    std::size_t
+    BackwardWeightsGetWorkSpaceSizeWinograd(const miopen::ConvolutionContext& ctx) const;
+    std::size_t
+    BackwardWeightsGetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx) const;
 
     void FindConvBwdWeightsAlgorithm(Handle& handle,
                                      const TensorDescriptor& dyDesc,
