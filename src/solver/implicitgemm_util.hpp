@@ -6,6 +6,8 @@
 #include <miopen/mlo_internal.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR(
+    MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE) // For internal debug purposes
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM)
 
@@ -131,6 +133,8 @@ inline static bool NextTwoPower(int& v)
 
 static inline bool IsXdlopsSupport(const ConvolutionContext& c)
 {
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}))
+        return true;
 
     return StartsWith(c.GetStream().GetDeviceName(), "gfx908") &&
            // disable xdlops kernels by default due to possible failures:

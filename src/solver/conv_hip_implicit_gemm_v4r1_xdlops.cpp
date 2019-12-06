@@ -311,6 +311,11 @@ bool ConvHipImplicitGemmV4R1FwdXdlops::IsApplicable(const ConvolutionContext& ct
     if((c * y * x) % MultipleOf != 0)
         return false;
 
+    const auto WaveSize       = 64;
+    const auto nonVectorizedC = c / GetEPackLength(ctx, true);
+    if((nonVectorizedC * k) % WaveSize != 0)
+        return false;
+
     return ctx.group_counts == 1 && k % 32 == 0 && (n * ho * wo) % 32 == 0;
 }
 
@@ -351,6 +356,11 @@ bool ConvHipImplicitGemmV4R1WrWXdlops::IsApplicable(const ConvolutionContext& ct
 
     const int MultipleOf = ctx.IsFp16() ? 32 : ctx.IsBfp16() ? 16 : 8;
     if((c_eqv * y_eqv * x_eqv) % MultipleOf != 0)
+        return false;
+
+    const auto WaveSize       = 64;
+    const auto nonVectorizedC = c_eqv / GetEPackLength(ctx, true);
+    if((nonVectorizedC * k_eqv) % WaveSize != 0)
         return false;
 
     return ctx.group_counts == 1 && k_eqv % 32 == 0 && (n_eqv * ho_eqv * wo_eqv) % 64 == 0;
