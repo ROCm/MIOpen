@@ -344,6 +344,10 @@ bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext&
     std::size_t ho = ctx.out_height;
     std::size_t wo = ctx.out_width;
 
+    // channels is divided by epack to pack 2/4 fp16/bfp16
+    if(ctx.n_inputs % GetEPackLength(ctx, true) != 0)
+        return false;
+
     // For fp16, when c*x*y % 4 == 0, 4 channels are accumulated through dot4 (2 * dot2) operation
     const int MultipleOf = ctx.IsFp16() ? 32 : ctx.IsBfp16() ? 16 : 8;
     if((c * y * x) % MultipleOf != 0)
@@ -389,6 +393,10 @@ bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext&
     std::size_t x_eqv  = wo;
     std::size_t ho_eqv = y;
     std::size_t wo_eqv = x;
+
+    // batch is divided by epack to pack 2/4 fp16/bfp16
+    if(c_eqv % GetEPackLength(ctx, true) != 0)
+        return false;
 
     const int MultipleOf = ctx.IsFp16() ? 32 : ctx.IsBfp16() ? 16 : 8;
     if((c_eqv * y_eqv * x_eqv) % MultipleOf != 0)
