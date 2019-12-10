@@ -1285,6 +1285,8 @@ void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
         return;
     }
 
+    int group_count = std::max(inflags.GetValueInt("group_count"), 1);
+
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
     int wei_c, wei_n, wei_h, wei_w;
@@ -1293,7 +1295,7 @@ void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
     int out_n, out_c, out_h, out_w;
     std::tie(out_n, out_c, out_h, out_w) =
         miopen::tien<4>(miopen::deref(outputTensor).GetLengths());
-    size_t flopCnt = 2L * in_n * in_c * wei_h * wei_w * out_c * out_h * out_w;
+    size_t flopCnt = 2L * in_n * in_c * wei_h * wei_w * out_c * out_h * out_w / group_count;
     size_t inputBytes =
         in_n * in_c * in_h * in_w * miopen::GetTypeSize(miopen::deref(inputTensor).GetType());
     size_t weightBytes =

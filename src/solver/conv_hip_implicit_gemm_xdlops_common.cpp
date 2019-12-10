@@ -49,6 +49,10 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
     const auto nonVectorizedC = C / GetEPackLength(ctx, true);
     const auto E              = static_cast<int>(nonVectorizedC) * Y * X;
 
+    const auto KBlockWork = K / KPerBlock;
+    if(KBlockWork % ctx.group_counts != 0)
+        return false;
+
     if(!(EPerBlock % InBlockCopyClusterLengths_E == 0 &&
          EPerBlock % WeiBlockCopyClusterLengths_E == 0 &&
          BPerBlock % InBlockCopyClusterLengths_B == 0 &&

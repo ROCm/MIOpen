@@ -88,11 +88,26 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
 
     if(kernel == ImplicitGemmXdlopsKernel::KernelFwdWrw)
     {
-        construction_parameters.kernel_file = "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_"
-                                              "nchw_kcyx_nkhw_lds_double_buffer.cpp";
+        if(ctx.group_counts > 1)
+        {
 
-        construction_parameters.kernel_name =
-            "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer";
+            construction_parameters.kernel_file =
+                "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_"
+                "gnchw_gkcyx_gnkhw_lds_double_buffer.cpp";
+
+            construction_parameters.kernel_name = "gridwise_convolution_implicit_gemm_v4r4_gen_"
+                                                  "xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer";
+        }
+        else
+        {
+
+            construction_parameters.kernel_file =
+                "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_"
+                "nchw_kcyx_nkhw_lds_double_buffer.cpp";
+
+            construction_parameters.kernel_name = "gridwise_convolution_implicit_gemm_v4r4_gen_"
+                                                  "xdlops_nchw_kcyx_nkhw_lds_double_buffer";
+        }
     }
 
     std::size_t OutThreadCopyDataPerAccess_B = 1;
@@ -224,6 +239,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_PROBLEM_LEFT_PAD_W=") + std::to_string(left_pad_w) +
         std::string(" -DCK_PARAM_PROBLEM_RIGHT_PAD_H=") + std::to_string(right_pad_h) +
         std::string(" -DCK_PARAM_PROBLEM_RIGHT_PAD_W=") + std::to_string(right_pad_w) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_GROUP_COUNTS=") + std::to_string(ctx.group_counts) +
         std::string(" -DCK_PARAM_TUNABLE_BLOCK_SIZE=") + std::to_string(block_size) +
         std::string(" -DCK_PARAM_TUNABLE_B_PER_BLOCK=") + std::to_string(BPerBlock) +
         std::string(" -DCK_PARAM_TUNABLE_K_PER_BLOCK=") + std::to_string(KPerBlock) +
@@ -337,8 +353,8 @@ bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext&
         return false;
 
     std::size_t n  = ctx.batch_sz;
-    std::size_t k  = ctx.n_outputs;
-    std::size_t c  = ctx.n_inputs;
+    std::size_t k  = ctx.n_outputs / ctx.group_counts;
+    std::size_t c  = ctx.n_inputs / ctx.group_counts;
     std::size_t y  = ctx.kernel_size_h;
     std::size_t x  = ctx.kernel_size_w;
     std::size_t ho = ctx.out_height;
@@ -349,7 +365,7 @@ bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext&
         return false;
 
     // For fp16, when c*x*y % 4 == 0, 4 channels are accumulated through dot4 (2 * dot2) operation
-    const int MultipleOf = ctx.IsFp16() ? 32 : ctx.IsBfp16() ? 16 : 8;
+    const int MultipleOf = ctx.IsFp16() ? 16 : ctx.IsBfp16() ? 8 : 4;
     if((c * y * x) % MultipleOf != 0)
         return false;
 
@@ -357,7 +373,7 @@ bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext&
     if((nonVectorizedC * k) % 64 != 0)
         return false;
 
-    return ctx.group_counts == 1 && k % 4 == 0 && (n * ho * wo) % 8 == 0;
+    return k % 4 == 0 && (n * ho * wo) % 8 == 0;
 }
 
 bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext& ctx) const
@@ -378,8 +394,8 @@ bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext&
     // remember: ConvolutionContext has swapped some dimensions for you!
     // undo the swap to avoid confusion
     std::size_t n  = ctx.batch_sz;
-    std::size_t k  = ctx.n_inputs;  // unswap
-    std::size_t c  = ctx.n_outputs; // unswap
+    std::size_t k  = ctx.n_inputs / ctx.group_counts;  // unswap
+    std::size_t c  = ctx.n_outputs / ctx.group_counts; // unswap
     std::size_t y  = ctx.kernel_size_h;
     std::size_t x  = ctx.kernel_size_w;
     std::size_t ho = ctx.in_height; // unswap
@@ -398,11 +414,15 @@ bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext&
     if(c_eqv % GetEPackLength(ctx, true) != 0)
         return false;
 
-    const int MultipleOf = ctx.IsFp16() ? 32 : ctx.IsBfp16() ? 16 : 8;
+    const int MultipleOf = ctx.IsFp16() ? 16 : ctx.IsBfp16() ? 8 : 4;
     if((c_eqv * y_eqv * x_eqv) % MultipleOf != 0)
         return false;
 
-    return ctx.group_counts == 1 && k_eqv % 32 == 0 && (n_eqv * ho_eqv * wo_eqv) % 64 == 0;
+    const auto nonVectorizedC = c_eqv / GetEPackLength(ctx, true);
+    if((nonVectorizedC * k_eqv) % 64 != 0)
+        return false;
+
+    return k_eqv % 16 == 0 && (n_eqv * ho_eqv * wo_eqv) % 16 == 0;
 }
 
 PerformanceImplicitGemmXdlops
