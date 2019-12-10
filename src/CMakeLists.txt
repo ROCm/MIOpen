@@ -241,7 +241,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v9_0_15.inc
         kernels/rocm_version.inc
         kernels/inst_wrappers.inc
-        kernels/common.inc
+        kernels/conv_common.inc
+        kernels/utilities.inc
         kernels/xform_data_filter.inc
         kernels/xform_kd_cov2.inc
         kernels/xform_metadata.inc
