@@ -65,7 +65,8 @@ gid_z = 4
 .set unused_ptr_off, 0x38
 .set KERNEL_ARGUMENTS_SIZE, unused_ptr_off + 8
 
-.include "common.inc"
+.include "utilities.inc"
+.include "conv_common.inc"
 
 default c_per_wave, 4
 default k_per_wave, 4
