@@ -26,7 +26,8 @@
 .include "rocm_version.inc"
 .include "gpr_alloc.inc"
 .include "inst_wrappers.inc"
-.include "common.inc"
+.include "utilities.inc"
+.include "conv_common.inc"
 
 .altmacro
 // limits:

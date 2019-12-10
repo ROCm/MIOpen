@@ -51,26 +51,6 @@ TYPE_INT4  = 8
     .endr
 .endm
 
-.macro default symbol, value
-    .ifnotdef \symbol
-        \symbol = \value
-    .endif
-.endm
-
-.macro error_ifnotdef symbol
-    .ifnotdef \symbol
-        .error "\symbol is not defined."
-        .end
-    .endif
-.endm
-
-.macro static_assert fufufu
-    .if !\fufufu
-        .error "\fufufu is false"
-        .end
-    .endif
-.endm
-
 .macro swap a, b
     __tmp = \a
     \a = \b
