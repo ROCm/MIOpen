@@ -40,7 +40,7 @@ struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::ForwardData, EPack>
         constexpr auto wei_k_epack_c_y_x_global_desc = transform_tensor_descriptor(
             wei_k_c_y_x_global_desc,
             make_tuple(PassThrough<K>{},
-                       UnMerge<Sequence<EPack, nonVectorizedC>>{},
+                       UnMerge<Sequence<nonVectorizedC, EPack>>{},
                        PassThrough<Y>{},
                        PassThrough<X>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
@@ -50,7 +50,7 @@ struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::ForwardData, EPack>
             wei_k_epack_c_y_x_global_desc,
             make_tuple(
                 Merge<Sequence<nonVectorizedC, Y, X>>{}, PassThrough<K>{}, PassThrough<EPack>{}),
-            make_tuple(Sequence<2, 3, 4>{}, Sequence<0>{}, Sequence<1>{}),
+            make_tuple(Sequence<1, 3, 4>{}, Sequence<0>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
         return wei_e_k_epack_global_desc;
@@ -82,7 +82,7 @@ struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::BackwardWeight, EPa
         constexpr auto wei_k_epack_c_yx_global_desc = transform_tensor_descriptor(
             unfold_tensor_descriptor(wei_k_c_y_x_global_desc, I2, I3),
             make_tuple(
-                PassThrough<K>{}, UnMerge<Sequence<EPack, nonVectorizedC>>{}, PassThrough<Y * X>{}),
+                PassThrough<K>{}, UnMerge<Sequence<nonVectorizedC, EPack>>{}, PassThrough<Y * X>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1, 2>{}, Sequence<3>{}));
 
@@ -90,7 +90,7 @@ struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::BackwardWeight, EPa
             wei_k_epack_c_yx_global_desc,
             make_tuple(
                 Merge<Sequence<nonVectorizedC, Y * X>>{}, PassThrough<K>{}, PassThrough<EPack>{}),
-            make_tuple(Sequence<2, 3>{}, Sequence<0>{}, Sequence<1>{}),
+            make_tuple(Sequence<1, 3>{}, Sequence<0>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
         return wei_e_k_epack_global_desc;
@@ -211,7 +211,7 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw
         constexpr auto in_n_epack_c_y_ho_x_wo_global_desc = transform_tensor_descriptor(
             in_n_c_hip_wip_global_desc,
             make_tuple(PassThrough<N>{},
-                       UnMerge<Sequence<EPack, nonVectorizedC>>{},
+                       UnMerge<Sequence<nonVectorizedC, EPack>>{},
                        Embed<Sequence<Y, Ho>, Sequence<ConvDilationH, ConvStrideH, 0>>{},
                        Embed<Sequence<X, Wo>, Sequence<ConvDilationW, ConvStrideW, 0>>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
@@ -222,7 +222,7 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw
             make_tuple(Merge<Sequence<nonVectorizedC, Y, X>>{},
                        Merge<Sequence<N, Ho, Wo>>{},
                        PassThrough<EPack>{}),
-            make_tuple(Sequence<2, 3, 5>{}, Sequence<0, 4, 6>{}, Sequence<1>{}),
+            make_tuple(Sequence<1, 3, 5>{}, Sequence<0, 4, 6>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
         constexpr index_t max_align = math::lcm(InBlockCopyDstDataPerWrite_EPACK,
