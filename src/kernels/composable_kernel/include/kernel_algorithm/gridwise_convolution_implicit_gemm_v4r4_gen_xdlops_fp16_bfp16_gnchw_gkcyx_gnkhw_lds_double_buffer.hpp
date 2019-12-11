@@ -43,7 +43,7 @@ struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::ForwardData, EPack>
             wei_g_k_c_y_x_global_desc,
             make_tuple(PassThrough<G>{},
                        PassThrough<K>{},
-                       UnMerge<Sequence<EPack, nonVectorizedC>>{},
+                       UnMerge<Sequence<nonVectorizedC, EPack>>{},
                        PassThrough<Y>{},
                        PassThrough<X>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}, Sequence<4>{}),
@@ -56,7 +56,7 @@ struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::ForwardData, EPack>
                        Merge<Sequence<nonVectorizedC, Y, X>>{},
                        PassThrough<K>{},
                        PassThrough<EPack>{}),
-            make_tuple(Sequence<0>{}, Sequence<3, 4, 5>{}, Sequence<1>{}, Sequence<2>{}),
+            make_tuple(Sequence<0>{}, Sequence<2, 4, 5>{}, Sequence<1>{}, Sequence<3>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
 
         return wei_g_e_k_epack_global_desc;
@@ -91,7 +91,7 @@ struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::BackwardWeight, EPa
             wei_g_k_c_y_x_global_desc,
             make_tuple(PassThrough<G>{},
                        PassThrough<K>{},
-                       UnMerge<Sequence<EPack, nonVectorizedC>>{},
+                       UnMerge<Sequence<nonVectorizedC, EPack>>{},
                        PassThrough<Y>{},
                        PassThrough<X>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}, Sequence<4>{}),
@@ -104,7 +104,7 @@ struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::BackwardWeight, EPa
                        Merge<Sequence<nonVectorizedC, Y, X>>{},
                        PassThrough<K>{},
                        PassThrough<EPack>{}),
-            make_tuple(Sequence<0>{}, Sequence<3, 4, 5>{}, Sequence<1>{}, Sequence<2>{}),
+            make_tuple(Sequence<0>{}, Sequence<2, 4, 5>{}, Sequence<1>{}, Sequence<3>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
 
         return wei_g_e_k_epack_global_desc;
@@ -232,7 +232,7 @@ struct
             in_g_n_c_hip_wip_global_desc,
             make_tuple(PassThrough<G>{},
                        PassThrough<N>{},
-                       UnMerge<Sequence<EPack, nonVectorizedC>>{},
+                       UnMerge<Sequence<nonVectorizedC, EPack>>{},
                        Embed<Sequence<Y, Ho>, Sequence<ConvDilationH, ConvStrideH, 0>>{},
                        Embed<Sequence<X, Wo>, Sequence<ConvDilationW, ConvStrideW, 0>>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}, Sequence<4>{}),
@@ -248,7 +248,7 @@ struct
                        Merge<Sequence<nonVectorizedC, Y, X>>{},
                        Merge<Sequence<N, Ho, Wo>>{},
                        PassThrough<EPack>{}),
-            make_tuple(Sequence<0>{}, Sequence<3, 4, 6>{}, Sequence<1, 5, 7>{}, Sequence<2>{}),
+            make_tuple(Sequence<0>{}, Sequence<2, 4, 6>{}, Sequence<1, 5, 7>{}, Sequence<3>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
 
         constexpr index_t max_align = math::lcm(InBlockCopyDstDataPerWrite_EPACK,

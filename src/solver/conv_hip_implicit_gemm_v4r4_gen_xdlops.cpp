@@ -135,7 +135,23 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
 #endif
 
     // Disable vectorized read in backward data case. Why?
-    std::size_t WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
+    int WeiBlockCopySrcDataPerRead_E = 1;
+    if(ctx.IsFp32())
+    {
+        WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
+    }
+    else
+    {
+        // For fp32, E = C*Y*X
+        // For fp16, E = C/EPack * Y * X
+        // Since C/EPack are not in contiguous memory along with Y*X, vector length
+        // can' be more than Y*X
+        if(KernelFilterHeightY(ctx) * KernelFilterWidthX(ctx) >= WeiBlockCopySubLengths_E)
+            WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
+        else
+            WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(
+                static_cast<int>(KernelFilterHeightY(ctx) * KernelFilterWidthX(ctx)));
+    }
     WeiBlockCopySrcDataPerRead_E =
         ctx.direction.IsBackwardData() ? 1 : WeiBlockCopySrcDataPerRead_E;
 
