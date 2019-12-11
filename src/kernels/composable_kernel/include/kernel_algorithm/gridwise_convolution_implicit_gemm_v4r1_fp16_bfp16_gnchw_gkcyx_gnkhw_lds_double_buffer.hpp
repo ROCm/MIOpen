@@ -40,7 +40,7 @@ struct make_wei_g_e_k_epack_global_desc_v4r1
             wei_g_k_c_y_x_global_desc,
             make_tuple(PassThrough<G>{},
                        PassThrough<K>{},
-                       UnMerge<Sequence<EPack, nonVectorizedC>>{},
+                       UnMerge<Sequence<nonVectorizedC, EPack>>{},
                        PassThrough<Y>{},
                        PassThrough<X>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}, Sequence<4>{}),
@@ -53,7 +53,7 @@ struct make_wei_g_e_k_epack_global_desc_v4r1
                        Merge<Sequence<nonVectorizedC, Y, X>>{},
                        PassThrough<K>{},
                        PassThrough<EPack>{}),
-            make_tuple(Sequence<0>{}, Sequence<3, 4, 5>{}, Sequence<1>{}, Sequence<2>{}),
+            make_tuple(Sequence<0>{}, Sequence<2, 4, 5>{}, Sequence<1>{}, Sequence<3>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
 
         return wei_g_e_k_epack_global_desc;
@@ -86,7 +86,7 @@ struct make_wei_g_e_k_epack_global_desc_v4r1<EPack, ConvolutionDirection::Backwa
             wei_g_k_c_y_x_global_desc,
             make_tuple(PassThrough<G>{},
                        PassThrough<K>{},
-                       UnMerge<Sequence<EPack, nonVectorizedC>>{},
+                       UnMerge<Sequence<nonVectorizedC, EPack>>{},
                        PassThrough<Y>{},
                        PassThrough<X>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}, Sequence<4>{}),
@@ -99,7 +99,7 @@ struct make_wei_g_e_k_epack_global_desc_v4r1<EPack, ConvolutionDirection::Backwa
                        Merge<Sequence<nonVectorizedC, Y, X>>{},
                        PassThrough<K>{},
                        PassThrough<EPack>{}),
-            make_tuple(Sequence<0>{}, Sequence<3, 4, 5>{}, Sequence<1>{}, Sequence<2>{}),
+            make_tuple(Sequence<0>{}, Sequence<2, 4, 5>{}, Sequence<1>{}, Sequence<3>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
 
         return wei_g_e_k_epack_global_desc;
@@ -248,7 +248,7 @@ struct GridwiseConvolutionImplicitGemm_v4r1_fp16_bfp16_gnchw_gkcyx_gnkhw_lds_dou
             in_g_n_c_hip_wip_global_desc,
             make_tuple(PassThrough<G>{},
                        UnMerge<Sequence<N0, N1, N2>>{},
-                       UnMerge<Sequence<EPack, nonVectorizedC>>{},
+                       UnMerge<Sequence<nonVectorizedC, EPack>>{},
                        Embed<Sequence<Y, Ho>, Sequence<ConvDilationH, ConvStrideH, 0>>{},
                        Embed<Sequence<X, Wo>, Sequence<ConvDilationW, ConvStrideW, 0>>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}, Sequence<4>{}),
@@ -267,11 +267,11 @@ struct GridwiseConvolutionImplicitGemm_v4r1_fp16_bfp16_gnchw_gkcyx_gnkhw_lds_dou
                                                    PassThrough<N2>{},
                                                    PassThrough<EPack>{}),
                                         make_tuple(Sequence<0>{},
-                                                   Sequence<5, 6, 8>{},
+                                                   Sequence<4, 6, 8>{},
                                                    Sequence<2>{},
                                                    Sequence<1, 7, 9>{},
                                                    Sequence<3>{},
-                                                   Sequence<4>{}),
+                                                   Sequence<5>{}),
                                         make_tuple(Sequence<0>{},
                                                    Sequence<1>{},
                                                    Sequence<2>{},
