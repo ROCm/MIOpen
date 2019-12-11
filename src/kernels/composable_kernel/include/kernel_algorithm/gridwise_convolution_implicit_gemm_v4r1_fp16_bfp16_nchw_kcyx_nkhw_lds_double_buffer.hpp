@@ -37,7 +37,7 @@ struct make_wei_e_k_epack_global_desc_v4r1
         constexpr auto wei_k_epack_c_y_x_global_desc = transform_tensor_descriptor(
             WeiDesc{},
             make_tuple(PassThrough<K>{},
-                       UnMerge<Sequence<EPack, nonVectorizedC>>{},
+                       UnMerge<Sequence<nonVectorizedC, EPack>>{},
                        PassThrough<Y>{},
                        PassThrough<X>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
@@ -47,7 +47,7 @@ struct make_wei_e_k_epack_global_desc_v4r1
             wei_k_epack_c_y_x_global_desc,
             make_tuple(
                 Merge<Sequence<nonVectorizedC, Y, X>>{}, PassThrough<K>{}, PassThrough<EPack>{}),
-            make_tuple(Sequence<2, 3, 4>{}, Sequence<0>{}, Sequence<1>{}),
+            make_tuple(Sequence<1, 3, 4>{}, Sequence<0>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
         return wei_e_k_epack_global_desc;
@@ -77,7 +77,7 @@ struct make_wei_e_k_epack_global_desc_v4r1<EPack, ConvolutionDirection::Backward
         constexpr auto wei_k_epack_c_y_x_global_desc = transform_tensor_descriptor(
             unfold_tensor_descriptor(wei_k_c_y_x_global_desc, I2, I3),
             make_tuple(
-                PassThrough<K>{}, UnMerge<Sequence<EPack, nonVectorizedC>>{}, PassThrough<Y * X>{}),
+                PassThrough<K>{}, UnMerge<Sequence<nonVectorizedC, EPack>>{}, PassThrough<Y * X>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1, 2>{}, Sequence<3>{}));
 
@@ -85,7 +85,7 @@ struct make_wei_e_k_epack_global_desc_v4r1<EPack, ConvolutionDirection::Backward
             wei_k_epack_c_y_x_global_desc,
             make_tuple(
                 Merge<Sequence<nonVectorizedC, Y * X>>{}, PassThrough<K>{}, PassThrough<EPack>{}),
-            make_tuple(Sequence<2, 3>{}, Sequence<0>{}, Sequence<1>{}),
+            make_tuple(Sequence<1, 3>{}, Sequence<0>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
         return wei_e_k_epack_global_desc;
@@ -228,7 +228,7 @@ struct GridwiseConvolutionImplicitGemm_v4r1_fp16_bfp16_nchw_kcyx_nkhw_lds_double
         constexpr auto in_n0_n1_n2_epack_c_y_ho_x_wo_global_desc = transform_tensor_descriptor(
             in_n_c_hip_wip_global_desc,
             make_tuple(UnMerge<Sequence<N0, N1, N2>>{},
-                       UnMerge<Sequence<EPack, nonVectorizedC>>{},
+                       UnMerge<Sequence<nonVectorizedC, EPack>>{},
                        Embed<Sequence<Y, Ho>, Sequence<ConvDilationH, ConvStrideH, 0>>{},
                        Embed<Sequence<X, Wo>, Sequence<ConvDilationW, ConvStrideW, 0>>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
@@ -241,11 +241,11 @@ struct GridwiseConvolutionImplicitGemm_v4r1_fp16_bfp16_nchw_kcyx_nkhw_lds_double
                        Merge<Sequence<N0, Ho, Wo>>{},
                        PassThrough<N2>{},
                        PassThrough<EPack>{}),
-            make_tuple(Sequence<4, 5, 7>{},
+            make_tuple(Sequence<3, 5, 7>{},
                        Sequence<1>{},
                        Sequence<0, 6, 8>{},
                        Sequence<2>{},
-                       Sequence<3>{}),
+                       Sequence<4>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}, Sequence<4>{}));
 
         //     block tensor in LDS memory, dst of blockwise copy

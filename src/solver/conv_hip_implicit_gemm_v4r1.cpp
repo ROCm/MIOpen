@@ -251,7 +251,23 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
     const auto& WeiBlockCopySubLengths_E = e_per_block / config.WeiBlockCopyClusterLengths_E;
     const auto& WeiBlockCopySubLengths_K = k_per_block / config.WeiBlockCopyClusterLengths_K;
 
-    const auto& WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
+    int WeiBlockCopySrcDataPerRead_E = 1;
+    if(ctx.IsFp32())
+    {
+        WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
+    }
+    else
+    {
+        // For fp32, E = C*Y*X
+        // For fp16, E = C/EPack * Y * X
+        // Since C/EPack are not in contiguous memory along with Y*X, vector length
+        // can' be more than Y*X
+        if(KernelFilterHeightY(ctx) * KernelFilterWidthX(ctx) >= WeiBlockCopySubLengths_E)
+            WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
+        else
+            WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(
+                static_cast<int>(KernelFilterHeightY(ctx) * KernelFilterWidthX(ctx)));
+    }
 
     const auto& InBlockCopySubLengths_B  = b_per_block / config.InBlockCopyClusterLengths_B;
     const auto& InBlockCopySubLengths_N2 = N2 / config.InBlockCopyClusterLengths_N2;
