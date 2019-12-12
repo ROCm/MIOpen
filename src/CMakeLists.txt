@@ -306,7 +306,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv5x10u2v2f1.s
         kernels/conv5x10u2v2b1.s
         kernels/conv7x7c3h224w224k64u2v2p3q3f1.s
-        kernels/gcnAsmBNFwdTrainSpatial.s
         kernels/xform_out.s
         kernels/gcnAsmBNBwdTrainSpatial.s
         kernels/MIOpenTensorKernels.cl
