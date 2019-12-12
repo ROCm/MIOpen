@@ -24,29 +24,6 @@
  *
  *******************************************************************************/
 
-.if ROCM_METADATA_VERSION == 5
-    // The ".option.machine..." symbols pre-defined by the Assember
-    // in code-object v2 mode are not exist in CO v3 mode, but we have
-    // ".amdgcn.gfx..." symbols instead. Let's define the ".option.machine..."
-    // symbols for backward compatibility of CO v2 assembly sources
-    // with the code-object-v3 assembly mode.
-    .ifdef .option.machine_version_major
-        .error ".option.machine_version_major already defined"
-        .end
-    .endif
-    .ifdef .option.machine_version_minor
-        .error ".option.machine_version_minor already defined"
-        .end
-    .endif
-    .ifdef .option.machine_version_stepping
-        .error ".option.machine_version_stepping already defined"
-        .end
-    .endif
-    .set .option.machine_version_major, .amdgcn.gfx_generation_number
-    .set .option.machine_version_minor, .amdgcn.gfx_generation_minor
-    .set .option.machine_version_stepping, .amdgcn.gfx_generation_stepping
-.endif
-
 LAYOUT_DATA_NCHW = 0
 LAYOUT_DATA_CNHW = 1
 LAYOUT_DATA_NHWC = 2
@@ -72,19 +49,6 @@ TYPE_INT4  = 8
             \lg2 = \lg2 + 1
         .endif
     .endr
-.endm
-
-.macro default symbol, value
-    .ifnotdef \symbol
-        \symbol = \value
-    .endif
-.endm
-
-.macro static_assert fufufu
-    .if !\fufufu
-        .error "\fufufu is false"
-        .end
-    .endif
 .endm
 
 .macro swap a, b
