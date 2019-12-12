@@ -66,7 +66,7 @@ RUN cget -p $PREFIX/x86_64-w64-mingw32 init -t $PREFIX/x86_64-w64-mingw32/cmake/
 RUN pip install https://github.com/pfultz2/rclone/archive/master.tar.gz
 
 # Install hcc from ROCm 2.9
-RUN rclone -b clang-tot-upgrade -c 3c612e92c9d8761fb5e77e7a56c6c189b23be3b5 https://github.com/RadeonOpenCompute/hcc.git /hcc
+RUN rclone -b clang_tot_upgrade -c 3c612e92c9d8761fb5e77e7a56c6c189b23be3b5 https://github.com/RadeonOpenCompute/hcc.git /hcc
 
 RUN cget -p $PREFIX install hcc,/hcc  && rm -rf /hcc
 
