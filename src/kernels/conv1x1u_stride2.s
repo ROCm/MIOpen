@@ -38,8 +38,10 @@
 .amdgpu_hsa_kernel miopenGcnAsmConv1x1U_stride2
 .endif
 
+.include "rocm_version.inc"
 .include "gpr_alloc.inc"
-.include "common.inc"
+.include "utilities.inc"
+.include "conv_common.inc"
 .include "inst_wrappers.inc"
 
 // initial state:
@@ -65,8 +67,8 @@ gid_n = gid_z
 .set in_ptr_off, 0x20
 .set wei_ptr_off, 0x28
 .set out_ptr_off, 0x30
-
-
+.set unused_dbg_ptr_off, 0x38
+.set KERNEL_ARGUMENTS_SIZE, unused_dbg_ptr_off + 8
 
 maxU24 = 1 << 24
 maxU31 = 1 << 31
@@ -214,6 +216,7 @@ static_assert (output_n_stride * (batch_size + n_per_wave) < maxU31)
     .SGPR_ALLOC stmp_offset
     .SGPR_ALLOC stmp
     .SGPR_RESERVE_XNACK
+    .SGPR_RESERVE_VCC
 
     .VGPR_ALLOC_FROM 0
     .VGPR_ALLOC tid
@@ -1071,7 +1074,7 @@ workgroup_size_x = waves_in_group * 64
         .amdhsa_system_sgpr_workgroup_id_y 1
         .amdhsa_system_sgpr_workgroup_id_z 1
         .amdhsa_system_vgpr_workitem_id 1
-        .amdhsa_next_free_sgpr .AUTO_SGPR_COUNT
+        .amdhsa_next_free_sgpr __amdhsa_next_free_sgpr
         .amdhsa_next_free_vgpr .AUTO_VGPR_COUNT
         .amdhsa_group_segment_fixed_size .AUTO_LDS_BYTE_SIZE
         .amdhsa_dx10_clamp 0
@@ -1080,11 +1083,13 @@ workgroup_size_x = waves_in_group * 64
         .amdhsa_float_round_mode_16_64 0
         .amdhsa_float_denorm_mode_32 0
         .amdhsa_float_denorm_mode_16_64 3
-        .amdhsa_reserve_flat_scratch 0
+        .amdhsa_reserve_flat_scratch __sgpr_reserve_flatscr
+        .amdhsa_reserve_xnack_mask __sgpr_reserve_xnack
+        .amdhsa_reserve_vcc __sgpr_reserve_vcc
 .end_amdhsa_kernel
 
-
-.macro METADATA sc,vc,wg_x,lds_sz
+.altmacro
+.macro METADATA sc,vc,wg_x,lds_sz,kernarg_size
 .amdgpu_metadata
 ---
 amdhsa.version: [ 1, 0 ]
@@ -1095,7 +1100,7 @@ amdhsa.kernels:
     .vgpr_count: \vc
     .language: "OpenCL C"
     .language_version: [ 1, 2 ]
-    .kernarg_segment_size: 64
+    .kernarg_segment_size: \kernarg_size
     .kernarg_segment_align: 8
     .group_segment_fixed_size: \lds_sz
     .private_segment_fixed_size: 0
@@ -1111,20 +1116,15 @@ amdhsa.kernels:
     - { .size: 4, .offset: 20, .value_kind: by_value, .value_type: i32, .name: n_groups }
     - { .size: 4, .offset: 24, .value_kind: by_value, .value_type: i32, .name: unused_0 }
     - { .size: 4, .offset: 28, .value_kind: by_value, .value_type: i32, .name: unused_1 }
-    - { .size: 8, .offset: 32, .value_kind: global_buffer, .value_type: f32, .name: x,        .address_space: global, .is_const: true }
-    - { .size: 8, .offset: 40, .value_kind: global_buffer, .value_type: f32, .name: w,        .address_space: global, .is_const: true }
-    - { .size: 8, .offset: 48, .value_kind: global_buffer, .value_type: f32, .name: y,        .address_space: global, .is_const: false }
-    - { .size: 8, .offset: 56, .value_kind: global_buffer, .value_type: i32, .name: ret_addr, .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 32, .value_kind: global_buffer, .value_type: f32, .name: x,  .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 40, .value_kind: global_buffer, .value_type: f32, .name: w,  .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 48, .value_kind: global_buffer, .value_type: f32, .name: y,  .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 56, .value_kind: global_buffer, .value_type: i32, .name: unused_dbg_ptr, .address_space: global, .is_const: false }
 ...
 .end_amdgpu_metadata
 .endm // METADATA
 
-.altmacro
-.macro METADATA_WRAPPER sc,vc,wg_x,lds_sz
-    METADATA %\sc, %\vc, %\wg_x, %\lds_sz
-.endm
-
-METADATA_WRAPPER .AUTO_SGPR_COUNT, .AUTO_VGPR_COUNT, workgroup_size_x, .AUTO_LDS_BYTE_SIZE
+METADATA %.AUTO_SGPR_COUNT, %.AUTO_VGPR_COUNT, %workgroup_size_x, %.AUTO_LDS_BYTE_SIZE, %KERNEL_ARGUMENTS_SIZE
 
 .elseif ROCM_METADATA_VERSION == 4
 .macro METADATA wg_x, lds_size
@@ -1160,8 +1160,4 @@ METADATA_WRAPPER .AUTO_SGPR_COUNT, .AUTO_VGPR_COUNT, workgroup_size_x, .AUTO_LDS
 .endm
 
 METADATA_WRAPPER workgroup_size_x, .AUTO_LDS_BYTE_SIZE
-
-.else
-.error "Unsupported ROCM_METADATA_VERSION"
-.end
 .endif
