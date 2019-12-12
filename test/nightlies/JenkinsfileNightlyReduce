@@ -105,7 +105,7 @@ pipeline {
                 stage("Pooling") {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob("hcc", buildflag, image, 'test_pooling_test', '--all -n 8 --verbose --disable-verification-cache')                        
+                        buildJob("hcc", buildflag, image, 'test_pooling2d', '--all -n 8 --verbose --disable-verification-cache')                        
                     }
                 }
             }
