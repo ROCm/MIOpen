@@ -15,6 +15,8 @@ namespace ck {
 template <ConvolutionDirection>
 struct make_wei_e_k_global_desc_v4r1;
 
+// fp32 case
+// Epack = 1
 template <>
 struct make_wei_e_k_global_desc_v4r1<ConvolutionDirection::Forward>
 {
@@ -153,7 +155,6 @@ struct GridwiseConvolutionImplicitGemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer
         constexpr index_t N0 = N / (N1 * N2);
 
         constexpr index_t B = N0 * Ho * Wo;
-
         constexpr index_t E = C * Y * X;
 
         // sanity-check for vectorized memory load
@@ -209,7 +210,6 @@ struct GridwiseConvolutionImplicitGemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer
         //     be careful of LDS alignment
         constexpr auto in_e_n1_b_n2_block_desc = make_native_tensor_descriptor_aligned(
             Sequence<EPerBlock, N1, BPerBlock, N2>{}, Number<InBlockCopyDstDataPerWrite_N2>{});
-
         //     this check is ad-hoc
         //     TODO: need to properly implement tensor descriptor with multiple alignment
         //     requirements
@@ -275,8 +275,11 @@ struct GridwiseConvolutionImplicitGemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer
         //     b_mtx[EPerBlocl, N1 * BPerBlock * N2] is in LDS
         //     c_mtx[KPerBlock, N1 * BPerBlock * N2] is distributed among threads, and saved in
         //       register
+
         constexpr auto a_e_k_block_mtx_desc = make_ConstantMatrixDescriptor(wei_e_k_block_desc);
 
+        // TBD better alternative to come with mtx descritor from block descriptor in
+        // merged tensor case.
         constexpr auto b_e_n1bn2_block_mtx_desc = make_ConstantMatrixDescriptor(
             in_e_n1_b_n2_block_desc.GetLength(I0),
             in_e_n1_b_n2_block_desc.GetLength(I1) * in_e_n1_b_n2_block_desc.GetLength(I2) *
@@ -340,6 +343,9 @@ struct GridwiseConvolutionImplicitGemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer
                 p_wei_global, p_wei_block_double, global_address_space, generic_address_space);
         }
 
+        using blockwise_in_copy_src_step  = Sequence<EPerBlock, 0, 0, 0>;
+        using blockwise_wei_copy_src_step = Sequence<EPerBlock, 0>;
+
         // LDS double buffer: main body
         for(index_t e_block_data_begin = 0; e_block_data_begin + 2 * EPerBlock < E;
             e_block_data_begin += 2 * EPerBlock)
@@ -362,8 +368,8 @@ struct GridwiseConvolutionImplicitGemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer
                 Float p_in_thread_buffer[blockwise_in_copy.GetThreadBufferSize()];
                 Float p_wei_thread_buffer[blockwise_wei_copy.GetThreadBufferSize()];
 
-                blockwise_in_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0, 0, 0>{}, True);
-                blockwise_wei_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0>{}, True);
+                blockwise_in_copy.MoveSrcSliceWindow(blockwise_in_copy_src_step{}, True);
+                blockwise_wei_copy.MoveSrcSliceWindow(blockwise_wei_copy_src_step{}, True);
 
                 __syncthreads();
 
@@ -391,8 +397,8 @@ struct GridwiseConvolutionImplicitGemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer
                 Float p_in_thread_buffer[blockwise_in_copy.GetThreadBufferSize()];
                 Float p_wei_thread_buffer[blockwise_wei_copy.GetThreadBufferSize()];
 
-                blockwise_in_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0, 0, 0>{}, True);
-                blockwise_wei_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0>{}, True);
+                blockwise_in_copy.MoveSrcSliceWindow(blockwise_in_copy_src_step{}, True);
+                blockwise_wei_copy.MoveSrcSliceWindow(blockwise_wei_copy_src_step{}, True);
 
                 __syncthreads();
 

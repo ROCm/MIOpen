@@ -37,8 +37,10 @@
 .amdgpu_hsa_kernel miopenGcnAsmConv1x1WrW
 .endif
 
+.include "rocm_version.inc"
 .include "gpr_alloc.inc"
-.include "common.inc"
+.include "utilities.inc"
+.include "conv_common.inc"
 .include "inst_wrappers.inc"
 
 // initial state (s[0:4] are overlapped with filtersA):
@@ -305,6 +307,7 @@ part2_offset = part1_chunks * input_w_stride * active_lanes_in_part1_chunks
 .SGPR_ALLOC wave_id // wave_id in group
 
 .SGPR_RESERVE_XNACK
+.SGPR_RESERVE_VCC
 
 .VGPR_ALLOC_FROM 0
 .VGPR_ALLOC tid
@@ -1149,7 +1152,7 @@ workgroup_size_x = n_per_group * 64
         .amdhsa_system_sgpr_workgroup_id_y 1
         .amdhsa_system_sgpr_workgroup_id_z 1
         .amdhsa_system_vgpr_workitem_id 1
-        .amdhsa_next_free_sgpr .AUTO_SGPR_COUNT
+        .amdhsa_next_free_sgpr __amdhsa_next_free_sgpr
         .amdhsa_next_free_vgpr .AUTO_VGPR_COUNT
         .amdhsa_group_segment_fixed_size .AUTO_LDS_BYTE_SIZE
         .amdhsa_dx10_clamp 0
@@ -1158,9 +1161,12 @@ workgroup_size_x = n_per_group * 64
         .amdhsa_float_round_mode_16_64 0
         .amdhsa_float_denorm_mode_32 0
         .amdhsa_float_denorm_mode_16_64 3
-        .amdhsa_reserve_flat_scratch 0
+        .amdhsa_reserve_flat_scratch __sgpr_reserve_flatscr
+        .amdhsa_reserve_xnack_mask __sgpr_reserve_xnack
+        .amdhsa_reserve_vcc __sgpr_reserve_vcc
 .end_amdhsa_kernel
 
+.altmacro
 .macro METADATA sc, vc, wg_x, lds_size, kernarg_size
 .amdgpu_metadata
 ---
@@ -1197,6 +1203,7 @@ amdhsa.kernels:
 .endm // METADATA
 
 .elseif ROCM_METADATA_VERSION == 4
+.altmacro
 .macro METADATA sc, vc, wg_x, lds_size, kernarg_size
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
@@ -1223,16 +1230,7 @@ amdhsa.kernels:
     }
     .end_amd_amdgpu_hsa_metadata
 .endm
-
-.else
-.error "Unsupported ROCM_METADATA_VERSION"
-.end
 .endif
 
-.altmacro
-.macro METADATA_WRAPPER sc, vc, wg_x, lds_size, kernarg_size
-    METADATA %\sc, %\vc, %\wg_x, %\lds_size, %\kernarg_size
-.endm
-
-METADATA_WRAPPER .AUTO_SGPR_COUNT, .AUTO_VGPR_COUNT, workgroup_size_x, .AUTO_LDS_BYTE_SIZE, KERNEL_ARGUMENTS_SIZE
+METADATA %.AUTO_SGPR_COUNT, %.AUTO_VGPR_COUNT, %workgroup_size_x, %.AUTO_LDS_BYTE_SIZE, %KERNEL_ARGUMENTS_SIZE
 

@@ -115,7 +115,7 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buf
                       "be violated");
 
         // divide block work by [K, B]
-        static_assert(K % KPerBlock == 0 && B % BPerBlock == 0 && E % (2 * EPerBlock) == 0,
+        static_assert(K % KPerBlock == 0 && B % BPerBlock == 0 && E % EPerBlock == 0,
                       "wrong! cannot divide work evenly among block");
 
         constexpr index_t KBlockWork = K / KPerBlock;
@@ -295,35 +295,48 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buf
 
         // LDS double buffer: tail
         {
-            Float p_in_thread_buffer[blockwise_in_copy.GetThreadBufferSize()];
-            Float p_wei_thread_buffer[blockwise_wei_copy.GetThreadBufferSize()];
+            constexpr bool has_two_iteration_left = (E % (2 * EPerBlock) == 0);
 
-            // even iteration
-            blockwise_in_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0>{}, True);
-            blockwise_wei_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0>{}, True);
+            if(has_two_iteration_left) // if has 2 iteration left
+            {
 
-            __syncthreads();
+                Float p_in_thread_buffer[blockwise_in_copy.GetThreadBufferSize()];
+                Float p_wei_thread_buffer[blockwise_wei_copy.GetThreadBufferSize()];
 
-            // LDS doubel buffer: load next data from device mem
-            blockwise_in_copy.RunLoadThreadBuffer(p_in_global, p_in_thread_buffer);
-            blockwise_wei_copy.RunLoadThreadBuffer(p_wei_block_on_global, p_wei_thread_buffer);
+                // even iteration
+                blockwise_in_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0>{}, True);
+                blockwise_wei_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0>{}, True);
 
-            // LDS double buffer: GEMM on current data
-            blockwise_gemm.Run(p_wei_block_double, p_in_block_double, p_out_thread);
+                __syncthreads();
 
-            // LDS double buffer: store next data to LDS
-            blockwise_in_copy.RunStoreThreadBuffer(p_in_thread_buffer,
-                                                   p_in_block_double + in_block_space);
-            blockwise_wei_copy.RunStoreThreadBuffer(p_wei_thread_buffer,
-                                                    p_wei_block_double + wei_block_space);
+                // LDS doubel buffer: load next data from device mem
+                blockwise_in_copy.RunLoadThreadBuffer(p_in_global, p_in_thread_buffer);
+                blockwise_wei_copy.RunLoadThreadBuffer(p_wei_block_on_global, p_wei_thread_buffer);
 
-            // odd iteration
-            __syncthreads();
+                // LDS double buffer: GEMM on current data
+                blockwise_gemm.Run(p_wei_block_double, p_in_block_double, p_out_thread);
 
-            // LDS double buffer: GEMM on current data
-            blockwise_gemm.Run(p_wei_block_double + wei_block_space,
-                               p_in_block_double + in_block_space,
-                               p_out_thread);
+                // LDS double buffer: store next data to LDS
+                blockwise_in_copy.RunStoreThreadBuffer(p_in_thread_buffer,
+                                                       p_in_block_double + in_block_space);
+                blockwise_wei_copy.RunStoreThreadBuffer(p_wei_thread_buffer,
+                                                        p_wei_block_double + wei_block_space);
+
+                // odd iteration
+                __syncthreads();
+
+                // LDS double buffer: GEMM on current data
+                blockwise_gemm.Run(p_wei_block_double + wei_block_space,
+                                   p_in_block_double + in_block_space,
+                                   p_out_thread);
+            }
+            else // if has 1 iteration left
+            {
+                __syncthreads();
+
+                // LDS double buffer: GEMM on last data
+                blockwise_gemm.Run(p_wei_block_double, p_in_block_double, p_out_thread);
+            }
         }
 
         // load data from xldop_acc_regs
@@ -332,9 +345,9 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buf
         // copy output: register to global memory
         {
             constexpr auto OutputLayout = blockwise_gemm.GetOutputLayout();
-            constexpr index_t K2        = OutputLayout.M1();
+            constexpr index_t K0        = OutputLayout.M1();
             constexpr index_t K1        = OutputLayout.N1();
-            constexpr index_t K0        = OutputLayout.M0();
+            constexpr index_t K2        = OutputLayout.M0();
 
             // This is a hack, because slicing a merged dimension is not supported yet.
             //     dst descriptor
@@ -347,13 +360,12 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buf
 
             //     src descriptor
             constexpr auto out_k0_k1_k2_b_thread_desc =
-                make_ConstantTensorDescriptor_packed(Sequence<K2, 1, K0, 1>{});
+                make_ConstantTensorDescriptor_packed(Sequence<K0, 1, K2, 1>{});
 
-            using OutThreadCopySliceLengths = Sequence<K2, 1, K0, 1>;
+            using OutThreadCopySliceLengths = Sequence<K0, 1, K2, 1>;
 
-            constexpr index_t NumKPerBlk = OutputLayout.GetSizeM();
-            static_assert(OutputLayout.GetSizeM() == 16, "MSize != 16");
-            constexpr index_t NumBlks = c_k_thread_mtx_desc.GetElementSpace() / NumKPerBlk;
+            constexpr index_t BlkSize = OutputLayout.GetBlkSize();
+            constexpr index_t NumBlks = OutputLayout.GetNumBlks();
 
             for(index_t i = 0; i < NumBlks; ++i)
             {
@@ -377,12 +389,12 @@ struct GridwiseConvolutionImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buf
                     3,
                     OutThreadCopyDataPerAccess_B,
                     OutThreadCopyDataPerAccess_B>({0, 0, 0, 0},
-                                                  {k_thread_data_on_global / (K0 * K1),
-                                                   k_thread_data_on_global % (K0 * K1) / K0,
-                                                   k_thread_data_on_global % K0,
+                                                  {k_thread_data_on_global / (K1 * K2),
+                                                   k_thread_data_on_global % (K1 * K2) / K2,
+                                                   k_thread_data_on_global % K2,
                                                    b_thread_data_on_global});
 
-                threadwise_out_copy.Run(p_out_thread + i * NumKPerBlk, p_out_global);
+                threadwise_out_copy.Run(p_out_thread + i * BlkSize, p_out_global);
             }
         }
     }

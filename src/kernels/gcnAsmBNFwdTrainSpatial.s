@@ -23,23 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.hsa_code_object_version 2,1
-
-.hsa_code_object_isa
-
-.text
-.amdgpu_hsa_kernel miopenGcnAsmBNFwdTrainSpatial
-
-
-/// \todo Better use common.inc. This requires more testing, so let's just copy macro here.
-.macro static_assert fufufu
-	.if !\fufufu
-		.error "\fufufu is false"
-		.end
-	.endif
-.endm
-
+.include "rocm_version.inc"
 .include "inst_wrappers.inc"
+.include "utilities.inc"
 
 // kernarg layout:
 kernarg = 4
@@ -49,6 +35,14 @@ in_desc = 0
 .set scale_ptr_off, 0x10
 .set bias_ptr_off, 0x18
 .set inhw_off, 0x20
+//
+// Variadic list of arguments.
+// All the arguments listed below are of size 8 and align 8.
+//
+error_ifnotdef MIO_SAVE_MEAN_VARIANCE
+error_ifnotdef MIO_RUNNING_RESULT
+static_assert(MIO_SAVE_MEAN_VARIANCE == 0 || MIO_SAVE_MEAN_VARIANCE == 1)
+static_assert(MIO_RUNNING_RESULT == 0 || MIO_RUNNING_RESULT == 1)
 .if (MIO_SAVE_MEAN_VARIANCE == 1) && (MIO_RUNNING_RESULT == 1)
     .set expAvgFactor_off, 0x28
     .set resultRunningMean_off, 0x30
@@ -56,27 +50,25 @@ in_desc = 0
     .set epsilon_off, 0x40
     .set resultSaveMean_off, 0x48
     .set resultSaveInvVariance_off, 0x50
+    .set KERNARG_SIZE, 8 + resultSaveInvVariance_off
 .elseif (MIO_SAVE_MEAN_VARIANCE == 0) && (MIO_RUNNING_RESULT == 1)
     .set expAvgFactor_off, 0x28
     .set resultRunningMean_off, 0x30
     .set resultRunningVariance_off, 0x38
     .set epsilon_off, 0x40
-    .set resultSaveMean_off, 0x0
-    .set resultSaveInvVariance_off, 0x0
+    .set KERNARG_SIZE, 8 + epsilon_off
 .elseif (MIO_SAVE_MEAN_VARIANCE == 1) && (MIO_RUNNING_RESULT == 0)
-    .set expAvgFactor_off, 0x0
-    .set resultRunningMean_off, 0x0
-    .set resultRunningVariance_off, 0x0
     .set epsilon_off, 0x28
     .set resultSaveMean_off, 0x30
     .set resultSaveInvVariance_off, 0x38
+    .set KERNARG_SIZE, 8 + resultSaveInvVariance_off
 .elseif (MIO_SAVE_MEAN_VARIANCE == 0) && (MIO_RUNNING_RESULT == 0)
-    .set expAvgFactor_off, 0x0
-    .set resultRunningMean_off, 0x0
-    .set resultRunningVariance_off, 0x0
     .set epsilon_off, 0x28
-    .set resultSaveMean_off, 0x0
-    .set resultSaveInvVariance_off, 0x0
+    .set KERNARG_SIZE, 8 + epsilon_off
+.endif
+error_ifnotdef KERNARG_SIZE
+.if KERNARG_SIZE % 8 != 0 // Kernarg alignment is 8.
+    .set KERNARG_SIZE, ((KERNARG_SIZE / 8) + 1) * 8
 .endif
 
 madmix_instructions_available = 0
@@ -89,13 +81,39 @@ fmamix_instructions_available = 0
     .endif
 .endif
 
+// "gpr_alloc.inc" is not used.
+// Let's define appropriate symbols manually.
+.set .AUTO_SGPR_COUNT, 40
+.set .AUTO_VGPR_COUNT, 16
+.if ROCM_METADATA_VERSION == 4
+	.AUTO_VGPR_GRANULATED_COUNT = (.AUTO_VGPR_COUNT - 1)/4
+	.AUTO_SGPR_GRANULATED_COUNT = (.AUTO_SGPR_COUNT - 1)/8
+.endif	
+.set .AUTO_LDS_BYTE_SIZE, 136
+
+
+.if ROCM_METADATA_VERSION == 4
+.hsa_code_object_version 2,1
+.hsa_code_object_isa
+.endif
+
+.text
+.globl miopenGcnAsmBNFwdTrainSpatial
+.type miopenGcnAsmBNFwdTrainSpatial,@function
+.p2align 8
+
+.if ROCM_METADATA_VERSION == 4
+.amdgpu_hsa_kernel miopenGcnAsmBNFwdTrainSpatial
+.endif
+
 miopenGcnAsmBNFwdTrainSpatial:
 
+.if ROCM_METADATA_VERSION == 4
   .amd_kernel_code_t
     kernel_code_entry_byte_offset = 256
     kernel_code_prefetch_byte_size = 0
-    granulated_workitem_vgpr_count = 3
-    granulated_wavefront_sgpr_count = 4
+    granulated_workitem_vgpr_count = .AUTO_VGPR_GRANULATED_COUNT
+    granulated_wavefront_sgpr_count = .AUTO_SGPR_GRANULATED_COUNT
     float_mode = 192
     enable_dx10_clamp = 1
     enable_ieee_mode = 1
@@ -116,20 +134,20 @@ miopenGcnAsmBNFwdTrainSpatial:
     private_element_size = 1
     is_ptr64 = 1
     workitem_private_segment_byte_size = 132
-    workgroup_group_segment_byte_size = 136
+    workgroup_group_segment_byte_size = .AUTO_LDS_BYTE_SIZE
     gds_segment_byte_size = 0
-    kernarg_segment_byte_size = 136
+    kernarg_segment_byte_size = KERNARG_SIZE
     workgroup_fbarrier_count = 0
-    wavefront_sgpr_count = 40
-    workitem_vgpr_count = 16
+    wavefront_sgpr_count = .AUTO_SGPR_COUNT
+    workitem_vgpr_count = .AUTO_VGPR_COUNT
     debug_wavefront_private_segment_offset_sgpr = 0
-    kernarg_segment_alignment = 4
+    kernarg_segment_alignment = 8
     group_segment_alignment = 4
     private_segment_alignment = 4
     wavefront_size = 6
     call_convention = -1
   .end_amd_kernel_code_t
-
+.endif
 
   s_mov_b32 s12, s8
   s_mov_b32 s13, 0
@@ -380,9 +398,15 @@ end_of_program:
 .Lfunc_end0:
     .size miopenGcnAsmBNFwdTrainSpatial, .Lfunc_end0 - miopenGcnAsmBNFwdTrainSpatial
 
-.macro metadata wg_x, save_flag, result_running_flag
-  .if ROCM_METADATA_VERSION == 4
-    .if (\save_flag == 1) && (\result_running_flag == 1)
+static_assert(MIO_BN_GRP1 == 1 && MIO_BN_GRP2 == 1) // Required workgroup size and max flat workgroup size depend on this
+
+.if ROCM_METADATA_VERSION == 5
+.error "CO v3 is not supported yet"
+.end
+
+.elseif ROCM_METADATA_VERSION == 4
+  .macro METADATA sc, vc, wg_x, lds_size, kernarg_size
+    .if (MIO_SAVE_MEAN_VARIANCE == 1) && (MIO_RUNNING_RESULT == 1)
       .amd_amdgpu_hsa_metadata
       { Version: [ 1, 0 ],
            Kernels:
@@ -390,7 +414,7 @@ end_of_program:
                Attrs:
                  { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
                  CodeProps:
-                 { KernargSegmentSize: 136, GroupSegmentFixedSize: 136, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: 40, NumVGPRs: 12, MaxFlatWorkGroupSize: \wg_x }
+                 { KernargSegmentSize: \kernarg_size, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: \sc, NumVGPRs: \vc, MaxFlatWorkGroupSize: \wg_x }
                  Args:
                  - { Name: in      , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: ReadOnly, IsConst: true, IsRestrict: true}
                  - { Name: out     , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true}
@@ -403,13 +427,10 @@ end_of_program:
                  - { Name: epsilon, Size: 8, Align: 8, ValueKind: ByValue, ValueType: F64, TypeName: 'double', AccQual: Default }
                  - { Name: resultSaveMean, Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true}
                  - { Name: resultSaveInvVariance, Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true}
-                 //- { Name: HiddenGlobalOffsetX, Size: 8, Align: 8, ValueKind: ByValue, ValueType: I64 }
-                 //- { Name: HiddenGlobalOffsetY, Size: 8, Align: 8, ValueKind: ByValue, ValueType: I64 }
-                 //- { Name: HiddenGlobalOffsetZ, Size: 8, Align: 8, ValueKind: ByValue, ValueType: I64 }
                }
       }
       .end_amd_amdgpu_hsa_metadata
-    .elseif (\save_flag == 0) && (\result_running_flag == 1)
+    .elseif (MIO_SAVE_MEAN_VARIANCE == 0) && (MIO_RUNNING_RESULT == 1)
       .amd_amdgpu_hsa_metadata
       { Version: [ 1, 0 ],
            Kernels:
@@ -417,7 +438,7 @@ end_of_program:
                Attrs:
                  { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
                  CodeProps:
-                 { KernargSegmentSize: 136, GroupSegmentFixedSize: 136, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: 40, NumVGPRs: 12, MaxFlatWorkGroupSize: \wg_x }
+                 { KernargSegmentSize: \kernarg_size, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: \sc, NumVGPRs: \vc, MaxFlatWorkGroupSize: \wg_x }
                  Args:
                  - { Name: in      , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: ReadOnly, IsConst: true, IsRestrict: true}
                  - { Name: out     , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true}
@@ -428,13 +449,10 @@ end_of_program:
                  - { Name: resultRunningMean,  Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true}
                  - { Name: resultRunningVariance, Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true}
                  - { Name: epsilon, Size: 8, Align: 8, ValueKind: ByValue, ValueType: F64, TypeName: 'double', AccQual: Default }
-                 //- { Name: HiddenGlobalOffsetX, Size: 8, Align: 8, ValueKind: ByValue, ValueType: I64 }
-                 //- { Name: HiddenGlobalOffsetY, Size: 8, Align: 8, ValueKind: ByValue, ValueType: I64 }
-                 //- { Name: HiddenGlobalOffsetZ, Size: 8, Align: 8, ValueKind: ByValue, ValueType: I64 }
                }
       }
       .end_amd_amdgpu_hsa_metadata
-    .elseif (\save_flag == 1) && (\result_running_flag == 0)
+    .elseif (MIO_SAVE_MEAN_VARIANCE == 1) && (MIO_RUNNING_RESULT == 0)
       .amd_amdgpu_hsa_metadata
       { Version: [ 1, 0 ],
            Kernels:
@@ -442,7 +460,7 @@ end_of_program:
                Attrs:
                  { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
                  CodeProps:
-                 { KernargSegmentSize: 136, GroupSegmentFixedSize: 136, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: 40, NumVGPRs: 12, MaxFlatWorkGroupSize: \wg_x }
+                 { KernargSegmentSize: \kernarg_size, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: \sc, NumVGPRs: \vc, MaxFlatWorkGroupSize: \wg_x }
                  Args:
                  - { Name: in      , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: ReadOnly, IsConst: true, IsRestrict: true}
                  - { Name: out     , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true}
@@ -452,13 +470,10 @@ end_of_program:
                  - { Name: epsilon, Size: 8, Align: 8, ValueKind: ByValue, ValueType: F64, TypeName: 'double', AccQual: Default }
                  - { Name: resultSaveMean, Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true}
                  - { Name: resultSaveInvVariance, Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true}
-                 //- { Name: HiddenGlobalOffsetX, Size: 8, Align: 8, ValueKind: ByValue, ValueType: I64 }
-                 //- { Name: HiddenGlobalOffsetY, Size: 8, Align: 8, ValueKind: ByValue, ValueType: I64 }
-                 //- { Name: HiddenGlobalOffsetZ, Size: 8, Align: 8, ValueKind: ByValue, ValueType: I64 }
                }
       }
       .end_amd_amdgpu_hsa_metadata
-    .elseif (\save_flag == 0) && (\result_running_flag == 0)
+    .elseif (MIO_SAVE_MEAN_VARIANCE == 0) && (MIO_RUNNING_RESULT == 0)
       .amd_amdgpu_hsa_metadata
       { Version: [ 1, 0 ],
            Kernels:
@@ -466,7 +481,7 @@ end_of_program:
                Attrs:
                  { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
                  CodeProps:
-                 { KernargSegmentSize: 136, GroupSegmentFixedSize: 136, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: 40, NumVGPRs: 12, MaxFlatWorkGroupSize: \wg_x }
+                 { KernargSegmentSize: \kernarg_size, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: \sc, NumVGPRs: \vc, MaxFlatWorkGroupSize: \wg_x }
                  Args:
                  - { Name: in      , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: ReadOnly, IsConst: true, IsRestrict: true}
                  - { Name: out     , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true}
@@ -474,18 +489,12 @@ end_of_program:
                  - { Name: bias    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Constant, AccQual: ReadOnly, IsConst: true, IsRestrict: true}
                  - { Name: INHW    , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default }
                  - { Name: epsilon, Size: 8, Align: 8, ValueKind: ByValue, ValueType: F64, TypeName: 'double', AccQual: Default }
-                 //- { Name: HiddenGlobalOffsetX, Size: 8, Align: 8, ValueKind: ByValue, ValueType: I64 }
-                 //- { Name: HiddenGlobalOffsetY, Size: 8, Align: 8, ValueKind: ByValue, ValueType: I64 }
-                 //- { Name: HiddenGlobalOffsetZ, Size: 8, Align: 8, ValueKind: ByValue, ValueType: I64 }
                }
       }
       .end_amd_amdgpu_hsa_metadata
     .endif
-  .else
-    .error "Unsupported ROCM_METADATA_VERSION"
-    .end
-  .endif
-.endm
+  .endm
+.endif
 
 //.if MIO_BN_GRP0 == 832
 //    metadata 832
@@ -494,12 +503,7 @@ end_of_program:
 //.endif
 
 .altmacro
-.macro metadata_wrapper wg_x, save_flag, result_running_flag
-    metadata %\wg_x, %\save_flag, %\result_running_flag
-.endm
-
-static_assert(MIO_BN_GRP1 == 1 && MIO_BN_GRP2 == 1)
-metadata_wrapper MIO_BN_GRP0, MIO_SAVE_MEAN_VARIANCE, MIO_RUNNING_RESULT
+METADATA %.AUTO_SGPR_COUNT, %.AUTO_VGPR_COUNT, %MIO_BN_GRP0, %.AUTO_LDS_BYTE_SIZE, %KERNARG_SIZE
 
 //metadata 1024
 //metadata 832
