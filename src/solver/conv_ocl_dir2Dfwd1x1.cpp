@@ -36,7 +36,13 @@ namespace solver {
 
 bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
 {
+    const auto name = params.GetStream().GetDeviceName();
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1{}))
+        return false;
+    // Disable kernel due to compiler bug: Compiler runs out of registers
+    // JIRA: SWDEV-216194
+    // The bug only shows up in MIOpenConv1x1J1 and not the padded variant
+    if(!(params.kernel_stride_w > 1 || params.kernel_stride_h > 1) && (name == "gfx908"))
         return false;
     if(!params.use_opencl_convolutions)
         return false;
