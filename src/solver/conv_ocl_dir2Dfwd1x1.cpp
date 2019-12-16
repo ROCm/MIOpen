@@ -41,8 +41,9 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
         return false;
     // Disable kernel due to compiler bug: Compiler runs out of registers
     // JIRA: SWDEV-216194
-    // The bug only shows up in MIOpenConv1x1J1 and not the padded variant
-    if(!(params.kernel_stride_w > 1 || params.kernel_stride_h > 1) && (name == "gfx908"))
+    // JIRA: SWDEV-216489
+    // The bug shows up in MIOpenConv1x1J1 and MIOpenConv1x1S
+    if(name == "gfx908")
         return false;
     if(!params.use_opencl_convolutions)
         return false;
