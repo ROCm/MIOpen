@@ -1,6 +1,7 @@
 #ifndef CK_IMPLICITGEMM_UTIL_HPP_
 #define CK_IMPLICITGEMM_UTIL_HPP_
 
+#include <algorithm>
 #include <miopen/env.hpp>
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/mlo_internal.hpp>
@@ -147,7 +148,7 @@ static inline bool IsXdlopsSupport(const ConvolutionContext& c)
                 : miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{}));
 }
 
-inline static int GetReadWriteVectorSize(const int v)
+inline static uint32_t GetReadWriteVectorSize(const int v)
 {
     return v % 4 == 0 ? 4 : (v % 2 == 0 ? 2 : 1);
 }
@@ -178,6 +179,36 @@ inline static auto GetPerformanceConfigBase(const ConvolutionContext& ctx)
     pp.EuristicInit(ctx);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
+}
+
+static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
+                                            const int BPerBlock,
+                                            const int KPerBlock,
+                                            const int EPerBlock,
+                                            const unsigned int GemmDataPerReadA,
+                                            const unsigned int GemmDataPerReadB,
+                                            const unsigned int InBlockCopySubLengths_B,
+                                            const unsigned int WeiBlockCopySubLengths_K,
+                                            bool isXdlopsUsed)
+{
+    // Extend lds size by to take into account alignment
+    // See max_algin code inside kernel_aglorithm files
+    const std::size_t worst_case_alignment_adjustment =
+        (ctx.IsBfp16() || ctx.IsFp16())
+            ? std::max({GetReadWriteVectorSize(static_cast<int>(InBlockCopySubLengths_B)),
+                        GetEPackLength(ctx, isXdlopsUsed)})
+            : std::max({GetReadWriteVectorSize(static_cast<int>(WeiBlockCopySubLengths_K)),
+                        GetReadWriteVectorSize(static_cast<int>(InBlockCopySubLengths_B)),
+                        GemmDataPerReadA,
+                        GemmDataPerReadB});
+
+    // Multiplied worst_case_alignment_adjustment by 2 as
+    // Both A and B matrix LDS size is increased.
+    const std::size_t lds_size = (BPerBlock + KPerBlock) * EPerBlock * GetEPackLength(ctx, true) *
+                                     GetTypeSize(ctx.in_data_type) * 2 +
+                                 2 * worst_case_alignment_adjustment;
+
+    return lds_size;
 }
 
 static inline int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
