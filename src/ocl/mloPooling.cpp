@@ -223,7 +223,9 @@ int mlo_construct_pooling2D::mloConstructBwd()
     _out_pix_tile0 = (_search_params.out_width < _grp_tile0 * 2) ? 1 : 2;
     _out_pix_tile1 = (_search_params.out_height < _grp_tile1 * 2) ? 1 : 2;
 
-    _comp_options = std::string(" -DMLO_POOLING_KERNEL_SZ1=") +
+    _comp_options = std::string(" -DMLO_POOLING_OP_ID=") +
+                    std::to_string(static_cast<long long>(_pooling_method)) +
+                    std::string(" -DMLO_POOLING_KERNEL_SZ1=") +
                     std::to_string(static_cast<long long>(_search_params.kernel_size_h)) +
                     std::string(" -DMLO_POOLING_PAD1=") +
                     std::to_string(static_cast<long long>(_search_params.pad_h)) +
@@ -269,9 +271,6 @@ int mlo_construct_pooling2D::mloConstructBwd()
                     get_pooling_index_type_name(_index_type) +
                     std::string(" -DMLO_POOLING_INDEX_MAX=") +
                     get_pooling_index_type_max_name(_index_type) + getGeneralCompOptions();
-
-    if(_pooling_method == MLO_POOLING_OP_AVE_INCLUSIVE)
-        _comp_options = std::string(" -DMLO_POOLING_OP_AVE_INCLUSIVE") + _comp_options;
 
     int g_wk_width = ((_search_params.in_width + _grp_tile0 * _out_pix_tile0 - 1) /
                       (_grp_tile0 * _out_pix_tile0));
