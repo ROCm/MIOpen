@@ -292,20 +292,25 @@ std::ostream& LogParam(std::ostream& os, std::string name, const std::vector<T>&
 
 std::string LoggingParseFunction(const char* func, const char* pretty_func);
 
-#define MIOPEN_LOG_XQ_(level, disableQuieting, ...)                                          \
-    do                                                                                       \
-    {                                                                                        \
-        if(miopen::IsLogging(level, disableQuieting))                                        \
-        {                                                                                    \
-            std::ostringstream miopen_log_ss;                                                \
-            miopen_log_ss << miopen::LoggingPrefix() << LoggingLevelToCString(level) << " [" \
-                          << miopen::LoggingParseFunction(__func__,            /* NOLINT */  \
-                                                          __PRETTY_FUNCTION__) /* NOLINT */  \
-                          << "] " << __VA_ARGS__ << std::endl;                               \
-            std::cerr << miopen_log_ss.str();                                                \
-        }                                                                                    \
+#define MIOPEN_LOG_XQ_CUSTOM(level, disableQuieting, category, ...)                         \
+    do                                                                                      \
+    {                                                                                       \
+        if(miopen::IsLogging(level, disableQuieting))                                       \
+        {                                                                                   \
+            std::ostringstream miopen_log_ss;                                               \
+            miopen_log_ss << miopen::LoggingPrefix() << category << " ["                    \
+                          << miopen::LoggingParseFunction(__func__,            /* NOLINT */ \
+                                                          __PRETTY_FUNCTION__) /* NOLINT */ \
+                          << "] " << __VA_ARGS__ << std::endl;                              \
+            std::cerr << miopen_log_ss.str();                                               \
+        }                                                                                   \
     } while(false)
 
+#define MIOPEN_LOG_XQ_(level, disableQuieting, ...) \
+    MIOPEN_LOG_XQ_CUSTOM(level, disableQuieting, LoggingLevelToCString(level), __VA_ARGS__)
+
+#define MIOPEN_LOG_CUSTOM(level, category, ...) \
+    MIOPEN_LOG_XQ_CUSTOM(level, false, category, __VA_ARGS__)
 #define MIOPEN_LOG(level, ...) MIOPEN_LOG_XQ_(level, false, __VA_ARGS__)
 #define MIOPEN_LOG_NQ_(level, ...) MIOPEN_LOG_XQ_(level, true, __VA_ARGS__)
 
