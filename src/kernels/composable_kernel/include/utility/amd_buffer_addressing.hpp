@@ -19,55 +19,56 @@ __device__ float __llvm_amdgcn_buffer_load(int32x4_t rsrc,
                                            index_t vindex,
                                            index_t offset,
                                            bool glc,
-                                           bool slc) __asm("llvm.amdgcn.buffer.load");
+                                           bool slc) __asm("llvm.amdgcn.buffer.load.f32");
 
 __device__ float2_t __llvm_amdgcn_buffer_loadx2(int32x4_t rsrc,
                                                 index_t vindex,
                                                 index_t offset,
                                                 bool glc,
-                                                bool slc) __asm("llvm.amdgcn.buffer.load.dwordx2");
+                                                bool slc) __asm("llvm.amdgcn.buffer.load.v2f32");
 
 __device__ float4_t __llvm_amdgcn_buffer_loadx4(int32x4_t rsrc,
                                                 index_t vindex,
                                                 index_t offset,
                                                 bool glc,
-                                                bool slc) __asm("llvm.amdgcn.buffer.load.dwordx4");
+                                                bool slc) __asm("llvm.amdgcn.buffer.load.v4f32");
 
 __device__ void __llvm_amdgcn_buffer_store(float vdata,
                                            int32x4_t rsrc,
                                            index_t vindex,
                                            index_t offset,
                                            bool glc,
-                                           bool slc) __asm("llvm.amdgcn.buffer.store");
+                                           bool slc) __asm("llvm.amdgcn.buffer.store.f32");
 
 __device__ void __llvm_amdgcn_buffer_storex2(float2_t vdata,
                                              int32x4_t rsrc,
                                              index_t vindex,
                                              index_t offset,
                                              bool glc,
-                                             bool slc) __asm("llvm.amdgcn.buffer.store.dwordx2");
+                                             bool slc) __asm("llvm.amdgcn.buffer.store.v2f32");
 
 __device__ void __llvm_amdgcn_buffer_storex4(float4_t vdata,
                                              int32x4_t rsrc,
                                              index_t vindex,
                                              index_t offset,
                                              bool glc,
-                                             bool slc) __asm("llvm.amdgcn.buffer.store.dwordx4");
+                                             bool slc) __asm("llvm.amdgcn.buffer.store.v4f32");
 
 template <typename T, index_t VectorSize>
-__device__ typename vector_type<T, VectorSize>::MemoryType
-__buffer_load(const T* p_src_block, index_t src_thread_data_offset, index_t src_const_data_offset);
+__device__ typename vector_type<T, VectorSize>::MemoryType amd_intrinsic_buffer_load(
+    const T* p_src_block, index_t src_thread_data_offset, index_t src_const_data_offset);
 
 template <typename T, index_t VectorSize>
-__device__ void __buffer_store(const typename vector_type<T, VectorSize>::MemoryType& src,
-                               T* p_dst_block,
-                               index_t dst_thread_data_offset,
-                               index_t dst_const_data_offset);
+__device__ void
+amd_intrinsic_buffer_store(const typename vector_type<T, VectorSize>::MemoryType& src,
+                           T* p_dst_block,
+                           index_t dst_thread_data_offset,
+                           index_t dst_const_data_offset);
 
 template <>
-__device__ float __buffer_load<float, 1>(const float* p_src_block,
-                                         index_t src_thread_data_offset,
-                                         index_t src_const_data_offset)
+__device__ float amd_intrinsic_buffer_load<float, 1>(const float* p_src_block,
+                                                     index_t src_thread_data_offset,
+                                                     index_t src_const_data_offset)
 {
     float dst;
 
@@ -100,9 +101,9 @@ __device__ float __buffer_load<float, 1>(const float* p_src_block,
 }
 
 template <>
-__device__ float2_t __buffer_load<float, 2>(const float* p_src_block,
-                                            index_t src_thread_data_offset,
-                                            index_t src_const_data_offset)
+__device__ float2_t amd_intrinsic_buffer_load<float, 2>(const float* p_src_block,
+                                                        index_t src_thread_data_offset,
+                                                        index_t src_const_data_offset)
 {
     float2_t dst;
 
@@ -135,9 +136,9 @@ __device__ float2_t __buffer_load<float, 2>(const float* p_src_block,
 }
 
 template <>
-__device__ float4_t __buffer_load<float, 4>(const float* p_src_block,
-                                            index_t src_thread_data_offset,
-                                            index_t src_const_data_offset)
+__device__ float4_t amd_intrinsic_buffer_load<float, 4>(const float* p_src_block,
+                                                        index_t src_thread_data_offset,
+                                                        index_t src_const_data_offset)
 {
     float4_t dst;
 
@@ -170,10 +171,10 @@ __device__ float4_t __buffer_load<float, 4>(const float* p_src_block,
 }
 
 template <>
-__device__ void __buffer_store<float, 1>(const float& src,
-                                         float* p_dst_block,
-                                         index_t dst_thread_data_offset,
-                                         index_t dst_const_data_offset)
+__device__ void amd_intrinsic_buffer_store<float, 1>(const float& src,
+                                                     float* p_dst_block,
+                                                     index_t dst_thread_data_offset,
+                                                     index_t dst_const_data_offset)
 {
     index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(float);
     index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(float);
@@ -207,10 +208,10 @@ __device__ void __buffer_store<float, 1>(const float& src,
 }
 
 template <>
-__device__ void __buffer_store<float, 2>(const float2_t& src,
-                                         float* p_dst_block,
-                                         index_t dst_thread_data_offset,
-                                         index_t dst_const_data_offset)
+__device__ void amd_intrinsic_buffer_store<float, 2>(const float2_t& src,
+                                                     float* p_dst_block,
+                                                     index_t dst_thread_data_offset,
+                                                     index_t dst_const_data_offset)
 {
     index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(float);
     index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(float);
@@ -244,10 +245,10 @@ __device__ void __buffer_store<float, 2>(const float2_t& src,
 }
 
 template <>
-__device__ void __buffer_store<float, 4>(const float4_t& src,
-                                         float* p_dst_block,
-                                         index_t dst_thread_data_offset,
-                                         index_t dst_const_data_offset)
+__device__ void amd_intrinsic_buffer_store<float, 4>(const float4_t& src,
+                                                     float* p_dst_block,
+                                                     index_t dst_thread_data_offset,
+                                                     index_t dst_const_data_offset)
 {
     index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(float);
     index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(float);

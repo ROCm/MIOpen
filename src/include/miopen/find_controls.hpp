@@ -27,6 +27,7 @@
 #ifndef GUARD_MIOPEN_FIND_CONTROLS_HPP_
 #define GUARD_MIOPEN_FIND_CONTROLS_HPP_
 
+#include <miopen/solver_id.hpp>
 #include <ostream>
 
 namespace miopen {
@@ -109,6 +110,8 @@ class FindEnforce
 
     friend std::ostream& operator<<(std::ostream&, const FindEnforce&);
 };
+
+solver::Id GetEnvFindOnlySolver();
 
 } // namespace miopen
 

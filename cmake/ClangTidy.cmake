@@ -39,6 +39,7 @@ find_program(CLANG_TIDY_EXE
     PATH_SUFFIXES
         compiler/bin
     PATHS
+        /opt/rocm/llvm/bin
         /opt/rocm/hcc
         /usr/local/opt/llvm/bin
 )

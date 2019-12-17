@@ -23,16 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-	.hsa_code_object_version 2,1
-
-	.hsa_code_object_isa
-
-	.text
-	.amdgpu_hsa_kernel gcnAsmBNBwdTrainSpatial
-
-.include "gpr_alloc.inc"
-.include "common.inc"
+.include "rocm_version.inc"
 .include "inst_wrappers.inc"
+.include "utilities.inc"
+.include "gpr_alloc.inc"
 
 // kernarg layout:
 kernarg = 4
@@ -43,13 +37,24 @@ in_desc = 0
 .set bnScale_ptr_off, 0x18
 .set dscale_ptr_off, 0x20
 .set dbias_ptr_off, 0x28
+//
+// Variadic list of arguments.
+//
+error_ifnotdef MIO_BN_USESAVED
+static_assert(MIO_BN_USESAVED == 0 || MIO_BN_USESAVED == 1)
 .if (MIO_BN_USESAVED == 0)
-    .set epsilon_off, 0x30
-    .set inhw_off, 0x38
+    .set epsilon_off, 0x30          // size 8 align 8
+    .set inhw_off, 0x38             // size 4 align 4
+    .set KERNARG_SIZE, 4 + inhw_off
 .elseif (MIO_BN_USESAVED == 1)
-    .set SavedMean_off, 0x30
-    .set SavedInvVariance_off, 0x38
-    .set inhw_off, 0x40
+    .set SavedMean_off, 0x30        // size 8 align 8
+    .set SavedInvVariance_off, 0x38 // size 8 align 8
+    .set inhw_off, 0x40             // size 4 align 4
+    .set KERNARG_SIZE, 4 + inhw_off
+.endif
+error_ifnotdef KERNARG_SIZE
+.if KERNARG_SIZE % 8 != 0 // Kernarg alignment is 8.
+    .set KERNARG_SIZE, ((KERNARG_SIZE / 8) + 1) * 8
 .endif
 
 .set bn_bwd_lds_mask, 0x1C
@@ -65,7 +70,6 @@ fmamix_instructions_available = 0
 .endif
 
 .GPR_ALLOC_BEGIN
-
     //.SGPR_ALLOC_FROM 4
     .SGPR_ALLOC_FROM 0
     .SGPR_ALLOC stmp,8
@@ -79,6 +83,7 @@ fmamix_instructions_available = 0
     .SGPR_ALLOC stmp9 //20
     .SGPR_ALLOC stmp10 //21
     .SGPR_RESERVE_XNACK
+    .SGPR_RESERVE_VCC
 
     .VGPR_ALLOC_FROM 0
     .VGPR_ALLOC tid
@@ -90,13 +95,27 @@ fmamix_instructions_available = 0
     .VGPR_ALLOC qtmp4, 4 //13-v16
     .VGPR_ALLOC qtmp5, 4 //v17-v20
 
-    //.LDS_ALLOC_FROM 0
-    //.LDS_ALLOC accums_lds, 10
-
+    .LDS_ALLOC_FROM 0
+    .LDS_ALLOC UNUSED_accums_lds, 212
 .GPR_ALLOC_END
 
-gcnAsmBNBwdTrainSpatial:
+.if ROCM_METADATA_VERSION == 4
+.hsa_code_object_version 2,1
+.hsa_code_object_isa
+.endif
 
+.text
+.globl miopenGcnAsmBNBwdTrainSpatial
+.type miopenGcnAsmBNBwdTrainSpatial,@function
+.p2align 8
+
+.if ROCM_METADATA_VERSION == 4
+.amdgpu_hsa_kernel miopenGcnAsmBNBwdTrainSpatial
+.endif
+
+
+miopenGcnAsmBNBwdTrainSpatial:
+.if ROCM_METADATA_VERSION == 4
 	.amd_kernel_code_t
 		kernel_code_entry_byte_offset = 256
 		granulated_workitem_vgpr_count = .AUTO_VGPR_GRANULATED_COUNT
@@ -109,15 +128,15 @@ gcnAsmBNBwdTrainSpatial:
 		enable_sgpr_kernarg_segment_ptr = 1
 		private_element_size = 1
 		is_ptr64 = 1
-		workgroup_group_segment_byte_size = 44
-		kernarg_segment_byte_size = 120
+		workgroup_group_segment_byte_size = .AUTO_LDS_BYTE_SIZE
+		kernarg_segment_byte_size = KERNARG_SIZE
 		wavefront_sgpr_count = .AUTO_SGPR_COUNT
 		workitem_vgpr_count = .AUTO_VGPR_COUNT
-		kernarg_segment_alignment = 4
+		kernarg_segment_alignment = 8
 		group_segment_alignment = 4
 		private_segment_alignment = 4
 	.end_amd_kernel_code_t
-
+.endif
   // s[kernarg:kernarg+1] - kernel arg base address...
   // V0 - work item id...
   // s8: group ID
@@ -380,23 +399,83 @@ skip_normalization:
 	flat_store_dword v[qtmp3:qtmp3+1], v[v_db]
 
 	s_endpgm
-
-
-
 .Lfunc_end0:
-    .size gcnAsmBNBwdTrainSpatial, .Lfunc_end0 - gcnAsmBNBwdTrainSpatial
+    .size miopenGcnAsmBNBwdTrainSpatial, .Lfunc_end0 - miopenGcnAsmBNBwdTrainSpatial
 
-.macro metadata wg_x, use_save_flag
-  .if ROCM_METADATA_VERSION == 4
-    .if (\use_save_flag == 0)
-      .amd_amdgpu_hsa_metadata
-      { Version: [ 1, 0 ],
+static_assert(MIO_BN_GRP1 == 1 && MIO_BN_GRP2 == 1) // Required workgroup size and max flat workgroup size depend on this
+
+.if ROCM_METADATA_VERSION == 5
+
+.rodata
+.p2align 6
+.amdhsa_kernel miopenGcnAsmBNBwdTrainSpatial
+    .amdhsa_dx10_clamp  0
+    .amdhsa_ieee_mode   0
+    .amdhsa_float_round_mode_32     0
+    .amdhsa_float_round_mode_16_64  0
+    .amdhsa_float_denorm_mode_32    0
+    .amdhsa_float_denorm_mode_16_64 3
+    .amdhsa_user_sgpr_private_segment_buffer 1
+    .amdhsa_user_sgpr_kernarg_segment_ptr    1
+    .amdhsa_system_sgpr_workgroup_id_x       1
+    .amdhsa_group_segment_fixed_size    .AUTO_LDS_BYTE_SIZE
+    .amdhsa_private_segment_fixed_size  132
+    .amdhsa_next_free_sgpr              __amdhsa_next_free_sgpr
+    .amdhsa_next_free_vgpr              .AUTO_VGPR_COUNT
+    .amdhsa_reserve_flat_scratch        __sgpr_reserve_flatscr
+    .amdhsa_reserve_xnack_mask          __sgpr_reserve_xnack
+    .amdhsa_reserve_vcc                 __sgpr_reserve_vcc
+.end_amdhsa_kernel
+
+.macro METADATA sc, vc, wg_x, lds_size, kernarg_size
+.if (MIO_BN_USESAVED == 0)
+    .error "CO v3 is not supported when (MIO_BN_USESAVED == 0)"
+    .end
+.elseif (MIO_BN_USESAVED == 1)
+.amdgpu_metadata
+---
+amdhsa.version: [ 1, 0 ]
+amdhsa.kernels:
+  - .name: miopenGcnAsmBNBwdTrainSpatial
+    .symbol: miopenGcnAsmBNBwdTrainSpatial.kd
+    .sgpr_count: \sc
+    .vgpr_count: \vc
+    .language: "OpenCL C"
+    .language_version: [ 1, 2 ]
+    .kernarg_segment_size: \kernarg_size
+    .kernarg_segment_align: 8
+    .group_segment_fixed_size: \lds_size
+    .private_segment_fixed_size: 132
+    .reqd_workgroup_size: [ \wg_x, 1, 1 ]
+    .max_flat_workgroup_size: \wg_x
+    .wavefront_size: 64
+    .args:
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f16, .name: x_in,             .address_space: global, .is_const: true  }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f16, .name: dy_in,            .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 16, .value_kind: global_buffer, .value_type: f16, .name: dx_out,           .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 24, .value_kind: global_buffer, .value_type: f32, .name: bnScale,          .address_space: global, .is_const: true  }
+    - { .size: 8, .offset: 32, .value_kind: global_buffer, .value_type: f32, .name: dscale,           .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 40, .value_kind: global_buffer, .value_type: f32, .name: dbias,            .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 48, .value_kind: global_buffer, .value_type: f32, .name: savedMean,        .address_space: global, .is_const: true  }
+    - { .size: 8, .offset: 56, .value_kind: global_buffer, .value_type: f32, .name: savedInvVariance, .address_space: global, .is_const: true  }
+    - { .size: 4, .offset: 64, .value_kind: by_value,      .value_type: f32, .name: INHW }
+...
+.end_amdgpu_metadata
+.endif
+.endm // METADATA
+
+.elseif ROCM_METADATA_VERSION == 4
+
+.macro METADATA sc, vc, wg_x, lds_size, kernarg_size
+    .if (MIO_BN_USESAVED == 0)
+        .amd_amdgpu_hsa_metadata
+        { Version: [ 1, 0 ],
            Kernels:
-           -  { Name: gcnAsmBNBwdTrainSpatial, SymbolName: 'gcnAsmBNBwdTrainSpatial@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+           -  { Name: miopenGcnAsmBNBwdTrainSpatial, SymbolName: 'miopenGcnAsmBNBwdTrainSpatial@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
                Attrs:
                  { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
                  CodeProps:
-                 { KernargSegmentSize: 112, GroupSegmentFixedSize: 212, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: 32, NumVGPRs: 20, MaxFlatWorkGroupSize: 832}
+                 { KernargSegmentSize: \kernarg_size, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: \sc, NumVGPRs: \vc, MaxFlatWorkGroupSize: \wg_x}
                  Args:
                  - { Name: x_in    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: ReadOnly, IsConst: true, IsRestrict: true}
                  - { Name: dy_in   , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true}
@@ -406,21 +485,18 @@ skip_normalization:
                  - { Name: dbias    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true }
                  - { Name: epsilon, Size: 8, Align: 8, ValueKind: ByValue, ValueType: F64, TypeName: 'double', AccQual: Default }
                  - { Name: INHW    , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default }
-                 //- { Name: HiddenGlobalOffsetX, Size: 8, Align: 8, ValueKind: ByValue, ValueType: I64 }
-                 //- { Name: HiddenGlobalOffsetY, Size: 8, Align: 8, ValueKind: ByValue, ValueType: I64 }
-                 //- { Name: HiddenGlobalOffsetZ, Size: 8, Align: 8, ValueKind: ByValue, ValueType: I64 }
                }
-      }
-      .end_amd_amdgpu_hsa_metadata
-    .elseif (\use_save_flag == 1)
-      .amd_amdgpu_hsa_metadata
-      { Version: [ 1, 0 ],
+        }
+        .end_amd_amdgpu_hsa_metadata
+    .elseif (MIO_BN_USESAVED == 1)
+        .amd_amdgpu_hsa_metadata
+        { Version: [ 1, 0 ],
            Kernels:
-           -  { Name: gcnAsmBNBwdTrainSpatial, SymbolName: 'gcnAsmBNBwdTrainSpatial@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+           -  { Name: miopenGcnAsmBNBwdTrainSpatial, SymbolName: 'miopenGcnAsmBNBwdTrainSpatial@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
                Attrs:
                  { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
                  CodeProps:
-                 { KernargSegmentSize: 112, GroupSegmentFixedSize: 212, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: 32, NumVGPRs: 20, MaxFlatWorkGroupSize: 832}
+                 { KernargSegmentSize: \kernarg_size, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: \sc, NumVGPRs: \vc, MaxFlatWorkGroupSize: \wg_x}
                  Args:
                  - { Name: x_in    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: ReadOnly, IsConst: true, IsRestrict: true}
                  - { Name: dy_in   , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true}
@@ -431,22 +507,13 @@ skip_normalization:
                  - { Name: savedMean    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
                  - { Name: savedInvVariance    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
                  - { Name: INHW    , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default }
-                 //- { Name: HiddenGlobalOffsetX, Size: 8, Align: 8, ValueKind: ByValue, ValueType: I64 }
-                 //- { Name: HiddenGlobalOffsetY, Size: 8, Align: 8, ValueKind: ByValue, ValueType: I64 }
-                 //- { Name: HiddenGlobalOffsetZ, Size: 8, Align: 8, ValueKind: ByValue, ValueType: I64 }
                }
-      }
-      .end_amd_amdgpu_hsa_metadata
+        }
+        .end_amd_amdgpu_hsa_metadata
     .endif
-  .endif // ROCM_METADATA_VERSION == 4
-.endm
+.endm // METADATA
 
+.endif // ROCM_METADATA_VERSION
 
 .altmacro
-.macro metadata_wrapper x, y
-    metadata %\x, %\y
-.endm
-
-metadata_wrapper MIO_BN_GRP0, MIO_BN_USESAVED
-
-
+METADATA %.AUTO_SGPR_COUNT, %.AUTO_VGPR_COUNT, %MIO_BN_GRP0, %.AUTO_LDS_BYTE_SIZE, %KERNARG_SIZE

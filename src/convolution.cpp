@@ -436,7 +436,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
 
     const size_t direct_workspace = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
 
-    const size_t implicit_gemm_workspace = ForwardGetWorkSpaceSizeImplicitGemm(ctx);
+    const size_t implicit_gemm_workspace = ForwardBackwardGetWorkSpaceSizeImplicitGemm(ctx);
 
     const size_t workspace_size_scgemm = ForwardBackwardDataGetWorkSpaceSizeSCGemm(handle, ctx);
 
@@ -547,7 +547,10 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
             ? BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc)
             : 0;
 
-    return std::max({workspace_size_fft, workspace_size_gemm, direct_workspace});
+    const size_t implicit_gemm_workspace = ForwardBackwardGetWorkSpaceSizeImplicitGemm(ctx);
+
+    return std::max(
+        {workspace_size_fft, workspace_size_gemm, direct_workspace, implicit_gemm_workspace});
 }
 
 std::size_t
@@ -631,7 +634,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(const TensorDescripto
     return gemm_size;
 }
 
-std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeImplicitGemm(
+std::size_t ConvolutionDescriptor::ForwardBackwardGetWorkSpaceSizeImplicitGemm(
     const miopen::ConvolutionContext& ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
@@ -653,9 +656,9 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeImplicitGemm(
         }
         return sz;
     }
-    catch(const miopen::Exception&)
+    catch(const miopen::Exception& ex)
     {
-        MIOPEN_LOG_E("failed in ForwardGetWorkSpaceSizeImplicitGemm");
+        MIOPEN_LOG_WE(ex.what());
         return 0;
     }
 }
@@ -682,8 +685,9 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
         }
         return sz;
     }
-    catch(const miopen::Exception&)
+    catch(const miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return 0;
     }
 }
@@ -716,19 +720,11 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeSCGemm(
     return sz;
 }
 
-std::size_t
-ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
-                                                             const TensorDescriptor& dyDesc,
-                                                             const TensorDescriptor& xDesc,
-                                                             const TensorDescriptor& dwDesc) const
+std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(
+    const miopen::ConvolutionContext& ctx) const
 {
-    auto ctx = ConvolutionContext(xDesc, dwDesc, dyDesc, *this, 0);
-    ctx.direction.SetBackwardWrW();
-    ctx.do_search = false;
-    ctx.SetStream(&handle);
-    ctx.disable_perfdb_access = true;
-    ctx.SetupFloats();
-    ctx.DetectRocm();
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+        return 0;
 
     try
     {
@@ -744,27 +740,18 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
         }
         return sz;
     }
-    catch(const miopen::Exception&)
+    catch(const miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return 0;
     }
 }
 
-std::size_t
-ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeWinograd(Handle& handle,
-                                                               const TensorDescriptor& dyDesc,
-                                                               const TensorDescriptor& xDesc,
-                                                               const TensorDescriptor& dwDesc) const
+std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeWinograd(
+    const miopen::ConvolutionContext& ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
         return 0;
-
-    auto ctx = ConvolutionContext(xDesc, dwDesc, dyDesc, *this, 0);
-    ctx.direction.SetBackwardWrW();
-    ctx.do_search = false;
-    ctx.SetStream(&handle);
-    ctx.disable_perfdb_access = true;
-    ctx.DetectRocm();
 
     try
     {
@@ -780,23 +767,19 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeWinograd(Handle& handle,
         }
         return sz;
     }
-    catch(const miopen::Exception&)
+    catch(const miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return 0;
     }
 }
+
 std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeImplicitGemm(
-    Handle& handle,
-    const TensorDescriptor& dyDesc,
-    const TensorDescriptor& xDesc,
-    const TensorDescriptor& dwDesc) const
+    const miopen::ConvolutionContext& ctx) const
 {
-    auto ctx = ConvolutionContext(xDesc, dwDesc, dyDesc, *this, 0);
-    ctx.direction.SetBackwardWrW();
-    ctx.do_search = false;
-    ctx.SetStream(&handle);
-    ctx.disable_search_enforce = true;
-    ctx.DetectRocm();
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
+        return 0;
+
     try
     {
         const auto ss  = FindImplicitGemmWrWAllSolutions(ctx);
@@ -811,11 +794,13 @@ std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeImplicitGemm(
         }
         return sz;
     }
-    catch(const miopen::Exception&)
+    catch(const miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return 0;
     }
 }
+
 std::size_t
 ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
                                                        const TensorDescriptor& dyDesc,
@@ -824,32 +809,29 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
 {
     MIOPEN_LOG_I("");
 
-    std::size_t workspace_size = 0;
-    {
-        std::size_t workspace_size_gemm = 0;
+    auto ctx = ConvolutionContext(xDesc, dwDesc, dyDesc, *this, 0);
+    ctx.direction.SetBackwardWrW();
+    ctx.SetStream(&handle);
+    ctx.DetectRocm();
+    ctx.SetupFloats();
+    ctx.do_search             = false;
+    ctx.disable_perfdb_access = true;
+
+    std::size_t workspace_size_gemm = 0;
 #if MIOPEN_USE_GEMM
-        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
-        {
-            workspace_size_gemm = BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc) * group_count;
-            /// \todo WORKAROUND for issue 1430
-            if(workspace_size_gemm > MAX_MEM_ALLOC_SZ /*  handle.GetMaxMemoryAllocSize() */)
-                workspace_size_gemm = 0;
-        }
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
+    {
+        workspace_size_gemm = BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc) * group_count;
+        /// \todo WORKAROUND for issue 1430
+        if(workspace_size_gemm > MAX_MEM_ALLOC_SZ /*  handle.GetMaxMemoryAllocSize() */)
+            workspace_size_gemm = 0;
+    }
 #endif
 
-        size_t direct_workspace =
-            BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc);
-
-        size_t winograd_workspace =
-            BackwardWeightsGetWorkSpaceSizeWinograd(handle, dyDesc, xDesc, dwDesc);
-        size_t implicitgemm_workspace =
-            BackwardWeightsGetWorkSpaceSizeImplicitGemm(handle, dyDesc, xDesc, dwDesc);
-
-        workspace_size = std::max(
-            {implicitgemm_workspace, winograd_workspace, direct_workspace, workspace_size_gemm});
-    }
-
-    return workspace_size;
+    return std::max({BackwardWeightsGetWorkSpaceSizeImplicitGemm(ctx),
+                     BackwardWeightsGetWorkSpaceSizeWinograd(ctx),
+                     BackwardWeightsGetWorkSpaceSizeDirect(ctx),
+                     workspace_size_gemm});
 }
 
 std::ostream& operator<<(std::ostream& stream, const ConvolutionDescriptor& c)

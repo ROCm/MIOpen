@@ -103,4 +103,19 @@ void output_tensor_to_csv(const tensor<T>& x, std::string filename)
     file.close();
 }
 
+template <typename T>
+void output_tensor_to_bin(const char* fileName, T* data, size_t dataNumItems)
+{
+    std::ofstream outFile(fileName, std::ios::binary);
+    if(outFile)
+    {
+        outFile.write(reinterpret_cast<char*>(data), dataNumItems * sizeof(T));
+        outFile.close();
+    }
+    else
+    {
+        std::cerr << "Could not open file " << fileName << " for writing" << std::endl;
+    }
+}
+
 #endif

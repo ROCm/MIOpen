@@ -24,7 +24,10 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
+#include <miopen/solver.hpp>
+#include <miopen/env.hpp>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)
 
 #define TWO_PASSES 1
 
@@ -33,6 +36,10 @@ namespace solver {
 
 bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1{}))
+        return false;
+    if(!params.use_opencl_convolutions)
+        return false;
     if(!params.Is2d())
         return false;
     if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))

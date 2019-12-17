@@ -150,8 +150,9 @@ extern "C" __global__
                                                                InBlockCopyClusterLengths_N2,
                                                                1>;
 
-    constexpr index_t InBlockCopySrcDataPerRead_B   = 1;
-    constexpr index_t InBlockCopyDstDataPerWrite_N2 = CK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_N2;
+    constexpr index_t InBlockCopySrcDataPerRead_B = CK_PARAM_IN_BLOCK_COPY_SRC_DATA_PER_READ_B;
+    constexpr index_t InBlockCopyDstDataPerWrite_EPack =
+        CK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_EPACK;
 
     // EPACK  - E dimension is folded into 2 dimensions E and EPACK
     using InBlockCopyThreadClusterArrangeOrder = Sequence<0, 1, 3, 2, 4>; // [E, N1, N2, B, EPACK]
@@ -167,8 +168,9 @@ extern "C" __global__
     using WeiBlockCopySrcAccessOrder            = Sequence<1, 0, 2>; // [K, E, EPACK]
     using WeiBlockCopyDstAccessOrder            = Sequence<0, 1, 2>; // [E, K, EPACK]
 
-    constexpr index_t WeiBlockCopySrcDataPerRead_E  = CK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E;
-    constexpr index_t WeiBlockCopyDstDataPerWrite_K = 1;
+    constexpr index_t WeiBlockCopySrcDataPerRead_E = CK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E;
+    constexpr index_t WeiBlockCopyDstDataPerWrite_EPack =
+        CK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_EPACK;
 #else
     static_assert(false, "wrong! Only kperblock could be 32/64/128 not supported");
 #endif
@@ -246,14 +248,14 @@ extern "C" __global__
             InBlockCopySrcAccessOrder,
             InBlockCopyDstAccessOrder,
             InBlockCopySrcDataPerRead_B,
-            InBlockCopyDstDataPerWrite_N2,
+            InBlockCopyDstDataPerWrite_EPack,
             WeiBlockCopySubLengths_E_K_EPACK,
             WeiBlockCopyClusterLengths_E_K_EPACK,
             WeiBlockCopyThreadClusterArrangeOrder,
             WeiBlockCopySrcAccessOrder,
             WeiBlockCopyDstAccessOrder,
             WeiBlockCopySrcDataPerRead_E,
-            WeiBlockCopyDstDataPerWrite_K>{};
+            WeiBlockCopyDstDataPerWrite_EPack>{};
 #else
     static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
 #endif

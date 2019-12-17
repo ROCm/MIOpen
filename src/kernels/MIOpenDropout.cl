@@ -208,7 +208,7 @@ void xorwow_skipahead(unsigned long long skp,
         uint mat[XORWOW_PRECALC_MATRICES_SZ];
         copy_const_arr(mat, skipahead_mat[mat_idx], XORWOW_PRECALC_MATRICES_SZ);
 
-        for(uint i = 0; i < (skp & XORWOW_JUMP_LOG2_MASK); i++)
+        if(skp & XORWOW_JUMP_LOG2_MASK)
         {
             mat_vec(mat, xor_vec);
         }
@@ -228,7 +228,7 @@ void xorwow_skipahead(unsigned long long skp,
             mat_pow(matrixB, matrixA, 1ULL << XORWOW_JUMP_LOG2);
             copy_arr(matrixA, matrixB, XORWOW_PRECALC_MATRICES_SZ);
 
-            for(uint i = 0; i < (skp & XORWOW_JUMP_LOG2_MASK); i++)
+            if(skp & XORWOW_JUMP_LOG2_MASK)
             {
                 mat_vec(matrixA, xor_vec);
             }
@@ -268,9 +268,9 @@ void xorwow_lite_init(prngStates* cur_state,
     cur_state->v += t0;
     cur_state->d += t1 + t0;
 
-    xorwow_skipahead(subsequence, cur_state, precalc_xorwow_skipahead_matrices);
+    xorwow_skipahead(subsequence, cur_state, precalc_xorwow_skipahead_sequence_matrices);
 
-    xorwow_skipahead(offset, cur_state, precalc_xorwow_skipahead_sequence_matrices);
+    xorwow_skipahead(offset, cur_state, precalc_xorwow_skipahead_matrices);
     cur_state->d += (uint)(offset)*362437;
 }
 
@@ -302,18 +302,6 @@ __kernel void InitKernelState(__global prngStates* state)
 #define USE_PRNG 0
 #endif
 
-#ifndef IN_OFFSET
-#define IN_OFFSET 0
-#endif
-
-#ifndef OUT_OFFSET
-#define OUT_OFFSET 0
-#endif
-
-#ifndef RSV_OFFSET
-#define RSV_OFFSET 0
-#endif
-
 __kernel void
 #if RUN_FORWARD
 DropoutForward(
@@ -327,34 +315,38 @@ DropoutBackward(
 #endif
 #endif
     const __global prngStates* state,
-    float dropout,
-    UNUSED int dim0,
-    int dim1,
-    int dim2,
-    int dim3,
-    int dim4,
+    const float dropout,
+    const int dim1,
+    const int dim2,
+    const int dim3,
+    const int dim4,
 #if !RUN_FORWARD
     const
 #endif
     __global _FLOAT* y,
-    int out_str0,
-    int out_str1,
-    int out_str2,
-    int out_str3,
-    UNUSED int out_str4,
+    const int out_str0,
+    const int out_str1,
+    const int out_str2,
+    const int out_str3,
 #if RUN_FORWARD
     const
 #endif
     __global _FLOAT* x,
-    int in_str0,
-    int in_str1,
-    int in_str2,
-    int in_str3,
-    UNUSED int in_str4,
+    const int in_str0,
+    const int in_str1,
+    const int in_str2,
+    const int in_str3,
 #if(RUN_FORWARD && !USE_RSVSP && !USE_MASK) || (!RUN_FORWARD && USE_PRNG)
     UNUSED
 #endif
-        __global uchar* reserveSpace)
+        __global uchar* reserveSpace,
+    const uint total_work,
+    const uint in_offset,
+    const uint out_offset,
+#if(RUN_FORWARD && !USE_RSVSP && !USE_MASK) || (!RUN_FORWARD && USE_PRNG)
+    UNUSED
+#endif
+    const uint rsvsp_offset)
 {
     _FLOAT dat_blk[RD_BLCK];
     uchar is_kept[RD_BLCK];
@@ -365,7 +357,7 @@ DropoutBackward(
     cur_state = *((__global prngStates*)(state + sid));
 #endif
 
-    for(uint gid = get_global_id(0); gid < TOTAL_WORK; gid += get_global_size(0))
+    for(uint gid = get_global_id(0); gid < total_work; gid += get_global_size(0))
     {
         uint i0    = gid / dim1 / dim2 / dim3 / dim4;
         uint i1    = (gid / dim2 / dim3 / dim4) % dim1;
@@ -380,9 +372,9 @@ DropoutBackward(
 
         *((READ_DAT_TYPE*)dat_blk) = *((const global READ_DAT_TYPE*)(
 #if RUN_FORWARD
-            x + IN_OFFSET + x_idx
+            x + in_offset + x_idx
 #else
-            y + OUT_OFFSET + y_idx
+            y + out_offset + y_idx
 #endif
             ));
 #if(RUN_FORWARD && !USE_MASK) || (!RUN_FORWARD && USE_PRNG)
@@ -391,12 +383,12 @@ DropoutBackward(
             is_kept[i] = (uchar)(uniform_distribution(xorwow_lite_next(&cur_state)) > dropout);
         }
 #if RUN_FORWARD && USE_RSVSP
-        *((global READ_BOOL_TYPE*)(reserveSpace + RSV_OFFSET + gid - i4 + i4_rd * RD_BLCK)) =
+        *((global READ_BOOL_TYPE*)(reserveSpace + rsvsp_offset + gid - i4 + i4_rd * RD_BLCK)) =
             *((READ_BOOL_TYPE*)is_kept);
 #endif
 #else
-        *((READ_BOOL_TYPE*)is_kept) = *(
-            (const global READ_BOOL_TYPE*)(reserveSpace + RSV_OFFSET + gid - i4 + i4_rd * RD_BLCK));
+        *((READ_BOOL_TYPE*)is_kept) = *((const global READ_BOOL_TYPE*)(reserveSpace + rsvsp_offset +
+                                                                       gid - i4 + i4_rd * RD_BLCK));
 #endif
         for(int i = 0; i < RD_BLCK; ++i)
         {
@@ -405,9 +397,9 @@ DropoutBackward(
 
         *((global READ_DAT_TYPE*)(
 #if RUN_FORWARD
-            y + OUT_OFFSET + y_idx
+            y + out_offset + y_idx
 #else
-            x + IN_OFFSET + x_idx
+            x + in_offset + x_idx
 #endif
             )) = *((READ_DAT_TYPE*)dat_blk);
     }

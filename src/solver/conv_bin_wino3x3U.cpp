@@ -24,9 +24,10 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
-#include "miopen/env.hpp"
-#include "miopen/stringutils.hpp"
+#include <miopen/solver.hpp>
+#include <miopen/env.hpp>
+#include <miopen/stringutils.hpp>
+#include <miopen/kernel_build_params.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
 
@@ -39,7 +40,7 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.Is2d())
         return false;
-    if(!(params.rmv.IsV2() && params.use_asm_kernels))
+    if(!(params.rmv.IsV2orV3() && params.use_asm_kernels))
         return false;
 
     const auto name = params.GetStream().GetDeviceName();
@@ -99,10 +100,12 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params) 
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    kernel.kernel_name = "sp3AsmConv3x3F";
+    kernel.kernel_name = "miopenSp3AsmConv3x3F";
 
-    if(!params.rmv.IsV2())
-        MIOPEN_THROW("Unsupported metadata version.");
+    KernelBuildParameters options{
+        {"ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4},
+    };
+    kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 
     if(StartsWith(name, "gfx8"))
         kernel.kernel_file = "conv_3x3_wheel_alpha_v3_0b.s";

@@ -335,7 +335,7 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1_deprecated
                         //     3. src_merged_offset can be runtime value (no assumption imposed)
                         static_if<SrcAddressSpace == AddressSpace::global>{}([&](auto fwd) {
 #if CK_USE_AMD_BUFFER_ADDRESSING
-                            vector_data = __buffer_load<SrcData, SrcDataPerAccess>(
+                            vector_data = amd_intrinsic_buffer_load<SrcData, SrcDataPerAccess>(
                                 fwd(p_src), src_merged_offset, src_normal_offset);
 #else
                             vector_data = *reinterpret_cast<const src_vector_t*>(
@@ -375,7 +375,7 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1_deprecated
 
         // copy data from buffer into dst
         {
-            using dst_vector_t = typename vector_type<SrcData, DstDataPerAccess>::MemoryType;
+            using dst_vector_t = typename vector_type<DstData, DstDataPerAccess>::MemoryType;
 
             constexpr auto dst_vector_access_dim = Number<DstVectorAccessDim>{};
             constexpr auto dst_data_per_access   = Number<DstDataPerAccess>{};
@@ -420,7 +420,7 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1_deprecated
                         const index_t buffer_offset = buffer_desc.GetOffsetFromMultiIndex(
                             dst_merged_dim_data_id + dst_normal_dim_data_id + scalar_id);
 
-                        reinterpret_cast<SrcData*>(&vector_data)[i] = p_dst_buffer[buffer_offset];
+                        reinterpret_cast<DstData*>(&vector_data)[i] = p_dst_buffer[buffer_offset];
                     }
 
                     // offset w.r.t. normal dimension is known at compile-time
@@ -444,7 +444,7 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1_deprecated
                     //     3. dst_merged_offset can be runtime value (no assumption imposed)
                     static_if<DstAddressSpace == AddressSpace::global>{}([&](auto fwd) {
 #if CK_USE_AMD_BUFFER_ADDRESSING
-                        __buffer_store<SrcData, DstDataPerAccess>(
+                        amd_intrinsic_buffer_store<DstData, DstDataPerAccess>(
                             vector_data, fwd(p_dst), dst_merged_offset, dst_normal_offset);
 #else
                         *reinterpret_cast<dst_vector_t*>(
