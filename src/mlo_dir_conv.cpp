@@ -364,8 +364,11 @@ static rocm_meta_version AmdRocmMetadataVersionDetect(const miopen::ConvolutionC
         size_t num_begin = platform_version.find('(');
         if(num_begin != std::string::npos)
         {
-            // int num = std::stoi(platform_version.substr(num_begin + 1));
-            rmv = rocm_meta_version::AMDHSA_COv2;
+            const int num = std::stoi(platform_version.substr(num_begin + 1));
+            if(num >= 3029) // ROCm 2.10 RC 1341
+                rmv = rocm_meta_version::AMDHSA_COv2_COv3;
+            else
+                rmv = rocm_meta_version::AMDHSA_COv2;
         }
         else
         {
@@ -373,10 +376,11 @@ static rocm_meta_version AmdRocmMetadataVersionDetect(const miopen::ConvolutionC
         }
 #else
         (void)context;
-        rmv = rocm_meta_version::Default;
-        /// This is only to print information onto console.
-        /// \todo Consider removing this call in installable builds.
-        (void)miopen::HipGetHccVersion();
+        if(miopen::HipGetHccVersion() >=
+           miopen::external_tool_version_t{2, 10, 19392}) // ROCm 2.10 RC 1341
+            rmv = rocm_meta_version::AMDHSA_COv2_COv3;
+        else
+            rmv = rocm_meta_version::Default;
 #endif // MIOPEN_BACKEND_OPENCL
     }
     MIOPEN_LOG_NQI(
