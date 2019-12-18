@@ -124,15 +124,14 @@ struct verify_forward_pooling
             auto out_spatial_id = make_array(out_spatial_id_pack...);
 
             std::array<int, SptDim> start_idx{};
-            std::array<int, SptDim> end_idx{};
             std::array<int, SptDim> win_sz{};
             for(int i = 0; i < SptDim; ++i)
             {
                 start_idx[i] = out_spatial_id[i] * strides[i] - pads[i];
-                end_idx[i]   = start_idx[i] + kers[i];
-                end_idx[i]   = std::min(end_idx[i], in_dim[i]);
+                int end_idx  = start_idx[i] + kers[i];
+                end_idx      = std::min(end_idx, in_dim[i]);
                 start_idx[i] = std::max(start_idx[i], 0);
-                win_sz[i]    = end_idx[i] - start_idx[i];
+                win_sz[i]    = end_idx - start_idx[i];
                 win_sz[i]    = std::max(win_sz[i], 1);
             }
 
@@ -229,7 +228,9 @@ struct verify_backward_pooling
                   const tensor<T>& dout,
                   const tensor<T>& out,
                   const miopen::PoolingDescriptor& filter,
-                  const std::vector<Index>& indices) const
+                  const std::vector<Index>& indices,
+                  bool use_global_index,
+                  bool verify_index) const
     {
         auto dinput = input;
         std::vector<T> din_vec(input.desc.GetElementSpace(), T(0));
@@ -256,31 +257,49 @@ struct verify_backward_pooling
             if(filter.GetMode() == miopenPoolingMax)
             {
                 ford_out([&](auto... out_spatial_id_pack) {
-                    auto out_spatial_id = make_array(out_spatial_id_pack...);
-
                     auto mx_idx = indices.at(dout.desc.GetIndex(o, w, out_spatial_id_pack...));
                     std::array<std::size_t, SptDim + 2> idx{};
                     bool in_cmp_idx = true;
-                    std::array<int, SptDim> mx_idx_dim{};
-                    mx_idx_dim.fill(mx_idx);
-                    for(int i = 0; i < SptDim; i++)
+                    if(use_global_index)
                     {
-                        mx_idx_dim[i] /= std::accumulate(
-                            kers.begin() + i + 1, kers.end(), 1, std::multiplies<int>());
-                        mx_idx_dim[i] %= kers[i];
+                        for(int i = 0; i < SptDim; i++)
+                        {
+                            std::size_t mx_idx_dim = mx_idx;
+                            mx_idx_dim /= std::accumulate(in_dim.begin() + i + 3,
+                                                          in_dim.end(),
+                                                          1,
+                                                          std::multiplies<std::size_t>());
+                            mx_idx_dim %= in_dim[i + 2];
+                            idx[i + 2] = mx_idx_dim;
+                        }
+                    }
+                    else
+                    {
+                        auto out_spatial_id = make_array(out_spatial_id_pack...);
 
-                        int temp_idx = out_spatial_id[i] * strides[i] - pads[i] + mx_idx_dim[i];
-                        in_cmp_idx &= (in_dim[i + 2] > temp_idx && temp_idx >= 0);
+                        for(int i = 0; i < SptDim; i++)
+                        {
+                            int mx_idx_dim = mx_idx;
+                            mx_idx_dim /= std::accumulate(
+                                kers.begin() + i + 1, kers.end(), 1, std::multiplies<int>());
+                            mx_idx_dim %= kers[i];
 
-                        idx[i + 2] = std::size_t(temp_idx);
+                            mx_idx_dim += (out_spatial_id[i] * strides[i] - pads[i]);
+                            in_cmp_idx &= (in_dim[i + 2] > mx_idx_dim && mx_idx_dim >= 0);
+
+                            idx[i + 2] = std::size_t(mx_idx_dim);
+                        }
                     }
 
                     if(in_cmp_idx)
                     {
                         idx[0] = o;
                         idx[1] = w;
-                        CHECK(miopen::float_equal(input(idx), out(o, w, out_spatial_id_pack...)));
-
+                        if(verify_index)
+                        {
+                            CHECK(
+                                miopen::float_equal(input(idx), out(o, w, out_spatial_id_pack...)));
+                        }
                         std::size_t din_idx = 0;
                         for(int i = 0; i < SptDim + 2; i++)
                         {
@@ -296,14 +315,13 @@ struct verify_backward_pooling
                     auto out_spatial_id = make_array(out_spatial_id_pack...);
 
                     std::array<int, SptDim> start_idx{};
-                    std::array<int, SptDim> end_idx{};
                     std::array<int, SptDim> win_sz{};
                     for(int i = 0; i < SptDim; ++i)
                     {
                         start_idx[i] = out_spatial_id[i] * strides[i] - pads[i];
-                        end_idx[i]   = start_idx[i] + kers[i];
-                        end_idx[i]   = std::min(end_idx[i], in_dim[i + 2]);
-                        win_sz[i]    = end_idx[i] - std::max(start_idx[i], 0);
+                        int end_idx  = start_idx[i] + kers[i];
+                        end_idx      = std::min(end_idx, in_dim[i + 2]);
+                        win_sz[i]    = end_idx - std::max(start_idx[i], 0);
                         win_sz[i]    = std::max(win_sz[i], 1);
                     }
 
@@ -358,7 +376,9 @@ struct verify_backward_pooling
                   const tensor<T>& dout,
                   const tensor<T>& out,
                   const miopen::PoolingDescriptor& filter,
-                  const std::vector<Index>& indices) const
+                  const std::vector<Index>& indices,
+                  bool,
+                  bool) const
     {
         auto&& handle = get_handle();
         auto dinput   = input;
@@ -400,7 +420,9 @@ struct verify_backward_pooling
               const tensor<T>&,
               const tensor<T>& out,
               const miopen::PoolingDescriptor& filter,
-              const std::vector<Index>&) const
+              const std::vector<Index>&,
+              bool,
+              bool) const
     {
         std::cout << "Backward pooling: ";
         if(filter.GetMode() == miopenPoolingAverage)
@@ -432,6 +454,7 @@ struct pooling_driver : test_driver
     std::string index_type;
     std::string mode;
     std::string pmode;
+    int verify_indices{};
     std::unordered_map<std::string, miopenIndexType_t> index_type_lookup = {
         {miopen::ToUpper("miopenIndexUint8"), miopenIndexUint8},
         {miopen::ToUpper("miopenIndexUint16"), miopenIndexUint16},
@@ -466,6 +489,7 @@ struct pooling_driver : test_driver
             generate_data(
                 {"miopenPoolingMax", "miopenPoolingAverage", "miopenPoolingAverageInclusive"}));
         add(pmode, "pmode", generate_data({"default", "same", "valid"}));
+        add(verify_indices, "verify_indices", generate_data({0}));
     }
 
     template <class Index, int SptDim>
@@ -477,18 +501,40 @@ struct pooling_driver : test_driver
         auto out  = verify(verify_forward_pooling<SptDim>{}, input, filter, indices);
         auto dout = out.first;
         dout.generate(tensor_elem_gen_integer{2503});
-        verify(verify_backward_pooling<SptDim>{}, input, dout, out.first, filter, indices);
+        verify(verify_backward_pooling<SptDim>{},
+               input,
+               dout,
+               out.first,
+               filter,
+               indices,
+               input.desc.GetSize() == 4 ? false : true,
+               static_cast<bool>(this->verify_indices));
     }
 
     void run()
     {
         auto idx_typ = index_type_lookup.at(miopen::ToUpper(index_type));
         auto idx_sz  = sizeof(uint8_t);
+        int spt_dim  = in_shape.size() - 2;
         switch(idx_typ)
         {
-        case miopenIndexUint8: break;
+        case miopenIndexUint8:
+        {
+            // index size too small for 3D image
+            if(spt_dim == 3)
+            {
+                return;
+            }
+            break;
+        }
         case miopenIndexUint16:
         {
+            // index size too small for 3D image
+            if(spt_dim == 3)
+            {
+                return;
+            }
+
             // test_pooling_test --all only test 5 uint16 cases
             if(num_uint16_case > 5)
             {
@@ -511,20 +557,22 @@ struct pooling_driver : test_driver
         }
         case miopenIndexUint64:
         {
-            // test_pooling_test --all only test 5 uint64 cases
-            if(num_uint64_case > 5)
+            if(spt_dim == 2)
             {
-                return;
+                // test_pooling_test --all only test 5 uint64 cases
+                if(num_uint64_case > 5)
+                {
+                    return;
+                }
+                ++num_uint64_case;
             }
             idx_sz = sizeof(uint64_t);
-            ++num_uint64_case;
             break;
         }
         }
 
         auto input_desc = miopen::TensorDescriptor(this->type, in_shape.data(), in_shape.size());
 
-        int spt_dim = input_desc.GetSize() - 2;
         if(spt_dim != 2 && spt_dim != 3)
         {
             return;

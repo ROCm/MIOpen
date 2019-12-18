@@ -40,8 +40,6 @@
 #include <string>
 #include <vector>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_OPENCL_ENFORCE_COV3)
-
 namespace miopen {
 
 void ParseDevName(std::string& name)
@@ -190,11 +188,6 @@ ClProgramPtr LoadProgram(cl_context ctx,
 #endif
 #endif
         params += " -cl-std=CL1.2";
-        if(miopen::IsEnabled(MIOPEN_DEBUG_AMD_OPENCL_ENFORCE_COV3{}))
-        {
-            /// \todo Seems not working with ROCm 2.6
-            params += " -Wf,-Xclang,-target-feature,-Xclang,+code-object-v3";
-        }
         BuildProgram(result.get(), device, params);
         return result;
     }

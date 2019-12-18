@@ -126,16 +126,16 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     size_t kernel_filter_stride_w   = KernelFilterStrideW(ctx);
     size_t kernel_filter_dilation_w = KernelFilterDilationW(ctx);
 
-    std::size_t InBlockCopySrcDataPerRead_B = GetReadWriteVectorSize(InBlockCopySubLengths_B);
-    InBlockCopySrcDataPerRead_B             = kernel_filter_x > 1
-                                      ? std::min(static_cast<int>(InBlockCopySrcDataPerRead_B),
+    auto InBlockCopySrcDataPerRead_B = GetReadWriteVectorSize(InBlockCopySubLengths_B);
+    InBlockCopySrcDataPerRead_B      = kernel_filter_x > 1
+                                      ? std::min(InBlockCopySrcDataPerRead_B,
                                                  GetReadWriteVectorSize(kernel_filter_dilation_w))
                                       : InBlockCopySrcDataPerRead_B;
     InBlockCopySrcDataPerRead_B = kernel_filter_stride_w > 1 ? 1 : InBlockCopySrcDataPerRead_B;
 #endif
 
     // Disable vectorized read in backward data case. Why?
-    int WeiBlockCopySrcDataPerRead_E = 1;
+    unsigned int WeiBlockCopySrcDataPerRead_E = 1;
     if(ctx.IsFp32())
     {
         WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
