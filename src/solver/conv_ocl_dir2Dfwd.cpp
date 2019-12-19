@@ -24,15 +24,22 @@
  *
  *******************************************************************************/
 
-#include "miopen/handle.hpp"
-#include "miopen/legacy_exhaustive_search.hpp"
-#include "miopen/solver.hpp"
+#include <miopen/handle.hpp>
+#include <miopen/legacy_exhaustive_search.hpp>
+#include <miopen/solver.hpp>
+#include <miopen/env.hpp>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD)
 
 namespace miopen {
 namespace solver {
 
 bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD{}))
+        return false;
+    if(!params.use_opencl_convolutions)
+        return false;
     if(!params.Is2d())
         return false;
     if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))

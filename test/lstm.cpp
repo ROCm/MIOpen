@@ -1577,6 +1577,15 @@ struct verify_forward_infer_lstm
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
         miopenGetRNNTrainingReserveSize(
             &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
+        if(miopen::deref(rnnDesc).algoMode == miopenRNNdefault)
+        {
+            reserveSpaceSize /= sizeof(T);
+            reserveSpaceSize -=
+                nLayers * std::accumulate(batch_seq.begin(), batch_seq.begin() + seqLength, 0) *
+                hiddenSize * bi;
+            reserveSpaceSize *= 2;
+            reserveSpaceSize *= sizeof(T);
+        }
         std::vector<T> reserveSpace(reserveSpaceSize / sizeof(T));
         std::vector<T> output(out_sz / sizeof(T));
         std::vector<T> hiddenState(initHidden.size());
@@ -1778,6 +1787,8 @@ struct verify_forward_train_lstm
     bool nocx;
     bool nohy;
     bool nocy;
+    typename std::vector<T>::iterator RSVgpu;
+    typename std::vector<T>::iterator RSVcpu;
 
     verify_forward_train_lstm(miopenRNNDescriptor_t pRD,
                               const std::vector<T>& px,
@@ -1785,6 +1796,8 @@ struct verify_forward_train_lstm
                               const std::vector<T>& pcx,
                               const std::vector<T>& pW,
                               const std::vector<int>& pBS,
+                              std::vector<T>& pRSVgpu,
+                              std::vector<T>& pRSVcpu,
                               const int pHS,
                               const int pBN,
                               const int pS,
@@ -1811,6 +1824,8 @@ struct verify_forward_train_lstm
         batch_n     = pBN;
         hiddenSize  = pHS;
         inputVecLen = pVL;
+        RSVgpu      = pRSVgpu.begin();
+        RSVcpu      = pRSVcpu.begin();
 
         realHiddenSize = pHXZ;
 
@@ -1830,7 +1845,7 @@ struct verify_forward_train_lstm
             initCell.resize(realHiddenSize);
     }
 
-    std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> cpu()
+    std::tuple<std::vector<T>, std::vector<T>, std::vector<T>> cpu()
     {
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
@@ -1861,7 +1876,16 @@ struct verify_forward_train_lstm
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
         miopenGetRNNTrainingReserveSize(
             &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
-        std::vector<T> reserveSpace(reserveSpaceSize / sizeof(T));
+        reserveSpaceSize /= sizeof(T);
+        if(miopen::deref(rnnDesc).algoMode == miopenRNNdefault)
+        {
+            reserveSpaceSize -=
+                nLayers * std::accumulate(batch_seq.begin(), batch_seq.begin() + seqLength, 0) *
+                hiddenSize * bi;
+            reserveSpaceSize *= 2;
+        }
+
+        std::vector<T> reserveSpace(reserveSpaceSize);
         std::vector<T> output(out_sz / sizeof(T));
         std::vector<T> hiddenState(initHidden.size());
         std::vector<T> cellState(initCell.size());
@@ -1906,9 +1930,9 @@ struct verify_forward_train_lstm
                   << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
                   << std::endl;
 #endif
-
+        std::copy(reserveSpace.begin(), reserveSpace.end(), RSVcpu);
         auto retSet = std::make_tuple(
-            output, (nohy ? initHidden : hiddenState), (nocy ? initCell : cellState), reserveSpace);
+            output, (nohy ? initHidden : hiddenState), (nocy ? initCell : cellState));
 
 #if(MIO_LSTM_TEST_DEBUG > 0)
         std::cout << "Done with LSTM forward train CPU" << std::endl;
@@ -1917,7 +1941,7 @@ struct verify_forward_train_lstm
         return retSet;
     }
 
-    std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> gpu()
+    std::tuple<std::vector<T>, std::vector<T>, std::vector<T>> gpu()
     {
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
@@ -2007,12 +2031,11 @@ struct verify_forward_train_lstm
             printf("GPU outdata[%d]: %f\n", i, outdata[i]);
         }
 #endif
-
-        auto retSet =
-            std::make_tuple(handle.Read<T>(output_dev, output.size()),
-                            (nohy ? initHidden : handle.Read<T>(hy_dev, hy.size())),
-                            (nocy ? initCell : handle.Read<T>(cy_dev, cy.size())),
-                            handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
+        reserveSpace = handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T));
+        std::copy(reserveSpace.begin(), reserveSpace.end(), RSVgpu);
+        auto retSet = std::make_tuple(handle.Read<T>(output_dev, output.size()),
+                                      (nohy ? initHidden : handle.Read<T>(hy_dev, hy.size())),
+                                      (nocy ? initCell : handle.Read<T>(cy_dev, cy.size())));
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -2058,8 +2081,6 @@ struct verify_forward_train_lstm
         case(0): std::cout << "Output tensor output failed verification." << std::endl; break;
         case(1): std::cout << "Hidden state tensor failed verification." << std::endl; break;
         case(2): std::cout << "Cell state tensor failed verification." << std::endl; break;
-        case(3): std::cout << "Weight tensor failed verification." << std::endl; break;
-        case(4): std::cout << "Reserved space tensor failed verification." << std::endl; break;
         default: break;
         }
     }
@@ -2079,7 +2100,6 @@ struct verify_backward_data_lstm
     std::vector<T> initHidden; // HX
     std::vector<T> initCell;   // CX
     std::vector<T> weights;
-    std::vector<T> reserveSpace;
     std::vector<int> batch_seq;
     int hiddenSize;
     int seqLength;
@@ -2097,6 +2117,8 @@ struct verify_backward_data_lstm
     bool nodcy;
     bool nodhx;
     bool nodcx;
+    typename std::vector<T>::iterator RSVgpu;
+    typename std::vector<T>::iterator RSVcpu;
 
     verify_backward_data_lstm(miopenRNNDescriptor_t pRD,
                               const std::vector<T>& py,
@@ -2106,7 +2128,8 @@ struct verify_backward_data_lstm
                               const std::vector<T>& pdcy,
                               const std::vector<T>& pcx,
                               const std::vector<T>& pW,
-                              const std::vector<T>& pRS,
+                              std::vector<T>& pRSVgpu,
+                              std::vector<T>& pRSVcpu,
                               const std::vector<int>& pBS,
                               const int pHS,
                               const int pBN,
@@ -2124,10 +2147,10 @@ struct verify_backward_data_lstm
                               const bool pnodhx = false,
                               const bool pnodcx = false)
     {
-        rnnDesc = pRD;
-        yin     = py;
-        dy      = pdy;
-        weights = pW, reserveSpace = pRS;
+        rnnDesc        = pRD;
+        yin            = py;
+        dy             = pdy;
+        weights        = pW;
         batch_seq      = pBS;
         seqLength      = pS;
         nLayers        = pNL;
@@ -2138,6 +2161,8 @@ struct verify_backward_data_lstm
         hiddenSize     = pHS;
         inputVecLen    = pVL;
         realHiddenSize = pHXZ;
+        RSVgpu         = pRSVgpu.begin();
+        RSVcpu         = pRSVcpu.begin();
 
         nodhx = pnodhx;
         nodcx = pnodcx;
@@ -2167,7 +2192,7 @@ struct verify_backward_data_lstm
             dcy.resize(realHiddenSize);
     }
 
-    std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> cpu()
+    std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> cpu()
     {
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
@@ -2194,6 +2219,20 @@ struct verify_backward_data_lstm
         std::vector<T> dx(in_sz / sizeof(T));
         std::vector<T> dhx(initHidden.size());
         std::vector<T> dcx(initHidden.size());
+
+        size_t reserveSpaceSize;
+        miopenGetRNNTrainingReserveSize(
+            &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
+        reserveSpaceSize /= sizeof(T);
+        if(miopen::deref(rnnDesc).algoMode == miopenRNNdefault)
+        {
+            reserveSpaceSize -=
+                nLayers * std::accumulate(batch_seq.begin(), batch_seq.begin() + seqLength, 0) *
+                hiddenSize * bi;
+            reserveSpaceSize *= 2;
+        }
+        std::vector<T> reserveSpace(reserveSpaceSize);
+        std::copy(RSVcpu, RSVcpu + reserveSpaceSize, reserveSpace.begin());
 
         LSTMBwdDataCPUVerify(dx,              // DX (output)
                              weights,         // [ input_state_weight_trans
@@ -2233,9 +2272,9 @@ struct verify_backward_data_lstm
                   << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
                   << std::endl;
 #endif
-
-        auto retSet = std::make_tuple(
-            dx, (nodhx ? initHidden : dhx), (nodcx ? initCell : dcx), reserveSpace, workSpace);
+        std::copy(reserveSpace.begin(), reserveSpace.end(), RSVcpu);
+        auto retSet =
+            std::make_tuple(dx, (nodhx ? initHidden : dhx), (nodcx ? initCell : dcx), workSpace);
 
 #if(MIO_LSTM_TEST_DEBUG > 0)
         std::cout << "Done with LSTM backward data CPU" << std::endl;
@@ -2244,7 +2283,7 @@ struct verify_backward_data_lstm
         return retSet;
     }
 
-    std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> gpu()
+    std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> gpu()
     {
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
@@ -2271,6 +2310,12 @@ struct verify_backward_data_lstm
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
         std::vector<T> workSpace(workSpaceSize / sizeof(T));
         auto workSpace_dev = handle.Write(workSpace);
+
+        size_t reserveSpaceSize;
+        miopenGetRNNTrainingReserveSize(
+            &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
+        std::vector<T> reserveSpace(reserveSpaceSize / sizeof(T));
+        std::copy(RSVgpu, RSVgpu + reserveSpace.size(), reserveSpace.begin());
 
         auto yin_dev          = handle.Write(yin);
         auto dyin_dev         = handle.Write(dy);
@@ -2326,10 +2371,11 @@ struct verify_backward_data_lstm
                               reserveSpace_dev.get(),
                               reserveSpace.size() * sizeof(T));
 
+        reserveSpace = handle.Read<T>(reserveSpace_dev, reserveSpace.size());
+        std::copy(reserveSpace.begin(), reserveSpace.end(), RSVgpu);
         auto retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
                                       (nodhx ? initHidden : handle.Read<T>(dhx_dev, dhx.size())),
                                       (nodcx ? initCell : handle.Read<T>(dcx_dev, dcx.size())),
-                                      handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
                                       handle.Read<T>(workSpace_dev, workSpace.size()));
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
@@ -2376,8 +2422,7 @@ struct verify_backward_data_lstm
         case(0): std::cout << "Output dx failed verification." << std::endl; break;
         case(1): std::cout << "Hidden state dhx tensor failed verification." << std::endl; break;
         case(2): std::cout << "Hidden cell dcx tensor failed verification." << std::endl; break;
-        case(3): std::cout << "Reserved Space tensor failed verification." << std::endl; break;
-        case(4): std::cout << "Workspace space tensor failed verification." << std::endl; break;
+        case(3): std::cout << "Workspace space tensor failed verification." << std::endl; break;
         default: break;
         }
     }
@@ -2393,7 +2438,6 @@ struct verify_backward_weights_lstm
     std::vector<T> input;      // Y
     std::vector<T> dy;         // dY
     std::vector<T> initHidden; // HX
-    std::vector<T> reserveSpace;
     std::vector<T> workSpace;
     std::vector<int> batch_seq;
     int weightSize;
@@ -2408,12 +2452,15 @@ struct verify_backward_weights_lstm
     miopenRNNDescriptor_t rnnDesc;
     size_t realHiddenSize;
     bool nohx;
+    typename std::vector<T> reserveSpace_gpu;
+    typename std::vector<T> reserveSpace_cpu;
 
     verify_backward_weights_lstm(miopenRNNDescriptor_t pRD,
                                  const std::vector<T>& px,
                                  const std::vector<T>& pdy,
                                  const std::vector<T>& phx,
-                                 const std::vector<T>& pRS,
+                                 const std::vector<T>& pRSVgpu,
+                                 const std::vector<T>& pRSVcpu,
                                  const std::vector<T>& pWS,
                                  const std::vector<int>& pBS,
                                  const int pHS,
@@ -2428,21 +2475,22 @@ struct verify_backward_weights_lstm
                                  const size_t pHXZ,
                                  const bool pnohx = false)
     {
-        rnnDesc      = pRD;
-        input        = px;
-        dy           = pdy;
-        reserveSpace = pRS;
-        workSpace    = pWS;
-        batch_seq    = pBS;
-        seqLength    = pS;
-        nLayers      = pNL;
-        biasMode     = pBM;
-        dirMode      = pDM;
-        inputMode    = pIM;
-        batch_n      = pBN;
-        hiddenSize   = pHS;
-        weightSize   = pW;
-        inputVecLen  = pVL;
+        rnnDesc          = pRD;
+        input            = px;
+        dy               = pdy;
+        workSpace        = pWS;
+        batch_seq        = pBS;
+        seqLength        = pS;
+        nLayers          = pNL;
+        biasMode         = pBM;
+        dirMode          = pDM;
+        inputMode        = pIM;
+        batch_n          = pBN;
+        hiddenSize       = pHS;
+        weightSize       = pW;
+        inputVecLen      = pVL;
+        reserveSpace_gpu = pRSVgpu;
+        reserveSpace_cpu = pRSVcpu;
 
         realHiddenSize = pHXZ;
 
@@ -2485,7 +2533,7 @@ struct verify_backward_weights_lstm
                                bi_stride,       // 1 by hy_h related function for unidirection, 2
                                                 // by hy_h related function for bidirection
                                inputMode,
-                               reserveSpace,
+                               reserveSpace_cpu,
                                workSpace,
                                nohx);
 
@@ -2526,7 +2574,7 @@ struct verify_backward_weights_lstm
                               miopen::deref(rnnDesc).dataType);
 
         auto workSpace_dev    = handle.Write(workSpace);
-        auto reserveSpace_dev = handle.Write(reserveSpace);
+        auto reserveSpace_dev = handle.Write(reserveSpace_gpu);
         std::vector<T> dweights(weightSize);
         auto dweights_dev = handle.Write(dweights);
         miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, &weightSize, 1);
@@ -2553,7 +2601,7 @@ struct verify_backward_weights_lstm
                                  workSpace_dev.get(),
                                  workSpace.size() * sizeof(T),
                                  reserveSpace_dev.get(),
-                                 reserveSpace.size() * sizeof(T));
+                                 reserveSpace_gpu.size() * sizeof(T));
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -2609,6 +2657,7 @@ struct lstm_driver : test_driver
     int inputMode{};
     int biasMode{};
     int dirMode{};
+    int algoMode{};
     int batchSize{};
 
     // Null pointer input
@@ -2647,10 +2696,12 @@ struct lstm_driver : test_driver
         biasMode  = 0;
         dirMode   = 0;
         inputMode = 0;
+        algoMode  = 0;
 #else
         add(inputMode, "in-mode", generate_data(modes));
         add(biasMode, "bias-mode", generate_data(modes));
         add(dirMode, "dir-mode", generate_data(modes));
+        add(algoMode, "algo-mode", generate_data(modes));
 #endif
         add(batchSeq,
             "batch-seq",
@@ -2700,7 +2751,6 @@ struct lstm_driver : test_driver
 
         miopenRNNDescriptor_t rnnDesc;
         miopenCreateRNNDescriptor(&rnnDesc);
-        miopenRNNAlgo_t algoMode = miopenRNNdefault;
         miopenSetRNNDescriptor(rnnDesc,
                                hiddenSize,
                                numLayers,
@@ -2792,31 +2842,34 @@ struct lstm_driver : test_driver
                 dcyin[i] = 0.001 * float(rand() % 100);
             }
         }
-        auto fwdTrainOutputPair = verify(verify_forward_train_lstm<T>{rnnDesc,
-                                                                      input,
-                                                                      hx,
-                                                                      cx,
-                                                                      weights,
-                                                                      batchSeq,
-                                                                      hiddenSize,
-                                                                      batch_n,
-                                                                      seqLength,
-                                                                      numLayers,
-                                                                      biasMode,
-                                                                      dirMode,
-                                                                      inputMode,
-                                                                      inVecReal,
-                                                                      hx_sz,
-                                                                      nohx,
-                                                                      nocx,
-                                                                      nohy,
-                                                                      nocy});
+
+        std::vector<miopen::TensorDescriptor> inputCPPDescs;
+        std::vector<miopenTensorDescriptor_t> inputDescs;
+        createTensorDescArray(
+            inputCPPDescs, inputDescs, batchSeq, inVecLen, miopen::deref(rnnDesc).dataType);
+        size_t reserveSpaceSize;
+        miopenGetRNNTrainingReserveSize(
+            &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
+        reserveSpaceSize /= sizeof(T);
+        std::vector<T> rsvgpu(reserveSpaceSize, T(0));
+        if(miopen::deref(rnnDesc).algoMode == miopenRNNdefault)
+        {
+            reserveSpaceSize -= numLayers *
+                                std::accumulate(batchSeq.begin(), batchSeq.begin() + seqLength, 0) *
+                                hiddenSize * ((dirMode) ? 2 : 1);
+            reserveSpaceSize *= 2;
+        }
+        std::vector<T> rsvcpu(reserveSpaceSize, T(0));
+
+        auto fwdTrainOutputPair = verify(verify_forward_train_lstm<T>{
+            rnnDesc,   input,      hx,      cx,        weights,   batchSeq, rsvgpu,
+            rsvcpu,    hiddenSize, batch_n, seqLength, numLayers, biasMode, dirMode,
+            inputMode, inVecReal,  hx_sz,   nohx,      nocx,      nohy,     nocy});
 
         /// RETURNS std::make_tuple(output, hiddenState, cellState, reserveSpace);
-        auto yin                  = std::get<0>(fwdTrainOutputPair.second);
-        auto curHiddenState       = std::get<1>(fwdTrainOutputPair.second);
-        auto curCellState         = std::get<2>(fwdTrainOutputPair.second);
-        auto reserveSpaceFwdTrain = std::get<3>(fwdTrainOutputPair.second);
+        auto yin            = std::get<0>(fwdTrainOutputPair.second);
+        auto curHiddenState = std::get<1>(fwdTrainOutputPair.second);
+        auto curCellState   = std::get<2>(fwdTrainOutputPair.second);
 
         std::vector<T> dyin(yin.size());
         for(std::size_t i = 0; i < yin.size(); i++)
@@ -2827,20 +2880,14 @@ struct lstm_driver : test_driver
 #if(MIO_LSTM_TEST_DEBUG > 0)
         printf("Running backward data LSTM.\n");
 #endif
-        auto bwdDataOutputPair =
-            verify(verify_backward_data_lstm<T>{rnnDesc,   yin,        dyin,
-                                                dhyin,     hx,         dcyin,
-                                                cx,        weights,    reserveSpaceFwdTrain,
-                                                batchSeq,  hiddenSize, batch_n,
-                                                seqLength, numLayers,  biasMode,
-                                                dirMode,   inputMode,  inVecReal,
-                                                hx_sz,     nohx,       nocx,
-                                                nodhy,     nodcy,      nodhx,
-                                                nodcx});
+        auto bwdDataOutputPair = verify(verify_backward_data_lstm<T>{
+            rnnDesc,   yin,      dyin,    dhyin,     hx,         dcyin,   cx,
+            weights,   rsvgpu,   rsvcpu,  batchSeq,  hiddenSize, batch_n, seqLength,
+            numLayers, biasMode, dirMode, inputMode, inVecReal,  hx_sz,   nohx,
+            nocx,      nodhy,    nodcy,   nodhx,     nodcx});
 
         // RETURNS:  std::make_tuple(dx, dhx, dcx, reserveSpace, workSpace);
-        auto reserveSpaceBwdData = std::get<3>(bwdDataOutputPair.second);
-        auto workSpaceBwdData    = std::get<4>(bwdDataOutputPair.second);
+        auto workSpaceBwdData = std::get<3>(bwdDataOutputPair.second);
 
 #if(MIO_LSTM_TEST_DEBUG > 0)
         printf("Running backward weights LSTM.\n");
@@ -2854,7 +2901,8 @@ struct lstm_driver : test_driver
                                                                     input,
                                                                     dyin,
                                                                     hx,
-                                                                    reserveSpaceBwdData,
+                                                                    rsvgpu,
+                                                                    rsvcpu,
                                                                     workSpaceBwdData,
                                                                     batchSeq,
                                                                     hiddenSize,

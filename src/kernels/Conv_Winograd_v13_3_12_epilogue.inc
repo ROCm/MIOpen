@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2018 Advanced Micro Devices, Inc.
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,13 +25,100 @@
  *******************************************************************************/
 s_endpgm
 .Lfunc_end0:
-   .size sp3AsmConvRxSU, .Lfunc_end0 - sp3AsmConvRxSU
+   .size miopenSp3AsmConvRxSU, .Lfunc_end0 - miopenSp3AsmConvRxSU
 
+.if ROCM_METADATA_VERSION == 5
+workgroup_size_x = 512
+.amdgcn.next_free_sgpr = 101
+.amdgcn.next_free_vgpr = 128
+
+.rodata
+.p2align 6
+.amdhsa_kernel miopenSp3AsmConvRxSU
+    .amdhsa_group_segment_fixed_size 65536
+    .amdhsa_user_sgpr_private_segment_buffer 1
+    .amdhsa_user_sgpr_dispatch_ptr 1
+    .amdhsa_user_sgpr_kernarg_segment_ptr 1
+    .amdhsa_system_sgpr_workgroup_id_x 1
+    .amdhsa_system_sgpr_workgroup_id_y 0
+    .amdhsa_system_sgpr_workgroup_id_z 0
+    .amdhsa_system_vgpr_workitem_id 0
+    .amdhsa_next_free_vgpr .amdgcn.next_free_vgpr
+    .amdhsa_next_free_sgpr .amdgcn.next_free_sgpr
+    .amdhsa_reserve_vcc 1
+    .amdhsa_reserve_xnack_mask 1
+    .amdhsa_reserve_flat_scratch 0
+    .amdhsa_ieee_mode 0
+    .amdhsa_dx10_clamp 0
+.end_amdhsa_kernel
+
+.macro METADATA sc,wc,wg_x
+.amdgpu_metadata
+---
+amdhsa.version: [ 1, 0 ]
+amdhsa.kernels:
+  - .name: miopenSp3AsmConvRxSU
+    .symbol: miopenSp3AsmConvRxSU.kd
+    .language: "OpenCL C"
+    .language_version: [ 1, 2 ]
+    .sgpr_count: \sc
+    .vgpr_count: \wc
+    .group_segment_fixed_size: 65536
+    .private_segment_fixed_size: 0
+    .kernarg_segment_size: 136
+    .kernarg_segment_align: 8
+    .reqd_workgroup_size: [ \wg_x, 1, 1 ]
+    .max_flat_workgroup_size: \wg_x
+    .wavefront_size: 64
+    .args:
+    - { .size: 4, .offset: 0,   .value_kind: by_value,      .value_type: i32, .name: N }
+    - { .size: 4, .offset: 4,   .value_kind: by_value,      .value_type: i32, .name: C }
+    - { .size: 4, .offset: 8,   .value_kind: by_value,      .value_type: i32, .name: H }
+    - { .size: 4, .offset: 12,  .value_kind: by_value,      .value_type: i32, .name: W }
+    - { .size: 4, .offset: 16,  .value_kind: by_value,      .value_type: i32, .name: K }
+    - { .size: 4, .offset: 20,  .value_kind: by_value,      .value_type: i32, .name: n_groups }
+    - { .size: 4, .offset: 24,  .value_kind: by_value,      .value_type: i32, .name: flags }
+    - { .size: 4, .offset: 28,  .value_kind: by_value,      .value_type: i32, .name: reserved }
+    - { .size: 8, .offset: 32,  .value_kind: global_buffer, .value_type: f32, .name: in,      .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 40,  .value_kind: global_buffer, .value_type: f32, .name: weights, .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 48,  .value_kind: global_buffer, .value_type: f32, .name: out,     .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 56,  .value_kind: global_buffer, .value_type: i32, .name: rsv_ptr, .address_space: global, .is_const: false }
+    - { .size: 4, .offset: 64,  .value_kind: by_value,      .value_type: i32, .name: R }
+    - { .size: 4, .offset: 68,  .value_kind: by_value,      .value_type: i32, .name: S }
+    - { .size: 4, .offset: 72,  .value_kind: by_value,      .value_type: i32, .name: pad_H }
+    - { .size: 4, .offset: 76,  .value_kind: by_value,      .value_type: i32, .name: pad_W }
+    - { .size: 4, .offset: 80,  .value_kind: by_value,      .value_type: i32, .name: out_H }
+    - { .size: 4, .offset: 84,  .value_kind: by_value,      .value_type: i32, .name: out_W }
+    - { .size: 8, .offset: 88,  .value_kind: hidden_global_offset_x, .value_type: i64 }
+    - { .size: 8, .offset: 96,  .value_kind: hidden_global_offset_y, .value_type: i64 }
+    - { .size: 8, .offset: 104, .value_kind: hidden_global_offset_z, .value_type: i64 }
+    - { .size: 8, .offset: 112, .value_kind: hidden_none,   .value_type: i8 }
+    - { .size: 8, .offset: 120, .value_kind: hidden_none,   .value_type: i8 }
+    - { .size: 8, .offset: 128, .value_kind: hidden_none,   .value_type: i8 }
+...
+.end_amdgpu_metadata
+.endm // METADATA
+
+.altmacro
+.macro METADATA_WRAPPER sc,wc,wg_x
+    METADATA %\sc, %\wc, %\wg_x
+.endm
+
+.ifnotdef workgroup_size_x
+    .error "workgroup_size_x must be defined"
+    .end
+.endif
+
+total_sgpr_count = .amdgcn.next_free_sgpr + 4 // vcc, xnack
+
+METADATA_WRAPPER total_sgpr_count,.amdgcn.next_free_vgpr,workgroup_size_x
+
+.elseif ROCM_METADATA_VERSION == 4
 .amd_amdgpu_hsa_metadata
 Version:         [ 1, 0 ]
 Kernels:
-  - Name:            sp3AsmConvRxSU
-    SymbolName:      'sp3AsmConvRxSU@kd'
+  - Name:            miopenSp3AsmConvRxSU
+    SymbolName:      'miopenSp3AsmConvRxSU@kd'
     Language:        OpenCL C
     LanguageVersion: [ 1, 2 ]
     Attrs:
@@ -186,3 +273,8 @@ Kernels:
       MaxFlatWorkGroupSize: 512
 ...
 .end_amd_amdgpu_hsa_metadata
+
+.else
+.error "Unsupported ROCM_METADATA_VERSION"
+.end
+.endif

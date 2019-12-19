@@ -8,7 +8,7 @@
 
 namespace miopen {
 
-static std::string
+std::string
 EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataType_t out)
 {
     if(in == weights && in == out)

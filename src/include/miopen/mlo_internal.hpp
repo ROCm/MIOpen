@@ -63,6 +63,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <miopen/ocldeviceinfo.hpp>
 #endif
 #include <miopen/db_path.hpp>
+#if MIOPEN_ENABLE_SQLITE
+#include <miopen/sqlite_db.hpp>
+#else
+#include <miopen/db.hpp>
+#endif
 #include <miopen/handle.hpp>
 #include <miopen/problem_description.hpp>
 
@@ -122,19 +127,43 @@ inline int AlignUp(int val, unsigned step)
     return static_cast<int>(((static_cast<unsigned>(val) + step - 1) / step) * step);
 }
 
-enum class rocm_meta_version
+class rocm_meta_version
 {
-    Unknown,
-    AMDHSA_1_0,           // 1.0, see https://llvm.org/docs/AMDGPUUsage.html#code-object-metadata
-    Default = AMDHSA_1_0, // Assumption for HIP backend. To be updated together with ROCm release.
+    int val = Unknown;
+
+    public:
+    static constexpr int
+        Unknown     = 0, // Unset env.vars read as 0.
+        AMDHSA_COv2 = 1, // 1.0, see https://llvm.org/docs/AMDGPUUsage.html#code-object-metadata
+        AMDHSA_COv2_COv3 = 2, // E.g. ROCm 2.6 supports both.
+        AMDHSA_COv3      = 3,
+        Default =
+            AMDHSA_COv2; // Assumption for HIP backend. To be updated together with ROCm release.
+
+    private:
+    static constexpr int End = 4, Begin = Unknown;
+
+    public:
+    rocm_meta_version(int v) : val(v) {}
+    int getValue() const { return val; }
+    bool IsValid() const { return Begin <= val && val < End; }
+    bool IsUnknown() const { return val == Unknown; }
+    bool IsV2() const { return AMDHSA_COv2 <= val && val <= AMDHSA_COv2_COv3; }
+    bool IsV2orV3() const { return AMDHSA_COv2 <= val && val <= AMDHSA_COv3; }
+    bool IsV3() const { return AMDHSA_COv2_COv3 <= val && val <= AMDHSA_COv3; }
+    bool UseV3() const;
 };
 
 namespace miopen {
 
 struct TensorDescriptor;
-
+#if MIOPEN_ENABLE_SQLITE
+template <bool merge_records>
+class SQLite_MultiFileDb;
+#else
 template <class TInstalled, class TUser, bool merge_records>
 class MultiFileDb;
+#endif
 
 class ReadonlyRamDb;
 class Db;
@@ -155,8 +184,12 @@ class StaticContainer
     }
 };
 
+#if MIOPEN_ENABLE_SQLITE
+using PerfDb = DbTimer<SQLite_MultiFileDb<true>>;
+#else
 using PerfDb = DbTimer<MultiFileDb<Db, Db, true>>;
-PerfDb GetDb(const ConvolutionContext& ctx);
+#endif
+miopen::PerfDb GetDb(const ConvolutionContext& ctx);
 
 template <class TTo>
 size_t setTopDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor)
@@ -242,12 +275,13 @@ struct ConvolutionContext : ProblemDescription
     // Solution-specific
     std::string general_compile_options;
     // Operation modes & environment
-    bool do_search              = false;
-    bool save_srch_req          = false;
-    bool use_asm_kernels        = false;
-    bool use_binaries           = true;
-    rocm_meta_version rmv       = rocm_meta_version::Default;
-    bool disable_search_enforce = false;
+    bool do_search               = false;
+    bool save_srch_req           = false;
+    bool use_asm_kernels         = false;
+    bool use_opencl_convolutions = true;
+    bool use_binaries            = true;
+    rocm_meta_version rmv        = rocm_meta_version::Default;
+    bool disable_search_enforce  = false;
     // Skip perf-db reads and use the default performance configuration. This is used, for example,
     // to optimize the getWorkspaceSize() calls for speed. This specific optimization is correct
     // because Solvers shall be written so that the required workspace size does not depend on the
@@ -276,9 +310,13 @@ struct ConvolutionContext : ProblemDescription
     {
         // clang-format off
         return GetSystemDbPath()
-             + "/"
-             + GetStream().GetDbBasename()
-             + ".cd.pdb.txt";
+#if MIOPEN_ENABLE_SQLITE
+            + "/miopen.db";
+#else
+            + "/"
+            + GetStream().GetDbBasename()
+            + ".cd.pdb.txt";
+#endif
         // clang-format on
     }
 
@@ -286,11 +324,15 @@ struct ConvolutionContext : ProblemDescription
     {
         // clang-format off
         return GetUserDbPath()
+#if MIOPEN_ENABLE_SQLITE
+             + "/miopen.udb";
+#else
              + "/"
              + GetStream().GetDbBasename()
 			 + "."
 			 + GetUserDbSuffix()
              + ".cd.updb.txt";
+#endif
         // clang-format on
     }
 
@@ -362,7 +404,7 @@ std::vector<miopen::solver::ConvSolution>
 FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx);
 
 std::vector<miopen::solver::ConvSolution>
-FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx);
+FindImplicitGemmWrWAllSolutions(const miopen::ConvolutionContext& ctx);
 
 std::vector<miopen::solver::ConvSolution>
 FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx);

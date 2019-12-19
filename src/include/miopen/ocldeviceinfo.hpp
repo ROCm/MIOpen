@@ -28,8 +28,10 @@
 
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/cl.h>
+#include <OpenCL/cl_ext.h>
 #else
 #include <CL/cl.h>
+#include <CL/cl_ext.h>
 #endif
 
 #include <miopen/errors.hpp>
@@ -396,6 +398,11 @@ template <>
 struct ComputeDeviceAttributeReturnType<CL_DEVICE_PRINTF_BUFFER_SIZE>
 {
     using type = size_t;
+};
+template <>
+struct ComputeDeviceAttributeReturnType<CL_DEVICE_WAVEFRONT_WIDTH_AMD>
+{
+    using type = cl_uint;
 };
 
 template <int N>

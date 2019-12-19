@@ -24,15 +24,21 @@
  *
  *******************************************************************************/
 
+.if ROCM_METADATA_VERSION == 4
 .hsa_code_object_version 2,1
 .hsa_code_object_isa
+.endif
 
 .text
-.globl gcnAsmConv1x1U_stride2
+.globl miopenGcnAsmConv1x1U_stride2
 .p2align 8
-.type gcnAsmConv1x1U_stride2,@function
-.amdgpu_hsa_kernel gcnAsmConv1x1U_stride2
+.type miopenGcnAsmConv1x1U_stride2,@function
 
+.if ROCM_METADATA_VERSION == 4
+.amdgpu_hsa_kernel miopenGcnAsmConv1x1U_stride2
+.endif
+
+.include "rocm_version.inc"
 .include "gpr_alloc.inc"
 .include "common.inc"
 .include "inst_wrappers.inc"
@@ -60,8 +66,8 @@ gid_n = gid_z
 .set in_ptr_off, 0x20
 .set wei_ptr_off, 0x28
 .set out_ptr_off, 0x30
-
-
+.set unused_dbg_ptr_off, 0x38
+.set KERNEL_ARGUMENTS_SIZE, unused_dbg_ptr_off + 8
 
 maxU24 = 1 << 24
 maxU31 = 1 << 31
@@ -84,7 +90,7 @@ static_assert ( (acc_type == TYPE_FP32 && buf_type == TYPE_FP32) )
 // perf params
 default chunk_size, 16 // 1..2^n
 default dwords_per_ld, 2 // 1, 2, 3, 4
-default k_mult, 1 // 1..32 
+default k_mult, 1 // 1..32
 default c_mult, 1 // 1..32
 default n_mult, 1 // 1..32
 default h_mult, 1 // 1..32
@@ -124,10 +130,10 @@ w_active_per_ld = active_elements
 h_chunk_step_mod = 0
 .if(h_chunk_step_mod == 1)
     in_out_h_step =  1
-    h_per_chunk_element_stride = h_mult 
+    h_per_chunk_element_stride = h_mult
 .else
     in_out_h_step = h_per_chunk //or 1
-    h_per_chunk_element_stride = 1 // or h_mult 
+    h_per_chunk_element_stride = 1 // or h_mult
 .endif
 
 w_per_item = w_active_per_ld * w_mult
@@ -153,15 +159,15 @@ in_gprs_chunk_off = dwords_per_ld
 in_gprs_h_offset = w_mult * in_gprs_chunk_off
 in_gprs_channel_offset =  h_mult * in_gprs_h_offset
 in_gprs_batch_offset = c_mult * in_gprs_channel_offset
-in_gprs_image_offset = n_mult * in_gprs_batch_offset 
+in_gprs_image_offset = n_mult * in_gprs_batch_offset
 in_gprs = in_gprs_image_offset * data_prefetch
 
 acc_w_offset = 1
 acc_h_offset = acc_w_offset * w_mult * active_elements
 acc_k_offset = h_mult * acc_h_offset
 acc_n_offset = acc_k_offset * k_mult
-accums_cnt = acc_n_offset * n_mult    
-filter_sgprs = c_mult * k_mult * data_prefetch 
+accums_cnt = acc_n_offset * n_mult
+filter_sgprs = c_mult * k_mult * data_prefetch
 
 lds_per_group = 0
 prefetch_LDS = 1
@@ -180,10 +186,10 @@ prefetch_LDS = 1
         prefetch_LDS = 2
     .endif
     static_assert(lds_gprs_per_loop > 0)
-    lds_reg_offset = 4 * .WAVE_SIZE 
+    lds_reg_offset = 4 * .WAVE_SIZE
     lds_c_offset   = lds_reg_offset * lds_gprs_per_loop
-    lds_pref_offset = lds_c_offset * (waves_c_in_group - 1) 
-    lds_k_offset   =  lds_pref_offset * prefetch_LDS    
+    lds_pref_offset = lds_c_offset * (waves_c_in_group - 1)
+    lds_k_offset   =  lds_pref_offset * prefetch_LDS
 .endif
 
 active_mask = -1
@@ -204,11 +210,12 @@ static_assert (output_n_stride * (batch_size + n_per_wave) < maxU31)
     .SGPR_ALLOC desc_wei, 4 // output buffer descriptor
     .SGPR_ALLOC filter_storage, filter_sgprs
     .SGPR_ALLOC wave_c_id // wave_c_id in group
-    .SGPR_ALLOC wave_k_id // wave_k_id in group    
+    .SGPR_ALLOC wave_k_id // wave_k_id in group
     .SGPR_ALLOC loop_cnt
     .SGPR_ALLOC stmp_offset
     .SGPR_ALLOC stmp
     .SGPR_RESERVE_XNACK
+    .SGPR_RESERVE_VCC
 
     .VGPR_ALLOC_FROM 0
     .VGPR_ALLOC tid
@@ -242,7 +249,8 @@ max_waves_per_CU = (256 / .AUTO_VGPR_COUNT) * 4
 static_assert( max_waves_per_CU >= waves_c_in_group * waves_k_in_group)
 
 
-gcnAsmConv1x1U_stride2:
+miopenGcnAsmConv1x1U_stride2:
+.if ROCM_METADATA_VERSION == 4
     .amd_kernel_code_t
      enable_sgpr_kernarg_segment_ptr = 1
      enable_sgpr_workgroup_id_x = 1
@@ -259,7 +267,7 @@ gcnAsmConv1x1U_stride2:
      float_mode = 192
      workgroup_group_segment_byte_size = .AUTO_LDS_BYTE_SIZE
     .end_amd_kernel_code_t
-
+.endif
 
     s_load_dwordx2 s[desc_in:desc_in+1], s[kernarg:kernarg+1], 0x0 + in_ptr_off
     s_load_dwordx2 s[desc_wei:desc_wei+1], s[kernarg:kernarg+1], 0x0 + wei_ptr_off
@@ -313,10 +321,10 @@ gcnAsmConv1x1U_stride2:
         .endif
     .endm
 
-    store_waveId_in_sgpr tid, vtmp, wave_c_id 
-    
+    store_waveId_in_sgpr tid, vtmp, wave_c_id
+
     div_vgpr_const wave_c_id, vtmp, waves_c_in_group, accums
-    
+
     v_readfirstlane_b32 s[wave_k_id], v[vtmp]
     s_mul_i32 s[stmp], s[wave_k_id], 0 + waves_c_in_group
     s_sub_u32 s[wave_c_id], s[wave_c_id], s[stmp]
@@ -335,7 +343,7 @@ gcnAsmConv1x1U_stride2:
         v_mov_b32 v[voffset_out] , 0 + output_n_stride
         v_mul_lo_u32 v[voffset_out], v[voffset_out], v[vtmp]
     .endif
-    
+
     log2 w_per_chunk_log2, w_per_chunk
     log2 h_per_chunk_log2, h_per_chunk
 
@@ -344,8 +352,8 @@ gcnAsmConv1x1U_stride2:
 
     s_mov_b32 s[s_val_out_tmp_stride], 0 + output_h_stride * idilation_h
     s_mov_b32 s[s_val_in_tmp_stride] , 0 + input_h_stride * stride_h
-  
-  
+
+
     .macro get_global_Htid v_dest, v_group_id, v_tmp_reg, v_tid
         // v_group_id = group_id_h
         v_bfe_u32 v[\v_dest], v[\v_tid], 0 + w_per_chunk_log2, 0 + h_per_chunk_log2
@@ -374,7 +382,7 @@ gcnAsmConv1x1U_stride2:
         // v_tmp_reg = group_id_w * w_per_wave = group_w
         v_mul_u32_u24 v[\v_dest], 0 + w_active_per_ld, v[\v_dest]
         _v_add_nc_u32 v[\v_dest], v[\v_dest], v[\v_tmp_reg]
-        
+
         // v_dest = Item.w_img_id in chanel
     .endm
 
@@ -383,21 +391,21 @@ gcnAsmConv1x1U_stride2:
         //gid_hw = group_id_w +  group_id_h * group_id_x_cnt
         div_vgpr_const gid_hw, vtmp, waves_per_xDim, \v_temps +1 , gid_hw_size
         //vtmp = group_id_h
-        
+
         get_global_Htid \h_dest, vtmp, \v_temps, \v_tid
         get_global_Wtid \w_dest, vtmp, \v_temps,  \v_tid
     .endm
-    
+
     get_gloabl_H_W_tids vtid_h, vtid_w, input_storage, vtid_w
-    
+
 
     // add h_offset
     V_MAD_U32_U24 v[voffset_out], s[s_val_out_tmp_stride], v[vtid_h], v[voffset_out]
-    V_MAD_U32_U24 v[voffset_in] , s[s_val_in_tmp_stride],  v[vtid_h], v[voffset_in]     
+    V_MAD_U32_U24 v[voffset_in] , s[s_val_in_tmp_stride],  v[vtid_h], v[voffset_in]
 
     // add w_offset
     static_assert(input_w_stride * stride_w <= 64)
-    V_MAD_U32_U24 v[voffset_in], 0 + input_w_stride * stride_w, v[vtid_w], v[voffset_in] 
+    V_MAD_U32_U24 v[voffset_in], 0 + input_w_stride * stride_w, v[vtid_w], v[voffset_in]
     V_MAD_U32_U24 v[voffset_out], 0 + output_w_stride * idilation_w, v[vtid_w], v[voffset_out]
 
     // add n_offset
@@ -412,20 +420,20 @@ gcnAsmConv1x1U_stride2:
     s_add_u32 s[soffset_out], s[soffset_out], s[stmp]
 
     s_mul_i32 s[soffset_wei], s[gid_k], 0 + filter_k_stride
-    
+
     //add c_offset
     s_mul_i32 s[stmp], s[wave_c_id], 0 + c_per_wave * filter_c_stride
     s_add_u32 s[soffset_wei], s[soffset_wei], s[stmp]
 
     s_mul_i32 s[stmp], s[wave_c_id], 0 + c_per_wave * input_c_stride
     s_add_u32 s[soffset_in], s[soffset_in], s[stmp]
-        
+
     s_waitcnt 0
 
     .GPR_REUSE s_val_in_tmp_stride, loop_cnt
     .GPR_REUSE s_val_out_tmp_stride, stmp_offset
-    
-    .altmacro   
+
+    .altmacro
     .macro chunk_symb_set_val_wrapper symb_size, set_val
         x\symb_size\()_chunks = \set_val
     .endm
@@ -448,7 +456,7 @@ gcnAsmConv1x1U_stride2:
         .if(weights_layout == 0)
             filter_c_gpr_stride = 1
             filter_k_gpr_stride = (c_mult + elements_in_dword - 1) / elements_in_dword
-            filter_ld_dim0_size = (c_mult + elements_in_dword - 1) / elements_in_dword 
+            filter_ld_dim0_size = (c_mult + elements_in_dword - 1) / elements_in_dword
             static_assert(input_channels % filter_ld_dim0_size == 0)
             filter_ld_dim1_size = k_mult
             sequential_read_stride = filter_k_stride
@@ -473,14 +481,14 @@ gcnAsmConv1x1U_stride2:
         .endr
 
         w_mult_ld_stride_byte = active_elements * stride_w * input_w_stride * w_per_chunk
-        
+
         mbufs_cnt = c_mult * n_mult * w_mult * h_mult
     .endm
 
-    init_ld_meta_data      
-    
+    init_ld_meta_data
+
     .macro get_filter_sgpr_regId_2dimP arg_dim0_id, arg_dim1_id, arg_prefetch_id, ret_regId
-        
+
         static_assert(\arg_prefetch_id < data_prefetch)
 
         size_mod\@ = max_scalar_load_X
@@ -495,7 +503,7 @@ gcnAsmConv1x1U_stride2:
                 .if(temp_id\@ >= (bank_size\@))
                     temp_id\@ = temp_id\@ - (bank_size\@)
                     tmp_reg_id\@ = tmp_reg_id\@ + (bank_size\@) * data_prefetch * id_dim1_size\@
-                .else                
+                .else
                     tmp_reg_id\@ = tmp_reg_id\@ + (bank_size\@ * (id_dim1_size\@ * \arg_prefetch_id + \arg_dim1_id)) + temp_id\@
                     temp_id\@ = -1
                 .endif
@@ -532,7 +540,7 @@ gcnAsmConv1x1U_stride2:
         seq_dimX\@   = filter_ld_dim0_size
         seq_dimY\@   = filter_ld_dim1_size
         seq_stride\@ = sequential_read_stride
-        fbase   = 0 
+        fbase   = 0
         dimY_it = 0
         .rept seq_dimY\@
             imm_off = 0
@@ -557,7 +565,7 @@ gcnAsmConv1x1U_stride2:
             .endif
         .endr
     .endm
-    
+
     .macro get_input_vgpr_regId_all seq_W, seq_H, seq_C, seq_N, prefetch_id, ret_regId
         static_assert(\seq_W < (w_mult * dwords_per_ld))
         static_assert(\seq_H < (h_mult))
@@ -579,7 +587,7 @@ gcnAsmConv1x1U_stride2:
         get_input_vgpr_regId_all w_all_id\@, \seq_H \seq_C, \seq_N, \prefetch_id, \ret_regId
     .endm
 
-    .macro ioffset_as_soffset_conv_2pow12 i_val, s_ptr, surpl         
+    .macro ioffset_as_soffset_conv_2pow12 i_val, s_ptr, surpl
         s_add_u32 s[\s_ptr], s[\s_ptr], 0 + \i_val
         \surpl = \surpl + \i_val
     .endm
@@ -600,12 +608,12 @@ gcnAsmConv1x1U_stride2:
                     s_offset_surplus\@ = 0
 
                     .rept w_mult
-                        get_input_vgpr_regId_all ld_w_it\@, ld_h_it\@, c_it\@, nb\@, \prefetch_id, ibase\@ 
+                        get_input_vgpr_regId_all ld_w_it\@, ld_h_it\@, c_it\@, nb\@, \prefetch_id, ibase\@
                         .if( (imm_off\@ - s_offset_surplus\@) >= 4096)
                             ioffset_as_soffset_conv_2pow12 (imm_off\@ - s_offset_surplus\@), stmp_offset, s_offset_surplus\@
-                        .endif                            
-                        m_buffer_load_dwordx dwords_per_ld, ibase\@, voffset_in, desc_in, stmp_offset, (imm_off\@ - s_offset_surplus\@) 
-                        imm_off\@ = imm_off\@ + w_mult_ld_stride_byte 
+                        .endif
+                        m_buffer_load_dwordx dwords_per_ld, ibase\@, voffset_in, desc_in, stmp_offset, (imm_off\@ - s_offset_surplus\@)
+                        imm_off\@ = imm_off\@ + w_mult_ld_stride_byte
                         ld_w_it\@ = ld_w_it\@ + dwords_per_ld
                     .endr
                     ld_h_it\@ = ld_h_it\@ + 1
@@ -646,7 +654,7 @@ gcnAsmConv1x1U_stride2:
         static_assert(\n < (n_mult))
         \acc = accums + acc_k_offset * \k + \n * acc_n_offset + \h * acc_h_offset + \chunk
     .endm
-    
+
     .macro conv prefetch_id
         c\@ = 0
         .rept c_mult
@@ -688,7 +696,7 @@ gcnAsmConv1x1U_stride2:
     load_input 0
 
     load_filters  0
-    
+
     // zeroing accums
     i = 0
     .rept accums_cnt
@@ -706,10 +714,10 @@ gcnAsmConv1x1U_stride2:
                 s_cbranch_scc1 barrier1_skip
             s_barrier
             barrier1_skip:
-        .elseif (\step == 2 && waves_k_in_group * waves_c_in_group > 1 && wave_sync_allow == 1) 
+        .elseif (\step == 2 && waves_k_in_group * waves_c_in_group > 1 && wave_sync_allow == 1)
             s_barrier
-        .elseif (\step == 3 && waves_k_in_group * waves_c_in_group > 1 && wave_sync_allow == 1) 
-            .if(waves_k_in_group > 1) 
+        .elseif (\step == 3 && waves_k_in_group * waves_c_in_group > 1 && wave_sync_allow == 1)
+            .if(waves_k_in_group > 1)
                 S_BITCMP0_B32 s[wave_k_id], 0x0
             .else
                 S_BITCMP0_B32 s[wave_c_id], 0x0
@@ -726,7 +734,7 @@ gcnAsmConv1x1U_stride2:
                     s_cmov_b32 s[loop_cnt], 0 + (c_per_last_wave - c_per_wave + c_mult - 1) / c_mult
                 .endif
                 s_cbranch_scc0 barrier4_skip
-                    
+
                     barrier4_loop:
                     s_sub_u32 s[loop_cnt], s[loop_cnt], 1
                     s_barrier
@@ -744,14 +752,14 @@ loop_begin:
     wave_sync_mainLoop 2
     s_wait mbufs_cnt, 0
     load_filters  1
-    
+
     conv 0
 
     load_input 0
     wave_sync_mainLoop 2
     s_wait mbufs_cnt, 0
     load_filters  0
-    
+
     conv 1
 
 loop_end:
@@ -762,7 +770,7 @@ loop_end:
     wave_sync_mainLoop 2
     s_wait mbufs_cnt, 0
     load_filters  1
-    
+
     conv 0
     wave_sync_mainLoop 2
     s_waitcnt 0
@@ -783,16 +791,16 @@ loop_end:
 
             v_lshlrev_b32 v[lds_off], 2, v[lds_off]
             _v_add_nc_u32 v[lds_off], s[stmp_offset], v[lds_off]
-            
+
             s_mov_b32 m0, -1
             s_cmpk_eq_u32 s[wave_c_id], 0 + waves_c_in_group - 1
             s_cbranch_scc1 last_wave
-        
+
             _v_add_nc_u32 v[lds_off], s[stmp], v[lds_off]
 
             acc_id = 0
             sync_loop = 0
-            
+
             .rept sync_loops
                 imm_off = (sync_loop % 2) * lds_pref_offset
                 .rept lds_gprs_per_loop
@@ -806,7 +814,7 @@ loop_end:
                 s_barrier
                 sync_loop = sync_loop + 1
             .endr
-        
+
         s_endpgm
         last_wave:
             acc_id = 0
@@ -839,7 +847,7 @@ loop_end:
     .endm
 
     lds_c_reduction
-    
+
     .macro fill_dil_buffer elements_cnt, ptr
         it_fill_dil\@ = 0
         .rept \elements_cnt
@@ -866,14 +874,14 @@ loop_end:
         .elseif \size == 4
             buffer_store_dwordx4 v[\src:\src+\size-1], v[\off], s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
         .elseif \size == 0
-        
+
         .else
             .error "m_buffer_store_dwordx unknown size"
         .endif
     .endm
 
     .macro buffer_stor_elements cnt, acc_ptr, v_offset, s_desc, s_offset, val_offset, s_offset_surplus=0
-        .if(buf_type == TYPE_FP32)        
+        .if(buf_type == TYPE_FP32)
             acc_ptr_\@ = \acc_ptr
             acc_cnt_\@ = \cnt
             it_acc\@ = 0
@@ -885,7 +893,7 @@ loop_end:
                     acc_cnt_\@ = (\cnt - it_acc\@)
                 .endif
                 acc_ptr_\@ = \acc_ptr + it_acc\@
-                
+
                 .if(idilation_w > 1 && \acc_ptr != -1)
                     nonzeros_cnt\@ = (acc_cnt_\@ + idilation_w - 1) / idilation_w
                     acc_off\@ = \acc_ptr + (it_acc\@ + idilation_w - 1) / idilation_w
@@ -900,7 +908,7 @@ loop_end:
                     ioffset_as_soffset_conv_2pow12 (\val_offset - \s_offset_surplus), \s_offset, \s_offset_surplus
                     i_off\@ = \val_offset + it_acc\@ * 4 - \s_offset_surplus
                 .endif
-                m_buffer_store_dwordx acc_cnt_\@, acc_ptr_\@, \v_offset, \s_desc, \s_offset, i_off\@ 
+                m_buffer_store_dwordx acc_cnt_\@, acc_ptr_\@, \v_offset, \s_desc, \s_offset, i_off\@
                 it_acc\@ = it_acc\@ + acc_cnt_\@
             .endr
         .endif
@@ -917,10 +925,10 @@ loop_end:
     .GPR_REUSE voffset_in, v_offset_part
     .if(idilation_w > 1)
         acc_dil_buff = input_storage + 1
-        reset_dil_buffer store_buffer_size 
+        reset_dil_buffer store_buffer_size
     .endif
     .GPR_REUSE input_storage, v_offset_single
-    
+
     s_vcc_st_sing = desc_in + 2
     .GPR_REUSE desc_in, s_vcc_st_part
 
@@ -942,14 +950,14 @@ loop_end:
             full_w_mult\@ = (rem_w_out) / (active_elements_dilated * w_per_chunk)
             rem_w_out_part = rem_w_out - full_w_mult\@ * active_elements_dilated * w_per_chunk
             single_out_size = rem_w_out_part % (active_elements_dilated)
-        
+
             s_mov_b32 s[s_val_rem_out_range_part], 0 + (rem_w_out_part - single_out_size) + (waves_per_xDim - 1) * w_per_wave * idilation_w
             s_mov_b32 s[s_val_rem_out_range_sing], 0 + (rem_w_out_part ) + (waves_per_xDim - 1) * w_per_wave * idilation_w
 
             v_cmp_lt_i32 s[s_vcc_st_part:s_vcc_st_part+1], v[vtid_w],  s[s_val_rem_out_range_part]
             v_cmp_lt_i32 s[s_vcc_st_sing:s_vcc_st_sing+1], v[vtid_w],  s[s_val_rem_out_range_sing]
             s_xor_b64 s[s_vcc_st_sing:s_vcc_st_sing+1], s[s_vcc_st_sing:s_vcc_st_sing+1], s[s_vcc_st_part:s_vcc_st_part+1]
-            
+
             //calculate v_offset_part, v_offset_single
             v_mov_b32 v[vtmp], 0 + invalid_addr_lit
 
@@ -982,25 +990,25 @@ loop_end:
                         ioffset = 0 + 4 * chunk * active_elements_dilated * w_per_chunk
                         buffer_stor_elements active_elements_dilated, acc, voffset_out, desc_out, soffset_out, ioffset, soffset_surplus
                         chunk = chunk + 1
-                    .endr                                                                               
+                    .endr
                     .if(\is_full_w == 0)
                         .if(rem_w_out_part != 0)
                             get_store_acc_idx acc, k\@, nb\@,  h_it\@, chunk * active_elements
                             ioffset = 0+4 * chunk * active_elements_dilated * w_per_chunk
-                            buffer_stor_elements active_elements_dilated, acc , v_offset_part, desc_out, soffset_out, ioffset, soffset_surplus 
-                            
+                            buffer_stor_elements active_elements_dilated, acc , v_offset_part, desc_out, soffset_out, ioffset, soffset_surplus
+
                             buffer_stor_elements single_out_size, acc , v_offset_single, desc_out, soffset_out, ioffset, soffset_surplus
                         .endif
                     .endif
                     h_it\@ = h_it\@ + 1
                     .if(h_mult_dilated > 1)
-                        zero_h_offset = output_h_stride 
+                        zero_h_offset = output_h_stride
                         normal_h_offset = output_h_stride * in_out_h_step * idilation_h
                         .if(h_it\@ < h_mult_dilated)
                             .if( (h_it\@ % idilation_h) != 0)
-                                s_add_u32 s[soffset_out], s[soffset_out], 0 + zero_h_offset - soffset_surplus  
+                                s_add_u32 s[soffset_out], s[soffset_out], 0 + zero_h_offset - soffset_surplus
                             .else
-                                s_add_u32 s[soffset_out], s[soffset_out], 0 + normal_h_offset - zero_h_offset * (idilation_h - 1) - soffset_surplus  
+                                s_add_u32 s[soffset_out], s[soffset_out], 0 + normal_h_offset - zero_h_offset * (idilation_h - 1) - soffset_surplus
                             .endif
                         .else
                             s_sub_u32 s[soffset_out], s[soffset_out], 0 + normal_h_offset * (h_mult - 1) + zero_h_offset * (idilation_h - 1) + soffset_surplus
@@ -1023,7 +1031,7 @@ loop_end:
             k\@ = k\@ + 1
         .endr
     .endm
-    
+
     .macro store_results_untyped
         .if(waves_per_xDim > 1 || waves_per_xDim * w_per_wave * idilation_w == out_w)
             .if( waves_per_xDim * w_per_wave * idilation_w != out_w)
@@ -1033,7 +1041,7 @@ loop_end:
             .endif
             full_w:
             store_result 1
-        
+
             s_endpgm
         .endif
 
@@ -1042,28 +1050,87 @@ loop_end:
             store_result 0
         .endif
     .endm
-    
+
     v_mul_u32_u24 v[vtid_w], 0 + idilation_w, v[vtid_w]
     v_mul_u32_u24 v[vtid_h], 0 + idilation_w, v[vtid_h]
 
     store_results_untyped
-    
+
 s_endpgm
 
 .Lfunc_end0:
-    .size gcnAsmConv1x1U_stride2, .Lfunc_end0 - gcnAsmConv1x1U_stride2
+    .size miopenGcnAsmConv1x1U_stride2, .Lfunc_end0 - miopenGcnAsmConv1x1U_stride2
 
-.ifndef ROCM_METADATA_VERSION
-    .error "ROCM_METADATA_VERSION must be defined"
-.end
-.endif
+waves_in_group = waves_c_in_group * waves_k_in_group
+workgroup_size_x = waves_in_group * 64
 
+.if ROCM_METADATA_VERSION == 5
+.rodata
+.p2align 6
+.amdhsa_kernel miopenGcnAsmConv1x1U_stride2
+        .amdhsa_user_sgpr_kernarg_segment_ptr 1
+        .amdhsa_system_sgpr_workgroup_id_x 1
+        .amdhsa_system_sgpr_workgroup_id_y 1
+        .amdhsa_system_sgpr_workgroup_id_z 1
+        .amdhsa_system_vgpr_workitem_id 1
+        .amdhsa_next_free_sgpr __amdhsa_next_free_sgpr
+        .amdhsa_next_free_vgpr .AUTO_VGPR_COUNT
+        .amdhsa_group_segment_fixed_size .AUTO_LDS_BYTE_SIZE
+        .amdhsa_dx10_clamp 0
+        .amdhsa_ieee_mode 0
+        .amdhsa_float_round_mode_32 0
+        .amdhsa_float_round_mode_16_64 0
+        .amdhsa_float_denorm_mode_32 0
+        .amdhsa_float_denorm_mode_16_64 3
+        .amdhsa_reserve_flat_scratch __sgpr_reserve_flatscr
+        .amdhsa_reserve_xnack_mask __sgpr_reserve_xnack
+        .amdhsa_reserve_vcc __sgpr_reserve_vcc
+.end_amdhsa_kernel
+
+.altmacro
+.macro METADATA sc,vc,wg_x,lds_sz,kernarg_size
+.amdgpu_metadata
+---
+amdhsa.version: [ 1, 0 ]
+amdhsa.kernels:
+  - .name: miopenGcnAsmConv1x1U_stride2
+    .symbol: miopenGcnAsmConv1x1U_stride2.kd
+    .sgpr_count: \sc
+    .vgpr_count: \vc
+    .language: "OpenCL C"
+    .language_version: [ 1, 2 ]
+    .kernarg_segment_size: \kernarg_size
+    .kernarg_segment_align: 8
+    .group_segment_fixed_size: \lds_sz
+    .private_segment_fixed_size: 0
+    .reqd_workgroup_size: [ \wg_x, 1, 1 ]
+    .max_flat_workgroup_size: \wg_x
+    .wavefront_size: 64
+    .args:
+    - { .size: 4, .offset:  0, .value_kind: by_value, .value_type: i32, .name: N }
+    - { .size: 4, .offset:  4, .value_kind: by_value, .value_type: i32, .name: C }
+    - { .size: 4, .offset:  8, .value_kind: by_value, .value_type: i32, .name: H }
+    - { .size: 4, .offset: 12, .value_kind: by_value, .value_type: i32, .name: W }
+    - { .size: 4, .offset: 16, .value_kind: by_value, .value_type: i32, .name: K }
+    - { .size: 4, .offset: 20, .value_kind: by_value, .value_type: i32, .name: n_groups }
+    - { .size: 4, .offset: 24, .value_kind: by_value, .value_type: i32, .name: unused_0 }
+    - { .size: 4, .offset: 28, .value_kind: by_value, .value_type: i32, .name: unused_1 }
+    - { .size: 8, .offset: 32, .value_kind: global_buffer, .value_type: f32, .name: x,  .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 40, .value_kind: global_buffer, .value_type: f32, .name: w,  .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 48, .value_kind: global_buffer, .value_type: f32, .name: y,  .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 56, .value_kind: global_buffer, .value_type: i32, .name: unused_dbg_ptr, .address_space: global, .is_const: false }
+...
+.end_amdgpu_metadata
+.endm // METADATA
+
+METADATA %.AUTO_SGPR_COUNT, %.AUTO_VGPR_COUNT, %workgroup_size_x, %.AUTO_LDS_BYTE_SIZE, %KERNEL_ARGUMENTS_SIZE
+
+.elseif ROCM_METADATA_VERSION == 4
 .macro METADATA wg_x, lds_size
-  .if ROCM_METADATA_VERSION == 4
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
         Kernels:
-        - { Name: gcnAsmConv1x1U_stride2, SymbolName: 'gcnAsmConv1x1U_stride2@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+        - { Name: miopenGcnAsmConv1x1U_stride2, SymbolName: 'miopenGcnAsmConv1x1U_stride2@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
@@ -1084,11 +1151,7 @@ s_endpgm
           }
     }
     .end_amd_amdgpu_hsa_metadata
-  .endif
 .endm
-
-waves_in_group = waves_c_in_group * waves_k_in_group
-workgroup_size_x = waves_in_group * 64
 
 .altmacro
 .macro METADATA_WRAPPER wg_x, lds_size
@@ -1096,3 +1159,4 @@ workgroup_size_x = waves_in_group * 64
 .endm
 
 METADATA_WRAPPER workgroup_size_x, .AUTO_LDS_BYTE_SIZE
+.endif

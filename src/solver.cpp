@@ -30,6 +30,7 @@
 #include <miopen/db.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/stringutils.hpp>
+#include <miopen/any_solver.hpp>
 
 #include <boost/range/adaptor/transformed.hpp>
 #include <ostream>
@@ -191,22 +192,55 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(registry, ++id, ConvOclBwdWrW53{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclBwdWrW1x1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmV4R1Fwd{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(
         registry, ++id, ConvHipImplicitGemmV4Fwd{}, miopenConvolutionAlgoImplicitGEMM);
     RegisterWithSolver(
         registry, ++id, ConvHipImplicitGemmV4_1x1{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmV4R4FwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmV4R4Xdlops_1x1{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmV4R1WrW{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmV4WrW{}, miopenConvolutionAlgoImplicitGEMM);
 
     // Several ids w/o solver for immediate mode
     Register(registry, ++id, "gemm", miopenConvolutionAlgoGEMM);
     Register(registry, ++id, "fft", miopenConvolutionAlgoFFT);
     RegisterWithSolver(
         registry, ++id, ConvWinograd3x3MultipassWrW<3, 4>{}, miopenConvolutionAlgoWinograd);
-    RegisterWithSolver(
-        registry, ++id, ConvSCGemmFwd<SCGemmOpFGemm>{}, miopenConvolutionAlgoStaticCompiledGEMM);
+#if MIOPEN_USE_SCGEMM
+    RegisterWithSolver(registry, ++id, ConvSCGemmFGemm{}, miopenConvolutionAlgoStaticCompiledGEMM);
+#else
+    ++id; // Id for ConvSCGemmFGemm.
+#endif
     RegisterWithSolver(registry, ++id, ConvBinWinogradRxSf3x2{}, miopenConvolutionAlgoWinograd);
     RegisterWithSolver(
         registry, ++id, ConvWinograd3x3MultipassWrW<3, 5>{}, miopenConvolutionAlgoWinograd);
     RegisterWithSolver(
         registry, ++id, ConvWinograd3x3MultipassWrW<3, 6>{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(
+        registry, ++id, ConvWinograd3x3MultipassWrW<3, 2>{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(
+        registry, ++id, ConvWinograd3x3MultipassWrW<3, 3>{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(
+        registry, ++id, ConvWinograd3x3MultipassWrW<7, 2>{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(
+        registry, ++id, ConvWinograd3x3MultipassWrW<7, 3>{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(
+        registry, ++id, ConvWinograd3x3MultipassWrW<7, 2, 1, 1>{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(
+        registry, ++id, ConvWinograd3x3MultipassWrW<7, 3, 1, 1>{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(
+        registry, ++id, ConvWinograd3x3MultipassWrW<1, 1, 7, 2>{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(
+        registry, ++id, ConvWinograd3x3MultipassWrW<1, 1, 7, 3>{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(
+        registry, ++id, ConvWinograd3x3MultipassWrW<5, 3>{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(
+        registry, ++id, ConvWinograd3x3MultipassWrW<5, 4>{}, miopenConvolutionAlgoWinograd);
 }
 
 } // namespace solver

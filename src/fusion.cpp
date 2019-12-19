@@ -222,55 +222,51 @@ bool ConvForwardOpDescriptor::GetOpAttr(const std::string& sym, int& val) const
     if(sym == "x")
     {
         val = x;
-        return true;
     }
     else if(sym == "y")
     {
         val = y;
-        return true;
     }
     else if(sym == "c")
     {
         val = c;
-        return true;
     }
     else if(sym == "pad_h")
     {
         val = base_desc.GetConvPads()[0];
-        return true;
     }
     else if(sym == "pad_w")
     {
         val = base_desc.GetConvPads()[1];
-        return true;
     }
     else if(sym == "dilation_h")
     {
         val = base_desc.GetConvDilations()[0];
-        return true;
     }
     else if(sym == "dilation_w")
     {
         val = base_desc.GetConvDilations()[1];
-        return true;
     }
     else if(sym == "stride_h")
     {
         val = base_desc.GetConvStrides()[0];
-        return true;
     }
     else if(sym == "stride_w")
     {
         val = base_desc.GetConvStrides()[1];
-        return true;
     }
     else if(sym == "k")
     {
         val = o;
-        return true;
+    }
+    else if(sym == "group_count")
+    {
+        val = base_desc.GetGroupCount();
     }
     else
         return false;
+
+    return true;
 }
 
 OpKernelArg ConvForwardOpDescriptor::GetOpAttr(const std::string& k) const
@@ -922,9 +918,10 @@ OpKernelArg FusionPlanDescriptor::GetDevAttribute(const std::string& k, Handle& 
 miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
     miopenStatus_t status = miopenStatusUnknownError;
-    if(!isValid())
+    if(!isValid() || (lu.GetCurVertex(handle) == nullptr))
     {
-        MIOPEN_LOG_I2("A previous attempt to add an operator failed");
+        MIOPEN_LOG_I2("A previous attempt to add an operator failed or the GPU architecture is not "
+                      "supported for the fusion plan");
         MIOPEN_THROW(miopenStatusBadParm);
     }
     network_config =
@@ -1240,7 +1237,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                                              Data_t output,
                                              const OperatorArgs& op_args)
 {
-    if(!isValid())
+    if(!isValid() || (lu.GetCurVertex(handle) == nullptr))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Attempting to execute an invalid fusion plan.");
     }

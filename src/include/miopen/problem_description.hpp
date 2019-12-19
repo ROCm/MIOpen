@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,13 +28,18 @@
 #define GUARD_PROBLEM_DESCRIPTION_HPP_
 
 #include <miopen/tensor.hpp>
-
+#if MIOPEN_ENABLE_SQLITE
+#include <miopen/sqlite_db.hpp>
+#endif
 #include <cassert>
 #include <string>
-
+#include <unordered_map>
+#include <boost/optional/optional.hpp>
 namespace miopen {
 
 // Tensor Helper APIs
+std::string
+EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataType_t out);
 
 template <class TTo, class TFunc>
 size_t
@@ -73,6 +78,9 @@ inline std::string GetDataTypeName(miopenDataType_t data_type)
 }
 
 struct ProblemDescription
+#if MIOPEN_ENABLE_SQLITE
+    : SQLiteSerializable<ProblemDescription>
+#endif
 {
     int spatial_dims      = 2;
     int n_inputs          = 0;
@@ -115,6 +123,37 @@ struct ProblemDescription
     int out_channel_stride             = 0;
     int out_batch_stride               = 0;
     int group_counts                   = 0;
+
+    static std::string table_name() { return "config"; }
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        if(!self.direction.IsKnown())
+            MIOPEN_THROW("!direction.IsKnown()");
+        f(std::to_string(self.n_inputs), "in_channels");
+        f(std::to_string(self.in_height), "in_h");
+        f(std::to_string(self.in_width), "in_w");
+        f(std::to_string(self.kernel_size_h), "filter_h");
+        f(std::to_string(self.kernel_size_w), "filter_w");
+        f(std::to_string(self.n_outputs), "out_channels");
+        f(std::to_string(self.batch_sz), "batchsize");
+        f(std::to_string(self.pad_h), "pad_h");
+        f(std::to_string(self.pad_w), "pad_w");
+        f(std::to_string(self.kernel_stride_h), "conv_stride_1");
+        f(std::to_string(self.kernel_stride_w), "conv_stride_0");
+        f(std::to_string(self.kernel_dilation_h), "dilation_h");
+        f(std::to_string(self.kernel_dilation_w), "dilation_w");
+        f(std::to_string(self.bias), "bias");
+        f("'" + self.in_layout + "'", "layout");
+        std::string data_type =
+            EncodeDataTypesForKey(self.in_data_type, self.weights_data_type, self.out_data_type);
+        f("'" + data_type + "'", "data_type");
+        std::string dir =
+            self.direction.IsForward() ? "F" : self.direction.IsBackwardData() ? "B" : "W";
+        f("'" + dir + "'", "direction");
+        f(std::to_string(self.group_counts), "group_count");
+    }
+
     struct Direction
     {
         enum class Value

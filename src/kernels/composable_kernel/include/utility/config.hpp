@@ -3,38 +3,69 @@
 
 #include "hip/hip_runtime.h"
 #include "hip/hip_fp16.h"
+#include "bfloat16_dev.hpp"
 
+// index type: unsigned or signed
+#define CK_UNSIGNED_INDEX_TYPE 0
+
+// device backend
 #define CK_DEVICE_BACKEND_AMD 1
+
+// AMD inline asm
+#ifndef CK_USE_AMD_INLINE_ASM
 #define CK_USE_AMD_INLINE_ASM 1
-#define CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_BLOCKWISE_GENERIC_SLICE_COPY_V1 1
-#define CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1 0
+#endif
+
+#ifndef CK_THREADWISE_GEMM_USE_AMD_INLINE_ASM
+#define CK_THREADWISE_GEMM_USE_AMD_INLINE_ASM 1
+#endif
+
+// AMD buffer addressing
+#ifndef CK_USE_AMD_BUFFER_ADDRESSING
+#define CK_USE_AMD_BUFFER_ADDRESSING 1
+#endif
+
+#ifndef CK_USE_AMD_BUFFER_ADDRESSING_INTRINSIC
+#define CK_USE_AMD_BUFFER_ADDRESSING_INTRINSIC 1
+#endif
+
+// AMD XDLOPS
+#ifndef CK_USE_AMD_XDLOPS
+#define CK_USE_AMD_XDLOPS 0
+#endif
+
+#ifndef CK_USE_AMD_XDLOPS_INLINE_ASM
+#define CK_USE_AMD_XDLOPS_INLINE_ASM 0
+#endif
+
+#ifndef CK_USE_AMD_XDLOPS_EMULATE
+#define CK_USE_AMD_XDLOPS_EMULATE 0
+#endif
+
+// experimental implementation
+#define CK_EXPERIMENTAL_BLOCKWISE_GEMM_USE_PIPELINE 1
+#define CK_EXPERIMENTAL_TENSOR_COORDINATE_USE_CALCULATE_OFFSET_DIFF 0
+#define CK_EXPERIMENTAL_THREADWISE_COPY_V4R2_USE_OPTIMIZED_ADDRESS_CACLULATION 0
+#define CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_BLOCKWISE_GENERIC_SLICE_COPY_V1 0
+#define CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1R2 0
+#define CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V2R1 0
 
 namespace ck {
 
-// For some reason, HIP compiler need this definition to generate optimal load and store
-// instruction
-typedef float float2_t __attribute__((ext_vector_type(2)));
-typedef float float4_t __attribute__((ext_vector_type(4)));
-typedef half2 half2_t;
-typedef struct
+enum AddressSpace
 {
-    half2_t scalar[2];
-} half4_t;
-typedef struct
-{
-    ushort scalar[2];
-} ushort2_t;
-typedef struct
-{
-    ushort2_t scalar[2];
-} ushort4_t;
-using index_t = uint32_t;
+    generic,
+    global
+};
 
-__device__ void fused_multiply_accumulate(float& d, const float& s0, const float& s1)
-{
-    d += s0 * s1;
-}
+#if CK_UNSIGNED_INDEX_TYPE
+using index_t = uint32_t;
+#else
+using index_t = int32_t;
+#endif
+
+// int32x4_t use by buffer_load and buffer_store llvm intrinsic
+typedef int32_t int32x4_t __attribute__((ext_vector_type(4)));
 
 } // namespace ck
-
 #endif

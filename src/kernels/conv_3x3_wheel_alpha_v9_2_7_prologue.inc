@@ -23,19 +23,30 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+.ifnotdef ROCM_METADATA_VERSION
+.error "Undefined ROCM_METADATA_VERSION"
+.end
+.endif
+
+.if ROCM_METADATA_VERSION == 4
 .hsa_code_object_version 2, 1
 .hsa_code_object_isa
+.endif
 
 .text
-.globl sp3AsmConvRxSU_CBA
+.globl miopenSp3AsmConvRxSU_CBA
 .p2align 8
-.type sp3AsmConvRxSU_CBA,@function
-.amdgpu_hsa_kernel sp3AsmConvRxSU_CBA
+.type miopenSp3AsmConvRxSU_CBA,@function
 
-sp3AsmConvRxSU_CBA:
+.if ROCM_METADATA_VERSION == 4
+.amdgpu_hsa_kernel miopenSp3AsmConvRxSU_CBA
+.endif
+
+miopenSp3AsmConvRxSU_CBA:
+.if ROCM_METADATA_VERSION == 4
 .amd_kernel_code_t
     is_ptr64 = 1
-    enable_vgpr_workitem_id = 1 // v1 is not used at all for now, but what the heck.
+    enable_vgpr_workitem_id = 1
     float_mode = 192
     enable_sgpr_private_segment_buffer = 1
     enable_sgpr_dispatch_ptr = 1
@@ -46,15 +57,15 @@ sp3AsmConvRxSU_CBA:
         //      : max(0, ceil(sgprs_used / 16) - 1) * 2     // 101 -> 12    105 -> 12
         // Simplified:
         //      (wavefront_sgpr_count-1)/8                  // 101 -> 12    105 -> 13
-    granulated_workitem_vgpr_count = 31 // (workitem_vgpr_count-1)/4. Max=128 used, as per shader doc.
+    granulated_workitem_vgpr_count = 31 // (workitem_vgpr_count-1)/4
     compute_pgm_rsrc2_lds_size = 0
     compute_pgm_rsrc2_user_sgpr = 8
     compute_pgm_rsrc2_tidig_comp_cnt = 0
     compute_pgm_rsrc2_tgid_x_en = 1
-    kernarg_segment_byte_size = 152 // From metadata provided after compilation of stub.
+    kernarg_segment_byte_size = 152
     workgroup_group_segment_byte_size = 65536
-    wavefront_sgpr_count =  105 // v0..v100 => 101, + 4 (vcc, xnack)
-    workitem_vgpr_count = 128 // Max, as per shader doc.
+    wavefront_sgpr_count =  105 // 101 + 4 (vcc, xnack)
+    workitem_vgpr_count = 128
     granulated_lds_size = 0
 .end_amd_kernel_code_t
-
+.endif

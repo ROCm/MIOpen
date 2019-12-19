@@ -28,7 +28,7 @@
 .hsa_code_object_isa
 
 .text
-.amdgpu_hsa_kernel gcnAsmBNFwdTrainSpatial
+.amdgpu_hsa_kernel miopenGcnAsmBNFwdTrainSpatial
 
 
 /// \todo Better use common.inc. This requires more testing, so let's just copy macro here.
@@ -89,7 +89,7 @@ fmamix_instructions_available = 0
     .endif
 .endif
 
-gcnAsmBNFwdTrainSpatial:
+miopenGcnAsmBNFwdTrainSpatial:
 
   .amd_kernel_code_t
     kernel_code_entry_byte_offset = 256
@@ -378,9 +378,7 @@ end_of_program:
   s_endpgm
 
 .Lfunc_end0:
-    .size gcnAsmBNFwdTrainSpatial, .Lfunc_end0 - gcnAsmBNFwdTrainSpatial
-
-ROCM_METADATA_VERSION = 4 /// \todo This should come from the host.
+    .size miopenGcnAsmBNFwdTrainSpatial, .Lfunc_end0 - miopenGcnAsmBNFwdTrainSpatial
 
 .macro metadata wg_x, save_flag, result_running_flag
   .if ROCM_METADATA_VERSION == 4
@@ -388,7 +386,7 @@ ROCM_METADATA_VERSION = 4 /// \todo This should come from the host.
       .amd_amdgpu_hsa_metadata
       { Version: [ 1, 0 ],
            Kernels:
-           -  { Name: gcnAsmBNFwdTrainSpatial, SymbolName: 'gcnAsmBNFwdTrainSpatial@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+           -  { Name: miopenGcnAsmBNFwdTrainSpatial, SymbolName: 'miopenGcnAsmBNFwdTrainSpatial@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
                Attrs:
                  { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
                  CodeProps:
@@ -415,7 +413,7 @@ ROCM_METADATA_VERSION = 4 /// \todo This should come from the host.
       .amd_amdgpu_hsa_metadata
       { Version: [ 1, 0 ],
            Kernels:
-           -  { Name: gcnAsmBNFwdTrainSpatial, SymbolName: 'gcnAsmBNFwdTrainSpatial@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+           -  { Name: miopenGcnAsmBNFwdTrainSpatial, SymbolName: 'miopenGcnAsmBNFwdTrainSpatial@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
                Attrs:
                  { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
                  CodeProps:
@@ -440,7 +438,7 @@ ROCM_METADATA_VERSION = 4 /// \todo This should come from the host.
       .amd_amdgpu_hsa_metadata
       { Version: [ 1, 0 ],
            Kernels:
-           -  { Name: gcnAsmBNFwdTrainSpatial, SymbolName: 'gcnAsmBNFwdTrainSpatial@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+           -  { Name: miopenGcnAsmBNFwdTrainSpatial, SymbolName: 'miopenGcnAsmBNFwdTrainSpatial@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
                Attrs:
                  { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
                  CodeProps:
@@ -464,7 +462,7 @@ ROCM_METADATA_VERSION = 4 /// \todo This should come from the host.
       .amd_amdgpu_hsa_metadata
       { Version: [ 1, 0 ],
            Kernels:
-           -  { Name: gcnAsmBNFwdTrainSpatial, SymbolName: 'gcnAsmBNFwdTrainSpatial@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+           -  { Name: miopenGcnAsmBNFwdTrainSpatial, SymbolName: 'miopenGcnAsmBNFwdTrainSpatial@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
                Attrs:
                  { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
                  CodeProps:

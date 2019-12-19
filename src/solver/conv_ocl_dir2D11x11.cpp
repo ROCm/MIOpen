@@ -24,14 +24,21 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
+#include <miopen/solver.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/env.hpp>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11)
 
 namespace miopen {
 namespace solver {
 
 bool ConvOclDirectFwd11x11::IsApplicable(const ConvolutionContext& params) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11{}))
+        return false;
+    if(!params.use_opencl_convolutions)
+        return false;
     if(!params.Is2d())
         return false;
     if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))

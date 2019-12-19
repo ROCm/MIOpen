@@ -38,8 +38,6 @@
 namespace miopen {
 namespace solver {
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_SCGEMM)
-
 template <SCGemmOpType T>
 bool PerformanceConfigSCGemmFwd<T>::SetNextValue()
 {
@@ -47,10 +45,21 @@ bool PerformanceConfigSCGemmFwd<T>::SetNextValue()
     do
     {
         auto routines = m_type::GetSCGemmRoutines();
-        ++index;
-        if(index < routines.size())
+        auto it       = routines.begin();
+        if(routine != -1)
         {
-            routine = m_type::Routine2Int(routines[index]);
+            // find the index of the current routine from routine list.
+            it = std::find_if(routines.begin(), routines.end(), [&](auto r) {
+                return m_type::Routine2Int(r) == routine;
+            });
+
+            // set to next index
+            if(it != routines.end())
+                ++it;
+        }
+        if(it != routines.end())
+        {
+            routine = m_type::Routine2Int(*it);
             break;
         }
         return false;
@@ -59,43 +68,49 @@ bool PerformanceConfigSCGemmFwd<T>::SetNextValue()
 }
 
 template <SCGemmOpType T>
-PerformanceConfigSCGemmFwd<T>::PerformanceConfigSCGemmFwd(bool spare)
-    : routine_type(T), index(0), use_spare_set(spare)
+PerformanceConfigSCGemmFwd<T>::PerformanceConfigSCGemmFwd() : routine(-1)
 {
-    using m_type  = scgemm_op_type<T>;
-    auto routines = m_type::GetSCGemmRoutines();
-    routine       = m_type::Routine2Int(routines[index]);
+}
+
+template <SCGemmOpType T>
+PerformanceConfigSCGemmFwd<T>::PerformanceConfigSCGemmFwd(bool)
+{
+    // get the minimal routine
+    routine = scgemm_op_type<T>::Routine2Int(scgemm_op_type<T>::GetSCGemmRoutines()[0]);
 }
 
 template <SCGemmOpType T>
 bool PerformanceConfigSCGemmFwd<T>::operator==(const PerformanceConfigSCGemmFwd<T>& other) const
 {
     // clang-format off
-    return routine_type == other.routine_type 
-           && routine == other.routine 
-           && use_spare_set == other.use_spare_set;
+    return routine == other.routine;
     // clang-format on
 }
 
 template <SCGemmOpType T>
 bool PerformanceConfigSCGemmFwd<T>::IsValidValue() const
 {
-    auto routines = scgemm_op_type<T>::GetSCGemmRoutines();
-    return (index < routines.size());
+    using m_type  = scgemm_op_type<T>;
+    auto routines = m_type::GetSCGemmRoutines();
+
+    // Check if the routine inside the routine list.
+    auto it = std::find_if(routines.begin(), routines.end(), [&](auto r) {
+        return m_type::Routine2Int(r) == routine;
+    });
+
+    return it != routines.end();
 }
 
 template <SCGemmOpType T>
 bool PerformanceConfigSCGemmFwd<T>::IsValid(const ConvolutionContext& /*config*/) const
 {
-    return true;
+    return IsValidValue();
 }
 
 template <SCGemmOpType T>
 void PerformanceConfigSCGemmFwd<T>::EuristicInit(const ConvolutionContext& /*config*/)
 {
     using m_type  = scgemm_op_type<T>;
-    index         = 0;
-    routine_type  = T;
     auto routines = m_type::GetSCGemmRoutines();
     routine       = m_type::Routine2Int(routines[0]);
 }
@@ -109,8 +124,7 @@ std::string PerformanceConfigSCGemmFwd<T>::ToString() const
 }
 
 template <SCGemmOpType T>
-PerformanceConfigSCGemmFwd<T>
-ConvSCGemmFwd<T>::GetPerformanceConfig(const ConvolutionContext& params) const
+static PerformanceConfigSCGemmFwd<T> GetPerformanceConfigBase(const ConvolutionContext& params)
 {
     PerformanceConfigSCGemmFwd<T> pp;
     pp.EuristicInit(params);
@@ -119,20 +133,11 @@ ConvSCGemmFwd<T>::GetPerformanceConfig(const ConvolutionContext& params) const
 }
 
 template <SCGemmOpType T>
-bool ConvSCGemmFwd<T>::IsValidPerformanceConfig(const ConvolutionContext& problem,
-                                                const PerformanceConfigSCGemmFwd<T>& c) const
-{
-    return c.IsValidValue() && c.IsValid(problem);
-}
-
-template <SCGemmOpType T>
-bool ConvSCGemmFwd<T>::IsApplicable(const ConvolutionContext& params) const
+static bool IsApplicableBase(const ConvolutionContext& params)
 {
     if(!params.use_binaries)
     {
-        // for debugging purpose.
-        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_SCGEMM{}))
-            return false;
+        return false;
     }
 
     const auto name = params.GetStream().GetDeviceName();
@@ -207,98 +212,26 @@ bool ConvSCGemmFwd<T>::IsApplicable(const ConvolutionContext& params) const
     }
 
     static const size_t MAX_BUFFER_SIZE = (1LLU << 32); // 4 GB
-    if(src_size * params.batch_sz * params.n_inputs * sizeof(float) >= MAX_BUFFER_SIZE ||
-       dst_size * params.batch_sz * params.n_outputs * sizeof(float) >= MAX_BUFFER_SIZE ||
-       filter_size * params.n_inputs * params.n_outputs * sizeof(float) >= MAX_BUFFER_SIZE ||
-       auxbuf_size >= MAX_BUFFER_SIZE)
-    {
-        return false;
-    }
+    const size_t in_data_len            = GetTypeSize(params.in_data_type);
+    const size_t weights_data_len       = GetTypeSize(params.weights_data_type);
+    const size_t out_data_len           = GetTypeSize(params.out_data_type);
 
-    return IsApplicableBase(params);
+    return !(
+        (src_size * params.batch_sz * params.n_inputs * in_data_len >= MAX_BUFFER_SIZE) ||
+        (dst_size * params.batch_sz * params.n_outputs * out_data_len >= MAX_BUFFER_SIZE) ||
+        (filter_size * params.n_inputs * params.n_outputs * weights_data_len >= MAX_BUFFER_SIZE) ||
+        (auxbuf_size >= MAX_BUFFER_SIZE));
 }
 
-template <SCGemmOpType T>
-bool ConvSCGemmFwd<T>::IsApplicableBase(const ConvolutionContext& /*params*/) const
-{
-    MIOPEN_LOG_E("SCGemmOpType: " << T << " is not supported");
-    // TODO SCGemmOpFConv
-    return false;
-}
-
-template <SCGemmOpType T>
-bool ConvSCGemmFwd<T>::IsFast(const ConvolutionContext&) const
-{
-    return true;
-}
-
-template <SCGemmOpType T>
-ConvSolution ConvSCGemmFwd<T>::GetSolution(const ConvolutionContext& params,
-                                           const PerformanceConfigSCGemmFwd<T>& config,
-                                           const bool /*disableConfigOverrideFromEnv*/) const
-{
-    ConvSolution result;
-    result.workspce_sz = 0;
-
-    SCGemmKernelParams scgParams;
-    scgParams.type    = static_cast<SCGemmOpType>(config.routine_type);
-    scgParams.routine = config.routine;
-    CompiledSCGemmKernelParams(params, scgParams);
-
-    KernelInfo kernel;
-    const auto name = params.GetStream().GetDeviceName();
-    const auto file = "scgemm_v0_5_0_" + name + ".so";
-
-    kernel.kernel_file = file;
-    kernel.kernel_name = scgParams.kernel_name;
-
-    kernel.g_wk.push_back(scgParams.grids[0] * scgParams.blocks[0]);
-    kernel.g_wk.push_back(scgParams.grids[1] * scgParams.blocks[1]);
-    kernel.g_wk.push_back(scgParams.grids[2] * scgParams.blocks[2]);
-    kernel.l_wk.push_back(scgParams.blocks[0]);
-    kernel.l_wk.push_back(scgParams.blocks[1]);
-    kernel.l_wk.push_back(scgParams.blocks[2]);
-
-    size_t m_ws = GetSCGemmConvFwdWorkSpaceSize(
-        params, static_cast<SCGemmOpType>(config.routine_type), config.routine);
-    result.workspce_sz = m_ws;
-    result.construction_params.push_back(kernel);
-
-    MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
-
-    KernelInfo aux_kernel;
-    size_t local_size  = 128;
-    size_t global_size = ((m_ws + local_size - 1) / local_size) * local_size;
-
-    switch(scgParams.type)
-    {
-    case SCGemmOpFGemm:
-        aux_kernel.kernel_file = "SCGemmUtils.cl";
-        aux_kernel.kernel_name = "cl_gemm_generate_amap";
-        aux_kernel.l_wk.clear();
-        aux_kernel.l_wk.push_back(128);
-        aux_kernel.g_wk.clear();
-        aux_kernel.g_wk.push_back(global_size);
-        result.construction_params.push_back(aux_kernel);
-        break;
-    case SCGemmOpFConv:
-        MIOPEN_LOG_E("Static Compiled GEMM forward conv is not supported.");
-        return {};
-    }
-
-    return result;
-}
-
-template <SCGemmOpType T>
 template <typename B, typename TopT>
-int ConvSCGemmFwd<T>::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                            B bot_ocl_buf,
-                                            TopT top_ocl_buf,
-                                            ConstData_t wei_ocl_buf,
-                                            ConstData_t bias_ocl_buf,
-                                            const ConvolutionContext& params,
-                                            const ConvSolution& solution,
-                                            float& elapsed_time) const
+static int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
+                                     B bot_ocl_buf,
+                                     TopT top_ocl_buf,
+                                     ConstData_t wei_ocl_buf,
+                                     ConstData_t bias_ocl_buf,
+                                     const ConvolutionContext& params,
+                                     const ConvSolution& solution,
+                                     float& elapsed_time)
 {
 
 #ifdef NDEBUG
@@ -330,25 +263,49 @@ int ConvSCGemmFwd<T>::RunAndMeasureSolution(miopen::Handle& profile_h,
         MIOPEN_LOG_I2("elapsed_time: " << elapsed_time);
     }
 #ifdef NDEBUG
-    catch(miopen::Exception&)
+    catch(miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return -1;
     }
 #endif
     return 0;
 }
 
-template <SCGemmOpType T>
-PerformanceConfigSCGemmFwd<T> ConvSCGemmFwd<T>::Search(const ConvolutionContext& context) const
+size_t ConvSCGemmFGemm::GetWorkspaceSize(const ConvolutionContext& params) const
 {
-    return GenericSearchFwd(*this, context);
+    /// The existing architecture is not fully supporting cases when required workspace-size
+    /// depends on tunable parameters. The drawback is that Find() needs more
+    /// workspace than the tuned Solver needs. However the difference between
+    /// MAX workspace-size (needed for Find()) and actual workspace-size of tuned
+    /// Solution (returned by GetSCGemmConvFwdWorkSpaceSize()) is very small
+    /// (never exceeds 1792 bytes), so this is fine. See discussion at
+    /// https://github.com/AMDComputeLibraries/MLOpen/pull/2068#discussion_r323222063
+
+    // For the case which does not specify a particular SCGEMM routine then uses the maximum
+    // workspace size that needed by SCGMM
+    return GetMaximumSCGemmConvFwdAuxBufferSize(params, SCGemmOpFGemm);
 }
 
-template struct PerformanceConfigSCGemmFwd<SCGemmOpFGemm>;
-template struct ConvSCGemmFwd<SCGemmOpFGemm>;
-template <>
-bool ConvSCGemmFwd<SCGemmOpFGemm>::IsApplicableBase(const ConvolutionContext& params) const
+PerformanceConfigSCGemmFwd<SCGemmOpFGemm>
+ConvSCGemmFGemm::GetPerformanceConfig(const ConvolutionContext& params) const
 {
+    return GetPerformanceConfigBase<SCGemmOpFGemm>(params);
+}
+
+bool ConvSCGemmFGemm::IsValidPerformanceConfig(
+    const ConvolutionContext& problem, const PerformanceConfigSCGemmFwd<SCGemmOpFGemm>& c) const
+{
+    return c.IsValidValue() && c.IsValid(problem);
+}
+
+bool ConvSCGemmFGemm::IsApplicable(const ConvolutionContext& params) const
+{
+    if(!IsApplicableBase<SCGemmOpFGemm>(params))
+    {
+        return false;
+    }
+
     if(params.kernel_size_w != 1 || params.kernel_size_h != 1)
     {
         return false;
@@ -380,5 +337,78 @@ bool ConvSCGemmFwd<SCGemmOpFGemm>::IsApplicableBase(const ConvolutionContext& pa
 
     return true;
 }
+
+ConvSolution ConvSCGemmFGemm::GetSolution(const ConvolutionContext& params,
+                                          const PerformanceConfigSCGemmFwd<SCGemmOpFGemm>& config,
+                                          const bool /*disableConfigOverrideFromEnv*/) const
+{
+    ConvSolution result;
+    SCGemmKernelParams scgParams;
+    scgParams.type    = SCGemmOpFGemm;
+    scgParams.routine = config.routine;
+    CompiledSCGemmKernelParams(params, scgParams);
+
+    KernelInfo kernel;
+    const auto name = params.GetStream().GetDeviceName();
+    const auto file = "scgemm_v0_5_0_" + name + ".so";
+
+    kernel.kernel_file = file;
+    kernel.kernel_name = scgParams.kernel_name;
+
+    kernel.g_wk.push_back(scgParams.grids[0] * scgParams.blocks[0]);
+    kernel.g_wk.push_back(scgParams.grids[1] * scgParams.blocks[1]);
+    kernel.g_wk.push_back(scgParams.grids[2] * scgParams.blocks[2]);
+    kernel.l_wk.push_back(scgParams.blocks[0]);
+    kernel.l_wk.push_back(scgParams.blocks[1]);
+    kernel.l_wk.push_back(scgParams.blocks[2]);
+
+    size_t m_ws        = GetSCGemmConvFwdWorkSpaceSize(params, scgParams.type, config.routine);
+    result.workspce_sz = m_ws;
+    result.construction_params.push_back(kernel);
+
+    MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
+
+    KernelInfo aux_kernel;
+    size_t local_size  = 128;
+    size_t global_size = ((m_ws + local_size - 1) / local_size) * local_size;
+
+    aux_kernel.kernel_file = "SCGemmUtils.cl";
+    aux_kernel.kernel_name = "cl_gemm_generate_amap";
+    aux_kernel.l_wk.clear();
+    aux_kernel.l_wk.push_back(128);
+    aux_kernel.g_wk.clear();
+    aux_kernel.g_wk.push_back(global_size);
+    result.construction_params.push_back(aux_kernel);
+    return result;
+}
+
+template <typename B, typename TopT>
+int ConvSCGemmFGemm::RunAndMeasureSolution(miopen::Handle& profile_h,
+                                           B bot_ocl_buf,
+                                           TopT top_ocl_buf,
+                                           ConstData_t wei_ocl_buf,
+                                           ConstData_t bias_ocl_buf,
+                                           const ConvolutionContext& params,
+                                           const ConvSolution& solution,
+                                           float& elapsed_time) const
+{
+    return RunAndMeasureSolutionBase<B, TopT>(profile_h,
+                                              bot_ocl_buf,
+                                              top_ocl_buf,
+                                              wei_ocl_buf,
+                                              bias_ocl_buf,
+                                              params,
+                                              solution,
+                                              elapsed_time);
+}
+
+PerformanceConfigSCGemmFwd<SCGemmOpFGemm>
+ConvSCGemmFGemm::Search(const ConvolutionContext& context) const
+{
+    return GenericSearchFwd(*this, context);
+}
+
+template struct PerformanceConfigSCGemmFwd<SCGemmOpFGemm>;
+
 } // namespace solver
 } // namespace miopen

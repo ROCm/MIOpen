@@ -156,6 +156,8 @@ set( MIOpen_Source
     include/miopen/kernel_build_params.hpp
     include/miopen/algorithm.hpp
     include/miopen/finddb_kernel_cache_key.hpp
+    include/miopen/exec_utils.hpp
+    include/miopen/gcn_asm_utils.hpp
     include/miopen/hip_build_utils.hpp
     include/miopen/solver_id.hpp
     include/miopen/any_solver.hpp
@@ -163,6 +165,7 @@ set( MIOpen_Source
     include/miopen/conv_algo_name.hpp
     include/miopen/dropout.hpp
     include/miopen/readonlyramdb.hpp
+    include/miopen/rnn_util.hpp
     md_graph.cpp
     mdg_expr.cpp
     tensor.cpp
@@ -190,11 +193,15 @@ set( MIOpen_Source
     solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
-    solver/conv_hip_implicit_gemm_v4_fwd.cpp
-    solver/conv_hip_implicit_gemm_v4_1x1.cpp
+    solver/conv_hip_implicit_gemm_v4.cpp
+    solver/conv_hip_implicit_gemm_v4r1.cpp
+    solver/conv_hip_implicit_gemm_v4r4_xdlops.cpp
     )
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
+if(MIOPEN_ENABLE_SQLITE)
+    list(APPEND MIOpen_Source sqlite_db.cpp include/miopen/sqlite_db.hpp )
+endif()
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_INCLUDE "kernels/composable_kernel/include/*/*.hpp")
@@ -202,6 +209,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
 
     set(MIOPEN_KERNEL_INCLUDES
         ${COMPOSABLE_KERNEL_INCLUDE}
+        include/miopen/implicitgemm_params.hpp
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride1.inc
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dec.inc
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dil.inc
@@ -228,9 +236,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15.inc
+        kernels/rocm_version.inc
         kernels/inst_wrappers.inc
         kernels/common.inc
         kernels/xform_data_filter.inc
+        kernels/xform_kd_cov2.inc
+        kernels/xform_metadata.inc
         kernels/neuron.inc
         kernels/conv_sizes.inc
         kernels/gpr_alloc.inc
@@ -279,6 +290,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvBwdWrW1x1_PAD_read4.cl
         kernels/MIOpenConvFwd_LxL_11.cl
         kernels/MIOpenConvFFT.cl
+        kernels/MIOpenRNNHiddenStateUpdate.cl
         kernels/bugzilla_34765_detect.s
         kernels/dummy_kernel.s
         kernels/conv3x3.s
@@ -334,6 +346,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernel_cache.cpp
         lrn.cpp
         mlo_dir_conv.cpp
+        exec_utils.cpp
         ocl/activ_ocl.cpp
         ocl/batchnormocl.cpp
         ocl/convolutionocl.cpp
@@ -350,6 +363,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/ctcocl.cpp
         ocl/dropoutocl.cpp
         ocl/gcn_asm_utils.cpp
+        ocl/rnn_util_ocl.cpp
         hip/hip_build_utils.cpp
         pooling.cpp
         ocl/fusionopconvocl.cpp
@@ -528,7 +542,16 @@ local:
     # set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET protected)
     set_target_properties(MIOpen PROPERTIES VISIBILITY_INLINES_HIDDEN 1)
 endif()
-
+#######################################
+if(MIOPEN_ENABLE_SQLITE)
+    # MIOpen depends on SQLite
+    target_include_directories(MIOpen SYSTEM PRIVATE ${SQLITE3_STATIC_INCLUDE_DIRS})
+    target_include_directories(MIOpen SYSTEM INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_INCLUDE_DIRS}>)
+    target_compile_options(MIOpen PRIVATE ${SQLITE3_STATIC_CFLAGS})
+    target_compile_options(MIOpen INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_CFLAGS}>)
+    target_link_libraries(MIOpen PRIVATE ${SQLITE3_STATIC_LDFLAGS})
+    target_link_libraries(MIOpen INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_LDFLAGS}>)
+endif()
 ############################################################
 # MIOpen depends on librt for Boost.Interprocess
 if(NOT WIN32 AND NOT APPLE)
@@ -557,6 +580,7 @@ rocm_export_targets(
 )
 
 
+
 # Install db files
 install(FILES
     kernels/gfx803_36.cd.pdb.txt
@@ -565,6 +589,7 @@ install(FILES
     kernels/gfx900_56.cd.pdb.txt
     kernels/gfx906_64.cd.pdb.txt
     kernels/gfx906_60.cd.pdb.txt
+    kernels/miopen.db
     kernels/gfx803_36.HIP.fdb.txt
     kernels/gfx803_64.HIP.fdb.txt
     kernels/gfx900_64.HIP.fdb.txt

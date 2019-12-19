@@ -24,20 +24,21 @@
  *
  *******************************************************************************/
 
-.ifnotdef EXPERIMENTAL_COv3
+.if ROCM_METADATA_VERSION == 4
 .hsa_code_object_version 2,1
 .hsa_code_object_isa
 .endif
 
 .text
-.globl gcnAsmConv3x3U
+.globl miopenGcnAsmConv3x3U
 .p2align 8
-.type gcnAsmConv3x3U,@function
+.type miopenGcnAsmConv3x3U,@function
 
-.ifnotdef EXPERIMENTAL_COv3
-.amdgpu_hsa_kernel gcnAsmConv3x3U
+.if ROCM_METADATA_VERSION == 4
+.amdgpu_hsa_kernel miopenGcnAsmConv3x3U
 .endif
 
+.include "rocm_version.inc"
 .include "gpr_alloc.inc"
 .include "common.inc"
 .include "inst_wrappers.inc"
@@ -218,6 +219,7 @@ output_buffer_window = 4 * img_height * img_width
 .if limit_wave_cnt
   .SET_MAX_WAVES_LIMIT limit_wave_cnt
 .endif
+.SGPR_RESERVE_XNACK
 
 // allocate filters
 filter_part_size = weights_per_filter & 0x3
@@ -354,6 +356,7 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
   .VGPR_ALLOC dbg, 16
   .SGPR_ALLOC dbg_exec_lo
   .SGPR_ALLOC dbg_exec_hi
+  .SGPR_RESERVE_VCC
 .endif
 
 .GPR_ALLOC_END
@@ -573,9 +576,9 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
 
 //.text 0
 //.p2align 8
-gcnAsmConv3x3U:
+miopenGcnAsmConv3x3U:
 
-.ifnotdef EXPERIMENTAL_COv3
+.if ROCM_METADATA_VERSION == 4
   .amd_kernel_code_t
      enable_sgpr_kernarg_segment_ptr = 1
      compute_pgm_rsrc2_tgid_x_en = 1
@@ -628,7 +631,7 @@ gcnAsmConv3x3U:
   num_wavefronts = output_channels / filters_per_wave
   //to-do add support of uneven_outputs into grouped conv
   static_assert(group_counts == 1 || ((num_wavefronts % group_counts == 0) && uneven_outputs == 0))
-  static_assert(input_channels % (4 * group_counts) == 0) //to-do remove restriction that (n_inputs/group_counts) must be multiple of 4 
+  static_assert(input_channels % (4 * group_counts) == 0) //to-do remove restriction that (n_inputs/group_counts) must be multiple of 4
   k_group_size = output_channels / filters_per_wave / group_counts
   c_group_size = input_channels / group_counts
   s_group_id = loop_cnt
@@ -981,12 +984,12 @@ loop_end:
   s_endpgm
 
 .Lfunc_end0:
-    .size gcnAsmConv3x3U, .Lfunc_end0 - gcnAsmConv3x3U
+    .size miopenGcnAsmConv3x3U, .Lfunc_end0 - miopenGcnAsmConv3x3U
 
-.ifdef EXPERIMENTAL_COv3
+.if ROCM_METADATA_VERSION == 5
 .rodata
 .p2align 6
-.amdhsa_kernel gcnAsmConv3x3U
+.amdhsa_kernel miopenGcnAsmConv3x3U
     //enable_sgpr_kernarg_segment_ptr = 1
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
 
@@ -997,44 +1000,27 @@ loop_end:
     .amdhsa_system_sgpr_workgroup_id_y 1
     .amdhsa_system_sgpr_workgroup_id_z 1
 
-    // is_ptr64 = 1
-    // -> FIXME_COV3
-
-    // compute_pgm_rsrc1_vgprs = .AUTO_VGPR_GRANULATED_COUNT
-    // compute_pgm_rsrc1_sgprs = .AUTO_SGPR_GRANULATED_COUNT
     .amdhsa_next_free_vgpr .AUTO_VGPR_COUNT
-    .amdhsa_next_free_sgpr .AUTO_SGPR_COUNT
+    .amdhsa_next_free_sgpr __amdhsa_next_free_sgpr
+    .amdhsa_reserve_vcc __sgpr_reserve_vcc
+    .amdhsa_reserve_xnack_mask __sgpr_reserve_xnack
+    .amdhsa_reserve_flat_scratch __sgpr_reserve_flatscr
 
     // compute_pgm_rsrc2_tidig_comp_cnt = 1
     .amdhsa_system_vgpr_workitem_id 1
 
-    // compute_pgm_rsrc2_user_sgpr = 2
-    // -> FIXME_COV3
-
-    // kernarg_segment_byte_size = 56
-    // -> metadata kernarg_segment_size
-
-    // wavefront_sgpr_count = .AUTO_SGPR_COUNT
-    // -> metadata sgpr_count
-
-    // workitem_vgpr_count = .AUTO_VGPR_COUNT
-    // -> metadata, vgpr_count
-
-    // float_mode = 192
-    // -> defaults are just the same
+    .amdhsa_ieee_mode 0
+    .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
 
-// Workaround.
-// When YAML text is being processed, assembly-time constant expressions
-// are not computed, but we need to expand some symbols into text.
-// That is why we need METADATA and METADATA_WRAPPER macros.
+.altmacro
 .macro METADATA sc,wc,wg_x
 .amdgpu_metadata
 ---
 amdhsa.version: [ 1, 0 ]
 amdhsa.kernels:
-  - .name: gcnAsmConv3x3U
-    .symbol: gcnAsmConv3x3U@kd
+  - .name: miopenGcnAsmConv3x3U
+    .symbol: miopenGcnAsmConv3x3U.kd
     .sgpr_count: \sc
     .vgpr_count: \wc
     .language: "OpenCL C"
@@ -1057,25 +1043,14 @@ amdhsa.kernels:
 .end_amdgpu_metadata
 .endm // METADATA
 
-.altmacro
-.macro METADATA_WRAPPER sc,wc,wg_x
-    METADATA %\sc, %\wc, %\wg_x
-.endm
+METADATA %.AUTO_SGPR_COUNT, %.AUTO_VGPR_COUNT, %workgroup_size_x
 
-.ifnotdef workgroup_size_x
-  .error "workgroup_size_x must be defined"
-  .end
-.endif
-METADATA_WRAPPER .AUTO_SGPR_COUNT,.AUTO_VGPR_COUNT,workgroup_size_x
-.endif // .ifdef EXPERIMENTAL_COv3
-
-.ifnotdef EXPERIMENTAL_COv3
+.elseif ROCM_METADATA_VERSION == 4
 .macro METADATA wg_x
-  .if ROCM_METADATA_VERSION == 4
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
         Kernels:
-        - { Name: gcnAsmConv3x3U, SymbolName: 'gcnAsmConv3x3U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+        - { Name: miopenGcnAsmConv3x3U, SymbolName: 'miopenGcnAsmConv3x3U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
@@ -1091,10 +1066,6 @@ METADATA_WRAPPER .AUTO_SGPR_COUNT,.AUTO_VGPR_COUNT,workgroup_size_x
           }
     }
     .end_amd_amdgpu_hsa_metadata
-  .else
-    .error "Unsupported ROCM_METADATA_VERSION"
-    .end
-  .endif
 .endm // METADATA
 
 .altmacro
@@ -1103,8 +1074,9 @@ METADATA_WRAPPER .AUTO_SGPR_COUNT,.AUTO_VGPR_COUNT,workgroup_size_x
 .endm
 
 .ifnotdef workgroup_size_x
-  .error "workgroup_size_x must be defined"
-  .end
+    .error "workgroup_size_x must be defined"
+    .end
 .endif
+
 METADATA_WRAPPER workgroup_size_x
-.endif //.ifnotdef EXPERIMENTAL_COv3
+.endif

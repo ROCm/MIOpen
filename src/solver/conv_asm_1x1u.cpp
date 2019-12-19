@@ -35,8 +35,9 @@
 #include <miopen/solver.hpp>
 #include <miopen/generic_search.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_PERF_VALS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U)
 
 namespace miopen {
 namespace solver {
@@ -148,7 +149,7 @@ bool PerformanceConfigConvAsm1x1U::SetNextValue()
     {
         if(!NextLinear<1, 4>(read_size))
             break;
-        if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_SEARCH_OPTIMIZED{}))
+        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED{}))
         {
             /// Narrow search space in optimized mode.
             if(use_spare_set ? !Next_1_4(k_mult) : !NextTwoPower<8, 32>(k_mult))
@@ -192,7 +193,7 @@ bool PerformanceConfigConvAsm1x1U::SetNextValue()
 PerformanceConfigConvAsm1x1U::PerformanceConfigConvAsm1x1U(bool spare)
     : PerformanceConfigConvAsm1x1U(1, 1, 1, 1, 1, 1, 1, 1, spare)
 {
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_SEARCH_OPTIMIZED{}))
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED{}))
     {
         k_mult     = spare ? 1 : 8;
         chunk_size = spare ? 1 : 16;
@@ -370,11 +371,13 @@ bool ConvAsm1x1U::IsValidPerformanceConfig(const ConvolutionContext& problem,
 
 bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U{}))
+        return false;
     if(!params.use_asm_kernels)
         return false;
     if(!params.Is2d())
         return false;
-    if(params.rmv != rocm_meta_version::AMDHSA_1_0)
+    if(!params.rmv.IsV2orV3())
         return false;
     if(!(params.IsFp32() || params.IsFp16()))
         return false;
@@ -454,8 +457,6 @@ size_t ConvAsm1x1U::GetWorkspaceSize(const ConvolutionContext& params) const
     }
     return 0;
 }
-bool ConvAsm1x1U::IsFast(const ConvolutionContext&) const { return true; }
-
 static int divide_round_plus_inf(const int x, const int y)
 {
     assert(x >= 0 && y > 0);
@@ -638,14 +639,14 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "filter_buffer_size", fbuf.total_byte_size);
     GenerateClangDefsym(options, "output_buffer_size", obuf.total_byte_size);
 
-    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 4);
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
 
     const PerformanceConfigConvAsm1x1U* pcfg = &config;
     PerformanceConfigConvAsm1x1U fromEnv;
     if(!disableConfigOverrideFromEnv)
     {
         std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_PERF_VALS{});
+        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS{});
         if(p_asciz != nullptr)
         {
             s = std::string(p_asciz);
@@ -653,7 +654,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
             {
                 if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())
                 {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_PERF_VALS: "
+                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS: "
                                  "Bad format or invalid for the problem config: "
                                  << s);
                 }
@@ -697,7 +698,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     kinfo.g_wk.push_back(divide_round_plus_inf(params.batch_sz, n_images_per_wave));
 
     kinfo.kernel_file = "conv1x1u.s";
-    kinfo.kernel_name = "gcnAsmConv1x1U";
+    kinfo.kernel_name = "miopenGcnAsmConv1x1U";
 
     if(UseSubsample(params))
         result.construction_params.push_back(kernel);
@@ -764,8 +765,9 @@ int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
         elapsed_time = profile_h.GetKernelTime();
     }
 #ifdef NDEBUG
-    catch(miopen::Exception&)
+    catch(miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return -1;
     }
 #endif
