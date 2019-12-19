@@ -3,11 +3,11 @@
 
 
 
-### 11/30/2019 [ 2.2.0 ]
+### 12/19/2019 [ 2.2.0 ]
 
 - This release contains bug fixes, performance improvements, and expanded applicability for specific convolutional algorithms.
 - MIOpen has posted a citable paper on ArXiv [here](https://arxiv.org/abs/1910.00078).
-- An SQLite database has been added to replace the test-based performance database. While the test file still exists, by default SQLite is used over the text-based performance database; see [documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html) from more details. 
+- An SQLite database has been added to replace the text-based performance database. While the text file still exists, by default SQLite is used over the text-based performance database; see [documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html) from more details.
 
 
 Changes:
@@ -24,11 +24,12 @@ Changes:
 - Improved applicability of implicit GEMM convolution algorithm
 - Improved performance of calls to miopenConvolutionXXXGetWorkSpaceSize() functions
 - Improved conformance to code object version 3
-- Removed SCGEMM convolution algorithm by default; this algorithm is deprecated and will be removed in future releases
+- Disabled SCGEMM convolution algorithm by default; this algorithm is deprecated and will be removed in future releases
+- Changed "hip_hhc" to "hip-hcc" for the MIOpen package requirements in CMakeLists.txt
 
 
 
-### 09/01/2019 [ 2.1.0 ]
+### 09/25/2019 [2.1.0]
 
 - This release contains new layers, bug fixes, and a new convolution algorithm.
 
