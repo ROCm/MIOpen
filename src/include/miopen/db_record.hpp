@@ -74,33 +74,34 @@ class DbRecord
     {
         friend class DbRecord;
 
-        using InnerIterator = std::unordered_map<std::string, std::string>::const_iterator;
+        using Container     = std::unordered_map<std::string, std::string>;
+        using InnerIterator = Container::const_iterator;
 
         public:
         using Value = std::pair<std::string, TValue>;
 
         Value operator*() const
         {
-            assert(it != InnerIterator{});
+            assert(it != container->end());
             return value;
         }
 
         const Value* operator->() const
         {
-            assert(it != InnerIterator{});
+            assert(it != container->end());
             return &value;
         }
 
         Value* operator->()
         {
-            assert(it != InnerIterator{});
+            assert(it != container->end());
             return &value;
         }
 
         Iterator& operator++()
         {
             ++it;
-            value = GetValue(it);
+            value = GetValue(it, container);
             return *this;
         }
 
@@ -116,13 +117,17 @@ class DbRecord
 
         private:
         InnerIterator it;
+        const Container* container;
         Value value;
 
-        Iterator(const InnerIterator it_) : it(it_), value(GetValue(it_)) {}
-
-        static Value GetValue(const InnerIterator& it)
+        Iterator(const InnerIterator it_, const Container* container_)
+            : it(it_), container(container_), value(GetValue(it_, container))
         {
-            if(it == InnerIterator{})
+        }
+
+        static Value GetValue(const InnerIterator& it, const Container* container)
+        {
+            if(it == container->end())
                 return {};
 
             auto value = TValue{};
@@ -135,8 +140,8 @@ class DbRecord
     class IterationHelper
     {
         public:
-        Iterator<TValue> begin() const { return {record.map.begin()}; }
-        Iterator<TValue> end() const { return {record.map.end()}; }
+        Iterator<TValue> begin() const { return {record.map.begin(), &record.map}; }
+        Iterator<TValue> end() const { return {record.map.end(), &record.map}; }
 
         private:
         IterationHelper(const DbRecord& record_) : record(record_) {}
@@ -173,6 +178,7 @@ class DbRecord
     }
 
     public:
+    DbRecord() : key(""){};
     /// T shall provide a db KEY by means of the "void Serialize(std::ostream&) const" member
     /// function.
     template <class T>
@@ -217,9 +223,8 @@ class DbRecord
 
         const bool ok = values.Deserialize(s);
         if(!ok)
-            MIOPEN_LOG((MIOPEN_INSTALLABLE ? LoggingLevel::Warning : miopen::LoggingLevel::Error),
-                       "Perf db record is obsolete or corrupt: " << s
-                                                                 << ". Performance may degrade.");
+            MIOPEN_LOG_WE(
+                "Perf db record is obsolete or corrupt: " << s << ". Performance may degrade.");
         return ok;
     }
 
@@ -235,6 +240,7 @@ class DbRecord
     }
 
     friend class Db;
+    friend class SQLite_Db;
     friend class ReadonlyRamDb;
 };
 

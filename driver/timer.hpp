@@ -27,6 +27,7 @@
 #define GUARD_MIOPEN_TIMER_HPP
 
 #include <chrono>
+#include <cassert>
 #include <miopen/handle.hpp>
 
 #define WALL_CLOCK inflags.GetValueInt("wall")

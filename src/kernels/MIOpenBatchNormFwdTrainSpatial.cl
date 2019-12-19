@@ -128,7 +128,11 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     gcn_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
 #endif
 
-    variance    = mad(-mean, mean, variance);
+    variance = mad(-mean, mean, variance);
+    if(variance < 0)
+    {
+        variance = 0;
+    }
     invVariance = rsqrt(variance + (_FLOAT_ACCUM)epsilon);
     pvscale     = (_FLOAT_ACCUM)lcl_scale;
     pvbias      = (_FLOAT_ACCUM)lcl_bias;
@@ -312,7 +316,11 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #endif
 
     // REDUCTION COMPLETE ---------------------------
-    variance    = mad(-mean, mean, variance);
+    variance = mad(-mean, mean, variance);
+    if(variance < 0)
+    {
+        variance = 0;
+    }
     invVariance = rsqrt(variance + epsilon);
 
     pvscale = lcl_scale;
@@ -434,7 +442,11 @@ MIOpenBatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
         invVariance = lcl_ivar;
         pvt_scale   = lcl_scale;
         pvt_bias    = lcl_bias;
+#if(MIO_BN_HW > MIO_BN_LOOP_UNROLL_MAXHW)
+        for(unsigned int n = 0; n < MIO_BN_N; n++)
+#else
         __attribute__((opencl_unroll_hint(2))) for(unsigned int n = 0; n < MIO_BN_N; n++)
+#endif
         { // apply normalization
             index = n * MIO_BN_CHW + cidx + ygid;
             inhat = (*(in + index) - mean) * invVariance;
@@ -502,7 +514,11 @@ MIOpenBatchNormFwdTrainSpatialFinalMeanVariance(
 #endif
 
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
-    variance    = mad(-mean, mean, variance);
+    variance = mad(-mean, mean, variance);
+    if(variance < 0)
+    {
+        variance = 0;
+    }
     invVariance = rsqrt(variance + epsilon);
     if(lid == commitID)
     {
@@ -544,7 +560,11 @@ MIOpenBatchNormFwdTrainSpatialMeanVariance(const __global _FLOAT* __restrict in,
 
     if(ygid < MIO_BN_HW)
     {
+#if(MIO_BN_HW > MIO_BN_LOOP_UNROLL_MAXHW)
+        for(unsigned int n = 0; n < MIO_BN_N; n++)
+#else
         __attribute__((opencl_unroll_hint(2))) for(unsigned int n = 0; n < MIO_BN_N; n++)
+#endif
         {
             index = n * MIO_BN_CHW + cidx + ygid;
             value = *(in + index);
@@ -646,7 +666,11 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     gcn_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
 #endif
 
-    variance    = mad(-mean, mean, variance);
+    variance = mad(-mean, mean, variance);
+    if(variance < 0)
+    {
+        variance = 0;
+    }
     invVariance = rsqrt(variance + (_FLOAT_PREC)epsilon);
 
     if(lid < MIO_BN_HW)

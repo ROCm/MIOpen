@@ -56,11 +56,6 @@ struct AnySolver
         return ptr_value->Type();
     };
     bool IsEmpty() const { return ptr_value == nullptr; };
-    bool IsFast(const ConvolutionContext& ctx) const
-    {
-        assert(ptr_value != nullptr);
-        return ptr_value->IsFast(ctx);
-    };
     ConvSolution FindSolution(const ConvolutionContext& ctx, Db& db) const
     {
         assert(ptr_value != nullptr);
@@ -85,7 +80,6 @@ struct AnySolver
 
         virtual ~AnySolver_base(){};
         virtual bool IsApplicable(const ConvolutionContext& ctx) const = 0;
-        virtual bool IsFast(const ConvolutionContext& ctx) const       = 0;
         virtual const std::type_info& Type() const                     = 0;
         virtual std::string GetSolverDbId() const                      = 0;
         virtual ConvSolution FindSolution(const ConvolutionContext& ctx, Db& db) const = 0;
@@ -101,7 +95,6 @@ struct AnySolver
         {
             return value.IsApplicable(ctx);
         }
-        bool IsFast(const ConvolutionContext& ctx) const override { return value.IsFast(ctx); }
         ConvSolution FindSolution(const ConvolutionContext& ctx, Db& db) const override
         {
             return miopen::solver::FindSolution(value, ctx, db);

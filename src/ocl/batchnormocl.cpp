@@ -33,10 +33,27 @@
 #include <miopen/tensor.hpp>
 #include <miopen/util.hpp>
 #include <miopen/visit_float.hpp>
+/// \todo Get rid of this during implementation of #1938 (60)
+#include <miopen/convolution.hpp>
+#include <miopen/mlo_internal.hpp>
 
 #include <chrono>
 
 namespace miopen {
+
+/// Reusing the dummy instance of of the ConvolutionContext class
+/// to find out if asm kernels are supported and
+/// to properly detect version of ROCm.
+/// \todo Get rid of this during implementation of #1938 (60)
+static auto GetContext(Handle& handle)
+{
+    const TensorDescriptor td;
+    const ConvolutionDescriptor cd;
+    ConvolutionContext ctx(td, td, td, cd, 1);
+    ctx.SetStream(&handle);
+    ctx.DetectRocm();
+    return ctx;
+}
 
 void BatchNormForwardTraining(Handle& handle,
                               miopenBatchNormMode_t bn_mode,
@@ -89,6 +106,8 @@ void BatchNormForwardTraining(Handle& handle,
         miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnScale);
         miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnBias);
     }
+
+    static const auto ctx = GetContext(handle);
 
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
@@ -143,7 +162,7 @@ void BatchNormForwardTraining(Handle& handle,
         unsigned int ldsgcn   = xlocalsize / 64;
         unsigned int ldsnogcn = xlocalsize;
         std::string algo_name = "miopenBatchNormForwardTrainingSpatial";
-        if(in_nhw < 33554432 && in_cstride > 1024)
+        if((in_nhw < 33554432 && in_cstride > 1024) || ((in_cstride > 60) && bfpmixparm))
         {
             //
         }
@@ -154,13 +173,25 @@ void BatchNormForwardTraining(Handle& handle,
             ldsgcn     = xlocalsize / 64;
             ldsnogcn   = xlocalsize;
             xgridsize  = c * xlocalsize;
-            algo_name  = "gcnAsmBNFwdTrainSpatial";
+            algo_name  = "miopenGcnAsmBNFwdTrainSpatial";
         }
         else if(in_cstride <= 512)
         {
             variant = 0;
         }
         else
+        {
+            variant      = 2;
+            xlocalsize   = 1;
+            ylocalsize   = 1024;
+            auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
+            xgridsize    = c;
+            ygridsize    = segment * ylocalsize;
+            single       = false;
+            ldsgcn       = ylocalsize / 64;
+            ldsnogcn     = ylocalsize;
+        }
+        if((n > 768) && (in_cstride > 150) && bfp32parm)
         {
             variant      = 2;
             xlocalsize   = 1;
@@ -242,9 +273,10 @@ void BatchNormForwardTraining(Handle& handle,
                 std::string program_name;
                 std::string parms;
 
-                if((variant == 3) && (bfpmixparm) && (n <= 64) && (n % 2 == 0))
+                if((variant == 3) && (bfpmixparm) && (n <= 64) && (n % 2 == 0) &&
+                   ctx.use_asm_kernels && ctx.rmv.IsV2())
                 {
-                    kernel_name  = "gcnAsmBNFwdTrainSpatial";
+                    kernel_name  = "miopenGcnAsmBNFwdTrainSpatial";
                     program_name = "gcnAsmBNFwdTrainSpatial.s";
 
                     union nhw_val
@@ -259,16 +291,13 @@ void BatchNormForwardTraining(Handle& handle,
                     } NHW_value;
                     NHW_value.f32 = static_cast<float>(in_nhw / (in_nhw - 1.0));
 
-                    parms = "-Wa,-defsym,MIOPEN_USE_FP16=" +
-                            std::to_string(static_cast<int>(bfp16parm)) +
-                            " -Wa,-defsym,MIOPEN_USE_FP32=" +
-                            std::to_string(static_cast<int>(bfp32parm)) +
-                            " -Wa,-defsym,MIOPEN_USE_FPMIX=" +
-                            std::to_string(static_cast<int>(bfpmixparm)) +
-                            " -Wa,-defsym,MIO_SAVE_MEAN_VARIANCE=" +
-                            std::to_string(static_cast<int>(resultsave)) +
-                            " -Wa,-defsym,MIO_RUNNING_RESULT=" +
-                            std::to_string(static_cast<int>(resultrunning)) +
+                    // clang-format off
+                    parms = " -Wa,-defsym,ROCM_METADATA_VERSION=4"
+                            " -Wa,-defsym,MIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
+                            " -Wa,-defsym,MIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                            " -Wa,-defsym,MIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
+                            " -Wa,-defsym,MIO_SAVE_MEAN_VARIANCE=" + std::to_string(static_cast<int>(resultsave)) +
+                            " -Wa,-defsym,MIO_RUNNING_RESULT=" + std::to_string(static_cast<int>(resultrunning)) +
                             " -Wa,-defsym,MIO_BN_N=" + std::to_string(n) +
                             " -Wa,-defsym,MIO_BN_C=" + std::to_string(c) +
                             " -Wa,-defsym,MIO_BN_HW=" + std::to_string(in_cstride) +
@@ -281,7 +310,7 @@ void BatchNormForwardTraining(Handle& handle,
                             " -Wa,-defsym,MIO_BN_VARIANT=" + std::to_string(variant) +
                             " -Wa,-defsym,MIO_BN_GRP0=" + std::to_string(xlocalsize) +
                             " -Wa,-defsym,MIO_BN_GRP1=" + std::to_string(ylocalsize) +
-                            " -Wa,-defsym,MIO_BN_GRP2=" + std::to_string(zlocalsize);
+                            " -Wa,-defsym,MIO_BN_GRP2=" + std::to_string(zlocalsize); // clang-format on
                 }
                 else
                 {
@@ -421,9 +450,10 @@ void BatchNormForwardTraining(Handle& handle,
                 std::string kernel_name;
                 std::string program_name;
                 std::string parms;
-                if((variant == 3) && (bfpmixparm) && (n <= 64) && (n % 2 == 0))
+                if((variant == 3) && (bfpmixparm) && (n <= 64) && (n % 2 == 0) &&
+                   ctx.use_asm_kernels && ctx.rmv.IsV2())
                 {
-                    kernel_name  = "gcnAsmBNFwdTrainSpatial";
+                    kernel_name  = "miopenGcnAsmBNFwdTrainSpatial";
                     program_name = "gcnAsmBNFwdTrainSpatial.s";
 
                     union nhw_val
@@ -439,16 +469,13 @@ void BatchNormForwardTraining(Handle& handle,
 
                     NHW_value.f32 = static_cast<float>(in_nhw / (in_nhw - 1.0));
 
-                    parms = "-Wa,-defsym,MIOPEN_USE_FP16=" +
-                            std::to_string(static_cast<int>(bfp16parm)) +
-                            " -Wa,-defsym,MIOPEN_USE_FP32=" +
-                            std::to_string(static_cast<int>(bfp32parm)) +
-                            " -Wa,-defsym,MIOPEN_USE_FPMIX=" +
-                            std::to_string(static_cast<int>(bfpmixparm)) +
-                            " -Wa,-defsym,MIO_SAVE_MEAN_VARIANCE=" +
-                            std::to_string(static_cast<int>(resultsave)) +
-                            " -Wa,-defsym,MIO_RUNNING_RESULT=" +
-                            std::to_string(static_cast<int>(resultrunning)) +
+                    // clang-format off
+                    parms = " -Wa,-defsym,ROCM_METADATA_VERSION=4"
+                            " -Wa,-defsym,MIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
+                            " -Wa,-defsym,MIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                            " -Wa,-defsym,MIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
+                            " -Wa,-defsym,MIO_SAVE_MEAN_VARIANCE=" + std::to_string(static_cast<int>(resultsave)) +
+                            " -Wa,-defsym,MIO_RUNNING_RESULT=" + std::to_string(static_cast<int>(resultrunning)) +
                             " -Wa,-defsym,MIO_BN_N=" + std::to_string(n) +
                             " -Wa,-defsym,MIO_BN_C=" + std::to_string(c) +
                             " -Wa,-defsym,MIO_BN_HW=" + std::to_string(in_cstride) +
@@ -461,7 +488,7 @@ void BatchNormForwardTraining(Handle& handle,
                             " -Wa,-defsym,MIO_BN_VARIANT=" + std::to_string(variant) +
                             " -Wa,-defsym,MIO_BN_GRP0=" + std::to_string(xlocalsize) +
                             " -Wa,-defsym,MIO_BN_GRP1=" + std::to_string(ylocalsize) +
-                            " -Wa,-defsym,MIO_BN_GRP2=" + std::to_string(zlocalsize);
+                            " -Wa,-defsym,MIO_BN_GRP2=" + std::to_string(zlocalsize); // clang-format on
                 }
                 else
                 {
@@ -907,6 +934,8 @@ void BatchNormBackward(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
+    static const auto ctx = GetContext(handle);
+
     std::vector<size_t> vld;
     std::vector<size_t> vgd;
 
@@ -960,7 +989,7 @@ void BatchNormBackward(Handle& handle,
         // N*H*W < 32M and H*W > 1024, use batchnorm variant#1 implementation which parallelize
         // work groups over channels and loop through NHW.
         //*************************************************************************************************
-        if(in_nhw < (32 * 1024 * 1024) && in_cstride > 1024)
+        if((in_nhw < (32 * 1024 * 1024) && in_cstride > 1024) || (n > 768))
         {
             variant    = 1;
             xlocalsize = 1024;
@@ -1020,6 +1049,14 @@ void BatchNormBackward(Handle& handle,
             ldsgcn       = ylocalsize / 64;
             ldsnogcn     = ylocalsize;
         }
+        if((in_cstride < 200) && (in_cstride > 60) && bfpmixparm)
+        {
+            variant    = 1;
+            xlocalsize = 1024;
+            xgridsize  = c * xlocalsize;
+            ldsgcn     = xlocalsize / 64;
+            ldsnogcn   = xlocalsize;
+        }
         std::string algo_name = "miopenBatchNormBackwardPropSpatial";
         std::string network_config =
             "variant" + std::to_string(variant) + "gx" + std::to_string(xgridsize) + "n" +
@@ -1064,9 +1101,10 @@ void BatchNormBackward(Handle& handle,
                 std::string program_name;
                 std::string parms;
 
-                if((n > 64) && (n % 2 == 0) && (variant == 3) && (bfpmixparm) && (useSaved))
+                if((n > 64) && (n % 2 == 0) && (variant == 3) && (bfpmixparm) && (useSaved) &&
+                   ctx.use_asm_kernels && ctx.rmv.IsV2())
                 {
-                    kernel_name  = "gcnAsmBNBwdTrainSpatial";
+                    kernel_name  = "miopenGcnAsmBNBwdTrainSpatial";
                     program_name = "gcnAsmBNBwdTrainSpatial.s";
 
                     union nhw_val
@@ -1081,15 +1119,14 @@ void BatchNormBackward(Handle& handle,
                     } NHW_value;
                     NHW_value.f32 = static_cast<float>(in_nhw);
 
-                    parms = "-Wa,-defsym,MIOPEN_USE_FP16=" +
-                            std::to_string(static_cast<int>(bfp16parm)) +
-                            " -Wa,-defsym,MIOPEN_USE_FP32=" +
-                            std::to_string(static_cast<int>(bfp32parm)) +
-                            " -Wa,-defsym,MIOPEN_USE_FPMIX=" +
-                            std::to_string(static_cast<int>(bfpmixparm)) +
-                            " -Wa,-defsym,MIO_BN_USESAVED=" +
-                            std::to_string(static_cast<int>(useSaved)) + " -Wa,-defsym,MIO_BN_N=" +
-                            std::to_string(n) + " -Wa,-defsym,MIO_BN_C=" + std::to_string(c) +
+                    // clang-format off
+                    parms = " -Wa,-defsym,ROCM_METADATA_VERSION=4"
+                            " -Wa,-defsym,MIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
+                            " -Wa,-defsym,MIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                            " -Wa,-defsym,MIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
+                            " -Wa,-defsym,MIO_BN_USESAVED=" + std::to_string(static_cast<int>(useSaved)) +
+                            " -Wa,-defsym,MIO_BN_N=" + std::to_string(n) +
+                            " -Wa,-defsym,MIO_BN_C=" + std::to_string(c) +
                             " -Wa,-defsym,MIO_BN_HW=" + std::to_string(in_cstride) +
                             " -Wa,-defsym,MIO_BN_NHW=" + std::to_string(in_nhw) +
                             " -Wa,-defsym,MIO_BN_NHW_FLOAT=" + std::to_string(NHW_value.u32) +
@@ -1100,7 +1137,7 @@ void BatchNormBackward(Handle& handle,
                             " -Wa,-defsym,MIO_BN_VARIANT=" + std::to_string(variant) +
                             " -Wa,-defsym,MIO_BN_GRP0=" + std::to_string(xlocalsize) +
                             " -Wa,-defsym,MIO_BN_GRP1=" + std::to_string(ylocalsize) +
-                            " -Wa,-defsym,MIO_BN_GRP2=" + std::to_string(zlocalsize);
+                            " -Wa,-defsym,MIO_BN_GRP2=" + std::to_string(zlocalsize); // clang-format on
                 }
                 else
                 {

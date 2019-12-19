@@ -30,6 +30,7 @@
 #include <miopen/miopen.h>
 #include <miopen/fusion_ops.hpp>
 #include <miopen/fusion.hpp>
+#include <miopen/any_solver.hpp>
 
 #include <unordered_map>
 

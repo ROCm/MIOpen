@@ -45,6 +45,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <string>
+#include <vector>
 
 namespace miopen {
 
@@ -53,21 +54,6 @@ struct RecordPositions
     std::streamoff begin = -1;
     std::streamoff end   = -1;
 };
-
-std::string LockFilePath(const boost::filesystem::path& filename_)
-{
-    const auto directory = boost::filesystem::temp_directory_path() / "miopen-lockfiles";
-
-    if(!exists(directory))
-    {
-        boost::filesystem::create_directories(directory);
-        boost::filesystem::permissions(directory, boost::filesystem::all_all);
-    }
-    const auto hash = md5(filename_.parent_path().string());
-    const auto file = directory / (hash + "_" + filename_.filename().string() + ".lock");
-
-    return file.string();
-}
 
 Db::Db(const std::string& filename_, bool is_system)
     : filename(filename_),
@@ -227,16 +213,17 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
 
 static void Copy(std::istream& from, std::ostream& to, std::streamoff count)
 {
-    constexpr auto buffer_size = 4 * 1024 * 1024;
-    char buffer[buffer_size];
-    auto left = count;
+    constexpr auto buffer_size_limit = 4 * 1024 * 1024;
+    const auto buffer_size           = std::min<std::streamoff>(buffer_size_limit, count);
+    auto buffer                      = std::vector<char>(buffer_size, 0);
+    auto left                        = count;
 
     while(left > 0 && !from.eof())
     {
         const auto to_read = std::min<std::streamoff>(left, buffer_size);
-        from.read(buffer, to_read);
+        from.read(buffer.data(), to_read);
         const auto read = from.gcount();
-        to.write(buffer, read);
+        to.write(buffer.data(), read);
         left -= read;
     }
 }

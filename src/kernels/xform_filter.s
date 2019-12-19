@@ -23,9 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+.if ROCM_METADATA_VERSION == 4
 .hsa_code_object_version 2,1
 .hsa_code_object_isa
-
+.endif
 
 xform_filter = 1
 .include "xform_data_filter.inc"

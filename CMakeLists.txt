@@ -23,7 +23,7 @@
 # SOFTWARE.
 #
 ################################################################################
-cmake_minimum_required( VERSION 2.8.12 )
+cmake_minimum_required( VERSION 3.5 )
 
 # This has to be initialized before the project() command appears
 # Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.  MSVC_IDE does not use CMAKE_BUILD_TYPE
@@ -51,15 +51,23 @@ include(ROCMInstallSymlinks)
 include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 
+set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
+if(MIOPEN_ENABLE_SQLITE)
+    # MIOpen now depends on SQLite as well
+    find_package(PkgConfig)
+    pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+endif()
 option( BUILD_DEV "Build for development only" OFF)
 
+# Control Code Object V3 for HIP kernels
+set(MIOPEN_ENABLE_HCC_COV3 Off CACHE BOOL "Enable Code Object V3 for Hip kernels")
 # Strip symbols for release
 if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.1.0)
+rocm_setup_version(VERSION 2.2.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -176,7 +184,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     endif()
 
     # scgemm
-    set(MIOPEN_USE_SCGEMM ON CACHE BOOL "")
+    set(MIOPEN_USE_SCGEMM OFF CACHE BOOL "")
     if(MIOPEN_USE_SCGEMM)
         message(STATUS "Build with scgemm")
     else()
@@ -340,6 +348,7 @@ enable_clang_tidy(
         -readability-magic-numbers
         -readability-named-parameter
         -readability-uppercase-literal-suffix
+        -readability-convert-member-functions-to-static
 
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}

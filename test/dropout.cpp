@@ -209,9 +209,9 @@ void xorwow_lite_init_emu(prngStates* cur_state,
     cur_state->v += t0;
     cur_state->d += t1 + t0;
 
-    xorwow_skipahead_emu(subsequence, cur_state, precalc_xorwow_skipahead_matrices);
+    xorwow_skipahead_emu(subsequence, cur_state, precalc_xorwow_skipahead_sequence_matrices);
 
-    xorwow_skipahead_emu(offset, cur_state, precalc_xorwow_skipahead_sequence_matrices);
+    xorwow_skipahead_emu(offset, cur_state, precalc_xorwow_skipahead_matrices);
     cur_state->d += static_cast<unsigned int>(offset) * 362437;
 }
 
@@ -283,15 +283,18 @@ struct verify_forward_dropout
     size_t in_offset;
     size_t out_offset;
     size_t rsvsp_offset;
+    bool use_rsvsp;
+    typename std::vector<unsigned char>::iterator rsvsp_ptr;
 
     verify_forward_dropout(const miopen::DropoutDescriptor& pDropoutDesc,
                            const miopen::TensorDescriptor& pNoiseShape,
                            const tensor<T>& pinput,
                            const tensor<T>& poutput,
-                           const std::vector<unsigned char>& prsvsp,
+                           std::vector<unsigned char>& prsvsp,
                            size_t pin_offset,
                            size_t pout_offset,
-                           size_t prsvsp_offset)
+                           size_t prsvsp_offset,
+                           bool puse_rsvsp = true)
     {
         DropoutDesc  = pDropoutDesc;
         noise_shape  = pNoiseShape;
@@ -301,9 +304,11 @@ struct verify_forward_dropout
         in_offset    = pin_offset;
         out_offset   = pout_offset;
         rsvsp_offset = prsvsp_offset;
+        use_rsvsp    = puse_rsvsp;
+        rsvsp_ptr    = prsvsp.begin();
     }
 
-    std::tuple<tensor<T>, std::vector<unsigned char>> cpu() const
+    tensor<T> cpu() const
     {
         auto states_cpu = std::vector<prngStates>(DropoutDesc.stateSizeInBytes);
         InitKernelStateEmulator(states_cpu, DropoutDesc);
@@ -358,10 +363,10 @@ struct verify_forward_dropout
                                               : T(0);
                         }
 
-        return std::make_tuple(out_cpu, rsvsp_cpu);
+        return out_cpu;
     }
 
-    std::tuple<tensor<T>, std::vector<unsigned char>> gpu() const
+    tensor<T> gpu() const
     {
         auto&& handle  = get_handle();
         auto out_gpu   = output;
@@ -375,7 +380,7 @@ struct verify_forward_dropout
                                    in_dev.get(),
                                    output.desc,
                                    out_dev.get(),
-                                   rsvsp_dev.get(),
+                                   use_rsvsp ? rsvsp_dev.get() : nullptr,
                                    rsvsp.size(),
                                    in_offset,
                                    out_offset,
@@ -384,7 +389,8 @@ struct verify_forward_dropout
         out_gpu.data   = handle.Read<T>(out_dev, output.data.size());
         auto rsvsp_gpu = handle.Read<unsigned char>(rsvsp_dev, rsvsp.size());
 
-        return std::make_tuple(out_gpu, rsvsp_gpu);
+        std::copy(rsvsp_gpu.begin(), rsvsp_gpu.end(), rsvsp_ptr);
+        return out_gpu;
     }
 
     void fail(int badtensor) const
@@ -411,6 +417,7 @@ struct verify_backward_dropout
     size_t in_offset;
     size_t out_offset;
     size_t rsvsp_offset;
+    bool use_rsvsp;
 
     verify_backward_dropout(const miopen::DropoutDescriptor& pDropoutDesc,
                             const tensor<T>& pdin,
@@ -418,7 +425,8 @@ struct verify_backward_dropout
                             const std::vector<unsigned char>& prsvsp,
                             size_t pin_offset,
                             size_t pout_offset,
-                            size_t prsvsp_offset)
+                            size_t prsvsp_offset,
+                            bool puse_rsvsp = true)
     {
         DropoutDesc  = pDropoutDesc;
         din          = pdin;
@@ -427,6 +435,7 @@ struct verify_backward_dropout
         in_offset    = pin_offset;
         out_offset   = pout_offset;
         rsvsp_offset = prsvsp_offset;
+        use_rsvsp    = puse_rsvsp;
     }
 
     tensor<T> cpu() const
@@ -481,7 +490,7 @@ struct verify_backward_dropout
                                     dout_dev.get(),
                                     din.desc,
                                     din_dev.get(),
-                                    rsvsp_dev.get(),
+                                    use_rsvsp ? rsvsp_dev.get() : nullptr,
                                     rsvsp.size(),
                                     in_offset,
                                     out_offset,
@@ -607,13 +616,18 @@ struct dropout_driver : test_driver
 #endif
 
         auto out = tensor<T>{in_dim};
-        auto fwd_outcome =
-            verify(verify_forward_dropout<T>{DropoutDesc, in.desc, in, out, reserveSpace, 0, 0, 0});
-        auto reserveSpace_bwd = std::get<1>(fwd_outcome.second);
+        verify(verify_forward_dropout<T>{DropoutDesc, in.desc, in, out, reserveSpace, 0, 0, 0});
 
         auto dout = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{max_value});
         auto din  = tensor<T>{in_dim};
-        verify(verify_backward_dropout<T>{DropoutDesc, din, dout, reserveSpace_bwd, 0, 0, 0});
+        verify(verify_backward_dropout<T>{DropoutDesc, din, dout, reserveSpace, 0, 0, 0});
+        if(!mask)
+        {
+            verify(verify_forward_dropout<T>{
+                DropoutDesc, in.desc, in, out, reserveSpace, 0, 0, 0, false});
+            verify(
+                verify_backward_dropout<T>{DropoutDesc, din, dout, reserveSpace, 0, 0, 0, false});
+        }
     }
 };
 

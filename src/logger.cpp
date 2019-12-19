@@ -60,15 +60,32 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_ELAPSED_TIME)
 /// See LoggingLevel in the header.
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_LOG_LEVEL)
 
+namespace debug {
+
+bool LoggingQuiet = false;
+
+} // namespace debug
+
+/// Disable logging quieting.
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_LOGGING_QUIETING_DISABLE)
+
 namespace {
 
 inline bool operator!=(const int& lhs, const LoggingLevel& rhs)
 {
     return lhs != static_cast<int>(rhs);
 }
+inline bool operator==(const int& lhs, const LoggingLevel& rhs)
+{
+    return lhs == static_cast<int>(rhs);
+}
 inline bool operator>=(const int& lhs, const LoggingLevel& rhs)
 {
     return lhs >= static_cast<int>(rhs);
+}
+inline bool operator>(const int& lhs, const LoggingLevel& rhs)
+{
+    return lhs > static_cast<int>(rhs);
 }
 
 /// Returns value which uniquiely identifies current process/thread
@@ -95,11 +112,25 @@ inline float GetTimeDiff()
 
 } // namespace
 
-bool IsLoggingFunctionCalls() { return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING{}); }
-
-bool IsLogging(const LoggingLevel level)
+bool IsLoggingDebugQuiet()
 {
-    const auto enabled_level = miopen::Value(MIOPEN_LOG_LEVEL{});
+    return debug::LoggingQuiet && !miopen::IsEnabled(MIOPEN_DEBUG_LOGGING_QUIETING_DISABLE{});
+}
+
+bool IsLoggingFunctionCalls()
+{
+    return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING{}) && !IsLoggingDebugQuiet();
+}
+
+bool IsLogging(const LoggingLevel level, const bool disableQuieting)
+{
+    auto enabled_level = miopen::Value(MIOPEN_LOG_LEVEL{});
+    if(IsLoggingDebugQuiet() && !disableQuieting)
+    {
+        // Disable all levels higher than fatal.
+        if(enabled_level > LoggingLevel::DebugQuietMax || enabled_level == LoggingLevel::Default)
+            enabled_level = static_cast<int>(LoggingLevel::DebugQuietMax);
+    }
     if(enabled_level != LoggingLevel::Default)
         return enabled_level >= level;
 #ifdef NDEBUG // Simplest way.
@@ -132,7 +163,10 @@ const char* LoggingLevelToCString(const LoggingLevel level)
     else
         return "<Unknown>";
 }
-bool IsLoggingCmd() { return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING_CMD{}); }
+bool IsLoggingCmd()
+{
+    return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING_CMD{}) && !IsLoggingDebugQuiet();
+}
 
 std::string LoggingPrefix()
 {

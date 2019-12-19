@@ -30,8 +30,10 @@
 #include <miopen/tmp_dir.hpp>
 #include <miopen/write_file.hpp>
 #include <boost/optional.hpp>
+#include <string>
 
 namespace miopen {
+
 boost::filesystem::path HipBuild(boost::optional<miopen::TmpDir>& tmp_dir,
                                  const std::string& filename,
                                  std::string src,
@@ -39,6 +41,17 @@ boost::filesystem::path HipBuild(boost::optional<miopen::TmpDir>& tmp_dir,
                                  const std::string& dev_name);
 
 void bin_file_to_str(const boost::filesystem::path& file, std::string& buf);
+
+struct external_tool_version_t
+{
+    int major = -1;
+    int minor = -1;
+    int patch = -1;
+    bool operator>=(const external_tool_version_t& rhs) const;
+};
+
+external_tool_version_t HipGetHccVersion();
+
 } // namespace miopen
 
 #endif

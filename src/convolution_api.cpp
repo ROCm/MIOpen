@@ -66,18 +66,20 @@ extern "C" miopenStatus_t miopenInitConvolutionNdDescriptor(miopenConvolutionDes
                                                             int* dilationA,
                                                             miopenConvolutionMode_t c_mode)
 {
-    MIOPEN_LOG_FUNCTION(convDesc, spatialDim, padA, strideA, dilationA, c_mode);
+    auto pads      = std::vector<int>(padA, padA + spatialDim);
+    auto strides   = std::vector<int>(strideA, strideA + spatialDim);
+    auto dilations = std::vector<int>(dilationA, dilationA + spatialDim);
+    MIOPEN_LOG_FUNCTION(convDesc, spatialDim, pads, strides, dilations, c_mode);
     return miopen::try_([&] {
-        miopen::deref(convDesc) =
-            miopen::ConvolutionDescriptor(spatialDim,
-                                          c_mode,
-                                          miopenPaddingDefault,
-                                          std::vector<int>(padA, padA + spatialDim),
-                                          std::vector<int>(strideA, strideA + spatialDim),
-                                          std::vector<int>(dilationA, dilationA + spatialDim),
-                                          std::vector<int>(spatialDim, 0),
-                                          1,
-                                          1.0);
+        miopen::deref(convDesc) = miopen::ConvolutionDescriptor(spatialDim,
+                                                                c_mode,
+                                                                miopenPaddingDefault,
+                                                                pads,
+                                                                strides,
+                                                                dilations,
+                                                                std::vector<int>(spatialDim, 0),
+                                                                1,
+                                                                1.0);
     });
 }
 
@@ -106,7 +108,11 @@ miopenSetTransposeConvOutputPadding(miopenConvolutionDescriptor_t convDesc, int 
 extern "C" miopenStatus_t miopenSetTransposeConvNdOutputPadding(
     miopenConvolutionDescriptor_t convDesc, int spatialDim, int* adjA)
 {
-    MIOPEN_LOG_FUNCTION(convDesc, spatialDim, adjA);
+    if(miopen::IsLoggingFunctionCalls())
+    {
+        const miopen::logger::CArray<int, int> adj(adjA, spatialDim);
+        MIOPEN_LOG_FUNCTION(convDesc, spatialDim, adj.values);
+    }
     return miopen::try_([&] {
         if(spatialDim != miopen::deref(convDesc).GetSpatialDimension())
         {

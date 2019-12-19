@@ -32,7 +32,8 @@
 #include <miopen/mlo_utils.hpp>
 #include <algorithm>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_OCL_WRW2_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2)
 
 namespace miopen {
 namespace solver {
@@ -167,7 +168,7 @@ template <int N_BATCH_LOOPS>
 bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::SetNextValue()
 {
     // Increment with wrap-around:
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_OCL_WRW2_SEARCH_OPTIMIZED{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2_SEARCH_OPTIMIZED{}))
     {
         do
         {
@@ -462,6 +463,10 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsValidPerformanceConfig(
 template <int N_BATCH_LOOPS>
 bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& params) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2{}))
+        return false;
+    if(!params.use_opencl_convolutions)
+        return false;
     if(!params.Is2d())
         return false;
     if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
@@ -772,8 +777,9 @@ int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolutionImpl(miopen::Handle& pro
         elapsed_time = profile_h.GetKernelTime();
     }
 #ifdef NDEBUG
-    catch(miopen::Exception&)
+    catch(miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return -1;
     }
 #endif

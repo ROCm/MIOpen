@@ -29,6 +29,7 @@
 #include <miopen/solver.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/temp_file.hpp>
+#include <miopen/find_solution.hpp>
 
 #include <cstdlib>
 #include <functional>
@@ -40,26 +41,6 @@
 
 namespace miopen {
 namespace tests {
-class TrivialSlowTestSolver : public solver::SolverBase<ConvolutionContext>
-{
-    public:
-    static const char* FileName() { return "TrivialSlowTestSolver"; }
-    bool IsFast(const ConvolutionContext& context) const { return context.in_height == 1; }
-    bool IsApplicable(const ConvolutionContext& context) const { return context.in_width == 1; }
-
-    solver::ConvSolution GetSolution(const ConvolutionContext&) const
-    {
-        solver::ConvSolution ret;
-        solver::KernelInfo kernel;
-
-        kernel.kernel_file  = FileName();
-        kernel.comp_options = " ";
-        ret.construction_params.push_back(kernel);
-
-        return ret;
-    }
-};
-
 class TrivialTestSolver : public solver::SolverBase<ConvolutionContext>
 {
     public:
@@ -141,10 +122,9 @@ static solver::ConvSolution FindSolution(const ConvolutionContext& ctx, const st
 {
     Db db(db_path);
 
-    const auto solvers =
-        solver::SolverContainer<TrivialSlowTestSolver, TrivialTestSolver, SearchableTestSolver>{};
+    const auto solvers = solver::SolverContainer<TrivialTestSolver, SearchableTestSolver>{};
 
-    return solvers.SearchForSolution(ctx, db);
+    return solvers.SearchForAllSolutions(ctx, db, 1).front();
 }
 
 class SolverTest
@@ -153,8 +133,6 @@ class SolverTest
     void Run() const
     {
         const TempFile db_path("miopen.tests.solver");
-
-        ConstructTest(db_path, TrivialSlowTestSolver::FileName(), {0, 0, 1, 1});
 
         ConstructTest(db_path, TrivialTestSolver::FileName(), {0, 0, 0, 1});
 

@@ -135,7 +135,11 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     gcn_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
 #endif
 
-    variance               = mad(-mean, mean, variance);
+    variance = mad(-mean, mean, variance);
+    if(variance < 0)
+    {
+        variance = 0;
+    }
     invVariance            = rsqrt(variance + epsilon);
 #endif // end -- Recalc mean and variance
     //-------------------------------------------
@@ -289,8 +293,13 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     _FLOAT_PREC variance = (_FLOAT_PREC)0.;
 #if(MIO_BN_HW >= 4096)
     _FLOAT4 read4;
+#if(MIO_BN_N > MIO_BN_LOOP_UNROLL_MAXN)
+    __attribute__((opencl_unroll_hint(4))) for(unsigned int k = lid << 2; k < MIO_BN_LESS4;
+                                               k += GRPRD)
+#else
     __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid << 2; k < MIO_BN_LESS4;
                                                k += GRPRD)
+#endif
     {
         nidx  = k / MIO_BN_HW;
         hwidx = k - (nidx * MIO_BN_HW);
@@ -328,7 +337,12 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     }
 #endif
 #else
+#if(MIO_BN_N > MIO_BN_LOOP_UNROLL_MAXN)
+    __attribute__((opencl_unroll_hint(4))) for(unsigned int k = lid; k < MIO_BN_LESS;
+                                               k += MIO_BN_GRP0)
+#else
     for(unsigned int k = lid; k < MIO_BN_LESS; k += MIO_BN_GRP0)
+#endif
     {
         nidx           = k / MIO_BN_HW;
         hwidx          = k - (nidx * MIO_BN_HW);
@@ -364,7 +378,11 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #endif
 
     // REDUCTION COMPLETE ---------------------------
-    variance    = mad(-mean, mean, variance);
+    variance = mad(-mean, mean, variance);
+    if(variance < 0)
+    {
+        variance = 0;
+    }
     invVariance = rsqrt(variance + epsilon);
 
 #else // MIO_BN_USESAVED == 1
@@ -377,8 +395,13 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     _FLOAT4 dyRead4;
     _FLOAT4 xread4;
     _FLOAT_PREC4 xhat4;
+#if(MIO_BN_N > MIO_BN_LOOP_UNROLL_MAXN)
+    __attribute__((opencl_unroll_hint(4))) for(unsigned int k = lid << 2; k < MIO_BN_LESS4;
+                                               k += GRPRD)
+#else
     __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid << 2; k < MIO_BN_LESS4;
                                                k += GRPRD)
+#endif
     {
         nidx    = k / MIO_BN_HW;
         hwidx   = k - (nidx * MIO_BN_HW);
@@ -452,9 +475,17 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     }
 
     _FLOAT_PREC vals[MIO_MAX_READ];
+#if(MIO_BN_N > MIO_BN_LOOP_UNROLL_MAXN)
+    __attribute__((opencl_unroll_hint(4))) for(unsigned int k = (MIO_MAX_READ * lid);
+                                               k < MIO_BN_LESSOUT;
+                                               k += MIO_BN_CHUNK)
+    {
+        __attribute__((opencl_unroll_hint(4))) for(unsigned int j = 0; j < MIO_MAX_READ; j++)
+#else
     for(unsigned int k = (MIO_MAX_READ * lid); k < MIO_BN_LESSOUT; k += MIO_BN_CHUNK)
     {
         for(unsigned int j = 0; j < MIO_MAX_READ; j++)
+#endif
         {
             unsigned int l = k + j;
             nidx           = l / MIO_BN_HW;
@@ -468,13 +499,17 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             float temp_vals = (float)tmp3 * (temp_tmp2 + temp_tmp1);
             vals[j]         = (_FLOAT_PREC)temp_vals;
 #else
-            tmp1          = mad(NHW, dyvalue, -db);
-            tmp2          = -xhat * ds;
-            vals[j]       = tmp3 * (tmp2 + tmp1);
+            tmp1    = mad(NHW, dyvalue, -db);
+            tmp2    = -xhat * ds;
+            vals[j] = tmp3 * (tmp2 + tmp1);
 #endif
         }
         barrier(CLK_GLOBAL_MEM_FENCE);
+#if(MIO_BN_N > MIO_BN_LOOP_UNROLL_MAXN)
+        __attribute__((opencl_unroll_hint(4))) for(unsigned int j = 0; j < MIO_MAX_READ; j++)
+#else
         for(unsigned int j = 0; j < MIO_MAX_READ; j++)
+#endif
         {
             unsigned int l    = k + j;
             nidx              = l / MIO_BN_HW;
@@ -486,7 +521,11 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 #if(MIO_BN_REMOUT)
     unsigned int remkeyout = (MIO_MAX_READ * lid) + MIO_BN_LESSOUT;
+#if(MIO_BN_N > MIO_BN_LOOP_UNROLL_MAXN)
+    __attribute__((opencl_unroll_hint(4))) for(unsigned int j = 0; j < MIO_MAX_READ; j++)
+#else
     for(unsigned int j = 0; j < MIO_MAX_READ; j++)
+#endif
     {
         unsigned int l = remkeyout + j;
         nidx           = l / MIO_BN_HW;
@@ -502,7 +541,11 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         }
     }
     barrier(CLK_GLOBAL_MEM_FENCE);
+#if(MIO_BN_N > MIO_BN_LOOP_UNROLL_MAXN)
+    __attribute__((opencl_unroll_hint(4))) for(unsigned int j = 0; j < MIO_MAX_READ; j++)
+#else
     for(unsigned int j = 0; j < MIO_MAX_READ; j++)
+#endif
     {
         unsigned int l = remkeyout + j;
         nidx           = l / MIO_BN_HW;
@@ -562,7 +605,11 @@ MIOpenBatchNormBwdSpatialFinalMeanVariance(__global _FLOAT* __restrict meanvarbu
 #endif
 
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
-    variance    = mad(-mean, mean, variance);
+    variance = mad(-mean, mean, variance);
+    if(variance < 0)
+    {
+        variance = 0;
+    }
     invVariance = rsqrt(variance + epsilon);
     if(lid == commitID)
     {
@@ -915,7 +962,11 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #endif
 
     // REDUCTION COMPLETE -----------------------
-    variance    = mad(-mean, mean, variance);
+    variance = mad(-mean, mean, variance);
+    if(variance < 0)
+    {
+        variance = 0;
+    }
     invVariance = rsqrt(variance + epsilon);
 
 // RECALC of MEAN and VARIANCE complete

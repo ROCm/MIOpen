@@ -2,330 +2,81 @@
 #define CK_THREADWISE_GENERIC_TENSOR_SLICE_COPY_HPP
 
 #include "common_header.hpp"
-#include "ConstantTensorDescriptor.hpp"
-#include "ConstantMergedTensorDescriptor.hpp"
-#include "float_types.h"
-
-#ifndef CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1R1
-#define CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1R1 0
-#endif
-
-#ifndef CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1R2
-#define CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1R2 0
-#endif
-
-#ifndef CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1
-#define CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1 0
-#endif
+#include "tensor_descriptor.hpp"
+#include "tensor_descriptor_helper.hpp"
+#include "tensor_coordinate.hpp"
 
 namespace ck {
 
-// This threadwise copy allow vector access of src and dst.
-// It allows the dimensions of vector access to be different on src and dst.
-// It also allows the vector size to be different on src and dst.
-// It also allows order of access to be different on src and dst.
-// It use register as buffer to hold all data moving from src to dst.
-// It is designed for copying small amount of data, and src and dst are
-// device memory or LDS.
-// When copying large amout of data, let's hope compiler will reduce register
-// used for the buffer.
-template <class SrcDesc,
-          class DstDesc,
-          class SliceLengths,
-          class SrcDimAccessOrder,
-          class DstDimAccessOrder,
-          index_t SrcVectorAccessDim,
-          index_t DstVectorAccessDim,
-          index_t SrcDataPerAccess,
-          index_t DstDataPerAccess>
-struct ThreadwiseGenericTensorSliceCopy_v1r1
-{
-    static constexpr index_t nDim = SliceLengths::GetSize();
-
-    __device__ constexpr ThreadwiseGenericTensorSliceCopy_v1r1(
-        Array<index_t, nDim> src_slice_origin, Array<index_t, nDim> dst_slice_origin)
-        : mSrcSliceOrigin(src_slice_origin), mDstSliceOrigin(dst_slice_origin)
-    {
-        static_assert(nDim == SrcDesc::GetNumOfDimension() &&
-                          nDim == DstDesc::GetNumOfDimension() && nDim == SliceLengths::GetSize() &&
-                          nDim == SrcDimAccessOrder::GetSize() &&
-                          nDim == DstDimAccessOrder::GetSize(),
-                      "wrong! # of dimensions not the same");
-
-        static_assert(is_valid_sequence_map<SrcDimAccessOrder>::value &&
-                          is_valid_sequence_map<DstDimAccessOrder>::value,
-                      "wrong! map is not valid");
-
-        static_assert(SliceLengths{}[SrcVectorAccessDim] % SrcDataPerAccess == 0 &&
-                          SliceLengths{}[DstVectorAccessDim] % DstDataPerAccess == 0,
-                      "wrong! cannot evenly divide");
-
-        // check vectorized memory access
-        constexpr auto src_vector_access_dim = Number<SrcVectorAccessDim>{};
-        constexpr auto dst_vector_access_dim = Number<DstVectorAccessDim>{};
-
-        static_if<!SrcDesc::ContainMultipleOriginalDimensions(src_vector_access_dim)>{}(
-            [&](auto fwd) {
-                static_assert(
-                    (fwd(SrcDesc{}).GetStride(src_vector_access_dim) == 1 || SrcDataPerAccess == 1),
-                    "wrong! vectorized access is allowed only if stride == 1");
-            })
-            .Else([&](auto fwd) {
-                static_assert(
-                    (fwd(SrcDesc{}).GetLastOriginalDimensionStride(src_vector_access_dim) == 1 ||
-                     SrcDataPerAccess == 1),
-                    "wrong! vectorized access is allowed only if stride == 1");
-            });
-
-        static_if<!DstDesc::ContainMultipleOriginalDimensions(dst_vector_access_dim)>{}(
-            [&](auto fwd) {
-                static_assert(
-                    (fwd(DstDesc{}).GetStride(dst_vector_access_dim) == 1 || DstDataPerAccess == 1),
-                    "wrong! vectorized access is allowed only if stride == 1");
-            })
-            .Else([&](auto fwd) {
-                static_assert(
-                    (fwd(DstDesc{}).GetLastOriginalDimensionStride(dst_vector_access_dim) == 1 ||
-                     DstDataPerAccess == 1),
-                    "wrong! vectorized access is allowed only if stride == 1");
-            });
-    }
-
-    __device__ constexpr ThreadwiseGenericTensorSliceCopy_v1r1()
-        : ThreadwiseGenericTensorSliceCopy_v1r1(make_zero_array<index_t, nDim>(),
-                                                make_zero_array<index_t, nDim>())
-    {
-    }
-
-    __device__ void SetSrcSliceOrigin(Array<index_t, nDim> src_slice_origin)
-    {
-        mSrcSliceOrigin = src_slice_origin;
-    }
-
-    __device__ void SetDstSliceOrigin(Array<index_t, nDim> dst_slice_origin)
-    {
-        mDstSliceOrigin = dst_slice_origin;
-    }
-
-    template <class TData>
-    __device__ void Run(const TData* p_src, TData* p_dst) const
-    {
-        constexpr auto buffer_desc = make_ConstantTensorDescriptor_packed(SliceLengths{});
-
-        TData p_buffer_[buffer_desc.GetElementSpace()];
-        TData* p_buffer = p_buffer_;
-
-        // copy data from src into buffer
-        {
-            using vector_t = typename vector_type<TData, SrcDataPerAccess>::MemoryType;
-
-            constexpr auto src_vector_access_dim = Number<SrcVectorAccessDim>{};
-            constexpr auto src_data_per_access   = Number<SrcDataPerAccess>{};
-
-            constexpr auto src_access_lengths = SliceLengths::Modify(
-                src_vector_access_dim,
-                SliceLengths::Get(src_vector_access_dim) / src_data_per_access);
-
-#if CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1R1
-            static_ford<decltype(src_access_lengths), SrcDimAccessOrder>{}([&](auto src_access_id) {
-                constexpr auto src_data_begin_id = src_access_id.Modify(
-                    src_vector_access_dim,
-                    src_access_id[src_vector_access_dim] * src_data_per_access);
-
-                const index_t src_offset =
-                    SrcDesc::GetOffsetFromMultiIndex(mSrcSliceOrigin + src_data_begin_id);
-
-                // load vector from src
-                const vector_t vector_data = *reinterpret_cast<const vector_t*>(&p_src[src_offset]);
-
-                // unpack vector into buffer
-                static_for<0, SrcDataPerAccess, 1>{}([&](auto i) {
-                    constexpr auto scalar_id =
-                        typename uniform_sequence_gen<nDim, 0>::type{}.Modify(src_vector_access_dim,
-                                                                              i);
-
-                    constexpr index_t buffer_offset =
-                        buffer_desc.GetOffsetFromMultiIndex(src_data_begin_id + scalar_id);
-
-                    p_buffer[buffer_offset] = reinterpret_cast<const TData*>(&vector_data)[i];
-                });
-            });
-#else
-            ford<decltype(src_access_lengths), SrcDimAccessOrder>{}([&](auto src_access_id) {
-                auto src_data_begin_id = src_access_id;
-                src_data_begin_id(src_vector_access_dim) =
-                    src_access_id[src_vector_access_dim] * src_data_per_access;
-
-                const index_t src_offset =
-                    SrcDesc::GetOffsetFromMultiIndex(mSrcSliceOrigin + src_data_begin_id);
-
-                // load vector from src
-                const vector_t vector_data = *reinterpret_cast<const vector_t*>(&p_src[src_offset]);
-
-                // unpack vector into buffer
-                for(index_t i = 0; i < SrcDataPerAccess; ++i)
-                {
-                    auto scalar_id                   = make_zero_array<index_t, nDim>();
-                    scalar_id(src_vector_access_dim) = i;
-
-                    const index_t buffer_offset =
-                        buffer_desc.GetOffsetFromMultiIndex(src_data_begin_id + scalar_id);
-
-                    p_buffer[buffer_offset] = reinterpret_cast<const TData*>(&vector_data)[i];
-                }
-            });
-#endif
-        }
-
-        // copy data from buffer to dst
-        {
-            using vector_t = typename vector_type<TData, DstDataPerAccess>::MemoryType;
-
-            constexpr auto dst_vector_access_dim = Number<DstVectorAccessDim>{};
-            constexpr auto dst_data_per_access   = Number<DstDataPerAccess>{};
-
-            constexpr auto dst_access_lengths = SliceLengths::Modify(
-                dst_vector_access_dim,
-                SliceLengths::Get(dst_vector_access_dim) / dst_data_per_access);
-
-#if CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1R1
-            static_ford<decltype(dst_access_lengths), DstDimAccessOrder>{}([&](auto dst_access_id) {
-                constexpr auto dst_data_begin_id = dst_access_id.Modify(
-                    dst_vector_access_dim,
-                    dst_access_id[dst_vector_access_dim] * dst_data_per_access);
-
-                vector_t vector_data;
-
-                // pack vector from buffer
-                static_for<0, DstDataPerAccess, 1>{}([&](auto i) {
-                    constexpr auto scalar_id =
-                        typename uniform_sequence_gen<nDim, 0>::type{}.Modify(dst_vector_access_dim,
-                                                                              i);
-
-                    constexpr index_t buffer_offset =
-                        buffer_desc.GetOffsetFromMultiIndex(dst_data_begin_id + scalar_id);
-
-                    reinterpret_cast<TData*>(&vector_data)[i] = p_buffer[buffer_offset];
-                });
-
-                const index_t dst_offset =
-                    DstDesc::GetOffsetFromMultiIndex(mDstSliceOrigin + dst_data_begin_id);
-
-                // store vector into dst
-                *reinterpret_cast<vector_t*>(&p_dst[dst_offset]) = vector_data;
-            });
-#else
-            ford<decltype(dst_access_lengths), DstDimAccessOrder>{}([&](auto dst_access_id) {
-                auto dst_data_begin_id = dst_access_id;
-                dst_data_begin_id(dst_vector_access_dim) =
-                    dst_access_id[dst_vector_access_dim] * dst_data_per_access;
-
-                vector_t vector_data;
-
-                // pack vector from buffer
-                for(index_t i = 0; i < DstDataPerAccess; ++i)
-                {
-                    auto scalar_id                   = make_zero_array<index_t, nDim>();
-                    scalar_id(dst_vector_access_dim) = i;
-
-                    const index_t buffer_offset =
-                        buffer_desc.GetOffsetFromMultiIndex(dst_data_begin_id + scalar_id);
-
-                    reinterpret_cast<TData*>(&vector_data)[i] = p_buffer[buffer_offset];
-                }
-
-                const index_t dst_offset =
-                    DstDesc::GetOffsetFromMultiIndex(mDstSliceOrigin + dst_data_begin_id);
-
-                // store vector into dst
-                *reinterpret_cast<vector_t*>(&p_dst[dst_offset]) = vector_data;
-            });
-#endif
-        }
-    }
-
-    private:
-    Array<index_t, nDim> mSrcSliceOrigin;
-    Array<index_t, nDim> mDstSliceOrigin;
-};
-
+// This version use multi-index transformation
 // This threadwise copy allow vector access of src and dst.
 // It allows the vector size to be different on src and dst.
 // The dimensions of vector access should be the same on src and dst.
 // The dimension access order should be the same on src and dst.
 // It is designed for cases, where one of src and dst is register, and
 // the other is device memory or LDS
-template <class SrcDesc,
-          class DstDesc,
-          class SliceLengths,
-          class DimAccessOrder,
+template <typename SrcDesc,
+          typename DstDesc,
+          typename SliceLengths,
+          typename DimAccessOrder,
           index_t VectorAccessDim,
           index_t SrcDataPerAccess,
           index_t DstDataPerAccess>
-struct ThreadwiseGenericTensorSliceCopy_v1r2
+struct ThreadwiseGenericTensorSliceCopy_v4r2
 {
-    static constexpr index_t nDim = SliceLengths::GetSize();
+    static constexpr index_t nDim = SliceLengths::Size();
+    using Index                   = MultiIndex<nDim>;
 
-    __device__ constexpr ThreadwiseGenericTensorSliceCopy_v1r2(
-        Array<index_t, nDim> src_slice_origin, Array<index_t, nDim> dst_slice_origin)
+    using SrcCoord = typename TensorCoordinate<SrcDesc>::type;
+    using DstCoord = typename TensorCoordinate<DstDesc>::type;
+
+    __device__ constexpr ThreadwiseGenericTensorSliceCopy_v4r2(const Index& src_slice_origin,
+                                                               const Index& dst_slice_origin)
         : mSrcSliceOrigin(src_slice_origin), mDstSliceOrigin(dst_slice_origin)
     {
         static_assert(nDim == SrcDesc::GetNumOfDimension() &&
-                          nDim == DstDesc::GetNumOfDimension() && nDim == SliceLengths::GetSize() &&
-                          nDim == DimAccessOrder::GetSize(),
+                          nDim == DstDesc::GetNumOfDimension() && nDim == SliceLengths::Size() &&
+                          nDim == DimAccessOrder::Size(),
                       "wrong! # of dimensions not the same");
 
-        static_assert(is_valid_sequence_map<DimAccessOrder>::value, "wrong! map is not valid");
+        static_assert(is_valid_sequence_map<DimAccessOrder>{}, "wrong! map is not valid");
 
         static_assert(
             SliceLengths{}[VectorAccessDim] % math::lcm(SrcDataPerAccess, DstDataPerAccess) == 0,
             "wrong! cannot evenly divide");
 
-        // check vectorized memory access
-        constexpr auto vector_access_dim = Number<VectorAccessDim>{};
-
-        static_if<!SrcDesc::ContainMultipleOriginalDimensions(vector_access_dim)>{}([&](auto fwd) {
-            static_assert(
-                (fwd(SrcDesc{}).GetStride(vector_access_dim) == 1 || SrcDataPerAccess == 1),
-                "wrong! vectorized access is allowed only if stride == 1");
-        }).Else([&](auto fwd) {
-            static_assert((fwd(SrcDesc{}).GetLastOriginalDimensionStride(vector_access_dim) == 1 ||
-                           SrcDataPerAccess == 1),
-                          "wrong! vectorized access is allowed only if stride == 1");
-        });
-
-        static_if<!DstDesc::ContainMultipleOriginalDimensions(vector_access_dim)>{}([&](auto fwd) {
-            static_assert(
-                (fwd(DstDesc{}).GetStride(vector_access_dim) == 1 || DstDataPerAccess == 1),
-                "wrong! vectorized access is allowed only if stride == 1");
-        }).Else([&](auto fwd) {
-            static_assert((fwd(DstDesc{}).GetLastOriginalDimensionStride(vector_access_dim) == 1 ||
-                           DstDataPerAccess == 1),
-                          "wrong! vectorized access is allowed only if stride == 1");
-        });
+        // TODO:: sanity-check if vectorized memory access is allowed on src and dst
     }
 
-    __device__ constexpr ThreadwiseGenericTensorSliceCopy_v1r2()
-        : ThreadwiseGenericTensorSliceCopy_v1r2(make_zero_array<index_t, nDim>(),
+    __device__ constexpr ThreadwiseGenericTensorSliceCopy_v4r2()
+        : ThreadwiseGenericTensorSliceCopy_v4r2(make_zero_array<index_t, nDim>(),
                                                 make_zero_array<index_t, nDim>())
     {
     }
 
-    __device__ void SetSrcSliceOrigin(Array<index_t, nDim> src_slice_origin)
+    __device__ void SetSrcSliceOrigin(SrcCoord src_slice_origin)
     {
         mSrcSliceOrigin = src_slice_origin;
     }
 
-    __device__ void SetDstSliceOrigin(Array<index_t, nDim> dst_slice_origin)
+    __device__ void SetDstSliceOrigin(DstCoord dst_slice_origin)
     {
         mDstSliceOrigin = dst_slice_origin;
     }
 
-    template <class TData>
-    __device__ void Run(const TData* p_src, TData* p_dst) const
+    // Will do padding check on src data: Read 0 if src data is in padding area.
+    // Will do padding check on dst data: No write if dst data is in paddin area.
+    template <typename SrcData,
+              typename DstData,
+              AddressSpace SrcAddressSpace,
+              AddressSpace DstAddressSpace>
+    __device__ void Run(const SrcData* p_src,
+                        DstData* p_dst,
+                        integral_constant<AddressSpace, SrcAddressSpace>,
+                        integral_constant<AddressSpace, DstAddressSpace>) const
     {
-        using src_vector_t = typename vector_type<TData, SrcDataPerAccess>::MemoryType;
-        using dst_vector_t = typename vector_type<TData, DstDataPerAccess>::MemoryType;
+        using src_vector_t = typename vector_type<SrcData, SrcDataPerAccess>::MemoryType;
+        using dst_vector_t = typename vector_type<DstData, DstDataPerAccess>::MemoryType;
 
         constexpr auto vector_access_dim = Number<VectorAccessDim>{};
 
@@ -337,70 +88,250 @@ struct ThreadwiseGenericTensorSliceCopy_v1r2
         constexpr auto long_vector_access_lengths = SliceLengths::Modify(
             vector_access_dim, SliceLengths::Get(vector_access_dim) / long_vector_size);
 
-#if CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1R2
-        static_ford<decltype(long_vector_access_lengths), DimAccessOrder>{}([&](
+        ford<decltype(long_vector_access_lengths), DimAccessOrder>{}([&](
             auto long_vector_access_id) {
 
             // data id w.r.t slicing-window
-            constexpr auto long_vector_data_begin_id = long_vector_access_id.Modify(
-                vector_access_dim, long_vector_access_id[vector_access_dim] * long_vector_size);
+            auto long_vector_data_begin_id = long_vector_access_id;
+            long_vector_data_begin_id(vector_access_dim) =
+                long_vector_size * long_vector_access_id[vector_access_dim];
 
-            // buffer to hold a long-vector
-            TData p_long_vector[long_vector_size];
+            // buffer to hold a src long-vector
+            SrcData p_src_long_vector[long_vector_size];
+
+            // zero out buffer
+            for(index_t i = 0; i < long_vector_size; ++i)
+            {
+                p_src_long_vector[i] = 0;
+            }
 
             // load data from src to the long-vector buffer
-            static_for<0, long_vector_size / src_data_per_access, 1>{}([&](auto i) {
-                constexpr auto scalar_id = typename uniform_sequence_gen<nDim, 0>::type{}.Modify(
-                    vector_access_dim, i * src_data_per_access);
+            for(index_t i = 0; i < long_vector_size / src_data_per_access; ++i)
+            {
+                auto scalar_id               = make_zero_array<index_t, nDim>();
+                scalar_id(vector_access_dim) = i * src_data_per_access;
 
-                const index_t src_offset = SrcDesc::GetOffsetFromMultiIndex(
-                    mSrcSliceOrigin + (long_vector_data_begin_id + scalar_id));
+                const index_t buffer_offset = i * src_data_per_access;
 
-                constexpr index_t buffer_offset = i * src_data_per_access;
+                const auto src_coord = mSrcSliceOrigin + (long_vector_data_begin_id + scalar_id);
 
-                *reinterpret_cast<src_vector_t*>(&p_long_vector[buffer_offset]) =
-                    *reinterpret_cast<const src_vector_t*>(&p_src[src_offset]);
-            });
+                // Check src vector's padding situation, only check the first data in this src
+                //   vector. It's user's responsiblity to make sure all data in the src vector
+                //   has the same padding situation
+                if(src_coord.IsUpperIndexMappedToValidOffset())
+                {
+                    static_if<SrcAddressSpace == AddressSpace::global>{}([&](auto fwd) {
+#if CK_USE_AMD_BUFFER_ADDRESSING
+                        *reinterpret_cast<src_vector_t*>(&p_src_long_vector[buffer_offset]) =
+                            amd_intrinsic_buffer_load<SrcData, SrcDataPerAccess>(
+                                fwd(p_src), src_coord.GetOffset(), 0);
+#else
+                        *reinterpret_cast<src_vector_t*>(&p_src_long_vector[buffer_offset]) =
+                            *reinterpret_cast<const src_vector_t*>(&p_src[src_coord.GetOffset()]);
+#endif
+                    }).Else([&](auto) {
+                        // src can be all kinds of memory-space.
+                        *reinterpret_cast<src_vector_t*>(&p_src_long_vector[buffer_offset]) =
+                            *reinterpret_cast<const src_vector_t*>(&p_src[src_coord.GetOffset()]);
+                    });
+                }
+            }
+
+            // SrcData to DstData conversion
+            DstData p_dst_long_vector[long_vector_size];
+
+            for(index_t i = 0; i < long_vector_size; ++i)
+            {
+                p_dst_long_vector[i] = type_convert<DstData>{}(p_src_long_vector[i]);
+            }
 
             // store data from the long-vector buffer to dst
-            static_for<0, long_vector_size / dst_data_per_access, 1>{}([&](auto i) {
-                constexpr auto scalar_id = typename uniform_sequence_gen<nDim, 0>::type{}.Modify(
-                    vector_access_dim, i * dst_data_per_access);
+            for(index_t i = 0; i < long_vector_size / dst_data_per_access; ++i)
+            {
+                auto scalar_id               = make_zero_array<index_t, nDim>();
+                scalar_id(vector_access_dim) = i * dst_data_per_access;
 
-                constexpr index_t buffer_offset = i * dst_data_per_access;
+                const index_t buffer_offset = i * dst_data_per_access;
 
-                const index_t dst_offset = DstDesc::GetOffsetFromMultiIndex(
-                    mDstSliceOrigin + (long_vector_data_begin_id + scalar_id));
+                const auto dst_coord = mDstSliceOrigin + (long_vector_data_begin_id + scalar_id);
 
-                *reinterpret_cast<dst_vector_t*>(&p_dst[dst_offset]) =
-                    *reinterpret_cast<dst_vector_t*>(&p_long_vector[buffer_offset]);
-            });
-        });
+                // Check dst vector's padding situation, only check the first data in this dst
+                //   vector. It's user's responsiblity to make sure all data in the dst vector
+                //   has the same padding situation
+                if(dst_coord.IsUpperIndexMappedToValidOffset())
+                {
+                    static_if<DstAddressSpace == AddressSpace::global>{}([&](auto fwd) {
+#if CK_USE_AMD_BUFFER_ADDRESSING
+                        amd_intrinsic_buffer_store<DstData, DstDataPerAccess>(
+                            *reinterpret_cast<dst_vector_t*>(&p_dst_long_vector[buffer_offset]),
+                            fwd(p_dst),
+                            dst_coord.GetOffset(),
+                            0);
 #else
-        ford<decltype(long_vector_access_lengths), DimAccessOrder>{}(
-            [&](auto long_vector_access_id) {
+                        *reinterpret_cast<dst_vector_t*>(&p_dst[dst_coord.GetOffset()]) =
+                            *reinterpret_cast<dst_vector_t*>(&p_dst_long_vector[buffer_offset]);
+#endif
+                    }).Else([&](auto) {
+                        // dst can be all kinds of memory-space
+                        *reinterpret_cast<dst_vector_t*>(&p_dst[dst_coord.GetOffset()]) =
+                            *reinterpret_cast<dst_vector_t*>(&p_dst_long_vector[buffer_offset]);
+                    });
+                }
+            }
+        });
+    }
 
-                // data id w.r.t slicing-window
-                auto long_vector_data_begin_id = long_vector_access_id;
-                long_vector_data_begin_id(vector_access_dim) =
-                    long_vector_size * long_vector_access_id[vector_access_dim];
+    template <typename SrcData, typename DstData>
+    __device__ void Run(const SrcData* p_src, DstData* p_dst) const
+    {
+        constexpr auto generic_address_space =
+            integral_constant<AddressSpace, AddressSpace::generic>{};
+
+        Run(p_src, p_dst, generic_address_space, generic_address_space);
+    }
+
+    // Modify Length to 1, if Mask is set to false
+    // Used for isolating linear dimension from non-linear dimensions
+    template <index_t... Lengths, index_t... Mask>
+    __device__ static constexpr auto mask_lengths(Sequence<Lengths...>, Sequence<Mask...>)
+    {
+        return Sequence<(Mask ? Lengths : 1)...>{};
+    }
+
+    // p_src must be global-memory, p_dst can be any memory-space.
+    // User should make sure p_src is a block-invariant pointer, because
+    //   buffer_load is used for loading from global-memory into register buffer.
+    // Will do padding check on src data: Read 0 if src data is in padding area.
+    // Will do padding check on dst data: No write if dst data is in paddin area.
+    // This version is optimized for address calculation of src tensor
+    // TODO: this function is not compiled to expected ISA
+    template <typename SrcData,
+              typename DstData,
+              AddressSpace SrcAddressSpace,
+              AddressSpace DstAddressSpace>
+    __device__ void
+    Run_optimized_src_address_calculation(const SrcData* p_src,
+                                          DstData* p_dst,
+                                          integral_constant<AddressSpace, SrcAddressSpace>,
+                                          integral_constant<AddressSpace, DstAddressSpace>) const
+    {
+        using src_vector_t = typename vector_type<SrcData, SrcDataPerAccess>::MemoryType;
+        using dst_vector_t = typename vector_type<DstData, DstDataPerAccess>::MemoryType;
+
+        constexpr auto vector_access_dim = Number<VectorAccessDim>{};
+
+        constexpr auto src_data_per_access = Number<SrcDataPerAccess>{};
+        constexpr auto dst_data_per_access = Number<DstDataPerAccess>{};
+
+        constexpr auto long_vector_size = Number<math::lcm(SrcDataPerAccess, DstDataPerAccess)>{};
+
+        constexpr auto long_vector_access_lengths = SliceLengths::Modify(
+            vector_access_dim, SliceLengths::Get(vector_access_dim) / long_vector_size);
+
+        // separate linear dimensions from non-linear dimensions
+        constexpr auto src_linear_dim_mask    = SrcDesc::GetLinearDimensionMask();
+        constexpr auto src_nonlinear_dim_mask = SrcDesc::GetNonLinearDimensionMask();
+
+        static_assert(src_linear_dim_mask.At(VectorAccessDim) ||
+                          long_vector_size == SrcDataPerAccess,
+                      "Warning! VectorAccessDim is not SrcDesc's linear dimension, performance "
+                      "would drop");
+
+        // separate steps into linear and non-linear components, accoording to src tensor
+        constexpr auto linear_long_vector_access_lengths =
+            mask_lengths(long_vector_access_lengths, src_linear_dim_mask);
+
+        constexpr auto nonlinear_long_vector_access_lengths =
+            mask_lengths(long_vector_access_lengths, src_nonlinear_dim_mask);
+
+        // loop over src's non-linear dimensions
+        ford<decltype(nonlinear_long_vector_access_lengths)>{}([&](
+            auto nonlinear_dim_long_vector_access_id) {
+
+            // calculate step-sizes along src's nonlinear dimensions
+            auto nonlinear_dim_data_steps = nonlinear_dim_long_vector_access_id;
+            nonlinear_dim_data_steps(vector_access_dim) =
+                long_vector_size * nonlinear_dim_long_vector_access_id[vector_access_dim];
+
+            // move src cooridnate along nonlinear dimensions
+            // this coordinate contains run-time per-thread offset
+            const auto src_nonlinear_coord = mSrcSliceOrigin + nonlinear_dim_data_steps;
+
+            // loop over src's linear dimensions
+            ford<decltype(linear_long_vector_access_lengths)>{}([&](
+                auto linear_dim_long_vector_access_id) {
+
+                // step-sizes along src's linear dimensions
+                auto linear_dim_data_steps = linear_dim_long_vector_access_id;
+                linear_dim_data_steps(vector_access_dim) =
+                    long_vector_size * linear_dim_long_vector_access_id[vector_access_dim];
 
                 // buffer to hold a long-vector
-                TData p_long_vector[long_vector_size];
+                SrcData p_src_long_vector[long_vector_size];
 
-                // load data from src to the long-vector buffer
+                // zero out buffer
+                for(index_t i = 0; i < long_vector_size; ++i)
+                {
+                    p_src_long_vector[i] = 0;
+                }
+
+                // Loop over VectorAccessDim, and load data from src to the
+                //   long-vector buffer.
+                // If VectorAccessDim is src's linear dimension, then src's
+                //   offset-diff due to this looping is known at compile-time. If
+                //   VectorAccessDim is src's nonlinear dimension, then src's
+                //   offset-diff due to this looping is only known at run-time. For best
+                //   performance, VectorAccessDim, should be src's linear dimension
                 for(index_t i = 0; i < long_vector_size / src_data_per_access; ++i)
                 {
                     auto scalar_id               = make_zero_array<index_t, nDim>();
                     scalar_id(vector_access_dim) = i * src_data_per_access;
 
-                    const index_t src_offset = SrcDesc::GetOffsetFromMultiIndex(
-                        mSrcSliceOrigin + (long_vector_data_begin_id + scalar_id));
-
                     const index_t buffer_offset = i * src_data_per_access;
 
-                    *reinterpret_cast<src_vector_t*>(&p_long_vector[buffer_offset]) =
-                        *reinterpret_cast<const src_vector_t*>(&p_src[src_offset]);
+                    // move src cooridnate along linear dimensions
+                    const auto src_coord =
+                        src_nonlinear_coord + (linear_dim_data_steps + scalar_id);
+
+#if CK_EXPERIMENTAL_TENSOR_COORDINATE_USE_CALCULATE_OFFSET_DIFF // tweaking
+                    // this is src compile-time offset
+                    const index_t src_linear_offset =
+                        src_nonlinear_coord.CalculateOffsetDiff(linear_dim_data_steps + scalar_id);
+#else
+                    // this is src compile-time offset
+                    const index_t src_linear_offset =
+                        src_coord.GetOffset() - src_nonlinear_coord.GetOffset();
+#endif
+
+                    // Check src vector's padding situation, only check the first data in
+                    //   this src vector. It's user's responsiblity to make sure all data in
+                    //   the src vector has the same padding situation
+                    if(src_coord.IsUpperIndexMappedToValidOffset())
+                    {
+                        static_if<SrcAddressSpace == AddressSpace::global>{}([&](auto) {
+#if CK_USE_AMD_BUFFER_ADDRESSING
+                            *reinterpret_cast<src_vector_t*>(&p_src_long_vector[buffer_offset]) =
+                                amd_intrinsic_buffer_load<SrcData, SrcDataPerAccess>(
+                                    p_src, src_nonlinear_coord.GetOffset(), src_linear_offset);
+#else
+                            *reinterpret_cast<src_vector_t*>(&p_src_long_vector[buffer_offset]) =
+                                *reinterpret_cast<const src_vector_t*>(
+                                    &p_src[src_nonlinear_coord.GetOffset() + src_linear_offset]);
+#endif
+                        }).Else([&](auto) {
+                            *reinterpret_cast<src_vector_t*>(&p_src_long_vector[buffer_offset]) =
+                                *reinterpret_cast<const src_vector_t*>(
+                                    &p_src[src_nonlinear_coord.GetOffset() + src_linear_offset]);
+                        });
+                    }
+                }
+
+                // SrcData to DstData conversion
+                DstData p_dst_long_vector[long_vector_size];
+
+                for(index_t i = 0; i < long_vector_size; ++i)
+                {
+                    p_dst_long_vector[i] = type_convert<DstData>{}(p_src_long_vector[i]);
                 }
 
                 // store data from the long-vector buffer to dst
@@ -411,130 +342,223 @@ struct ThreadwiseGenericTensorSliceCopy_v1r2
 
                     const index_t buffer_offset = i * dst_data_per_access;
 
-                    const index_t dst_offset = DstDesc::GetOffsetFromMultiIndex(
-                        mDstSliceOrigin + (long_vector_data_begin_id + scalar_id));
+                    // dst offset is calculated here, without explicitly separating into
+                    //   compile-time and per-thread component
+                    const auto dst_coord = mDstSliceOrigin + (nonlinear_dim_data_steps +
+                                                              linear_dim_data_steps + scalar_id);
 
-                    *reinterpret_cast<dst_vector_t*>(&p_dst[dst_offset]) =
-                        *reinterpret_cast<dst_vector_t*>(&p_long_vector[buffer_offset]);
+                    // Check dst vector's padding situation, only check the first data in
+                    //   this dst vector. It's user's responsiblity to make sure all data in
+                    //   the dst vector has the same padding situation
+                    if(dst_coord.IsUpperIndexMappedToValidOffset())
+                    {
+                        *reinterpret_cast<dst_vector_t*>(&p_dst[dst_coord.GetOffset()]) =
+                            *reinterpret_cast<dst_vector_t*>(&p_dst_long_vector[buffer_offset]);
+                    }
                 }
             });
+        });
+    }
+
+    // p_src could be any memory space, d_dst must be global memory.
+    // User should make sure p_dst is a block-invariant pointer, because
+    //   buffer_load is used for storing data from regsiter buffer into global-memory.
+    // Will do padding check on src data: Read 0 if src data is in padding area.
+    // Will do padding check on dst data: No write if dst data is in paddin area.
+    // This version is optimized for address calculation of dst tensor
+    // TODO: this function is not compiled to expected ISA
+    template <typename SrcData,
+              typename DstData,
+              AddressSpace SrcAddressSpace,
+              AddressSpace DstAddressSpace>
+    __device__ void
+    Run_optimized_dst_address_calculation(const SrcData* p_src,
+                                          DstData* p_dst,
+                                          integral_constant<AddressSpace, SrcAddressSpace>,
+                                          integral_constant<AddressSpace, DstAddressSpace>) const
+    {
+        using src_vector_t = typename vector_type<SrcData, SrcDataPerAccess>::MemoryType;
+        using dst_vector_t = typename vector_type<DstData, DstDataPerAccess>::MemoryType;
+
+        constexpr auto vector_access_dim = Number<VectorAccessDim>{};
+
+        constexpr auto src_data_per_access = Number<SrcDataPerAccess>{};
+        constexpr auto dst_data_per_access = Number<DstDataPerAccess>{};
+
+        constexpr auto long_vector_size = Number<math::lcm(SrcDataPerAccess, DstDataPerAccess)>{};
+
+        constexpr auto long_vector_access_lengths = SliceLengths::Modify(
+            vector_access_dim, SliceLengths::Get(vector_access_dim) / long_vector_size);
+
+        // separate linear dimensions from non-linear dimensions
+        constexpr auto dst_linear_dim_mask    = DstDesc::GetLinearDimensionMask();
+        constexpr auto dst_nonlinear_dim_mask = DstDesc::GetNonLinearDimensionMask();
+
+        static_assert(dst_linear_dim_mask.At(VectorAccessDim) ||
+                          long_vector_size == DstDataPerAccess,
+                      "Warning! VectorAccessDim is not DstDesc's linear dimension, performance "
+                      "would drop");
+
+        // separate steps into linear and non-linear components, accoording to dst tensor
+        constexpr auto linear_long_vector_access_lengths =
+            mask_lengths(long_vector_access_lengths, dst_linear_dim_mask);
+
+        constexpr auto nonlinear_long_vector_access_lengths =
+            mask_lengths(long_vector_access_lengths, dst_nonlinear_dim_mask);
+
+        // loop over dst's non-linear dimensions
+        ford<decltype(nonlinear_long_vector_access_lengths)>{}([&](
+            auto nonlinear_dim_long_vector_access_id) {
+
+            // calculate step-sizes along dst's nonlinear dimensions
+            auto nonlinear_dim_data_steps = nonlinear_dim_long_vector_access_id;
+            nonlinear_dim_data_steps(vector_access_dim) =
+                long_vector_size * nonlinear_dim_long_vector_access_id[vector_access_dim];
+
+            // move dst cooridnate along nonlinear dimensions
+            // this coordinate contains run-time per-thread offset
+            const auto dst_nonlinear_coord = mDstSliceOrigin + nonlinear_dim_data_steps;
+
+            // loop over dst's linear dimensions
+            ford<decltype(linear_long_vector_access_lengths)>{}([&](
+                auto linear_dim_long_vector_access_id) {
+
+                // step-sizes along dst's linear dimensions
+                auto linear_dim_data_steps = linear_dim_long_vector_access_id;
+                linear_dim_data_steps(vector_access_dim) =
+                    long_vector_size * linear_dim_long_vector_access_id[vector_access_dim];
+
+                // buffer to hold a long-vector
+                SrcData p_src_long_vector[long_vector_size];
+
+                // zero out buffer
+                for(index_t i = 0; i < long_vector_size; ++i)
+                {
+                    p_src_long_vector[i] = 0;
+                }
+
+                // Loop over VectorAccessDim, and load data from src to the
+                //   long-vector buffer.
+                // If VectorAccessDim is dst's linear dimension, then dst's
+                //   offset-diff due to this looping is known at compile-time. If
+                //   VectorAccessDim is dst's nonlinear dimension, then dst's
+                //   offset-diff due to this looping is only known at run-time. For best
+                //   performance, VectorAccessDim, should be dst's linear dimension
+                for(index_t i = 0; i < long_vector_size / src_data_per_access; ++i)
+                {
+                    auto scalar_id               = make_zero_array<index_t, nDim>();
+                    scalar_id(vector_access_dim) = i * src_data_per_access;
+
+                    const index_t buffer_offset = i * src_data_per_access;
+
+                    // src offset is calculated here, without explicitly separating into
+                    //   compile-time and per-thread component
+                    const auto src_coord = mSrcSliceOrigin + (nonlinear_dim_data_steps +
+                                                              linear_dim_data_steps + scalar_id);
+
+                    // Check src vector's padding situation, only check the first data in
+                    //   this src vector. It's user's responsiblity to make sure all data in
+                    //   the src vector has the same padding situation
+                    if(src_coord.IsUpperIndexMappedToValidOffset())
+                    {
+                        *reinterpret_cast<src_vector_t*>(&p_src_long_vector[buffer_offset]) =
+                            *reinterpret_cast<const src_vector_t*>(&p_src[src_coord.GetOffset()]);
+                    }
+                }
+
+                // SrcData to DstData conversion
+                DstData p_dst_long_vector[long_vector_size];
+
+                for(index_t i = 0; i < long_vector_size; ++i)
+                {
+                    p_dst_long_vector[i] = type_convert<DstData>{}(p_src_long_vector[i]);
+                }
+
+                // store data from the long-vector buffer to dst
+                for(index_t i = 0; i < long_vector_size / dst_data_per_access; ++i)
+                {
+                    auto scalar_id               = make_zero_array<index_t, nDim>();
+                    scalar_id(vector_access_dim) = i * dst_data_per_access;
+
+                    const index_t buffer_offset = i * dst_data_per_access;
+
+                    // move dst cooridnate along linear dimensions
+                    const auto dst_coord =
+                        dst_nonlinear_coord + (linear_dim_data_steps + scalar_id);
+
+#if CK_EXPERIMENTAL_TENSOR_COORDINATE_USE_CALCULATE_OFFSET_DIFF // tweaking
+                    // this is dst compile-time offset
+                    const index_t dst_linear_offset =
+                        dst_nonlinear_coord.CalculateOffsetDiff(linear_dim_data_steps + scalar_id);
+#else
+                    // this is dst compile-time offset
+                    const index_t dst_linear_offset =
+                        dst_coord.GetOffset() - dst_nonlinear_coord.GetOffset();
+#endif
+
+                    // Check dst vector's padding situation, only check the first data in
+                    //   this dst vector. It's user's responsiblity to make sure all data in
+                    //   the dst vector has the same padding situation
+                    if(dst_coord.IsUpperIndexMappedToValidOffset())
+                    {
+                        static_if<DstAddressSpace == AddressSpace::global>{}([&](auto) {
+#if CK_USE_AMD_BUFFER_ADDRESSING
+                            amd_intrinsic_buffer_store<DstData, DstDataPerAccess>(
+                                *reinterpret_cast<dst_vector_t*>(&p_dst_long_vector[buffer_offset]),
+                                p_dst,
+                                dst_nonlinear_coord.GetOffset(),
+                                dst_linear_offset);
+#else
+                            *reinterpret_cast<dst_vector_t*>(
+                                &p_dst[dst_nonlinear_coord.GetOffset() + dst_linear_offset]) =
+                                *reinterpret_cast<dst_vector_t*>(&p_dst_long_vector[buffer_offset]);
+#endif
+                        }).Else([&](auto) {
+                            *reinterpret_cast<dst_vector_t*>(
+                                &p_dst[dst_nonlinear_coord.GetOffset() + dst_linear_offset]) =
+                                *reinterpret_cast<dst_vector_t*>(&p_dst_long_vector[buffer_offset]);
+                        });
+                    }
+                }
+            });
+        });
+    }
+
+    __device__ static constexpr bool HasWorkingOptimizedAddressCalculation()
+    {
+#if CK_EXPERIMENTAL_THREADWISE_COPY_V4R2_USE_OPTIMIZED_ADDRESS_CACLULATION // tweaking
+        return true;
+#else
+        return false;
 #endif
     }
 
+    template <typename T, bool PositiveDirection>
+    __device__ void MoveSrcSliceWindow(const T& step_sizes_,
+                                       integral_constant<bool, PositiveDirection>)
+    {
+        const auto step_sizes = to_array(step_sizes_);
+
+        static_if<PositiveDirection>{}([&](auto) {
+            mSrcSliceOrigin += to_array(step_sizes);
+        }).Else([&](auto) { mSrcSliceOrigin -= step_sizes; });
+    }
+
+    template <typename T, bool PositiveDirection>
+    __device__ void MoveDstSliceWindow(const T& step_sizes_,
+                                       integral_constant<bool, PositiveDirection>)
+    {
+        const auto step_sizes = to_array(step_sizes_);
+
+        static_if<PositiveDirection>{}([&](auto) {
+            mDstSliceOrigin += step_sizes;
+        }).Else([&](auto) { mDstSliceOrigin -= step_sizes; });
+    }
+
     private:
-    Array<index_t, nDim> mSrcSliceOrigin;
-    Array<index_t, nDim> mDstSliceOrigin;
+    SrcCoord mSrcSliceOrigin;
+    DstCoord mDstSliceOrigin;
 };
-
-// this will be deprecated due to bug
-template <class SrcFloat,
-          class DesFloat,
-          class SrcDesc,
-          class DstDesc,
-          class SliceLengths,
-          class DimAccessOrder,
-          index_t DataPerAccess>
-__device__ void threadwise_generic_tensor_slice_copy_v1_deprecated(
-    SrcDesc,
-    const SrcFloat* __restrict__ p_src,
-    Array<index_t, SrcDesc::GetNumOfDimension()> src_multi_id_begin,
-    DstDesc,
-    DesFloat* __restrict__ p_dst,
-    Array<index_t, DstDesc::GetNumOfDimension()> dst_multi_id_begin,
-    SliceLengths,
-    DimAccessOrder,
-    Number<DataPerAccess>)
-{
-    constexpr index_t nDim = SrcDesc::GetNumOfDimension();
-
-    static_assert(nDim == SrcDesc::GetNumOfDimension() && nDim == DstDesc::GetNumOfDimension() &&
-                      nDim == SliceLengths::GetSize() && nDim == DimAccessOrder::GetSize(),
-                  "wrong! # of dimensions not the same");
-
-    static_assert(is_valid_sequence_map<DimAccessOrder>::value, "wrong! map is not valid");
-
-    // TODO: do more sanity-check here, something like:
-    // constexpr auto src_strides_in_access_order =
-    //     SrcDesc::ReorderGivenNew2Old(DimAccessOrder{}).GetStride(Number<nDim-1>{});
-
-    // constexpr auto dst_strides_in_access_order =
-    //     SrcDesc::ReorderGivenNew2Old(DimAccessOrder{}).GetStride(Number<nDim-1>{});
-
-    // // check src/dst stride on the lowest access dimension
-    // static_assert((DataPerAccess == 1 || src_strides_in_access_order.Back() == 1) &&
-    //                   (DataPerAccess == 1 || dst_strides_in_access_order.Back() == 1),
-    //               "wrong! src/dst stride on the lowest access dimension needs to be 1 for "
-    //               "vectorized read/write");
-
-    constexpr auto slice_lengths_in_access_order =
-        SliceLengths::ReorderGivenNew2Old(DimAccessOrder{});
-
-    // check slice length on the lowest access dimension
-    static_assert(slice_lengths_in_access_order.Back() % DataPerAccess == 0,
-                  "wrong! slice length on the lowest access dimension should be evenly divided by "
-                  "DataPerAccess");
-
-    constexpr index_t num_access_on_lowest_access_dimension =
-        slice_lengths_in_access_order.Back() / DataPerAccess;
-
-    constexpr auto access_lengths = slice_lengths_in_access_order.Modify(
-        Number<nDim - 1>{}, Number<num_access_on_lowest_access_dimension>{});
-
-    using vector_src_t  = typename vector_type<SrcFloat, DataPerAccess>::MemoryType;
-    using vector_dest_t = typename vector_type<DesFloat, DataPerAccess>::MemoryType;
-
-#if CK_EXPERIMENTAL_USE_MORE_COMPILE_STATIC_THREADWISE_GENERIC_TENSOR_SLICE_COPY_V1
-    static_ford<decltype(access_lengths)>{}([&](auto access_multi_id) {
-        constexpr index_t itmp = access_multi_id.Back() * DataPerAccess;
-
-        constexpr auto data_multi_id_in_access_order =
-            access_multi_id.Modify(Number<nDim - 1>{}, Number<itmp>{});
-
-        constexpr auto data_multi_id = reorder_array_given_old2new(
-            sequence2array(data_multi_id_in_access_order), DimAccessOrder{});
-
-        const index_t src_index =
-            SrcDesc::GetOffsetFromMultiIndex(src_multi_id_begin + data_multi_id);
-
-        const index_t dst_index =
-            DstDesc::GetOffsetFromMultiIndex(dst_multi_id_begin + data_multi_id);
-
-        static_if<std::is_same<vector_src_t, vector_dest_t>::value>{}([&](auto) {
-            *reinterpret_cast<vector_dest_t*>(&p_dst[dst_index]) =
-                *reinterpret_cast<const vector_src_t*>(&p_src[src_index]);
-        }).Else([&](auto) {
-            for(index_t data_idx = 0; data_idx < DataPerAccess; ++data_idx)
-            {
-                p_dst[dst_index + data_idx] = CVT_ACCUM2FLOAT(p_src[src_index + data_idx]);
-            }
-        });
-    });
-#else
-    ford<decltype(access_lengths)>{}([&](auto access_multi_id) {
-        auto data_multi_id_in_access_order      = access_multi_id;
-        data_multi_id_in_access_order(nDim - 1) = access_multi_id[nDim - 1] * DataPerAccess;
-
-        const auto data_multi_id =
-            reorder_array_given_old2new(data_multi_id_in_access_order, DimAccessOrder{});
-
-        const index_t src_index =
-            SrcDesc::GetOffsetFromMultiIndex(src_multi_id_begin + data_multi_id);
-
-        const index_t dst_index =
-            DstDesc::GetOffsetFromMultiIndex(dst_multi_id_begin + data_multi_id);
-
-        static_if<std::is_same<vector_src_t, vector_dest_t>::value>{}([&](auto) {
-            *reinterpret_cast<vector_dest_t*>(&p_dst[dst_index]) =
-                *reinterpret_cast<const vector_src_t*>(&p_src[src_index]);
-        }).Else([&](auto) {
-            for(index_t data_idx = 0; data_idx < DataPerAccess; ++data_idx)
-            {
-                p_dst[dst_index + data_idx] = CVT_ACCUM2FLOAT(p_src[src_index + data_idx]);
-            }
-        });
-    });
-#endif
-}
 
 } // namespace ck
 #endif

@@ -842,9 +842,10 @@ typedef enum {
  * Convolutional algorithm mode for back propagation on weights.
  */
 typedef enum {
-    miopenConvolutionBwdWeightsAlgoGEMM     = 0, /*!< GEMM variant */
-    miopenConvolutionBwdWeightsAlgoDirect   = 1, /*!< Direct convolution algorithm */
-    miopenConvolutionBwdWeightsAlgoWinograd = 3, /*!< Winograd convolutions */
+    miopenConvolutionBwdWeightsAlgoGEMM         = 0, /*!< GEMM variant */
+    miopenConvolutionBwdWeightsAlgoDirect       = 1, /*!< Direct convolution algorithm */
+    miopenConvolutionBwdWeightsAlgoWinograd     = 3, /*!< Winograd convolutions */
+    miopenConvolutionBwdWeightsAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions */
 } miopenConvBwdWeightsAlgorithm_t;
 
 /*! @enum miopenConvBwdDataAlgorithm_t
@@ -2905,7 +2906,10 @@ typedef enum {
  * Recurrent Neural Network algorithm mode
 */
 typedef enum {
-    miopenRNNdefault = 0, /*!< Supported */
+    miopenRNNdefault = 0, /*!< Use dedicated gate-operation kernel for LSTM and fundamental
+                             algorithm for vanilla RNN & GRU */
+    miopenRNNfundamental =
+        1, /*!< Function by basic tesnsor operations, supported for vanilla RNN, LSTM, GRU */
 } miopenRNNAlgo_t;
 
 /*! @enum miopenRNNDirectionMode_t
@@ -3657,9 +3661,9 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
                                                       void* reserveSpace,
                                                       size_t reserveSpaceNumBytes);
 
-/*! @brief Execute forward training for recurrent layer
+/*! @brief Execute backward data for recurrent layer
  *
- * Interface for executing the forward training pass on a RNN.
+ * Interface for executing the backward data pass on a RNN.
  *
  * @param handle                MIOpen handle (input)
  * @param rnnDesc               RNN layer descriptor type (input)
@@ -3757,9 +3761,9 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardData(miopenHandle_t handle,
                                                    void* reserveSpace,
                                                    size_t reserveSpaceNumBytes);
 
-/*! @brief Execute forward training for recurrent layer
+/*! @brief Execute backward weights for recurrent layer
  *
- * Interface for executing the forward training pass on a RNN.
+ * Interface for executing the backward weights pass on a RNN.
  *
  * @param handle                MIOpen handle (input)
  * @param rnnDesc               RNN layer descriptor type (input)

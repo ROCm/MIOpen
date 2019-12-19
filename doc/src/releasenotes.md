@@ -2,7 +2,33 @@
 ## MIOpen Release notes
 
 
-### 09/06/2019 [2.1.0]
+
+### 11/30/2019 [ 2.2.0 ]
+
+- This release contains bug fixes, performance improvements, and expanded applicability for specific convolutional algorithms.
+- MIOpen has posted a citable paper on ArXiv [here](https://arxiv.org/abs/1910.00078).
+- An SQLite database has been added to replace the test-based performance database. While the test file still exists, by default SQLite is used over the text-based performance database; see [documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html) from more details. 
+
+
+Changes:
+
+- Added per solution algorithm filtering environmental variable for debugging
+- Added SQLite3 database and build dependency. The text-based performance database support is deprecated and will be removed in the next release.
+- Added citation page to documentation pointing to [MIOpen's paper](https://arxiv.org/abs/1910.00078)
+- Added to the overall documentation
+- Fixed fusion compilation check issue
+- Fixed fusion group convolution warning
+- Improved performance of forward pooling
+- Improved performance of convolutions
+- Improved performance of spatial training batch normalization for some large batch size input configurations
+- Improved applicability of implicit GEMM convolution algorithm
+- Improved performance of calls to miopenConvolutionXXXGetWorkSpaceSize() functions
+- Improved conformance to code object version 3
+- Removed SCGEMM convolution algorithm by default; this algorithm is deprecated and will be removed in future releases
+
+
+
+### 09/01/2019 [ 2.1.0 ]
 
 - This release contains new layers, bug fixes, and a new convolution algorithm.
 
@@ -14,12 +40,11 @@ Changes:
 - Added a [docker hub link](https://hub.docker.com/r/rocm/miopen/tags) for MIOpen docker images.
 - Fixed issue with NaN appearing on batch normalization backwards pass in fp16
 - Fixed softmax kernel bug in log mode [#112](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/112)
-- Fixed gfx803 support issue [#869](https://github.com/RadeonOpenCompute/ROCm/issues/869)
-- Fixed gfx803 kernel issue [#117](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/117)
-- Fixed issue with disabled GEMM [#119](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/119)
+- Fixed ROCm gfx803 support issue [#869](https://github.com/RadeonOpenCompute/ROCm/issues/869)
 - Improved performance of batch normalization fp16 forward training layers
 - Improved performance of convolutions layers
 - Removed MIOpenGEMM as a requirement for the HIP backend. It is now optional.
+
 
 
 ### 08/13/2019 [ 2.0.1 ]

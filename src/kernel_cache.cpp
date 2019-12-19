@@ -42,6 +42,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/stringutils.hpp>
 
 #include <iostream>
 #include <iterator>
@@ -59,6 +60,9 @@ static void AddKernelDumpKernelParams(const std::string& program_name,
                                       const std::vector<size_t>& vgd,
                                       const std::string& params)
 {
+    if(EndsWith(program_name, ".s"))
+        return; // Done use this for asm kernels.
+
     const char* keys[] = {"MLO_FILTER_SIZE0",
                           "MLO_FILTER_SIZE1",
                           "MLO_N_INPUTS",

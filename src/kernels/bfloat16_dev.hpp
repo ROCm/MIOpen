@@ -103,7 +103,7 @@ EXECUTION_SPECIFIER ushort float_to_bfloat16(float src_val)
 // incrementing it causes it to become an exponent of 0xFF and a mantissa
 // of 0x00, which is Inf, the next higher value to the unrounded value.
 #ifdef __HIP_PLATFORM_HCC__
-        target_val.u32 += (0x7fff + (target_val.ushortvec[0] & 1));
+        target_val.u32 += (0x7fff + (target_val.ushortvec[1] & 1));
 #else
         target_val.u32 +=
             (0x7fff + (target_val.ushortx2.hi & 1)); // Round to nearest, round to even
@@ -112,7 +112,7 @@ EXECUTION_SPECIFIER ushort float_to_bfloat16(float src_val)
     }
 
 #ifdef __HIP_PLATFORM_HCC__
-    return target_val.ushortvec[0];
+    return target_val.ushortvec[1];
 #else
     return target_val.ushortx2.hi;
 #endif // MIOPEN_BACKEND_HIP

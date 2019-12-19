@@ -203,8 +203,8 @@ struct na_fusion_driver : test_driver
         add(amode,
             "amode",
             generate_data(
-                {"MIOPENACTIVATIONRELU", "MIOPENACTIVATIONLOGISTIC", "MIOPENACTIVATIONABS"}));
-        add(batchnormMode, "batch-norm-mode", generate_data({0 /*, 1*/}));
+                {"MIOPENACTIVATIONRELU" /*, "MIOPENACTIVATIONLOGISTIC", "MIOPENACTIVATIONABS"*/}));
+        add(batchnormMode, "batch-norm-mode", generate_data({/*0, */ 1}));
     }
 
     void run()

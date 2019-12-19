@@ -24,14 +24,6 @@
  *
  *******************************************************************************/
 
-.ifdef EXPERIMENTAL_COv3
-    .ifdef .option.machine_version_major
-        .error ".option.machine_version_major already defined"
-        .end
-    .endif
-    .set .option.machine_version_major, .amdgcn.gfx_generation_number
-.endif
-
 LAYOUT_DATA_NCHW = 0
 LAYOUT_DATA_CNHW = 1
 LAYOUT_DATA_NHWC = 2
@@ -62,6 +54,13 @@ TYPE_INT4  = 8
 .macro default symbol, value
     .ifnotdef \symbol
         \symbol = \value
+    .endif
+.endm
+
+.macro error_ifnotdef symbol
+    .ifnotdef \symbol
+        .error "\symbol is not defined."
+        .end
     .endif
 .endm
 
@@ -147,7 +146,7 @@ log2 wave_size_log2, wave_size
 .endm
 
 .macro u32_div numer, denom, uquo, v_tmp, s_tmp
-    u_div   v[\numer], v[\denom] v[\uquo], \v_tmp, \s_tmp, \s_tmp + 2 
+    u_div   v[\numer], v[\denom] v[\uquo], \v_tmp, \s_tmp, \s_tmp + 2
 .endm
 
 
@@ -235,16 +234,16 @@ log2 wave_size_log2, wave_size
         v_cvt_f16_f32 \v_dst_reg, \v_src_reg
     .elseif(\src_type == TYPE_FP32 && \dst_type == TYPE_BFP16)
         v_mov_b32 \v_tmp_reg, 0x1
-        v_cmp_class_f32 \s2_tmp_b64, \v_src_reg, \v_tmp_reg //Signaling NaN  
+        v_cmp_class_f32 \s2_tmp_b64, \v_src_reg, \v_tmp_reg //Signaling NaN
         s_and_saveexec_b64 \s2_tmp_b64, \s2_tmp_b64
-        
+
         v_or_b32 \v_src_reg,  0x10000, \v_src_reg
-        s_mov_b64 exec, \s2_tmp_b64        
+        s_mov_b64 exec, \s2_tmp_b64
         .ifdef MIOPEN_USE_RNE_BFLOAT16
             .if(MIOPEN_USE_RNE_BFLOAT16 == 1)
                 v_mov_b32 \v_tmp_reg, 0x207
                 v_cmp_class_f32 exec, \v_src_reg, \v_tmp_reg //check NANs and INFs
-                
+
                 s_xor_b64 exec, exec, \s2_tmp_b64
                 v_bfe_u32 \v_tmp_reg, \v_src_reg, 16, 1
                 v_add_u32 \v_tmp_reg, 0x7fff, \v_tmp_reg
@@ -252,13 +251,13 @@ log2 wave_size_log2, wave_size
 
                 s_mov_b64 exec, \s2_tmp_b64
             .endif
-        .endif        
-        
+        .endif
+
         v_lshrrev_b32 \v_dst_reg, 16, \v_src_reg
     .elseif(\src_type == TYPE_BFP16 && \dst_type == TYPE_FP32)
         v_lshlrev_b32 \v_dst_reg, 16, \v_src_reg
     .elseif (\dst_type != \src_type)
-        .error "wrong convertion type" 
+        .error "wrong conversion type"
     .endif
 .endm
 

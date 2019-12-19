@@ -35,8 +35,9 @@
 #include <miopen/solver.hpp>
 #include <miopen/generic_search.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_PERF_VALS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1)
 
 namespace miopen {
 namespace solver {
@@ -143,7 +144,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue()
 {
     // Increment with wrap-around:
     // select fast or full method
-    if(miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_SEARCH_OPTIMIZED{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_SEARCH_OPTIMIZED{}))
     {
         do
         {
@@ -463,11 +464,13 @@ bool ConvAsmBwdWrW1x1::IsValidPerformanceConfig(const ConvolutionContext& proble
 
 bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1{}))
+        return false;
     if(!params.use_asm_kernels)
         return false;
     if(!params.Is2d())
         return false;
-    if(params.rmv != rocm_meta_version::AMDHSA_1_0)
+    if(!params.rmv.IsV2orV3())
         return false;
 
     const std::string name = params.GetStream().GetDeviceName();
@@ -512,8 +515,6 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
          && c_k_r_s < std::pow(2, 29); // clang-format on
     return ok;
 }
-
-bool ConvAsmBwdWrW1x1::IsFast(const ConvolutionContext&) const { return true; }
 
 static int divide_round_plus_inf(const int x, const int y)
 {
@@ -608,7 +609,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "pad_w", params.pad_w);
     GenerateClangDefsym(options, "weights_layout", 0);
     GenerateClangDefsym(options, "reverse_weights", 0);
-    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 4);
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
     // Perf tune:
     GenerateClangDefsym(options, "do_not_use_default_perf_params", 1);
 
@@ -706,7 +707,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     if(!disableConfigOverrideFromEnv)
     {
         std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_PERF_VALS{});
+        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS{});
         if(p_asciz != nullptr)
         {
             s = std::string(p_asciz);
@@ -714,7 +715,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
             {
                 if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
                 {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_PERF_VALS: "
+                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS: "
                                  "Bad format or invalid for the problem config: "
                                  << s);
                 }
@@ -756,7 +757,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
         divide_round_plus_inf(params.n_inputs, pcfg->GetKPerGpr() * pcfg->GetKMult()));
 
     kernel.kernel_file = "conv1x1wrw.s";
-    kernel.kernel_name = "gcnAsmConv1x1WrW";
+    kernel.kernel_name = "miopenGcnAsmConv1x1WrW";
 
     result.construction_params.push_back(kernel);
 
@@ -815,8 +816,9 @@ int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
         elapsed_time = profile_h.GetKernelTime();
     }
 #ifdef NDEBUG
-    catch(miopen::Exception&)
+    catch(miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return -1;
     }
 #endif

@@ -24,11 +24,15 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
-#include "miopen/env.hpp"
+#include <miopen/solver.hpp>
+#include <miopen/env.hpp>
+#include <miopen/kernel_build_params.hpp>
 
+/// Global switch
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS)
+/// Sub-switches for testing/debugging
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FWD_BWD)
 /// \todo Detect at runtime and remove this var:
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 
@@ -213,28 +217,33 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         if(!(params.IsFp32() && params.kernel_stride_w == 1 && params.kernel_stride_h == 1))
             return false; // WrW is only for fp32 and no stride for now.
     }
+    else
+    {
+        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FWD_BWD{}))
+            return false;
+    }
     if(!params.use_asm_kernels)
         return false;
-    if(params.rmv != rocm_meta_version::AMDHSA_1_0)
+    if(!params.rmv.IsV2orV3())
         return false;
 
     const auto name = params.GetStream().GetDeviceName();
     const bool fp16 = params.IsFp16();
     if(fp16)
     {
-        if(!(name == "gfx906"))
+        if(!(name == "gfx906" || name == "gfx908"))
             return false;
     }
     else
     {
         if(params.direction.IsBackwardWrW())
         {
-            if(!(name == "gfx900" || name == "gfx906"))
+            if(!(name == "gfx900" || name == "gfx906" || name == "gfx908"))
                 return false;
         }
         else
         {
-            if(!(name == "gfx803" || name == "gfx900" || name == "gfx906"))
+            if(!(name == "gfx803" || name == "gfx900" || name == "gfx906" || name == "gfx908"))
                 return false;
         }
     }
@@ -300,9 +309,14 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
+    KernelBuildParameters options{
+        {"ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4},
+    };
+    kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
+
     if(params.IsFp16())
     {
-        kernel.kernel_name = "sp3AsmConvRxSU";
+        kernel.kernel_name = "miopenSp3AsmConvRxSU";
         kernel.kernel_file = "Conv_Winograd_";
         if(miopen::IsEnabled(MIOPEN_DEBUG_SRAM_EDC_DISABLED{}))
             kernel.kernel_file += "v13_3_12";
@@ -324,12 +338,12 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     }
     else if(params.direction.IsBackwardWrW())
     {
-        kernel.kernel_name = "sp3AsmConvRxSf3x2";
+        kernel.kernel_name = "miopenSp3AsmConvRxSf3x2";
         kernel.kernel_file = "Conv_Winograd_v16_5_0_stride1";
     }
     else
     {
-        kernel.kernel_name = "sp3AsmConvRxSU";
+        kernel.kernel_name = "miopenSp3AsmConvRxSU";
         kernel.kernel_file = "conv_3x3_wheel_alpha_v9_0_15";
         if(params.kernel_stride_w == 2)
         {
@@ -363,6 +377,11 @@ ConvSolution ConvBinWinogradRxSFused::GetSolution(const ConvolutionContext& para
     kernel.l_wk.push_back(512);
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
+
+    KernelBuildParameters options{
+        {"ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4},
+    };
+    kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 
     // File and name are defined in FusionMDGraph, so no need (and harmful)
     // to duplicate this information here.
