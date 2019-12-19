@@ -239,11 +239,6 @@ FindImplicitGemmWrWAllSolutions(const miopen::ConvolutionContext& ctx)
     return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
 #endif
 }
-std::vector<std::pair<std::string, size_t>>
-AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx)
-{
-    return GetBwdWrW2DSolvers().GetWorkspaceSize(ctx);
-}
 
 std::vector<miopen::solver::ConvSolution>
 FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx)

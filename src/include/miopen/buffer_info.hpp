@@ -84,8 +84,6 @@ struct WinogradBufferInfo
                        int out_w,
                        int wei_h,
                        int wei_w,
-                       int fdil_h,
-                       int fdil_w,
                        MemLayout_t layout,
                        int vec_c,
                        int data_len_t,
@@ -101,7 +99,6 @@ struct WinogradBufferInfo
         wino_c                  = c;
         for(int i = 0; i < 2; i++)
         {
-            wino_xtile[i]             = WinoDataHW[i] + (WinoFilterHW[i] * fdil_HW[i]) - fdil_HW[i];
             wino_out.wino_tiles_HW[i] = (out_HW[i] + WinoDataHW[i] - 1) / WinoDataHW[i];
             wino_wei.wino_tiles_HW[i] = (wei_HW[i] + WinoFilterHW[i] - 1) / WinoFilterHW[i];
             wino_in.wino_tiles_HW[i]  = wino_out.wino_tiles_HW[i];
