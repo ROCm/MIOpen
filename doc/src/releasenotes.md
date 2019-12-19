@@ -25,6 +25,7 @@ Changes:
 - Improved performance of calls to miopenConvolutionXXXGetWorkSpaceSize() functions
 - Improved conformance to code object version 3
 - Disabled SCGEMM convolution algorithm by default; this algorithm is deprecated and will be removed in future releases
+- Changed "hip_hhc" to "hip-hcc" for the MIOpen package requirements in CMakeLists.txt
 
 
 
