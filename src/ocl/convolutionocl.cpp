@@ -876,7 +876,7 @@ static void DirConvFindCore(Handle& handle,
         // (i.e. types and sizes of kernel parameters) does not depend on tensor data types.
         for(const auto& sol : all)
         {
-            float elapsed = std::numeric_limits<float>::max();
+            float elapsed = 0.0f;
             const int rc  = EvaluateWinogradSolution(handle, ctx, sol, tensors, elapsed);
             if(rc != 0)
             {
@@ -920,7 +920,7 @@ static void DirConvFindCore(Handle& handle,
         visit_float(xDesc.GetType(), [&](auto as_float) {
             for(const auto& sol : all)
             {
-                float elapsed = std::numeric_limits<float>::max();
+                float elapsed = 0.0f;
                 const int rc  = EvaluateDataDirectSolution(handle,
                                                           sol,
                                                           eka,
@@ -975,7 +975,7 @@ static void DirConvFindCore(Handle& handle,
         visit_float(xDesc.GetType(), [&](auto as_float) {
             for(const auto& sol : all)
             {
-                float elapsed = std::numeric_limits<float>::max();
+                float elapsed = 0.0f;
                 const int rc  = EvaluateDataImplicitGemmSolution(handle,
                                                                 sol,
                                                                 x,
@@ -1063,7 +1063,7 @@ static void DirConvFindCore(Handle& handle,
             for(const auto& sol : all)
             {
 
-                float elapsed = 0.0f; // this init gets overwritten.
+                float elapsed = 0.0f;
                 const int rc  = EvaluateSCGemmSolution(handle,
                                                       sol,
                                                       x,
@@ -4124,9 +4124,6 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
 
     GetCompiledInParameters(
         ctx, &C, &K, &R, &S, &N, &n_groups, &H, &W, &out_H, &out_W, &unused, &unused);
-    // In wrw direction kernel_stride converted into filter_dilation
-    const auto& wrw_filter_dilation_h = ctx.kernel_stride_h;
-    const auto& wrw_filter_dilation_w = ctx.kernel_stride_w;
     // clang-format off
     BuffInfo
         in_buff_info(

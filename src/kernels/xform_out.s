@@ -503,9 +503,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
         .elseif \o_size == 1 || \f_size == 1
             //nop
         .else
-            v_mov_b32 v[ox2], v[dx2]
-            v_mov_b32 v[ox1], v[dx1]
-            v_mov_b32 v[ox0], v[dx0]
+            static_assert(0)
         .endif
 
         .if \lower
