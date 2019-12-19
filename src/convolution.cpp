@@ -759,10 +759,10 @@ std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeWinograd(
         std::size_t sz = 0;
         for(const auto& solution : ss)
         {
-            if(sz < pr.second)
+            if(sz < solution.workspce_sz)
             {
-                MIOPEN_LOG_I2(sz << " < " << pr.second);
-                sz = pr.second;
+                MIOPEN_LOG_I2(sz << " < " << solution.workspce_sz);
+                sz = solution.workspce_sz;
             }
         }
         return sz;
