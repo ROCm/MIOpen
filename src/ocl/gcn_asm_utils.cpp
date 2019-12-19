@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cassert>
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
@@ -36,6 +35,7 @@
 #include <miopen/write_file.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/exec_utils.hpp>
 #include <sstream>
 
 #ifdef __linux__
@@ -52,11 +52,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH)
 
 static const char option_no_co_v3[] = "-mno-code-object-v3";
 
-static bool GcnAssemblerSupportsCOv3();
+static bool GcnAssemblerSupportsNoCOv3();
 static std::string CleanupPath(const char* p);
-
-// Redirecting both input and output is not supported.
-static int ExecuteGcnAssembler(const std::string& p, std::istream* in, std::ostream* out);
 
 std::string GetGcnAssemblerPathImpl()
 {
@@ -92,23 +89,23 @@ bool ValidateGcnAssemblerImpl()
     }
 
     std::stringstream clang_stdout;
-    std::string clang_result_line;
-    MIOPEN_LOG_I2("Running: " << '\'' << path << " --version" << '\'');
-    auto clang_rc = ExecuteGcnAssembler(path + " --version", nullptr, &clang_stdout);
+    MIOPEN_LOG_NQI2("Running: " << '\'' << path << " --version" << '\'');
+    auto clang_rc = miopen::exec::Run(path + " --version", nullptr, &clang_stdout);
 
     if(clang_rc != 0)
     {
         return false;
     }
 
+    std::string clang_result_line;
     std::getline(clang_stdout, clang_result_line);
-    MIOPEN_LOG_I2(clang_result_line);
+    MIOPEN_LOG_NQI2(clang_result_line);
     if(clang_result_line.find("clang") != std::string::npos)
     {
         while(!clang_stdout.eof())
         {
             std::getline(clang_stdout, clang_result_line);
-            MIOPEN_LOG_I2(clang_result_line);
+            MIOPEN_LOG_NQI2(clang_result_line);
             if(clang_result_line.find("Target: ") != std::string::npos)
             {
                 return clang_result_line.find("amdgcn") != std::string::npos;
@@ -123,53 +120,6 @@ bool ValidateGcnAssembler()
 {
     static bool result = ValidateGcnAssemblerImpl();
     return result;
-}
-
-static int ExecuteGcnAssembler(const std::string& p, std::istream* in, std::ostream* out)
-{
-#ifdef __linux__
-    const auto redirect_stdin  = (in != nullptr);
-    const auto redirect_stdout = (out != nullptr);
-
-    assert(!(redirect_stdin && redirect_stdout));
-
-    const auto file_mode = redirect_stdout ? "r" : "w";
-    MIOPEN_MANAGE_PTR(FILE*, pclose) pipe{popen(p.c_str(), file_mode)};
-
-    if(!pipe)
-        MIOPEN_THROW("Error: X-AMDGCN-ASM: popen()");
-
-    if(redirect_stdin || redirect_stdout)
-    {
-        std::array<char, 1024> buffer{};
-
-        if(redirect_stdout)
-        {
-            while(feof(pipe.get()) == 0)
-                if(fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
-                    *out << buffer.data();
-        }
-        else
-        {
-            while(!in->eof())
-            {
-                in->read(buffer.data(), buffer.size() - 1);
-                buffer[in->gcount()] = 0;
-
-                if(fputs(buffer.data(), pipe.get()) == EOF)
-                    MIOPEN_THROW("Error: X-AMDGCN-ASM: fputs()");
-            }
-        }
-    }
-
-    auto status = pclose(pipe.release());
-    return WEXITSTATUS(status);
-#else
-    (void)p;
-    (void)in;
-    (void)out;
-    return -1;
-#endif // __linux__
 }
 
 static std::string CleanupPath(const char* p)
@@ -207,21 +157,22 @@ void AmdgcnAssemble(std::string& source, const std::string& params)
 
     std::ostringstream options;
     options << " -x assembler -target amdgcn--amdhsa";
-    if(GcnAssemblerSupportsCOv3())
-    {
-        options << ' ' << option_no_co_v3;
-    }
+    /// \todo Hacky way to find out which CO version we need to assemble for.
+    if(params.find("ROCM_METADATA_VERSION=5", 0) == std::string::npos) // Assume that !COv3 == COv2.
+        if(GcnAssemblerSupportsNoCOv3()) // If assembling for COv2, then disable COv3.
+            options << ' ' << option_no_co_v3;
+
     options << ' ' << params;
     if(GcnAssemblerHasBug34765())
-    {
         GenerateClangDefsym(options, "WORKAROUND_BUG_34765", 1);
-    }
+
     options << " - -o " << outfile.Path();
+    MIOPEN_LOG_I2("'" << options.str() << "'");
 
     std::istringstream clang_stdin(source);
     const auto clang_path = GetGcnAssemblerPath();
     const auto clang_rc =
-        ExecuteGcnAssembler(clang_path + " " + options.str(), &clang_stdin, nullptr);
+        miopen::exec::Run(clang_path + " " + options.str(), &clang_stdin, nullptr);
     if(clang_rc != 0)
     {
         MIOPEN_LOG_W(options.str());
@@ -271,9 +222,8 @@ static void AmdgcnAssembleQuiet(std::string& source, const std::string& params)
     const auto args       = " -x assembler -target amdgcn--amdhsa " + params + " " + source +
                       " -o /dev/null" + // We do not need output file
                       " 2>&1";          // Keep console clean from error messages.
-    MIOPEN_LOG_I2(clang_path << " " << args);
-    const int clang_rc =
-        ExecuteGcnAssembler(clang_path + " " + args, nullptr, &clang_stdout_unused);
+    MIOPEN_LOG_NQI2(clang_path << " " << args);
+    const int clang_rc = miopen::exec::Run(clang_path + " " + args, nullptr, &clang_stdout_unused);
     if(clang_rc != 0)
         MIOPEN_THROW("Assembly error(" + std::to_string(clang_rc) + ")");
 #else
@@ -295,7 +245,7 @@ static bool GcnAssemblerHasBug34765Impl()
     }
     catch(...)
     {
-        MIOPEN_LOG_I("Detected");
+        MIOPEN_LOG_NQI("Detected");
         return true;
     }
 }
@@ -314,17 +264,17 @@ static bool GcnAssemblerSupportsOption(const std::string& option)
     try
     {
         AmdgcnAssembleQuiet(src, "-mcpu=gfx900 " + option);
-        MIOPEN_LOG_I("Supported: '" << option << '\'');
+        MIOPEN_LOG_NQI("Supported: '" << option << '\'');
         return true;
     }
     catch(...)
     {
-        MIOPEN_LOG_I("Not supported: '" << option << '\'');
+        MIOPEN_LOG_NQI("Not supported: '" << option << '\'');
         return false;
     }
 }
 
-static bool GcnAssemblerSupportsCOv3()
+static bool GcnAssemblerSupportsNoCOv3()
 {
     const static bool b = GcnAssemblerSupportsOption(option_no_co_v3);
     return b;

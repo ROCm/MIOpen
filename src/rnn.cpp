@@ -396,6 +396,11 @@ size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
             return x + deref(y).GetLengths()[0];
         });
     auto x = 2 * workspaceScale * nLayers * inputBatchLenSum * hsize * typeSize;
+    if(algoMode == miopenRNNdefault && rnnMode == miopenLSTM)
+    {
+        x /= 2;
+        x += nLayers * inputBatchLenSum * hsize * typeSize;
+    }
     return size_t(dirMode == miopenRNNbidirection ? 2 * x : x);
 }
 

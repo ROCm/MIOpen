@@ -23,19 +23,30 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+.ifnotdef ROCM_METADATA_VERSION
+.error "Undefined ROCM_METADATA_VERSION"
+.end
+.endif
+
+.if ROCM_METADATA_VERSION == 4
 .hsa_code_object_version 2, 1
 .hsa_code_object_isa
+.endif
 
 .text
-.globl sp3AsmConvRxSU
+.globl miopenSp3AsmConvRxSU
 .p2align 8
-.type sp3AsmConvRxSU,@function
-.amdgpu_hsa_kernel sp3AsmConvRxSU
+.type miopenSp3AsmConvRxSU,@function
 
-sp3AsmConvRxSU:
+.if ROCM_METADATA_VERSION == 4
+.amdgpu_hsa_kernel miopenSp3AsmConvRxSU
+.endif
+
+miopenSp3AsmConvRxSU:
+.if ROCM_METADATA_VERSION == 4
 .amd_kernel_code_t
     is_ptr64 = 1
-    enable_vgpr_workitem_id = 1 // v1 is not used at all for now, but what the heck.
+    enable_vgpr_workitem_id = 1
     float_mode = 192
     enable_sgpr_private_segment_buffer = 1
     enable_sgpr_dispatch_ptr = 1
@@ -49,7 +60,7 @@ sp3AsmConvRxSU:
     kernarg_segment_byte_size = 136
     workgroup_group_segment_byte_size = 65536
     wavefront_sgpr_count =  101 // 97 + 4 (vcc, xnack)
-    workitem_vgpr_count = 126
+    workitem_vgpr_count = 128
     granulated_lds_size = 0
 .end_amd_kernel_code_t
-
+.endif

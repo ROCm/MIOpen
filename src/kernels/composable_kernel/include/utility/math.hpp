@@ -3,6 +3,7 @@
 
 #include "config.hpp"
 #include "integral_constant.hpp"
+#include "type.hpp"
 
 namespace ck {
 namespace math {
@@ -29,6 +30,12 @@ template <class T>
 struct multiplies
 {
     __host__ __device__ constexpr T operator()(T a, T b) const { return a * b; }
+};
+
+template <class T>
+struct maxer
+{
+    __host__ __device__ constexpr T operator()(T a, T b) const { return a >= b ? a : b; }
 };
 
 template <class T>
@@ -97,6 +104,18 @@ __host__ __device__ constexpr T lcm(T x, Ts... xs)
 {
     return max(x, xs...);
 }
+
+template <class T>
+struct equal
+{
+    __host__ __device__ constexpr bool operator()(T x, T y) const { return x == y; }
+};
+
+template <class T>
+struct less
+{
+    __host__ __device__ constexpr bool operator()(T x, T y) const { return x < y; }
+};
 
 } // namespace math
 } // namspace ck

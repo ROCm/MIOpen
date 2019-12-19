@@ -35,8 +35,9 @@
 #include <miopen/solver.hpp>
 #include <miopen/generic_search.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_STRIDE2_PERF_VALS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_STRIDE2_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2)
 
 namespace miopen {
 namespace solver {
@@ -189,7 +190,7 @@ bool PerformanceConfigConvAsm1x1UV2::SetNextValue()
     // Increment with wrap-around:
     do
     {
-        if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_STRIDE2_SEARCH_OPTIMIZED{}))
+        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_SEARCH_OPTIMIZED{}))
         {
             if(!IncPack<16, 32, 64>(chunk_size))
                 break;
@@ -250,7 +251,7 @@ bool PerformanceConfigConvAsm1x1UV2::SetNextValue()
 PerformanceConfigConvAsm1x1UV2::PerformanceConfigConvAsm1x1UV2(bool spare)
     : PerformanceConfigConvAsm1x1UV2(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, spare)
 {
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_STRIDE2_SEARCH_OPTIMIZED{}))
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_SEARCH_OPTIMIZED{}))
     {
         k_mult           = spare ? 1 : 8;
         chunk_size       = 16;
@@ -468,11 +469,13 @@ bool ConvAsm1x1UV2::IsValidPerformanceConfig(const ConvolutionContext& problem,
 
 bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2{}))
+        return false;
     if(!params.use_asm_kernels)
         return false;
     if(!params.Is2d())
         return false;
-    if(params.rmv != rocm_meta_version::AMDHSA_1_0)
+    if(!params.rmv.IsV2orV3())
         return false;
     if(!params.IsFp32())
         return false;
@@ -558,8 +561,6 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
     return ok;
 }
 
-bool ConvAsm1x1UV2::IsFast(const ConvolutionContext&) const { return true; }
-
 ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
                                         const PerformanceConfigConvAsm1x1UV2& config,
                                         const bool disableConfigOverrideFromEnv) const
@@ -575,8 +576,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
     if(!disableConfigOverrideFromEnv)
     {
         std::string s;
-        const auto p_asciz =
-            miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_STRIDE2_PERF_VALS{});
+        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_PERF_VALS{});
         if(p_asciz != nullptr)
         {
             s = std::string(p_asciz);
@@ -584,7 +584,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
             {
                 if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())
                 {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_STRIDE2_PERF_VALS: "
+                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_PERF_VALS: "
                                  "Bad format or invalid for the problem config: "
                                  << s);
                 }
@@ -668,7 +668,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "filter_buffer_size", fbuf.total_byte_size);
     GenerateClangDefsym(options, "output_buffer_size", obuf.total_byte_size);
 
-    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 4);
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
 
     GenerateClangDefsym(options, "chunk_size", pcfg->GetChunkSize());
     GenerateClangDefsym(options, "dwords_per_ld", pcfg->GetDwordsPerLd());
@@ -704,7 +704,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
     kinfo.g_wk.push_back(divide_round_plus_inf(params.batch_sz, n_per_wave));
 
     kinfo.kernel_file = "conv1x1u_stride2.s";
-    kinfo.kernel_name = "gcnAsmConv1x1U_stride2";
+    kinfo.kernel_name = "miopenGcnAsmConv1x1U_stride2";
 
     result.construction_params.push_back(kinfo);
 
@@ -763,8 +763,9 @@ int ConvAsm1x1UV2::RunAndMeasureSolution(miopen::Handle& profile_h,
         elapsed_time = profile_h.GetKernelTime();
     }
 #ifdef NDEBUG
-    catch(miopen::Exception&)
+    catch(miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return -1;
     }
 #endif

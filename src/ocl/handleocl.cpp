@@ -410,7 +410,7 @@ Handle::Handle() : impl(new HandleImpl())
     // TODO: Store device name in handle
     std::string deviceName = miopen::GetDeviceInfo<CL_DEVICE_NAME>(impl->device);
     ParseDevName(deviceName);
-    MIOPEN_LOG_I("Device name: " << deviceName);
+    MIOPEN_LOG_NQI("Device name: " << deviceName);
 #endif
 
     /////////////////////////////////////////////////////////////////
@@ -431,7 +431,7 @@ Handle::Handle() : impl(new HandleImpl())
         MIOPEN_THROW("Creating Command Queue. (clCreateCommandQueue)");
     }
     this->SetAllocator(nullptr, nullptr, nullptr);
-    MIOPEN_LOG_I(*this);
+    MIOPEN_LOG_NQI(*this);
 }
 
 Handle::Handle(Handle&&) noexcept = default;
@@ -608,6 +608,12 @@ std::size_t Handle::GetMaxComputeUnits()
 std::size_t Handle::GetImage3dMaxWidth()
 {
     return miopen::GetDeviceInfo<CL_DEVICE_IMAGE3D_MAX_WIDTH>(miopen::GetDevice(this->GetStream()));
+}
+
+std::size_t Handle::GetWavefrontWidth()
+{
+    return miopen::GetDeviceInfo<CL_DEVICE_WAVEFRONT_WIDTH_AMD>(
+        miopen::GetDevice(this->GetStream()));
 }
 
 Allocator::ManageDataPtr Handle::Create(std::size_t sz)

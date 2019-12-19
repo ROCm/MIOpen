@@ -45,7 +45,36 @@
 
 #if MIOPEN_USE_ROCBLAS
 #define ROCBLAS_TIMING_MEMSET_SIZE (10 * 1024 * 1024)
+
+#define MIOPEN_ROCBLAS_VERSION_DECIMAL (ROCBLAS_VERSION_MAJOR * 100 + ROCBLAS_VERSION_MINOR)
+
+/// Avoid warnings "The workspace_size and workspace arguments are obsolete" and
+/// "disabled expansion of recursive macro" injected by rocblas headers.
+#define AVOID_ROCBLAS_WRAPPERS_204 (MIOPEN_ROCBLAS_VERSION_DECIMAL >= 204)
+
+template <class... Ts>
+auto miopen_rocblas_gemm_ex(Ts... xs)
+{
+#if AVOID_ROCBLAS_WRAPPERS_204
+    return (rocblas_gemm_ex)(xs...);
+#else
+    std::size_t zero = 0;
+    return rocblas_gemm_ex(xs..., &zero, nullptr);
 #endif
+}
+
+template <class... Ts>
+auto miopen_rocblas_gemm_strided_batched_ex(Ts... xs)
+{
+#if AVOID_ROCBLAS_WRAPPERS_204
+    return (rocblas_gemm_strided_batched_ex)(xs...);
+#else
+    std::size_t zero = 0;
+    return rocblas_gemm_strided_batched_ex(xs..., &zero, nullptr);
+#endif
+}
+
+#endif // MIOPEN_USE_ROCBLAS
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_GEMM_ENFORCE_BACKEND)
 
@@ -351,8 +380,7 @@ miopenStatus_t CallGemm(Handle& handle,
             auto alpha = int(gemm_desc.alpha);
             auto beta  = int(gemm_desc.beta);
 
-            std::size_t zero = 0;
-            rb_status        = rocblas_gemm_ex(
+            rb_status = miopen_rocblas_gemm_ex(
                 handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
@@ -376,9 +404,7 @@ miopenStatus_t CallGemm(Handle& handle,
                 rocblas_datatype::rocblas_datatype_i32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                0,
-                &zero,
-                nullptr);
+                0);
         }
         break;
         case miopenInt32: break;
@@ -387,8 +413,7 @@ miopenStatus_t CallGemm(Handle& handle,
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
-            std::size_t zero = 0;
-            rb_status        = rocblas_gemm_ex(
+            rb_status = miopen_rocblas_gemm_ex(
                 handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
@@ -412,9 +437,7 @@ miopenStatus_t CallGemm(Handle& handle,
                 rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                0,
-                &zero,
-                nullptr);
+                0);
         }
         break;
 
@@ -424,8 +447,7 @@ miopenStatus_t CallGemm(Handle& handle,
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
-            std::size_t zero = 0;
-            rb_status        = rocblas_gemm_ex(
+            rb_status = miopen_rocblas_gemm_ex(
                 handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
@@ -449,9 +471,7 @@ miopenStatus_t CallGemm(Handle& handle,
                 rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                0,
-                &zero,
-                nullptr);
+                0);
         }
         break;
 
@@ -460,8 +480,7 @@ miopenStatus_t CallGemm(Handle& handle,
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
-            std::size_t zero = 0;
-            rb_status        = rocblas_gemm_ex(
+            rb_status = miopen_rocblas_gemm_ex(
                 handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
@@ -485,9 +504,7 @@ miopenStatus_t CallGemm(Handle& handle,
                 rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                0,
-                &zero,
-                nullptr);
+                0);
         }
         break;
         }
@@ -670,8 +687,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
             auto alpha = int(gemm_desc.alpha);
             auto beta  = int(gemm_desc.beta);
 
-            std::size_t zero = 0;
-            rb_status        = rocblas_gemm_strided_batched_ex(
+            rb_status = miopen_rocblas_gemm_strided_batched_ex(
                 handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
@@ -700,9 +716,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                 rocblas_datatype::rocblas_datatype_i32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                0,
-                &zero,
-                nullptr);
+                0);
         }
         break;
         case miopenInt32: break;
@@ -711,8 +725,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
-            std::size_t zero = 0;
-            rb_status        = rocblas_gemm_strided_batched_ex(
+            rb_status = miopen_rocblas_gemm_strided_batched_ex(
                 handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
@@ -741,9 +754,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                 rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                0,
-                &zero,
-                nullptr);
+                0);
         }
         break;
 
@@ -752,8 +763,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
-            std::size_t zero = 0;
-            rb_status        = rocblas_gemm_strided_batched_ex(
+            rb_status = miopen_rocblas_gemm_strided_batched_ex(
                 handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
@@ -782,9 +792,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                 rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                0,
-                &zero,
-                nullptr);
+                0);
         }
         break;
 
@@ -793,8 +801,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
-            std::size_t zero = 0;
-            rb_status        = rocblas_gemm_strided_batched_ex(
+            rb_status = miopen_rocblas_gemm_strided_batched_ex(
                 handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
@@ -823,9 +830,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                 rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                0,
-                &zero,
-                nullptr);
+                0);
         }
         break;
         }
@@ -945,10 +950,9 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
             auto alpha = int(gemm_desc.alpha);
             auto beta  = int(gemm_desc.beta);
 
-            std::size_t zero = 0;
             for(int i = 0; i < gemm_desc.batch_count; ++i)
             {
-                rb_status = rocblas_gemm_ex(
+                rb_status = miopen_rocblas_gemm_ex(
                     handle.rhandle().get(),
                     gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                     gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
@@ -972,9 +976,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
                     rocblas_datatype::rocblas_datatype_i32_r,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard,
                     0,
-                    0,
-                    &zero,
-                    nullptr);
+                    0);
             }
         }
         break;
@@ -984,10 +986,9 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
-            std::size_t zero = 0;
             for(int i = 0; i < gemm_desc.batch_count; ++i)
             {
-                rb_status = rocblas_gemm_ex(
+                rb_status = miopen_rocblas_gemm_ex(
                     handle.rhandle().get(),
                     gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                     gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
@@ -1011,9 +1012,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
                     rocblas_datatype::rocblas_datatype_f32_r,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard,
                     0,
-                    0,
-                    &zero,
-                    nullptr);
+                    0);
             }
         }
         break;
@@ -1023,10 +1022,9 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
-            std::size_t zero = 0;
             for(int i = 0; i < gemm_desc.batch_count; ++i)
             {
-                rb_status = rocblas_gemm_ex(
+                rb_status = miopen_rocblas_gemm_ex(
                     handle.rhandle().get(),
                     gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                     gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
@@ -1050,9 +1048,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
                     rocblas_datatype::rocblas_datatype_f32_r,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard,
                     0,
-                    0,
-                    &zero,
-                    nullptr);
+                    0);
             }
         }
         break;
@@ -1062,10 +1058,9 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
-            std::size_t zero = 0;
             for(int i = 0; i < gemm_desc.batch_count; ++i)
             {
-                rb_status = rocblas_gemm_ex(
+                rb_status = miopen_rocblas_gemm_ex(
                     handle.rhandle().get(),
                     gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                     gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
@@ -1089,9 +1084,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
                     rocblas_datatype::rocblas_datatype_f32_r,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard,
                     0,
-                    0,
-                    &zero,
-                    nullptr);
+                    0);
             }
         }
         break;

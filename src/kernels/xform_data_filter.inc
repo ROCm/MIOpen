@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
+.include "rocm_version.inc"
 .include "gpr_alloc.inc"
 .include "inst_wrappers.inc"
 .include "common.inc"
@@ -80,12 +80,9 @@
 // dwords 34	uint32_t o_K_stride;
 // dwords 35	uint32_t o_H_stride;
 // dwords 36	uint32_t o_W_stride;
+.set KERNEL_ARGUMENTS_SIZE, (36+1)*4
 
 default pipe_depth, 4
-default xformx_f_size, 2 // 2..6
-default xformy_f_size, 2 // 2..6
-default xformx_o_size, 3 // 3
-default xformy_o_size, 3 // 3
 
 default acc_type, TYPE_FP32
 default buf_type, TYPE_FP32
@@ -101,8 +98,6 @@ static_assert(buf_type == TYPE_FP32 || buf_type == TYPE_FP16 || buf_type == TYPE
     lds_elem_size = 4
 .endif
 
-xformx_d_size = xformx_o_size + (xformx_f_size - 1) * fdilation_w
-xformy_d_size = xformy_o_size + (xformy_f_size - 1) * fdilation_h
 .if xformx_d_size > xformy_d_size
     tiles_per_wave = wave_size / xformx_d_size
 .else
@@ -113,16 +108,24 @@ slot_size = xformx_d_size
 .text
 .p2align 8
 
-static_assert(xformx_f_size >=2 && xformx_f_size <= 6)
-static_assert(xformy_f_size >=2 && xformy_f_size <= 6)
-static_assert(xformx_o_size == 3)
-static_assert(xformy_o_size == 3)
+static_assert(xformx_f_size <= 6)
+static_assert(xformy_f_size <= 6)
+static_assert(xformx_d_size <= 13)
+static_assert(xformy_d_size <= 13)
+static_assert(xformx_f_size * xformy_f_size > 1)
+static_assert(xformx_o_size == 1 || xformx_o_size == 3 || xformx_o_size == 7 || xformx_o_size == 5)
+static_assert(xformy_o_size == 1 || xformy_o_size == 3 || xformy_o_size == 7 || xformy_o_size == 5)
+static_assert(xformx_o_size * xformy_o_size > 1)
 static_assert(elem_size == 4 || elem_size == 2)
 static_assert(pipe_depth & 1 == 0)
 
 static_assert(fdilation_w == 1 || fdilation_w == 2)
 static_assert(fdilation_h == 1 || fdilation_h == 2)
 
+.if (fdilation_w == 2 || fdilation_h == 2)
+    static_assert(xformx_o_size == 3)
+    static_assert(xformy_o_size == 3)
+.endif
 .if xform_filter
     in_tile_width  = xformx_f_size
     in_tile_height = xformy_f_size
@@ -204,6 +207,7 @@ div_c = 3
 //.SGPR_ALLOC scur_n
 .SGPR_ALLOC pipe_cnt
 .SGPR_ALLOC frontend_finished
+.SGPR_RESERVE_VCC
 
 .VGPR_ALLOC_FROM 0
 .VGPR_ALLOC tid
@@ -237,36 +241,27 @@ lds_buf_size = xformy_d_size * lds_hstride
 
 .macro kernel_begin  x_o_size, y_o_size, x_f_size, y_f_size
     .if xform_filter
-        .globl gcnAsmWinogradXformFilter_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
-        .type gcnAsmWinogradXformFilter_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size,@function
-        .amdgpu_hsa_kernel gcnAsmWinogradXformFilter_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
-        gcnAsmWinogradXformFilter_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size:
+        .globl miopenGcnAsmWinogradXformFilter_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
+        .type miopenGcnAsmWinogradXformFilter_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size,@function
+        .if ROCM_METADATA_VERSION == 4
+            .amdgpu_hsa_kernel miopenGcnAsmWinogradXformFilter_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
+        .endif
+        miopenGcnAsmWinogradXformFilter_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size:
     .else
-        .globl gcnAsmWinogradXformData_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
-        .type gcnAsmWinogradXformData_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size,@function
-        .amdgpu_hsa_kernel gcnAsmWinogradXformData_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
-        gcnAsmWinogradXformData_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size:
+        .globl miopenGcnAsmWinogradXformData_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
+        .type miopenGcnAsmWinogradXformData_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size,@function
+        .if ROCM_METADATA_VERSION == 4
+            .amdgpu_hsa_kernel miopenGcnAsmWinogradXformData_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
+        .endif
+        miopenGcnAsmWinogradXformData_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size:
     .endif
 .endm
 
 kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
 
-    .amd_kernel_code_t
-        enable_sgpr_kernarg_segment_ptr = 1
-        compute_pgm_rsrc2_tgid_x_en = 1
-        is_ptr64 = 1
-        compute_pgm_rsrc1_vgprs = .AUTO_VGPR_GRANULATED_COUNT
-        compute_pgm_rsrc1_sgprs = .AUTO_SGPR_GRANULATED_COUNT
-        compute_pgm_rsrc2_tidig_comp_cnt = 0
-        compute_pgm_rsrc2_user_sgpr = 2
-        kernarg_segment_byte_size = 148
-        wavefront_sgpr_count = .AUTO_SGPR_COUNT
-        workitem_vgpr_count = .AUTO_VGPR_COUNT
-        float_mode = 192
-        workgroup_group_segment_byte_size = .AUTO_LDS_BYTE_SIZE
-    .end_amd_kernel_code_t
-
-
+.if ROCM_METADATA_VERSION == 4
+.include "xform_kd_cov2.inc"
+.endif
 
     s_load_dwordx16 s[N:dbg_addr+1], s[kernarg:kernarg+1], 0x0
     s_load_dwordx16 s[R:f_H_stride], s[kernarg:kernarg+1], 0x4 * 16
@@ -309,9 +304,9 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
     s_cmov_b32 s[err], 1
     s_cmp_ge_u32 s[NK], s[u16limit]
     s_cmov_b32 s[err], 1
-    s_cmp_gt_u32 s[pad_h], 1
+    s_cmp_gt_u32 s[pad_h], 3
     s_cmov_b32 s[err], 1
-    s_cmp_gt_u32 s[pad_w], 1
+    s_cmp_gt_u32 s[pad_w], 3
     s_cmov_b32 s[err], 1
     s_cmp_ge_u32 s[chw_step], s[u16limit]
     s_cmov_b32 s[err], 1
@@ -570,7 +565,6 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_mul_f32 v[d8], -0.083333333333, v[d8] // -1/12
                 v_mul_f32 v[d0], 0.25, v[d1]
                 v_mov_b32 v[d10], v[d9]
-
             .elseif \o_size == 3 && \f_size == 6 && \fdil == 2
                 v_mov_b32 v[d11], v[d5]
                 v_mov_b32 v[d9], v[d4]
@@ -606,7 +600,110 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
 
                 v_mul_f32 v[d0], 0.5, v[d1]
                 v_mov_b32 v[d12], v[d11]
+            .elseif \o_size == 7 && \f_size == 2 && \fdil == 1
+                v_mov_b32 v[d5], v[d0]
+                v_mov_b32 v[d4], v[d1]
+                v_mov_b32 v[d8], v[d1]
+                v_mul_f32 v[d0], 0.5, v[d0]
+                v_mul_f32 v[d7], 0.5, v[d8]
+                v_add_f32 v[d6], v[d0], v[d7]
+                v_sub_f32 v[d7], v[d0], v[d7]
+                v_sub_f32 v[d1], 0, v[d6]
+                v_mul_f32 v[d2], -0.333333333333, v[d7]
+                v_mul_f32 v[d3], 0.333333333333, v[d8]
+                v_mac_f32 v[d3], 0.166666666666, v[d5]
+            .elseif \o_size == 7 && \f_size == 3 && \fdil == 1
+                v_mul_f32 v[d9], 0.333333333333, v[d1]
+                v_mov_b32 v[d10], v[d2]
+                v_mov_b32 v[d5], v[d1]
+                v_mul_f32 v[d8], 0.166666666666, v[d0]
 
+                v_add_f32  v[d3], v[d8], v[d9]
+                v_mul_f32  v[d3], 0.25, v[d3]
+
+                v_add_f32 v[d7], v[d1], v[d2]
+                v_add_f32 v[d7], v[d7], v[d0]
+                v_mul_f32 v[d7], -0.5, v[d7]
+
+                v_mul_f32  v[d1], 0.166666666666, v[d1]
+                v_mul_f32  v[d2], 0.166666666666, v[d2]
+
+                v_add_f32  v[d3], v[d3], v[d2]
+                v_sub_f32  v[d4], v[d3], v[d1]
+
+                v_sub_f32  v[d2], v[d1], v[d2]
+                v_sub_f32  v[d2], v[d2], v[d8]
+
+                v_sub_f32  v[d1], v[d2], v[d9]
+
+                v_mac_f32 v[d9], 0.666666666666, v[d10]
+                v_add_f32 v[d9], v[d9], v[d8]
+
+                v_mov_b32  v[d8], v[d2]
+                v_mov_b32 v[d5], v[d10]
+
+                v_mul_f32 v[d6], 0.5, v[d0]
+                v_mul_f32 v[d0], 0.25, v[d0]
+            .elseif \o_size == 5 && \f_size == 3 && \fdil == 1
+
+                v_mul_f32 v[d3], 0.0277777778, v[d0]
+                v_mul_f32 v[d4], 0.0555555556, v[d1]
+                v_mul_f32 v[d5], 0.1111111111, v[d2]
+
+                v_add_f32 v[d6], v[d3], v[d5]
+                v_sub_f32 v[d6], v[d4], v[d6]
+                v_add_f32 v[d3], v[d3], v[d4]
+                v_add_f32 v[d3], v[d3], v[d5]
+                v_mul_f32 v[d4], 0.6, v[d6]
+
+                v_mul_f32 v[t0], 0.711111111111,v[d0]
+                v_mul_f32 v[t1], 0.355555555556,v[d1]
+                v_add_f32 v[d5], v[t1], v[t0]
+                v_mul_f32 v[t2], 0.17777777778,v[d2]
+                v_add_f32 v[d5], v[d5], v[t2]
+
+                v_add_f32 v[t0], v[d0], v[d2]
+                v_mov_b32 v[d6], v[d2]
+                v_sub_f32 v[d2], v[t0], v[d1]
+                v_add_f32 v[d1], v[t0], v[d1]
+
+                v_mul_f32 v[d2], 0.111111111111, v[d2]
+                v_mul_f32 v[d1], -0.333333333333, v[d1]
+                v_mul_f32 v[d0], 0.5, v[d0]
+
+            .elseif \o_size == 5 && \f_size == 4 && \fdil == 1
+
+                v_add_f32 v[t0], v[d0], v[d2]
+                v_mul_f32 v[t0], -0.2222222222222, v[t0]
+                v_add_f32 v[t1], v[d1], v[d3]
+                v_mul_f32 v[t1], -0.2222222222222, v[t1]
+
+                v_mul_f32 v[d5], 0.71111111111111, v[d0]
+                v_mul_f32 v[d6], 0.17777777777778, v[d2]
+                v_add_f32 v[d5], v[d5], v[d6]
+
+                v_mul_f32 v[d6], 0.35555555555556, v[d1]
+                v_mul_f32 v[t4], 0.08888888888889, v[d3]
+                v_add_f32 v[d7], v[t4], v[d6]
+
+                v_sub_f32 v[d6], v[d5], v[d7]
+                v_add_f32 v[d5], v[d5], v[d7]
+
+                v_mov_b32 v[d7], v[d3]
+
+                v_mul_f32 v[t2], 0.01111111111111, v[d0]
+                v_mul_f32 v[t3], 0.04444444444444, v[d2]
+                v_add_f32 v[t2], v[t2], v[t3]
+
+                v_mul_f32 v[t3], 0.02222222222222, v[d1]
+                v_add_f32 v[t3], v[t3], v[t4]
+
+                v_sub_f32 v[d4], v[t2], v[t3]
+                v_add_f32 v[d3], v[t2], v[t3]
+                v_sub_f32 v[d2], v[t0], v[t1]
+                v_add_f32 v[d1], v[t0], v[t1]
+            .elseif \o_size == 1 || \f_size == 1
+                //nop
             .else
                 static_assert(0)
             .endif
@@ -824,6 +921,146 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_add_f32 v[d4], v[t1], v[d4]
                 v_fma_f32 v[d2], 2.0, v[d2], v[t0]
 
+            .elseif \o_size == 7 && \f_size == 2 && \fdil == 1
+                v_sub_f32 v[d8], v[d7], v[d5]
+                v_sub_f32 v[d7], v[d6], v[d5]
+                v_add_f32 v[t0], v[d6], v[d5]
+                v_sub_f32 v[d5], v[d4], v[d6]
+                v_mov_b32 v[d6], v[t0]
+
+                v_fma_f32 v[t0],-2.0, v[d1], v[d3]
+                v_fma_f32 v[t1], 2.0, v[d1], v[d3]
+                v_sub_f32 v[d3], v[d3], v[d1]
+                v_sub_f32 v[d4], v[d4], v[d2]
+                v_mac_f32 v[d4],-2.0, v[d3]
+                v_sub_f32 v[d0], v[d0], v[d2]
+                v_fma_f32 v[d0], 2.0, v[d0], v[d3]
+                v_sub_f32 v[d1], v[t0], v[d2]
+                v_mul_f32 v[d2],-3.0, v[d2]
+                v_add_f32 v[d2], v[d2], v[t1]
+            .elseif \o_size == 7 && \f_size == 3 && \fdil == 1
+
+                v_mov_b32 v[t3], -5.0
+                v_sub_f32 v[d9], v[d7], v[d5]
+                v_fma_f32 v[d0], 4.0, v[d0], v[d4]
+                v_fma_f32 v[d0], v[t3], v[d2], v[d0]
+                v_fma_f32 v[t0], 2.0, v[d4], v[d7]
+                v_sub_f32 v[t0], v[t0], v[d5]
+                v_mul_f32 v[t1], 4.0, v[d1]
+                v_mul_f32 v[t2], 2.0, v[d1]
+                v_fma_f32 v[t4], -2.0, v[d3], v[t2]
+                v_mul_f32 v[t2],  2.0, v[d5]
+                v_fma_f32 v[t5], -4.0, v[d2], v[d4]
+                v_sub_f32 v[t6], v[t1], v[d3]
+                v_mac_f32 v[d5], v[t3], v[d3]
+                v_add_f32 v[d5], v[t1], v[d5]
+                v_sub_f32 v[d4], v[d4], v[d2]
+                v_sub_f32 v[d3], v[d4], v[t4]
+                v_add_f32 v[d4], v[d4], v[t4]
+                v_add_f32 v[d2], v[t5], v[t6]
+                v_sub_f32 v[d1], v[t5], v[t6]
+                v_mov_b32 v[t3], -3.0
+
+                v_fma_f32 v[d10], -2.0, v[d9], v[d8]
+                v_sub_f32 v[d10], v[d10], v[d6]
+                v_sub_f32 v[t1],  v[d7] , v[t2]
+                v_fma_f32 v[d8], v[t3], v[d6], v[d7]
+                v_add_f32 v[d8], v[d8], v[t2]
+                v_sub_f32 v[d7], v[t1], v[d6]
+                v_fma_f32 v[d6], -2.0, v[d6], v[t0]
+            .elseif \o_size == 5 && \f_size == 3 && \fdil == 1
+
+                v_sub_f32 v[t0], 0, v[d5]
+                v_fma_f32 v[d0], 2.0, v[d0], v[t0]
+                v_fma_f32 v[d6], 0.5, v[t0], v[d6]
+                v_sub_f32 v[t0], v[d2], v[d4]
+
+                v_mul_f32 v[t1], 2.5, v[t0]
+                v_add_f32 v[t1], v[t1], v[d5]
+                v_sub_f32 v[t1], v[t1], v[d1]
+
+                v_mul_f32 v[t0], -1.5, v[t0]
+                v_add_f32 v[t0], v[t0], v[d5]
+                v_add_f32 v[t0], v[t0], v[d1]
+                v_mul_f32 v[t2], -2.0, v[d3]
+                v_add_f32 v[t0], v[t0], v[t2]
+
+                v_mul_f32 v[t2], -5.0, v[d3]
+                v_fma_f32 v[t2], 4.0, v[d1], v[t2]
+
+                v_sub_f32 v[d0], v[d0], v[t2]
+
+                v_mul_f32 v[t3], -5.0, v[d2]
+                v_add_f32 v[t3], v[d4], v[t3]
+                v_fma_f32 v[d0], 0.5, v[t3], v[d0]
+
+                v_mov_b32 v[t3], v[d5]
+                v_add_f32 v[d5], v[d5], v[t2]
+                v_mul_f32 v[d1], 2.0, v[d1]
+                v_mul_f32 v[d3], 0.5, v[d3]
+
+                v_sub_f32 v[t4], v[d3], v[d4]
+                v_mul_f32 v[t4], 5.0, v[t4]
+                v_fma_f32 v[t4], 4.0, v[d2], v[t4]
+                v_sub_f32 v[t4], v[t4], v[d1]
+                v_add_f32 v[d6], v[d6], v[t4]
+
+                v_mul_f32 v[d2], -2.0, v[d2]
+                v_fma_f32 v[d4], 0.5, v[d4], v[d2]
+
+                v_mul_f32 v[d2], -3.0, v[d4]
+
+                v_mul_f32 v[t4], -7.0, v[d3]
+                v_add_f32 v[t4], v[t4], v[t3]
+                v_add_f32 v[d2], v[t4], v[d2]
+                v_sub_f32 v[d2], v[d2], v[d1]
+
+                v_mul_f32 v[t4], -9.0, v[d3]
+                v_add_f32 v[d1], v[d1], v[t3]
+                v_add_f32 v[d1], v[d4], v[d1]
+                v_add_f32 v[d1], v[d1], v[t4]
+
+                v_mov_b32 v[d3], v[t0]
+                v_mov_b32 v[d4], v[t1]
+            .elseif \o_size == 5 && \f_size == 4 && \fdil == 1
+                v_sub_f32 v[t0], v[d3], v[d5]
+                v_mul_f32 v[t0], 5.25, v[t0]
+                v_sub_f32 v[d7], v[d7], v[d1]
+                v_add_f32 v[d7], v[d7], v[t0]
+
+                v_mul_f32 v[t2], -2.5, v[d3]
+                v_fma_f32 v[t0], 0.5, v[d5], v[t2]
+                v_fma_f32 v[t0], 2.0, v[d1], v[t0]
+                v_mul_f32 v[t1], -5.0, v[d4]
+                v_fma_f32 v[t1], 4.0, v[d2], v[t1]
+                v_add_f32 v[t1], v[t1], v[d6]
+                v_fma_f32 v[t2], 2.0, v[d5], v[t2]
+                v_fma_f32 v[t2], 0.5, v[d1], v[t2]
+
+                v_mul_f32 v[t3], -1.25, v[d4]
+                v_mul_f32 v[t4], 0.25, v[d2]
+                v_add_f32 v[t3], v[t4], v[t3]
+                v_add_f32 v[t3], v[t3], v[d6]
+                v_sub_f32 v[t4], v[d4], v[d2]
+                v_mul_f32 v[t4], 5.25, v[t4]
+                v_sub_f32 v[d0], v[d0], v[d6]
+                v_add_f32 v[d0], v[t4], v[d0]
+                v_mul_f32 v[t4], -4.25, v[d3]
+                v_add_f32 v[t4], v[d1], v[t4]
+                v_add_f32 v[t4], v[d5], v[t4]
+
+                v_mul_f32 v[t5], -4.25, v[d4]
+                v_add_f32 v[t5], v[d2], v[t5]
+                v_add_f32 v[t5], v[t5], v[d6]
+                v_add_f32 v[d1], v[t5], v[t4]
+                v_sub_f32 v[d2], v[t5], v[t4]
+                v_add_f32 v[d3], v[t3], v[t2]
+                v_sub_f32 v[d4], v[t3], v[t2]
+                v_add_f32 v[d5], v[t1], v[t0]
+                v_sub_f32 v[d6], v[t1], v[t0]
+
+            .elseif \o_size == 1 || \f_size == 1
+                //nop
             .else
                 static_assert(0)
             .endif
@@ -856,7 +1093,9 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
         .if( elem_size == 4 )
             .if !xform_filter
                 // first single dword load required because of possible padding
-                single_load vgpr, 1, dwords_left, 1, soffset, \reads
+                single_load vgpr, 1, dwords_left, (dwords_left/1), soffset, \reads
+                single_load vgpr, 1, dwords_left, (dwords_left/1), soffset, \reads
+                single_load vgpr, 1, dwords_left, (dwords_left/1), soffset, \reads
             .endif
 
             single_load vgpr, 4, dwords_left, (dwords_left / 4), soffset, \reads
@@ -919,8 +1158,6 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
         v_mov_b32 \vtmp, 0x80000000
         v_cmp_lt_u32 s[valid_mask:valid_mask+1], \n, s[NK]
         v_cndmask_b32 \off_o, \vtmp, \off_o, s[valid_mask:valid_mask+1]
-        v_cmp_gt_i32 vcc, 0 + tiles_per_wave * xformy_d_size, v[tid]
-        v_cndmask_b32 \off_o, \vtmp, \off_o, vcc
 
         v_mul_u32_u24 \w, 0 + tile_step_x, \tw
         v_mad_u32_u24 \vtmp, 0 + tile_step_y, \th, v[vlocal_h]
@@ -952,11 +1189,11 @@ main_loop:
     slot = 0
     .rept pipe_depth
         .if slot & 1
-            lds_roff = lds_buf_even	
+            lds_roff = lds_buf_even
             lds_woff = lds_buf_odd
         .else
             lds_roff = lds_buf_odd
-            lds_woff = lds_buf_even	
+            lds_woff = lds_buf_even
         .endif
         rd_slot = slot
         xf_slot = (rd_slot + 1) % pipe_depth
@@ -971,6 +1208,7 @@ main_loop:
         _s_cbranch scc1, skip_frontend, %slot
 
         v_add_u32 v[vcur_tw], s[chw_step], v[vcur_tw]
+
         .if slot == 0
             loop_entrance:
         .endif
@@ -1001,16 +1239,14 @@ label skip_frontend, %slot
         read_data rd_base, reads_per_slot
 
         writes_per_slot = xformy_d_size
-        s_wait (0+(pipe_depth - 1) * (reads_per_slot+xformy_d_size))
+        s_wait 0+(pipe_depth - 1) * (reads_per_slot+xformy_d_size)
 
         i = 0
         .rept in_tile_width
             v_cmp_lt_u32 vcc, v[waddrbuf+xf_slot], s[WS]
             v_cndmask_b32 v[xf_base+i], 0, v[xf_base+i], vcc
             i = i + 1
-            .if i != in_tile_height
                 v_add_u32 v[waddrbuf+xf_slot], 1, v[waddrbuf+xf_slot]
-            .endif
         .endr
 
         data_convert xf_base, xformx_d_size, vtmp, stmp, acc_type, buf_type
@@ -1027,9 +1263,9 @@ label skip_frontend, %slot
 
         // transform each column
         s_waitcnt lgkmcnt(0+xformx_d_size)
-        winograd_xform xformy_o_size, xformy_f_size, xformx_d_size, fdilation_h, wrbuf, vtmp
+        winograd_xform xformy_o_size, xformy_f_size, xformy_d_size, fdilation_h, wrbuf, vtmp
 
-        data_convert wrbuf, xformx_d_size, vtmp, stmp, buf_type, acc_type
+        data_convert wrbuf, xformy_d_size, vtmp, stmp, buf_type, acc_type
         // store result
         write_data wrbuf, oaddrbuf+rd_slot
         v_mov_b32 v[oaddrbuf+rd_slot], v[voff_o]
@@ -1041,92 +1277,29 @@ label skip_frontend, %slot
     s_branch main_loop
 main_loop_end:
 
-    s_mov_b32 s0, s0 //debug
-
 endpgm:
+    s_endpgm
 
-s_endpgm
+.Lfunc_end0:
+
+.include "xform_metadata.inc"
 
 .altmacro
-
-.macro METADATA wg_x, lds_size, kernel_name, kernel_symbol_name
-  .if ROCM_METADATA_VERSION == 4
-    .amd_amdgpu_hsa_metadata
-        { Version: [ 1, 0 ],
-            Kernels:
-            - { Name: \kernel_name, SymbolName: \kernel_symbol_name, Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-                Attrs:
-                    { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
-                CodeProps:
-                    { KernargSegmentSize: 148, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
-                Args:
-                - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: H       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: W       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: K       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: n_groups, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: flags   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: unused_1, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: filter_ptr      , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default}
-                - { Name: reserved2       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default}
-                - { Name: x_filter_ptr    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default}
-                - { Name: ret_addr        , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*'  , AddrSpaceQual: Global, AccQual: Default }
-                - { Name: R       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: S       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: pad_h, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: pad_w, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: out_h, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: out_w, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: reserved3       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: reserved4       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
-                - { Name: d_N_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: d_C_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: d_H_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: d_W_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: reserved5       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: reserved6       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: reserved7       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: reserved8       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: o_N_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: o_C_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: o_H_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                - { Name: o_W_stride, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-                }
-        }
-    .end_amd_amdgpu_hsa_metadata
-
-  .else
-    .error "Unsupported ROCM_METADATA_VERSION"
-    .end
-  .endif
-.endm
-
-
-.macro METADATA_WRAPPER wg_x, lds_size, kernel_suf
+.macro METADATA_WRAPPER sc, vc, wg_x, lds_size, kernarg_size, kernel_suf
     .if (xform_filter)
-        METADATA %\wg_x, %\lds_size, <gcnAsmWinogradXformFilter\kernel_suf>, <gcnAsmWinogradXformFilter\kernel_suf@kd>
+        METADATA \sc, \vc, \wg_x, \lds_size, \kernarg_size, <miopenGcnAsmWinogradXformFilter\kernel_suf>
     .else
-        METADATA %\wg_x, %\lds_size, <gcnAsmWinogradXformData\kernel_suf>, <gcnAsmWinogradXformData\kernel_suf@kd>
+        METADATA \sc, \vc, \wg_x, \lds_size, \kernarg_size, <miopenGcnAsmWinogradXformData\kernel_suf>
     .endif
 .endm
 
 .macro kernel_end x_o_size, y_o_size, x_f_size, y_f_size
     .if (xform_filter)
-        .size gcnAsmWinogradXformFilter_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size, .Lfunc_end0 - gcnAsmWinogradXformFilter_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
+        .size miopenGcnAsmWinogradXformFilter_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size, .Lfunc_end0 - miopenGcnAsmWinogradXformFilter_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
     .else
-        .size gcnAsmWinogradXformData_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size, .Lfunc_end0 - gcnAsmWinogradXformData_\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
+        .size miopenGcnAsmWinogradXformData_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size, .Lfunc_end0 - miopenGcnAsmWinogradXformData_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
     .endif
-    METADATA_WRAPPER 64, .AUTO_LDS_BYTE_SIZE, _\x_o_size\()_\y_o_size\()_\x_f_size\()_\y_f_size
+    METADATA_WRAPPER %.AUTO_SGPR_COUNT, %.AUTO_VGPR_COUNT, %(64), %.AUTO_LDS_BYTE_SIZE, %KERNEL_ARGUMENTS_SIZE, _\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
 .endm
 
-.ifndef ROCM_METADATA_VERSION
-    .error "ROCM_METADATA_VERSION must be defined"
-.end
-.endif
-
-.Lfunc_end0:
-
 kernel_end %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
-
-

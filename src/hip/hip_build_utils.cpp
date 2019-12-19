@@ -26,12 +26,25 @@
 
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/stringutils.hpp>
+#include <miopen/exec_utils.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/env.hpp>
 #include <boost/optional.hpp>
 #include <sstream>
+#include <string>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HCC_ENABLE_COV3)
 
 namespace miopen {
 
+static bool IsEnabledCoV3()
+{
+#if MIOPEN_HCC_ENABLE_COV3
+    return !IsDisabled(MIOPEN_DEBUG_HCC_ENABLE_COV3{}); // if enabled by default, env can disable.
+#else
+    return IsEnabled(MIOPEN_DEBUG_HCC_ENABLE_COV3{}); // if disabled by default, env can enable.
+#endif
+}
 boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  const std::string& filename,
                                  std::string src,
@@ -54,9 +67,14 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     if(isHCC)
     {
         params += " -amdgpu-target=" + dev_name;
+        if(IsEnabledCoV3())
+        {
+            params += " --hcc-cov3 ";
+        }
     }
     else
     {
+        params += " --amdgpu-target=" + dev_name;
         params += " --cuda-gpu-arch=" + dev_name;
         params += " --cuda-device-only -c";
     }
@@ -66,7 +84,10 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     params += " ";
     auto bin_file = tmp_dir->path / (filename + ".o");
     // compile
-    auto env = std::string("KMOPTLLC=-mattr=+enable-ds128");
+    auto env = std::string("KMOPTLLC=\"-mattr=+enable-ds128 -amdgpu-enable-global-sgpr-addr");
+    if(miopen::HipGetHccVersion() >= external_tool_version_t{2, 8, 0})
+        env += " --amdgpu-spill-vgpr-to-agpr=0";
+    env += '\"';
     tmp_dir->Execute(env + std::string(" ") + MIOPEN_HIP_COMPILER,
                      params + filename + " -o " + bin_file.string());
     if(!boost::filesystem::exists(bin_file))
@@ -105,4 +126,75 @@ void bin_file_to_str(const boost::filesystem::path& file, std::string& buf)
     bin_file_strm << bin_file_ptr.rdbuf();
     buf = bin_file_strm.str();
 }
+
+static external_tool_version_t HipGetHccVersionImpl()
+{
+    external_tool_version_t hcc_version;
+    const std::string path(MIOPEN_HIP_COMPILER);
+    const std::string mandatory_prefix("(based on HCC ");
+    do
+    {
+        if(path.empty() || !std::ifstream(path).good())
+            break;
+
+        std::stringstream out;
+        MIOPEN_LOG_NQI2("Running: " << '\'' << path << " --version" << '\'');
+        if(miopen::exec::Run(path + " --version", nullptr, &out) != 0)
+            break;
+
+        std::string line;
+        while(!out.eof())
+        {
+            std::getline(out, line);
+            MIOPEN_LOG_NQI2(line);
+            auto begin = line.find(mandatory_prefix);
+            if(begin == std::string::npos)
+                continue;
+
+            begin += mandatory_prefix.size();
+            int v3, v2, v1 = v2 = v3 = -1;
+            char c2, c1 = c2 = 'X';
+            std::istringstream iss(line.substr(begin));
+            iss >> v1 >> c1 >> v2 >> c2 >> v3;
+            if(!iss.fail() && v1 >= 0)
+            {
+                hcc_version.major = v1;
+                if(c1 == '.' && v2 >= 0)
+                {
+                    hcc_version.minor = v2;
+                    if(c2 == '.' && v3 >= 0)
+                        hcc_version.patch = v3;
+                }
+            }
+            break;
+        }
+    } while(false);
+    MIOPEN_LOG_NQI("HCC base: " << hcc_version.major << '.' << hcc_version.minor << '.'
+                                << hcc_version.patch);
+    return hcc_version;
+}
+
+external_tool_version_t HipGetHccVersion()
+{
+    static auto once = HipGetHccVersionImpl();
+    return once;
+}
+
+bool external_tool_version_t::operator>=(const external_tool_version_t& rhs) const
+{
+    if(major > rhs.major)
+        return true;
+    else if(major == rhs.major)
+    {
+        if(minor > rhs.minor)
+            return true;
+        else if(minor == rhs.minor)
+            return (patch >= rhs.patch);
+        else
+            return false;
+    }
+    else
+        return false;
+}
+
 } // namespace miopen

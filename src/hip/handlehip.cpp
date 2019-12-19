@@ -182,7 +182,7 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
 #if MIOPEN_USE_ROCBLAS
     rhandle_ = CreateRocblasHandle();
 #endif
-    MIOPEN_LOG_I(*this);
+    MIOPEN_LOG_NQI(*this);
 }
 
 Handle::Handle() : impl(new HandleImpl())
@@ -201,7 +201,7 @@ Handle::Handle() : impl(new HandleImpl())
 #if MIOPEN_USE_ROCBLAS
     rhandle_ = CreateRocblasHandle();
 #endif
-    MIOPEN_LOG_I(*this);
+    MIOPEN_LOG_NQI(*this);
 }
 
 Handle::~Handle() {}
@@ -417,6 +417,14 @@ std::size_t Handle::GetImage3dMaxWidth()
     if(status != hipSuccess)
         MIOPEN_THROW_HIP_STATUS(status);
 
+    return result;
+}
+
+std::size_t Handle::GetWavefrontWidth()
+{
+    hipDeviceProp_t props{};
+    hipGetDeviceProperties(&props, this->impl->device);
+    auto result = static_cast<size_t>(props.warpSize);
     return result;
 }
 

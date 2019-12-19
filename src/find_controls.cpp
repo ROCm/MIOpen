@@ -24,16 +24,26 @@
  *
  *******************************************************************************/
 
-#include <ostream>
-
 #include <miopen/find_controls.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
+#include <miopen/solver_id.hpp>
+
+#include <ostream>
+#include <cstdlib>
+#include <cstring>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_ENFORCE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_ENFORCE_SCOPE)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
 
 namespace miopen {
+
+namespace debug {
+
+bool FindEnforceDisable = false;
+
+} // namespace debug
 
 namespace {
 
@@ -74,7 +84,7 @@ FindEnforceAction GetFindEnforceActionImpl()
     const auto val = static_cast<FindEnforceAction>(miopen::Value(MIOPEN_FIND_ENFORCE{}));
     if(FindEnforceAction::First_ <= val && val <= FindEnforceAction::Last_)
         return val;
-    MIOPEN_LOG_E("Wrong MIOPEN_FIND_ENFORCE, using default.");
+    MIOPEN_LOG_NQE("Wrong MIOPEN_FIND_ENFORCE, using default.");
     return FindEnforceAction::Default_;
 }
 
@@ -118,7 +128,7 @@ FindEnforceScope GetFindEnforceScopeImpl()
     const auto val = static_cast<FindEnforceScope>(miopen::Value(MIOPEN_FIND_ENFORCE_SCOPE{}));
     if(FindEnforceScope::First_ <= val && val <= FindEnforceScope::Last_)
         return val;
-    MIOPEN_LOG_E("Wrong MIOPEN_FIND_ENFORCE_SCOPE, using default.");
+    MIOPEN_LOG_NQE("Wrong MIOPEN_FIND_ENFORCE_SCOPE, using default.");
     return FindEnforceScope::Default_;
 }
 
@@ -126,6 +136,31 @@ FindEnforceScope GetFindEnforceScope()
 {
     static const FindEnforceScope val = GetFindEnforceScopeImpl();
     return val;
+}
+
+solver::Id GetEnvFindOnlySolverImpl()
+{
+    static_assert(miopen::solver::Id::invalid_value == 0, "miopen::solver::Id::invalid_value == 0");
+    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_FIND_ONLY_SOLVER{});
+    if(p_asciz != nullptr && strlen(p_asciz) > 0)
+    {
+        auto numeric_id = std::strtoul(p_asciz, nullptr, 10);
+        if(errno == ERANGE || numeric_id == 0)
+        { // Assume string in the environment. Try to convert it to numeric id.
+            errno      = 0;
+            numeric_id = solver::Id{p_asciz}.Value();
+        }
+        else
+        { // Non-zero value, assume numeric id. Check if it denotes a solver.
+            numeric_id = solver::Id{solver::Id{numeric_id}.ToString()}.Value();
+        }
+        if(numeric_id != 0)
+            MIOPEN_LOG_NQI(numeric_id);
+        else
+            MIOPEN_THROW(miopenStatusBadParm, "Invalid value of MIOPEN_DEBUG_FIND_ONLY_SOLVER");
+        return {numeric_id};
+    }
+    return {};
 }
 
 } // namespace
@@ -140,6 +175,12 @@ std::ostream& operator<<(std::ostream& os, const FindEnforce& val)
 {
     return os << ToCString(val.action) << "(" << static_cast<int>(val.action) << "), "
               << ToCString(val.scope) << "(" << static_cast<int>(val.scope) << ')';
+}
+
+solver::Id GetEnvFindOnlySolver()
+{
+    static const auto once = GetEnvFindOnlySolverImpl();
+    return once;
 }
 
 } // namespace miopen

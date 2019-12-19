@@ -27,9 +27,19 @@
 #ifndef GUARD_MIOPEN_FIND_CONTROLS_HPP_
 #define GUARD_MIOPEN_FIND_CONTROLS_HPP_
 
+#include <miopen/solver_id.hpp>
 #include <ostream>
 
 namespace miopen {
+
+namespace debug {
+
+/// Disable observation of FIND_ENFORCE env.vars for debugging/testing purposes.
+/// Currently used during warm-up phase in MIOpenDriver.
+/// WARNING: This switch is not intended for use in multi-threaded applications.
+extern bool FindEnforceDisable;
+
+} // namespace debug
 
 enum class FindEnforceAction
 {
@@ -63,7 +73,7 @@ class FindEnforce
     template <class Context>
     bool IsScopeMatch(const Context& context) const
     {
-        if(context.disable_search_enforce)
+        if(context.disable_search_enforce || debug::FindEnforceDisable)
             return false;
         switch(scope)
         {
@@ -100,6 +110,8 @@ class FindEnforce
 
     friend std::ostream& operator<<(std::ostream&, const FindEnforce&);
 };
+
+solver::Id GetEnvFindOnlySolver();
 
 } // namespace miopen
 

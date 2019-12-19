@@ -23,15 +23,21 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+.if ROCM_METADATA_VERSION == 4
 .hsa_code_object_version 2,1
 .hsa_code_object_isa
+.endif
 
 .text
-.globl gcnAsmConv1x1U
+.globl miopenGcnAsmConv1x1U
 .p2align 8
-.type gcnAsmConv1x1U,@function
-.amdgpu_hsa_kernel gcnAsmConv1x1U
+.type miopenGcnAsmConv1x1U,@function
 
+.if ROCM_METADATA_VERSION == 4
+.amdgpu_hsa_kernel miopenGcnAsmConv1x1U
+.endif
+
+.include "rocm_version.inc"
 .include "gpr_alloc.inc"
 .include "common.inc"
 .include "inst_wrappers.inc"
@@ -347,6 +353,7 @@ bias_buffer_size = (output_channels + elements_in_dword - 1) / elements_in_dword
         .SGPR_ALLOC_ONCE gamma
     .endif
     .SGPR_RESERVE_XNACK
+    .SGPR_RESERVE_VCC
 
     .VGPR_ALLOC_FROM 0
     .VGPR_ALLOC tid
@@ -393,7 +400,8 @@ static_assert( max_waves_per_CU >= waves_c_in_group * waves_k_in_group)
    .endif
 .endm
 
-gcnAsmConv1x1U:
+miopenGcnAsmConv1x1U:
+.if ROCM_METADATA_VERSION == 4
     .amd_kernel_code_t
      enable_sgpr_kernarg_segment_ptr = 1
      enable_sgpr_workgroup_id_x = 1
@@ -410,6 +418,7 @@ gcnAsmConv1x1U:
      float_mode = 192
      workgroup_group_segment_byte_size = .AUTO_LDS_BYTE_SIZE
     .end_amd_kernel_code_t
+.endif
 
 .if fusion_mode && enable_activ
     s_load_dword s[alpha], s[kernarg:kernarg+1], 0x0 + alpha_off
@@ -1125,23 +1134,286 @@ last_wave:
 s_endpgm
 
 .Lfunc_end0:
-    .size gcnAsmConv1x1U, .Lfunc_end0 - gcnAsmConv1x1U
+    .size miopenGcnAsmConv1x1U, .Lfunc_end0 - miopenGcnAsmConv1x1U
 
-.ifndef ROCM_METADATA_VERSION
-    .error "ROCM_METADATA_VERSION must be defined"
-.end
-.endif
+waves_in_group = waves_c_in_group * waves_k_in_group
+workgroup_size_x = waves_in_group * 64
 
-.macro metadata_conv wg_x, lds_size
-  .if ROCM_METADATA_VERSION == 4
+.if ROCM_METADATA_VERSION == 5
+.rodata
+.p2align 6
+.amdhsa_kernel miopenGcnAsmConv1x1U
+        .amdhsa_user_sgpr_kernarg_segment_ptr 1
+        .amdhsa_system_sgpr_workgroup_id_x 1
+        .amdhsa_system_sgpr_workgroup_id_y 1
+        .amdhsa_system_sgpr_workgroup_id_z 1
+        .amdhsa_system_vgpr_workitem_id 1
+        .amdhsa_next_free_sgpr __amdhsa_next_free_sgpr
+        .amdhsa_next_free_vgpr .AUTO_VGPR_COUNT
+        .amdhsa_group_segment_fixed_size .AUTO_LDS_BYTE_SIZE
+        .amdhsa_dx10_clamp 0
+        .amdhsa_ieee_mode 0
+        .amdhsa_float_round_mode_32 0
+        .amdhsa_float_round_mode_16_64 0
+        .amdhsa_float_denorm_mode_32 0
+        .amdhsa_float_denorm_mode_16_64 3
+        .amdhsa_reserve_flat_scratch __sgpr_reserve_flatscr
+        .amdhsa_reserve_xnack_mask __sgpr_reserve_xnack
+        .amdhsa_reserve_vcc __sgpr_reserve_vcc
+.end_amdhsa_kernel
+
+.macro metadata_conv sc,vc,wg_x,lds_sz,kernarg_size
+.amdgpu_metadata
+---
+amdhsa.version: [ 1, 0 ]
+amdhsa.kernels:
+  - .name: miopenGcnAsmConv1x1U
+    .symbol: miopenGcnAsmConv1x1U.kd
+    .sgpr_count: \sc
+    .vgpr_count: \vc
+    .language: "OpenCL C"
+    .language_version: [ 1, 2 ]
+    .kernarg_segment_size: \kernarg_size
+    .kernarg_segment_align: 8
+    .group_segment_fixed_size: \lds_sz
+    .private_segment_fixed_size: 0
+    .reqd_workgroup_size: [ \wg_x, 1, 1 ]
+    .max_flat_workgroup_size: \wg_x
+    .wavefront_size: 64
+    .args:
+    - { .size: 4, .offset:  0, .value_kind: by_value, .value_type: i32, .name: N }
+    - { .size: 4, .offset:  4, .value_kind: by_value, .value_type: i32, .name: C }
+    - { .size: 4, .offset:  8, .value_kind: by_value, .value_type: i32, .name: H }
+    - { .size: 4, .offset: 12, .value_kind: by_value, .value_type: i32, .name: W }
+    - { .size: 4, .offset: 16, .value_kind: by_value, .value_type: i32, .name: K }
+    - { .size: 4, .offset: 20, .value_kind: by_value, .value_type: i32, .name: n_groups }
+    - { .size: 4, .offset: 24, .value_kind: by_value, .value_type: i32, .name: unused_0 }
+    - { .size: 4, .offset: 28, .value_kind: by_value, .value_type: i32, .name: unused_1 }
+    - { .size: 8, .offset: 32, .value_kind: global_buffer, .value_type: f32, .name: x,        .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 40, .value_kind: global_buffer, .value_type: f32, .name: w,        .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 48, .value_kind: global_buffer, .value_type: f32, .name: y,        .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 56, .value_kind: global_buffer, .value_type: i32, .name: ret_addr, .address_space: global, .is_const: false }
+...
+.end_amdgpu_metadata
+.endm // metadata_conv
+
+.macro metadata_conv_bias_activ_half sc,vc,wg_x,lds_sz,kernarg_size
+.amdgpu_metadata
+---
+amdhsa.version: [ 1, 0 ]
+amdhsa.kernels:
+  - .name: miopenGcnAsmConv1x1U
+    .symbol: miopenGcnAsmConv1x1U.kd
+    .sgpr_count: \sc
+    .vgpr_count: \vc
+    .language: "OpenCL C"
+    .language_version: [ 1, 2 ]
+    .kernarg_segment_size: \kernarg_size
+    .kernarg_segment_align: 8
+    .group_segment_fixed_size: \lds_sz
+    .private_segment_fixed_size: 0
+    .reqd_workgroup_size: [ \wg_x, 1, 1 ]
+    .max_flat_workgroup_size: \wg_x
+    .wavefront_size: 64
+    .args:
+    - { .size: 2, .offset:  0, .value_kind: by_value, .value_type: f16, .name: alpha }
+    - { .size: 2, .offset:  2, .value_kind: by_value, .value_type: f16, .name: beta }
+    - { .size: 2, .offset:  4, .value_kind: by_value, .value_type: f16, .name: gamma }
+    - { .size: 2, .offset:  6, .value_kind: by_value, .value_type: f16, .name: unused }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32, .name: x,        .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 16, .value_kind: global_buffer, .value_type: f32, .name: y,        .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 24, .value_kind: global_buffer, .value_type: f32, .name: w,        .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 32, .value_kind: global_buffer, .value_type: f16, .name: bias,     .address_space: global, .is_const: true }
+...
+.end_amdgpu_metadata
+.endm // metadata_conv_bias_activ_half
+
+.macro metadata_conv_bias_activ_float sc,vc,wg_x,lds_sz,kernarg_size
+.amdgpu_metadata
+---
+amdhsa.version: [ 1, 0 ]
+amdhsa.kernels:
+  - .name: miopenGcnAsmConv1x1U
+    .symbol: miopenGcnAsmConv1x1U.kd
+    .sgpr_count: \sc
+    .vgpr_count: \vc
+    .language: "OpenCL C"
+    .language_version: [ 1, 2 ]
+    .kernarg_segment_size: \kernarg_size
+    .kernarg_segment_align: 8
+    .group_segment_fixed_size: \lds_sz
+    .private_segment_fixed_size: 0
+    .reqd_workgroup_size: [ \wg_x, 1, 1 ]
+    .max_flat_workgroup_size: \wg_x
+    .wavefront_size: 64
+    .args:
+    - { .size: 4, .offset:  0, .value_kind: by_value, .value_type: f32, .name: alpha }
+    - { .size: 4, .offset:  4, .value_kind: by_value, .value_type: f32, .name: beta }
+    - { .size: 4, .offset:  8, .value_kind: by_value, .value_type: f32, .name: gamma }
+    - { .size: 4, .offset: 12, .value_kind: by_value, .value_type: f32, .name: unused }
+    - { .size: 8, .offset: 16, .value_kind: global_buffer, .value_type: f32, .name: x,        .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 24, .value_kind: global_buffer, .value_type: f32, .name: y,        .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 32, .value_kind: global_buffer, .value_type: f32, .name: w,        .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 40, .value_kind: global_buffer, .value_type: f32, .name: bias,     .address_space: global, .is_const: true }
+...
+.end_amdgpu_metadata
+.endm // metadata_conv_bias_activ_float
+
+.macro metadata_conv_activ_float sc,vc,wg_x,lds_sz,kernarg_size
+.amdgpu_metadata
+---
+amdhsa.version: [ 1, 0 ]
+amdhsa.kernels:
+  - .name: miopenGcnAsmConv1x1U
+    .symbol: miopenGcnAsmConv1x1U.kd
+    .sgpr_count: \sc
+    .vgpr_count: \vc
+    .language: "OpenCL C"
+    .language_version: [ 1, 2 ]
+    .kernarg_segment_size: \kernarg_size
+    .kernarg_segment_align: 8
+    .group_segment_fixed_size: \lds_sz
+    .private_segment_fixed_size: 0
+    .reqd_workgroup_size: [ \wg_x, 1, 1 ]
+    .max_flat_workgroup_size: \wg_x
+    .wavefront_size: 64
+    .args:
+    - { .size: 4, .offset:  0, .value_kind: by_value, .value_type: f32, .name: alpha }
+    - { .size: 4, .offset:  4, .value_kind: by_value, .value_type: f32, .name: beta }
+    - { .size: 4, .offset:  8, .value_kind: by_value, .value_type: f32, .name: gamma }
+    - { .size: 4, .offset: 12, .value_kind: by_value, .value_type: f32, .name: unused }
+    - { .size: 8, .offset: 16, .value_kind: global_buffer, .value_type: f32, .name: x,        .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 24, .value_kind: global_buffer, .value_type: f32, .name: y,        .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 32, .value_kind: global_buffer, .value_type: f32, .name: w,        .address_space: global, .is_const: true }
+...
+.end_amdgpu_metadata
+.endm // metadata_conv_activ_float
+
+.macro metadata_conv_activ_half sc,vc,wg_x,lds_sz,kernarg_size
+.amdgpu_metadata
+---
+amdhsa.version: [ 1, 0 ]
+amdhsa.kernels:
+  - .name: miopenGcnAsmConv1x1U
+    .symbol: miopenGcnAsmConv1x1U.kd
+    .sgpr_count: \sc
+    .vgpr_count: \vc
+    .language: "OpenCL C"
+    .language_version: [ 1, 2 ]
+    .kernarg_segment_size: \kernarg_size
+    .kernarg_segment_align: 8
+    .group_segment_fixed_size: \lds_sz
+    .private_segment_fixed_size: 0
+    .reqd_workgroup_size: [ \wg_x, 1, 1 ]
+    .max_flat_workgroup_size: \wg_x
+    .wavefront_size: 64
+    .args:
+    - { .size: 2, .offset:  0, .value_kind: by_value, .value_type: f16, .name: alpha }
+    - { .size: 2, .offset:  2, .value_kind: by_value, .value_type: f16, .name: beta }
+    - { .size: 2, .offset:  4, .value_kind: by_value, .value_type: f16, .name: gamma }
+    - { .size: 2, .offset:  6, .value_kind: by_value, .value_type: f16, .name: unused }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32, .name: x,        .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 16, .value_kind: global_buffer, .value_type: f32, .name: y,        .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 24, .value_kind: global_buffer, .value_type: f32, .name: w,        .address_space: global, .is_const: true }
+...
+.end_amdgpu_metadata
+.endm // metadata_conv_activ_half
+
+.macro metadata_conv_bias_float sc,vc,wg_x,lds_sz,kernarg_size
+.amdgpu_metadata
+---
+amdhsa.version: [ 1, 0 ]
+amdhsa.kernels:
+  - .name: miopenGcnAsmConv1x1U
+    .symbol: miopenGcnAsmConv1x1U.kd
+    .sgpr_count: \sc
+    .vgpr_count: \vc
+    .language: "OpenCL C"
+    .language_version: [ 1, 2 ]
+    .kernarg_segment_size: \kernarg_size
+    .kernarg_segment_align: 8
+    .group_segment_fixed_size: \lds_sz
+    .private_segment_fixed_size: 0
+    .reqd_workgroup_size: [ \wg_x, 1, 1 ]
+    .max_flat_workgroup_size: \wg_x
+    .wavefront_size: 64
+    .args:
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32, .name: x,        .address_space: global, .is_const: true }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32, .name: y,        .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 16, .value_kind: global_buffer, .value_type: f32, .name: w,        .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 24, .value_kind: global_buffer, .value_type: f32, .name: bias,     .address_space: global, .is_const: true }
+...
+.end_amdgpu_metadata
+.endm // metadata_conv_bias_float
+
+.macro metadata_conv_bias_half sc,vc,wg_x,lds_sz,kernarg_size
+.amdgpu_metadata
+---
+amdhsa.version: [ 1, 0 ]
+amdhsa.kernels:
+  - .name: miopenGcnAsmConv1x1U
+    .symbol: miopenGcnAsmConv1x1U.kd
+    .sgpr_count: \sc
+    .vgpr_count: \vc
+    .language: "OpenCL C"
+    .language_version: [ 1, 2 ]
+    .kernarg_segment_size: \kernarg_size
+    .kernarg_segment_align: 8
+    .group_segment_fixed_size: \lds_sz
+    .private_segment_fixed_size: 0
+    .reqd_workgroup_size: [ \wg_x, 1, 1 ]
+    .max_flat_workgroup_size: \wg_x
+    .wavefront_size: 64
+    .args:
+    - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32, .name: x,        .address_space: global, .is_const: true }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32, .name: y,        .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 16, .value_kind: global_buffer, .value_type: f32, .name: w,        .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 24, .value_kind: global_buffer, .value_type: f16, .name: bias,     .address_space: global, .is_const: true }
+...
+.end_amdgpu_metadata
+.endm // metadata_conv_bias_half
+
+.altmacro
+.macro METADATA sc, wc, wg_x, lds_size, kernarg_size
+  .if fusion_mode
+    .if bias_mode && enable_activ
+		.if elements_in_dword == 2
+            metadata_conv_bias_activ_half \sc, \wc, \wg_x, \lds_size, \kernarg_size
+        .else
+            metadata_conv_bias_activ_float \sc, \wc, \wg_x, \lds_size, \kernarg_size
+        .endif
+    .elseif bias_mode
+		.if elements_in_dword == 2
+            metadata_conv_bias_half \sc, \wc, \wg_x, \lds_size, \kernarg_size
+        .else
+            metadata_conv_bias_float \sc, \wc, \wg_x, \lds_size, \kernarg_size
+        .endif
+    .elseif enable_activ
+		.if elements_in_dword == 2
+            metadata_conv_activ_half \sc, \wc, \wg_x, \lds_size, \kernarg_size
+        .else
+            metadata_conv_activ_float \sc, \wc, \wg_x, \lds_size, \kernarg_size
+        .endif
+    .else
+        metadata_conv \sc, \wc, \wg_x, \lds_size, \kernarg_size
+    .endif
+  .else
+    metadata_conv \sc, \wc, \wg_x, \lds_size, \kernarg_size
+  .endif
+.endm
+
+METADATA %.AUTO_SGPR_COUNT, %.AUTO_VGPR_COUNT, %workgroup_size_x, %.AUTO_LDS_BYTE_SIZE, %KERNEL_ARGUMENTS_SIZE
+
+.elseif ROCM_METADATA_VERSION == 4
+.macro metadata_conv wg_x, lds_size, kernarg_size
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
         Kernels:
-        - { Name: gcnAsmConv1x1U, SymbolName: 'gcnAsmConv1x1U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+        - { Name: miopenGcnAsmConv1x1U, SymbolName: 'miopenGcnAsmConv1x1U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
-              { KernargSegmentSize: 64, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
+              { KernargSegmentSize: \kernarg_size, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
             Args:
             - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
@@ -1158,22 +1430,17 @@ s_endpgm
           }
     }
     .end_amd_amdgpu_hsa_metadata
-  .else
-    .error "Unsupported ROCM_METADATA_VERSION"
-    .end
-  .endif
 .endm
 
-.macro metadata_conv_bias_activ_half wg_x, lds_size
-  .if ROCM_METADATA_VERSION == 4
+.macro metadata_conv_bias_activ_half wg_x, lds_size, kernarg_size
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
         Kernels:
-        - { Name: gcnAsmConv1x1U, SymbolName: 'gcnAsmConv1x1U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+        - { Name: miopenGcnAsmConv1x1U, SymbolName: 'miopenGcnAsmConv1x1U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
-              { KernargSegmentSize: 40, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
+              { KernargSegmentSize: \kernarg_size, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
             Args:
             - { Name: alpha   , Size: 2, Align: 2, ValueKind: ByValue, ValueType: F16, TypeName: 'float16', AccQual: Default, IsConst: true }
             - { Name: beta    , Size: 2, Align: 2, ValueKind: ByValue, ValueType: F16, TypeName: 'float16', AccQual: Default, IsConst: true }
@@ -1186,22 +1453,17 @@ s_endpgm
           }
     }
     .end_amd_amdgpu_hsa_metadata
-  .else
-    .error "Unsupported ROCM_METADATA_VERSION"
-    .end
-  .endif
 .endm
 
-.macro metadata_conv_bias_activ_float wg_x, lds_size
-  .if ROCM_METADATA_VERSION == 4
+.macro metadata_conv_bias_activ_float wg_x, lds_size, kernarg_size
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
         Kernels:
-        - { Name: gcnAsmConv1x1U, SymbolName: 'gcnAsmConv1x1U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+        - { Name: miopenGcnAsmConv1x1U, SymbolName: 'miopenGcnAsmConv1x1U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
-              { KernargSegmentSize: 48, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
+              { KernargSegmentSize: \kernarg_size, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
             Args:
             - { Name: alpha   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
             - { Name: beta    , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
@@ -1214,22 +1476,17 @@ s_endpgm
           }
     }
     .end_amd_amdgpu_hsa_metadata
-  .else
-    .error "Unsupported ROCM_METADATA_VERSION"
-    .end
-  .endif
 .endm
 
-.macro metadata_conv_activ_float wg_x, lds_size
-  .if ROCM_METADATA_VERSION == 4
+.macro metadata_conv_activ_float wg_x, lds_size, kernarg_size
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
         Kernels:
-        - { Name: gcnAsmConv1x1U, SymbolName: 'gcnAsmConv1x1U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+        - { Name: miopenGcnAsmConv1x1U, SymbolName: 'miopenGcnAsmConv1x1U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
-              { KernargSegmentSize: 40, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
+              { KernargSegmentSize: \kernarg_size, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
             Args:
             - { Name: alpha   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
             - { Name: beta    , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
@@ -1241,22 +1498,17 @@ s_endpgm
           }
     }
     .end_amd_amdgpu_hsa_metadata
-  .else
-    .error "Unsupported ROCM_METADATA_VERSION"
-    .end
-  .endif
 .endm
 
-.macro metadata_conv_activ_half wg_x, lds_size
-  .if ROCM_METADATA_VERSION == 4
+.macro metadata_conv_activ_half wg_x, lds_size, kernarg_size
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
         Kernels:
-        - { Name: gcnAsmConv1x1U, SymbolName: 'gcnAsmConv1x1U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+        - { Name: miopenGcnAsmConv1x1U, SymbolName: 'miopenGcnAsmConv1x1U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
-              { KernargSegmentSize: 32, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
+              { KernargSegmentSize: \kernarg_size, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
             Args:
             - { Name: alpha   , Size: 2, Align: 2, ValueKind: ByValue, ValueType: F16, TypeName: 'float16', AccQual: Default, IsConst: true }
             - { Name: beta    , Size: 2, Align: 2, ValueKind: ByValue, ValueType: F16, TypeName: 'float16', AccQual: Default, IsConst: true }
@@ -1268,22 +1520,17 @@ s_endpgm
           }
     }
     .end_amd_amdgpu_hsa_metadata
-  .else
-    .error "Unsupported ROCM_METADATA_VERSION"
-    .end
-  .endif
 .endm
 
-.macro metadata_conv_bias wg_x, lds_size
-  .if ROCM_METADATA_VERSION == 4
+.macro metadata_conv_bias wg_x, lds_size, kernarg_size
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
         Kernels:
-        - { Name: gcnAsmConv1x1U, SymbolName: 'gcnAsmConv1x1U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+        - { Name: miopenGcnAsmConv1x1U, SymbolName: 'miopenGcnAsmConv1x1U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
-              { KernargSegmentSize: 32, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
+              { KernargSegmentSize: \kernarg_size, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
             Args:
             - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
             - { Name: y       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
@@ -1292,42 +1539,37 @@ s_endpgm
           }
     }
     .end_amd_amdgpu_hsa_metadata
-  .else
-    .error "Unsupported ROCM_METADATA_VERSION"
-    .end
-  .endif
 .endm
 
-.macro METADATA wg_x, lds_size
+.macro METADATA wg_x, lds_size, kernarg_size
   .if fusion_mode
     .if bias_mode && enable_activ
 		.if elements_in_dword == 2
-            metadata_conv_bias_activ_half \wg_x, \lds_size
+            metadata_conv_bias_activ_half \wg_x, \lds_size, \kernarg_size
         .else
-            metadata_conv_bias_activ_float \wg_x, \lds_size
+            metadata_conv_bias_activ_float \wg_x, \lds_size, \kernarg_size
         .endif
     .elseif bias_mode
-        metadata_conv_bias \wg_x, \lds_size
+        metadata_conv_bias \wg_x, \lds_size, \kernarg_size
     .elseif enable_activ
 		.if elements_in_dword == 2
-            metadata_conv_activ_half \wg_x, \lds_size
+            metadata_conv_activ_half \wg_x, \lds_size, \kernarg_size
         .else
-            metadata_conv_activ_float \wg_x, \lds_size
+            metadata_conv_activ_float \wg_x, \lds_size, \kernarg_size
         .endif
     .else
-        metadata_conv \wg_x, \lds_size
+        metadata_conv \wg_x, \lds_size, \kernarg_size
     .endif
   .else
-    metadata_conv \wg_x, \lds_size
+    metadata_conv \wg_x, \lds_size, \kernarg_size
   .endif
 .endm
 
-waves_in_group = waves_c_in_group * waves_k_in_group
-workgroup_size_x = waves_in_group * 64
-
 .altmacro
-.macro METADATA_WRAPPER wg_x, lds_size
-    METADATA %\wg_x, %\lds_size
+.macro METADATA_WRAPPER wg_x, lds_size, kernarg_size
+    METADATA %\wg_x, %\lds_size, %\kernarg_size
 .endm
 
-METADATA_WRAPPER workgroup_size_x, .AUTO_LDS_BYTE_SIZE
+METADATA_WRAPPER workgroup_size_x, .AUTO_LDS_BYTE_SIZE, KERNEL_ARGUMENTS_SIZE
+.endif
+

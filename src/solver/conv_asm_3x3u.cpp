@@ -36,7 +36,8 @@
 #include <miopen/generic_search.hpp>
 #include <miopen/kernel_build_params.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U)
 
 namespace miopen {
 namespace solver {
@@ -177,11 +178,13 @@ bool ConvAsm3x3U::IsValidPerformanceConfig(const ConvolutionContext& problem,
 
 bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U{}))
+        return false;
     if(!params.use_asm_kernels)
         return false;
     if(!params.Is2d())
         return false;
-    if(params.rmv != rocm_meta_version::AMDHSA_1_0)
+    if(!params.rmv.IsV2orV3())
         return false;
 
     const std::string name = params.GetStream().GetDeviceName();
@@ -209,8 +212,6 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
     // clang-format on
 }
 
-bool ConvAsm3x3U::IsFast(const ConvolutionContext& params) const { return params.in_width >= 50; }
-
 ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
                                       const PerformanceConfigConvAsm3x3U& config,
                                       const bool disableConfigOverrideFromEnv) const
@@ -222,7 +223,7 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
     if(!disableConfigOverrideFromEnv)
     {
         std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS{});
+        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS{});
         if(p_asciz != nullptr)
         {
             s = std::string(p_asciz);
@@ -230,7 +231,7 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
             {
                 if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
                 {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS: "
+                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS: "
                                  "Bad format or invalid for the problem config: "
                                  << s);
                 }
@@ -258,7 +259,7 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
         {"weights_layout", params.direction.IsForward() ? 0 : 1},
         {"reverse_weights", params.direction.IsForward() ? 0 : 1},
         {"no_params_file", 1},
-        {"ROCM_METADATA_VERSION", 4},
+        {"ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4},
         {"limit_wave_cnt", pcfg->limit_wave_cnt},
         {"filters_per_wave", pcfg->filters_per_wave},
         {"output_lines_per_wave", pcfg->output_lines_per_wave},
@@ -283,7 +284,7 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
     construction_params.g_wk.push_back(params.batch_sz);
 
     construction_params.kernel_file = "conv3x3.s";
-    construction_params.kernel_name = "gcnAsmConv3x3U";
+    construction_params.kernel_name = "miopenGcnAsmConv3x3U";
 
     result.construction_params.push_back(construction_params);
     return result;
@@ -321,8 +322,9 @@ int ConvAsm3x3U::RunAndMeasureSolution(miopen::Handle& profile_h,
         elapsed_time = profile_h.GetKernelTime();
     }
 #ifdef NDEBUG
-    catch(miopen::Exception&)
+    catch(miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return -1;
     }
 #endif

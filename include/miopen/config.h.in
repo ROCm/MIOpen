@@ -33,8 +33,11 @@
 #cmakedefine01 MIOPEN_USE_ROCBLAS
 #cmakedefine01 MIOPEN_BUILD_DEV
 #cmakedefine01 MIOPEN_GPU_SYNC
+
+#cmakedefine01 MIOPEN_ENABLE_SQLITE
 #cmakedefine01 MIOPEN_DEBUG_FIND_DB_CACHING
 #cmakedefine01 MIOPEN_USE_SCGEMM
+#cmakedefine01 MIOPEN_HCC_ENABLE_COV3
 
 // Truncation rounding or (default) rounding to nearest even (RNE) is enabled.
 // This switch controls two related but different aspects of MIOpen behavior:

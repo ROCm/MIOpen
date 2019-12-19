@@ -37,8 +37,9 @@
 
 #define MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED 0
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3)
 
 namespace miopen {
 namespace solver {
@@ -63,7 +64,7 @@ bool PerformanceConfigAsmDirect3x3WrW::SetNextValue()
     do
     {
 #if MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED == 0
-        if(miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_SEARCH_OPTIMIZED{}))
+        if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_SEARCH_OPTIMIZED{}))
         {
             // (0 <= limit_wave_cnt && limit_wave_cnt <= 9)
             if(++limit_wave_cnt <= 9)
@@ -222,7 +223,7 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config)
         const std::string name = config.GetStream().GetDeviceName();
         /// \todo parsing "gfx[0-9]+" and finding major/minor/stepping from handle. using this
         /// information here and in all similar places across other Solvers.
-        const bool dot2_inst_avail = name >= "gfx906";
+        const bool dot2_inst_avail = (name == "gfx906" || name == "gfx908");
         const bool dot2_emulate    = (!dot2_inst_avail) && (elements_in_dword(config) == 2);
         const int v_instr          = (k_per_wave * config.kernel_size_h * gprs_per_line_out *
                              config.kernel_size_w * 4 * (dot2_emulate ? 2 : 1)) /
@@ -335,11 +336,13 @@ bool ConvAsmBwdWrW3x3::IsValidPerformanceConfig(const ConvolutionContext& proble
 
 bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3{}))
+        return false;
     if(!params.use_asm_kernels)
         return false;
     if(!params.Is2d())
         return false;
-    if(params.rmv != rocm_meta_version::AMDHSA_1_0)
+    if(!params.rmv.IsV2orV3())
         return false;
 
     const std::string name = params.GetStream().GetDeviceName();
@@ -402,8 +405,6 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
     return ok;
 }
 
-bool ConvAsmBwdWrW3x3::IsFast(const ConvolutionContext&) const { return true; }
-
 ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
                                            const PerformanceConfigAsmDirect3x3WrW& config,
                                            const bool disableConfigOverrideFromEnv) const
@@ -425,14 +426,14 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "stride_w", params.kernel_stride_w);
     GenerateClangDefsym(options, "weights_layout", 0);
     GenerateClangDefsym(options, "reverse_weights", 0);
-    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 4);
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
     // Perf tune:
     const PerformanceConfigAsmDirect3x3WrW* pcfg = &config;
     PerformanceConfigAsmDirect3x3WrW fromEnv;
     if(!disableConfigOverrideFromEnv)
     {
         std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS{});
+        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS{});
         if(p_asciz != nullptr)
         {
             s = std::string(p_asciz);
@@ -440,7 +441,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
             {
                 if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
                 {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: "
+                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS: "
                                  "Bad format or invalid for the problem config: "
                                  << s);
                 }
@@ -493,7 +494,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     }
 
     kernel.kernel_file = "conv3x3wrw.s";
-    kernel.kernel_name = "gcnAsmConv3x3WrW";
+    kernel.kernel_name = "miopenGcnAsmConv3x3WrW";
 
     result.construction_params.push_back(kernel);
     result.workspce_sz = 0;
@@ -547,8 +548,9 @@ int ConvAsmBwdWrW3x3::RunAndMeasureSolution(miopen::Handle& profile_h,
         elapsed_time = profile_h.GetKernelTime();
     }
 #ifdef NDEBUG
-    catch(miopen::Exception&)
+    catch(miopen::Exception& ex)
     {
+        MIOPEN_LOG_WE(ex.what());
         return -1;
     }
 #endif

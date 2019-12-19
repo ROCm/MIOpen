@@ -24,20 +24,25 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
-#include "miopen/gcn_asm_utils.hpp"
-#include "miopen/handle.hpp"
+#include <miopen/solver.hpp>
+#include <miopen/gcn_asm_utils.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/env.hpp>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)
 
 namespace miopen {
 namespace solver {
 
 bool ConvAsm5x10u2v2f1::IsApplicable(const ConvolutionContext& params) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2{}))
+        return false;
     if(!params.use_asm_kernels)
         return false;
     if(!params.Is2d())
         return false;
-    if(params.rmv != rocm_meta_version::AMDHSA_1_0)
+    if(!params.rmv.IsV2orV3())
         return false;
 
     const std::string name = params.GetStream().GetDeviceName();
@@ -107,7 +112,7 @@ ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ConvolutionContext& params) co
     GenerateClangDefsym(options, "wei_layout", 0); // 0: KCHW, 1: CKHW
     GenerateClangDefsym(options, "pad_w", params.pad_w);
     GenerateClangDefsym(options, "pad_h", params.pad_h);
-    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 4);
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
 
     KernelInfo construction_params;
     construction_params.comp_options = options.str();
@@ -122,7 +127,7 @@ ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ConvolutionContext& params) co
     construction_params.g_wk.push_back(params.batch_sz);
 
     construction_params.kernel_file = "conv5x10u2v2f1.s";
-    construction_params.kernel_name = "conv5x10u2v2f1";
+    construction_params.kernel_name = "miopenConv5x10u2v2f1";
 
     result.construction_params.push_back(construction_params);
     return result;

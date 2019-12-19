@@ -636,11 +636,7 @@ MIOpenCvBwdWrW_rdc(const __global _FLOAT* __restrict weight_df_tmp,
     uint wei_idx     = wei_idx0 & (MLO_WEI_CHANNEL_STRIDE - 1);
 #endif
 
-    _FLOAT_ACCUM pvt_accum_wei[MLO_UT_READ_UNIT] = {MLO_UT_READ_UNIT * (_FLOAT_ACCUM)0};
-    //	for (uint i = 0; i < MLO_UT_READ_UNIT; ++i)
-    //	{
-    //		pvt_accum_wei[i] = 0;
-    //	}
+    _FLOAT_ACCUM pvt_accum_wei[MLO_UT_READ_UNIT] = {0};
 
     int batch_loop = (MLO_BATCH_SZ + (MLO_N_BATCH_LOOPS * MLO_N_LCL_BATCHS) - 1) /
                      (MLO_N_BATCH_LOOPS * MLO_N_LCL_BATCHS);

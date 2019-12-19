@@ -23,16 +23,22 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+.include "rocm_version.inc"
 .include "inst_wrappers.inc"
 
+.if ROCM_METADATA_VERSION == 4
 .hsa_code_object_version 2,1
 .hsa_code_object_isa
+.endif
 
 .text
-.globl gcnAsmConv3x3WrW
+.globl miopenGcnAsmConv3x3WrW
 .p2align 8
-.type gcnAsmConv3x3WrW,@function
-.amdgpu_hsa_kernel gcnAsmConv3x3WrW
+.type miopenGcnAsmConv3x3WrW,@function
+
+.if ROCM_METADATA_VERSION == 4
+.amdgpu_hsa_kernel miopenGcnAsmConv3x3WrW
+.endif
 
 .include "gpr_alloc.inc"
 
@@ -56,7 +62,8 @@ gid_z = 4
 .set in_ptr_off, 0x20
 .set wei_ptr_off, 0x28
 .set out_ptr_off, 0x30
-.set dbg_ptr_off, 0x38
+.set unused_ptr_off, 0x38
+.set KERNEL_ARGUMENTS_SIZE, unused_ptr_off + 8
 
 .include "common.inc"
 
@@ -205,7 +212,7 @@ max_hw_lcnt = 15
 .SGPR_ALLOC loop_h_cnt
 .SGPR_ALLOC wave_id // wave_id in group
 .SGPR_RESERVE_XNACK
-
+.SGPR_RESERVE_VCC
 
 
 .VGPR_ALLOC_FROM 0
@@ -250,8 +257,8 @@ max_waves_per_CU = (256 / .AUTO_VGPR_COUNT) * 4
 static_assert( max_waves_per_CU >= n_per_group )
 //.text 0
 //.p2align 8
-gcnAsmConv3x3WrW:
-
+miopenGcnAsmConv3x3WrW:
+.if ROCM_METADATA_VERSION == 4
    .amd_kernel_code_t
     enable_sgpr_kernarg_segment_ptr = 1
     enable_sgpr_workgroup_id_x = 1
@@ -262,12 +269,13 @@ gcnAsmConv3x3WrW:
     granulated_wavefront_sgpr_count = .AUTO_SGPR_GRANULATED_COUNT
     enable_vgpr_workitem_id = 1
     user_sgpr_count = 2
-    kernarg_segment_byte_size = 64
+    kernarg_segment_byte_size = KERNEL_ARGUMENTS_SIZE
     wavefront_sgpr_count = .AUTO_SGPR_COUNT
     workitem_vgpr_count = .AUTO_VGPR_COUNT
     float_mode = 192
     workgroup_group_segment_byte_size = .AUTO_LDS_BYTE_SIZE
    .end_amd_kernel_code_t
+.endif
 
 
    s_load_dwordx2 s[desc_in:desc_in+1], s[kernarg:kernarg+1], 0x0 + in_ptr_off
@@ -921,23 +929,80 @@ last_wave:
 s_endpgm
 
 .Lfunc_end0:
-   .size gcnAsmConv3x3WrW, .Lfunc_end0 - gcnAsmConv3x3WrW
+   .size miopenGcnAsmConv3x3WrW, .Lfunc_end0 - miopenGcnAsmConv3x3WrW
 
+workgroup_size_x = n_per_group * 64
 
-.ifndef ROCM_METADATA_VERSION
-.error "ROCM_METADATA_VERSION must be defined"
-.endif
+.if ROCM_METADATA_VERSION == 5
+.rodata
+.p2align 6
+.amdhsa_kernel miopenGcnAsmConv3x3WrW
+        .amdhsa_user_sgpr_kernarg_segment_ptr 1
+        .amdhsa_system_sgpr_workgroup_id_x 1
+        .amdhsa_system_sgpr_workgroup_id_y 1
+        .amdhsa_system_sgpr_workgroup_id_z 1
+        .amdhsa_system_vgpr_workitem_id 1
+        .amdhsa_next_free_sgpr __amdhsa_next_free_sgpr
+        .amdhsa_next_free_vgpr .AUTO_VGPR_COUNT
+        .amdhsa_group_segment_fixed_size .AUTO_LDS_BYTE_SIZE
+        .amdhsa_dx10_clamp 0
+        .amdhsa_ieee_mode 0
+        .amdhsa_float_round_mode_32 0
+        .amdhsa_float_round_mode_16_64 0
+        .amdhsa_float_denorm_mode_32 0
+        .amdhsa_float_denorm_mode_16_64 3
+        .amdhsa_reserve_flat_scratch __sgpr_reserve_flatscr
+        .amdhsa_reserve_xnack_mask __sgpr_reserve_xnack
+        .amdhsa_reserve_vcc __sgpr_reserve_vcc
+.end_amdhsa_kernel
 
-.macro METADATA wg_x, lds_size
-  .if ROCM_METADATA_VERSION == 4
+.altmacro
+.macro METADATA sc, vc, wg_x, lds_size, kernarg_size
+.amdgpu_metadata
+---
+amdhsa.version: [ 1, 0 ]
+amdhsa.kernels:
+  - .name: miopenGcnAsmConv3x3WrW
+    .symbol: miopenGcnAsmConv3x3WrW.kd
+    .sgpr_count: \sc
+    .vgpr_count: \vc
+    .language: "OpenCL C"
+    .language_version: [ 1, 2 ]
+    .kernarg_segment_size: \kernarg_size
+    .kernarg_segment_align: 8
+    .group_segment_fixed_size: \lds_size
+    .private_segment_fixed_size: 0
+    .reqd_workgroup_size: [ \wg_x, 1, 1 ]
+    .max_flat_workgroup_size: \wg_x
+    .wavefront_size: 64
+    .args:
+    - { .size: 4, .offset:  0, .value_kind: by_value, .value_type: i32, .name: N }
+    - { .size: 4, .offset:  4, .value_kind: by_value, .value_type: i32, .name: C }
+    - { .size: 4, .offset:  8, .value_kind: by_value, .value_type: i32, .name: H }
+    - { .size: 4, .offset: 12, .value_kind: by_value, .value_type: i32, .name: W }
+    - { .size: 4, .offset: 16, .value_kind: by_value, .value_type: i32, .name: K }
+    - { .size: 4, .offset: 20, .value_kind: by_value, .value_type: i32, .name: n_groups }
+    - { .size: 4, .offset: 24, .value_kind: by_value, .value_type: i32, .name: unused_0 }
+    - { .size: 4, .offset: 28, .value_kind: by_value, .value_type: i32, .name: unused_1 }
+    - { .size: 8, .offset: 32, .value_kind: global_buffer, .value_type: f32, .name: x,        .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 40, .value_kind: global_buffer, .value_type: f32, .name: dw,       .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 48, .value_kind: global_buffer, .value_type: f32, .name: dy,       .address_space: global, .is_const: true }
+    - { .size: 8, .offset: 56, .value_kind: global_buffer, .value_type: i32, .name: ret_addr, .address_space: global, .is_const: false }
+...
+.end_amdgpu_metadata
+.endm // METADATA
+
+.elseif ROCM_METADATA_VERSION == 4
+.altmacro
+.macro METADATA sc, vc, wg_x, lds_size, kernarg_size
     .amd_amdgpu_hsa_metadata
     { Version: [ 1, 0 ],
         Kernels:
-        - { Name: gcnAsmConv3x3WrW, SymbolName: 'gcnAsmConv3x3WrW@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+        - { Name: miopenGcnAsmConv3x3WrW, SymbolName: 'miopenGcnAsmConv3x3WrW@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
-              { KernargSegmentSize: 64, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
+              { KernargSegmentSize: \kernarg_size, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
             Args:
             - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
@@ -954,17 +1019,7 @@ s_endpgm
           }
     }
     .end_amd_amdgpu_hsa_metadata
-  .else
-    .error "Unsupported ROCM_METADATA_VERSION"
-    .end
-  .endif
 .endm
+.endif
 
-workgroup_size_x = n_per_group * 64
-
-.altmacro
-.macro METADATA_WRAPPER wg_x, lds_size
-    METADATA %\wg_x, %\lds_size
-.endm
-
-METADATA_WRAPPER workgroup_size_x, .AUTO_LDS_BYTE_SIZE
+METADATA %.AUTO_SGPR_COUNT, %.AUTO_VGPR_COUNT, %workgroup_size_x, %.AUTO_LDS_BYTE_SIZE, %KERNEL_ARGUMENTS_SIZE

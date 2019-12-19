@@ -24,15 +24,29 @@
  *
  *******************************************************************************/
 
-#include "miopen/handle.hpp"
-#include "miopen/legacy_exhaustive_search.hpp"
-#include "miopen/solver.hpp"
+#include <miopen/handle.hpp>
+#include <miopen/legacy_exhaustive_search.hpp>
+#include <miopen/solver.hpp>
+#include <miopen/env.hpp>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1)
 
 namespace miopen {
 namespace solver {
 
 bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
 {
+    const auto name = params.GetStream().GetDeviceName();
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1{}))
+        return false;
+    // Disable kernel due to compiler bug: Compiler runs out of registers
+    // JIRA: SWDEV-216194
+    // JIRA: SWDEV-216489
+    // The bug shows up in MIOpenConv1x1J1 and MIOpenConv1x1S
+    if(name == "gfx908")
+        return false;
+    if(!params.use_opencl_convolutions)
+        return false;
     if(!params.Is2d())
         return false;
     if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))

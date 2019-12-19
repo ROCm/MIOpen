@@ -255,8 +255,7 @@ int RNNDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag(
         "mode", 'm', "tanh", "RNN Mode (relu, tanh, lstm, gru) (Default=tanh)", "str");
     inflags.AddInputFlag("inputmode", 'p', "0", "linear == 0 or skip == 1, (Default=0)", "int");
-    inflags.AddInputFlag(
-        "rnnalgo", 'a', "0", "default, persist static or persist dynamic (Default=0)", "int");
+    inflags.AddInputFlag("rnnalgo", 'a', "0", "default, fundamental (Default=0)", "int");
     inflags.AddInputFlag("fwdtype",
                          'c',
                          "0",
@@ -439,6 +438,10 @@ int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
     {
         algo = miopenRNNdefault;
     }
+    else if((inflags.GetValueInt("rnnalgo")) == 1)
+    {
+        algo = miopenRNNfundamental;
+    }
     else
     {
         printf("Incorrect RNN algorithm\n");
@@ -536,10 +539,25 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         cy_host = std::vector<Tref>(hy_sz, static_cast<Tref>(0));
     }
 
-    workspace         = std::vector<Tgpu>(workSpace_sz, static_cast<Tgpu>(0));
-    reservespace      = std::vector<Tgpu>(reserveSpace_sz, static_cast<Tgpu>(0));
-    outhost           = std::vector<Tref>(out_sz, static_cast<Tref>(0));
-    workspace_host    = std::vector<Tref>(workSpace_sz, static_cast<Tref>(0));
+    workspace      = std::vector<Tgpu>(workSpace_sz, static_cast<Tgpu>(0));
+    reservespace   = std::vector<Tgpu>(reserveSpace_sz, static_cast<Tgpu>(0));
+    outhost        = std::vector<Tref>(out_sz, static_cast<Tref>(0));
+    workspace_host = std::vector<Tref>(workSpace_sz, static_cast<Tref>(0));
+
+    if(inflags.GetValueStr("mode") == "lstm" && inflags.GetValueInt("rnnalgo") == 0)
+    {
+        int nseq              = inflags.GetValueInt("seq_len");
+        std::vector<int> in_n = GetInputTensorLengthsFromCmdLine();
+        std::size_t inputBatchLenSum;
+        inputBatchLenSum = std::accumulate(in_n.begin(), in_n.begin() + nseq, 0);
+
+        int hid_h = inflags.GetValueInt("hid_h");
+        int layer = inflags.GetValueInt("num_layer");
+        int bidir = inflags.GetValueInt("bidirection");
+
+        reserveSpace_sz -= layer * inputBatchLenSum * hid_h * (bidir + 1);
+        reserveSpace_sz *= 2;
+    }
     reservespace_host = std::vector<Tref>(reserveSpace_sz, static_cast<Tref>(0));
 
     if(inflags.GetValueInt("forw") != 1)
