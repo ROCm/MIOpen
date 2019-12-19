@@ -156,12 +156,12 @@ More information on logging with RocBlas can be found [here](https://github.com/
 ### Code Object (CO) version selection (EXPERIMENTAL)
 
 Different ROCm versions use Code Object files of different versions (or, in other words, formats). The library uses suitable version automatically. The following variables allow for experimenting and triaging possible problems related to CO version:
-* `MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE` - Affects kernels written in GCN assembly language. Overrides CO version auto-detection implemented in the library.
-  * `0` or unset - Automatically detect CO version (the default).
-  * `1` - Enforce CO v2.
-  * `2` - Behave as if both CO v2 and v3 are supported (see `MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_NEWER`).
-  * `3` - Enforce CO v3.
-* `MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_NEWER` - This variable affects assembly kernels available in both v2 and v3 code object formats and works only when ROCm supports both CO v2 and CO v3. By default, the older format is used (CO v2). When this variable is _enabled_, the behavior is reversed.
+* `MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE` - Affects kernels written in GCN assembly language.
+  * `0` or unset - Automatically detect the required CO version and assemble to that version. This is the default.
+  * `1` - Do not auto-detect Code Object version, always assemble v2 Code Objects.
+  * `2` - Behave as if both CO v2 and v3 are supported (see `MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER`).
+  * `3` - Always assemble v3 Code Objects.
+* `MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER` - This variable affects only assembly kernels, and only when ROCm supports both CO v2 and CO v3 (like ROCm 2.10). By default, the newer format is used (CO v3). When this variable is _enabled_, the behavior is reversed.
 * `MIOPEN_DEBUG_AMD_OPENCL_ENFORCE_COV3` - Enforces CO v3 for OpenCL kernels. Works with HIP backend only (`cmake ... -DMIOPEN_BACKEND=HIP...`).
 
 ### `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX`
