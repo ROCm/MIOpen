@@ -258,7 +258,7 @@ set(MIOPEN_USER_DB_SUFFIX "${MIOPEN_BACKEND}.${MIOpen_VERSION_MAJOR}_${MIOpen_VE
 set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix for the system find-db files")
 
 
-set(MIOPEN_PACKAGE_REQS "rocm-utils, hip_hcc")
+set(MIOPEN_PACKAGE_REQS "rocm-utils, hip-hcc")
 if(MIOPEN_USE_MIOPENGEMM)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, miopengemm")
 endif()
@@ -270,7 +270,7 @@ rocm_create_package(
     DESCRIPTION "AMD's DNN Library"
     MAINTAINER "Paul Fultz II <paul.fultz@amd.com>"
     LDCONFIG
-    # DEPENDS rocm-opencl rocm-utils hip_hcc tinygemm
+    # DEPENDS rocm-opencl rocm-utils hip-hcc tinygemm
 )
 
 include(EnableCompilerWarnings)
