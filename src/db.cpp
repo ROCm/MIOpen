@@ -213,7 +213,7 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
 
 static void Copy(std::istream& from, std::ostream& to, std::streamoff count)
 {
-    constexpr auto buffer_size_limit = 4 * 1024 * 1024;
+    constexpr auto buffer_size_limit = 1024;
     const auto buffer_size           = std::min<std::streamoff>(buffer_size_limit, count);
     auto buffer                      = std::vector<char>(buffer_size, 0);
     auto left                        = count;
