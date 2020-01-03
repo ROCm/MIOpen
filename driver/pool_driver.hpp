@@ -170,6 +170,8 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AddCmdLineArgs()
     inflags.AddInputFlag("pad_h", 'p', "0", "Zero Padding Height (Default=0)", "int");
     inflags.AddInputFlag("pad_w", 'q', "0", "Zero Padding Width (Default=0)", "int");
     inflags.AddInputFlag("pad_val", 'r', "0", "Padding Value (Default=0)", "int");
+    inflags.AddInputFlag(
+        "index_position", 'M', "0", "Global index 0, mask index 1 (Default=0)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -571,38 +573,40 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyForward()
             : ((mode == miopenPoolingAverage) ? MLO_POOLING_OP_AVE : MLO_POOLING_OP_AVE_INCLUSIVE);
 
     const Tref tolerance = (sizeof(Tgpu) == 4 || sizeof(Tgpu) == 8) ? 1e-6 : 5e-3;
-    bool match           = mloPoolingForwardRunHostAndVerify<Tgpu, Tref, Index>(pooling_method,
-                                                                      pad_d,
-                                                                      stride_d,
-                                                                      windowDepth,
-                                                                      pad_h,
-                                                                      stride_h,
-                                                                      windowHeight,
-                                                                      pad_w,
-                                                                      stride_w,
-                                                                      windowWidth,
-                                                                      nIn,
-                                                                      cOut,
-                                                                      dIn,
-                                                                      hIn,
-                                                                      wIn,
-                                                                      hInStride,
-                                                                      dInStride,
-                                                                      cInStride,
-                                                                      nInStride,
-                                                                      dOut,
-                                                                      hOut,
-                                                                      wOut,
-                                                                      hOutStride,
-                                                                      dOutStride,
-                                                                      cOutStride,
-                                                                      nOutStride,
-                                                                      in.data(),
-                                                                      out.data(),
-                                                                      do_backward,
-                                                                      maskhost.data(),
-                                                                      mask.data(),
-                                                                      tolerance);
+    bool match =
+        mloPoolingForwardRunHostAndVerify<Tgpu, Tref, Index>(pooling_method,
+                                                             pad_d,
+                                                             stride_d,
+                                                             windowDepth,
+                                                             pad_h,
+                                                             stride_h,
+                                                             windowHeight,
+                                                             pad_w,
+                                                             stride_w,
+                                                             windowWidth,
+                                                             nIn,
+                                                             cOut,
+                                                             dIn,
+                                                             hIn,
+                                                             wIn,
+                                                             hInStride,
+                                                             dInStride,
+                                                             cInStride,
+                                                             nInStride,
+                                                             dOut,
+                                                             hOut,
+                                                             wOut,
+                                                             hOutStride,
+                                                             dOutStride,
+                                                             cOutStride,
+                                                             nOutStride,
+                                                             in.data(),
+                                                             out.data(),
+                                                             do_backward,
+                                                             maskhost.data(),
+                                                             mask.data(),
+                                                             tolerance,
+                                                             inflags.GetValueInt("index_position"));
 
     printf(match ? "Forward Pooling Verifies on CPU and GPU\n"
                  : "Forward Pooling Verification Failed !!\n");

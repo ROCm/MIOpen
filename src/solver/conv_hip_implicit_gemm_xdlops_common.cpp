@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #include "miopen/solver.hpp"
 #include "miopen/handle.hpp"
 #include "miopen/stringutils.hpp"
@@ -87,12 +86,6 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
     if(BlockSize < 64 || BlockSize > 256)
         return false;
 
-    const std::size_t lds_size = (BPerBlock + KPerBlock) * EPerBlock * GetEPackLength(ctx, true) *
-                                 GetTypeSize(ctx.in_data_type) * 2;
-
-    if(lds_size > 64 * 1024)
-        return false;
-
     if(BlockSize != InBlockCopyClusterLengths_E * InBlockCopyClusterLengths_B)
         return false;
 
@@ -100,6 +93,20 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
         return false;
 
     if((KPerBlock % GemmMPerWave) != 0 || (BPerBlock % GemmNPerWave) != 0)
+        return false;
+
+    const int InBlockCopySubLengths_B  = BPerBlock / InBlockCopyClusterLengths_B;
+    const int WeiBlockCopySubLengths_K = KPerBlock / WeiBlockCopyClusterLengths_K;
+    const std::size_t lds_size         = ComputeLDSRequiredSize(ctx,
+                                                        BPerBlock,
+                                                        KPerBlock,
+                                                        EPerBlock,
+                                                        1,
+                                                        1,
+                                                        InBlockCopySubLengths_B,
+                                                        WeiBlockCopySubLengths_K,
+                                                        true);
+    if(lds_size > 64 * 1024)
         return false;
 
     const int GemmMWaves = KPerBlock / GemmMPerWave;

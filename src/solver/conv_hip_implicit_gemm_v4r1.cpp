@@ -251,7 +251,7 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
     const auto& WeiBlockCopySubLengths_E = e_per_block / config.WeiBlockCopyClusterLengths_E;
     const auto& WeiBlockCopySubLengths_K = k_per_block / config.WeiBlockCopyClusterLengths_K;
 
-    int WeiBlockCopySrcDataPerRead_E = 1;
+    unsigned int WeiBlockCopySrcDataPerRead_E = 1;
     if(ctx.IsFp32())
     {
         WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
@@ -272,7 +272,7 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
     const auto& InBlockCopySubLengths_B  = b_per_block / config.InBlockCopyClusterLengths_B;
     const auto& InBlockCopySubLengths_N2 = N2 / config.InBlockCopyClusterLengths_N2;
 
-    int InBlockCopySrcDataPerRead_B = GetReadWriteVectorSize(InBlockCopySubLengths_B);
+    auto InBlockCopySrcDataPerRead_B = GetReadWriteVectorSize(InBlockCopySubLengths_B);
 
     int WeiBlockCopyDstDataPerWrite_K     = 0;
     int InBlockCopyDstDataPerWrite_N2     = 0;
@@ -465,12 +465,12 @@ ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& c
     const auto& WeiBlockCopySubLengths_E = e_per_block / config.WeiBlockCopyClusterLengths_E;
     const auto& WeiBlockCopySubLengths_K = k_per_block / config.WeiBlockCopyClusterLengths_K;
 
-    int WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
+    auto WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
 
     const auto& InBlockCopySubLengths_B  = b_per_block / config.InBlockCopyClusterLengths_B;
     const auto& InBlockCopySubLengths_N2 = N2 / config.InBlockCopyClusterLengths_N2;
 
-    int InBlockCopySrcDataPerRead_B = GetReadWriteVectorSize(InBlockCopySubLengths_B);
+    auto InBlockCopySrcDataPerRead_B = GetReadWriteVectorSize(InBlockCopySubLengths_B);
 
     int WeiBlockCopyDstDataPerWrite_K     = 0;
     int InBlockCopyDstDataPerWrite_N2     = 0;
