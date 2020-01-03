@@ -761,8 +761,7 @@ static void DirConvFindCore(Handle& handle,
         }
         // if not 1x1
         else if(workSpace != nullptr &&
-                workSpaceSize >=
-                    (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc) * conv.group_count))
+                workSpaceSize >= (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)))
         {
             if(conv.group_count > 1)
             {
@@ -852,12 +851,11 @@ static void DirConvFindCore(Handle& handle,
             }
 
             if(gemm_status == miopenStatusSuccess)
-                record.SetValues(
-                    "miopenConvolutionFwdAlgoGEMM",
-                    FindDbData{"gemm",
-                               time_gemm,
-                               (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc) * conv.group_count),
-                               kcache_key}); // Todo: gemm solver id?
+                record.SetValues("miopenConvolutionFwdAlgoGEMM",
+                                 FindDbData{"gemm",
+                                            time_gemm,
+                                            (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)),
+                                            kcache_key}); // Todo: gemm solver id?
         }
     }
 #endif
@@ -1926,8 +1924,7 @@ void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
             MIOPEN_LOG_FUNCTION("convolution, non 1x1");
         }
         assert(workSpace != nullptr &&
-               workSpaceSize >=
-                   (ForwardGetWorkSpaceSizeGEMM(tensors.wDesc, tensors.yDesc) * group_count));
+               workSpaceSize >= (ForwardGetWorkSpaceSizeGEMM(tensors.wDesc, tensors.yDesc)));
 
         // tensors.y = tensors.w * Im2Col(tensors.x)
         GemmDescriptor gemm_desc{};
@@ -2522,7 +2519,7 @@ ConvolutionDescriptor::BackwardGetValidWorkSpaceSizeGemm(const TensorDescriptor&
        miopen::all_of(GetConvStrides(), [](auto v) { return v == 1; }))
         return 0;
 
-    return BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc) * group_count;
+    return BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc);
 }
 
 std::size_t
@@ -3178,8 +3175,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 }
                 // if not 1x1
                 else if(workSpace != nullptr &&
-                        workSpaceSize >=
-                            (BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc) * group_count))
+                        workSpaceSize >= (BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc)))
                 {
                     if(group_count > 1)
                     {
@@ -3710,8 +3706,7 @@ void ConvolutionDescriptor::ConvBwdGemm(Handle& handle,
             MIOPEN_LOG_FUNCTION("convolution, non 1x1");
         }
         assert(workSpace != nullptr &&
-               workSpaceSize >=
-                   (BackwardDataGetWorkSpaceSizeGEMM(tensors.wDesc, tensors.dyDesc) * group_count));
+               workSpaceSize >= (BackwardDataGetWorkSpaceSizeGEMM(tensors.wDesc, tensors.dyDesc)));
 
         // tensors.dx = transpose(tensors.w) * tensors.dy
         GemmDescriptor gemm_desc{};
@@ -4419,8 +4414,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             auto out_spatial =
                 boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + GetSpatialDimension());
 
-            size_t workspace_req =
-                BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc) * group_count;
+            size_t workspace_req = BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc);
 
             float time_gemm = 0;
 
@@ -4963,8 +4957,7 @@ void ConvolutionDescriptor::BackwardWeightsGemm(Handle& handle,
         }
         assert(workSpace != nullptr &&
                workSpaceSize >=
-                   (BackwardWeightsGetWorkSpaceSizeGEMM(tensors.dyDesc, tensors.dwDesc) *
-                    group_count));
+                   (BackwardWeightsGetWorkSpaceSizeGEMM(tensors.dyDesc, tensors.dwDesc)));
 
         std::size_t out_spatial_size = std::accumulate(
             out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
