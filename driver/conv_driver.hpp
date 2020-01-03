@@ -1569,15 +1569,6 @@ void ConvDriver<Tgpu, Tref>::GetSolutionAfterFind(
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
 {
-
-#if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
-
-    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
-#endif
-
     int ret_algo_count;
     int request_algo_count = 2;
     // The library returns `request_algo_count` algorithms to the caller. However this does
@@ -1598,10 +1589,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
     float kernel_total_time = 0.0;
     float kernel_first_time = 0.0;
 
-    std::unique_ptr<GPUMem> workspace_fwd = nullptr;
-
-    if(perf_results[0].memory > 0)
-        workspace_fwd = std::unique_ptr<GPUMem>(new GPUMem(ctx, perf_results[0].memory, 1));
+    workspace_dev.reset(perf_results[0].memory);
 
     wall.start(wall_enabled);
 
@@ -1623,7 +1611,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
                                       &beta,
                                       outputTensor,
                                       out_dev->GetMem(),
-                                      workspace_fwd != nullptr ? workspace_fwd->GetMem() : nullptr,
+                                      workspace_dev != nullptr ? workspace_dev->GetMem() : nullptr,
                                       perf_results[0].memory);
         if(rc != miopenStatusSuccess)
             return rc;
@@ -1978,15 +1966,6 @@ int ConvDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
 {
-
-#if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
-
-    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
-#endif
-
     int ret_algo_count;
     int request_algo_count = 2;
     std::vector<miopenConvAlgoPerf_t> perf_results_data(request_algo_count);
@@ -2002,10 +1981,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
     float kernel_first_time = 0.0;
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
-    std::unique_ptr<GPUMem> workspace_bwd = nullptr;
-
-    if(perf_results_data[0].memory > 0)
-        workspace_bwd = std::unique_ptr<GPUMem>(new GPUMem(ctx, perf_results_data[0].memory, 1));
+    workspace_dev.reset(perf_results_data[0].memory);
 
     wall.start(wall_enabled);
 
@@ -2022,7 +1998,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
                                            &beta,
                                            inputTensor,
                                            din_dev->GetMem(),
-                                           workspace_bwd != nullptr ? workspace_bwd->GetMem()
+                                           workspace_dev != nullptr ? workspace_dev->GetMem()
                                                                     : nullptr,
                                            perf_results_data[0].memory);
         if(rc != miopenStatusSuccess)
@@ -2126,15 +2102,6 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, floa
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
 {
-
-#if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
-
-    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
-#endif
-
     int ret_algo_count;
     int request_algo_count = 2;
 
@@ -2158,10 +2125,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
     const auto ws_size = perf_results_weights[0].memory;
     is_wrw_winograd    = (algo == miopenConvolutionBwdWeightsAlgoWinograd);
 
-    std::unique_ptr<GPUMem> workspace_wrw = nullptr;
-
-    if(ws_size > 0)
-        workspace_wrw = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_size, 1));
+    workspace_dev.reset(perf_results_weights[0].memory);
 
     wall.start(wall_enabled);
 
@@ -2178,7 +2142,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
                                               &beta,
                                               weightTensor,
                                               dwei_dev->GetMem(),
-                                              workspace_wrw != nullptr ? workspace_wrw->GetMem()
+                                              workspace_dev != nullptr ? workspace_dev->GetMem()
                                                                        : nullptr,
                                               ws_size);
         if(rc != miopenStatusSuccess)
