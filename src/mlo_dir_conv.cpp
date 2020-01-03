@@ -62,7 +62,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_NEWER)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER)
 
 // Only select first applicable implicitgemm kernel due to slow compilation time
 // (issue SWDEV-201055) and tuning
@@ -312,17 +312,20 @@ static bool IsAmdRocmOpencl(const miopen::ConvolutionContext& context)
 /// However, when both ROCm and Solver are able to support both code object formats,
 /// these is no objective criterion for making a decision. The following behavior
 /// is implemented:
-/// * By default, the older format is used (CO v2).
-/// * If MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_NEWER is set to 1, then
-///   the behavior is reversed and CO v3 is selected.
+/// * By default, the newer format is used (CO v3).
+/// * If MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER is set to 1, then
+///   the behavior is reversed and CO v2 is selected.
 ///
-/// FIXME move this out of the rocm_meta_version class.
+/// \todo Dismiss MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER (and, possibly,
+/// rocm_meta_version::AMDHSA_COv2_COv3) as soon as MIOpen drops support for the
+/// ROCm runtimes that can load and run both v2 and v3 Code Objects.
+///
+/// \todo Move this out of the rocm_meta_version class.
 bool rocm_meta_version::UseV3() const
 {
-    if(miopen::IsEnabled(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_NEWER{}))
-        return val == AMDHSA_COv3 || val == AMDHSA_COv2_COv3;
-    else
-        return val == AMDHSA_COv3;
+    if(val == AMDHSA_COv2_COv3)
+        return !miopen::IsEnabled(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER{});
+    return (val == AMDHSA_COv3);
 }
 
 static std::ostream& operator<<(std::ostream& os, const rocm_meta_version& rmv)
@@ -364,8 +367,11 @@ static rocm_meta_version AmdRocmMetadataVersionDetect(const miopen::ConvolutionC
         size_t num_begin = platform_version.find('(');
         if(num_begin != std::string::npos)
         {
-            // int num = std::stoi(platform_version.substr(num_begin + 1));
-            rmv = rocm_meta_version::AMDHSA_COv2;
+            const int num = std::stoi(platform_version.substr(num_begin + 1));
+            if(num >= 3029) // ROCm 2.10 RC 1341
+                rmv = rocm_meta_version::AMDHSA_COv2_COv3;
+            else
+                rmv = rocm_meta_version::AMDHSA_COv2;
         }
         else
         {
@@ -373,10 +379,11 @@ static rocm_meta_version AmdRocmMetadataVersionDetect(const miopen::ConvolutionC
         }
 #else
         (void)context;
-        rmv = rocm_meta_version::Default;
-        /// This is only to print information onto console.
-        /// \todo Consider removing this call in installable builds.
-        (void)miopen::HipGetHccVersion();
+        if(miopen::HipGetHccVersion() >=
+           miopen::external_tool_version_t{2, 10, 19392}) // ROCm 2.10 RC 1341
+            rmv = rocm_meta_version::AMDHSA_COv2_COv3;
+        else
+            rmv = rocm_meta_version::Default;
 #endif // MIOPEN_BACKEND_OPENCL
     }
     MIOPEN_LOG_NQI(

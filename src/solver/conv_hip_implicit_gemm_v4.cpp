@@ -250,8 +250,8 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     std::size_t InBlockCopySubLengths_B  = BPerBlock / config.InBlockCopyClusterLengths_B;
     std::size_t InBlockCopySubLengths_N2 = N2 / config.InBlockCopyClusterLengths_N2;
 
-    int WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
-    int InBlockCopySrcDataPerRead_B  = GetReadWriteVectorSize(InBlockCopySubLengths_B);
+    auto WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
+    auto InBlockCopySrcDataPerRead_B  = GetReadWriteVectorSize(InBlockCopySubLengths_B);
 
     InBlockCopySrcDataPerRead_B =
         ctx.kernel_size_w > 1
