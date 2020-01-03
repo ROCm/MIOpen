@@ -1589,6 +1589,8 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
     float kernel_total_time = 0.0;
     float kernel_first_time = 0.0;
 
+    workspace_dev.reset(perf_results[0].memory);
+
     wall.start(wall_enabled);
 
     auto in_tens  = (is_transform ? inputTensor_vect4 : inputTensor);
@@ -1979,6 +1981,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
     float kernel_first_time = 0.0;
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
+    workspace_dev.reset(perf_results_data[0].memory);
+
     wall.start(wall_enabled);
 
     for(int i = 0; i < num_iterations; i++)
@@ -2120,6 +2124,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
     const auto algo    = perf_results_weights[0].bwd_weights_algo;
     const auto ws_size = perf_results_weights[0].memory;
     is_wrw_winograd    = (algo == miopenConvolutionBwdWeightsAlgoWinograd);
+
+    workspace_dev.reset(perf_results_weights[0].memory);
 
     wall.start(wall_enabled);
 
