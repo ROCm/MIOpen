@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #include "miopen/solver.hpp"
 #include "miopen/handle.hpp"
 #include <miopen/generic_search.hpp>
@@ -146,8 +145,22 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
     if(!(GemmMRepeat == 2 && GemmNRepeat == 2))
         return false;
 
-    const int InBlockCopySubLengths_E = EPerBlock / InBlockCopyClusterLengths_E;
-    const int InBlockCopySubLengths_B = BPerBlock / InBlockCopyClusterLengths_B;
+    const int InBlockCopySubLengths_E  = EPerBlock / InBlockCopyClusterLengths_E;
+    const int InBlockCopySubLengths_B  = BPerBlock / InBlockCopyClusterLengths_B;
+    const int WeiBlockCopySubLengths_K = KPerBlock / WeiBlockCopyClusterLengths_K;
+
+    const std::size_t lds_size = ComputeLDSRequiredSize(ctx,
+                                                        BPerBlock,
+                                                        KPerBlock,
+                                                        EPerBlock,
+                                                        GemmMPerThreadSubC,
+                                                        GemmNPerThreadSubC,
+                                                        InBlockCopySubLengths_B,
+                                                        WeiBlockCopySubLengths_K,
+                                                        false);
+
+    if(lds_size > 64 * 1024)
+        return false;
 
     return (InBlockCopySubLengths_E == 1 && InBlockCopySubLengths_B == 1);
 }

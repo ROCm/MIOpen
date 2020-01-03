@@ -908,64 +908,75 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     if(warmup_enabled)
     {
-        AutoMiopenWarmupMode warmupMode;
-        size_t warmup_in_sz  = GetTensorSize(warmupInputTensor);
-        size_t warmup_wei_sz = GetTensorSize(warmupWeightTensor);
-        size_t warmup_out_sz = GetTensorSize(warmupOutputTensor);
-        if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
+        do
         {
-            PadBufferSize(warmup_wei_sz, sizeof(warmup_Tgpu));
-            PadBufferSize(warmup_out_sz, sizeof(warmup_Tgpu));
-        }
+            AutoMiopenWarmupMode warmupMode;
+            size_t warmup_in_sz  = GetTensorSize(warmupInputTensor);
+            size_t warmup_wei_sz = GetTensorSize(warmupWeightTensor);
+            size_t warmup_out_sz = GetTensorSize(warmupOutputTensor);
+            if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
+            {
+                PadBufferSize(warmup_wei_sz, sizeof(warmup_Tgpu));
+                PadBufferSize(warmup_out_sz, sizeof(warmup_Tgpu));
+            }
 
-        warmup_ws_sizeof_find = 0;
-        warmup_wall_total.resume(wall_enabled);
-        miopenStatus_t rc = miopenConvolutionForwardGetWorkSpaceSize(GetHandle(),
-                                                                     warmupWeightTensor,
-                                                                     warmupInputTensor,
-                                                                     warmupConvDesc,
-                                                                     warmupOutputTensor,
-                                                                     &warmup_ws_sizeof_find);
-        warmup_wall_total.pause(wall_enabled);
-        if(rc != miopenStatusSuccess)
-        {
-            std::cout << "Warm-up: Error getting workspace size, status = " << rc << std::endl;
-            return rc;
-        }
-        if(warmup_ws_sizeof_find != 0)
-        {
-            std::cout << "Warm-up: This step should not require workspace, but asks for "
-                      << warmup_ws_sizeof_find << std::endl;
-            return miopenStatusNotImplemented;
-        }
+            warmup_ws_sizeof_find = 0;
+            warmup_wall_total.resume(wall_enabled);
+            miopenStatus_t rc = miopenConvolutionForwardGetWorkSpaceSize(GetHandle(),
+                                                                         warmupWeightTensor,
+                                                                         warmupInputTensor,
+                                                                         warmupConvDesc,
+                                                                         warmupOutputTensor,
+                                                                         &warmup_ws_sizeof_find);
+            warmup_wall_total.pause(wall_enabled);
+            if(rc != miopenStatusSuccess)
+            {
+                std::cout << "Warm-up: Error getting workspace size, status = " << rc
+                          << ". Warm-up disabled." << std::endl;
+                warmup_enabled = false;
+                break;
+            }
+            if(warmup_ws_sizeof_find != 0)
+            {
+                std::cout << "Warm-up: This step should not require workspace, but asks for "
+                          << warmup_ws_sizeof_find << ". Warm-up disabled." << std::endl;
+                warmup_enabled = false;
+                break;
+            }
 
-        warmup_in  = tensor<warmup_Tgpu>(miopen::deref(warmupInputTensor).GetLengths());
-        warmup_wei = tensor<warmup_Tgpu>(miopen::deref(warmupWeightTensor).GetLengths());
-        warmup_out = tensor<warmup_Tgpu>(miopen::deref(warmupOutputTensor).GetLengths());
+            warmup_in  = tensor<warmup_Tgpu>(miopen::deref(warmupInputTensor).GetLengths());
+            warmup_wei = tensor<warmup_Tgpu>(miopen::deref(warmupWeightTensor).GetLengths());
+            warmup_out = tensor<warmup_Tgpu>(miopen::deref(warmupOutputTensor).GetLengths());
 
-        warmup_in_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, warmup_in_sz, sizeof(warmup_Tgpu)));
-        warmup_wei_dev =
-            std::unique_ptr<GPUMem>(new GPUMem(ctx, warmup_wei_sz, sizeof(warmup_Tgpu)));
-        warmup_out_dev =
-            std::unique_ptr<GPUMem>(new GPUMem(ctx, warmup_out_sz, sizeof(warmup_Tgpu)));
+            warmup_in_dev =
+                std::unique_ptr<GPUMem>(new GPUMem(ctx, warmup_in_sz, sizeof(warmup_Tgpu)));
+            warmup_wei_dev =
+                std::unique_ptr<GPUMem>(new GPUMem(ctx, warmup_wei_sz, sizeof(warmup_Tgpu)));
+            warmup_out_dev =
+                std::unique_ptr<GPUMem>(new GPUMem(ctx, warmup_out_sz, sizeof(warmup_Tgpu)));
 
-        status_t status = STATUS_SUCCESS;
-        status |= warmup_in_dev->ToGPU(q, warmup_in.data.data());
-        status |= warmup_wei_dev->ToGPU(q, warmup_wei.data.data());
-        status |= warmup_out_dev->ToGPU(q, warmup_out.data.data());
+            status_t status = STATUS_SUCCESS;
+            status |= warmup_in_dev->ToGPU(q, warmup_in.data.data());
+            status |= warmup_wei_dev->ToGPU(q, warmup_wei.data.data());
+            status |= warmup_out_dev->ToGPU(q, warmup_out.data.data());
 
-        if(status != STATUS_SUCCESS)
-        {
-            std::cout << "Warm-up: Error copying data to GPU, status = " << status << std::endl;
-            return miopenStatusNotInitialized;
-        }
+            if(status != STATUS_SUCCESS)
+            {
+                std::cout << "Warm-up: Error copying data to GPU, status = " << status
+                          << ". Warm-up disabled." << std::endl;
+                warmup_enabled = false;
+                break;
+            }
 
-        const int rcf = RunWarmupFindForwardGPU();
-        if(rcf != 0)
-        {
-            std::cout << "Warm-up: RunWarmupFindForwardGPU() failed" << std::endl;
-            return rcf;
-        }
+            const int rcf = RunWarmupFindForwardGPU();
+            if(rcf != 0)
+            {
+                std::cout << "Warm-up: RunWarmupFindForwardGPU() failed, rcf = " << rcf
+                          << ". Warm-up disabled." << std::endl;
+                warmup_enabled = false;
+                break;
+            }
+        } while(false);
     }
 
     if(!immediate_solution)

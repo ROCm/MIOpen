@@ -132,13 +132,11 @@ class rocm_meta_version
     int val = Unknown;
 
     public:
-    static constexpr int
-        Unknown     = 0, // Unset env.vars read as 0.
-        AMDHSA_COv2 = 1, // 1.0, see https://llvm.org/docs/AMDGPUUsage.html#code-object-metadata
-        AMDHSA_COv2_COv3 = 2, // E.g. ROCm 2.6 supports both.
-        AMDHSA_COv3      = 3,
-        Default =
-            AMDHSA_COv2; // Assumption for HIP backend. To be updated together with ROCm release.
+    static constexpr int Unknown = 0, // Unset env.vars read as 0.
+        AMDHSA_COv2              = 1, // V2 metadata, https://llvm.org/docs/AMDGPUUsage.html
+        AMDHSA_COv2_COv3         = 2, // E.g. ROCm 2.10 supports both.
+        AMDHSA_COv3              = 3, // V3 metadata, https://llvm.org/docs/AMDGPUUsage.html
+        Default                  = AMDHSA_COv2; // Used when auto-detection fails.
 
     private:
     static constexpr int End = 4, Begin = Unknown;

@@ -120,8 +120,8 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     std::size_t WeiBlockCopySubLengths_E = EPerBlock / config.WeiBlockCopyClusterLengths_E;
     std::size_t WeiBlockCopySubLengths_K = KPerBlock / config.WeiBlockCopyClusterLengths_K;
 
-    int WeiBlockCopySrcDataPerRead_E  = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
-    int WeiBlockCopyDstDataPerWrite_K = GetReadWriteVectorSize(WeiBlockCopySubLengths_K);
+    auto WeiBlockCopySrcDataPerRead_E  = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
+    auto WeiBlockCopyDstDataPerWrite_K = GetReadWriteVectorSize(WeiBlockCopySubLengths_K);
 
     int OutThreadCopyDataPerAccess_B = 1;
 
@@ -129,7 +129,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     int InBlockCopyDataPerAccess_B = 1;
 #else
     std::size_t InBlockCopySubLengths_B = BPerBlock / config.InBlockCopyClusterLengths_B;
-    int InBlockCopyDataPerAccess_B      = GetReadWriteVectorSize(InBlockCopySubLengths_B);
+    auto InBlockCopyDataPerAccess_B     = GetReadWriteVectorSize(InBlockCopySubLengths_B);
 #endif
 
     WeiBlockCopySrcDataPerRead_E =

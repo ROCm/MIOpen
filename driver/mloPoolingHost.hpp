@@ -109,7 +109,8 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                                        bool do_backward,
                                        size_t* mask_ptr,
                                        Index* mask_gpu,
-                                       _Tcheck allowedEps)
+                                       _Tcheck allowedEps,
+                                       int index_position = 0)
 {
 
     bool match = true;
@@ -176,10 +177,14 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                                             res       = static_cast<_Tcheck>(bot_ptr[bot_index]);
                                             res_index = bot_index;
                                             res_index_gpu =
-                                                ((d - k * pool_stride_d + pad_d) * filter_size_w *
-                                                 filter_size_h) +
-                                                ((h - j * pool_stride_h + pad_h) * filter_size_w) +
-                                                (w - i * pool_stride_w + pad_w);
+                                                index_position == 0
+                                                    ? (d * bot_height * bot_width + h * bot_width +
+                                                       w)
+                                                    : ((d - k * pool_stride_d + pad_d) *
+                                                       filter_size_w * filter_size_h) +
+                                                          ((h - j * pool_stride_h + pad_h) *
+                                                           filter_size_w) +
+                                                          (w - i * pool_stride_w + pad_w);
                                             found = true;
                                         }
                                     }
@@ -217,7 +222,7 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                             mask_ptr[top_index] = res_index;
                             if(do_backward)
                             {
-                                uint8_t mg = mask_gpu[top_index];
+                                size_t mg = mask_gpu[top_index];
                                 if(mg != res_index_gpu)
                                 {
                                     std::cout << "Mask mismatch, gpu " << mg << " cpu "
