@@ -50,7 +50,7 @@
 #define MLO_LRN_GROUP_SZ2 1
 #define MLO_LRN_STRIDE 1
 
-#define MLO_LRN_LEFT_PAD0 (((MLO_LRN_PAD0 + MLO_READ_UNIT - 1) / MLO_READ_UNIT) * MLO_READ_UNIT)
+#define MLO_LRN_LEFT_PAD0 (((MLO_LRN_PRE_PAD0 + MLO_READ_UNIT - 1) / MLO_READ_UNIT) * MLO_READ_UNIT)
 #define MLO_LRN_RIGHT_SIDE                                                               \
     (((MLO_LRN_GROUP_SZ0 * MLO_LRN_N_HORIZ_OUT_PIX + MLO_LRN_PAD0 + MLO_READ_UNIT - 1) / \
       MLO_READ_UNIT) *                                                                   \
@@ -98,7 +98,7 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
     // load tile
     for(int b_j = lcl_id1; b_j < MLO_LRN_LCL_DATA_HEIGHT; b_j += MLO_LRN_GROUP_SZ1)
     {
-        int bot_y_act = bot_y + b_j - MLO_LRN_PAD1;
+        int bot_y_act = bot_y + b_j - MLO_LRN_PRE_PAD1;
 
         bool invisibleY = (bot_y_act < 0) || (bot_y_act >= MLO_LRN_BOT_HEIGHT);
 
@@ -145,7 +145,7 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
 
     int lcl_y = mul24(lcl_id1, (int)MLO_LRN_N_VERT_OUT_PIX);
     int lcl_x =
-        mad24(lcl_id0, (int)(MLO_LRN_N_HORIZ_OUT_PIX), (int)(MLO_LRN_LEFT_PAD0 - MLO_LRN_PAD0));
+        mad24(lcl_id0, (int)(MLO_LRN_N_HORIZ_OUT_PIX), (int)(MLO_LRN_LEFT_PAD0 - MLO_LRN_PRE_PAD0));
     int lcl_off = mad24(lcl_y, MLO_LRN_LCL_DATA_WIDTH, lcl_x);
 
     for(int j = 0; j < MLO_LRN_N_VERT_OUT_PIX; ++j)
@@ -382,9 +382,9 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
             _FLOAT s;
             s = exp((_FLOAT)-beta * log(prv_scale[k][l]));
             //					s = pow(prv_scale[k][l], -beta);
-            _FLOAT bot_val = bot_data[lcl_off + mad24((k + MLO_LRN_PAD1),
+            _FLOAT bot_val = bot_data[lcl_off + mad24((k + MLO_LRN_PRE_PAD1),
                                                       (int)MLO_LRN_LCL_DATA_WIDTH,
-                                                      (l + MLO_LRN_PAD0))];
+                                                      (l + MLO_LRN_PRE_PAD0))];
 #if MLO_LRN_DO_SCALE
             scale[scale_off + k * MLO_LRN_SCALE_STRIDE + l] = prv_scale[k][l];
 #endif
@@ -597,7 +597,7 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
         //				pow(prv_scale,-beta);
         // bug
         //			MLO_READ_TYPE prv_out = sqrt(bot_in2[MLO_LRN_PAD]);
-        MLO_READ_TYPE prv_out = bot_in2[MLO_LRN_PAD];
+        MLO_READ_TYPE prv_out = bot_in2[MLO_LRN_PRE_PAD];
         prv_out               = sqrt(prv_out);
         MLO_READ_TYPE out_val = prv_out * exp_scale;
 
@@ -661,7 +661,7 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
         //				pow(prv_scale,-beta);
         // bug
         //			MLO_READ_TYPE prv_out = sqrt(bot_in2[MLO_LRN_PAD]);
-        MLO_READ_TYPE prv_out = bot_in2[MLO_LRN_PAD];
+        MLO_READ_TYPE prv_out = bot_in2[MLO_LRN_PRE_PAD];
         prv_out               = sqrt(prv_out);
 
         MLO_READ_TYPE out_val = prv_out * exp_scale;
