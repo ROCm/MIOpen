@@ -215,7 +215,7 @@ MIOpenLRNWithinChannelBwd(const __global _FLOAT* top,
     {
         int v_off_v = (lcl_id1 * MLO_LRN_N_VERT_OUT_PIX + j);
         int hstart  = y + v_off_v - MLO_LRN_PAD;
-        int hend    = min(hstart + MLO_LRN_KERNEL_SZ, MLO_LRN_TOP_HEIGHT + MLO_LRN_PAD);
+        int hend    = min(hstart + MLO_LRN_KERNEL_SZ, MLO_LRN_TOP_HEIGHT + MLO_LRN_PRE_PAD);
 
         // accum offset, vertical
         //			int lcl_a_off_v = v_off_v *  MLO_LRN_LCL_DATA_WIDTH;
@@ -227,7 +227,7 @@ MIOpenLRNWithinChannelBwd(const __global _FLOAT* top,
             int v_off_h            = lcl_id0 * MLO_LRN_N_HORIZ_OUT_PIX + i;
 
             int wstart = x + v_off_h - MLO_LRN_PAD;
-            int wend   = min(wstart + MLO_LRN_KERNEL_SZ, MLO_LRN_TOP_WIDTH + MLO_LRN_PAD);
+            int wend   = min(wstart + MLO_LRN_KERNEL_SZ, MLO_LRN_TOP_WIDTH + MLO_LRN_PRE_PAD);
 
             int adj_area_size = (hend - hstart) * (wend - wstart);
 
@@ -250,7 +250,8 @@ MIOpenLRNWithinChannelBwd(const __global _FLOAT* top,
             uint bot_off0 = MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE * o +
                             MLO_LRN_BOT_STRIDE * (y + v_off_v) + x + v_off_h;
 
-            uint bot_off = (bot_off0 < MLO_LRN_BATCH_SZ * MLO_LRN_BOT_BATCH_STRIDE)
+            uint bot_off = (y + v_off_v < MLO_LRN_BOT_HEIGHT && x + v_off_h < MLO_LRN_BOT_WIDTH &&
+                            b < MLO_LRN_BATCH_SZ && o < MLO_LRN_N_OUTPUTS)
                                ? bot_off0
                                : MLO_LRN_BATCH_SZ * MLO_LRN_BOT_BATCH_STRIDE - 1;
 #if DBG_RANGE
@@ -262,7 +263,10 @@ MIOpenLRNWithinChannelBwd(const __global _FLOAT* top,
 #endif
             _FLOAT bot_dta = bot[bot_off];
 
-            bot_dta = (bot_off0 < MLO_LRN_BATCH_SZ * MLO_LRN_BOT_BATCH_STRIDE) ? bot_dta : 0;
+            bot_dta = (y + v_off_v < MLO_LRN_BOT_HEIGHT && x + v_off_h < MLO_LRN_BOT_WIDTH &&
+                       b < MLO_LRN_BATCH_SZ && o < MLO_LRN_N_OUTPUTS)
+                          ? bot_dta
+                          : 0;
 
             _FLOAT adj_ratio       = (_FLOAT)2.f * alpha * beta / adj_area_size;
             _FLOAT prv_accum_ratio = adj_ratio * bot_dta * prv_ratio_accum;
@@ -274,7 +278,8 @@ MIOpenLRNWithinChannelBwd(const __global _FLOAT* top,
     {
         for(int i = 0; i < MLO_LRN_N_HORIZ_OUT_PIX; i++)
         {
-            if(bot_y + j < MLO_LRN_BOT_HEIGHT && bot_x + i < MLO_LRN_BOT_WIDTH)
+            if(bot_y + j < MLO_LRN_BOT_HEIGHT && bot_x + i < MLO_LRN_BOT_WIDTH &&
+               b < MLO_LRN_BATCH_SZ && o < MLO_LRN_N_OUTPUTS)
             {
 #if DBG_RANGE
 
@@ -319,7 +324,7 @@ MIOpenLRNAcrossChannelsBwd1(const __global _FLOAT* top,
     int c_i = 0, c_o = 0;
     int bot_df_off = 0;
 
-    for(c_i = 0; c_i < MLO_LRN_PAD; c_i++)
+    for(c_i = 0; c_i < MLO_LRN_PRE_PAD; c_i++)
     {
 
         top_df_in[c_i] = top_df[MLO_LRN_TOPDF_BATCH_STRIDE * b +
@@ -429,7 +434,7 @@ MIOpenLRNAcrossChannelsBwd1(const __global _FLOAT* top,
         }
     }
 
-    for(; c_i < MLO_LRN_N_INPUTS + MLO_LRN_PAD; c_i++, c_o++)
+    for(; c_i < MLO_LRN_N_INPUTS + MLO_LRN_PRE_PAD; c_i++, c_o++)
     {
 
         accum_ratio = accum_ratio - ratio_dta[0];
