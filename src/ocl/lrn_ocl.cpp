@@ -40,6 +40,8 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
                                       bool do_backward,
                                       Data_t workSpace) const
 {
+    if(!(xDesc.IsPacked() && yDesc.IsPacked()))
+        MIOPEN_THROW("Only support packed tensors");
 
     miopenStatus_t status = miopenStatusSuccess;
     mlo_construct_norm construct_params(1); // forward
@@ -109,10 +111,10 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
         std::to_string(f_norm_alphaoverarea) + std::to_string(local_ar) +
         std::to_string(norm_region) + std::to_string(static_cast<int>(do_backward)) +
         std::to_string(xDesc.GetType()) + std::to_string(nInStride) + std::to_string(nOutStride) +
-        std::to_string(nIn) + std::to_string(nOut) + std::to_string(nInStride) +
-        std::to_string(nOutStride) + std::to_string(cIn) + std::to_string(cOut) +
-        std::to_string(cInStride) + std::to_string(cOutStride) + std::to_string(hIn) +
-        std::to_string(hOut);
+        std::to_string(nIn) + std::to_string(nOut) + std::to_string(cInStride) +
+        std::to_string(cOutStride) + std::to_string(cIn) + std::to_string(cOut) +
+        std::to_string(hInStride) + std::to_string(hOutStride) + std::to_string(hIn) +
+        std::to_string(hOut) + std::to_string(wIn) + std::to_string(wOut);
 
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
@@ -285,10 +287,10 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
         std::to_string(norm_alphaoverarea) + std::to_string(local_ar) +
         std::to_string(norm_region) + std::to_string(f_norm_ratio) +
         std::to_string(xDesc.GetType()) + std::to_string(nInStride) + std::to_string(nOutStride) +
-        std::to_string(nIn) + std::to_string(nOut) + std::to_string(nInStride) +
-        std::to_string(nOutStride) + std::to_string(cIn) + std::to_string(cOut) +
-        std::to_string(cInStride) + std::to_string(cOutStride) + std::to_string(hIn) +
-        std::to_string(hOut);
+        std::to_string(nIn) + std::to_string(nOut) + std::to_string(cInStride) +
+        std::to_string(cOutStride) + std::to_string(cIn) + std::to_string(cOut) +
+        std::to_string(hInStride) + std::to_string(hOutStride) + std::to_string(hIn) +
+        std::to_string(hOut) + std::to_string(wIn) + std::to_string(wOut);
 
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
