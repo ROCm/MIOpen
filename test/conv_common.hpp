@@ -515,8 +515,11 @@ struct verify_forward_conv : conv_base<T, Tout>
                     handle, wei_desc, in_desc, rout.desc, 1, &count, &selected);
 
                 workspace_dev.reset();
-                workspace.resize(selected.workspace_size);
-                workspace_dev = handle.Write(workspace);
+                if(selected.workspace_size > 0)
+                {
+                    workspace.resize(selected.workspace_size);
+                    workspace_dev = handle.Write(workspace);
+                }
 
                 filter.ConvolutionForward(handle,
                                           &alpha,
@@ -599,8 +602,11 @@ struct verify_forward_conv : conv_base<T, Tout>
                         handle, weights.desc, input.desc, rout.desc, 1, &count, &selected);
 
                     workspace_dev.reset();
-                    workspace.resize(selected.workspace_size);
-                    workspace_dev = handle.Write(workspace);
+                    if(selected.workspace_size > 0)
+                    {
+                        workspace.resize(selected.workspace_size);
+                        workspace_dev = handle.Write(workspace);
+                    }
 
                     filter.ConvolutionForward(handle,
                                               &alpha,
@@ -924,8 +930,11 @@ struct verify_backward_conv : conv_base<T>
                     handle, out.desc, weights.desc, rinput.desc, 1, &count, &selected);
 
                 workspace_dev.reset();
-                workspace.resize(selected.workspace_size);
-                workspace_dev = handle.Write(workspace);
+                if(selected.workspace_size > 0)
+                {
+                    workspace.resize(selected.workspace_size);
+                    workspace_dev = handle.Write(workspace);
+                }
 
                 filter.ConvolutionBackwardData(handle,
                                                &alpha,
@@ -1169,8 +1178,11 @@ struct verify_backward_weights_conv : conv_base<T>
                                    &selected);
 
             workspace_dev.reset();
-            workspace.resize(selected.workspace_size);
-            workspace_dev = handle.Write(workspace);
+            if(selected.workspace_size > 0)
+            {
+                workspace.resize(selected.workspace_size);
+                workspace_dev = handle.Write(workspace);
+            }
 
             filter.ConvolutionBackwardWeights(
                 handle,

@@ -1598,7 +1598,8 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
 #endif
 
     workspace_dev.reset();
-    workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, perf_results[0].memory, 1));
+    if(perf_results[0].memory > 0)
+        workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, perf_results[0].memory, 1));
 
     wall.start(wall_enabled);
 
@@ -1999,7 +2000,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
 #endif
 
     workspace_dev.reset();
-    workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, perf_results_data[0].memory, 1));
+    if(perf_results_data[0].memory > 0)
+        workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, perf_results_data[0].memory, 1));
 
     wall.start(wall_enabled);
 
@@ -2152,7 +2154,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
 #endif
 
     workspace_dev.reset();
-    workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, perf_results_weights[0].memory, 1));
+    if(perf_results_weights[0].memory > 0)
+        workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, perf_results_weights[0].memory, 1));
 
     wall.start(wall_enabled);
 
