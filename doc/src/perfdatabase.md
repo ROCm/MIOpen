@@ -78,4 +78,4 @@ This variable allows for limiting the scope of `MIOPEN_FIND_ENFORCE`, so that on
 
 ### Updating MIOpen and the User Db
 
-It is important to note that if the user installs a new version of MIOpen, it is recommended that the user move, or delete their old user performance database file. This will prevent older database entries from polution the configurations shipped with the newer system database. The user can find the file with the suffix `*.updb.txt` in the user perf db path.
+It is important to note that if the user installs a new version of MIOpen, it is recommended that the user move, or delete their old user performance database file. This will prevent older database entries from poluting the configurations shipped with the newer system database. The user perf db is named `miopen.udb` and is located at the user perf db path.
