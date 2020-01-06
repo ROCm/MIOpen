@@ -277,9 +277,9 @@ include(EnableCompilerWarnings)
 set(MIOPEN_TIDY_ERRORS ERRORS * -readability-inconsistent-declaration-parameter-name)
 if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
     set(MIOPEN_TIDY_CHECKS -modernize-use-override -readability-non-const-parameter)
-# Enable tidy on hip
-elseif(MIOPEN_BACKEND STREQUAL "HIP")
-    set(MIOPEN_TIDY_ERRORS ALL)
+## Enable tidy on hip
+#elseif(MIOPEN_BACKEND STREQUAL "HIP")
+    #set(MIOPEN_TIDY_ERRORS ALL)
 
 endif()
 

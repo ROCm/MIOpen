@@ -514,6 +514,10 @@ struct verify_forward_conv : conv_base<T, Tout>
                 filter.GetForwardSolutions(
                     handle, wei_desc, in_desc, rout.desc, 1, &count, &selected);
 
+                workspace_dev.reset();
+                workspace.resize(selected.workspace_size);
+                workspace_dev = handle.Write(workspace);
+
                 filter.ConvolutionForward(handle,
                                           &alpha,
                                           in_desc,
@@ -593,6 +597,10 @@ struct verify_forward_conv : conv_base<T, Tout>
 
                     filter.GetForwardSolutions(
                         handle, weights.desc, input.desc, rout.desc, 1, &count, &selected);
+
+                    workspace_dev.reset();
+                    workspace.resize(selected.workspace_size);
+                    workspace_dev = handle.Write(workspace);
 
                     filter.ConvolutionForward(handle,
                                               &alpha,
@@ -915,6 +923,10 @@ struct verify_backward_conv : conv_base<T>
                 filter.GetBackwardSolutions(
                     handle, out.desc, weights.desc, rinput.desc, 1, &count, &selected);
 
+                workspace_dev.reset();
+                workspace.resize(selected.workspace_size);
+                workspace_dev = handle.Write(workspace);
+
                 filter.ConvolutionBackwardData(handle,
                                                &alpha,
                                                out.desc,
@@ -1155,6 +1167,10 @@ struct verify_backward_weights_conv : conv_base<T>
                                    1,
                                    &count,
                                    &selected);
+
+            workspace_dev.reset();
+            workspace.resize(selected.workspace_size);
+            workspace_dev = handle.Write(workspace);
 
             filter.ConvolutionBackwardWeights(
                 handle,
