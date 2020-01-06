@@ -1,4 +1,6 @@
-#define DTYPE float
+#include "float_types.h"
+
+#define DTYPE _FLOAT
 #define ACCUMTYPE float
 
 // Must keep this structure synchronized with one in MIOpenCheckNumerics
@@ -97,20 +99,44 @@ __kernel void MIOpenCheckNumerics(const __global DTYPE* data,
     while(offset < size)
     {
         DTYPE value = data[offset];
-        sum += value;
-        abssum += fabs(value);
+        sum += (ACCUMTYPE)value;
+        abssum += (ACCUMTYPE)(fabs(
+#if MIOPEN_USE_BFP16 == 1
+            bfloat16_to_float(value)
+#else
+            value
+#endif
+                ));
         minV = min(minV, value);
         maxV = max(maxV, value);
 
-        if(fabs(value) <= 0.0f)
+        if((ACCUMTYPE)(fabs(
+#if MIOPEN_USE_BFP16 == 1
+               bfloat16_to_float(value)
+#else
+               value
+#endif
+                   )) <= 0.0f)
         { // iszero check
             abnormal->hasZero = 1;
         }
-        if(isnan(value))
+        if(isnan(
+#if MIOPEN_USE_BFP16 == 1
+               bfloat16_to_float(value)
+#else
+               value
+#endif
+                   ))
         {
             abnormal->hasNan = 1;
         }
-        if(isinf(value))
+        if(isinf(
+#if MIOPEN_USE_BFP16 == 1
+               bfloat16_to_float(value)
+#else
+               value
+#endif
+                   ))
         {
             abnormal->hasInf = 1;
         }
@@ -119,10 +145,10 @@ __kernel void MIOpenCheckNumerics(const __global DTYPE* data,
 
     if(computeStats)
     {
-        stats[NUM_STATS * lid + 0] = sum;
-        stats[NUM_STATS * lid + 1] = abssum;
-        stats[NUM_STATS * lid + 2] = minV;
-        stats[NUM_STATS * lid + 3] = maxV;
+        stats[NUM_STATS * lid + 0] = (float)sum;
+        stats[NUM_STATS * lid + 1] = (float)abssum;
+        stats[NUM_STATS * lid + 2] = (float)minV;
+        stats[NUM_STATS * lid + 3] = (float)maxV;
         barrier(CLK_LOCAL_MEM_FENCE);
 
         REDUCE_OPS(128)
