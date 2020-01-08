@@ -52,6 +52,10 @@ inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
         {
             ss << " -d 3";
         }
+        if(tensor_dim == 4)
+        {
+            ss << " -M 1"; // currently use mask index for all 2D pooling
+        }
         ss << " -n " << miopen::deref(tensorDesc).GetLengths()[0] // clang-format off
            << " -c " << miopen::deref(tensorDesc).GetLengths()[1];
         if(tensor_dim == 5)
