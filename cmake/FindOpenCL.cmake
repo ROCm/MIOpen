@@ -35,6 +35,7 @@ find_path(OPENCL_INCLUDE_DIRS
     /usr/local/cuda/include
     /opt/cuda/include
     /opt/rocm/opencl/include
+    ${CMAKE_INSTALL_PREFIX}/opencl/include
     DOC "OpenCL header file path"
     )
 mark_as_advanced( OPENCL_INCLUDE_DIRS )
@@ -53,6 +54,7 @@ if("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
         /usr/local/cuda/lib
         /opt/cuda/lib
         /opt/rocm/opencl/lib
+        ${CMAKE_INSTALL_PREFIX}/opencl/lib
         )
 else( )
     find_library( OPENCL_LIBRARIES
