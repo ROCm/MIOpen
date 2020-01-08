@@ -46,7 +46,8 @@ message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
 message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 
 # This is incremented when the ABI to the library changes
-set( MIOpen_SOVERSION 1 )
+set( MIOpen_SOVERSION 1.0 )
+
 
 function(add_kernels KERNEL_FILES)
     set(INIT_KERNELS_LIST)
@@ -453,7 +454,7 @@ add_library( MIOpen
     ${MIOpen_Source}
     )
 
-set_target_properties(MIOpen PROPERTIES SOVERSION 1)
+rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
 
 clang_tidy_check(MIOpen)
 
