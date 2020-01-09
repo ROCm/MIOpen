@@ -782,6 +782,19 @@ struct ConvBinWinogradRxSf3x2 : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
+struct ConvBinWinogradRxSf2x3 : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
+    static int GetNGroups(const int group_conv, const int max_CU)
+    {
+        if(group_conv != 0)
+            return (max_CU + group_conv - 1) / group_conv * (group_conv > 1 ? 4 : 1);
+        else
+            MIOPEN_THROW("Error: group_conv = 0");
+    }
+};
+
 struct ConvBinWinogradRxSFused : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;

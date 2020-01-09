@@ -106,6 +106,8 @@ Winograd  Solutions:
   * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW` - FP32 F(3,2) WrW convolutions only.
   * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FWD_BWD` - FP32/FP16 F(3,3) Fwd/Bwd.
 * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2` - `ConvBinWinogradRxSf3x2`, FP32/FP16 Fwd/Bwd F(3,2) Winograd.
+* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3` - `ConvBinWinogradRxSf2x3`, FP32/FP16 Fwd/Bwd F(2,3) Winograd.
+
 * Multi-pass Winograd:
   * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2` - `ConvWinograd3x3MultipassWrW<3-2>`, WrW F(3,2), stride 2 only.
   * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3` - `ConvWinograd3x3MultipassWrW<3-3>`, WrW F(3,3), stride 2 only.
