@@ -62,12 +62,6 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
     if(!(K % KPerBlock == 0 && B % BPerBlock == 0 && E % EPerBlock == 0))
         return false; // wrong! cannot divice N evenly among thread
 
-    if(ctx.direction.IsBackwardWrW())
-    {
-        if(!((X * Y) % (EPerBlock / WeiBlockCopyClusterLengths_E) == 0))
-            return false;
-    }
-
     // unsupported xdlops-gemm
     if(GemmMPerWave == 16 && GemmNPerWave == 32)
         return false;
