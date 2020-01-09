@@ -152,6 +152,14 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(
                 static_cast<int>(KernelFilterHeightY(ctx) * KernelFilterWidthX(ctx)));
     }
+
+    const int Y = KernelFilterHeightY(ctx);
+    const int X = KernelFilterWidthX(ctx);
+
+    if(ctx.direction.IsBackwardWrW())
+        WeiBlockCopySrcDataPerRead_E =
+            (X * Y) % WeiBlockCopySubLengths_E != 0 ? 1 : WeiBlockCopySrcDataPerRead_E;
+
     WeiBlockCopySrcDataPerRead_E =
         ctx.direction.IsBackwardData() ? 1 : WeiBlockCopySrcDataPerRead_E;
 
@@ -368,28 +376,27 @@ bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext&
     if(!ctx.Is2d())
         return false;
 
-    std::size_t n  = ctx.batch_sz;
     std::size_t k  = ctx.n_outputs / ctx.group_counts;
     std::size_t c  = ctx.n_inputs / ctx.group_counts;
-    std::size_t y  = ctx.kernel_size_h;
-    std::size_t x  = ctx.kernel_size_w;
-    std::size_t ho = ctx.out_height;
-    std::size_t wo = ctx.out_width;
+    const auto& n  = ctx.batch_sz;
+    const auto& y  = ctx.kernel_size_h;
+    const auto& x  = ctx.kernel_size_w;
+    const auto& ho = ctx.out_height;
+    const auto& wo = ctx.out_width;
 
     // channels is divided by epack to pack 2/4 fp16/bfp16
     if(ctx.n_inputs % GetEPackLength(ctx, true) != 0)
         return false;
 
-    // For fp16, when c*x*y % 4 == 0, 4 channels are accumulated through dot4 (2 * dot2) operation
-    const int MultipleOf = ctx.IsFp16() ? 16 : ctx.IsBfp16() ? 8 : 4;
-    if((c * y * x) % MultipleOf != 0)
-        return false;
-
     const auto nonVectorizedC = c / GetEPackLength(ctx, true);
-    if((nonVectorizedC * k) % 64 != 0)
-        return false;
 
-    return k % 4 == 0 && (n * ho * wo) % 8 == 0;
+    const auto WaveSize = 64;
+
+    // For fp16, when c*x*y % 4 == 0, 4 channels are accumulated through dot4 (2 * dot2) operation
+    const auto e = nonVectorizedC * y * x;
+    const auto b = n * ho * wo;
+    return (k * b) % 256 == 0 && (e * b) % WaveSize == 0 && (e * k) % WaveSize == 0 &&
+           b % 16 == 0 && e % 4 == 0 && k % 4 == 0;
 }
 
 bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext& ctx) const
@@ -406,39 +413,29 @@ bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext&
     if(!ctx.Is2d())
         return false;
 
-    // retrieve dimension from ConvolutionContext
-    // remember: ConvolutionContext has swapped some dimensions for you!
-    // undo the swap to avoid confusion
-    std::size_t n  = ctx.batch_sz;
-    std::size_t k  = ctx.n_inputs / ctx.group_counts;  // unswap
-    std::size_t c  = ctx.n_outputs / ctx.group_counts; // unswap
-    std::size_t y  = ctx.kernel_size_h;
-    std::size_t x  = ctx.kernel_size_w;
-    std::size_t ho = ctx.in_height; // unswap
-    std::size_t wo = ctx.in_width;  // unswap
+    const auto& n_eqv = KernelBatchN(ctx);
+    const auto& k_eqv = KernelOutputChannelK(ctx);
+    const auto& c_eqv = KernelInputChannelC(ctx);
 
-    // equivalent dimension for bwd-wrw
-    std::size_t n_eqv  = c;
-    std::size_t k_eqv  = k;
-    std::size_t c_eqv  = n;
-    std::size_t y_eqv  = ho;
-    std::size_t x_eqv  = wo;
-    std::size_t ho_eqv = y;
-    std::size_t wo_eqv = x;
+    const auto& ho_eqv = KernelOutputHeightHo(ctx);
+    const auto& wo_eqv = KernelOutputWidthWo(ctx);
+
+    const auto& y_eqv = KernelFilterHeightY(ctx);
+    const auto& x_eqv = KernelFilterWidthX(ctx);
 
     // batch is divided by epack to pack 2/4 fp16/bfp16
     if(c_eqv % GetEPackLength(ctx, true) != 0)
         return false;
 
-    const int MultipleOf = ctx.IsFp16() ? 16 : ctx.IsBfp16() ? 8 : 4;
-    if((c_eqv * y_eqv * x_eqv) % MultipleOf != 0)
-        return false;
-
     const auto nonVectorizedC = c_eqv / GetEPackLength(ctx, true);
-    if((nonVectorizedC * k_eqv) % 64 != 0)
-        return false;
 
-    return k_eqv % 16 == 0 && (n_eqv * ho_eqv * wo_eqv) % 16 == 0;
+    const auto WaveSize = 64;
+
+    const auto b = n_eqv * ho_eqv * wo_eqv;
+    const auto e = nonVectorizedC * y_eqv * x_eqv;
+
+    return (k_eqv * b) % 256 == 0 && (e * b) % WaveSize == 0 && (e * k_eqv) % WaveSize == 0 &&
+           b % 16 == 0 && e % 4 == 0 && k_eqv % 4 == 0;
 }
 
 PerformanceImplicitGemmXdlops

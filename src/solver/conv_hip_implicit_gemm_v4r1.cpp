@@ -95,7 +95,7 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) con
     if(c_eqv % GetEPackLength(ctx, false) != 0)
         return false;
 
-    return n_eqv % 8 == 0 && (n_eqv * ho_eqv * wo_eqv) % 32 == 0 &&
+    return n_eqv % 8 == 0 && (n_eqv * ho_eqv * wo_eqv) % 64 == 0 &&
            (c_eqv * y_eqv * x_eqv) % eMultiple == 0 && k_eqv % 16 == 0;
 }
 
