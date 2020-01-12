@@ -303,6 +303,7 @@ enable_clang_tidy(
         -cppcoreguidelines-avoid-c-arrays
         -cppcoreguidelines-avoid-magic-numbers
         -cppcoreguidelines-explicit-virtual-functions
+        -cppcoreguidelines-init-variables
         -cppcoreguidelines-macro-usage
         -cppcoreguidelines-non-private-member-variables-in-classes
         -cppcoreguidelines-pro-bounds-array-to-pointer-decay
