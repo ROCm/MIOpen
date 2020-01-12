@@ -207,7 +207,7 @@ endif()
 # Online assembler
 find_program(MIOPEN_AMDGCN_ASSEMBLER
     NAMES clang
-    PATHS ${MIOPEN_AMDGCN_ASSEMBLER_PATH} /opt/rocm
+    PATHS ${MIOPEN_AMDGCN_ASSEMBLER_PATH} ${CMAKE_INSTALL_PREFIX}
     PATH_SUFFIXES /opencl/bin/x86_64
     NO_DEFAULT_PATH
 )
@@ -303,6 +303,7 @@ enable_clang_tidy(
         -cppcoreguidelines-avoid-c-arrays
         -cppcoreguidelines-avoid-magic-numbers
         -cppcoreguidelines-explicit-virtual-functions
+        -cppcoreguidelines-init-variables
         -cppcoreguidelines-macro-usage
         -cppcoreguidelines-non-private-member-variables-in-classes
         -cppcoreguidelines-pro-bounds-array-to-pointer-decay
