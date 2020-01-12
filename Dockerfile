@@ -10,6 +10,8 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y curl apt
 RUN curl https://raw.githubusercontent.com/RadeonOpenCompute/ROCm-docker/master/add-rocm.sh | bash
 
 # Install dependencies required to build hcc
+# Ubuntu csomic contains llvm-7 required to build Tensile
+RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu cosmic main universe | tee -a /etc/apt/sources.list"
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     apt-utils \
     build-essential \
@@ -22,12 +24,13 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     doxygen \
     g++-mingw-w64 \
     g++-mingw-w64-x86-64 \
-    g++-multilib \
+    g++-5-multilib \
     git \
     hsa-rocr-dev \
     hsakmt-roct-dev \
     lcov \
     libelf-dev \
+    libfile-which-perl \
     libncurses5-dev \
     libpthread-stubs0-dev \
     libnuma-dev \
@@ -38,12 +41,16 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     python \
     python-dev \
     python-pip \
-    rocm-device-libs \
-    rocm-opencl \
-    rocm-opencl-dev \
     software-properties-common \
     wget \
     wine \
+    libboost-all-dev \
+    llvm-7 \
+    python3 \
+    python3-distutils \
+    python-yaml \
+    rocm-opencl \
+    rocm-opencl-dev \
     xvfb && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -65,15 +72,17 @@ RUN cget -p $PREFIX/x86_64-w64-mingw32 init -t $PREFIX/x86_64-w64-mingw32/cmake/
 # Install rclone
 RUN pip install https://github.com/pfultz2/rclone/archive/master.tar.gz
 
-# Install hcc from ROCm 2.9
-RUN rclone -b clang_tot_upgrade -c 3c612e92c9d8761fb5e77e7a56c6c189b23be3b5 https://github.com/RadeonOpenCompute/hcc.git /hcc
-
+# Install hcc from ROCm 3.0
+RUN rclone -b roc-3.0.x -c 286651a04d9c3a8e3052dd84b1822985498cd27d https://github.com/RadeonOpenCompute/hcc.git /hcc
 RUN cget -p $PREFIX install hcc,/hcc  && rm -rf /hcc
 
 # Workaround hip: It doesn't use cmake's compiler, only the compiler at /opt/rocm/hcc/bin/hcc
 RUN mkdir -p /opt/rocm/hcc/bin
 RUN ln -s $PREFIX/bin/hcc /opt/rocm/hcc/bin/hcc
 RUN ln -s $PREFIX/bin/hcc-config /opt/rocm/hcc/bin/hcc-config
+
+# Make sure /opt/rcom is in the paths
+ENV PATH="/opt/rocm:${PATH}"
 
 # Build using hcc
 RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc --std=c++14
@@ -83,6 +92,7 @@ ADD dev-requirements.txt /dev-requirements.txt
 ADD requirements.txt /requirements.txt
 ADD min-requirements.txt /min-requirements.txt
 RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /dev-requirements.txt
+
 
 # Install doc requirements
 ADD doc/requirements.txt /doc-requirements.txt
