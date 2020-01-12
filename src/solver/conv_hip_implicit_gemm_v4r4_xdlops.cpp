@@ -70,9 +70,9 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
 
     std::size_t grid_size = (b / BPerBlock) * (k / KPerBlock);
 
-    const int Y = ctx.kernel_size_h;
-    const int X = ctx.kernel_size_w;
-    const int C = ctx.n_inputs;
+    const int Y = KernelFilterHeightY(ctx);
+    const int X = KernelFilterWidthX(ctx);
+    const int C = KernelInputChannelC(ctx);
     const int E = C * Y * X;
 
     std::size_t global_load_size =
