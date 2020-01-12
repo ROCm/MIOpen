@@ -87,11 +87,6 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
          N2 % InBlockCopyClusterLengths_N2 == 0))
         return false;
 
-    if(ctx.direction.IsBackwardWrW())
-    {
-        if(!((X * Y) % (EPerBlock / WeiBlockCopyClusterLengths_E) == 0))
-            return false;
-    }
     // divide block work by [K, B]
     if(!(K % KPerBlock == 0 && B % BPerBlock == 0 && E % EPerBlock == 0))
         return false; // wrong! cannot divice N evenly among thread
