@@ -186,12 +186,9 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.rmv.IsV2orV3())
         return false;
-
     const std::string name = params.GetStream().GetDeviceName();
-    if(name.find("gfx9") == std::string::npos)
-    {
+    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
-    }
     assert(params.weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
     // clang-format off
     return params.pad_w == 1
