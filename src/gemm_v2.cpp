@@ -105,7 +105,7 @@ std::ostream& operator<<(std::ostream& stream, const GemmDescriptor& gemm_desc)
 // Enqueue gpu memset for rocblas kernel timing purpose
 // Be careful, will set mem to 0
 static void
-dummy_memset(Handle& handle, Data_t mem, std::size_t mem_len, miopenDataType_t data_type)
+dummy_memset(const Handle& handle, Data_t mem, std::size_t mem_len, miopenDataType_t data_type)
 {
     MIOPEN_LOG_I2("dummy gpu memset");
 
