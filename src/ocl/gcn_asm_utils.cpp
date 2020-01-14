@@ -214,7 +214,7 @@ void AmdgcnAssemble(std::string& source, const std::string& params)
 #endif //__linux__
 }
 
-static void AmdgcnAssembleQuiet(std::string& source, const std::string& params)
+static void AmdgcnAssembleQuiet(const std::string& source, const std::string& params)
 {
 #ifdef __linux__
     std::stringstream clang_stdout_unused;
@@ -237,7 +237,7 @@ static bool GcnAssemblerHasBug34765Impl()
 {
     auto p = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
     miopen::WriteFile(miopen::GetKernelSrc("bugzilla_34765_detect"), p);
-    auto src = p.string();
+    const auto& src = p.string();
     try
     {
         AmdgcnAssembleQuiet(src, "-mcpu=gfx900");
@@ -260,7 +260,7 @@ static bool GcnAssemblerSupportsOption(const std::string& option)
 {
     auto p = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
     miopen::WriteFile(miopen::GetKernelSrc("dummy_kernel"), p);
-    auto src = p.string();
+    const auto& src = p.string();
     try
     {
         AmdgcnAssembleQuiet(src, "-mcpu=gfx900 " + option);

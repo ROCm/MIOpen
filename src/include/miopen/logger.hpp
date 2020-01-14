@@ -35,6 +35,7 @@
 
 #include <miopen/each_args.hpp>
 #include <miopen/object.hpp>
+#include <miopen/config.h>
 
 // See https://github.com/pfultz2/Cloak/wiki/C-Preprocessor-tricks,-tips,-and-idioms
 #define MIOPEN_PP_CAT(x, y) MIOPEN_PP_PRIMITIVE_CAT(x, y)
@@ -186,6 +187,10 @@ enum class LoggingLevel
     DebugQuietMax = Error
 };
 
+// Warnings in installable builds, errors otherwise.
+constexpr const LoggingLevel LogWELevel =
+    MIOPEN_INSTALLABLE ? miopen::LoggingLevel::Warning : miopen::LoggingLevel::Error;
+
 namespace debug {
 
 /// Quiet mode for debugging/testing purposes. All logging (including MIOPEN_ENABLE_LOGGING*)
@@ -321,9 +326,7 @@ std::string LoggingParseFunction(const char* func, const char* pretty_func);
 #define MIOPEN_LOG_NQI2(...) MIOPEN_LOG_NQ_(miopen::LoggingLevel::Info2, __VA_ARGS__)
 
 // Warnings in installable builds, errors otherwise.
-#define MIOPEN_LOG_WE(...)                                                                         \
-    MIOPEN_LOG((MIOPEN_INSTALLABLE ? miopen::LoggingLevel::Warning : miopen::LoggingLevel::Error), \
-               __VA_ARGS__)
+#define MIOPEN_LOG_WE(...) MIOPEN_LOG(LogWELevel, __VA_ARGS__)
 
 #define MIOPEN_LOG_DRIVER_CMD(...)                                                      \
     do                                                                                  \

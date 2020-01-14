@@ -363,23 +363,31 @@ enable_clang_tidy(
 include(CppCheck)
 enable_cppcheck(
     CHECKS
-        all
+        warning
+        style
+        performance
+        portability
     SUPPRESS
         ConfigurationNotChecked
-        unmatchedSuppression
-        unusedFunction
-        # constStatement
+        constStatement
+        duplicateCondition
         noExplicitConstructor
         passedByValue
         # preprocessorErrorDirective
+        shadowVariable
+        unusedFunction
+        unusedPrivateFunction
         unusedStructMember
         # Ignore initializer lists in the tests
         useInitializationList:*test/*.cpp
         *:*.cl
         *:*src/kernels/*.h
         knownConditionTrueFalse:*src/kernels/composable_kernel/*/*
-        wrongPrintfScanfArgNum:*src/kernels/composable_kernel/*/*
+        redundantAssignment:*src/kernels/composable_kernel/*/*
+        unreadVariable:*src/kernels/composable_kernel/*/*
         unusedScopedObject:*src/kernels/composable_kernel/*/*
+        wrongPrintfScanfArgNum:*src/kernels/composable_kernel/*/*
+        unmatchedSuppression
     FORCE
     SOURCES
         addkernels/
@@ -392,7 +400,9 @@ enable_cppcheck(
         ${CMAKE_CURRENT_BINARY_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/include
     DEFINE
+        CPPCHECK=1
         MIOPEN_USE_MIOPENGEMM=1
+        __linux__=1
 )
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)

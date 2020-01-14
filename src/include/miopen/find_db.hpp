@@ -141,10 +141,10 @@ class FindDbRecord_t
         record.content.emplace(problem);
         regenerator(*record.content);
 
-        for(const auto& pair : record)
-            // cppcheck-suppress useStlAlgorithm
-            ret.push_back(
-                {pair.first, pair.second.solver_id, pair.second.time, pair.second.workspace});
+        std::transform(record.begin(), record.end(), std::back_inserter(ret), [](const auto& pair) {
+            return PerfField{
+                pair.first, pair.second.solver_id, pair.second.time, pair.second.workspace};
+        });
 
         return ret;
     }

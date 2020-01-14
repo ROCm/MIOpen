@@ -90,7 +90,7 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
 
 struct BiasFusionOpDescriptor : FusionOpDescriptor
 {
-    BiasFusionOpDescriptor(TensorDescriptor& desc) : base_desc(desc){};
+    BiasFusionOpDescriptor(const TensorDescriptor& desc) : base_desc(desc){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) override;
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
     miopenStatus_t GetCompileParms(std::string& compile_config,
@@ -161,7 +161,8 @@ struct ActivBwdFusionOpDescriptor : FusionOpDescriptor
 
 struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
 {
-    BatchNormInferenceFusionOpDescriptor(miopenBatchNormMode_t bn_mode, TensorDescriptor& desc)
+    BatchNormInferenceFusionOpDescriptor(miopenBatchNormMode_t bn_mode,
+                                         const TensorDescriptor& desc)
         : mode(bn_mode), base_desc(desc){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) override;
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
