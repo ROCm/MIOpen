@@ -713,6 +713,7 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeSCGemm(
     if(sz > MAX_MEM_ALLOC_SZ)
         sz = 0;
 #else
+    (void)MAX_MEM_ALLOC_SZ;
     (void)handle;
     (void)ctx;
 #endif

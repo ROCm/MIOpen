@@ -116,14 +116,6 @@ void RNNFwdTrainCPUVerify(std::vector<T>& in,
         in_h = 0;
     }
 
-    // initial weights
-    int wei_len = (bi * (in_h + hy_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
-    if(biased)
-    {
-        int in_bias = 2;
-        wei_len += (bi * in_bias + (numlayer - 1) * bi * 2) * hy_h;
-    }
-
     int wei_shift_bias = ((in_h + hy_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
 
     // forward emulator
@@ -500,7 +492,7 @@ void RNNBwdDataCPUVerify(std::vector<T>& din_host,
                          int in_h,               // input data length
                          int seqLength,          // Number of iterations to unroll over
                          int bidirection,        // whether using bidirectional net
-                         int biased,             // whether using bias
+                         int,                    // whether using bias
                          int hy_d,  // 1 by numlayer (number of stacks of hidden layers)
                                     // for unidirection, 2 by numlayer for bidirection
                          int hy_n,  // equal to input batch size in_n[0]
@@ -556,14 +548,6 @@ void RNNBwdDataCPUVerify(std::vector<T>& din_host,
             return;
         }
         in_h = 0;
-    }
-
-    // initial weights
-    int wei_len = (bi * (in_h + hy_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
-    if(biased)
-    {
-        int in_bias = 2;
-        wei_len += (bi * in_bias + (numlayer - 1) * bi * 2) * hy_h;
     }
 
     // bwd data emulator
@@ -862,11 +846,6 @@ void RNNBwdWeightCPUVerify(std::vector<T>& in,
 
     int wei_len        = (bi * (in_h + hy_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
     int wei_shift_bias = wei_len;
-    if(biased)
-    {
-        int in_bias = 2;
-        wei_len += (bi * in_bias + (numlayer - 1) * bi * 2) * hy_h;
-    }
 
     // bwd weights emulator
     for(int li = 0; li < numlayer; li++)
@@ -1290,7 +1269,6 @@ struct verify_forward_infer_rnn
                   << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
                   << std::endl;
 #endif
-        auto retSet = std::make_tuple(output, hiddenState, weights, reserveSpace);
 #if(MIO_RNN_TEST_DEBUG > 0)
         std::cout << "Done with RNN forward inference CPU" << std::endl;
         std::cout << "---------------------------------\n" << std::endl;
@@ -1326,7 +1304,6 @@ struct verify_forward_infer_rnn
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
 
         std::vector<T> workSpace(workSpaceSize / sizeof(T));
-        std::vector<T> hiddenState(initHidden.size());
 
         auto input_dev = handle.Write(input);
 
@@ -1597,7 +1574,6 @@ struct verify_forward_train_rnn
 
         std::vector<T> workSpace(workSpaceSize / sizeof(T));
         std::vector<T> reserveSpace(reserveSpaceSize / sizeof(T));
-        std::vector<T> hiddenState(initHidden.size());
 
         auto input_dev = handle.Write(input);
 

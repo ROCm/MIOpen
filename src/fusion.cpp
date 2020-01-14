@@ -449,8 +449,8 @@ miopenStatus_t ActivBwdFusionOpDescriptor::GetOutputDesc(TensorDescriptor& outpu
 //==============================
 
 miopenStatus_t BatchNormInferenceFusionOpDescriptor::SetArgs(OperatorArgs& args,
-                                                             const void* alpha,
-                                                             const void* beta,
+                                                             const void*,
+                                                             const void*,
                                                              ConstData_t bnScale,
                                                              ConstData_t bnBias,
                                                              ConstData_t estimatedMean,
@@ -458,8 +458,6 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                              double epsilon)
 {
     auto id                    = std::to_string(GetIdx());
-    auto alpha_any             = OpKernelArg(*(static_cast<const float*>(alpha)));
-    auto beta_any              = OpKernelArg(*(static_cast<const float*>(beta)));
     auto bnScale_any           = OpKernelArg(bnScale);
     auto bnBias_any            = OpKernelArg(bnBias);
     auto estimatedMean_any     = OpKernelArg(estimatedMean);
@@ -1231,9 +1229,9 @@ std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder(Handle& handle)
 }
 
 miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
-                                             TensorDescriptor& inputDesc,
+                                             const TensorDescriptor& inputDesc,
                                              ConstData_t input,
-                                             TensorDescriptor& outputDesc,
+                                             const TensorDescriptor& outputDesc,
                                              Data_t output,
                                              const OperatorArgs& op_args)
 {

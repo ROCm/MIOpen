@@ -291,7 +291,7 @@ bool Db::StoreRecordUnsafe(const DbRecord& record)
 {
     MIOPEN_LOG_I2("Storing record: " << record.key);
     RecordPositions pos;
-    const auto old_record = FindRecordUnsafe(record.key, &pos);
+    FindRecordUnsafe(record.key, &pos);
     return FlushUnsafe(record, &pos);
 }
 

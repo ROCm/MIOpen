@@ -85,8 +85,8 @@ TensorDescriptor GetFlattenedTensorDescriptor(const TensorDescriptor& desc)
 
 // Free Tensor Functions
 static void CreateBitmapAndGrid(unsigned int& bitmap,
-                                std::vector<std::size_t>& a_lens,
-                                std::vector<std::size_t>& c_lens,
+                                const std::vector<std::size_t>& a_lens,
+                                const std::vector<std::size_t>& c_lens,
                                 int& num_wg,
                                 int& work,
                                 int d)
@@ -105,7 +105,7 @@ static void CreateBitmapAndGrid(unsigned int& bitmap,
     }
 }
 
-static bool IsBitmapLeadingOnes(unsigned int& bitmap, int n_size, int first_not_one)
+static bool IsBitmapLeadingOnes(unsigned int bitmap, int n_size, int first_not_one)
 {
     bool leading_ones = true;
 

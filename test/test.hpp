@@ -76,14 +76,14 @@ inline void expect_op(const TLeft& left,
                                                             \
     } while(false)
 
-#define EXPECT_OP(LEFT, OP, RIGHT)                     \
-    expect_op((LEFT),                                  \
-              [](auto& l, auto& r) { return l OP r; }, \
-              (RIGHT),                                 \
-              #LEFT,                                   \
-              #OP,                                     \
-              #RIGHT,                                  \
-              __FILE__,                                \
+#define EXPECT_OP(LEFT, OP, RIGHT)                                 \
+    expect_op((LEFT),                                              \
+              [](const auto& l, const auto& r) { return l OP r; }, \
+              (RIGHT),                                             \
+              #LEFT,                                               \
+              #OP,                                                 \
+              #RIGHT,                                              \
+              __FILE__,                                            \
               __LINE__)
 #define EXPECT_EQUAL(LEFT, RIGHT) EXPECT_OP(LEFT, ==, RIGHT)
 #define STATUS(...) EXPECT((__VA_ARGS__) == 0)

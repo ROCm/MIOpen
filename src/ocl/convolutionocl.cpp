@@ -67,7 +67,12 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_SCGEMM)
 
 #if MIOPEN_USE_GEMM
+#ifdef CPPCHECK
+// Keep the value unknown in cppcheck since this can differ between opencl and hip
+static bool IsUseRocBlas;
+#else
 static const bool IsUseRocBlas = (MIOPEN_USE_ROCBLAS == 1);
+#endif
 
 static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
                                    const TensorDescriptor& yDesc,
@@ -292,6 +297,7 @@ EvaluateDataImplicitGemmSolution(Handle& handle,
     return 0;
 }
 
+// cppcheck-suppress constParameter
 inline int EvaluateSCGemmSolution(Handle& handle,
                                   const miopen::solver::ConvSolution& solution,
                                   ConstData_t x,
@@ -299,7 +305,7 @@ inline int EvaluateSCGemmSolution(Handle& handle,
                                   Data_t y,
                                   Data_t workSpace,
                                   size_t workSpaceSize,
-                                  ConvolutionContext& params,
+                                  const ConvolutionContext& params,
                                   int mask,
                                   float coef,
                                   float& elapsed)
@@ -333,6 +339,7 @@ inline int EvaluateSCGemmSolution(Handle& handle,
     std::ignore = mask;
     std::ignore = coef;
     std::ignore = elapsed;
+    elapsed     = 0;
     return -1;
 #endif
 }
@@ -4198,18 +4205,21 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
         wino_xform_w =
             solver::ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolverWinoXformHWSize(ctx,1);
     WinogradBufferInfo <WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
+        // cppcheck-suppress unreadVariable
         wino_in(N,K,C,out_H,out_W,R,S,
             MemLayout_t::HWNC,
             1,GetTypeSize(ctx.in_data_type),
             ConvWinoBuffType::Input,
             wino_xform_h,
             wino_xform_w),
+        // cppcheck-suppress unreadVariable
         wino_out(N,K,C,out_H,out_W,R,S,
             MemLayout_t::HWNC,
             1,GetTypeSize(ctx.out_data_type),
             ConvWinoBuffType::Output,
             wino_xform_h,
             wino_xform_w),
+        // cppcheck-suppress unreadVariable
         wino_wei(N,K,C,out_H,out_W,R,S,
             MemLayout_t::HWNC,
             1,GetTypeSize(ctx.weights_data_type),
@@ -4220,11 +4230,11 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
     // clang-format on
     for(const auto& cur_kernel : kernels)
     {
-        auto d_buf              = &in_buff_info;
+        BuffInfo* d_buf         = nullptr;
+        BuffInfo* o_buf         = nullptr;
+        Data_t buff_out_adr     = nullptr;
         auto f_buf              = &weights_buff_info;
-        auto o_buf              = &out_buff_info;
         auto const_buff_in_adr  = tensors.x;
-        auto buff_out_adr       = tensors.dw;
         auto buff_in_adr        = workSpace;
         bool const_input        = false;
         float cur_time          = 0;
