@@ -143,6 +143,7 @@ static auto GetWindogradSolvers()
 {
     return miopen::solver::SolverContainer<miopen::solver::ConvBinWinograd3x3U,
                                            miopen::solver::ConvBinWinogradRxSf3x2,
+                                           miopen::solver::ConvBinWinogradRxSf2x3,
                                            miopen::solver::ConvBinWinogradRxS>{};
 }
 
@@ -158,6 +159,7 @@ static auto GetImplicitGemmWrWSolvers()
 static auto GetWindogradWrWSolvers()
 {
     return miopen::solver::SolverContainer<miopen::solver::ConvBinWinogradRxS,
+                                           miopen::solver::ConvBinWinogradRxSf2x3,
                                            miopen::solver::ConvWinograd3x3MultipassWrW<3, 2>,
                                            miopen::solver::ConvWinograd3x3MultipassWrW<3, 3>,
                                            miopen::solver::ConvWinograd3x3MultipassWrW<3, 4>,
@@ -459,11 +461,5 @@ void miopen::ConvolutionContext::DetectRocm()
 #ifndef HIP_OC_FINALIZER
         use_binaries = !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
 #endif
-    }
-
-    if(StartsWith(GetStream().GetDeviceName(), "gfx8"))
-    {
-        use_asm_kernels = false;
-        use_binaries    = false;
     }
 }

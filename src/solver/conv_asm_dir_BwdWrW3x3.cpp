@@ -344,12 +344,9 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.rmv.IsV2orV3())
         return false;
-
     const std::string name = params.GetStream().GetDeviceName();
-    if(name.find("gfx9") == std::string::npos)
-    {
+    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
-    }
     assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
     // clang-format off
     bool ok = params.pad_w == 1           // -q  pad_w
@@ -364,16 +361,12 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
         && (params.IsFp32() || params.IsFp16())
         && params.in_layout == "NCHW";
     if(!ok)
-    {
         return false; // Early exit to speed up the check.
-    }
 
     if(params.IsFp16()
-          && (name.find("gfx8") != std::string::npos // Not supported.
+          && (StartsWith(name, "gfx8") // Not supported.
              || params.batch_sz % 2 != 0)) /// \todo Initial version.
-    {
        return false;
-    }
 
     // Check limits:
     const auto h_w     = static_cast<long>(params.out_height) * params.out_width;
@@ -401,7 +394,6 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
          && n_c_h_w < std::pow(2, 29)
          && n_k_h_w < std::pow(2, 29)
          && c_k_r_s < std::pow(2, 29);              // clang-format on
-
     return ok;
 }
 

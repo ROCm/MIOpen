@@ -1310,8 +1310,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
         case miopenConvolutionFwdAlgoWinograd:
         {
-            if(group_count > 1)
-                MIOPEN_THROW("Winograd is not supported for group conv");
 
             auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, 1}; // forward
             ctx.SetStream(&handle);
@@ -1500,6 +1498,24 @@ void ConvFwdImplicitGemm(const ConvolutionContext& /*ctx*/,
 }
 
 template <typename T>
+#if(MIOPEN_BACKEND_HIP)
+const void*
+#else
+T
+#endif
+BufferWithOffsetWrapper(T base_addres, std::size_t offset)
+{
+#if(MIOPEN_BACKEND_HIP)
+    return static_cast<const void*>(static_cast<const char*>(base_addres) + offset);
+#else
+    assert(offset == 0);
+    // BufferWithOffsetWrapper() in openCL base address with offset not allowed
+    (void)offset;
+    return base_addres;
+#endif
+}
+
+template <typename T>
 void ConvWinograd(const ConvolutionContext& ctx, const T& tensors, const KernelInvoke& kernel)
 {
     static_assert(std::is_same<T, ConvFwdTensors>::value || std::is_same<T, ConvBwdTensors>::value,
@@ -1560,17 +1576,28 @@ void ConvWinograd(const ConvolutionContext& ctx, const T& tensors, const KernelI
                out_H,
                out_W);
     }
-    else if(kernel.GetName() == "miopenSp3AsmConvRxSf3x2")
+    else if(kernel.GetName() == "miopenSp3AsmConvRxSf3x2" ||
+            kernel.GetName() == "miopenSp3AsmConvRxSf2x3")
     {
         flags += L_F_NKC_STRIDES;
         /// \todo Consider using BufferInfo to compute strides
         constexpr int SIZEOF_DATA = 4;
         int d_C_stride            = H * W * SIZEOF_DATA;
         int d_N_stride            = C * d_C_stride;
-        int f_C_stride            = R * S * SIZEOF_DATA * (is_forward ? 1 : K);
-        int f_K_stride            = R * S * SIZEOF_DATA * (is_forward ? C : 1);
         int o_K_stride            = out_H * out_W * SIZEOF_DATA;
         int o_N_stride            = K * o_K_stride;
+
+        auto group_cnt = ctx.group_counts;
+        C              = C / group_cnt;
+        K              = K / group_cnt;
+
+        int f_C_stride = R * S * SIZEOF_DATA * (is_forward ? 1 : K);
+        int f_K_stride = R * S * SIZEOF_DATA * (is_forward ? C : 1);
+
+        const auto in_group_offset  = static_cast<size_t>(C) * d_C_stride;
+        const auto out_group_offset = static_cast<size_t>(K) * o_K_stride;
+        const auto w_group_offset   = (is_forward ? static_cast<size_t>(K) * f_K_stride
+                                                : static_cast<size_t>(C) * f_C_stride);
         MIOPEN_LOG_I2("...flags=" << flags << " d_N_stride=" << d_N_stride << " d_C_stride="
                                   << d_C_stride
                                   << " f_K_stride="
@@ -1580,33 +1607,54 @@ void ConvWinograd(const ConvolutionContext& ctx, const T& tensors, const KernelI
                                   << " o_N_stride="
                                   << o_N_stride
                                   << " o_K_stride="
-                                  << o_K_stride);
-        kernel(N,
-               C,
-               H,
-               W,
-               K,
-               n_groups,
-               flags,
-               reserved,
-               tensors.in,
-               tensors.w,
-               tensors.out,
-               reserved_ptr,
-               R,
-               S,
-               pad_H,
-               pad_W,
-               out_H,
-               out_W,
-               reserved_ptr,
-               reserved,
-               d_N_stride,
-               d_C_stride,
-               f_K_stride,
-               f_C_stride,
-               o_N_stride,
-               o_K_stride);
+                                  << o_K_stride
+                                  << " in_group_offset="
+                                  << in_group_offset
+                                  << " w_group_offset="
+                                  << w_group_offset
+                                  << " out_group_offset="
+                                  << out_group_offset);
+        if(kernel.GetName() == "miopenSp3AsmConvRxSf2x3")
+            n_groups = solver::ConvBinWinogradRxSf2x3::GetNGroups(
+                ctx.group_counts, ctx.GetStream().GetMaxComputeUnits());
+        auto& handle  = ctx.GetStream();
+        float elapsed = 0.0f;
+        for(int i = 0; i < group_cnt; i++)
+        {
+            const auto in_ptr  = BufferWithOffsetWrapper(tensors.in, in_group_offset * i);
+            const auto w_ptr   = BufferWithOffsetWrapper(tensors.w, w_group_offset * i);
+            const auto out_ptr = BufferWithOffsetWrapper(tensors.out, out_group_offset * i);
+
+            kernel(N,
+                   C,
+                   H,
+                   W,
+                   K,
+                   n_groups,
+                   flags,
+                   reserved,
+                   in_ptr,
+                   w_ptr,
+                   out_ptr,
+                   reserved_ptr,
+                   R,
+                   S,
+                   pad_H,
+                   pad_W,
+                   out_H,
+                   out_W,
+                   reserved_ptr,
+                   reserved,
+                   d_N_stride,
+                   d_C_stride,
+                   f_K_stride,
+                   f_C_stride,
+                   o_N_stride,
+                   o_K_stride);
+            if(i != (group_cnt - 1))
+                elapsed += handle.GetKernelTime();
+        }
+        handle.AccumKernelTime(elapsed);
     }
     else
     {
@@ -3362,8 +3410,6 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
         case miopenConvolutionBwdDataAlgoWinograd:
         {
-            if(group_count > 1)
-                MIOPEN_THROW("Winograd is not supported for group conv");
 
             auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, 0}; // backward data
 
@@ -4682,42 +4728,66 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         int d_C_stride = C * d_N_stride;
                         int f_K_stride = out_H * out_W * static_cast<int>(sizeof(dataType));
                         int f_C_stride = K * f_K_stride;
+                        auto group_cnt = ctx.group_counts;
+                        C              = C / group_cnt;
+                        K              = K / group_cnt;
+
                         int o_N_stride = R * S * static_cast<int>(sizeof(dataType));
                         int o_K_stride = C * o_N_stride;
+
+                        const auto x_offset  = static_cast<size_t>(C) * d_N_stride;
+                        const auto dy_offset = static_cast<size_t>(K) * f_K_stride;
+                        const auto dw_offset = static_cast<size_t>(K) * o_K_stride;
+                        n_groups             = solver::ConvBinWinogradRxSf2x3::GetNGroups(
+                            ctx.group_counts, ctx.GetStream().GetMaxComputeUnits());
+
                         // clang-format off
                         MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
-                                << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
-                                << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
-                                << " d_N_stride=" << d_N_stride << " d_C_stride=" << d_C_stride
-                                << " f_K_stride=" << f_K_stride << " f_C_stride=" << f_C_stride
-                                << " o_N_stride=" << o_N_stride << " o_K_stride=" << o_K_stride); // clang-format on
-                        kernels[0](C,
-                                   N,
-                                   H,
-                                   W,
-                                   K,
-                                   n_groups,
-                                   flags,
-                                   reserved,
-                                   x,
-                                   dy,
-                                   dw,
-                                   reserved_ptr, // Unused return_addr.
-                                   out_H,
-                                   out_W,
-                                   pad_H, // Like Fwd wino.
-                                   pad_W,
-                                   R,
-                                   S,
-                                   reserved_ptr, // Unused bias_addr.
-                                   reserved,     // Unused relu_alpha.
-                                   d_N_stride,
-                                   d_C_stride,
-                                   f_K_stride,
-                                   f_C_stride,
-                                   o_N_stride,
-                                   o_K_stride);
-                        elapsed = handle.GetKernelTime();
+                            << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
+                            << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
+                            << " d_N_stride=" << d_N_stride << " d_C_stride=" << d_C_stride
+                            << " f_K_stride=" << f_K_stride << " f_C_stride=" << f_C_stride
+                            << " o_N_stride=" << o_N_stride << " o_K_stride=" << o_K_stride
+                            << " x_offset=" << x_offset << " dy_offset=" << dy_offset 
+                            << " dw_offset=" << dw_offset); // clang-format on
+                        elapsed = 0;
+                        if(kernels[0].GetName() == "miopenSp3AsmConvRxSf2x3")
+                            n_groups = solver::ConvBinWinogradRxSf2x3::GetNGroups(
+                                ctx.group_counts, ctx.GetStream().GetMaxComputeUnits());
+                        for(int i = 0; i < group_cnt; i++)
+                        {
+                            const auto x_ptr  = BufferWithOffsetWrapper(x, x_offset * i);
+                            const auto dy_ptr = BufferWithOffsetWrapper(dy, dy_offset * i);
+                            const auto dw_ptr = BufferWithOffsetWrapper(dw, dw_offset * i);
+
+                            kernels[0](C,
+                                       N,
+                                       H,
+                                       W,
+                                       K,
+                                       n_groups,
+                                       flags,
+                                       reserved,
+                                       x_ptr,
+                                       dy_ptr,
+                                       dw_ptr,
+                                       reserved_ptr, // Unused return_addr.
+                                       out_H,
+                                       out_W,
+                                       pad_H, // Like Fwd wino.
+                                       pad_W,
+                                       R,
+                                       S,
+                                       reserved_ptr, // Unused bias_addr.
+                                       reserved,     // Unused relu_alpha.
+                                       d_N_stride,
+                                       d_C_stride,
+                                       f_K_stride,
+                                       f_C_stride,
+                                       o_N_stride,
+                                       o_K_stride);
+                            elapsed += handle.GetKernelTime();
+                        }
                     }
                     MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
                                      << best);
@@ -5290,41 +5360,66 @@ void ConvolutionDescriptor::BackwardWeightsWinograd(Handle& handle,
         int d_C_stride = C * d_N_stride;
         int f_K_stride = out_H * out_W * static_cast<int>(sizeof(dataType));
         int f_C_stride = K * f_K_stride;
+        auto group_cnt = ctx.group_counts;
+        C              = C / group_cnt;
+        K              = K / group_cnt;
+
         int o_N_stride = R * S * static_cast<int>(sizeof(dataType));
         int o_K_stride = C * o_N_stride;
+
+        const auto x_offset  = static_cast<size_t>(C) * d_N_stride;
+        const auto dy_offset = static_cast<size_t>(K) * f_K_stride;
+        const auto dw_offset = static_cast<size_t>(K) * o_K_stride;
+        if(kernel.GetName() == "miopenSp3AsmConvRxSf2x3")
+            n_groups = solver::ConvBinWinogradRxSf2x3::GetNGroups(
+                ctx.group_counts, ctx.GetStream().GetMaxComputeUnits());
+
         // clang-format off
         MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                 << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
                 << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
                 << " d_N_stride=" << d_N_stride << " d_C_stride=" << d_C_stride
                 << " f_K_stride=" << f_K_stride << " f_C_stride=" << f_C_stride
-                << " o_N_stride=" << o_N_stride << " o_K_stride=" << o_K_stride ); // clang-format on
-        kernel(C,
-               N,
-               H,
-               W,
-               K,
-               n_groups,
-               flags,
-               reserved,
-               tensors.x,
-               tensors.dy,
-               tensors.dw,
-               reserved_ptr,
-               out_H,
-               out_W,
-               pad_H,
-               pad_W,
-               R,
-               S,
-               reserved_ptr,
-               reserved,
-               d_N_stride,
-               d_C_stride,
-               f_K_stride,
-               f_C_stride,
-               o_N_stride,
-               o_K_stride);
+                << " o_N_stride=" << o_N_stride << " o_K_stride=" << o_K_stride
+                << " x_offset=" << x_offset << " dy_offset=" << dy_offset
+                << " dw_offset=" << dw_offset); // clang-format on
+        float elapsed = 0.0f;
+        for(int i = 0; i < group_cnt; i++)
+        {
+            const auto x_ptr  = BufferWithOffsetWrapper(tensors.x, x_offset * i);
+            const auto dy_ptr = BufferWithOffsetWrapper(tensors.dy, dy_offset * i);
+            const auto dw_ptr = BufferWithOffsetWrapper(tensors.dw, dw_offset * i);
+
+            kernel(C,
+                   N,
+                   H,
+                   W,
+                   K,
+                   n_groups,
+                   flags,
+                   reserved,
+                   x_ptr,
+                   dy_ptr,
+                   dw_ptr,
+                   reserved_ptr,
+                   out_H,
+                   out_W,
+                   pad_H,
+                   pad_W,
+                   R,
+                   S,
+                   reserved_ptr,
+                   reserved,
+                   d_N_stride,
+                   d_C_stride,
+                   f_K_stride,
+                   f_C_stride,
+                   o_N_stride,
+                   o_K_stride);
+            if(i != (group_cnt - 1))
+                elapsed += handle.GetKernelTime();
+        }
+        handle.AccumKernelTime(elapsed);
     }
 }
 
