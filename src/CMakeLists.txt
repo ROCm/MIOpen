@@ -594,12 +594,6 @@ rocm_export_targets(
 
 # Install db files
 install(FILES
-    kernels/gfx803_36.cd.pdb.txt
-    kernels/gfx803_64.cd.pdb.txt
-    kernels/gfx900_64.cd.pdb.txt
-    kernels/gfx900_56.cd.pdb.txt
-    kernels/gfx906_64.cd.pdb.txt
-    kernels/gfx906_60.cd.pdb.txt
     kernels/miopen.db
     kernels/gfx803_36.HIP.fdb.txt
     kernels/gfx803_64.HIP.fdb.txt
