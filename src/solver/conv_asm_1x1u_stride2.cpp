@@ -28,6 +28,8 @@
 #include <limits>
 #include <cassert>
 
+#include <miopen/conv/compiled_in_parameters.hpp>
+#include <miopen/conv/invokers/gcn_asm_1x1u_fwd.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/env.hpp>
 #include <miopen/logger.hpp>
@@ -716,6 +718,13 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
     kinfo.kernel_name = "miopenGcnAsmConv1x1U_stride2";
 
     result.construction_params.push_back(kinfo);
+
+    if(params.direction.IsForward())
+    {
+        int N, C, H, W, K, n_groups;
+        GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);
+        result.invoker_factory = conv::MakeGcnAsm1x1UFwdInvokerFactory(N, C, H, W, K, n_groups);
+    }
 
     return result;
 }
