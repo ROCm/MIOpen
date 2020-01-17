@@ -561,25 +561,22 @@ static void DirConvFindCore(Handle& handle,
 
         float time_gemm           = 0;
         const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
-        // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR
-        // for 1x1_stride=2
+        // Use transpose path 1x1, stride=2
         if(conv.GetSpatialDimension() == 2 &&
-           (miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-            miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; })) &&
-           ((miopen::all_of(in_spatial, [](auto v) { return v <= 14; }) &&
-             miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; })) ||
-            miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; })))
+           miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+           miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
+           miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }))
         {
             size_t workspace_req = conv.ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
             if(workSpace != nullptr && workSpaceSize >= workspace_req)
             {
                 if(conv.group_count > 1)
                 {
-                    MIOPEN_LOG_FUNCTION("groupconv, 1x1, h14xw14 || u2xv2");
+                    MIOPEN_LOG_FUNCTION("groupconv, 1x1 u2xv2");
                 }
                 else
                 {
-                    MIOPEN_LOG_FUNCTION("convolution, 1x1, h14xw14 || u2xv2");
+                    MIOPEN_LOG_FUNCTION("convolution, 1x1 u2xv2");
                 }
 
                 // y = CNHW2NCHW(w * NCHW2CNHW(x))
@@ -1708,22 +1705,18 @@ void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
     auto wei_spatial = boost::adaptors::slice(tensors.wDesc.GetLengths(), 2, 2 + spatial_dim);
     auto out_spatial = boost::adaptors::slice(tensors.yDesc.GetLengths(), 2, 2 + spatial_dim);
 
-    // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
-    // 1x1_stride=2
-    if(GetSpatialDimension() == 2 &&
-       (miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-        miopen::all_of(GetConvPads(), [](auto v) { return v == 0; })) &&
-       ((miopen::all_of(in_spatial, [](auto v) { return v <= 14; }) &&
-         miopen::all_of(GetConvStrides(), [](auto v) { return v == 1; })) ||
-        miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; })))
+    // Use transpose path for 1x1, stride=2
+    if(GetSpatialDimension() == 2 && miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+       miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
+       miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; }))
     {
         if(group_count > 1)
         {
-            MIOPEN_LOG_FUNCTION("groupconv, 1x1, h14xw14 || u2xv2");
+            MIOPEN_LOG_FUNCTION("groupconv, 1x1 u2xv2");
         }
         else
         {
-            MIOPEN_LOG_FUNCTION("convolution, 1x1, h14xw14 || u2xv2");
+            MIOPEN_LOG_FUNCTION("convolution, 1x1 u2xv2");
         }
 
         assert(workSpace != nullptr &&
