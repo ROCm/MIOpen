@@ -35,6 +35,7 @@
 #include <miopen/solver.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/conv/invokers/gen_x_w_y_pad_fwd.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U)
@@ -284,6 +285,10 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
     construction_params.kernel_name = "miopenGcnAsmConv3x3U";
 
     result.construction_params.push_back(construction_params);
+
+    if(params.direction.IsForward())
+        result.invoker_factory = &conv::MakeGenericXWYPadFwdInvoker;
+
     return result;
 }
 

@@ -27,10 +27,12 @@
 #ifndef GUARD_PROBLEM_DESCRIPTION_HPP_
 #define GUARD_PROBLEM_DESCRIPTION_HPP_
 
+#include <miopen/names.hpp>
 #include <miopen/tensor.hpp>
 #if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
 #endif
+
 #include <cassert>
 #include <string>
 #include <unordered_map>
@@ -328,6 +330,13 @@ struct ProblemDescription
     }
 
     int mloBuildConf_Key(std::string& conf_key) const;
+
+    NetworkConfig BuildConfKey() const
+    {
+        std::string ret;
+        mloBuildConf_Key(ret);
+        return NetworkConfig{ret};
+    }
 
     private:
     /*

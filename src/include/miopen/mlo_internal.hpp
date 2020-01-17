@@ -68,6 +68,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #else
 #include <miopen/db.hpp>
 #endif
+#include <miopen/conv/context.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/problem_description.hpp>
 
@@ -127,31 +128,6 @@ inline int AlignUp(int val, unsigned step)
     return static_cast<int>(((static_cast<unsigned>(val) + step - 1) / step) * step);
 }
 
-class rocm_meta_version
-{
-    int val = Unknown;
-
-    public:
-    static constexpr int Unknown = 0, // Unset env.vars read as 0.
-        AMDHSA_COv2              = 1, // V2 metadata, https://llvm.org/docs/AMDGPUUsage.html
-        AMDHSA_COv2_COv3         = 2, // E.g. ROCm 2.10 supports both.
-        AMDHSA_COv3              = 3, // V3 metadata, https://llvm.org/docs/AMDGPUUsage.html
-        Default                  = AMDHSA_COv2; // Used when auto-detection fails.
-
-    private:
-    static constexpr int End = 4, Begin = Unknown;
-
-    public:
-    rocm_meta_version(int v) : val(v) {}
-    int getValue() const { return val; }
-    bool IsValid() const { return Begin <= val && val < End; }
-    bool IsUnknown() const { return val == Unknown; }
-    bool IsV2() const { return AMDHSA_COv2 <= val && val <= AMDHSA_COv2_COv3; }
-    bool IsV2orV3() const { return AMDHSA_COv2 <= val && val <= AMDHSA_COv3; }
-    bool IsV3() const { return AMDHSA_COv2_COv3 <= val && val <= AMDHSA_COv3; }
-    bool UseV3() const;
-};
-
 namespace miopen {
 
 struct TensorDescriptor;
@@ -168,8 +144,6 @@ class Db;
 
 template <class TInnerDb>
 class DbTimer;
-
-struct ConvolutionContext;
 
 template <class TInstance>
 class StaticContainer
@@ -212,138 +186,6 @@ size_t setBotDfDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor&
 {
     return SetDescFromMLDesc(spatial_dims, to, tensor, &TTo::setBotDfDescr);
 }
-
-struct ConvolutionUserBuffers
-{
-    union
-    {
-        struct Fwd
-        {
-            ConstData_t x;
-            ConstData_t w;
-            Data_t y;
-        } fwd;
-        struct Bwd
-        {
-            Data_t dx;
-            ConstData_t w;
-            ConstData_t dy;
-        } bwd;
-        struct WrW
-        {
-            ConstData_t dx;
-            Data_t dw;
-            ConstData_t dy;
-        } wrw;
-    } io;
-    Data_t workSpace;
-    size_t workSpaceSize;
-    ConstData_t bias;
-    ConvolutionUserBuffers(Data_t w, size_t s, ConstData_t b = nullptr)
-        : io({{nullptr, nullptr, nullptr}}), workSpace(w), workSpaceSize(s), bias(b)
-    {
-    }
-    ConvolutionUserBuffers() : ConvolutionUserBuffers(nullptr, 0, nullptr) {}
-    void SetFwd(ConstData_t x, ConstData_t w, Data_t y)
-    {
-        io.fwd.x = x;
-        io.fwd.y = y;
-        io.fwd.w = w;
-    }
-    void SetBwd(Data_t dx, ConstData_t w, ConstData_t dy)
-    {
-        io.bwd.dx = dx;
-        io.bwd.dy = dy;
-        io.bwd.w  = w;
-    }
-    void SetWrW(ConstData_t dx, Data_t dw, ConstData_t dy)
-    {
-        io.wrw.dx = dx;
-        io.wrw.dy = dy;
-        io.wrw.dw = dw;
-    }
-};
-
-/// A leftover of the legacy design, houses problem config,
-/// environmental context (e.g. HW/SW platform) and solver-specific state.
-///
-/// TODO: These three entities should be made separate.
-struct ConvolutionContext : ProblemDescription
-{
-    // Solution-specific
-    std::string general_compile_options;
-    // Operation modes & environment
-    bool do_search               = false;
-    bool save_srch_req           = false;
-    bool use_asm_kernels         = false;
-    bool use_opencl_convolutions = true;
-    bool use_binaries            = true;
-    rocm_meta_version rmv        = rocm_meta_version::Default;
-    bool disable_search_enforce  = false;
-    // Skip perf-db reads and use the default performance configuration. This is used, for example,
-    // to optimize the getWorkspaceSize() calls for speed. This specific optimization is correct
-    // because Solvers shall be written so that the required workspace size does not depend on the
-    // performance config.
-    bool disable_perfdb_access = false;
-
-    inline Handle& GetStream() const { return *_stream; }
-    inline void SetStream(Handle* stream) { _stream = stream; }
-
-    ConvolutionContext() = default;
-    ConvolutionContext(const TensorDescriptor& in,
-                       const TensorDescriptor& weights,
-                       const TensorDescriptor& out,
-                       const ConvolutionDescriptor& conv,
-                       int dir,
-                       int bias_ = 0)
-        : ProblemDescription(in, weights, out, conv, dir, bias_)
-    {
-    }
-    ConvolutionContext(const ProblemDescription& problem) : ProblemDescription(problem) {}
-
-    void DetectRocm();
-    void SetupFloats();
-
-    std::string GetPerfDbPath() const
-    {
-        // clang-format off
-        return GetSystemDbPath()
-#if MIOPEN_ENABLE_SQLITE
-            + "/miopen.db";
-#else
-            + "/"
-            + GetStream().GetDbBasename()
-            + ".cd.pdb.txt";
-#endif
-        // clang-format on
-    }
-
-    std::string GetUserPerfDbPath() const
-    {
-        // clang-format off
-        return GetUserDbPath()
-#if MIOPEN_ENABLE_SQLITE
-             + "/miopen.udb";
-#else
-             + "/"
-             + GetStream().GetDbBasename()
-			 + "."
-			 + GetUserDbSuffix()
-             + ".cd.updb.txt";
-#endif
-        // clang-format on
-    }
-
-    private:
-    Handle* _stream = nullptr;
-
-    public:
-    inline void SetBufs(const ConvolutionUserBuffers& bufs) { _bufs = bufs; }
-    inline const ConvolutionUserBuffers& GetBufs() const { return _bufs; }
-
-    private:
-    ConvolutionUserBuffers _bufs;
-};
 
 namespace solver {
 struct ConvSolution;
@@ -409,65 +251,6 @@ FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx);
 
 std::vector<miopen::solver::ConvSolution>
 FindAllFwdSCGemmSolutions(const miopen::ConvolutionContext& ctx);
-
-/*
- * returns parameter values that are compiled in legacy kernels for kernels using them as
- * arguments.
- */
-inline void GetCompiledInParameters(const miopen::ConvolutionContext& ctx,
-                                    int* const N,
-                                    int* const C,
-                                    int* const H,
-                                    int* const W,
-                                    int* const K,
-                                    int* const n_groups)
-{
-    assert(N && C && H && W && K && n_groups);
-    *N        = ctx.batch_sz;
-    *C        = ctx.n_inputs;
-    *H        = ctx.in_height;
-    *W        = ctx.in_width;
-    *K        = ctx.n_outputs;
-    *n_groups = ctx.GetStream().GetMaxComputeUnits();
-}
-
-inline void GetCompiledInParameters(const miopen::ConvolutionContext& ctx,
-                                    int* const N,
-                                    int* const C,
-                                    int* const H,
-                                    int* const W,
-                                    int* const K,
-                                    int* const n_groups,
-                                    int* const out_H,
-                                    int* const out_W)
-{
-    GetCompiledInParameters(ctx, N, C, H, W, K, n_groups);
-    assert(out_H && out_W);
-    *out_H = ctx.out_height;
-    *out_W = ctx.out_width;
-}
-
-inline void GetCompiledInParameters(const miopen::ConvolutionContext& ctx,
-                                    int* const N,
-                                    int* const C,
-                                    int* const H,
-                                    int* const W,
-                                    int* const K,
-                                    int* const n_groups,
-                                    int* const out_H,
-                                    int* const out_W,
-                                    int* const filter_size_H,
-                                    int* const filter_size_W,
-                                    int* const pad_H,
-                                    int* const pad_W)
-{
-    GetCompiledInParameters(ctx, N, C, H, W, K, n_groups, out_H, out_W);
-    assert(filter_size_H && filter_size_W && pad_H && pad_W);
-    *filter_size_H = ctx.kernel_size_h;
-    *filter_size_W = ctx.kernel_size_w;
-    *pad_H         = ctx.direction.IsForward() ? ctx.pad_h : ctx.GetBackwardPadH();
-    *pad_W         = ctx.direction.IsForward() ? ctx.pad_w : ctx.GetBackwardPadW();
-}
 
 struct mlo_construct_base
 {
