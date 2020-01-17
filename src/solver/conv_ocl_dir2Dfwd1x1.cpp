@@ -28,6 +28,7 @@
 #include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/env.hpp>
+#include <miopen/conv/invokers/gen_x_w_y_pad_fwd.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1)
 
@@ -375,6 +376,9 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             result.construction_params.push_back(kernel);
         }
     }
+
+    if(params.direction.IsForward())
+        result.invoker_factory = &conv::MakeGenericXWYPadFwdInvoker;
     return result;
 }
 } // namespace solver

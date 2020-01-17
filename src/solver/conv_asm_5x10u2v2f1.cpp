@@ -28,6 +28,7 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/env.hpp>
+#include <miopen/conv/invokers/gen_x_w_y_pad_fwd.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)
 
@@ -130,6 +131,8 @@ ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ConvolutionContext& params) co
     construction_params.kernel_name = "miopenConv5x10u2v2f1";
 
     result.construction_params.push_back(construction_params);
+    result.invoker_factory = &conv::MakeGenericXWYPadFwdInvoker;
+
     return result;
 }
 } // namespace solver

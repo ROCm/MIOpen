@@ -134,6 +134,7 @@ set( MIOpen_Source
     include/miopen/convolution.hpp
     include/miopen/convolution_fft.hpp
     include/miopen/errors.hpp
+    include/miopen/invoker.hpp
     include/miopen/handle.hpp
     include/miopen/kernel_cache.hpp
     include/miopen/solver.hpp
@@ -169,6 +170,10 @@ set( MIOpen_Source
     include/miopen/rnn_util.hpp
     md_graph.cpp
     mdg_expr.cpp
+    conv/invokers/gcn_asm_1x1u_fwd.cpp
+    conv/invokers/gcn_asm_1x1u_ss_fwd.cpp
+    conv/invokers/gen_x_w_y_pad_fwd.cpp
+    invoker_cache.cpp
     tensor.cpp
     tensor_api.cpp
     solver.cpp

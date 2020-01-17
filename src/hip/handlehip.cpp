@@ -23,21 +23,25 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <algorithm>
-#include <miopen/logger.hpp>
+
+#include <miopen/handle.hpp>
+
+#include <miopen/binary_cache.hpp>
 #include <miopen/device_name.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/handle.hpp>
-#include <miopen/kernel_cache.hpp>
-#include <miopen/binary_cache.hpp>
-#include <boost/filesystem.hpp>
-#include <miopen/handle_lock.hpp>
 #include <miopen/gemm_geometry.hpp>
+#include <miopen/handle_lock.hpp>
+#include <miopen/invoker.hpp>
+#include <miopen/kernel_cache.hpp>
+#include <miopen/logger.hpp>
+
+#include <boost/filesystem.hpp>
 
 #ifndef _WIN32
 #include <unistd.h>
 #endif
 
+#include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <thread>
@@ -291,6 +295,27 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                            is_kernel_str,
                                            kernel_src);
     return this->Run(obj);
+}
+
+Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
+                               const std::vector<solver::KernelInfo>& kernels)
+{
+    std::vector<Kernel> built;
+    for(auto& k : kernels)
+    {
+        MIOPEN_LOG_I2("Preparing kernel: " << k.kernel_name);
+        const auto kernel = this->impl->cache.AddKernel(*this,
+                                                        "",
+                                                        "",
+                                                        k.kernel_file,
+                                                        k.kernel_name,
+                                                        k.l_wk,
+                                                        k.g_wk,
+                                                        k.comp_options,
+                                                        kernels.size());
+        built.push_back(kernel);
+    }
+    return factory(built);
 }
 
 void Handle::ClearKernels(const std::string& algorithm, const std::string& network_config)
