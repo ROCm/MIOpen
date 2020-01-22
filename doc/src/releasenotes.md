@@ -3,6 +3,22 @@
 
 
 
+### 01/24/2020 [ 2.2.1 ]
+
+- This release contains bug fixes, documentation updates, and further code object version 3 support
+
+
+Changes:
+
+- Added support for multiple ROCm installations
+- Added additional support for code object v3
+- Fixed issue with incorrect LRN calculation [#127](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/127)
+- Fixed incorrect performance database documentation
+- Fixed issue with incorrect workspace calculation in group convolutions
+- Fixed issue with unsupported hardware instructions used with inline assembly
+
+
+
 ### 12/19/2019 [ 2.2.0 ]
 
 - This release contains bug fixes, performance improvements, and expanded applicability for specific convolutional algorithms.
