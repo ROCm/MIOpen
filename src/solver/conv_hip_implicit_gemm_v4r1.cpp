@@ -99,27 +99,27 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) con
            (c_eqv * y_eqv * x_eqv) % eMultiple == 0 && k_eqv % 16 == 0;
 }
 
-PerformanceImplicitGemm
+PerformanceImplicitGemmV4R1
 ConvHipImplicitGemmV4R1Fwd::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
-    return GetPerformanceConfigBase<PerformanceImplicitGemm>(ctx);
+    return GetPerformanceConfigBase<PerformanceImplicitGemmV4R1>(ctx);
 }
 
-PerformanceImplicitGemm
+PerformanceImplicitGemmV4R1
 ConvHipImplicitGemmV4R1WrW::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
-    return GetPerformanceConfigBase<PerformanceImplicitGemm>(ctx);
+    return GetPerformanceConfigBase<PerformanceImplicitGemmV4R1>(ctx);
 }
 
-bool ConvHipImplicitGemmV4R1Fwd::IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                                          const PerformanceImplicitGemm& c) const
+bool ConvHipImplicitGemmV4R1Fwd::IsValidPerformanceConfig(
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmV4R1& c) const
 {
     MIOPEN_LOG_I("");
     return c.IsValidValue() && c.IsValid(ctx);
 }
 
-bool ConvHipImplicitGemmV4R1WrW::IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                                          const PerformanceImplicitGemm& c) const
+bool ConvHipImplicitGemmV4R1WrW::IsValidPerformanceConfig(
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmV4R1& c) const
 {
     MIOPEN_LOG_I("");
     return c.IsValidValue() && c.IsValid(ctx);
@@ -156,17 +156,19 @@ int ConvHipImplicitGemmV4R1WrW::RunAndMeasureSolution(miopen::Handle& profile_h,
         profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
-PerformanceImplicitGemm ConvHipImplicitGemmV4R1Fwd::Search(const ConvolutionContext& context) const
+PerformanceImplicitGemmV4R1
+ConvHipImplicitGemmV4R1Fwd::Search(const ConvolutionContext& context) const
 {
     return GenericSearchFwd(*this, context);
 }
-PerformanceImplicitGemm ConvHipImplicitGemmV4R1WrW::Search(const ConvolutionContext& context) const
+PerformanceImplicitGemmV4R1
+ConvHipImplicitGemmV4R1WrW::Search(const ConvolutionContext& context) const
 {
     return GenericSearchFwd(*this, context);
 }
 
 ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
-                                                     const PerformanceImplicitGemm& config,
+                                                     const PerformanceImplicitGemmV4R1& config,
                                                      bool) const
 {
     ConvSolution result;
@@ -374,7 +376,7 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
 }
 
 ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
-                                                     const PerformanceImplicitGemm& config,
+                                                     const PerformanceImplicitGemmV4R1& config,
                                                      bool) const
 {
     ConvSolution result;
