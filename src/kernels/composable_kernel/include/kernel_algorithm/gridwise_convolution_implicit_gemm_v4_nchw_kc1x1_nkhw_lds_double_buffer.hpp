@@ -103,7 +103,7 @@ struct GridwiseConvolutionImplicitGemm_v4_nchw_kc1x1_nkhw_lds_double_buffer
         constexpr index_t E = C;
 
         // divide block work by [K, B]
-        static_assert(K % KPerBlock == 0 && B % BPerBlock == 0 && E % (2 * EPerBlock) == 0,
+        static_assert(K % KPerBlock == 0 && B % BPerBlock == 0 && E % EPerBlock == 0,
                       "wrong! cannot divide work evenly among block");
 
         constexpr index_t KBlockWork = K / KPerBlock;
@@ -322,35 +322,48 @@ struct GridwiseConvolutionImplicitGemm_v4_nchw_kc1x1_nkhw_lds_double_buffer
 
         // LDS double buffer: tail
         {
-            Float p_in_thread_buffer[blockwise_in_copy.GetThreadBufferSize()];
-            Float p_wei_thread_buffer[blockwise_wei_copy.GetThreadBufferSize()];
+            constexpr bool has_two_iteration_left = (E % (2 * EPerBlock) == 0);
 
-            // even iteration
-            blockwise_in_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0, 0, 0>{}, True);
-            p_wei_block_on_global += EPerBlock * wei_e_k_global_desc.GetStride(I0);
+            if(has_two_iteration_left) // if has 2 iteration left
+            {
 
-            __syncthreads();
+                Float p_in_thread_buffer[blockwise_in_copy.GetThreadBufferSize()];
+                Float p_wei_thread_buffer[blockwise_wei_copy.GetThreadBufferSize()];
 
-            // LDS doubel buffer: load next data from device mem
-            blockwise_in_copy.RunLoadThreadBuffer(p_in_global, p_in_thread_buffer);
-            blockwise_wei_copy.RunLoadThreadBuffer(p_wei_block_on_global, p_wei_thread_buffer);
+                // even iteration
+                blockwise_in_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0, 0, 0>{}, True);
+                p_wei_block_on_global += EPerBlock * wei_e_k_global_desc.GetStride(I0);
 
-            // LDS double buffer: GEMM on current data
-            blockwise_gemm.Run(p_wei_block_double, p_in_block_double, p_out_thread);
+                __syncthreads();
 
-            // LDS double buffer: store next data to LDS
-            blockwise_in_copy.RunStoreThreadBuffer(p_in_thread_buffer,
-                                                   p_in_block_double + in_block_space);
-            blockwise_wei_copy.RunStoreThreadBuffer(p_wei_thread_buffer,
-                                                    p_wei_block_double + wei_block_space);
+                // LDS doubel buffer: load next data from device mem
+                blockwise_in_copy.RunLoadThreadBuffer(p_in_global, p_in_thread_buffer);
+                blockwise_wei_copy.RunLoadThreadBuffer(p_wei_block_on_global, p_wei_thread_buffer);
 
-            // odd iteration
-            __syncthreads();
+                // LDS double buffer: GEMM on current data
+                blockwise_gemm.Run(p_wei_block_double, p_in_block_double, p_out_thread);
 
-            // LDS double buffer: GEMM on current data
-            blockwise_gemm.Run(p_wei_block_double + wei_block_space,
-                               p_in_block_double + in_block_space,
-                               p_out_thread);
+                // LDS double buffer: store next data to LDS
+                blockwise_in_copy.RunStoreThreadBuffer(p_in_thread_buffer,
+                                                       p_in_block_double + in_block_space);
+                blockwise_wei_copy.RunStoreThreadBuffer(p_wei_thread_buffer,
+                                                        p_wei_block_double + wei_block_space);
+
+                // odd iteration
+                __syncthreads();
+
+                // LDS double buffer: GEMM on current data
+                blockwise_gemm.Run(p_wei_block_double + wei_block_space,
+                                   p_in_block_double + in_block_space,
+                                   p_out_thread);
+            }
+            else // if has 1 iteration left
+            {
+                __syncthreads();
+
+                // LDS double buffer: GEMM on last data
+                blockwise_gemm.Run(p_wei_block_double, p_in_block_double, p_out_thread);
+            }
         }
 
         // copy output: register to global memory
