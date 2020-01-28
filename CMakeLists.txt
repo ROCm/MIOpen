@@ -207,8 +207,15 @@ endif()
 # Online assembler
 find_program(MIOPEN_AMDGCN_ASSEMBLER
     NAMES clang
-    PATHS ${MIOPEN_AMDGCN_ASSEMBLER_PATH} ${CMAKE_INSTALL_PREFIX}
-    PATH_SUFFIXES /opencl/bin/x86_64
+    PATHS 
+        ${MIOPEN_AMDGCN_ASSEMBLER_PATH}
+        /opt/rocm
+        /opt/rocm/hcc
+        ${CMAKE_INSTALL_PREFIX}
+        ${CMAKE_INSTALL_PREFIX}/hcc
+    PATH_SUFFIXES 
+        /opencl/bin/x86_64
+        /bin
     NO_DEFAULT_PATH
 )
 message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
