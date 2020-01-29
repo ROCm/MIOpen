@@ -100,7 +100,11 @@ bool ValidateGcnAssemblerImpl()
     std::string clang_result_line;
     std::getline(clang_stdout, clang_result_line);
     MIOPEN_LOG_NQI2(clang_result_line);
-    if(clang_result_line.find("clang") != std::string::npos)
+    if(clang_result_line.find("HCC") != std::string::npos)
+        // Temporary fix for SWDEV-220166 which causes clang to report unknown
+        // architecture for AMD GCN
+        return true;
+    else if(clang_result_line.find("clang") != std::string::npos)
     {
         while(!clang_stdout.eof())
         {
