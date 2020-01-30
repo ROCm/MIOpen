@@ -10,7 +10,7 @@ Welcome to MIOpen
 Sources and binaries can be found at `MIOpen's GitHub site <https://github.com/ROCmSoftwarePlatform/MIOpen>`_.
 
 .. toctree::
-    :maxdepth: 4
+    :maxdepth: 8
     :caption: Contents:
 
     releasenotes
@@ -24,7 +24,6 @@ Sources and binaries can be found at `MIOpen's GitHub site <https://github.com/R
     find_and_immediate
     Getting_Started_FusionAPI
     apireference
-
 
 
 Indices and tables
