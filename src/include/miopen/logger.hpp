@@ -297,24 +297,27 @@ std::ostream& LogParam(std::ostream& os, std::string name, const std::vector<T>&
 
 std::string LoggingParseFunction(const char* func, const char* pretty_func);
 
-#define MIOPEN_LOG_XQ_(level, disableQuieting, ...)                                          \
+#define MIOPEN_GET_FN_NAME() \
+    (miopen::LoggingParseFunction(__func__, __PRETTY_FUNCTION__)) /* NOLINT */
+
+#define MIOPEN_LOG_XQ_(level, disableQuieting, fn_name, ...)                                 \
     do                                                                                       \
     {                                                                                        \
         if(miopen::IsLogging(level, disableQuieting))                                        \
         {                                                                                    \
             std::ostringstream miopen_log_ss;                                                \
             miopen_log_ss << miopen::LoggingPrefix() << LoggingLevelToCString(level) << " [" \
-                          << miopen::LoggingParseFunction(__func__,            /* NOLINT */  \
-                                                          __PRETTY_FUNCTION__) /* NOLINT */  \
-                          << "] " << __VA_ARGS__ << std::endl;                               \
+                          << fn_name << "] " << __VA_ARGS__ << std::endl;                    \
             std::cerr << miopen_log_ss.str();                                                \
         }                                                                                    \
     } while(false)
 
-#define MIOPEN_LOG(level, ...) MIOPEN_LOG_XQ_(level, false, __VA_ARGS__)
-#define MIOPEN_LOG_NQ_(level, ...) MIOPEN_LOG_XQ_(level, true, __VA_ARGS__)
+#define MIOPEN_LOG(level, ...) MIOPEN_LOG_XQ_(level, false, MIOPEN_GET_FN_NAME(), __VA_ARGS__)
+#define MIOPEN_LOG_NQ_(level, ...) MIOPEN_LOG_XQ_(level, true, MIOPEN_GET_FN_NAME(), __VA_ARGS__)
 
 #define MIOPEN_LOG_E(...) MIOPEN_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)
+#define MIOPEN_LOG_E_FROM(from, ...) \
+    MIOPEN_LOG_XQ_(miopen::LoggingLevel::Error, false, from, __VA_ARGS__)
 #define MIOPEN_LOG_W(...) MIOPEN_LOG(miopen::LoggingLevel::Warning, __VA_ARGS__)
 #define MIOPEN_LOG_I(...) MIOPEN_LOG(miopen::LoggingLevel::Info, __VA_ARGS__)
 #define MIOPEN_LOG_I2(...) MIOPEN_LOG(miopen::LoggingLevel::Info2, __VA_ARGS__)
