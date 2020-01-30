@@ -59,8 +59,8 @@ def buildJob(compiler, flags, image, test, testargs){
 pipeline {
     agent none
     environment{
-        image = "miopen"
-        buildflag = '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=releasewithdebug'
+        image = "miopenrocm"
+        buildflag = '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=releasewithdebug -DCMAKE_PREFIX_PATH=/opt/rocm'
         test = "test_conv2d"
     }
     stages{
