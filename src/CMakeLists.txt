@@ -202,10 +202,13 @@ set( MIOpen_Source
     solver/conv_ocl_dir2Dfwd1x1.cpp
     solver/conv_hip_implicit_gemm_v4.cpp
     solver/conv_hip_implicit_gemm_v4r1.cpp
+    solver/conv_hip_implicit_gemm_v4r4.cpp
     solver/conv_hip_implicit_gemm_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops.cpp
     solver/conv_hip_implicit_gemm_xdlops_common.cpp
     solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
+    solver/conv_hip_implicit_gemm_bwd_data_v1r1.cpp
+    solver/conv_hip_implicit_gemm_bwd_data_v4r1.cpp
     )
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)

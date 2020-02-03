@@ -499,7 +499,7 @@ struct BlockwiseGenericTensorSliceCopy_v2_deprecated
                                         ThreadBufferData* p_thread_buffer) const
     {
         constexpr auto generic_address_space =
-            integral_constant<AddressSpace, AddressSpace::generic>{};
+            integral_constant<AddressSpace, AddressSpace::Generic>{};
 
         RunLoadThreadBuffer(
             p_block_src, p_thread_buffer, generic_address_space, generic_address_space);
@@ -529,7 +529,7 @@ struct BlockwiseGenericTensorSliceCopy_v2_deprecated
                                          BlockDstData* p_block_dst) const
     {
         constexpr auto generic_address_space =
-            integral_constant<AddressSpace, AddressSpace::generic>{};
+            integral_constant<AddressSpace, AddressSpace::Generic>{};
 
         RunStoreThreadBuffer(
             p_thread_buffer, p_block_dst, generic_address_space, generic_address_space);
@@ -548,7 +548,7 @@ struct BlockwiseGenericTensorSliceCopy_v2_deprecated
         BlockSrcData p_thread_buffer[GetThreadBufferSize()];
 
         constexpr auto generic_address_space =
-            integral_constant<AddressSpace, AddressSpace::generic>{};
+            integral_constant<AddressSpace, AddressSpace::Generic>{};
 
         RunLoadThreadBuffer(
             p_block_src, p_thread_buffer, block_src_address_space, generic_address_space);
@@ -562,7 +562,7 @@ struct BlockwiseGenericTensorSliceCopy_v2_deprecated
     __device__ void Run(const BlockSrcData* p_block_src, BlockDstData* p_block_dst) const
     {
         constexpr auto generic_address_space =
-            integral_constant<AddressSpace, AddressSpace::generic>{};
+            integral_constant<AddressSpace, AddressSpace::Generic>{};
 
         Run(p_block_src, p_block_dst, generic_address_space, generic_address_space);
     }
