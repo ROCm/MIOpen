@@ -53,28 +53,16 @@ extern "C" __global__
 #if CK_PARAM_PROBLEM_CONV_DIRECTION_FORWARD
     constexpr auto ConvDirection = ConvolutionDirection::Forward;
 
-    constexpr auto in_nchw_desc  = make_native_tensor_descriptor_packed(Sequence<N, C, Hi, Wi>{});
-    constexpr auto in_gnchw_desc = transform_tensor_descriptor(
-        in_nchw_desc,
-        make_tuple(PassThrough<N>{},
-                   UnMerge<Sequence<GroupCounts, CPerGroup>>{},
-                   PassThrough<Hi>{},
-                   PassThrough<Wi>{}),
-        make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
-        make_tuple(Sequence<1>{}, Sequence<0, 2>{}, Sequence<3>{}, Sequence<4>{}));
+    constexpr auto in_gnchw_desc =
+        make_native_tensor_descriptor(Sequence<GroupCounts, N, CPerGroup, Hi, Wi>{},
+                                      Sequence<CPerGroup * Hi * Wi, C * Hi * Wi, Hi * Wi, Wi, 1>{});
 
     constexpr auto wei_gkcyx_desc =
         make_native_tensor_descriptor_packed(Sequence<GroupCounts, KPerGroup, CPerGroup, Y, X>{});
 
-    constexpr auto out_nkhw_desc  = make_native_tensor_descriptor_packed(Sequence<N, K, Ho, Wo>{});
-    constexpr auto out_gnkhw_desc = transform_tensor_descriptor(
-        out_nkhw_desc,
-        make_tuple(PassThrough<N>{},
-                   UnMerge<Sequence<GroupCounts, KPerGroup>>{},
-                   PassThrough<Ho>{},
-                   PassThrough<Wo>{}),
-        make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
-        make_tuple(Sequence<1>{}, Sequence<0, 2>{}, Sequence<3>{}, Sequence<4>{}));
+    constexpr auto out_gnkhw_desc =
+        make_native_tensor_descriptor(Sequence<GroupCounts, N, KPerGroup, Ho, Wo>{},
+                                      Sequence<KPerGroup * Ho * Wo, K * Ho * Wo, Ho * Wo, Wo, 1>{});
 
     using ConvStrides   = Sequence<ConvStrideH, ConvStrideW>;
     using ConvDilations = Sequence<ConvDilationH, ConvDilationW>;
@@ -88,35 +76,24 @@ extern "C" __global__
     // input descriptor, the n and k dimension of the output descriptor
     // This change is necessary so that reduction dimensions are consistent with the requirement
     // of the wrw convolution when used in a fwd context
-    constexpr auto tmp_in_nchw_desc =
-        make_native_tensor_descriptor_packed(Sequence<N, C, Hi, Wi>{});
-    constexpr auto tmp_wei_kcyx_desc =
-        make_native_tensor_descriptor_packed(Sequence<GroupCounts, KPerGroup, CPerGroup, Y, X>{});
-    constexpr auto tmp_out_nkhw_desc =
-        make_native_tensor_descriptor_packed(Sequence<N, K, Ho, Wo>{});
-    // nchw -> g_c/g_n_h_w
-    constexpr auto in_gnchw_desc = transform_tensor_descriptor(
-        tmp_in_nchw_desc,
-        make_tuple(PassThrough<N>{},
-                   UnMerge<Sequence<GroupCounts, CPerGroup>>{},
-                   PassThrough<Hi>{},
-                   PassThrough<Wi>{}),
-        make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
-        make_tuple(Sequence<2>{}, Sequence<0, 1>{}, Sequence<3>{}, Sequence<4>{}));
-    // wei and out are swapped in the solver
-    // nkhw -> g_k/g_n_h_w
-    constexpr auto wei_gkcyx_desc = transform_tensor_descriptor(
-        tmp_out_nkhw_desc,
-        make_tuple(PassThrough<N>{},
-                   UnMerge<Sequence<GroupCounts, KPerGroup>>{},
-                   PassThrough<Ho>{},
-                   PassThrough<Wo>{}),
-        make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
-        make_tuple(Sequence<2>{}, Sequence<0, 1>{}, Sequence<3>{}, Sequence<4>{}));
+    constexpr auto tmp_in_gnchw_desc =
+        make_native_tensor_descriptor(Sequence<GroupCounts, N, CPerGroup, Hi, Wi>{},
+                                      Sequence<CPerGroup * Hi * Wi, C * Hi * Wi, Hi * Wi, Wi, 1>{});
 
-    // g_k/g_c/g_hw -> g_c/g_k/g_h_w
+    constexpr auto tmp_wei_gkcyx_desc =
+        make_native_tensor_descriptor_packed(Sequence<GroupCounts, KPerGroup, CPerGroup, Y, X>{});
+
+    constexpr auto tmp_out_gnkhw_desc =
+        make_native_tensor_descriptor(Sequence<GroupCounts, N, KPerGroup, Ho, Wo>{},
+                                      Sequence<KPerGroup * Ho * Wo, K * Ho * Wo, Ho * Wo, Wo, 1>{});
+
+    // swapping tensors and dimensions for bwd-weight pass
+    constexpr auto in_gnchw_desc =
+        reorder_tensor_descriptor_given_upper2lower(tmp_in_gnchw_desc, Sequence<0, 2, 1, 3, 4>{});
+    constexpr auto wei_gkcyx_desc =
+        reorder_tensor_descriptor_given_upper2lower(tmp_out_gnkhw_desc, Sequence<0, 2, 1, 3, 4>{});
     constexpr auto out_gnkhw_desc =
-        reorder_tensor_descriptor_given_upper2lower(tmp_wei_kcyx_desc, Sequence<0, 2, 1, 3, 4>{});
+        reorder_tensor_descriptor_given_upper2lower(tmp_wei_gkcyx_desc, Sequence<0, 2, 1, 3, 4>{});
 
     // swap stride and dilation
     using ConvDilations = Sequence<ConvStrideH, ConvStrideW>;

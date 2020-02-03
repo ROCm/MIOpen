@@ -94,9 +94,9 @@ struct GridwiseConvolutionImplicitGemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer_dep
         constexpr auto True = integral_constant<bool, true>{};
 
         constexpr auto generic_address_space =
-            integral_constant<AddressSpace, AddressSpace::generic>{};
+            integral_constant<AddressSpace, AddressSpace::Generic>{};
         constexpr auto global_address_space =
-            integral_constant<AddressSpace, AddressSpace::global>{};
+            integral_constant<AddressSpace, AddressSpace::Global>{};
 
         static_assert(ConvDirection == ConvolutionDirection::Forward ||
                           ConvDirection == ConvolutionDirection::BackwardWeight,

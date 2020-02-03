@@ -111,11 +111,6 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_dou
 
         constexpr auto True = integral_constant<bool, true>{};
 
-        constexpr auto generic_address_space =
-            integral_constant<AddressSpace, AddressSpace::generic>{};
-        constexpr auto global_address_space =
-            integral_constant<AddressSpace, AddressSpace::global>{};
-
         constexpr auto in_g_n_c_hi_wi_global_desc  = InGlobalDesc{};
         constexpr auto wei_g_k_c_y_x_global_desc   = WeiGlobalDesc{};
         constexpr auto out_g_n_k_ho_wo_global_desc = OutGlobalDesc{};
@@ -175,13 +170,16 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_dou
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3, 4>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3, 4>{}));
 
+        constexpr index_t Hip = in_g_n_c_hip_wip_global_desc.GetLengths()[3];
+        constexpr index_t Wip = in_g_n_c_hip_wip_global_desc.GetLengths()[4];
+
         constexpr auto in_g_n_c_y_ho_x_wo_global_desc = transform_tensor_descriptor(
             in_g_n_c_hip_wip_global_desc,
             make_tuple(PassThrough<G>{},
                        PassThrough<N>{},
                        PassThrough<C>{},
-                       Embed<Sequence<Y, Ho>, Sequence<ConvDilationH, ConvStrideH, 0>>{},
-                       Embed<Sequence<X, Wo>, Sequence<ConvDilationW, ConvStrideW, 0>>{}),
+                       Embed<Hip, Sequence<Y, Ho>, Sequence<ConvDilationH, ConvStrideH, 0>>{},
+                       Embed<Wip, Sequence<X, Wo>, Sequence<ConvDilationW, ConvStrideW, 0>>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}, Sequence<4>{}),
             make_tuple(
                 Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3, 4>{}, Sequence<5, 6>{}));
@@ -216,7 +214,11 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_dou
                                                2,
                                                2,
                                                InBlockCopySrcDataPerRead_B,
-                                               InBlockCopyDstDataPerWrite_B>(
+                                               InBlockCopyDstDataPerWrite_B,
+                                               AddressSpace::Global,
+                                               AddressSpace::Vgpr,
+                                               AddressSpace::Lds,
+                                               InMemoryDataOperation::Set>(
                 {group_id, 0, b_block_data_on_global}, {0, 0, 0});
 
         // weight tensor
@@ -243,7 +245,11 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_dou
                                                1,
                                                2,
                                                WeiBlockCopySrcDataPerRead_E,
-                                               WeiBlockCopyDstDataPerWrite_K>(
+                                               WeiBlockCopyDstDataPerWrite_K,
+                                               AddressSpace::Global,
+                                               AddressSpace::Vgpr,
+                                               AddressSpace::Lds,
+                                               InMemoryDataOperation::Set>(
                 {group_id, 0, k_block_data_on_global}, {0, 0, 0});
 
         // GEMM definition
@@ -289,10 +295,8 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_dou
 
         // LDS double buffer: preload data into LDS
         {
-            blockwise_in_copy.Run(
-                p_in_global, p_in_block_double, global_address_space, generic_address_space);
-            blockwise_wei_copy.Run(
-                p_wei_global, p_wei_block_double, global_address_space, generic_address_space);
+            blockwise_in_copy.Run(p_in_global, p_in_block_double);
+            blockwise_wei_copy.Run(p_wei_global, p_wei_block_double);
         }
 
         using blockwise_in_copy_src_step  = Sequence<0, EPerBlock, 0>;
@@ -326,10 +330,8 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_dou
                 __syncthreads();
 
                 // LDS doubel buffer: load next data from device mem
-                blockwise_in_copy.RunLoadThreadBuffer(
-                    p_in_global, p_in_thread_buffer, global_address_space, generic_address_space);
-                blockwise_wei_copy.RunLoadThreadBuffer(
-                    p_wei_global, p_wei_thread_buffer, global_address_space, generic_address_space);
+                blockwise_in_copy.RunLoadThreadBuffer(p_in_global, p_in_thread_buffer);
+                blockwise_wei_copy.RunLoadThreadBuffer(p_wei_global, p_wei_thread_buffer);
 
                 // LDS double buffer: GEMM on current data
                 blockwise_gemm.Run(p_wei_block_now, p_in_block_now, p_out_thread);
@@ -355,10 +357,8 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_dou
                 __syncthreads();
 
                 // LDS double buffer: load last data from device mem
-                blockwise_in_copy.RunLoadThreadBuffer(
-                    p_in_global, p_in_thread_buffer, global_address_space, generic_address_space);
-                blockwise_wei_copy.RunLoadThreadBuffer(
-                    p_wei_global, p_wei_thread_buffer, global_address_space, generic_address_space);
+                blockwise_in_copy.RunLoadThreadBuffer(p_in_global, p_in_thread_buffer);
+                blockwise_wei_copy.RunLoadThreadBuffer(p_wei_global, p_wei_thread_buffer);
 
                 // LDS double buffer: GEMM on 2nd-last data
                 blockwise_gemm.Run(p_wei_block_double, p_in_block_double, p_out_thread);
@@ -433,17 +433,17 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_dou
                                                       arithmetic_sequence_gen<0, 5, 1>::type,
                                                       4,
                                                       OutThreadCopyDataPerAccess_B,
-                                                      OutThreadCopyDataPerAccess_B>(
+                                                      OutThreadCopyDataPerAccess_B,
+                                                      AddressSpace::Vgpr,
+                                                      AddressSpace::Global,
+                                                      InMemoryDataOperation::Set>(
                     {0, 0, 0, 0, 0},
                     {group_id,
                      k_thread_data_on_global / (K2 * K1),
                      k_thread_data_on_global % (K2 * K1) / K2,
                      k_thread_data_on_global % K2,
                      b_thread_data_on_global})
-                    .Run(p_out_thread + i * BlkSize,
-                         p_out_global,
-                         generic_address_space,
-                         global_address_space);
+                    .Run(p_out_thread + i * BlkSize, p_out_global);
             }
         }
     }
