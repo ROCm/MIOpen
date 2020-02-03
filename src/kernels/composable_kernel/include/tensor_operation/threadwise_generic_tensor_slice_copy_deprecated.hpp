@@ -333,7 +333,7 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1_deprecated
                         //     2. src_normal_offset must be calculatd at compile time (guaranteed by
                         //        algorithm)
                         //     3. src_merged_offset can be runtime value (no assumption imposed)
-                        static_if<SrcAddressSpace == AddressSpace::global>{}([&](auto fwd) {
+                        static_if<SrcAddressSpace == AddressSpace::Global>{}([&](auto fwd) {
 #if CK_USE_AMD_BUFFER_ADDRESSING
                             vector_data = amd_intrinsic_buffer_load<SrcData, SrcDataPerAccess>(
                                 fwd(p_src), src_merged_offset, src_normal_offset);
@@ -442,7 +442,7 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1_deprecated
                     //     2. dst_normal_offset must be calculatd at compile time (guaranteed by
                     //        algorithm)
                     //     3. dst_merged_offset can be runtime value (no assumption imposed)
-                    static_if<DstAddressSpace == AddressSpace::global>{}([&](auto fwd) {
+                    static_if<DstAddressSpace == AddressSpace::Global>{}([&](auto fwd) {
 #if CK_USE_AMD_BUFFER_ADDRESSING
                         amd_intrinsic_buffer_store<DstData, DstDataPerAccess>(
                             vector_data, fwd(p_dst), dst_merged_offset, dst_normal_offset);
@@ -464,7 +464,7 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1_deprecated
     __device__ void Run(const SrcData* p_src, DstData* p_dst) const
     {
         constexpr auto generic_address_space =
-            integral_constant<AddressSpace, AddressSpace::generic>{};
+            integral_constant<AddressSpace, AddressSpace::Generic>{};
 
         Run(p_src, p_dst, generic_address_space, generic_address_space);
     }

@@ -520,6 +520,12 @@ struct ConvHipImplicitGemmV4R1Fwd : SolverBase<ConvolutionContext>
                               float& elapsed_time) const;
 };
 
+struct ConvHipImplicitGemmV4R4Fwd : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
 struct ConvHipImplicitGemmV4Fwd : SolverBase<ConvolutionContext>
 {
     PerformanceImplicitGemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
@@ -755,6 +761,18 @@ struct ConvHipImplicitGemmV4WrW : SolverBase<ConvolutionContext>
                               const ConvolutionContext& ctx,
                               const ConvSolution& solution,
                               float& elapsed_time) const;
+};
+
+struct ConvHipImplicitGemmBwdDataV1R1 : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
+struct ConvHipImplicitGemmBwdDataV4R1 : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
 /// Holds common member functions for the Solvers which share the same

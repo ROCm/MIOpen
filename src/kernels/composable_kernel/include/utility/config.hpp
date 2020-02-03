@@ -29,6 +29,11 @@
 #define CK_USE_AMD_BUFFER_ADDRESSING_INTRINSIC 1
 #endif
 
+// only support gfx908
+#ifndef CK_USE_AMD_BUFFER_ATOMIC_ADD
+#define CK_USE_AMD_BUFFER_ATOMIC_ADD 0
+#endif
+
 // AMD XDLOPS
 #ifndef CK_USE_AMD_XDLOPS
 #define CK_USE_AMD_XDLOPS 0
@@ -54,8 +59,16 @@ namespace ck {
 
 enum AddressSpace
 {
-    generic,
-    global
+    Generic,
+    Global,
+    Lds,
+    Vgpr
+};
+
+enum InMemoryDataOperation
+{
+    Set,
+    AtomicAdd
 };
 
 #if CK_UNSIGNED_INDEX_TYPE

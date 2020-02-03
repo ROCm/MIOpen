@@ -54,16 +54,38 @@ __device__ void __llvm_amdgcn_buffer_storex4(float4_t vdata,
                                              bool glc,
                                              bool slc) __asm("llvm.amdgcn.buffer.store.v4f32");
 
+__device__ void
+__llvm_amdgcn_buffer_atomic_add(float vdata,
+                                int32x4_t rsrc,
+                                index_t vindex,
+                                index_t offset,
+                                bool slc) __asm("llvm.amdgcn.buffer.atomic.fadd.f32");
+
+// buffer_load requires:
+//   1) p_src must be in global memory space, d_dst must be vgpr
+//   2) p_src to be a block-invariant pointer.
+// It is user's responsibility to make sure that is true.
 template <typename T, index_t VectorSize>
 __device__ typename vector_type<T, VectorSize>::MemoryType amd_intrinsic_buffer_load(
     const T* p_src_block, index_t src_thread_data_offset, index_t src_const_data_offset);
 
+// buffer_store requires:
+//   1) p_src must be in vgpr space, d_dst must be global memory
+//   2) p_dst to be a block-invariant pointer.
+// It is user's responsibility to make sure that is true.
 template <typename T, index_t VectorSize>
 __device__ void
 amd_intrinsic_buffer_store(const typename vector_type<T, VectorSize>::MemoryType& src,
                            T* p_dst_block,
                            index_t dst_thread_data_offset,
                            index_t dst_const_data_offset);
+
+template <typename T, index_t VectorSize>
+__device__ void
+amd_intrinsic_buffer_atomic_add(const typename vector_type<T, VectorSize>::MemoryType& src,
+                                T* p_dst_block,
+                                index_t dst_thread_data_offset,
+                                index_t dst_const_data_offset);
 
 template <>
 __device__ float amd_intrinsic_buffer_load<float, 1>(const float* p_src_block,
@@ -278,6 +300,32 @@ __device__ void amd_intrinsic_buffer_store<float, 4>(const float4_t& src,
                    "v"(src),
                    "v"(dst_thread_addr_offset),
                    "s"(dst_const_addr_offset));
+#endif
+}
+
+template <>
+__device__ void amd_intrinsic_buffer_atomic_add<float, 1>(const float& src,
+                                                          float* p_dst_block,
+                                                          index_t dst_thread_data_offset,
+                                                          index_t dst_const_data_offset)
+{
+    index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(float);
+    index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(float);
+
+    BufferLoadStoreDwordConfig<float> dst_block_config;
+
+    // fill in byte 0 - 1
+    dst_block_config.address[0] = p_dst_block;
+    // fill in byte 2
+    dst_block_config.range[2] = -1;
+    // fill in byte 3
+    dst_block_config.range[3] = 0x00027000;
+
+#if CK_USE_AMD_BUFFER_ADDRESSING_INTRINSIC
+    __llvm_amdgcn_buffer_atomic_add(
+        src, dst_block_config.data, 0, dst_thread_addr_offset + dst_const_addr_offset, false);
+#else
+    static_assert(false, " wrong! not implemented");
 #endif
 }
 

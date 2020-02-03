@@ -120,10 +120,17 @@ struct NativeTensorDescriptor
         return Tuple<>{};
     }
 
-    __host__ __device__ static constexpr bool
-    IsUpperIndexMappedToValidOffset(const Index& /* idx */)
+    // a multi-index is valid if there is a corresponding point for it in the tensor
+    __host__ __device__ static constexpr bool IsUpperIndexValid(const Index& idx)
     {
-        return true;
+        bool flag = true;
+
+        for(index_t i = 0; i < nDim; ++i)
+        {
+            flag = flag && idx[i] >= 0 && idx[i] < GetLengths()[i];
+        }
+
+        return flag;
     }
 };
 
@@ -467,32 +474,48 @@ struct TransformedTensorDescriptor
     }
 #endif
 
+    // a multi-index is valid if there is a corresponding point for it in the tensor
+    __host__ __device__ constexpr bool IsUpperIndexValid(const UpperIndex& idx_up) const
+    {
+        bool flag = true;
+
+        for(index_t i = 0; i < nDimUp; ++i)
+        {
+            flag = flag && idx_up[i] >= 0 && idx_up[i] < GetLengths()[i];
+        }
+
+        return flag;
+    }
+
+    // this function is for optimization purpose, it's called by tensor coordinate
+    // this function tells you: If a lower-index is valid or not, assuming upper index is valid
     __host__ __device__ static constexpr bool
-    IsUpperIndexMappedToValidLowerIndex(const UpperIndex& idx_up)
+    IsLowerIndexValidAssumingUpperIndexIsValid(const LowerIndex& idx_low)
     {
         bool flag = true;
 
         static_for<0, nTransform, 1>{}([&](auto itran) {
             constexpr auto tran = Transforms{}.At(itran);
 
-            const auto idx_up_part = pick_array_element(idx_up, UpDimensionIds{}.At(itran));
+            // check a indtransformation if it does not always has a valid mapping
+            constexpr bool is_valid_up_always_mapped_to_valid_low =
+                decltype(tran)::IsValidUpperIndexAlwaysMappedToValidLowerIndex();
 
-            flag = flag && tran.IsUpperIndexMappedToValidLowerIndex(to_array(idx_up_part));
+            if(!is_valid_up_always_mapped_to_valid_low)
+            {
+                constexpr auto low_dims_part = LowDimensionIds{}.At(itran);
+                constexpr auto low_lengths_part =
+                    GetLowerTensorDescriptor().GetLengths(low_dims_part);
+                const auto idx_low_part = to_array(pick_array_element(idx_low, low_dims_part));
+
+                for(index_t i = 0; i < low_dims_part.Size(); ++i)
+                {
+                    flag = flag && idx_low_part[i] >= 0 && idx_low_part[i] < low_lengths_part[i];
+                }
+            }
         });
 
         return flag;
-    }
-
-    // Whenever this function is called, it will call CalculateLowerIndex() recursively.
-    // If you have created a tensor coordinate already, instead of calling this function,
-    //   you should call TensorCoordinate::IsUpperIndexMappedToValidOffset() which would
-    //   be less expensive.
-    __host__ __device__ static constexpr bool
-    IsUpperIndexMappedToValidOffset(const UpperIndex& idx_up)
-    {
-        return IsUpperIndexMappedToValidLowerIndex(idx_up) &&
-               GetLowerTensorDescriptor().IsUpperIndexMappedToValidOffset(
-                   CalculateLowerIndex(idx_up));
     }
 };
 

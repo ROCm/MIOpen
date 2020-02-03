@@ -148,9 +148,6 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw
 
         constexpr auto True = integral_constant<bool, true>{};
 
-        constexpr auto generic_address_space =
-            integral_constant<AddressSpace, AddressSpace::generic>{};
-
         constexpr auto in_n_c_hi_wi_global_desc  = InGlobalDesc{};
         constexpr auto wei_k_c_y_x_global_desc   = WeiGlobalDesc{};
         constexpr auto out_n_k_ho_wo_global_desc = OutGlobalDesc{};
@@ -208,12 +205,15 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}));
 
+        constexpr index_t Hip = in_n_c_hip_wip_global_desc.GetLengths()[2];
+        constexpr index_t Wip = in_n_c_hip_wip_global_desc.GetLengths()[3];
+
         constexpr auto in_n_epack_c_y_ho_x_wo_global_desc = transform_tensor_descriptor(
             in_n_c_hip_wip_global_desc,
             make_tuple(PassThrough<N>{},
                        UnMerge<Sequence<nonVectorizedC, EPack>>{},
-                       Embed<Sequence<Y, Ho>, Sequence<ConvDilationH, ConvStrideH, 0>>{},
-                       Embed<Sequence<X, Wo>, Sequence<ConvDilationW, ConvStrideW, 0>>{}),
+                       Embed<Hip, Sequence<Y, Ho>, Sequence<ConvDilationH, ConvStrideH, 0>>{},
+                       Embed<Wip, Sequence<X, Wo>, Sequence<ConvDilationW, ConvStrideW, 0>>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
             make_tuple(Sequence<0>{}, Sequence<1, 2>{}, Sequence<3, 4>{}, Sequence<5, 6>{}));
 
@@ -252,7 +252,11 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw
             1, // Src dim to be read in vector form (B dimension)
             2, // Dst dim to be written in vector form (EPack dimension)
             InBlockCopySrcDataPerRead_B,
-            InBlockCopyDstDataPerWrite_EPACK>({0, b_block_data_on_global, 0}, {0, 0, 0});
+            InBlockCopyDstDataPerWrite_EPACK,
+            AddressSpace::Generic,
+            AddressSpace::Vgpr,
+            AddressSpace::Lds,
+            InMemoryDataOperation::Set>({0, b_block_data_on_global, 0}, {0, 0, 0});
 
         // weight tensor
         //   global mem
@@ -282,9 +286,11 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw
             0,                            // Src dim to be read in vector form (E dimension)
             2,                            // Dst dim to be written in vector form (EPack dimension)
             WeiBlockCopySrcDataPerRead_E, // Src dim vector len
-            WeiBlockCopyDstDataPerWrite_EPACK>( // Dst dim vector len
-            {0, k_block_data_on_global, 0},
-            {0, 0, 0});
+            WeiBlockCopyDstDataPerWrite_EPACK, // Dst dim vector len
+            AddressSpace::Generic,
+            AddressSpace::Vgpr,
+            AddressSpace::Lds,
+            InMemoryDataOperation::Set>({0, k_block_data_on_global, 0}, {0, 0, 0});
 
         // GEMM definition
         // c_mtx += transpose(a_mtx) * b_mtx
@@ -330,10 +336,8 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw
 
         // LDS double buffer: preload data into LDS
         {
-            blockwise_in_copy.Run(
-                p_in_global, p_in_block_double, generic_address_space, generic_address_space);
-            blockwise_wei_copy.Run(
-                p_wei_global, p_wei_block_double, generic_address_space, generic_address_space);
+            blockwise_in_copy.Run(p_in_global, p_in_block_double);
+            blockwise_wei_copy.Run(p_wei_global, p_wei_block_double);
         }
 
         // LDS double buffer: main body
@@ -364,12 +368,8 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw
                 __syncthreads();
 
                 // LDS doubel buffer: load next data from device mem
-                blockwise_in_copy.RunLoadThreadBuffer(
-                    p_in_global, p_in_thread_buffer, generic_address_space, generic_address_space);
-                blockwise_wei_copy.RunLoadThreadBuffer(p_wei_global,
-                                                       p_wei_thread_buffer,
-                                                       generic_address_space,
-                                                       generic_address_space);
+                blockwise_in_copy.RunLoadThreadBuffer(p_in_global, p_in_thread_buffer);
+                blockwise_wei_copy.RunLoadThreadBuffer(p_wei_global, p_wei_thread_buffer);
 
                 // LDS double buffer: GEMM on current data
                 // Vectorize the pointer to match with how half/bfloat16 datatypes are
@@ -407,12 +407,8 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw
                 __syncthreads();
 
                 // LDS double buffer: load last data from device mem
-                blockwise_in_copy.RunLoadThreadBuffer(
-                    p_in_global, p_in_thread_buffer, generic_address_space, generic_address_space);
-                blockwise_wei_copy.RunLoadThreadBuffer(p_wei_global,
-                                                       p_wei_thread_buffer,
-                                                       generic_address_space,
-                                                       generic_address_space);
+                blockwise_in_copy.RunLoadThreadBuffer(p_in_global, p_in_thread_buffer);
+                blockwise_wei_copy.RunLoadThreadBuffer(p_wei_global, p_wei_thread_buffer);
 
                 // LDS double buffer: GEMM on 2nd-last data
                 const typename vector_type<Float, EPack>::MemoryType* p_a_block_vec =
@@ -507,16 +503,16 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw
                                                       arithmetic_sequence_gen<0, 4, 1>::type,
                                                       3,
                                                       OutThreadCopyDataPerAccess_B,
-                                                      OutThreadCopyDataPerAccess_B>(
+                                                      OutThreadCopyDataPerAccess_B,
+                                                      AddressSpace::Vgpr,
+                                                      AddressSpace::Generic,
+                                                      InMemoryDataOperation::Set>(
                     {0, 0, 0, 0},
                     {k_thread_data_on_global / (K2 * K1),
                      k_thread_data_on_global % (K2 * K1) / K2,
                      k_thread_data_on_global % K2,
                      b_thread_data_on_global})
-                    .Run(p_out_thread + i * BlkSize,
-                         p_out_global,
-                         generic_address_space,
-                         generic_address_space);
+                    .Run(p_out_thread + i * BlkSize, p_out_global);
             }
         }
     }

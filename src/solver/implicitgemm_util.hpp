@@ -15,6 +15,118 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM)
 namespace miopen {
 namespace solver {
 
+// 1. get the original dimension of conv problem
+//    (undo the dimeniosn swapping happened inside ConvolutionContext)
+// 2. adjust right padding size to align with the way implicit GEMM deal with padding
+struct ConvolutionContextInterpreter
+{
+    static auto GetGroupCountG(const ConvolutionContext& c) { return c.group_counts; }
+
+    static auto GetBatchN(const ConvolutionContext& c) { return c.batch_sz; }
+
+    static auto GetOutputChannelK(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.n_outputs;
+        else
+            return c.n_inputs;
+    }
+
+    static auto GetInputChannelC(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.n_inputs;
+        else
+            return c.n_outputs;
+    }
+
+    static auto GetInputHeightHi(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.in_height;
+        else
+            return c.out_height;
+    }
+
+    static auto GetInputWidthWi(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.in_width;
+        else
+            return c.out_width;
+    }
+
+    static auto GetOutputHeightHo(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.out_height;
+        else
+            return c.in_height;
+    }
+
+    static auto GetOutputWidthWo(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.out_width;
+        else
+            return c.in_width;
+    }
+
+    static auto GetFilterHeightY(const ConvolutionContext& c) { return c.kernel_size_h; }
+
+    static auto GetFilterWidthX(const ConvolutionContext& c) { return c.kernel_size_w; }
+
+    static auto GetConvolutionStrideH(const ConvolutionContext& c) { return c.kernel_stride_h; }
+
+    static auto GetConvolutionStrideW(const ConvolutionContext& c) { return c.kernel_stride_w; }
+
+    static auto GetConvolutionDilationH(const ConvolutionContext& c) { return c.kernel_dilation_h; }
+
+    static auto GetConvolutionDilationW(const ConvolutionContext& c) { return c.kernel_dilation_w; }
+
+    static auto GetInputLeftPadH(const ConvolutionContext& c) { return c.pad_h; }
+
+    static auto GetInputLeftPadW(const ConvolutionContext& c) { return c.pad_w; }
+
+    // adjust right padding size to align with the way implicit GEMM deal with padding
+    static auto GetAdjustedInputRightPadH(const ConvolutionContext& c)
+    {
+        int hi              = GetInputHeightHi(c);
+        int ho              = GetOutputHeightHo(c);
+        int y               = GetFilterHeightY(c);
+        int conv_stride_h   = GetConvolutionStrideH(c);
+        int conv_dilation_h = GetConvolutionDilationH(c);
+        int in_left_pad_h   = GetInputLeftPadH(c);
+
+        int hi_padded = 1 + (y - 1) * conv_dilation_h + (ho - 1) * conv_stride_h;
+
+        int in_right_pad_h =
+            hi_padded > (in_left_pad_h + hi) ? hi_padded - (in_left_pad_h + hi) : 0;
+
+        return in_right_pad_h;
+    }
+
+    // adjust right padding size to align with the way implicit GEMM deal with padding
+    static auto GetAdjustedInputRightPadW(const ConvolutionContext& c)
+    {
+        int wi              = GetInputWidthWi(c);
+        int wo              = GetOutputWidthWo(c);
+        int x               = GetFilterWidthX(c);
+        int conv_stride_w   = GetConvolutionStrideW(c);
+        int conv_dilation_w = GetConvolutionDilationW(c);
+        int in_left_pad_w   = GetInputLeftPadW(c);
+
+        int wi_padded = 1 + (x - 1) * conv_dilation_w + (wo - 1) * conv_stride_w;
+
+        int in_right_pad_w =
+            wi_padded > (in_left_pad_w + wi) ? wi_padded - (in_left_pad_w + wi) : 0;
+
+        return in_right_pad_w;
+    }
+};
+
+// these functions map the dimensions of a bwd-wrw problem into a fwd problem
+// they are not supposed to be called by backward-data
 static inline std::size_t KernelFilterStrideH(const ConvolutionContext& c)
 {
     if(c.direction.IsBackwardWrW())
@@ -273,6 +385,12 @@ static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
         return false;
 
     return !miopen::IsDisabled(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM{});
+}
+
+static inline bool support_amd_buffer_atomic_add(const ConvolutionContext& ctx)
+{
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    return StartsWith(device_name, "gfx908") && ctx.IsFp32();
 }
 
 } // namespace solver
