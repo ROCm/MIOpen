@@ -38,9 +38,38 @@
 
 #include <unistd.h>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_OPENCL_ENFORCE_COV3)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_COV3)
 
 namespace miopen {
+
+namespace {
+
+inline bool ProduceCoV3()
+{
+    // If env.var is set, then let's simply follow it.
+    if(IsEnabled(MIOPEN_DEBUG_OPENCL_ENFORCE_COV3{}))
+        return true;
+    if(IsDisabled(MIOPEN_DEBUG_OPENCL_ENFORCE_COV3{}))
+        return false;
+    // Otherwise, let's assume that OpenCL kernels shall be compiled to
+    // CO v3 format by default since ROCm 3.0. The simplest way to find out
+    // this right now is checking the HIP compiler version string.
+    return (HipGetHccVersion() >= external_tool_version_t{3, 0, -1});
+}
+
+/// Returns option for enabling/disabling CO v3 generation for the compiler
+/// that builds OpenCL kernels, depending on compiler version etc.
+inline const std::string& GetCoV3Option(const bool enable)
+{
+    // These options are Ok for ROCm for a long time (since 2.5 or so):
+    static const std::string opt_enable{"-Xclang -target-feature -Xclang +code-object-v3"};
+    static const std::string opt_disable{}; // CO v2 is compiler default.
+    if(enable)
+        return opt_enable;
+    else
+        return opt_disable;
+}
+} // namespace
 
 hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
 {
@@ -117,11 +146,7 @@ struct HIPOCProgramImpl
 #else
             params += " -Wno-everything";
 #endif
-            if(miopen::IsEnabled(MIOPEN_DEBUG_AMD_OPENCL_ENFORCE_COV3{}))
-            {
-                /// \todo Requires modification of clang-ocl
-                params += " -Xclang -target-feature -Xclang +code-object-v3";
-            }
+            params += " " + GetCoV3Option(ProduceCoV3());
             dir->Execute(HIP_OC_COMPILER, params + " " + filename + " -o " + hsaco_file.string());
         }
         if(!boost::filesystem::exists(hsaco_file))
