@@ -115,6 +115,7 @@ set( MIOpen_Source
     ctc_api.cpp
     temp_file.cpp
     problem_description.cpp
+    include/miopen/sequences.hpp
     kernel_build_params.cpp
     find_db.cpp
     conv_algo_name.cpp

@@ -606,7 +606,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
                      std::string(" -DSTRIDE_W=") + std::to_string(static_cast<uint>(strides[2]));
 
             bool territory_overlap = false;
-            for(int i = 0; i < strides.size(); i++)
+            for(std::size_t i = 0; i < strides.size(); i++)
             {
                 territory_overlap |= (strides[i] < lens[i]);
             }
