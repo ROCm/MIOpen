@@ -24,10 +24,6 @@
  *
  *******************************************************************************/
 
-#include <sstream>
-#include <limits>
-#include <cassert>
-
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/env.hpp>
 #include <miopen/logger.hpp>
@@ -35,7 +31,13 @@
 #include <miopen/solver.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/sequences.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad_fwd.hpp>
+
+#include <sstream>
+#include <limits>
+#include <cassert>
+#include <tuple>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U)
@@ -43,24 +45,21 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U)
 namespace miopen {
 namespace solver {
 
-bool PerformanceConfigConvAsm3x3U::SetNextValue()
+namespace {
+// clang-format off
+auto PerfFieldRules()
 {
-    // Increment with wrap-around:
-    do
-    {
-        if(++limit_wave_cnt <= 9) // [0..9]
-            break;
-        limit_wave_cnt = 0;
-        if(++filters_per_wave <= 8) // [1..8]
-            break;
-        filters_per_wave = 1;
-        if(++output_lines_per_wave <= 8) // [1..8]
-            break;
-        // All the fields (components) of performance confic have wrapped around.
-        return false;
-    } while(false);
-    return true;
+    return seq::MakeRuleSet(
+        std::make_tuple(seq::Span<int, 0, 9>{}, &PerformanceConfigConvAsm3x3U::limit_wave_cnt),
+        std::make_tuple(seq::Span<int, 1, 8>{}, &PerformanceConfigConvAsm3x3U::filters_per_wave),
+        std::make_tuple(seq::Span<int, 1, 8>{}, &PerformanceConfigConvAsm3x3U::output_lines_per_wave)
+    );
 }
+// clang-format on
+
+} // namespace
+
+bool PerformanceConfigConvAsm3x3U::SetNextValue() { return !PerfFieldRules().Next(*this); }
 
 PerformanceConfigConvAsm3x3U::PerformanceConfigConvAsm3x3U(int lwc, int fpw, int olpw)
     : limit_wave_cnt(lwc), filters_per_wave(fpw), output_lines_per_wave(olpw)
@@ -70,19 +69,10 @@ PerformanceConfigConvAsm3x3U::PerformanceConfigConvAsm3x3U(int lwc, int fpw, int
 inline bool PerformanceConfigConvAsm3x3U::
 operator==(const PerformanceConfigConvAsm3x3U& other) const
 {
-    // clang-format off
-    return limit_wave_cnt == other.limit_wave_cnt
-        && filters_per_wave == other.filters_per_wave
-        && output_lines_per_wave == other.output_lines_per_wave; // clang-format on
+    return PerfFieldRules().Compare(*this, other);
 }
 
-bool PerformanceConfigConvAsm3x3U::IsValidValue() const
-{
-    // clang-format off
-    return (0 <= limit_wave_cnt && limit_wave_cnt <= 9)
-        && (1 <= filters_per_wave && filters_per_wave <= 8)
-        && (1 <= output_lines_per_wave && output_lines_per_wave <= 8); // clang-format on
-}
+bool PerformanceConfigConvAsm3x3U::IsValidValue() const { return PerfFieldRules().IsIn(*this); }
 
 bool PerformanceConfigConvAsm3x3U::IsValid(const ConvolutionContext& config) const
 {
