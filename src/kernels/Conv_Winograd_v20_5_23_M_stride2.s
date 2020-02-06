@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "Conv_Winograd_v16_5_0_prologue_F2x3.inc"
-.include "Conv_Winograd_v16_5_0_stride1_F2x3.inc"
-.include "Conv_Winograd_v16_5_0_epilogue_F2x3.inc"
+.include "Conv_Winograd_v20_5_23_M_stride2_prologue.inc"
+.include "Conv_Winograd_v20_5_23_M_stride2.inc"
+.include "Conv_Winograd_v20_5_23_M_stride2_epilogue.inc"
