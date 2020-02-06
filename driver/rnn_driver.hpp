@@ -220,12 +220,12 @@ int RNNDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int RNNDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag(
-        "forw",
-        'F',
-        "0",
-        "Run only Forward RNN == 1 or only Backward RNN == 2 or both == 0 (Default=0)",
-        "int");
+    inflags.AddInputFlag("forw",
+                         'F',
+                         "0",
+                         "Run only Forward RNN == 1 or only Backward Data RNN == 2, Backward "
+                         "Weights = 4 or both == 0 (Default=0)",
+                         "int");
     inflags.AddInputFlag("num_layer", 'l', "1", "Number of hidden stacks (Default=1)", "int");
     inflags.AddInputFlag(
         "seq_len", 'k', "1", "Number of iterations to unroll over (Default=10)", "int");
@@ -711,6 +711,9 @@ template <typename Tgpu, typename Tref>
 int RNNDriver<Tgpu, Tref>::RunForwardGPU()
 {
 
+    if(inflags.GetValueInt("forw") != 0 && !(inflags.GetValueInt("forw") & 1))
+        return miopenStatusSuccess;
+
     Timer t;
     float wl_time_forward = 0.0;
     float kl_time_forward = 0.0;
@@ -826,6 +829,8 @@ int RNNDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int RNNDriver<Tgpu, Tref>::RunForwardCPU()
 {
+    if(inflags.GetValueInt("forw") != 0 && !(inflags.GetValueInt("forw") & 1))
+        return miopenStatusSuccess;
     std::vector<int> in_n    = GetInputTensorLengthsFromCmdLine();
     std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
     std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
@@ -939,128 +944,133 @@ int RNNDriver<Tgpu, Tref>::RunBackwardGPU()
 {
     int ret = 0;
 
-    if(inflags.GetValueInt("fwdtype") == 1 && inflags.GetValueInt("forw") != 1)
+    if(inflags.GetValueInt("forw") == 1)
+        return ret; // forward only
+
+    if((inflags.GetValueInt("forw") & 2) || (inflags.GetValueInt("forw") == 0))
     {
-        return ret;
-    }
+        Timer t;
+        float wl_time_backward_data = 0.0;
+        float kl_time_backward_data = 0.0;
 
-    Timer t;
-    float wl_time_backward_data = 0.0;
-    float kl_time_backward_data = 0.0;
+        workspace_dev->ToGPU(q, workspace.data());
 
-    workspace_dev->ToGPU(q, workspace.data());
-
-    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
-    {
-        START_TIME
-        ret = miopenRNNBackwardData(GetHandle(),
-                                    rnnDesc,
-                                    adjustedSeqLen,
-                                    outputTensors.data(),
-                                    out_dev->GetMem(),
-                                    outputTensors.data(),
-                                    dout_dev->GetMem(),
-                                    hiddenTensor,
-                                    dhy_dev->GetMem(),
-                                    hiddenTensor,
-                                    dcy_dev->GetMem(),
-                                    weightTensor,
-                                    wei_dev->GetMem(),
-                                    hiddenTensor,
-                                    hx_dev->GetMem(),
-                                    hiddenTensor,
-                                    cx_dev->GetMem(),
-                                    inputTensors.data(),
-                                    din_dev->GetMem(),
-                                    hiddenTensor,
-                                    dhx_dev->GetMem(),
-                                    hiddenTensor,
-                                    dcx_dev->GetMem(),
-                                    workspace_dev->GetMem(),
-                                    workspace_dev->GetSize(),
-                                    reservespace_dev->GetMem(),
-                                    reservespace_dev->GetSize());
-        miopen::deref(GetHandle()).Finish();
-        STOP_TIME
-        if(i > 0 || inflags.GetValueInt("iter") == 1)
+        for(int i = 0; i < inflags.GetValueInt("iter"); i++)
         {
-            float time = 0.0;
-            miopenGetKernelTime(GetHandle(), &time);
-            wl_time_backward_data += t.gettime_ms();
-            kl_time_backward_data += time;
+            START_TIME
+            ret = miopenRNNBackwardData(GetHandle(),
+                                        rnnDesc,
+                                        adjustedSeqLen,
+                                        outputTensors.data(),
+                                        out_dev->GetMem(),
+                                        outputTensors.data(),
+                                        dout_dev->GetMem(),
+                                        hiddenTensor,
+                                        dhy_dev->GetMem(),
+                                        hiddenTensor,
+                                        dcy_dev->GetMem(),
+                                        weightTensor,
+                                        wei_dev->GetMem(),
+                                        hiddenTensor,
+                                        hx_dev->GetMem(),
+                                        hiddenTensor,
+                                        cx_dev->GetMem(),
+                                        inputTensors.data(),
+                                        din_dev->GetMem(),
+                                        hiddenTensor,
+                                        dhx_dev->GetMem(),
+                                        hiddenTensor,
+                                        dcx_dev->GetMem(),
+                                        workspace_dev->GetMem(),
+                                        workspace_dev->GetSize(),
+                                        reservespace_dev->GetMem(),
+                                        reservespace_dev->GetSize());
+            miopen::deref(GetHandle()).Finish();
+            STOP_TIME
+            if(i > 0 || inflags.GetValueInt("iter") == 1)
+            {
+                float time = 0.0;
+                miopenGetKernelTime(GetHandle(), &time);
+                wl_time_backward_data += t.gettime_ms();
+                kl_time_backward_data += time;
+            }
         }
-    }
 
-    if(inflags.GetValueInt("time") == 1)
-    {
-        int n_iter = inflags.GetValueInt("iter") > 1 ? inflags.GetValueInt("iter") - 1
-                                                     : inflags.GetValueInt("iter");
-        printf("GPU Kernel Time Backward Data RNN Elapsed: %f ms\n",
-               kl_time_backward_data / n_iter);
-    }
-
-    if(WALL_CLOCK)
-    {
-        int n_iter = inflags.GetValueInt("iter") > 1 ? inflags.GetValueInt("iter") - 1
-                                                     : inflags.GetValueInt("iter");
-        printf("Wall-clock Time Backward Data RNN Elapsed: %f ms\n",
-               wl_time_backward_data / n_iter);
-    }
-
-    din_dev->FromGPU(GetStream(), din.data());
-    dhx_dev->FromGPU(GetStream(), dhx.data());
-    dcx_dev->FromGPU(GetStream(), dcx.data());
-    workspace_dev->FromGPU(GetStream(), workspace.data());
-
-    float wl_time_backward_weight = 0.0;
-    float kl_time_backward_weight = 0.0;
-
-    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
-    {
-        START_TIME
-        ret = miopenRNNBackwardWeights(GetHandle(),
-                                       rnnDesc,
-                                       adjustedSeqLen,
-                                       inputTensors.data(),
-                                       in_dev->GetMem(),
-                                       hiddenTensor,
-                                       hx_dev->GetMem(),
-                                       outputTensors.data(),
-                                       dout_dev->GetMem(),
-                                       weightTensor,
-                                       dwei_dev->GetMem(),
-                                       workspace_dev->GetMem(),
-                                       workspace_dev->GetSize(),
-                                       reservespace_dev->GetMem(),
-                                       reservespace_dev->GetSize());
-        miopen::deref(GetHandle()).Finish();
-        STOP_TIME
-        if(i > 0 || inflags.GetValueInt("iter") == 1)
+        if(inflags.GetValueInt("time") == 1)
         {
-            float time = 0.0;
-            miopenGetKernelTime(GetHandle(), &time);
-            wl_time_backward_weight += t.gettime_ms();
-            kl_time_backward_weight += time;
+            int n_iter = inflags.GetValueInt("iter") > 1 ? inflags.GetValueInt("iter") - 1
+                                                         : inflags.GetValueInt("iter");
+            printf("GPU Kernel Time Backward Data RNN Elapsed: %f ms\n",
+                   kl_time_backward_data / n_iter);
         }
+
+        if(WALL_CLOCK)
+        {
+            int n_iter = inflags.GetValueInt("iter") > 1 ? inflags.GetValueInt("iter") - 1
+                                                         : inflags.GetValueInt("iter");
+            printf("Wall-clock Time Backward Data RNN Elapsed: %f ms\n",
+                   wl_time_backward_data / n_iter);
+        }
+
+        din_dev->FromGPU(GetStream(), din.data());
+        dhx_dev->FromGPU(GetStream(), dhx.data());
+        dcx_dev->FromGPU(GetStream(), dcx.data());
+        workspace_dev->FromGPU(GetStream(), workspace.data());
     }
 
-    if(inflags.GetValueInt("time") == 1)
+    if((inflags.GetValueInt("forw") & 4) || (inflags.GetValueInt("forw") == 0))
     {
-        int n_iter = inflags.GetValueInt("iter") > 1 ? inflags.GetValueInt("iter") - 1
-                                                     : inflags.GetValueInt("iter");
-        printf("GPU Kernel Time Backward Weights RNN Elapsed: %f ms\n",
-               kl_time_backward_weight / n_iter);
-    }
+        Timer t;
+        float wl_time_backward_weight = 0.0;
+        float kl_time_backward_weight = 0.0;
 
-    if(WALL_CLOCK)
-    {
-        int n_iter = inflags.GetValueInt("iter") > 1 ? inflags.GetValueInt("iter") - 1
-                                                     : inflags.GetValueInt("iter");
-        printf("Wall-clock Time Backward Weights RNN Elapsed: %f ms\n",
-               wl_time_backward_weight / n_iter);
-    }
+        for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+        {
+            START_TIME
+            ret = miopenRNNBackwardWeights(GetHandle(),
+                                           rnnDesc,
+                                           adjustedSeqLen,
+                                           inputTensors.data(),
+                                           in_dev->GetMem(),
+                                           hiddenTensor,
+                                           hx_dev->GetMem(),
+                                           outputTensors.data(),
+                                           dout_dev->GetMem(),
+                                           weightTensor,
+                                           dwei_dev->GetMem(),
+                                           workspace_dev->GetMem(),
+                                           workspace_dev->GetSize(),
+                                           reservespace_dev->GetMem(),
+                                           reservespace_dev->GetSize());
+            miopen::deref(GetHandle()).Finish();
+            STOP_TIME
+            if(i > 0 || inflags.GetValueInt("iter") == 1)
+            {
+                float time = 0.0;
+                miopenGetKernelTime(GetHandle(), &time);
+                wl_time_backward_weight += t.gettime_ms();
+                kl_time_backward_weight += time;
+            }
+        }
 
-    dwei_dev->FromGPU(GetStream(), dwei.data());
+        if(inflags.GetValueInt("time") == 1)
+        {
+            int n_iter = inflags.GetValueInt("iter") > 1 ? inflags.GetValueInt("iter") - 1
+                                                         : inflags.GetValueInt("iter");
+            printf("GPU Kernel Time Backward Weights RNN Elapsed: %f ms\n",
+                   kl_time_backward_weight / n_iter);
+        }
+
+        if(WALL_CLOCK)
+        {
+            int n_iter = inflags.GetValueInt("iter") > 1 ? inflags.GetValueInt("iter") - 1
+                                                         : inflags.GetValueInt("iter");
+            printf("Wall-clock Time Backward Weights RNN Elapsed: %f ms\n",
+                   wl_time_backward_weight / n_iter);
+        }
+
+        dwei_dev->FromGPU(GetStream(), dwei.data());
+    }
     /*
        if(inflags.GetValueInt("dump_output"))
        {
@@ -1477,62 +1487,69 @@ int RNNDriver<Tgpu, Tref>::VerifyBackward()
     Tref tolerance = (sizeof(Tgpu) == 4 ? static_cast<Tref>(1e-6) : static_cast<Tref>(5e-2));
 
     //   if(!TryReadVerificationCache("bwd_dat", inputTensor, din_host.data()))
+    if((inflags.GetValueInt("forw") & 2) || (inflags.GetValueInt("forw") == 0))
     {
-        RunBackwardDataCPU();
-    }
-
-    auto error_data = miopen::rms_range(din_host, din);
-
-    if(!(error_data < tolerance))
-    {
-        std::cout << std::string("Backward RNN Data Failed: ") << error_data << std::string("\n");
-    }
-    else
-    {
-        printf("Backward RNN Data Verifies on CPU and GPU\n");
-    }
-
-    auto error_data2 = miopen::rms_range(dhx_host, dhx);
-
-    if(!(error_data2 < tolerance))
-    {
-        std::cout << std::string("difference at inital hidden state Failed: ") << error_data2
-                  << "\n";
-    }
-    else
-    {
-        printf("initial hidden state Verifies on CPU and GPU\n");
-    }
-
-    if((inflags.GetValueStr("mode")) == "lstm")
-    {
-        auto error_data3 = miopen::rms_range(dcx_host, dcx);
-
-        if(!(error_data3 < tolerance))
         {
-            std::cout << std::string("difference at inital cell state Failed: ") << error_data3
+            RunBackwardDataCPU();
+        }
+
+        auto error_data = miopen::rms_range(din_host, din);
+
+        if(!(error_data < tolerance))
+        {
+            std::cout << std::string("Backward RNN Data Failed: ") << error_data
+                      << std::string("\n");
+        }
+        else
+        {
+            printf("Backward RNN Data Verifies on CPU and GPU\n");
+        }
+
+        auto error_data2 = miopen::rms_range(dhx_host, dhx);
+
+        if(!(error_data2 < tolerance))
+        {
+            std::cout << std::string("difference at inital hidden state Failed: ") << error_data2
                       << "\n";
         }
         else
         {
-            printf("inital cell state Verifies on CPU and GPU\n");
+            printf("initial hidden state Verifies on CPU and GPU\n");
+        }
+
+        if((inflags.GetValueStr("mode")) == "lstm")
+        {
+            auto error_data3 = miopen::rms_range(dcx_host, dcx);
+
+            if(!(error_data3 < tolerance))
+            {
+                std::cout << std::string("difference at inital cell state Failed: ") << error_data3
+                          << "\n";
+            }
+            else
+            {
+                printf("inital cell state Verifies on CPU and GPU\n");
+            }
         }
     }
 
     //    if(!TryReadVerificationCache("bwd_wei", weightTensor, dwei_host.data()))
+    if((inflags.GetValueInt("forw") & 4) || (inflags.GetValueInt("forw") == 0))
     {
-        RunBackwardWeightsCPU();
-    }
+        {
+            RunBackwardWeightsCPU();
+        }
 
-    auto error_weights = miopen::rms_range(dwei_host, dwei);
-    if(!(error_weights < tolerance))
-    {
-        std::cout << std::string("Backward RNN Weights Failed: ") << error_weights
-                  << std::string("\n");
-    }
-    else
-    {
-        printf("Backward RNN Weights Verifies on CPU and GPU\n");
+        auto error_weights = miopen::rms_range(dwei_host, dwei);
+        if(!(error_weights < tolerance))
+        {
+            std::cout << std::string("Backward RNN Weights Failed: ") << error_weights
+                      << std::string("\n");
+        }
+        else
+        {
+            printf("Backward RNN Weights Verifies on CPU and GPU\n");
+        }
     }
 
     return miopenStatusSuccess;
