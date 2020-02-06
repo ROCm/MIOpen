@@ -26,11 +26,56 @@ MemLayout_t GetSwappedNCLayout(MemLayout_t layout)
     case MemLayout_t::CHWN: return MemLayout_t::NHWC;
     case MemLayout_t::HWCN: return MemLayout_t::HWNC;
     case MemLayout_t::HWNC: return MemLayout_t::HWCN;
+    case MemLayout_t::GCNHW: return MemLayout_t::GNCHW;
+    case MemLayout_t::GNCHW: return MemLayout_t::GCNHW;
+    case MemLayout_t::CGNHW: return MemLayout_t::NGCHW;
+    case MemLayout_t::NGCHW: return MemLayout_t::CGNHW;
+    default:
+        MIOPEN_THROW(std::string("Internal error in GetSwappedNCLayout: Unknown MemLayout_t "));
     }
-    MIOPEN_THROW(std::string("Internal error in GetSwappedNCLayout: Unknown MemLayout_t "));
 }
 
-BuffInfo::BuffInfo(MemLayout_t layout, int nk, int c, int h, int w, int vec_c, int data_len_t)
+MemLayout_t GetGroupConvLayout(MemLayout_t layout, bool IsDataBuffer)
+{
+    if(IsDataBuffer)
+    {
+        switch(layout)
+        {
+        case MemLayout_t::CNHW: return MemLayout_t::CGNHW;
+        case MemLayout_t::NCHW: return MemLayout_t::NGCHW;
+        case MemLayout_t::NHWC:
+        case MemLayout_t::CHWN:
+        case MemLayout_t::HWCN:
+        case MemLayout_t::HWNC:
+        case MemLayout_t::NGCHW:
+        case MemLayout_t::GNCHW:
+        case MemLayout_t::CGNHW:
+        case MemLayout_t::GCNHW:
+        default: break;
+        }
+    }
+    else
+    {
+        switch(layout)
+        {
+        case MemLayout_t::CNHW: return MemLayout_t::GCNHW;
+        case MemLayout_t::NCHW: return MemLayout_t::GNCHW;
+        case MemLayout_t::NHWC:
+        case MemLayout_t::CHWN:
+        case MemLayout_t::HWCN:
+        case MemLayout_t::HWNC:
+        case MemLayout_t::NGCHW:
+        case MemLayout_t::GNCHW:
+        case MemLayout_t::CGNHW:
+        case MemLayout_t::GCNHW:
+        default: break;
+        }
+    }
+    MIOPEN_THROW(std::string("Internal error in GetGroupConvLayout: Unknown MemLayout_t "));
+}
+
+BuffInfo::BuffInfo(
+    MemLayout_t layout, int nk, int c, int h, int w, int vec_c, int _g, int data_len_t)
 {
     if(!(vec_c != 0))
         MIOPEN_THROW(std::string("Internal error in BuffInfo: (vec_c != 0) "));
@@ -39,6 +84,7 @@ BuffInfo::BuffInfo(MemLayout_t layout, int nk, int c, int h, int w, int vec_c, i
     const size_t count = nk * c_hi * h * w * vec_c;
     total_byte_size    = count * data_len_t;
     size.nk            = nk;
+    size.g             = _g;
     size.c             = c;
     size.h             = h;
     size.w             = w;
@@ -81,13 +127,43 @@ BuffInfo::BuffInfo(MemLayout_t layout, int nk, int c, int h, int w, int vec_c, i
         stride.w  = c_hi * nk;
         stride.h  = c_hi * nk * w;
         break;
+    case MemLayout_t::NGCHW:
+        stride.w  = 1;
+        stride.h  = w;
+        stride.c  = w * h;
+        stride.g  = w * h * c_hi;
+        stride.nk = w * h * c_hi * _g;
+        break;
+    case MemLayout_t::GNCHW:
+        stride.w  = 1;
+        stride.h  = w;
+        stride.c  = w * h;
+        stride.nk = w * h * c_hi;
+        stride.g  = w * h * c_hi * nk;
+        break;
+    case MemLayout_t::CGNHW:
+        stride.w  = 1;
+        stride.h  = w;
+        stride.nk = w * h;
+        stride.g  = w * h * nk;
+        stride.c  = w * h * nk * _g;
+        break;
+    case MemLayout_t::GCNHW:
+        stride.w  = 1;
+        stride.h  = w;
+        stride.nk = w * h;
+        stride.c  = w * h * nk;
+        stride.g  = w * h * nk * c_hi;
+        break;
     default: MIOPEN_THROW(std::string("Internal error in BuffInfo(): Unknown MemLayout_t ")); break;
     }
     stride.nk *= vec_c;
+    stride.g *= vec_c;
     stride.c *= vec_c;
     stride.h *= vec_c;
     stride.w *= vec_c;
     byte_stride.nk = stride.nk * data_len_t;
+    byte_stride.g  = stride.g * data_len_t;
     byte_stride.c  = stride.c * data_len_t;
     byte_stride.h  = stride.h * data_len_t;
     byte_stride.w  = stride.w * data_len_t;
