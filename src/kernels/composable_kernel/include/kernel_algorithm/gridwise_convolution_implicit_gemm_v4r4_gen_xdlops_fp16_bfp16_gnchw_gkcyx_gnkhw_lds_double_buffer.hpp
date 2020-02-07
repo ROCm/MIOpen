@@ -147,7 +147,6 @@ template <index_t GridSize,
           class WeiBlockCopyDstAccessOrder,
           index_t WeiBlockCopySrcDataPerRead_E,
           index_t WeiBlockCopyDstDataPerWrite_EPACK,
-          index_t OutThreadCopyDataPerAccess_B,
           ImplicitGemmDirection conv_dir>
 struct
     GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_gnchw_gkcyx_gnkhw_lds_double_buffer
@@ -525,8 +524,8 @@ struct
                                                       OutThreadCopySliceLengths,
                                                       arithmetic_sequence_gen<0, 5, 1>::type,
                                                       4,
-                                                      OutThreadCopyDataPerAccess_B,
-                                                      OutThreadCopyDataPerAccess_B,
+                                                      1,
+                                                      1,
                                                       AddressSpace::Vgpr,
                                                       AddressSpace::Generic,
                                                       InMemoryDataOperation::Set>(
