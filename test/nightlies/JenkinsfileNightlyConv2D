@@ -23,7 +23,7 @@ def buildJob(compiler, flags, image, test, testargs){
 
         env.HSA_ENABLE_SDMA=0 
         checkout scm
-        def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE 
+        def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined" 
         def retimage
         try {
             retimage = docker.build("${image}", "--build-arg PREFIX=/usr/local .")
