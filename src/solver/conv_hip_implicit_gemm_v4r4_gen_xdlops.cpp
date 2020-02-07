@@ -39,8 +39,6 @@ namespace solver {
 /// \todo enable vector load after fix it
 #define WORKAROUND_FAILED_VECTOR_LOAD 1
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM)
-
 PerformanceImplicitGemmXdlops
 ConvHipImplicitGemmV4R4GenFwdXdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
@@ -62,13 +60,13 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     // width)
     std::size_t b = (n * ho * wo);
 
-    std::size_t BPerBlock = config.BPerBlock;
-    std::size_t KPerBlock = config.KPerBlock;
-    std::size_t EPerBlock = config.EPerBlock;
+    std::size_t GemmNPerBlock = config.BPerBlock;
+    std::size_t GemmMPerBlock = config.KPerBlock;
+    std::size_t GemmKPerBlock = config.EPerBlock;
 
     std::size_t block_size =
-        BPerBlock * KPerBlock / (config.GemmMPerWave * config.GemmNPerWave) * wave_size;
-    std::size_t grid_size = (b / BPerBlock) * (k / KPerBlock);
+        GemmNPerBlock * GemmMPerBlock / (config.GemmMPerWave * config.GemmNPerWave) * wave_size;
+    std::size_t grid_size = (b / GemmNPerBlock) * (k / GemmMPerBlock);
 
     std::size_t lkl_wk0 = block_size;
     std::size_t lkl_wk1 = 1;
@@ -110,35 +108,33 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         }
     }
 
-    std::size_t OutThreadCopyDataPerAccess_B = 1;
-
-    std::size_t WeiBlockCopySubLengths_E = EPerBlock / config.WeiBlockCopyClusterLengths_E;
-    std::size_t WeiBlockCopySubLengths_K = KPerBlock / config.WeiBlockCopyClusterLengths_K;
-    std::size_t InBlockCopySubLengths_B  = BPerBlock / config.InBlockCopyClusterLengths_B;
+    std::size_t ABlockCopySubLengths_GemmK = GemmKPerBlock / config.WeiBlockCopyClusterLengths_E;
+    std::size_t ABlockCopySubLengths_GemmM = GemmMPerBlock / config.WeiBlockCopyClusterLengths_K;
+    std::size_t BBlockCopySubLengths_GemmN = GemmNPerBlock / config.InBlockCopyClusterLengths_B;
 
 // Ensure that vectorized b is read via right alignment from global memory
 // Consider slicing window's stride and dilation to ensure global memory reads of B are aligned
 // with vector length.
 #if WORKAROUND_FAILED_VECTOR_LOAD
-    std::size_t InBlockCopySrcDataPerRead_B = 1;
+    std::size_t BBlockCopySrcDataPerRead_B = 1;
 #else
     size_t kernel_filter_x          = KernelFilterWidthX(ctx);
     size_t kernel_filter_stride_w   = KernelFilterStrideW(ctx);
     size_t kernel_filter_dilation_w = KernelFilterDilationW(ctx);
 
-    auto InBlockCopySrcDataPerRead_B = GetReadWriteVectorSize(InBlockCopySubLengths_B);
-    InBlockCopySrcDataPerRead_B      = kernel_filter_x > 1
-                                      ? std::min(InBlockCopySrcDataPerRead_B,
-                                                 GetReadWriteVectorSize(kernel_filter_dilation_w))
-                                      : InBlockCopySrcDataPerRead_B;
-    InBlockCopySrcDataPerRead_B = kernel_filter_stride_w > 1 ? 1 : InBlockCopySrcDataPerRead_B;
+    auto BBlockCopySrcDataPerRead_B = GetReadWriteVectorSize(BBlockCopySubLengths_GemmN);
+    BBlockCopySrcDataPerRead_B =
+        kernel_filter_x > 1
+            ? std::min(BBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(kernel_filter_dilation_w))
+            : BBlockCopySrcDataPerRead_B;
+    BBlockCopySrcDataPerRead_B = kernel_filter_stride_w > 1 ? 1 : BBlockCopySrcDataPerRead_B;
 #endif
 
     // Disable vectorized read in backward data case. Why?
-    unsigned int WeiBlockCopySrcDataPerRead_E = 1;
+    unsigned int ABlockCopySrcDataPerRead_E = 1;
     if(ctx.IsFp32())
     {
-        WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
+        ABlockCopySrcDataPerRead_E = GetReadWriteVectorSize(ABlockCopySubLengths_GemmK);
     }
     else
     {
@@ -146,10 +142,10 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         // For fp16, E = C/EPack * Y * X
         // Since C/EPack are not in contiguous memory along with Y*X, vector length
         // can' be more than Y*X
-        if(KernelFilterHeightY(ctx) * KernelFilterWidthX(ctx) >= WeiBlockCopySubLengths_E)
-            WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
+        if(KernelFilterHeightY(ctx) * KernelFilterWidthX(ctx) >= ABlockCopySubLengths_GemmK)
+            ABlockCopySrcDataPerRead_E = GetReadWriteVectorSize(ABlockCopySubLengths_GemmK);
         else
-            WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(
+            ABlockCopySrcDataPerRead_E = GetReadWriteVectorSize(
                 static_cast<int>(KernelFilterHeightY(ctx) * KernelFilterWidthX(ctx)));
     }
 
@@ -157,30 +153,29 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     const int X = KernelFilterWidthX(ctx);
 
     if(ctx.direction.IsBackwardWrW())
-        WeiBlockCopySrcDataPerRead_E =
-            (X * Y) % WeiBlockCopySubLengths_E != 0 ? 1 : WeiBlockCopySrcDataPerRead_E;
+        ABlockCopySrcDataPerRead_E =
+            (X * Y) % ABlockCopySubLengths_GemmK != 0 ? 1 : ABlockCopySrcDataPerRead_E;
 
-    WeiBlockCopySrcDataPerRead_E =
-        ctx.direction.IsBackwardData() ? 1 : WeiBlockCopySrcDataPerRead_E;
+    ABlockCopySrcDataPerRead_E = ctx.direction.IsBackwardData() ? 1 : ABlockCopySrcDataPerRead_E;
 
-    std::size_t InBlockCopyDstDataPerWrite_B      = 1;
-    std::size_t InBlockCopyDstDataPerWrite_EPACK  = 1;
-    std::size_t WeiBlockCopyDstDataPerWrite_K     = 1;
-    std::size_t WeiBlockCopyDstDataPerWrite_EPACK = 1;
+    std::size_t BBlockCopyDstDataPerWrite_GemmN     = 1;
+    std::size_t BBlockCopyDstDataPerWrite_GemmKPACK = 1;
+    std::size_t ABlockCopyDstDataPerWrite_GemmM     = 1;
+    std::size_t ABlockCopyDstDataPerWrite_GemmKPACK = 1;
 
     if(ctx.IsFp32())
     {
-        InBlockCopyDstDataPerWrite_B = GetReadWriteVectorSize(InBlockCopySubLengths_B);
-        (void)InBlockCopyDstDataPerWrite_EPACK;
-        WeiBlockCopyDstDataPerWrite_K = GetReadWriteVectorSize(WeiBlockCopySubLengths_K);
-        (void)WeiBlockCopyDstDataPerWrite_EPACK;
+        BBlockCopyDstDataPerWrite_GemmN = GetReadWriteVectorSize(BBlockCopySubLengths_GemmN);
+        (void)BBlockCopyDstDataPerWrite_GemmKPACK;
+        ABlockCopyDstDataPerWrite_GemmM = GetReadWriteVectorSize(ABlockCopySubLengths_GemmM);
+        (void)ABlockCopyDstDataPerWrite_GemmKPACK;
     }
     else
     {
-        InBlockCopyDstDataPerWrite_EPACK = GetEPackLength(ctx, true);
-        (void)InBlockCopyDstDataPerWrite_B;
-        WeiBlockCopyDstDataPerWrite_EPACK = GetEPackLength(ctx, true);
-        (void)WeiBlockCopyDstDataPerWrite_K;
+        BBlockCopyDstDataPerWrite_GemmKPACK = GetEPackLength(ctx, true);
+        (void)BBlockCopyDstDataPerWrite_GemmN;
+        ABlockCopyDstDataPerWrite_GemmKPACK = GetEPackLength(ctx, true);
+        (void)ABlockCopyDstDataPerWrite_GemmM;
     }
 
     const ImplicitGemmDirection direction =
@@ -249,7 +244,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         wi_padded > (left_pad_w + in_width) ? wi_padded - (left_pad_w + in_width) : 0;
 
     // clang-format off
-    construction_parameters.comp_options += 
+    construction_parameters.comp_options +=
         std::string(" -std=c++14 ") +
         std::string(" -DCK_PARAM_PROBLEM_DIRECTION=") + std::to_string(static_cast<int>(direction)) +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ctx.batch_sz) +
@@ -265,22 +260,22 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_PROBLEM_RIGHT_PAD_W=") + std::to_string(right_pad_w) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_GROUP_COUNTS=") + std::to_string(ctx.group_counts) +
         std::string(" -DCK_PARAM_TUNABLE_BLOCK_SIZE=") + std::to_string(block_size) +
-        std::string(" -DCK_PARAM_TUNABLE_B_PER_BLOCK=") + std::to_string(BPerBlock) +
-        std::string(" -DCK_PARAM_TUNABLE_K_PER_BLOCK=") + std::to_string(KPerBlock) +
-        std::string(" -DCK_PARAM_TUNABLE_E_PER_BLOCK=") + std::to_string(EPerBlock) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_N_PER_BLOCK=") + std::to_string(GemmNPerBlock) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_M_PER_BLOCK=") + std::to_string(GemmMPerBlock) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_K_PER_BLOCK=") + std::to_string(GemmKPerBlock) +
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
         std::string(" -DCK_PARAM_GEMM_M_PER_WAVE=") + std::to_string(config.GemmMPerWave) +
         std::string(" -DCK_PARAM_GEMM_N_PER_WAVE=") + std::to_string(config.GemmNPerWave) +
-        std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_E=") + std::to_string(config.InBlockCopyClusterLengths_E) +
-        std::string(" -DCK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_B=") + std::to_string(config.InBlockCopyClusterLengths_B) +
-        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_E=") + std::to_string(config.WeiBlockCopyClusterLengths_E) +
-        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
-        std::string(" -DCK_PARAM_IN_BLOCK_COPY_SRC_DATA_PER_READ_B=") + std::to_string(InBlockCopySrcDataPerRead_B) + 
-        std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) + 
-        std::string(" -DCK_PARAM_OUT_THREAD_COPY_DATA_PER_ACCESS_B=") + std::to_string(OutThreadCopyDataPerAccess_B) + 
-        std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx,true)) + 
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K=") + std::to_string(config.InBlockCopyClusterLengths_E) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_N=") + std::to_string(config.InBlockCopyClusterLengths_B) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K=") + std::to_string(config.WeiBlockCopyClusterLengths_E) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_M=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N=") + std::to_string(BBlockCopySrcDataPerRead_B) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_K=") + std::to_string(ABlockCopySrcDataPerRead_E) +
+        std::string(" -DCK_PARAM_GEMM_KPACK_LENGTH=") + std::to_string(GetEPackLength(ctx,true)) +
         std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
+        std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
@@ -288,18 +283,18 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     if(ctx.IsFp32())
     {
         construction_parameters.comp_options +=
-            std::string(" -DCK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_B=") +
-            std::to_string(InBlockCopyDstDataPerWrite_B) +
-            std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K=") +
-            std::to_string(WeiBlockCopyDstDataPerWrite_K);
+            std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N=") +
+            std::to_string(BBlockCopyDstDataPerWrite_GemmN) +
+            std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_M=") +
+            std::to_string(ABlockCopyDstDataPerWrite_GemmM);
     }
     else
     {
         construction_parameters.comp_options +=
-            std::string(" -DCK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_EPACK=") +
-            std::to_string(InBlockCopyDstDataPerWrite_EPACK) +
-            std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_EPACK=") +
-            std::to_string(WeiBlockCopyDstDataPerWrite_EPACK);
+            std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") +
+            std::to_string(BBlockCopyDstDataPerWrite_GemmKPACK) +
+            std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") +
+            std::to_string(ABlockCopyDstDataPerWrite_GemmKPACK);
     }
 
     result.construction_params.push_back(construction_parameters);

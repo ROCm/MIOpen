@@ -133,7 +133,6 @@ template <index_t GridSize,
           class WeiBlockCopyDstAccessOrder,
           index_t WeiBlockCopySrcDataPerRead_E,
           index_t WeiBlockCopyDstDataPerWrite_EPACK,
-          index_t OutThreadCopyDataPerAccess_B,
           ImplicitGemmDirection conv_dir>
 struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw_lds_double_buffer
 {
@@ -459,6 +458,7 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw
 
         // copy output: register to global memory
         {
+            ///\todo inconsistent layout of xdlops and tensor
             constexpr auto OutputLayout = blockwise_gemm.GetOutputLayout();
             constexpr index_t K0        = OutputLayout.M1();
             constexpr index_t K1        = OutputLayout.N1();
@@ -502,8 +502,8 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw
                                                       OutThreadCopySliceLengths,
                                                       arithmetic_sequence_gen<0, 4, 1>::type,
                                                       3,
-                                                      OutThreadCopyDataPerAccess_B,
-                                                      OutThreadCopyDataPerAccess_B,
+                                                      1,
+                                                      1,
                                                       AddressSpace::Vgpr,
                                                       AddressSpace::Generic,
                                                       InMemoryDataOperation::Set>(

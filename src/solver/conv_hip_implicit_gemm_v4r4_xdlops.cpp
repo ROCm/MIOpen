@@ -39,8 +39,6 @@ namespace solver {
 /// \todo enable vector load after fix it
 #define WORKAROUND_FAILED_VECTOR_LOAD 1
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM)
-
 PerformanceImplicitGemmXdlops
 ConvHipImplicitGemmV4R4FwdXdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
