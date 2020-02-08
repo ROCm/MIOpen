@@ -120,8 +120,9 @@ template <typename Tgpu, typename Tref>
 int LRNDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
+    auto dir_val = inflags.GetValueInt("forw");
 
-    do_backward = !(inflags.GetValueInt("forw"));
+    do_backward = (dir_val == 0) || (dir_val == 2);
 
     if(inflags.GetValueInt("time") == 1)
     {
