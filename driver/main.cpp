@@ -42,13 +42,23 @@
 
 int main(int argc, char* argv[])
 {
+
+    std::string base_arg = ParseBaseArg(argc, argv);
+
+    if(base_arg == "--version")
+    {
+        size_t major, minor, patch;
+        miopenGetVersion(&major, &minor, &patch);
+        std::cout << "MIOpen (version: " << major << "." << minor << "." << patch << ")"
+                  << std::endl;
+        exit(0);
+    }
+
     // show command
-    std::cout << "MIOpenDriver:";
+    std::cout << "MIOpenDriver";
     for(int i = 1; i < argc; i++)
         std::cout << " " << argv[i];
     std::cout << std::endl;
-
-    std::string base_arg = ParseBaseArg(argc, argv);
 
     Driver* drv;
     if(base_arg == "conv")
