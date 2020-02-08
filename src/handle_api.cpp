@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <cstdio>
+#include <miopen/version.h>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 
@@ -50,6 +51,18 @@ extern "C" const char* miopenGetErrorString(miopenStatus_t error)
     case miopenStatusUnsupportedOp: return "miopenStatusUnsupportedOp";
     }
     return "Unknown error status";
+}
+
+extern "C" miopenStatus_t miopenGetVersion(size_t* major, size_t* minor, size_t* patch)
+{
+    return miopen::try_([&] {
+        if(major != nullptr)
+            *major = MIOPEN_VERSION_MAJOR;
+        if(minor != nullptr)
+            *minor = MIOPEN_VERSION_MINOR;
+        if(patch != nullptr)
+            *patch = MIOPEN_VERSION_PATCH;
+    });
 }
 
 extern "C" miopenStatus_t miopenCreate(miopenHandle_t* handle)
