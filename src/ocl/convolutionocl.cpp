@@ -955,6 +955,7 @@ static void DirConvFindCore(Handle& handle,
         bufs.SetFwd(x, w, y);
         const auto all = conv.FindDataDirectSolutions(
             handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, network_config, eka, bufs);
+        PrecompileSolutions(handle, all);
         const auto invoke_ctx = conv::FwdInvokeParams{
             ConvFwdTensors{xDesc, x, wDesc, w, yDesc, y}, workSpace, workSpaceSize};
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoDirect"};
@@ -970,6 +971,7 @@ static void DirConvFindCore(Handle& handle,
         bufs.SetFwd(x, w, y);
         const auto all = conv.FindDataImplicitGemmSolutions(
             handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, network_config, bufs);
+        PrecompileSolutions(handle, all);
         miopen::solver::ConvSolution selected{miopenStatusUnknownError};
         float best = std::numeric_limits<float>::max();
         visit_float(xDesc.GetType(), [&](auto as_float) {
@@ -1055,6 +1057,7 @@ static void DirConvFindCore(Handle& handle,
         bufs.SetFwd(x, w, y);
         const auto all = conv.FindSCGemmSolutions(
             handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, network_config, bufs);
+        PrecompileSolutions(handle, all);
         miopen::solver::ConvSolution selected{miopenStatusUnknownError};
 
         float best = std::numeric_limits<float>::max();
@@ -2887,6 +2890,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                                          network_config,
                                                          eka,
                                                          bufs);
+                PrecompileSolutions(handle, all);
                 miopen::solver::ConvSolution selected{miopenStatusUnknownError};
                 float best = std::numeric_limits<float>::max();
                 visit_float(dyDesc.GetType(), [&](auto as_float) {
@@ -2944,6 +2948,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 bufs.SetBwd(dx, w, dy);
                 const auto all = this->FindDataImplicitGemmSolutions(
                     handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, network_config, bufs);
+                PrecompileSolutions(handle, all);
                 miopen::solver::ConvSolution selected{miopenStatusUnknownError};
                 float best = std::numeric_limits<float>::max();
                 visit_float(dxDesc.GetType(), [&](auto as_float) {

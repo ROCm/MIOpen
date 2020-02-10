@@ -29,6 +29,7 @@
 
 #include <miopen/db.hpp>
 #include <miopen/solver_id.hpp>
+#include <miopen/par_for.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/any_solver.hpp>
 
@@ -37,6 +38,8 @@
 
 namespace miopen {
 namespace solver {
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_COMPILE_PARALLEL_LEVEL)
 
 std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
 {
@@ -47,6 +50,45 @@ std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
     for(const auto& size : k.l_wk)
         os << size << ' ';
     return os << "} '" << k.comp_options << '\'';
+}
+
+std::vector<Program> PrecompileKernels(Handle& h, const std::vector<KernelInfo>& kernels)
+{
+    std::vector<Program> programs(kernels.size());
+    par_for(kernels.size(),
+            max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
+            [&](auto i) {
+                const KernelInfo& k = kernels[i];
+                programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
+            });
+    return programs;
+}
+
+void PrecompileSolutions(Handle& h, const std::vector<ConvSolution>& sols)
+{
+    // Find all kernels that need to be compiled from the solutions
+    std::vector<KernelInfo> kernels;
+    for(auto&& sol : sols)
+    {
+        if(!sol.Succeeded())
+            continue;
+        for(auto&& kernel : sol.construction_params)
+        {
+            if(h.HasProgram(kernel.kernel_file, kernel.comp_options))
+                continue;
+            kernels.push_back(kernel);
+        }
+    }
+
+    // Precompile the kernels in parallel, but dont add them to the cache
+    std::vector<Program> programs = PrecompileKernels(h, kernels);
+
+    // Add programs to the cache
+    for(std::size_t i = 0; i < programs.size(); i++)
+    {
+        const KernelInfo& k = kernels[i];
+        h.AddProgram(programs[i], k.kernel_file, k.comp_options);
+    }
 }
 
 std::ostream& operator<<(std::ostream& os, const ConvSolution& s)

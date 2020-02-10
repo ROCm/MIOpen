@@ -24,13 +24,18 @@
  *
  *******************************************************************************/
 
-#pragma once
+#ifndef GUARD_MLOPEN_KERNEL_INFO_HPP
+#define GUARD_MLOPEN_KERNEL_INFO_HPP
 
 #include <ostream>
 #include <string>
 #include <vector>
+#include <miopen/kernel.hpp>
 
 namespace miopen {
+
+struct Handle;
+
 namespace solver {
 
 /// Describes a kernel source and whatever information required in order
@@ -45,5 +50,9 @@ struct KernelInfo
     friend std::ostream& operator<<(std::ostream& os, const KernelInfo& k);
 };
 
+std::vector<Program> PrecompileKernels(Handle& h, const std::vector<KernelInfo>& kernels);
+
 } // namespace solver
 } // namespace miopen
+
+#endif
