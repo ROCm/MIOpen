@@ -590,6 +590,16 @@ Program Handle::LoadProgram(const std::string& program_name,
     }
 }
 
+bool Handle::HasProgram(const std::string& program_name, const std::string& params)
+{
+    return this->impl->cache.HasProgram(program_name, params);
+}
+
+void Handle::AddProgram(Program prog, const std::string& program_name, const std::string& params)
+{
+    this->impl->cache.AddProgram(prog, program_name, params);
+}
+
 void Handle::Finish() const { clFinish(this->GetStream()); }
 
 void Handle::Flush() const { clFlush(this->GetStream()); }

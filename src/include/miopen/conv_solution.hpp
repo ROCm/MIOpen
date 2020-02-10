@@ -88,6 +88,8 @@ struct ConvSolution
 
 std::ostream& operator<<(std::ostream& os, const ConvSolution& s);
 
+void PrecompileSolutions(Handle& h, const std::vector<ConvSolution>& sols);
+
 } // namespace solver
 } // namespace miopen
 
