@@ -31,6 +31,7 @@
 #include <cassert>
 #include <cmath>
 #include <functional>
+#include <miopen/par_for.hpp>
 #include <miopen/each_args.hpp>
 #include <miopen/returns.hpp>
 #include <numeric>
@@ -97,41 +98,7 @@ struct thread_factory
     }
 };
 
-template <class F>
-void par_for_impl(std::size_t n, std::size_t threadsize, F f)
-{
-    if(threadsize <= 1)
-    {
-        for(std::size_t i = 0; i < n; i++)
-            f(i);
-    }
-    else
-    {
-        std::vector<joinable_thread> threads(threadsize);
-        const std::size_t grainsize = std::ceil(static_cast<double>(n) / threads.size());
-
-        std::size_t work = 0;
-        std::generate(threads.begin(),
-                      threads.end(),
-                      std::bind(thread_factory{}, std::ref(work), n, grainsize, f));
-        assert(work >= n);
-    }
-}
-
-template <class F>
-void par_for(std::size_t n, std::size_t min_grain, F f)
-{
-    const auto threadsize =
-        std::min<std::size_t>(std::thread::hardware_concurrency(), n / min_grain);
-    par_for_impl(n, threadsize, f);
-}
-
-template <class F>
-void par_for(std::size_t n, F f)
-{
-    const int min_grain = 8;
-    par_for(n, min_grain, f);
-}
+using miopen::par_for; // NOLINT
 
 template <class T>
 struct ford_wrapper
