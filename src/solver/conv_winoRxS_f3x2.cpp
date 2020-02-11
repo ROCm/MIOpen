@@ -190,6 +190,7 @@ static inline bool IsShaderContraintsMet(const int R,
         && R < std::pow(2, 16)
         && grid_workgroup_count_x < std::pow(2, 16)
         && (C * H * W) <= std::pow(2, 28)
+        && (OH * OW) <= std::pow(2, 23)
         && (K * OH * OW) <= std::pow(2, 28)
         && (K * R * S) <= std::pow(2, 28)
         && (C * R * S) <= std::pow(2, 28);
