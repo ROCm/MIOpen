@@ -42,7 +42,8 @@ template <index_t GridSize,
           class BBlockCopyDstAccessOrder,
           index_t BBlockCopySrcVectorReadDim,
           index_t BBlockCopySrcDataPerRead,
-          index_t BBlockCopyDstDataPerWrite_N>
+          index_t BBlockCopyDstDataPerWrite_N,
+          InMemoryDataOperation CGlobalMemoryDataOperation>
 struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
 {
     __device__ void Run(const Float* const __restrict__ p_a_global,
@@ -307,7 +308,7 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
                                                       1,
                                                       AddressSpace::Vgpr,
                                                       AddressSpace::Global,
-                                                      InMemoryDataOperation::Set>(
+                                                      CGlobalMemoryDataOperation>(
                     {0, 0, 0, 0},
                     {m_thread_data_on_global / (M2 * M1),
                      m_thread_data_on_global % (M2 * M1) / M2,
@@ -350,7 +351,8 @@ template <index_t GridSize,
           class BBlockCopyDstAccessOrder,
           index_t BBlockCopySrcVectorReadDim,
           index_t BBlockCopySrcDataPerRead,
-          index_t BBlockCopyDstDataPerWrite_N>
+          index_t BBlockCopyDstDataPerWrite_N,
+          InMemoryDataOperation CGlobalMemoryDataOperation>
 struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v1
 {
     __device__ void Run(const Float* const __restrict__ p_a_global,
@@ -625,7 +627,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v1
                                                       1,
                                                       AddressSpace::Vgpr,
                                                       AddressSpace::Global,
-                                                      InMemoryDataOperation::Set>(
+                                                      CGlobalMemoryDataOperation>(
                     {0, 0, 0, 0, 0},
                     {group_id,
                      m_thread_data_on_global / (M2 * M1),

@@ -318,7 +318,11 @@ EvaluateDataImplicitGemmSolution(Handle& handle,
         }
     }
     else if(kernel.GetName() ==
-            "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw")
+                "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw" ||
+            kernel.GetName() ==
+                "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw" ||
+            kernel.GetName() ==
+                "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_gnchw_gkcyx_gnkhw")
     {
         // this kernel accumulate results into input tensor, therefore need to set zero
         float zero = 0.f;
@@ -3511,7 +3515,11 @@ void ConvBwdImplicitGemm(const ConvolutionContext& /*ctx*/,
             elapsed += handle.GetKernelTime();
     }
     else if(kernel.GetName() ==
-            "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw")
+                "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw" ||
+            kernel.GetName() ==
+                "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw" ||
+            kernel.GetName() ==
+                "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_gnchw_gkcyx_gnkhw")
     {
         // this kernel accumulate results into input tensor, therefore need to set zero
         float zero = 0.f;
