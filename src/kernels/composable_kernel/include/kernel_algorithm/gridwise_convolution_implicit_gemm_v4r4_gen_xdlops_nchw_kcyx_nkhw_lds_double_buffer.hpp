@@ -208,7 +208,8 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double
             GemmBBlockCopyDstAccessOrder,
             1,
             GemmBBlockCopySrcDataPerRead_GemmN,
-            GemmBBlockCopyDstDataPerWrite_GemmN>{};
+            GemmBBlockCopyDstDataPerWrite_GemmN,
+            InMemoryDataOperation::Set>{};
 
         gridwise_gemm.Run(p_wei_global, p_in_global, p_out_global);
     }

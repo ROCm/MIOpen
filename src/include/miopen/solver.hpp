@@ -775,6 +775,12 @@ struct ConvHipImplicitGemmBwdDataV4R1 : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
+struct ConvHipImplicitGemmBwdDataV1R1Xdlops : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
 /// Holds common member functions for the Solvers which share the same
 /// "legacy exhaustive search" machinery.
 struct ConvOclDirectFwdLegacyExhaustiveSearch : SolverBase<ConvolutionContext>
