@@ -36,6 +36,9 @@
 #include <miopen/logger.hpp>
 
 #include <boost/filesystem.hpp>
+#include <miopen/handle_lock.hpp>
+#include <miopen/load_file.hpp>
+#include <miopen/gemm_geometry.hpp>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -350,23 +353,32 @@ Program Handle::LoadProgram(const std::string& program_name,
 {
     this->impl->set_ctx();
     params += " -mcpu=" + this->GetDeviceName();
-    auto cache_file =
-        miopen::LoadBinary(this->GetDeviceName(), program_name, params, is_kernel_str);
-    if(cache_file.empty())
+    auto hsaco = miopen::LoadBinary(
+        this->GetDeviceName(), this->GetMaxComputeUnits(), program_name, params, is_kernel_str);
+    if(hsaco.empty())
     {
         auto p =
             HIPOCProgram{program_name, params, is_kernel_str, this->GetDeviceName(), kernel_src};
 
-        // Save to cache
-        auto path = miopen::GetCachePath() / boost::filesystem::unique_path();
+// Save to cache
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
+        miopen::SaveBinary(miopen::LoadFile(p.GetBinary().string()),
+                           this->GetDeviceName(),
+                           this->GetMaxComputeUnits(),
+                           program_name,
+                           params,
+                           is_kernel_str);
+#else
+        auto path      = miopen::GetCachePath(false) / boost::filesystem::unique_path();
         boost::filesystem::copy_file(p.GetBinary(), path);
         miopen::SaveBinary(path, this->GetDeviceName(), program_name, params, is_kernel_str);
+#endif
 
         return p;
     }
     else
     {
-        return HIPOCProgram{program_name, cache_file};
+        return HIPOCProgram{program_name, hsaco};
     }
 }
 

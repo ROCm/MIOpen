@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,43 +23,24 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#ifndef GUARD_MLOPEN_BINARY_CACHE_HPP
-#define GUARD_MLOPEN_BINARY_CACHE_HPP
-
-#include <string>
-#include <boost/filesystem/path.hpp>
-
-#include <miopen/config.h>
+#include <miopen/kern_db.hpp>
 
 namespace miopen {
-
-boost::filesystem::path GetCacheFile(const std::string& device,
-                                     const std::string& name,
-                                     const std::string& args,
-                                     bool is_kernel_str);
-
-boost::filesystem::path GetCachePath(bool is_system);
-std::string LoadBinary(const std::string& device,
-                       std::size_t num_cu,
-                       const std::string& name,
-                       const std::string& args,
-                       bool is_kernel_str = false);
-#if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
-void SaveBinary(const boost::filesystem::path& binary_path,
-                const std::string& device,
-                const std::string& name,
-                const std::string& args,
-                bool is_kernel_str = false);
-#else
-void SaveBinary(const std::string& hsaco,
-                const std::string& device,
-                std::size_t num_cu,
-                const std::string& name,
-                const std::string& args,
-                bool is_kernel_str = false);
-#endif
+KernDb::KernDb(const std::string& filename_,
+               bool is_system,
+               const std::string& arch_,
+               const std::size_t num_cu_)
+    : SQLiteBase(filename_, is_system, arch_, num_cu_)
+{
+    if(!is_system)
+    {
+        const auto lock = exclusive_lock(lock_file, GetLockTimeout());
+        MIOPEN_VALIDATE_LOCK(lock);
+        const std::string create_table = KernelConfig::CreateQuery();
+        if(!SQLExec(create_table))
+            MIOPEN_THROW(miopenStatusInternalError);
+        MIOPEN_LOG_I2("Database created successfully");
+    }
+}
 
 } // namespace miopen
-
-#endif

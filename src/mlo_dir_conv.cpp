@@ -70,25 +70,25 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_FIRST_SOLUTION)
 
 #if MIOPEN_ENABLE_SQLITE
-miopen::PerfDb mlo_construct_base::GetDb() const
+miopen::PerformanceDb mlo_construct_base::GetDb() const
 {
     auto& h = _search_params.GetStream();
     return {
         db_path(), _search_params.GetUserPerfDbPath(), h.GetDeviceName(), h.GetMaxComputeUnits()};
 }
-miopen::PerfDb miopen::GetDb(const miopen::ConvolutionContext& ctx)
+miopen::PerformanceDb miopen::GetDb(const miopen::ConvolutionContext& ctx)
 {
     auto& h = ctx.GetStream();
     return {
         ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath(), h.GetDeviceName(), h.GetMaxComputeUnits()};
 }
 #else
-miopen::PerfDb mlo_construct_base::GetDb() const
+miopen::PerformanceDb mlo_construct_base::GetDb() const
 {
     return {db_path(), _search_params.GetUserPerfDbPath()};
 }
 
-miopen::PerfDb miopen::GetDb(const ConvolutionContext& ctx)
+miopen::PerformanceDb miopen::GetDb(const ConvolutionContext& ctx)
 {
     return {ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath()};
 }
