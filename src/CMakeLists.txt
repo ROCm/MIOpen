@@ -122,6 +122,7 @@ set( MIOpen_Source
     dropout.cpp
     dropout_api.cpp
     readonlyramdb.cpp
+    kern_db.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp

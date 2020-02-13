@@ -51,10 +51,10 @@ class FindDbRecord_t;
 
 #if MIOPEN_DEBUG_FIND_DB_CACHING
 using SystemFindDb = ReadonlyRamDb;
-using UserFindDb   = Db;
+using UserFindDb   = PlainTextDb;
 #else
-using SystemFindDb = Db;
-using UserFindDb   = Db;
+using SystemFindDb = PlainTextDb;
+using UserFindDb   = PlainTextDb;
 #endif
 
 using FindDb           = MultiFileDb<SystemFindDb, UserFindDb, false>;
@@ -89,7 +89,7 @@ class FindDbRecord_t
                                                          : GetInstalledPath(handle)),
           db(boost::make_optional<DbTimer<TDb>>(testing_find_db_enabled &&
                                                     !IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}),
-                                                DbTimer<TDb>{installed_path, path}))
+                                                DbTimer<TDb>{installed_path, path, "", 0}))
     {
         if(!db.is_initialized())
             return;
@@ -104,7 +104,7 @@ class FindDbRecord_t
                                                : GetUserPath(handle)),
           db(boost::make_optional<DbTimer<TDb>>(testing_find_db_enabled &&
                                                     !IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}),
-                                                DbTimer<TDb>{path, false}))
+                                                DbTimer<TDb>{path, false, "", 0}))
     {
         if(!db.is_initialized())
             return;

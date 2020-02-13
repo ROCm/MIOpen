@@ -81,12 +81,29 @@ hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
     return m;
 }
 
+hipModulePtr CreateModuleInMem(const std::string& hsaco)
+{
+    hipModule_t raw_m;
+
+    auto status = hipModuleLoadData(&raw_m, reinterpret_cast<const void*>(hsaco.data()));
+    hipModulePtr m{raw_m};
+    if(status != hipSuccess)
+        MIOPEN_THROW_HIP_STATUS(status, "Failed loading module");
+    return m;
+}
+
 struct HIPOCProgramImpl
 {
     HIPOCProgramImpl(const std::string& program_name, const boost::filesystem::path& hsaco)
         : name(program_name), hsaco_file(hsaco)
     {
         this->module = CreateModule(this->hsaco_file);
+    }
+    HIPOCProgramImpl(const std::string& program_name,
+                     const std::string& hsaco) // the actual module and not just the filename
+        : name(program_name),
+          module(CreateModuleInMem(hsaco))
+    {
     }
     HIPOCProgramImpl(const std::string& program_name,
                      std::string params,
@@ -166,6 +183,11 @@ HIPOCProgram::HIPOCProgram(const std::string& program_name,
 }
 
 HIPOCProgram::HIPOCProgram(const std::string& program_name, const boost::filesystem::path& hsaco)
+    : impl(std::make_shared<HIPOCProgramImpl>(program_name, hsaco))
+{
+}
+
+HIPOCProgram::HIPOCProgram(const std::string& program_name, const std::string& hsaco)
     : impl(std::make_shared<HIPOCProgramImpl>(program_name, hsaco))
 {
 }

@@ -44,6 +44,7 @@ struct HIPOCProgram
                  std::string dev_name,
                  const std::string& kernel_src);
     HIPOCProgram(const std::string& program_name, const boost::filesystem::path& hsaco);
+    HIPOCProgram(const std::string& program_name, const std::string& hsaco);
     std::shared_ptr<const HIPOCProgramImpl> impl;
     hipModule_t GetModule() const;
     boost::filesystem::path GetBinary() const;

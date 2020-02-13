@@ -33,7 +33,10 @@
 #include <map>
 
 namespace miopen {
-ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path, bool warn_if_unreadable)
+ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path,
+                                        bool warn_if_unreadable,
+                                        const std::string& /*arch*/,
+                                        const std::size_t /*num_cu*/)
 {
     static std::mutex mutex;
     static const std::lock_guard<std::mutex> lock{mutex};

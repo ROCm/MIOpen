@@ -409,7 +409,7 @@ Handle::Handle() : impl(new HandleImpl())
     // Pick device based on process id
     auto pid = ::getpid();
     assert(pid > 0);
-    impl->device = devices.at(pid % devices.size());
+    impl->device  = devices.at(pid % devices.size());
 #endif
 
 #if !MIOPEN_INSTALLABLE
@@ -563,9 +563,9 @@ Program Handle::LoadProgram(const std::string& program_name,
                             bool is_kernel_str,
                             const std::string& kernel_src)
 {
-    auto cache_file =
-        miopen::LoadBinary(this->GetDeviceName(), program_name, params, is_kernel_str);
-    if(cache_file.empty())
+    auto hsaco = miopen::LoadBinary(
+        this->GetDeviceName(), this->GetMaxComputeUnits(), program_name, params, is_kernel_str);
+    if(hsaco.empty())
     {
         auto p = miopen::LoadProgram(miopen::GetContext(this->GetStream()),
                                      miopen::GetDevice(this->GetStream()),
@@ -574,19 +574,33 @@ Program Handle::LoadProgram(const std::string& program_name,
                                      is_kernel_str,
                                      kernel_src);
 
-        // Save to cache
-        auto path = miopen::GetCachePath() / boost::filesystem::unique_path();
+// Save to cache
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
+        std::string binary;
+        miopen::GetProgramBinary(p, binary);
+        miopen::SaveBinary(binary,
+                           this->GetDeviceName(),
+                           this->GetMaxComputeUnits(),
+                           program_name,
+                           params,
+                           is_kernel_str);
+#else
+        auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
         miopen::SaveProgramBinary(p, path.string());
         miopen::SaveBinary(
             path.string(), this->GetDeviceName(), program_name, params, is_kernel_str);
-
+#endif
         return std::move(p);
     }
     else
     {
         return LoadBinaryProgram(miopen::GetContext(this->GetStream()),
                                  miopen::GetDevice(this->GetStream()),
-                                 miopen::LoadFile(cache_file));
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
+                                 hsaco);
+#else
+                                 miopen::LoadFile(hsaco));
+#endif
     }
 }
 

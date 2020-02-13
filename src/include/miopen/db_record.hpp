@@ -239,8 +239,8 @@ class DbRecord
         return *this;
     }
 
-    friend class Db;
-    friend class SQLite_Db;
+    friend class PlainTextDb;
+    friend class SQLitePerfDb;
     friend class ReadonlyRamDb;
 };
 
