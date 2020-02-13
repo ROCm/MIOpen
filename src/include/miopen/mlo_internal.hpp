@@ -131,16 +131,12 @@ inline int AlignUp(int val, unsigned step)
 namespace miopen {
 
 struct TensorDescriptor;
-#if MIOPEN_ENABLE_SQLITE
-template <bool merge_records>
-class SQLite_MultiFileDb;
-#else
+
 template <class TInstalled, class TUser, bool merge_records>
 class MultiFileDb;
-#endif
 
 class ReadonlyRamDb;
-class Db;
+class PlainTextDb;
 
 template <class TInnerDb>
 class DbTimer;
@@ -157,11 +153,11 @@ class StaticContainer
 };
 
 #if MIOPEN_ENABLE_SQLITE
-using PerfDb = DbTimer<SQLite_MultiFileDb<true>>;
+using PerformanceDb = DbTimer<MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>>;
 #else
-using PerfDb = DbTimer<MultiFileDb<Db, Db, true>>;
+using PerformanceDb = DbTimer<MultiFileDb<PlainTextDb, PlainTextDb, true>>;
 #endif
-miopen::PerfDb GetDb(const ConvolutionContext& ctx);
+miopen::PerformanceDb GetDb(const ConvolutionContext& ctx);
 
 template <class TTo>
 size_t setTopDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor)
@@ -288,7 +284,7 @@ struct mlo_construct_base
     void detectRocm() { _search_params.DetectRocm(); }
     void setupFloats() { _search_params.SetupFloats(); }
 
-    miopen::PerfDb GetDb() const;
+    miopen::PerformanceDb GetDb() const;
 
     /*
      * get common compiler options

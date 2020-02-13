@@ -62,6 +62,17 @@ class LockFile
     LockFile(const LockFile&) = delete;
     LockFile operator=(const LockFile&) = delete;
 
+    bool timed_lock(const boost::posix_time::ptime& abs_time)
+    {
+        access_mutex.lock();
+        return flock.timed_lock(abs_time);
+    }
+
+    bool timed_lock_shared(const boost::posix_time::ptime& abs_time)
+    {
+        access_mutex.lock_shared();
+        return flock.timed_lock_sharable(abs_time);
+    }
     void lock()
     {
         LockOperation("lock", MIOPEN_GET_FN_NAME(), [&]() { std::lock(access_mutex, flock); });
