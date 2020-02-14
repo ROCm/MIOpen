@@ -130,6 +130,9 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     BBlockCopySrcDataPerRead_B = kernel_filter_stride_w > 1 ? 1 : BBlockCopySrcDataPerRead_B;
 #endif
 
+    const int Y = KernelFilterHeightY(ctx);
+    const int X = KernelFilterWidthX(ctx);
+
     // Disable vectorized read in backward data case. Why?
     unsigned int ABlockCopySrcDataPerRead_E = 1;
     if(ctx.IsFp32())
@@ -142,15 +145,10 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         // For fp16, E = C/EPack * Y * X
         // Since C/EPack are not in contiguous memory along with Y*X, vector length
         // can' be more than Y*X
-        if(KernelFilterHeightY(ctx) * KernelFilterWidthX(ctx) >= ABlockCopySubLengths_GemmK)
-            ABlockCopySrcDataPerRead_E = GetReadWriteVectorSize(ABlockCopySubLengths_GemmK);
-        else
-            ABlockCopySrcDataPerRead_E = GetReadWriteVectorSize(
-                static_cast<int>(KernelFilterHeightY(ctx) * KernelFilterWidthX(ctx)));
+        ABlockCopySrcDataPerRead_E = (X * Y) % ABlockCopySubLengths_GemmK != 0
+                                         ? 1
+                                         : GetReadWriteVectorSize(ABlockCopySubLengths_GemmK);
     }
-
-    const int Y = KernelFilterHeightY(ctx);
-    const int X = KernelFilterWidthX(ctx);
 
     if(ctx.direction.IsBackwardWrW())
         ABlockCopySrcDataPerRead_E =

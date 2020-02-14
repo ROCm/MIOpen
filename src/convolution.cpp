@@ -478,11 +478,14 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
             ? ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc)
             : 0;
 
-    return std::max({workspace_size_fft,
-                     workspace_size_gemm,
-                     direct_workspace,
-                     implicit_gemm_workspace,
-                     workspace_size_scgemm});
+    const size_t workspace_size = std::max({workspace_size_fft,
+                                            workspace_size_gemm,
+                                            direct_workspace,
+                                            implicit_gemm_workspace,
+                                            workspace_size_scgemm});
+
+    MIOPEN_LOG_I2(workspace_size);
+    return workspace_size;
 }
 
 std::size_t
@@ -542,8 +545,12 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
 
     const size_t implicit_gemm_workspace = ForwardBackwardGetWorkSpaceSizeImplicitGemm(ctx);
 
-    return std::max(
+    const size_t workspace_size = std::max(
         {workspace_size_fft, workspace_size_gemm, direct_workspace, implicit_gemm_workspace});
+
+    MIOPEN_LOG_I2(workspace_size);
+
+    return workspace_size;
 }
 
 std::size_t
@@ -822,10 +829,14 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
     }
 #endif
 
-    return std::max({BackwardWeightsGetWorkSpaceSizeImplicitGemm(ctx),
-                     BackwardWeightsGetWorkSpaceSizeWinograd(ctx),
-                     BackwardWeightsGetWorkSpaceSizeDirect(ctx),
-                     workspace_size_gemm});
+    const size_t workspace_size = std::max({BackwardWeightsGetWorkSpaceSizeImplicitGemm(ctx),
+                                            BackwardWeightsGetWorkSpaceSizeWinograd(ctx),
+                                            BackwardWeightsGetWorkSpaceSizeDirect(ctx),
+                                            workspace_size_gemm});
+
+    MIOPEN_LOG_I2(workspace_size);
+
+    return workspace_size;
 }
 
 std::ostream& operator<<(std::ostream& stream, const ConvolutionDescriptor& c)
