@@ -13,11 +13,11 @@
 
 namespace ck {
 
-template <ImplicitGemmDirection conv_dir, index_t EPACK>
+template <ImplicitGemmDirection conv_dir, index_t GemmKPACK>
 struct make_vectorized_WeiDesc_Xdlops;
 
-template <index_t EPACK>
-struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::ForwardData, EPACK>
+template <index_t GemmKPACK>
+struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::ForwardData, GemmKPACK>
 {
     template <typename WeiDesc>
     __device__ constexpr auto get(WeiDesc&)
@@ -34,13 +34,13 @@ struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::ForwardData, EPACK>
         constexpr index_t Y = wei_k_c_y_x_global_desc.GetLength(I2);
         constexpr index_t X = wei_k_c_y_x_global_desc.GetLength(I3);
 
-        static_assert(C % EPACK == 0, "C needs to be multiple of vectorized EPACK");
-        constexpr index_t nonVectorizedC = C / EPACK;
+        static_assert(C % GemmKPACK == 0, "C needs to be multiple of vectorized GemmKPACK");
+        constexpr index_t nonVectorizedC = C / GemmKPACK;
 
         constexpr auto wei_k_epack_c_y_x_global_desc = transform_tensor_descriptor(
             wei_k_c_y_x_global_desc,
             make_tuple(PassThrough<K>{},
-                       UnMerge<Sequence<nonVectorizedC, EPACK>>{},
+                       UnMerge<Sequence<nonVectorizedC, GemmKPACK>>{},
                        PassThrough<Y>{},
                        PassThrough<X>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
@@ -48,8 +48,9 @@ struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::ForwardData, EPACK>
 
         constexpr auto wei_e_k_epack_global_desc = transform_tensor_descriptor(
             wei_k_epack_c_y_x_global_desc,
-            make_tuple(
-                Merge<Sequence<nonVectorizedC, Y, X>>{}, PassThrough<K>{}, PassThrough<EPACK>{}),
+            make_tuple(Merge<Sequence<nonVectorizedC, Y, X>>{},
+                       PassThrough<K>{},
+                       PassThrough<GemmKPACK>{}),
             make_tuple(Sequence<1, 3, 4>{}, Sequence<0>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
@@ -57,8 +58,8 @@ struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::ForwardData, EPACK>
     }
 };
 
-template <index_t EPACK>
-struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::BackwardWeight, EPACK>
+template <index_t GemmKPACK>
+struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::BackwardWeight, GemmKPACK>
 {
     template <typename WeiDesc>
     __device__ constexpr auto get(WeiDesc&)
@@ -76,22 +77,24 @@ struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::BackwardWeight, EPA
         constexpr index_t Y = wei_k_c_y_x_global_desc.GetLength(I2);
         constexpr index_t X = wei_k_c_y_x_global_desc.GetLength(I3);
 
-        static_assert(C % EPACK == 0, "C needs to be multiple of vectorized EPACK");
-        constexpr index_t nonVectorizedC = C / EPACK;
+        static_assert(C % GemmKPACK == 0, "C needs to be multiple of vectorized GemmKPACK");
+        constexpr index_t nonVectorizedC = C / GemmKPACK;
 
-        constexpr auto wei_k_epack_c_yx_global_desc = transform_tensor_descriptor(
-            unfold_tensor_descriptor(wei_k_c_y_x_global_desc, I2, I3),
-            make_tuple(
-                PassThrough<K>{}, UnMerge<Sequence<nonVectorizedC, EPACK>>{}, PassThrough<Y * X>{}),
-            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
-            make_tuple(Sequence<0>{}, Sequence<1, 2>{}, Sequence<3>{}));
+        constexpr auto wei_k_epack_c_yx_global_desc =
+            transform_tensor_descriptor(unfold_tensor_descriptor(wei_k_c_y_x_global_desc, I2, I3),
+                                        make_tuple(PassThrough<K>{},
+                                                   UnMerge<Sequence<nonVectorizedC, GemmKPACK>>{},
+                                                   PassThrough<Y * X>{}),
+                                        make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
+                                        make_tuple(Sequence<0>{}, Sequence<1, 2>{}, Sequence<3>{}));
 
-        constexpr auto wei_e_k_epack_global_desc = transform_tensor_descriptor(
-            wei_k_epack_c_yx_global_desc,
-            make_tuple(
-                Merge<Sequence<nonVectorizedC, Y * X>>{}, PassThrough<K>{}, PassThrough<EPACK>{}),
-            make_tuple(Sequence<1, 3>{}, Sequence<0>{}, Sequence<2>{}),
-            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
+        constexpr auto wei_e_k_epack_global_desc =
+            transform_tensor_descriptor(wei_k_epack_c_yx_global_desc,
+                                        make_tuple(Merge<Sequence<nonVectorizedC, Y * X>>{},
+                                                   PassThrough<K>{},
+                                                   PassThrough<GemmKPACK>{}),
+                                        make_tuple(Sequence<1, 3>{}, Sequence<0>{}, Sequence<2>{}),
+                                        make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
         return wei_e_k_epack_global_desc;
     }
@@ -109,30 +112,30 @@ template <index_t GridSize,
           class ConvDilations,
           class LeftPads,
           class RightPads,
-          index_t GemmNPerBlock,
           index_t GemmMPerBlock,
+          index_t GemmNPerBlock,
           index_t GemmKPerBlock,
-          index_t EPACK,
+          index_t GemmKPACK,
           index_t GemmMPerWave,
           index_t GemmNPerWave,
           index_t GemmMWaves,
           index_t GemmNWaves,
           index_t GemmDataPerReadM,
           index_t GemmDataPerReadN,
-          class GemmABlockCopyThreadSliceLengths_GemmK_GemmM_KPACK,
-          class GemmABlockCopyThreadClusterLengths_GemmK_GemmM_KPACK,
+          class GemmABlockCopyThreadSliceLengths_GemmK_GemmM_GemmKPACK,
+          class GemmABlockCopyThreadClusterLengths_GemmK_GemmM_GemmKPACK,
           class GemmABlockCopyThreadClusterArrangeOrder,
           class GemmABlockCopySrcAccessOrder,
           class GemmABlockCopyDstAccessOrder,
           index_t GemmABlockCopySrcDataPerRead_GemmK,
-          index_t GemmABlockCopyDstDataPerWrite_KPACK,
-          class GemmBBlockCopyThreadSliceLengths_GemmK_GemmN_KPACK,
-          class GemmBBlockCopyThreadClusterLengths_GemmK_GemmN_KPACK,
+          index_t GemmABlockCopyDstDataPerWrite_GemmKPACK,
+          class GemmBBlockCopyThreadSliceLengths_GemmK_GemmN_GemmKPACK,
+          class GemmBBlockCopyThreadClusterLengths_GemmK_GemmN_GemmKPACK,
           class GemmBBlockCopyThreadClusterArrangeOrder,
           class GemmBBlockCopySrcAccessOrder,
           class GemmBBlockCopyDstAccessOrder,
           index_t GemmBBlockCopySrcDataPerRead_GemmN,
-          index_t GemmBBlockCopyDstDataPerWrite_KPACK,
+          index_t GemmBBlockCopyDstDataPerWrite_GemmKPACK,
           ImplicitGemmDirection conv_dir>
 struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw_lds_double_buffer
 {
@@ -167,12 +170,13 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw
         constexpr index_t ConvDilationH = ConvDilations{}[0];
         constexpr index_t ConvDilationW = ConvDilations{}[1];
 
-        constexpr index_t B = N * Ho * Wo;
+        // GemmKPACK=1 for float32, =2 for bfloat16, =4 for float16
+        constexpr index_t GemmM = K;
+        constexpr index_t GemmN = N * Ho * Wo;
 
-        // EPACK=1 for float32, =2 for bfloat16, =4 for float16
-        static_assert(C % EPACK == 0, "C needs to be multiple of vectorized EPACK");
-        constexpr index_t nonVectorizedC = C / EPACK;
-        constexpr index_t E              = nonVectorizedC * Y * X;
+        static_assert(C % GemmKPACK == 0, "C needs to be multiple of GemmKPACK");
+        constexpr index_t nonVectorizedC = C / GemmKPACK;
+        constexpr index_t GemmK          = nonVectorizedC * Y * X;
 
         // sanity-check for vectorized memory load
         static_assert((Wo == 1 || (ConvStrideW == 1 || GemmBBlockCopySrcDataPerRead_GemmN == 1)) &&
@@ -180,8 +184,9 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw
                       "wrong! aligment requirement for vectorized global load of input tensor will "
                       "be violated");
 
-        // divide block work by [K, B]
-        static_assert(K % GemmMPerBlock == 0 && B % GemmNPerBlock == 0 && E % GemmKPerBlock == 0,
+        // divide block work by [M, N]
+        static_assert(GemmM % GemmMPerBlock == 0 && GemmN % GemmNPerBlock == 0 &&
+                          GemmK % GemmKPerBlock == 0,
                       "wrong! cannot divide work evenly among block");
 
         constexpr auto in_n_c_hip_wip_global_desc = transform_tensor_descriptor(
@@ -197,26 +202,26 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw
         constexpr auto in_n_epack_c_y_ho_x_wo_global_desc = transform_tensor_descriptor(
             in_n_c_hip_wip_global_desc,
             make_tuple(PassThrough<N>{},
-                       UnMerge<Sequence<nonVectorizedC, EPACK>>{},
+                       UnMerge<Sequence<nonVectorizedC, GemmKPACK>>{},
                        Embed<Hip, Sequence<Y, Ho>, Sequence<ConvDilationH, ConvStrideH, 0>>{},
                        Embed<Wip, Sequence<X, Wo>, Sequence<ConvDilationW, ConvStrideW, 0>>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
             make_tuple(Sequence<0>{}, Sequence<1, 2>{}, Sequence<3, 4>{}, Sequence<5, 6>{}));
 
-        constexpr auto in_e_b_epack_global_desc = transform_tensor_descriptor(
+        constexpr auto in_gemmk_gemmn_gemmkpack_global_desc = transform_tensor_descriptor(
             in_n_epack_c_y_ho_x_wo_global_desc,
             make_tuple(Merge<Sequence<nonVectorizedC, Y, X>>{},
                        Merge<Sequence<N, Ho, Wo>>{},
-                       PassThrough<EPACK>{}),
+                       PassThrough<GemmKPACK>{}),
             make_tuple(Sequence<1, 3, 5>{}, Sequence<0, 4, 6>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
         // weight tensor
         //   global mem
-        constexpr auto wei_e_k_epack_global_desc =
-            make_vectorized_WeiDesc_Xdlops<conv_dir, EPACK>{}.get(wei_k_c_y_x_global_desc);
+        constexpr auto wei_gemmk_gemmm_gemmkpack_global_desc =
+            make_vectorized_WeiDesc_Xdlops<conv_dir, GemmKPACK>{}.get(wei_k_c_y_x_global_desc);
 
-        constexpr auto out_k_b_global_desc =
+        constexpr auto out_gemmm_gemmn_global_desc =
             transform_tensor_descriptor(out_n_k_ho_wo_global_desc,
                                         make_tuple(PassThrough<K>{}, Merge<Sequence<N, Ho, Wo>>{}),
                                         make_tuple(Sequence<1>{}, Sequence<0, 2, 3>{}),
@@ -227,9 +232,10 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw
             BlockSize,
             Float,
             AccDataType,
-            decltype(wei_e_k_epack_global_desc),
-            decltype(in_e_b_epack_global_desc),
-            decltype(out_k_b_global_desc),
+            Float,
+            decltype(wei_gemmk_gemmm_gemmkpack_global_desc),
+            decltype(in_gemmk_gemmn_gemmkpack_global_desc),
+            decltype(out_gemmm_gemmn_global_desc),
             GemmMPerBlock,
             GemmNPerBlock,
             GemmKPerBlock,
@@ -239,22 +245,23 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw
             GemmNWaves,
             GemmDataPerReadM,
             GemmDataPerReadN,
-            GemmABlockCopyThreadSliceLengths_GemmK_GemmM_KPACK,
-            GemmABlockCopyThreadClusterLengths_GemmK_GemmM_KPACK,
+            GemmABlockCopyThreadSliceLengths_GemmK_GemmM_GemmKPACK,
+            GemmABlockCopyThreadClusterLengths_GemmK_GemmM_GemmKPACK,
             GemmABlockCopyThreadClusterArrangeOrder,
             GemmABlockCopySrcAccessOrder,
             GemmABlockCopyDstAccessOrder,
             0, // K dimension
             GemmABlockCopySrcDataPerRead_GemmK,
-            GemmABlockCopyDstDataPerWrite_KPACK,
-            GemmBBlockCopyThreadSliceLengths_GemmK_GemmN_KPACK,
-            GemmBBlockCopyThreadClusterLengths_GemmK_GemmN_KPACK,
+            GemmABlockCopyDstDataPerWrite_GemmKPACK,
+            GemmBBlockCopyThreadSliceLengths_GemmK_GemmN_GemmKPACK,
+            GemmBBlockCopyThreadClusterLengths_GemmK_GemmN_GemmKPACK,
             GemmBBlockCopyThreadClusterArrangeOrder,
             GemmBBlockCopySrcAccessOrder,
             GemmBBlockCopyDstAccessOrder,
             1, // N dimension
             GemmBBlockCopySrcDataPerRead_GemmN,
-            GemmBBlockCopyDstDataPerWrite_KPACK>{};
+            GemmBBlockCopyDstDataPerWrite_GemmKPACK,
+            InMemoryDataOperation::Set>{};
 
         gridwise_gemm.Run(p_wei_global, p_in_global, p_out_global);
     }

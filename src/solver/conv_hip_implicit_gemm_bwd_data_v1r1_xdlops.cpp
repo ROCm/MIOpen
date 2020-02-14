@@ -34,6 +34,24 @@ namespace solver {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM)
 
+size_t ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
+{
+    if(ctx.IsFp32())
+        return 0;
+    else
+    {
+        // In case of fp16/bfp16, because there is no atomic add ISA,
+        // reduction via atomic add ISA is done via fp32. As a result,
+        // workspace is computed with miopenFloat data type.
+        // Later, a separate kernel is invoked that casts from fp32 to fp16/bfp16
+        std::size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
+        std::size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
+        std::size_t hi = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
+        std::size_t wi = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
+        return n * c * hi * wi * miopen::GetTypeSize(miopenFloat);
+    }
+}
+
 bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(!ctx.direction.IsBackwardData())
@@ -42,7 +60,7 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext
     if(!ctx.Is2d())
         return false;
 
-    if(!ctx.IsFp32())
+    if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 
     std::size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
@@ -53,7 +71,14 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext
     std::size_t ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
     std::size_t wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
 
-    return (n * ho * wo) % 128 == 0 && (c * y * x) % 128 == 0 && k % 16 == 0;
+    // channel k is divided by epack to pack 2/4 fp16/bfp16
+    if(k % GetEPackLength(ctx, true) != 0)
+        return false;
+
+    const auto nonVectorizedK = k / GetEPackLength(ctx, true);
+
+    return IsXdlopsSupport(ctx) && (n * ho * wo) % 128 == 0 && (c * y * x) % 128 == 0 &&
+           nonVectorizedK % 16 == 0;
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(const ConvolutionContext& ctx) const
@@ -122,6 +147,8 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(const Convolution
             "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw";
     }
 
+    result.workspce_sz = GetWorkspaceSize(ctx);
+
     // clang-format off
     construction_parameters.comp_options = 
         std::string(" -std=c++14 ") +
@@ -152,19 +179,35 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(const Convolution
         std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K=") + std::to_string(4) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_M=") + std::to_string(64) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_M=") + std::to_string(1) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_M=") + std::to_string(1) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K=") + std::to_string(8) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_N=") + std::to_string(32) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N=") + std::to_string(1) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N=") + std::to_string(1) +
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_ADD=") + (support_amd_buffer_atomic_add(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
+        std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
-    // clang-format on
+
+    if(ctx.IsFp32())
+    {
+        construction_parameters.comp_options +=
+            std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_M=") +
+            std::to_string(1) +
+            std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N=") +
+            std::to_string(1);
+    }
+    else
+    {
+        construction_parameters.comp_options +=
+            std::string(" -DCK_PARAM_KPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, true)) +
+            std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") +
+            std::to_string(1) +
+            std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") +
+            std::to_string(1);
+    }
 
     result.construction_params.push_back(construction_parameters);
     return result;

@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include "bfloat16_dev.hpp"
 
 #define PPCAT_NX(A, B) A##B
 #define PPCAT(A, B) PPCAT_NX(A, B)
@@ -37,8 +38,10 @@
 #elif MIOPEN_SRC_TYPE == 2
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT_SRC half
-#else
+#elif MIOPEN_SRC_TYPE == 3
 #define _FLOAT_SRC float
+#else /* BFloat16 */
+#define _FLOAT_SRC ushort
 #endif
 
 #if MIOPEN_DST_TYPE == 0
@@ -63,13 +66,16 @@
 #else
 #define MAX_VAL HALF_MAX
 #endif
-#else
+#elif MIOPEN_DST_TYPE == 3
 #define _FLOAT_DST float
 #ifndef FLT_MAX
 #define MAX_VAL 3.402823466e+38F /* max value */
 #else
 #define MAX_VAL FLT_MAX
 #endif
+#else /* BFloat16 */
+#define _FLOAT_DST ushort
+#define MAX_VAL 0x7F7F /* max value */
 #endif
 
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
@@ -122,9 +128,13 @@ __kernel void SubTensorOpWithCastTensor1d(const global _FLOAT_SRC* __restrict sr
         const uint dindex = dstStride0 * did0;
 
         _FLOAT_SRC temp_src = *(src + sindex + srcOffset);
-        bool over_flow      = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
-
+#if MIOPEN_SRC_TYPE == 3 && MIOPEN_DST_TYPE == 4
+        temp_src *= alpha;
+        *(dst + dindex + dstOffset) = float_to_bfloat16(temp_src);
+#else
+        bool over_flow              = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
         *(dst + dindex + dstOffset) = (_FLOAT_DST)(over_flow ? MAX_VAL : alpha * ((float)temp_src));
+#endif
     }
 }
 
@@ -156,10 +166,14 @@ __kernel void SubTensorOpWithCastTensor2d(const global _FLOAT_SRC* __restrict sr
             const uint dindex = dstStride0 * did0 + dstStride1 * did1;
 
             _FLOAT_SRC temp_src = *(src + sindex + srcOffset);
-            bool over_flow      = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
-
+#if MIOPEN_SRC_TYPE == 3 && MIOPEN_DST_TYPE == 4
+            temp_src *= alpha;
+            *(dst + dindex + dstOffset) = float_to_bfloat16(temp_src);
+#else
+            bool over_flow          = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
             *(dst + dindex + dstOffset) =
                 (_FLOAT_DST)(over_flow ? MAX_VAL : alpha * ((float)temp_src));
+#endif
         }
     }
 }
@@ -201,10 +215,15 @@ __kernel void SubTensorOpWithCastTensor3d(const global _FLOAT_SRC* __restrict sr
                 const uint dindex = dstStride0 * did0 + dstStride1 * did1 + dstStride2 * did2;
 
                 _FLOAT_SRC temp_src = *(src + sindex + srcOffset);
-                bool over_flow      = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
 
+#if MIOPEN_SRC_TYPE == 3 && MIOPEN_DST_TYPE == 4
+                temp_src *= alpha;
+                *(dst + dindex + dstOffset) = float_to_bfloat16(temp_src);
+#else
+                bool over_flow = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
                 *(dst + dindex + dstOffset) =
                     (_FLOAT_DST)(over_flow ? MAX_VAL : alpha * ((float)temp_src));
+#endif
             }
         }
     }
@@ -258,10 +277,15 @@ __kernel void SubTensorOpWithCastTensor4d(const global _FLOAT_SRC* __restrict sr
                                         dstStride3 * did3;
 
                     _FLOAT_SRC temp_src = *(src + sindex + srcOffset);
-                    bool over_flow      = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
 
+#if MIOPEN_SRC_TYPE == 3 && MIOPEN_DST_TYPE == 4
+                    temp_src *= alpha;
+                    *(dst + dindex + dstOffset) = float_to_bfloat16(temp_src);
+#else
+                    bool over_flow = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
                     *(dst + dindex + dstOffset) =
                         (_FLOAT_DST)(over_flow ? MAX_VAL : alpha * ((float)temp_src));
+#endif
                 }
             }
         }
@@ -327,10 +351,14 @@ __kernel void SubTensorOpWithCastTensor5d(const global _FLOAT_SRC* __restrict sr
                                             dstStride4 * did4;
 
                         _FLOAT_SRC temp_src = *(src + sindex + srcOffset);
-                        bool over_flow      = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
-
+#if MIOPEN_SRC_TYPE == 3 && MIOPEN_DST_TYPE == 4
+                        temp_src *= alpha;
+                        *(dst + dindex + dstOffset) = float_to_bfloat16(temp_src);
+#else
+                        bool over_flow = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
                         *(dst + dindex + dstOffset) =
                             (_FLOAT_DST)(over_flow ? MAX_VAL : alpha * ((float)temp_src));
+#endif
                     }
                 }
             }

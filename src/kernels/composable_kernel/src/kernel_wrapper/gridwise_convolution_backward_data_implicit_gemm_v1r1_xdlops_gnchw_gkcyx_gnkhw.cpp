@@ -1,5 +1,6 @@
 #include "common_header.hpp"
 #include "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_gnchw_gkcyx_gnkhw.hpp"
+#include "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_fp16_bfp16_gnchw_gkcyx_gnkhw.hpp"
 #include "float_types.h"
 
 extern "C" __global__
@@ -73,17 +74,8 @@ extern "C" __global__
     constexpr index_t GemmABlockCopyThreadSliceLengths_GemmM =
         GemmMPerBlock / GemmABlockCopyClusterLengths_GemmM;
 
-    using GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM =
-        Sequence<1, GemmABlockCopyThreadSliceLengths_GemmK, GemmABlockCopyThreadSliceLengths_GemmM>;
-
-    using GemmABlockCopyThreadClusterLengths_GemmG_GemmK_GemmM =
-        Sequence<1, GemmABlockCopyClusterLengths_GemmK, GemmABlockCopyClusterLengths_GemmM>;
-
     constexpr index_t GemmABlockCopySrcDataPerRead_GemmM =
         CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_M;
-
-    constexpr index_t GemmABlockCopyDstDataPerWrite_GemmM =
-        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_M;
 
     // B matrix
     constexpr index_t GemmBBlockCopyClusterLengths_GemmK =
@@ -98,17 +90,57 @@ extern "C" __global__
     constexpr index_t GemmBBlockCopyThreadSliceLengths_GemmN =
         GemmNPerBlock / GemmBBlockCopyClusterLengths_GemmN;
 
+    constexpr index_t GemmBBlockCopySrcDataPerRead_GemmN =
+        CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N;
+
+#if MIOPEN_USE_FP32
+    constexpr index_t GemmABlockCopyDstDataPerWrite_GemmM =
+        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_M;
+
+    using GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM =
+        Sequence<1, GemmABlockCopyThreadSliceLengths_GemmK, GemmABlockCopyThreadSliceLengths_GemmM>;
+
+    using GemmABlockCopyThreadClusterLengths_GemmG_GemmK_GemmM =
+        Sequence<1, GemmABlockCopyClusterLengths_GemmK, GemmABlockCopyClusterLengths_GemmM>;
+
+    constexpr index_t GemmBBlockCopyDstDataPerWrite_GemmN =
+        CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N;
+
     using GemmBBlockCopyThreadSliceLengths_GemmG_GemmK_GemmN =
         Sequence<1, GemmBBlockCopyThreadSliceLengths_GemmK, GemmBBlockCopyThreadSliceLengths_GemmN>;
 
     using GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_GemmN =
         Sequence<1, GemmBBlockCopyClusterLengths_GemmK, GemmBBlockCopyClusterLengths_GemmN>;
 
-    constexpr index_t GemmBBlockCopySrcDataPerRead_GemmN =
-        CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N;
+#elif MIOPEN_USE_FP16 || MIOPEN_USE_BFP16
+    constexpr index_t GemmKPACK = CK_PARAM_KPACK_LENGTH;
 
-    constexpr index_t GemmBBlockCopyDstDataPerWrite_GemmN =
-        CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N;
+    constexpr index_t GemmABlockCopyDstDataPerWrite_Gemm_GemmKPACK =
+        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK;
+
+    using GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM_GemmKPACK =
+        Sequence<1,
+                 GemmABlockCopyThreadSliceLengths_GemmK,
+                 GemmABlockCopyThreadSliceLengths_GemmM,
+                 GemmKPACK>;
+
+    using GemmABlockCopyThreadClusterLengths_GemmG_GemmK_GemmM_GemmKPACK =
+        Sequence<1, GemmABlockCopyClusterLengths_GemmK, GemmABlockCopyClusterLengths_GemmM, 1>;
+
+    constexpr index_t GemmBBlockCopyDstDataPerWrite_Gemm_GemmKPACK =
+        CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK;
+
+    using GemmBBlockCopyThreadSliceLengths_GemmG_GemmK_GemmN_GemmKPACK =
+        Sequence<1,
+                 GemmBBlockCopyThreadSliceLengths_GemmK,
+                 GemmBBlockCopyThreadSliceLengths_GemmN,
+                 GemmKPACK>;
+
+    using GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_GemmN_GemmKPACK =
+        Sequence<1, GemmBBlockCopyClusterLengths_GemmK, GemmBBlockCopyClusterLengths_GemmN, 1>;
+#else
+    static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
+#endif
 
     constexpr auto GemmMPerWave = CK_PARAM_GEMM_M_PER_WAVE;
     constexpr auto GemmNPerWave = CK_PARAM_GEMM_N_PER_WAVE;
@@ -119,6 +151,7 @@ extern "C" __global__
     constexpr index_t GemmThreadGemmDataPerReadN = 1;
 
     constexpr auto gridwise_conv_bwd_data =
+#if MIOPEN_USE_FP32
         GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_gnchw_gkcyx_gnkhw<
             GridSize,
             BlockSize,
@@ -148,6 +181,40 @@ extern "C" __global__
             GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_GemmN,
             GemmBBlockCopySrcDataPerRead_GemmN,
             GemmBBlockCopyDstDataPerWrite_GemmN>{};
-
-    gridwise_conv_bwd_data.Run(p_in_global, p_wei_global, p_out_global);
+#elif MIOPEN_USE_FP16 || MIOPEN_USE_BFP16
+        GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_fp16_bfp16_gnchw_gkcyx_gnkhw<
+            GridSize,
+            BlockSize,
+            FLOAT,
+            FLOAT_ACCUM,
+            decltype(in_gnchw_desc),
+            decltype(wei_gkcyx_desc),
+            decltype(out_gnkhw_desc),
+            ConvStrides,
+            ConvDilations,
+            InLeftPads,
+            InRightPads,
+            GemmMPerBlock,
+            GemmNPerBlock,
+            GemmKPerBlock,
+            GemmKPACK,
+            GemmMPerWave,
+            GemmNPerWave,
+            GemmMWaves,
+            GemmNWaves,
+            GemmThreadGemmDataPerReadM,
+            GemmThreadGemmDataPerReadN,
+            GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM_GemmKPACK,
+            GemmABlockCopyThreadClusterLengths_GemmG_GemmK_GemmM_GemmKPACK,
+            GemmABlockCopySrcDataPerRead_GemmM,
+            GemmABlockCopyDstDataPerWrite_Gemm_GemmKPACK,
+            GemmBBlockCopyThreadSliceLengths_GemmG_GemmK_GemmN_GemmKPACK,
+            GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_GemmN_GemmKPACK,
+            GemmBBlockCopySrcDataPerRead_GemmN,
+            GemmBBlockCopyDstDataPerWrite_Gemm_GemmKPACK>{};
+#else
+        static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
+#endif
+    gridwise_conv_bwd_data.Run(
+        reinterpret_cast<FLOAT_ACCUM*>(p_in_global), p_wei_global, p_out_global);
 }
