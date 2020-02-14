@@ -101,6 +101,7 @@ size_t GetKernelLocalWorkDim(const KernelInvoke& kernel, int dim)
 #if(MIOPEN_BACKEND_HIP)
     return kernel.ldims[dim];
 #else
+    // sometimes local_work_dim = {0,0,0} look in issue #1724
     return kernel.local_work_dim[dim];
 #endif
 }
@@ -1571,6 +1572,10 @@ void ConvWinograd(const ConvolutionContext& ctx, const T& tensors, const KernelI
             n_groups = solver::ConvBinWinogradRxSf2x3::GetNGroups(
                 ctx.group_counts,
                 GetKernelGlobalWorkDim(kernel, 0) / GetKernelLocalWorkDim(kernel, 0));
+        else
+            n_groups = solver::ConvBinWinogradRxSf2x3::GetNGroups(
+                ctx.group_counts,
+                GetKernelGlobalWorkDim(kernel, 0) / 512); // For OCL runtime. Issue #1724
 
         // clang-format off
         MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
@@ -4850,6 +4855,11 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                     ctx.group_counts,
                                     GetKernelGlobalWorkDim(kernels[0], 0) /
                                         GetKernelLocalWorkDim(kernels[0], 0));
+                            else
+                                n_groups = solver::ConvBinWinogradRxSf2x3::GetNGroups(
+                                    ctx.group_counts,
+                                    GetKernelGlobalWorkDim(kernels[0], 0) /
+                                        512); // For OCL runtime. Issue #1724
 
                             // clang-format off
                             MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
@@ -5569,6 +5579,10 @@ void ConvolutionDescriptor::BackwardWeightsWinograd(Handle& handle,
                 n_groups = solver::ConvBinWinogradRxSf2x3::GetNGroups(
                     ctx.group_counts,
                     GetKernelGlobalWorkDim(kernels[0], 0) / GetKernelLocalWorkDim(kernels[0], 0));
+            else
+                n_groups = solver::ConvBinWinogradRxSf2x3::GetNGroups(
+                    ctx.group_counts,
+                    GetKernelGlobalWorkDim(kernels[0], 0) / 512); // For OCL runtime. Issue #1724
 
             // clang-format off
             MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
