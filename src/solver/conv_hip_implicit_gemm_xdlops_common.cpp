@@ -52,6 +52,9 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
     if(KBlockWork % ctx.group_counts != 0)
         return false;
 
+    if(!(ctx.direction.IsBackwardWrW() && ctx.IsFp32()) && EBlocks > 1)
+        return false;
+
     if(!(EPerBlock % InBlockCopyClusterLengths_E == 0 &&
          EPerBlock % WeiBlockCopyClusterLengths_E == 0 &&
          BPerBlock % InBlockCopyClusterLengths_B == 0 &&
@@ -59,7 +62,7 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
         return false;
 
     // divide block work by [K, B]
-    if(!(K % KPerBlock == 0 && B % BPerBlock == 0 && E % EPerBlock == 0))
+    if(!(K % KPerBlock == 0 && B % BPerBlock == 0 && E % (EPerBlock * EBlocks) == 0))
         return false; // wrong! cannot divice N evenly among thread
 
     // unsupported xdlops-gemm
@@ -114,6 +117,7 @@ PerformanceImplicitGemmXdlops::PerformanceImplicitGemmXdlops(bool spare)
     BPerBlock = spare ? 16 : 64;
     KPerBlock = spare ? 4 : 64;
     EPerBlock = spare ? 4 : 8;
+    EBlocks   = 1;
 
     GemmMPerWave = spare ? 4 : 64;
     GemmNPerWave = spare ? 16 : 64;
@@ -130,6 +134,7 @@ PerformanceImplicitGemmXdlops::PerformanceImplicitGemmXdlops(bool spare)
 PerformanceImplicitGemmXdlops::PerformanceImplicitGemmXdlops(int BPerBlock_,
                                                              int KPerBlock_,
                                                              int EPerBlock_,
+                                                             int EBlocks_,
                                                              int GemmMPerWave_,
                                                              int GemmNPerWave_,
                                                              int InBlockCopyClusterLengths_E_,
@@ -140,6 +145,7 @@ PerformanceImplicitGemmXdlops::PerformanceImplicitGemmXdlops(int BPerBlock_,
     : BPerBlock(BPerBlock_),
       KPerBlock(KPerBlock_),
       EPerBlock(EPerBlock_),
+      EBlocks(EBlocks_),
       GemmMPerWave(GemmMPerWave_),
       GemmNPerWave(GemmNPerWave_),
       InBlockCopyClusterLengths_E(InBlockCopyClusterLengths_E_),
@@ -156,6 +162,7 @@ bool PerformanceImplicitGemmXdlops::operator==(const PerformanceImplicitGemmXdlo
     return BPerBlock == other.BPerBlock
         && KPerBlock == other.KPerBlock
         && EPerBlock == other.EPerBlock
+        && EBlocks == other.EBlocks
         && GemmMPerWave == other.GemmMPerWave
         && GemmNPerWave == other.GemmNPerWave
         && InBlockCopyClusterLengths_E == other.InBlockCopyClusterLengths_E
@@ -172,6 +179,7 @@ bool PerformanceImplicitGemmXdlops::IsValidValue() const
     return IsTwoPower<16,128>(BPerBlock)
         && IsTwoPower<4,128>(KPerBlock)
         && IsTwoPower<4,32>(EPerBlock)
+        && IsTwoPower<1,64>(EBlocks)
         && IsTwoPower<4,64>(GemmMPerWave)
         && IsTwoPower<16,64>(GemmNPerWave)
         && IsTwoPower<4,16>(InBlockCopyClusterLengths_E)
@@ -206,6 +214,8 @@ bool PerformanceImplicitGemmXdlops::SetNextValue()
             if(!NextTwoPower<16, 64>(GemmNPerWave))
                 break;
         }
+        if(!NextTwoPower<1, 64>(EBlocks))
+            break;
         if(!NextTwoPower<4, 16>(InBlockCopyClusterLengths_E))
             break;
         if(!NextTwoPower<4, 32>(InBlockCopyClusterLengths_B))
@@ -223,25 +233,25 @@ bool PerformanceImplicitGemmXdlops::SetNextValue()
 void PerformanceImplicitGemmXdlops::EuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmXdlops tmp;
-    tmp = {128, 128, 16, 64, 64, 8, 32, 4, 64, use_spare_set};
+    tmp = {128, 128, 16, 1, 64, 64, 8, 32, 4, 64, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {64, 32, 4, 32, 64, 4, 16, 2, 32, use_spare_set};
+        tmp = {64, 32, 4, 1, 32, 64, 4, 16, 2, 32, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {64, 32, 4, 32, 64, 4, 16, 4, 16, use_spare_set};
+        tmp = {64, 32, 4, 1, 32, 64, 4, 16, 4, 16, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {32, 64, 4, 64, 32, 4, 16, 4, 16, use_spare_set};
+        tmp = {32, 64, 4, 1, 64, 32, 4, 16, 4, 16, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {32, 32, 4, 32, 32, 4, 16, 2, 32, use_spare_set};
+        tmp = {32, 32, 4, 1, 32, 32, 4, 16, 2, 32, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {64, 16, 4, 16, 64, 4, 16, 4, 16, use_spare_set};
+        tmp = {64, 16, 4, 1, 16, 64, 4, 16, 4, 16, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {16, 64, 4, 64, 16, 4, 16, 4, 16, use_spare_set};
+        tmp = {16, 64, 4, 1, 64, 16, 4, 16, 4, 16, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {16, 16, 4, 16, 16, 4, 16, 4, 16, use_spare_set};
+        tmp = {16, 16, 4, 1, 16, 16, 4, 16, 4, 16, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {64, 4, 16, 4, 64, 16, 4, 16, 4, use_spare_set};
+        tmp = {64, 4, 16, 1, 4, 64, 16, 4, 16, 4, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {64, 8, 8, 8, 64, 4, 16, 8, 8, use_spare_set};
+        tmp = {64, 8, 8, 1, 8, 64, 4, 16, 8, 8, use_spare_set};
     if(!tmp.IsValid(ctx))
     {
         MIOPEN_LOG_E("All attempts failed");

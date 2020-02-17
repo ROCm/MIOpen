@@ -5010,8 +5010,14 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 AddKernels(handle, algo_name, network_config, sol, &kernels);
                 if(!kernels.empty())
                 {
-                    kernels[0](x, dy, dw);
+                    // this kernel may accumulate results into wei tensor, therefore need to set
+                    // zero
+                    float zero = 0.f;
+                    SetTensor(handle, dwDesc, dw, &zero);
                     elapsed = handle.GetKernelTime();
+
+                    kernels[0](x, dy, dw);
+                    elapsed += handle.GetKernelTime();
                 }
 
                 MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ") << best);
@@ -5154,6 +5160,9 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 handle.GetKernels("miopenConvolutionBwdWeightsAlgoImplicitGEMM", network_config);
             if(kernels.empty())
                 MIOPEN_THROW("Error running Implicit GEMM Bwd Weights. Was Find() run previously?");
+
+            float zero = 0.f;
+            SetTensor(handle, dwDesc, dw, &zero);
             kernels[0](x, dy, dw);
         }
         }
