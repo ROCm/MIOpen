@@ -63,10 +63,11 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     std::size_t GemmNPerBlock = config.BPerBlock;
     std::size_t GemmMPerBlock = config.KPerBlock;
     std::size_t GemmKPerBlock = config.EPerBlock;
+    std::size_t GemmKBlocks   = config.EBlocks;
 
     std::size_t block_size =
         GemmNPerBlock * GemmMPerBlock / (config.GemmMPerWave * config.GemmNPerWave) * wave_size;
-    std::size_t grid_size = (b / GemmNPerBlock) * (k / GemmMPerBlock);
+    std::size_t grid_size = (b / GemmNPerBlock) * (k / GemmMPerBlock) * GemmKBlocks;
 
     std::size_t lkl_wk0 = block_size;
     std::size_t lkl_wk1 = 1;
@@ -261,6 +262,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_TUNABLE_GEMM_N_PER_BLOCK=") + std::to_string(GemmNPerBlock) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_M_PER_BLOCK=") + std::to_string(GemmMPerBlock) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_K_PER_BLOCK=") + std::to_string(GemmKPerBlock) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_K_BLOCKS=") + std::to_string(GemmKBlocks) +
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
         std::string(" -DCK_PARAM_GEMM_M_PER_WAVE=") + std::to_string(config.GemmMPerWave) +
         std::string(" -DCK_PARAM_GEMM_N_PER_WAVE=") + std::to_string(config.GemmNPerWave) +
