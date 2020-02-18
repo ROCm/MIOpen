@@ -51,16 +51,16 @@ extern "C" __global__
     using InRightPads = Sequence<InRightPadH, InRightPadW>;
 
     // read and calculate tuning parameter
-    constexpr index_t GemmMPerThreadSubC = CK_PARAM_TUNABLE_GEMM_M_PER_THREAD_SUB_C;
-    constexpr index_t GemmNPerThreadSubC = CK_PARAM_TUNABLE_GEMM_N_PER_THREAD_SUB_C;
+    constexpr index_t GemmMPerThread     = CK_PARAM_TUNABLE_GEMM_M_PER_THREAD;
+    constexpr index_t GemmNPerThread     = CK_PARAM_TUNABLE_GEMM_N_PER_THREAD;
     constexpr index_t GemmMLevel0Cluster = CK_PARAM_TUNABLE_GEMM_M_LEVEL0_CLUSTER;
     constexpr index_t GemmNLevel0Cluster = CK_PARAM_TUNABLE_GEMM_N_LEVEL0_CLUSTER;
     constexpr index_t GemmMLevel1Cluster = CK_PARAM_TUNABLE_GEMM_M_LEVEL1_CLUSTER;
     constexpr index_t GemmNLevel1Cluster = CK_PARAM_TUNABLE_GEMM_N_LEVEL1_CLUSTER;
-    constexpr index_t GemmKPerThreadLoop = 1;
+    constexpr index_t GemmKPerThread     = 1;
 
-    constexpr index_t GemmThreadGemmDataPerReadM = GemmMPerThreadSubC;
-    constexpr index_t GemmThreadGemmDataPerReadN = GemmNPerThreadSubC;
+    constexpr index_t ThreadGemmDataPerRead_GemmM = GemmMPerThread;
+    constexpr index_t ThreadGemmDataPerRead_GemmN = GemmNPerThread;
 
     // A matrix
     constexpr index_t GemmABlockCopyClusterLengths_GemmK =
@@ -131,15 +131,15 @@ extern "C" __global__
         GemmMPerBlock,
         GemmNPerBlock,
         GemmKPerBlock,
-        GemmMPerThreadSubC,
-        GemmNPerThreadSubC,
+        GemmMPerThread,
+        GemmNPerThread,
+        GemmKPerThread,
         GemmMLevel0Cluster,
         GemmNLevel0Cluster,
         GemmMLevel1Cluster,
         GemmNLevel1Cluster,
-        GemmKPerThreadLoop,
-        GemmThreadGemmDataPerReadM,
-        GemmThreadGemmDataPerReadN,
+        ThreadGemmDataPerRead_GemmM,
+        ThreadGemmDataPerRead_GemmN,
         GemmABlockCopyThreadSliceLengths_GemmK_GemmM,
         GemmABlockCopyThreadClusterLengths_GemmK_GemmM,
         GemmABlockCopySrcDataPerRead_GemmK,
