@@ -498,6 +498,176 @@ struct PerformanceImplicitGemmV4R1 : public PerformanceImplicitGemm
     bool IsValid(const ConvolutionContext& ctx) const;
 };
 
+struct PerformanceImplicitGemmV4R4Fwd : Serializable<PerformanceImplicitGemmV4R4Fwd>
+{
+    int BlockSize;
+
+    int GemmMPerBlock;
+    int GemmNPerBlock;
+    int GemmKPerBlock;
+
+    int GemmMPerThread;
+    int GemmNPerThread;
+
+    bool use_spare_set;
+
+    PerformanceImplicitGemmV4R4Fwd(int, int, int, int, int, int, bool);
+
+    PerformanceImplicitGemmV4R4Fwd(int a, int b, int c, int d, int e, int f)
+        : PerformanceImplicitGemmV4R4Fwd(a, b, c, d, e, f, false)
+    {
+    }
+
+    PerformanceImplicitGemmV4R4Fwd() : PerformanceImplicitGemmV4R4Fwd(-1, -1, -1, -1, -1, -1, false)
+    {
+    }
+
+    PerformanceImplicitGemmV4R4Fwd(bool spare);
+
+    bool operator==(const PerformanceImplicitGemmV4R4Fwd& other) const;
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.BlockSize, "BlockSize");
+        f(self.GemmMPerBlock, "GemmMPerBlock");
+        f(self.GemmNPerBlock, "GemmNPerBlock");
+        f(self.GemmKPerBlock, "GemmKPerBlock");
+        f(self.GemmMPerThread, "GemmMPerThread");
+        f(self.GemmNPerThread, "GemmNPerThread");
+    }
+
+    std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, bool>
+    CalculateBlockGemmPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, bool>
+    CalculateGemmABlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, bool>
+    CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<int, bool>
+    CalculateGemmCThreadCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext& ctx) const;
+    void EuristicInit(const ConvolutionContext& ctx);
+    bool SetNextValue();
+    std::string ToString() const;
+};
+
+struct PerformanceImplicitGemmBwdDataV1R1 : Serializable<PerformanceImplicitGemmBwdDataV1R1>
+{
+    int BlockSize;
+
+    int GemmMPerBlock;
+    int GemmNPerBlock;
+    int GemmKPerBlock;
+
+    int GemmMPerThread;
+    int GemmNPerThread;
+
+    bool use_spare_set;
+
+    PerformanceImplicitGemmBwdDataV1R1(int, int, int, int, int, int, bool);
+
+    PerformanceImplicitGemmBwdDataV1R1()
+        : PerformanceImplicitGemmBwdDataV1R1(-1, -1, -1, -1, -1, -1, false)
+    {
+    }
+
+    PerformanceImplicitGemmBwdDataV1R1(int a, int b, int c, int d, int e, int f)
+        : PerformanceImplicitGemmBwdDataV1R1(a, b, c, d, e, f, false)
+    {
+    }
+
+    PerformanceImplicitGemmBwdDataV1R1(bool spare);
+
+    bool operator==(const PerformanceImplicitGemmBwdDataV1R1& other) const;
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.BlockSize, "BlockSize");
+        f(self.GemmMPerBlock, "GemmMPerBlock");
+        f(self.GemmNPerBlock, "GemmNPerBlock");
+        f(self.GemmKPerBlock, "GemmKPerBlock");
+        f(self.GemmMPerThread, "GemmMPerThread");
+        f(self.GemmNPerThread, "GemmNPerThread");
+    }
+
+    std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, bool>
+    CalculateBlockGemmPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, bool>
+    CalculateGemmABlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, bool>
+    CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<int, bool>
+    CalculateGemmCThreadCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext& ctx) const;
+    void EuristicInit(const ConvolutionContext& ctx);
+    bool SetNextValue();
+    std::string ToString() const;
+};
+
+struct PerformanceImplicitGemmBwdDataV4R1 : Serializable<PerformanceImplicitGemmBwdDataV4R1>
+{
+    int BlockSize;
+
+    int GemmMPerBlock;
+    int GemmNPerBlock;
+    int GemmKPerBlock;
+
+    int GemmMPerThread;
+    int GemmNPerThread;
+
+    bool use_spare_set;
+
+    PerformanceImplicitGemmBwdDataV4R1(int, int, int, int, int, int, bool);
+
+    PerformanceImplicitGemmBwdDataV4R1()
+        : PerformanceImplicitGemmBwdDataV4R1(-1, -1, -1, -1, -1, -1, false)
+    {
+    }
+
+    PerformanceImplicitGemmBwdDataV4R1(int a, int b, int c, int d, int e, int f)
+        : PerformanceImplicitGemmBwdDataV4R1(a, b, c, d, e, f, false)
+    {
+    }
+
+    PerformanceImplicitGemmBwdDataV4R1(bool spare);
+
+    bool operator==(const PerformanceImplicitGemmBwdDataV4R1& other) const;
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.BlockSize, "BlockSize");
+        f(self.GemmMPerBlock, "GemmMPerBlock");
+        f(self.GemmNPerBlock, "GemmNPerBlock");
+        f(self.GemmKPerBlock, "GemmKPerBlock");
+        f(self.GemmMPerThread, "GemmMPerThread");
+        f(self.GemmNPerThread, "GemmNPerThread");
+    }
+
+    std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, bool>
+    CalculateBlockGemmPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, bool>
+    CalculateGemmABlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, bool>
+    CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<int, bool>
+    CalculateGemmCThreadCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext& ctx) const;
+    void EuristicInit(const ConvolutionContext& ctx);
+    bool SetNextValue();
+    std::string ToString() const;
+};
+
 struct ConvHipImplicitGemmV4R1Fwd : SolverBase<ConvolutionContext>
 {
     PerformanceImplicitGemmV4R1 GetPerformanceConfig(const ConvolutionContext& ctx) const;
@@ -522,8 +692,23 @@ struct ConvHipImplicitGemmV4R1Fwd : SolverBase<ConvolutionContext>
 
 struct ConvHipImplicitGemmV4R4Fwd : SolverBase<ConvolutionContext>
 {
+    static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
     bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+    PerformanceImplicitGemmV4R4Fwd GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceImplicitGemmV4R4Fwd& config) const;
+    PerformanceImplicitGemmV4R4Fwd Search(const ConvolutionContext&) const;
+    int RunAndMeasureSolution(miopen::Handle& profile_h,
+                              ConstData_t bot_buf,
+                              Data_t top_buf,
+                              ConstData_t wei_buf,
+                              ConstData_t bias_buf,
+                              const ConvolutionContext& ctx,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceImplicitGemmV4R4Fwd& config,
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct ConvHipImplicitGemmV4Fwd : SolverBase<ConvolutionContext>
@@ -767,14 +952,45 @@ struct ConvHipImplicitGemmV4WrW : SolverBase<ConvolutionContext>
 
 struct ConvHipImplicitGemmBwdDataV1R1 : SolverBase<ConvolutionContext>
 {
+    static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
     bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+    PerformanceImplicitGemmBwdDataV1R1 GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceImplicitGemmBwdDataV1R1& config) const;
+    PerformanceImplicitGemmBwdDataV1R1 Search(const ConvolutionContext&) const;
+    int RunAndMeasureSolution(miopen::Handle& profile_h,
+                              ConstData_t bot_buf,
+                              Data_t top_buf,
+                              ConstData_t wei_buf,
+                              ConstData_t bias_buf,
+                              const ConvolutionContext& ctx,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceImplicitGemmBwdDataV1R1& config,
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct ConvHipImplicitGemmBwdDataV4R1 : SolverBase<ConvolutionContext>
 {
+    static int CalculateNumberOfGemm(const ConvolutionContext& ctx);
+    static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx, int gemm_id);
     bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+    PerformanceImplicitGemmBwdDataV4R1 GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceImplicitGemmBwdDataV4R1& config) const;
+    PerformanceImplicitGemmBwdDataV4R1 Search(const ConvolutionContext&) const;
+    int RunAndMeasureSolution(miopen::Handle& profile_h,
+                              ConstData_t bot_buf,
+                              Data_t top_buf,
+                              ConstData_t wei_buf,
+                              ConstData_t bias_buf,
+                              const ConvolutionContext& ctx,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceImplicitGemmBwdDataV4R1& config,
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct ConvHipImplicitGemmBwdDataV1R1Xdlops : SolverBase<ConvolutionContext>

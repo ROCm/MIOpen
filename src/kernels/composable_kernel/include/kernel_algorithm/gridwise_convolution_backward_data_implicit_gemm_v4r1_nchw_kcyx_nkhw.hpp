@@ -26,15 +26,15 @@ template <index_t GridSize,
           index_t GemmMPerBlock,
           index_t GemmNPerBlock,
           index_t GemmKPerBlock,
-          index_t GemmMPerThreadSubC,
-          index_t GemmNPerThreadSubC,
+          index_t GemmMPerThread,
+          index_t GemmNPerThread,
+          index_t GemmKPerThread,
           index_t GemmMLevel0Cluster,
           index_t GemmNLevel0Cluster,
           index_t GemmMLevel1Cluster,
           index_t GemmNLevel1Cluster,
-          index_t GemmKPerThreadLoop,
-          index_t GemmThreadGemmDataPerReadM,
-          index_t GemmThreadGemmDataPerReadN,
+          index_t ThreadGemmDataPerRead_GemmM,
+          index_t ThreadGemmDataPerRead_GemmN,
           typename GemmABlockCopyThreadSliceLengths_GemmK_GemmM,
           typename GemmABlockCopyThreadClusterLengths_GemmK_GemmM,
           index_t GemmABlockCopySrcDataPerRead_GemmM,
@@ -167,15 +167,8 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v4r1_nchw_kcyx_nkhw
         constexpr index_t ConvDilationH = ConvDilations{}[0];
         constexpr index_t ConvDilationW = ConvDilations{}[1];
 
-#if 0 // debug
-        // sanity-check for vectorized memory load
-        // TODO: this logic may not be correct for bwd-data
-        static_assert(
-            (Wo == 1 || (ConvStrideW == 1 || GemmCThreadCopyDstDataPerWrite_GemmN1 == 1)) &&
-                (X == 1 || ConvDilationW % GemmCThreadCopyDstDataPerWrite_GemmN1 == 0),
-            "wrong! aligment requirement for vectorized global load of input tensor will "
-            "be violated");
-#endif
+        //\todo static_assert for global vector load/store
+        // statc_assert();
 
         constexpr index_t GcdStrideDilationH = math::gcd(ConvStrideH, ConvDilationH);
         constexpr index_t GcdStrideDilationW = math::gcd(ConvStrideW, ConvDilationW);
@@ -205,7 +198,8 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v4r1_nchw_kcyx_nkhw
         constexpr index_t HTildaSlice = iHTildaRight - iHTildaLeft;
         constexpr index_t WTildaSlice = iWTildaRight - iWTildaLeft;
 
-        constexpr bool wei_skip_all_out_of_bound_check = true;
+        // weight out-of-bound check can be skipped
+        constexpr bool wei_skip_out_of_bound_check = true;
 
         // weight tensor
         constexpr auto wei_k_c_ydot_ytilda_xdot_xtilda_global_desc = transform_tensor_descriptor(
@@ -215,18 +209,20 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v4r1_nchw_kcyx_nkhw
                        Embed<Y,
                              Sequence<YDot, YTilda>,
                              Sequence<ConvStrideH / GcdStrideDilationH, 1, 0>,
-                             wei_skip_all_out_of_bound_check>{},
+                             wei_skip_out_of_bound_check>{},
                        Embed<X,
                              Sequence<XDot, XTilda>,
                              Sequence<ConvStrideW / GcdStrideDilationW, 1, 0>,
-                             wei_skip_all_out_of_bound_check>{}),
+                             wei_skip_out_of_bound_check>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}, Sequence<4, 5>{}));
 
-#if 1 // debug
-        constexpr bool out_skip_all_out_of_bound_check = false;
+#if !CK_EXPERIMENTAL_IMPLICIT_GEMM_BACKWARD_DATA_V4R1_OUTPUT_SKIP_OUT_OF_BOUND_CHECK
+        constexpr bool out_skip_out_of_bound_check = false;
 #else
-        constexpr bool out_skip_all_out_of_bound_check = true;
+        //\todo sometimes output tensor out-of-bound check can be skipped, find out all such
+        // situations
+        constexpr bool out_skip_out_of_bound_check = true;
 #endif
 
         // output tensor
@@ -237,11 +233,11 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v4r1_nchw_kcyx_nkhw
                        Embed<Ho,
                              Sequence<YDot, HTilda>,
                              Sequence<-ConvDilationH / GcdStrideDilationH, 1, 0>,
-                             out_skip_all_out_of_bound_check>{},
+                             out_skip_out_of_bound_check>{},
                        Embed<Wo,
                              Sequence<XDot, WTilda>,
                              Sequence<-ConvDilationW / GcdStrideDilationW, 1, 0>,
-                             out_skip_all_out_of_bound_check>{}),
+                             out_skip_out_of_bound_check>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}, Sequence<4, 5>{}));
 
@@ -260,10 +256,11 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v4r1_nchw_kcyx_nkhw
                 make_tuple(
                     Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<4>{}, Sequence<3, 5>{}));
 
-#if 1 // debug
-        constexpr bool in_skip_all_out_of_bound_check = false;
+#if !CK_EXPERIMENTAL_IMPLICIT_GEMM_BACKWARD_DATA_V4R1_INPUT_SKIP_OUT_OF_BOUND_CHECK
+        constexpr bool in_skip_out_of_bound_check = false;
 #else
-        constexpr bool in_skip_all_out_of_bound_check  = true;
+        //\todo sometimes input out-of-bound check can be skipped, find out all such situations
+        constexpr bool in_skip_out_of_bound_check = true;
 #endif
 
         // input tensor
@@ -272,7 +269,7 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v4r1_nchw_kcyx_nkhw
             make_tuple(
                 PassThrough<N>{},
                 PassThrough<C>{},
-                Pad<Sequence<Hi, Wi>, InLeftPads, InRightPads, in_skip_all_out_of_bound_check>{}),
+                Pad<Sequence<Hi, Wi>, InLeftPads, InRightPads, in_skip_out_of_bound_check>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}));
 
@@ -286,11 +283,11 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v4r1_nchw_kcyx_nkhw
                        Embed<Hip,
                              Sequence<YTilda, HTilda>,
                              Sequence<ConvDilationH, ConvStrideH, 0>,
-                             in_skip_all_out_of_bound_check>{},
+                             in_skip_out_of_bound_check>{},
                        Embed<Wip,
                              Sequence<XTilda, WTilda>,
                              Sequence<ConvDilationW, ConvStrideW, 0>,
-                             in_skip_all_out_of_bound_check>{}),
+                             in_skip_out_of_bound_check>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}, Sequence<4, 5>{}));
 
@@ -389,15 +386,15 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v4r1_nchw_kcyx_nkhw
                                                      GemmMPerBlock,
                                                      GemmNPerBlock,
                                                      GemmKPerBlock,
-                                                     GemmMPerThreadSubC,
-                                                     GemmNPerThreadSubC,
+                                                     GemmMPerThread,
+                                                     GemmNPerThread,
+                                                     GemmKPerThread,
                                                      GemmMLevel0Cluster,
                                                      GemmNLevel0Cluster,
                                                      GemmMLevel1Cluster,
                                                      GemmNLevel1Cluster,
-                                                     GemmKPerThreadLoop,
-                                                     GemmThreadGemmDataPerReadM,
-                                                     GemmThreadGemmDataPerReadN,
+                                                     ThreadGemmDataPerRead_GemmM,
+                                                     ThreadGemmDataPerRead_GemmN,
                                                      GemmABlockCopyThreadSliceLengths_GemmK_GemmM,
                                                      GemmABlockCopyThreadClusterLengths_GemmK_GemmM,
                                                      Sequence<0, 1>,

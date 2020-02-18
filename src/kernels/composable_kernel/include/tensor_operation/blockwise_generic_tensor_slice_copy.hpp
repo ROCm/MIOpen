@@ -9,7 +9,7 @@
 
 namespace ck {
 
-// This threadwise copy allow vector access of src and dst.
+// This blockwise copy allow vector access of src and dst.
 // It allows the vector size to be different on src and dst.
 // The dimension of vector access can be different for src and dst.
 // The dimension access order can be different for src and dst.
