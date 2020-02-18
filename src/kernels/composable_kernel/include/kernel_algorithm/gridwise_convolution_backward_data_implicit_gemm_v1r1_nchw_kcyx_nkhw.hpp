@@ -25,15 +25,15 @@ template <index_t GridSize,
           index_t GemmMPerBlock,
           index_t GemmNPerBlock,
           index_t GemmKPerBlock,
-          index_t GemmMPerThreadSubC,
-          index_t GemmNPerThreadSubC,
+          index_t GemmMPerThread,
+          index_t GemmNPerThread,
+          index_t GemmKPerThread,
           index_t GemmMLevel0Cluster,
           index_t GemmNLevel0Cluster,
           index_t GemmMLevel1Cluster,
           index_t GemmNLevel1Cluster,
-          index_t GemmKPerThreadLoop,
-          index_t GemmThreadGemmDataPerReadM,
-          index_t GemmThreadGemmDataPerReadN,
+          index_t ThreadGemmDataPerRead_GemmM,
+          index_t ThreadGemmDataPerRead_GemmN,
           typename GemmABlockCopyThreadSliceLengths_GemmK_GemmM,
           typename GemmABlockCopyThreadClusterLengths_GemmK_GemmM,
           index_t GemmABlockCopySrcDataPerRead_GemmN,
@@ -75,24 +75,19 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_nchw_kcyx_nkhw
         constexpr index_t ConvDilationH = ConvDilations{}[0];
         constexpr index_t ConvDilationW = ConvDilations{}[1];
 
-        // sanity-check for vectorized memory load
-        // TODO: this logic may not be correct for bwd-data
-        static_assert(
-            (Wo == 1 || (ConvStrideW == 1 || GemmCThreadCopyDstDataPerWrite_GemmN1 == 1)) &&
-                (X == 1 || ConvDilationW % GemmCThreadCopyDstDataPerWrite_GemmN1 == 0),
-            "wrong! aligment requirement for vectorized global load of input tensor will "
-            "be violated");
+        //\todo static_assert for global vector load/store
+        // statc_assert();
+
+        // weight tensor
+        constexpr auto wei_gemmk_gemmm_global_desc =
+            unfold_tensor_descriptor(wei_k_c_y_x_global_desc, I1, I3);
 
         // output tensor
-        constexpr auto out_k_b_global_desc =
+        constexpr auto out_gemmk_gemmn_global_desc =
             transform_tensor_descriptor(unfold_tensor_descriptor(out_n_k_ho_wo_global_desc, I2, I3),
                                         make_tuple(PassThrough<K>{}, Merge<Sequence<N, Ho * Wo>>{}),
                                         make_tuple(Sequence<1>{}, Sequence<0, 2>{}),
                                         make_tuple(Sequence<0>{}, Sequence<1>{}));
-
-        // weight tensor
-        constexpr auto wei_k_e_global_desc =
-            unfold_tensor_descriptor(wei_k_c_y_x_global_desc, I1, I3);
 
         // input tensor
         constexpr auto in_n_c_hip_wip_global_desc = transform_tensor_descriptor(
@@ -116,7 +111,7 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_nchw_kcyx_nkhw
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}, Sequence<4, 5>{}));
 
-        constexpr auto in_e_b_global_desc = transform_tensor_descriptor(
+        constexpr auto in_gemmm_gemmn_global_desc = transform_tensor_descriptor(
             in_n_c_y_ho_x_wo_global_desc,
             make_tuple(Merge<Sequence<C, Y, X>>{}, Merge<Sequence<N, Ho, Wo>>{}),
             make_tuple(Sequence<1, 2, 4>{}, Sequence<0, 3, 5>{}),
@@ -136,22 +131,22 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_nchw_kcyx_nkhw
                                                      BlockSize,
                                                      Float,
                                                      AccFloat,
-                                                     decltype(wei_k_e_global_desc),
-                                                     decltype(out_k_b_global_desc),
-                                                     decltype(in_e_b_global_desc),
+                                                     decltype(wei_gemmk_gemmm_global_desc),
+                                                     decltype(out_gemmk_gemmn_global_desc),
+                                                     decltype(in_gemmm_gemmn_global_desc),
                                                      in_memory_op,
                                                      GemmMPerBlock,
                                                      GemmNPerBlock,
                                                      GemmKPerBlock,
-                                                     GemmMPerThreadSubC,
-                                                     GemmNPerThreadSubC,
+                                                     GemmMPerThread,
+                                                     GemmNPerThread,
+                                                     GemmKPerThread,
                                                      GemmMLevel0Cluster,
                                                      GemmNLevel0Cluster,
                                                      GemmMLevel1Cluster,
                                                      GemmNLevel1Cluster,
-                                                     GemmKPerThreadLoop,
-                                                     GemmThreadGemmDataPerReadM,
-                                                     GemmThreadGemmDataPerReadN,
+                                                     ThreadGemmDataPerRead_GemmM,
+                                                     ThreadGemmDataPerRead_GemmN,
                                                      GemmABlockCopyThreadSliceLengths_GemmK_GemmM,
                                                      GemmABlockCopyThreadClusterLengths_GemmK_GemmM,
                                                      Sequence<0, 1>,

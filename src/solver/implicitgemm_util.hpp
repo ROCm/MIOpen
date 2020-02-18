@@ -16,6 +16,71 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM)
 namespace miopen {
 namespace solver {
 
+// greatest common divisor, aka highest common factor
+template <typename T>
+T gcd(T x, T y)
+{
+    if(x == y || x == 0)
+    {
+        return y;
+    }
+    else if(y == 0)
+    {
+        return x;
+    }
+    else if(x > y)
+    {
+        return gcd(x - y, y);
+    }
+    else
+    {
+        return gcd(x, y - x);
+    }
+}
+
+template <typename T, typename... Ys>
+T gcd(T x, Ys... ys)
+{
+    return gcd(x, gcd(ys...));
+}
+
+// least common multiple
+template <typename T>
+T lcm(T x, T y)
+{
+    if(x == 0 || y == 0)
+    {
+        return 0;
+    }
+    else
+    {
+        return (x * y) / gcd(x, y);
+    }
+}
+
+template <typename T, typename... Ys>
+T lcm(T x, Ys... ys)
+{
+    return lcm(x, lcm(ys...));
+}
+
+template <typename T>
+T integer_divide_ceil(T x, T y)
+{
+    if(y == 0)
+    {
+        MIOPEN_THROW("divisor should not be 0");
+    }
+
+    return (x + y - 1) / y;
+}
+
+template <typename T>
+T integer_least_multiple(T x, T y)
+{
+    return y * integer_divide_ceil(x, y);
+}
+
 // 1. get the original dimension of conv problem
 //    (undo the dimeniosn swapping happened inside ConvolutionContext)
 // 2. adjust right padding size to align with the way implicit GEMM deal with padding
@@ -77,13 +142,29 @@ struct ConvolutionContextInterpreter
 
     static auto GetFilterWidthX(const ConvolutionContext& c) { return c.kernel_size_w; }
 
-    static auto GetConvolutionStrideH(const ConvolutionContext& c) { return c.kernel_stride_h; }
+    // adjust conv_stride_h to 1 if Ho is 1
+    static auto GetAdjustedConvolutionStrideH(const ConvolutionContext& c)
+    {
+        return GetOutputHeightHo(c) > 1 ? c.kernel_stride_h : 1;
+    }
 
-    static auto GetConvolutionStrideW(const ConvolutionContext& c) { return c.kernel_stride_w; }
+    // adjust conv_stride_w to 1 if Wo is 1
+    static auto GetAdjustedConvolutionStrideW(const ConvolutionContext& c)
+    {
+        return GetOutputWidthWo(c) > 1 ? c.kernel_stride_w : 1;
+    }
 
-    static auto GetConvolutionDilationH(const ConvolutionContext& c) { return c.kernel_dilation_h; }
+    // adjust conv_dilation_h to 1 if Y is 1
+    static auto GetAdjustedConvolutionDilationH(const ConvolutionContext& c)
+    {
+        return GetFilterHeightY(c) > 1 ? c.kernel_dilation_h : 1;
+    }
 
-    static auto GetConvolutionDilationW(const ConvolutionContext& c) { return c.kernel_dilation_w; }
+    // adjust conv_dilation_w to 1 if X is 1
+    static auto GetAdjustedConvolutionDilationW(const ConvolutionContext& c)
+    {
+        return GetFilterWidthX(c) > 1 ? c.kernel_dilation_w : 1;
+    }
 
     static auto GetInputLeftPadH(const ConvolutionContext& c) { return c.pad_h; }
 
@@ -95,8 +176,8 @@ struct ConvolutionContextInterpreter
         int hi              = GetInputHeightHi(c);
         int ho              = GetOutputHeightHo(c);
         int y               = GetFilterHeightY(c);
-        int conv_stride_h   = GetConvolutionStrideH(c);
-        int conv_dilation_h = GetConvolutionDilationH(c);
+        int conv_stride_h   = GetAdjustedConvolutionStrideH(c);
+        int conv_dilation_h = GetAdjustedConvolutionDilationH(c);
         int in_left_pad_h   = GetInputLeftPadH(c);
 
         int hi_padded = 1 + (y - 1) * conv_dilation_h + (ho - 1) * conv_stride_h;
@@ -113,8 +194,8 @@ struct ConvolutionContextInterpreter
         int wi              = GetInputWidthWi(c);
         int wo              = GetOutputWidthWo(c);
         int x               = GetFilterWidthX(c);
-        int conv_stride_w   = GetConvolutionStrideW(c);
-        int conv_dilation_w = GetConvolutionDilationW(c);
+        int conv_stride_w   = GetAdjustedConvolutionStrideW(c);
+        int conv_dilation_w = GetAdjustedConvolutionDilationW(c);
         int in_left_pad_w   = GetInputLeftPadW(c);
 
         int wi_padded = 1 + (x - 1) * conv_dilation_w + (wo - 1) * conv_stride_w;
@@ -332,37 +413,37 @@ static inline int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
                                             const ConvSolution& solution,
                                             float& elapsed_time)
 {
-    KernelInfo k_info;
-
-    k_info = solution.construction_params[0];
-
 #ifdef NDEBUG
     try
 #endif
     {
-        elapsed_time = std::numeric_limits<float>::max();
-        auto kernel  = profile_h.AddKernel("",
-                                          "",
-                                          k_info.kernel_file,
-                                          k_info.kernel_name,
-                                          k_info.l_wk,
-                                          k_info.g_wk,
-                                          k_info.comp_options);
+        elapsed_time = float(0);
 
-        if(ctx.direction.IsBackwardWrW())
+        for(auto& k_info : solution.construction_params)
         {
-            kernel(bot_buf, top_buf, wei_buf);
-        }
-        if(ctx.direction.IsBackwardData())
-        {
-            kernel(top_buf, wei_buf, bot_buf);
-        }
-        if(ctx.direction.IsForward())
-        {
-            kernel(bot_buf, wei_buf, top_buf);
-        }
+            auto kernel = profile_h.AddKernel("",
+                                              "",
+                                              k_info.kernel_file,
+                                              k_info.kernel_name,
+                                              k_info.l_wk,
+                                              k_info.g_wk,
+                                              k_info.comp_options);
 
-        elapsed_time = profile_h.GetKernelTime();
+            if(ctx.direction.IsBackwardWrW())
+            {
+                kernel(bot_buf, top_buf, wei_buf);
+            }
+            if(ctx.direction.IsBackwardData())
+            {
+                kernel(top_buf, wei_buf, bot_buf);
+            }
+            if(ctx.direction.IsForward())
+            {
+                kernel(bot_buf, wei_buf, top_buf);
+            }
+
+            elapsed_time += profile_h.GetKernelTime();
+        }
     }
 #ifdef NDEBUG
     catch(miopen::Exception& ex)
@@ -393,6 +474,64 @@ static inline bool support_amd_buffer_atomic_add(const ConvolutionContext& ctx)
     const auto device_name = ctx.GetStream().GetDeviceName();
     return StartsWith(device_name, "gfx908") && ctx.IsFp32();
 }
+
+template <typename T>
+int amd_buffer_load_max_length()
+{
+    if(std::is_same<float, T>())
+    {
+        return 4;
+    }
+    else
+    {
+        MIOPEN_LOG_I("not implemented");
+        return 1;
+    }
+}
+
+template <typename T>
+int amd_buffer_store_max_length()
+{
+    if(std::is_same<float, T>())
+    {
+        return 4;
+    }
+    else
+    {
+        MIOPEN_LOG_I("not implemented");
+        return 1;
+    }
+}
+
+template <typename T>
+int amd_lds_read_max_length()
+{
+    if(std::is_same<float, T>())
+    {
+        return 4;
+    }
+    else
+    {
+        MIOPEN_LOG_I("not implemented");
+        return 1;
+    }
+}
+
+template <typename T>
+int amd_lds_write_max_length()
+{
+    if(std::is_same<float, T>())
+    {
+        return 4;
+    }
+    else
+    {
+        MIOPEN_LOG_I("not implemented");
+        return 1;
+    }
+}
+
+constexpr std::size_t get_lds_max_number_of_byte() { return 65536; }
 
 } // namespace solver
 } // namespace miopen

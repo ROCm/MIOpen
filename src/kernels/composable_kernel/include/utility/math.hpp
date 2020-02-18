@@ -107,27 +107,22 @@ __host__ __device__ constexpr T min(T x, Ts... xs)
 template <typename T>
 __host__ __device__ constexpr T gcd(T x, T y)
 {
-    if(x == 0)
+    if(x == y || x == 0)
     {
         return y;
     }
-
-    if(y == 0)
+    else if(y == 0)
     {
         return x;
     }
-
-    if(x == y)
-    {
-        return x;
-    }
-
-    if(x > y)
+    else if(x > y)
     {
         return gcd(x - y, y);
     }
-
-    return gcd(x, y - x);
+    else
+    {
+        return gcd(x, y - x);
+    }
 }
 
 template <index_t X, index_t Y>
@@ -150,10 +145,10 @@ __host__ __device__ constexpr T lcm(T x, T y)
     return (x * y) / gcd(x, y);
 }
 
-template <typename X, typename Y, typename... Zs>
-__host__ __device__ constexpr auto lcm(X x, Y y, Zs... zs)
+template <typename X, typename... Ys>
+__host__ __device__ constexpr auto lcm(X x, Ys... ys)
 {
-    return lcm(x, lcm(y, zs...));
+    return lcm(x, lcm(ys...));
 }
 
 template <class T>

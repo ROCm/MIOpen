@@ -86,23 +86,25 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(const Convolution
     ConvSolution result;
     KernelInfo construction_parameters;
 
-    std::size_t n               = ConvolutionContextInterpreter::GetBatchN(ctx);
-    std::size_t k               = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    std::size_t c               = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-    std::size_t hi              = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
-    std::size_t wi              = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
-    std::size_t ho              = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    std::size_t wo              = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    std::size_t y               = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    std::size_t x               = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-    std::size_t conv_stride_h   = ConvolutionContextInterpreter::GetConvolutionStrideH(ctx);
-    std::size_t conv_stride_w   = ConvolutionContextInterpreter::GetConvolutionStrideW(ctx);
-    std::size_t conv_dilation_h = ConvolutionContextInterpreter::GetConvolutionDilationH(ctx);
-    std::size_t conv_dilation_w = ConvolutionContextInterpreter::GetConvolutionDilationW(ctx);
-    std::size_t in_left_pad_h   = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
-    std::size_t in_left_pad_w   = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
-    std::size_t in_right_pad_h  = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
-    std::size_t in_right_pad_w  = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
+    std::size_t n             = ConvolutionContextInterpreter::GetBatchN(ctx);
+    std::size_t k             = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
+    std::size_t c             = ConvolutionContextInterpreter::GetInputChannelC(ctx);
+    std::size_t hi            = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
+    std::size_t wi            = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
+    std::size_t ho            = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+    std::size_t wo            = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+    std::size_t y             = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+    std::size_t x             = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+    std::size_t conv_stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
+    std::size_t conv_stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
+    std::size_t conv_dilation_h =
+        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
+    std::size_t conv_dilation_w =
+        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
+    std::size_t in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
+    std::size_t in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
+    std::size_t in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
+    std::size_t in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
     std::size_t gemm_m = (static_cast<std::size_t>(c) * y * x);
     std::size_t gemm_n = (static_cast<std::size_t>(n) * ho * wo);
