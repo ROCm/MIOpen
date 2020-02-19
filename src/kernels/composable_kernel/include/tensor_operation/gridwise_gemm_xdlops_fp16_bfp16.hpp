@@ -24,8 +24,6 @@ template <index_t GridSize,
           index_t KPerBlock,
           index_t MPerWave,
           index_t NPerWave,
-          index_t MWaves,
-          index_t NWaves,
           index_t GemmDataPerReadM,
           index_t GemmDataPerReadN,
           class ABlockCopyThreadSliceLengths_K_M_KPACK,
@@ -69,6 +67,9 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
         constexpr index_t MBlockWork = M / MPerBlock;
         constexpr index_t NBlockWork = N / NPerBlock;
 
+        constexpr index_t MWaves = MPerBlock / MPerWave;
+        constexpr index_t NWaves = NPerBlock / NPerWave;
+
         constexpr auto block_work_desc =
             make_cluster_descriptor(Sequence<MBlockWork, NBlockWork>{});
 
@@ -98,7 +99,7 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
             ABlockCopyThreadClusterArrangeOrder,
             ABlockCopySrcAccessOrder,
             ABlockCopyDstAccessOrder,
-            ABlockCopySrcVectorReadDim, // Src dim to be read in vector form (K dimension)
+            ABlockCopySrcVectorReadDim, // Src dim to be read in vector form (M dimension)
             2,                          // Dst dim to be written in vector form (KPACK dimension)
             ABlockCopySrcDataPerRead,
             ABlockCopyDstDataPerWrite_KPACK,
@@ -361,8 +362,6 @@ template <index_t GridSize,
           index_t KPerBlock,
           index_t MPerWave,
           index_t NPerWave,
-          index_t MWaves,
-          index_t NWaves,
           index_t GemmDataPerReadM,
           index_t GemmDataPerReadN,
           class ABlockCopyThreadSliceLengths_G_K_M_KPACK,
@@ -408,6 +407,9 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
         constexpr index_t MBlockWork = M / MPerBlock;
         constexpr index_t NBlockWork = N / NPerBlock;
 
+        constexpr index_t MWaves = MPerBlock / MPerWave;
+        constexpr index_t NWaves = NPerBlock / NPerWave;
+
         constexpr auto block_work_desc =
             make_cluster_descriptor(Sequence<G, MBlockWork, NBlockWork>{});
 
@@ -440,7 +442,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
             ABlockCopyDstAccessOrder,
             ABlockCopySrcVectorReadDim, // Src dim to be read in vector form (K dimension)
             3,                          // Dst dim to be written in vector form (KPACK dimension)
-            ABlockCopySrcDataPerRead,   // K dimension
+            ABlockCopySrcDataPerRead,
             ABlockCopyDstDataPerWrite_KPACK,
             AddressSpace::Generic,
             AddressSpace::Vgpr,

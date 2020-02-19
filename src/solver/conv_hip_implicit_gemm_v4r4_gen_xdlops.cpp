@@ -87,26 +87,26 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
 
     if(kernel == ImplicitGemmXdlopsKernel::KernelFwdWrw)
     {
+        // clang-format off
         if(ctx.group_counts > 1)
         {
 
             construction_parameters.kernel_file =
-                "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_"
-                "gnchw_gkcyx_gnkhw_lds_double_buffer.cpp";
+                "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer.cpp";
 
-            construction_parameters.kernel_name = "gridwise_convolution_implicit_gemm_v4r4_gen_"
-                                                  "xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer";
+            construction_parameters.kernel_name = 
+		"gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer";
         }
         else
         {
 
             construction_parameters.kernel_file =
-                "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_"
-                "nchw_kcyx_nkhw_lds_double_buffer.cpp";
+                "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer.cpp";
 
-            construction_parameters.kernel_name = "gridwise_convolution_implicit_gemm_v4r4_gen_"
-                                                  "xdlops_nchw_kcyx_nkhw_lds_double_buffer";
+            construction_parameters.kernel_name = 
+		"gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer";
         }
+        // clang-format on
     }
 
     std::size_t ABlockCopySubLengths_GemmK = GemmKPerBlock / config.WeiBlockCopyClusterLengths_E;

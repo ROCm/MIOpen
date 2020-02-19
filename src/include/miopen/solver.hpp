@@ -999,6 +999,7 @@ struct ConvHipImplicitGemmBwdDataV1R1Xdlops : SolverBase<ConvolutionContext>
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const PerformanceImplicitGemmXdlops& c) const;
     bool IsApplicable(const ConvolutionContext& ctx) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmXdlops& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -1011,7 +1012,6 @@ struct ConvHipImplicitGemmBwdDataV1R1Xdlops : SolverBase<ConvolutionContext>
                               const ConvolutionContext& ctx,
                               const ConvSolution& solution,
                               float& elapsed_time) const;
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
 };
 
 /// Holds common member functions for the Solvers which share the same
