@@ -131,12 +131,8 @@ extern "C" __global__
 #endif
 
     // C matrix
-    constexpr index_t OutThreadCopyDataPerAccess_B = 1;
-
     constexpr auto GemmMPerWave = CK_PARAM_GEMM_M_PER_WAVE;
     constexpr auto GemmNPerWave = CK_PARAM_GEMM_N_PER_WAVE;
-    constexpr auto GemmMWaves   = GemmMPerBlock / GemmMPerWave;
-    constexpr auto GemmNWaves   = GemmNPerBlock / GemmNPerWave;
 
     constexpr index_t GemmThreadGemmDataPerReadM = 1;
     constexpr index_t GemmThreadGemmDataPerReadN = 1;
@@ -160,8 +156,6 @@ extern "C" __global__
             GemmKPerBlock,
             GemmMPerWave,
             GemmNPerWave,
-            GemmMWaves,
-            GemmNWaves,
             GemmThreadGemmDataPerReadM,
             GemmThreadGemmDataPerReadN,
             GemmABlockCopyThreadSliceLengths_GemmK_GemmM,
@@ -191,8 +185,8 @@ extern "C" __global__
             GemmKPACK,
             GemmMPerWave,
             GemmNPerWave,
-            GemmMWaves,
-            GemmNWaves,
+            GemmMPerBlock / GemmMPerWave,
+            GemmNPerBlock / GemmNPerWave,
             GemmThreadGemmDataPerReadM,
             GemmThreadGemmDataPerReadN,
             GemmABlockCopyThreadSliceLengths_GemmK_GemmM_GemmKPACK,
@@ -203,7 +197,7 @@ extern "C" __global__
             GemmBBlockCopyThreadClusterLengths_GemmK_GemmN_GemmKPACK,
             GemmBBlockCopySrcDataPerRead_GemmN,
             GemmBBlockCopyDstDataPerWrite_Gemm_GemmKPACK,
-            OutThreadCopyDataPerAccess_B>{};
+            1>{};
 #else
         static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
 #endif

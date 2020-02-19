@@ -23,8 +23,6 @@ template <index_t GridSize,
           index_t KPerBlock,
           index_t MPerWave,
           index_t NPerWave,
-          index_t MWaves,
-          index_t NWaves,
           index_t GemmDataPerReadM,
           index_t GemmDataPerReadN,
           class ABlockCopyThreadSliceLengths_K_M,
@@ -67,6 +65,12 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
 
         constexpr index_t MBlockWork = M / MPerBlock;
         constexpr index_t NBlockWork = N / NPerBlock;
+
+        static_assert(MPerBlock % MPerWave == 0 && NPerBlock % NPerWave == 0,
+                      "wrong! M/NPerBlock % M/NPerWave != 0");
+
+        constexpr index_t MWaves = MPerBlock / MPerWave;
+        constexpr index_t NWaves = NPerBlock / NPerWave;
 
         constexpr auto block_work_desc =
             make_cluster_descriptor(Sequence<MBlockWork, NBlockWork>{});
@@ -332,8 +336,6 @@ template <index_t GridSize,
           index_t KPerBlock,
           index_t MPerWave,
           index_t NPerWave,
-          index_t MWaves,
-          index_t NWaves,
           index_t GemmDataPerReadM,
           index_t GemmDataPerReadN,
           class ABlockCopyThreadSliceLengths_G_K_M,
@@ -380,6 +382,12 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v1
 
         constexpr index_t MBlockWork = M / MPerBlock;
         constexpr index_t NBlockWork = N / NPerBlock;
+
+        static_assert(MPerBlock % MPerWave == 0 && NPerBlock % NPerWave == 0,
+                      "wrong! M/NPerBlock % M/NPerWave != 0");
+
+        constexpr index_t MWaves = MPerBlock / MPerWave;
+        constexpr index_t NWaves = NPerBlock / NPerWave;
 
         constexpr auto block_work_desc =
             make_cluster_descriptor(Sequence<G, MBlockWork, NBlockWork>{});

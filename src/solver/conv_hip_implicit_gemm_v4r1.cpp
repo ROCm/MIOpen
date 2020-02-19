@@ -56,7 +56,8 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx) con
     if(c % GetEPackLength(ctx, false) != 0)
         return false;
 
-    return n % 8 == 0 && (n * ho * wo) % 32 == 0 && (c * y * x) % eMultiple == 0 && k % 16 == 0;
+    return n % 8 == 0 && (n * ho * wo) % 32 == 0 && (n * ho * wo * k) % 1024 == 0 &&
+           (c * y * x) % eMultiple == 0 && k % 16 == 0;
 }
 
 bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) const
@@ -82,21 +83,22 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) con
     const auto& wo = ctx.in_width;  // unswap
 
     // equivalent dimension for bwd-wrw
-    const auto& n_eqv     = c;
-    const auto& k_eqv     = k;
-    const auto& c_eqv     = n;
-    const auto& y_eqv     = ho;
-    const auto& x_eqv     = wo;
-    const auto& ho_eqv    = y;
-    const auto& wo_eqv    = x;
-    const auto& eMultiple = (ctx.IsFp16() || ctx.IsBfp16()) ? 16 : 8;
+    std::size_t n_eqv     = c;
+    std::size_t k_eqv     = k;
+    std::size_t c_eqv     = n;
+    std::size_t y_eqv     = ho;
+    std::size_t x_eqv     = wo;
+    std::size_t ho_eqv    = y;
+    std::size_t wo_eqv    = x;
+    std::size_t eMultiple = (ctx.IsFp16() || ctx.IsBfp16()) ? 16 : 8;
 
     // batch is divided by epack to pack 2/4 fp16/bfp16
     if(c_eqv % GetEPackLength(ctx, false) != 0)
         return false;
 
     return n_eqv % 8 == 0 && (n_eqv * ho_eqv * wo_eqv) % 64 == 0 &&
-           (c_eqv * y_eqv * x_eqv) % eMultiple == 0 && k_eqv % 16 == 0;
+           (c_eqv * y_eqv * x_eqv) % eMultiple == 0 && k_eqv % 16 == 0 &&
+           (n_eqv * ho_eqv * wo_eqv * k_eqv) % 1024 == 0;
 }
 
 PerformanceImplicitGemmV4R1

@@ -144,8 +144,6 @@ extern "C" __global__
 
     constexpr auto GemmMPerWave = CK_PARAM_GEMM_M_PER_WAVE;
     constexpr auto GemmNPerWave = CK_PARAM_GEMM_N_PER_WAVE;
-    constexpr auto GemmMWaves   = GemmMPerBlock / GemmMPerWave;
-    constexpr auto GemmNWaves   = GemmNPerBlock / GemmNPerWave;
 
     constexpr index_t GemmThreadGemmDataPerReadM = 1;
     constexpr index_t GemmThreadGemmDataPerReadN = 1;
@@ -169,8 +167,6 @@ extern "C" __global__
             GemmKPerBlock,
             GemmMPerWave,
             GemmNPerWave,
-            GemmMWaves,
-            GemmNWaves,
             GemmThreadGemmDataPerReadM,
             GemmThreadGemmDataPerReadN,
             GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM,
@@ -200,8 +196,8 @@ extern "C" __global__
             GemmKPACK,
             GemmMPerWave,
             GemmNPerWave,
-            GemmMWaves,
-            GemmNWaves,
+            GemmMPerBlock / GemmMPerWave,
+            GemmNPerBlock / GemmNPerWave,
             GemmThreadGemmDataPerReadM,
             GemmThreadGemmDataPerReadN,
             GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM_GemmKPACK,

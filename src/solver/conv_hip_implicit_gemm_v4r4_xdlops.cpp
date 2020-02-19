@@ -306,55 +306,21 @@ bool ConvHipImplicitGemmV4R4FwdXdlops::IsApplicable(const ConvolutionContext& ct
     if(!ctx.Is2d())
         return false;
 
-    // channels is divided by epack to pack 2/4 fp16/bfp16
-    if(ctx.n_inputs % GetEPackLength(ctx, true) != 0)
-        return false;
-
-    const auto nonVectorizedC = ctx.n_inputs / GetEPackLength(ctx, true);
-
-    const auto WaveSize = 64;
-
-    const auto k = ctx.n_outputs;
-    const auto e = nonVectorizedC * ctx.kernel_size_h * ctx.kernel_size_w;
-    const auto b = ctx.batch_sz * KernelOutputHeightHo(ctx) * KernelOutputWidthWo(ctx);
-    if((k * b) % 256 != 0 || (e * b) % WaveSize != 0 || (e * k) % WaveSize != 0 || b % 16 != 0 ||
-       e % 4 != 0 || k % 4 != 0)
-        return false;
-
-    // In bfp16, channels are accumulated in size of 2 while in fp16, in size of 4, so
-    // abide by channel restriction.
-    if((ctx.IsFp16() && (ctx.n_inputs % 4 != 0)) || (ctx.IsBfp16() && (ctx.n_inputs % 2 != 0)))
-        return false;
-
     // padding support required for out_of_bound configs
     bool no_out_of_bound = (ctx.in_width >= ((ctx.kernel_size_w - 1) * ctx.kernel_dilation_w + 1) +
                                                 (ctx.out_width - 1) * ctx.kernel_stride_w) &&
                            (ctx.in_height >= ((ctx.kernel_size_h - 1) * ctx.kernel_dilation_h + 1) +
                                                  (ctx.out_height - 1) * ctx.kernel_stride_h);
 
-    return IsXdlopsSupport(ctx) && no_out_of_bound && ctx.pad_h == 0 && ctx.pad_w == 0 &&
+    return IsApplicableXdlops(ctx) && no_out_of_bound && ctx.pad_h == 0 && ctx.pad_w == 0 &&
            ctx.group_counts == 1;
 }
 
 bool ConvHipImplicitGemmV4R4Xdlops_1x1::IsApplicable(const ConvolutionContext& ctx) const
 {
-    // channels is divided by epack to pack 2/4 fp16/bfp16
-    if(ctx.n_inputs % GetEPackLength(ctx, true) != 0)
-        return false;
-
-    const auto nonVectorizedC = ctx.n_inputs / GetEPackLength(ctx, true);
-
-    const auto WaveSize = 64;
-
-    const auto k = ctx.n_outputs;
-    const auto e = nonVectorizedC * ctx.kernel_size_h * ctx.kernel_size_w;
-    const auto b = ctx.batch_sz * KernelOutputHeightHo(ctx) * KernelOutputWidthWo(ctx);
-    if((k * b) % 256 != 0 || (e * b) % WaveSize != 0 || (e * k) % WaveSize != 0 || b % 16 != 0 ||
-       e % 4 != 0 || k % 4 != 0)
-        return false;
-
-    return IsXdlopsSupport(ctx) && ctx.Is2d() && ctx.IsFp32() && ctx.pad_h == 0 && ctx.pad_w == 0 &&
-           ctx.group_counts == 1 && ctx.kernel_size_h == 1 && ctx.kernel_size_w == 1;
+    return IsApplicableXdlops(ctx) && ctx.Is2d() && ctx.IsFp32() && ctx.pad_h == 0 &&
+           ctx.pad_w == 0 && ctx.group_counts == 1 && ctx.kernel_size_h == 1 &&
+           ctx.kernel_size_w == 1;
 }
 
 bool ConvHipImplicitGemmV4R4WrWXdlops::IsApplicable(const ConvolutionContext& ctx) const
@@ -368,32 +334,7 @@ bool ConvHipImplicitGemmV4R4WrWXdlops::IsApplicable(const ConvolutionContext& ct
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 
-    const auto& n_eqv = KernelBatchN(ctx);
-    const auto& k_eqv = KernelOutputChannelK(ctx);
-    const auto& c_eqv = KernelInputChannelC(ctx);
-
-    const auto& ho_eqv = KernelOutputHeightHo(ctx);
-    const auto& wo_eqv = KernelOutputWidthWo(ctx);
-
-    const auto& y_eqv = KernelFilterHeightY(ctx);
-    const auto& x_eqv = KernelFilterWidthX(ctx);
-
-    // channels is divided by epack to pack 2/4 fp16/bfp16
-    if(c_eqv % GetEPackLength(ctx, true) != 0)
-        return false;
-
-    const auto nonVectorizedC = c_eqv / GetEPackLength(ctx, true);
-
-    const auto WaveSize = 64;
-
-    const auto b = n_eqv * ho_eqv * wo_eqv;
-    const auto e = nonVectorizedC * y_eqv * x_eqv;
-
-    if((k_eqv * b) % 256 != 0 || (e * b) % WaveSize != 0 || (e * k_eqv) % WaveSize != 0 ||
-       b % 16 != 0 || e % 4 != 0 || k_eqv % 4 != 0)
-        return false;
-
-    return IsXdlopsSupport(ctx) && ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.group_counts == 1;
+    return IsApplicableXdlops(ctx) && ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.group_counts == 1;
 }
 
 PerformanceImplicitGemmXdlops

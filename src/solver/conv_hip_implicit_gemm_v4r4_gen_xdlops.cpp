@@ -359,9 +359,6 @@ int ConvHipImplicitGemmV4R4GenWrWXdlops::RunAndMeasureSolution(miopen::Handle& p
 
 bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
-    if(!IsXdlopsSupport(ctx))
-        return false;
-
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 
@@ -371,34 +368,11 @@ bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext&
     if(!ctx.Is2d())
         return false;
 
-    std::size_t k  = ctx.n_outputs / ctx.group_counts;
-    std::size_t c  = ctx.n_inputs / ctx.group_counts;
-    const auto& n  = ctx.batch_sz;
-    const auto& y  = ctx.kernel_size_h;
-    const auto& x  = ctx.kernel_size_w;
-    const auto& ho = ctx.out_height;
-    const auto& wo = ctx.out_width;
-
-    // channels is divided by epack to pack 2/4 fp16/bfp16
-    if(ctx.n_inputs % GetEPackLength(ctx, true) != 0)
-        return false;
-
-    const auto nonVectorizedC = c / GetEPackLength(ctx, true);
-
-    const auto WaveSize = 64;
-
-    // For fp16, when c*x*y % 4 == 0, 4 channels are accumulated through dot4 (2 * dot2) operation
-    const auto e = nonVectorizedC * y * x;
-    const auto b = n * ho * wo;
-    return (k * b) % 256 == 0 && (e * b) % WaveSize == 0 && (e * k) % WaveSize == 0 &&
-           b % 16 == 0 && e % 4 == 0 && k % 4 == 0;
+    return IsApplicableXdlops(ctx);
 }
 
 bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
-    if(!IsXdlopsSupport(ctx))
-        return false;
-
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 
@@ -408,29 +382,7 @@ bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext&
     if(!ctx.Is2d())
         return false;
 
-    const auto& n_eqv = KernelBatchN(ctx);
-    const auto& k_eqv = KernelOutputChannelK(ctx);
-    const auto& c_eqv = KernelInputChannelC(ctx);
-
-    const auto& ho_eqv = KernelOutputHeightHo(ctx);
-    const auto& wo_eqv = KernelOutputWidthWo(ctx);
-
-    const auto& y_eqv = KernelFilterHeightY(ctx);
-    const auto& x_eqv = KernelFilterWidthX(ctx);
-
-    // batch is divided by epack to pack 2/4 fp16/bfp16
-    if(c_eqv % GetEPackLength(ctx, true) != 0)
-        return false;
-
-    const auto nonVectorizedC = c_eqv / GetEPackLength(ctx, true);
-
-    const auto WaveSize = 64;
-
-    const auto b = n_eqv * ho_eqv * wo_eqv;
-    const auto e = nonVectorizedC * y_eqv * x_eqv;
-
-    return (k_eqv * b) % 256 == 0 && (e * b) % WaveSize == 0 && (e * k_eqv) % WaveSize == 0 &&
-           b % 16 == 0 && e % 4 == 0 && k_eqv % 4 == 0;
+    return IsApplicableXdlops(ctx);
 }
 
 PerformanceImplicitGemmXdlops
