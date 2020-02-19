@@ -366,6 +366,61 @@ inline static uint32_t GetEPackLength(const ConvolutionContext& ctx, bool isXdlo
     return EPACK;
 }
 
+static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
+{
+    if(!IsXdlopsSupport(ctx))
+        return false;
+
+    std::size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
+    std::size_t k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx) / ctx.group_counts;
+    std::size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx) / ctx.group_counts;
+    std::size_t y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+    std::size_t x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+    std::size_t ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+    std::size_t wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+
+    std::size_t GemmM, GemmN, GemmK;
+    // forward
+    if(ctx.direction.IsForward())
+    {
+        if(c % GetEPackLength(ctx, true) != 0)
+            return false;
+        const auto nonVectorizedC = c / GetEPackLength(ctx, true);
+        GemmM                     = k;
+        GemmN                     = static_cast<std::size_t>(n) * ho * wo;
+        GemmK                     = static_cast<std::size_t>(nonVectorizedC) * y * x;
+    }
+    // backwardData
+    else if(ctx.direction.IsBackwardData())
+    {
+        if(k % GetEPackLength(ctx, true) != 0)
+            return false;
+        const auto nonVectorizedK = k / GetEPackLength(ctx, true);
+        GemmM                     = static_cast<std::size_t>(c) * y * x;
+        GemmN                     = static_cast<std::size_t>(n) * ho * wo;
+        GemmK                     = nonVectorizedK;
+    }
+    // backwardWeights
+    else
+    {
+        if(n % GetEPackLength(ctx, true) != 0)
+            return false;
+        const auto nonVectorizedN = n / GetEPackLength(ctx, true);
+        GemmM                     = k;
+        GemmN                     = static_cast<std::size_t>(c) * y * x;
+        GemmK                     = static_cast<std::size_t>(nonVectorizedN) * ho * wo;
+    }
+
+    // unsupported xdlops-gemm
+    if(GemmM % 16 != 0 && GemmN % 64 != 0)
+        return false;
+
+    const auto WaveSize = 64;
+
+    return (GemmM * GemmN) % 256 == 0 && (GemmK * GemmM) % WaveSize == 0 &&
+           (GemmK * GemmN) % WaveSize == 0 && GemmN % 16 == 0 && GemmM % 4 == 0 && GemmK % 4 == 0;
+}
+
 template <class PerformanceImplicitGemm_t>
 inline static auto GetPerformanceConfigBase(const ConvolutionContext& ctx)
 {
