@@ -196,8 +196,6 @@ extern "C" __global__
             GemmKPACK,
             GemmMPerWave,
             GemmNPerWave,
-            GemmMPerBlock / GemmMPerWave,
-            GemmNPerBlock / GemmNPerWave,
             GemmThreadGemmDataPerReadM,
             GemmThreadGemmDataPerReadN,
             GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM_GemmKPACK,
