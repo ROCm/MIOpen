@@ -29,19 +29,16 @@ template <index_t GridSize,
           index_t GemmKPACK,
           index_t GemmMPerWave,
           index_t GemmNPerWave,
-          index_t GemmMWaves,
-          index_t GemmNWaves,
           index_t GemmThreadGemmDataPerReadM,
           index_t GemmThreadGemmDataPerReadN,
           typename GemmABlockCopyThreadSliceLengths_GemmK_GemmM_GemmKPACK,
           typename GemmABlockCopyThreadClusterLengths_GemmK_GemmM_GemmKPACK,
-          index_t GemmABlockCopySrcDataPerRead_GemmN,
+          index_t GemmABlockCopySrcDataPerRead_GemmM,
           index_t GemmABlockCopyDstDataPerWrite_GemmKPACK,
           typename GemmBBlockCopyThreadSliceLengths_GemmK_GemmN_GemmKPACK,
           typename GemmBBlockCopyThreadClusterLengths_GemmK_GemmN_GemmKPACK,
           index_t GemmBBlockCopySrcDataPerRead_GemmN,
-          index_t GemmBBlockCopyDstDataPerWrite_GemmKPACK,
-          index_t OutThreadCopyDataPerAccess_B>
+          index_t GemmBBlockCopyDstDataPerWrite_GemmKPACK>
 struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_f16_bfp16_nchw_kcyx_nkhw
 {
     __device__ void Run(AccFloat* __restrict__ p_in_global,
@@ -73,13 +70,6 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_f16_bfp16_nchw_kc
 
         constexpr index_t ConvDilationH = ConvDilations{}[0];
         constexpr index_t ConvDilationW = ConvDilations{}[1];
-
-        // sanity-check for vectorized memory load
-        // TODO: this logic may not be correct for bwd-data
-        static_assert((Wo == 1 || (ConvStrideW == 1 || OutThreadCopyDataPerAccess_B == 1)) &&
-                          (X == 1 || ConvDilationW % OutThreadCopyDataPerAccess_B == 0),
-                      "wrong! aligment requirement for vectorized global load of input tensor will "
-                      "be violated");
 
         static_assert(K % GemmKPACK == 0, "K needs to be in multiple of GemmKPACK");
         constexpr index_t GemmK = K / GemmKPACK;
@@ -164,8 +154,6 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_f16_bfp16_nchw_kc
             GemmKPerBlock,
             GemmMPerWave,
             GemmNPerWave,
-            GemmMWaves,
-            GemmNWaves,
             GemmThreadGemmDataPerReadM,
             GemmThreadGemmDataPerReadN,
             GemmABlockCopyThreadSliceLengths_GemmK_GemmM_GemmKPACK,
@@ -173,8 +161,8 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_f16_bfp16_nchw_kc
             Sequence<1, 0, 2>,
             Sequence<1, 0, 2>,
             Sequence<0, 1, 2>,
-            0,
-            GemmABlockCopySrcDataPerRead_GemmN,
+            1,
+            GemmABlockCopySrcDataPerRead_GemmM,
             GemmABlockCopyDstDataPerWrite_GemmKPACK,
             GemmBBlockCopyThreadSliceLengths_GemmK_GemmN_GemmKPACK,
             GemmBBlockCopyThreadClusterLengths_GemmK_GemmN_GemmKPACK,

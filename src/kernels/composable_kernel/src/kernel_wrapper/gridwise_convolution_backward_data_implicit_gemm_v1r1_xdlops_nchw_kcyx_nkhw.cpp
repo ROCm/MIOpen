@@ -113,7 +113,7 @@ extern "C" __global__
     using GemmABlockCopyThreadClusterLengths_GemmK_GemmM_GemmKPACK =
         Sequence<GemmABlockCopyClusterLengths_GemmK, GemmABlockCopyClusterLengths_GemmM, 1>;
 
-    constexpr index_t GemmABlockCopyDstDataPerWrite_Gemm_GemmKPACK =
+    constexpr index_t GemmABlockCopyDstDataPerWrite_GemmKPACK =
         CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK;
 
     using GemmBBlockCopyThreadSliceLengths_GemmK_GemmN_GemmKPACK =
@@ -124,7 +124,7 @@ extern "C" __global__
     using GemmBBlockCopyThreadClusterLengths_GemmK_GemmN_GemmKPACK =
         Sequence<GemmBBlockCopyClusterLengths_GemmK, GemmBBlockCopyClusterLengths_GemmN, 1>;
 
-    constexpr index_t GemmBBlockCopyDstDataPerWrite_Gemm_GemmKPACK =
+    constexpr index_t GemmBBlockCopyDstDataPerWrite_GemmKPACK =
         CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK;
 #else
     static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
@@ -137,8 +137,8 @@ extern "C" __global__
     constexpr index_t GemmThreadGemmDataPerReadM = 1;
     constexpr index_t GemmThreadGemmDataPerReadN = 1;
 
-    constexpr auto gridwise_conv_bwd_data =
 #if MIOPEN_USE_FP32
+    constexpr auto gridwise_conv_bwd_data =
         GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_nchw_kcyx_nkhw<
             GridSize,
             BlockSize,
@@ -166,7 +166,11 @@ extern "C" __global__
             GemmBBlockCopyThreadClusterLengths_GemmK_GemmN,
             GemmBBlockCopySrcDataPerRead_GemmN,
             GemmBBlockCopyDstDataPerWrite_GemmN>{};
+
+    gridwise_conv_bwd_data.Run(p_in_global, p_wei_global, p_out_global);
+
 #elif MIOPEN_USE_FP16 || MIOPEN_USE_BFP16
+    constexpr auto gridwise_conv_bwd_data =
         GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_f16_bfp16_nchw_kcyx_nkhw<
             GridSize,
             BlockSize,
@@ -185,22 +189,20 @@ extern "C" __global__
             GemmKPACK,
             GemmMPerWave,
             GemmNPerWave,
-            GemmMPerBlock / GemmMPerWave,
-            GemmNPerBlock / GemmNPerWave,
             GemmThreadGemmDataPerReadM,
             GemmThreadGemmDataPerReadN,
             GemmABlockCopyThreadSliceLengths_GemmK_GemmM_GemmKPACK,
             GemmABlockCopyThreadClusterLengths_GemmK_GemmM_GemmKPACK,
             GemmABlockCopySrcDataPerRead_GemmM,
-            GemmABlockCopyDstDataPerWrite_Gemm_GemmKPACK,
+            GemmABlockCopyDstDataPerWrite_GemmKPACK,
             GemmBBlockCopyThreadSliceLengths_GemmK_GemmN_GemmKPACK,
             GemmBBlockCopyThreadClusterLengths_GemmK_GemmN_GemmKPACK,
             GemmBBlockCopySrcDataPerRead_GemmN,
-            GemmBBlockCopyDstDataPerWrite_Gemm_GemmKPACK,
-            1>{};
-#else
-        static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
-#endif
+            GemmBBlockCopyDstDataPerWrite_GemmKPACK>{};
+
     gridwise_conv_bwd_data.Run(
         reinterpret_cast<FLOAT_ACCUM*>(p_in_global), p_wei_global, p_out_global);
+#else
+    static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
+#endif
 }

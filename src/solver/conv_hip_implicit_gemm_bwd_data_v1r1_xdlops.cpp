@@ -75,21 +75,50 @@ int ConvHipImplicitGemmBwdDataV1R1Xdlops::RunAndMeasureSolution(miopen::Handle& 
                                                                 Data_t top_buf,
                                                                 ConstData_t wei_buf,
                                                                 ConstData_t bias_buf,
-                                                                const ConvolutionContext& ctx,
+                                                                const ConvolutionContext&,
                                                                 const ConvSolution& solution,
                                                                 float& elapsed_time) const
 {
     assert(bias_buf == nullptr);
     (void)bias_buf;
 
-    return RunAndMeasureSolutionBase(
-        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
+    KernelInfo k_info = solution.construction_params[0];
+
+#ifdef NDEBUG
+    try
+#endif
+    {
+        elapsed_time = std::numeric_limits<float>::max();
+        auto kernel  = profile_h.AddKernel("",
+                                          "",
+                                          k_info.kernel_file,
+                                          k_info.kernel_name,
+                                          k_info.l_wk,
+                                          k_info.g_wk,
+                                          k_info.comp_options);
+
+        kernel(bot_buf, wei_buf, top_buf);
+
+        elapsed_time = profile_h.GetKernelTime();
+    }
+#ifdef NDEBUG
+    catch(miopen::Exception& ex)
+    {
+        MIOPEN_LOG_WE(ex.what());
+        return -1;
+    }
+#endif
+    return 0;
 }
 
 PerformanceImplicitGemmXdlops
 ConvHipImplicitGemmBwdDataV1R1Xdlops::Search(const ConvolutionContext& ctx) const
 {
-    return GenericSearchFwd(*this, ctx);
+    // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
+    if(ctx.IsFp16() || ctx.IsBfp16())
+        return GenericSearchBwd(*this, ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
+    else
+        return GenericSearchBwd(*this, ctx);
 }
 
 bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsValidPerformanceConfig(
@@ -182,16 +211,33 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
     const auto ABlockCopySubLengths_GemmM = GemmMPerBlock / GemmABlockCopyClusterLengths_GemmM;
     const auto BBlockCopySubLengths_GemmN = GemmNPerBlock / GemmBBlockCopyClusterLengths_GemmN;
 
-    const auto GemmABlockCopySrcDataPerRead_GemmM =
-        GetReadWriteVectorSize(ABlockCopySubLengths_GemmM);
-    const auto GemmABlockCopyDstDataPerWrite_GemmM =
-        GetReadWriteVectorSize(ABlockCopySubLengths_GemmM);
-    const auto GemmBBlockCopySrcDataPerRead_GemmN =
-        GetReadWriteVectorSize(std::min(ho * wo, BBlockCopySubLengths_GemmN));
-    const auto GemmBBlockCopyDstDataPerWrite_GemmN =
-        GetReadWriteVectorSize(BBlockCopySubLengths_GemmN);
-
     result.workspce_sz = GetWorkspaceSize(ctx);
+
+    std::size_t GemmABlockCopySrcDataPerRead_GemmM      = 1;
+    std::size_t GemmABlockCopyDstDataPerWrite_GemmM     = 1;
+    std::size_t GemmABlockCopyDstDataPerWrite_GemmKPACK = 1;
+    std::size_t GemmBBlockCopySrcDataPerRead_GemmN      = 1;
+    std::size_t GemmBBlockCopyDstDataPerWrite_GemmN     = 1;
+    std::size_t GemmBBlockCopyDstDataPerWrite_GemmKPACK = 1;
+
+    GemmABlockCopySrcDataPerRead_GemmM = GetReadWriteVectorSize(ABlockCopySubLengths_GemmM);
+    GemmBBlockCopySrcDataPerRead_GemmN =
+        GetReadWriteVectorSize(std::min(ho * wo, BBlockCopySubLengths_GemmN));
+
+    if(ctx.IsFp32())
+    {
+        GemmABlockCopyDstDataPerWrite_GemmM = GetReadWriteVectorSize(ABlockCopySubLengths_GemmM);
+        (void)GemmABlockCopyDstDataPerWrite_GemmKPACK;
+        GemmBBlockCopyDstDataPerWrite_GemmN = GetReadWriteVectorSize(BBlockCopySubLengths_GemmN);
+        (void)GemmBBlockCopyDstDataPerWrite_GemmKPACK;
+    }
+    else
+    {
+        GemmABlockCopyDstDataPerWrite_GemmKPACK = GetEPackLength(ctx, true);
+        (void)GemmABlockCopyDstDataPerWrite_GemmM;
+        GemmBBlockCopyDstDataPerWrite_GemmKPACK = GetEPackLength(ctx, true);
+        (void)GemmBBlockCopyDstDataPerWrite_GemmN;
+    }
 
     // clang-format off
     construction_parameters.comp_options = 
@@ -222,10 +268,10 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
         std::string(" -DCK_PARAM_GEMM_N_PER_WAVE=") + std::to_string(GemmNPerWave) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K=") + std::to_string(config.WeiBlockCopyClusterLengths_E) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_M=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_M=") + std::to_string(GemmABlockCopySrcDataPerRead_GemmM) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_M=") + std::to_string(GemmABlockCopySrcDataPerRead_GemmM     ) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K=") + std::to_string(config.InBlockCopyClusterLengths_E) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_N=") + std::to_string(config.InBlockCopyClusterLengths_B) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N=") + std::to_string(GemmBBlockCopySrcDataPerRead_GemmN) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N=") + std::to_string(GemmBBlockCopySrcDataPerRead_GemmN     ) +
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_ADD=") + (support_amd_buffer_atomic_add(ctx) ? '1' : '0') +
@@ -238,17 +284,15 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
     if(ctx.IsFp32())
     {
         construction_parameters.comp_options +=
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_M=") + std::to_string(GemmABlockCopyDstDataPerWrite_GemmM) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N=") + std::to_string(GemmBBlockCopyDstDataPerWrite_GemmN);
+            std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_M=") + std::to_string(GemmABlockCopyDstDataPerWrite_GemmM) +
+            std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N=") + std::to_string(GemmBBlockCopyDstDataPerWrite_GemmN);
     }
     else
     {
         construction_parameters.comp_options +=
             std::string(" -DCK_PARAM_KPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, true)) +
-            std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") +
-            std::to_string(1) +
-            std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") +
-            std::to_string(1);
+            std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") + std::to_string(GemmABlockCopyDstDataPerWrite_GemmKPACK) +
+            std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") + std::to_string(GemmBBlockCopyDstDataPerWrite_GemmKPACK);
     }
 
     result.construction_params.push_back(construction_parameters);
