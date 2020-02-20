@@ -366,6 +366,19 @@ inline static uint32_t GetEPackLength(const ConvolutionContext& ctx, bool isXdlo
     return EPACK;
 }
 
+static inline bool
+IsApplicableXdlopsGemm(const std::size_t GemmM, const std::size_t GemmN, const std::size_t GemmK)
+{
+    // unsupported xdlops-gemm
+    if(GemmM % 16 != 0 && GemmN % 64 != 0)
+        return false;
+
+    const auto WaveSize = 64;
+
+    return (GemmM * GemmN) % 256 == 0 && (GemmK * GemmM) % WaveSize == 0 &&
+           (GemmK * GemmN) % WaveSize == 0 && GemmN % 16 == 0 && GemmM % 4 == 0 && GemmK % 4 == 0;
+}
+
 static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
 {
     if(!IsXdlopsSupport(ctx))
@@ -411,14 +424,7 @@ static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
         GemmK                     = static_cast<std::size_t>(nonVectorizedN) * ho * wo;
     }
 
-    // unsupported xdlops-gemm
-    if(GemmM % 16 != 0 && GemmN % 64 != 0)
-        return false;
-
-    const auto WaveSize = 64;
-
-    return (GemmM * GemmN) % 256 == 0 && (GemmK * GemmM) % WaveSize == 0 &&
-           (GemmK * GemmN) % WaveSize == 0 && GemmN % 16 == 0 && GemmM % 4 == 0 && GemmK % 4 == 0;
+    return IsApplicableXdlopsGemm(GemmM, GemmN, GemmK);
 }
 
 template <class PerformanceImplicitGemm_t>
