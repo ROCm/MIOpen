@@ -738,7 +738,6 @@ struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
     int GemmNPerBlock; // 2^n[8..16]
     int GemmMPerBlock; // 2^n[32..128]
     int GemmKPerBlock; // 2^n[4..16]
-    int GemmKBlocks;   // 2*n[1..64]
 
     int GemmMPerWave; // [4, 16, 32, 64]
     int GemmNPerWave; // [4, 16, 32, 64]
@@ -747,10 +746,10 @@ struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
 
     bool use_spare_set;
 
-    PerformanceImplicitGemmV4R4GenXdlopsFwdFp32(int, int, int, int, int, int, int, bool);
+    PerformanceImplicitGemmV4R4GenXdlopsFwdFp32(int, int, int, int, int, int, bool);
 
     PerformanceImplicitGemmV4R4GenXdlopsFwdFp32()
-        : PerformanceImplicitGemmV4R4GenXdlopsFwdFp32(-1, -1, -1, -1, -1, -1, -1, false)
+        : PerformanceImplicitGemmV4R4GenXdlopsFwdFp32(-1, -1, -1, -1, -1, -1, false)
     {
     }
 
@@ -762,7 +761,6 @@ struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
         f(self.GemmMPerBlock, "GemmMPerBlock");
         f(self.GemmNPerBlock, "GemmNPerBlock");
         f(self.GemmKPerBlock, "GemmKPerBlock");
-        f(self.GemmKBlocks, "GemmKBlocks");
         f(self.GemmMPerWave, "GemmMPerWave");
         f(self.GemmNPerWave, "GemmNPerWave");
         f(self.GemmABlockCopySrcDataNumReadPerThread_GemmK,

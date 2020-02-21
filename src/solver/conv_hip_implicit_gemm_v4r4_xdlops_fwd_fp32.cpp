@@ -249,12 +249,8 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::IsValid(const ConvolutionConte
     GemmN = n * ho * wo;
     GemmK = c * y * x;
 
-    if(!(GemmM % GemmMPerBlock == 0 && GemmN % GemmNPerBlock == 0 &&
-         GemmK % (GemmKPerBlock * GemmKBlocks) == 0))
+    if(!(GemmM % GemmMPerBlock == 0 && GemmN % GemmNPerBlock == 0 && GemmK % GemmKPerBlock == 0))
         return false; // wrong! cannot divice N evenly among thread
-
-    if(GemmKBlocks > 1)
-        return false;
 
     // unsupported xdlops-gemm
     if(GemmMPerWave == 16 && GemmNPerWave == 32)
@@ -304,7 +300,6 @@ PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::PerformanceImplicitGemmV4R4GenXdlop
     GemmNPerBlock = spare ? 16 : 64;
     GemmMPerBlock = spare ? 4 : 64;
     GemmKPerBlock = spare ? 4 : 8;
-    GemmKBlocks   = 1;
 
     GemmMPerWave = spare ? 4 : 64;
     GemmNPerWave = spare ? 16 : 64;
@@ -318,7 +313,6 @@ PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::PerformanceImplicitGemmV4R4GenXdlop
     int GemmNPerBlock_,
     int GemmMPerBlock_,
     int GemmKPerBlock_,
-    int GemmKBlocks_,
     int GemmMPerWave_,
     int GemmNPerWave_,
     int GemmABlockCopySrcDataNumReadPerThread_GemmK_,
@@ -326,7 +320,6 @@ PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::PerformanceImplicitGemmV4R4GenXdlop
     : GemmNPerBlock(GemmNPerBlock_),
       GemmMPerBlock(GemmMPerBlock_),
       GemmKPerBlock(GemmKPerBlock_),
-      GemmKBlocks(GemmKBlocks_),
       GemmMPerWave(GemmMPerWave_),
       GemmNPerWave(GemmNPerWave_),
       GemmABlockCopySrcDataNumReadPerThread_GemmK(GemmABlockCopySrcDataNumReadPerThread_GemmK_),
@@ -341,7 +334,6 @@ operator==(const PerformanceImplicitGemmV4R4GenXdlopsFwdFp32& other) const
     return GemmNPerBlock == other.GemmNPerBlock
         && GemmMPerBlock == other.GemmMPerBlock
         && GemmKPerBlock == other.GemmKPerBlock
-        && GemmKBlocks == other.GemmKBlocks
         && GemmMPerWave == other.GemmMPerWave
         && GemmNPerWave == other.GemmNPerWave
         && GemmABlockCopySrcDataNumReadPerThread_GemmK == other.GemmABlockCopySrcDataNumReadPerThread_GemmK
@@ -397,27 +389,27 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::SetNextValue()
 void PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::EuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmV4R4GenXdlopsFwdFp32 tmp;
-    tmp = {128, 128, 16, 1, 64, 64, 1, use_spare_set};
+    tmp = {128, 128, 16, 64, 64, 1, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {64, 32, 4, 1, 32, 64, 1, use_spare_set};
+        tmp = {64, 32, 4, 32, 64, 1, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {64, 32, 4, 1, 32, 64, 1, use_spare_set};
+        tmp = {64, 32, 4, 32, 64, 1, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {64, 32, 16, 1, 32, 32, 1, use_spare_set};
+        tmp = {64, 32, 16, 32, 32, 1, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {32, 64, 4, 1, 64, 32, 1, use_spare_set};
+        tmp = {32, 64, 4, 64, 32, 1, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {32, 32, 4, 1, 32, 32, 1, use_spare_set};
+        tmp = {32, 32, 4, 32, 32, 1, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {64, 16, 4, 1, 16, 64, 1, use_spare_set};
+        tmp = {64, 16, 4, 16, 64, 1, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {16, 64, 4, 1, 64, 16, 1, use_spare_set};
+        tmp = {16, 64, 4, 64, 16, 1, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {16, 16, 4, 1, 16, 16, 1, use_spare_set};
+        tmp = {16, 16, 4, 16, 16, 1, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {64, 4, 16, 1, 4, 64, 1, use_spare_set};
+        tmp = {64, 4, 16, 4, 64, 1, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {64, 8, 8, 1, 8, 64, 1, use_spare_set};
+        tmp = {64, 8, 8, 8, 64, 1, use_spare_set};
 
     if(!tmp.IsValid(ctx))
     {
@@ -477,8 +469,7 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::GetSolution(
 
     const std::size_t block_size = config.GemmNPerBlock * config.GemmMPerBlock /
                                    (config.GemmMPerWave * config.GemmNPerWave) * wave_size;
-    const std::size_t grid_size =
-        (b / config.GemmNPerBlock) * (k / config.GemmMPerBlock) * config.GemmKBlocks;
+    const std::size_t grid_size = (b / config.GemmNPerBlock) * (k / config.GemmMPerBlock);
 
     std::size_t lkl_wk0 = block_size;
     std::size_t lkl_wk1 = 1;
