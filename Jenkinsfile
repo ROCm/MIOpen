@@ -42,7 +42,6 @@ def cmake_build(compiler, flags, prefixpath="/opt/rocm"){
     }
     def cmd = """
         echo \$HSA_ENABLE_SDMA
-        mkdir -p $WINEPREFIX
         ulimit -c unlimited
         rm -rf build
         mkdir build
@@ -61,8 +60,6 @@ def cmake_build(compiler, flags, prefixpath="/opt/rocm"){
 def buildJob(compiler, flags, image, prefixpath="/opt/rocm", cmd = ""){
 
         env.HSA_ENABLE_SDMA=0 
-        // env.HSA_ENABLE_INTERRUPT=0
-        env.WINEPREFIX="/jenkins/.wine"
         checkout scm
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
         def dockerArgs = "--build-arg PREFIX=${prefixpath} "
