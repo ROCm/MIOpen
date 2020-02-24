@@ -67,10 +67,10 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
     {
         if(n % GetEPackLength(ctx, true) != 0)
             return false;
-        const auto nonVectorizedC = c / GetEPackLength(ctx, true);
+        const auto nonVectorizedN = n / GetEPackLength(ctx, true);
         GemmM                     = k;
-        GemmN                     = static_cast<std::size_t>(n) * ho * wo;
-        GemmK                     = static_cast<std::size_t>(nonVectorizedC) * y * x;
+        GemmN                     = static_cast<std::size_t>(c) * y * x;
+        GemmK                     = static_cast<std::size_t>(nonVectorizedN) * ho * wo;
     }
 
     const auto& GemmMPerBlock = KPerBlock;
