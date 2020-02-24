@@ -9,8 +9,8 @@ extern "C" __global__
         const FLOAT* const __restrict__ p_wei_global,
         FLOAT* const __restrict__ p_out_global)
 {
-#if !MIOPEN_USE_FP32
-    static_assert(false, "Only support fp32!");
+#if !(MIOPEN_USE_FP32 && CK_PARAM_PROBLEM_CONV_DIRECTION_FORWARD)
+    static_assert(false, "Only support forward fp32!");
 #endif
 
     using namespace ck;

@@ -490,17 +490,30 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::GetSolution(
              GemmBBlockCopyDstDataPerWrite_GemmN,
              std::ignore) = config.CalculateGemmBBlockCopyPerformanceParameters(ctx);
 
-    construction_parameters.kernel_file = "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_fwd_"
-                                          "fp32_nchw_kcyx_nkhw_lds_double_buffer.cpp";
-    construction_parameters.kernel_name = "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_fwd_"
-                                          "fp32_nchw_kcyx_nkhw_lds_double_buffer";
+    if(ctx.group_counts > 1)
+    {
+        construction_parameters.kernel_file =
+            "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_fwd_"
+            "fp32_gnchw_gkcyx_gnkhw_lds_double_buffer.cpp";
+        construction_parameters.kernel_name =
+            "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_fwd_"
+            "fp32_gnchw_gkcyx_gnkhw_lds_double_buffer";
+    }
+    else
+    {
+        construction_parameters.kernel_file =
+            "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_fwd_"
+            "fp32_nchw_kcyx_nkhw_lds_double_buffer.cpp";
+        construction_parameters.kernel_name =
+            "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_fwd_"
+            "fp32_nchw_kcyx_nkhw_lds_double_buffer";
+    }
 
     // clang-format off
     construction_parameters.comp_options =
 
     construction_parameters.comp_options +=
         std::string(" -std=c++14 ") +
-        std::string(" -DCK_PARAM_PROBLEM_DIRECTION=") + std::to_string(static_cast<int>(ImplicitGemmDirection::ForwardData)) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_FORWARD=") + std::to_string(1) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_DATA=") + std::to_string(0) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_WEIGHT=") + std::to_string(0) +
@@ -574,9 +587,6 @@ bool ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::IsApplicable(const ConvolutionCont
         return false;
 
     if(!ctx.Is2d())
-        return false;
-
-    if(ctx.group_counts > 1)
         return false;
 
     const std::size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
