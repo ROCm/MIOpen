@@ -262,7 +262,7 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::IsValid(const ConvolutionConte
     const auto BlockSize =
         (GemmMPerBlock / GemmMPerWave) * (GemmNPerBlock / GemmNPerWave) * WaveSize;
 
-    if(GridSize >= (4 * 64) && BlockSize != 256)
+    if(GridSize >= (8 * 64) && BlockSize != 256)
         return false;
     if(GemmMPerBlock / GemmMPerWave > 2 || GemmNPerBlock / GemmNPerWave > 2)
         return false;
