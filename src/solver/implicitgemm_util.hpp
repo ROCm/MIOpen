@@ -368,7 +368,7 @@ inline static uint32_t GetEPackLength(const ConvolutionContext& ctx, bool isXdlo
 
 static inline bool IsValidXdlopsGemm(const int GemmMPerBlock,
                                      const int GemmNPerBlock,
-                                     const int GemmKPerBlock, // packed
+                                     const int GemmKPackedPerBlock, // packed
                                      const int GemmMPerWave,
                                      const int GemmNPerWave)
 {
@@ -381,11 +381,9 @@ static inline bool IsValidXdlopsGemm(const int GemmMPerBlock,
         return false;
     if(GemmMPerWave == 4 && GemmNPerWave != 64)
         return false;
-
-    // k reduction
-    if(GemmMPerWave == 32 && GemmNPerWave == 32 && GemmKPerBlock % 2 != 0)
+    if(GemmMPerWave == 32 && GemmNPerWave == 32 && GemmKPackedPerBlock % 2 != 0)
         return false;
-    if(GemmMPerWave == 16 && GemmNPerWave == 16 && GemmKPerBlock % 4 != 0)
+    if(GemmMPerWave == 16 && GemmNPerWave == 16 && GemmKPackedPerBlock % 4 != 0)
         return false;
 
     const auto WaveSize  = 64;
