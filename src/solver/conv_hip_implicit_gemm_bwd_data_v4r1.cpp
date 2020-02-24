@@ -408,14 +408,20 @@ bool PerformanceImplicitGemmBwdDataV4R1::IsValid(const ConvolutionContext& ctx) 
     bool valid = false;
 
     // check blockwise GEMM size
-    int gemm_m = 0;
-    int gemm_n = 0;
-    int gemm_k = 0;
+    for(int gemm_id = 0; gemm_id < ConvHipImplicitGemmBwdDataV4R1::CalculateNumberOfGemm(ctx);
+        ++gemm_id)
+    {
+        int gemm_m = 0;
+        int gemm_n = 0;
+        int gemm_k = 0;
 
-    std::tie(gemm_m, gemm_n, gemm_k) = ConvHipImplicitGemmBwdDataV1R1::CalculateGemmSize(ctx);
+        std::tie(gemm_m, gemm_n, gemm_k) =
+            ConvHipImplicitGemmBwdDataV4R1::CalculateGemmSize(ctx, gemm_id);
 
-    if(!(gemm_m % GemmMPerBlock == 0 && gemm_n % GemmNPerBlock == 0 && gemm_k % GemmKPerBlock == 0))
-        return false;
+        if(!(gemm_m % GemmMPerBlock == 0 && gemm_n % GemmNPerBlock == 0 &&
+             gemm_k % GemmKPerBlock == 0))
+            return false;
+    }
 
     if(!(GemmMPerBlock % GemmMPerThread == 0 && GemmNPerBlock % GemmNPerThread == 0))
         return false;
