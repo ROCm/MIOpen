@@ -9,21 +9,24 @@ namespace ck {
 
 enum struct mfma_instr
 {
+    // fp32
     mfma_f32_32x32x1xf32 = 0,
-    mfma_f32_32x32x2xf32,
-    mfma_f32_16x16x4xf32,
     mfma_f32_16x16x1xf32,
     mfma_f32_4x4x1xf32,
+    mfma_f32_32x32x2xf32, // k reduction
+    mfma_f32_16x16x4xf32, // k reduction
+    // fp16
     mfma_f32_32x32x4f16,
-    mfma_f32_32x32x8f16,
-    mfma_f32_16x16x16f16,
     mfma_f32_16x16x4f16,
     mfma_f32_4x4x4f16,
+    mfma_f32_32x32x8f16,  // k reduction
+    mfma_f32_16x16x16f16, // k reduction
+    // bfp16
     mfma_f32_32x32x2bf16,
-    mfma_f32_32x32x4bf16,
-    mfma_f32_16x16x8bf16,
     mfma_f32_16x16x2bf16,
     mfma_f32_4x4x2bf16,
+    mfma_f32_32x32x4bf16, // k reduction
+    mfma_f32_16x16x8bf16, // k reduction
 };
 
 template <mfma_instr instr>

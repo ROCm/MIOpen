@@ -244,33 +244,27 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::IsValid(const ConvolutionConte
     const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
     const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
 
-    std::size_t GemmM, GemmN, GemmK;
-    GemmM = k;
-    GemmN = n * ho * wo;
-    GemmK = c * y * x;
+    const auto GemmM = static_cast<std::size_t>(k);
+    const auto GemmN = static_cast<std::size_t>(n) * ho * wo;
+    const auto GemmK = static_cast<std::size_t>(c) * y * x;
 
     if(!(GemmM % GemmMPerBlock == 0 && GemmN % GemmNPerBlock == 0 && GemmK % GemmKPerBlock == 0))
         return false; // wrong! cannot divice N evenly among thread
 
-    // unsupported xdlops-gemm
-    if(GemmMPerWave == 16 && GemmNPerWave == 32)
-        return false;
-    if(GemmMPerWave == 32 && GemmNPerWave == 16)
-        return false;
-    if(GemmMPerWave == 8 && GemmNPerWave != 64)
-        return false;
-    if(GemmMPerWave == 4 && GemmNPerWave != 64)
+    const auto GemmKPerBlockPacked = GemmKPerBlock / GetEPackLength(ctx, true);
+
+    if(!IsValidXdlopsGemm(
+           GemmMPerBlock, GemmNPerBlock, GemmKPerBlockPacked, GemmMPerWave, GemmNPerWave))
         return false;
 
-    const auto WaveSize  = 64;
-    const auto BlockSize = GemmNPerBlock * GemmMPerBlock / (GemmMPerWave * GemmNPerWave) * WaveSize;
+    const auto GridSize = (GemmM / GemmMPerBlock) * (GemmN / GemmNPerBlock);
+    const auto WaveSize = 64;
+    const auto BlockSize =
+        (GemmMPerBlock / GemmMPerWave) * (GemmNPerBlock / GemmNPerWave) * WaveSize;
 
-    // fail with blockSize >= 512
-    /// \todo fix the issue with blockSize >= 512
-    if(BlockSize < 64 || BlockSize > 256)
+    if(GridSize >= (4 * 64) && BlockSize != 256)
         return false;
-
-    if((GemmMPerBlock % GemmMPerWave) != 0 || (GemmNPerBlock % GemmNPerWave) != 0)
+    if(GemmMPerBlock / GemmMPerWave > 2 || GemmNPerBlock / GemmNPerWave > 2)
         return false;
 
     bool valid = false;
@@ -297,12 +291,12 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::IsValid(const ConvolutionConte
 
 PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::PerformanceImplicitGemmV4R4GenXdlopsFwdFp32(bool spare)
 {
-    GemmNPerBlock = spare ? 16 : 64;
-    GemmMPerBlock = spare ? 4 : 64;
-    GemmKPerBlock = spare ? 4 : 8;
+    GemmNPerBlock = 16;
+    GemmMPerBlock = 4;
+    GemmKPerBlock = 4;
 
-    GemmMPerWave = spare ? 4 : 64;
-    GemmNPerWave = spare ? 16 : 64;
+    GemmMPerWave = 4;
+    GemmNPerWave = 16;
 
     GemmABlockCopySrcDataNumReadPerThread_GemmK = 1;
 
@@ -356,28 +350,16 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::SetNextValue()
 {
     do
     {
-        if(!use_spare_set)
-        {
-            if(!NextTwoPower<64, 128>(GemmNPerBlock))
-                break;
-            if(!NextTwoPower<64, 128>(GemmMPerBlock))
-                break;
-            if(!NextTwoPower<8, 32>(GemmKPerBlock))
-                break;
-        }
-        else
-        {
-            if(!NextTwoPower<16, 128>(GemmNPerBlock))
-                break;
-            if(!NextTwoPower<4, 128>(GemmMPerBlock))
-                break;
-            if(!NextTwoPower<4, 32>(GemmKPerBlock))
-                break;
-            if(!NextTwoPower<4, 64>(GemmMPerWave))
-                break;
-            if(!NextTwoPower<16, 64>(GemmNPerWave))
-                break;
-        }
+        if(!NextTwoPower<16, 128>(GemmNPerBlock))
+            break;
+        if(!NextTwoPower<4, 128>(GemmMPerBlock))
+            break;
+        if(!NextTwoPower<4, 32>(GemmKPerBlock))
+            break;
+        if(!NextTwoPower<4, 64>(GemmMPerWave))
+            break;
+        if(!NextTwoPower<16, 64>(GemmNPerWave))
+            break;
         if(!NextTwoPower<1, 2>(GemmABlockCopySrcDataNumReadPerThread_GemmK))
             break;
         return false;
@@ -609,7 +591,7 @@ bool ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::IsApplicable(const ConvolutionCont
     const std::size_t GemmN = static_cast<std::size_t>(n) * ho * wo;
     const std::size_t GemmK = static_cast<std::size_t>(c) * y * x;
 
-    return IsApplicableXdlopsGemm(GemmM, GemmN, GemmK);
+    return IsValidGridGemmXdlops(GemmM, GemmN, GemmK);
 }
 
 bool ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::IsValidPerformanceConfig(

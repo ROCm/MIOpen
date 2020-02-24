@@ -366,8 +366,41 @@ inline static uint32_t GetEPackLength(const ConvolutionContext& ctx, bool isXdlo
     return EPACK;
 }
 
+static inline bool IsValidXdlopsGemm(const int GemmMPerBlock,
+                                     const int GemmNPerBlock,
+                                     const int GemmKPerBlock, // packed
+                                     const int GemmMPerWave,
+                                     const int GemmNPerWave)
+{
+    // unsupported xdlops-gemm
+    if(GemmMPerWave == 16 && GemmNPerWave == 32)
+        return false;
+    if(GemmMPerWave == 32 && GemmNPerWave == 16)
+        return false;
+    if(GemmMPerWave == 8 && GemmNPerWave != 64)
+        return false;
+    if(GemmMPerWave == 4 && GemmNPerWave != 64)
+        return false;
+
+    // k reduction
+    if(GemmMPerWave == 32 && GemmNPerWave == 32 && GemmKPerBlock % 2 != 0)
+        return false;
+    if(GemmMPerWave == 16 && GemmNPerWave == 16 && GemmKPerBlock % 4 != 0)
+        return false;
+
+    const auto WaveSize  = 64;
+    const auto BlockSize = GemmNPerBlock * GemmMPerBlock / (GemmMPerWave * GemmNPerWave) * WaveSize;
+
+    // fail with blockSize >= 512
+    /// \todo fix the issue with blockSize >= 512
+    if(BlockSize < 64 || BlockSize > 256)
+        return false;
+
+    return (GemmMPerBlock % GemmMPerWave) == 0 && (GemmNPerBlock % GemmNPerWave) == 0;
+}
+
 static inline bool
-IsApplicableXdlopsGemm(const std::size_t GemmM, const std::size_t GemmN, const std::size_t GemmK)
+IsValidGridGemmXdlops(const std::size_t GemmM, const std::size_t GemmN, const std::size_t GemmK)
 {
     // unsupported xdlops-gemm
     if(GemmM % 16 != 0 && GemmN % 64 != 0)
@@ -424,7 +457,7 @@ static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
         GemmK                     = static_cast<std::size_t>(nonVectorizedN) * ho * wo;
     }
 
-    return IsApplicableXdlopsGemm(GemmM, GemmN, GemmK);
+    return IsValidGridGemmXdlops(GemmM, GemmN, GemmK);
 }
 
 template <class PerformanceImplicitGemm_t>
