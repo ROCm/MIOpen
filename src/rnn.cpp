@@ -362,6 +362,70 @@ RNNDescriptor::RNNDescriptor(int hsz,
     }
 }
 
+RNNDescriptor::RNNDescriptor(int hsz,
+                             int layers,
+                             miopenRNNMode_t rmode,
+                             miopenRNNInputMode_t inMode,
+                             miopenRNNDirectionMode_t bidir,
+                             miopenRNNBiasMode_t bmode,
+                             miopenRNNAlgo_t amode,
+                             miopenDataType_t dType,
+                             miopenDropoutDescriptor_t dropDesc)
+    : hsize(size_t(hsz)),
+      nLayers(size_t(layers)),
+      rnnMode(rmode),
+      dirMode(bidir),
+      algoMode(amode),
+      inputMode(inMode),
+      biasMode(bmode),
+      dataType(dType),
+      dropoutDesc(dropDesc)
+{
+
+    if(hsz < 0 || layers < 0)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Parameter to RNN must be a positive integer.");
+    }
+    if(!(rmode == miopenRNNRELU || rmode == miopenRNNTANH || rmode == miopenLSTM ||
+         rmode == miopenGRU))
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "RNN mode not supported");
+    }
+    if(bidir != 0 && bidir != 1)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN directional type not supported");
+    }
+    if(bmode != 0 && bmode != 1)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN bias type not supported");
+    }
+    if(dType != miopenFloat && dType != miopenHalf)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN datatype is not supported");
+    }
+    else
+    {
+        typeSize = dataType == miopenFloat ? 4 : 2;
+    }
+
+    switch(rmode)
+    {
+    case 0: // RNN vanilla
+    case 1: // RNN vanilla
+        nHiddenTensorsPerLayer = 1;
+        workspaceScale         = 1;
+        break;
+    case 2: // LSTM
+        nHiddenTensorsPerLayer = 4;
+        workspaceScale         = 6;
+        break;
+    case 3: // GRU
+        nHiddenTensorsPerLayer = 3;
+        workspaceScale         = 4;
+        break;
+    }
+}
+
 size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
                                        const int seqLength,
                                        c_array_view<const miopenTensorDescriptor_t> xDesc) const
@@ -789,6 +853,7 @@ std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& r)
     stream << r.algoMode << ", ";
     stream << r.inputMode << ", ";
     stream << r.biasMode << ", ";
+    stream << r.dropoutDesc << ", ";
     return stream;
 }
 
