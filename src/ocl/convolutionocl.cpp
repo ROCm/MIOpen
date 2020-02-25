@@ -5010,14 +5010,39 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 AddKernels(handle, algo_name, network_config, sol, &kernels);
                 if(!kernels.empty())
                 {
-                    // this kernel may accumulate results into wei tensor, therefore need to set
-                    // zero
-                    float zero = 0.f;
-                    SetTensor(handle, dwDesc, dw, &zero);
-                    elapsed = handle.GetKernelTime();
+                    auto kernel = kernels[0];
 
-                    kernels[0](x, dy, dw);
-                    elapsed += handle.GetKernelTime();
+                    // For fp16/bfp16 backward data case, do zero init, bwd data with fp32 output
+                    // and cast from fp32 to fp16/bfp16
+                    // clang-format off
+                    if((dwDesc.GetType() == miopenHalf || dwDesc.GetType() == miopenBFloat16) &&
+                       (kernel.GetName() == "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer" ||
+                        kernel.GetName() == "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer"))
+                    // clang-format on
+                    {
+                        float zero = 0.f;
+                        TensorDescriptor workSpaceDesc(
+                            miopenFloat, dwDesc.GetLengths(), dwDesc.GetStrides());
+                        SetTensor(handle, workSpaceDesc, workSpace, &zero);
+                        elapsed = handle.GetKernelTime();
+
+                        kernel(x, dy, workSpace);
+                        elapsed += handle.GetKernelTime();
+
+                        CastTensor(handle, &lowp_quant, workSpaceDesc, workSpace, dwDesc, dw, 0, 0);
+                        elapsed += handle.GetKernelTime();
+                    }
+                    else
+                    {
+                        // this kernel may accumulate results into input tensor, therefore need to
+                        // set zero
+                        float zero = 0.f;
+                        SetTensor(handle, dwDesc, dw, &zero);
+                        elapsed = handle.GetKernelTime();
+
+                        kernel(x, dy, dw);
+                        elapsed += handle.GetKernelTime();
+                    }
                 }
 
                 MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ") << best);
@@ -5158,12 +5183,33 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
             auto&& kernels =
                 handle.GetKernels("miopenConvolutionBwdWeightsAlgoImplicitGEMM", network_config);
-            if(kernels.empty())
-                MIOPEN_THROW("Error running Implicit GEMM Bwd Weights. Was Find() run previously?");
 
-            float zero = 0.f;
-            SetTensor(handle, dwDesc, dw, &zero);
-            kernels[0](x, dy, dw);
+            if(kernels.empty())
+                MIOPEN_THROW("Error running Implicit GEMM WrW. Was Find() run previously?");
+
+            auto kernel = kernels[0];
+
+            // For fp16/bfp16 backward data case, do zero init, bwd data with fp32 output
+            // and cast from fp32 to fp16/bfp16
+            // clang-format off
+            if((dwDesc.GetType() == miopenHalf || dwDesc.GetType() == miopenBFloat16) &&
+               (kernel.GetName() == "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer" ||
+                kernel.GetName() == "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer"))
+            // clang-format on
+            {
+                float zero = 0.f;
+                TensorDescriptor workSpaceDesc(
+                    miopenFloat, dwDesc.GetLengths(), dwDesc.GetStrides());
+                SetTensor(handle, workSpaceDesc, workSpace, &zero);
+                kernel(x, dy, workSpace);
+                CastTensor(handle, &lowp_quant, workSpaceDesc, workSpace, dwDesc, dw, 0, 0);
+            }
+            else
+            {
+                float zero = 0.f;
+                SetTensor(handle, dwDesc, dw, &zero);
+                kernel(x, dy, dw);
+            }
         }
         }
     });
