@@ -372,6 +372,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v1
         constexpr auto c_g_m_n_global_desc = CGlobalDesc{};
 
         constexpr auto G = b_g_k_n_global_desc.GetLengths()[0];
+
         constexpr auto K = b_g_k_n_global_desc.GetLengths()[1];
         constexpr auto N = b_g_k_n_global_desc.GetLengths()[2];
         constexpr auto M = a_g_k_m_global_desc.GetLengths()[2];

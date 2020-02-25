@@ -89,7 +89,7 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
          GemmMPerBlock % GemmABlockCopyClusterLengths_GemmM == 0))
         return false;
 
-    if(!(ctx.direction.IsBackwardWrW() && ctx.IsFp32()) && GemmKBlocks > 1)
+    if(!(ctx.direction.IsBackwardWrW()) && GemmKBlocks > 1)
         return false;
 
     if(!(GemmM % GemmMPerBlock == 0 && GemmN % GemmNPerBlock == 0 &&
