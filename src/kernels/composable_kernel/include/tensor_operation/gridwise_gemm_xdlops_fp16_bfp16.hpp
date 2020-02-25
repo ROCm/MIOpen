@@ -49,11 +49,11 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
                         const ABFloat* const __restrict__ p_b_global,
                         CFloat* const __restrict__ p_c_global) const
     {
-        constexpr auto True = integral_constant<bool, true>{};
-
         constexpr auto b_k_n_kpack_global_desc = BGlobalDesc{};
         constexpr auto a_k_m_kpack_global_desc = AGlobalDesc{};
         constexpr auto c_m_n_global_desc       = CGlobalDesc{};
+
+        constexpr auto True = integral_constant<bool, true>{};
 
         constexpr auto K     = b_k_n_kpack_global_desc.GetLengths()[0];
         constexpr auto N     = b_k_n_kpack_global_desc.GetLengths()[1];
@@ -388,13 +388,15 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
                         CFloat* const __restrict__ p_c_global) const
     {
 
-        constexpr auto True = integral_constant<bool, true>{};
-
         constexpr auto a_g_k_m_kpack_global_desc = AGlobalDesc{};
         constexpr auto b_g_k_n_kpack_global_desc = BGlobalDesc{};
         constexpr auto c_g_m_n_global_desc       = CGlobalDesc{};
 
-        constexpr auto G     = b_g_k_n_kpack_global_desc.GetLengths()[0];
+        constexpr auto True = integral_constant<bool, true>{};
+
+        constexpr auto Gi = b_g_k_n_kpack_global_desc.GetLengths()[0];
+        constexpr auto Go = c_g_m_n_global_desc.GetLengths()[0];
+
         constexpr auto K     = b_g_k_n_kpack_global_desc.GetLengths()[1];
         constexpr auto N     = b_g_k_n_kpack_global_desc.GetLengths()[2];
         constexpr auto M     = a_g_k_m_kpack_global_desc.GetLengths()[2];
@@ -411,7 +413,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
         constexpr index_t NWaves = NPerBlock / NPerWave;
 
         constexpr auto block_work_desc =
-            make_cluster_descriptor(Sequence<G, MBlockWork, NBlockWork>{});
+            make_cluster_descriptor(Sequence<Gi, MBlockWork, NBlockWork>{});
 
         const auto block_work_id = block_work_desc.CalculateClusterIndex(get_block_1d_id());
 
@@ -650,7 +652,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
 
             constexpr auto c_g_m0_m1_m2_n_global_desc = transform_tensor_descriptor(
                 c_g_m_n_global_desc,
-                make_tuple(PassThrough<G>{}, UnMerge<Sequence<M0, M1, M2>>{}, PassThrough<N>{}),
+                make_tuple(PassThrough<Go>{}, UnMerge<Sequence<M0, M1, M2>>{}, PassThrough<N>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
                 make_tuple(Sequence<0>{}, Sequence<1, 2, 3>{}, Sequence<4>{}));
 
