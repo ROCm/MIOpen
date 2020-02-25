@@ -742,14 +742,12 @@ struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
     int GemmMPerWave; // [4, 16, 32, 64]
     int GemmNPerWave; // [4, 16, 32, 64]
 
-    int GemmABlockCopySrcDataNumReadPerThread_GemmK; // [1, 2]
-
     bool use_spare_set;
 
-    PerformanceImplicitGemmV4R4GenXdlopsFwdFp32(int, int, int, int, int, int, bool);
+    PerformanceImplicitGemmV4R4GenXdlopsFwdFp32(int, int, int, int, int, bool);
 
     PerformanceImplicitGemmV4R4GenXdlopsFwdFp32()
-        : PerformanceImplicitGemmV4R4GenXdlopsFwdFp32(-1, -1, -1, -1, -1, -1, false)
+        : PerformanceImplicitGemmV4R4GenXdlopsFwdFp32(-1, -1, -1, -1, -1, false)
     {
     }
 
@@ -763,8 +761,6 @@ struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
         f(self.GemmKPerBlock, "GemmKPerBlock");
         f(self.GemmMPerWave, "GemmMPerWave");
         f(self.GemmNPerWave, "GemmNPerWave");
-        f(self.GemmABlockCopySrcDataNumReadPerThread_GemmK,
-          "GemmABlockCopySrcDataNumReadPerThread_GemmK");
     }
 
     void EuristicInit(const ConvolutionContext& ctx);

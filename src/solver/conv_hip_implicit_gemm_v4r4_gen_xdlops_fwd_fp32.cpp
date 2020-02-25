@@ -39,11 +39,10 @@ std::tuple<int, int, int, int, bool>
 PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::CalculateGemmABlockCopyPerformanceParameters(
     const ConvolutionContext&) const
 {
-    int ClusterLengths_GemmK   = 0;
-    int ClusterLengths_GemmM   = 0;
-    int SrcDataPerRead_GemmK   = amd_buffer_load_max_length<float>();
-    int DstDataPerWrite_GemmM  = amd_lds_write_max_length<float>();
-    int SrcDataPerThread_GemmK = SrcDataPerRead_GemmK * GemmABlockCopySrcDataNumReadPerThread_GemmK;
+    int ClusterLengths_GemmK  = 0;
+    int ClusterLengths_GemmM  = 0;
+    int SrcDataPerRead_GemmK  = amd_buffer_load_max_length<float>();
+    int DstDataPerWrite_GemmM = amd_lds_write_max_length<float>();
 
     try
     {
@@ -58,18 +57,13 @@ PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::CalculateGemmABlockCopyPerformanceP
             MIOPEN_THROW("invalid performance parameter");
 
         // calculate vector length on gemmk dimension
-        SrcDataPerThread_GemmK = gcd(SrcDataPerThread_GemmK, GemmKPerBlock);
+        SrcDataPerRead_GemmK = gcd(SrcDataPerRead_GemmK, GemmKPerBlock);
 
         // GemmABlockCopySrcDataPerRead_GemmK also bounded by size of threadwise copy
-        SrcDataPerThread_GemmK = gcd(SrcDataPerThread_GemmK, a_data_per_thread_copy);
-
-        if(SrcDataPerThread_GemmK % GemmABlockCopySrcDataNumReadPerThread_GemmK != 0)
-            MIOPEN_THROW("invalid GemmABlockCopySrcDataNumReadPerThread_GemmK");
-
-        SrcDataPerRead_GemmK = SrcDataPerThread_GemmK / GemmABlockCopySrcDataNumReadPerThread_GemmK;
+        SrcDataPerRead_GemmK = gcd(SrcDataPerRead_GemmK, a_data_per_thread_copy);
 
         // decide threadwise copy lengths
-        const auto a_data_per_thread_copy_gemmk = SrcDataPerThread_GemmK;
+        const auto a_data_per_thread_copy_gemmk = SrcDataPerRead_GemmK;
         const auto a_data_per_thread_copy_gemmm =
             a_data_per_thread_copy / a_data_per_thread_copy_gemmk;
 
@@ -263,7 +257,7 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::IsValid(const ConvolutionConte
         (GemmMPerBlock / GemmMPerWave) * (GemmNPerBlock / GemmNPerWave) * WaveSize;
 
     // heuristic to reduce search space
-    if(GridSize >= (8 * 64) && BlockSize != 256)
+    if(GridSize >= (8 * 64) && GemmM % 32 == 0 && GemmN % 32 == 0 && BlockSize != 256)
         return false;
     if(GemmMPerBlock / GemmMPerWave > 2 || GemmNPerBlock / GemmNPerWave > 2)
         return false;
@@ -299,8 +293,6 @@ PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::PerformanceImplicitGemmV4R4GenXdlop
     GemmMPerWave = 4;
     GemmNPerWave = 16;
 
-    GemmABlockCopySrcDataNumReadPerThread_GemmK = 1;
-
     use_spare_set = spare;
 }
 
@@ -310,14 +302,12 @@ PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::PerformanceImplicitGemmV4R4GenXdlop
     int GemmKPerBlock_,
     int GemmMPerWave_,
     int GemmNPerWave_,
-    int GemmABlockCopySrcDataNumReadPerThread_GemmK_,
     bool use_spare_set_)
     : GemmNPerBlock(GemmNPerBlock_),
       GemmMPerBlock(GemmMPerBlock_),
       GemmKPerBlock(GemmKPerBlock_),
       GemmMPerWave(GemmMPerWave_),
       GemmNPerWave(GemmNPerWave_),
-      GemmABlockCopySrcDataNumReadPerThread_GemmK(GemmABlockCopySrcDataNumReadPerThread_GemmK_),
       use_spare_set(use_spare_set_)
 {
 }
@@ -331,7 +321,6 @@ operator==(const PerformanceImplicitGemmV4R4GenXdlopsFwdFp32& other) const
         && GemmKPerBlock == other.GemmKPerBlock
         && GemmMPerWave == other.GemmMPerWave
         && GemmNPerWave == other.GemmNPerWave
-        && GemmABlockCopySrcDataNumReadPerThread_GemmK == other.GemmABlockCopySrcDataNumReadPerThread_GemmK
         && use_spare_set == other.use_spare_set;
     // clang-format on
 }
@@ -343,8 +332,8 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::IsValidValue() const
         && IsTwoPower<4,128>(GemmMPerBlock)
         && IsTwoPower<4,16>(GemmKPerBlock)
         && IsTwoPower<4,64>(GemmMPerWave)
-        && IsTwoPower<16,64>(GemmNPerWave)
-        && IsTwoPower<1, 2>(GemmABlockCopySrcDataNumReadPerThread_GemmK); // clang-format on
+        && IsTwoPower<16,64>(GemmNPerWave);
+    // clang-format on
 }
 
 bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::SetNextValue()
@@ -361,8 +350,6 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::SetNextValue()
             break;
         if(!NextTwoPower<16, 64>(GemmNPerWave))
             break;
-        if(!NextTwoPower<1, 2>(GemmABlockCopySrcDataNumReadPerThread_GemmK))
-            break;
         return false;
     } while(false);
 
@@ -372,27 +359,27 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::SetNextValue()
 void PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::EuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmV4R4GenXdlopsFwdFp32 tmp;
-    tmp = {128, 128, 16, 64, 64, 1, use_spare_set};
+    tmp = {128, 128, 16, 64, 64, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {64, 32, 4, 32, 64, 1, use_spare_set};
+        tmp = {64, 32, 4, 32, 64, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {64, 32, 4, 32, 64, 1, use_spare_set};
+        tmp = {64, 32, 4, 32, 64, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {64, 32, 16, 32, 32, 1, use_spare_set};
+        tmp = {64, 32, 16, 32, 32, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {32, 64, 4, 64, 32, 1, use_spare_set};
+        tmp = {32, 64, 4, 64, 32, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {32, 32, 4, 32, 32, 1, use_spare_set};
+        tmp = {32, 32, 4, 32, 32, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {64, 16, 4, 16, 64, 1, use_spare_set};
+        tmp = {64, 16, 4, 16, 64, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {16, 64, 4, 64, 16, 1, use_spare_set};
+        tmp = {16, 64, 4, 64, 16, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {16, 16, 4, 16, 16, 1, use_spare_set};
+        tmp = {16, 16, 4, 16, 16, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {64, 4, 16, 4, 64, 1, use_spare_set};
+        tmp = {64, 4, 16, 4, 64, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {64, 8, 8, 8, 64, 1, use_spare_set};
+        tmp = {64, 8, 8, 8, 64, use_spare_set};
 
     if(!tmp.IsValid(ctx))
     {
