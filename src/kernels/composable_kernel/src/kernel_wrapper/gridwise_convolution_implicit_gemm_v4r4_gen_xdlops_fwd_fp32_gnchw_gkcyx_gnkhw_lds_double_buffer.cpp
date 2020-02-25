@@ -111,8 +111,8 @@ extern "C" __global__
     constexpr index_t GemmABlockCopySrcDataPerRead_GemmK =
         CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM;
 
-    constexpr auto GemmMPerWave        = CK_PARAM_GEMM_M_PER_WAVE;
-    constexpr auto GemmNPerWave        = CK_PARAM_GEMM_N_PER_WAVE;
+    constexpr auto GemmMPerWave                   = CK_PARAM_GEMM_M_PER_WAVE;
+    constexpr auto GemmNPerWave                   = CK_PARAM_GEMM_N_PER_WAVE;
     constexpr index_t ThreadGemmDataPerRead_GemmM = 1;
     constexpr index_t ThreadGemmDataPerRead_GemmN = 1;
 
