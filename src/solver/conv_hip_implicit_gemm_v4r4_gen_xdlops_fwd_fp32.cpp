@@ -236,17 +236,17 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::Calcu
 
 bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::IsValid(const ConvolutionContext& ctx) const
 {
-    const auto n  = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const auto k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx) / ctx.group_counts;
-    const auto c  = ConvolutionContextInterpreter::GetInputChannelC(ctx) / ctx.group_counts;
-    const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+    const std::size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
+    const std::size_t k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx) / ctx.group_counts;
+    const std::size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx) / ctx.group_counts;
+    const std::size_t ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+    const std::size_t wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+    const std::size_t y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+    const std::size_t x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
 
-    const auto GemmM = static_cast<std::size_t>(k);
-    const auto GemmN = static_cast<std::size_t>(n) * ho * wo;
-    const auto GemmK = static_cast<std::size_t>(c) * y * x;
+    const std::size_t GemmM = k;
+    const std::size_t GemmN = n * ho * wo;
+    const std::size_t GemmK = c * y * x;
 
     if(!(GemmM % GemmMPerBlock == 0 && GemmN % GemmNPerBlock == 0 && GemmK % GemmKPerBlock == 0))
         return false; // wrong! cannot divice N evenly among thread
@@ -262,6 +262,7 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::IsValid(const ConvolutionConte
     const auto BlockSize =
         (GemmMPerBlock / GemmMPerWave) * (GemmNPerBlock / GemmNPerWave) * WaveSize;
 
+    // heuristic to reduce search space
     if(GridSize >= (8 * 64) && BlockSize != 256)
         return false;
     if(GemmMPerBlock / GemmMPerWave > 2 || GemmNPerBlock / GemmNPerWave > 2)
