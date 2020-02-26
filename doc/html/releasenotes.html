@@ -1,0 +1,984 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>MIOpen Release notes &mdash; MIOpen: AMD&#39;s deep learning library</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Citing MIOpen" href="citation.html" />
+    <link rel="prev" title="Welcome to MIOpen" href="index.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> MIOpen
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.2.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">MIOpen Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#">02/26/2020 [ 2.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#">12/19/2019 [ 2.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#">09/25/2019 [ 2.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#">08/13/2019 [ 2.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#">07/08/2019 [ 2.0.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#">05/03/2019 [ 1.8.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#">04/11/2019 [ 1.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#">02/06/2019 [ 1.7.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#">12/19/2018 [ 1.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#">11/18/2018 [ 1.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#">09/14/2018 [ 1.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#">07/30/2018 [ 1.4.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#">07/19/2018 [ 1.4.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#">07/06/2018 [ 1.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#">03/30/2018 [ 1.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#">03/08/2018 [ 1.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#">12/15/2017 [ 1.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#">09/08/2017 [ 1.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#">08/27/2017 [ 1.0.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#">07/26/2017 [ 1.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#initial-release">06/30/2017 [ 1.0.0 ] Initial release</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="citation.html">Citing MIOpen</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="citation.html#citation-bibtex">Citation BibTeX</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Build and Install Instructions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="install.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-miopen-with-pre-built-packages">Installing MIOpen with pre-built packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-the-dependencies">Installing the dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-minimum-dependencies-in-rocm-environment">Installing minimum dependencies in ROCm environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#building-miopen-from-source">Building MIOpen from source</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#configuring-with-cmake">Configuring with cmake</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#for-opencl-run">For OpenCL, run:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#for-hip-run">For HIP, run:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#setting-up-locations">Setting Up Locations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#system-performance-database-and-user-database">System Performance Database and User Database</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#persistent-program-cache">Persistent Program Cache</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#changing-the-cmake-configuration">Changing the cmake configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#building-the-library">Building the library</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#building-the-driver">Building the driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#running-the-tests">Running the tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#building-the-documentation">Building the documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#formatting-the-code">Formatting the code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-the-dependencies-manually">Installing the dependencies manually</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#using-docker">Using docker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#citing-miopen">Citing MIOpen</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#citation-bibtex">Citation BibTeX</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="driver.html">MIOpenDriver</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="driver.html#building-the-driver">Building the Driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="driver.html#base-arguments">Base Arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="driver.html#executing-miopendriver">Executing MIOpenDriver</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="DebugAndLogging.html">Debugging and Logging</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#logging">Logging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#layer-filtering">Layer Filtering</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DebugAndLogging.html#filtering-by-algorithm">Filtering by algorithm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DebugAndLogging.html#filtering-by-build-method">Filtering by build method</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DebugAndLogging.html#filtering-out-all-solutions-except-one">Filtering out all Solutions except one</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DebugAndLogging.html#filtering-the-solutions-on-individual-basis">Filtering the Solutions on individual basis</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#rocblas-logging-and-behavior">rocBlas Logging and Behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#experimental-controls">Experimental controls</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DebugAndLogging.html#code-object-co-version-selection-experimental">Code Object (CO) version selection (EXPERIMENTAL)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DebugAndLogging.html#miopen-debug-amd-winograd-mpass-workspace-max"><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cache.html">Kernel Cache</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cache.html#clear-the-cache">Clear the cache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cache.html#disabling-the-cache">Disabling the cache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cache.html#updating-miopen-and-removing-the-cache">Updating MIOpen and removing the cache</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="perfdatabase.html">Performance Database</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="perfdatabase.html#auto-tuning-the-kernels">Auto-tuning the kernels.</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#miopen-find-enforce">MIOPEN_FIND_ENFORCE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#miopen-find-enforce-scope">MIOPEN_FIND_ENFORCE_SCOPE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="perfdatabase.html#updating-miopen-and-the-user-db">Updating MIOpen and the User Db</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="finddb.html">Find-Db Database</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="finddb.html#populating-the-user-find-db">Populating the User Find-Db</a></li>
+<li class="toctree-l2"><a class="reference internal" href="finddb.html#updating-miopen-and-the-user-find-db">Updating MIOpen and the User Find-Db</a></li>
+<li class="toctree-l2"><a class="reference internal" href="finddb.html#disabling-find-db">Disabling Find-Db</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="find_and_immediate.html">Find and Immediate Mode</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="find_and_immediate.html#find-api">Find API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="find_and_immediate.html#immediate-mode-api">Immediate Mode API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="find_and_immediate.html#immediate-mode-fall-back">Immediate Mode Fall Back</a></li>
+<li class="toctree-l2"><a class="reference internal" href="find_and_immediate.html#limitations-of-immediate-mode">Limitations of Immediate Mode</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="find_and_immediate.html#architectual-limitations">Architectual Limitations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="find_and_immediate.html#backend-limitations">Backend Limitations</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Getting_Started_FusionAPI.html">Fusion API: Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Getting_Started_FusionAPI.html#introduction">Introduction</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="Getting_Started_FusionAPI.html#intended-audience">Intended Audience</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="Getting_Started_FusionAPI.html#create-a-fusion-plan">Create a Fusion Plan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Getting_Started_FusionAPI.html#create-and-add-operators">Create and add Operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Getting_Started_FusionAPI.html#compile-the-fusion-plan">Compile the Fusion Plan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Getting_Started_FusionAPI.html#set-the-runtime-arguments">Set the runtime arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Getting_Started_FusionAPI.html#execute-a-fusion-plan">Execute a Fusion Plan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Getting_Started_FusionAPI.html#cleanup">Cleanup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Getting_Started_FusionAPI.html#supported-fusions">Supported Fusions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Getting_Started_FusionAPI.html#performance-comparison-to-non-fused-kernels">Performance Comparison to Non-Fused Kernels</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="apireference.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="datatypes.html">Datatypes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="handle.html">Handle</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="handle.html#miopenstatus-t">miopenStatus_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="handle.html#miopencreate">miopenCreate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="handle.html#miopencreatewithstream">miopenCreateWithStream</a></li>
+<li class="toctree-l3"><a class="reference internal" href="handle.html#miopendestroy">miopenDestroy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="handle.html#miopensetstream">miopenSetStream</a></li>
+<li class="toctree-l3"><a class="reference internal" href="handle.html#miopengetstream">miopenGetStream</a></li>
+<li class="toctree-l3"><a class="reference internal" href="handle.html#miopengetkerneltime">miopenGetKernelTime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="handle.html#miopenenableprofiling">miopenEnableProfiling</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tensor.html">Tensors</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="tensor.html#miopendatatype-t">miopenDataType_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tensor.html#miopentensorop-t">miopenTensorOp_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tensor.html#miopencreatetensordescriptor">miopenCreateTensorDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tensor.html#miopenset4dtensordescriptor">miopenSet4dTensorDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tensor.html#miopenget4dtensordescriptor">miopenGet4dTensorDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tensor.html#miopensettensordescriptor">miopenSetTensorDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tensor.html#miopengettensordescriptorsize">miopenGetTensorDescriptorSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tensor.html#miopengettensordescriptor">miopenGetTensorDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tensor.html#miopendestroytensordescriptor">miopenDestroyTensorDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tensor.html#miopenoptensor">miopenOpTensor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tensor.html#miopensettensor">miopenSetTensor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tensor.html#miopenscaletensor">miopenScaleTensor</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="activation.html">Activation Layers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="activation.html#miopenactivationmode-t">miopenActivationMode_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="activation.html#miopencreateactivationdescriptor">miopenCreateActivationDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="activation.html#miopensetactivationdescriptor">miopenSetActivationDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="activation.html#miopengetactivationdescriptor">miopenGetActivationDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="activation.html#miopenactivationforward">miopenActivationForward</a></li>
+<li class="toctree-l3"><a class="reference internal" href="activation.html#miopenactivationbackward">miopenActivationBackward</a></li>
+<li class="toctree-l3"><a class="reference internal" href="activation.html#miopendestroyactivationdescriptor">miopenDestroyActivationDescriptor</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="convolution.html">Convolutional Layer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvolutionmode-t">miopenConvolutionMode_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvfwdalgorithm-t">miopenConvFwdAlgorithm_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvbwdweightsalgorithm-t">miopenConvBwdWeightsAlgorithm_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvbwddataalgorithm-t">miopenConvBwdDataAlgorithm_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvalgoperf-t">miopenConvAlgoPerf_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopencreateconvolutiondescriptor">miopenCreateConvolutionDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopeninitconvolutiondescriptor">miopenInitConvolutionDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopeninitconvolutionnddescriptor">miopenInitConvolutionNdDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopengetconvolutiondescriptor">miopenGetConvolutionDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopengetconvolutionnddescriptor">miopenGetConvolutionNdDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopensetconvolutiongroupcount">miopenSetConvolutionGroupCount</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopensettransposeconvoutputpadding">miopenSetTransposeConvOutputPadding</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopensettransposeconvndoutputpadding">miopenSetTransposeConvNdOutputPadding</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopengetconvolutionforwardoutputdim">miopenGetConvolutionForwardOutputDim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopengetconvolutionndforwardoutputdim">miopenGetConvolutionNdForwardOutputDim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvolutionforwardgetworkspacesize">miopenConvolutionForwardGetWorkSpaceSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenfindconvolutionforwardalgorithm">miopenFindConvolutionForwardAlgorithm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvolutionforward">miopenConvolutionForward</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvolutionforwardbias">miopenConvolutionForwardBias</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenfindconvolutionbackwarddataalgorithm">miopenFindConvolutionBackwardDataAlgorithm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvolutionbackwarddata">miopenConvolutionBackwardData</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvolutionbackwarddatagetworkspacesize">miopenConvolutionBackwardDataGetWorkSpaceSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvolutionbackwardweightsgetworkspacesize">miopenConvolutionBackwardWeightsGetWorkSpaceSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenfindconvolutionbackwardweightsalgorithm">miopenFindConvolutionBackwardWeightsAlgorithm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvolutionbackwardweights">miopenConvolutionBackwardWeights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopenconvolutionbackwardbias">miopenConvolutionBackwardBias</a></li>
+<li class="toctree-l3"><a class="reference internal" href="convolution.html#miopendestroyconvolutiondescriptor">miopenDestroyConvolutionDescriptor</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rnn.html">Recurrent Neural Networks</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopenrnnmode-t">miopenRNNMode_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopenrnninputmode-t">miopenRNNInputMode_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopenrnnalgo-t">miopenRNNAlgo_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopenrnndirectionmode-t">miopenRNNDirectionMode_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopenrnnbiasmode-t">miopenRNNBiasMode_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopenrnngemmalgomode-t">miopenRNNGEMMalgoMode_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopencreaternndescriptor">miopenCreateRNNDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnndescriptor">miopenGetRNNDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopendestroyrnndescriptor">miopenDestroyRNNDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopensetrnndescriptor">miopenSetRNNDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnnworkspacesize">miopenGetRNNWorkspaceSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnntrainingreservesize">miopenGetRNNTrainingReserveSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnnparamssize">miopenGetRNNParamsSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnnparamsdescriptor">miopenGetRNNParamsDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnninputtensorsize">miopenGetRNNInputTensorSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnnhiddentensorsize">miopenGetRNNHiddenTensorSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnnlayerparamsize">miopenGetRNNLayerParamSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnnlayerbiassize">miopenGetRNNLayerBiasSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnnlayerparam">miopenGetRNNLayerParam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnnlayerbias">miopenGetRNNLayerBias</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopensetrnnlayerparam">miopenSetRNNLayerParam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopensetrnnlayerbias">miopenSetRNNLayerBias</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnnlayerparamoffset">miopenGetRNNLayerParamOffset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopengetrnnlayerbiasoffset">miopenGetRNNLayerBiasOffset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopenrnnforwardtraining">miopenRNNForwardTraining</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopenrnnbackwarddata">miopenRNNBackwardData</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopenrnnbackwardweights">miopenRNNBackwardWeights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rnn.html#miopenrnnforwardinference">miopenRNNForwardInference</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="batchnorm.html">Batch Normalization Layer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="batchnorm.html#miopenbatchnormmode-t">miopenBatchNormMode_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="batchnorm.html#miopenderivebntensordescriptor">miopenDeriveBNTensorDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="batchnorm.html#miopenbatchnormalizationforwardtraining">miopenBatchNormalizationForwardTraining</a></li>
+<li class="toctree-l3"><a class="reference internal" href="batchnorm.html#miopenbatchnormalizationforwardinference">miopenBatchNormalizationForwardInference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="batchnorm.html#miopenbatchnormalizationbackward">miopenBatchNormalizationBackward</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lrn.html">Local Response Normalization Layer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lrn.html#miopenlrnmode-t">miopenLRNMode_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lrn.html#miopencreatelrndescriptor">miopenCreateLRNDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lrn.html#miopensetlrndescriptor">miopenSetLRNDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lrn.html#miopengetlrndescriptor">miopenGetLRNDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lrn.html#miopenlrngetworkspacesize">miopenLRNGetWorkSpaceSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lrn.html#miopenlrnforward">miopenLRNForward</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lrn.html#miopenlrnbackward">miopenLRNBackward</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lrn.html#miopendestroylrndescriptor">miopenDestroyLRNDescriptor</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="pooling.html">Pooling Layer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenpoolingmode-t">miopenPoolingMode_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenindextype-t">miopenIndexType_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopencreatepoolingdescriptor">miopenCreatePoolingDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenset2dpoolingdescriptor">miopenSet2dPoolingDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopensetpoolingindextype">miopenSetPoolingIndexType</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopengetpoolingindextype">miopenGetPoolingIndexType</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenget2dpoolingdescriptor">miopenGet2dPoolingDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopengetpoolingforwardoutputdim">miopenGetPoolingForwardOutputDim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenpoolinggetworkspacesize">miopenPoolingGetWorkSpaceSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenpoolinggetworkspacesizev2">miopenPoolingGetWorkSpaceSizeV2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenpoolingforward">miopenPoolingForward</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenpoolingbackward">miopenPoolingBackward</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopendestroypoolingdescriptor">miopenDestroyPoolingDescriptor</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="softmax.html">Softmax Layer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="softmax.html#miopensoftmaxalgorithm-t">miopenSoftmaxAlgorithm_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="softmax.html#miopensoftmaxmode-t">miopenSoftmaxMode_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="softmax.html#miopensoftmaxforward">miopenSoftmaxForward</a></li>
+<li class="toctree-l3"><a class="reference internal" href="softmax.html#miopensoftmaxbackward">miopenSoftmaxBackward</a></li>
+<li class="toctree-l3"><a class="reference internal" href="softmax.html#miopensoftmaxforward-v2">miopenSoftmaxForward_V2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="softmax.html#miopensoftmaxbackward-v2">miopenSoftmaxBackward_V2</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fusion.html">Layer Fusion</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="fusion.html#miopenfusiondirection-t">miopenFusionDirection_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fusion.html#miopencreatefusionplan">miopenCreateFusionPlan</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fusion.html#miopendestroyfusionplan">miopenDestroyFusionPlan</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fusion.html#miopencompilefusionplan">miopenCompileFusionPlan</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fusion.html#miopenfusionplangetop">miopenFusionPlanGetOp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fusion.html#miopenfusionplangetworkspacesize">miopenFusionPlanGetWorkSpaceSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fusion.html#miopenfusionplanconvolutiongetalgo">miopenFusionPlanConvolutionGetAlgo</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fusion.html#miopencreateopconvforward">miopenCreateOpConvForward</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fusion.html#miopencreateopactivationforward">miopenCreateOpActivationForward</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fusion.html#miopencreateopbiasforward">miopenCreateOpBiasForward</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fusion.html#miopencreateopbatchnorminference">miopenCreateOpBatchNormInference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fusion.html#miopencreateoperatorargs">miopenCreateOperatorArgs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fusion.html#miopendestroyoperatorargs">miopenDestroyOperatorArgs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fusion.html#miopensetopargsconvforward">miopenSetOpArgsConvForward</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fusion.html#miopensetopargsbatchnorminference">miopenSetOpArgsBatchNormInference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fusion.html#miopensetopargsbiasforward">miopenSetOpArgsBiasForward</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fusion.html#miopenexecutefusionplan">miopenExecuteFusionPlan</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="loss.html">Loss Function Layer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="loss.html#miopenctclossalgo-t">miopenCTCLossAlgo_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="loss.html#miopencreatectclossdescriptor">miopenCreateCTCLossDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="loss.html#miopengetctclossdescriptor">miopenGetCTCLossDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="loss.html#miopendestroyctclossdescriptor">miopenDestroyCTCLossDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="loss.html#miopensetctclossdescriptor">miopenSetCTCLossDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="loss.html#miopengetctclossworkspacesize">miopenGetCTCLossWorkspaceSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="loss.html#miopenctcloss">miopenCTCLoss</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="dropout.html">Dropout Layer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="dropout.html#miopenrngtype-t">miopenRNGType_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dropout.html#miopencreatedropoutdescriptor">miopenCreateDropoutDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dropout.html#miopengetdropoutdescriptor">miopenGetDropoutDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dropout.html#miopenrestoredropoutdescriptor">miopenRestoreDropoutDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dropout.html#miopendestroydropoutdescriptor">miopenDestroyDropoutDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dropout.html#miopensetdropoutdescriptor">miopenSetDropoutDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dropout.html#miopendropoutgetreservespacesize">miopenDropoutGetReserveSpaceSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dropout.html#miopendropoutgetstatessize">miopenDropoutGetStatesSize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dropout.html#miopendropoutforward">miopenDropoutForward</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dropout.html#miopendropoutbackward">miopenDropoutBackward</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">MIOpen</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>MIOpen Release notes</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/releasenotes.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="miopen-release-notes">
+<span id="miopen-release-notes"></span><h1>MIOpen Release notes<a class="headerlink" href="#miopen-release-notes" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="">
+<span id="id1"></span><h2>02/26/2020 [ 2.2.1 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>This release contains bug fixes, documentation updates, and further code object version 3 support</li>
+</ul>
+<p>Changes:</p>
+<ul class="simple">
+<li>Added support for multiple ROCm installations</li>
+<li>Added additional support for code object v3</li>
+<li>Fixed issue with incorrect LRN calculation <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/127">#127</a></li>
+<li>Fixed incorrect performance database documentation</li>
+<li>Fixed issue with incorrect workspace calculation in group convolutions</li>
+<li>Fixed issue with unsupported hardware instructions used with inline assembly</li>
+</ul>
+</div>
+<div class="section" id="">
+<span id="id2"></span><h2>12/19/2019 [ 2.2.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>This release contains bug fixes, performance improvements, and expanded applicability for specific convolutional algorithms.</li>
+<li>MIOpen has posted a citable paper on ArXiv <a class="reference external" href="https://arxiv.org/abs/1910.00078">here</a>.</li>
+<li>An SQLite database has been added to replace the text-based performance database. While the text file still exists, by default SQLite is used over the text-based performance database; see <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html">documentation</a> from more details.</li>
+</ul>
+<p>Changes:</p>
+<ul class="simple">
+<li>Added per solution algorithm filtering environmental variable for debugging</li>
+<li>Added SQLite3 database and build dependency. The text-based performance database support is deprecated and will be removed in the next release.</li>
+<li>Added citation page to documentation pointing to <a class="reference external" href="https://arxiv.org/abs/1910.00078">MIOpen's paper</a></li>
+<li>Added to the overall documentation</li>
+<li>Fixed fusion compilation check issue</li>
+<li>Fixed fusion group convolution warning</li>
+<li>Improved performance of forward pooling</li>
+<li>Improved performance of convolutions</li>
+<li>Improved performance of spatial training batch normalization for some large batch size input configurations</li>
+<li>Improved applicability of implicit GEMM convolution algorithm</li>
+<li>Improved performance of calls to miopenConvolutionXXXGetWorkSpaceSize() functions</li>
+<li>Improved conformance to code object version 3</li>
+<li>Disabled SCGEMM convolution algorithm by default; this algorithm is deprecated and will be removed in future releases</li>
+<li>Changed &quot;hip_hhc&quot; to &quot;hip-hcc&quot; for the MIOpen package requirements in CMakeLists.txt</li>
+</ul>
+</div>
+<div class="section" id="">
+<span id="id3"></span><h2>09/25/2019 [ 2.1.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>This release contains new layers, bug fixes, and a new convolution algorithm.</li>
+</ul>
+<p>Changes:</p>
+<ul class="simple">
+<li>Added a dropout layer API for training</li>
+<li>Added a new SCGEMM algorithm for convolutions</li>
+<li>Added further support for bfp16 in convolutions</li>
+<li>Added a <a class="reference external" href="https://hub.docker.com/r/rocm/miopen/tags">docker hub link</a> for MIOpen docker images.</li>
+<li>Fixed issue with NaN appearing on batch normalization backwards pass in fp16</li>
+<li>Fixed softmax kernel bug in log mode <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/112">#112</a></li>
+<li>Fixed ROCm gfx803 support issue <a class="reference external" href="https://github.com/RadeonOpenCompute/ROCm/issues/869">#869</a></li>
+<li>Improved performance of batch normalization fp16 forward training layers</li>
+<li>Improved performance of convolutions layers</li>
+<li>Removed MIOpenGEMM as a requirement for the HIP backend. It is now optional.</li>
+</ul>
+</div>
+<div class="section" id="">
+<span id="id4"></span><h2>08/13/2019 [ 2.0.1 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>This release contains bug fixes and performance improvements.</li>
+<li>Additionally, the convolution algorithm Implicit GEMM is now enabled by default</li>
+<li>Known issues:<ul>
+<li>Backward propagation for batch normalization in fp16 mode may trigger NaN in some cases</li>
+<li>Softmax Log mode may produce an incorrect result in back propagation</li>
+</ul>
+</li>
+</ul>
+<p>Changes:</p>
+<ul class="simple">
+<li>Added Winograd multi-pass convolution kernel</li>
+<li>Fixed issue with hip compiler paths</li>
+<li>Fixed immediate mode behavior with auto-tuning environment variable</li>
+<li>Fixed issue with system find-db in-memory cache, the fix enable the cache by default</li>
+<li>Improved logging</li>
+<li>Improved how symbols are hidden in the library</li>
+<li>Updated default behavior to enable implicit GEMM</li>
+</ul>
+</div>
+<div class="section" id="">
+<span id="id5"></span><h2>07/08/2019 [ 2.0.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>This release contains several new features including an immediate mode for selecting convolutions, bfloat16 support, new layers, modes, and algorithms.</li>
+<li>MIOpenDriver, a tool for benchmarking and developing kernels is now shipped with MIOpen.</li>
+<li>BFloat16 now supported in HIP requires an updated rocBLAS as a GEMM backend.</li>
+<li>Immediate mode API now provides the ability to quickly obtain a convolution kernel.</li>
+<li>MIOpen now contains HIP source kernels and implements the ImplicitGEMM kernels. This is a new feature and is currently disabled by default. Use the environmental variable &quot;MIOPEN_DEBUG_CONV_IMPLICIT_GEMM=1&quot; to activation this feature. ImplicitGEMM requires an up to date HIP version of at least 1.5.9211.</li>
+<li>A new &quot;loss&quot; catagory of layers has been added, of which, CTC loss is the first. See the API reference for more details.</li>
+<li>2.0 is the last release of active support for gfx803 architectures. In future releases, MIOpen will not actively debug and develop new features specifically for gfx803.</li>
+<li>System Find-Db in memory cache is disabled by default. Please see build instructions to enable this feature.</li>
+</ul>
+<p>Changes:</p>
+<ul class="simple">
+<li>Added support for bfloat16 datatype in convolutions</li>
+<li>Added softmax channel mode and new softmax version 2 API</li>
+<li>Added fast / accurate / log softmax algorithms</li>
+<li>Added new implicit GEMM convolution algorithm for forward and backwards data passes, disabled by default</li>
+<li>Added int32 datatype support for output tensors in int8 convolutions</li>
+<li>Added immediate mode for finding the best convolution kernel for a given configuration</li>
+<li>Added a Find-Db infrastructure which stashes results of find on a user's system</li>
+<li>Added a shipped System Find-Db containing offline run Find() results</li>
+<li>Added an additional, faster batch norm assembly kernel for fp16</li>
+<li>Added CTC loss layer</li>
+<li>Added MIOpenDriver as a default component in MIOpen's build <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/34">#34</a></li>
+<li>Fixed C compatability for boolean types in C API <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/103">#103</a></li>
+<li>Fixed incorrect calculation in per-activation batch norm backwards pass <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/104">#104</a></li>
+<li>Fixed bug <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/95">#95</a> with asm batch norm ISA</li>
+<li>Fixed IsApplicable bug in Conv3x3Asm for group convolutions</li>
+<li>Improved performance of 1x1 stride 2 fp32 convolutions in the forward and backwards data passes</li>
+<li>Improved 3-D convolution stability</li>
+<li>Improved applicability of direct convolution backwards weights for 2x2, 5x10, and 5x20 filter sizes</li>
+<li>Improved maintainability in kernels and cpp code</li>
+<li>Updated rocBLAS minimum version to branch <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/rocBLAS/tree/master-rocm-2.6">master-rocm-2.6</a></li>
+</ul>
+</div>
+<div class="section" id="">
+<span id="id6"></span><h2>05/03/2019 [ 1.8.1 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>This release contains minor bug fixes and additional performance database improvements.</li>
+</ul>
+<p>Changes:</p>
+<ul class="simple">
+<li>Fixed accuracy issue with backwards weights</li>
+<li>Fixed issue with name parsing for newer architectures</li>
+<li>Added narrow workaround for 5x10 and 5x20 filter performance regression</li>
+<li>Improved support in performance database for Radeon VII</li>
+</ul>
+</div>
+<div class="section" id="">
+<span id="id7"></span><h2>04/11/2019 [ 1.8.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>This release contaings full 3-D convolution support and int8 support for interfence.</li>
+<li>Additionally, there are major updates in the performance database for major models including those found in Torchvision.</li>
+<li>This release contains full 3-D convolution support and int8 support for inference.</li>
+<li>Additionally, there are updates in the performance database for major models including those found in Torchvision.</li>
+<li>An assortment of bugs have been resolved in this release.</li>
+</ul>
+<p>Changes:</p>
+<ul class="simple">
+<li>Fixed various issues in assembly kernels</li>
+<li>Fixed issue #92 and #79 for miopenOpTensor</li>
+<li>Fixed issue #88 for bzip2</li>
+<li>Fixed issue #77 algorithm mismatch</li>
+<li>Added Winograd suport for fp32 backwards weights</li>
+<li>Added Winograd support for fp32 backwards weights</li>
+<li>Added pooling inclusive mode</li>
+<li>Added tuning for direct group convolution algorithms</li>
+<li>Added additional kernel supoort for group convolutions</li>
+<li>Added additional kernel support for group convolutions</li>
+<li>Added API for 3-D convolutions</li>
+<li>Added support for int8 inference convolutions</li>
+<li>Added integer selection for pooling indexing</li>
+<li>Added minimum dependencies support</li>
+<li>Added RNN fp16 support on the MIOpen-HIP backend</li>
+<li>Added 1x1 convolution + bias + activation fusions</li>
+<li>Added workaround for issue #84 GPU memory access fault</li>
+<li>Added performance tuning for direct backwards weights</li>
+<li>Improved performance database coverage</li>
+<li>Improved internal quality by reducing redunant code</li>
+<li>Improved build instructions in README.md</li>
+<li>Improved performance database coverage for fusions</li>
+<li>Updated Docker components and requirements</li>
+</ul>
+<p>Known Issues:</p>
+<ul class="simple">
+<li>RNNs do not support fp16 on the MIOpen-OpenCL backend</li>
+<li>OpenCL backend does not support GEMM convolutions in fp16</li>
+</ul>
+</div>
+<div class="section" id="">
+<span id="id8"></span><h2>02/06/2019 [ 1.7.1 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>This release contains minor bug fixes and performance improvements.</li>
+</ul>
+<p>Changes:</p>
+<ul class="simple">
+<li>Fixed corrupt and obsolete performance database entries</li>
+<li>Fixed issue #70, &quot;SIGFPE (DIV/0) in ConvOclBwdWrW2::GetSolution()&quot;</li>
+<li>Fixed issue #72, &quot;workSpaceSize check assertion fails in ConvolutionBackwardWeights() - DEBUG builds only&quot;</li>
+<li>Fixed issue #77, &quot;Results of ConvBwdWeightsAlgoDirect and ConvBwdWeightsAlgoGEMM mismatch for some specific parameters&quot;</li>
+<li>Removed default dependency of RNNs on rocBLAS</li>
+<li>Added a workaround for softmax fp16 correctness issue</li>
+<li>Added check to only make MIOpen with static boost libraries</li>
+<li>Improved performance database coverage</li>
+</ul>
+<p>Known Issues:</p>
+<ul class="simple">
+<li>RNNs do not support fp16</li>
+<li>OpenCL backend does not support GEMM convolutions in fp16</li>
+<li>Layer fusions for convolution 1x1 fp16 are not supported</li>
+<li>Layer fusions for large image 1x1 convolutions may cause an exception instead of a warning during compile phase if plan is not supported</li>
+</ul>
+</div>
+<div class="section" id="">
+<span id="id9"></span><h2>12/19/2018 [ 1.7.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>This release contains general bug fixes and an updated performance database</li>
+<li>Group convolutions backwards weights performance has been improved</li>
+<li>Logging across the library has been improved</li>
+<li>Performance database has been updated</li>
+</ul>
+<p>Changes:</p>
+<ul class="simple">
+<li>Fixed logging issues with group convolution and pooling</li>
+<li>Fixed sphinx version issue in document generation</li>
+<li>Fixed issues with corrupt entries in performance database</li>
+<li>Removed external dependency on libSSL and libCrypto</li>
+<li>Added support for large image backwards weights in direct convolution</li>
+<li>Added fp16 support for RNNs on the HIP backend</li>
+<li>Improved performance database coverage</li>
+</ul>
+<p>Known Issues:</p>
+<ul class="simple">
+<li>RNNs do not support fp16</li>
+<li>OpenCL backend does not support GEMM convolutions in fp16</li>
+<li>Layer fusions for convolution 1x1 fp16 are not supported</li>
+<li>Layer fusions for large image 1x1 convolutions may cause an exception instead of a warning during compile phase if plan is not supported</li>
+</ul>
+</div>
+<div class="section" id="">
+<span id="id10"></span><h2>11/18/2018 [ 1.6.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Training in fp16 (half precision) including mixed-precision is now fully supported</li>
+<li>Batch Normalization in fp16 (half precision) including mixed-precision are now available</li>
+<li>Performance improvements for 3x3 and 1x1 single-precision convolutions</li>
+<li>Layer fusions for BatchNorm+Activation are now available</li>
+<li>Layer fusions with convolutions now support varying strides and padding configurations</li>
+</ul>
+<p>Changes:</p>
+<ul class="simple">
+<li>rocBLAS is now used as the default BLAS library for the HIP backend (minimum version 14.3.0)</li>
+<li>Fixed various bugs in convolution kernels</li>
+<li>Fixed issues with bad references in layer fusion</li>
+<li>Fixed gfx803 assembily issues</li>
+<li>Added support fp16 Winograd convolutions</li>
+<li>Added support for fp16 pooling</li>
+<li>Improved error reporting for convolutions and layer fusions</li>
+<li>Improved documentation</li>
+</ul>
+<p>Known Issues:</p>
+<ul class="simple">
+<li>RNNs do not support fp16</li>
+<li>OpenCL backend does not have full fp16 support</li>
+<li>Layer fusions for convolution 1x1 fp16 are not supported</li>
+</ul>
+</div>
+<div class="section" id="">
+<span id="id11"></span><h2>09/14/2018 [ 1.5.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<p>Notes:</p>
+<ul class="simple">
+<li>A new kernel fusion API is now available for inference for convolution, bias,
+batch normalization, and activations.</li>
+<li>This release includes new features and bug fixes</li>
+<li>Group and Depthwise convolutions are now available</li>
+<li>3D Batch Normalization has been implemented for fully packed tensors</li>
+<li>Dilation for convolutions have been implemented</li>
+</ul>
+<p>Changes:</p>
+<ul class="simple">
+<li>Fixed bugs in direct convolutions</li>
+<li>Fixed issue with paths when $HOME variable is not set</li>
+<li>Fixed padding issues with 1x1 convolutions</li>
+<li>Added incremental support for fp16</li>
+<li>Added fused kernels for Winograd and direct with bias and activations</li>
+<li>Added a getting started guide for kernel fusion.</li>
+<li>Added group and depthwise API for convolutions</li>
+<li>Added 3-D batch normalization support with 5-D tensors</li>
+<li>Improved max pooling performance</li>
+<li>Improved debug and error reporting information</li>
+<li>Improved documentation for convolutions</li>
+</ul>
+<p>Known Issues:</p>
+<ul class="simple">
+<li>RNNs do not support fp16</li>
+<li>Training with CNNs does not support fp16</li>
+</ul>
+</div>
+<div class="section" id="">
+<span id="id12"></span><h2>07/30/2018 [ 1.4.2 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<p>Notes:</p>
+<ul class="simple">
+<li>This release is a hot-fix to enable ICNet and PSPNet</li>
+</ul>
+<p>Known Issues:</p>
+<ul class="simple">
+<li>RNNs do not support fp16</li>
+<li>Training with CNNs does not support fp16</li>
+<li>Users may encounter a warning that their performance database is out of date. The performance database can be updated by setting the environment variable for just the initial run of an application: <code class="docutils literal"><span class="pre">MIOPEN_FIND_ENFORCE=search</span></code>
+For more information on the performance database, see: https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html#</li>
+</ul>
+</div>
+<div class="section" id="">
+<span id="id13"></span><h2>07/19/2018 [ 1.4.1 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<p>Notes:</p>
+<ul class="simple">
+<li>This release includes a bug fix for 3x3 convolutions</li>
+<li>Updated README file configuration instructions</li>
+</ul>
+<p>Known Issues:</p>
+<ul class="simple">
+<li>RNNs do not support fp16</li>
+<li>Training with CNNs does not support fp16</li>
+<li>Users may encounter a warning that their performance database is out of date. The performance database can be updated by setting the environment variable for just the initial run of an application: <code class="docutils literal"><span class="pre">MIOPEN_FIND_ENFORCE=search</span></code>
+For more information on the performance database, see: https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html#</li>
+</ul>
+</div>
+<div class="section" id="">
+<span id="id14"></span><h2>07/06/2018 [ 1.4.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<p>Notes:</p>
+<ul class="simple">
+<li>This release includes a number of performance improvements and bug fixes</li>
+<li>New features have been added to convolutions for auto-tuning kernels</li>
+<li>Activations now have new modes available</li>
+<li>Documentation has been updated and corrected</li>
+</ul>
+<p>Changes:</p>
+<ul class="simple">
+<li>Fixed documentation errors</li>
+<li>Fixed bug in activations with pass-through mode</li>
+<li>Fixed performance database locking issues</li>
+<li>Fixed Winograd kernel behavior for stride 2 backwards data</li>
+<li>Fixed a bug in OpTensor layer</li>
+<li>Fixed a timing issue with batch normalization inline assembly</li>
+<li>Fixed issue with an unnecessary binary creation in assembly bug detection</li>
+<li>Fixed issue with disk program cache directory not being created</li>
+<li>Fixed a bug with convolution+bias</li>
+<li>Added to performance database functionality</li>
+<li>Added leaky-ReLU, clipped, and exponential-ReLU modes to activation</li>
+<li>Added documentation for performance database usage</li>
+<li>Added support for 1x1 convolutions with non-zero padding</li>
+<li>Added API for printing status codes as strings</li>
+<li>Added auto-tuning feature for convolutions</li>
+<li>Improved LSTM and GRU backwards pass performance</li>
+<li>Improved debug and error reporting information</li>
+<li>Improved performance of batch normalization spatial mode</li>
+<li>Improved find stage for convolutions</li>
+<li>Improved readability for user database file</li>
+</ul>
+<p>Known Issues:</p>
+<ul class="simple">
+<li>RNNs do not support fp16</li>
+<li>Training with CNNs does not support fp16</li>
+</ul>
+</div>
+<div class="section" id="">
+<span id="id15"></span><h2>03/30/2018 [ 1.3.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<p>Notes:</p>
+<ul class="simple">
+<li>Performance improvements for RNNs</li>
+<li>Performance improvements for convolutions using 1x1 filters</li>
+<li>Performance improvement for Batch Normalization</li>
+<li>This release adds preliminary fp16 support for Inference using CNNs</li>
+<li>Bug fixes for various components of MIOpen</li>
+</ul>
+<p>Changes:</p>
+<ul class="simple">
+<li>Added 2 new API for RNNs: miopenGetRNNLayerParamOffset and miopenGetRNNLayerBiasOffset</li>
+<li>Added support for uninitialized hidden states and nullptr outputs in RNNs</li>
+<li>Added support for Set and Scale operations for strided tensors with dimensions 1 to 5</li>
+<li>Added multi-thread and multi-process support for the performance database</li>
+<li>Improved performance for OpTensor</li>
+<li>Fixed bug in convolutions for backward bias</li>
+<li>Fixed logic issues in get and set layer functions and related w_supertensor test</li>
+<li>Fixed hang in batch norm with batch sizes greater than 256</li>
+</ul>
+<p>Known Issues:</p>
+<ul class="simple">
+<li>RNNs do not support fp16</li>
+<li>Training with CNNs does not support fp16</li>
+</ul>
+</div>
+<div class="section" id="">
+<span id="id16"></span><h2>03/08/2018 [ 1.2.1 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<p>Notes:</p>
+<ul class="simple">
+<li>This release adds support for ROCm 1.7.1.</li>
+</ul>
+</div>
+<div class="section" id="">
+<span id="id17"></span><h2>12/15/2017 [ 1.2.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<p>Notes:</p>
+<ul class="simple">
+<li>This release adds the support for recurrent neural networks (RNNs) for three flavors - Vanilla, LSTMs, and GRU</li>
+<li>Users can now themselves update the perf-db file, which hosts the tuning parameters for convolutions, by setting appropriate environment variables</li>
+</ul>
+<p>Changes:</p>
+<ul class="simple">
+<li>Over 50% improvement in ResNet performance since the last release</li>
+<li>Multiple padding modes like Same and Valid added</li>
+<li>Winograd convolution kernels added for strided bwd-data convolutions</li>
+<li>Tensor Ops allow for beta and alpha scaling values and support up to 5 dimensions with strides and offsets</li>
+<li>Tensor Copy supports up to 5 dimesnional copies with strides and offsets</li>
+<li>Unit-tests for LRN are added</li>
+<li>Several bug fixes for all the layers of the library</li>
+</ul>
+<p>Known issues:</p>
+<ul class="simple">
+<li>RNNs may give incorrect result due to a known compiler bug; issue may particulary arise during some RNNs configs with GEMM of size power of 4</li>
+<li>Potential issue where OpenCL resources will be exhausted for large RNN</li>
+</ul>
+</div>
+<div class="section" id="">
+<span id="id18"></span><h2>09/08/2017 [ 1.1.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<p>Notes:</p>
+<ul class="simple">
+<li>The scaling parameter alpha and shift parameter beta for layers kernels are only supported for alpha = 1 and beta = 0.
+The exceptions to this are for miopenOptTensor, miopenConvolutionForwardBias, and miopenConvolutionBackwardBias.</li>
+<li>Currently, only 32-bit floats are supported in MIOpen.</li>
+<li>MIOpen only supports tensor layout NCHW.</li>
+</ul>
+<p>Changes:</p>
+<ul class="simple">
+<li>Added persistent cache for compiled GPU kernels</li>
+<li>Performance improvements for batch normalization kernels</li>
+<li>Performance improvements for all types of convolutions for 1x1 filters</li>
+<li>Performance improvements for all types of convolutions with non-unit strides</li>
+<li>Performance improvements for backward-weights convolutions for 3x3 filters</li>
+<li>Performance improvements for the AddTensor operation</li>
+<li>Various bug fixes for Winograd convolutions</li>
+</ul>
+</div>
+<div class="section" id="">
+<span id="id19"></span><h2>08/27/2017 [ 1.0.2 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Fixed 1x1 forward and backward convolutions for large input</li>
+<li>Fixed pooling MIOpendriver</li>
+<li>Disabled 1x1 Winograd convolution for HIP</li>
+<li>Disabled asm. backward-weights convolutions for input width == 175</li>
+</ul>
+</div>
+<div class="section" id="">
+<span id="id20"></span><h2>07/26/2017 [ 1.0.1 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Added dilation support for convolutions</li>
+<li>Added unit-tests for Softmax</li>
+<li>Added miopengemm as a required dependency for MIOpen build</li>
+<li>Performance improvements for batch normalization via activation of data-parallel primitives (DPP) hardware instructions</li>
+<li>Fixed documentation to remove GEMM API interface</li>
+<li>Fixed Bwd-Weights Convolutions with 1x1 filters with stride=2</li>
+<li>Fixed Softmax grid-size selection</li>
+<li>Fixed debug prints of kernel launch parameters.</li>
+<li>Removed GEMM interface from the MIOpen API</li>
+</ul>
+</div>
+<div class="section" id="initial-release">
+<span id="initial-release"></span><h2>06/30/2017 [ 1.0.0 ] Initial release<a class="headerlink" href="#initial-release" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="citation.html" class="btn btn-neutral float-right" title="Citing MIOpen" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral" title="Welcome to MIOpen" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Advanced Micro Devices, Inc.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'2.2.1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
