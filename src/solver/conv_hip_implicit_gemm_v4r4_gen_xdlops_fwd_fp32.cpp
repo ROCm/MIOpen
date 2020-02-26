@@ -245,10 +245,7 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::IsValid(const ConvolutionConte
     if(!(GemmM % GemmMPerBlock == 0 && GemmN % GemmNPerBlock == 0 && GemmK % GemmKPerBlock == 0))
         return false; // wrong! cannot divice N evenly among thread
 
-    const auto GemmKPerBlockPacked = GemmKPerBlock / GetEPackLength(ctx, true);
-
-    if(!IsValidXdlopsGemm(
-           GemmMPerBlock, GemmNPerBlock, GemmKPerBlockPacked, GemmMPerWave, GemmNPerWave))
+    if(!IsValidXdlopsGemm(GemmMPerBlock, GemmNPerBlock, GemmKPerBlock, GemmMPerWave, GemmNPerWave))
         return false;
 
     const auto GridSize = (GemmM / GemmMPerBlock) * (GemmN / GemmNPerBlock);
