@@ -3,7 +3,7 @@
 
 
 
-### 01/24/2020 [ 2.2.1 ]
+### 02/26/2020 [ 2.2.1 ]
 
 - This release contains bug fixes, documentation updates, and further code object version 3 support
 
