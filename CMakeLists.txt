@@ -67,7 +67,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.2.0)
+rocm_setup_version(VERSION 2.2.1)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -207,8 +207,15 @@ endif()
 # Online assembler
 find_program(MIOPEN_AMDGCN_ASSEMBLER
     NAMES clang
-    PATHS ${MIOPEN_AMDGCN_ASSEMBLER_PATH} /opt/rocm
-    PATH_SUFFIXES /opencl/bin/x86_64
+    PATHS 
+        ${MIOPEN_AMDGCN_ASSEMBLER_PATH}
+        /opt/rocm
+        /opt/rocm/hcc
+        ${CMAKE_INSTALL_PREFIX}
+        ${CMAKE_INSTALL_PREFIX}/hcc
+    PATH_SUFFIXES 
+        /opencl/bin/x86_64
+        /bin
     NO_DEFAULT_PATH
 )
 message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")

@@ -292,7 +292,8 @@ void BatchNormForwardTraining(Handle& handle,
                     NHW_value.f32 = static_cast<float>(in_nhw / (in_nhw - 1.0));
 
                     // clang-format off
-                    parms = " -Wa,-defsym,ROCM_METADATA_VERSION=4"
+                    parms = std::string() +
+                            " -Wa,-defsym,ROCM_METADATA_VERSION=" + (ctx.rmv.UseV3() ? "5" : "4") +
                             " -Wa,-defsym,MIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
                             " -Wa,-defsym,MIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
                             " -Wa,-defsym,MIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
@@ -470,7 +471,8 @@ void BatchNormForwardTraining(Handle& handle,
                     NHW_value.f32 = static_cast<float>(in_nhw / (in_nhw - 1.0));
 
                     // clang-format off
-                    parms = " -Wa,-defsym,ROCM_METADATA_VERSION=4"
+                    parms = std::string() +
+                            " -Wa,-defsym,ROCM_METADATA_VERSION=" + (ctx.rmv.UseV3() ? "5" : "4") +
                             " -Wa,-defsym,MIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
                             " -Wa,-defsym,MIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
                             " -Wa,-defsym,MIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
@@ -1102,7 +1104,7 @@ void BatchNormBackward(Handle& handle,
                 std::string parms;
 
                 if((n > 64) && (n % 2 == 0) && (variant == 3) && (bfpmixparm) && (useSaved) &&
-                   ctx.use_asm_kernels && ctx.rmv.IsV2())
+                   ctx.use_asm_kernels && ctx.rmv.IsV2orV3())
                 {
                     kernel_name  = "miopenGcnAsmBNBwdTrainSpatial";
                     program_name = "gcnAsmBNBwdTrainSpatial.s";
@@ -1120,7 +1122,8 @@ void BatchNormBackward(Handle& handle,
                     NHW_value.f32 = static_cast<float>(in_nhw);
 
                     // clang-format off
-                    parms = " -Wa,-defsym,ROCM_METADATA_VERSION=4"
+                    parms = std::string() +
+                            " -Wa,-defsym,ROCM_METADATA_VERSION=" + (ctx.rmv.UseV3() ? "5" : "4") +
                             " -Wa,-defsym,MIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
                             " -Wa,-defsym,MIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
                             " -Wa,-defsym,MIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +

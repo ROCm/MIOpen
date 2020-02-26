@@ -46,7 +46,8 @@ message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
 message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 
 # This is incremented when the ABI to the library changes
-set( MIOpen_SOVERSION 1 )
+set( MIOpen_SOVERSION 1.0 )
+
 
 function(add_kernels KERNEL_FILES)
     set(INIT_KERNELS_LIST)
@@ -238,7 +239,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v9_0_15.inc
         kernels/rocm_version.inc
         kernels/inst_wrappers.inc
-        kernels/common.inc
+        kernels/conv_common.inc
+        kernels/utilities.inc
         kernels/xform_data_filter.inc
         kernels/xform_kd_cov2.inc
         kernels/xform_metadata.inc
@@ -448,7 +450,7 @@ add_library( MIOpen
     ${MIOpen_Source}
     )
 
-set_target_properties(MIOpen PROPERTIES SOVERSION 1)
+rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
 
 clang_tidy_check(MIOpen)
 

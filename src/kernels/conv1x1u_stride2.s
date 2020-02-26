@@ -40,7 +40,8 @@
 
 .include "rocm_version.inc"
 .include "gpr_alloc.inc"
-.include "common.inc"
+.include "utilities.inc"
+.include "conv_common.inc"
 .include "inst_wrappers.inc"
 
 // initial state:

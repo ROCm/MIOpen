@@ -99,6 +99,8 @@ An example cmake step can be:
 CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/hcc;/opt/rocm/hip" ..
 ```
 
+Note: When specifying the path for the `CMAKE_PREFIX_PATH` variable, do not use the `~` shorthand for the user home directory.
+
 ### Setting Up Locations
 
 By default the install location is set to '/opt/rocm', this can be set by using `CMAKE_INSTALL_PREFIX`:

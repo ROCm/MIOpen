@@ -155,17 +155,16 @@ static inline int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
 
 static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
 {
-    bool amd_inline_asm = !miopen::IsDisabled(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM{});
 
     if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx8"))
-        amd_inline_asm = false;
+        return false;
 
-    if(!(StartsWith(ctx.GetStream().GetDeviceName(), "gfx906") ||
-         StartsWith(ctx.GetStream().GetDeviceName(), "gfx908")) &&
-       ctx.IsFp16())
-        amd_inline_asm = false;
+    // disable fp16 inline asm for <= gfx900
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    if(!(StartsWith(device_name, "gfx906") || StartsWith(device_name, "gfx908")) && ctx.IsFp16())
+        return false;
 
-    return amd_inline_asm;
+    return !miopen::IsDisabled(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM{});
 }
 
 } // namespace solver
