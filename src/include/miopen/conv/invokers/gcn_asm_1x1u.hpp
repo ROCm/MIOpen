@@ -24,46 +24,17 @@
 *
 *******************************************************************************/
 
-#include <miopen/conv/invokers/gcn_asm_1x1u_fwd.hpp>
+#pragma once
 
-#include <miopen/conv/fwd_invoke_params.hpp>
-#include <miopen/handle.hpp>
+#include <miopen/invoker.hpp>
 #include <miopen/kernel.hpp>
-#include <miopen/tensor.hpp>
 
-#include <boost/any.hpp>
+#include <vector>
 
 namespace miopen {
 namespace conv {
 
-InvokerFactory MakeGcnAsm1x1UFwdInvokerFactory(int N, int C, int H, int W, int K, int n_groups)
-{
-    return [=](const std::vector<Kernel>& kernels) {
-        if(kernels.size() != 1)
-            MIOPEN_THROW("Solver expects one kernel");
-
-        const auto kernel = kernels[0];
-
-        return [=](Handle& handle, const boost::any& primitive_parameters) {
-            auto params         = boost::any_cast<FwdInvokeParams>(primitive_parameters);
-            const auto& tensors = params.tensors;
-            int unused          = 0;
-            int* return_addr    = nullptr;
-            handle.Run(kernel)(N,
-                               C,
-                               H,
-                               W,
-                               K,
-                               n_groups,
-                               unused,
-                               unused,
-                               tensors.x,
-                               tensors.w,
-                               tensors.y,
-                               return_addr);
-        };
-    };
-}
+InvokerFactory MakeGcnAsm1x1UInvokerFactory(int N, int C, int H, int W, int K, int n_groups);
 
 } // namespace conv
 } // namespace miopen

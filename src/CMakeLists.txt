@@ -172,9 +172,10 @@ set( MIOpen_Source
     include/miopen/rnn_util.hpp
     md_graph.cpp
     mdg_expr.cpp
-    conv/invokers/gcn_asm_1x1u_fwd.cpp
-    conv/invokers/gcn_asm_1x1u_ss_fwd.cpp
-    conv/invokers/gen_x_w_y_pad_fwd.cpp
+    conv/invokers/gcn_asm_1x1u.cpp
+    conv/invokers/gcn_asm_1x1u_ss.cpp
+    conv/invokers/gcn_asm_1x1u_us.cpp
+    conv/invokers/gen_x_w_y_pad.cpp
     invoker_cache.cpp
     tensor.cpp
     tensor_api.cpp

@@ -24,36 +24,18 @@
 *
 *******************************************************************************/
 
-#include <miopen/conv/invokers/gen_x_w_y_pad_fwd.hpp>
+#pragma once
 
-#include <miopen/conv/fwd_invoke_params.hpp>
-#include <miopen/handle.hpp>
+#include <miopen/invoker.hpp>
 #include <miopen/kernel.hpp>
-#include <miopen/tensor.hpp>
-#include <miopen/visit_float.hpp>
 
-#include <boost/any.hpp>
+#include <vector>
 
 namespace miopen {
 namespace conv {
 
-Invoker MakeGenericXWYPadFwdInvoker(const std::vector<Kernel>& kernels)
-{
-    if(kernels.size() != 1)
-        MIOPEN_THROW("Expected a single kernel.");
-
-    const auto kernel = kernels[0];
-
-    return [kernel](Handle& handle, const boost::any& primitive_parameters) {
-        auto params         = boost::any_cast<FwdInvokeParams>(primitive_parameters);
-        const auto& tensors = params.tensors;
-        float padding_val   = 0;
-
-        visit_float(tensors.xDesc.GetType(), [&](auto as_float) {
-            handle.Run(kernel)(tensors.x, tensors.w, tensors.y, as_float(padding_val));
-        });
-    };
-}
+InvokerFactory MakeGcnAsm1x1USSInvokerFactory(
+    int N, int C, int K, int n_groups, int out_H, int out_W, std::size_t workspce_sz);
 
 } // namespace conv
 } // namespace miopen
