@@ -157,25 +157,12 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
 
     ABlockCopySrcDataPerRead_E = ctx.direction.IsBackwardData() ? 1 : ABlockCopySrcDataPerRead_E;
 
-    std::size_t BBlockCopyDstDataPerWrite_GemmN     = 1;
-    std::size_t BBlockCopyDstDataPerWrite_GemmKPACK = 1;
-    std::size_t ABlockCopyDstDataPerWrite_GemmM     = 1;
-    std::size_t ABlockCopyDstDataPerWrite_GemmKPACK = 1;
-
-    if(ctx.IsFp32())
-    {
-        BBlockCopyDstDataPerWrite_GemmN = GetReadWriteVectorSize(BBlockCopySubLengths_GemmN);
-        (void)BBlockCopyDstDataPerWrite_GemmKPACK;
-        ABlockCopyDstDataPerWrite_GemmM = GetReadWriteVectorSize(ABlockCopySubLengths_GemmM);
-        (void)ABlockCopyDstDataPerWrite_GemmKPACK;
-    }
-    else
-    {
-        BBlockCopyDstDataPerWrite_GemmKPACK = GetEPackLength(ctx, true);
-        (void)BBlockCopyDstDataPerWrite_GemmN;
-        ABlockCopyDstDataPerWrite_GemmKPACK = GetEPackLength(ctx, true);
-        (void)ABlockCopyDstDataPerWrite_GemmM;
-    }
+    const auto ABlockCopyDstDataPerWrite_GemmM =
+        ctx.IsFp32() ? GetReadWriteVectorSize(ABlockCopySubLengths_GemmM) : 1;
+    const auto BBlockCopyDstDataPerWrite_GemmN =
+        ctx.IsFp32() ? GetReadWriteVectorSize(BBlockCopySubLengths_GemmN) : 1;
+    const auto ABlockCopyDstDataPerWrite_GemmKPACK = !ctx.IsFp32() ? GetEPackLength(ctx, true) : 1;
+    const auto BBlockCopyDstDataPerWrite_GemmKPACK = !ctx.IsFp32() ? GetEPackLength(ctx, true) : 1;
 
     const ImplicitGemmDirection direction =
         ctx.direction.IsForward()
