@@ -29,8 +29,9 @@
 #include <cassert>
 
 #include <miopen/conv/compiled_in_parameters.hpp>
-#include <miopen/conv/invokers/gcn_asm_1x1u_fwd.hpp>
-#include <miopen/conv/invokers/gcn_asm_1x1u_ss_fwd.hpp>
+#include <miopen/conv/invokers/gcn_asm_1x1u.hpp>
+#include <miopen/conv/invokers/gcn_asm_1x1u_ss.hpp>
+#include <miopen/conv/invokers/gcn_asm_1x1u_us.hpp>
 #include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/gcn_asm_utils.hpp>
@@ -714,21 +715,25 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     if(UseUpsample(params))
         result.construction_params.push_back(ss_us_kernel);
 
-    if(params.direction.IsForward())
+    if(UseSubsample(params))
     {
-        if(UseSubsample(params))
-        {
-            int N, C, H, W, K, n_groups, out_H, out_W;
-            GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
-            result.invoker_factory = conv::MakeGcnAsm1x1USSFwdInvokerFactory(
-                N, C, K, n_groups, out_H, out_W, result.workspce_sz);
-        }
-        else
-        {
-            int N, C, H, W, K, n_groups;
-            GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);
-            result.invoker_factory = conv::MakeGcnAsm1x1UFwdInvokerFactory(N, C, H, W, K, n_groups);
-        }
+        int N, C, H, W, K, n_groups, out_H, out_W;
+        GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
+        result.invoker_factory = conv::MakeGcnAsm1x1USSInvokerFactory(
+            N, C, K, n_groups, out_H, out_W, result.workspce_sz);
+    }
+    else if(UseUpsample(params))
+    {
+        int N, C, H, W, K, n_groups;
+        GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);
+        result.invoker_factory =
+            conv::MakeGcnAsm1x1UUSInvokerFactory(N, C, K, n_groups, H, W, result.workspce_sz);
+    }
+    else
+    {
+        int N, C, H, W, K, n_groups;
+        GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);
+        result.invoker_factory = conv::MakeGcnAsm1x1UInvokerFactory(N, C, H, W, K, n_groups);
     }
 
     return result;
