@@ -52,38 +52,63 @@ inline void SquashPairedTensor(const std::vector<T> x_len,
                                std::vector<T>& out_len,
                                std::vector<T>& out_str)
 {
+    if(!std::equal(x_len.begin(), x_len.end(), y_len.begin()))
+    {
+        MIOPEN_THROW("Input/Output tensor lengths do not match");
+    }
 
-    auto itr_xl = x_len.end() - 1;
-    auto itr_yl = y_len.end() - 1;
-    auto itr_xs = x_str.end() - 1;
-    auto itr_ys = y_str.end() - 1;
+    *(in_len.end() - 1)  = *(x_len.end() - 1);
+    *(in_str.end() - 1)  = *(x_str.end() - 1);
+    *(out_len.end() - 1) = *(y_len.end() - 1);
+    *(out_str.end() - 1) = *(y_str.end() - 1);
+
+    auto itr_xl = x_len.end() - 2;
+    auto itr_yl = y_len.end() - 2;
+    auto itr_xs = x_str.end() - 2;
+    auto itr_ys = y_str.end() - 2;
 
     auto itr_il = in_len.end() - 1;
     auto itr_ol = out_len.end() - 1;
-    auto itr_is = in_str.end() - 1;
-    auto itr_os = out_str.end() - 1;
+    auto itr_is = in_str.end() - 2;
+    auto itr_os = out_str.end() - 2;
 
-    while((*(itr_xs - 1) == *itr_xl * *(itr_xs--) && *(itr_ys - 1) == *itr_yl * *(itr_ys--) &&
-           itr_xl > x_len.begin()) ||
-          itr_xl == x_len.begin())
+    while(*itr_xs == *(itr_xl + 1) * *(itr_xs + 1) && *itr_ys == *(itr_yl + 1) * *(itr_ys + 1) &&
+          itr_xl >= x_len.begin())
     {
         *itr_il *= *(itr_xl--);
         *itr_ol *= *(itr_yl--);
+        itr_xs--;
+        itr_ys--;
     }
 
-    while(itr_xl >= x_len.begin() && itr_il >= in_len.begin())
-        *(itr_il--) = *(itr_xl--);
+    if(itr_xl < x_len.begin() && itr_is >= in_str.begin())
+    {
+        *(itr_is--) = *itr_il;
+        *(itr_os--) = *itr_ol;
+    }
+    else if(itr_xl >= x_len.begin())
+    {
+        itr_il--;
+        itr_ol--;
 
-    while(itr_yl >= y_len.begin() && itr_ol >= out_len.begin())
-        *(itr_ol--) = *(itr_yl--);
+        while(itr_xl >= x_len.begin() && itr_il >= in_len.begin())
+        {
+            *(itr_il--) = *(itr_xl--);
+            *(itr_is--) = *(itr_xs--);
+        }
 
-    itr_il = in_len.end() - 1;
-    while((itr_is--) != in_str.begin())
-        *itr_is = *(itr_is + 1) * *(itr_il--);
+        while(itr_yl >= y_len.begin() && itr_ol >= out_len.begin())
+        {
+            *(itr_ol--) = *(itr_yl--);
+            *(itr_os--) = *(itr_ys--);
+        }
+    }
 
-    itr_ol = out_len.end() - 1;
-    while((itr_os--) != out_str.begin())
-        *itr_os = *(itr_os + 1) * *(itr_ol--);
+    while(itr_is >= in_str.begin())
+        *(itr_is--) = *(itr_is + 1) * *(itr_is + 1 - in_str.begin() + in_len.begin());
+
+    while(itr_os >= out_str.begin())
+        *(itr_os--) = *(itr_os + 1) * *(itr_os + 1 - out_str.begin() + out_len.begin());
 
     if(!std::equal(in_len.begin(), in_len.end(), out_len.begin()))
     {
