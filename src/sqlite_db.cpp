@@ -80,7 +80,7 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
             const auto lock = shared_lock(lock_file, GetLockTimeout());
             MIOPEN_VALIDATE_LOCK(lock);
             // clang-format off
-            const auto check_tables = 
+            const auto check_tables =
                 "SELECT name FROM sqlite_master "
                 "WHERE "
                   "type = 'table' AND "
