@@ -278,32 +278,19 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
 
     auto InBlockCopySrcDataPerRead_B = GetReadWriteVectorSize(InBlockCopySubLengths_B);
 
-    int WeiBlockCopyDstDataPerWrite_K     = 0;
-    int InBlockCopyDstDataPerWrite_N2     = 0;
-    int WeiBlockCopyDstDataPerWrite_EPack = 0;
-    int InBlockCopyDstDataPerWrite_EPack  = 0;
-
-    if(ctx.IsFp32())
-    {
-        WeiBlockCopyDstDataPerWrite_K = GetReadWriteVectorSize(WeiBlockCopySubLengths_K);
-        InBlockCopyDstDataPerWrite_N2 = GetReadWriteVectorSize(InBlockCopySubLengths_N2);
-        (void)WeiBlockCopyDstDataPerWrite_EPack;
-        (void)InBlockCopyDstDataPerWrite_EPack;
-    }
-    else
-    {
-        WeiBlockCopyDstDataPerWrite_EPack = GetEPackLength(ctx, false);
-        InBlockCopyDstDataPerWrite_EPack  = GetEPackLength(ctx, false);
-        (void)WeiBlockCopyDstDataPerWrite_K;
-        (void)InBlockCopyDstDataPerWrite_N2;
-    }
-
     // Borrowed from non-padded version of v4
     InBlockCopySrcDataPerRead_B =
         ctx.kernel_size_w > 1
             ? std::min(InBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(ctx.kernel_dilation_w))
             : InBlockCopySrcDataPerRead_B;
     InBlockCopySrcDataPerRead_B = ctx.kernel_stride_w > 1 ? 1 : InBlockCopySrcDataPerRead_B;
+
+    const auto WeiBlockCopyDstDataPerWrite_K =
+        ctx.IsFp32() ? GetReadWriteVectorSize(WeiBlockCopySubLengths_K) : 1;
+    const auto InBlockCopyDstDataPerWrite_N2 =
+        ctx.IsFp32() ? GetReadWriteVectorSize(InBlockCopySubLengths_N2) : 1;
+    const auto WeiBlockCopyDstDataPerWrite_EPack = !ctx.IsFp32() ? GetEPackLength(ctx, false) : 1;
+    const auto InBlockCopyDstDataPerWrite_EPack  = !ctx.IsFp32() ? GetEPackLength(ctx, false) : 1;
 
     // clang-format off
     construction_parameters.comp_options = 
