@@ -38,6 +38,7 @@
 #include "rnn_driver.hpp"
 #include "ctc_driver.hpp"
 #include "dropout_driver.hpp"
+#include "tensorop_driver.hpp"
 #include "miopen/config.h"
 
 int main(int argc, char* argv[])
@@ -155,6 +156,14 @@ int main(int argc, char* argv[])
     else if(base_arg == "dropoutfp16")
     {
         drv = new DropoutDriver<float16, float>();
+    }
+    else if(base_arg == "tensorop")
+    {
+        drv = new TensorOpDriver<float, float>();
+    }
+    else if(base_arg == "tensoropfp16")
+    {
+        drv = new TensorOpDriver<float16, float>();
     }
     else
     {
