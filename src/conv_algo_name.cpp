@@ -123,7 +123,7 @@ std::string ConvolutionAlgoToDirectionalString(const miopenConvAlgorithm_t algo,
         case miopenConvolutionAlgoGEMM: return "miopenConvolutionBwdWeightsAlgoGEMM";
         case miopenConvolutionAlgoDirect: return "miopenConvolutionBwdWeightsAlgoDirect";
         case miopenConvolutionAlgoFFT: return "miopenConvolutionBwdWeightsAlgoFFT";
-        case miopenConvolutionAlgoWinograd: return "miopenConvolutionBwdWeigthsAlgoWinograd";
+        case miopenConvolutionAlgoWinograd: return "miopenConvolutionBwdWeightsAlgoWinograd";
         case miopenConvolutionAlgoImplicitGEMM:
             return "miopenConvolutionBwdWeightsAlgoImplicitGEMM";
         case miopenConvolutionAlgoStaticCompiledGEMM: break;

@@ -157,25 +157,12 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
 
     ABlockCopySrcDataPerRead_E = ctx.direction.IsBackwardData() ? 1 : ABlockCopySrcDataPerRead_E;
 
-    std::size_t BBlockCopyDstDataPerWrite_GemmN     = 1;
-    std::size_t BBlockCopyDstDataPerWrite_GemmKPACK = 1;
-    std::size_t ABlockCopyDstDataPerWrite_GemmM     = 1;
-    std::size_t ABlockCopyDstDataPerWrite_GemmKPACK = 1;
-
-    if(ctx.IsFp32())
-    {
-        BBlockCopyDstDataPerWrite_GemmN = GetReadWriteVectorSize(BBlockCopySubLengths_GemmN);
-        (void)BBlockCopyDstDataPerWrite_GemmKPACK;
-        ABlockCopyDstDataPerWrite_GemmM = GetReadWriteVectorSize(ABlockCopySubLengths_GemmM);
-        (void)ABlockCopyDstDataPerWrite_GemmKPACK;
-    }
-    else
-    {
-        BBlockCopyDstDataPerWrite_GemmKPACK = GetEPackLength(ctx, true);
-        (void)BBlockCopyDstDataPerWrite_GemmN;
-        ABlockCopyDstDataPerWrite_GemmKPACK = GetEPackLength(ctx, true);
-        (void)ABlockCopyDstDataPerWrite_GemmM;
-    }
+    const auto ABlockCopyDstDataPerWrite_GemmM =
+        ctx.IsFp32() ? GetReadWriteVectorSize(ABlockCopySubLengths_GemmM) : 1;
+    const auto BBlockCopyDstDataPerWrite_GemmN =
+        ctx.IsFp32() ? GetReadWriteVectorSize(BBlockCopySubLengths_GemmN) : 1;
+    const auto ABlockCopyDstDataPerWrite_GemmKPACK = !ctx.IsFp32() ? GetEPackLength(ctx, true) : 1;
+    const auto BBlockCopyDstDataPerWrite_GemmKPACK = !ctx.IsFp32() ? GetEPackLength(ctx, true) : 1;
 
     const ImplicitGemmDirection direction =
         ctx.direction.IsForward()
@@ -316,13 +303,16 @@ ConvSolution ConvHipImplicitGemmV4R4GenFwdXdlops::GetSolution(
 ConvSolution ConvHipImplicitGemmV4R4GenWrWXdlops::GetSolution(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmXdlops& config, bool) const
 {
-    return GetSolutionBase(ctx,
-                           config,
-                           ImplicitGemmXdlopsKernel::KernelFwdWrw,
-                           KernelBatchN(ctx),
-                           KernelOutputChannelK(ctx),
-                           KernelOutputHeightHo(ctx),
-                           KernelOutputWidthWo(ctx));
+    ConvSolution result = GetSolutionBase(ctx,
+                                          config,
+                                          ImplicitGemmXdlopsKernel::KernelFwdWrw,
+                                          KernelBatchN(ctx),
+                                          KernelOutputChannelK(ctx),
+                                          KernelOutputHeightHo(ctx),
+                                          KernelOutputWidthWo(ctx));
+
+    result.workspce_sz = GetWorkspaceSize(ctx);
+    return result;
 }
 
 int ConvHipImplicitGemmV4R4GenFwdXdlops::RunAndMeasureSolution(miopen::Handle& profile_h,
@@ -343,8 +333,8 @@ int ConvHipImplicitGemmV4R4GenFwdXdlops::RunAndMeasureSolution(miopen::Handle& p
 
 int ConvHipImplicitGemmV4R4GenWrWXdlops::RunAndMeasureSolution(miopen::Handle& profile_h,
                                                                ConstData_t bot_buf,
-                                                               Data_t top_buf,
-                                                               ConstData_t wei_buf,
+                                                               ConstData_t top_buf,
+                                                               Data_t wei_buf,
                                                                ConstData_t bias_buf,
                                                                const ConvolutionContext& ctx,
                                                                const ConvSolution& solution,
@@ -352,9 +342,35 @@ int ConvHipImplicitGemmV4R4GenWrWXdlops::RunAndMeasureSolution(miopen::Handle& p
 {
     assert(bias_buf == nullptr);
     (void)bias_buf;
+    (void)ctx;
 
-    return RunAndMeasureSolutionBase(
-        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
+    KernelInfo k_info = solution.construction_params[0];
+
+#ifdef NDEBUG
+    try
+#endif
+    {
+        elapsed_time = std::numeric_limits<float>::max();
+        auto kernel  = profile_h.AddKernel("",
+                                          "",
+                                          k_info.kernel_file,
+                                          k_info.kernel_name,
+                                          k_info.l_wk,
+                                          k_info.g_wk,
+                                          k_info.comp_options);
+
+        kernel(bot_buf, top_buf, wei_buf);
+
+        elapsed_time = profile_h.GetKernelTime();
+    }
+#ifdef NDEBUG
+    catch(miopen::Exception& ex)
+    {
+        MIOPEN_LOG_WE(ex.what());
+        return -1;
+    }
+#endif
+    return 0;
 }
 
 bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
@@ -414,7 +430,29 @@ ConvHipImplicitGemmV4R4GenFwdXdlops::Search(const ConvolutionContext& ctx) const
 PerformanceImplicitGemmXdlops
 ConvHipImplicitGemmV4R4GenWrWXdlops::Search(const ConvolutionContext& ctx) const
 {
-    return GenericSearchFwd(*this, ctx);
+    // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
+    if(ctx.IsFp16() || ctx.IsBfp16())
+        return GenericSearchWrW(*this, ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
+    else
+        return GenericSearchWrW(*this, ctx);
+}
+
+size_t ConvHipImplicitGemmV4R4GenWrWXdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
+{
+    if(ctx.IsFp32())
+        return 0;
+    else
+    {
+        // In case of fp16/bfp16, because there is no atomic add ISA,
+        // reduction via atomic add ISA is done via fp32. As a result,
+        // workspace is computed with miopenFloat data type.
+        // Later, a separate kernel is invoked that casts from fp32 to fp16/bfp16
+        std::size_t k = KernelBatchN(ctx);
+        std::size_t c = KernelOutputChannelK(ctx);
+        std::size_t y = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+        std::size_t x = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+        return k * c * y * x * miopen::GetTypeSize(miopenFloat);
+    }
 }
 
 } // namespace solver
