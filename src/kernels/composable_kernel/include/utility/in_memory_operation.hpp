@@ -6,6 +6,37 @@
 
 namespace ck {
 
+template <typename T>
+__device__ void atomic_add_impl(T* p_dst, T src)
+{
+    atomicAdd(p_dst, src);
+}
+
+// atomicAdd for float does not support vector type
+template <>
+__device__ void atomic_add_impl<float2_t>(float2_t* p_dst, float2_t src)
+{
+    float* p_dst_float       = reinterpret_cast<float*>(p_dst);
+    const float* p_src_float = reinterpret_cast<const float*>(&src);
+
+    for(index_t i = 0; i < 2; ++i)
+    {
+        atomicAdd(&(p_dst_float[i]), p_src_float[i]);
+    }
+}
+
+template <>
+__device__ void atomic_add_impl<float4_t>(float4_t* p_dst, float4_t src)
+{
+    float* p_dst_float       = reinterpret_cast<float*>(p_dst);
+    const float* p_src_float = reinterpret_cast<const float*>(&src);
+
+    for(index_t i = 0; i < 4; ++i)
+    {
+        atomicAdd(&(p_dst_float[i]), p_src_float[i]);
+    }
+}
+
 template <typename T,
           index_t DataPerAccess,
           AddressSpace SrcAddressSpace,
@@ -32,7 +63,7 @@ __device__ void set_data(const T* p_src, index_t src_offset, T* p_dst, index_t d
             //   2) p_dst to be a block-invariant pointer.
             // It is user's responsibility to make sure that is true.
             amd_intrinsic_buffer_store<T, DataPerAccess>(
-                *reinterpret_cast<const vector_t*>(&p_src[src_offset]), p_dst, dst_offset, 0);
+                &(p_src[src_offset]), p_dst, dst_offset, 0);
         }).Else([&](auto) {
             *reinterpret_cast<vector_t*>(&p_dst[dst_offset]) =
                 *reinterpret_cast<const vector_t*>(&p_src[src_offset]);
@@ -50,16 +81,16 @@ template <typename T,
           AddressSpace DstAddressSpace>
 __device__ void atomic_add_data(const T* p_src, index_t src_offset, T* p_dst, index_t dst_offset)
 {
-    using vector_t = typename vector_type<T, DataPerAccess>::MemoryType;
-
     static_if<SrcAddressSpace == AddressSpace::Vgpr &&
               DstAddressSpace == AddressSpace::Global>{}([&](auto) {
 #if CK_USE_AMD_BUFFER_ATOMIC_ADD
         amd_intrinsic_buffer_atomic_add<T, DataPerAccess>(
-            *reinterpret_cast<const vector_t*>(&p_src[src_offset]), p_dst, dst_offset, 0);
+            &(p_src[src_offset]), p_dst, dst_offset, 0);
 #else
-        atomicAdd(reinterpret_cast<vector_t*>(&p_dst[dst_offset]),
-                  *reinterpret_cast<const vector_t*>(&p_src[src_offset]));
+        using vector_t = typename vector_type<T, DataPerAccess>::MemoryType;
+
+        atomic_add_impl(reinterpret_cast<vector_t*>(&p_dst[dst_offset]),
+                        *reinterpret_cast<const vector_t*>(&p_src[src_offset]));
 #endif
     }).Else([&](auto fwd) {
         static_assert(fwd(false), "atomic_add doesn't support this memory space");
