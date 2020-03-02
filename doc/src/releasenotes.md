@@ -2,6 +2,23 @@
 ## MIOpen Release notes
 
 
+### 03/01/2020 [ 2.3.0 ]
+
+- This release contains new implementations of the implicitGEMM and Winograd algorithms, performance improvements for convolutions, further support for 3D convolutional networks, and various bug fixes.
+
+- Added 3D Pooling layers
+- Added backwards data algorithm for implicitGEMM
+- Added GEMM performance improvements via relaxed constraints in rocBLAS-Tensile
+- Added full CO v3 support for all kernels in MIOpen
+- Added new Winograd group convolution kernels
+- Added an API to query MIOpen's version
+- Added parallel compilation in initial convolutional algorithm search; partial solution to [#130](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/130)
+- Added SQLite binary program cache
+- Improved logging across all layers
+- Improved MIOpen's internal design for calling convolutional solvers
+- Fixed various bugs for the implicitGEMM algorithm
+
+
 ### 01/24/2020 [ 2.2.1 ]
 
 - This release contains bug fixes, documentation updates, and further code object version 3 support
