@@ -91,7 +91,7 @@ extern "C" __global__
 
     constexpr index_t GemmBBlockCopyDstDataPerWrite_GemmN =
         CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N;
-    constexpr index_t GemmABlockCopySrcDataPerRead_GemmM =
+    constexpr index_t GemmABlockCopyDstDataPerWrite_GemmM =
         CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_M;
 
     constexpr index_t GemmBBlockCopySrcDataPerRead_GemmN =
@@ -127,7 +127,7 @@ extern "C" __global__
             GemmABlockCopyThreadSliceLengths_GemmK_GemmM,
             GemmABlockCopyThreadClusterLengths_GemmK_GemmM,
             GemmABlockCopySrcDataPerRead_GemmK,
-            GemmABlockCopySrcDataPerRead_GemmM,
+            GemmABlockCopyDstDataPerWrite_GemmM,
             GemmBBlockCopyThreadSliceLengths_GemmK_GemmN,
             GemmBBlockCopyThreadClusterLengths_GemmK_GemmN,
             GemmBBlockCopySrcDataPerRead_GemmN,
