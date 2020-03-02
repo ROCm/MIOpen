@@ -248,17 +248,6 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::IsValid(const ConvolutionConte
     if(!IsValidXdlopsGemm(GemmMPerBlock, GemmNPerBlock, GemmKPerBlock, GemmMPerWave, GemmNPerWave))
         return false;
 
-    const auto GridSize = (GemmM / GemmMPerBlock) * (GemmN / GemmNPerBlock);
-    const auto WaveSize = 64;
-    const auto BlockSize =
-        (GemmMPerBlock / GemmMPerWave) * (GemmNPerBlock / GemmNPerWave) * WaveSize;
-
-    // heuristic to reduce search space
-    if(GridSize >= (8 * 64) && GemmM % 32 == 0 && GemmN % 32 == 0 && BlockSize != 256)
-        return false;
-    if(GemmMPerBlock / GemmMPerWave > 2 || GemmNPerBlock / GemmNPerWave > 2)
-        return false;
-
     bool valid = false;
 
     // check blockwise copy of A matrix
