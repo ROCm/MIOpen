@@ -283,8 +283,8 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::IsValid(const ConvolutionConte
 
 PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::PerformanceImplicitGemmV4R4GenXdlopsFwdFp32(bool spare)
 {
-    GemmNPerBlock = 16;
     GemmMPerBlock = 4;
+    GemmNPerBlock = 16;
     GemmKPerBlock = 4;
 
     GemmMPerWave = 4;
@@ -294,14 +294,14 @@ PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::PerformanceImplicitGemmV4R4GenXdlop
 }
 
 PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::PerformanceImplicitGemmV4R4GenXdlopsFwdFp32(
-    int GemmNPerBlock_,
     int GemmMPerBlock_,
+    int GemmNPerBlock_,
     int GemmKPerBlock_,
     int GemmMPerWave_,
     int GemmNPerWave_,
     bool use_spare_set_)
-    : GemmNPerBlock(GemmNPerBlock_),
-      GemmMPerBlock(GemmMPerBlock_),
+    : GemmMPerBlock(GemmMPerBlock_),
+      GemmNPerBlock(GemmNPerBlock_),
       GemmKPerBlock(GemmKPerBlock_),
       GemmMPerWave(GemmMPerWave_),
       GemmNPerWave(GemmNPerWave_),
@@ -313,8 +313,8 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::
 operator==(const PerformanceImplicitGemmV4R4GenXdlopsFwdFp32& other) const
 {
     // clang-format off
-    return GemmNPerBlock == other.GemmNPerBlock
-        && GemmMPerBlock == other.GemmMPerBlock
+    return  GemmMPerBlock == other.GemmMPerBlock
+        && GemmNPerBlock == other.GemmNPerBlock
         && GemmKPerBlock == other.GemmKPerBlock
         && GemmMPerWave == other.GemmMPerWave
         && GemmNPerWave == other.GemmNPerWave
@@ -325,8 +325,9 @@ operator==(const PerformanceImplicitGemmV4R4GenXdlopsFwdFp32& other) const
 bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::IsValidValue() const
 {
     // clang-format off
-    return IsTwoPower<16,128>(GemmNPerBlock)
-        && IsTwoPower<4,128>(GemmMPerBlock)
+    return
+        IsTwoPower<4,128>(GemmMPerBlock)
+        && IsTwoPower<16,128>(GemmNPerBlock)
         && IsTwoPower<4,16>(GemmKPerBlock)
         && IsTwoPower<4,64>(GemmMPerWave)
         && IsTwoPower<16,64>(GemmNPerWave);
@@ -337,9 +338,9 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::SetNextValue()
 {
     do
     {
-        if(!NextTwoPower<16, 128>(GemmNPerBlock))
-            break;
         if(!NextTwoPower<4, 128>(GemmMPerBlock))
+            break;
+        if(!NextTwoPower<16, 128>(GemmNPerBlock))
             break;
         if(!NextTwoPower<4, 32>(GemmKPerBlock))
             break;
@@ -357,26 +358,13 @@ void PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::EuristicInit(const Convolution
 {
     PerformanceImplicitGemmV4R4GenXdlopsFwdFp32 tmp;
     tmp = {128, 128, 16, 64, 64, use_spare_set};
+
     if(!tmp.IsValid(ctx))
-        tmp = {64, 32, 4, 32, 64, use_spare_set};
+        tmp = {4, 64, 16, 4, 64, use_spare_set};
     if(!tmp.IsValid(ctx))
-        tmp = {64, 32, 4, 32, 64, use_spare_set};
-    if(!tmp.IsValid(ctx))
-        tmp = {64, 32, 16, 32, 32, use_spare_set};
-    if(!tmp.IsValid(ctx))
-        tmp = {32, 64, 4, 64, 32, use_spare_set};
-    if(!tmp.IsValid(ctx))
-        tmp = {32, 32, 4, 32, 32, use_spare_set};
-    if(!tmp.IsValid(ctx))
-        tmp = {64, 16, 4, 16, 64, use_spare_set};
-    if(!tmp.IsValid(ctx))
-        tmp = {16, 64, 4, 64, 16, use_spare_set};
+        tmp = {8, 64, 8, 8, 64, use_spare_set};
     if(!tmp.IsValid(ctx))
         tmp = {16, 16, 4, 16, 16, use_spare_set};
-    if(!tmp.IsValid(ctx))
-        tmp = {64, 4, 16, 4, 64, use_spare_set};
-    if(!tmp.IsValid(ctx))
-        tmp = {64, 8, 8, 8, 64, use_spare_set};
 
     if(!tmp.IsValid(ctx))
     {
@@ -519,8 +507,8 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::GetSolution(
         std::string(" -DCK_PARAM_PROBLEM_RIGHT_PAD_W=") + std::to_string(in_right_pad_w) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_GROUP_COUNTS=") + std::to_string(ctx.group_counts) +
         std::string(" -DCK_PARAM_TUNABLE_BLOCK_SIZE=") + std::to_string(block_size) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_N_PER_BLOCK=") + std::to_string(config.GemmNPerBlock) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_M_PER_BLOCK=") + std::to_string(config.GemmMPerBlock) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_N_PER_BLOCK=") + std::to_string(config.GemmNPerBlock) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_K_PER_BLOCK=") + std::to_string(config.GemmKPerBlock) +
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
         std::string(" -DCK_PARAM_GEMM_M_PER_WAVE=") + std::to_string(config.GemmMPerWave) +

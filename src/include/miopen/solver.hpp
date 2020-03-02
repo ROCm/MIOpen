@@ -735,8 +735,8 @@ struct ConvHipImplicitGemmV4Fwd : SolverBase<ConvolutionContext>
 struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
     : Serializable<PerformanceImplicitGemmV4R4GenXdlopsFwdFp32>
 {
-    int GemmNPerBlock; // 2^n[8..16]
     int GemmMPerBlock; // 2^n[32..128]
+    int GemmNPerBlock; // 2^n[8..16]
     int GemmKPerBlock; // 2^n[4..16]
 
     int GemmMPerWave; // [4, 16, 32, 64]
