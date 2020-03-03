@@ -50,14 +50,14 @@ PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::CalculateGemmABlockCopyPerformanceP
         const auto BlockSize =
             GemmNPerBlock * GemmMPerBlock / (GemmMPerWave * GemmNPerWave) * WaveSize;
 
+        // calculate vector length on gemmk dimension
+        SrcDataPerRead_GemmK = gcd(SrcDataPerRead_GemmK, GemmKPerBlock);
+
         // calculate threadwise copy size
         const auto a_data_per_thread_copy = (GemmKPerBlock * GemmMPerBlock) / BlockSize;
 
         if(!(a_data_per_thread_copy > 0))
             MIOPEN_THROW("invalid performance parameter");
-
-        // calculate vector length on gemmk dimension
-        SrcDataPerRead_GemmK = gcd(SrcDataPerRead_GemmK, GemmKPerBlock);
 
         // GemmABlockCopySrcDataPerRead_GemmK also bounded by size of threadwise copy
         SrcDataPerRead_GemmK = gcd(SrcDataPerRead_GemmK, a_data_per_thread_copy);
