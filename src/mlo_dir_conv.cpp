@@ -193,6 +193,8 @@ static auto GetBwdWrW2DSolvers()
                                            miopen::solver::ConvOclBwdWrW1x1>{};
 }
 
+static auto GetFFTSolvers() { return miopen::solver::SolverContainer<miopen::solver::FFT>{}; }
+
 #if MIOPEN_USE_SCGEMM
 static auto GetFwdSCGemmSolvers()
 {
@@ -263,6 +265,17 @@ FindAllFwdSCGemmSolutions(const miopen::ConvolutionContext& ctx)
     (void)ctx;
     return {};
 #endif
+}
+
+std::vector<miopen::solver::ConvSolution> FindAllFFTSolutions(const miopen::ConvolutionContext& ctx)
+{
+    return GetFFTSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+}
+
+std::vector<std::pair<std::string, size_t>>
+AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
+{
+    return GetFFTSolvers().GetWorkspaceSize(ctx);
 }
 
 #if MIOPEN_BACKEND_OPENCL

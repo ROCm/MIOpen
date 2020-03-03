@@ -250,7 +250,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     // Several ids w/o solver for immediate mode
     Register(registry, ++id, "gemm", miopenConvolutionAlgoGEMM);
-    Register(registry, ++id, "fft", miopenConvolutionAlgoFFT);
+    RegisterWithSolver(registry, ++id, FFT{}, miopenConvolutionAlgoFFT);
     RegisterWithSolver(
         registry, ++id, ConvWinograd3x3MultipassWrW<3, 4>{}, miopenConvolutionAlgoWinograd);
 #if MIOPEN_USE_SCGEMM

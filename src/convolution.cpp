@@ -473,14 +473,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     }
 #endif
 
-    const bool is_datatype_int8 =
-        (wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4);
-
-    const size_t workspace_size_fft =
-        (GetSpatialDimension() == 2 &&
-         miopen::all_of(GetConvDilations(), [](auto v) { return v == 1; }) && !is_datatype_int8)
-            ? ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc)
-            : 0;
+    const size_t workspace_size_fft = ForwardBackwardDataGetWorkSpaceSizeFFT(ctx);
 
     const size_t workspace_size = std::max({workspace_size_fft,
                                             workspace_size_gemm,
@@ -550,12 +543,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
     }
 #endif
 
-    const size_t workspace_size_fft =
-        (GetSpatialDimension() == 2 &&
-         miopen::all_of(GetConvDilations(), [](auto v) { return v == 1; }) &&
-         wDesc.GetType() != miopenInt8)
-            ? BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc)
-            : 0;
+    const size_t workspace_size_fft = ForwardBackwardDataGetWorkSpaceSizeFFT(ctx);
 
     const size_t workspace_size = std::max(
         {workspace_size_fft, workspace_size_gemm, direct_workspace, implicit_gemm_workspace});
@@ -729,6 +717,30 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeSCGemm(
 #endif
 
     return sz;
+}
+
+std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeFFT(
+    const miopen::ConvolutionContext& ctx) const
+{
+    try
+    {
+        const auto sz_v = AllFFTForwardBackwardDataWorkspaceSize(ctx);
+        std::size_t sz  = 0;
+        for(const auto& pr : sz_v)
+        {
+            if(sz < pr.second)
+            {
+                MIOPEN_LOG_I2(sz << " < " << pr.second);
+                sz = pr.second;
+            }
+        }
+        return sz;
+    }
+    catch(const miopen::Exception& ex)
+    {
+        MIOPEN_LOG_WE(ex.what());
+        return 0;
+    }
 }
 
 std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(

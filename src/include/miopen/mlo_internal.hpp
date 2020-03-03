@@ -248,6 +248,12 @@ FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx);
 std::vector<miopen::solver::ConvSolution>
 FindAllFwdSCGemmSolutions(const miopen::ConvolutionContext& ctx);
 
+std::vector<miopen::solver::ConvSolution>
+FindAllFFTSolutions(const miopen::ConvolutionContext& ctx);
+
+std::vector<std::pair<std::string, size_t>>
+AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx);
+
 struct mlo_construct_base
 {
     mlo_construct_base(int dir, bool do_bias = false)

@@ -23,15 +23,20 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/convolution.hpp>
+
+#include <miopen/solver.hpp>
+
+#include <miopen/algorithm.hpp>
+#include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/conv_solution.hpp>
 #include <miopen/convolution_fft.hpp>
 #include <miopen/env.hpp>
-#include <miopen/handle.hpp>
-#include <miopen/tensor_ops.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/util.hpp>
+
+#include <boost/any.hpp>
 
 namespace miopen {
+namespace solver {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
 
@@ -102,34 +107,74 @@ static void cgemm_grid(size_t* global_work_size,
     global_work_size[1] = totalWorkGroups1 * local_work_size[1];
 }
 
-static int FindFFTKernel(Handle& handle,
-                         const TensorDescriptor& xDesc,
-                         const TensorDescriptor& wDesc,
-                         const TensorDescriptor& yDesc,
-                         size_t workSpaceSize,
-                         std::vector<KernelInvoke>& kernels,
-                         bool fwd,
-                         const NetworkConfig& kcache_key)
+bool FFT::IsApplicable(const ConvolutionContext& ctx) const
 {
-
-    if(workSpaceSize == 0)
-        return -1;
-
     // disable running any FFT based convolutions by checking this env variable
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
-        return -1;
+        return false;
+    if(!ctx.IsFp32() || ctx.spatial_dims != 2 || ctx.group_counts != 1)
+        return false;
+    if(ctx.kernel_dilation_h != 1 || ctx.kernel_dilation_w != 1)
+        return false;
 
-    if(xDesc.GetType() != miopenFloat || wDesc.GetType() != miopenFloat ||
-       yDesc.GetType() != miopenFloat)
-        return -1;
+    const auto cparam =
+        std::make_tuple(ctx.pad_h, ctx.pad_w, ctx.kernel_stride_h, ctx.kernel_stride_w);
 
-    int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(xDesc.GetLengths());
+    int in_n = ctx.batch_sz, in_c = ctx.n_inputs, in_h = ctx.in_height, in_w = ctx.in_width;
+    int out_n = ctx.batch_sz, out_c = ctx.n_outputs;
+    int wei_k = out_c, wei_c = in_c, wei_h = ctx.kernel_size_h, wei_w = ctx.kernel_size_w;
 
-    (void)wDesc;
+    // FFT convolutions only works for specific config(s)
+    // coverage to expand gradually
 
-    int out_n, out_c;
-    std::tie(out_n, out_c, std::ignore, std::ignore) = miopen::tien<4>(yDesc.GetLengths());
+    auto supported = true;
+    supported      = supported && ((in_n < 1) || (in_n > 512));
+    supported      = supported && ((wei_k < 1) || (wei_k > 512));
+    supported      = supported && ((in_c * in_n) % 16 != 0);
+    supported      = supported && ((wei_c * wei_k) % 16 != 0);
+    supported      = supported && ((out_c * out_n) % 16 != 0);
+
+    supported = supported && ((std::tie(in_h, in_w) != std::make_tuple(28, 28)) &&
+                              (std::tie(in_h, in_w) != std::make_tuple(27, 27)) &&
+                              (std::tie(in_h, in_w) != std::make_tuple(14, 14)) &&
+                              (std::tie(in_h, in_w) != std::make_tuple(7, 7)));
+
+    supported = supported && (std::tie(wei_h, wei_w) != std::make_tuple(5, 5));
+    supported = supported && (cparam != std::make_tuple(2, 2, 1, 1));
+
+    return supported;
+}
+
+size_t FFT::GetWorkspaceSize(const ConvolutionContext& ctx) const
+{
+    int in_n = ctx.batch_sz, in_c = ctx.n_inputs, in_h = ctx.in_height, in_w = ctx.in_width;
+    int out_n = ctx.batch_sz, out_c = ctx.n_outputs;
+    int wei_k = out_c, wei_c = in_c;
+
+    const int N       = FFTConvParams::TileSize(in_h, in_w);
+    const int Padding = FFTConvParams::TransposePadding;
+    int temp_size     = 0;
+
+    if(ctx.direction.IsForward())
+    {
+        int temp_size1 = (in_c * in_n + Padding) + (wei_k * wei_c + Padding);
+        int temp_size2 = (out_n * out_c + Padding);
+        temp_size      = std::max(temp_size1, temp_size2);
+    }
+    else
+    {
+        int temp_size1 = (out_n * out_c + Padding) + (wei_k * wei_c + Padding);
+        int temp_size2 = (in_c * in_n + Padding);
+        temp_size      = std::max(temp_size1, temp_size2);
+    }
+
+    return 2 * 2 * N * temp_size * sizeof(float);
+}
+
+ConvSolution FFT::GetSolution(const ConvolutionContext& ctx) const
+{
+    int in_n = ctx.batch_sz, in_c = ctx.n_inputs, in_h = ctx.in_height, in_w = ctx.in_width;
+    int out_n = ctx.batch_sz, out_c = ctx.n_outputs;
 
     const int N          = FFTConvParams::TileSize(in_h, in_w);
     const int NumKernels = FFTConvParams::NumKernels;
@@ -266,6 +311,8 @@ static int FindFFTKernel(Handle& handle,
     else if((in_h == 7) && (in_w == 7))
         parms += " -DCFF_IMG_SZ_7_7";
 
+    const auto workSpaceSize = GetWorkspaceSize(ctx);
+
     parms += " -DCFF_IMG_H=";
     parms += std::to_string(in_h);
     parms += " -DCFF_IMG_W=";
@@ -279,7 +326,7 @@ static int FindFFTKernel(Handle& handle,
     parms += " -DCFF_HALFW=";
     parms += std::to_string(workSpaceSize / (2 * 2 * sizeof(float)));
 
-    if(!fwd)
+    if(!ctx.direction.IsForward())
     {
         parms += " -DCFF_BACKWARD";
     }
@@ -287,31 +334,29 @@ static int FindFFTKernel(Handle& handle,
     const std::string algorithm    = "miopenConvolutionFwdAlgoFFT";
     const std::string program_name = "MIOpenConvFFT.cl";
 
-    handle.ClearKernels(algorithm, kcache_key);
-    auto cacheId = 0;
+    auto sol = ConvSolution{miopenStatusSuccess};
+
+    // skip front transposes for 7x7
+    const auto skip_front_transposes = (in_h == 7) && (in_w == 7);
 
     for(int ik = 0; ik < NumKernels; ik++)
     {
-        std::string kernel_name;
+        if(skip_front_transposes && ((ik == 2) || (ik == 3)))
+            continue;
 
-        // skip front transposes for 7x7
-        if((in_h == 7) && (in_w == 7))
-        {
-            if((ik == 2) || (ik == 3))
-                continue;
-        }
-
-        switch(ik)
-        {
-        case 0: kernel_name += "MIOpenConvFFT_fwd_in"; break;
-        case 1: kernel_name += "MIOpenConvFFT_fwd_we"; break;
-        case 2: kernel_name += "MIOpenConvFFT_transpose_in"; break;
-        case 3: kernel_name += "MIOpenConvFFT_transpose_we"; break;
-        case 4: kernel_name += "MIOpenConvFFT_cgemm"; break;
-        case 5: kernel_name += "MIOpenConvFFT_transpose_out"; break;
-        case 6: kernel_name += "MIOpenConvFFT_inv_out"; break;
-        default: assert(false);
-        }
+        const auto kernel_name = [=]() {
+            switch(ik)
+            {
+            case 0: return "MIOpenConvFFT_fwd_in";
+            case 1: return "MIOpenConvFFT_fwd_we";
+            case 2: return "MIOpenConvFFT_transpose_in";
+            case 3: return "MIOpenConvFFT_transpose_we";
+            case 4: return "MIOpenConvFFT_cgemm";
+            case 5: return "MIOpenConvFFT_transpose_out";
+            case 6: return "MIOpenConvFFT_inv_out";
+            default: assert(false); return "";
+            }
+        }();
 
         std::vector<size_t> vld(3);
         std::vector<size_t> vgd(3);
@@ -324,164 +369,80 @@ static int FindFFTKernel(Handle& handle,
         vgd[1] = global_work_size[ik][1];
         vgd[2] = global_work_size[ik][2];
 
-        auto k = handle.AddKernel(
-            algorithm, kcache_key, program_name, kernel_name, vld, vgd, parms, cacheId++);
-
-        kernels.push_back(k);
+        auto kernel         = KernelInfo{};
+        kernel.kernel_file  = program_name;
+        kernel.kernel_name  = kernel_name;
+        kernel.comp_options = parms;
+        kernel.g_wk         = vgd;
+        kernel.l_wk         = vld;
+        sol.construction_params.push_back(kernel);
     }
 
-    return 0;
+    sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        int halfw = static_cast<int>(workSpaceSize) / (2 * 2 * static_cast<int>(sizeof(float)));
+        const int padding = FFTConvParams::TransposePadding;
+
+        return [=](Handle& handle, const boost::any& primitive_params) {
+            const auto params   = boost::any_cast<conv::DataInvokeParams>(primitive_params);
+            const auto& tensors = params.tensors;
+
+            if(params.workSpaceSize < workSpaceSize)
+                MIOPEN_THROW("Not enough workspace for FFT: expected " +
+                             std::to_string(workSpaceSize) + ", got " +
+                             std::to_string(params.workSpaceSize));
+
+            float time_fft = 0;
+            int kernel_id  = 0;
+            for(int ik = 0; ik < NumKernels; ik++)
+            {
+                if(skip_front_transposes && ((ik == 2) || (ik == 3)))
+                    continue;
+
+                const auto& k = handle.Run(kernels[kernel_id++]);
+
+                switch(ik)
+                {
+                case 0: k(tensors.in, params.workSpace); break;
+                case 1: k(tensors.w, params.workSpace); break;
+                case 4:
+                {
+                    k(params.workSpace,
+                      0,
+                      halfw + N * (in_n * in_c + padding),
+                      halfw + 0,
+                      out_c,
+                      out_n * out_c + padding,
+                      in_c,
+                      in_c * out_c + padding,
+                      in_c,
+                      in_n * in_c + padding,
+                      out_c,
+                      in_n,
+                      N,
+                      in_c);
+                    break;
+                }
+                case 6: k(params.workSpace, tensors.out); break;
+                case 2: k(params.workSpace); break;
+                case 3: k(params.workSpace); break;
+                case 5: k(params.workSpace); break;
+                default: assert(false);
+                }
+
+                if(handle.IsProfilingEnabled())
+                    time_fft += handle.GetKernelTime();
+            }
+
+            if(handle.IsProfilingEnabled())
+            {
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(time_fft);
+            }
+        };
+    };
+
+    return sol;
 }
 
-int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
-                                            const TensorDescriptor& xDesc,
-                                            const TensorDescriptor& wDesc,
-                                            const TensorDescriptor& yDesc,
-                                            size_t workSpaceSize,
-                                            std::vector<KernelInvoke>& kernels,
-                                            const NetworkConfig& kcache_key) const
-{
-
-    return FindFFTKernel(handle, xDesc, wDesc, yDesc, workSpaceSize, kernels, true, kcache_key);
-}
-
-int ConvolutionDescriptor::FindBwdFFTKernel(Handle& handle,
-                                            const TensorDescriptor& dyDesc,
-                                            const TensorDescriptor& wDesc,
-                                            const TensorDescriptor& dxDesc,
-                                            size_t workSpaceSize,
-                                            std::vector<KernelInvoke>& kernels,
-                                            const NetworkConfig& kcache_key) const
-{
-
-    return FindFFTKernel(handle, dyDesc, wDesc, dxDesc, workSpaceSize, kernels, false, kcache_key);
-}
-
-static float ExecuteFFTKernel(Handle& handle,
-                              const TensorDescriptor& xDesc,
-                              ConstData_t x,
-                              const TensorDescriptor& wDesc,
-                              ConstData_t w,
-                              const TensorDescriptor& yDesc,
-                              Data_t y,
-                              Data_t workSpace,
-                              size_t workSpaceSize,
-                              bool timed,
-                              bool fwd,
-                              const NetworkConfig& kcache_key)
-{
-
-    (void)wDesc; // suppress warning
-    (void)fwd;   // suppress warning
-
-    int halfw = static_cast<int>(workSpaceSize) / (2 * 2 * static_cast<int>(sizeof(float)));
-    int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(xDesc.GetLengths());
-
-    int out_n, out_c;
-    std::tie(out_n, out_c, std::ignore, std::ignore) = miopen::tien<4>(yDesc.GetLengths());
-
-    const int N          = FFTConvParams::TileSize(in_h, in_w);
-    const int Padding    = FFTConvParams::TransposePadding;
-    const int NumKernels = FFTConvParams::NumKernels;
-
-    float time_fft     = 0;
-    const auto kernels = handle.GetKernels("miopenConvolutionFwdAlgoFFT", kcache_key);
-    auto k_it          = kernels.begin();
-
-    for(int ik = 0; ik < NumKernels; ik++)
-    {
-        // skip front transposes for 7x7
-        if((in_h == 7) && (in_w == 7))
-        {
-            if((ik == 2) || (ik == 3))
-                continue;
-        }
-
-        assert(k_it != kernels.end());
-        const auto k = *k_it;
-        ++k_it;
-
-        switch(ik)
-        {
-        case 0: k(x, workSpace); break;
-        case 1: k(w, workSpace); break;
-        case 4:
-        {
-            k(workSpace,
-              0,
-              halfw + N * (in_n * in_c + Padding),
-              halfw + 0,
-              out_c,
-              out_n * out_c + Padding,
-              in_c,
-              in_c * out_c + Padding,
-              in_c,
-              in_n * in_c + Padding,
-              out_c,
-              in_n,
-              N,
-              in_c);
-            break;
-        }
-        case 6: k(workSpace, y); break;
-        case 2:
-        case 3:
-        case 5: k(workSpace); break;
-        default: assert(false);
-        }
-
-        if(timed)
-        {
-            time_fft += handle.GetKernelTime();
-        }
-    }
-
-    return time_fft;
-}
-
-float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
-                                                 const TensorDescriptor& xDesc,
-                                                 ConstData_t x,
-                                                 const TensorDescriptor& wDesc,
-                                                 ConstData_t w,
-                                                 const TensorDescriptor& yDesc,
-                                                 Data_t y,
-                                                 Data_t workSpace,
-                                                 size_t workSpaceSize,
-                                                 const NetworkConfig& kcache_key,
-                                                 bool timed) const
-{
-
-    return ExecuteFFTKernel(
-        handle, xDesc, x, wDesc, w, yDesc, y, workSpace, workSpaceSize, timed, true, kcache_key);
-}
-
-float ConvolutionDescriptor::ExecuteBwdFFTKernel(Handle& handle,
-                                                 const TensorDescriptor& dyDesc,
-                                                 ConstData_t dy,
-                                                 const TensorDescriptor& wDesc,
-                                                 ConstData_t w,
-                                                 const TensorDescriptor& dxDesc,
-                                                 Data_t dx,
-                                                 Data_t workSpace,
-                                                 size_t workSpaceSize,
-                                                 const NetworkConfig& kcache_key,
-                                                 bool timed) const
-{
-
-    return ExecuteFFTKernel(handle,
-                            dyDesc,
-                            dy,
-                            wDesc,
-                            w,
-                            dxDesc,
-                            dx,
-                            workSpace,
-                            workSpaceSize,
-                            timed,
-                            false,
-                            kcache_key);
-}
-
+} // namespace solver
 } // namespace miopen

@@ -89,7 +89,6 @@ set( MIOpen_Source
     check_numerics.cpp
     convolution.cpp
     convolution_api.cpp
-    convolution_fft.cpp
     db.cpp
     db_record.cpp
     expanduser.cpp
@@ -194,6 +193,7 @@ set( MIOpen_Source
     solver/conv_bin_winoRxS.cpp
     solver/conv_winoRxS_f3x2.cpp
     solver/conv_winoRxS_f2x3.cpp
+    solver/fft.cpp
     solver/conv_ocl_dir2D_bwdWrW_2.cpp
     solver/conv_ocl_dir2D_bwdWrW_53.cpp
     solver/conv_ocl_dir2D_bwdWrW_1x1.cpp
@@ -381,7 +381,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/activ_ocl.cpp
         ocl/batchnormocl.cpp
         ocl/convolutionocl.cpp
-        ocl/convolutionocl_fft.cpp
         ocl/lrn_ocl.cpp
         ocl/mloNeuron.cpp
         ocl/mloNorm.cpp

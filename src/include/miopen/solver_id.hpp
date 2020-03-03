@@ -67,12 +67,6 @@ struct Id
         return value;
     }
 
-    static solver::Id fft()
-    {
-        static const auto value = solver::Id{"fft"};
-        return value;
-    }
-
     private:
     uint64_t value = invalid_value;
     bool is_valid  = false;

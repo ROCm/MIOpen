@@ -1500,6 +1500,13 @@ struct ConvSCGemmFGemm : SolverBase<ConvolutionContext>
 extern template struct PerformanceConfigSCGemmFwd<SCGemmOpFGemm>;
 #endif
 
+struct FFT : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
 /// Partial implementation.
 struct gemm : SolverBase<ConvolutionContext>
 {
