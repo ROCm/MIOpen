@@ -331,7 +331,7 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::SetNextValue()
             break;
         if(!NextTwoPower<16, 128>(GemmNPerBlock))
             break;
-        if(!NextTwoPower<4, 32>(GemmKPerBlock))
+        if(!NextTwoPower<4, 16>(GemmKPerBlock))
             break;
         if(!NextTwoPower<4, 64>(GemmMPerWave))
             break;
