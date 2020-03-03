@@ -2588,7 +2588,6 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         MIOPEN_THROW("Reservespace is required");
     }
 
-    std::string network_config;
     std::vector<int> in_n;
     int in_h  = dxDesc[0].GetLengths()[1];
     int hy_d  = dhxDesc.GetLengths()[0];

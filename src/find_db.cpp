@@ -57,38 +57,71 @@ std::string FindDbRecord_t<TDb>::GetUserPath(Handle& handle)
     return GetUserDbPath() + "/" + handle.GetDbBasename() + "." + GetUserDbSuffix() + ".ufdb.txt";
 }
 
+bool CheckInvokerSupport(const std::string& algo)
+{
+    return algo == "miopenConvolutionFwdAlgoDirect" || algo == "miopenConvolutionBwdDataAlgoDirect";
+}
+
 template <class TDb>
-bool FindDbRecord_t<TDb>::CopyValidating(Handle& handle, std::vector<PerfField>& to) const
+bool FindDbRecord_t<TDb>::Validate(Handle& handle, const NetworkConfig& config) const
 {
     auto unbuilt = false;
     auto any     = false;
 
     for(const auto& pair : content->As<FindDbData>())
     {
-        if(in_sync && !pair.second.kcache_key.IsUnused())
+        if(in_sync)
         {
-            const auto is_valid = pair.second.kcache_key.IsValid();
-
-            if(!is_valid || !HasKernel(handle, pair.second.kcache_key))
+            if(CheckInvokerSupport(pair.first))
             {
-                unbuilt = true;
-                LogFindDbItem(is_valid, pair);
-                break;
+                if(!handle.GetInvoker(config, {{pair.second.solver_id}}))
+                {
+                    unbuilt = true;
+                    // This is not an logged as error because no error was detected.
+                    // Find wasn't executed yet and invokers were not prepared.
+                    LogFindDbItem(pair);
+                    break;
+                }
+
+                any = true;
+                continue;
             }
 
-            any = true;
+            // Todo: remove when all finds will use invokers
+            if(!pair.second.kcache_key.IsUnused())
+            {
+                const auto is_valid = pair.second.kcache_key.IsValid();
+
+                if(!is_valid || !HasKernel(handle, pair.second.kcache_key))
+                {
+                    unbuilt = true;
+                    LogFindDbItem(pair, !is_valid);
+                    break;
+                }
+
+                any = true;
+            }
         }
-        to.push_back({pair.first, pair.second.solver_id, pair.second.time, pair.second.workspace});
     }
 
     return !any || unbuilt;
 }
 
 template <class TDb>
-void FindDbRecord_t<TDb>::LogFindDbItem(bool is_valid,
-                                        const std::pair<std::string, FindDbData>& pair) const
+void FindDbRecord_t<TDb>::CopyTo(std::vector<PerfField>& to) const
 {
-    const auto log_level = is_valid ? LoggingLevel::Info2 : LoggingLevel::Error;
+    const auto range = content->As<FindDbData>();
+    std::transform(range.begin(), range.end(), std::back_inserter(to), [](const auto& pair) {
+        return PerfField{
+            pair.first, pair.second.solver_id, pair.second.time, pair.second.workspace};
+    });
+}
+
+template <class TDb>
+void FindDbRecord_t<TDb>::LogFindDbItem(const std::pair<std::string, FindDbData>& pair,
+                                        bool log_as_error) const
+{
+    const auto log_level = log_as_error ? LoggingLevel::Error : LoggingLevel::Info2;
 
     MIOPEN_LOG(
         log_level,

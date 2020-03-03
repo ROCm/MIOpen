@@ -92,6 +92,111 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
         if(!((X * Y) % (EPerBlock / WeiBlockCopyClusterLengths_E) == 0))
             return false;
     }
+
+    // divide block work by [K, B]
+    if(!(K % KPerBlock == 0 && B % BPerBlock == 0 && E % EPerBlock == 0))
+        return false; // wrong! cannot divice N evenly among thread
+
+    const auto KBlockWork = K / KPerBlock;
+    if(KBlockWork % ctx.group_counts != 0)
+        return false;
+
+    if((N1 * N2 * BPerBlock) % (GemmNPerThreadSubC * GemmNLevel0Cluster * GemmNLevel1Cluster) != 0)
+        return false;
+
+    // fp16/bfp16: doesn't support asymmetric matrix mul
+    if((ctx.IsFp16() || ctx.IsBfp16()) && GemmNPerThreadSubC != GemmMPerThreadSubC)
+        return false;
+
+    // fp16/bfp16: vector read of length 8 or greater is not supported
+    // as vector_type<vector<half,4>, 2> is not working. So, restrict epack*gemmreada <= 4
+    // and epack*gemmreadb <= 4
+    // if((ctx.IsFp16()  || ctx.IsBfp16()) && ((GetEPackLength(ctx, false)*GemmNPerThreadSubC > 4)
+    // ||
+    //   (GetEPackLength(ctx, false)*GemmMPerThreadSubC > 4)))
+    //  return false;
+
+    // sanity check
+    if((KPerBlock % (GemmMPerThreadSubC * GemmMLevel0Cluster * GemmMLevel1Cluster)) != 0)
+        return false;
+
+    if(GemmNRepeat !=
+       (N1 * N2 * BPerBlock) / (GemmNPerThreadSubC * GemmNLevel0Cluster * GemmNLevel1Cluster))
+        return false;
+
+    const int ThreadPerLevel1Cluster =
+        GemmMLevel0Cluster * GemmNLevel0Cluster * GemmMLevel1Cluster * GemmNLevel1Cluster;
+
+    const int block_size = ThreadPerLevel1Cluster;
+
+    if(block_size < 64 || block_size > 512)
+        return false;
+
+    if(block_size !=
+       InBlockCopyClusterLengths_E * InBlockCopyClusterLengths_N1 * InBlockCopyClusterLengths_B *
+           InBlockCopyClusterLengths_N2)
+        return false;
+
+    if(block_size != WeiBlockCopyClusterLengths_K * WeiBlockCopyClusterLengths_E)
+        return false;
+
+    const int GemmMRepeat =
+        KPerBlock / (GemmMPerThreadSubC * GemmMLevel0Cluster * GemmMLevel1Cluster);
+
+    if(!(GemmMRepeat == 2 && GemmNRepeat == 2))
+        return false;
+
+    const int InBlockCopySubLengths_E  = EPerBlock / InBlockCopyClusterLengths_E;
+    const int InBlockCopySubLengths_B  = BPerBlock / InBlockCopyClusterLengths_B;
+    const int WeiBlockCopySubLengths_K = KPerBlock / WeiBlockCopyClusterLengths_K;
+
+    const std::size_t lds_size = ComputeLDSRequiredSize(ctx,
+                                                        BPerBlock,
+                                                        KPerBlock,
+                                                        EPerBlock,
+                                                        GemmMPerThreadSubC,
+                                                        GemmNPerThreadSubC,
+                                                        InBlockCopySubLengths_B,
+                                                        WeiBlockCopySubLengths_K,
+                                                        false);
+
+    if(lds_size > 64 * 1024)
+        return false;
+
+    return (InBlockCopySubLengths_E == 1 && InBlockCopySubLengths_B == 1);
+}
+
+bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx) const
+{
+    std::size_t N = KernelBatchN(ctx);
+    std::size_t K = KernelOutputChannelK(ctx);
+    std::size_t C = KernelInputChannelC(ctx);
+
+    std::size_t Ho = KernelOutputHeightHo(ctx);
+    std::size_t Wo = KernelOutputWidthWo(ctx);
+
+    std::size_t Y = KernelFilterHeightY(ctx);
+    std::size_t X = KernelFilterWidthX(ctx);
+
+    const int N1 = GemmNRepeat;
+    const int N2 = GemmNPerThreadSubC;
+    if(N % (N1 * N2) != 0)
+        return false; // wrong! cannot divice N evenly among thread
+
+    const auto N0 = N / (N1 * N2);
+
+    const auto B = N0 * Ho * Wo;
+
+    const auto nonVectorizedC = C / GetEPackLength(ctx, false);
+    const auto E              = nonVectorizedC * Y * X;
+
+    if(!(EPerBlock % InBlockCopyClusterLengths_E == 0 &&
+         EPerBlock % WeiBlockCopyClusterLengths_E == 0 &&
+         BPerBlock % InBlockCopyClusterLengths_B == 0 &&
+         KPerBlock % WeiBlockCopyClusterLengths_K == 0 && N1 % InBlockCopyClusterLengths_N1 == 0 &&
+         N2 % InBlockCopyClusterLengths_N2 == 0))
+        return false;
+
     // divide block work by [K, B]
     if(!(K % KPerBlock == 0 && B % BPerBlock == 0 && E % EPerBlock == 0))
         return false; // wrong! cannot divice N evenly among thread

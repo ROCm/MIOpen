@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include <miopen/binary_cache.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/md5.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/env.hpp>
@@ -32,6 +33,10 @@
 #include <miopen/expanduser.hpp>
 #include <miopen/miopen.h>
 #include <miopen/version.h>
+#include <miopen/sqlite_db.hpp>
+#include <miopen/kern_db.hpp>
+#include <miopen/db.hpp>
+#include <miopen/db_path.hpp>
 #include <boost/filesystem.hpp>
 #include <fstream>
 #include <iostream>
@@ -40,7 +45,17 @@ namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DISABLE_CACHE)
 
-boost::filesystem::path ComputeCachePath()
+boost::filesystem::path ComputeSysCachePath()
+{
+    std::string cache_dir = GetSystemDbPath();
+    auto p                = boost::filesystem::path{miopen::ExpandUser(cache_dir)};
+    if(!boost::filesystem::exists(p))
+        return {};
+    else
+        return p;
+}
+
+boost::filesystem::path ComputeUserCachePath()
 {
 #ifdef MIOPEN_CACHE_DIR
     std::string cache_dir = MIOPEN_CACHE_DIR;
@@ -58,10 +73,14 @@ boost::filesystem::path ComputeCachePath()
 #endif
 }
 
-boost::filesystem::path GetCachePath()
+boost::filesystem::path GetCachePath(bool is_system)
 {
-    static const boost::filesystem::path path = ComputeCachePath();
-    return path;
+    static const boost::filesystem::path user_path = ComputeUserCachePath();
+    static const boost::filesystem::path sys_path  = ComputeSysCachePath();
+    if(is_system)
+        return sys_path;
+    else
+        return user_path;
 }
 
 bool IsCacheDisabled()
@@ -73,22 +92,50 @@ bool IsCacheDisabled()
 #endif
 }
 
+using KDb = DbTimer<MultiFileDb<KernDb, KernDb, false>>;
+KDb GetDb(const std::string& device, size_t num_cu)
+{
+    static const auto user_dir = ComputeUserCachePath();
+    static const auto sys_dir  = ComputeSysCachePath();
+    boost::filesystem::path user_path =
+        user_dir / (Handle::GetDbBasename(device, num_cu) + ".ukdb");
+    boost::filesystem::path sys_path = sys_dir / (Handle::GetDbBasename(device, num_cu) + ".kdb");
+    if(user_dir.empty())
+        user_path = user_dir;
+    if(!boost::filesystem::exists(sys_path))
+        sys_path = boost::filesystem::path{};
+    return {sys_path.string(), user_path.string(), device, num_cu};
+}
 boost::filesystem::path GetCacheFile(const std::string& device,
                                      const std::string& name,
                                      const std::string& args,
                                      bool is_kernel_str)
 {
     std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
-    return GetCachePath() / miopen::md5(device + ":" + args) / filename;
+    return GetCachePath(false) / miopen::md5(device + ":" + args) / filename;
 }
 
 std::string LoadBinary(const std::string& device,
+                       const size_t num_cu,
                        const std::string& name,
                        const std::string& args,
                        bool is_kernel_str)
 {
     if(miopen::IsCacheDisabled())
         return {};
+
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
+    auto db              = GetDb(device, num_cu);
+    std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
+    KernelConfig cfg{filename, args, ""};
+
+    auto record = db.FindRecord(cfg);
+    if(record)
+        return record.get();
+    else
+        return {};
+#else
+    (void)num_cu;
     auto f = GetCacheFile(device, name, args, is_kernel_str);
     if(boost::filesystem::exists(f))
     {
@@ -98,7 +145,26 @@ std::string LoadBinary(const std::string& device,
     {
         return {};
     }
+#endif
 }
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
+void SaveBinary(const std::string& hsaco,
+                const std::string& device,
+                const std::size_t num_cu,
+                const std::string& name,
+                const std::string& args,
+                bool is_kernel_str)
+{
+    auto db = GetDb(device, num_cu);
+
+    std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
+    KernelConfig cfg{filename, args, hsaco};
+    if(miopen::IsCacheDisabled())
+        db.RemoveRecord(cfg);
+    else
+        db.StoreRecord(cfg);
+}
+#else
 void SaveBinary(const boost::filesystem::path& binary_path,
                 const std::string& device,
                 const std::string& name,
@@ -116,5 +182,5 @@ void SaveBinary(const boost::filesystem::path& binary_path,
         boost::filesystem::rename(binary_path, p);
     }
 }
-
+#endif
 } // namespace miopen

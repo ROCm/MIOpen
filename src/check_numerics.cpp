@@ -29,6 +29,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/datatype.hpp>
 
 namespace miopen {
 
@@ -70,11 +71,12 @@ bool checkNumericsImpl(
         handle.Create(sizeof(CheckNumericsResult)); // TODO - someday avoid slow malloc/free here
     handle.WriteTo(&abnormal_h, abnormal_d, sizeof(CheckNumericsResult));
 
+    std::string params            = GetDataTypeKernelParams(dDesc.GetType());
     std::string program_name      = "MIOpenCheckNumerics.cl";
     std::string kernel_name       = "MIOpenCheckNumerics";
     const std::vector<size_t> vld = {size_t{blockSize}, size_t{1}, size_t{1}};
     const std::vector<size_t> vgd = {numGlobalWorkItems, size_t{1}, size_t{1}};
-    handle.AddKernel("MIOpenCheckNumerics", "", program_name, kernel_name, vld, vgd, "")(
+    handle.AddKernel("MIOpenCheckNumerics", "", program_name, kernel_name, vld, vgd, params)(
         data, numElements, abnormal_d.get(), computeStats);
 
     handle.ReadTo(&abnormal_h, abnormal_d, sizeof(CheckNumericsResult));

@@ -85,8 +85,8 @@ TensorDescriptor GetFlattenedTensorDescriptor(const TensorDescriptor& desc)
 
 // Free Tensor Functions
 static void CreateBitmapAndGrid(unsigned int& bitmap,
-                                std::vector<std::size_t>& a_lens,
-                                std::vector<std::size_t>& c_lens,
+                                const std::vector<std::size_t>& a_lens,
+                                const std::vector<std::size_t>& c_lens,
                                 int& num_wg,
                                 int& work,
                                 int d)
@@ -105,7 +105,7 @@ static void CreateBitmapAndGrid(unsigned int& bitmap,
     }
 }
 
-static bool IsBitmapLeadingOnes(unsigned int& bitmap, int n_size, int first_not_one)
+static bool IsBitmapLeadingOnes(unsigned int bitmap, int n_size, int first_not_one)
 {
     bool leading_ones = true;
 
@@ -1931,6 +1931,22 @@ void CopyTensor(Handle& handle,
     }
 }
 
+std::string GetCastTensorBuildOptionFromType(const std::string& buildOption, miopenDataType_t type)
+{
+    std::string option(buildOption);
+    switch(type)
+    {
+    case miopenInt8: return option += "0";
+    case miopenInt32: return option += "1";
+    case miopenHalf: return option += "2";
+    case miopenFloat: return option += "3";
+    case miopenBFloat16: return option += "4";
+    case miopenInt8x4:
+        MIOPEN_THROW(miopenStatusBadParm, "miopenInt8x4 data type not supported in cast tensor.");
+    default: MIOPEN_THROW(miopenStatusBadParm, "Invalid data type in cast tensor desc.");
+    }
+}
+
 void CastTensor(Handle& handle,
                 const void* alpha,
                 const TensorDescriptor& srcDesc,
@@ -1950,11 +1966,9 @@ void CastTensor(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
     }
 
-    if(srcDesc.GetType() == miopenInt8x4 || dstDesc.GetType() == miopenInt8x4 ||
-       srcDesc.GetType() == miopenBFloat16 || dstDesc.GetType() == miopenBFloat16)
+    if(srcDesc.GetType() == miopenInt8x4 || dstDesc.GetType() == miopenInt8x4)
     {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "Tensor cast operation is not supported for int8, int8x4, and bfloat16.");
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor cast operation is not supported for int8x4.");
     }
 
     auto flat_descriptors = GetConsistentFlattenedTensorDescriptors(srcDesc, dstDesc);
@@ -2019,23 +2033,18 @@ void CastTensor(Handle& handle,
             std::size_t wld = 256 < wgd ? 256 : wgd;
 
             std::string parms =
-                "-DMIOPEN_SRC_TYPE=" +
-                std::to_string(srcDesc_flat.GetType() == miopenInt8
-                                   ? 0
-                                   : srcDesc_flat.GetType() == miopenInt32
-                                         ? 1
-                                         : srcDesc_flat.GetType() == miopenHalf ? 2 : 3) +
-                " -DMIOPEN_DST_TYPE=" +
-                std::to_string(dstDesc_flat.GetType() == miopenInt8
-                                   ? 0
-                                   : dstDesc_flat.GetType() == miopenInt32
-                                         ? 1
-                                         : dstDesc_flat.GetType() == miopenHalf ? 2 : 3);
+                GetCastTensorBuildOptionFromType(" -DMIOPEN_SRC_TYPE=", srcDesc_flat.GetType()) +
+                GetCastTensorBuildOptionFromType(" -DMIOPEN_DST_TYPE=", dstDesc_flat.GetType());
 
             for(unsigned long i = 0; i < srcDim_flat; ++i)
             {
                 parms +=
                     " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
+            }
+
+            if(dstDesc_flat.GetType() == miopenBFloat16)
+            {
+                parms += " -DMIOPEN_USE_RNE_BFLOAT16=1";
             }
 
             kernel = handle.AddKernel(kernel_name,

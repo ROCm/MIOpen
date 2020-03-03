@@ -28,6 +28,8 @@
 #include <limits>
 #include <cassert>
 
+#include <miopen/conv/compiled_in_parameters.hpp>
+#include <miopen/conv/invokers/gcn_asm_1x1u.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/env.hpp>
 #include <miopen/logger.hpp>
@@ -333,6 +335,7 @@ bool PerformanceConfigConvAsm1x1UV2::IsValid(const ConvolutionContext& config) c
     if(!(k_mult * waves_k_in_group <= config.n_outputs))
         return false;
 
+    // cppcheck-suppress unreadVariable
     const config_helper uv_lj(config, *this);
 
     const auto elements_per_ld = (dwords_per_ld * elements_in_dword);
@@ -380,6 +383,7 @@ bool PerformanceConfigConvAsm1x1UV2::IsValid(const ConvolutionContext& config) c
         return false;
 
     {
+        // cppcheck-suppress unreadVariable
         buff_info ibuf(MemLayout::NCHW,
                        config.batch_sz,
                        config.n_inputs,
@@ -387,6 +391,7 @@ bool PerformanceConfigConvAsm1x1UV2::IsValid(const ConvolutionContext& config) c
                        config.in_width,
                        1,
                        GetTypeSize(config.in_data_type));
+        // cppcheck-suppress unreadVariable
         buff_info obuf(MemLayout::NCHW,
                        config.batch_sz,
                        config.n_outputs,
@@ -535,6 +540,7 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
         /// Modified copy from PerformanceConfigConvAsm1x1UV2::IsValid()
         /// \todo Refactor this.
         const auto& config = params; // alias
+        // cppcheck-suppress unreadVariable
         buff_info ibuf(MemLayout::NCHW,
                        config.batch_sz,
                        config.n_inputs,
@@ -542,6 +548,7 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
                        config.in_width,
                        1,
                        GetTypeSize(config.in_data_type));
+        // cppcheck-suppress unreadVariable
         buff_info obuf(MemLayout::NCHW,
                        config.batch_sz,
                        config.n_outputs,
@@ -597,6 +604,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
         }
     }
 
+    // cppcheck-suppress unreadVariable
     const config_helper uv_lj(params, *pcfg);
 
     GenerateClangDefsym(options, "stride_h", uv_lj.stride_h);
@@ -628,6 +636,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "acc_type", 1);
     GenerateClangDefsym(options, "buf_type", (data_len == 2 ? 2 : 1));
 
+    // cppcheck-suppress unreadVariable
     buff_info ibuf(MemLayout::NCHW,
                    params.batch_sz,
                    params.n_inputs,
@@ -635,6 +644,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
                    params.in_width,
                    1,
                    data_len);
+    // cppcheck-suppress unreadVariable
     buff_info obuf(MemLayout::NCHW,
                    params.batch_sz,
                    params.n_outputs,
@@ -642,6 +652,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
                    params.out_width,
                    1,
                    data_len);
+    // cppcheck-suppress unreadVariable
     buff_info fbuf(params.direction.IsForward() ? MemLayout::NCHW : MemLayout::CNHW,
                    params.n_outputs,
                    params.n_inputs,
@@ -707,6 +718,12 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
     kinfo.kernel_name = "miopenGcnAsmConv1x1U_stride2";
 
     result.construction_params.push_back(kinfo);
+
+    {
+        int N, C, H, W, K, n_groups;
+        GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);
+        result.invoker_factory = conv::MakeGcnAsm1x1UInvokerFactory(N, C, H, W, K, n_groups);
+    }
 
     return result;
 }

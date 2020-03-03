@@ -52,6 +52,8 @@ include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
+# Use SQLITE for compiled kernels, when turned off this will use raw files
+set(MIOPEN_ENABLE_SQLITE_KERN_CACHE On CACHE BOOL "")
 if(MIOPEN_ENABLE_SQLITE)
     # MIOpen now depends on SQLite as well
     find_package(PkgConfig)
@@ -59,15 +61,13 @@ if(MIOPEN_ENABLE_SQLITE)
 endif()
 option( BUILD_DEV "Build for development only" OFF)
 
-# Control Code Object V3 for HIP kernels
-set(MIOPEN_ENABLE_HCC_COV3 Off CACHE BOOL "Enable Code Object V3 for Hip kernels")
 # Strip symbols for release
 if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.2.0)
+rocm_setup_version(VERSION 2.4.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -207,8 +207,15 @@ endif()
 # Online assembler
 find_program(MIOPEN_AMDGCN_ASSEMBLER
     NAMES clang
-    PATHS ${MIOPEN_AMDGCN_ASSEMBLER_PATH} /opt/rocm
-    PATH_SUFFIXES /opencl/bin/x86_64
+    PATHS 
+        ${MIOPEN_AMDGCN_ASSEMBLER_PATH}
+        /opt/rocm
+        /opt/rocm/hcc
+        ${CMAKE_INSTALL_PREFIX}
+        ${CMAKE_INSTALL_PREFIX}/hcc
+    PATH_SUFFIXES 
+        /opencl/bin/x86_64
+        /bin
     NO_DEFAULT_PATH
 )
 message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
@@ -258,7 +265,7 @@ set(MIOPEN_USER_DB_SUFFIX "${MIOPEN_BACKEND}.${MIOpen_VERSION_MAJOR}_${MIOpen_VE
 set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix for the system find-db files")
 
 
-set(MIOPEN_PACKAGE_REQS "rocm-utils, hip_hcc")
+set(MIOPEN_PACKAGE_REQS "rocm-utils, hip-hcc")
 if(MIOPEN_USE_MIOPENGEMM)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, miopengemm")
 endif()
@@ -270,7 +277,7 @@ rocm_create_package(
     DESCRIPTION "AMD's DNN Library"
     MAINTAINER "Paul Fultz II <paul.fultz@amd.com>"
     LDCONFIG
-    # DEPENDS rocm-opencl rocm-utils hip_hcc tinygemm
+    # DEPENDS rocm-opencl rocm-utils hip-hcc tinygemm
 )
 
 include(EnableCompilerWarnings)
@@ -303,6 +310,7 @@ enable_clang_tidy(
         -cppcoreguidelines-avoid-c-arrays
         -cppcoreguidelines-avoid-magic-numbers
         -cppcoreguidelines-explicit-virtual-functions
+        -cppcoreguidelines-init-variables
         -cppcoreguidelines-macro-usage
         -cppcoreguidelines-non-private-member-variables-in-classes
         -cppcoreguidelines-pro-bounds-array-to-pointer-decay
@@ -362,23 +370,31 @@ enable_clang_tidy(
 include(CppCheck)
 enable_cppcheck(
     CHECKS
-        all
+        warning
+        style
+        performance
+        portability
     SUPPRESS
         ConfigurationNotChecked
-        unmatchedSuppression
-        unusedFunction
-        # constStatement
+        constStatement
+        duplicateCondition
         noExplicitConstructor
         passedByValue
         # preprocessorErrorDirective
+        shadowVariable
+        unusedFunction
+        unusedPrivateFunction
         unusedStructMember
         # Ignore initializer lists in the tests
         useInitializationList:*test/*.cpp
         *:*.cl
         *:*src/kernels/*.h
         knownConditionTrueFalse:*src/kernels/composable_kernel/*/*
-        wrongPrintfScanfArgNum:*src/kernels/composable_kernel/*/*
+        redundantAssignment:*src/kernels/composable_kernel/*/*
+        unreadVariable:*src/kernels/composable_kernel/*/*
         unusedScopedObject:*src/kernels/composable_kernel/*/*
+        wrongPrintfScanfArgNum:*src/kernels/composable_kernel/*/*
+        unmatchedSuppression
     FORCE
     SOURCES
         addkernels/
@@ -391,7 +407,9 @@ enable_cppcheck(
         ${CMAKE_CURRENT_BINARY_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/include
     DEFINE
+        CPPCHECK=1
         MIOPEN_USE_MIOPENGEMM=1
+        __linux__=1
 )
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
@@ -403,3 +421,4 @@ add_subdirectory(doc)
 add_subdirectory(src)
 add_subdirectory(driver)
 add_subdirectory(test)
+add_subdirectory(speedtests)

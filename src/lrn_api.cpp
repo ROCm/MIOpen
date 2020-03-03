@@ -78,6 +78,33 @@ extern "C" miopenStatus_t miopenLRNGetWorkSpaceSize(const miopenTensorDescriptor
     });
 }
 
+static void
+LogCmdLRN(const miopenLRNDescriptor_t lrnDesc, const miopenTensorDescriptor_t xDesc, bool is_fwd)
+{
+    if(miopen::IsLoggingCmd())
+    {
+        std::stringstream ss;
+        if(miopen::deref(xDesc).GetType() == miopenFloat)
+            ss << "lrn";
+        else if(miopen::deref(xDesc).GetType() == miopenHalf)
+            ss << "lrnfp16";
+        // clang-format off
+        ss << " -A " << miopen::deref(lrnDesc).GetAlpha() 
+           << " -B " << miopen::deref(lrnDesc).GetBeta() 
+           << " -F " << ((is_fwd) ? "1" : "2") 
+           << " -H " << miopen::deref(xDesc).GetLengths()[2] 
+           << " -K " << miopen::deref(lrnDesc).GetK()
+           << " -N " << miopen::deref(lrnDesc).GetN()
+           << " -W " << miopen::deref(xDesc).GetLengths()[3] 
+           << " -c " << miopen::deref(xDesc).GetLengths()[1]
+           << " -m " << miopen::deref(lrnDesc).GetMode() 
+           << " -n " << miopen::deref(xDesc).GetLengths()[0];
+        // clang-format on
+
+        MIOPEN_LOG_DRIVER_CMD(ss.str());
+    }
+}
+
 extern "C" miopenStatus_t miopenLRNForward(miopenHandle_t handle,
                                            const miopenLRNDescriptor_t lrnDesc,
                                            const void* alpha,
@@ -98,6 +125,8 @@ extern "C" miopenStatus_t miopenLRNForward(miopenHandle_t handle,
     {
         return miopenStatusNotImplemented;
     }
+
+    LogCmdLRN(lrnDesc, xDesc, true);
 
     return miopen::try_([&] {
         miopen::deref(lrnDesc).Forward(miopen::deref(handle),
@@ -139,6 +168,7 @@ extern "C" miopenStatus_t miopenLRNBackward(miopenHandle_t handle,
         return miopenStatusNotImplemented;
     }
 
+    LogCmdLRN(lrnDesc, xDesc, false);
     return miopen::try_([&] {
         miopen::deref(lrnDesc).Backward(miopen::deref(handle),
                                         alpha,

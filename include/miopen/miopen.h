@@ -133,6 +133,21 @@ typedef void* (*miopenAllocatorFunction)(void* context, size_t sizeBytes);
 */
 typedef void (*miopenDeallocatorFunction)(void* context, void* memory);
 
+/*! @brief Method to return version of MIOpen
+ *
+ * The output values of this call follow from the versioning
+ * format major.minor.patch
+ *
+ * Pointers that are NULL will be ignored.
+ *
+ * @param major     Major version number (output)
+ * @param minor     Minor version number (output)
+ * @param patch     Patch version number (output)
+ *
+ * @return          miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenGetVersion(size_t* major, size_t* minor, size_t* patch);
+
 /*! @brief Method to create the MIOpen handle object.
  *
  * This function creates a MIOpen handle. This is called at the very start to initialize the MIOpen

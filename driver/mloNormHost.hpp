@@ -71,6 +71,12 @@ int mloLRNForwardRunHost(bool do_scale,
 {
 
     int ret = 0;
+    if(local_area < 1 + pad)
+    {
+        std::cout << "ERROR: Lrn kernel size is insufficient." << std::endl;
+        return -1;
+    }
+
     if(norm_region == MLO_LRN_ACROSS_CHANNELS)
     {
         for(int b = 0; b < n_batchs; b++)
@@ -94,7 +100,7 @@ int mloLRNForwardRunHost(bool do_scale,
                         ++head;
                     }
                     // until we reach size, nothing needs to be subtracted
-                    while(head < local_area && head - pad >= 0 && head < n_inputs)
+                    while(head < local_area)
                     {
                         bot_val = (head < n_inputs)
                                       ? static_cast<_Tcheck>(
@@ -103,21 +109,21 @@ int mloLRNForwardRunHost(bool do_scale,
                                       : static_cast<_Tcheck>(0);
                         accum_scale += bot_val * bot_val;
                         _Tcheck scale = K + accum_scale * alphaoverarea;
-                        if((head - pad) >= 0 && do_scale)
+                        if((head - pad) >= 0 && (head - pad) < n_outputs && do_scale)
                         {
                             scale_v_ptr[b * scale_v_batch_stride +
                                         (head - pad) * scale_v_channel_stride + j * scale_v_stride +
                                         i] = scale;
                         }
                         bot_val =
-                            ((head - pad) >= 0)
+                            ((head - pad) >= 0 && (head - pad) < n_inputs)
                                 ? static_cast<_Tcheck>(bot_ptr[b * bot_batch_stride +
                                                                (head - pad) * bot_channel_stride +
                                                                j * bot_stride + i])
                                 : static_cast<_Tcheck>(0);
                         _Tcheck s     = pow(scale, -beta);
                         _Tcheck c_val = bot_val * s;
-                        if((head - pad) >= 0)
+                        if((head - pad) >= 0 && (head - pad) < n_outputs)
                         {
                             top_v_ptr[b * top_v_batch_stride + (head - pad) * top_v_channel_stride +
                                       j * top_v_stride + i] = c_val;
@@ -209,8 +215,8 @@ int mloLRNForwardRunHost(bool do_scale,
                     {
                         // c-emulator
                         _Tcheck scale     = static_cast<_Tcheck>(0);
-                        int hstart        = j - pad;
-                        int wstart        = i - pad;
+                        int hstart        = j - (local_area - 1 - pad);
+                        int wstart        = i - (local_area - 1 - pad);
                         int hend          = std::min(hstart + local_area, bot_height + pad);
                         int wend          = std::min(wstart + local_area, bot_width + pad);
                         int adj_area_size = (hend - hstart) * (wend - wstart);
@@ -297,6 +303,12 @@ int mloLRNBackwardRunHost(int norm_region,
 
     int ret               = 0;
     _Tcheck negative_beta = -beta;
+    int pre_pad           = local_area - 1 - pad;
+    if(pre_pad < 0)
+    {
+        std::cout << "ERROR: Lrn kernel size is insufficient." << std::endl;
+        return -1;
+    }
 
     if(norm_region == MLO_LRN_ACROSS_CHANNELS)
     {
@@ -316,7 +328,7 @@ int mloLRNBackwardRunHost(int norm_region,
                     _Tcheck accum_ratio = static_cast<_Tcheck>(0);
 
                     // accumulate values
-                    while(head < pad)
+                    while(head < pre_pad)
                     {
                         if(head < n_inputs)
                         {
@@ -357,24 +369,24 @@ int mloLRNBackwardRunHost(int norm_region,
                             accum_ratio += adder;
                         }
 
-                        if(head - pad >= 0 && head - pad < n_inputs)
+                        if(head - pre_pad >= 0 && head - pre_pad < n_inputs)
                         {
                             bot_df_v_ptr[b * bot_df_v_batch_stride +
-                                         (head - pad) * bot_df_v_channel_stride +
+                                         (head - pre_pad) * bot_df_v_channel_stride +
                                          j * bot_df_v_stride + i] =
                                 static_cast<_Tcheck>(
                                     top_df_ptr[b * top_df_batch_stride +
-                                               (head - pad) * top_df_channel_stride +
+                                               (head - pre_pad) * top_df_channel_stride +
                                                j * top_df_stride + i]) *
                                     pow(static_cast<_Tcheck>(
                                             scale_ptr[b * scale_batch_stride +
-                                                      (head - pad) * scale_channel_stride +
+                                                      (head - pre_pad) * scale_channel_stride +
                                                       j * scale_stride + i]),
                                         negative_beta) -
-                                ratio_dta_bwd *
-                                    static_cast<_Tcheck>(bot_ptr[b * bot_batch_stride +
-                                                                 (head - pad) * bot_channel_stride +
-                                                                 j * bot_stride + i]) *
+                                ratio_dta_bwd * static_cast<_Tcheck>(
+                                                    bot_ptr[b * bot_batch_stride +
+                                                            (head - pre_pad) * bot_channel_stride +
+                                                            j * bot_stride + i]) *
                                     accum_ratio;
                         }
                         ++head;
@@ -415,31 +427,31 @@ int mloLRNBackwardRunHost(int norm_region,
 
                             accum_ratio -= subs;
                         }
-                        if(head - pad >= 0)
+                        if(head - pre_pad >= 0)
                         {
                             bot_df_v_ptr[b * bot_df_v_batch_stride +
-                                         (head - pad) * bot_df_v_channel_stride +
+                                         (head - pre_pad) * bot_df_v_channel_stride +
                                          j * bot_df_v_stride + i] =
                                 static_cast<_Tcheck>(
                                     top_df_ptr[b * top_df_batch_stride +
-                                               (head - pad) * top_df_channel_stride +
+                                               (head - pre_pad) * top_df_channel_stride +
                                                j * top_df_stride + i]) *
                                     pow(static_cast<_Tcheck>(
                                             scale_ptr[b * scale_batch_stride +
-                                                      (head - pad) * scale_channel_stride +
+                                                      (head - pre_pad) * scale_channel_stride +
                                                       j * scale_stride + i]),
                                         negative_beta) -
-                                ratio_dta_bwd *
-                                    static_cast<_Tcheck>(bot_ptr[b * bot_batch_stride +
-                                                                 (head - pad) * bot_channel_stride +
-                                                                 j * bot_stride + i]) *
+                                ratio_dta_bwd * static_cast<_Tcheck>(
+                                                    bot_ptr[b * bot_batch_stride +
+                                                            (head - pre_pad) * bot_channel_stride +
+                                                            j * bot_stride + i]) *
                                     accum_ratio;
                         }
 
                         ++head;
                     }
                     // subtract only
-                    while(head < n_inputs + pad)
+                    while(head < n_inputs + pre_pad)
                     {
                         if(head - local_area >= 0 && head - local_area < n_inputs)
                         {
@@ -459,24 +471,24 @@ int mloLRNBackwardRunHost(int norm_region,
 
                             accum_ratio -= subs;
                         }
-                        if(head - pad >= 0 && head - pad < n_inputs)
+                        if(head - pre_pad >= 0 && head - pre_pad < n_inputs)
                         {
                             bot_df_v_ptr[b * bot_df_v_batch_stride +
-                                         (head - pad) * bot_df_v_channel_stride +
+                                         (head - pre_pad) * bot_df_v_channel_stride +
                                          j * bot_df_v_stride + i] =
                                 static_cast<_Tcheck>(
                                     top_df_ptr[b * top_df_batch_stride +
-                                               (head - pad) * top_df_channel_stride +
+                                               (head - pre_pad) * top_df_channel_stride +
                                                j * top_df_stride + i]) *
                                     pow(static_cast<_Tcheck>(
                                             scale_ptr[b * scale_batch_stride +
-                                                      (head - pad) * scale_channel_stride +
+                                                      (head - pre_pad) * scale_channel_stride +
                                                       j * scale_stride + i]),
                                         negative_beta) -
-                                ratio_dta_bwd *
-                                    static_cast<_Tcheck>(bot_ptr[b * bot_batch_stride +
-                                                                 (head - pad) * bot_channel_stride +
-                                                                 j * bot_stride + i]) *
+                                ratio_dta_bwd * static_cast<_Tcheck>(
+                                                    bot_ptr[b * bot_batch_stride +
+                                                            (head - pre_pad) * bot_channel_stride +
+                                                            j * bot_stride + i]) *
                                     accum_ratio;
                         }
 
@@ -502,8 +514,8 @@ int mloLRNBackwardRunHost(int norm_region,
 
                         int hstart        = j - pad;
                         int wstart        = i - pad;
-                        int hend          = std::min(hstart + local_area, top_height + pad);
-                        int wend          = std::min(wstart + local_area, top_width + pad);
+                        int hend          = std::min(hstart + local_area, top_height + pre_pad);
+                        int wend          = std::min(wstart + local_area, top_width + pre_pad);
                         int adj_area_size = (hend - hstart) * (wend - wstart);
                         hstart            = std::max(hstart, 0);
                         wstart            = std::max(wstart, 0);

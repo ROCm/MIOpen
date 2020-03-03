@@ -34,7 +34,8 @@
 #include <initializer_list>
 
 inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
-                                const miopenTensorDescriptor_t tensorDesc)
+                                const miopenTensorDescriptor_t tensorDesc,
+                                bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -51,6 +52,10 @@ inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
         if(tensor_dim == 5)
         {
             ss << " -d 3";
+        }
+        if(tensor_dim == 4)
+        {
+            ss << " -M 1"; // currently use mask index for all 2D pooling
         }
         ss << " -n " << miopen::deref(tensorDesc).GetLengths()[0] // clang-format off
            << " -c " << miopen::deref(tensorDesc).GetLengths()[1];
@@ -89,6 +94,7 @@ inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
            << " -m " << (miopen::deref(poolDesc).mode == 0
                              ? "max"
                              : (miopen::deref(poolDesc).mode == 1 ? "avg" : "avg_in"))
+           << " -F " << ((is_fwd)?"1":"2")
            << " -t 1"; // clang-format on
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
@@ -280,7 +286,7 @@ extern "C" miopenStatus_t miopenPoolingForward(miopenHandle_t handle,
 
     MIOPEN_LOG_FUNCTION(
         handle, poolDesc, alpha, xDesc, x, beta, yDesc, y, do_backward, workSpace, workSpaceSize);
-    Pooling_logging_cmd(poolDesc, xDesc);
+    Pooling_logging_cmd(poolDesc, xDesc, true);
     return miopen::try_([&] {
         miopen::deref(poolDesc).Forward(miopen::deref(handle),
                                         alpha,
@@ -312,7 +318,7 @@ extern "C" miopenStatus_t miopenPoolingBackward(miopenHandle_t handle,
 
     MIOPEN_LOG_FUNCTION(
         handle, poolDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx, workSpace);
-    Pooling_logging_cmd(poolDesc, xDesc);
+    Pooling_logging_cmd(poolDesc, xDesc, false);
     return miopen::try_([&] {
         miopen::deref(poolDesc).Backward(miopen::deref(handle),
                                          alpha,

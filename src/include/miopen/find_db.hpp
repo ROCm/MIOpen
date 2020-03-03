@@ -45,6 +45,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DISABLE_FIND_DB)
 namespace miopen {
 
 struct Handle;
+struct NetworkConfig;
 
 template <class TDb>
 class FindDbRecord_t;
@@ -53,8 +54,8 @@ class FindDbRecord_t;
 using SystemFindDb = ReadonlyRamDb;
 using UserFindDb   = RamDb;
 #else
-using SystemFindDb = Db;
-using UserFindDb   = Db;
+using SystemFindDb = PlainTextDb;
+using UserFindDb   = PlainTextDb;
 #endif
 
 using FindDb           = MultiFileDb<SystemFindDb, UserFindDb, false>;
@@ -64,6 +65,8 @@ using UserFindDbRecord = FindDbRecord_t<UserFindDb>;
 extern bool testing_find_db_enabled; // For unit tests.
 extern boost::optional<std::string>&
 testing_find_db_path_override(); /// \todo Remove when #1723 is resolved.
+
+bool CheckInvokerSupport(const std::string& algo);
 
 template <class TDb>
 class FindDbRecord_t
@@ -87,7 +90,7 @@ class FindDbRecord_t
                                                          : GetInstalledPath(handle)),
           db(boost::make_optional<DbTimer<TDb>>(testing_find_db_enabled &&
                                                     !IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}),
-                                                DbTimer<TDb>{installed_path, path}))
+                                                DbTimer<TDb>{installed_path, path, "", 0}))
     {
         if(!db.is_initialized())
             return;
@@ -102,7 +105,7 @@ class FindDbRecord_t
                                                : GetUserPath(handle)),
           db(boost::make_optional<DbTimer<TDb>>(testing_find_db_enabled &&
                                                     !IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}),
-                                                DbTimer<TDb>{path, false}))
+                                                DbTimer<TDb>{path, false, "", 0}))
     {
         if(!db.is_initialized())
             return;
@@ -133,19 +136,20 @@ class FindDbRecord_t
         auto ret = std::vector<PerfField>{};
         FindDbRecord_t<TDb> record{handle, problem};
 
-        if(record.in_sync && !record.CopyValidating(handle, ret))
+        const auto network_config = problem.BuildConfKey();
+
+        if(record.in_sync && !record.Validate(handle, network_config))
+        {
+            record.CopyTo(ret);
             return ret;
+        }
 
         MIOPEN_LOG_I("Find-db regenerating.");
         ret.clear();
         record.in_sync = false;
         record.content.emplace(problem);
         regenerator(*record.content);
-
-        for(const auto& pair : record)
-            // cppcheck-suppress useStlAlgorithm
-            ret.push_back(
-                {pair.first, pair.second.solver_id, pair.second.time, pair.second.workspace});
+        record.CopyTo(ret);
 
         return ret;
     }
@@ -163,9 +167,11 @@ class FindDbRecord_t
     static std::string GetUserPath(Handle& handle);
 
     // Returns true if rebuild is required
-    bool CopyValidating(Handle& handle, std::vector<PerfField>& to) const;
+    bool Validate(Handle& handle, const NetworkConfig& config) const;
+    void CopyTo(std::vector<PerfField>& to) const;
 
-    void LogFindDbItem(bool is_valid, const std::pair<std::string, FindDbData>& pair) const;
+    void LogFindDbItem(const std::pair<std::string, FindDbData>& pair,
+                       bool log_as_error = false) const;
 };
 
 extern template class FindDbRecord_t<FindDb>;

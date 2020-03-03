@@ -46,7 +46,8 @@ message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
 message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 
 # This is incremented when the ABI to the library changes
-set( MIOpen_SOVERSION 1 )
+set( MIOpen_SOVERSION 1.0 )
+
 
 function(add_kernels KERNEL_FILES)
     set(INIT_KERNELS_LIST)
@@ -114,12 +115,14 @@ set( MIOpen_Source
     ctc_api.cpp
     temp_file.cpp
     problem_description.cpp
+    include/miopen/sequences.hpp
     kernel_build_params.cpp
     find_db.cpp
     conv_algo_name.cpp
     dropout.cpp
     dropout_api.cpp
     readonlyramdb.cpp
+    kern_db.cpp
     include/miopen/buffer_info.hpp
     ramdb.cpp
     include/miopen/temp_file.hpp
@@ -134,6 +137,7 @@ set( MIOpen_Source
     include/miopen/convolution.hpp
     include/miopen/convolution_fft.hpp
     include/miopen/errors.hpp
+    include/miopen/invoker.hpp
     include/miopen/handle.hpp
     include/miopen/kernel_cache.hpp
     include/miopen/solver.hpp
@@ -170,6 +174,11 @@ set( MIOpen_Source
     include/miopen/ramdb.hpp
     md_graph.cpp
     mdg_expr.cpp
+    conv/invokers/gcn_asm_1x1u.cpp
+    conv/invokers/gcn_asm_1x1u_ss.cpp
+    conv/invokers/gcn_asm_1x1u_us.cpp
+    conv/invokers/gen_x_w_y_pad.cpp
+    invoker_cache.cpp
     tensor.cpp
     tensor_api.cpp
     solver.cpp
@@ -186,6 +195,7 @@ set( MIOpen_Source
     solver/conv_bin_wino3x3U.cpp
     solver/conv_bin_winoRxS.cpp
     solver/conv_winoRxS_f3x2.cpp
+    solver/conv_winoRxS_f2x3.cpp
     solver/conv_ocl_dir2D_bwdWrW_2.cpp
     solver/conv_ocl_dir2D_bwdWrW_53.cpp
     solver/conv_ocl_dir2D_bwdWrW_1x1.cpp
@@ -197,10 +207,14 @@ set( MIOpen_Source
     solver/conv_ocl_dir2Dfwd1x1.cpp
     solver/conv_hip_implicit_gemm_v4.cpp
     solver/conv_hip_implicit_gemm_v4r1.cpp
+    solver/conv_hip_implicit_gemm_v4r4.cpp
     solver/conv_hip_implicit_gemm_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops.cpp
     solver/conv_hip_implicit_gemm_xdlops_common.cpp
     solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
+    solver/conv_hip_implicit_gemm_bwd_data_v1r1.cpp
+    solver/conv_hip_implicit_gemm_bwd_data_v4r1.cpp
+    solver/conv_hip_implicit_gemm_bwd_data_v1r1_xdlops.cpp
     )
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
@@ -241,6 +255,15 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15.inc
+        kernels/Conv_Winograd_v20_5_23_M_dilation2_prologue.inc
+        kernels/Conv_Winograd_v20_5_23_M_dilation2.inc
+        kernels/Conv_Winograd_v20_5_23_M_dilation2_epilogue.inc
+        kernels/Conv_Winograd_v20_5_23_M_stride1_prologue.inc
+        kernels/Conv_Winograd_v20_5_23_M_stride1.inc
+        kernels/Conv_Winograd_v20_5_23_M_stride1_epilogue.inc
+        kernels/Conv_Winograd_v20_5_23_M_stride2_prologue.inc
+        kernels/Conv_Winograd_v20_5_23_M_stride2.inc
+        kernels/Conv_Winograd_v20_5_23_M_stride2_epilogue.inc
         kernels/rocm_version.inc
         kernels/inst_wrappers.inc
         kernels/conv_common.inc
@@ -331,6 +354,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v3_0b.s
         kernels/conv_3x3_wheel_alpha_v9_2_7.s
         kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec.s
+        kernels/Conv_Winograd_v20_5_23_M_stride1.s
+        kernels/Conv_Winograd_v20_5_23_M_stride2.s
+        kernels/Conv_Winograd_v20_5_23_M_dilation2.s
         kernels/MIOpenConvBwdBias.cl
         kernels/MIOpenBatchNormActivInfer.cl
         kernels/MIOpenCTCLoss.cl
@@ -455,7 +481,7 @@ add_library( MIOpen
     ${MIOpen_Source}
     )
 
-set_target_properties(MIOpen PROPERTIES SOVERSION 1)
+rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
 
 clang_tidy_check(MIOpen)
 
@@ -590,12 +616,6 @@ rocm_export_targets(
 
 # Install db files
 install(FILES
-    kernels/gfx803_36.cd.pdb.txt
-    kernels/gfx803_64.cd.pdb.txt
-    kernels/gfx900_64.cd.pdb.txt
-    kernels/gfx900_56.cd.pdb.txt
-    kernels/gfx906_64.cd.pdb.txt
-    kernels/gfx906_60.cd.pdb.txt
     kernels/miopen.db
     kernels/gfx803_36.HIP.fdb.txt
     kernels/gfx803_64.HIP.fdb.txt

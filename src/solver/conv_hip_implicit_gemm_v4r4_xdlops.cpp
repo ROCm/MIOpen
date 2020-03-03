@@ -39,8 +39,6 @@ namespace solver {
 /// \todo enable vector load after fix it
 #define WORKAROUND_FAILED_VECTOR_LOAD 1
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM)
-
 PerformanceImplicitGemmXdlops
 ConvHipImplicitGemmV4R4FwdXdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
@@ -70,9 +68,9 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
 
     std::size_t grid_size = (b / BPerBlock) * (k / KPerBlock);
 
-    const int Y = ctx.kernel_size_h;
-    const int X = ctx.kernel_size_w;
-    const int C = ctx.n_inputs;
+    const int Y = KernelFilterHeightY(ctx);
+    const int X = KernelFilterWidthX(ctx);
+    const int C = KernelInputChannelC(ctx);
     const int E = C * Y * X;
 
     std::size_t global_load_size =
@@ -146,6 +144,9 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             ? ImplicitGemmDirection::ForwardData
             : (ctx.direction.IsBackwardData() ? ImplicitGemmDirection::BackwardData
                                               : ImplicitGemmDirection::BackwardWeight);
+    if(ctx.direction.IsBackwardWrW())
+        WeiBlockCopySrcDataPerRead_E =
+            (X * Y) % WeiBlockCopySubLengths_E != 0 ? 1 : WeiBlockCopySrcDataPerRead_E;
 
     if(ctx.direction.IsBackwardWrW())
     {
@@ -305,48 +306,21 @@ bool ConvHipImplicitGemmV4R4FwdXdlops::IsApplicable(const ConvolutionContext& ct
     if(!ctx.Is2d())
         return false;
 
-    // channels is divided by epack to pack 2/4 fp16/bfp16
-    if(ctx.n_inputs % GetEPackLength(ctx, true) != 0)
-        return false;
-
-    // For fp16, when c*x*y % 4 == 0, 4 channels are accumulated through dot4 (2 * dot2) operation
-    const int MultipleOf = ctx.IsFp16() ? 32 : ctx.IsBfp16() ? 16 : 8;
-    if((ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % MultipleOf != 0)
-        return false;
-
-    const auto WaveSize       = 64;
-    const auto nonVectorizedC = ctx.n_inputs / GetEPackLength(ctx, true);
-    if((nonVectorizedC * ctx.n_outputs) % WaveSize != 0)
-        return false;
-    // In bfp16, channels are accumulated in size of 2 while in fp16, in size of 4, so
-    // abide by channel restriction.
-    if((ctx.IsFp16() && (ctx.n_inputs % 4 != 0)) || (ctx.IsBfp16() && (ctx.n_inputs % 2 != 0)))
-        return false;
-
     // padding support required for out_of_bound configs
     bool no_out_of_bound = (ctx.in_width >= ((ctx.kernel_size_w - 1) * ctx.kernel_dilation_w + 1) +
                                                 (ctx.out_width - 1) * ctx.kernel_stride_w) &&
                            (ctx.in_height >= ((ctx.kernel_size_h - 1) * ctx.kernel_dilation_h + 1) +
                                                  (ctx.out_height - 1) * ctx.kernel_stride_h);
 
-    return IsXdlopsSupport(ctx) && no_out_of_bound && ctx.pad_h == 0 && ctx.pad_w == 0 &&
-           ctx.group_counts == 1 && ctx.n_outputs % 4 == 0 &&
-           (ctx.batch_sz * ctx.out_height * ctx.out_width) % 8 == 0;
+    return IsApplicableXdlops(ctx) && no_out_of_bound && ctx.pad_h == 0 && ctx.pad_w == 0 &&
+           ctx.group_counts == 1;
 }
 
 bool ConvHipImplicitGemmV4R4Xdlops_1x1::IsApplicable(const ConvolutionContext& ctx) const
 {
-    const auto WaveSize       = 64;
-    const auto nonVectorizedC = ctx.n_inputs / GetEPackLength(ctx, true);
-    if((nonVectorizedC * ctx.n_outputs) % WaveSize != 0)
-        return false;
-
-    return IsXdlopsSupport(ctx) && ctx.Is2d() && ctx.IsFp32() && ctx.pad_h == 0 && ctx.pad_w == 0 &&
-           ctx.group_counts == 1 &&
-           (ctx.batch_sz * KernelOutputHeightHo(ctx) * KernelOutputWidthWo(ctx)) % 4 == 0 &&
-           ctx.n_outputs % 8 == 0 &&
-           (ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % 8 == 0 &&
-           ctx.kernel_size_h == 1 && ctx.kernel_size_w == 1;
+    return IsApplicableXdlops(ctx) && ctx.Is2d() && ctx.IsFp32() && ctx.pad_h == 0 &&
+           ctx.pad_w == 0 && ctx.group_counts == 1 && ctx.kernel_size_h == 1 &&
+           ctx.kernel_size_w == 1;
 }
 
 bool ConvHipImplicitGemmV4R4WrWXdlops::IsApplicable(const ConvolutionContext& ctx) const
@@ -360,24 +334,7 @@ bool ConvHipImplicitGemmV4R4WrWXdlops::IsApplicable(const ConvolutionContext& ct
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 
-    // channels is divided by epack to pack 2/4 fp16/bfp16
-    if(ctx.batch_sz % GetEPackLength(ctx, true) != 0)
-        return false;
-
-    // For fp16, when c*x*y % 4 == 0, 4 channels are accumulated through dot4 (2 * dot2) operation
-    const int MultipleOf = ctx.IsFp16() ? 32 : ctx.IsBfp16() ? 16 : 8;
-    if((ctx.batch_sz * ctx.in_height * ctx.in_width) % MultipleOf != 0)
-        return false;
-
-    const auto WaveSize       = 64;
-    const auto nonVectorizedC = ctx.batch_sz / GetEPackLength(ctx, true);
-    if((nonVectorizedC * ctx.n_inputs) % WaveSize != 0)
-        return false;
-
-    return IsXdlopsSupport(ctx) && ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.group_counts == 1 &&
-           ctx.n_outputs % 8 == 0 &&
-           (ctx.n_outputs * ctx.kernel_size_h * ctx.kernel_size_w) % 32 == 0 &&
-           ctx.n_inputs % 32 == 0;
+    return IsApplicableXdlops(ctx) && ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.group_counts == 1;
 }
 
 PerformanceImplicitGemmXdlops

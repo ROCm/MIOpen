@@ -27,6 +27,9 @@
 #include <miopen/solver.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/env.hpp>
+#include <miopen/visit_float.hpp>
+#include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
+#include <miopen/conv/data_invoke_params.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11)
 
@@ -312,6 +315,43 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
         construction_parameters.g_wk.push_back(gbl_wk2);
 
         result.construction_params.push_back(construction_parameters);
+        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+            if(kernels.size() != 2)
+                MIOPEN_THROW("Two kernels were expected by solver");
+
+            return [=](Handle& handle, const boost::any& primitive_parameters) {
+                auto invoke_params  = boost::any_cast<conv::DataInvokeParams>(primitive_parameters);
+                const auto& tensors = invoke_params.tensors;
+
+                const auto first_pass_kernel  = handle.Run(kernels[0]);
+                const auto second_pass_kernel = handle.Run(kernels[1]);
+
+                float padding_val = 0;
+                float elapsed     = 0;
+
+                visit_float(tensors.inDesc.GetType(), [&](auto as_float) {
+                    first_pass_kernel(tensors.in, tensors.w, tensors.out, as_float(padding_val));
+                });
+
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+
+                visit_float(tensors.inDesc.GetType(), [&](auto as_float) {
+                    second_pass_kernel(tensors.in, tensors.w, tensors.out, as_float(padding_val));
+                });
+
+                if(handle.IsProfilingEnabled())
+                {
+                    elapsed += handle.GetKernelTime();
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(elapsed);
+                }
+            };
+        };
+    }
+    else
+    {
+        result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
     }
     return result;
 }

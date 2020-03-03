@@ -32,9 +32,10 @@ extern "C" __global__
     // read params: tunable params
     constexpr index_t BlockSize = CK_PARAM_TUNABLE_BLOCK_SIZE;
 
-    constexpr index_t BPerBlock = CK_PARAM_TUNABLE_B_PER_BLOCK;
-    constexpr index_t KPerBlock = CK_PARAM_TUNABLE_K_PER_BLOCK;
-    constexpr index_t EPerBlock = CK_PARAM_TUNABLE_E_PER_BLOCK;
+    constexpr index_t GemmMPerBlock = CK_PARAM_TUNABLE_GEMM_M_PER_BLOCK;
+    constexpr index_t GemmNPerBlock = CK_PARAM_TUNABLE_GEMM_N_PER_BLOCK;
+    constexpr index_t GemmKPerBlock = CK_PARAM_TUNABLE_GEMM_K_PER_BLOCK;
+    constexpr index_t GemmKBlocks   = CK_PARAM_TUNABLE_GEMM_K_BLOCKS;
 
     // read params: dependent params
     constexpr index_t GridSize = CK_PARAM_DEPENDENT_GRID_SIZE;
@@ -62,34 +63,22 @@ extern "C" __global__
     // input descriptor, the n and k dimension of the output descriptor
     // This change is necessary so that reduction dimensions are consistent with the requirement
     // of the wrw convolution when used in a fwd context
+    constexpr auto tmp_in_gnchw_desc =
+        make_native_tensor_descriptor(Sequence<GroupCounts, N, CPerGroup, Hi, Wi>{},
+                                      Sequence<CPerGroup * Hi * Wi, C * Hi * Wi, Hi * Wi, Wi, 1>{});
 
-    constexpr auto tmp_in_nchw_desc =
-        make_native_tensor_descriptor_packed(Sequence<N, C, Hi, Wi>{});
     constexpr auto tmp_wei_gkcyx_desc =
         make_native_tensor_descriptor_packed(Sequence<GroupCounts, KPerGroup, CPerGroup, Y, X>{});
-    constexpr auto tmp_out_nkhw_desc =
-        make_native_tensor_descriptor_packed(Sequence<N, K, Ho, Wo>{});
-    // nchw -> g_c/g_n_h_w
-    constexpr auto in_gnchw_desc = transform_tensor_descriptor(
-        tmp_in_nchw_desc,
-        make_tuple(PassThrough<N>{},
-                   UnMerge<Sequence<GroupCounts, CPerGroup>>{},
-                   PassThrough<Hi>{},
-                   PassThrough<Wi>{}),
-        make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
-        make_tuple(Sequence<2>{}, Sequence<0, 1>{}, Sequence<3>{}, Sequence<4>{}));
-    // wei and out are swapped in the solver
-    // nkhw -> g_k/g_n_h_w
-    constexpr auto wei_gkcyx_desc = transform_tensor_descriptor(
-        tmp_out_nkhw_desc,
-        make_tuple(PassThrough<N>{},
-                   UnMerge<Sequence<GroupCounts, KPerGroup>>{},
-                   PassThrough<Ho>{},
-                   PassThrough<Wo>{}),
-        make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
-        make_tuple(Sequence<2>{}, Sequence<0, 1>{}, Sequence<3>{}, Sequence<4>{}));
 
-    // g_k/g_c/g_hw -> g_c/g_k/g_h_w
+    constexpr auto tmp_out_gnkhw_desc =
+        make_native_tensor_descriptor(Sequence<GroupCounts, N, KPerGroup, Ho, Wo>{},
+                                      Sequence<KPerGroup * Ho * Wo, K * Ho * Wo, Ho * Wo, Wo, 1>{});
+
+    // swapping tensors and dimensions for bwd-weight pass
+    constexpr auto in_gnchw_desc =
+        reorder_tensor_descriptor_given_upper2lower(tmp_in_gnchw_desc, Sequence<0, 2, 1, 3, 4>{});
+    constexpr auto wei_gkcyx_desc =
+        reorder_tensor_descriptor_given_upper2lower(tmp_out_gnkhw_desc, Sequence<0, 2, 1, 3, 4>{});
     constexpr auto out_gnkhw_desc =
         reorder_tensor_descriptor_given_upper2lower(tmp_wei_gkcyx_desc, Sequence<0, 2, 1, 3, 4>{});
 
@@ -99,108 +88,109 @@ extern "C" __global__
     using ConvDilations = Sequence<ConvStrideH, ConvStrideW>;
     using ConvStrides   = Sequence<ConvDilationH, ConvDilationW>;
 #else
+    static_assert(GemmKBlocks == 1, "do not support GemmKBlocks > 1 for forward!");
     // calculate dependent params amd heuristic params
-    constexpr auto in_nchw_desc  = make_native_tensor_descriptor_packed(Sequence<N, C, Hi, Wi>{});
-    constexpr auto in_gnchw_desc = transform_tensor_descriptor(
-        in_nchw_desc,
-        make_tuple(PassThrough<N>{},
-                   UnMerge<Sequence<GroupCounts, CPerGroup>>{},
-                   PassThrough<Hi>{},
-                   PassThrough<Wi>{}),
-        make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
-        make_tuple(Sequence<1>{}, Sequence<0, 2>{}, Sequence<3>{}, Sequence<4>{}));
+    constexpr auto in_gnchw_desc =
+        make_native_tensor_descriptor(Sequence<GroupCounts, N, CPerGroup, Hi, Wi>{},
+                                      Sequence<CPerGroup * Hi * Wi, C * Hi * Wi, Hi * Wi, Wi, 1>{});
 
     constexpr auto wei_gkcyx_desc =
         make_native_tensor_descriptor_packed(Sequence<GroupCounts, KPerGroup, CPerGroup, Y, X>{});
 
-    constexpr auto out_nkhw_desc  = make_native_tensor_descriptor_packed(Sequence<N, K, Ho, Wo>{});
-    constexpr auto out_gnkhw_desc = transform_tensor_descriptor(
-        out_nkhw_desc,
-        make_tuple(PassThrough<N>{},
-                   UnMerge<Sequence<GroupCounts, KPerGroup>>{},
-                   PassThrough<Ho>{},
-                   PassThrough<Wo>{}),
-        make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
-        make_tuple(Sequence<1>{}, Sequence<0, 2>{}, Sequence<3>{}, Sequence<4>{}));
+    constexpr auto out_gnkhw_desc =
+        make_native_tensor_descriptor(Sequence<GroupCounts, N, KPerGroup, Ho, Wo>{},
+                                      Sequence<KPerGroup * Ho * Wo, K * Ho * Wo, Ho * Wo, Wo, 1>{});
 
     constexpr auto dir  = ImplicitGemmDirection::ForwardData;
     using ConvStrides   = Sequence<ConvStrideH, ConvStrideW>;
     using ConvDilations = Sequence<ConvDilationH, ConvDilationW>;
 #endif // CK_PARAM_PROBLEM_DIRECTION == 2
 
-    constexpr index_t InBlockCopyClusterLengths_E = CK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_E;
-    constexpr index_t InBlockCopyClusterLengths_B = CK_PARAM_IN_BLOCK_COPY_CLUSTER_LENGTHS_B;
+    constexpr index_t GemmBBlockCopyClusterLengths_GemmK =
+        CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K;
+    constexpr index_t GemmBBlockCopyClusterLengths_GemmN =
+        CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_N;
 
-    constexpr index_t InBlockCopySubLengths_E = EPerBlock / InBlockCopyClusterLengths_E;
-    constexpr index_t InBlockCopySubLengths_B = BPerBlock / InBlockCopyClusterLengths_B;
+    constexpr index_t GemmBBlockCopySubLengths_GemmK =
+        GemmKPerBlock / GemmBBlockCopyClusterLengths_GemmK;
+    constexpr index_t GemmBBlockCopySubLengths_GemmN =
+        GemmNPerBlock / GemmBBlockCopyClusterLengths_GemmN;
 
-    constexpr index_t WeiBlockCopyClusterLengths_E = CK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_E;
-    constexpr index_t WeiBlockCopyClusterLengths_K = CK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K;
+    constexpr index_t GemmABlockCopyClusterLengths_GemmK =
+        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K;
+    constexpr index_t GemmABlockCopyClusterLengths_GemmM =
+        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_M;
 
-    constexpr index_t WeiBlockCopySubLengths_E = EPerBlock / WeiBlockCopyClusterLengths_E;
-    constexpr index_t WeiBlockCopySubLengths_K = KPerBlock / WeiBlockCopyClusterLengths_K;
+    constexpr index_t GemmABlockCopySubLengths_GemmK =
+        GemmKPerBlock / GemmABlockCopyClusterLengths_GemmK;
+    constexpr index_t GemmABlockCopySubLengths_GemmM =
+        GemmMPerBlock / GemmABlockCopyClusterLengths_GemmM;
 
 #if MIOPEN_USE_FP32
-    using InBlockCopySubLengths_G_E_B =
-        Sequence<1, InBlockCopySubLengths_E, InBlockCopySubLengths_B>;
-    using InBlockCopyClusterLengths_G_E_B =
-        Sequence<1, InBlockCopyClusterLengths_E, InBlockCopyClusterLengths_B>;
+    using GemmBBlockCopySubLengths_GemmG_GemmK_GemmN =
+        Sequence<1, GemmBBlockCopySubLengths_GemmK, GemmBBlockCopySubLengths_GemmN>;
+    using GemmBBlockCopyClusterLengths_GemmG_GemmK_GemmN =
+        Sequence<1, GemmBBlockCopyClusterLengths_GemmK, GemmBBlockCopyClusterLengths_GemmN>;
 
-    using InBlockCopyThreadClusterArrangeOrder = Sequence<0, 1, 2>; // [G, E, B]
-    using InBlockCopySrcAccessOrder            = Sequence<0, 1, 2>; // [G, E, B]
-    using InBlockCopyDstAccessOrder            = Sequence<0, 1, 2>; // [G, E, B]
+    using GemmBBlockCopyThreadClusterArrangeOrder = Sequence<0, 1, 2>; // [GE0, E1, B]
+    using GemmBBlockCopySrcAccessOrder            = Sequence<0, 1, 2>; // [GE0, E1, B]
+    using GemmBBlockCopyDstAccessOrder            = Sequence<0, 1, 2>; // [GE0, E1, B]
 
-    using WeiBlockCopySubLengths_G_E_K =
-        Sequence<1, WeiBlockCopySubLengths_E, WeiBlockCopySubLengths_K>;
-    using WeiBlockCopyClusterLengths_G_E_K =
-        Sequence<1, WeiBlockCopyClusterLengths_E, WeiBlockCopyClusterLengths_K>;
+    using GemmABlockCopySubLengths_GemmG_GemmK_GemmM =
+        Sequence<1, GemmABlockCopySubLengths_GemmK, GemmABlockCopySubLengths_GemmM>;
+    using GemmABlockCopyClusterLengths_GemmG_GemmK_GemmM =
+        Sequence<1, GemmABlockCopyClusterLengths_GemmK, GemmABlockCopyClusterLengths_GemmM>;
 
-    using WeiBlockCopyThreadClusterArrangeOrder = Sequence<0, 2, 1>; // [G, K, E]
-    using WeiBlockCopySrcAccessOrder            = Sequence<0, 2, 1>; // [G, K, E]
-    using WeiBlockCopyDstAccessOrder            = Sequence<0, 1, 2>; // [G, E, K]
+    using GemmABlockCopyThreadClusterArrangeOrder = Sequence<0, 2, 1>; // [GE0, K, E1]
+    using GemmABlockCopySrcAccessOrder            = Sequence<0, 2, 1>; // [GE0, K, E1]
+    using GemmABlockCopyDstAccessOrder            = Sequence<0, 1, 2>; // [GE0, E1, K]
 
-    constexpr index_t InBlockCopyDstDataPerWrite_B  = CK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_B;
-    constexpr index_t WeiBlockCopyDstDataPerWrite_K = CK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K;
+    constexpr index_t GemmBBlockCopyDstDataPerWrite_GemmN =
+        CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N;
+    constexpr index_t GemmABlockCopyDstDataPerWrite_GemmM =
+        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_M;
 #elif MIOPEN_USE_FP16 || MIOPEN_USE_BFP16
-    constexpr index_t EPack = CK_PARAM_EPACK_LENGTH;
+    constexpr index_t GemmKPACK = CK_PARAM_GEMM_KPACK_LENGTH;
 
-    using InBlockCopySubLengths_G_E_B_EPACK =
-        Sequence<1, InBlockCopySubLengths_E, InBlockCopySubLengths_B, EPack>;
-    using InBlockCopyClusterLengths_G_E_B_EPACK =
-        Sequence<1, InBlockCopyClusterLengths_E, InBlockCopyClusterLengths_B, 1>;
+    using GemmABlockCopySubLengths_GemmG_GemmK_GemmM_GemmKPACK =
+        Sequence<1, GemmABlockCopySubLengths_GemmK, GemmABlockCopySubLengths_GemmM, GemmKPACK>;
+    using GemmABlockCopyClusterLengths_GemmG_GemmK_GemmM_GemmKPACK =
+        Sequence<1, GemmABlockCopyClusterLengths_GemmK, GemmABlockCopyClusterLengths_GemmM, 1>;
 
-    using InBlockCopyThreadClusterArrangeOrder = Sequence<0, 1, 2, 3>; // [G, E, B, EPack]
-    using InBlockCopySrcAccessOrder            = Sequence<0, 1, 2, 3>; // [G, E, B, EPack]
-    using InBlockCopyDstAccessOrder            = Sequence<0, 1, 2, 3>; // [G, E, B, EPack]
+    using GemmABlockCopyThreadClusterArrangeOrder = Sequence<0, 2, 1, 3>; // [G, M, K, GemmKPACK]
+    using GemmABlockCopySrcAccessOrder            = Sequence<0, 2, 1, 3>; // [G, M, K, GemmKPACK]
+    using GemmABlockCopyDstAccessOrder            = Sequence<0, 1, 2, 3>; // [G, K, M, GemmKPACK]
 
-    using WeiBlockCopySubLengths_G_E_K_EPACK =
-        Sequence<1, WeiBlockCopySubLengths_E, WeiBlockCopySubLengths_K, EPack>;
-    using WeiBlockCopyClusterLengths_G_E_K_EPACK =
-        Sequence<1, WeiBlockCopyClusterLengths_E, WeiBlockCopyClusterLengths_K, 1>;
+    constexpr index_t GemmABlockCopyDstDataPerWrite_GemmKPACK =
+        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK;
 
-    using WeiBlockCopyThreadClusterArrangeOrder = Sequence<0, 2, 1, 3>; // [G, K, E, EPack]
-    using WeiBlockCopySrcAccessOrder            = Sequence<0, 2, 1, 3>; // [G, K, E, EPack]
-    using WeiBlockCopyDstAccessOrder            = Sequence<0, 1, 2, 3>; // [G, E, K, EPack]
+    using GemmBBlockCopySubLengths_GemmG_GemmK_GemmN_GemmKPACK =
+        Sequence<1, GemmBBlockCopySubLengths_GemmK, GemmBBlockCopySubLengths_GemmN, GemmKPACK>;
+    using GemmBBlockCopyClusterLengths_GemmG_GemmK_GemmN_GemmKPACK =
+        Sequence<1, GemmBBlockCopyClusterLengths_GemmK, GemmBBlockCopyClusterLengths_GemmN, 1>;
 
-    constexpr index_t InBlockCopyDstDataPerWrite_EPACK =
-        CK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_EPACK;
-    constexpr index_t WeiBlockCopyDstDataPerWrite_EPACK =
-        CK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_EPACK;
+    using GemmBBlockCopyThreadClusterArrangeOrder = Sequence<0, 1, 2, 3>; // [G, K, N, GemmKPACK]
+    using GemmBBlockCopySrcAccessOrder            = Sequence<0, 1, 2, 3>; // [G, K, N, GemmKPACK]
+    using GemmBBlockCopyDstAccessOrder            = Sequence<0, 1, 2, 3>; // [G, K, N, GemmKPACK]
+
+    constexpr index_t GemmBBlockCopyDstDataPerWrite_GemmKPACK =
+        CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK;
+#else
+    static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
 #endif
 
-    constexpr index_t InBlockCopySrcDataPerRead_B  = CK_PARAM_IN_BLOCK_COPY_SRC_DATA_PER_READ_B;
-    constexpr index_t WeiBlockCopySrcDataPerRead_E = CK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E;
-    constexpr index_t OutThreadCopyDataPerAccess_B = CK_PARAM_OUT_THREAD_COPY_DATA_PER_ACCESS_B;
+    constexpr index_t GemmBBlockCopySrcDataPerRead_GemmN =
+        CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N;
+    constexpr index_t GemmABlockCopySrcDataPerRead_GemmK =
+        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_K;
 
     constexpr auto GemmMPerWave        = CK_PARAM_GEMM_M_PER_WAVE;
     constexpr auto GemmNPerWave        = CK_PARAM_GEMM_N_PER_WAVE;
-    constexpr auto GemmMWaves          = KPerBlock / GemmMPerWave;
-    constexpr auto GemmNWaves          = BPerBlock / GemmNPerWave;
     constexpr index_t GemmDataPerReadA = 1;
     constexpr index_t GemmDataPerReadB = 1;
 
-    constexpr auto gridwise_conv =
 #if MIOPEN_USE_FP32
+    constexpr auto gridwise_conv =
         GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer<
             GridSize,
             BlockSize,
@@ -213,37 +203,41 @@ extern "C" __global__
             ConvDilations,
             LeftPads,
             RightPads,
-            BPerBlock,
-            KPerBlock,
-            EPerBlock,
+            GemmMPerBlock,
+            GemmNPerBlock,
+            GemmKPerBlock,
+            GemmKBlocks,
             GemmMPerWave,
             GemmNPerWave,
-            GemmMWaves,
-            GemmNWaves,
             GemmDataPerReadA,
             GemmDataPerReadB,
-            InBlockCopySubLengths_G_E_B,
-            InBlockCopyClusterLengths_G_E_B,
-            InBlockCopyThreadClusterArrangeOrder,
-            InBlockCopySrcAccessOrder,
-            InBlockCopyDstAccessOrder,
-            InBlockCopySrcDataPerRead_B,
-            InBlockCopyDstDataPerWrite_B,
-            WeiBlockCopySubLengths_G_E_K,
-            WeiBlockCopyClusterLengths_G_E_K,
-            WeiBlockCopyThreadClusterArrangeOrder,
-            WeiBlockCopySrcAccessOrder,
-            WeiBlockCopyDstAccessOrder,
-            WeiBlockCopySrcDataPerRead_E,
-            WeiBlockCopyDstDataPerWrite_K,
-            OutThreadCopyDataPerAccess_B,
+            GemmABlockCopySubLengths_GemmG_GemmK_GemmM,
+            GemmABlockCopyClusterLengths_GemmG_GemmK_GemmM,
+            GemmABlockCopyThreadClusterArrangeOrder,
+            GemmABlockCopySrcAccessOrder,
+            GemmABlockCopyDstAccessOrder,
+            GemmABlockCopySrcDataPerRead_GemmK,
+            GemmABlockCopyDstDataPerWrite_GemmM,
+            GemmBBlockCopySubLengths_GemmG_GemmK_GemmN,
+            GemmBBlockCopyClusterLengths_GemmG_GemmK_GemmN,
+            GemmBBlockCopyThreadClusterArrangeOrder,
+            GemmBBlockCopySrcAccessOrder,
+            GemmBBlockCopyDstAccessOrder,
+            GemmBBlockCopySrcDataPerRead_GemmN,
+            GemmBBlockCopyDstDataPerWrite_GemmN,
             dir>{};
-#elif MIOPEN_USE_FP16 || MIOPEN_USE_BFP16
+    gridwise_conv.Run(p_in_global, p_wei_global, p_out_global);
+#elif(MIOPEN_USE_FP16 || MIOPEN_USE_BFP16) && CK_PARAM_PROBLEM_DIRECTION == 2
+    // Backward weight in fp16/bfp16 uses atomic add to do reduction along K dimension
+    // It requires output blob to be of float as no atomic add exists for half/ushort
+    constexpr auto gridwise_conv =
         GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_gnchw_gkcyx_gnkhw_lds_double_buffer<
             GridSize,
             BlockSize,
-            FLOAT,
-            FLOAT_ACCUM,
+            FLOAT,       // Input data type = half (fp16) or ushort (bfp16)
+            FLOAT_ACCUM, // Acc data type = float (see float_types.h)
+            float, // Output data type = float  (not half/ushort) as no atomic add ISA exists for
+                   // half/ushort.
             decltype(in_gnchw_desc),
             decltype(wei_gkcyx_desc),
             decltype(out_gnkhw_desc),
@@ -251,34 +245,75 @@ extern "C" __global__
             ConvDilations,
             LeftPads,
             RightPads,
-            BPerBlock,
-            KPerBlock,
-            EPerBlock,
-            EPack,
+            GemmMPerBlock,
+            GemmNPerBlock,
+            GemmKPerBlock,
+            GemmKBlocks,
+            GemmKPACK,
             GemmMPerWave,
             GemmNPerWave,
-            GemmMWaves,
-            GemmNWaves,
             GemmDataPerReadA,
             GemmDataPerReadB,
-            InBlockCopySubLengths_G_E_B_EPACK,
-            InBlockCopyClusterLengths_G_E_B_EPACK,
-            InBlockCopyThreadClusterArrangeOrder,
-            InBlockCopySrcAccessOrder,
-            InBlockCopyDstAccessOrder,
-            InBlockCopySrcDataPerRead_B,
-            InBlockCopyDstDataPerWrite_EPACK,
-            WeiBlockCopySubLengths_G_E_K_EPACK,
-            WeiBlockCopyClusterLengths_G_E_K_EPACK,
-            WeiBlockCopyThreadClusterArrangeOrder,
-            WeiBlockCopySrcAccessOrder,
-            WeiBlockCopyDstAccessOrder,
-            WeiBlockCopySrcDataPerRead_E,
-            WeiBlockCopyDstDataPerWrite_EPACK,
-            OutThreadCopyDataPerAccess_B,
+            GemmABlockCopySubLengths_GemmG_GemmK_GemmM_GemmKPACK,
+            GemmABlockCopyClusterLengths_GemmG_GemmK_GemmM_GemmKPACK,
+            GemmABlockCopyThreadClusterArrangeOrder,
+            GemmABlockCopySrcAccessOrder,
+            GemmABlockCopyDstAccessOrder,
+            GemmABlockCopySrcDataPerRead_GemmK,
+            GemmABlockCopyDstDataPerWrite_GemmKPACK,
+            GemmBBlockCopySubLengths_GemmG_GemmK_GemmN_GemmKPACK,
+            GemmBBlockCopyClusterLengths_GemmG_GemmK_GemmN_GemmKPACK,
+            GemmBBlockCopyThreadClusterArrangeOrder,
+            GemmBBlockCopySrcAccessOrder,
+            GemmBBlockCopyDstAccessOrder,
+            GemmBBlockCopySrcDataPerRead_GemmN,
+            GemmBBlockCopyDstDataPerWrite_GemmKPACK,
             dir>{};
-#else
-        static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
-#endif
+    // Output blob is cast to float as no atomic add exists for half/ushort
+    gridwise_conv.Run(p_in_global, p_wei_global, reinterpret_cast<FLOAT_ACCUM*>(p_out_global));
+#elif(MIOPEN_USE_FP16 || MIOPEN_USE_BFP16) && CK_PARAM_PROBLEM_DIRECTION != 2
+    // Forward data doesn't use any atomic add so output blob remains of the same type
+    // as input blob
+    constexpr auto gridwise_conv =
+        GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_gnchw_gkcyx_gnkhw_lds_double_buffer<
+            GridSize,
+            BlockSize,
+            FLOAT,       // Input data type = half (fp16) or ushort (bfp16)
+            FLOAT_ACCUM, // Acc data type = float (see float_types.h)
+            FLOAT,       // Output data type = half (fp16) or ushort (bfp16)
+            decltype(in_gnchw_desc),
+            decltype(wei_gkcyx_desc),
+            decltype(out_gnkhw_desc),
+            ConvStrides,
+            ConvDilations,
+            LeftPads,
+            RightPads,
+            GemmMPerBlock,
+            GemmNPerBlock,
+            GemmKPerBlock,
+            GemmKBlocks,
+            GemmKPACK,
+            GemmMPerWave,
+            GemmNPerWave,
+            GemmDataPerReadA,
+            GemmDataPerReadB,
+            GemmABlockCopySubLengths_GemmG_GemmK_GemmM_GemmKPACK,
+            GemmABlockCopyClusterLengths_GemmG_GemmK_GemmM_GemmKPACK,
+            GemmABlockCopyThreadClusterArrangeOrder,
+            GemmABlockCopySrcAccessOrder,
+            GemmABlockCopyDstAccessOrder,
+            GemmABlockCopySrcDataPerRead_GemmK,
+            GemmABlockCopyDstDataPerWrite_GemmKPACK,
+            GemmBBlockCopySubLengths_GemmG_GemmK_GemmN_GemmKPACK,
+            GemmBBlockCopyClusterLengths_GemmG_GemmK_GemmN_GemmKPACK,
+            GemmBBlockCopyThreadClusterArrangeOrder,
+            GemmBBlockCopySrcAccessOrder,
+            GemmBBlockCopyDstAccessOrder,
+            GemmBBlockCopySrcDataPerRead_GemmN,
+            GemmBBlockCopyDstDataPerWrite_GemmKPACK,
+            dir>{};
     gridwise_conv.Run(p_in_global, p_wei_global, p_out_global);
+#else
+    static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
+#endif
 }

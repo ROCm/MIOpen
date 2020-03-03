@@ -47,9 +47,17 @@ using ramdb_clock = std::chrono::steady_clock;
 
 class LockFile;
 
-class RamDb : protected Db
+class RamDb : protected PlainTextDb
 {
     public:
+    RamDb(std::string path,
+          bool warn_if_unreadable_,
+          const std::string& /*arch*/,
+          std::size_t /*num_cu*/)
+        : RamDb(path, warn_if_unreadable_)
+    {
+    }
+
     RamDb(std::string path, bool warn_if_unreadable_ = true);
 
     RamDb(const RamDb&) = delete;
@@ -59,6 +67,14 @@ class RamDb : protected Db
 
     static std::string GetTimeFilePath(const std::string& path);
     static RamDb& GetCached(const std::string& path, bool warn_if_unreadable);
+
+    static RamDb& GetCached(const std::string& path,
+                            bool warn_if_unreadable,
+                            const std::string& /*arch*/,
+                            std::size_t /*num_cu*/)
+    {
+        return GetCached(path, warn_if_unreadable);
+    }
 
     boost::optional<DbRecord> FindRecord(const std::string& problem);
 

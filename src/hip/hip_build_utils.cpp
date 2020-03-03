@@ -33,18 +33,47 @@
 #include <sstream>
 #include <string>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HCC_ENABLE_COV3)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_ENFORCE_COV3)
 
 namespace miopen {
 
-static bool IsEnabledCoV3()
+namespace {
+
+inline bool IsHccCompiler()
 {
-#if MIOPEN_HCC_ENABLE_COV3
-    return !IsDisabled(MIOPEN_DEBUG_HCC_ENABLE_COV3{}); // if enabled by default, env can disable.
-#else
-    return IsEnabled(MIOPEN_DEBUG_HCC_ENABLE_COV3{}); // if disabled by default, env can enable.
-#endif
+    static const auto isHcc = EndsWith(MIOPEN_HIP_COMPILER, "hcc");
+    return isHcc;
 }
+
+inline bool ProduceCoV3()
+{
+    // If env.var is set, then let's follow it.
+    if(IsEnabled(MIOPEN_DEBUG_HIP_ENFORCE_COV3{}))
+        return true;
+    if(IsDisabled(MIOPEN_DEBUG_HIP_ENFORCE_COV3{}))
+        return false;
+    // Otherwise, let's enable CO v3 for HIP kernels since ROCm 3.0.
+    return (HipGetHccVersion() >= external_tool_version_t{3, 0, -1});
+}
+
+/// Returns option for enabling/disabling CO v3 generation for the compiler
+/// that builds HIP kernels, depending on compiler version etc.
+inline const std::string& GetCoV3Option(const bool enable)
+{
+    /// \note PR #2166 uses the "--hcc-cov3" option when isHCC is true.
+    /// It's unclear why... HCC included in ROCm 2.8 does not support it,
+    /// perhaps it suits for some older HCC?
+    ///
+    /// These options are Ok for ROCm 3.0:
+    static const std::string option_enable{"-mcode-object-v3"};
+    static const std::string no_option{};
+    if(enable)
+        return option_enable;
+    else
+        return no_option;
+}
+} // namespace
+
 boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  const std::string& filename,
                                  std::string src,
@@ -52,7 +81,6 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  const std::string& dev_name)
 {
 #ifdef __linux__
-    const auto isHCC = EndsWith(MIOPEN_HIP_COMPILER, "hcc");
     // write out the include files
     auto inc_list = GetKernelIncList();
     auto inc_path = tmp_dir->path;
@@ -64,13 +92,9 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     }
     src += "\nint main() {}\n";
     WriteFile(src, tmp_dir->path / filename);
-    if(isHCC)
+    if(IsHccCompiler())
     {
         params += " -amdgpu-target=" + dev_name;
-        if(IsEnabledCoV3())
-        {
-            params += " --hcc-cov3 ";
-        }
     }
     else
     {
@@ -78,6 +102,8 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
         params += " --cuda-gpu-arch=" + dev_name;
         params += " --cuda-device-only -c";
     }
+    params += " " + GetCoV3Option(ProduceCoV3());
+
     // params += " -Wno-unused-command-line-argument -c -fno-gpu-rdc -I. ";
     params += " -Wno-unused-command-line-argument -I. ";
     params += MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
@@ -92,7 +118,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                      params + filename + " -o " + bin_file.string());
     if(!boost::filesystem::exists(bin_file))
         MIOPEN_THROW(filename + " failed to compile");
-    if(isHCC)
+    if(IsHccCompiler())
     {
         // call extract kernel
         tmp_dir->Execute(EXTRACTKERNEL_BIN, " -i " + bin_file.string());

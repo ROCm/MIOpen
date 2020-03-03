@@ -85,9 +85,9 @@ struct verify_forward_conv_bias_batchnorm_activ
                                              miopenActivationDescriptor_t pactivDesc,
                                              bool pdoactiv,
                                              tensor<T>& pbnscale,
-                                             tensor<T>& pbnbias,
-                                             tensor<T>& pestMean,
-                                             tensor<T>& pestVariance,
+                                             const tensor<T>& pbnbias,
+                                             const tensor<T>& pestMean,
+                                             const tensor<T>& pestVariance,
                                              miopenBatchNormMode_t pbnmode)
     {
         input           = pinput;

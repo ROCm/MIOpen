@@ -81,14 +81,14 @@ void CompiledSCGemmKernelParamsFromSolution(const miopen::solver::ConvSolution& 
                                             SCGemmKernelParams& scgParams,
                                             uint32_t mask = 0);
 
-float CallSCGemm(miopen::Handle& handle,
+float CallSCGemm(const miopen::Handle& handle,
                  const ConvolutionContext& ctx,
                  ConstData_t src,
                  Data_t dst,
                  ConstData_t wei,
                  ConstData_t bias,
                  Data_t workspace,
-                 std::vector<KernelInvoke>& kernels,
+                 const std::vector<KernelInvoke>& kernels,
                  uint32_t mask = 0,
                  float coef    = 1.0f);
 

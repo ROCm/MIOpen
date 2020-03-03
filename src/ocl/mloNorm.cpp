@@ -69,6 +69,11 @@ void mlo_construct_norm::mloConstruct()
     }
 }
 
+inline bool is_tensor_packed(int c, int h, int w, int b_str, int c_str, int h_str)
+{
+    return h_str == w && c_str == h * h_str && b_str == c * c_str;
+}
+
 int mlo_construct_norm::mloConstructFwd()
 {
     int ret = 0;
@@ -79,6 +84,9 @@ int mlo_construct_norm::mloConstructFwd()
 
     int pre_pad = (_norm_area - 1) / 2;
     int pad     = _norm_area - pre_pad - 1;
+
+    if(pre_pad < 0 || pad < 0)
+        MIOPEN_THROW("Wrong LRN kernel size");
 
     int top_df_stride         = 1;
     int top_df_channel_stride = 1;
@@ -93,7 +101,14 @@ int mlo_construct_norm::mloConstructFwd()
     _out_pix_tile0 = 1;
     _out_pix_tile1 = 1;
 
-    int MAP_SZ4 = _search_params.in_width * _search_params.in_height;
+    auto is_in_packed = is_tensor_packed(_search_params.n_inputs,
+                                         _search_params.in_height,
+                                         _search_params.in_width,
+                                         _search_params.in_batch_stride,
+                                         _search_params.in_channel_stride,
+                                         _search_params.in_stride);
+
+    int MAP_SZ4 = _search_params.in_width * (is_in_packed ? _search_params.in_height : 1);
     int read_unit;
     if(_norm_region == MLO_LRN_ACROSS_CHANNELS)
     {
@@ -110,11 +125,14 @@ int mlo_construct_norm::mloConstructFwd()
         read_unit      = 4;
         MAP_SZ4        = (MAP_SZ4 + 3) / 4;
     }
+    MAP_SZ4 *= (is_in_packed ? 1 : _search_params.in_height);
+
+    assert(_out_pix_tile0 - 1 <= _norm_area && _out_pix_tile1 - 1 <= _norm_area);
 
     auto ocl_group_lg2sz0 =
-        static_cast<int>(ceil(log(static_cast<double>(_out_pix_tile0) / log(2.))));
+        static_cast<int>(ceil(log(static_cast<double>(_out_pix_tile0)) / log(2.)));
     auto ocl_group_lg2sz1 =
-        static_cast<int>(ceil(log(static_cast<double>(_out_pix_tile1) / log(2.))));
+        static_cast<int>(ceil(log(static_cast<double>(_out_pix_tile1)) / log(2.)));
 
     _kernel_file = "MIOpenLRNFwd.cl";
     _kernel_name = (_norm_region == MLO_LRN_ACROSS_CHANNELS) ? "MIOpenLRNAcrossChannels4"
@@ -126,9 +144,10 @@ int mlo_construct_norm::mloConstructFwd()
         int n_waves = (_search_params.batch_sz * MAP_SZ4 + _hw_wave_sz - 1) / _hw_wave_sz;
         if(n_waves <= maxComputeUnits * 8)
         {
-            MAP_SZ4   = _search_params.in_width * _search_params.in_height;
+            MAP_SZ4   = _search_params.in_width * (is_in_packed ? _search_params.in_height : 1);
             read_unit = (MAP_SZ4 % 2 == 0) ? 2 : 1;
             MAP_SZ4 /= read_unit;
+            MAP_SZ4 *= (is_in_packed ? 1 : _search_params.in_height);
         }
     }
 
@@ -181,6 +200,9 @@ int mlo_construct_norm::mloConstructFwd()
         std::string(" -DMLO_LRN_PAD1=") + std::to_string(static_cast<long long>(pad)) +
         std::string(" -DMLO_LRN_KERNEL_SZ0=") + std::to_string(static_cast<long long>(_norm_area)) +
         std::string(" -DMLO_LRN_PAD0=") + std::to_string(static_cast<long long>(pad)) +
+        std::string(" -DMLO_LRN_PRE_PAD=") + std::to_string(static_cast<long long>(pre_pad)) +
+        std::string(" -DMLO_LRN_PRE_PAD1=") + std::to_string(static_cast<long long>(pre_pad)) +
+        std::string(" -DMLO_LRN_PRE_PAD0=") + std::to_string(static_cast<long long>(pre_pad)) +
         std::string(" -DMLO_LRN_N_OUTPUTS=") +
         std::to_string(static_cast<long long>(_search_params.n_outputs)) +
         std::string(" -DMLO_LRN_N_INPUTS=") +
@@ -306,6 +328,9 @@ int mlo_construct_norm::mloConstructBwd()
     int scale_channel_stride = _search_params.out_channel_stride;
     int scale_batch_stride   = _search_params.out_batch_stride;
 
+    if(pre_pad < 0 || pad < 0)
+        MIOPEN_THROW("Wrong LRN kernel size");
+
     _comp_options =
         std::string(" -DMLO_LRN_KERNEL_SZ=") + std::to_string(static_cast<long long>(_norm_area)) +
         std::string(" -DMLO_LRN_N_OUTPUTS=") +
@@ -313,6 +338,7 @@ int mlo_construct_norm::mloConstructBwd()
         std::string(" -DMLO_LRN_N_CHANNELS=") +
         std::to_string(static_cast<long long>(_search_params.n_inputs)) +
         std::string(" -DMLO_LRN_PAD=") + std::to_string(static_cast<long long>(pad)) +
+        std::string(" -DMLO_LRN_PRE_PAD=") + std::to_string(static_cast<long long>(pre_pad)) +
         std::string(" -DMLO_LRN_N_HORIZ_OUT_PIX=") +
         std::to_string(static_cast<long long>(_out_pix_tile0)) +
         std::string(" -DMLO_LRN_N_VERT_OUT_PIX=") +
