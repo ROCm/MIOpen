@@ -146,7 +146,8 @@ int DropoutDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int DropoutDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Dropout == 1 (Default=1)", "int");
+    inflags.AddInputFlag(
+        "forw", 'F', "0", "Direction, Forward = 1, Backward = 2 , Both = 0 (Default=0)", "int");
     inflags.AddInputFlag(
         "input_dim", 'd', "4", "Input dimension (Default=4, support up to 5D)", "vector");
     inflags.AddInputFlag("dropout", 'p', "0.5", "Dropout rate (Default=0.5)", "float");
