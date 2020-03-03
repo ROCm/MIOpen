@@ -423,8 +423,8 @@ ConvSolution FFT::GetSolution(const ConvolutionContext& ctx) const
                     break;
                 }
                 case 6: k(params.workSpace, tensors.out); break;
-                case 2: k(params.workSpace); break;
-                case 3: k(params.workSpace); break;
+                case 2:
+                case 3:
                 case 5: k(params.workSpace); break;
                 default: assert(false);
                 }
