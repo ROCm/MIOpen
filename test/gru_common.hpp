@@ -3166,7 +3166,7 @@ struct gru_basic_driver : test_driver
                                                                    nohx,
                                                                    bool(useDropout)});
 
-        if(!useDropout)
+        if(useDropout == 0)
         {
             verify(verify_forward_infer_gru<T>{rnnDesc,
                                                input,

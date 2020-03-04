@@ -51,7 +51,7 @@
 #define XORWOW_JUMP_LOG2 2
 #define XORWOW_JUMP_LOG2_MASK ((1 << XORWOW_JUMP_LOG2) - 1)
 
-unsigned int xorwow_next(prngStates* cur_state)
+inline unsigned int xorwow_next(prngStates* cur_state)
 {
     const unsigned int t = cur_state->x ^ (cur_state->x >> 2);
     cur_state->x         = cur_state->y;
@@ -127,12 +127,15 @@ inline void mat_pow(unsigned int* matrixP, const unsigned int* matrix, unsigned 
     }
 }
 
-float uniform_distribution_emu(size_t v) { return ROCRAND_2POW32_INV + (v * ROCRAND_2POW32_INV); }
+inline float uniform_distribution_emu(size_t v)
+{
+    return ROCRAND_2POW32_INV + (v * ROCRAND_2POW32_INV);
+}
 
-void xorwow_skipahead_emu(unsigned long long skp,
-                          prngStates* state,
-                          const unsigned int skipahead_mat[XORWOW_PRECALC_MATRICES_NUM]
-                                                          [XORWOW_PRECALC_MATRICES_SZ])
+inline void xorwow_skipahead_emu(unsigned long long skp,
+                                 prngStates* state,
+                                 const unsigned int skipahead_mat[XORWOW_PRECALC_MATRICES_NUM]
+                                                                 [XORWOW_PRECALC_MATRICES_SZ])
 {
     unsigned int xor_vec[XORWOW_DIM];
     unsigned int* p = &(state->x);
@@ -179,10 +182,10 @@ void xorwow_skipahead_emu(unsigned long long skp,
     std::copy(std::begin(xor_vec), std::end(xor_vec), p);
 }
 
-void xorwow_lite_init_emu(prngStates* cur_state,
-                          const unsigned long long seed,
-                          const unsigned long long subsequence,
-                          const unsigned long long offset)
+inline void xorwow_lite_init_emu(prngStates* cur_state,
+                                 const unsigned long long seed,
+                                 const unsigned long long subsequence,
+                                 const unsigned long long offset)
 {
     cur_state->x = 123456789;
     cur_state->y = 362436069;
@@ -210,8 +213,8 @@ void xorwow_lite_init_emu(prngStates* cur_state,
     cur_state->d += static_cast<unsigned int>(offset) * 362437;
 }
 
-void InitKernelStateEmulator(std::vector<prngStates>& states,
-                             const miopen::DropoutDescriptor& dropoutDesc)
+inline void InitKernelStateEmulator(std::vector<prngStates>& states,
+                                    const miopen::DropoutDescriptor& dropoutDesc)
 {
     size_t states_num = dropoutDesc.stateSizeInBytes / sizeof(prngStates);
     size_t wk_grp_num = std::min(size_t(MAX_PRNG_STATE / 256), (states_num + 255) / 256);

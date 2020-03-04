@@ -3047,7 +3047,8 @@ struct lstm_basic_driver : test_driver
             rnnDesc,  input,      dyin,      hx,      rsvgpu,    rsvcpu,          workSpaceBwdData,
             batchSeq, hiddenSize, wei_sz,    batch_n, seqLength, numLayers,       biasMode,
             dirMode,  inputMode,  inVecReal, hx_sz,   nohx,      bool(useDropout)});
-        if(!useDropout)
+
+        if(useDropout == 0)
         {
             verify(verify_forward_infer_lstm<T>{rnnDesc,
                                                 input,

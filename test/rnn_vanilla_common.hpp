@@ -2578,7 +2578,7 @@ struct rnn_basic_vanilla_driver : test_driver
             seqLength,        numLayers, biasMode,   dirMode, inputMode,
             rnnMode,          inVecReal, hx_sz,      nohx,    bool(useDropout)});
 
-        if(!useDropout)
+        if(useDropout == 0)
         {
             verify(verify_forward_infer_rnn<T>{rnnDesc,
                                                input,

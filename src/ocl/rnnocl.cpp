@@ -4285,14 +4285,14 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         }
         else
         {
-            bool use_dropout = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
-            int prelayer_shift =
+            bool use_dropout    = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
+            auto prelayer_shift = static_cast<int>(
                 use_dropout
                     ? (algoMode == miopenRNNdefault && rnnMode == miopenLSTM
                            ? nLayers * batch_n * hy_stride + nLayers * batch_n * hy_h * bi
                            : 2 * nLayers * batch_n * hy_stride) +
                           (li - 1) * batch_n * hy_h * bi
-                    : (li - 1) * batch_n * hy_stride + hid_off;
+                    : (li - 1) * batch_n * hy_stride + hid_off);
 
             miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
                                                               true,
