@@ -101,7 +101,7 @@ struct RNNDescriptor : miopenRNNDescriptor
     miopenRNNBiasMode_t biasMode;
     miopenDataType_t dataType;
     std::size_t typeSize;
-    miopenDropoutDescriptor_t dropoutDesc;
+    miopenDropoutDescriptor_t dropoutDesc{};
 
     size_t biasOffsetCalculation(const TensorDescriptor& xDesc, int layer, int biasID);
 
