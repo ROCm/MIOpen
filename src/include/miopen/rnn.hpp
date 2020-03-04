@@ -85,7 +85,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                   miopenRNNBiasMode_t bmode,
                   miopenRNNAlgo_t amode,
                   miopenDataType_t dType,
-                  miopenDropoutDescriptor_t dropoutDesc);
+                  miopenDropoutDescriptor_t dropDesc);
 
     size_t hsize;   // DLOWELL: is this uniform over all layers?
     size_t nLayers; // This may be twice the number of actually wDesc layers since the layout for
