@@ -191,13 +191,6 @@ pipeline {
                     }
                 }
 
-                /*stage('gfx908 GCC Debug') {
-                    agent{ label rocmnode("gfx908") }
-                    steps{
-                        buildJob('g++-5', '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image, "")
-                    }
-                }*/
-
                 stage('Hip Release') {
                     agent{ label rocmnode("vega") }
                     steps{
@@ -304,18 +297,26 @@ pipeline {
                         buildJob('hcc', '-DMIOPEN_TEST_BFLOAT16=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image + "rocm")
                     }
                 }
-            }
-        }
 
-        stage("Full long tests"){
-            parallel{
                 stage('GCC Release All') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('g++-5', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image, "")
+                        buildJob('g++-5', buildflag, image + "rocm", "./build/bin/test_conv2d --all  --verbose --disable-verification-cache")
                     }
                 }
 
+                stage('Bfloat16 gfx908 Hip Release All Subset') {
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        buildJob('hcc', '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image + "rocm")
+                    }
+                }
+            }
+        }
+
+        stage("Full fp32 tests"){
+            parallel{
+                
                 stage('Hip Release All') {
                     agent{ label rocmnode("vega") }
                     steps{
@@ -323,24 +324,25 @@ pipeline {
                     }
                 }
 
-                stage('Half Hip Release All') {
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildJob('hcc', '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image + "rocm")
-                    }
-                }
                 stage('FP32 gfx908 Hip Debug All subset') {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         buildJob('hcc', '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image + "rocm")
                     }
                 }
-                stage('Bfloat16 gfx908 Hip Release All Subset') {
-                    agent{ label rocmnode("gfx908") }
+            }
+        }
+
+        stage("Full fp16 gfx906 tests"){
+            parallel{
+                
+                stage('Half Hip Release All') {
+                    agent{ label rocmnode("vega20") }
                     steps{
-                        buildJob('hcc', '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image + "rocm")
+                        buildJob('hcc', '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image + "rocm")
                     }
                 }
+                
                 stage('Half gfx908 Hip Release All Subset') {
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -349,7 +351,6 @@ pipeline {
                 }
             }
         }
-
 
         // Run package building
         stage("Packages"){
