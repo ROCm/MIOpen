@@ -1611,30 +1611,31 @@ struct verify_forward_infer_lstm
                               const bool pnocx = false,
                               const bool pnohy = false,
                               const bool pnocy = false)
+        : input(px),
+          initHidden(phx),
+          initCell(pcx),
+          weights(pW),
+          batch_seq(pBS),
+          hiddenSize(pHS),
+          seqLength(pS),
+          nLayers(pNL),
+          biasMode(pBM),
+          dirMode(pDM),
+          inputMode(pIM),
+          batch_n(pBN),
+          inputVecLen(pVL),
+          rnnDesc(pRD),
+          realHiddenSize(pHXZ),
+          nohx(pnohx),
+          nocx(pnocx),
+          nohy(pnohy),
+          nocy(pnocy)
     {
-        rnnDesc = pRD;
-        input   = px;
-        weights = pW, batch_seq = pBS;
-        seqLength      = pS;
-        nLayers        = pNL;
-        biasMode       = pBM;
-        dirMode        = pDM;
-        inputMode      = pIM;
-        batch_n        = pBN;
-        hiddenSize     = pHS;
-        inputVecLen    = pVL;
-        realHiddenSize = pHXZ;
-
-        nohy = pnohy;
-        nocy = pnocy;
-
-        nohx = pnohx;
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
         else
             initHidden.resize(realHiddenSize);
 
-        nocx = pnocx;
         if(!nocx)
             initCell = pcx; // this may be intentionally a nullptr
         else
@@ -1909,35 +1910,34 @@ struct verify_forward_train_lstm
                               const bool pnohy        = false,
                               const bool pnocy        = false,
                               const bool puse_dropout = false)
+        : input(px),
+          initHidden(phx),
+          initCell(pcx),
+          weights(pW),
+          batch_seq(pBS),
+          hiddenSize(pHS),
+          seqLength(pS),
+          nLayers(pNL),
+          biasMode(pBM),
+          dirMode(pDM),
+          inputMode(pIM),
+          batch_n(pBN),
+          inputVecLen(pVL),
+          rnnDesc(pRD),
+          realHiddenSize(pHXZ),
+          nohx(pnohx),
+          nocx(pnocx),
+          nohy(pnohy),
+          nocy(pnocy),
+          use_dropout(puse_dropout),
+          RSVgpu(pRSVgpu.begin()),
+          RSVcpu(pRSVcpu.begin())
     {
-        rnnDesc     = pRD;
-        input       = px;
-        weights     = pW;
-        batch_seq   = pBS;
-        seqLength   = pS;
-        nLayers     = pNL;
-        biasMode    = pBM;
-        dirMode     = pDM;
-        inputMode   = pIM;
-        batch_n     = pBN;
-        hiddenSize  = pHS;
-        inputVecLen = pVL;
-        RSVgpu      = pRSVgpu.begin();
-        RSVcpu      = pRSVcpu.begin();
-        use_dropout = puse_dropout;
-
-        realHiddenSize = pHXZ;
-
-        nohy = pnohy;
-        nocy = pnocy;
-
-        nohx = pnohx;
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
         else
             initHidden.resize(realHiddenSize);
 
-        nocx = pnocx;
         if(!nocx)
             initCell = pcx; // this may
         else
@@ -2143,7 +2143,6 @@ struct verify_forward_train_lstm
                                       (nohy ? initHidden : handle.Read<T>(hy_dev, hy.size())),
                                       (nocy ? initCell : handle.Read<T>(cy_dev, cy.size())));
 
-        auto outdata = handle.Read<T>(output_dev, output.size());
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
 
@@ -2256,47 +2255,49 @@ struct verify_backward_data_lstm
                               const bool pnodhx       = false,
                               const bool pnodcx       = false,
                               const bool puse_dropout = false)
+        : yin(py),
+          dy(pdy),
+          dhy(pdhy),
+          dcy(pdcy),
+          initHidden(phx),
+          initCell(pcx),
+          weights(pW),
+          batch_seq(pBS),
+          hiddenSize(pHS),
+          seqLength(pS),
+          nLayers(pNL),
+          biasMode(pBM),
+          dirMode(pDM),
+          inputMode(pIM),
+          batch_n(pBN),
+          inputVecLen(pVL),
+          rnnDesc(pRD),
+          realHiddenSize(pHXZ),
+          nohx(pnohx),
+          nocx(pnocx),
+          nodhy(pnodhy),
+          nodcy(pnodcy),
+          nodhx(pnodhx),
+          nodcx(pnodcx),
+          use_dropout(puse_dropout),
+          RSVgpu(pRSVgpu.begin()),
+          RSVcpu(pRSVcpu.begin())
     {
-        rnnDesc        = pRD;
-        yin            = py;
-        dy             = pdy;
-        weights        = pW;
-        batch_seq      = pBS;
-        seqLength      = pS;
-        nLayers        = pNL;
-        biasMode       = pBM;
-        dirMode        = pDM;
-        inputMode      = pIM;
-        batch_n        = pBN;
-        hiddenSize     = pHS;
-        inputVecLen    = pVL;
-        realHiddenSize = pHXZ;
-        RSVgpu         = pRSVgpu.begin();
-        RSVcpu         = pRSVcpu.begin();
-        use_dropout    = puse_dropout;
-
-        nodhx = pnodhx;
-        nodcx = pnodcx;
-
-        nohx = pnohx;
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
         else
             initHidden.resize(realHiddenSize);
 
-        nocx = pnocx;
         if(!nocx)
             initCell = pcx; // this may be intentionally a nullptr
         else
             initCell.resize(realHiddenSize);
 
-        nodhy = pnodhy;
         if(!nodhy)
             dhy = pdhy; // this may be intentionally a nullptr
         else
             dhy.resize(realHiddenSize);
 
-        nodcy = pnodcy;
         if(!nodcy)
             dcy = pdcy; // this may be intentionally a nullptr
         else
@@ -2594,28 +2595,27 @@ struct verify_backward_weights_lstm
                                  const size_t pHXZ,
                                  const bool pnohx        = false,
                                  const bool puse_dropout = false)
+        : input(px),
+          dy(pdy),
+          initHidden(phx),
+          workSpace(pWS),
+          batch_seq(pBS),
+          weightSize(pW),
+          hiddenSize(pHS),
+          seqLength(pS),
+          nLayers(pNL),
+          biasMode(pBM),
+          dirMode(pDM),
+          inputMode(pIM),
+          batch_n(pBN),
+          inputVecLen(pVL),
+          rnnDesc(pRD),
+          realHiddenSize(pHXZ),
+          nohx(pnohx),
+          use_dropout(puse_dropout),
+          reserveSpace_gpu(pRSVgpu),
+          reserveSpace_cpu(pRSVcpu)
     {
-        rnnDesc          = pRD;
-        input            = px;
-        dy               = pdy;
-        workSpace        = pWS;
-        batch_seq        = pBS;
-        seqLength        = pS;
-        nLayers          = pNL;
-        biasMode         = pBM;
-        dirMode          = pDM;
-        inputMode        = pIM;
-        batch_n          = pBN;
-        hiddenSize       = pHS;
-        weightSize       = pW;
-        inputVecLen      = pVL;
-        reserveSpace_gpu = pRSVgpu;
-        reserveSpace_cpu = pRSVcpu;
-        use_dropout      = puse_dropout;
-
-        realHiddenSize = pHXZ;
-
-        nohx = pnohx;
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
         else
@@ -3013,9 +3013,9 @@ struct lstm_basic_driver : test_driver
             bool(useDropout)});
 
         /// RETURNS std::make_tuple(output, hiddenState, cellState, reserveSpace);
-        auto yin            = std::get<0>(fwdTrainOutputPair.second);
-        auto curHiddenState = std::get<1>(fwdTrainOutputPair.second);
-        auto curCellState   = std::get<2>(fwdTrainOutputPair.second);
+        auto yin = std::get<0>(fwdTrainOutputPair.second);
+        // auto curHiddenState = std::get<1>(fwdTrainOutputPair.second);
+        // auto curCellState   = std::get<2>(fwdTrainOutputPair.second);
 
         std::vector<T> dyin(yin.size());
         for(std::size_t i = 0; i < yin.size(); i++)
@@ -3043,7 +3043,8 @@ struct lstm_basic_driver : test_driver
                wei_sz);
         fflush(nullptr);
 #endif
-        auto dweights_pair = verify(verify_backward_weights_lstm<T>{
+        // auto dweights_pair =
+        verify(verify_backward_weights_lstm<T>{
             rnnDesc,  input,      dyin,      hx,      rsvgpu,    rsvcpu,          workSpaceBwdData,
             batchSeq, hiddenSize, wei_sz,    batch_n, seqLength, numLayers,       biasMode,
             dirMode,  inputMode,  inVecReal, hx_sz,   nohx,      bool(useDropout)});

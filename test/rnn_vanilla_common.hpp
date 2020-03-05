@@ -1285,23 +1285,24 @@ struct verify_forward_infer_rnn
                              const size_t pHXZ,
                              const bool pnohx = false,
                              const bool pnohy = false)
+        : input(px),
+          initHidden(phx),
+          weights(pW),
+          batch_seq(pBS),
+          hiddenSize(pHS),
+          seqLength(pS),
+          nLayers(pNL),
+          biasMode(pBM),
+          dirMode(pDM),
+          inputMode(pIM),
+          rnnMode(pRM),
+          batch_n(pBN),
+          inputVecLen(pVL),
+          rnnDesc(pRD),
+          realHiddenSize(pHXZ),
+          nohx(pnohx),
+          nohy(pnohy)
     {
-        rnnDesc = pRD;
-        input   = px;
-        weights = pW, batch_seq = pBS;
-        seqLength      = pS;
-        nLayers        = pNL;
-        biasMode       = pBM;
-        dirMode        = pDM;
-        inputMode      = pIM;
-        rnnMode        = pRM;
-        batch_n        = pBN;
-        hiddenSize     = pHS;
-        inputVecLen    = pVL;
-        realHiddenSize = pHXZ;
-
-        nohy = pnohy;
-        nohx = pnohx;
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
         else
@@ -1551,26 +1552,25 @@ struct verify_forward_train_rnn
                              const bool pnohx        = false,
                              const bool pnohy        = false,
                              const bool puse_dropout = false)
+        : input(px),
+          initHidden(phx),
+          weights(pW),
+          batch_seq(pBS),
+          hiddenSize(pHS),
+          seqLength(pS),
+          nLayers(pNL),
+          biasMode(pBM),
+          dirMode(pDM),
+          inputMode(pIM),
+          rnnMode(pRM),
+          batch_n(pBN),
+          inputVecLen(pVL),
+          rnnDesc(pRD),
+          realHiddenSize(pHXZ),
+          nohx(pnohx),
+          nohy(pnohy),
+          use_dropout(puse_dropout)
     {
-        rnnDesc    = pRD;
-        input      = px;
-        hiddenSize = pHS;
-
-        weights        = pW;
-        batch_seq      = pBS;
-        seqLength      = pS;
-        nLayers        = pNL;
-        biasMode       = pBM;
-        dirMode        = pDM;
-        inputMode      = pIM;
-        rnnMode        = pRM;
-        batch_n        = pBN;
-        inputVecLen    = pVL;
-        realHiddenSize = pHXZ;
-        use_dropout    = puse_dropout;
-
-        nohy = pnohy;
-        nohx = pnohx;
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
         else
@@ -1851,33 +1851,34 @@ struct verify_backward_data_rnn
                              const bool pnodhy       = false,
                              const bool pnodhx       = false,
                              const bool puse_dropout = false)
+        : yin(py),
+          dy(pdy),
+          dhy(pdhy),
+          initHidden(phx),
+          weights(pW),
+          reserveSpace(pRS),
+          batch_seq(pBS),
+          hiddenSize(pHS),
+          seqLength(pS),
+          nLayers(pNL),
+          biasMode(pBM),
+          dirMode(pDM),
+          inputMode(pIM),
+          rnnMode(pRM),
+          batch_n(pBN),
+          inputVecLen(pVL),
+          rnnDesc(pRD),
+          nohx(pnohx),
+          nodhy(pnodhy),
+          nodhx(pnodhx),
+          use_dropout(puse_dropout),
+          realHiddenSize(pHXZ)
     {
-        rnnDesc        = pRD;
-        yin            = py;
-        dy             = pdy;
-        weights        = pW;
-        reserveSpace   = pRS;
-        batch_seq      = pBS;
-        seqLength      = pS;
-        nLayers        = pNL;
-        biasMode       = pBM;
-        dirMode        = pDM;
-        inputMode      = pIM;
-        rnnMode        = pRM;
-        batch_n        = pBN;
-        hiddenSize     = pHS;
-        inputVecLen    = pVL;
-        realHiddenSize = pHXZ;
-        use_dropout    = puse_dropout;
-
-        nodhx = pnodhx;
-        nohx  = pnohx;
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
         else
             initHidden.resize(realHiddenSize);
 
-        nodhy = pnodhy;
         if(!nodhy)
             dhy = pdhy; // this may be intentionally a nullptr
         else
@@ -2137,27 +2138,27 @@ struct verify_backward_weights_rnn
                                 const size_t pHXZ,
                                 const bool pnohx        = false,
                                 const bool puse_dropout = false)
+        : input(px),
+          dy(pdy),
+          initHidden(phx),
+          reserveSpace(pRS),
+          workSpace(pWS),
+          batch_seq(pBS),
+          weightSize(pW),
+          hiddenSize(pHS),
+          seqLength(pS),
+          nLayers(pNL),
+          biasMode(pBM),
+          dirMode(pDM),
+          inputMode(pIM),
+          rnnMode(pRM),
+          batch_n(pBN),
+          inputVecLen(pVL),
+          rnnDesc(pRD),
+          nohx(pnohx),
+          use_dropout(puse_dropout),
+          realHiddenSize(pHXZ)
     {
-        rnnDesc        = pRD;
-        input          = px;
-        dy             = pdy;
-        reserveSpace   = pRS;
-        workSpace      = pWS;
-        batch_seq      = pBS;
-        seqLength      = pS;
-        nLayers        = pNL;
-        biasMode       = pBM;
-        dirMode        = pDM;
-        inputMode      = pIM;
-        rnnMode        = pRM;
-        batch_n        = pBN;
-        hiddenSize     = pHS;
-        weightSize     = pW;
-        inputVecLen    = pVL;
-        realHiddenSize = pHXZ;
-        use_dropout    = puse_dropout;
-
-        nohx = pnohx;
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
         else
@@ -2526,8 +2527,8 @@ struct rnn_basic_vanilla_driver : test_driver
 
         /// RETURNS std::make_tuple(output, hiddenState, reserveSpace);
         auto reserveSpaceFwdTrain = std::get<2>(fwdTrainOutputPair.second);
-        auto curHiddenState       = std::get<1>(fwdTrainOutputPair.second);
-        auto yin                  = std::get<0>(fwdTrainOutputPair.second);
+        // auto curHiddenState       = std::get<1>(fwdTrainOutputPair.second);
+        auto yin = std::get<0>(fwdTrainOutputPair.second);
 
         std::vector<T> dyin(yin.size());
         for(std::size_t i = 0; i < yin.size(); i++)
@@ -2572,7 +2573,8 @@ struct rnn_basic_vanilla_driver : test_driver
                wei_sz);
         fflush(nullptr);
 #endif
-        auto dweights_pair = verify(verify_backward_weights_rnn<T>{
+        // auto dweights_pair =
+        verify(verify_backward_weights_rnn<T>{
             rnnDesc,          input,     dyin,       hx,      reserveSpaceBwdData,
             workSpaceBwdData, batchSeq,  hiddenSize, wei_sz,  batch_n,
             seqLength,        numLayers, biasMode,   dirMode, inputMode,

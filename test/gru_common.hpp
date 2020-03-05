@@ -1840,23 +1840,23 @@ struct verify_forward_infer_gru
                              const size_t pHXZ,
                              const bool pnohx = false,
                              const bool pnohy = false)
+        : input(px),
+          initHidden(phx),
+          weights(pW),
+          batch_seq(pBS),
+          hiddenSize(pHS),
+          seqLength(pS),
+          nLayers(pNL),
+          biasMode(pBM),
+          dirMode(pDM),
+          inputMode(pIM),
+          batch_n(pBN),
+          inputVecLen(pVL),
+          rnnDesc(pRD),
+          realHiddenSize(pHXZ),
+          nohx(pnohx),
+          nohy(pnohy)
     {
-        rnnDesc    = pRD;
-        input      = px;
-        initHidden = phx;
-        weights = pW, batch_seq = pBS;
-        seqLength      = pS;
-        nLayers        = pNL;
-        biasMode       = pBM;
-        dirMode        = pDM;
-        inputMode      = pIM;
-        batch_n        = pBN;
-        hiddenSize     = pHS;
-        inputVecLen    = pVL;
-        realHiddenSize = pHXZ;
-
-        nohy = pnohy;
-        nohx = pnohx;
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
         else
@@ -2123,26 +2123,24 @@ struct verify_forward_train_gru
                              const bool pnohx        = false,
                              const bool pnohy        = false,
                              const bool puse_dropout = false)
+        : input(px),
+          initHidden(phx),
+          weights(pW),
+          batch_seq(pBS),
+          hiddenSize(pHS),
+          seqLength(pS),
+          nLayers(pNL),
+          biasMode(pBM),
+          dirMode(pDM),
+          inputMode(pIM),
+          batch_n(pBN),
+          inputVecLen(pVL),
+          rnnDesc(pRD),
+          realHiddenSize(pHXZ),
+          nohx(pnohx),
+          nohy(pnohy),
+          use_dropout(puse_dropout)
     {
-        rnnDesc     = pRD;
-        input       = px;
-        initHidden  = phx;
-        weights     = pW;
-        batch_seq   = pBS;
-        seqLength   = pS;
-        nLayers     = pNL;
-        biasMode    = pBM;
-        dirMode     = pDM;
-        inputMode   = pIM;
-        batch_n     = pBN;
-        hiddenSize  = pHS;
-        inputVecLen = pVL;
-        use_dropout = puse_dropout;
-
-        realHiddenSize = pHXZ;
-
-        nohy = pnohy;
-        nohx = pnohx;
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
         else
@@ -2400,7 +2398,6 @@ struct verify_backward_data_gru
     std::vector<T> yin;        // Y
     std::vector<T> dy;         // dY
     std::vector<T> dhy;        // dHY
-    std::vector<T> dcy;        // dHY
     std::vector<T> initHidden; // HX
     std::vector<T> weights;
     std::vector<T> reserveSpace;
@@ -2441,33 +2438,33 @@ struct verify_backward_data_gru
                              const bool pnodhy       = false,
                              const bool pnodhx       = false,
                              const bool puse_dropout = false)
+        : yin(py),
+          dy(pdy),
+          dhy(pdhy),
+          initHidden(phx),
+          weights(pW),
+          reserveSpace(pRS),
+          batch_seq(pBS),
+          hiddenSize(pHS),
+          seqLength(pS),
+          nLayers(pNL),
+          biasMode(pBM),
+          dirMode(pDM),
+          inputMode(pIM),
+          batch_n(pBN),
+          inputVecLen(pVL),
+          rnnDesc(pRD),
+          realHiddenSize(pHXZ),
+          nohx(pnohx),
+          nodhy(pnodhy),
+          nodhx(pnodhx),
+          use_dropout(puse_dropout)
     {
-        rnnDesc    = pRD;
-        yin        = py;
-        dy         = pdy;
-        dhy        = pdhy;
-        initHidden = phx;
-        weights = pW, reserveSpace = pRS;
-        batch_seq      = pBS;
-        seqLength      = pS;
-        nLayers        = pNL;
-        biasMode       = pBM;
-        dirMode        = pDM;
-        inputMode      = pIM;
-        batch_n        = pBN;
-        hiddenSize     = pHS;
-        inputVecLen    = pVL;
-        realHiddenSize = pHXZ;
-        use_dropout    = puse_dropout;
-
-        nodhx = pnodhx;
-        nohx  = pnohx;
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
         else
             initHidden.resize(realHiddenSize);
 
-        nodhy = pnodhy;
         if(!nodhy)
             dhy = pdhy; // this may be intentionally a nullptr
         else
@@ -2744,27 +2741,26 @@ struct verify_backward_weights_gru
                                 const size_t pHXZ,
                                 const bool pnohx        = false,
                                 const bool puse_dropout = false)
+        : input(px),
+          dy(pdy),
+          initHidden(phx),
+          reserveSpace(pRS),
+          workSpace(pWS),
+          batch_seq(pBS),
+          weightSize(pW),
+          hiddenSize(pHS),
+          seqLength(pS),
+          nLayers(pNL),
+          biasMode(pBM),
+          dirMode(pDM),
+          inputMode(pIM),
+          batch_n(pBN),
+          inputVecLen(pVL),
+          rnnDesc(pRD),
+          realHiddenSize(pHXZ),
+          nohx(pnohx),
+          use_dropout(puse_dropout)
     {
-        rnnDesc        = pRD;
-        input          = px;
-        dy             = pdy;
-        initHidden     = phx;
-        reserveSpace   = pRS;
-        workSpace      = pWS;
-        batch_seq      = pBS;
-        seqLength      = pS;
-        nLayers        = pNL;
-        biasMode       = pBM;
-        dirMode        = pDM;
-        inputMode      = pIM;
-        batch_n        = pBN;
-        hiddenSize     = pHS;
-        weightSize     = pW;
-        inputVecLen    = pVL;
-        realHiddenSize = pHXZ;
-        use_dropout    = puse_dropout;
-
-        nohx = pnohx;
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
         else
@@ -3125,8 +3121,8 @@ struct gru_basic_driver : test_driver
                                                                      bool(useDropout)});
 
         /// RETURNS std::make_tuple(output, hiddenState, reserveSpace);
-        auto yin                  = std::get<0>(fwdTrainOutputPair.second);
-        auto curHiddenState       = std::get<1>(fwdTrainOutputPair.second);
+        auto yin = std::get<0>(fwdTrainOutputPair.second);
+        // auto curHiddenState       = std::get<1>(fwdTrainOutputPair.second);
         auto reserveSpaceFwdTrain = std::get<2>(fwdTrainOutputPair.second);
 
         std::vector<T> dyin(yin.size());
@@ -3146,25 +3142,26 @@ struct gru_basic_driver : test_driver
         // RETURNS:  std::make_tuple(dx, dhx, reserveSpace, workSpace);
         auto reserveSpaceBwdData = std::get<2>(bwdDataOutputPair.second);
         auto workSpaceBwdData    = std::get<3>(bwdDataOutputPair.second);
-        auto dweights_pair       = verify(verify_backward_weights_gru<T>{rnnDesc,
-                                                                   input,
-                                                                   dyin,
-                                                                   hx,
-                                                                   reserveSpaceBwdData,
-                                                                   workSpaceBwdData,
-                                                                   batchSeq,
-                                                                   hiddenSize,
-                                                                   static_cast<int>(wei_sz),
-                                                                   batch_n,
-                                                                   seqLength,
-                                                                   numLayers,
-                                                                   biasMode,
-                                                                   dirMode,
-                                                                   inputMode,
-                                                                   inVecReal,
-                                                                   hx_sz,
-                                                                   nohx,
-                                                                   bool(useDropout)});
+        // auto dweights_pair       =
+        verify(verify_backward_weights_gru<T>{rnnDesc,
+                                              input,
+                                              dyin,
+                                              hx,
+                                              reserveSpaceBwdData,
+                                              workSpaceBwdData,
+                                              batchSeq,
+                                              hiddenSize,
+                                              static_cast<int>(wei_sz),
+                                              batch_n,
+                                              seqLength,
+                                              numLayers,
+                                              biasMode,
+                                              dirMode,
+                                              inputMode,
+                                              inVecReal,
+                                              hx_sz,
+                                              nohx,
+                                              bool(useDropout)});
 
         if(useDropout == 0)
         {
