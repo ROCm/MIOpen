@@ -409,11 +409,12 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::GetSolution(
     const std::size_t in_right_pad_w =
         ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
-    const std::size_t b = n * ho * wo;
+    const std::size_t GemmM = k;
+    const std::size_t GemmN = n * ho * wo;
 
     const std::size_t block_size = config.GemmNPerBlock * config.GemmMPerBlock /
                                    (config.GemmMPerWave * config.GemmNPerWave) * wave_size;
-    const std::size_t grid_size = (b / config.GemmNPerBlock) * (k / config.GemmMPerBlock);
+    const std::size_t grid_size = (GemmN / config.GemmNPerBlock) * (GemmM / config.GemmMPerBlock);
 
     std::size_t lkl_wk0 = block_size;
     std::size_t lkl_wk1 = 1;
@@ -510,8 +511,8 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::GetSolution(
         std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM=") + std::to_string(GemmABlockCopySrcDataPerRead_GemmK) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N=") + std::to_string(GemmBBlockCopyDstDataPerWrite_GemmN) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_M=") + std::to_string(GemmABlockCopyDstDataPerWrite_GemmM) +
-        std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
-        std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
+        std::string(" -DCK_USE_AMD_XDLOPS=") + (IsXdlopsSupport(ctx) ? '1' : '0') +
+        std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + (miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
