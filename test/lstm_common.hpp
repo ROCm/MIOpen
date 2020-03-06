@@ -2842,6 +2842,7 @@ struct lstm_basic_driver : test_driver
         miopenCreateRNNDescriptor(&rnnDesc);
         miopenDropoutDescriptor_t DropoutDesc;
         miopenCreateDropoutDescriptor(&DropoutDesc);
+        size_t statesSizeInBytes = 0;
 
         if(useDropout)
         {
@@ -2850,8 +2851,6 @@ struct lstm_basic_driver : test_driver
 
             float dropout_rate              = 0.5;
             unsigned long long dropout_seed = 0ULL;
-
-            size_t statesSizeInBytes = 0;
             miopenDropoutGetStatesSize(mio_handle, &statesSizeInBytes);
 
 #if MIOPEN_BACKEND_OPENCL
@@ -2988,6 +2987,33 @@ struct lstm_basic_driver : test_driver
         size_t reserveSpaceSize;
         miopenGetRNNTrainingReserveSize(
             &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
+
+        std::vector<miopen::TensorDescriptor> outputCPPDescs;
+        std::vector<miopenTensorDescriptor_t> outputDescs;
+        createTensorDescArray(outputCPPDescs,
+                              outputDescs,
+                              batchSeq,
+                              hiddenSize * ((dirMode) ? 2 : 1),
+                              miopen::deref(rnnDesc).dataType);
+        size_t out_sz;
+        miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
+        size_t workSpaceSize;
+        miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
+
+        size_t total_mem = statesSizeInBytes + reserveSpaceSize + workSpaceSize + 2 * out_sz +
+                           (in_sz + wei_sz + (nohx ? 0 : hx_sz) + (nohy ? 0 : hx_sz) +
+                            (nodhx ? 0 : hx_sz) + (nodhy ? 0 : hx_sz) + (nocx ? 0 : hx_sz) +
+                            (nocy ? 0 : hx_sz) + (nodcx ? 0 : hx_sz) + (nodcy ? 0 : hx_sz)) *
+                               sizeof(T);
+        size_t device_mem = handle.GetGlobalMemorySize();
+        if(total_mem >= device_mem)
+        {
+            show_command();
+            std::cout << "Config requires " << total_mem
+                      << " Bytes to write all necessary tensors to GPU. GPU has " << device_mem
+                      << " Bytes of memory." << std::endl;
+        }
+
         reserveSpaceSize = (reserveSpaceSize + sizeof(T) - 1) / sizeof(T);
         std::vector<T> rsvgpu(reserveSpaceSize, T(0));
 
