@@ -20,7 +20,7 @@ def rocmnode(name) {
 
 
 
-def cmake_build(compiler, flags, prefixpath="/opt/rocm"){
+def cmake_build(compiler, flags, prefixpath="/opt/rocm", cmd=""){
     def workspace_dir = pwd()
     def vcache = "/var/jenkins/.cache/miopen/vcache"
     def archive = (flags == '-DCMAKE_BUILD_TYPE=release')
@@ -40,17 +40,35 @@ def cmake_build(compiler, flags, prefixpath="/opt/rocm"){
     if (archive == true) {
         config_targets = "package"
     }
-    def cmd = """
-        echo \$HSA_ENABLE_SDMA
-        ulimit -c unlimited
-        rm -rf build
-        mkdir build
-        cd build
-        CXX=${compilerpath} CXXFLAGS='-Werror' cmake ${configargs} -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS='${test_flags}' -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags}' ${flags} .. 
-        MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS=1 CTEST_PARALLEL_LEVEL=4 MIOPEN_VERIFY_CACHE_PATH=${vcache} MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 dumb-init make -j\$(nproc) ${config_targets}
-    """
-    echo cmd
-    sh cmd
+
+    def postcmd = ""
+    precmd = """
+            echo \$HSA_ENABLE_SDMA
+            ulimit -c unlimited
+            rm -rf build
+            mkdir build
+            cd build
+            CXX=${compilerpath} CXXFLAGS='-Werror' cmake ${configargs} -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS='${test_flags}' -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags}' ${flags} .. 
+        """
+    if (cmd == "")
+    {
+        postcmd = """
+            ${precmd}
+            MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS=1 CTEST_PARALLEL_LEVEL=4 MIOPEN_VERIFY_CACHE_PATH=${vcache} MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 dumb-init make -j\$(nproc) ${config_targets}
+        """
+
+    }
+    else
+    {
+        postcmd = """
+            ${precmd}
+            ${cmd}
+        """
+    }
+
+    echo postcmd
+    sh postcmd
+
     // Only archive from master or develop
     if (archive == true && (env.BRANCH_NAME == "develop" || env.BRANCH_NAME == "master")) {
         archiveArtifacts artifacts: "build/*.deb", allowEmptyArchive: true, fingerprint: true
@@ -89,16 +107,30 @@ def buildJob(compiler, flags, image, prefixpath="/opt/rocm", cmd = ""){
         withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
             timeout(time: 5, unit: 'HOURS')
             {
-                if(cmd == ""){
-                    cmake_build(compiler, flags, prefixpath)
-                }else{
-                    sh cmd
-                }
+                cmake_build(compiler, flags, prefixpath, cmd)
             }
         }
         return retimage
 }
 
+
+
+def buildCommandJob(cmd){
+
+        checkout scm
+        def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
+        def dockerArgs = "--build-arg PREFIX=${prefixpath} "
+        if(prefixpath == "")
+        {
+            dockerArgs = ""
+        }
+        withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
+            timeout(time: 2, unit: 'HOURS')
+            {
+                sh cmd
+            }
+        }
+}
 
 
 pipeline {
@@ -119,7 +151,7 @@ pipeline {
                         cmd = "rm -rf build; mkdir build; cd build; CXX='clang++-3.8' cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
-                        buildJob('hcc', '-DCMAKE_BUILD_TYPE=release', image, "", cmd)
+                        buildCommandJob(cmd)
                     }
                 }
 
@@ -137,7 +169,7 @@ pipeline {
                                 | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-3.8 -style=file {} | diff - {}\'"
                     }
                     steps{
-                        buildJob('hcc', '-DCMAKE_BUILD_TYPE=release', image, "", cmd)
+                        buildCommandJob(cmd)
                     }
                 }
 
@@ -147,7 +179,7 @@ pipeline {
                         cmd = "rm -rf build; mkdir build; cd build; CXX=/usr/local/bin/hcc cmake -DBUILD_DEV=On ..; make -j\$(nproc) -k analyze;"
                     }
                     steps{
-                        buildJob('hcc', '-DCMAKE_BUILD_TYPE=release', image, "", cmd)
+                        buildCommandJob(cmd)
                     }
                 }
             }
@@ -301,7 +333,7 @@ pipeline {
                 stage('GCC Release All') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('g++-5', buildflag, image + "rocm", "./build/bin/test_conv2d --all  --verbose --disable-verification-cache")
+                        buildJob('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image + "rocm", "./build/bin/test_conv2d --all  --verbose --disable-verification-cache")
                     }
                 }
 
