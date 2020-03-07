@@ -115,7 +115,7 @@ def buildJob(compiler, flags, image, prefixpath="/opt/rocm", cmd = ""){
 
 
 
-def buildCommandJob(cmd){
+def buildCommandJob(cmd, prefixpath=""){
 
         checkout scm
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
