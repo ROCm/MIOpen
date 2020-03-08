@@ -333,7 +333,7 @@ pipeline {
                 stage('GCC Release All') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image + "rocm", "./build/bin/test_conv2d --all  --verbose --disable-verification-cache")
+                        buildJob('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image + "rocm", "/opt/rocm", "./build/bin/test_conv2d --all  --verbose --disable-verification-cache")
                     }
                 }
 
@@ -365,7 +365,7 @@ pipeline {
             }
         }
 
-        stage("Full fp16 gfx906 tests"){
+        stage("Full fp16 tests"){
             parallel{
                 
                 stage('Half Hip Release All') {
