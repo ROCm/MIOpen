@@ -31,20 +31,23 @@
 
 namespace miopen {
 
-enum miopenConvDirection_t
+namespace conv {
+
+enum class Direction
 {
-    miopenConvFwd,
-    miopenConvBwdData,
-    miopenConvBwdWeights
+    Forward,
+    BackwardData,
+    BackwardWeights,
 };
+
+} // namespace conv
 
 miopenConvFwdAlgorithm_t StringToConvolutionFwdAlgo(const std::string& s);
 miopenConvBwdDataAlgorithm_t StringToConvolutionBwdDataAlgo(const std::string& s);
 miopenConvBwdWeightsAlgorithm_t StringToConvolutionBwdWeightsAlgo(const std::string& s);
 
 std::string ConvolutionAlgoToString(miopenConvAlgorithm_t algo);
-std::string ConvolutionAlgoToDirectionalString(miopenConvAlgorithm_t algo,
-                                               miopenConvDirection_t dir);
+std::string ConvolutionAlgoToDirectionalString(miopenConvAlgorithm_t algo, conv::Direction dir);
 
 } // namespace miopen
 
