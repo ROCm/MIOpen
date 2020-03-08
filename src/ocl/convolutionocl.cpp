@@ -361,9 +361,10 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
         return {};
 
-    auto ctx                    = ConvolutionContext{xDesc, wDesc, yDesc, *this, isForward ? 1 : 0};
-    ctx.do_search               = exhaustiveSearch;
-    ctx.save_srch_req           = true;
+    const auto dir    = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
+    auto ctx          = ConvolutionContext{xDesc, wDesc, yDesc, *this, dir};
+    ctx.do_search     = exhaustiveSearch;
+    ctx.save_srch_req = true;
     ctx.general_compile_options = "";
     ctx.SetStream(&handle);
     ctx.SetBufs(bufs);
@@ -394,9 +395,10 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
         return {};
 
-    auto ctx                    = ConvolutionContext{xDesc, wDesc, yDesc, *this, isForward ? 1 : 0};
-    ctx.do_search               = exhaustiveSearch;
-    ctx.save_srch_req           = true;
+    const auto dir    = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
+    auto ctx          = ConvolutionContext{xDesc, wDesc, yDesc, *this, dir};
+    ctx.do_search     = exhaustiveSearch;
+    ctx.save_srch_req = true;
     ctx.general_compile_options = "";
     ctx.SetStream(&handle);
     ctx.SetBufs(bufs);
@@ -426,9 +428,10 @@ ConvolutionDescriptor::FindSCGemmSolutions(Handle& handle,
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_SCGEMM{}))
         return {};
 
-    auto ctx                    = ConvolutionContext{xDesc, wDesc, yDesc, *this, isForward ? 1 : 0};
-    ctx.do_search               = exhaustiveSearch;
-    ctx.save_srch_req           = true;
+    const auto dir    = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
+    auto ctx          = ConvolutionContext{xDesc, wDesc, yDesc, *this, dir};
+    ctx.do_search     = exhaustiveSearch;
+    ctx.save_srch_req = true;
     ctx.general_compile_options = "";
     ctx.SetStream(&handle);
     ctx.SetBufs(bufs);
@@ -505,7 +508,7 @@ static void DirConvFindCore(Handle& handle,
 
     ValidateGroupCount(xDesc, wDesc, conv);
 
-    auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, conv, 1}; // Forward
+    auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, conv, conv::Direction::Forward};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
     const auto use_winograd_only = conv.IsWinograd3x3SupportedAndFast(ctx);
@@ -985,7 +988,7 @@ static void DirConvFindCore(Handle& handle,
     // static compiled gemm algo
     if(!use_winograd_only)
     {
-        ConvolutionContext params(xDesc, wDesc, yDesc, conv, 1 /*FORWARD*/, 0);
+        ConvolutionContext params(xDesc, wDesc, yDesc, conv, conv::Direction::Forward, 0);
         ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
         bufs.SetFwd(x, w, y);
         const auto all =
@@ -1070,7 +1073,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
     *returnedAlgoCount = 0;
 
-    const ProblemDescription problem(xDesc, wDesc, yDesc, *this, 1);
+    const ProblemDescription problem(xDesc, wDesc, yDesc, *this, conv::Direction::Forward);
 
     std::vector<PerfField> perf_db =
         UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
@@ -1207,9 +1210,10 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         ValidateGroupCount(xDesc, wDesc, *this);
 
         const auto algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
-            static_cast<miopenConvAlgorithm_t>(algo), miopenConvFwd)};
+            static_cast<miopenConvAlgorithm_t>(algo), conv::Direction::Forward)};
 
-        auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, 1}; // forward
+        auto ctx =
+            ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward}; // forward
         ctx.SetStream(&handle);
         const auto network_config = ctx.BuildConfKey();
         const auto& invoker       = handle.GetInvoker(network_config, boost::none, algorithm_name);
@@ -2174,7 +2178,7 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionCount(Handle& handle,
                                                            const TensorDescriptor& yDesc) const
 {
     MIOPEN_LOG_I("");
-    const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, 1};
+    const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
     const auto n       = GetSolutionCount(handle, problem);
     if(n > 0)
         return n;
@@ -2382,7 +2386,7 @@ void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
     if(solutions == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "solutions cannot be nullptr");
 
-    const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, 1};
+    const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
     GetSolutions(
         handle, problem, maxSolutionCount, solutionCount, solutions, StringToConvolutionFwdAlgo);
 
@@ -2471,7 +2475,7 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handl
     if(solver_id != solver::Id::gemm() && solver_id != solver::Id::fft())
     {
         auto sol = solver_id.GetSolver();
-        auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, 1};
+        auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
         ctx.SetStream(&handle);
         ctx.DetectRocm();
         if(sol.IsApplicable(ctx))
@@ -2534,7 +2538,7 @@ static Invoker LoadOrPrepareInvoker(Handle& handle, ConvolutionContext& ctx, sol
     return PrepareInvoker(handle, ctx, config, solver_id);
 }
 
-static bool CheckInvokerSupport(const solver::Id solver_id, miopenConvDirection_t dir)
+static bool CheckInvokerSupport(const solver::Id solver_id, conv::Direction dir)
 {
     const auto& algo = solver_id.GetAlgo(dir);
     return CheckInvokerSupport(algo);
@@ -2543,7 +2547,7 @@ static bool CheckInvokerSupport(const solver::Id solver_id, miopenConvDirection_
 static void CompileSolution(Handle& handle,
                             const solver::Id solver_id,
                             ConvolutionContext& ctx,
-                            miopenConvDirection_t dir,
+                            conv::Direction dir,
                             std::function<void()>&& fft_finder)
 {
     if(!solver_id.IsValid())
@@ -2596,11 +2600,11 @@ void ConvolutionDescriptor::CompileForwardSolution(Handle& handle,
 {
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString());
 
-    auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, 1};
+    auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
     ctx.SetStream(&handle);
     ctx.disable_search_enforce = true;
 
-    CompileSolution(handle, solver_id, ctx, miopenConvFwd, [&]() {
+    CompileSolution(handle, solver_id, ctx, conv::Direction::Forward, [&]() {
         const auto workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
         std::vector<KernelInvoke> ignore0;
         const auto network_config = ctx.BuildConfKey();
@@ -2627,10 +2631,10 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
 
     ConvForwardCheckNumerics(handle, tensors, [&]() {
-        auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, 1};
+        auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
         ctx.SetStream(&handle);
 
-        if(CheckInvokerSupport(solver_id, miopenConvFwd))
+        if(CheckInvokerSupport(solver_id, conv::Direction::Forward))
         {
             const auto invoker    = LoadOrPrepareInvoker(handle, ctx, solver_id);
             const auto invoke_ctx = conv::DataInvokeParams{tensors, workSpace, workSpaceSize};
@@ -2646,7 +2650,7 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
         }
 
         const auto network_config = ctx.BuildConfKey();
-        const auto algo_name      = solver_id.GetAlgo(miopenConvFwd);
+        const auto algo_name      = solver_id.GetAlgo(conv::Direction::Forward);
         const auto&& chk_kernels  = handle.GetKernels(algo_name, network_config);
         auto v_chk_kernels = std::vector<KernelInvoke>{chk_kernels.begin(), chk_kernels.end()};
 
@@ -2667,7 +2671,8 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
             return;
         }
 
-        const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, 1};
+        const auto problem =
+            ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
         const FindDbRecord fdb_record{handle, problem};
 
         for(const auto& pair : fdb_record)
@@ -2739,7 +2744,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
     AutoEnableProfiling enableProfiling{handle};
 
-    const ProblemDescription problem(dxDesc, wDesc, dyDesc, *this, 0);
+    const ProblemDescription problem(dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData);
 
     const auto use_winograd_only = [&]() {
         auto ctx = ConvolutionContext{problem};
@@ -3213,9 +3218,9 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         ValidateGroupCount(dxDesc, wDesc, *this);
 
         const auto algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
-            static_cast<miopenConvAlgorithm_t>(algo), miopenConvBwdData)};
+            static_cast<miopenConvAlgorithm_t>(algo), conv::Direction::BackwardData)};
 
-        auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, 0}; // backward
+        auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
         ctx.SetStream(&handle);
         const auto network_config = ctx.BuildConfKey();
         const auto& invoker       = handle.GetInvoker(network_config, boost::none, algorithm_name);
@@ -3701,8 +3706,9 @@ std::size_t ConvolutionDescriptor::GetBackwardSolutionCount(Handle& handle,
 {
     MIOPEN_LOG_I("");
     ValidateGroupCount(dxDesc, wDesc, *this);
-    const auto problem = ProblemDescription{dxDesc, wDesc, dyDesc, *this, 0};
-    const auto count   = GetSolutionCount(handle, problem);
+    const auto problem =
+        ProblemDescription{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
+    const auto count = GetSolutionCount(handle, problem);
     if(count > 0)
         return count;
     return GetBwdSolutionCountFallback(dyDesc, wDesc, dxDesc);
@@ -3722,7 +3728,8 @@ void ConvolutionDescriptor::GetBackwardSolutions(Handle& handle,
     if(solutions == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "solutions cannot be nullptr");
 
-    const auto problem = ProblemDescription{dxDesc, wDesc, dyDesc, *this, 0};
+    const auto problem =
+        ProblemDescription{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
     GetSolutions(handle,
                  problem,
                  maxSolutionCount,
@@ -3743,11 +3750,11 @@ void ConvolutionDescriptor::CompileBackwardSolution(Handle& handle,
 {
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString());
 
-    auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, 0};
+    auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
     ctx.SetStream(&handle);
     ctx.disable_search_enforce = true;
 
-    CompileSolution(handle, solver_id, ctx, miopenConvBwdData, [&]() {
+    CompileSolution(handle, solver_id, ctx, conv::Direction::BackwardData, [&]() {
         const auto workspace_fft = BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc);
         std::vector<KernelInvoke> ignore0;
         const auto network_config = ctx.BuildConfKey();
@@ -3767,7 +3774,7 @@ std::size_t ConvolutionDescriptor::GetBackwardSolutionWorkspaceSize(Handle& hand
     if(solver_id != solver::Id::gemm() && solver_id != solver::Id::fft())
     {
         auto sol = solver_id.GetSolver();
-        auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, 0};
+        auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
         ctx.SetStream(&handle);
         ctx.DetectRocm();
         if(sol.IsApplicable(ctx))
@@ -3811,9 +3818,9 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
         }
         ValidateGroupCount(dxDesc, wDesc, *this);
 
-        auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, 0};
+        auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
 
-        if(CheckInvokerSupport(solver_id, miopenConvBwdData))
+        if(CheckInvokerSupport(solver_id, conv::Direction::BackwardData))
         {
             const auto invoker    = LoadOrPrepareInvoker(handle, ctx, solver_id);
             const auto invoke_ctx = conv::DataInvokeParams{tensors, workSpace, workSpaceSize};
@@ -3829,7 +3836,7 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
 
         ctx.SetStream(&handle);
         const auto network_config = ctx.BuildConfKey();
-        const auto algo_name      = solver_id.GetAlgo(miopenConvBwdData);
+        const auto algo_name      = solver_id.GetAlgo(conv::Direction::BackwardData);
         const auto&& chk_kernels  = handle.GetKernels(algo_name, network_config);
         auto v_chk_kernels = std::vector<KernelInvoke>{chk_kernels.begin(), chk_kernels.end()};
 
@@ -3849,7 +3856,8 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
             return;
         }
 
-        const auto problem = ProblemDescription{dxDesc, wDesc, dyDesc, *this, 0};
+        const auto problem =
+            ProblemDescription{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
         const FindDbRecord fdb_record{handle, problem};
 
         for(const auto& pair : fdb_record)
@@ -4191,8 +4199,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
     AutoEnableProfiling enableProfiling{handle};
 
-    auto problem = ProblemDescription{xDesc, dwDesc, dyDesc, *this, 0};
-    problem.direction.SetBackwardWrW();
+    auto problem =
+        ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
 
     // < algorith_name, <time, workspace_size> >
     auto perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
@@ -4330,8 +4338,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 #endif
         ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
         bufs.SetWrW(x, dw, dy);
-        auto ctx = ConvolutionContext{xDesc, dwDesc, dyDesc, *this, 0};
-        ctx.direction.SetBackwardWrW();
+        auto ctx =
+            ConvolutionContext{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
         ctx.do_search = exhaustiveSearch;
         ctx.SetStream(&handle);
         ctx.SetBufs(bufs);
@@ -4779,8 +4787,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             MIOPEN_THROW("Unknown conv wrw algorigthm: " + std::to_string(algo));
         }();
 
-        auto ctx = ConvolutionContext{xDesc, dwDesc, dyDesc, *this, 0};
-        ctx.direction.SetBackwardWrW();
+        auto ctx =
+            ConvolutionContext{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
         ctx.SetStream(&handle);
         const auto network_config = ctx.BuildConfKey();
         const auto& invoker       = handle.GetInvoker(network_config, boost::none, algorithm_name);
@@ -5279,8 +5287,8 @@ ProblemDescription ConvolutionDescriptor::MakeWrwProblem(const TensorDescriptor&
                                                          const TensorDescriptor& xDesc,
                                                          const TensorDescriptor& dwDesc) const
 {
-    auto problem = ProblemDescription{xDesc, dwDesc, dyDesc, *this, 0};
-    problem.direction.SetBackwardWrW();
+    auto problem =
+        ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
     return problem;
 }
 
@@ -5331,12 +5339,11 @@ void ConvolutionDescriptor::CompileWrwSolution(Handle& handle,
                                                solver::Id solver_id) const
 {
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString());
-    auto ctx = ConvolutionContext{xDesc, dwDesc, dyDesc, *this, 0};
-    ctx.direction.SetBackwardWrW();
+    auto ctx = ConvolutionContext{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
     ctx.SetStream(&handle);
     ctx.disable_search_enforce = true;
 
-    CompileSolution(handle, solver_id, ctx, miopenConvBwdWeights, [&]() {
+    CompileSolution(handle, solver_id, ctx, conv::Direction::BackwardWeights, [&]() {
         MIOPEN_THROW("FFT is not supported in WrW");
     });
 }
@@ -5352,9 +5359,9 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionWorkspaceSize(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "invalid solution id = " + solver_id.ToString());
     if(solver_id != solver::Id::gemm() && solver_id != solver::Id::fft())
     {
-        auto sol     = solver_id.GetSolver();
-        auto problem = ProblemDescription{xDesc, dwDesc, dyDesc, *this, 0};
-        problem.direction.SetBackwardWrW();
+        auto sol = solver_id.GetSolver();
+        auto problem =
+            ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
         auto ctx = ConvolutionContext{problem};
         ctx.SetStream(&handle);
         ctx.DetectRocm();
@@ -5392,11 +5399,11 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
     ConvWrwCheckNumerics(handle, tensors, &beta, [&]() {
         ValidateGroupCount(xDesc, dwDesc, *this);
 
-        auto ctx = ConvolutionContext{xDesc, dwDesc, dyDesc, *this, 0};
+        auto ctx =
+            ConvolutionContext{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
         ctx.SetStream(&handle);
-        ctx.direction.SetBackwardWrW();
 
-        if(CheckInvokerSupport(solver_id, miopenConvBwdWeights))
+        if(CheckInvokerSupport(solver_id, conv::Direction::BackwardWeights))
         {
             const auto invoker    = LoadOrPrepareInvoker(handle, ctx, solver_id);
             const auto invoke_ctx = conv::WrWInvokeParams{tensors, workSpace, workSpaceSize};
@@ -5411,7 +5418,7 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
         }
 
         const auto network_config = ctx.BuildConfKey();
-        auto algo_name            = solver_id.GetAlgo(miopenConvBwdWeights);
+        auto algo_name            = solver_id.GetAlgo(conv::Direction::BackwardWeights);
         const auto&& chk_kernels  = handle.GetKernels(algo_name, network_config);
         auto v_chk_kernels = std::vector<KernelInvoke>{chk_kernels.begin(), chk_kernels.end()};
         if(!v_chk_kernels.empty())

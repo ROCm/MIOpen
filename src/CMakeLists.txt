@@ -119,9 +119,11 @@ set( MIOpen_Source
     kernel_build_params.cpp
     find_db.cpp
     conv_algo_name.cpp
+    conv/problem_description.cpp
     dropout.cpp
     dropout_api.cpp
     readonlyramdb.cpp
+    execution_context.cpp
     kern_db.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp

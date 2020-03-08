@@ -175,10 +175,10 @@ class SolverTest
                                   [](ConvolutionContext&) {})
     {
         auto ctx = ConvolutionContext{TensorDescriptor{miopenFloat, in},
-                                      TensorDescriptor{},
-                                      TensorDescriptor{},
+                                      TensorDescriptor{miopenFloat, in},
+                                      TensorDescriptor{miopenFloat, in},
                                       ConvolutionDescriptor{},
-                                      1};
+                                      conv::Direction::Forward};
         ctx.SetStream(&get_handle());
         context_filler(ctx);
 
