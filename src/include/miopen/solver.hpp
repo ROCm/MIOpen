@@ -1524,14 +1524,15 @@ struct AnySolver;
 
 struct mlo_construct_direct2D_fusion : mlo_construct_base
 {
-    mlo_construct_direct2D_fusion(int dir, bool do_bias = false) : mlo_construct_base(dir, do_bias)
+    mlo_construct_direct2D_fusion(miopen::conv::Direction dir, bool do_bias = false)
+        : mlo_construct_base(dir, do_bias)
     {
     }
     mlo_construct_direct2D_fusion(const miopen::TensorDescriptor& in,
                                   const miopen::TensorDescriptor& weights,
                                   const miopen::TensorDescriptor& out,
                                   const miopen::ConvolutionDescriptor& conv,
-                                  int dir,
+                                  miopen::conv::Direction dir,
                                   bool do_bias = false)
         : mlo_construct_base(in, weights, out, conv, dir, do_bias)
     {

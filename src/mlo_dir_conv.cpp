@@ -58,12 +58,6 @@
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER)
-
 // Only select first applicable implicitgemm kernel due to slow compilation time
 // (issue SWDEV-201055) and tuning
 /// \todo enable all applicable solver search by default after fixing slow compilation
@@ -278,156 +272,6 @@ AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
     return GetFFTSolvers().GetWorkspaceSize(ctx);
 }
 
-#if MIOPEN_BACKEND_OPENCL
-static bool IsTokenWithin(const std::string& s, const char* delimiters, const std::string& find_tok)
-{
-    assert(delimiters);
-    std::size_t cursor = 0;
-    do
-    {
-        const std::size_t tok_begin = s.find_first_not_of(delimiters, cursor);
-        if(tok_begin == std::string::npos)
-        {
-            break;
-        }
-        cursor            = s.find_first_of(delimiters, tok_begin);
-        std::string token = (cursor == std::string::npos) ? s.substr(tok_begin)
-                                                          : s.substr(tok_begin, cursor - tok_begin);
-        if(token == find_tok)
-        {
-            return true;
-        }
-    } while(cursor != std::string::npos);
-    return false;
-}
-
-static bool IsAmdRocmOpencl(const miopen::ConvolutionContext& context)
-{
-    const auto dev             = miopen::GetDevice(context.GetStream().GetStream());
-    const auto platform        = miopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
-    const auto platform_vendor = miopen::GetPlatformInfo<CL_PLATFORM_VENDOR>(platform);
-    if(platform_vendor != "Advanced Micro Devices, Inc.")
-    {
-        return false;
-    }
-    const auto device_vendor_id = miopen::GetDeviceInfo<CL_DEVICE_VENDOR_ID>(dev);
-    if(device_vendor_id != 0x1002) // AMD
-    {
-        return false;
-    }
-    const auto driver_version = miopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
-    const char* delimiters    = " (),*";                    // Specific for ROCm OCL driver version.
-    return IsTokenWithin(driver_version, delimiters, "LC"); // Lightning Compiler.
-}
-#endif // MIOPEN_BACKEND_OPENCL
-
-/// This is intended to use only in Asm Solvers which support both CO v2 and CO v3.
-/// It says which code object format shall be selected during the build process.
-///
-/// If ROCm supports only v2 or v3, the answer is trivial. When Solver supports
-/// single CO version, the logic is trivial as well.
-///
-/// However, when both ROCm and Solver are able to support both code object formats,
-/// these is no objective criterion for making a decision. The following behavior
-/// is implemented:
-/// * By default, the newer format is used (CO v3).
-/// * If MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER is set to 1, then
-///   the behavior is reversed and CO v2 is selected.
-///
-/// \todo Dismiss MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER (and, possibly,
-/// rocm_meta_version::AMDHSA_COv2_COv3) as soon as MIOpen drops support for the
-/// ROCm runtimes that can load and run both v2 and v3 Code Objects.
-///
-/// \todo Move this out of the rocm_meta_version class.
-bool rocm_meta_version::UseV3() const
-{
-    if(val == AMDHSA_COv2_COv3)
-        return !miopen::IsEnabled(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER{});
-    return (val == AMDHSA_COv3);
-}
-
-static std::ostream& operator<<(std::ostream& os, const rocm_meta_version& rmv)
-{
-    switch(rmv.getValue())
-    {
-    case rocm_meta_version::Unknown: return os << "Unknown";
-    case rocm_meta_version::AMDHSA_COv2: return os << "AMDHSA_COv2";
-    case rocm_meta_version::AMDHSA_COv2_COv3: return os << "AMDHSA_COv2_COv3";
-    case rocm_meta_version::AMDHSA_COv3: return os << "AMDHSA_COv3";
-    default: break;
-    }
-    return os << "<Error>";
-}
-
-static rocm_meta_version AmdRocmMetadataVersionGetEnv()
-{
-    const rocm_meta_version val(
-        static_cast<int>(miopen::Value(MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE{})));
-    if(!val.IsValid())
-    {
-        MIOPEN_LOG_W("Incorrect MIOPEN_DEBUG_AMD_ROCM_ENFORCE_MDVERSION = " << val.getValue()
-                                                                            << ", using default.");
-        return rocm_meta_version::Unknown;
-    }
-    return val;
-}
-
-static rocm_meta_version AmdRocmMetadataVersionDetect(const miopen::ConvolutionContext& context)
-{
-    rocm_meta_version rmv = AmdRocmMetadataVersionGetEnv();
-    if(rmv.IsUnknown())
-    {
-#if MIOPEN_BACKEND_OPENCL
-        const auto dev                     = miopen::GetDevice(context.GetStream().GetStream());
-        const auto platform                = miopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
-        const std::string platform_version = miopen::GetPlatformInfo<CL_PLATFORM_VERSION>(
-            platform); // e.g. "OpenCL 2.0 AMD-APP.internal (2334.0)"
-        size_t num_begin = platform_version.find('(');
-        if(num_begin != std::string::npos)
-        {
-            const int num = std::stoi(platform_version.substr(num_begin + 1));
-            if(num >= 3029) // ROCm 2.10 RC 1341
-                rmv = rocm_meta_version::AMDHSA_COv2_COv3;
-            else
-                rmv = rocm_meta_version::AMDHSA_COv2;
-        }
-        else
-        {
-            rmv = rocm_meta_version::Default;
-        }
-#else
-        (void)context;
-        if(miopen::HipGetHccVersion() >=
-           miopen::external_tool_version_t{2, 10, 19392}) // ROCm 2.10 RC 1341
-            rmv = rocm_meta_version::AMDHSA_COv2_COv3;
-        else
-            rmv = rocm_meta_version::Default;
-#endif // MIOPEN_BACKEND_OPENCL
-    }
-    MIOPEN_LOG_NQI(
-        "ROCm MD version "
-        << rmv
-        << ", MIOpen version " MIOPEN_STRINGIZE(MIOPEN_VERSION_MAJOR) "." MIOPEN_STRINGIZE(
-               MIOPEN_VERSION_MINOR) "." MIOPEN_STRINGIZE(MIOPEN_VERSION_PATCH) "." MIOPEN_STRINGIZE(MIOPEN_VERSION_TWEAK));
-    return rmv;
-}
-
-static bool mloIsAmdRocmOpencl(miopen::ConvolutionContext& context)
-{
-    static const bool ret_bool =
-#if MIOPEN_BACKEND_OPENCL
-        IsAmdRocmOpencl(context);
-#else
-        true;
-#endif // MIOPEN_BACKEND_OPENCL
-    if(ret_bool)
-    {
-        static const rocm_meta_version ret_rmv = AmdRocmMetadataVersionDetect(context);
-        context.rmv                            = ret_rmv;
-    }
-    return ret_bool;
-}
-
 void miopen::ConvolutionContext::SetupFloats()
 {
     if(IsFp32() || IsFp16() || IsBfp16())
@@ -460,22 +304,5 @@ void mlo_construct_activ_lrn_pooling_common::setupFloats()
                      << miopen::GetDataTypeName(_search_params.in_data_type)
                      << "x"
                      << miopen::GetDataTypeName(_search_params.out_data_type));
-    }
-}
-
-void miopen::ConvolutionContext::DetectRocm()
-{
-    // Detect assembly kernels
-    use_binaries            = false;
-    use_asm_kernels         = false;
-    use_opencl_convolutions = !miopen::IsDisabled(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS{});
-    rmv                     = rocm_meta_version::Default;
-    if(mloIsAmdRocmOpencl(*this))
-    {
-        use_asm_kernels =
-            !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
-#ifndef HIP_OC_FINALIZER
-        use_binaries = !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
-#endif
     }
 }
