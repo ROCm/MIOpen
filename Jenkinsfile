@@ -142,7 +142,7 @@ pipeline {
         image = "miopen"
     }
     stages{
-/*         // Run all static analysis tests
+        // Run all static analysis tests
         stage("Static checks"){
             parallel{
                 stage('Clang Tidy') {
@@ -313,7 +313,7 @@ pipeline {
                 }
             }
         }
- */
+
         stage("Full short tests"){
             parallel{
                 stage('Int8 Hip Release All') {
@@ -333,7 +333,7 @@ pipeline {
                 stage('GCC Release All') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image + "rocm", "", "make -j test_conv2d && bin/test_conv2d --all --verbose --disable-verification-cache")
+                        buildJob('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image + "rocm", "", "make -j test_conv2d && bin/test_conv2d --all --disable-verification-cache")
                     }
                 }
 
