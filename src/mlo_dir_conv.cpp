@@ -70,7 +70,7 @@ miopen::PerformanceDb mlo_construct_base::GetDb() const
     return {
         db_path(), _search_params.GetUserPerfDbPath(), h.GetDeviceName(), h.GetMaxComputeUnits()};
 }
-miopen::PerformanceDb miopen::GetDb(const miopen::ConvolutionContext& ctx)
+miopen::PerformanceDb miopen::GetDb(const miopen::ExecutionContext& ctx)
 {
     auto& h = ctx.GetStream();
     return {
@@ -82,7 +82,7 @@ miopen::PerformanceDb mlo_construct_base::GetDb() const
     return {db_path(), _search_params.GetUserPerfDbPath()};
 }
 
-miopen::PerformanceDb miopen::GetDb(const ConvolutionContext& ctx)
+miopen::PerformanceDb miopen::GetDb(const miopen::ExecutionContext& ctx)
 {
     return {ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath()};
 }
@@ -108,6 +108,8 @@ mlo_construct_direct2D_fusion::FindSolution(const std::vector<miopen::solver::An
     }
     return solution;
 }
+
+static auto GetGemmSolvers() { return miopen::solver::SolverContainer<miopen::solver::GemmFwd>{}; }
 
 static auto GetDirectSolvers()
 {
@@ -193,6 +195,12 @@ static auto GetFwdSCGemmSolvers()
     return miopen::solver::SolverContainer<miopen::solver::ConvSCGemmFGemm>{};
 }
 #endif
+
+std::vector<miopen::solver::ConvSolution>
+FindAllGemmSolutions(const miopen::ConvolutionContext& ctx)
+{
+    return GetGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+}
 
 std::vector<miopen::solver::ConvSolution>
 FindAllDirectSolutions(const miopen::ConvolutionContext& ctx)

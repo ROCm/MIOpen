@@ -26,31 +26,17 @@
 
 #pragma once
 
-#include <miopen/invoke_params.hpp>
-#include <miopen/conv/tensors.hpp>
-
 namespace miopen {
-namespace conv {
 
-struct DataInvokeParams : InvokeParams
+enum class InvokeType
 {
-    ConvDataTensors tensors;
-    Data_t workSpace;
-    std::size_t workSpaceSize;
-
-    DataInvokeParams(ConvDataTensors tensors_, Data_t workSpace_, std::size_t workSpaceSize_)
-        : tensors(tensors_), workSpace(workSpace_), workSpaceSize(workSpaceSize_)
-    {
-    }
-
-    DataInvokeParams(InvokeType type_, ConvDataTensors tensors_, Data_t workSpace_, std::size_t workSpaceSize_)
-        : InvokeParams{type_},
-          tensors(tensors_),
-          workSpace(workSpace_),
-          workSpaceSize(workSpaceSize_)
-    {
-    }
+    Run,
+    Evaluate,
 };
 
-} // namespace conv
+struct InvokeParams
+{
+    InvokeType type = InvokeType::Run;
+};
+
 } // namespace miopen

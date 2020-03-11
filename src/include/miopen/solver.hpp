@@ -1510,6 +1510,29 @@ struct gemm : SolverBase<ConvolutionContext>
     }
 };
 
+struct GemmFwd : SolverBase<ConvolutionContext>
+{
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const
+    {
+        return GetWorkspaceSize(ctx, ctx.conv_problem);
+    }
+
+    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
+
+    bool IsApplicable(const ConvolutionContext& ctx) const
+    {
+        return IsApplicable(ctx, ctx.conv_problem);
+    }
+
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const
+    {
+        return GetSolution(ctx, ctx.conv_problem);
+    }
+    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+};
+
 struct AnySolver;
 
 } // namespace solver

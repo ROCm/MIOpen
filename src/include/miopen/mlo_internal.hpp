@@ -157,7 +157,7 @@ using PerformanceDb = DbTimer<MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>>;
 #else
 using PerformanceDb = DbTimer<MultiFileDb<PlainTextDb, PlainTextDb, true>>;
 #endif
-miopen::PerformanceDb GetDb(const ConvolutionContext& ctx);
+miopen::PerformanceDb GetDb(const miopen::ExecutionContext& ctx);
 
 template <class TTo>
 size_t setTopDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor)
@@ -220,6 +220,9 @@ auto FindAllSolutions(T& x) -> decltype(x.FindAllSolutions())
     x.setupFloats();
     return x.FindAllSolutions();
 }
+
+std::vector<miopen::solver::ConvSolution>
+FindAllGemmSolutions(const miopen::ConvolutionContext& ctx);
 
 std::vector<miopen::solver::ConvSolution>
 FindAllDirectSolutions(const miopen::ConvolutionContext& ctx);

@@ -226,6 +226,7 @@ struct ProblemDescription
     const TensorDescriptor& GetOut() const { return out; }
     Direction GetDirection() const { return direction; }
     int GetBias() const { return bias; }
+    const ConvolutionDescriptor& GetConv() const { return conv; }
 
     std::size_t GetBaiasSize()
     {

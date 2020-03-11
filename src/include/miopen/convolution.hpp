@@ -43,6 +43,11 @@ namespace solver {
 struct ConvSolution;
 } // namespace solver
 
+namespace conv {
+struct ProblemDescription;
+} // namespace conv
+
+struct ExecutionContext;
 struct ConvolutionContext;
 struct Handle;
 struct TensorDescriptor;
@@ -493,10 +498,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                                     const TensorDescriptor& dxDesc,
                                                     solver::Id solver_id) const;
 
-    void GetForwardSolutionsFallback(Handle& handle,
-                                     const TensorDescriptor& wDesc,
-                                     const TensorDescriptor& xDesc,
-                                     const TensorDescriptor& yDesc,
+    void GetForwardSolutionsFallback(ExecutionContext& ctx,
+                                     const conv::ProblemDescription& problem,
                                      size_t maxSolutionCount,
                                      size_t* solutionCount,
                                      miopenConvSolution_t* solutions) const;
