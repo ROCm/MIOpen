@@ -1074,15 +1074,55 @@ struct ConvBinWinogradRxSf3x2 : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
+struct PerformanceConfigConvBinWinogradRxSf2x3
+    : Serializable<PerformanceConfigConvBinWinogradRxSf2x3>
+{
+    int n_groups;
+    PerformanceConfigConvBinWinogradRxSf2x3(int n_groups_);
+    PerformanceConfigConvBinWinogradRxSf2x3() : PerformanceConfigConvBinWinogradRxSf2x3(-1) {}
+    PerformanceConfigConvBinWinogradRxSf2x3(bool) : PerformanceConfigConvBinWinogradRxSf2x3(1) {}
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.n_groups, "n_groups");
+    }
+    int GetNGroups() const { return n_groups; }
+
+    void EuristicInit(const ConvolutionContext& config);
+    bool IsValidValue() const;
+    bool SetNextValue();
+    bool IsValid(const ConvolutionContext& config) const;
+    bool operator==(const PerformanceConfigConvBinWinogradRxSf2x3& other) const;
+    std::string ToString() const;
+};
+
 struct ConvBinWinogradRxSf2x3 : SolverBase<ConvolutionContext>
 {
+    PerformanceConfigConvBinWinogradRxSf2x3 GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConfigConvBinWinogradRxSf2x3&) const;
+    PerformanceConfigConvBinWinogradRxSf2x3 Search(const ConvolutionContext&) const;
+
     bool IsApplicable(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfigConvBinWinogradRxSf2x3& config,
+                             bool disableConfigOverrideFromEnv = false) const;
     static size_t GetNGroups(const size_t group_conv, const size_t grid_group_size)
     {
         assert(group_conv != 0);
         return grid_group_size / group_conv;
     }
+
+    template <typename B, typename T, typename TW>
+    int RunAndMeasureSolution(miopen::Handle& profile_h,
+                              B bot_ocl_buf,
+                              T top_ocl_buf,
+                              TW wei_ocl_buf,
+                              ConstData_t bias_ocl_buf,
+                              const ConvolutionContext& config,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
 };
 
 struct ConvBinWinogradRxSFused : SolverBase<ConvolutionContext>
