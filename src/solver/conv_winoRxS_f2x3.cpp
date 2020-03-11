@@ -27,36 +27,42 @@
 #include <miopen/solver.hpp>
 #include <miopen/env.hpp>
 #include <miopen/stringutils.hpp>
+#include <miopen/sequences.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/generic_search.hpp>
+
+#include <tuple>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS)
 
 #define WINODATA 2
 #define WINOFILTER 3
+#define MAX_CU_LIMIT 512
 
-static inline int Ceil(const int v, const int m)
+static inline size_t Ceil(const size_t v, const size_t m)
 {
-    assert(m > 0 && v >= 0);
+    assert(m > 0);
     return (v + m - 1) / m;
 }
 
 static inline size_t quantize_up(size_t val, size_t factor) { return Ceil(val, factor) * factor; }
 
-static inline int GetBestNGroupParam_Wrapper(const int R,
-                                             const int S,
-                                             const int R_stride,
-                                             const int S_stride,
-                                             const int C,
-                                             const int K,
-                                             const int OH,
-                                             const int OW,
-                                             const int pad_H,
-                                             const int pad_W,
-                                             const int N,
-                                             const int idilation_w,
-                                             const int idilation_h,
-                                             const int n_groups,
-                                             const int G)
+static inline int GetBestNGroupParam(const int R,
+                                     const int S,
+                                     const int R_stride,
+                                     const int S_stride,
+                                     const int C,
+                                     const int K,
+                                     const int OH,
+                                     const int OW,
+                                     const int pad_H,
+                                     const int pad_W,
+                                     const int N,
+                                     const int idilation_w,
+                                     const int idilation_h,
+                                     const int n_groups,
+                                     const int G)
 {
     int o_tile     = WINODATA;
     int f_tile     = WINOFILTER;
@@ -99,10 +105,14 @@ static inline int GetBestNGroupParam_Wrapper(const int R,
             quantize_up(g_n_w_h * g_k, nwh_factor * w_factor * h_factor * k_factor * i);
         size_t granulated_mac_count = g_n_w_h_k * g_c * g_s * g_r;
         size_t n_groups_per_cu      = Ceil(i * G, n_groups);
-        double perf_metric = static_cast<double>(n_groups_per_cu * granulated_mac_count) / i;
+        double perf_metric = static_cast<double>(n_groups_per_cu) * granulated_mac_count / i;
+        if(static_cast<double>(granulated_mac_count) / i > 1.0e+7)
+            perf_metric *= (1 + i * 0.003);
+        else
+            perf_metric *= (1 + i * 0.04);
         if(i == 1)
             min_param = perf_metric;
-        if(min_param > perf_metric * 1.08)
+        if(min_param > perf_metric)
         {
             best_n_groups_cnt = i;
             min_param         = perf_metric;
@@ -111,62 +121,32 @@ static inline int GetBestNGroupParam_Wrapper(const int R,
     return best_n_groups_cnt;
 }
 
-int GetBestNGroupParam_euristicInit(const miopen::ConvolutionContext& params)
-{
-    const auto n_inputs_per_group  = params.n_inputs / params.group_counts,
-               n_outputs_per_group = params.n_outputs / params.group_counts;
+namespace miopen {
+namespace solver {
 
-    if(params.direction.IsBackwardWrW())
+namespace {
+// clang-format off
+    auto PerfFieldRules()
     {
-        return GetBestNGroupParam_Wrapper(params.in_height,
-                                          params.in_width,
-                                          params.kernel_dilation_h,
-                                          params.kernel_dilation_w,
-                                          params.batch_sz,    // N
-                                          n_inputs_per_group, // K
-                                          params.kernel_size_h,
-                                          params.kernel_size_w,
-                                          params.pad_w,
-                                          params.pad_h,
-                                          n_outputs_per_group, // C
-                                          params.kernel_stride_h,
-                                          params.kernel_stride_w,
-                                          params.GetStream().GetMaxComputeUnits(),
-                                          params.group_counts);
+        return seq::MakeRuleSet(
+            std::make_tuple(seq::Span<int, 1, MAX_CU_LIMIT>{}, &PerformanceConfigConvBinWinogradRxSf2x3::n_groups)
+        );
     }
-    else
-    {
-        return GetBestNGroupParam_Wrapper(params.kernel_size_h, // RxS
-                                          params.kernel_size_w,
-                                          params.kernel_stride_h,
-                                          params.kernel_stride_w,
-                                          n_inputs_per_group,  // C
-                                          n_outputs_per_group, // K
-                                          params.out_height,   // OHxOW
-                                          params.out_width,
-                                          params.pad_w,
-                                          params.pad_h,
-                                          params.batch_sz, // N
-                                          params.kernel_dilation_h,
-                                          params.kernel_dilation_w,
-                                          params.GetStream().GetMaxComputeUnits(),
-                                          params.group_counts);
-    }
-}
+// clang-format on
 
 /// \todo Consider re-using code from RxS.
-static inline bool IsShaderContraintsMet(const int R,
-                                         const int S,
-                                         const int,
-                                         const int,
-                                         const int C,
-                                         const int K,
-                                         const int H,
-                                         const int W,
-                                         const int OH,
-                                         const int OW,
-                                         const int N,
-                                         const miopen::ConvolutionContext& params)
+inline bool IsShaderContraintsMet(const int R,
+                                  const int S,
+                                  const int,
+                                  const int,
+                                  const int C,
+                                  const int K,
+                                  const int H,
+                                  const int W,
+                                  const int OH,
+                                  const int OW,
+                                  const int N,
+                                  const ConvolutionContext& params)
 {
     // Padding for bwd data shall not be negative.
     /// \todo Either remove WrW related code or re-use function from RxS
@@ -180,29 +160,317 @@ static inline bool IsShaderContraintsMet(const int R,
     const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
     assert(params.weights_layout.length() == 0);
     // clang-format off
-    // Check implementation limits.
-    return N < std::pow(2, 16)
-        && C < std::pow(2, 16)
-        && K < std::pow(2, 16)
-        && H < std::pow(2, 16)
-        && W < std::pow(2, 16)
-        && OH < std::pow(2, 16)
-        && OW < std::pow(2, 16)
-        && params.pad_w < std::pow(2, 16)
-        && params.pad_h < std::pow(2, 16)
-        && S < std::pow(2, 16)
-        && R < std::pow(2, 16)
-        && grid_workgroup_count_x < std::pow(2, 16)
-        && (C * H * W) <= std::pow(2, 28)
-        && (OH * OW) <= std::pow(2, 23)
-        && (K * OH * OW) <= std::pow(2, 28)
-        && (K * R * S) <= std::pow(2, 28)
-        && (C * R * S) <= std::pow(2, 28);
+        // Check implementation limits.
+        return N < std::pow(2, 16)
+            && C < std::pow(2, 16)
+            && K < std::pow(2, 16)
+            && H < std::pow(2, 16)
+            && W < std::pow(2, 16)
+            && OH < std::pow(2, 16)
+            && OW < std::pow(2, 16)
+            && params.pad_w < std::pow(2, 16)
+            && params.pad_h < std::pow(2, 16)
+            && S < std::pow(2, 16)
+            && R < std::pow(2, 16)
+            && grid_workgroup_count_x < std::pow(2, 16)
+            && (C * H * W) <= std::pow(2, 28)
+            && (OH * OW) <= std::pow(2, 23)
+            && (K * OH * OW) <= std::pow(2, 28)
+            && (K * R * S) <= std::pow(2, 28)
+            && (C * R * S) <= std::pow(2, 28);
     // clang-format on
 }
 
-namespace miopen {
-namespace solver {
+} // namespace
+
+PerformanceConfigConvBinWinogradRxSf2x3::PerformanceConfigConvBinWinogradRxSf2x3(int n_groups_)
+    : n_groups(n_groups_)
+{
+}
+
+void PerformanceConfigConvBinWinogradRxSf2x3::EuristicInit(const ConvolutionContext& config)
+{
+    const auto n_inputs_per_group  = config.n_inputs / config.group_counts,
+               n_outputs_per_group = config.n_outputs / config.group_counts;
+
+    if(config.direction.IsBackwardWrW())
+    {
+        n_groups = GetBestNGroupParam(config.in_height,
+                                      config.in_width,
+                                      config.kernel_dilation_h,
+                                      config.kernel_dilation_w,
+                                      config.batch_sz,    // N
+                                      n_inputs_per_group, // K
+                                      config.kernel_size_h,
+                                      config.kernel_size_w,
+                                      config.pad_w,
+                                      config.pad_h,
+                                      n_outputs_per_group, // C
+                                      config.kernel_stride_h,
+                                      config.kernel_stride_w,
+                                      config.GetStream().GetMaxComputeUnits(),
+                                      config.group_counts);
+    }
+    else
+    {
+        n_groups = GetBestNGroupParam(config.kernel_size_h, // RxS
+                                      config.kernel_size_w,
+                                      config.kernel_stride_h,
+                                      config.kernel_stride_w,
+                                      n_inputs_per_group,  // C
+                                      n_outputs_per_group, // K
+                                      config.out_height,   // OHxOW
+                                      config.out_width,
+                                      config.pad_w,
+                                      config.pad_h,
+                                      config.batch_sz, // N
+                                      config.kernel_dilation_h,
+                                      config.kernel_dilation_w,
+                                      config.GetStream().GetMaxComputeUnits(),
+                                      config.group_counts);
+    }
+}
+
+bool PerformanceConfigConvBinWinogradRxSf2x3::SetNextValue()
+{
+    return !PerfFieldRules().Next(*this);
+}
+
+bool PerformanceConfigConvBinWinogradRxSf2x3::IsValidValue() const
+{
+    return PerfFieldRules().IsIn(*this);
+}
+
+bool PerformanceConfigConvBinWinogradRxSf2x3::IsValid(const ConvolutionContext& config) const
+{
+    if(config.GetStream().GetMaxComputeUnits() < n_groups)
+        return false;
+
+    if(!IsValidValue())
+        return false;
+    return true;
+}
+
+inline bool PerformanceConfigConvBinWinogradRxSf2x3::
+operator==(const PerformanceConfigConvBinWinogradRxSf2x3& other) const
+{
+    return n_groups == other.n_groups;
+}
+
+std::string PerformanceConfigConvBinWinogradRxSf2x3::ToString() const
+{
+    std::ostringstream ss;
+    Serialize(ss);
+    return ss.str();
+}
+
+PerformanceConfigConvBinWinogradRxSf2x3
+ConvBinWinogradRxSf2x3::GetPerformanceConfig(const ConvolutionContext& params) const
+{
+    PerformanceConfigConvBinWinogradRxSf2x3 pp;
+    pp.EuristicInit(params);
+    MIOPEN_LOG_I(pp.ToString());
+    return pp;
+}
+
+bool ConvBinWinogradRxSf2x3::IsValidPerformanceConfig(
+    const ConvolutionContext& problem, const PerformanceConfigConvBinWinogradRxSf2x3& c) const
+{
+    return c.IsValidValue() && c.IsValid(problem);
+}
+
+PerformanceConfigConvBinWinogradRxSf2x3
+ConvBinWinogradRxSf2x3::Search(const ConvolutionContext& context) const
+{
+    if(context.direction.IsForward())
+        return GenericSearchFwd(*this, context);
+    else
+        return GenericSearchBwd(*this, context);
+}
+
+inline void FillVarsFromConfig(int& H,
+                               int& W,
+                               int& R,
+                               int& S,
+                               int& R_stride,
+                               int& S_stride,
+                               int& C,
+                               int& K,
+                               int& out_H,
+                               int& out_W,
+                               int& pad_H,
+                               int& pad_W,
+                               int& N,
+                               int& idilation_w,
+                               int& idilation_h,
+                               int& n_groups,
+                               int& group_cnt,
+                               const ConvolutionContext& config)
+{
+    group_cnt   = config.group_counts;
+    n_groups    = config.GetStream().GetMaxComputeUnits();
+    pad_H       = config.direction.IsForward() ? config.pad_h : config.GetBackwardPadH();
+    pad_W       = config.direction.IsForward() ? config.pad_w : config.GetBackwardPadW();
+    H           = config.in_height;
+    W           = config.in_width;
+    R           = config.kernel_size_h;
+    S           = config.kernel_size_w;
+    R_stride    = config.kernel_stride_h;
+    S_stride    = config.kernel_stride_w;
+    C           = config.n_inputs;
+    K           = config.n_outputs;
+    out_H       = config.out_height;
+    out_W       = config.out_width;
+    N           = config.batch_sz;
+    idilation_w = config.kernel_dilation_h;
+    idilation_h = config.kernel_dilation_w;
+}
+
+template <typename B, typename T, typename TW>
+int ConvBinWinogradRxSf2x3::RunAndMeasureSolution(miopen::Handle& profile_h,
+                                                  B bot_ocl_buf,
+                                                  T top_ocl_buf,
+                                                  TW wei_ocl_buf,
+                                                  ConstData_t bias_ocl_buf,
+                                                  const ConvolutionContext& config,
+                                                  const ConvSolution& solution,
+                                                  float& elapsed_time) const
+{
+    assert(bias_ocl_buf == nullptr);
+    (void)bias_ocl_buf;
+    const KernelInfo k_info = solution.construction_params.back();
+#ifdef NDEBUG
+    try
+#endif
+    {
+        elapsed_time = std::numeric_limits<float>::max();
+        // ConvolutionContext::general_compile_options is for OpenCL kernels
+        // and thus not applicable for assembly.
+        auto kernel = profile_h.AddKernel("",
+                                          "",
+                                          k_info.kernel_file,
+                                          k_info.kernel_name,
+                                          k_info.l_wk,
+                                          k_info.g_wk,
+                                          k_info.comp_options);
+
+        int reserved      = 0;
+        int* reserved_ptr = nullptr;
+
+        static const int F_REVERSE_R     = 1 << 0;
+        static const int F_REVERSE_S     = 1 << 1;
+        static const int F_FLIP_K_C      = 1 << 2;
+        static const int F_NKC_STRIDES   = 1 << 9;
+        static const int F_GROUP_STRIDES = 1 << 10;
+
+        const auto is_forward = config.direction.IsForward();
+        const auto is_wrw     = config.direction.IsBackwardWrW();
+
+        int H, W, R, S, R_stride, S_stride, C, K, out_H, out_W, pad_H, pad_W, N, idilation_w,
+            idilation_h, n_groups, group_cnt;
+        // clang-format off
+        FillVarsFromConfig(H, W, R, S, R_stride, S_stride, C, K, out_H, out_W, pad_H,
+                           pad_W, N, idilation_w, idilation_h, n_groups, group_cnt, config);
+        // clang-format on
+        int flags = ((is_forward || is_wrw) ? 0 : F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C) +
+                    F_NKC_STRIDES + F_GROUP_STRIDES;
+
+        C = C / group_cnt;
+        K = K / group_cnt;
+        // cppcheck-suppress unreadVariable
+
+        const auto in_layout = (is_wrw) ? GetSwappedNCLayout(GetMemLayout_t(config.in_layout))
+                                        : GetMemLayout_t(config.in_layout);
+        const auto out_layout = (is_wrw) ? GetSwappedNCLayout(GetMemLayout_t(config.out_layout))
+                                         : GetMemLayout_t(config.out_layout);
+        const auto wei_layout =
+            (is_wrw) ? GetSwappedNCLayout(MemLayout_t::NCHW)
+                     : (is_forward ? (MemLayout_t::NCHW) : GetSwappedNCLayout(MemLayout_t::NCHW));
+
+        // cppcheck-suppress unreadVariable
+        BuffInfo d_buf(GetGroupConvLayout(in_layout, true),
+                       N,
+                       C,
+                       H,
+                       W,
+                       1,
+                       group_cnt,
+                       GetTypeSize(config.in_data_type)),
+            // cppcheck-suppress unreadVariable
+            o_buf(GetGroupConvLayout(out_layout, true),
+                  N,
+                  K,
+                  out_H,
+                  out_W,
+                  1,
+                  group_cnt,
+                  GetTypeSize(config.out_data_type)),
+            // cppcheck-suppress unreadVariable
+            f_buf(GetGroupConvLayout(wei_layout, false),
+                  K,
+                  C,
+                  R,
+                  S,
+                  1,
+                  group_cnt,
+                  GetTypeSize(config.weights_data_type));
+
+        if(k_info.l_wk[0] != 0)
+            n_groups = solver::ConvBinWinogradRxSf2x3::GetNGroups(config.group_counts,
+                                                                  k_info.g_wk[0] / k_info.l_wk[0]);
+        else
+            n_groups = solver::ConvBinWinogradRxSf2x3::GetNGroups(
+                config.group_counts,
+                k_info.g_wk[0] / 512); // For OCL runtime. Issue #1724
+
+        kernel(N,
+               C,
+               H,
+               W,
+               K,
+               n_groups,
+               flags,
+               reserved,
+               bot_ocl_buf,
+               wei_ocl_buf,
+               top_ocl_buf,
+               reserved_ptr, // Unused return_addr.
+               R,
+               S,
+               pad_H, // Like Fwd wino.
+               pad_W,
+               out_H,
+               out_W,
+               reserved_ptr, // Unused bias_addr.
+               reserved,     // Unused relu_alpha.
+               d_buf.byte_stride.nk,
+               d_buf.byte_stride.c,
+               d_buf.byte_stride.h,
+               d_buf.byte_stride.w,
+               f_buf.byte_stride.nk,
+               f_buf.byte_stride.c,
+               f_buf.byte_stride.h,
+               f_buf.byte_stride.w,
+               o_buf.byte_stride.nk,
+               o_buf.byte_stride.c,
+               o_buf.byte_stride.h,
+               o_buf.byte_stride.w,
+               group_cnt,
+               d_buf.byte_stride.g,
+               f_buf.byte_stride.g,
+               o_buf.byte_stride.g);
+
+        elapsed_time = profile_h.GetKernelTime();
+    }
+#ifdef NDEBUG
+    catch(miopen::Exception& ex)
+    {
+        MIOPEN_LOG_WE(ex.what());
+        return -1;
+    }
+#endif
+    return 0;
+}
 
 bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) const
 {
@@ -268,15 +536,55 @@ bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) cons
     }
 }
 
-ConvSolution ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params) const
+ConvSolution
+ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
+                                    const PerformanceConfigConvBinWinogradRxSf2x3& config,
+                                    const bool disableConfigOverrideFromEnv) const
 {
-    auto group_counts = params.group_counts;
+    static bool IsWarned;
+    if(!IsWarned)
+    {
+        if(params.GetStream().GetMaxComputeUnits() > MAX_CU_LIMIT)
+            MIOPEN_LOG_WE(SolverDbId(*this) << ": GPU has "
+                                            << params.GetStream().GetMaxComputeUnits()
+                                            << "CUs, but this solver supports max "
+                                            << MAX_CU_LIMIT
+                                            << "and thus may show sub-optimal performance.");
+        IsWarned = true;
+    }
+
     ConvSolution result;
-    const auto n_groups = (group_counts == 1) ? params.GetStream().GetMaxComputeUnits()
-                                              : GetBestNGroupParam_euristicInit(params);
+
+    const PerformanceConfigConvBinWinogradRxSf2x3* pcfg = &config;
+    PerformanceConfigConvBinWinogradRxSf2x3 fromEnv;
+
+    if(!disableConfigOverrideFromEnv)
+    {
+        std::string s;
+        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS{});
+        if(p_asciz != nullptr)
+        {
+            s = std::string(p_asciz);
+            if(!s.empty()) // else nothing to parse.
+            {
+                if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
+                {
+                    MIOPEN_LOG_E("MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS: "
+                                 "Bad format or invalid for the problem config: "
+                                 << s);
+                }
+                else
+                {
+                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+                    pcfg = &fromEnv;
+                }
+            }
+        }
+    }
+
     KernelInfo kernel;
 
-    kernel.g_wk.push_back(512 * n_groups * params.group_counts);
+    kernel.g_wk.push_back(512 * pcfg->GetNGroups() * params.group_counts);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);
 

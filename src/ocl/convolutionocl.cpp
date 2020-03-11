@@ -841,6 +841,9 @@ static void DirConvFindCore(Handle& handle,
 
     // Winograd algo
     {
+        ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
+        bufs.SetFwd(x, w, y);
+        ctx.SetBufs(bufs);
         const auto all = conv.FindWinogradSolutions(ctx);
 
         miopen::solver::ConvSolution selected{miopenStatusUnknownError};
@@ -2762,7 +2765,10 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
             // Winograd algo
             {
+                ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
+                bufs.SetBwd(dx, w, dy);
                 auto ctx = ConvolutionContext{problem};
+                ctx.SetBufs(bufs);
                 ctx.SetStream(&handle);
                 ctx.DetectRocm();
 
