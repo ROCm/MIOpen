@@ -43,7 +43,10 @@ struct DataInvokeParams : InvokeParams
     {
     }
 
-    DataInvokeParams(InvokeType type_, ConvDataTensors tensors_, Data_t workSpace_, std::size_t workSpaceSize_)
+    DataInvokeParams(InvokeType type_,
+                     ConvDataTensors tensors_,
+                     Data_t workSpace_,
+                     std::size_t workSpaceSize_)
         : InvokeParams{type_},
           tensors(tensors_),
           workSpace(workSpace_),

@@ -443,7 +443,7 @@ ConvSolution GemmFwd::GetSolution(const ExecutionContext& ctx,
 
                 for(std::size_t i = 0; i < runs; i++)
                 {
-                    float iteration_time = 0;
+                    float iteration_time   = 0;
                     std::size_t out_offset = i * wei_k * out_spatial_size;
 
                     std::size_t in_offset = i * in_c * in_spatial_size;

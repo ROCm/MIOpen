@@ -1554,8 +1554,8 @@ void ConvolutionDescriptor::GetForwardSolutionsFallback(ExecutionContext& ctx,
         MIOPEN_LOG_I("Fallback path, GEMM");
         if(i < maxSolutionCount)
         {
-            solutions[i].algorithm = miopenConvolutionAlgoGEMM;
-            solutions[i].time      = -1.0; /// \todo Evaluate time.
+            solutions[i].algorithm      = miopenConvolutionAlgoGEMM;
+            solutions[i].time           = -1.0; /// \todo Evaluate time.
             solutions[i].workspace_size = gemm.GetWorkspaceSize(ctx, problem);
             solutions[i].solution_id    = solver::Id{SolverDbId(gemm)}.Value();
             ++i;
@@ -1647,7 +1647,8 @@ void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
     ctx.SetStream(&handle);
 
     if(*solutionCount == 0)
-        GetForwardSolutionsFallback(ctx, problem.conv_problem, maxSolutionCount, solutionCount, solutions);
+        GetForwardSolutionsFallback(
+            ctx, problem.conv_problem, maxSolutionCount, solutionCount, solutions);
 }
 
 std::size_t
@@ -3595,7 +3596,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         ctx.SetupFloats();
         ctx.DetectRocm();
         const auto network_config = ctx.BuildConfKey();
-        const auto invoke_ctx = conv::WrWInvokeParams{
+        const auto invoke_ctx     = conv::WrWInvokeParams{
             InvokeType::Evaluate, {dyDesc, dy, xDesc, x, dwDesc, dw}, workSpace, workSpaceSize};
         // direct convolution
         if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
