@@ -344,7 +344,7 @@ RNNDescriptor::RNNDescriptor(int hsz,
     }
     else
     {
-        typeSize = 4;
+        typeSize = dType == miopenHalf ? 2 : 4;
     }
 
     hsize                       = hsz;
@@ -429,7 +429,7 @@ RNNDescriptor::RNNDescriptor(int hsz,
     }
     else
     {
-        typeSize = 4;
+        typeSize = dType == miopenHalf ? 2 : 4;
     }
 
     switch(rmode)
