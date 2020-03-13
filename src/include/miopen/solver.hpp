@@ -970,6 +970,7 @@ struct ConvHipImplicitGemmBwdDataV1R1 : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmBwdDataV1R1& config,
                              bool disableConfigOverrideFromEnv = false) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
 };
 
 struct ConvHipImplicitGemmBwdDataV4R1 : SolverBase<ConvolutionContext>
