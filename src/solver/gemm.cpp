@@ -44,11 +44,12 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 namespace miopen {
 namespace solver {
 
+#if MIOPEN_USE_GEMM
 #ifdef CPPCHECK
 // Keep the value unknown in cppcheck since this can differ between opencl and hip
 static bool IsUseRocBlas;
 #else
-static const bool IsUseRocBlas = (MIOPEN_USE_ROCBLAS == 1);
+static constexpr const bool IsUseRocBlas = (MIOPEN_USE_ROCBLAS == 1);
 #endif
 
 static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
@@ -58,6 +59,7 @@ static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
     return xDesc.GetType() == miopenBFloat16 || yDesc.GetType() == miopenBFloat16 ||
            wDesc.GetType() == miopenBFloat16;
 }
+#endif
 
 bool GemmFwd::IsApplicable(const ExecutionContext&, const conv::ProblemDescription& problem) const
 {
