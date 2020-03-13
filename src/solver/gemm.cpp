@@ -70,7 +70,7 @@ bool GemmFwd::IsApplicable(const ExecutionContext&, const conv::ProblemDescripti
     return problem.GetDirection() == conv::Direction::Forward &&
            !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsUseRocBlas);
 #else
-    std::ignore = problem;
+    std::ignore                          = problem;
     return false;
 #endif
 };
