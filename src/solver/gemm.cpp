@@ -62,12 +62,13 @@ static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
 bool GemmFwd::IsApplicable(const ExecutionContext&, const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    const auto xDesc = problem.GetIn();
-    const auto wDesc = problem.GetWeights();
-    const auto yDesc = problem.GetOut();
+    const auto& xDesc = problem.GetIn();
+    const auto& wDesc = problem.GetWeights();
+    const auto& yDesc = problem.GetOut();
     return problem.GetDirection() == conv::Direction::Forward &&
            !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsUseRocBlas);
 #else
+    std::ignore = problem;
     return false;
 #endif
 };
@@ -76,10 +77,10 @@ size_t GemmFwd::GetWorkspaceSize(const ExecutionContext&,
                                  const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    const auto conv  = problem.GetConv();
-    const auto xDesc = problem.GetIn();
-    const auto wDesc = problem.GetWeights();
-    const auto yDesc = problem.GetOut();
+    const auto& conv  = problem.GetConv();
+    const auto& xDesc = problem.GetIn();
+    const auto& wDesc = problem.GetWeights();
+    const auto& yDesc = problem.GetOut();
 
     const std::size_t spatial_dim = conv.GetSpatialDimension();
     auto wei_spatial              = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
@@ -102,6 +103,7 @@ size_t GemmFwd::GetWorkspaceSize(const ExecutionContext&,
         return conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc) * conv.group_count;
     }
 #else
+    std::ignore = problem;
     return 0;
 #endif
 }
@@ -110,11 +112,11 @@ ConvSolution GemmFwd::GetSolution(const ExecutionContext& ctx,
                                   const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    const auto conv  = problem.GetConv();
-    const auto xDesc = problem.GetIn();
-    const auto wDesc = problem.GetWeights();
-    const auto yDesc = problem.GetOut();
-    auto solution    = ConvSolution{miopenStatusSuccess};
+    const auto& conv  = problem.GetConv();
+    const auto& xDesc = problem.GetIn();
+    const auto& wDesc = problem.GetWeights();
+    const auto& yDesc = problem.GetOut();
+    auto solution     = ConvSolution{miopenStatusSuccess};
 
     std::size_t in_n, in_c;
     std::tie(in_n, in_c) = tie_pick<0, 1>()(xDesc.GetLengths());
@@ -540,6 +542,8 @@ ConvSolution GemmFwd::GetSolution(const ExecutionContext& ctx,
 
     return solution;
 #else
+    std::ignore = problem;
+    std::ignore = ctx;
     return ConvSolution{miopenStatus_t::miopenStatusUnsupportedOp};
 #endif
 } // namespace solver
