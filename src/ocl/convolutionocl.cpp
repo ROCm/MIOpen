@@ -691,9 +691,10 @@ static void DirConvFindCore(Handle& handle,
             // y = w * x
             FindDbKCacheKey kcache_key;
             miopenStatus_t gemm_status = miopenStatusNotInitialized;
-
+            size_t workspace_req       = 0;
             if(wDesc.GetType() == miopenInt8)
             {
+                workspace_req            = conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc);
                 GemmDescriptor gemm_desc = CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
 
                 std::size_t out_offset      = 0;
@@ -757,7 +758,8 @@ static void DirConvFindCore(Handle& handle,
             if(gemm_status == miopenStatusSuccess)
                 record.SetValues(
                     "miopenConvolutionFwdAlgoGEMM",
-                    FindDbData{"gemm", time_gemm, 0, kcache_key}); // Todo: gemm solver id?
+                    FindDbData{
+                        "gemm", time_gemm, workspace_req, kcache_key}); // Todo: gemm solver id?
         }
         // if not 1x1
         else if(workSpace != nullptr &&
