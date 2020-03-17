@@ -36,8 +36,8 @@ template <index_t GridSize,
           index_t ThreadGemmDataPerRead_GemmN,
           typename GemmABlockCopyThreadSliceLengths_GemmK_GemmM,
           typename GemmABlockCopyThreadClusterLengths_GemmK_GemmM,
-          index_t GemmABlockCopySrcDataPerRead_GemmN,
-          index_t GemmABlockCopyDstDataPerWrite_GemmN,
+          index_t GemmABlockCopySrcDataPerRead_GemmM,
+          index_t GemmABlockCopyDstDataPerWrite_GemmM,
           typename GemmBBlockCopyThreadSliceLengths_GemmK_GemmN,
           typename GemmBBlockCopyThreadClusterLengths_GemmK_GemmN,
           index_t GemmBBlockCopySrcDataPerRead_GemmN,
@@ -82,13 +82,6 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_nchw_kcyx_nkhw
         constexpr auto wei_gemmk_gemmm_global_desc =
             unfold_tensor_descriptor(wei_k_c_y_x_global_desc, I1, I3);
 
-        // output tensor
-        constexpr auto out_gemmk_gemmn_global_desc =
-            transform_tensor_descriptor(unfold_tensor_descriptor(out_n_k_ho_wo_global_desc, I2, I3),
-                                        make_tuple(PassThrough<K>{}, Merge<Sequence<N, Ho * Wo>>{}),
-                                        make_tuple(Sequence<1>{}, Sequence<0, 2>{}),
-                                        make_tuple(Sequence<0>{}, Sequence<1>{}));
-
         // input tensor
         constexpr auto in_n_c_hip_wip_global_desc = transform_tensor_descriptor(
             in_n_c_hi_wi_global_desc,
@@ -98,16 +91,15 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_nchw_kcyx_nkhw
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}));
 
+        constexpr index_t Hip = in_n_c_hip_wip_global_desc.GetLengths()[2];
+        constexpr index_t Wip = in_n_c_hip_wip_global_desc.GetLengths()[3];
+
         constexpr auto in_n_c_y_ho_x_wo_global_desc = transform_tensor_descriptor(
             in_n_c_hip_wip_global_desc,
             make_tuple(PassThrough<N>{},
                        PassThrough<C>{},
-                       Embed<Hi + InLeftPads::At(0) + InRightPads::At(0),
-                             Sequence<Y, Ho>,
-                             Sequence<ConvDilationH, ConvStrideH, 0>>{},
-                       Embed<Wi + InLeftPads::At(1) + InRightPads::At(1),
-                             Sequence<X, Wo>,
-                             Sequence<ConvDilationW, ConvStrideW, 0>>{}),
+                       Embed<Hip, Sequence<Y, Ho>, Sequence<ConvDilationH, ConvStrideH, 0>>{},
+                       Embed<Wip, Sequence<X, Wo>, Sequence<ConvDilationW, ConvStrideW, 0>>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}, Sequence<4, 5>{}));
 
@@ -116,6 +108,13 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_nchw_kcyx_nkhw
             make_tuple(Merge<Sequence<C, Y, X>>{}, Merge<Sequence<N, Ho, Wo>>{}),
             make_tuple(Sequence<1, 2, 4>{}, Sequence<0, 3, 5>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}));
+
+        // output tensor
+        constexpr auto out_gemmk_gemmn_global_desc =
+            transform_tensor_descriptor(unfold_tensor_descriptor(out_n_k_ho_wo_global_desc, I2, I3),
+                                        make_tuple(PassThrough<K>{}, Merge<Sequence<N, Ho * Wo>>{}),
+                                        make_tuple(Sequence<1>{}, Sequence<0, 2>{}),
+                                        make_tuple(Sequence<0>{}, Sequence<1>{}));
 
         // GEMM
         // \todo there are more combinations of Y, ConvDilationH and ConvStrideH that don't need
@@ -152,8 +151,8 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_nchw_kcyx_nkhw
                                                      Sequence<0, 1>,
                                                      Sequence<0, 1>,
                                                      1,
-                                                     GemmABlockCopySrcDataPerRead_GemmN,
-                                                     GemmABlockCopyDstDataPerWrite_GemmN,
+                                                     GemmABlockCopySrcDataPerRead_GemmM,
+                                                     GemmABlockCopyDstDataPerWrite_GemmM,
                                                      GemmBBlockCopyThreadSliceLengths_GemmK_GemmN,
                                                      GemmBBlockCopyThreadClusterLengths_GemmK_GemmN,
                                                      Sequence<0, 1>,
