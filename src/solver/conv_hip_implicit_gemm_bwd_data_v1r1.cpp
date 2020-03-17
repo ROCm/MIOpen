@@ -173,12 +173,13 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateBlockGemmPerformanceParameters(
 
 std::tuple<int, int, int, int, bool>
 PerformanceImplicitGemmBwdDataV1R1::CalculateGemmABlockCopyPerformanceParameters(
-    const ConvolutionContext&) const
+    const ConvolutionContext& ctx) const
 {
-    int ClusterLengths_GemmK  = 0;
-    int ClusterLengths_GemmM  = 0;
-    int SrcDataPerRead_GemmM  = amd_buffer_load_max_length<float>();
-    int DstDataPerWrite_GemmM = amd_lds_write_max_length<float>();
+    int ClusterLengths_GemmK      = 0;
+    int ClusterLengths_GemmM      = 0;
+    int SrcDataPerRead_GemmM      = amd_buffer_load_max_length<float>();
+    int DstDataPerWrite_GemmM     = amd_lds_write_max_length<float>();
+    int DstDataPerWrite_GemmKPACK = GetEPackLength(ctx, false);
 
     try
     {
@@ -200,7 +201,10 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateGemmABlockCopyPerformanceParameters
             a_data_per_thread_copy / a_data_per_thread_copy_gemmm;
 
         // GemmABlockCopyDstDataPerWrite_GemmM also bounded by size of threadwise copy
-        DstDataPerWrite_GemmM = gcd(DstDataPerWrite_GemmM, a_data_per_thread_copy_gemmm);
+        if(ctx.IsFp32())
+        {
+            DstDataPerWrite_GemmM = gcd(DstDataPerWrite_GemmM, a_data_per_thread_copy_gemmm);
+        }
 
         // calculate blockwise copy thread cluster lengths
         ClusterLengths_GemmK = GemmKPerBlock / a_data_per_thread_copy_gemmk;
@@ -214,21 +218,33 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateGemmABlockCopyPerformanceParameters
         return std::make_tuple(-1, -1, -1, -1, false);
     }
 
-    return std::make_tuple(ClusterLengths_GemmK,
-                           ClusterLengths_GemmM,
-                           SrcDataPerRead_GemmM,
-                           DstDataPerWrite_GemmM,
-                           true);
+    if(ctx.IsFp32())
+    {
+        return std::make_tuple(ClusterLengths_GemmK,
+                               ClusterLengths_GemmM,
+                               SrcDataPerRead_GemmM,
+                               DstDataPerWrite_GemmM,
+                               true);
+    }
+    else
+    {
+        return std::make_tuple(ClusterLengths_GemmK,
+                               ClusterLengths_GemmM,
+                               SrcDataPerRead_GemmM,
+                               DstDataPerWrite_GemmKPACK,
+                               true);
+    }
 }
 
 std::tuple<int, int, int, int, bool>
 PerformanceImplicitGemmBwdDataV1R1::CalculateGemmBBlockCopyPerformanceParameters(
     const ConvolutionContext& ctx) const
 {
-    int ClusterLengths_GemmK  = 0;
-    int ClusterLengths_GemmN  = 0;
-    int SrcDataPerRead_GemmN  = amd_buffer_load_max_length<float>();
-    int DstDataPerWrite_GemmN = amd_lds_write_max_length<float>();
+    int ClusterLengths_GemmK      = 0;
+    int ClusterLengths_GemmN      = 0;
+    int SrcDataPerRead_GemmN      = amd_buffer_load_max_length<float>();
+    int DstDataPerWrite_GemmN     = amd_lds_write_max_length<float>();
+    int DstDataPerWrite_GemmKPACK = GetEPackLength(ctx, false);
 
     try
     {
@@ -254,7 +270,10 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateGemmBBlockCopyPerformanceParameters
             b_data_per_thread_copy / b_data_per_thread_copy_gemmn;
 
         // GemmBBlockCopyDstDataPerWrite_GemmN also bounded by size of threadwise copy
-        DstDataPerWrite_GemmN = gcd(DstDataPerWrite_GemmN, b_data_per_thread_copy_gemmn);
+        if(ctx.IsFp32())
+        {
+            DstDataPerWrite_GemmN = gcd(DstDataPerWrite_GemmN, b_data_per_thread_copy_gemmn);
+        }
 
         // calculate blockwise copy thread cluster lengths
         ClusterLengths_GemmK = GemmKPerBlock / b_data_per_thread_copy_gemmk;
@@ -269,11 +288,22 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateGemmBBlockCopyPerformanceParameters
         return std::make_tuple(-1, -1, -1, -1, false);
     }
 
-    return std::make_tuple(ClusterLengths_GemmK,
-                           ClusterLengths_GemmN,
-                           SrcDataPerRead_GemmN,
-                           DstDataPerWrite_GemmN,
-                           true);
+    if(ctx.IsFp32())
+    {
+        return std::make_tuple(ClusterLengths_GemmK,
+                               ClusterLengths_GemmN,
+                               SrcDataPerRead_GemmN,
+                               DstDataPerWrite_GemmN,
+                               true);
+    }
+    else
+    {
+        return std::make_tuple(ClusterLengths_GemmK,
+                               ClusterLengths_GemmN,
+                               SrcDataPerRead_GemmN,
+                               DstDataPerWrite_GemmKPACK,
+                               true);
+    }
 }
 
 std::tuple<int, bool>
@@ -337,27 +367,26 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateLdsNumberOfByte(const ConvolutionCo
     {
         bool valid = false;
 
-        int GemmABlockCopyDescDataPerWriteGemmM = 0;
-        std::tie(
-            std::ignore, std::ignore, std::ignore, GemmABlockCopyDescDataPerWriteGemmM, valid) =
+        int GemmABlockCopyDescDataPerWriteGemm = 0;
+        std::tie(std::ignore, std::ignore, std::ignore, GemmABlockCopyDescDataPerWriteGemm, valid) =
             CalculateGemmABlockCopyPerformanceParameters(ctx);
 
         if(!valid)
             MIOPEN_THROW("invalid performance parameter");
 
-        int GemmBBlockCopyDescDataPerWriteGemmN = 0;
-        std::tie(
-            std::ignore, std::ignore, std::ignore, GemmBBlockCopyDescDataPerWriteGemmN, valid) =
+        int GemmBBlockCopyDescDataPerWriteGemm = 0;
+        std::tie(std::ignore, std::ignore, std::ignore, GemmBBlockCopyDescDataPerWriteGemm, valid) =
             CalculateGemmBBlockCopyPerformanceParameters(ctx);
 
         if(!valid)
             MIOPEN_THROW("invalid performance parameter");
 
-        const auto ThreadGemmDataPerRead_GemmM = GemmMPerThread;
-        const auto ThreadGemmDataPerRead_GemmN = GemmNPerThread;
+        const int epack                        = GetEPackLength(ctx, false);
+        const auto ThreadGemmDataPerRead_GemmM = ctx.IsFp32() ? GemmMPerThread : epack;
+        const auto ThreadGemmDataPerRead_GemmN = ctx.IsFp32() ? GemmNPerThread : epack;
 
-        const auto max_lds_align = lcm(GemmABlockCopyDescDataPerWriteGemmM,
-                                       GemmBBlockCopyDescDataPerWriteGemmN,
+        const auto max_lds_align = lcm(GemmABlockCopyDescDataPerWriteGemm,
+                                       GemmBBlockCopyDescDataPerWriteGemm,
                                        ThreadGemmDataPerRead_GemmM,
                                        ThreadGemmDataPerRead_GemmN);
 
@@ -541,9 +570,27 @@ ConvHipImplicitGemmBwdDataV1R1::CalculateGemmSize(const ConvolutionContext& ctx)
 
     const auto gemm_m = c * y * x;
     const auto gemm_n = n * ho * wo;
-    const auto gemm_k = k;
+    const auto gemm_k = k / GetEPackLength(ctx, false);
 
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
+}
+
+size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ConvolutionContext& ctx) const
+{
+    if(ctx.IsFp32())
+        return 0;
+    else
+    {
+        // In case of fp16/bfp16, because there is no atomic add ISA,
+        // reduction via atomic add ISA is done via fp32. As a result,
+        // workspace is computed with miopenFloat data type.
+        // Later, a separate kernel is invoked that casts from fp32 to fp16/bfp16
+        std::size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
+        std::size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
+        std::size_t hi = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
+        std::size_t wi = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
+        return n * c * hi * wi * miopen::GetTypeSize(miopenFloat);
+    }
 }
 
 bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx) const
@@ -554,10 +601,14 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
     if(!ctx.Is2d())
         return false;
 
-    if(!ctx.IsFp32())
+    if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 
     if(ctx.group_counts != 1)
+        return false;
+
+    const auto k = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
+    if(k % GetEPackLength(ctx, false) != 0)
         return false;
 
     int gemm_m = 0;
@@ -583,9 +634,13 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmBwdDataV1R1
-ConvHipImplicitGemmBwdDataV1R1::Search(const ConvolutionContext& context) const
+ConvHipImplicitGemmBwdDataV1R1::Search(const ConvolutionContext& ctx) const
 {
-    return GenericSearchFwd(*this, context);
+    // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
+    if(ctx.IsFp16() || ctx.IsBfp16())
+        return GenericSearchBwd(*this, ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
+    else
+        return GenericSearchBwd(*this, ctx);
 }
 
 int ConvHipImplicitGemmBwdDataV1R1::RunAndMeasureSolution(miopen::Handle& profile_h,
@@ -593,15 +648,40 @@ int ConvHipImplicitGemmBwdDataV1R1::RunAndMeasureSolution(miopen::Handle& profil
                                                           Data_t top_buf,
                                                           ConstData_t wei_buf,
                                                           ConstData_t bias_buf,
-                                                          const ConvolutionContext& ctx,
+                                                          const ConvolutionContext&,
                                                           const ConvSolution& solution,
                                                           float& elapsed_time) const
 {
     assert(bias_buf == nullptr);
     (void)bias_buf;
 
-    return RunAndMeasureSolutionBase(
-        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
+    KernelInfo k_info = solution.construction_params[0];
+
+#ifdef NDEBUG
+    try
+#endif
+    {
+        elapsed_time = std::numeric_limits<float>::max();
+        auto kernel  = profile_h.AddKernel("",
+                                          "",
+                                          k_info.kernel_file,
+                                          k_info.kernel_name,
+                                          k_info.l_wk,
+                                          k_info.g_wk,
+                                          k_info.comp_options);
+
+        kernel(bot_buf, wei_buf, top_buf);
+
+        elapsed_time = profile_h.GetKernelTime();
+    }
+#ifdef NDEBUG
+    catch(miopen::Exception& ex)
+    {
+        MIOPEN_LOG_WE(ex.what());
+        return -1;
+    }
+#endif
+    return 0;
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
@@ -630,19 +710,21 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
     construction_parameters.kernel_name =
         "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw";
 
-    int GemmMLevel0Cluster                    = 0;
-    int GemmNLevel0Cluster                    = 0;
-    int GemmMLevel1Cluster                    = 0;
-    int GemmNLevel1Cluster                    = 0;
-    int GemmABlockCopyClusterLengths_GemmK    = 0;
-    int GemmABlockCopyClusterLengths_GemmM    = 0;
-    int GemmABlockCopySrcDataPerRead_GemmM    = 0;
-    int GemmABlockCopyDstDataPerWrite_GemmM   = 0;
-    int GemmBBlockCopyClusterLengths_GemmK    = 0;
-    int GemmBBlockCopyClusterLengths_GemmN    = 0;
-    int GemmBBlockCopySrcDataPerRead_GemmN    = 0;
-    int GemmBBlockCopyDstDataPerWrite_GemmN   = 0;
-    int GemmCThreadCopyDstDataPerWrite_GemmN1 = 0;
+    int GemmMLevel0Cluster                      = 0;
+    int GemmNLevel0Cluster                      = 0;
+    int GemmMLevel1Cluster                      = 0;
+    int GemmNLevel1Cluster                      = 0;
+    int GemmABlockCopyClusterLengths_GemmK      = 0;
+    int GemmABlockCopyClusterLengths_GemmM      = 0;
+    int GemmABlockCopySrcDataPerRead_GemmM      = 0;
+    int GemmABlockCopyDstDataPerWrite_GemmM     = 0;
+    int GemmABlockCopyDstDataPerWrite_GemmKPACK = 0;
+    int GemmBBlockCopyClusterLengths_GemmK      = 0;
+    int GemmBBlockCopyClusterLengths_GemmN      = 0;
+    int GemmBBlockCopySrcDataPerRead_GemmN      = 0;
+    int GemmBBlockCopyDstDataPerWrite_GemmN     = 0;
+    int GemmBBlockCopyDstDataPerWrite_GemmKPACK = 0;
+    int GemmCThreadCopyDstDataPerWrite_GemmN1   = 0;
 
     std::tie(GemmMLevel0Cluster,
              GemmNLevel0Cluster,
@@ -650,20 +732,39 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
              GemmNLevel1Cluster,
              std::ignore) = config.CalculateBlockGemmPerformanceParameters(ctx);
 
-    std::tie(GemmABlockCopyClusterLengths_GemmK,
-             GemmABlockCopyClusterLengths_GemmM,
-             GemmABlockCopySrcDataPerRead_GemmM,
-             GemmABlockCopyDstDataPerWrite_GemmM,
-             std::ignore) = config.CalculateGemmABlockCopyPerformanceParameters(ctx);
+    if(ctx.IsFp32())
+    {
+        std::tie(GemmABlockCopyClusterLengths_GemmK,
+                 GemmABlockCopyClusterLengths_GemmM,
+                 GemmABlockCopySrcDataPerRead_GemmM,
+                 GemmABlockCopyDstDataPerWrite_GemmM,
+                 std::ignore) = config.CalculateGemmABlockCopyPerformanceParameters(ctx);
 
-    std::tie(GemmBBlockCopyClusterLengths_GemmK,
-             GemmBBlockCopyClusterLengths_GemmN,
-             GemmBBlockCopySrcDataPerRead_GemmN,
-             GemmBBlockCopyDstDataPerWrite_GemmN,
-             std::ignore) = config.CalculateGemmBBlockCopyPerformanceParameters(ctx);
+        std::tie(GemmBBlockCopyClusterLengths_GemmK,
+                 GemmBBlockCopyClusterLengths_GemmN,
+                 GemmBBlockCopySrcDataPerRead_GemmN,
+                 GemmBBlockCopyDstDataPerWrite_GemmN,
+                 std::ignore) = config.CalculateGemmBBlockCopyPerformanceParameters(ctx);
+    }
+    else
+    {
+        std::tie(GemmABlockCopyClusterLengths_GemmK,
+                 GemmABlockCopyClusterLengths_GemmM,
+                 GemmABlockCopySrcDataPerRead_GemmM,
+                 GemmABlockCopyDstDataPerWrite_GemmKPACK,
+                 std::ignore) = config.CalculateGemmABlockCopyPerformanceParameters(ctx);
+
+        std::tie(GemmBBlockCopyClusterLengths_GemmK,
+                 GemmBBlockCopyClusterLengths_GemmN,
+                 GemmBBlockCopySrcDataPerRead_GemmN,
+                 GemmBBlockCopyDstDataPerWrite_GemmKPACK,
+                 std::ignore) = config.CalculateGemmBBlockCopyPerformanceParameters(ctx);
+    }
 
     std::tie(GemmCThreadCopyDstDataPerWrite_GemmN1, std::ignore) =
         config.CalculateGemmCThreadCopyPerformanceParameters(ctx);
+
+    result.workspce_sz = GetWorkspaceSize(ctx);
 
     // clang-format off
     construction_parameters.comp_options = 
@@ -698,11 +799,9 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
         std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K=") + std::to_string(GemmABlockCopyClusterLengths_GemmK) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_M=") + std::to_string(GemmABlockCopyClusterLengths_GemmM) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_M=") + std::to_string(GemmABlockCopySrcDataPerRead_GemmM) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_M=") + std::to_string(GemmABlockCopyDstDataPerWrite_GemmM) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K=") + std::to_string(GemmBBlockCopyClusterLengths_GemmK) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_N=") + std::to_string(GemmBBlockCopyClusterLengths_GemmN) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N=") + std::to_string(GemmBBlockCopySrcDataPerRead_GemmN) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N=") + std::to_string(GemmBBlockCopyDstDataPerWrite_GemmN) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_C_THREAD_COPY_DST_DATA_PER_WRITE_GEMM_N1=") + std::to_string(GemmCThreadCopyDstDataPerWrite_GemmN1) +
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
@@ -710,6 +809,24 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
         std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
+
+    if(ctx.IsFp32())
+    {
+        construction_parameters.comp_options +=
+            std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_M=") +
+            std::to_string(GemmABlockCopyDstDataPerWrite_GemmM) +
+            std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N=") +
+            std::to_string(GemmBBlockCopyDstDataPerWrite_GemmN);
+    }
+    else
+    {
+        construction_parameters.comp_options +=
+            std::string(" -DCK_PARAM_KPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, false)) +
+            std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") +
+            std::to_string(GemmABlockCopyDstDataPerWrite_GemmKPACK) +
+            std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") +
+            std::to_string(GemmBBlockCopyDstDataPerWrite_GemmKPACK);
+    }
 
     result.construction_params.push_back(construction_parameters);
     return result;

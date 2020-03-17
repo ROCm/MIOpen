@@ -220,7 +220,8 @@ EvaluateDataImplicitGemmSolution(Handle& handle,
        (kernel.GetName() ==
             "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw" ||
         kernel.GetName() ==
-            "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_gnchw_gkcyx_gnkhw"))
+            "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_gnchw_gkcyx_gnkhw" ||
+        kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw"))
     {
         float zero = 0.f;
         TensorDescriptor workSpaceDesc(miopenFloat, outDesc.GetLengths(), outDesc.GetStrides());
@@ -527,6 +528,9 @@ static void DirConvFindCore(Handle& handle,
 
     // Winograd algo
     {
+        ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
+        bufs.SetFwd(x, w, y);
+        ctx.SetBufs(bufs);
         const auto all = conv.FindWinogradSolutions(ctx);
 
         miopen::solver::ConvSolution selected{miopenStatusUnknownError};
@@ -2012,7 +2016,10 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
             // Winograd algo
             {
+                ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
+                bufs.SetBwd(dx, w, dy);
                 auto ctx = ConvolutionContext{problem};
+                ctx.SetBufs(bufs);
                 ctx.SetStream(&handle);
                 ctx.DetectRocm();
 
@@ -2539,7 +2546,8 @@ void ConvBwdImplicitGemm(const ConvolutionContext& /*ctx*/,
        (kernel.GetName() ==
             "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw" ||
         kernel.GetName() ==
-            "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_gnchw_gkcyx_gnkhw"))
+            "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_gnchw_gkcyx_gnkhw" ||
+        kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw"))
     {
         float zero = 0.f;
         TensorDescriptor workspaceDesc(
