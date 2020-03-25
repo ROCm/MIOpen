@@ -76,8 +76,8 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
             ");";
         // clang-format on
         {
-            const auto lock = shared_lock(lock_file, GetLockTimeout());
-            MIOPEN_VALIDATE_LOCK(lock);
+            // const auto lock = shared_lock(lock_file, GetLockTimeout());
+            // MIOPEN_VALIDATE_LOCK(lock);
             // clang-format off
             const auto check_tables =
                 "SELECT name FROM sqlite_master "
@@ -89,8 +89,8 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
         }
         if(res.empty())
         {
-            const auto lock = exclusive_lock(lock_file, GetLockTimeout());
-            MIOPEN_VALIDATE_LOCK(lock);
+            // const auto lock = exclusive_lock(lock_file, GetLockTimeout());
+            // MIOPEN_VALIDATE_LOCK(lock);
             if(!SQLExec(create_config + create_perfdb_sql))
                 MIOPEN_THROW(miopenStatusInternalError);
             MIOPEN_LOG_I2("Database created successfully");
