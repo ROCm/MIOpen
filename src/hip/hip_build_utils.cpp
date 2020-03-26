@@ -98,9 +98,11 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     }
     else
     {
-        params += " --amdgpu-target=" + dev_name;
+        if(params.find("-std=") == std::string::npos)
+            params += " --std=c++11";
         params += " --cuda-gpu-arch=" + dev_name;
         params += " --cuda-device-only -c";
+        params += " -O3 -mllvm -amdgpu-early-inline-all=true -mllvm -amdgpu-function-calls=false";
     }
     params += " " + GetCoV3Option(ProduceCoV3());
 
@@ -118,6 +120,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                      params + filename + " -o " + bin_file.string());
     if(!boost::filesystem::exists(bin_file))
         MIOPEN_THROW(filename + " failed to compile");
+#ifdef EXTRACTKERNEL_BIN
     if(IsHccCompiler())
     {
         // call extract kernel
@@ -135,6 +138,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
         return hsaco->path();
     }
     else
+#endif
     {
         return bin_file;
     }
