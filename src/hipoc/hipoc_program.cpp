@@ -40,6 +40,8 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_COV3)
 
+#define MIOPEN_WORKAROUND_SWDEV_225285 1
+
 namespace miopen {
 
 namespace {
@@ -84,7 +86,6 @@ hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
 hipModulePtr CreateModuleInMem(const std::string& hsaco)
 {
     hipModule_t raw_m;
-
     auto status = hipModuleLoadData(&raw_m, reinterpret_cast<const void*>(hsaco.data()));
     hipModulePtr m{raw_m};
     if(status != hipSuccess)
@@ -101,9 +102,22 @@ struct HIPOCProgramImpl
     }
     HIPOCProgramImpl(const std::string& program_name,
                      const std::string& hsaco) // the actual module and not just the filename
+#if MIOPEN_WORKAROUND_SWDEV_225285
+        : name(program_name)
+#else
         : name(program_name),
           module(CreateModuleInMem(hsaco))
+#endif
     {
+#if MIOPEN_WORKAROUND_SWDEV_225285
+        // This should use the CreateModuleInMem function above, however that is disabled
+        // due to SWDEV-225285
+        TmpDir tmp_dir("miopen");
+        auto file_path =
+            tmp_dir.path / boost::filesystem::unique_path("miopen-%%%%-%%%%-%%%%-%%%%");
+        WriteFile(hsaco, file_path);
+        this->module = CreateModule(file_path);
+#endif
     }
     HIPOCProgramImpl(const std::string& program_name,
                      std::string params,

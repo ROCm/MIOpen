@@ -5,6 +5,7 @@
 
 namespace ck {
 
+#if MIOPEN_USE_FP32
 // outer-product: c[i,j] += inner_product(a[i], b[j])
 __device__ void amd_assembly_outer_product_1x2(float a, float b0, float b1, float& c0, float& c1)
 {
@@ -29,7 +30,9 @@ __device__ void amd_assembly_outer_product_1x4(
                  : "=v"(c0), "=v"(c1), "=v"(c2), "=v"(c3)
                  : "v"(a), "v"(b0), "v"(b1), "v"(b2), "v"(b3), "0"(c0), "1"(c1), "2"(c2), "3"(c3));
 }
+#endif
 
+#if MIOPEN_USE_FP16
 // outer-product: c[i,j] += inner_product(a[i], b[j])
 __device__ void
 amd_assembly_outer_product_1x2(half2_t a, half2_t b0, half2_t b1, float& c0, float& c1)
@@ -145,6 +148,7 @@ __device__ void amd_assembly_outer_product_1x4(half4_t a,
                    "2"(c2),
                    "3"(c3)); // 3rd Src Acc registers for 2 half2 registers
 }
+#endif
 
 } // namespace ck
 #endif

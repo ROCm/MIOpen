@@ -1,0 +1,65 @@
+FROM ubuntu:18.04
+
+ARG PREFIX=/usr/local
+
+# Support multiarch
+RUN dpkg --add-architecture i386
+
+# Add rocm repository
+# RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y curl apt-utils wget && apt-get install -y gnupg2
+# RUN wget -O - http://repo.radeon.com/rocm/apt/debian/rocm.gpg.key | apt-key add -
+# RUN sh -c "echo deb [arch=amd64] http://repo.radeon.com/rocm/apt/2.10.0-hipclang/ xenial main > /etc/apt/sources.list.d/rocm.list"
+
+RUN sh -c 'echo deb [arch=amd64 trusted=yes] http://compute-artifactory.amd.com/artifactory/list/rocm-osdb-deb/ compute-rocm-dkms-no-npi-hipclang-int-bkc-2 40 > /etc/apt/sources.list.d/rocm.list'
+
+# Install dependencies
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
+    apt-utils \
+    build-essential \
+    cmake \
+    curl \
+    doxygen \
+    g++ \
+    gdb \
+    git \
+    lcov \
+    libelf-dev \
+    libncurses5-dev \
+    libnuma-dev \
+    libpthread-stubs0-dev \
+    pkg-config \
+    python \
+    python3 \
+    python-dev \
+    python3-dev \
+    python-pip \
+    python3-pip \
+    software-properties-common \
+    wget \
+    hip-vdi \
+    rocm-device-libs \
+    hcc \
+    rocblas \
+    zlib1g-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+
+# Patch hip-clang
+ADD cmake/hip-config.cmake /opt/rocm/hip/lib/cmake/hip/hip-config.cmake
+
+# Install cget
+RUN pip install cget
+
+# Build using hip-clang
+RUN cget -p $PREFIX init --cxx /opt/rocm/llvm/bin/clang++ --std=c++14
+
+# Install rocm-cmake
+RUN cget -p $PREFIX install RadeonOpenCompute/rocm-cmake@master
+
+# Install dependencies
+RUN cget -p $PREFIX install pfultz2/rocm-recipes
+ADD min-requirements.txt /min-requirements.txt
+RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /min-requirements.txt
+
+
