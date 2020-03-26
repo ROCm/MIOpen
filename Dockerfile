@@ -43,6 +43,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     pkg-config \
     python3 \
     python3-distutils \
+    python3-venv \
     python-yaml \
     rocm-opencl \
     rocm-opencl-dev && \
@@ -66,11 +67,6 @@ RUN pip install https://github.com/pfultz2/rclone/archive/master.tar.gz
 RUN rclone -b roc-3.0.x -c 286651a04d9c3a8e3052dd84b1822985498cd27d https://github.com/RadeonOpenCompute/hcc.git /hcc
 RUN LDFLAGS=-fuse-ld=gold cget -p $PREFIX install hcc,/hcc  && rm -rf /hcc
 
-# Workaround hip: It doesn't use cmake's compiler, only the compiler at /opt/rocm/hcc/bin/hcc
-RUN mkdir -p /opt/rocm/hcc/bin
-RUN ln -s $PREFIX/bin/hcc /opt/rocm/hcc/bin/hcc
-RUN ln -s $PREFIX/bin/hcc-config /opt/rocm/hcc/bin/hcc-config
-
 # Make sure /opt/rcom is in the paths
 ENV PATH="/opt/rocm:${PATH}"
 
@@ -82,7 +78,6 @@ ADD dev-requirements.txt /dev-requirements.txt
 ADD requirements.txt /requirements.txt
 ADD min-requirements.txt /min-requirements.txt
 RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /dev-requirements.txt
-
 
 # Install doc requirements
 ADD doc/requirements.txt /doc-requirements.txt

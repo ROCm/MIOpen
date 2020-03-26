@@ -113,6 +113,44 @@ def buildJob(compiler, flags, image, prefixpath="/opt/rocm", cmd = ""){
         return retimage
 }
 
+def buildHipClangJob(compiler, flags, image, prefixpath="/opt/rocm", cmd = ""){
+
+        env.HSA_ENABLE_SDMA=0 
+        checkout scm
+        def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
+        def dockerArgs = "--build-arg PREFIX=${prefixpath} -f hip-clang.docker "
+        def retimage
+        try {
+            retimage = docker.build("${image}", dockerArgs + '.')
+            withDockerContainer(image: image, args: dockerOpts) {
+                timeout(time: 5, unit: 'MINUTES')
+                {
+                    sh 'PATH="/opt/rocm/opencl/bin/x86_64/:$PATH" clinfo'
+                }
+            }
+        } catch(Exception ex) {
+            retimage = docker.build("${image}", dockerArgs + "--no-cache .")
+            withDockerContainer(image: image, args: dockerOpts) {
+                timeout(time: 5, unit: 'MINUTES')
+                {
+                    sh 'PATH="/opt/rocm/opencl/bin/x86_64/:$PATH" clinfo'
+                }
+            }
+        }
+
+        withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
+            timeout(time: 5, unit: 'HOURS')
+            {
+                if(cmd == ""){
+                    cmake_build(compiler, flags, prefixpath)
+                }else{
+                    sh cmd
+                }
+            }
+        }
+        return retimage
+}
+
 
 
 def buildCommandJob(cmd, prefixpath=""){
@@ -234,6 +272,24 @@ pipeline {
                     agent{ label rocmnode("vega") }
                     steps{
                         buildJob('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image, "")
+                    }
+                }
+
+                stage('Hip clang release') {
+                    agent{ label rocmnode("vega") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            rm -rf build
+                            mkdir build
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache .. 
+                            CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
+                        """
+
+                    }
+                    steps{
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', image+'-hip-clang', "/usr/local", cmd)
                     }
                 }
 

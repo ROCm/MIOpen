@@ -99,7 +99,7 @@ struct ProblemData : SQLiteSerializable<ProblemData>
 
     ProblemData(NoInit) {}
     ProblemData() : ProblemData(Rnd()) {}
-    ProblemData(Random& rnd)
+    ProblemData(Random& rnd) : prob(conv::Direction::Forward)
     {
         prob.n_inputs          = rnd.Next();
         prob.in_height         = rnd.Next();
@@ -120,9 +120,8 @@ struct ProblemData : SQLiteSerializable<ProblemData>
         prob.weights_data_type = miopenFloat;
         prob.out_data_type     = miopenFloat;
         prob.group_counts      = 1;
-        prob.direction.Set(1);
     }
-    ProblemData(int i)
+    ProblemData(int i) : prob(conv::Direction::Forward)
     {
         prob.n_inputs          = i;
         prob.in_height         = i;
@@ -143,7 +142,6 @@ struct ProblemData : SQLiteSerializable<ProblemData>
         prob.weights_data_type = miopenFloat;
         prob.out_data_type     = miopenFloat;
         prob.group_counts      = 1;
-        prob.direction.Set(1);
     }
 
     static std::string table_name() { return "config"; }

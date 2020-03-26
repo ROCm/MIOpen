@@ -31,7 +31,7 @@
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
 #include <miopen/solver_id.hpp>
-#include <miopen/mlo_internal.hpp>
+#include <miopen/names.hpp>
 
 #include <string>
 #include <tuple>
@@ -42,9 +42,12 @@ namespace miopen {
 namespace solver {
 struct ConvSolution;
 } // namespace solver
+
+struct ConvolutionContext;
 struct Handle;
 struct TensorDescriptor;
 struct ConvolutionUserBuffers;
+struct ProblemDescription;
 
 using ExtraKernelArgs = std::tuple<int /*N*/,
                                    int /*C*/,

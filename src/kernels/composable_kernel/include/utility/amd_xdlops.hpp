@@ -34,7 +34,7 @@ extern "C" __device__ float16_t llvm_intrin_amdgcn_mfma_f32_16x16x4f16(
     half4_t, half4_t, float16_t, int, int, int) __asm("llvm.amdgcn.mfma.f32.16x16x4f16");
 
 extern "C" __device__ float4_t llvm_intrin_amdgcn_mfma_f32_4x4x4f16(
-    half4_t, half4_t, float4_t, int, int, int) __asm("llvm.amdgcn.mfma.f32.4x4x1f16");
+    half4_t, half4_t, float4_t, int, int, int) __asm("llvm.amdgcn.mfma.f32.4x4x4f16");
 
 extern "C" __device__ float32_t llvm_intrin_amdgcn_mfma_f32_32x32x2bf16(
     ushort2_t, ushort2_t, float32_t, int, int, int) __asm("llvm.amdgcn.mfma.f32.32x32x2bf16");

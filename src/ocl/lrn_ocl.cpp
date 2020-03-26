@@ -44,7 +44,7 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
         MIOPEN_THROW("Only support packed tensors");
 
     miopenStatus_t status = miopenStatusSuccess;
-    mlo_construct_norm construct_params(1); // forward
+    mlo_construct_norm construct_params(conv::Direction::Forward);
 
     construct_params.setStream(&handle);
 
@@ -191,7 +191,7 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
                                        ConstData_t workSpace) const
 {
     miopenStatus_t status = miopenStatusSuccess;
-    mlo_construct_norm construct_params(0); // backward
+    mlo_construct_norm construct_params(conv::Direction::BackwardData);
 
     construct_params.setStream(&handle);
     int ndOut;
