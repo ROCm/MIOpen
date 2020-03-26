@@ -2,6 +2,7 @@
 
 AMD's library for high performance machine learning primitives. 
 Sources and binaries can be found at [MIOpen's GitHub site](https://github.com/ROCmSoftwarePlatform/MIOpen).
+The latest released documentation can be read online [here](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/index.html).
 
 MIOpen supports two programming models - 
 1. OpenCL 
