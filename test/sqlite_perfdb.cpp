@@ -1246,7 +1246,7 @@ struct PerfDbDriver : test_driver
         {
             tests::full_set() = true;
 #if MIOPEN_BACKEND_HIP
-            DBMultiThreadedTestWork::threads_count = 20;
+            DBMultiThreadedTestWork::threads_count = 30;
 #else
             DBMultiThreadedTestWork::threads_count = 64;
 #endif

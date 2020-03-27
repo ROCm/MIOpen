@@ -40,6 +40,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <thread>
+#include <random>
 
 #include <string>
 #include <chrono>
@@ -220,17 +221,32 @@ class SQLiteBase
         auto timeout_end = std::chrono::high_resolution_clock::now() +
                            std::chrono::seconds(30); // TODO: make configurable
         auto tries = 0;
+        std::random_device rd;  // Will be used to obtain a seed for the random number engine
+        std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
         while(true)
         {
             int rc = f();
             if(rc == SQLITE_BUSY)
             {
-                MIOPEN_LOG_I2("Database" + filename + "  busy, retrying ...");
                 ++tries;
-                if(tries > 50)
-                    std::this_thread::sleep_for(std::chrono::microseconds(100));
+                // roll the dice
+                auto slot = -1;
+                if(tries > 10)
+                {
+                    // flatten the curve
+                    std::uniform_int_distribution<> dis(0, std::pow(2, 10));
+                    slot = dis(gen);
+                }
                 else
-                    std::this_thread::yield();
+                {
+                    std::uniform_int_distribution<> dis(0, std::pow(2, tries));
+                    slot = dis(gen);
+                }
+
+                std::this_thread::yield();
+                MIOPEN_LOG_I2("Database busy, sleeping for: " << (100 * slot) << " microseconds");
+                if(slot != 0)
+                    std::this_thread::sleep_for(std::chrono::microseconds(100 * slot));
             }
             else
                 return rc;
