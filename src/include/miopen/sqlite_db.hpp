@@ -122,7 +122,8 @@ class SQLiteBase
         : filename(filename_),
           arch(arch_),
           num_cu(num_cu_),
-          lock_file(LockFile::Get(LockFilePath(filename_).c_str()))
+          lock_file(LockFile::Get(is_system ? LockFilePath(filename_).c_str()
+                                            : (filename_ + ".lock").c_str()))
     {
         MIOPEN_LOG_I2("Initializing " << (is_system ? "system" : "user") << " database file "
                                       << filename);
@@ -178,15 +179,15 @@ class SQLiteBase
 
     inline auto SQLExec(const std::string& query)
     {
-        char* errMsg = nullptr;
         MIOPEN_LOG_T(std::this_thread::get_id() << ":" << query);
         {
-            int rc = sqlite3_exec(ptrDb.get(), query.c_str(), find_callback, nullptr, &errMsg);
+            auto rc = SQLRety([&]() {
+                return sqlite3_exec(ptrDb.get(), query.c_str(), find_callback, nullptr, nullptr);
+            });
             if(rc != SQLITE_OK)
             {
                 MIOPEN_LOG_I2(query);
-                MIOPEN_LOG_E("Failed to execute query on internal database");
-                MIOPEN_LOG_E(errMsg);
+                MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
                 sqlite3_close(ptrDb.get());
                 return false;
             }
@@ -196,21 +197,52 @@ class SQLiteBase
     inline auto SQLExec(const std::string& query, SQLRes_t& res) const
     {
         res.clear();
-        char* errMsg = nullptr;
         MIOPEN_LOG_T(std::this_thread::get_id() << ":" << query);
         {
-            int rc = sqlite3_exec(
-                ptrDb.get(), query.c_str(), find_callback, static_cast<void*>(&res), &errMsg);
+            auto rc = SQLRety([&]() {
+                return sqlite3_exec(
+                    ptrDb.get(), query.c_str(), find_callback, static_cast<void*>(&res), nullptr);
+            });
             if(rc != SQLITE_OK)
             {
                 MIOPEN_LOG_I2(query);
-                MIOPEN_LOG_E("Failed to execute query on internal database");
-                MIOPEN_LOG_E(errMsg);
+                MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
                 sqlite3_close(ptrDb.get());
                 return false;
             }
         }
         return true;
+    }
+
+    template <class F>
+    inline int SQLRety(F f) const
+    {
+        auto timeout_end = std::chrono::high_resolution_clock::now() +
+                           std::chrono::seconds(30); // TODO: make configurable
+        auto tries = 0;
+        while(true)
+        {
+            int rc = f();
+            if(rc == SQLITE_BUSY)
+            {
+                MIOPEN_LOG_I2("Database" + filename + "  busy, retrying ...");
+                ++tries;
+                if(tries > 50)
+                    std::this_thread::sleep_for(std::chrono::microseconds(100));
+                else
+                    std::this_thread::yield();
+            }
+            else
+                return rc;
+            if(std::chrono::high_resolution_clock::now() > timeout_end)
+                MIOPEN_THROW("Timeout while waiting for Database: " + filename);
+        }
+    }
+
+    inline std::string SQLErrorMessage() const
+    {
+        std::string errMsg = "Internal error while accessing SQLite database: ";
+        return errMsg + sqlite3_errmsg(ptrDb.get());
     }
 
     auto Prepare(const std::string& query) const

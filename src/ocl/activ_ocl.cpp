@@ -47,7 +47,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
     miopenStatus_t status = miopenStatusSuccess;
-    mlo_construct_neuron construct_params(1); // forward
+    mlo_construct_neuron construct_params(conv::Direction::Forward);
 
     double activ_alpha = GetAlpha();
     double activ_beta  = GetBeta();
@@ -408,7 +408,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
     }
     miopenStatus_t status = miopenStatusSuccess;
 
-    mlo_construct_neuron construct_params(0); // backward
+    mlo_construct_neuron construct_params(conv::Direction::BackwardData);
 
     double activ_alpha = GetAlpha();
     double activ_beta  = GetBeta();

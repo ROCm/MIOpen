@@ -239,11 +239,6 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer";
     }
 
-    size_t WeiBlockCopyDstDataPerWrite_EPack = 1; // only for fp16/bfp16
-    size_t InBlockCopyDstDataPerWrite_EPack  = 1; // only for fp16/bfp16
-    size_t WeiBlockCopyDstDataPerWrite_K     = 1; // only for fp32
-    size_t InBlockCopyDstDataPerWrite_N2     = 1; // only for fp32
-
     std::size_t WeiBlockCopySubLengths_E = EPerBlock / config.WeiBlockCopyClusterLengths_E;
     std::size_t WeiBlockCopySubLengths_K = KPerBlock / config.WeiBlockCopyClusterLengths_K;
 
@@ -263,17 +258,12 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     WeiBlockCopySrcDataPerRead_E =
         ctx.direction.IsBackwardData() ? 1 : WeiBlockCopySrcDataPerRead_E;
 
-    if(ctx.IsFp16() || ctx.IsBfp16())
-    {
-        // TBD Write_EPack tunable separately from epack length
-        WeiBlockCopyDstDataPerWrite_EPack = GetEPackLength(ctx, false);
-        InBlockCopyDstDataPerWrite_EPack  = GetEPackLength(ctx, false);
-    }
-    else
-    {
-        WeiBlockCopyDstDataPerWrite_K = GetReadWriteVectorSize(WeiBlockCopySubLengths_K);
-        InBlockCopyDstDataPerWrite_N2 = GetReadWriteVectorSize(InBlockCopySubLengths_N2);
-    }
+    const auto WeiBlockCopyDstDataPerWrite_K =
+        ctx.IsFp32() ? GetReadWriteVectorSize(WeiBlockCopySubLengths_K) : 1;
+    const auto InBlockCopyDstDataPerWrite_N2 =
+        ctx.IsFp32() ? GetReadWriteVectorSize(InBlockCopySubLengths_N2) : 1;
+    const auto WeiBlockCopyDstDataPerWrite_EPack = !ctx.IsFp32() ? GetEPackLength(ctx, false) : 1;
+    const auto InBlockCopyDstDataPerWrite_EPack  = !ctx.IsFp32() ? GetEPackLength(ctx, false) : 1;
 
     if(ctx.direction.IsBackwardWrW())
     {
@@ -307,8 +297,6 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             std::to_string(InBlockCopyDstDataPerWrite_EPack) +
             std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_EPACK=") +
             std::to_string(WeiBlockCopyDstDataPerWrite_EPack);
-        (void)InBlockCopyDstDataPerWrite_N2;
-        (void)WeiBlockCopyDstDataPerWrite_K;
     }
     else
     {
@@ -318,8 +306,6 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             std::to_string(InBlockCopyDstDataPerWrite_N2) +
             std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K=") +
             std::to_string(WeiBlockCopyDstDataPerWrite_K);
-        (void)InBlockCopyDstDataPerWrite_EPack;
-        (void)WeiBlockCopyDstDataPerWrite_EPack;
     }
 
     // clang-format off
@@ -358,7 +344,6 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, false)) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
-        std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
 
