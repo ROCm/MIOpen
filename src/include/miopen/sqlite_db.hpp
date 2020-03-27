@@ -38,7 +38,6 @@
 #include <boost/thread/thread_time.hpp>
 #include "sqlite3.h"
 #include <mutex>
-#include <shared_mutex>
 #include <thread>
 #include <random>
 
@@ -108,8 +107,6 @@ class SQLiteBase
 {
     protected:
     using sqlite3_ptr      = MIOPEN_MANAGE_PTR(sqlite3*, sqlite3_close);
-    using exclusive_lock   = std::unique_lock<std::shared_timed_mutex>;
-    using shared_lock      = std::shared_lock<std::shared_timed_mutex>;
     using sqlite3_stmt_ptr = MIOPEN_MANAGE_PTR(sqlite3_stmt*, sqlite3_finalize);
     static auto GetLockTimeout()
     {
@@ -123,8 +120,6 @@ class SQLiteBase
                const std::string& arch_,
                std::size_t num_cu_)
         : filename(filename_), arch(arch_), num_cu(num_cu_)
-    // lock_file(LockFile::Get(is_system ? LockFilePath(filename_).c_str()
-    //                                  : (filename_ + ".lock").c_str()))
     {
         MIOPEN_LOG_I2("Initializing " << (is_system ? "system" : "user") << " database file "
                                       << filename);
@@ -276,48 +271,36 @@ class SQLiteBase
     template <typename... U>
     inline auto FindRecord(U&... args)
     {
-        // const auto lock = shared_lock(lock_file, GetLockTimeout());
-        // MIOPEN_VALIDATE_LOCK(lock);
         return reinterpret_cast<Derived*>(this)->FindRecordUnsafe(args...);
     }
 
     template <typename... U>
     inline auto RemoveRecord(U&... args)
     {
-        // const auto lock = exclusive_lock(lock_file, GetLockTimeout());
-        // MIOPEN_VALIDATE_LOCK(lock);
         return reinterpret_cast<Derived*>(this)->RemoveRecordUnsafe(args...);
     }
 
     template <typename... U>
     inline auto StoreRecord(U&... args)
     {
-        // const auto lock = exclusive_lock(lock_file, GetLockTimeout());
-        // MIOPEN_VALIDATE_LOCK(lock);
         return reinterpret_cast<Derived*>(this)->StoreRecordUnsafe(args...);
     }
 
     template <typename... U>
     inline auto Remove(const U&... args)
     {
-        // const auto lock = exclusive_lock(lock_file, GetLockTimeout());
-        // MIOPEN_VALIDATE_LOCK(lock);
         return reinterpret_cast<Derived*>(this)->RemoveUnsafe(args...);
     }
 
     template <typename... U>
     inline auto Update(const U&... args)
     {
-        // const auto lock = exclusive_lock(lock_file, GetLockTimeout());
-        // MIOPEN_VALIDATE_LOCK(lock);
         return reinterpret_cast<Derived*>(this)->UpdateUnsafe(args...);
     }
 
     template <typename... U>
     inline auto Load(U&&... args)
     {
-        // const auto lock = shared_lock(lock_file, GetLockTimeout());
-        // MIOPEN_VALIDATE_LOCK(lock);
         return reinterpret_cast<Derived*>(this)->LoadUnsafe(args...);
     }
 
@@ -325,7 +308,6 @@ class SQLiteBase
     std::string filename;
     std::string arch;
     size_t num_cu;
-    // LockFile& lock_file;
     sqlite3_ptr ptrDb = nullptr;
 };
 
