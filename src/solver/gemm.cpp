@@ -126,9 +126,14 @@ ConvSolution GemmFwd::GetSolution(const ExecutionContext& ctx,
     const std::size_t wei_k       = wDesc.GetLengths()[0];
     const std::size_t spatial_dim = conv.GetSpatialDimension();
 
-    auto in_spatial  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
-    auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
-    auto out_spatial = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
+    // This ones do not store data directly, so they should be copied to vectors for invokers.
+    const auto& in_spatial_  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
+    const auto& wei_spatial_ = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+    const auto& out_spatial_ = boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + spatial_dim);
+
+    const auto in_spatial  = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
+    const auto wei_spatial = std::vector<std::size_t>(wei_spatial_.begin(), wei_spatial_.end());
+    const auto out_spatial = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
 
     const bool time_precision =
         ctx.GetStream().IsProfilingEnabled() && (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
