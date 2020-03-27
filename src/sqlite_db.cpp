@@ -75,25 +75,41 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
             "`params` TEXT NOT NULL"
             ");";
         // clang-format on
+        // std::shared_timed_mutex _access;
         {
-            // const auto lock = shared_lock(lock_file, GetLockTimeout());
+            // const auto lock = shared_lock(_access, GetLockTimeout());
             // MIOPEN_VALIDATE_LOCK(lock);
             // clang-format off
             const auto check_tables =
                 "SELECT name FROM sqlite_master "
                 "WHERE "
                   "type = 'table' AND "
-                  "(name = 'config' OR name = 'perf_db');";
+                  "(name = 'config');";
             // clang-format on
             SQLExec(check_tables, res);
+            if(res.empty())
+            {
+                if(!SQLExec(create_config))
+                    MIOPEN_THROW(miopenStatusInternalError);
+            }
         }
-        if(res.empty())
         {
-            // const auto lock = exclusive_lock(lock_file, GetLockTimeout());
+            // const auto lock = exclusive_lock(_access, GetLockTimeout());
             // MIOPEN_VALIDATE_LOCK(lock);
-            if(!SQLExec(create_config + create_perfdb_sql))
-                MIOPEN_THROW(miopenStatusInternalError);
-            MIOPEN_LOG_I2("Database created successfully");
+            // clang-format off
+            const auto check_tables =
+                "SELECT name FROM sqlite_master "
+                "WHERE "
+                  "type = 'table' AND "
+                  "(name = 'perf_db');";
+            // clang-format on
+            SQLExec(check_tables, res);
+            if(res.empty())
+            {
+                if(!SQLExec(create_perfdb_sql))
+                    MIOPEN_THROW(miopenStatusInternalError);
+                MIOPEN_LOG_I2("Database created successfully");
+            }
         }
     }
 }

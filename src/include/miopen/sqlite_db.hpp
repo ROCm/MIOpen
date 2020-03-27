@@ -38,6 +38,7 @@
 #include <boost/thread/thread_time.hpp>
 #include "sqlite3.h"
 #include <mutex>
+#include <shared_mutex>
 #include <thread>
 
 #include <string>
@@ -106,12 +107,13 @@ class SQLiteBase
 {
     protected:
     using sqlite3_ptr      = MIOPEN_MANAGE_PTR(sqlite3*, sqlite3_close);
-    using exclusive_lock   = boost::unique_lock<LockFile>;
-    using shared_lock      = boost::shared_lock<LockFile>;
+    using exclusive_lock   = std::unique_lock<std::shared_timed_mutex>;
+    using shared_lock      = std::shared_lock<std::shared_timed_mutex>;
     using sqlite3_stmt_ptr = MIOPEN_MANAGE_PTR(sqlite3_stmt*, sqlite3_finalize);
-    static boost::system_time GetLockTimeout()
+    static auto GetLockTimeout()
     {
-        return boost::get_system_time() + boost::posix_time::milliseconds(60000);
+        // return boost::get_system_time() + boost::posix_time::milliseconds(60000);
+        return std::chrono::milliseconds(60000);
     }
 
     public:
@@ -121,7 +123,7 @@ class SQLiteBase
                std::size_t num_cu_)
         : filename(filename_), arch(arch_), num_cu(num_cu_)
     // lock_file(LockFile::Get(is_system ? LockFilePath(filename_).c_str()
-    //                                   : (filename_ + ".lock").c_str()))
+    //                                  : (filename_ + ".lock").c_str()))
     {
         MIOPEN_LOG_I2("Initializing " << (is_system ? "system" : "user") << " database file "
                                       << filename);
