@@ -326,9 +326,10 @@ void DropoutForwardVerify(miopen::Handle& handle,
                                 uniform_distribution_emu(xorwow_next(&states[si % glb_sz])) >
                                 dropout_rate;
 
-                        output[oi] = bool(reservespace[ri])
-                                         ? static_cast<T>(input[ii] / (1 - dropout_rate))
-                                         : T(0);
+                        output[oi] =
+                            bool(reservespace[ri]) && !miopen::float_equal(dropout_rate, 1.0)
+                                ? static_cast<T>(input[ii] / (1 - dropout_rate))
+                                : T(0);
                     }
 }
 
@@ -360,18 +361,20 @@ void DropoutBackwardVerify(const miopen::DropoutDescriptor& DropoutDesc,
                     out_len,
                     out_str);
 
-    par_ford(in_len[0], in_len[1], in_len[2], in_len[3], in_len[4])(
-        [&](int i0, int i1, int i2, int i3, int i4) {
-            size_t oi = out_offset + i0 * out_str[0] + i1 * out_str[1] + i2 * out_str[2] +
-                        i3 * out_str[3] + i4;
-            size_t ii =
-                in_offset + i0 * in_str[0] + i1 * in_str[1] + i2 * in_str[2] + i3 * in_str[3] + i4;
-            size_t ri = rsvsp_offset + i0 * in_len[1] * in_len[2] * in_len[3] * in_len[4] +
-                        i1 * in_len[2] * in_len[3] * in_len[4] + i2 * in_len[3] * in_len[4] +
-                        i3 * in_len[4] + i4;
+    par_ford(in_len[0], in_len[1], in_len[2], in_len[3], in_len[4])([&](
+        int i0, int i1, int i2, int i3, int i4) {
+        size_t oi =
+            out_offset + i0 * out_str[0] + i1 * out_str[1] + i2 * out_str[2] + i3 * out_str[3] + i4;
+        size_t ii =
+            in_offset + i0 * in_str[0] + i1 * in_str[1] + i2 * in_str[2] + i3 * in_str[3] + i4;
+        size_t ri = rsvsp_offset + i0 * in_len[1] * in_len[2] * in_len[3] * in_len[4] +
+                    i1 * in_len[2] * in_len[3] * in_len[4] + i2 * in_len[3] * in_len[4] +
+                    i3 * in_len[4] + i4;
 
-            din[ii] = static_cast<T>(bool(reservespace[ri]) ? dout[oi] / (1 - dropout_rate) : 0);
-        });
+        din[ii] = static_cast<T>(bool(reservespace[ri]) && !miopen::float_equal(dropout_rate, 1.0)
+                                     ? dout[oi] / (1 - dropout_rate)
+                                     : 0);
+    });
 }
 
 #endif

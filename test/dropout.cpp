@@ -249,7 +249,7 @@ struct dropout_driver : test_driver
 #endif
 
         add(in_dim, "input-dim", generate_data(input_dims));
-        add(dropout_rate, "dropout", generate_data({float(0.1), float(0.5), float(0.9)}));
+        add(dropout_rate, "dropout", generate_data({float(0.0), float(0.5), float(1.0)}));
         add(seed, "seed", generate_data({0x0ULL, 0xFFFFFFFFFFFFFFFFULL}));
         add(mask, "use-mask", generate_data({false, true}));
         add(rng_mode_cmd, "rng-mode", generate_data({0}));

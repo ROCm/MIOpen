@@ -209,7 +209,7 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
         MIOPEN_THROW("Input/Output datatype does not match");
     }
 
-    if(dropout < 0.0 || dropout >= 1.0)
+    if(dropout < 0.0 || dropout > 1.0)
     {
         MIOPEN_THROW("Invalid dropout rate");
     }
@@ -291,10 +291,12 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
+    float amp_scale = float_equal(dropout, 1.0) ? 0 : 1 / (1 - dropout);
     if(!kernels.empty())
     {
         kernels.front()(pstates,
                         dropout,
+                        amp_scale,
                         int(in_len[1]),
                         int(in_len[2]),
                         int(in_len[3]),
@@ -343,6 +345,7 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
         handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
             pstates,
             dropout,
+            amp_scale,
             int(in_len[1]),
             int(in_len[2]),
             int(in_len[3]),
@@ -415,7 +418,7 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
         MIOPEN_THROW("Input/Output datatype does not match");
     }
 
-    if(dropout < 0.0 || dropout >= 1.0)
+    if(dropout < 0.0 || dropout > 1.0)
     {
         MIOPEN_THROW("Invalid dropout rate");
     }
@@ -499,10 +502,12 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
+    float amp_scale = float_equal(dropout, 1.0) ? 0 : 1 / (1 - dropout);
     if(!kernels.empty())
     {
         kernels.front()(pstates,
                         dropout,
+                        amp_scale,
                         int(in_len[1]),
                         int(in_len[2]),
                         int(in_len[3]),
@@ -553,6 +558,7 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
         handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
             pstates,
             dropout,
+            amp_scale,
             int(in_len[1]),
             int(in_len[2]),
             int(in_len[3]),
