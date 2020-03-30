@@ -102,7 +102,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
             params += " --std=c++11";
         params += " --cuda-gpu-arch=" + dev_name;
         params += " --cuda-device-only -c";
-        params += " -O3 -mllvm -amdgpu-early-inline-all=true -mllvm -amdgpu-function-calls=false";
+        params += " -O3 ";
     }
     params += " " + GetCoV3Option(ProduceCoV3());
 
