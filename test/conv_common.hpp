@@ -1399,6 +1399,9 @@ struct conv_driver : test_driver
     miopen::ConvolutionDescriptor filter;
     std::string conv_mode;
     std::string pad_mode;
+    std::vector<int> spatial_dims;
+    int input_channels{};
+    int output_channels{};
     std::vector<int> pads_strides_dilations;
     std::vector<int> trans_output_pads;
     int groupCount{};
@@ -1421,6 +1424,29 @@ struct conv_driver : test_driver
         {"VALID", miopenPaddingValid},
         {"DEFAULT", miopenPaddingDefault}};
 
+
+    std::vector<int> get_batch_sizes()
+    {
+        return {1,2,8,16,64,128,352,512};
+    }
+
+    std::vector<std::vector<int>> get_2d_spatial_dims()
+    {
+        return { {7,7}, {14, 14}, {17, 17},
+                {28, 28}, {32, 32}, {56, 56}, {55, 55},{64,  128},
+                {224, 224},{1024, 2048}, {3072, 3072},{4096, 4096},{1, 1},{1, 7}, {7, 1}};
+    }
+
+    std::vector<int> get_output_channels()
+    {
+            return {16,32,96,112,128,192,256,320,512,1024};
+    }
+
+    std::vector<int> get_input_channels()
+    {
+            return {16,32,96,112,128,192,256,320,512,1024,3};
+    }
+
     std::vector<std::vector<int>> get_2d_pads_strides_dilations()
     {
         return {{0, 0, 1, 1, 1, 1},
@@ -1434,6 +1460,13 @@ struct conv_driver : test_driver
                 {3, 3, 2, 2, 4, 4},
                 {0, 0, 1, 1, 1, 2},
                 {1, 1, 2, 2, 2, 1}};
+    }
+
+    std::vector<std::vector<int>> get_3d_spatial_dims()
+    {
+        return { {3, 4, 4}, {4, 9, 9}, {3, 14, 14},
+                {4, 28, 28}, {4, 56, 56}, {4, 161, 700},
+                {4, 227, 227},{1, 1, 1},{1, 2, 2}};
     }
 
     std::vector<std::vector<int>> get_2d_trans_output_pads() { return {{0, 0}}; }
@@ -1478,6 +1511,7 @@ struct conv_driver : test_driver
         add(do_backward_weights, "disable-backward-weights", set_value(false));
         add(search, "search", set_value(1));
         add(gen_float, "generate-float", set_value(true));
+        
         if(immed)
         {
             add(enable_fdb, "enable-fdb", generate_data({false, true}));
