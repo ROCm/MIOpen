@@ -30,118 +30,157 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 
+#include "driver.hpp"
+#include "tensor_holder.hpp"
+
+template <class T>
 struct check_numerics_base
 {
     static const int size = 42;
     miopen::Handle h{};
-    miopen::TensorDescriptor desc{miopenFloat, {size}};
+    miopen::TensorDescriptor desc{miopen_type<T>{}, {size}};
     miopen::Allocator::ManageDataPtr buffer = nullptr;
 
-    check_numerics_base(float val = 0.0)
+    check_numerics_base(T val = 0.0)
     {
-        std::vector<float> data(size, val);
+        std::vector<T> data(size, val);
         buffer = h.Write(data);
     }
 };
 
-struct check_numeric_normal : check_numerics_base
+template <class T>
+struct check_numeric_normal : check_numerics_base<T>
 {
-    check_numeric_normal(float val) : check_numerics_base(val) {}
+    check_numeric_normal(T val) : check_numerics_base<T>(val) {}
 
     void run()
     {
-        CHECK(
-            !miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), true));
-        CHECK(
-            !miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), false));
+        CHECK(!miopen::checkNumericsImpl(
+            this->h, miopen::CheckNumerics::Throw, this->desc, this->buffer.get(), true));
+        CHECK(!miopen::checkNumericsImpl(
+            this->h, miopen::CheckNumerics::Throw, this->desc, this->buffer.get(), false));
 
-        CHECK(!miopen::checkNumericsImpl(h,
+        CHECK(!miopen::checkNumericsImpl(this->h,
                                          miopen::CheckNumerics::Throw |
                                              miopen::CheckNumerics::ComputeStats,
-                                         desc,
-                                         buffer.get(),
+                                         this->desc,
+                                         this->buffer.get(),
                                          true));
-        CHECK(!miopen::checkNumericsImpl(h,
+        CHECK(!miopen::checkNumericsImpl(this->h,
                                          miopen::CheckNumerics::Throw |
                                              miopen::CheckNumerics::ComputeStats,
-                                         desc,
-                                         buffer.get(),
+                                         this->desc,
+                                         this->buffer.get(),
                                          false));
     }
 };
 
-struct check_numeric_abnormal : check_numerics_base
+template <class T>
+struct check_numeric_abnormal : check_numerics_base<T>
 {
-    check_numeric_abnormal(float val) : check_numerics_base(val) {}
+    check_numeric_abnormal(T val) : check_numerics_base<T>(val) {}
 
     void run()
     {
-        CHECK(miopen::checkNumericsImpl(h, miopen::CheckNumerics::Warn, desc, buffer.get(), true));
-        CHECK(miopen::checkNumericsImpl(h, miopen::CheckNumerics::Warn, desc, buffer.get(), false));
+        CHECK(miopen::checkNumericsImpl(
+            this->h, miopen::CheckNumerics::Warn, this->desc, this->buffer.get(), true));
+        CHECK(miopen::checkNumericsImpl(
+            this->h, miopen::CheckNumerics::Warn, this->desc, this->buffer.get(), false));
 
         CHECK(throws([&] {
-            miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), true);
+            miopen::checkNumericsImpl(
+                this->h, miopen::CheckNumerics::Throw, this->desc, this->buffer.get(), true);
         }));
         CHECK(throws([&] {
-            miopen::checkNumericsImpl(h, miopen::CheckNumerics::Throw, desc, buffer.get(), false);
+            miopen::checkNumericsImpl(
+                this->h, miopen::CheckNumerics::Throw, this->desc, this->buffer.get(), false);
         }));
 
-        CHECK(miopen::checkNumericsImpl(h,
+        CHECK(miopen::checkNumericsImpl(this->h,
                                         miopen::CheckNumerics::Warn |
                                             miopen::CheckNumerics::ComputeStats,
-                                        desc,
-                                        buffer.get(),
+                                        this->desc,
+                                        this->buffer.get(),
                                         true));
-        CHECK(miopen::checkNumericsImpl(h,
+        CHECK(miopen::checkNumericsImpl(this->h,
                                         miopen::CheckNumerics::Warn |
                                             miopen::CheckNumerics::ComputeStats,
-                                        desc,
-                                        buffer.get(),
+                                        this->desc,
+                                        this->buffer.get(),
                                         false));
 
         CHECK(throws([&] {
-            miopen::checkNumericsImpl(h,
+            miopen::checkNumericsImpl(this->h,
                                       miopen::CheckNumerics::Throw |
                                           miopen::CheckNumerics::ComputeStats,
-                                      desc,
-                                      buffer.get(),
+                                      this->desc,
+                                      this->buffer.get(),
                                       true);
         }));
         CHECK(throws([&] {
-            miopen::checkNumericsImpl(h,
+            miopen::checkNumericsImpl(this->h,
                                       miopen::CheckNumerics::Throw |
                                           miopen::CheckNumerics::ComputeStats,
-                                      desc,
-                                      buffer.get(),
+                                      this->desc,
+                                      this->buffer.get(),
                                       false);
         }));
     }
 };
 
-struct numeric_0 : check_numeric_normal
+template <class T>
+struct numeric_0 : check_numeric_normal<T>
 {
-    numeric_0() : check_numeric_normal(0.0) {}
+    numeric_0() : check_numeric_normal<T>(T(0)) {}
 };
 
-struct numeric_1 : check_numeric_normal
+template <class T>
+struct numeric_1 : check_numeric_normal<T>
 {
-    numeric_1() : check_numeric_normal(1.0) {}
+    numeric_1() : check_numeric_normal<T>(T(1)) {}
 };
 
-struct numeric_nan : check_numeric_abnormal
+template <class T>
+struct numeric_nan : check_numeric_abnormal<T>
 {
-    numeric_nan() : check_numeric_abnormal(std::numeric_limits<float>::quiet_NaN()) {}
+    numeric_nan() : check_numeric_abnormal<T>(std::numeric_limits<T>::quiet_NaN()) {}
 };
 
-struct numeric_inf : check_numeric_abnormal
+template <class T>
+struct numeric_inf : check_numeric_abnormal<T>
 {
-    numeric_inf() : check_numeric_abnormal(std::numeric_limits<float>::infinity()) {}
+    numeric_inf() : check_numeric_abnormal<T>(std::numeric_limits<T>::infinity()) {}
 };
 
-int main()
+int main(int argc, const char* argv[])
 {
-    run_test<numeric_0>();
-    run_test<numeric_1>();
-    run_test<numeric_nan>();
-    run_test<numeric_inf>();
+    std::vector<std::string> as(argv + 1, argv + argc);
+    as.emplace_back("--float");
+    for(auto&& arg : as)
+    {
+        if(arg == "--half")
+        {
+            run_test<numeric_0<half_float::half>>();
+            run_test<numeric_1<half_float::half>>();
+            run_test<numeric_nan<half_float::half>>();
+            run_test<numeric_inf<half_float::half>>();
+            break;
+        }
+        if(arg == "--bfloat16")
+        {
+            run_test<numeric_0<bfloat16>>();
+            run_test<numeric_1<bfloat16>>();
+            run_test<numeric_nan<bfloat16>>();
+            run_test<numeric_inf<bfloat16>>();
+            break;
+        }
+        if(arg == "--float")
+        {
+            run_test<numeric_0<float>>();
+            run_test<numeric_1<float>>();
+            run_test<numeric_nan<float>>();
+            run_test<numeric_inf<float>>();
+            break;
+        }
+    }
 }

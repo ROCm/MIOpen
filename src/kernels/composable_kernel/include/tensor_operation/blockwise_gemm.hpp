@@ -23,8 +23,8 @@ template <index_t BlockSize,
           index_t MLevel1ThreadCluster,
           index_t NLevel1ThreadCluster,
           index_t KPerThreadLoop,
-          index_t DataPerReadA,
-          index_t DataPerReadB>
+          index_t ThreadGemmADataPerRead_M,
+          index_t ThreadGemmBDataPerRead_N>
 struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_v2
 {
     struct MatrixIndex
@@ -150,13 +150,13 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_v2
                                                                  decltype(a_thread_mtx),
                                                                  KPerThreadLoop,
                                                                  MPerThreadSubC,
-                                                                 DataPerReadA>{};
+                                                                 ThreadGemmADataPerRead_M>{};
 
         constexpr auto b_thread_copy = ThreadwiseMatrixSliceCopy<BlockMatrixB,
                                                                  decltype(b_thread_mtx),
                                                                  KPerThreadLoop,
                                                                  NPerThreadSubC,
-                                                                 DataPerReadB>{};
+                                                                 ThreadGemmBDataPerRead_N>{};
 
         constexpr auto threadwise_gemm =
             ThreadwiseGemmTransANormalBNormalC<decltype(a_thread_mtx),
@@ -238,13 +238,13 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_v2
                                                                  decltype(a_thread_mtx),
                                                                  KPerThreadLoop,
                                                                  MPerThreadSubC,
-                                                                 DataPerReadA>{};
+                                                                 ThreadGemmADataPerRead_M>{};
 
         constexpr auto b_thread_copy = ThreadwiseMatrixSliceCopy<BlockMatrixB,
                                                                  decltype(b_thread_mtx),
                                                                  KPerThreadLoop,
                                                                  NPerThreadSubC,
-                                                                 DataPerReadB>{};
+                                                                 ThreadGemmBDataPerRead_N>{};
 
         constexpr auto threadwise_gemm =
             ThreadwiseGemmTransANormalBNormalC<decltype(a_thread_sub_mtx),

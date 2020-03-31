@@ -106,6 +106,8 @@ Winograd  Solutions:
   * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW` - FP32 F(3,2) WrW convolutions only.
   * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FWD_BWD` - FP32/FP16 F(3,3) Fwd/Bwd.
 * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2` - `ConvBinWinogradRxSf3x2`, FP32/FP16 Fwd/Bwd F(3,2) Winograd.
+* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3` - `ConvBinWinogradRxSf2x3`, FP32/FP16 Fwd/Bwd F(2,3) Winograd.
+
 * Multi-pass Winograd:
   * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2` - `ConvWinograd3x3MultipassWrW<3-2>`, WrW F(3,2), stride 2 only.
   * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3` - `ConvWinograd3x3MultipassWrW<3-3>`, WrW F(3,3), stride 2 only.
@@ -162,7 +164,14 @@ Different ROCm versions use Code Object files of different versions (or, in othe
   * `2` - Behave as if both CO v2 and v3 are supported (see `MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER`).
   * `3` - Always assemble v3 Code Objects.
 * `MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER` - This variable affects only assembly kernels, and only when ROCm supports both CO v2 and CO v3 (like ROCm 2.10). By default, the newer format is used (CO v3). When this variable is _enabled_, the behavior is reversed.
-* `MIOPEN_DEBUG_AMD_OPENCL_ENFORCE_COV3` - Enforces CO v3 for OpenCL kernels. Works with HIP backend only (`cmake ... -DMIOPEN_BACKEND=HIP...`).
+* `MIOPEN_DEBUG_OPENCL_ENFORCE_COV3` - Enforces Code Object format for OpenCL kernels. Works with HIP backend only (`cmake ... -DMIOPEN_BACKEND=HIP...`).
+  * Unset - Automatically detect the required CO version. This is the default.
+  * `0` - Always build to CO v2.
+  * `1` - Always build to CO v3.
+* `MIOPEN_DEBUG_HIP_ENFORCE_COV3` - Enforces Code Object format for HIP kernels.
+  * Unset - Automatically detect the required CO version. This is the default.
+  * `0` - Always build to CO v2.
+  * `1` - Always build to CO v3.
 
 ### `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX`
 

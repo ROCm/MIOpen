@@ -32,14 +32,20 @@ namespace miopen {
 
 enum class MemLayout_t
 {
-    NCHW = 0,
-    CNHW = 1,
-    NHWC = 2,
-    CHWN = 3,
-    HWCN = 4,
-    HWNC = 5,
+    NCHW  = 0,
+    CNHW  = 1,
+    NHWC  = 2,
+    CHWN  = 3,
+    HWCN  = 4,
+    HWNC  = 5,
+    NGCHW = 6,
+    GNCHW = 7,
+    CGNHW = 8,
+    GCNHW = 9,
     // Initializers must match values defined in common.inc
 };
+
+MemLayout_t GetGroupConvLayout(MemLayout_t layout, bool IsDataBuffer);
 
 MemLayout_t GetMemLayout_t(const std::string& s);
 MemLayout_t GetSwappedNCLayout(MemLayout_t layout);
@@ -49,10 +55,14 @@ struct BuffInfo
     size_t total_byte_size = 0;
     struct
     {
-        unsigned int nk = 0, c = 0, h = 0, w = 0;
+        unsigned int nk = 0, g = 0, c = 0, h = 0, w = 0;
     } stride{}, byte_stride{}, size{};
     BuffInfo() {}
-    BuffInfo(MemLayout_t layout, int nk, int c, int h, int w, int vec_c, int data_len_t);
+    BuffInfo(MemLayout_t layout, int nk, int c, int h, int w, int vec_c, int g, int data_len_t);
+    BuffInfo(MemLayout_t layout, int nk, int c, int h, int w, int vec_c, int data_len_t)
+        : BuffInfo(layout, nk, c, h, w, vec_c, 1, data_len_t)
+    {
+    }
 };
 
 enum class ConvWinoBuffType

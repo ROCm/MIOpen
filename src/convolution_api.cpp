@@ -289,20 +289,45 @@ static void LogCmdConvolution(const miopenTensorDescriptor_t xDesc,
         {
             ss << "conv";
         }
-        ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
-            << " -c " << miopen::deref(xDesc).GetLengths()[1]
-            << " -H " << miopen::deref(xDesc).GetLengths()[2]
-            << " -W " << miopen::deref(xDesc).GetLengths()[3]
-            << " -k " << miopen::deref(wDesc).GetLengths()[0]
-            << " -y " << miopen::deref(wDesc).GetLengths()[2]
-            << " -x " << miopen::deref(wDesc).GetLengths()[3]
-            << " -p " << miopen::deref(convDesc).GetConvPads()[0]
-            << " -q " << miopen::deref(convDesc).GetConvPads()[1]
-            << " -u " << miopen::deref(convDesc).GetConvStrides()[0]
-            << " -v " << miopen::deref(convDesc).GetConvStrides()[1]
-            << " -l " << miopen::deref(convDesc).GetConvDilations()[0]
-            << " -j " << miopen::deref(convDesc).GetConvDilations()[1]
-            << " -m " << (miopen::deref(convDesc).mode == 1 ? "trans" : "conv")
+        if(miopen::deref(convDesc).GetSpatialDimension() == 2)
+        {
+            ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
+                << " -c " << miopen::deref(xDesc).GetLengths()[1]
+                << " -H " << miopen::deref(xDesc).GetLengths()[2]
+                << " -W " << miopen::deref(xDesc).GetLengths()[3]
+                << " -k " << miopen::deref(wDesc).GetLengths()[0]
+                << " -y " << miopen::deref(wDesc).GetLengths()[2]
+                << " -x " << miopen::deref(wDesc).GetLengths()[3]
+                << " -p " << miopen::deref(convDesc).GetConvPads()[0]
+                << " -q " << miopen::deref(convDesc).GetConvPads()[1]
+                << " -u " << miopen::deref(convDesc).GetConvStrides()[0]
+                << " -v " << miopen::deref(convDesc).GetConvStrides()[1]
+                << " -l " << miopen::deref(convDesc).GetConvDilations()[0]
+                << " -j " << miopen::deref(convDesc).GetConvDilations()[1]; // clang-format on
+        }
+        else if(miopen::deref(convDesc).GetSpatialDimension() == 3)
+        {
+            ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
+                << " -c " << miopen::deref(xDesc).GetLengths()[1]
+                << " --in_d " << miopen::deref(xDesc).GetLengths()[2]
+                << " -H " << miopen::deref(xDesc).GetLengths()[3]
+                << " -W " << miopen::deref(xDesc).GetLengths()[4]
+                << " -k " << miopen::deref(wDesc).GetLengths()[0]
+                << " --fil_d " << miopen::deref(wDesc).GetLengths()[2]
+                << " -y " << miopen::deref(wDesc).GetLengths()[3]
+                << " -x " << miopen::deref(wDesc).GetLengths()[4]
+                << " --pad_d " << miopen::deref(convDesc).GetConvPads()[0]
+                << " -p " << miopen::deref(convDesc).GetConvPads()[1]
+                << " -q " << miopen::deref(convDesc).GetConvPads()[2]
+                << " --conv_stride_d " << miopen::deref(convDesc).GetConvStrides()[0]
+                << " -u " << miopen::deref(convDesc).GetConvStrides()[1]
+                << " -v " << miopen::deref(convDesc).GetConvStrides()[2]
+                << " --dilation_d " << miopen::deref(convDesc).GetConvDilations()[0]
+                << " -l " << miopen::deref(convDesc).GetConvDilations()[1]
+                << " -j " << miopen::deref(convDesc).GetConvDilations()[2]
+                << " --spatial_dim 3"; // clang-format on
+        }
+        ss << " -m " << (miopen::deref(convDesc).mode == 1 ? "trans" : "conv") // clang-format off
             << " -g " << miopen::deref(convDesc).group_count
             << " -F " << std::to_string(static_cast<int>(conv_dir))
             << " -t 1"; // clang-format on

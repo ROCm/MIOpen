@@ -79,9 +79,9 @@ struct verify_inference_batchnorm_activ
                                      tensor<T>& pinput,
                                      miopenActivationDescriptor_t pactivDesc,
                                      tensor<U>& pbnscale,
-                                     tensor<U>& pbnbias,
-                                     tensor<U>& pestMean,
-                                     tensor<U>& pestVariance,
+                                     const tensor<U>& pbnbias,
+                                     const tensor<U>& pestMean,
+                                     const tensor<U>& pestVariance,
                                      miopenBatchNormMode_t pbnmode,
                                      miopenFusionOpDescriptor_t pbNormOp,
                                      miopenFusionOpDescriptor_t pactivOp)

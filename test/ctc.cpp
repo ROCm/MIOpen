@@ -548,8 +548,8 @@ struct verify_ctcloss
                    const std::vector<int>& pLB,
                    const std::vector<int>& pLL,
                    const std::vector<int>& pIL,
-                   tensor<T>& pLS,
-                   tensor<T>& pGD)
+                   const tensor<T>& pLS,
+                   const tensor<T>& pGD)
     {
         ctcLossDesc  = pCLD;
         probs        = pPB;

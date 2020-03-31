@@ -120,7 +120,7 @@ int SearchableTestSolver::_serches_done = 0;
 
 static solver::ConvSolution FindSolution(const ConvolutionContext& ctx, const std::string& db_path)
 {
-    Db db(db_path);
+    PlainTextDb db(db_path);
 
     const auto solvers = solver::SolverContainer<TrivialTestSolver, SearchableTestSolver>{};
 

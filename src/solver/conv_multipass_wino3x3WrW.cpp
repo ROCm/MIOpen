@@ -138,7 +138,7 @@ struct InTransform
         std::ostringstream options;
         GenerateClangDefsym(options, "acc_type", 1);
         GenerateClangDefsym(options, "buf_type", (params.IsFp32() ? 1 : (params.IsFp16() ? 2 : 3)));
-        GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 4);
+        GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
         GenerateClangDefsym(options, "xformx_o_size", WinoDataW);
         GenerateClangDefsym(options, "xformy_o_size", WinoDataH);
         GenerateClangDefsym(options, "xformx_d_size", wino_xform_w);
@@ -244,7 +244,7 @@ struct FilterTransform
         std::ostringstream options;
         GenerateClangDefsym(options, "acc_type", 1);
         GenerateClangDefsym(options, "buf_type", (params.IsFp32() ? 1 : (params.IsFp16() ? 2 : 3)));
-        GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 4);
+        GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
         GenerateClangDefsym(options, "MIOPEN_USE_RNE_BFLOAT16", MIOPEN_USE_RNE_BFLOAT16);
         GenerateClangDefsym(options, "xformx_o_size", WinoDataW);
         GenerateClangDefsym(options, "xformy_o_size", WinoDataH);

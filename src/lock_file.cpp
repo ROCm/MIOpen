@@ -23,24 +23,70 @@
 * SOFTWARE.
 *
 *******************************************************************************/
+
+#include <miopen/errors.hpp>
 #include <miopen/lock_file.hpp>
+#include <miopen/logger.hpp>
 #include <miopen/md5.hpp>
+
+namespace fs = boost::filesystem;
 
 namespace miopen {
 
-std::string LockFilePath(const boost::filesystem::path& filename_)
+inline void LogFsError(const fs::filesystem_error& ex, const std::string& from)
 {
-    const auto directory = boost::filesystem::temp_directory_path() / "miopen-lockfiles";
+    // clang-format off
+    MIOPEN_LOG_E_FROM(from, "File system operation error in LockFile. "
+                            "Error code: " << ex.code() << ". "
+                            "Description: '" << ex.what() << "'");
+    // clang-format on
+}
 
-    if(!exists(directory))
+std::string LockFilePath(const fs::path& filename_)
+{
+    try
     {
-        boost::filesystem::create_directories(directory);
-        boost::filesystem::permissions(directory, boost::filesystem::all_all);
-    }
-    const auto hash = md5(filename_.parent_path().string());
-    const auto file = directory / (hash + "_" + filename_.filename().string() + ".lock");
+        const auto directory = fs::temp_directory_path() / "miopen-lockfiles";
 
-    return file.string();
+        if(!fs::exists(directory))
+        {
+            fs::create_directories(directory);
+            fs::permissions(directory, fs::all_all);
+        }
+        const auto hash = md5(filename_.parent_path().string());
+        const auto file = directory / (hash + "_" + filename_.filename().string() + ".lock");
+
+        return file.string();
+    }
+    catch(const fs::filesystem_error& ex)
+    {
+        LogFsError(ex, MIOPEN_GET_FN_NAME());
+        throw;
+    }
+}
+
+LockFile::LockFile(const char* path_, PassKey) : path(path_)
+{
+    try
+    {
+        if(!fs::exists(path))
+        {
+            if(!std::ofstream{path})
+                MIOPEN_THROW(std::string("Error creating file <") + path + "> for locking.");
+            fs::permissions(path, fs::all_all);
+        }
+        flock = path;
+    }
+    catch(const fs::filesystem_error& ex)
+    {
+        LogFsError(ex, MIOPEN_GET_FN_NAME());
+        throw;
+    }
+    catch(const boost::interprocess::interprocess_exception& ex)
+    {
+        LogFlockError(ex, "lock initialization", MIOPEN_GET_FN_NAME());
+        throw;
+    }
 }
 
 LockFile& LockFile::Get(const char* path)

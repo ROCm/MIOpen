@@ -30,6 +30,34 @@
 #include <miopen/handle.hpp>
 #include <miopen/tensor_ops.hpp>
 
+static void LogCmdSoftmax(const miopenTensorDescriptor_t xDesc,
+                          const miopenSoftmaxAlgorithm_t algo,
+                          const miopenSoftmaxMode_t mode,
+                          const void* alpha,
+                          const void* beta,
+                          bool is_fwd)
+{
+    if(miopen::IsLoggingCmd())
+    {
+        std::stringstream ss;
+        if(miopen::deref(xDesc).GetType() == miopenHalf)
+            ss << "softmaxfp16";
+        else
+            ss << "softmax";
+        // clang-format off
+        ss << " -n " << miopen::deref(xDesc).GetLengths()[0] 
+           << " -c " << miopen::deref(xDesc).GetLengths()[1] 
+           << " -H " << miopen::deref(xDesc).GetLengths()[2]
+           << " -W " << miopen::deref(xDesc).GetLengths()[3]
+           << " -F " << ((is_fwd) ? "1" : "2") 
+           << " -a " << algo << " -m " << mode
+           << " -A " << ((alpha == nullptr)?"1": std::to_string(*static_cast<const float*>(alpha)))
+           << " -B " << ((beta == nullptr)?"0":std::to_string(*static_cast<const float*>(beta)));
+        // clang-format on
+        MIOPEN_LOG_DRIVER_CMD(ss.str());
+    }
+}
+
 extern "C" miopenStatus_t miopenSoftmaxForward(miopenHandle_t handle,
                                                const void* alpha,
                                                const miopenTensorDescriptor_t xDesc,
@@ -46,7 +74,7 @@ extern "C" miopenStatus_t miopenSoftmaxForward(miopenHandle_t handle,
     {
         return miopenStatusNotImplemented;
     }
-
+    LogCmdSoftmax(xDesc, MIOPEN_SOFTMAX_ACCURATE, MIOPEN_SOFTMAX_MODE_CHANNEL, alpha, beta, true);
     return miopen::try_([&] {
         miopen::SoftmaxForward(miopen::deref(handle),
                                alpha,
@@ -82,6 +110,7 @@ extern "C" miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
     {
         return miopenStatusNotImplemented;
     }
+    LogCmdSoftmax(dxDesc, MIOPEN_SOFTMAX_ACCURATE, MIOPEN_SOFTMAX_MODE_CHANNEL, alpha, beta, false);
 
     return miopen::try_([&] {
         miopen::SoftmaxBackward(miopen::deref(handle),
@@ -112,6 +141,13 @@ extern "C" miopenStatus_t miopenSoftmaxForward_V2(miopenHandle_t handle,
                                                   miopenSoftmaxMode_t mode)
 {
     MIOPEN_LOG_FUNCTION(alpha, xDesc, x, beta, yDesc, y, algorithm, mode);
+    // check for supported data types
+    if(miopen::deref(xDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(yDesc).GetType() == miopenBFloat16)
+    {
+        return miopenStatusNotImplemented;
+    }
+    LogCmdSoftmax(xDesc, algorithm, mode, alpha, beta, true);
     return miopen::try_([&] {
         miopen::SoftmaxForward(miopen::deref(handle),
                                alpha,
@@ -141,6 +177,13 @@ extern "C" miopenStatus_t miopenSoftmaxBackward_V2(miopenHandle_t handle,
 {
 
     MIOPEN_LOG_FUNCTION(alpha, yDesc, y, dyDesc, dy, beta, dxDesc, dx, algorithm, mode);
+    if(miopen::deref(yDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(dyDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(dxDesc).GetType() == miopenBFloat16)
+    {
+        return miopenStatusNotImplemented;
+    }
+    LogCmdSoftmax(dxDesc, algorithm, mode, alpha, beta, false);
     return miopen::try_([&] {
         miopen::SoftmaxBackward(miopen::deref(handle),
                                 alpha,

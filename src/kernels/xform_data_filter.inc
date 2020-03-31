@@ -1288,8 +1288,10 @@ endpgm:
 .altmacro
 .macro METADATA_WRAPPER sc, vc, wg_x, lds_size, kernarg_size, kernel_suf
     .if (xform_filter)
+        KERNEL_DESCRIPTOR_COV3 <miopenGcnAsmWinogradXformFilter\kernel_suf>
         METADATA \sc, \vc, \wg_x, \lds_size, \kernarg_size, <miopenGcnAsmWinogradXformFilter\kernel_suf>
     .else
+        KERNEL_DESCRIPTOR_COV3 <miopenGcnAsmWinogradXformData\kernel_suf>
         METADATA \sc, \vc, \wg_x, \lds_size, \kernarg_size, <miopenGcnAsmWinogradXformData\kernel_suf>
     .endif
 .endm

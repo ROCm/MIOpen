@@ -345,7 +345,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                     exit(-1);
                 }
                 solutions.resize(count);
-                std::sort(solutions.begin(), solutions.end(), [](auto& l, auto& r) {
+                std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {
                     return l.time < r.time;
                 });
                 selected = solutions.front();
@@ -410,7 +410,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                     exit(-1);
                 }
                 solutions.resize(count);
-                std::sort(solutions.begin(), solutions.end(), [](auto& l, auto& r) {
+                std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {
                     return l.time < r.time;
                 });
                 selected = solutions.front();
@@ -758,7 +758,7 @@ struct verify_backward_conv : conv_base<T>
                     exit(-1);
                 }
                 solutions.resize(count);
-                std::sort(solutions.begin(), solutions.end(), [](auto& l, auto& r) {
+                std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {
                     return l.time < r.time;
                 });
                 selected = solutions.front();
@@ -823,7 +823,7 @@ struct verify_backward_conv : conv_base<T>
                     exit(-1);
                 }
                 solutions.resize(count);
-                std::sort(solutions.begin(), solutions.end(), [](auto& l, auto& r) {
+                std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {
                     return l.time < r.time;
                 });
                 selected = solutions.front();
@@ -1085,7 +1085,7 @@ struct verify_backward_weights_conv : conv_base<T>
                 exit(-1);
             }
             solutions.resize(count);
-            std::sort(solutions.begin(), solutions.end(), [](auto& l, auto& r) {
+            std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {
                 return l.time < r.time;
             });
             selected = solutions.front();
@@ -1340,8 +1340,9 @@ struct verify_forward_conv_int8 : conv_base<T>
             exit(-1);
         }
         solutions.resize(count);
-        std::sort(
-            solutions.begin(), solutions.end(), [](auto& l, auto& r) { return l.time < r.time; });
+        std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {
+            return l.time < r.time;
+        });
         auto selected = solutions.front();
 
         std::size_t ws_size;

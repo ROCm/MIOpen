@@ -198,6 +198,47 @@ extern "C" miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t
     return miopen::try_([&] { miopen_destroy_object(tensorDesc); });
 }
 
+static void LogCmdTensorOp(miopenTensorOp_t tensorOp,
+                           const void* alpha,
+                           const void* alpha2,
+                           const void* beta,
+                           const miopenTensorDescriptor_t aDesc,
+                           bool is_set,
+                           bool is_scale)
+{
+    if(miopen::IsLoggingCmd())
+    {
+        std::stringstream ss;
+        if(miopen::deref(aDesc).GetType() == miopenHalf)
+            ss << "tensoropfp16";
+        else
+            ss << "tensorop";
+        assert(!(is_set && is_scale));
+        if(!is_set && !is_scale)
+        {
+            // clang-format off
+            ss << " -A " << std::to_string(*static_cast<const float*>(alpha)) 
+               << " -B " << std::to_string(*static_cast<const float*>(alpha2)) 
+               << " -G " << std::to_string(*static_cast<const float*>(beta));
+            // clang-format on
+        }
+        // clang-format off
+        ss << " -n " << miopen::deref(aDesc).GetLengths()[0] 
+           << " -c " << miopen::deref(aDesc).GetLengths()[1]
+           << " -H " << miopen::deref(aDesc).GetLengths()[2] 
+           << " -W " << miopen::deref(aDesc).GetLengths()[3];
+        // clag-format on
+        if(is_set)
+            ss << " -o 0 -v " << std::to_string(*static_cast<const float*>(alpha));
+        else if(is_scale)
+            ss << " -o 1 -v " << std::to_string(*static_cast<const float*>(alpha));
+        else
+            ss << " -o " << static_cast<int>(tensorOp) + 2;
+
+        MIOPEN_LOG_DRIVER_CMD(ss.str());
+    }
+}
+
 extern "C" miopenStatus_t miopenOpTensor(miopenHandle_t handle,
                                          miopenTensorOp_t tensorOp,
                                          const void* alpha1,
@@ -212,6 +253,7 @@ extern "C" miopenStatus_t miopenOpTensor(miopenHandle_t handle,
 {
 
     MIOPEN_LOG_FUNCTION(tensorOp, alpha1, aDesc, A, alpha2, bDesc, B, beta, cDesc, C);
+    LogCmdTensorOp(tensorOp, alpha1, alpha2, beta, aDesc, false, false);
     return miopen::try_([&] {
         OpTensor(miopen::deref(handle),
                  tensorOp,
@@ -234,6 +276,7 @@ extern "C" miopenStatus_t miopenSetTensor(miopenHandle_t handle,
 {
 
     MIOPEN_LOG_FUNCTION(handle, yDesc, y, alpha);
+    LogCmdTensorOp(miopenTensorOpAdd, alpha, nullptr, nullptr, yDesc, true, false);
     return miopen::try_(
         [&] { SetTensor(miopen::deref(handle), miopen::deref(yDesc), DataCast(y), alpha); });
 }
@@ -245,6 +288,7 @@ extern "C" miopenStatus_t miopenScaleTensor(miopenHandle_t handle,
 {
 
     MIOPEN_LOG_FUNCTION(handle, yDesc, y, alpha);
+    LogCmdTensorOp(miopenTensorOpAdd, alpha,nullptr, nullptr, yDesc, false, true);
     return miopen::try_(
         [&] { ScaleTensor(miopen::deref(handle), miopen::deref(yDesc), DataCast(y), alpha); });
 }
@@ -259,6 +303,8 @@ extern "C" miopenStatus_t miopenTransformTensor(miopenHandle_t handle,
 {
     // dstValue = alpha[0]*srcValue + beta[0]*priorDstValue
     MIOPEN_LOG_FUNCTION(handle, alpha, xDesc, x, beta, yDesc, y);
+    float zero = 0.0f;
+    LogCmdTensorOp(miopenTensorOpAdd, alpha, beta, static_cast<void*>(&zero), xDesc, false, false);
     return miopen::try_([&] {
         TransformTensor(miopen::deref(handle),
                         alpha,

@@ -127,7 +127,7 @@ class KernelBuildParameters
 
     bool ValidateUniqueness(const std::string& name) const
     {
-        const auto eq = [=](auto& item) { return item.name == name; };
+        const auto eq = [=](const auto& item) { return item.name == name; };
         return std::find_if(options.begin(), options.end(), eq) == options.end();
     }
 };

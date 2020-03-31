@@ -52,6 +52,7 @@ struct FindDbData : solver::Serializable<FindDbData>
     std::size_t workspace;
     /// kcache_key may have a special value <unused> in network_config. It means that the particular
     /// solver doesn't use kernel cache and doesn't require a validation of built kernel existence.
+    // Todo: remove when all finds will support invokers
     FindDbKCacheKey kcache_key;
 
     FindDbData() : solver_id("<invalid>"), time(-1), workspace(-1) {}

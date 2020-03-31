@@ -50,6 +50,12 @@ struct integer_divide_ceiler
 };
 
 template <class X, class Y>
+__host__ __device__ constexpr auto integer_divide_floor(X x, Y y)
+{
+    return x / y;
+}
+
+template <class X, class Y>
 __host__ __device__ constexpr auto integer_divide_ceil(X x, Y y)
 {
     return (x + y - 1) / y;
@@ -97,12 +103,52 @@ __host__ __device__ constexpr T min(T x, Ts... xs)
     return x < y ? x : y;
 }
 
-// this is WRONG
-// TODO: implement least common multiple properly, instead of calling max()
-template <class T, class... Ts>
-__host__ __device__ constexpr T lcm(T x, Ts... xs)
+// greatest common divisor, aka highest common factor
+template <typename T>
+__host__ __device__ constexpr T gcd(T x, T y)
 {
-    return max(x, xs...);
+    if(x == y || x == 0)
+    {
+        return y;
+    }
+    else if(y == 0)
+    {
+        return x;
+    }
+    else if(x > y)
+    {
+        return gcd(x - y, y);
+    }
+    else
+    {
+        return gcd(x, y - x);
+    }
+}
+
+template <index_t X, index_t Y>
+__host__ __device__ constexpr auto gcd(Number<X>, Number<Y>)
+{
+    constexpr auto result = gcd(X, Y);
+    return Number<result>{};
+}
+
+template <typename X, typename... Ys>
+__host__ __device__ constexpr auto gcd(X x, Ys... ys)
+{
+    return gcd(x, ys...);
+}
+
+// least common multiple
+template <typename T>
+__host__ __device__ constexpr T lcm(T x, T y)
+{
+    return (x * y) / gcd(x, y);
+}
+
+template <typename X, typename... Ys>
+__host__ __device__ constexpr auto lcm(X x, Ys... ys)
+{
+    return lcm(x, lcm(ys...));
 }
 
 template <class T>

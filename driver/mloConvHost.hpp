@@ -1022,15 +1022,19 @@ int mloDirectSPHost(
 
 template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
           typename _Tcheck /* the data type used in CPU checkings (usually double) */>
-bool mloVerify(int n_batchs,
+bool mloVerify(int spatial_dim,
+               int n_batchs,
                int n_channels,
+               int depth,
                int height,
                int width,
                int c_batch_stride,
                int c_channel_stride,
+               int c_depth_stride,
                int c_stride,
                int g_batch_stride,
                int g_channel_stride,
+               int g_depth_stride,
                int g_stride,
                const _Tcheck* c_ptr,
                const _Tgpu* g_ptr,
@@ -1048,40 +1052,45 @@ bool mloVerify(int n_batchs,
     _Tcheck c_val_err = static_cast<_Tcheck>(0);
     _Tcheck g_val_err = static_cast<_Tcheck>(0);
     _Tcheck max_err   = max_abs_diff;
-    int max_b = 0, max_c = 0, max_i = 0, max_j = 0;
+    int max_b = 0, max_c = 0, max_i = 0, max_j = 0, max_k = 0;
 
     for(int b = 0; b < n_batchs; ++b)
     {
         for(int c = 0; c < n_channels; ++c)
         {
-            for(int j = 0; j < height; ++j)
+            for(int k = 0; k < depth; ++k)
             {
-                for(int i = 0; i < width; ++i)
+                for(int j = 0; j < height; ++j)
                 {
-                    _Tcheck c_val =
-                        c_ptr[b * c_batch_stride + c * c_channel_stride + j * c_stride + i];
-                    _Tcheck g_val = static_cast<_Tcheck>(
-                        g_ptr[b * g_batch_stride + c * g_channel_stride + j * g_stride + i]);
-
-                    sqr_accum += (c_val - g_val) * (c_val - g_val);
-                    _Tcheck err = std::abs(c_val - static_cast<_Tcheck>(g_val));
-                    if(err > max_err)
+                    for(int i = 0; i < width; ++i)
                     {
-                        max_err   = err;
-                        c_val_err = c_val;
-                        g_val_err = g_val;
-                        max_b     = b;
-                        max_c     = c;
-                        max_i     = i;
-                        max_j     = j;
+                        _Tcheck c_val = c_ptr[b * c_batch_stride + c * c_channel_stride +
+                                              k * c_depth_stride + j * c_stride + i];
+                        _Tcheck g_val =
+                            static_cast<_Tcheck>(g_ptr[b * g_batch_stride + c * g_channel_stride +
+                                                       k * g_depth_stride + j * g_stride + i]);
+
+                        sqr_accum += (c_val - g_val) * (c_val - g_val);
+                        _Tcheck err = std::abs(c_val - static_cast<_Tcheck>(g_val));
+                        if(err > max_err)
+                        {
+                            max_err   = err;
+                            c_val_err = c_val;
+                            g_val_err = g_val;
+                            max_b     = b;
+                            max_c     = c;
+                            max_i     = i;
+                            max_j     = j;
+                            max_k     = k;
+                        }
                     }
                 }
             }
         }
     }
 
-    sqr_accum =
-        std::sqrt(sqr_accum / (static_cast<_Tcheck>(n_batchs * n_channels * height * width)));
+    sqr_accum = std::sqrt(sqr_accum /
+                          (static_cast<_Tcheck>(n_batchs * n_channels * depth * height * width)));
 
     bool match = true;
 
@@ -1089,8 +1098,12 @@ bool mloVerify(int n_batchs,
     {
         std::cout << "Sqr error : " << std::fixed << std::setw(15) << std::setprecision(13)
                   << sqr_accum << " Max err: " << std::fixed << std::setw(15)
-                  << std::setprecision(13) << max_err << " at " << max_b << ", " << max_c << ", "
-                  << max_j << ", " << max_i << " c_v = " << std::fixed << std::setw(14)
+                  << std::setprecision(13) << max_err << " at " << max_b << ", " << max_c << ", ";
+        if(spatial_dim == 3)
+        {
+            std::cout << max_k << ", ";
+        }
+        std::cout << max_j << ", " << max_i << " c_v = " << std::fixed << std::setw(14)
                   << std::setprecision(12) << c_val_err << " vs g_v = " << std::fixed
                   << std::setw(14) << std::setprecision(12) << g_val_err << std::endl;
 
@@ -1101,29 +1114,37 @@ bool mloVerify(int n_batchs,
             {
                 for(int c = 0; c < n_channels && match; ++c)
                 {
-                    for(int j = 0; j < height && match; ++j)
+                    for(int k = 0; k < depth && match; ++k)
                     {
-                        for(int i = 0; i < width && match; ++i)
+                        for(int j = 0; j < height && match; ++j)
                         {
-                            _Tcheck c_val =
-                                c_ptr[b * c_batch_stride + c * c_channel_stride + j * c_stride + i];
-                            _Tcheck g_val = static_cast<_Tcheck>(
-                                g_ptr[b * g_batch_stride + c * g_channel_stride + j * g_stride +
-                                      i]);
-
-                            _Tcheck err = CalcErr<_Tcheck>(c_val, g_val);
-                            if((err > eps && std::abs(c_val - g_val) > max_abs_diff) ||
-                               std::isnan(c_val) || std::isnan(g_val) || !std::isfinite(c_val) ||
-                               !std::isfinite(g_val))
+                            for(int i = 0; i < width && match; ++i)
                             {
-                                std::cout << "Difference : " << err
-                                          << " too large (eps=" << std::fixed << std::setw(14)
-                                          << std::setprecision(12) << eps << ") at " << b << ","
-                                          << c << ", " << j << "," << i << " c_v = " << std::fixed
-                                          << std::setw(14) << std::setprecision(12) << c_val
-                                          << " vs g_v = " << std::fixed << std::setw(14)
-                                          << std::setprecision(12) << g_val << std::endl;
-                                match = false;
+                                _Tcheck c_val = c_ptr[b * c_batch_stride + c * c_channel_stride +
+                                                      k * c_depth_stride + j * c_stride + i];
+                                _Tcheck g_val = static_cast<_Tcheck>(
+                                    g_ptr[b * g_batch_stride + c * g_channel_stride +
+                                          k * g_depth_stride + j * g_stride + i]);
+
+                                _Tcheck err = CalcErr<_Tcheck>(c_val, g_val);
+                                if((err > eps && std::abs(c_val - g_val) > max_abs_diff) ||
+                                   std::isnan(c_val) || std::isnan(g_val) ||
+                                   !std::isfinite(c_val) || !std::isfinite(g_val))
+                                {
+                                    std::cout << "Difference : " << err
+                                              << " too large (eps=" << std::fixed << std::setw(14)
+                                              << std::setprecision(12) << eps << ") at " << b << ","
+                                              << c << ", ";
+                                    if(spatial_dim == 3)
+                                    {
+                                        std::cout << k << ", ";
+                                    }
+                                    std::cout << j << "," << i << " c_v = " << std::fixed
+                                              << std::setw(14) << std::setprecision(12) << c_val
+                                              << " vs g_v = " << std::fixed << std::setw(14)
+                                              << std::setprecision(12) << g_val << std::endl;
+                                    match = false;
+                                }
                             }
                         }
                     }

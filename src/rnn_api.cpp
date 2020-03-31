@@ -31,6 +31,13 @@
 #include <miopen/tensor_ops.hpp>
 #include <vector>
 
+enum RNNDir_t
+{
+    ForwardInference,
+    ForwardTraining,
+    BackwardData,
+    BackwardWeights
+};
 extern "C" miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rnnDesc)
 {
     MIOPEN_LOG_FUNCTION(rnnDesc);
@@ -340,7 +347,7 @@ extern "C" miopenStatus_t miopenSetRNNLayerBias(miopenHandle_t handle,
 static void LogCmdRNN(const miopenTensorDescriptor_t* xDesc,
                       const miopenRNNDescriptor_t rnnDesc,
                       const int seqLength,
-                      const int fwdtype)
+                      const RNNDir_t dir)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -383,8 +390,10 @@ static void LogCmdRNN(const miopenTensorDescriptor_t* xDesc,
            << " -m " << mode
            << " -p " << (miopen::deref(rnnDesc).inputMode == miopenRNNlinear ? "0" : "1")
            << " -r " << (miopen::deref(rnnDesc).dirMode == miopenRNNunidirection ? "0" : "1")
-           << " -k " << seqLength
-           << " -c " << fwdtype
+           << " -k " << seqLength;
+        if(dir == ForwardInference || dir == ForwardTraining)
+           ss << " -c " << ((dir == ForwardTraining)?"0":"1");
+        ss << " -F " << ((dir == ForwardInference || dir == ForwardTraining)?"1":(dir == BackwardData)?"2":"4")
            << " -t 1 -w 1"; // clang-format on
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
@@ -434,7 +443,6 @@ extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
                         workSpaceNumBytes,
                         reserveSpace,
                         reserveSpaceNumBytes);
-    LogCmdRNN(xDesc, rnnDesc, sequenceLen, 0);
 
     // bfloat16 not supported for rnn operation
     if(miopen::deref(wDesc).GetType() == miopenBFloat16 ||
@@ -442,6 +450,7 @@ extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
     {
         return miopenStatusNotImplemented;
     }
+    LogCmdRNN(xDesc, rnnDesc, sequenceLen, ForwardTraining);
 
     return miopen::try_([&] {
 
@@ -532,6 +541,7 @@ extern "C" miopenStatus_t miopenRNNBackwardData(miopenHandle_t handle,
     {
         return miopenStatusNotImplemented;
     }
+    LogCmdRNN(dxDesc, rnnDesc, sequenceLen, BackwardData);
 
     return miopen::try_([&] {
 
@@ -607,6 +617,7 @@ miopenStatus_t miopenRNNBackwardWeights(miopenHandle_t handle,
     {
         return miopenStatusNotImplemented;
     }
+    LogCmdRNN(xDesc, rnnDesc, sequenceLen, BackwardWeights);
 
     return miopen::try_([&] {
 
@@ -669,7 +680,7 @@ extern "C" miopenStatus_t miopenRNNForwardInference(miopenHandle_t handle,
                         cy,
                         workSpace,
                         workSpaceNumBytes);
-    LogCmdRNN(xDesc, rnnDesc, sequenceLen, 1);
+    LogCmdRNN(xDesc, rnnDesc, sequenceLen, ForwardInference);
     return miopen::try_([&] {
         miopen::c_array_view<const miopenTensorDescriptor_t> xDescArray{xDesc, size_t(sequenceLen)};
         miopen::c_array_view<const miopenTensorDescriptor_t> yDescArray{yDesc, size_t(sequenceLen)};
