@@ -29,9 +29,10 @@ struct static_for
 {
     __host__ __device__ constexpr static_for()
     {
-        static_assert(NBegin <= NEnd, "wrongs! should have NBegin <= NEnd");
-        static_assert((NEnd - NBegin) % Increment == 0,
+        static_assert(Increment != 0 && (NEnd - NBegin) % Increment == 0,
                       "Wrong! should satisfy (NEnd - NBegin) % Increment == 0");
+        static_assert((Increment > 0 && NBegin <= NEnd) || (Increment < 0 && NBegin >= NEnd),
+                      "wrongs! should have NBegin <= NEnd");
     }
 
     template <class F>

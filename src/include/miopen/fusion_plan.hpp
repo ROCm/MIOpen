@@ -46,9 +46,9 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     miopenStatus_t
     GetWorkspaceSizeImmed(Handle& handle, size_t& workSpaceSize, miopenConvFwdAlgorithm_t algo);
     miopenStatus_t Execute(Handle& handle,
-                           TensorDescriptor& inputDesc,
+                           const TensorDescriptor& inputDesc,
                            ConstData_t input,
-                           TensorDescriptor& outputDesc,
+                           const TensorDescriptor& outputDesc,
                            Data_t output,
                            const OperatorArgs& op_args);
     miopenStatus_t Compile(Handle& handle);

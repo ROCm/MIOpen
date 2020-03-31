@@ -1,30 +1,32 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2017 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 #ifndef GUARD_MIOPEN_LOCK_FILE_HPP_
 #define GUARD_MIOPEN_LOCK_FILE_HPP_
+
+#include <miopen/logger.hpp>
 
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
@@ -35,9 +37,10 @@
 
 #include <chrono>
 #include <fstream>
-#include <shared_mutex>
+#include <functional>
 #include <map>
 #include <mutex>
+#include <shared_mutex>
 #include <string>
 
 namespace miopen {
@@ -55,45 +58,67 @@ class LockFile
     };
 
     public:
-    LockFile(const char* path, PassKey)
-    {
-        if(!boost::filesystem::exists(path))
-        {
-            std::ofstream{path};
-            boost::filesystem::permissions(path, boost::filesystem::all_all);
-        }
-        flock = path;
-    }
+    LockFile(const char* path_, PassKey);
     LockFile(const LockFile&) = delete;
     LockFile operator=(const LockFile&) = delete;
 
-    void lock() { std::lock(access_mutex, flock); }
+    bool timed_lock(const boost::posix_time::ptime& abs_time)
+    {
+        access_mutex.lock();
+        return flock.timed_lock(abs_time);
+    }
+
+    bool timed_lock_shared(const boost::posix_time::ptime& abs_time)
+    {
+        access_mutex.lock_shared();
+        return flock.timed_lock_sharable(abs_time);
+    }
+    void lock()
+    {
+        LockOperation("lock", MIOPEN_GET_FN_NAME(), [&]() { std::lock(access_mutex, flock); });
+    }
+
     void lock_shared()
     {
         access_mutex.lock_shared();
-        flock.lock_sharable();
+        try
+        {
+            LockOperation("shared lock", MIOPEN_GET_FN_NAME(), [&]() { flock.lock_sharable(); });
+        }
+        catch(...)
+        {
+            access_mutex.unlock();
+        }
     }
-    bool try_lock() { return std::try_lock(access_mutex, flock) != 0; }
+
+    bool try_lock()
+    {
+        return TryLockOperation("lock", MIOPEN_GET_FN_NAME(), [&]() {
+            return std::try_lock(access_mutex, flock) != 0;
+        });
+    }
+
     bool try_lock_shared()
     {
         if(!access_mutex.try_lock_shared())
             return false;
 
-        if(!flock.try_lock_sharable())
-        {
-            access_mutex.unlock_shared();
-            return false;
-        }
-        return true;
+        if(TryLockOperation(
+               "shared lock", MIOPEN_GET_FN_NAME(), [&]() { return flock.try_lock_sharable(); }))
+            return true;
+        access_mutex.unlock();
+        return false;
     }
+
     void unlock()
     {
-        flock.unlock();
+        LockOperation("unlock", MIOPEN_GET_FN_NAME(), [&]() { flock.unlock(); });
         access_mutex.unlock();
     }
+
     void unlock_shared()
     {
-        flock.unlock_sharable();
+        LockOperation("unlock shared", MIOPEN_GET_FN_NAME(), [&]() { flock.unlock_sharable(); });
         access_mutex.unlock_shared();
     }
 
@@ -105,12 +130,12 @@ class LockFile
         if(!access_mutex.try_lock_for(duration))
             return false;
 
-        if(!flock.timed_lock(ToPTime(duration)))
-        {
-            access_mutex.unlock();
-            return false;
-        }
-        return true;
+        if(TryLockOperation("timed lock", MIOPEN_GET_FN_NAME(), [&]() {
+               return flock.timed_lock(ToPTime(duration));
+           }))
+            return true;
+        access_mutex.unlock();
+        return false;
     }
 
     template <class TDuration>
@@ -119,12 +144,12 @@ class LockFile
         if(!access_mutex.try_lock_shared_for(duration))
             return false;
 
-        if(!flock.timed_lock_sharable(ToPTime(duration)))
-        {
-            access_mutex.unlock();
-            return false;
-        }
-        return true;
+        if(TryLockOperation("shared timed lock", MIOPEN_GET_FN_NAME(), [&]() {
+               return flock.timed_lock_sharable(ToPTime(duration));
+           }))
+            return true;
+        access_mutex.unlock();
+        return false;
     }
 
     template <class TPoint>
@@ -140,6 +165,7 @@ class LockFile
     }
 
     private:
+    const char* path; // For logging purposes
     std::shared_timed_mutex access_mutex;
     boost::interprocess::file_lock flock;
 
@@ -155,6 +181,50 @@ class LockFile
         return boost::posix_time::second_clock::universal_time() +
                boost::posix_time::milliseconds(
                    std::chrono::duration_cast<std::chrono::milliseconds>(duration).count());
+    }
+
+    void LogFlockError(const boost::interprocess::interprocess_exception& ex,
+                       const std::string& operation,
+                       const std::string& from) const
+    {
+        // clang-format off
+        MIOPEN_LOG_E_FROM(from, "File <" << path << "> " << operation << " failed. "
+                                "Error code: " << ex.get_error_code() << ". "
+                                "Native error: " << ex.get_native_error() << ". "
+                                "Description: '" << ex.what() << "'");
+        // clang-format on
+    }
+
+    void
+    LockOperation(const std::string& op_name, const std::string& from, std::function<void()>&& op)
+    {
+        try
+        {
+            op();
+        }
+        catch(const boost::interprocess::interprocess_exception& ex)
+        {
+            LogFlockError(ex, op_name, from);
+            throw;
+        }
+    }
+
+    bool TryLockOperation(const std::string& op_name,
+                          const std::string& from,
+                          std::function<bool()>&& op)
+    {
+        try
+        {
+            if(op())
+                return true;
+            MIOPEN_LOG_W("File <" << path << "> " << op_name << " timed out.");
+            return false;
+        }
+        catch(const boost::interprocess::interprocess_exception& ex)
+        {
+            LogFlockError(ex, op_name, from);
+            return false;
+        }
     }
 };
 } // namespace miopen

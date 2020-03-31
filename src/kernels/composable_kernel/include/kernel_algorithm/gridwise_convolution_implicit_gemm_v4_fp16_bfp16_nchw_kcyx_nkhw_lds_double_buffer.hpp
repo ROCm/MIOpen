@@ -77,14 +77,14 @@ template <index_t GridSize,
           class InBlockCopySrcAccessOrder,
           class InBlockCopyDstAccessOrder,
           index_t InBlockCopySrcDataPerRead_B,
-          index_t InBlockCopyDstDataPerWrite_N2,
+          index_t InBlockCopyDstDataPerWrite_EPACK,
           class WeiBlockCopySubLengths_E_K_EPACK,
           class WeiBlockCopyClusterLengths_E_K_EPACK,
           class WeiBlockCopyThreadClusterArrangeOrder,
           class WeiBlockCopySrcAccessOrder,
           class WeiBlockCopyDstAccessOrder,
           index_t WeiBlockCopySrcDataPerRead_E,
-          index_t WeiBlockCopyDstDataPerWrite_K>
+          index_t WeiBlockCopyDstDataPerWrite_EPACK>
 struct GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_buffer
 {
     __device__ void Run(const Float* const __restrict__ p_in_global,
@@ -136,15 +136,17 @@ struct GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_b
         constexpr auto nonVectorizedC = C / EPACK;
         constexpr index_t E           = nonVectorizedC * Y * X;
 
+        static_assert(InBlockCopyDstDataPerWrite_EPACK == EPACK,
+                      "Vector length of input block needs to be EPACK");
+        static_assert(WeiBlockCopyDstDataPerWrite_EPACK == EPACK,
+                      "Vector length of weight block needs to be EPACK");
+
         // divide block work by [K, B]
-        static_assert(K % KPerBlock == 0 && B % BPerBlock == 0 && E % (2 * EPerBlock) == 0,
+        static_assert(K % KPerBlock == 0 && B % BPerBlock == 0 && E % EPerBlock == 0,
                       "wrong! cannot divide work evenly among block");
 
         constexpr index_t KBlockWork = K / KPerBlock;
         constexpr index_t BBlockWork = B / BPerBlock;
-
-        constexpr index_t InBlockCopyDstDataPerWrite_EPACK  = EPACK;
-        constexpr index_t WeiBlockCopyDstDataPerWrite_EPACK = EPACK;
 
         constexpr auto block_work_desc =
             make_ConstantTensorDescriptor_packed(Sequence<KBlockWork, BBlockWork>{});
@@ -184,14 +186,15 @@ struct GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_b
 
         //     memory layout descriptor in LDS [E, N1, B, N2, {2C/4C}], dst of blockwise copy
         //     be careful of LDS alignment
-        constexpr auto in_e_n1_b_n2_2eor4e_block_desc =
-            make_ConstantTensorDescriptor_aligned(Sequence<EPerBlock, N1, BPerBlock, N2, EPACK>{},
-                                                  Number<InBlockCopyDstDataPerWrite_EPACK>{});
+        constexpr auto in_e_n1_b_n2_2eor4e_block_desc = make_ConstantTensorDescriptor_aligned(
+            Sequence<EPerBlock, N1, BPerBlock, N2, EPACK>{},
+            Number<InBlockCopyDstDataPerWrite_EPACK * GemmDataPerReadB>{});
 
         //     this check for GEMM is ad-hoc
         //     TODO: need to properly implement tensor descriptor with multiple alignment
         //     requirements
-        static_assert(in_e_n1_b_n2_2eor4e_block_desc.GetStride(I1) % (EPACK * GemmDataPerReadB) ==
+        static_assert(in_e_n1_b_n2_2eor4e_block_desc.GetStride(I1) %
+                              (InBlockCopyDstDataPerWrite_EPACK * GemmDataPerReadB) ==
                           0,
                       "GemmDataPerReadB alignment requirement is not satisfied");
 
@@ -225,12 +228,15 @@ struct GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_b
         //     tensor descriptor in LDS, dst of blockwise copy
         //     be careful of LDS alignment
         constexpr auto wei_e_k_2eor4e_block_desc = make_ConstantTensorDescriptor_aligned(
-            Sequence<EPerBlock, KPerBlock, EPACK>{}, Number<WeiBlockCopyDstDataPerWrite_EPACK>{});
+            Sequence<EPerBlock, KPerBlock, EPACK>{},
+            Number<WeiBlockCopyDstDataPerWrite_EPACK * GemmDataPerReadA>{});
 
         //     this check for GEMM is ad-hoc
         //     TODO: need to properly implement tensor descriptor with multiple alignment
         //     requirements
-        static_assert(wei_e_k_2eor4e_block_desc.GetStride(I1) % (EPACK * GemmDataPerReadA) == 0,
+        static_assert(wei_e_k_2eor4e_block_desc.GetStride(I1) %
+                              (WeiBlockCopyDstDataPerWrite_EPACK * GemmDataPerReadA) ==
+                          0,
                       "GemmDataPerReadA alignment requirement is not satisfied");
 
         // operator for blockwise copy of weight into LDS
@@ -326,12 +332,7 @@ struct GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_b
             e_block_data_begin += 2 * EPerBlock)
         {
 
-            // hcc compilation error: loop not unrolled: the optimizer was unable to perform the
-            // requested transformation;
-            // the transformation might be disabled or specified as part of an unsupported
-            // transformation
-            // ordering [-Werror,-Wpass-failed=transform-warning]
-            //#pragma unroll
+#pragma unroll
             for(index_t iloop = 0; iloop < 2; ++iloop)
             {
                 const bool even_loop = (iloop % 2 == 0);
@@ -380,54 +381,70 @@ struct GridwiseConvolutionImplicitGemm_v4_fp16_bfp16_nchw_kcyx_nkhw_lds_double_b
 
         // LDS double buffer: tail
         {
-            Float p_in_thread_buffer[blockwise_in_copy.GetThreadBufferSize()];
-            Float p_wei_thread_buffer[blockwise_wei_copy.GetThreadBufferSize()];
+            constexpr bool has_two_iteration_left = (E % (2 * EPerBlock) == 0);
 
-            // even iteration
-            blockwise_in_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0, 0, 0, 0>{}, True);
-            static_if<ConvDirection == ConvolutionDirection::BackwardWeight>{}([&](auto fwd) {
-                fwd(blockwise_wei_copy).MoveSrcSliceWindow(Sequence<EPerBlock, 0, 0>{}, True);
-            }).Else([&](auto fwd) {
-                p_wei_block_on_global += EPerBlock * fwd(wei_e_k_2eor4e_global_desc).GetStride(I0);
-            });
+            if(has_two_iteration_left) // if has 2 iteration left
+            {
 
-            __syncthreads();
+                Float p_in_thread_buffer[blockwise_in_copy.GetThreadBufferSize()];
+                Float p_wei_thread_buffer[blockwise_wei_copy.GetThreadBufferSize()];
 
-            // LDS doubel buffer: load next data from device mem
-            blockwise_in_copy.RunLoadThreadBuffer(p_in_global, p_in_thread_buffer);
-            blockwise_wei_copy.RunLoadThreadBuffer(p_wei_block_on_global, p_wei_thread_buffer);
+                // even iteration
+                blockwise_in_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0, 0, 0, 0>{}, True);
+                static_if<ConvDirection == ConvolutionDirection::BackwardWeight>{}([&](auto fwd) {
+                    fwd(blockwise_wei_copy).MoveSrcSliceWindow(Sequence<EPerBlock, 0, 0>{}, True);
+                }).Else([&](auto fwd) {
+                    p_wei_block_on_global +=
+                        EPerBlock * fwd(wei_e_k_2eor4e_global_desc).GetStride(I0);
+                });
 
-            // LDS double buffer: GEMM on current data
-            // Vectorize the pointer to match with how half/bfloat16 datatypes are
-            // processed in gemm operation. Half type packs 4 half values while
-            // bfloat16 packs 2 bfloat16 values. Since gemm's matrix A and B
-            // 2D indexes are computed with a single value in mind (e.g. float),
-            // to retain the same 2D indexes for half/bfloat16, we recast datatype
-            // from a single half to 4 packed half/2 packed bfloat16 respectively.
-            const typename vector_type<Float, EPACK>::MemoryType* p_a_block_vec =
-                reinterpret_cast<const typename vector_type<Float, EPACK>::MemoryType*>(
-                    p_wei_block_double);
-            const typename vector_type<Float, EPACK>::MemoryType* p_b_block_vec =
-                reinterpret_cast<const typename vector_type<Float, EPACK>::MemoryType*>(
-                    p_in_block_double);
-            blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_out_thread);
+                __syncthreads();
 
-            // LDS double buffer: store next data to LDS
-            blockwise_in_copy.RunStoreThreadBuffer(p_in_thread_buffer,
-                                                   p_in_block_double + in_block_space);
-            blockwise_wei_copy.RunStoreThreadBuffer(p_wei_thread_buffer,
-                                                    p_wei_block_double + wei_block_space);
+                // LDS doubel buffer: load next data from device mem
+                blockwise_in_copy.RunLoadThreadBuffer(p_in_global, p_in_thread_buffer);
+                blockwise_wei_copy.RunLoadThreadBuffer(p_wei_block_on_global, p_wei_thread_buffer);
 
-            // odd iteration
-            __syncthreads();
+                // LDS double buffer: GEMM on current data
+                // Vectorize the pointer to match with how half/bfloat16 datatypes are
+                // processed in gemm operation. Half type packs 4 half values while
+                // bfloat16 packs 2 bfloat16 values. Since gemm's matrix A and B
+                // 2D indexes are computed with a single value in mind (e.g. float),
+                // to retain the same 2D indexes for half/bfloat16, we recast datatype
+                // from a single half to 4 packed half/2 packed bfloat16 respectively.
+                const typename vector_type<Float, EPACK>::MemoryType* p_a_block_vec =
+                    reinterpret_cast<const typename vector_type<Float, EPACK>::MemoryType*>(
+                        p_wei_block_double);
+                const typename vector_type<Float, EPACK>::MemoryType* p_b_block_vec =
+                    reinterpret_cast<const typename vector_type<Float, EPACK>::MemoryType*>(
+                        p_in_block_double);
+                blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_out_thread);
 
-            p_a_block_vec = reinterpret_cast<const typename vector_type<Float, EPACK>::MemoryType*>(
-                p_wei_block_double + wei_block_space);
-            p_b_block_vec = reinterpret_cast<const typename vector_type<Float, EPACK>::MemoryType*>(
-                p_in_block_double + in_block_space);
+                // LDS double buffer: store next data to LDS
+                blockwise_in_copy.RunStoreThreadBuffer(p_in_thread_buffer,
+                                                       p_in_block_double + in_block_space);
+                blockwise_wei_copy.RunStoreThreadBuffer(p_wei_thread_buffer,
+                                                        p_wei_block_double + wei_block_space);
 
-            // LDS double buffer: GEMM on current data
-            blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_out_thread);
+                // odd iteration
+                __syncthreads();
+
+                p_a_block_vec =
+                    reinterpret_cast<const typename vector_type<Float, EPACK>::MemoryType*>(
+                        p_wei_block_double + wei_block_space);
+                p_b_block_vec =
+                    reinterpret_cast<const typename vector_type<Float, EPACK>::MemoryType*>(
+                        p_in_block_double + in_block_space);
+
+                // LDS double buffer: GEMM on current data
+                blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_out_thread);
+            }
+            else // if has 1 iteration left
+            {
+                __syncthreads();
+
+                // LDS double buffer: GEMM on last data
+                blockwise_gemm.Run(p_wei_block_double, p_in_block_double, p_out_thread);
+            }
         }
 
         // copy output: register to global memory

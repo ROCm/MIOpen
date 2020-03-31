@@ -48,10 +48,15 @@ struct RecordPositions;
 class LockFile;
 
 /// No instance of this class should be used from several threads at the same time.
-class Db
+class PlainTextDb
 {
     public:
-    Db(const std::string& filename_, bool is_system = true);
+    PlainTextDb(const std::string& filename_,
+                bool is_system,
+                const std::string& arch,
+                std::size_t num_cu);
+
+    PlainTextDb(const std::string& filename_, bool is_system = false);
 
     /// Searches db for provided key and returns found record or none if key not found in database
     boost::optional<DbRecord> FindRecord(const std::string& key);
@@ -159,17 +164,20 @@ template <class TInstalled, class TUser, bool merge_records>
 class MultiFileDb
 {
     public:
-    MultiFileDb(const std::string& installed_path, const std::string& user_path)
-        : _installed(GetDbInstance<TInstalled>(installed_path, merge_records)),
-          _user(GetDbInstance<TUser>(user_path, false))
+    MultiFileDb(const std::string& installed_path,
+                const std::string& user_path,
+                const std::string& arch  = "",
+                const std::size_t num_cu = 0)
+        : _installed(GetDbInstance<TInstalled>(installed_path, true, arch, num_cu)),
+          _user(GetDbInstance<TUser>(user_path, false, arch, num_cu))
     {
     }
 
-    template <class T, bool merge = merge_records, std::enable_if_t<merge>* = nullptr>
-    boost::optional<DbRecord> FindRecord(const T& problem_config)
+    template <bool merge = merge_records, std::enable_if_t<merge>* = nullptr, typename... U>
+    auto FindRecord(const U&... args)
     {
-        auto users           = _user.FindRecord(problem_config);
-        const auto installed = _installed.FindRecord(problem_config);
+        auto users           = _user.FindRecord(args...);
+        const auto installed = _installed.FindRecord(args...);
 
         if(users && installed)
         {
@@ -183,68 +191,84 @@ class MultiFileDb
         return installed;
     }
 
-    template <class T, bool merge = merge_records, std::enable_if_t<!merge>* = nullptr>
-    boost::optional<DbRecord> FindRecord(const T& problem_config)
+    template <bool merge = merge_records, std::enable_if_t<!merge>* = nullptr, typename... U>
+    auto FindRecord(const U&... args)
     {
-        auto users = _user.FindRecord(problem_config);
-        return users ? users : _installed.FindRecord(problem_config);
+        auto users = _user.FindRecord(args...);
+        return users ? users : _installed.FindRecord(args...);
     }
 
-    bool StoreRecord(const DbRecord& record) { return _user.StoreRecord(record); }
-
-    bool UpdateRecord(DbRecord& record) { return _user.UpdateRecord(record); }
-
-    bool RemoveRecord(const std::string& key) { return _user.RemoveRecord(key); }
-
-    template <class T>
-    bool RemoveRecord(const T& problem_config)
+    template <typename... U>
+    auto StoreRecord(const U&... args)
     {
-        return _user.RemoveRecord(problem_config);
+        return _user.StoreRecord(args...);
     }
 
-    template <class T, class V>
-    boost::optional<DbRecord>
-    Update(const T& problem_config, const std::string& id, const V& values)
+    template <typename... U>
+    auto UpdateRecord(U&... args)
     {
-        return _user.Update(problem_config, id, values);
+        return _user.UpdateRecord(args...);
     }
 
-    template <class T, class V>
-    bool Load(const T& problem_config, const std::string& id, V& values)
+    template <typename... U>
+    auto RemoveRecord(const U&... args)
     {
-        if(_user.Load(problem_config, id, values))
+        return _user.RemoveRecord(args...);
+    }
+
+    template <typename... U>
+    auto Update(const U&... args)
+    {
+        return _user.Update(args...);
+    }
+
+    template <typename... U>
+    auto Load(U&... args)
+    {
+        if(_user.Load(args...))
             return true;
 
-        return _installed.Load(problem_config, id, values);
+        return _installed.Load(args...);
     }
 
-    template <class T>
-    bool Remove(const T& problem_config, const std::string& id)
+    template <typename... U>
+    auto Remove(const U&... args)
     {
-        return _user.Remove(problem_config, id);
+        return _user.Remove(args...);
     }
 
     private:
-    template <class TDb, class TRet = decltype(TDb::GetCached("", true))>
-    static TRet GetDbInstance(rank<1>, const std::string& path, bool warn_if_unreadable)
+    template <class TDb, class TRet = decltype(TDb::GetCached("", true, "", 0))>
+    static TRet GetDbInstance(rank<1>,
+                              const std::string& path,
+                              bool warn_if_unreadable,
+                              const std::string& arch,
+                              std::size_t num_cu)
     {
-        return TDb::GetCached(path, warn_if_unreadable);
+        return TDb::GetCached(path, warn_if_unreadable, arch, num_cu);
     };
 
     template <class TDb>
-    static TDb GetDbInstance(rank<0>, const std::string& path, bool warn_if_unreadable)
+    static TDb GetDbInstance(rank<0>,
+                             const std::string& path,
+                             bool warn_if_unreadable,
+                             const std::string& arch,
+                             std::size_t num_cu)
     {
-        return {path, warn_if_unreadable};
+        return {path, warn_if_unreadable, arch, num_cu};
     };
 
-    template <class TDb, class TRet = decltype(GetDbInstance<TDb>(rank<1>{}, {}, {}))>
-    static TRet GetDbInstance(const std::string& path, bool warn_if_unreadable)
+    template <class TDb, class TRet = decltype(GetDbInstance<TDb>(rank<1>{}, {}, {}, {}, {}))>
+    static TRet GetDbInstance(const std::string& path,
+                              bool warn_if_unreadable,
+                              const std::string& arch,
+                              const std::size_t num_cu)
     {
-        return GetDbInstance<TDb>(rank<1>{}, path, warn_if_unreadable);
+        return GetDbInstance<TDb>(rank<1>{}, path, warn_if_unreadable, arch, num_cu);
     }
 
-    decltype(GetDbInstance<TInstalled>("", true)) _installed;
-    decltype(GetDbInstance<TUser>("", false)) _user;
+    decltype(MultiFileDb::GetDbInstance<TInstalled>("", true, "", 0)) _installed;
+    decltype(MultiFileDb::GetDbInstance<TUser>("", false, "", 0)) _user;
 };
 
 template <class TInnerDb>
@@ -256,44 +280,46 @@ class DbTimer
     {
     }
 
-    template <class TProblem>
-    auto FindRecord(const TProblem& problem)
+    template <typename... U>
+    auto FindRecord(const U&... args)
     {
-        return Measure("FindRecord", [&]() { return inner.FindRecord(problem); });
+        return Measure("FindRecord", [&]() { return inner.FindRecord(args...); });
     }
 
-    bool StoreRecord(const DbRecord& record)
+    template <typename... U>
+    auto StoreRecord(U&... record)
     {
-        return Measure("StoreRecord", [&]() { return inner.StoreRecord(record); });
+        return Measure("StoreRecord", [&]() { return inner.StoreRecord(record...); });
     }
 
-    bool UpdateRecord(DbRecord& record)
+    template <typename... U>
+    auto UpdateRecord(U&... args)
     {
-        return Measure("UpdateRecord", [&]() { return inner.UpdateRecord(record); });
+        return Measure("UpdateRecord", [&]() { return inner.UpdateRecord(args...); });
     }
 
-    template <class TProblem>
-    bool RemoveRecord(const TProblem& problem)
+    template <typename... U>
+    auto RemoveRecord(const U&... args)
     {
-        return Measure("RemoveRecord", [&]() { return inner.RemoveRecord(problem); });
+        return Measure("RemoveRecord", [&]() { return inner.RemoveRecord(args...); });
     }
 
-    template <class TProblem, class TValue>
-    auto Update(const TProblem& problem, const std::string& id, const TValue& value)
+    template <typename... U>
+    auto Update(const U&... args)
     {
-        return Measure("Update", [&]() { return inner.Update(problem, id, value); });
+        return Measure("Update", [&]() { return inner.Update(args...); });
     }
 
-    template <class TProblem, class TValue>
-    bool Load(const TProblem& problem, const std::string& id, TValue& value)
+    template <typename... U>
+    bool Load(U&... args)
     {
-        return Measure("Load", [&]() { return inner.Load(problem, id, value); });
+        return Measure("Load", [&]() { return inner.Load(args...); });
     }
 
-    template <class TProblem>
-    bool Remove(const TProblem& problem, const std::string& id)
+    template <typename... U>
+    bool Remove(const U&... args)
     {
-        return Measure("Remove", [&]() { return inner.Remove(problem, id); });
+        return Measure("Remove", [&]() { return inner.Remove(args...); });
     }
 
     private:

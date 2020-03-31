@@ -1,24 +1,304 @@
 #ifndef CK_IMPLICITGEMM_UTIL_HPP_
 #define CK_IMPLICITGEMM_UTIL_HPP_
 
+#include <algorithm>
 #include <miopen/env.hpp>
 #include <miopen/hip_build_utils.hpp>
+#include <miopen/mlo_internal.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR(
+    MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE) // For internal debug purposes
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM)
 
 namespace miopen {
 namespace solver {
 
-static inline int ImgHeight(const ConvolutionContext& c)
+// greatest common divisor, aka highest common factor
+template <typename T>
+T gcd(T x, T y)
 {
-    return c.direction.IsForward() ? c.out_height : c.in_height;
+    if(x == y || x == 0)
+    {
+        return y;
+    }
+    else if(y == 0)
+    {
+        return x;
+    }
+    else if(x > y)
+    {
+        return gcd(x - y, y);
+    }
+    else
+    {
+        return gcd(x, y - x);
+    }
 }
 
-static inline int ImgWidth(const ConvolutionContext& c)
+template <typename T, typename... Ys>
+T gcd(T x, Ys... ys)
 {
-    return c.direction.IsForward() ? c.out_width : c.in_width;
+    return gcd(x, gcd(ys...));
+}
+
+// least common multiple
+template <typename T>
+T lcm(T x, T y)
+{
+    if(x == 0 || y == 0)
+    {
+        return 0;
+    }
+    else
+    {
+        return (x * y) / gcd(x, y);
+    }
+}
+
+template <typename T, typename... Ys>
+T lcm(T x, Ys... ys)
+{
+    return lcm(x, lcm(ys...));
+}
+
+template <typename T>
+T integer_divide_ceil(T x, T y)
+{
+    if(y == 0)
+    {
+        MIOPEN_THROW("divisor should not be 0");
+    }
+
+    return (x + y - 1) / y;
+}
+
+template <typename T>
+T integer_least_multiple(T x, T y)
+{
+    return y * integer_divide_ceil(x, y);
+}
+
+// 1. get the original dimension of conv problem
+//    (undo the dimeniosn swapping happened inside ConvolutionContext)
+// 2. adjust right padding size to align with the way implicit GEMM deal with padding
+struct ConvolutionContextInterpreter
+{
+    static auto GetGroupCountG(const ConvolutionContext& c) { return c.group_counts; }
+
+    static auto GetBatchN(const ConvolutionContext& c) { return c.batch_sz; }
+
+    static auto GetOutputChannelK(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.n_outputs;
+        else
+            return c.n_inputs;
+    }
+
+    static auto GetInputChannelC(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.n_inputs;
+        else
+            return c.n_outputs;
+    }
+
+    static auto GetInputHeightHi(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.in_height;
+        else
+            return c.out_height;
+    }
+
+    static auto GetInputWidthWi(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.in_width;
+        else
+            return c.out_width;
+    }
+
+    static auto GetOutputHeightHo(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.out_height;
+        else
+            return c.in_height;
+    }
+
+    static auto GetOutputWidthWo(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.out_width;
+        else
+            return c.in_width;
+    }
+
+    static auto GetFilterHeightY(const ConvolutionContext& c) { return c.kernel_size_h; }
+
+    static auto GetFilterWidthX(const ConvolutionContext& c) { return c.kernel_size_w; }
+
+    // adjust conv_stride_h to 1 if Ho is 1
+    static auto GetAdjustedConvolutionStrideH(const ConvolutionContext& c)
+    {
+        return GetOutputHeightHo(c) > 1 ? c.kernel_stride_h : 1;
+    }
+
+    // adjust conv_stride_w to 1 if Wo is 1
+    static auto GetAdjustedConvolutionStrideW(const ConvolutionContext& c)
+    {
+        return GetOutputWidthWo(c) > 1 ? c.kernel_stride_w : 1;
+    }
+
+    // adjust conv_dilation_h to 1 if Y is 1
+    static auto GetAdjustedConvolutionDilationH(const ConvolutionContext& c)
+    {
+        return GetFilterHeightY(c) > 1 ? c.kernel_dilation_h : 1;
+    }
+
+    // adjust conv_dilation_w to 1 if X is 1
+    static auto GetAdjustedConvolutionDilationW(const ConvolutionContext& c)
+    {
+        return GetFilterWidthX(c) > 1 ? c.kernel_dilation_w : 1;
+    }
+
+    static auto GetInputLeftPadH(const ConvolutionContext& c) { return c.pad_h; }
+
+    static auto GetInputLeftPadW(const ConvolutionContext& c) { return c.pad_w; }
+
+    // adjust right padding size to align with the way implicit GEMM deal with padding
+    static auto GetAdjustedInputRightPadH(const ConvolutionContext& c)
+    {
+        int hi              = GetInputHeightHi(c);
+        int ho              = GetOutputHeightHo(c);
+        int y               = GetFilterHeightY(c);
+        int conv_stride_h   = GetAdjustedConvolutionStrideH(c);
+        int conv_dilation_h = GetAdjustedConvolutionDilationH(c);
+        int in_left_pad_h   = GetInputLeftPadH(c);
+
+        int hi_padded = 1 + (y - 1) * conv_dilation_h + (ho - 1) * conv_stride_h;
+
+        int in_right_pad_h =
+            hi_padded > (in_left_pad_h + hi) ? hi_padded - (in_left_pad_h + hi) : 0;
+
+        return in_right_pad_h;
+    }
+
+    // adjust right padding size to align with the way implicit GEMM deal with padding
+    static auto GetAdjustedInputRightPadW(const ConvolutionContext& c)
+    {
+        int wi              = GetInputWidthWi(c);
+        int wo              = GetOutputWidthWo(c);
+        int x               = GetFilterWidthX(c);
+        int conv_stride_w   = GetAdjustedConvolutionStrideW(c);
+        int conv_dilation_w = GetAdjustedConvolutionDilationW(c);
+        int in_left_pad_w   = GetInputLeftPadW(c);
+
+        int wi_padded = 1 + (x - 1) * conv_dilation_w + (wo - 1) * conv_stride_w;
+
+        int in_right_pad_w =
+            wi_padded > (in_left_pad_w + wi) ? wi_padded - (in_left_pad_w + wi) : 0;
+
+        return in_right_pad_w;
+    }
+};
+
+// these functions map the dimensions of a bwd-wrw problem into a fwd problem
+// they are not supposed to be called by backward-data
+static inline std::size_t KernelFilterStrideH(const ConvolutionContext& c)
+{
+    if(c.direction.IsBackwardWrW())
+        return c.kernel_dilation_h;
+    else
+        return c.kernel_stride_h;
+}
+
+static inline std::size_t KernelFilterStrideW(const ConvolutionContext& c)
+{
+    if(c.direction.IsBackwardWrW())
+        return c.kernel_dilation_w;
+    else
+        return c.kernel_stride_w;
+}
+
+static inline std::size_t KernelFilterDilationH(const ConvolutionContext& c)
+{
+    if(c.direction.IsBackwardWrW())
+        return c.kernel_stride_h;
+    else
+        return c.kernel_dilation_h;
+}
+
+static inline std::size_t KernelFilterDilationW(const ConvolutionContext& c)
+{
+    if(c.direction.IsBackwardWrW())
+        return c.kernel_stride_w;
+    else
+        return c.kernel_dilation_w;
+}
+
+static inline std::size_t KernelOutputChannelK(const ConvolutionContext& c)
+{
+    if(c.direction.IsBackwardWrW())
+        return c.n_inputs;
+    else
+        return c.n_outputs;
+}
+
+static inline std::size_t KernelInputChannelC(const ConvolutionContext& c)
+{
+    if(c.direction.IsBackwardWrW())
+        return c.batch_sz;
+    else
+        return c.n_inputs / c.group_counts;
+}
+
+static inline std::size_t KernelBatchN(const ConvolutionContext& c)
+{
+    if(c.direction.IsBackwardWrW())
+        return c.n_outputs / c.group_counts;
+    else
+        return c.batch_sz;
+}
+
+static inline std::size_t KernelOutputHeightHo(const ConvolutionContext& c)
+{
+    if(c.direction.IsForward())
+        return c.out_height;
+    else if(c.direction.IsBackwardWrW())
+        return c.kernel_size_h;
+    else
+        return c.in_height;
+}
+
+static inline std::size_t KernelOutputWidthWo(const ConvolutionContext& c)
+{
+    if(c.direction.IsForward())
+        return c.out_width;
+    else if(c.direction.IsBackwardWrW())
+        return c.kernel_size_w;
+    else
+        return c.in_width;
+}
+
+static inline std::size_t KernelFilterWidthX(const ConvolutionContext& c)
+{
+    if(c.direction.IsBackwardWrW())
+        return c.in_width;
+    else
+        return c.kernel_size_w;
+}
+
+static inline std::size_t KernelFilterHeightY(const ConvolutionContext& c)
+{
+    if(c.direction.IsBackwardWrW())
+        return c.in_height;
+    else
+        return c.kernel_size_h;
 }
 
 /// \todo move to separate header and use in other solvers.
@@ -48,6 +328,8 @@ inline static bool NextTwoPower(int& v)
 
 static inline bool IsXdlopsSupport(const ConvolutionContext& c)
 {
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}))
+        return true;
 
     return StartsWith(c.GetStream().GetDeviceName(), "gfx908") &&
            // disable xdlops kernels by default due to possible failures:
@@ -60,24 +342,13 @@ static inline bool IsXdlopsSupport(const ConvolutionContext& c)
                 : miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{}));
 }
 
-inline static int GetReadWriteVectorSize(const int v)
+inline static uint32_t GetReadWriteVectorSize(const int v)
 {
     return v % 4 == 0 ? 4 : (v % 2 == 0 ? 2 : 1);
 }
 
 inline static uint32_t GetEPackLength(const ConvolutionContext& ctx, bool isXdlopsInvoked)
 {
-    int C = ctx.n_inputs;
-    int Y = ctx.kernel_size_h;
-    int X = ctx.kernel_size_w;
-
-    if(ctx.direction.IsBackwardWrW())
-    {
-        C = ctx.batch_sz;  // swapped
-        Y = ctx.in_height; // swapped
-        X = ctx.in_width;  // swapped
-    }
-
     // Based on data type, Es are packed
     int EPACK = 1;
     if(ctx.IsFp16()) // for fp16, either 2 or 4 Es could be packed
@@ -85,13 +356,69 @@ inline static uint32_t GetEPackLength(const ConvolutionContext& ctx, bool isXdlo
         if(IsXdlopsSupport(ctx) && isXdlopsInvoked) // in xdlops, 4 fp16s are packed
             EPACK = 4;
         else // for fp16, either 2 or 4 Es could be packed in non-xdlops scenarios.
-            EPACK = (C * Y * X % 32) == 0 ? 4 : 2;
+            // EPACK = (C * Y * X % 32) == 0 ? 4 : 2;
+            EPACK = 2;
     }
     else if(ctx.IsBfp16()) // for bfp16, only 2 Es could be packed
     {
         EPACK = 2;
     }
     return EPACK;
+}
+
+static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
+{
+    if(!IsXdlopsSupport(ctx))
+        return false;
+
+    std::size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
+    std::size_t k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx) / ctx.group_counts;
+    std::size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx) / ctx.group_counts;
+    std::size_t y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+    std::size_t x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+    std::size_t ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+    std::size_t wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+
+    std::size_t GemmM, GemmN, GemmK;
+    // forward
+    if(ctx.direction.IsForward())
+    {
+        if(c % GetEPackLength(ctx, true) != 0)
+            return false;
+        const auto nonVectorizedC = c / GetEPackLength(ctx, true);
+        GemmM                     = k;
+        GemmN                     = static_cast<std::size_t>(n) * ho * wo;
+        GemmK                     = static_cast<std::size_t>(nonVectorizedC) * y * x;
+    }
+    // backwardData
+    else if(ctx.direction.IsBackwardData())
+    {
+        if(k % GetEPackLength(ctx, true) != 0)
+            return false;
+        const auto nonVectorizedK = k / GetEPackLength(ctx, true);
+        GemmM                     = static_cast<std::size_t>(c) * y * x;
+        GemmN                     = static_cast<std::size_t>(n) * ho * wo;
+        GemmK                     = nonVectorizedK;
+    }
+    // backwardWeights
+    else
+    {
+        if(n % GetEPackLength(ctx, true) != 0)
+            return false;
+        const auto nonVectorizedN = n / GetEPackLength(ctx, true);
+        GemmM                     = k;
+        GemmN                     = static_cast<std::size_t>(c) * y * x;
+        GemmK                     = static_cast<std::size_t>(nonVectorizedN) * ho * wo;
+    }
+
+    // unsupported xdlops-gemm
+    if(GemmM % 16 != 0 && GemmN % 64 != 0)
+        return false;
+
+    const auto WaveSize = 64;
+
+    return (GemmM * GemmN) % 256 == 0 && (GemmK * GemmM) % WaveSize == 0 &&
+           (GemmK * GemmN) % WaveSize == 0 && GemmN % 16 == 0 && GemmM % 4 == 0 && GemmK % 4 == 0;
 }
 
 template <class PerformanceImplicitGemm_t>
@@ -103,6 +430,36 @@ inline static auto GetPerformanceConfigBase(const ConvolutionContext& ctx)
     return pp;
 }
 
+static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
+                                            const int BPerBlock,
+                                            const int KPerBlock,
+                                            const int EPerBlock,
+                                            const unsigned int GemmDataPerReadA,
+                                            const unsigned int GemmDataPerReadB,
+                                            const unsigned int InBlockCopySubLengths_B,
+                                            const unsigned int WeiBlockCopySubLengths_K,
+                                            bool isXdlopsUsed)
+{
+    // Extend lds size by to take into account alignment
+    // See max_algin code inside kernel_aglorithm files
+    const std::size_t worst_case_alignment_adjustment =
+        (ctx.IsBfp16() || ctx.IsFp16())
+            ? std::max({GetReadWriteVectorSize(static_cast<int>(InBlockCopySubLengths_B)),
+                        GetEPackLength(ctx, isXdlopsUsed)})
+            : std::max({GetReadWriteVectorSize(static_cast<int>(WeiBlockCopySubLengths_K)),
+                        GetReadWriteVectorSize(static_cast<int>(InBlockCopySubLengths_B)),
+                        GemmDataPerReadA,
+                        GemmDataPerReadB});
+
+    // Multiplied worst_case_alignment_adjustment by 2 as
+    // Both A and B matrix LDS size is increased.
+    const std::size_t lds_size = (BPerBlock + KPerBlock) * EPerBlock * GetEPackLength(ctx, true) *
+                                     GetTypeSize(ctx.in_data_type) * 2 +
+                                 2 * worst_case_alignment_adjustment;
+
+    return lds_size;
+}
+
 static inline int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
                                             ConstData_t bot_buf,
                                             Data_t top_buf,
@@ -111,37 +468,37 @@ static inline int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
                                             const ConvSolution& solution,
                                             float& elapsed_time)
 {
-    KernelInfo k_info;
-
-    k_info = solution.construction_params[0];
-
 #ifdef NDEBUG
     try
 #endif
     {
-        elapsed_time = std::numeric_limits<float>::max();
-        auto kernel  = profile_h.AddKernel("",
-                                          "",
-                                          k_info.kernel_file,
-                                          k_info.kernel_name,
-                                          k_info.l_wk,
-                                          k_info.g_wk,
-                                          k_info.comp_options);
+        elapsed_time = float(0);
 
-        if(ctx.direction.IsBackwardWrW())
+        for(auto& k_info : solution.construction_params)
         {
-            kernel(bot_buf, top_buf, wei_buf);
-        }
-        if(ctx.direction.IsBackwardData())
-        {
-            kernel(top_buf, wei_buf, bot_buf);
-        }
-        if(ctx.direction.IsForward())
-        {
-            kernel(bot_buf, wei_buf, top_buf);
-        }
+            auto kernel = profile_h.AddKernel("",
+                                              "",
+                                              k_info.kernel_file,
+                                              k_info.kernel_name,
+                                              k_info.l_wk,
+                                              k_info.g_wk,
+                                              k_info.comp_options);
 
-        elapsed_time = profile_h.GetKernelTime();
+            if(ctx.direction.IsBackwardWrW())
+            {
+                kernel(bot_buf, top_buf, wei_buf);
+            }
+            if(ctx.direction.IsBackwardData())
+            {
+                kernel(top_buf, wei_buf, bot_buf);
+            }
+            if(ctx.direction.IsForward())
+            {
+                kernel(bot_buf, wei_buf, top_buf);
+            }
+
+            elapsed_time += profile_h.GetKernelTime();
+        }
     }
 #ifdef NDEBUG
     catch(miopen::Exception& ex)
@@ -166,6 +523,70 @@ static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
 
     return !miopen::IsDisabled(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM{});
 }
+
+static inline bool support_amd_buffer_atomic_add(const ConvolutionContext& ctx)
+{
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    return StartsWith(device_name, "gfx908") && ctx.IsFp32();
+}
+
+template <typename T>
+int amd_buffer_load_max_length()
+{
+    if(std::is_same<float, T>())
+    {
+        return 4;
+    }
+    else
+    {
+        MIOPEN_LOG_I("not implemented");
+        return 1;
+    }
+}
+
+template <typename T>
+int amd_buffer_store_max_length()
+{
+    if(std::is_same<float, T>())
+    {
+        return 4;
+    }
+    else
+    {
+        MIOPEN_LOG_I("not implemented");
+        return 1;
+    }
+}
+
+template <typename T>
+int amd_lds_read_max_length()
+{
+    if(std::is_same<float, T>())
+    {
+        return 4;
+    }
+    else
+    {
+        MIOPEN_LOG_I("not implemented");
+        return 1;
+    }
+}
+
+template <typename T>
+int amd_lds_write_max_length()
+{
+    if(std::is_same<float, T>())
+    {
+        return 4;
+    }
+    else
+    {
+        MIOPEN_LOG_I("not implemented");
+        return 1;
+    }
+}
+
+constexpr std::size_t get_lds_max_number_of_byte() { return 65536; }
 
 } // namespace solver
 } // namespace miopen

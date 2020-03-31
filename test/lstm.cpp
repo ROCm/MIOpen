@@ -105,12 +105,6 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
     }
 
     int wei_shift_bias = (in_h + hy_h + (bi * hy_h + hy_h) * (numlayer - 1)) * wei_stride;
-    int wei_len        = wei_shift_bias;
-    if(biased)
-    {
-        int in_bias = 2;
-        wei_len += (in_bias + (numlayer - 1) * 2) * wei_stride;
-    }
 
     // forward emulator
     for(int li = 0; li < numlayer; li++)
@@ -623,7 +617,7 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
                           int in_h,               // input data length
                           int seqLength,          // Number of iterations to unroll over
                           int bidirection,        // whether using bidirectional net
-                          int biased,             // whether using bias
+                          int,                    // whether using bias
                           int hy_d,  // 1 by numlayer (number of stacks of hidden layers)
                                      // for unidirection, 2 by numlayer for bidirection
                           int hy_n,  // equal to input batch size in_n[0]
@@ -662,13 +656,6 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
             return;
         }
         in_h = 0;
-    }
-
-    int wei_len = (in_h + hy_h + (bi * hy_h + hy_h) * (numlayer - 1)) * wei_stride;
-    if(biased)
-    {
-        int in_bias = 2;
-        wei_len += (in_bias + (numlayer - 1) * 2) * wei_stride;
     }
 
     // bwd data emulator
@@ -1184,12 +1171,6 @@ void LSTMBwdWeightCPUVerify(std::vector<T>& in,
     }
 
     int wei_shift_bias = (in_h + hy_h + (bi * hy_h + hy_h) * (numlayer - 1)) * wei_stride;
-    int wei_len        = wei_shift_bias;
-    if(biased)
-    {
-        int in_bias = 2;
-        wei_len += (in_bias + (numlayer - 1) * 2) * wei_stride;
-    }
 
     // bwd weights emulator
     for(int li = 0; li < numlayer; li++)
@@ -1631,7 +1612,6 @@ struct verify_forward_infer_lstm
                   << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
                   << std::endl;
 #endif
-        auto retSet = std::make_tuple(output, hiddenState, weights, reserveSpace);
 #if(MIO_LSTM_TEST_DEBUG > 0)
         std::cout << "Done with LSTM forward inference CPU" << std::endl;
         std::cout << "---------------------------------\n" << std::endl;
@@ -1667,7 +1647,6 @@ struct verify_forward_infer_lstm
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
 
         std::vector<T> workSpace(workSpaceSize / sizeof(T));
-        std::vector<T> hiddenState(initHidden.size());
 
         auto input_dev = handle.Write(input);
 
@@ -1973,7 +1952,6 @@ struct verify_forward_train_lstm
 
         std::vector<T> workSpace(workSpaceSize / sizeof(T));
         std::vector<T> reserveSpace(reserveSpaceSize / sizeof(T));
-        std::vector<T> hiddenState(initHidden.size());
 
         auto input_dev = handle.Write(input);
 

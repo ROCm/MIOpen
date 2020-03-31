@@ -34,6 +34,8 @@
 #include <boost/core/explicit_operator_bool.hpp>
 #include <boost/none.hpp>
 #include <boost/optional/optional.hpp>
+#include <boost/thread.hpp>
+#include <boost/thread/thread_time.hpp>
 #include "sqlite3.h"
 #include <mutex>
 #include <thread>
@@ -99,64 +101,72 @@ struct SQLiteSerializable
     }
 };
 
-class SQLite_Db
+template <typename Derived>
+class SQLiteBase
 {
-    using sqlite3_ptr    = MIOPEN_MANAGE_PTR(sqlite3*, sqlite3_close);
-    using exclusive_lock = std::unique_lock<LockFile>;
-    using shared_lock    = std::shared_lock<LockFile>;
-    static std::chrono::seconds GetLockTimeout() { return std::chrono::seconds{60}; }
+    protected:
+    using sqlite3_ptr      = MIOPEN_MANAGE_PTR(sqlite3*, sqlite3_close);
+    using exclusive_lock   = boost::unique_lock<LockFile>;
+    using shared_lock      = boost::shared_lock<LockFile>;
+    using sqlite3_stmt_ptr = MIOPEN_MANAGE_PTR(sqlite3_stmt*, sqlite3_finalize);
+    static boost::system_time GetLockTimeout()
+    {
+        return boost::get_system_time() + boost::posix_time::milliseconds(60000);
+    }
 
     public:
-    SQLite_Db(const std::string& filename_,
-              bool is_system,
-              const std::string& arch_,
-              std::size_t num_cu_);
+    SQLiteBase(const std::string& filename_,
+               bool is_system,
+               const std::string& arch_,
+               std::size_t num_cu_)
+        : filename(filename_),
+          arch(arch_),
+          num_cu(num_cu_),
+          lock_file(LockFile::Get(is_system ? LockFilePath(filename_).c_str()
+                                            : (filename_ + ".lock").c_str()))
+    {
+        MIOPEN_LOG_I2("Initializing " << (is_system ? "system" : "user") << " database file "
+                                      << filename);
+        if(!is_system && !filename.empty())
+        {
+            auto file            = boost::filesystem::path(filename_);
+            const auto directory = file.remove_filename();
 
+            if(!(boost::filesystem::exists(directory)))
+            {
+                if(!boost::filesystem::create_directories(directory))
+                    MIOPEN_LOG_W("Unable to create a directory: " << directory);
+                else
+                    boost::filesystem::permissions(directory, boost::filesystem::all_all);
+            }
+        }
+        sqlite3* ptr_tmp;
+        int rc = 0;
+        if(is_system)
+            rc = sqlite3_open_v2(filename_.c_str(), &ptr_tmp, SQLITE_OPEN_READONLY, nullptr);
+        else
+            rc = sqlite3_open_v2(
+                filename_.c_str(), &ptr_tmp, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
+        ptrDb = sqlite3_ptr{ptr_tmp};
+        if(rc != 0)
+        {
+            if(!is_system)
+            {
+                MIOPEN_THROW(miopenStatusInternalError, "Cannot open database file:" + filename_);
+            }
+            else
+            {
+                MIOPEN_LOG_W("Unable to read system database file:" + filename_ +
+                             " Performance may degrade");
+            }
+        }
+    }
+
+    static Derived&
+    GetCached(const std::string& path, bool is_system, const std::string& arch, std::size_t num_cu);
+    // TODO: Fix this for the overhead of having fields per record
     using SQLRes_t = std::vector<std::unordered_map<std::string, std::string>>;
 
-    template <typename T>
-    inline boost::optional<DbRecord> FindRecord(const T& problem_config)
-    {
-        const auto lock = shared_lock(lock_file, GetLockTimeout());
-        MIOPEN_VALIDATE_LOCK(lock);
-        return FindRecordUnsafe(problem_config);
-    }
-
-    template <class T>
-    inline bool Remove(const T& problem_config, const std::string& id)
-    {
-        const auto lock = exclusive_lock(lock_file, GetLockTimeout());
-        MIOPEN_VALIDATE_LOCK(lock);
-        return RemoveUnsafe(problem_config, id);
-    }
-
-    template <class T, class V>
-    inline boost::optional<DbRecord>
-    Update(const T& problem_config, const std::string& id, const V& values)
-    {
-        const auto lock = exclusive_lock(lock_file, GetLockTimeout());
-        MIOPEN_VALIDATE_LOCK(lock);
-        return UpdateUnsafe(problem_config, id, values);
-    }
-
-    template <class T, class V>
-    inline bool StoreRecord(const T& problem_config, const std::string& id, const V& values)
-    {
-        const auto lock = exclusive_lock(lock_file, GetLockTimeout());
-        MIOPEN_VALIDATE_LOCK(lock);
-        return StoreRecordUnsafe(problem_config, id, values);
-    }
-
-    template <class T, class V>
-    inline bool Load(const T& problem_config, const std::string& id, V& values)
-    {
-        const auto lock = shared_lock(lock_file, GetLockTimeout());
-        MIOPEN_VALIDATE_LOCK(lock);
-
-        return LoadUnsafe(problem_config, id, values);
-    }
-
-    // Core logic and unsafe functions
     static int find_callback(void* _res, int argc, char** argv, char** azColName)
     {
         SQLRes_t* res = static_cast<SQLRes_t*>(_res);
@@ -166,17 +176,18 @@ class SQLite_Db
         res->push_back(record);
         return 0;
     }
+
     inline auto SQLExec(const std::string& query)
     {
-        char* errMsg = nullptr;
         MIOPEN_LOG_T(std::this_thread::get_id() << ":" << query);
         {
-            int rc = sqlite3_exec(ptrDb.get(), query.c_str(), find_callback, nullptr, &errMsg);
+            auto rc = SQLRety([&]() {
+                return sqlite3_exec(ptrDb.get(), query.c_str(), find_callback, nullptr, nullptr);
+            });
             if(rc != SQLITE_OK)
             {
                 MIOPEN_LOG_I2(query);
-                MIOPEN_LOG_E("Failed to execute query on internal database");
-                MIOPEN_LOG_E(errMsg);
+                MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
                 sqlite3_close(ptrDb.get());
                 return false;
             }
@@ -186,22 +197,149 @@ class SQLite_Db
     inline auto SQLExec(const std::string& query, SQLRes_t& res) const
     {
         res.clear();
-        char* errMsg = nullptr;
         MIOPEN_LOG_T(std::this_thread::get_id() << ":" << query);
         {
-            int rc = sqlite3_exec(
-                ptrDb.get(), query.c_str(), find_callback, static_cast<void*>(&res), &errMsg);
+            auto rc = SQLRety([&]() {
+                return sqlite3_exec(
+                    ptrDb.get(), query.c_str(), find_callback, static_cast<void*>(&res), nullptr);
+            });
             if(rc != SQLITE_OK)
             {
                 MIOPEN_LOG_I2(query);
-                MIOPEN_LOG_E("Failed to execute query on internal database");
-                MIOPEN_LOG_E(errMsg);
+                MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
                 sqlite3_close(ptrDb.get());
                 return false;
             }
         }
         return true;
     }
+
+    template <class F>
+    inline int SQLRety(F f) const
+    {
+        auto timeout_end = std::chrono::high_resolution_clock::now() +
+                           std::chrono::seconds(30); // TODO: make configurable
+        auto tries = 0;
+        while(true)
+        {
+            int rc = f();
+            if(rc == SQLITE_BUSY)
+            {
+                MIOPEN_LOG_I2("Database" + filename + "  busy, retrying ...");
+                ++tries;
+                if(tries > 50)
+                    std::this_thread::sleep_for(std::chrono::microseconds(100));
+                else
+                    std::this_thread::yield();
+            }
+            else
+                return rc;
+            if(std::chrono::high_resolution_clock::now() > timeout_end)
+                MIOPEN_THROW("Timeout while waiting for Database: " + filename);
+        }
+    }
+
+    inline std::string SQLErrorMessage() const
+    {
+        std::string errMsg = "Internal error while accessing SQLite database: ";
+        return errMsg + sqlite3_errmsg(ptrDb.get());
+    }
+
+    auto Prepare(const std::string& query) const
+    {
+        sqlite3_stmt* ptr = nullptr;
+        auto rc = sqlite3_prepare_v2(ptrDb.get(), query.c_str(), query.size(), &ptr, nullptr);
+        if(rc != SQLITE_OK)
+        {
+            std::string err_msg = "SQLite prepare error: ";
+            MIOPEN_THROW(miopenStatusInternalError, err_msg + sqlite3_errmsg(ptrDb.get()));
+        }
+        return sqlite3_stmt_ptr{ptr};
+    }
+
+    template <typename... U>
+    inline auto FindRecord(U&... args)
+    {
+        const auto lock = shared_lock(lock_file, GetLockTimeout());
+        MIOPEN_VALIDATE_LOCK(lock);
+        return reinterpret_cast<Derived*>(this)->FindRecordUnsafe(args...);
+    }
+
+    template <typename... U>
+    inline auto RemoveRecord(U&... args)
+    {
+        const auto lock = exclusive_lock(lock_file, GetLockTimeout());
+        MIOPEN_VALIDATE_LOCK(lock);
+        return reinterpret_cast<Derived*>(this)->RemoveRecordUnsafe(args...);
+    }
+
+    template <typename... U>
+    inline auto StoreRecord(U&... args)
+    {
+        const auto lock = exclusive_lock(lock_file, GetLockTimeout());
+        MIOPEN_VALIDATE_LOCK(lock);
+        return reinterpret_cast<Derived*>(this)->StoreRecordUnsafe(args...);
+    }
+
+    template <typename... U>
+    inline auto Remove(const U&... args)
+    {
+        const auto lock = exclusive_lock(lock_file, GetLockTimeout());
+        MIOPEN_VALIDATE_LOCK(lock);
+        return reinterpret_cast<Derived*>(this)->RemoveUnsafe(args...);
+    }
+
+    template <typename... U>
+    inline auto Update(const U&... args)
+    {
+        const auto lock = exclusive_lock(lock_file, GetLockTimeout());
+        MIOPEN_VALIDATE_LOCK(lock);
+        return reinterpret_cast<Derived*>(this)->UpdateUnsafe(args...);
+    }
+
+    template <typename... U>
+    inline auto Load(U&&... args)
+    {
+        const auto lock = shared_lock(lock_file, GetLockTimeout());
+        MIOPEN_VALIDATE_LOCK(lock);
+        return reinterpret_cast<Derived*>(this)->LoadUnsafe(args...);
+    }
+
+    protected:
+    std::string filename;
+    std::string arch;
+    size_t num_cu;
+    LockFile& lock_file;
+    sqlite3_ptr ptrDb = nullptr;
+};
+
+template <typename Derived>
+Derived& SQLiteBase<Derived>::GetCached(const std::string& path,
+                                        bool is_system,
+                                        const std::string& arch,
+                                        const size_t num_cu)
+{
+    static std::mutex mutex;
+    static const std::lock_guard<std::mutex> lock{mutex};
+
+    static auto instances = std::map<std::string, Derived*>{};
+    const auto it         = instances.find(path);
+
+    if(it != instances.end())
+        return *(it->second);
+
+    instances.emplace(path, new Derived{path, is_system, arch, num_cu}); // NOLINT
+    return *(instances.at(path));
+}
+
+class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
+{
+    public:
+    SQLitePerfDb(const std::string& filename_,
+                 bool is_system,
+                 const std::string& arch_,
+                 std::size_t num_cu_);
+
     template <class T>
     inline auto InsertConfig(const T& prob_desc) -> SQLRes_t
     {
@@ -242,7 +380,7 @@ class SQLite_Db
                   "(config == " + res[0]["id"] + ") "
                   // "AND (direction == " + kv_map["direction"].get() + ") "
                   "AND (arch = '" + arch + "' ) "
-                  "AND (num_cu = '" + num_cu + "');";
+                  "AND (num_cu = '" + std::to_string(num_cu) + "');";
             // clang-format on
             auto success = SQLExec(select_query, res);
             if(!success || res.empty())
@@ -333,7 +471,7 @@ class SQLite_Db
                         "WHERE config == " + config + " "
                             "AND solver == '" + id + "' ) "
                         "," + config +", '"+ id + "'," + vals + 
-                        ",'" + arch + "','" + num_cu + "'"
+                        ",'" + arch + "','" + std::to_string(num_cu) + "'"
                 ");";
         // clang-format on
         if(!SQLExec(query))
@@ -398,88 +536,11 @@ class SQLite_Db
     template <class T, class V>
     inline bool LoadUnsafe(const T& problem_config, const std::string& id, V& values)
     {
-        const auto record = FindRecord(problem_config);
+        const auto record = FindRecordUnsafe(problem_config);
 
         if(!record)
             return false;
         return record->GetValues(id, values);
     }
-
-    static bool IsDBInitialized(const std::string& path);
-
-    private:
-    std::string filename;
-    sqlite3_ptr ptrDb = nullptr;
-    std::string arch;
-    std::string num_cu;
-    LockFile& lock_file;
-};
-
-template <bool merge_records>
-class SQLite_MultiFileDb
-{
-    public:
-    SQLite_MultiFileDb(const std::string& installed_path,
-                       const std::string& user_path,
-                       const std::string& arch,
-                       const std::size_t num_cu)
-        : _installed(installed_path, true, arch, num_cu), _user(user_path, false, arch, num_cu)
-    {
-    }
-    template <class T, bool merge = merge_records, std::enable_if_t<merge>* = nullptr>
-    boost::optional<DbRecord> FindRecord(const T& problem_config)
-    {
-        auto users           = _user.FindRecord(problem_config);
-        const auto installed = _installed.FindRecord(problem_config);
-
-        if(users && installed)
-        {
-            users->Merge(installed.value());
-            return users;
-        }
-
-        if(users)
-            return users;
-
-        return installed;
-    }
-
-    template <class T, bool merge = merge_records, std::enable_if_t<!merge>* = nullptr>
-    boost::optional<DbRecord> FindRecord(const T& problem_config)
-    {
-        auto users = _user.FindRecord(problem_config);
-        return users ? users : _installed.FindRecord(problem_config);
-    }
-
-    template <class T, class V>
-    boost::optional<DbRecord>
-    Update(const T& problem_config, const std::string& id, const V& values)
-    {
-        return _user.Update(problem_config, id, values);
-    }
-
-    template <class T, class V>
-    bool Load(const T& problem_config, const std::string& id, V& values)
-    {
-        if(_user.Load(problem_config, id, values))
-            return true;
-
-        return _installed.Load(problem_config, id, values);
-    }
-
-    template <class T>
-    bool Remove(const T& problem_config, const std::string& id)
-    {
-        return _user.Remove(problem_config, id);
-    }
-
-    template <class T, class V>
-    inline bool StoreRecord(const T& problem_config, const std::string& id, const V& values)
-    {
-        return _user.StoreRecord(problem_config, id, values);
-    }
-
-    private:
-    SQLite_Db _installed, _user;
 };
 } // namespace miopen

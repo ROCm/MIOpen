@@ -33,6 +33,73 @@
 #include <array>
 #include <initializer_list>
 
+inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
+                                const miopenTensorDescriptor_t tensorDesc,
+                                bool is_fwd)
+{
+    if(miopen::IsLoggingCmd())
+    {
+        auto tensor_dim = miopen::deref(tensorDesc).GetSize();
+        std::stringstream ss;
+        if(miopen::deref(tensorDesc).GetType() == miopenHalf)
+        {
+            ss << "poolfp16";
+        }
+        else
+        {
+            ss << "pool";
+        }
+        if(tensor_dim == 5)
+        {
+            ss << " -d 3";
+        }
+        if(tensor_dim == 4)
+        {
+            ss << " -M 1"; // currently use mask index for all 2D pooling
+        }
+        ss << " -n " << miopen::deref(tensorDesc).GetLengths()[0] // clang-format off
+           << " -c " << miopen::deref(tensorDesc).GetLengths()[1];
+        if(tensor_dim == 5)
+        {
+            ss << " -D " << miopen::deref(tensorDesc).GetLengths()[2];
+        }
+        ss << " -H " << (tensor_dim == 5 ? miopen::deref(tensorDesc).GetLengths()[3]
+                                         : miopen::deref(tensorDesc).GetLengths()[2])
+           << " -W " << (tensor_dim == 5 ? miopen::deref(tensorDesc).GetLengths()[4]
+                                         : miopen::deref(tensorDesc).GetLengths()[3]);
+        if(tensor_dim == 5)
+        {
+            ss << " -Z " << miopen::deref(poolDesc).lens[0];
+        }
+        ss << " -y "
+           << (tensor_dim == 5 ? miopen::deref(poolDesc).lens[1] : miopen::deref(poolDesc).lens[0])
+           << " -x "
+           << (tensor_dim == 5 ? miopen::deref(poolDesc).lens[2] : miopen::deref(poolDesc).lens[1]);
+        if(tensor_dim == 5)
+        {
+            ss << " -o " << miopen::deref(poolDesc).pads[0];
+        }
+        ss << " -p "
+           << (tensor_dim == 5 ? miopen::deref(poolDesc).pads[1] : miopen::deref(poolDesc).pads[0])
+           << " -q "
+           << (tensor_dim == 5 ? miopen::deref(poolDesc).pads[2] : miopen::deref(poolDesc).pads[1]);
+        if(tensor_dim == 5)
+        {
+            ss << " -s " << miopen::deref(poolDesc).strides[0];
+        }
+        ss << " -v " << (tensor_dim == 5 ? miopen::deref(poolDesc).strides[1]
+                                         : miopen::deref(poolDesc).strides[0])
+           << " -u " << (tensor_dim == 5 ? miopen::deref(poolDesc).strides[2]
+                                         : miopen::deref(poolDesc).strides[1])
+           << " -m " << (miopen::deref(poolDesc).mode == 0
+                             ? "max"
+                             : (miopen::deref(poolDesc).mode == 1 ? "avg" : "avg_in"))
+           << " -F " << ((is_fwd)?"1":"2")
+           << " -t 1"; // clang-format on
+        MIOPEN_LOG_DRIVER_CMD(ss.str());
+    }
+}
+
 extern "C" miopenStatus_t miopenCreatePoolingDescriptor(miopenPoolingDescriptor_t* poolDesc)
 {
     MIOPEN_LOG_FUNCTION(poolDesc);
@@ -98,8 +165,7 @@ extern "C" miopenStatus_t miopenGet2dPoolingDescriptor(const miopenPoolingDescri
 }
 
 extern "C" miopenStatus_t miopenSetNdPoolingDescriptor(miopenPoolingDescriptor_t poolDesc,
-                                                       miopenPoolingMode_t mode,
-                                                       miopenPaddingMode_t pmode,
+                                                       const miopenPoolingMode_t mode,
                                                        int nbDims,
                                                        int* windowDimA,
                                                        int* padA,
@@ -107,14 +173,14 @@ extern "C" miopenStatus_t miopenSetNdPoolingDescriptor(miopenPoolingDescriptor_t
 {
 
     return miopen::try_([&] {
-        miopen::deref(poolDesc) =
-            miopen::PoolingDescriptor(mode, pmode, windowDimA, padA, stridesA, nbDims);
+        miopen::deref(poolDesc) = miopen::PoolingDescriptor(
+            mode, miopenPaddingDefault, windowDimA, padA, stridesA, nbDims);
     });
 }
 
 extern "C" miopenStatus_t miopenGetNdPoolingDescriptor(miopenPoolingDescriptor_t poolDesc,
+                                                       int nbDimsRequested,
                                                        miopenPoolingMode_t* mode,
-                                                       miopenPaddingMode_t* pmode,
                                                        int* nbDims,
                                                        int* windowDimA,
                                                        int* padA,
@@ -126,11 +192,6 @@ extern "C" miopenStatus_t miopenGetNdPoolingDescriptor(miopenPoolingDescriptor_t
         {
             *mode = miopen::deref(poolDesc).mode;
         }
-        if(pmode != nullptr)
-        {
-            *pmode = miopen::deref(poolDesc).pmode;
-        }
-
         if(nbDims != nullptr)
         {
             *nbDims = miopen::deref(poolDesc).GetSize();
@@ -138,22 +199,36 @@ extern "C" miopenStatus_t miopenGetNdPoolingDescriptor(miopenPoolingDescriptor_t
         if(windowDimA != nullptr)
         {
             std::copy(miopen::deref(poolDesc).GetLengths().begin(),
-                      miopen::deref(poolDesc).GetLengths().end(),
+                      miopen::deref(poolDesc).GetLengths().begin() + nbDimsRequested,
                       windowDimA);
         }
         if(stridesA != nullptr)
         {
             std::copy(miopen::deref(poolDesc).GetStrides().begin(),
-                      miopen::deref(poolDesc).GetStrides().end(),
+                      miopen::deref(poolDesc).GetStrides().begin() + nbDimsRequested,
                       stridesA);
         }
         if(padA != nullptr)
         {
             std::copy(miopen::deref(poolDesc).GetPads().begin(),
-                      miopen::deref(poolDesc).GetPads().end(),
+                      miopen::deref(poolDesc).GetPads().begin() + nbDimsRequested,
                       padA);
         }
 
+    });
+}
+
+extern "C" miopenStatus_t
+miopenGetPoolingNdForwardOutputDim(const miopenPoolingDescriptor_t poolDesc,
+                                   const miopenTensorDescriptor_t tensorDesc,
+                                   int dims,
+                                   int* tensorDimArr)
+{
+
+    MIOPEN_LOG_FUNCTION(poolDesc, tensorDesc, dims, tensorDimArr);
+    return miopen::try_([&] {
+        miopen::deref(poolDesc).GetForwardOutputDimNd(
+            miopen::deref(tensorDesc), dims, tensorDimArr);
     });
 }
 
@@ -211,33 +286,7 @@ extern "C" miopenStatus_t miopenPoolingForward(miopenHandle_t handle,
 
     MIOPEN_LOG_FUNCTION(
         handle, poolDesc, alpha, xDesc, x, beta, yDesc, y, do_backward, workSpace, workSpaceSize);
-
-    if(miopen::IsLoggingCmd())
-    {
-        std::stringstream ss;
-        if(miopen::deref(xDesc).GetType() == miopenHalf)
-        {
-            ss << "poolfp16";
-        }
-        else
-        {
-            ss << "pool";
-        }
-        ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
-            << " -c " << miopen::deref(xDesc).GetLengths()[1]
-            << " -H " << miopen::deref(xDesc).GetLengths()[2]
-            << " -W " << miopen::deref(xDesc).GetLengths()[3]
-            << " -y " << miopen::deref(poolDesc).lens[0]
-            << " -x " << miopen::deref(poolDesc).lens[1]
-            << " -p " << miopen::deref(poolDesc).pads[0]
-            << " -q " << miopen::deref(poolDesc).pads[1]
-            << " -u " << miopen::deref(poolDesc).strides[0]
-            << " -v " << miopen::deref(poolDesc).strides[1]
-            << " -m " << (miopen::deref(poolDesc).mode == 0 ? "max" : (miopen::deref(poolDesc).mode == 1 ? "avg" : "avg_in"))
-            << " -t 1"; // clang-format on
-        MIOPEN_LOG_DRIVER_CMD(ss.str());
-    }
-
+    Pooling_logging_cmd(poolDesc, xDesc, true);
     return miopen::try_([&] {
         miopen::deref(poolDesc).Forward(miopen::deref(handle),
                                         alpha,
@@ -269,33 +318,7 @@ extern "C" miopenStatus_t miopenPoolingBackward(miopenHandle_t handle,
 
     MIOPEN_LOG_FUNCTION(
         handle, poolDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx, workSpace);
-
-    if(miopen::IsLoggingCmd())
-    {
-        std::stringstream ss;
-        if(miopen::deref(xDesc).GetType() == miopenHalf)
-        {
-            ss << "poolfp16";
-        }
-        else
-        {
-            ss << "pool";
-        }
-        ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
-            << " -c " << miopen::deref(xDesc).GetLengths()[1]
-            << " -H " << miopen::deref(xDesc).GetLengths()[2]
-            << " -W " << miopen::deref(xDesc).GetLengths()[3]
-            << " -y " << miopen::deref(poolDesc).lens[0]
-            << " -x " << miopen::deref(poolDesc).lens[1]
-            << " -p " << miopen::deref(poolDesc).pads[0]
-            << " -q " << miopen::deref(poolDesc).pads[1]
-            << " -u " << miopen::deref(poolDesc).strides[0]
-            << " -v " << miopen::deref(poolDesc).strides[1]
-            << " -m " << (miopen::deref(poolDesc).mode == 0 ? "max" : (miopen::deref(poolDesc).mode == 1 ? "avg" : "avg_in"))
-            << " -t 1"; // clang-format on
-        MIOPEN_LOG_DRIVER_CMD(ss.str());
-    }
-
+    Pooling_logging_cmd(poolDesc, xDesc, false);
     return miopen::try_([&] {
         miopen::deref(poolDesc).Backward(miopen::deref(handle),
                                          alpha,

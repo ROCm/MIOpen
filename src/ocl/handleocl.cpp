@@ -23,21 +23,27 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
+#include <miopen/handle.hpp>
+
+#include <miopen/binary_cache.hpp>
 #include <miopen/config.h>
 #include <miopen/device_name.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/handle.hpp>
+#include <miopen/handle_lock.hpp>
+#include <miopen/invoker.hpp>
 #include <miopen/kernel_cache.hpp>
+#include <miopen/load_file.hpp>
+#include <miopen/logger.hpp>
 #include <miopen/manage_ptr.hpp>
 #include <miopen/ocldeviceinfo.hpp>
-#include <miopen/binary_cache.hpp>
-#include <miopen/load_file.hpp>
-#include <boost/filesystem.hpp>
-#include <miopen/handle_lock.hpp>
+
 #if MIOPEN_USE_MIOPENGEMM
 #include <miopen/gemm_geometry.hpp>
 #endif
+
+#include <boost/filesystem.hpp>
+
 #include <string>
 
 #ifndef _WIN32
@@ -145,7 +151,7 @@ void dumpKernel(cl_kernel kern,
                     isize,
                     wsize,
                     osize,
-                    af ? -6 : -9,
+                    -6,
                     num_arg > 3 ? "iv#0 " : "",
                     work.c_str(),
                     an,
@@ -174,7 +180,7 @@ void dumpKernel(cl_kernel kern,
                     isize,
                     wsize,
                     osize,
-                    af ? -6 : -9,
+                    -9,
                     num_arg > 3 ? "iv#0 " : "",
                     work.c_str(),
                     an,
@@ -403,7 +409,7 @@ Handle::Handle() : impl(new HandleImpl())
     // Pick device based on process id
     auto pid = ::getpid();
     assert(pid > 0);
-    impl->device = devices.at(pid % devices.size());
+    impl->device  = devices.at(pid % devices.size());
 #endif
 
 #if !MIOPEN_INSTALLABLE
@@ -498,6 +504,27 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
     return this->Run(obj);
 }
 
+Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
+                               const std::vector<solver::KernelInfo>& kernels)
+{
+    std::vector<Kernel> built;
+    for(auto& k : kernels)
+    {
+        MIOPEN_LOG_I2("Preparing kernel: " << k.kernel_name);
+        const auto kernel = this->impl->cache.AddKernel(*this,
+                                                        "",
+                                                        "",
+                                                        k.kernel_file,
+                                                        k.kernel_name,
+                                                        k.l_wk,
+                                                        k.g_wk,
+                                                        k.comp_options,
+                                                        kernels.size());
+        built.push_back(kernel);
+    }
+    return factory(built);
+}
+
 bool Handle::HasKernel(const std::string& algorithm, const std::string& network_config) const
 {
     return this->impl->cache.HasKernels(algorithm, network_config);
@@ -536,9 +563,9 @@ Program Handle::LoadProgram(const std::string& program_name,
                             bool is_kernel_str,
                             const std::string& kernel_src)
 {
-    auto cache_file =
-        miopen::LoadBinary(this->GetDeviceName(), program_name, params, is_kernel_str);
-    if(cache_file.empty())
+    auto hsaco = miopen::LoadBinary(
+        this->GetDeviceName(), this->GetMaxComputeUnits(), program_name, params, is_kernel_str);
+    if(hsaco.empty())
     {
         auto p = miopen::LoadProgram(miopen::GetContext(this->GetStream()),
                                      miopen::GetDevice(this->GetStream()),
@@ -547,20 +574,44 @@ Program Handle::LoadProgram(const std::string& program_name,
                                      is_kernel_str,
                                      kernel_src);
 
-        // Save to cache
-        auto path = miopen::GetCachePath() / boost::filesystem::unique_path();
+// Save to cache
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
+        std::string binary;
+        miopen::GetProgramBinary(p, binary);
+        miopen::SaveBinary(binary,
+                           this->GetDeviceName(),
+                           this->GetMaxComputeUnits(),
+                           program_name,
+                           params,
+                           is_kernel_str);
+#else
+        auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
         miopen::SaveProgramBinary(p, path.string());
         miopen::SaveBinary(
             path.string(), this->GetDeviceName(), program_name, params, is_kernel_str);
-
+#endif
         return std::move(p);
     }
     else
     {
         return LoadBinaryProgram(miopen::GetContext(this->GetStream()),
                                  miopen::GetDevice(this->GetStream()),
-                                 miopen::LoadFile(cache_file));
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
+                                 hsaco);
+#else
+                                 miopen::LoadFile(hsaco));
+#endif
     }
+}
+
+bool Handle::HasProgram(const std::string& program_name, const std::string& params)
+{
+    return this->impl->cache.HasProgram(program_name, params);
+}
+
+void Handle::AddProgram(Program prog, const std::string& program_name, const std::string& params)
+{
+    this->impl->cache.AddProgram(prog, program_name, params);
 }
 
 void Handle::Finish() const { clFinish(this->GetStream()); }

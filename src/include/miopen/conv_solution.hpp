@@ -28,24 +28,18 @@
 #define MIOPEN_GUARD_MLOPEN_CONV_SOLUTION_HPP
 
 #include <miopen/miopen.h>
+#include <miopen/kernel_info.hpp>
+#include <miopen/invoker.hpp>
+
+#include <boost/optional.hpp>
 
 #include <string>
 #include <vector>
+#include <ostream>
 
 namespace miopen {
-namespace solver {
 
-/// Describes a kernel source and whatever information required in order
-/// to build and run it (the former is unused for binary kernels).
-struct KernelInfo
-{
-    std::string comp_options;
-    std::vector<size_t> l_wk;
-    std::vector<size_t> g_wk;
-    std::string kernel_file;
-    std::string kernel_name;
-    friend std::ostream& operator<<(std::ostream& os, const KernelInfo& k);
-};
+namespace solver {
 
 /// Information required to build and run a kernel (or a set of kernels),
 /// which is expected to perform computatons as per the problem config.
@@ -59,6 +53,7 @@ struct ConvSolution
     std::vector<KernelInfo> construction_params; // impl may consist of multiple kernels.
     miopenStatus_t status;
     std::string solver_id;
+    boost::optional<InvokerFactory> invoker_factory;
 
     size_t workspce_sz;
     int grp_tile1;       // total number ALUs per group
@@ -74,6 +69,7 @@ struct ConvSolution
     ConvSolution(miopenStatus_t status_ = miopenStatusSuccess)
         : status(status_),
           solver_id("<unknown>"),
+          invoker_factory(boost::none),
           workspce_sz(0),
           grp_tile1(-1),
           grp_tile0(-1),
@@ -91,6 +87,8 @@ struct ConvSolution
 };
 
 std::ostream& operator<<(std::ostream& os, const ConvSolution& s);
+
+void PrecompileSolutions(Handle& h, const std::vector<ConvSolution>& sols);
 
 } // namespace solver
 } // namespace miopen
