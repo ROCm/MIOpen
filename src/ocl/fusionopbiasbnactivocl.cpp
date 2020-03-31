@@ -505,9 +505,9 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::GetNetworkConfig(std::string
                                                                      Handle& handle)
 {
     int n, c, h, w;
-    int variant         = 0;
-    bool saveBatchStats = true;
-    bool savePopStats   = runningMeanVar;
+    int variant               = 0;
+    const bool saveBatchStats = true;
+    bool savePopStats         = runningMeanVar;
     std::tie(n, c, h, w) = tien<4>(input_desc.GetLengths());
     size_t in_cstride, in_nstride, in_nchw;
     size_t xlocalsize, ylocalsize, zlocalsize;
@@ -546,9 +546,9 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::GetCompileParms(
 {
     std::string add;
     int n, c, h, w;
-    int variant         = 0;
-    bool saveBatchStats = true;
-    bool savePopStats   = runningMeanVar;
+    int variant               = 0;
+    const bool saveBatchStats = true;
+    bool savePopStats         = runningMeanVar;
     std::tie(n, c, h, w) = tien<4>(input_desc.GetLengths());
     size_t in_cstride, in_nstride, in_nchw;
     size_t xlocalsize, ylocalsize, zlocalsize;
@@ -595,9 +595,8 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::GetCompileParms(
            " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) + " -DMIO_BN_LDS_SIZE=" +
            std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
            " -DMIOPEN_READ_UNIT=" + std::to_string(read_unit) + " -DMIOPEN_READ_TYPE=" + READ_TYPE +
-           " -DMIO_SAVE_MEAN_VARIANCE=" + ((saveBatchStats) ? "1" : "0") +
-           " -DMIO_RUNNING_RESULT=" + ((savePopStats) ? "1" : "0") + " -DMIO_BN_VARIANT=" +
-           std::to_string(variant);
+           " -DMIO_SAVE_MEAN_VARIANCE=" + (saveBatchStats ? "1" : "0") + " -DMIO_RUNNING_RESULT=" +
+           ((savePopStats) ? "1" : "0") + " -DMIO_BN_VARIANT=" + std::to_string(variant);
 
     compile_config += add;
     MIOPEN_LOG_I2(add);

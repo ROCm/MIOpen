@@ -30,6 +30,8 @@
 #include <string>
 #include <boost/filesystem/path.hpp>
 
+#include <miopen/config.h>
+
 namespace miopen {
 
 boost::filesystem::path GetCacheFile(const std::string& device,
@@ -37,16 +39,26 @@ boost::filesystem::path GetCacheFile(const std::string& device,
                                      const std::string& args,
                                      bool is_kernel_str);
 
-boost::filesystem::path GetCachePath();
+boost::filesystem::path GetCachePath(bool is_system);
 std::string LoadBinary(const std::string& device,
+                       std::size_t num_cu,
                        const std::string& name,
                        const std::string& args,
                        bool is_kernel_str = false);
+#if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
 void SaveBinary(const boost::filesystem::path& binary_path,
                 const std::string& device,
                 const std::string& name,
                 const std::string& args,
                 bool is_kernel_str = false);
+#else
+void SaveBinary(const std::string& hsaco,
+                const std::string& device,
+                std::size_t num_cu,
+                const std::string& name,
+                const std::string& args,
+                bool is_kernel_str = false);
+#endif
 
 } // namespace miopen
 

@@ -388,11 +388,9 @@ struct cross_args_apply
 template <class F, class... Ts>
 void cross_args(F f, Ts&&... xs)
 {
-    miopen::each_args(std::bind(cross_args_apply{},
-                                protect_void(std::move(f)),
-                                std::placeholders::_1,
-                                std::forward<Ts>(xs)...),
-                      std::forward<Ts>(xs)...);
+    miopen::each_args(
+        std::bind(cross_args_apply{}, protect_void(std::move(f)), std::placeholders::_1, xs...),
+        xs...);
 }
 
 template <class T>

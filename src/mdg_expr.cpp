@@ -25,6 +25,7 @@ MDGExprParser::MDGExprParser() : MDGExprParser::base_type(expression)
         ;
 
     primary_expr =
+        // cppcheck-suppress compareBoolExpressionWithInt
         ( '(' > expression > ')' )         [ _val = _1 ]
         | constant                           [ _val = _1 ]
         | variable                           [ _val = _1 ]

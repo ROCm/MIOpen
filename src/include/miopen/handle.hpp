@@ -26,19 +26,25 @@
 #ifndef GUARD_MIOPEN_CONTEXT_HPP_
 #define GUARD_MIOPEN_CONTEXT_HPP_
 
+#include <miopen/config.h>
+#include <miopen/kernel_info.hpp>
+#include <miopen/common.hpp>
+#include <miopen/invoker_cache.hpp>
+#include <miopen/kernel.hpp>
+#include <miopen/miopen.h>
+#include <miopen/names.hpp>
+#include <miopen/object.hpp>
+#include <miopen/allocator.hpp>
+#include <miopen/simple_hash.hpp>
+#include <miopen/solver_id.hpp>
+
+#include <boost/range/adaptor/transformed.hpp>
+
 #include <cstdio>
 #include <cstring>
 #include <ios>
 #include <sstream>
 #include <memory>
-#include <miopen/config.h>
-#include <miopen/common.hpp>
-#include <miopen/kernel.hpp>
-#include <miopen/miopen.h>
-#include <miopen/object.hpp>
-#include <miopen/allocator.hpp>
-#include <miopen/simple_hash.hpp>
-#include <boost/range/adaptor/transformed.hpp>
 #include <vector>
 #include <unordered_map>
 
@@ -122,6 +128,10 @@ struct Handle : miopenHandle
                         bool is_kernel_str,
                         const std::string& kernel_src);
 
+    bool HasProgram(const std::string& program_name, const std::string& params);
+
+    void AddProgram(Program prog, const std::string& program_name, const std::string& params);
+
     void Finish() const;
     void Flush() const;
 
@@ -171,25 +181,51 @@ struct Handle : miopenHandle
         return result;
     }
 
-    std::string GetDbBasename()
+    static std::string GetDbBasename(const std::string& device, size_t num_cu)
     {
-        const auto ret = GetDeviceName() + [&]() {
+        const auto ret = device + [&]() {
             std::ostringstream ss;
-            const auto ncu = GetMaxComputeUnits();
-            if(ncu <= 64)
-                ss << '_' << ncu;
+            if(num_cu <= 64)
+                ss << '_' << num_cu;
             else
-                ss << std::hex << ncu;
+                ss << std::hex << num_cu;
             return std::string(ss.str());
         }();
         return ret;
     }
+
+    std::string GetDbBasename() { return GetDbBasename(GetDeviceName(), GetMaxComputeUnits()); }
 
     std::unique_ptr<HandleImpl> impl;
     std::unordered_map<std::string, std::vector<miopenConvSolution_t>> find_map;
 #if MIOPEN_USE_MIOPENGEMM
     std::unordered_map<GemmKey, std::unique_ptr<GemmGeometry>, SimpleHash> geo_map;
 #endif
+
+    Invoker PrepareInvoker(const InvokerFactory& factory,
+                           const std::vector<solver::KernelInfo>& kernels);
+
+    void RegisterInvoker(const Invoker& invoker,
+                         const NetworkConfig& config,
+                         solver::Id solver,
+                         const boost::optional<AlgorithmName>& algo = boost::none)
+    {
+        invokers.Register({config, solver.ToString()}, invoker);
+        if(algo)
+            invokers.SetAsFound1_0(config, *algo, solver.ToString());
+    }
+
+    boost::optional<const Invoker&>
+    GetInvoker(const NetworkConfig& config,
+               const boost::optional<solver::Id>& solver,
+               const boost::optional<AlgorithmName>& algo = boost::none) const
+    {
+        assert(solver || algo);
+        assert(!(solver && algo));
+        if(solver)
+            return invokers[std::make_pair(config.ToString(), solver->ToString())];
+        return invokers.GetFound1_0(config, *algo);
+    }
 
 #if MIOPEN_USE_ROCBLAS
     rocblas_handle_ptr& rhandle() { return rhandle_; }
@@ -199,6 +235,9 @@ struct Handle : miopenHandle
 
     rocblas_handle_ptr rhandle_;
 #endif
+
+    private:
+    InvokerCache invokers;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Handle& handle) { return handle.Print(os); }

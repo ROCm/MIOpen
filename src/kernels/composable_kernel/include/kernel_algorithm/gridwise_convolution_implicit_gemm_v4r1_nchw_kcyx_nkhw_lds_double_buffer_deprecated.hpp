@@ -94,9 +94,9 @@ struct GridwiseConvolutionImplicitGemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer_dep
         constexpr auto True = integral_constant<bool, true>{};
 
         constexpr auto generic_address_space =
-            integral_constant<AddressSpace, AddressSpace::generic>{};
+            integral_constant<AddressSpace, AddressSpace::Generic>{};
         constexpr auto global_address_space =
-            integral_constant<AddressSpace, AddressSpace::global>{};
+            integral_constant<AddressSpace, AddressSpace::Global>{};
 
         static_assert(ConvDirection == ConvolutionDirection::Forward ||
                           ConvDirection == ConvolutionDirection::BackwardWeight,
@@ -141,13 +141,14 @@ struct GridwiseConvolutionImplicitGemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer_dep
         constexpr index_t E = C * Y * X;
 
         // sanity-check for vectorized memory load
-        static_assert((Wo == 1 || (ConvStrideW == 1 || InBlockCopySrcDataPerRead_B == 1)) &&
-                          (X == 1 || ConvDilationW % InBlockCopySrcDataPerRead_B == 0),
-                      "wrong! aligment requirement for vectorized global load of input tensor will "
-                      "be violated");
+        static_assert(
+            (Wo == 1 || (ConvStrideW == 1 || InBlockCopySrcDataPerRead_B == 1)) &&
+                (X == 1 || ConvDilationW % InBlockCopySrcDataPerRead_B == 0),
+            "wrong! alignment requirement for vectorized global load of input tensor will "
+            "be violated");
 
         // divide block work by [K, B]
-        static_assert(K % KPerBlock == 0 && B % BPerBlock == 0 && E % (2 * EPerBlock) == 0,
+        static_assert(K % KPerBlock == 0 && B % BPerBlock == 0 && E % EPerBlock == 0,
                       "wrong! cannot divide work evenly among block");
 
         constexpr index_t KBlockWork = K / KPerBlock;
@@ -357,37 +358,49 @@ struct GridwiseConvolutionImplicitGemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer_dep
 
         // LDS double buffer: tail
         {
-            // even iteration
-            Float p_in_thread_buffer[blockwise_in_copy.GetThreadBufferSize()];
-            Float p_wei_thread_buffer[blockwise_wei_copy.GetThreadBufferSize()];
+            constexpr bool has_two_iteration_left = (E % (2 * EPerBlock) == 0);
 
-            blockwise_in_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0, 0, 0>{}, True);
-            blockwise_wei_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0>{}, True);
+            if(has_two_iteration_left) // if has 2 iteration left
+            {
+                // even iteration
+                Float p_in_thread_buffer[blockwise_in_copy.GetThreadBufferSize()];
+                Float p_wei_thread_buffer[blockwise_wei_copy.GetThreadBufferSize()];
 
-            __syncthreads();
+                blockwise_in_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0, 0, 0>{}, True);
+                blockwise_wei_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0>{}, True);
 
-            // LDS doubel buffer: load next data from device mem
-            blockwise_in_copy.RunLoadThreadBuffer(
-                p_in_global, p_in_thread_buffer, global_address_space, generic_address_space);
-            blockwise_wei_copy.RunLoadThreadBuffer(
-                p_wei_global, p_wei_thread_buffer, global_address_space, generic_address_space);
+                __syncthreads();
 
-            // LDS double buffer: GEMM on current data
-            blockwise_gemm.Run(p_wei_block_double, p_in_block_double, p_out_thread);
+                // LDS doubel buffer: load next data from device mem
+                blockwise_in_copy.RunLoadThreadBuffer(
+                    p_in_global, p_in_thread_buffer, global_address_space, generic_address_space);
+                blockwise_wei_copy.RunLoadThreadBuffer(
+                    p_wei_global, p_wei_thread_buffer, global_address_space, generic_address_space);
 
-            // LDS double buffer: store next data to LDS
-            blockwise_in_copy.RunStoreThreadBuffer(p_in_thread_buffer,
-                                                   p_in_block_double + in_block_space);
-            blockwise_wei_copy.RunStoreThreadBuffer(p_wei_thread_buffer,
-                                                    p_wei_block_double + wei_block_space);
+                // LDS double buffer: GEMM on current data
+                blockwise_gemm.Run(p_wei_block_double, p_in_block_double, p_out_thread);
 
-            // odd iteration
-            __syncthreads();
+                // LDS double buffer: store next data to LDS
+                blockwise_in_copy.RunStoreThreadBuffer(p_in_thread_buffer,
+                                                       p_in_block_double + in_block_space);
+                blockwise_wei_copy.RunStoreThreadBuffer(p_wei_thread_buffer,
+                                                        p_wei_block_double + wei_block_space);
 
-            // LDS double buffer: GEMM on current data
-            blockwise_gemm.Run(p_wei_block_double + wei_block_space,
-                               p_in_block_double + in_block_space,
-                               p_out_thread);
+                // odd iteration
+                __syncthreads();
+
+                // LDS double buffer: GEMM on current data
+                blockwise_gemm.Run(p_wei_block_double + wei_block_space,
+                                   p_in_block_double + in_block_space,
+                                   p_out_thread);
+            }
+            else // if has 1 iteration left
+            {
+                __syncthreads();
+
+                // LDS double buffer: GEMM on last data
+                blockwise_gemm.Run(p_wei_block_double, p_in_block_double, p_out_thread);
+            }
         }
 
         // copy output: register to global memory

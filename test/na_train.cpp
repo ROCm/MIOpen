@@ -78,10 +78,10 @@ struct verify_fwd_batchnorm_spatial_activ
     double beta;
 
     verify_fwd_batchnorm_spatial_activ(miopenFusionPlanDescriptor_t pfwdfusionplan,
-                                       tensor<T>& pinput,
+                                       const tensor<T>& pinput,
                                        miopenActivationDescriptor_t pactivDesc,
-                                       tensor<U>& pbnscale,
-                                       tensor<U>& pbnbias,
+                                       const tensor<U>& pbnscale,
+                                       const tensor<U>& pbnbias,
                                        miopenFusionOpDescriptor_t pbNormFwdOp,
                                        miopenFusionOpDescriptor_t pactivFwdOp)
     {
@@ -246,14 +246,14 @@ struct verify_bwd_batchnorm_spatial_activ
     double beta;
 
     verify_bwd_batchnorm_spatial_activ(miopenFusionPlanDescriptor_t pbwdfusionplan,
-                                       tensor<T>& pdyin,
-                                       tensor<T>& pxin,
-                                       tensor<T>& pyin,
+                                       const tensor<T>& pdyin,
+                                       const tensor<T>& pxin,
+                                       const tensor<T>& pyin,
                                        miopenActivationDescriptor_t pactivDesc,
-                                       tensor<U>& pbnscale,
-                                       tensor<U>& pbnbias,
-                                       tensor<U>& psavedMean,
-                                       tensor<U>& psavedInvVar,
+                                       const tensor<U>& pbnscale,
+                                       const tensor<U>& pbnbias,
+                                       const tensor<U>& psavedMean,
+                                       const tensor<U>& psavedInvVar,
                                        miopenFusionOpDescriptor_t pbNormBwdOp,
                                        miopenFusionOpDescriptor_t pactivBwdOp)
     {
@@ -417,10 +417,10 @@ struct verify_fwd_batchnorm_peract_activ
     double beta;
 
     verify_fwd_batchnorm_peract_activ(miopenFusionPlanDescriptor_t pfwdfusionplan,
-                                      tensor<T>& pinput,
+                                      const tensor<T>& pinput,
                                       miopenActivationDescriptor_t pactivDesc,
-                                      tensor<U>& pbnscale,
-                                      tensor<U>& pbnbias,
+                                      const tensor<U>& pbnscale,
+                                      const tensor<U>& pbnbias,
                                       miopenFusionOpDescriptor_t pbNormFwdOp,
                                       miopenFusionOpDescriptor_t pactivFwdOp)
     {
@@ -586,14 +586,14 @@ struct verify_bwd_batchnorm_peract_activ
     std::size_t input_n, input_c, input_h, input_w;
 
     verify_bwd_batchnorm_peract_activ(miopenFusionPlanDescriptor_t pbwdfusionplan,
-                                      tensor<T>& pdyin,
-                                      tensor<T>& pxin,
-                                      tensor<T>& pyin,
+                                      const tensor<T>& pdyin,
+                                      const tensor<T>& pxin,
+                                      const tensor<T>& pyin,
                                       miopenActivationDescriptor_t pactivDesc,
-                                      tensor<U>& pbnscale,
-                                      tensor<U>& pbnbias,
-                                      tensor<U>& psavedMean,
-                                      tensor<U>& psavedInvVar,
+                                      const tensor<U>& pbnscale,
+                                      const tensor<U>& pbnbias,
+                                      const tensor<U>& psavedMean,
+                                      const tensor<U>& psavedInvVar,
                                       miopenFusionOpDescriptor_t pbNormBwdOp,
                                       miopenFusionOpDescriptor_t pactivBwdOp)
     {

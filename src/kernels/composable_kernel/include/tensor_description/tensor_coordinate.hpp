@@ -53,6 +53,8 @@ struct NativeTensorCoordinate
 
     __host__ __device__ static constexpr auto GetTensorDescriptor() { return tensor_desc_type{}; }
 
+    __host__ __device__ constexpr const Index& GetUpperIndex() const { return mIndex; }
+
     __host__ __device__ constexpr const Index& GetIndex() const { return mIndex; }
 
     __host__ __device__ constexpr const index_t& GetOffset() const { return mOffset; }
@@ -98,7 +100,24 @@ struct NativeTensorCoordinate
         return tensor_desc_type::CalculateOffsetDiff(idx_diff);
     }
 
-    __host__ __device__ static constexpr bool IsUpperIndexMappedToValidOffset() { return true; }
+    // evaluated at run-time
+    __host__ __device__ constexpr bool IsUpperIndexValid() const
+    {
+        return tensor_desc_type::IsUpperIndexValid(GetUpperIndex());
+    }
+
+    // evaluated at run-time
+    __host__ __device__ constexpr bool IsOffsetValid() const
+    {
+        // For native tensor, offset is valid if upper-index is valid
+        return IsUpperIndexValid();
+    }
+
+    // evaluated at compile-time
+    __host__ __device__ static constexpr bool IsOffsetValidAssumingUpperIndexIsValid()
+    {
+        return true;
+    }
 
     private:
     // mIndex may be saved and updated, however, the value of some (or all) of its entries may
@@ -206,10 +225,30 @@ struct TransformedTensorCoordinate
         return GetLowerCoordinate().CalculateOffsetDiff(idx_low_diff);
     }
 
-    __host__ __device__ constexpr bool IsUpperIndexMappedToValidOffset() const
+    // evaluated at run-time
+    __host__ __device__ constexpr bool IsUpperIndexValid() const
     {
-        return tensor_desc_type::IsUpperIndexMappedToValidLowerIndex(GetIndex()) &&
-               mCoordLow.IsUpperIndexMappedToValidOffset();
+        return tensor_desc_type::IsUpperIndexValid(GetUpperIndex());
+    }
+
+    // evaluted at run-time
+    __host__ __device__ constexpr bool IsOffsetValid() const
+    {
+        return IsUpperIndexValid() && GetLowerCoordinate().IsOffsetValid();
+    }
+
+    // most evaluatation is done at comile-time
+    __host__ __device__ constexpr bool IsLowerIndexValidAssumingUpperIndexIsValid() const
+    {
+        return tensor_desc_type::IsLowerIndexValidAssumingUpperIndexIsValid(
+            GetLowerCoordinate().GetIndex());
+    }
+
+    // most evaluatation is done at comile-time
+    __host__ __device__ constexpr bool IsOffsetValidAssumingUpperIndexIsValid() const
+    {
+        return IsLowerIndexValidAssumingUpperIndexIsValid() &&
+               GetLowerCoordinate().IsOffsetValidAssumingUpperIndexIsValid();
     }
 
     private:
