@@ -47,9 +47,7 @@ namespace miopen {
 /// \todo Get rid of this during implementation of #1938 (60)
 static auto GetContext(Handle& handle)
 {
-    const TensorDescriptor td;
-    const ConvolutionDescriptor cd;
-    ConvolutionContext ctx(td, td, td, cd, 1);
+    ConvolutionContext ctx(conv::Direction::Forward);
     ctx.SetStream(&handle);
     ctx.DetectRocm();
     return ctx;

@@ -135,6 +135,32 @@ extern "C" miopenStatus_t miopenSetDropoutDescriptor(miopenDropoutDescriptor_t d
     });
 }
 
+static void LogCmdDropout(const miopenDropoutDescriptor_t dropoutDesc,
+                          const miopenTensorDescriptor_t xDesc,
+                          bool is_fwd)
+{
+    if(miopen::IsLoggingCmd())
+    {
+        std::stringstream ss;
+        if(miopen::deref(xDesc).GetType() == miopenFloat)
+            ss << "dropout";
+        else if(miopen::deref(xDesc).GetType() == miopenHalf)
+            ss << "dropoutfp16";
+
+        if(is_fwd)
+            ss << " -F 1";
+        else
+            ss << " -F 2";
+        // clang-format off
+        ss << " -d " << miopen::deref(xDesc).GetLengths().size()
+           << " -e " << std::to_string(static_cast<int>(miopen::deref(dropoutDesc).use_mask))
+           << " -l " << (miopen::deref(dropoutDesc).seed & 0xFFFFFFFF)
+           << " -m " << ((miopen::deref(dropoutDesc).seed >> 32) & 0xFFFFFFFF)
+           << " -p " << std::to_string(miopen::deref(dropoutDesc).dropout);
+        // clang-format on 
+        MIOPEN_LOG_DRIVER_CMD(ss.str());
+    }
+}
 extern "C" miopenStatus_t miopenDropoutForward(miopenHandle_t handle,
                                                const miopenDropoutDescriptor_t dropoutDesc,
                                                const miopenTensorDescriptor_t noise_shape,
@@ -148,6 +174,7 @@ extern "C" miopenStatus_t miopenDropoutForward(miopenHandle_t handle,
 
     MIOPEN_LOG_FUNCTION(
         dropoutDesc, noise_shape, xDesc, x, yDesc, y, reserveSpace, reserveSpaceSizeInBytes);
+    LogCmdDropout(dropoutDesc, xDesc, true);
     return miopen::try_([&] {
         miopen::deref(dropoutDesc)
             .DropoutForward(miopen::deref(handle),
@@ -173,6 +200,7 @@ extern "C" miopenStatus_t miopenDropoutBackward(miopenHandle_t handle,
 {
 
     MIOPEN_LOG_FUNCTION(dropoutDesc, dyDesc, dy, dxDesc, dx, reserveSpace, reserveSpaceSizeInBytes);
+    LogCmdDropout(dropoutDesc, dxDesc, false);
     return miopen::try_([&] {
         miopen::deref(dropoutDesc)
             .DropoutBackward(miopen::deref(handle),

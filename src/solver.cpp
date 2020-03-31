@@ -147,7 +147,7 @@ AnySolver Id::GetSolver() const
     return it != IdRegistry().value_to_solver.end() ? it->second : AnySolver{};
 }
 
-std::string Id::GetAlgo(miopenConvDirection_t dir) const
+std::string Id::GetAlgo(conv::Direction dir) const
 {
     const auto it = IdRegistry().value_to_algo.find(value);
     if(it == IdRegistry().value_to_algo.end())

@@ -770,7 +770,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1::GetSolution(
                 config.CalculateGemmCThreadCopyPerformanceParameters(ctx);
 
             // clang-format off
-            construction_parameters.comp_options = 
+            construction_parameters.comp_options =
                 std::string(" -std=c++14 ") +
                 std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ConvolutionContextInterpreter::GetBatchN(ctx)) +
                 std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ConvolutionContextInterpreter::GetOutputChannelK(ctx)) +
@@ -810,8 +810,8 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1::GetSolution(
                 std::string(" -DCK_PARAM_TUNABLE_GEMM_C_THREAD_COPY_DST_DATA_PER_WRITE_GEMM_N1=") + std::to_string(GemmCThreadCopyDstDataPerWrite_GemmN1) +
                 std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
                 std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
+                std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
                 std::string(" -DCK_PARAM_GEMM_ID=") + std::to_string(gemm_id) +
-                std::string(" -D__HIP_PLATFORM_HCC__=1") +
                 ctx.general_compile_options;
             // clang-format on
 
