@@ -1399,9 +1399,10 @@ struct conv_driver : test_driver
     miopen::ConvolutionDescriptor filter;
     std::string conv_mode;
     std::string pad_mode;
-    std::vector<int> spatial_dims;
-    int input_channels{};
-    int output_channels{};
+    std::vector<std::size_t> spatial_dim_elements;
+    std::size_t batch_size{};
+    std::size_t input_channels{};
+    std::size_t output_channels{};
     std::vector<int> pads_strides_dilations;
     std::vector<int> trans_output_pads;
     int groupCount{};
@@ -1424,9 +1425,9 @@ struct conv_driver : test_driver
         {"VALID", miopenPaddingValid},
         {"DEFAULT", miopenPaddingDefault}};
 
-    std::vector<int> get_batch_sizes() { return {1, 2, 8, 16, 64, 128, 352, 512}; }
+    std::vector<std::size_t> get_batch_sizes() { return {1, 2, 8, 16, 64, 128, 352, 512}; }
 
-    std::vector<std::vector<int>> get_2d_spatial_dims()
+    std::vector<std::vector<std::size_t>> get_2d_spatial_dims()
     {
         return {{7, 7},
                 {14, 14},
@@ -1445,12 +1446,12 @@ struct conv_driver : test_driver
                 {7, 1}};
     }
 
-    std::vector<int> get_output_channels()
+    std::vector<std::size_t> get_output_channels()
     {
         return {16, 32, 96, 112, 128, 192, 256, 320, 512, 1024};
     }
 
-    std::vector<int> get_input_channels()
+    std::vector<std::size_t> get_input_channels()
     {
         return {16, 32, 96, 112, 128, 192, 256, 320, 512, 1024, 3};
     }
@@ -1534,14 +1535,29 @@ struct conv_driver : test_driver
 
     void run()
     {
-        filter.spatialDim       = get_spatial_dim();
+        filter.spatialDim       = spatial_dim_elements.size();
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];
         std::size_t spatial_dim = filter.GetSpatialDimension();
+        if(spatial_dim == 2)
+        {
+            input = tensor<T>{batch_size, input_channels, spatial_dim_elements.at(0), spatial_dim_elements.at(1)};//.generate(tensor_elem_gen_integer{17});
+            weights = tensor<T>{output_channels, input_channels, spatial_dim_elements.at(0), spatial_dim_elements.at(1)};//.generate(tensor_elem_gen_integer{17});
+        }
+        else if(spatial_dim == 3)
+        {
+            input = tensor<T>{batch_size, input_channels, spatial_dim_elements.at(0), spatial_dim_elements.at(1), spatial_dim_elements.at(2) };//.generate(tensor_elem_gen_integer{17});
+            weights = tensor<T>{output_channels, input_channels, spatial_dim_elements.at(0), spatial_dim_elements.at(1), spatial_dim_elements.at(2) };//.generate(tensor_elem_gen_integer{17});
+        }
+        else
+        {
+            MIOPEN_LOG_E("dimension is wrong!");
+        }
+        
+        
 
-        if(input.desc.GetSize() != 2 + spatial_dim || weights.desc.GetSize() != 2 + spatial_dim ||
-           pads_strides_dilations.size() != 3 * spatial_dim ||
-           trans_output_pads.size() != spatial_dim)
+
+        if(pads_strides_dilations.size() != 3 * spatial_dim || trans_output_pads.size() != spatial_dim)
         {
             MIOPEN_LOG_E("dimension is wrong!");
         }
