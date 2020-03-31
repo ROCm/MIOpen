@@ -275,7 +275,7 @@ struct GridwiseConvolutionImplicitGemm_v4r1_fp16_bfp16_nchw_kcyx_nkhw_lds_double
                                                4,
                                                InBlockCopySrcDataPerRead_B,
                                                InBlockCopyDstDataPerWrite_EPack,
-                                               AddressSpace::Generic,
+                                               AddressSpace::Global,
                                                AddressSpace::Vgpr,
                                                AddressSpace::Lds,
                                                InMemoryDataOperation::Set>(
@@ -314,7 +314,7 @@ struct GridwiseConvolutionImplicitGemm_v4r1_fp16_bfp16_nchw_kcyx_nkhw_lds_double
                                                2,
                                                WeiBlockCopySrcDataPerRead_E,
                                                WeiBlockCopyDstDataPerWrite_EPack,
-                                               AddressSpace::Generic,
+                                               AddressSpace::Global,
                                                AddressSpace::Vgpr,
                                                AddressSpace::Lds,
                                                InMemoryDataOperation::Set>(
@@ -561,7 +561,7 @@ struct GridwiseConvolutionImplicitGemm_v4r1_fp16_bfp16_nchw_kcyx_nkhw_lds_double
                 1,
                 1,
                 AddressSpace::Vgpr,
-                AddressSpace::Generic,
+                AddressSpace::Global,
                 InMemoryDataOperation::Set>({0, 0, 0, 0, 0},
                                             {k_thread_data_on_global / K1,
                                              k_thread_data_on_global % K1,

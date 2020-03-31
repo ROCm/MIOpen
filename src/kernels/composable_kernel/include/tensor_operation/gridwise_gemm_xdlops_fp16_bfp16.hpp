@@ -103,7 +103,7 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
             2,                          // Dst dim to be written in vector form (KPACK dimension)
             ABlockCopySrcDataPerRead,
             ABlockCopyDstDataPerWrite_KPACK,
-            AddressSpace::Generic,
+            AddressSpace::Global,
             AddressSpace::Vgpr,
             AddressSpace::Lds,
             InMemoryDataOperation::Set>({0, k_block_data_on_global, 0}, {0, 0, 0});
@@ -126,7 +126,7 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
             2,                          // Dst dim to be written in vector form (KPACK dimension)
             BBlockCopySrcDataPerRead,
             BBlockCopyDstDataPerWrite_KPACK,
-            AddressSpace::Generic,
+            AddressSpace::Global,
             AddressSpace::Vgpr,
             AddressSpace::Lds,
             InMemoryDataOperation::Set>({0, b_block_data_on_global, 0}, {0, 0, 0});
