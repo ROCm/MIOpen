@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                2.2.1
+                2.3.0
               </div>
             
           
@@ -85,7 +85,8 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">02/26/2020 [ 2.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/31/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/13/2019 [ 2.0.1 ]</a></li>
@@ -333,10 +334,13 @@
 <li class="toctree-l3"><a class="reference internal" href="#miopenindextype-t">miopenIndexType_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#miopencreatepoolingdescriptor">miopenCreatePoolingDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#miopenset2dpoolingdescriptor">miopenSet2dPoolingDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#miopensetndpoolingdescriptor">miopenSetNdPoolingDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#miopensetpoolingindextype">miopenSetPoolingIndexType</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#miopengetpoolingindextype">miopenGetPoolingIndexType</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#miopenget2dpoolingdescriptor">miopenGet2dPoolingDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#miopengetndpoolingdescriptor">miopenGetNdPoolingDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#miopengetpoolingforwardoutputdim">miopenGetPoolingForwardOutputDim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#miopengetpoolingndforwardoutputdim">miopenGetPoolingNdForwardOutputDim</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#miopenpoolinggetworkspacesize">miopenPoolingGetWorkSpaceSize</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#miopenpoolinggetworkspacesizev2">miopenPoolingGetWorkSpaceSizeV2</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#miopenpoolingforward">miopenPoolingForward</a></li>
@@ -575,6 +579,31 @@
 </dd></dl>
 
 </div>
+<div class="section" id="miopensetndpoolingdescriptor">
+<h2>miopenSetNdPoolingDescriptor<a class="headerlink" href="#miopensetndpoolingdescriptor" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="_CPPv228miopenSetNdPoolingDescriptor25miopenPoolingDescriptor_tK19miopenPoolingMode_tiPiPiPi">
+<span id="miopenSetNdPoolingDescriptor__miopenPoolingDescriptor_t.miopenPoolingMode_tC.i.iP.iP.iP"></span><span class="target" id="group__pooling_1ga5863a5ef14d7539c9486d7b0b5029c84"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSetNdPoolingDescriptor</code><span class="sig-paren">(</span>miopenPoolingDescriptor_t <em>poolDesc</em>, <em class="property">const</em> <a class="reference internal" href="#_CPPv219miopenPoolingMode_t" title="miopenPoolingMode_t">miopenPoolingMode_t</a> <em>mode</em>, int <em>nbDims</em>, int *<em>windowDimA</em>, int *<em>padA</em>, int *<em>stridesA</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv228miopenSetNdPoolingDescriptor25miopenPoolingDescriptor_tK19miopenPoolingMode_tiPiPiPi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set details of a N-D pooling layer descriptor. </p>
+<p>Set the window shape, padding, and stride for a previously created N-D pooling descriptor.</p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>miopenStatus_t </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal"><span class="pre">poolDesc</span></code>: Pointer to a pooling layer descriptor (input/output) </li>
+<li><code class="docutils literal"><span class="pre">mode</span></code>: Pooling mode enum (input) </li>
+<li><code class="docutils literal"><span class="pre">nbDims</span></code>: Dimension of the pooling (input) </li>
+<li><code class="docutils literal"><span class="pre">windowDimA</span></code>: Array of input window dimensions with length equal to or larger than dimsRequested (input) </li>
+<li><code class="docutils literal"><span class="pre">padA</span></code>: Array of number of elements to padding with length equal to or larger than dimsRequested (input) </li>
+<li><code class="docutils literal"><span class="pre">stridesA</span></code>: Array of stride parameter with length equal to or larger than dimsRequested (input) </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+</div>
 <div class="section" id="miopensetpoolingindextype">
 <h2>miopenSetPoolingIndexType<a class="headerlink" href="#miopensetpoolingindextype" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
@@ -642,6 +671,32 @@
 </dd></dl>
 
 </div>
+<div class="section" id="miopengetndpoolingdescriptor">
+<h2>miopenGetNdPoolingDescriptor<a class="headerlink" href="#miopengetndpoolingdescriptor" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="_CPPv228miopenGetNdPoolingDescriptorK25miopenPoolingDescriptor_tiP19miopenPoolingMode_tPiPiPiPi">
+<span id="miopenGetNdPoolingDescriptor__miopenPoolingDescriptor_tC.i.miopenPoolingMode_tP.iP.iP.iP.iP"></span><span class="target" id="group__pooling_1gacbeb7fdb0e7150f1b4249b90ce734edc"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetNdPoolingDescriptor</code><span class="sig-paren">(</span><em class="property">const</em> miopenPoolingDescriptor_t <em>poolDesc</em>, int <em>nbDimsRequested</em>, <a class="reference internal" href="#_CPPv219miopenPoolingMode_t" title="miopenPoolingMode_t">miopenPoolingMode_t</a> *<em>mode</em>, int *<em>nbDims</em>, int *<em>windowDimA</em>, int *<em>padA</em>, int *<em>stridesA</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv228miopenGetNdPoolingDescriptorK25miopenPoolingDescriptor_tiP19miopenPoolingMode_tPiPiPiPi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Get details of a N-D pooling layer descriptor. </p>
+<p>Get the window shape, padding, and stride for a previously created N-D pooling descriptor.</p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>miopenStatus_t </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal"><span class="pre">poolDesc</span></code>: Pointer to a pooling layer descriptor (input) </li>
+<li><code class="docutils literal"><span class="pre">nbDimsRequested</span></code>: Dimension of the expected pooling descriptor (input) </li>
+<li><code class="docutils literal"><span class="pre">mode</span></code>: Pooling mode enum (output) </li>
+<li><code class="docutils literal"><span class="pre">nbDims</span></code>: Actual dimension of the pooling descriptor (output) </li>
+<li><code class="docutils literal"><span class="pre">windowDimA</span></code>: Array of input window dimensions with length equal to or larger than dimsRequested (output) </li>
+<li><code class="docutils literal"><span class="pre">padA</span></code>: Array of number of elements to padding with length equal to or larger than dimsRequested (output) </li>
+<li><code class="docutils literal"><span class="pre">stridesA</span></code>: Array of stride parameter with length equal to or larger than dimsRequested (output) </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+</div>
 <div class="section" id="miopengetpoolingforwardoutputdim">
 <h2>miopenGetPoolingForwardOutputDim<a class="headerlink" href="#miopengetpoolingforwardoutputdim" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
@@ -660,6 +715,29 @@
 <li><code class="docutils literal"><span class="pre">c</span></code>: Number of channels (output) </li>
 <li><code class="docutils literal"><span class="pre">h</span></code>: Heights of input map (output) </li>
 <li><code class="docutils literal"><span class="pre">w</span></code>: Width of input map (output) </li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+</div>
+<div class="section" id="miopengetpoolingndforwardoutputdim">
+<h2>miopenGetPoolingNdForwardOutputDim<a class="headerlink" href="#miopengetpoolingndforwardoutputdim" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="_CPPv234miopenGetPoolingNdForwardOutputDimK25miopenPoolingDescriptor_tK24miopenTensorDescriptor_tiPi">
+<span id="miopenGetPoolingNdForwardOutputDim__miopenPoolingDescriptor_tC.miopenTensorDescriptor_tC.i.iP"></span><span class="target" id="group__pooling_1ga8c9206972e267f133514166a6a2f2f11"></span>MIOPEN_EXPORT <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetPoolingNdForwardOutputDim</code><span class="sig-paren">(</span><em class="property">const</em> miopenPoolingDescriptor_t <em>poolDesc</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>tensorDesc</em>, int <em>dims</em>, int *<em>tensorDimArr</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv234miopenGetPoolingNdForwardOutputDimK25miopenPoolingDescriptor_tK24miopenTensorDescriptor_tiPi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Gets the shape of the output tensor for N-D pooling. </p>
+<p>Retrieve the tensor dimensions for the forward N-D pooling. This call is required for the forward if the output dimensions are different than the input tensor dimensions.</p>
+<p><dl class="docutils">
+<dt><strong>Return</strong></dt>
+<dd>miopenStatus_t </dd>
+<dt><strong>Parameters</strong></dt>
+<dd><ul class="breatheparameterlist first last simple">
+<li><code class="docutils literal"><span class="pre">poolDesc</span></code>: Pointer to a pooling layer descriptor (input) </li>
+<li><code class="docutils literal"><span class="pre">tensorDesc</span></code>: Input tensor descriptor (input) </li>
+<li><code class="docutils literal"><span class="pre">dims</span></code>: Dimension of the pooling (input) </li>
+<li><code class="docutils literal"><span class="pre">tensorDimArr</span></code>: Array of tensor dimension (output) </li>
 </ul>
 </dd>
 </dl>
@@ -835,7 +913,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.2.1',
+            VERSION:'2.3.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

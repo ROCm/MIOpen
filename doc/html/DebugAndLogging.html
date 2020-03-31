@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                2.2.1
+                2.3.0
               </div>
             
           
@@ -85,7 +85,8 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">02/26/2020 [ 2.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/31/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/13/2019 [ 2.0.1 ]</a></li>
@@ -585,6 +586,7 @@
 </ul>
 </li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2</span></code> - <code class="docutils literal"><span class="pre">ConvBinWinogradRxSf3x2</span></code>, FP32/FP16 Fwd/Bwd F(3,2) Winograd.</li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3</span></code> - <code class="docutils literal"><span class="pre">ConvBinWinogradRxSf2x3</span></code>, FP32/FP16 Fwd/Bwd F(2,3) Winograd.</li>
 <li>Multi-pass Winograd:<ul>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2</span></code> - <code class="docutils literal"><span class="pre">ConvWinograd3x3MultipassWrW&lt;3-2&gt;</span></code>, WrW F(3,2), stride 2 only.</li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3</span></code> - <code class="docutils literal"><span class="pre">ConvWinograd3x3MultipassWrW&lt;3-3&gt;</span></code>, WrW F(3,3), stride 2 only.</li>
@@ -655,7 +657,18 @@ both MIOpenGEMM and rocBlas depending on the input configuration:</p>
 </ul>
 </li>
 <li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER</span></code> - This variable affects only assembly kernels, and only when ROCm supports both CO v2 and CO v3 (like ROCm 2.10). By default, the newer format is used (CO v3). When this variable is <em>enabled</em>, the behavior is reversed.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_OPENCL_ENFORCE_COV3</span></code> - Enforces CO v3 for OpenCL kernels. Works with HIP backend only (<code class="docutils literal"><span class="pre">cmake</span> <span class="pre">...</span> <span class="pre">-DMIOPEN_BACKEND=HIP...</span></code>).</li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_OPENCL_ENFORCE_COV3</span></code> - Enforces Code Object format for OpenCL kernels. Works with HIP backend only (<code class="docutils literal"><span class="pre">cmake</span> <span class="pre">...</span> <span class="pre">-DMIOPEN_BACKEND=HIP...</span></code>).<ul>
+<li>Unset - Automatically detect the required CO version. This is the default.</li>
+<li><code class="docutils literal"><span class="pre">0</span></code> - Always build to CO v2.</li>
+<li><code class="docutils literal"><span class="pre">1</span></code> - Always build to CO v3.</li>
+</ul>
+</li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_HIP_ENFORCE_COV3</span></code> - Enforces Code Object format for HIP kernels.<ul>
+<li>Unset - Automatically detect the required CO version. This is the default.</li>
+<li><code class="docutils literal"><span class="pre">0</span></code> - Always build to CO v2.</li>
+<li><code class="docutils literal"><span class="pre">1</span></code> - Always build to CO v3.</li>
+</ul>
+</li>
 </ul>
 </div>
 <div class="section" id="miopen-debug-amd-winograd-mpass-workspace-max">
@@ -723,7 +736,7 @@ both MIOpenGEMM and rocBlas depending on the input configuration:</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.2.1',
+            VERSION:'2.3.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

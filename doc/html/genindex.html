@@ -57,7 +57,7 @@
             
             
               <div class="version">
-                2.2.1
+                2.3.0
               </div>
             
           
@@ -84,7 +84,8 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">02/26/2020 [ 2.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/31/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/13/2019 [ 2.0.1 ]</a></li>
@@ -332,10 +333,13 @@
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenindextype-t">miopenIndexType_t</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopencreatepoolingdescriptor">miopenCreatePoolingDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenset2dpoolingdescriptor">miopenSet2dPoolingDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopensetndpoolingdescriptor">miopenSetNdPoolingDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopensetpoolingindextype">miopenSetPoolingIndexType</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopengetpoolingindextype">miopenGetPoolingIndexType</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenget2dpoolingdescriptor">miopenGet2dPoolingDescriptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopengetndpoolingdescriptor">miopenGetNdPoolingDescriptor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopengetpoolingforwardoutputdim">miopenGetPoolingForwardOutputDim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pooling.html#miopengetpoolingndforwardoutputdim">miopenGetPoolingNdForwardOutputDim</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenpoolinggetworkspacesize">miopenPoolingGetWorkSpaceSize</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenpoolinggetworkspacesizev2">miopenPoolingGetWorkSpaceSizeV2</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pooling.html#miopenpoolingforward">miopenPoolingForward</a></li>
@@ -699,11 +703,15 @@
 </li>
       <li><a href="lrn.html#_CPPv222miopenGetLRNDescriptorK21miopenLRNDescriptor_tP15miopenLRNMode_tPjPdPdPd">miopenGetLRNDescriptor (C++ function)</a>
 </li>
+      <li><a href="pooling.html#_CPPv228miopenGetNdPoolingDescriptorK25miopenPoolingDescriptor_tiP19miopenPoolingMode_tPiPiPiPi">miopenGetNdPoolingDescriptor (C++ function)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="pooling.html#_CPPv232miopenGetPoolingForwardOutputDimK25miopenPoolingDescriptor_tK24miopenTensorDescriptor_tPiPiPiPi">miopenGetPoolingForwardOutputDim (C++ function)</a>
 </li>
       <li><a href="pooling.html#_CPPv225miopenGetPoolingIndexType25miopenPoolingDescriptor_tP17miopenIndexType_t">miopenGetPoolingIndexType (C++ function)</a>
+</li>
+      <li><a href="pooling.html#_CPPv234miopenGetPoolingNdForwardOutputDimK25miopenPoolingDescriptor_tK24miopenTensorDescriptor_tiPi">miopenGetPoolingNdForwardOutputDim (C++ function)</a>
 </li>
       <li><a href="rnn.html#_CPPv222miopenGetRNNDescriptor21miopenRNNDescriptor_tP15miopenRNNMode_tP15miopenRNNAlgo_tP20miopenRNNInputMode_tP24miopenRNNDirectionMode_tP19miopenRNNBiasMode_tPiPi">miopenGetRNNDescriptor (C++ function)</a>
 </li>
@@ -859,6 +867,8 @@
 </li>
       <li><a href="lrn.html#_CPPv222miopenSetLRNDescriptorK21miopenLRNDescriptor_t15miopenLRNMode_tjddd">miopenSetLRNDescriptor (C++ function)</a>
 </li>
+      <li><a href="pooling.html#_CPPv228miopenSetNdPoolingDescriptor25miopenPoolingDescriptor_tK19miopenPoolingMode_tiPiPiPi">miopenSetNdPoolingDescriptor (C++ function)</a>
+</li>
       <li><a href="fusion.html#_CPPv233miopenSetOpArgsBatchNormInference20miopenOperatorArgs_tK26miopenFusionOpDescriptor_tPKvPKvPKvPKvPKvPKvd">miopenSetOpArgsBatchNormInference (C++ function)</a>
 </li>
       <li><a href="fusion.html#_CPPv226miopenSetOpArgsBiasForward20miopenOperatorArgs_tK26miopenFusionOpDescriptor_tPKvPKvPKv">miopenSetOpArgsBiasForward (C++ function)</a>
@@ -968,7 +978,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.2.1',
+            VERSION:'2.3.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
