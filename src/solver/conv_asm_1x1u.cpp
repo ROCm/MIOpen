@@ -28,12 +28,15 @@
 #include <limits>
 #include <cassert>
 
-#include <miopen/gcn_asm_utils.hpp>
+#include <miopen/conv/compiled_in_parameters.hpp>
+#include <miopen/conv/invokers/gcn_asm_1x1u_fwd.hpp>
+#include <miopen/conv/invokers/gcn_asm_1x1u_ss_fwd.hpp>
 #include <miopen/env.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/handle.hpp>
-#include <miopen/solver.hpp>
 #include <miopen/generic_search.hpp>
+#include <miopen/gcn_asm_utils.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/solver.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)
@@ -473,7 +476,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 
     std::ostringstream options;
 
-    KernelInfo kernel;
+    KernelInfo ss_us_kernel;
     int data_len = GetTypeSize(params.out_data_type);
     if(UseSubsample(params) || UseUpsample(params))
     {
@@ -505,26 +508,26 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
             std::string(" -DMLO_IN0_STRIDE=") + std::to_string(params.in_stride) +
             params.general_compile_options;
 
-        kernel.l_wk.push_back(n_grp0_size0);
-        kernel.l_wk.push_back(1);
-        kernel.l_wk.push_back(1);
+        ss_us_kernel.l_wk.push_back(n_grp0_size0);
+        ss_us_kernel.l_wk.push_back(1);
+        ss_us_kernel.l_wk.push_back(1);
         // output is number of subsampled input maps
         size_t gbl_wk0 = (in_batch_stride / write_unit);
         size_t gbl_wk1 = params.batch_sz;
         size_t gbl_wk2 = 1;
 
-        kernel.g_wk.push_back(gbl_wk0);
-        kernel.g_wk.push_back(gbl_wk1);
-        kernel.g_wk.push_back(gbl_wk2);
+        ss_us_kernel.g_wk.push_back(gbl_wk0);
+        ss_us_kernel.g_wk.push_back(gbl_wk1);
+        ss_us_kernel.g_wk.push_back(gbl_wk2);
 
-        kernel.kernel_file = "MIOpenUtilKernels3.cl";
+        ss_us_kernel.kernel_file = "MIOpenUtilKernels3.cl";
 
         if(UseSubsample(params))
-            kernel.kernel_name = "SubSample";
+            ss_us_kernel.kernel_name = "SubSample";
         else
-            kernel.kernel_name = "UpSample";
+            ss_us_kernel.kernel_name = "UpSample";
 
-        kernel.comp_options = subsample_kernel_compilation_options;
+        ss_us_kernel.comp_options = subsample_kernel_compilation_options;
     }
     result.workspce_sz = GetWorkspaceSize(params);
 
@@ -599,6 +602,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         }
     };
 
+    // cppcheck-suppress unreadVariable
     buff_info ibuf(MemLayout::NCHW,
                    params.batch_sz,
                    params.n_inputs,
@@ -606,6 +610,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
                    AsmImgWidth(params),
                    1,
                    data_len);
+    // cppcheck-suppress unreadVariable
     buff_info obuf(MemLayout::NCHW,
                    params.batch_sz,
                    params.n_outputs,
@@ -613,6 +618,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
                    AsmImgWidth(params),
                    1,
                    data_len);
+    // cppcheck-suppress unreadVariable
     buff_info fbuf(params.direction.IsForward() ? MemLayout::NCHW : MemLayout::CNHW,
                    params.n_outputs,
                    params.n_inputs,
@@ -676,37 +682,55 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "waves_c_in_group", pcfg->GetWavesCInGroup());
     GenerateClangDefsym(options, "waves_k_in_group", pcfg->GetWavesKInGroup());
 
-    KernelInfo kinfo;
-    kinfo.comp_options = options.str();
+    KernelInfo main_kernel;
+    main_kernel.comp_options = options.str();
 
     const int waves_in_group = pcfg->GetWavesCInGroup() * pcfg->GetWavesKInGroup();
-    kinfo.l_wk.clear(); // workgroupsize
-    kinfo.l_wk.push_back(64 * waves_in_group);
-    kinfo.l_wk.push_back(1);
-    kinfo.l_wk.push_back(1);
+    main_kernel.l_wk.clear(); // workgroupsize
+    main_kernel.l_wk.push_back(64 * waves_in_group);
+    main_kernel.l_wk.push_back(1);
+    main_kernel.l_wk.push_back(1);
 
-    kinfo.g_wk.clear(); // gridsize
+    main_kernel.g_wk.clear(); // gridsize
     const int hw_per_wave = pcfg->GetChunksPerWave() * pcfg->GetChunkSize();
 
-    kinfo.g_wk.push_back(
-        kinfo.l_wk[0] *
+    main_kernel.g_wk.push_back(
+        main_kernel.l_wk[0] *
         divide_round_plus_inf(AsmImgHeight(params) * AsmImgWidth(params), hw_per_wave));
 
-    kinfo.g_wk.push_back(
+    main_kernel.g_wk.push_back(
         divide_round_plus_inf(params.n_outputs, pcfg->GetKMult() * pcfg->GetWavesKInGroup()));
     const int n_images_per_wave = pcfg->GetNMult() * pcfg->GetNPerGpr();
-    kinfo.g_wk.push_back(divide_round_plus_inf(params.batch_sz, n_images_per_wave));
+    main_kernel.g_wk.push_back(divide_round_plus_inf(params.batch_sz, n_images_per_wave));
 
-    kinfo.kernel_file = "conv1x1u.s";
-    kinfo.kernel_name = "miopenGcnAsmConv1x1U";
+    main_kernel.kernel_file = "conv1x1u.s";
+    main_kernel.kernel_name = "miopenGcnAsmConv1x1U";
 
     if(UseSubsample(params))
-        result.construction_params.push_back(kernel);
+        result.construction_params.push_back(ss_us_kernel);
 
-    result.construction_params.push_back(kinfo);
+    result.construction_params.push_back(main_kernel);
 
     if(UseUpsample(params))
-        result.construction_params.push_back(kernel);
+        result.construction_params.push_back(ss_us_kernel);
+
+    if(params.direction.IsForward())
+    {
+        if(UseSubsample(params))
+        {
+            int N, C, H, W, K, n_groups, out_H, out_W;
+            GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
+            result.invoker_factory = conv::MakeGcnAsm1x1USSFwdInvokerFactory(
+                N, C, K, n_groups, out_H, out_W, result.workspce_sz);
+        }
+        else
+        {
+            int N, C, H, W, K, n_groups;
+            GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);
+            result.invoker_factory = conv::MakeGcnAsm1x1UFwdInvokerFactory(N, C, H, W, K, n_groups);
+        }
+    }
+
     return result;
 }
 

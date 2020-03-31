@@ -60,7 +60,7 @@ struct verify_tensor_ops
     verify_tensor_ops(const tensor<T>& pa,
                       const tensor<T>& pb,
                       const tensor<T>& pc,
-                      std::vector<int>& offsets,
+                      const std::vector<int>& offsets,
                       float palpha0 = 1,
                       float palpha1 = 1,
                       float pbeta   = 0)
@@ -170,10 +170,8 @@ struct verify_tensor_ops
     {
         auto r = c;
         std::fill(r.begin(), r.end(), 1);
-        auto clens    = r.desc.GetLengths();
-        auto blens    = b.desc.GetLengths();
-        auto bstrides = b.desc.GetStrides();
-        auto cstrides = r.desc.GetStrides();
+        auto clens = r.desc.GetLengths();
+        auto blens = b.desc.GetLengths();
 
         tensor_for_loop(
             a, b, r, clens, blens, alpha0, alpha1, beta, 0, 0, 0, 0, Aoffset, Boffset, Coffset);

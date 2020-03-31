@@ -54,8 +54,17 @@ struct RecordPositions
     std::streamoff begin = -1;
     std::streamoff end   = -1;
 };
+/// This makes the interface for the MultiFileDb uniform and
+/// allows reusing it for the SQLite perfdb and the kernel cache.
+PlainTextDb::PlainTextDb(const std::string& filename_,
+                         bool is_system,
+                         const std::string& /*arch*/,
+                         const std::size_t /*num_cu*/)
+    : PlainTextDb(filename_, is_system)
+{
+}
 
-Db::Db(const std::string& filename_, bool is_system)
+PlainTextDb::PlainTextDb(const std::string& filename_, bool is_system)
     : filename(filename_),
       lock_file(LockFile::Get(LockFilePath(filename_).c_str())),
       warn_if_unreadable(is_system)
@@ -87,35 +96,35 @@ static std::chrono::seconds GetLockTimeout() { return std::chrono::seconds{60}; 
 using exclusive_lock = std::unique_lock<LockFile>;
 using shared_lock    = std::shared_lock<LockFile>;
 
-boost::optional<DbRecord> Db::FindRecord(const std::string& key)
+boost::optional<DbRecord> PlainTextDb::FindRecord(const std::string& key)
 {
     const auto lock = shared_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
     return FindRecordUnsafe(key, nullptr);
 }
 
-bool Db::StoreRecord(const DbRecord& record)
+bool PlainTextDb::StoreRecord(const DbRecord& record)
 {
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
     return StoreRecordUnsafe(record);
 }
 
-bool Db::UpdateRecord(DbRecord& record)
+bool PlainTextDb::UpdateRecord(DbRecord& record)
 {
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
     return UpdateRecordUnsafe(record);
 }
 
-bool Db::RemoveRecord(const std::string& key)
+bool PlainTextDb::RemoveRecord(const std::string& key)
 {
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
     return RemoveRecordUnsafe(key);
 }
 
-bool Db::Remove(const std::string& key, const std::string& id)
+bool PlainTextDb::Remove(const std::string& key, const std::string& id)
 {
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
@@ -128,7 +137,8 @@ bool Db::Remove(const std::string& key, const std::string& id)
     return StoreRecordUnsafe(*record);
 }
 
-boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPositions* pos)
+boost::optional<DbRecord> PlainTextDb::FindRecordUnsafe(const std::string& key,
+                                                        RecordPositions* pos)
 {
     if(pos != nullptr)
     {
@@ -228,7 +238,7 @@ static void Copy(std::istream& from, std::ostream& to, std::streamoff count)
     }
 }
 
-bool Db::FlushUnsafe(const DbRecord& record, const RecordPositions* pos)
+bool PlainTextDb::FlushUnsafe(const DbRecord& record, const RecordPositions* pos)
 {
     assert(pos);
 
@@ -287,15 +297,15 @@ bool Db::FlushUnsafe(const DbRecord& record, const RecordPositions* pos)
     return true;
 }
 
-bool Db::StoreRecordUnsafe(const DbRecord& record)
+bool PlainTextDb::StoreRecordUnsafe(const DbRecord& record)
 {
     MIOPEN_LOG_I2("Storing record: " << record.key);
     RecordPositions pos;
-    const auto old_record = FindRecordUnsafe(record.key, &pos);
+    FindRecordUnsafe(record.key, &pos);
     return FlushUnsafe(record, &pos);
 }
 
-bool Db::UpdateRecordUnsafe(DbRecord& record)
+bool PlainTextDb::UpdateRecordUnsafe(DbRecord& record)
 {
     RecordPositions pos;
     const auto old_record = FindRecordUnsafe(record.key, &pos);
@@ -315,7 +325,7 @@ bool Db::UpdateRecordUnsafe(DbRecord& record)
     return result;
 }
 
-bool Db::RemoveRecordUnsafe(const std::string& key)
+bool PlainTextDb::RemoveRecordUnsafe(const std::string& key)
 {
     // Create empty record with same key and replace original with that
     // This will remove record

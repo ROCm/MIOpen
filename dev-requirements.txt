@@ -1,4 +1,5 @@
 pfultz2/rocm-recipes
-ROCm-Developer-Tools/HIP@2490e42baa7d90458f0632fd9fbead2d395f41b9
+ROCm-Developer-Tools/HIP@36529b168022a644685a194cfd5e402948c98e3c
 -f requirements.txt
-danmar/cppcheck@1.85
+# 1.90+
+danmar/cppcheck@dd05839a7e63ef04afd34711cb3e1e0ef742882f

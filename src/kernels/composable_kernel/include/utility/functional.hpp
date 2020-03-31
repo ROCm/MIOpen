@@ -64,9 +64,8 @@ struct static_if<true>
     }
 
     template <typename F>
-    __host__ __device__ static constexpr auto Else(F)
+    __host__ __device__ static void Else(F)
     {
-        return Type{};
     }
 };
 
@@ -82,14 +81,13 @@ struct static_if<false>
     }
 
     template <typename F>
-    __host__ __device__ static constexpr auto Else(F f)
+    __host__ __device__ static void Else(F f)
     {
         // This is a trick for compiler:
         //   Pass forwarder to lambda "f" as "auto" argument, and make sure "f" will use it,
         //   this will make "f" a generic lambda, so that "f" won't be compiled until being
         //   instantiated here
         f(forwarder{});
-        return Type{};
     }
 };
 

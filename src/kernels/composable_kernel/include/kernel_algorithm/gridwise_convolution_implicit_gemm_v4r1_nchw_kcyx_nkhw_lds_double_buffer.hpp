@@ -107,11 +107,6 @@ struct GridwiseConvolutionImplicitGemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer
 
         constexpr auto True = integral_constant<bool, true>{};
 
-        constexpr auto generic_address_space =
-            integral_constant<AddressSpace, AddressSpace::generic>{};
-        constexpr auto global_address_space =
-            integral_constant<AddressSpace, AddressSpace::global>{};
-
         static_assert(ConvDirection == ConvolutionDirection::Forward ||
                           ConvDirection == ConvolutionDirection::BackwardWeight,
                       "wrong! this kernel only support convolution forward and backward-weight");
@@ -130,17 +125,17 @@ struct GridwiseConvolutionImplicitGemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer
         constexpr auto wei_k_c_y_x_global_desc   = WeiGlobalDesc{};
         constexpr auto out_n_k_ho_wo_global_desc = OutGlobalDesc{};
 
-        constexpr index_t N  = in_n_c_hi_wi_global_desc.GetLength(I0);
-        constexpr index_t C  = in_n_c_hi_wi_global_desc.GetLength(I1);
-        constexpr index_t Hi = in_n_c_hi_wi_global_desc.GetLength(I2);
-        constexpr index_t Wi = in_n_c_hi_wi_global_desc.GetLength(I3);
+        constexpr index_t N  = in_n_c_hi_wi_global_desc.GetLengths()[0];
+        constexpr index_t C  = in_n_c_hi_wi_global_desc.GetLengths()[1];
+        constexpr index_t Hi = in_n_c_hi_wi_global_desc.GetLengths()[2];
+        constexpr index_t Wi = in_n_c_hi_wi_global_desc.GetLengths()[3];
 
-        constexpr index_t K  = out_n_k_ho_wo_global_desc.GetLength(I1);
-        constexpr index_t Ho = out_n_k_ho_wo_global_desc.GetLength(I2);
-        constexpr index_t Wo = out_n_k_ho_wo_global_desc.GetLength(I3);
+        constexpr index_t K  = out_n_k_ho_wo_global_desc.GetLengths()[1];
+        constexpr index_t Ho = out_n_k_ho_wo_global_desc.GetLengths()[2];
+        constexpr index_t Wo = out_n_k_ho_wo_global_desc.GetLengths()[3];
 
-        constexpr index_t Y = wei_k_c_y_x_global_desc.GetLength(I2);
-        constexpr index_t X = wei_k_c_y_x_global_desc.GetLength(I3);
+        constexpr index_t Y = wei_k_c_y_x_global_desc.GetLengths()[2];
+        constexpr index_t X = wei_k_c_y_x_global_desc.GetLengths()[3];
 
         constexpr index_t ConvStrideH = ConvStrides{}[0];
         constexpr index_t ConvStrideW = ConvStrides{}[1];
@@ -186,12 +181,15 @@ struct GridwiseConvolutionImplicitGemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}));
 
+        constexpr index_t Hip = in_n_c_hip_wip_global_desc.GetLengths()[2];
+        constexpr index_t Wip = in_n_c_hip_wip_global_desc.GetLengths()[3];
+
         constexpr auto in_n0_n1_n2_c_y_ho_x_wo_global_desc = transform_tensor_descriptor(
             in_n_c_hip_wip_global_desc,
             make_tuple(UnMerge<Sequence<N0, N1, N2>>{},
                        PassThrough<C>{},
-                       Embed<Sequence<Y, Ho>, Sequence<ConvDilationH, ConvStrideH, 0>>{},
-                       Embed<Sequence<X, Wo>, Sequence<ConvDilationW, ConvStrideW, 0>>{}),
+                       Embed<Hip, Sequence<Y, Ho>, Sequence<ConvDilationH, ConvStrideH, 0>>{},
+                       Embed<Wip, Sequence<X, Wo>, Sequence<ConvDilationW, ConvStrideW, 0>>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
             make_tuple(Sequence<0, 1, 2>{}, Sequence<3>{}, Sequence<4, 5>{}, Sequence<6, 7>{}));
 
@@ -230,7 +228,11 @@ struct GridwiseConvolutionImplicitGemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer
                                                2,
                                                3,
                                                InBlockCopySrcDataPerRead_B,
-                                               InBlockCopyDstDataPerWrite_N2>(
+                                               InBlockCopyDstDataPerWrite_N2,
+                                               AddressSpace::Global,
+                                               AddressSpace::Vgpr,
+                                               AddressSpace::Lds,
+                                               InMemoryDataOperation::Set>(
                 {0, 0, b_block_data_on_global, 0}, {0, 0, 0, 0});
 
         // weight tensor
@@ -266,7 +268,11 @@ struct GridwiseConvolutionImplicitGemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer
                                                0,
                                                1,
                                                WeiBlockCopySrcDataPerRead_E,
-                                               WeiBlockCopyDstDataPerWrite_K>(
+                                               WeiBlockCopyDstDataPerWrite_K,
+                                               AddressSpace::Global,
+                                               AddressSpace::Vgpr,
+                                               AddressSpace::Lds,
+                                               InMemoryDataOperation::Set>(
                 {0, k_block_data_on_global}, {0, 0});
 
         // GEMM definition
@@ -334,11 +340,12 @@ struct GridwiseConvolutionImplicitGemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer
 
         // LDS double buffer: preload data into LDS
         {
-            blockwise_in_copy.Run(
-                p_in_global, p_in_block_double, global_address_space, generic_address_space);
-            blockwise_wei_copy.Run(
-                p_wei_global, p_wei_block_double, global_address_space, generic_address_space);
+            blockwise_in_copy.Run(p_in_global, p_in_block_double);
+            blockwise_wei_copy.Run(p_wei_global, p_wei_block_double);
         }
+
+        constexpr auto in_block_slice_copy_steps  = Sequence<EPerBlock, 0, 0, 0>{};
+        constexpr auto wei_block_slice_copy_steps = Sequence<EPerBlock, 0>{};
 
         // LDS double buffer: main body
         for(index_t e_block_data_begin = 0; e_block_data_begin + 2 * EPerBlock < E;
@@ -362,16 +369,14 @@ struct GridwiseConvolutionImplicitGemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer
                 Float p_in_thread_buffer[blockwise_in_copy.GetThreadBufferSize()];
                 Float p_wei_thread_buffer[blockwise_wei_copy.GetThreadBufferSize()];
 
-                blockwise_in_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0, 0, 0>{}, True);
-                blockwise_wei_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0>{}, True);
+                blockwise_in_copy.MoveSrcSliceWindow(in_block_slice_copy_steps, True);
+                blockwise_wei_copy.MoveSrcSliceWindow(wei_block_slice_copy_steps, True);
 
                 __syncthreads();
 
                 // LDS doubel buffer: load next data from device mem
-                blockwise_in_copy.RunLoadThreadBuffer(
-                    p_in_global, p_in_thread_buffer, global_address_space, generic_address_space);
-                blockwise_wei_copy.RunLoadThreadBuffer(
-                    p_wei_global, p_wei_thread_buffer, global_address_space, generic_address_space);
+                blockwise_in_copy.RunLoadThreadBuffer(p_in_global, p_in_thread_buffer);
+                blockwise_wei_copy.RunLoadThreadBuffer(p_wei_global, p_wei_thread_buffer);
 
                 // LDS double buffer: GEMM on current data
                 blockwise_gemm.Run(p_wei_block_now, p_in_block_now, p_out_thread);
@@ -391,16 +396,14 @@ struct GridwiseConvolutionImplicitGemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer
                 Float p_in_thread_buffer[blockwise_in_copy.GetThreadBufferSize()];
                 Float p_wei_thread_buffer[blockwise_wei_copy.GetThreadBufferSize()];
 
-                blockwise_in_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0, 0, 0>{}, True);
-                blockwise_wei_copy.MoveSrcSliceWindow(Sequence<EPerBlock, 0>{}, True);
+                blockwise_in_copy.MoveSrcSliceWindow(in_block_slice_copy_steps, True);
+                blockwise_wei_copy.MoveSrcSliceWindow(wei_block_slice_copy_steps, True);
 
                 __syncthreads();
 
                 // LDS double buffer: load last data from device mem
-                blockwise_in_copy.RunLoadThreadBuffer(
-                    p_in_global, p_in_thread_buffer, global_address_space, generic_address_space);
-                blockwise_wei_copy.RunLoadThreadBuffer(
-                    p_wei_global, p_wei_thread_buffer, global_address_space, generic_address_space);
+                blockwise_in_copy.RunLoadThreadBuffer(p_in_global, p_in_thread_buffer);
+                blockwise_wei_copy.RunLoadThreadBuffer(p_wei_global, p_wei_thread_buffer);
 
                 // LDS double buffer: GEMM on 2nd-last data
                 blockwise_gemm.Run(p_wei_block_double, p_in_block_double, p_out_thread);
@@ -474,20 +477,23 @@ struct GridwiseConvolutionImplicitGemm_v4r1_nchw_kcyx_nkhw_lds_double_buffer
             const index_t b_thread_data_on_global =
                 b_block_data_on_global + c_thread_mtx_on_block.col / N2;
 
-            ThreadwiseGenericTensorSliceCopy_v4r2<decltype(out_k0_k1_n1_b_n2_thread_desc),
-                                                  decltype(out_k0_k1_n1_b_n2_global_desc),
-                                                  decltype(
-                                                      out_k0_k1_n1_b_n2_thread_desc.GetLengths()),
-                                                  arithmetic_sequence_gen<0, 5, 1>::type,
-                                                  3,
-                                                  1,
-                                                  1>({0, 0, 0, 0, 0},
-                                                     {k_thread_data_on_global / K1,
-                                                      k_thread_data_on_global % K1,
-                                                      0,
-                                                      b_thread_data_on_global,
-                                                      0})
-                .Run(p_out_thread, p_out_global, generic_address_space, global_address_space);
+            ThreadwiseGenericTensorSliceCopy_v4r2<
+                decltype(out_k0_k1_n1_b_n2_thread_desc),
+                decltype(out_k0_k1_n1_b_n2_global_desc),
+                decltype(out_k0_k1_n1_b_n2_thread_desc.GetLengths()),
+                arithmetic_sequence_gen<0, 5, 1>::type,
+                3,
+                1,
+                1,
+                AddressSpace::Vgpr,
+                AddressSpace::Global,
+                InMemoryDataOperation::Set>({0, 0, 0, 0, 0},
+                                            {k_thread_data_on_global / K1,
+                                             k_thread_data_on_global % K1,
+                                             0,
+                                             b_thread_data_on_global,
+                                             0})
+                .Run(p_out_thread, p_out_global);
         }
     }
 };

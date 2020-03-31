@@ -908,64 +908,75 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     if(warmup_enabled)
     {
-        AutoMiopenWarmupMode warmupMode;
-        size_t warmup_in_sz  = GetTensorSize(warmupInputTensor);
-        size_t warmup_wei_sz = GetTensorSize(warmupWeightTensor);
-        size_t warmup_out_sz = GetTensorSize(warmupOutputTensor);
-        if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
+        do
         {
-            PadBufferSize(warmup_wei_sz, sizeof(warmup_Tgpu));
-            PadBufferSize(warmup_out_sz, sizeof(warmup_Tgpu));
-        }
+            AutoMiopenWarmupMode warmupMode;
+            size_t warmup_in_sz  = GetTensorSize(warmupInputTensor);
+            size_t warmup_wei_sz = GetTensorSize(warmupWeightTensor);
+            size_t warmup_out_sz = GetTensorSize(warmupOutputTensor);
+            if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
+            {
+                PadBufferSize(warmup_wei_sz, sizeof(warmup_Tgpu));
+                PadBufferSize(warmup_out_sz, sizeof(warmup_Tgpu));
+            }
 
-        warmup_ws_sizeof_find = 0;
-        warmup_wall_total.resume(wall_enabled);
-        miopenStatus_t rc = miopenConvolutionForwardGetWorkSpaceSize(GetHandle(),
-                                                                     warmupWeightTensor,
-                                                                     warmupInputTensor,
-                                                                     warmupConvDesc,
-                                                                     warmupOutputTensor,
-                                                                     &warmup_ws_sizeof_find);
-        warmup_wall_total.pause(wall_enabled);
-        if(rc != miopenStatusSuccess)
-        {
-            std::cout << "Warm-up: Error getting workspace size, status = " << rc << std::endl;
-            return rc;
-        }
-        if(warmup_ws_sizeof_find != 0)
-        {
-            std::cout << "Warm-up: This step should not require workspace, but asks for "
-                      << warmup_ws_sizeof_find << std::endl;
-            return miopenStatusNotImplemented;
-        }
+            warmup_ws_sizeof_find = 0;
+            warmup_wall_total.resume(wall_enabled);
+            miopenStatus_t rc = miopenConvolutionForwardGetWorkSpaceSize(GetHandle(),
+                                                                         warmupWeightTensor,
+                                                                         warmupInputTensor,
+                                                                         warmupConvDesc,
+                                                                         warmupOutputTensor,
+                                                                         &warmup_ws_sizeof_find);
+            warmup_wall_total.pause(wall_enabled);
+            if(rc != miopenStatusSuccess)
+            {
+                std::cout << "Warm-up: Error getting workspace size, status = " << rc
+                          << ". Warm-up disabled." << std::endl;
+                warmup_enabled = false;
+                break;
+            }
+            if(warmup_ws_sizeof_find != 0)
+            {
+                std::cout << "Warm-up: This step should not require workspace, but asks for "
+                          << warmup_ws_sizeof_find << ". Warm-up disabled." << std::endl;
+                warmup_enabled = false;
+                break;
+            }
 
-        warmup_in  = tensor<warmup_Tgpu>(miopen::deref(warmupInputTensor).GetLengths());
-        warmup_wei = tensor<warmup_Tgpu>(miopen::deref(warmupWeightTensor).GetLengths());
-        warmup_out = tensor<warmup_Tgpu>(miopen::deref(warmupOutputTensor).GetLengths());
+            warmup_in  = tensor<warmup_Tgpu>(miopen::deref(warmupInputTensor).GetLengths());
+            warmup_wei = tensor<warmup_Tgpu>(miopen::deref(warmupWeightTensor).GetLengths());
+            warmup_out = tensor<warmup_Tgpu>(miopen::deref(warmupOutputTensor).GetLengths());
 
-        warmup_in_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, warmup_in_sz, sizeof(warmup_Tgpu)));
-        warmup_wei_dev =
-            std::unique_ptr<GPUMem>(new GPUMem(ctx, warmup_wei_sz, sizeof(warmup_Tgpu)));
-        warmup_out_dev =
-            std::unique_ptr<GPUMem>(new GPUMem(ctx, warmup_out_sz, sizeof(warmup_Tgpu)));
+            warmup_in_dev =
+                std::unique_ptr<GPUMem>(new GPUMem(ctx, warmup_in_sz, sizeof(warmup_Tgpu)));
+            warmup_wei_dev =
+                std::unique_ptr<GPUMem>(new GPUMem(ctx, warmup_wei_sz, sizeof(warmup_Tgpu)));
+            warmup_out_dev =
+                std::unique_ptr<GPUMem>(new GPUMem(ctx, warmup_out_sz, sizeof(warmup_Tgpu)));
 
-        status_t status = STATUS_SUCCESS;
-        status |= warmup_in_dev->ToGPU(q, warmup_in.data.data());
-        status |= warmup_wei_dev->ToGPU(q, warmup_wei.data.data());
-        status |= warmup_out_dev->ToGPU(q, warmup_out.data.data());
+            status_t status = STATUS_SUCCESS;
+            status |= warmup_in_dev->ToGPU(q, warmup_in.data.data());
+            status |= warmup_wei_dev->ToGPU(q, warmup_wei.data.data());
+            status |= warmup_out_dev->ToGPU(q, warmup_out.data.data());
 
-        if(status != STATUS_SUCCESS)
-        {
-            std::cout << "Warm-up: Error copying data to GPU, status = " << status << std::endl;
-            return miopenStatusNotInitialized;
-        }
+            if(status != STATUS_SUCCESS)
+            {
+                std::cout << "Warm-up: Error copying data to GPU, status = " << status
+                          << ". Warm-up disabled." << std::endl;
+                warmup_enabled = false;
+                break;
+            }
 
-        const int rcf = RunWarmupFindForwardGPU();
-        if(rcf != 0)
-        {
-            std::cout << "Warm-up: RunWarmupFindForwardGPU() failed" << std::endl;
-            return rcf;
-        }
+            const int rcf = RunWarmupFindForwardGPU();
+            if(rcf != 0)
+            {
+                std::cout << "Warm-up: RunWarmupFindForwardGPU() failed, rcf = " << rcf
+                          << ". Warm-up disabled." << std::endl;
+                warmup_enabled = false;
+                break;
+            }
+        } while(false);
     }
 
     if(!immediate_solution)
@@ -1285,6 +1296,8 @@ void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
         return;
     }
 
+    int group_count = std::max(inflags.GetValueInt("group_count"), 1);
+
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
     int wei_c, wei_n, wei_h, wei_w;
@@ -1293,7 +1306,8 @@ void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
     int out_n, out_c, out_h, out_w;
     std::tie(out_n, out_c, out_h, out_w) =
         miopen::tien<4>(miopen::deref(outputTensor).GetLengths());
-    size_t flopCnt = 2L * in_n * in_c * wei_h * wei_w * out_c * out_h * out_w;
+
+    size_t flopCnt = 2L * in_n * in_c * wei_h * wei_w * out_c * out_h * out_w / group_count;
     size_t inputBytes =
         in_n * in_c * in_h * in_w * miopen::GetTypeSize(miopen::deref(inputTensor).GetType());
     size_t weightBytes =
@@ -2041,6 +2055,8 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, floa
         return;
     }
 
+    int group_count = std::max(inflags.GetValueInt("group_count"), 1);
+
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
     int wei_c, wei_n, wei_h, wei_w;
@@ -2050,7 +2066,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, floa
     std::tie(out_n, out_c, out_h, out_w) =
         miopen::tien<4>(miopen::deref(outputTensor).GetLengths());
 
-    size_t flopCnt = 2L * in_n * in_c * out_h * out_w * wei_h * wei_w * out_c;
+    size_t flopCnt = 2L * in_n * in_c * wei_h * wei_w * out_c * out_h * out_w / group_count;
     size_t weightBytes =
         wei_n * wei_c * wei_h * wei_w * miopen::GetTypeSize(miopen::deref(weightTensor).GetType());
     size_t inputBytes =
@@ -2187,6 +2203,8 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
         return;
     }
 
+    int group_count = std::max(inflags.GetValueInt("group_count"), 1);
+
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
     int wei_c, wei_n, wei_h, wei_w;
@@ -2196,7 +2214,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
     std::tie(out_n, out_c, out_h, out_w) =
         miopen::tien<4>(miopen::deref(outputTensor).GetLengths());
 
-    size_t flopCnt     = 2L * in_n * in_c * out_h * out_w * wei_h * wei_w * out_c;
+    size_t flopCnt     = 2L * in_n * in_c * wei_h * wei_w * out_c * out_h * out_w / group_count;
     size_t readBytes   = 0;
     size_t outputBytes = 0;
 

@@ -28,6 +28,13 @@
 #include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/env.hpp>
+#include <miopen/conv/invokers/gen_x_w_y_pad_fwd.hpp>
+
+/// Disable kernel due to compiler bug: Compiler runs out of registers.
+/// JIRA: SWDEV-216194, SWDEV-216489.
+/// The bug shows up in MIOpenConv1x1J1 and MIOpenConv1x1S.
+/// Known since ROCm 2.9.
+#define WORKAROUND_ISSUE_2298 1
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1)
 
@@ -39,12 +46,10 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
     const auto name = params.GetStream().GetDeviceName();
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1{}))
         return false;
-    // Disable kernel due to compiler bug: Compiler runs out of registers
-    // JIRA: SWDEV-216194
-    // JIRA: SWDEV-216489
-    // The bug shows up in MIOpenConv1x1J1 and MIOpenConv1x1S
+#if WORKAROUND_ISSUE_2298
     if(name == "gfx908")
         return false;
+#endif
     if(!params.use_opencl_convolutions)
         return false;
     if(!params.Is2d())
@@ -375,6 +380,9 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             result.construction_params.push_back(kernel);
         }
     }
+
+    if(params.direction.IsForward())
+        result.invoker_factory = &conv::MakeGenericXWYPadFwdInvoker;
     return result;
 }
 } // namespace solver
