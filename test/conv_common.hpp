@@ -1541,23 +1541,37 @@ struct conv_driver : test_driver
         std::size_t spatial_dim = filter.GetSpatialDimension();
         if(spatial_dim == 2)
         {
-            input = tensor<T>{batch_size, input_channels, spatial_dim_elements.at(0), spatial_dim_elements.at(1)};//.generate(tensor_elem_gen_integer{17});
-            weights = tensor<T>{output_channels, input_channels, spatial_dim_elements.at(0), spatial_dim_elements.at(1)};//.generate(tensor_elem_gen_integer{17});
+            input = tensor<T>{batch_size,
+                              input_channels,
+                              spatial_dim_elements.at(0),
+                              spatial_dim_elements.at(1)}; //.generate(tensor_elem_gen_integer{17});
+            weights =
+                tensor<T>{output_channels,
+                          input_channels,
+                          spatial_dim_elements.at(0),
+                          spatial_dim_elements.at(1)}; //.generate(tensor_elem_gen_integer{17});
         }
         else if(spatial_dim == 3)
         {
-            input = tensor<T>{batch_size, input_channels, spatial_dim_elements.at(0), spatial_dim_elements.at(1), spatial_dim_elements.at(2) };//.generate(tensor_elem_gen_integer{17});
-            weights = tensor<T>{output_channels, input_channels, spatial_dim_elements.at(0), spatial_dim_elements.at(1), spatial_dim_elements.at(2) };//.generate(tensor_elem_gen_integer{17});
+            input = tensor<T>{batch_size,
+                              input_channels,
+                              spatial_dim_elements.at(0),
+                              spatial_dim_elements.at(1),
+                              spatial_dim_elements.at(2)}; //.generate(tensor_elem_gen_integer{17});
+            weights =
+                tensor<T>{output_channels,
+                          input_channels,
+                          spatial_dim_elements.at(0),
+                          spatial_dim_elements.at(1),
+                          spatial_dim_elements.at(2)}; //.generate(tensor_elem_gen_integer{17});
         }
         else
         {
             MIOPEN_LOG_E("dimension is wrong!");
         }
-        
-        
 
-
-        if(pads_strides_dilations.size() != 3 * spatial_dim || trans_output_pads.size() != spatial_dim)
+        if(pads_strides_dilations.size() != 3 * spatial_dim ||
+           trans_output_pads.size() != spatial_dim)
         {
             MIOPEN_LOG_E("dimension is wrong!");
         }
