@@ -30,12 +30,16 @@ struct conv3d_driver : conv_driver<T>
 {
     conv3d_driver() : conv_driver<T>()
     {
-        this->add(this->input,
-                  "input",
-                  this->get_tensor(get_3d_conv_input_shapes, tensor_elem_gen_integer()));
-        this->add(this->weights,
-                  "weights",
-                  this->get_tensor(get_3d_conv_weight_shapes, tensor_elem_gen_integer()));
+        this->add(this->batch_size, "batch_size", this->generate_data(this->get_batch_sizes()));
+        this->add(this->input_channels,
+                  "input_channels",
+                  this->generate_data(this->get_input_channels()));
+        this->add(this->output_channels,
+                  "output_channels",
+                  this->generate_data(this->get_output_channels()));
+        this->add(this->spatial_dim_elements,
+                  "spatial_dim_elements",
+                  this->generate_data(this->get_3d_spatial_dims()));
         this->add(this->pads_strides_dilations,
                   "pads_strides_dilations",
                   this->generate_data(this->get_3d_pads_strides_dilations()));

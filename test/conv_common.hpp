@@ -1471,7 +1471,7 @@ struct conv_driver : test_driver
                 {1, 1, 2, 2, 2, 1}};
     }
 
-    std::vector<std::vector<int>> get_3d_spatial_dims()
+    std::vector<std::vector<std::size_t>> get_3d_spatial_dims()
     {
         return {{3, 4, 4},
                 {4, 9, 9},
