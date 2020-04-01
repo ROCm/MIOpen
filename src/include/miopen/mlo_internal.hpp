@@ -255,6 +255,7 @@ struct mlo_construct_base
         _search_params.bias              = (do_bias) ? 1 : 0;
         _search_params.pad_w             = 1;
         _search_params.pad_h             = 1;
+        _search_params.kernel_size_d     = 3;
         _search_params.kernel_size_w     = 3;
         _search_params.kernel_size_h     = 3;
         _search_params.kernel_stride_w   = 1;

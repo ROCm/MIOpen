@@ -161,6 +161,7 @@ struct ProblemDescription
     int GetBackwardPadH() const { return kernel_size_h - pad_h - 1; }
 
     bool Is2d() const { return spatial_dims == 2; }
+    bool Is3d() const { return spatial_dims == 3; }
 
     bool IsFp32() const
     {
