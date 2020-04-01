@@ -372,7 +372,7 @@ __device__ void amd_intrinsic_buffer_store<float, 1>(const float* p_src,
 }
 
 template <>
-__device__ void amd_intrinsic_buffer_store<half, 1>(const half& src,
+__device__ void amd_intrinsic_buffer_store<half, 1>(const half* p_src,
                                                     half* p_dst_block,
                                                     index_t dst_thread_data_offset,
                                                     index_t dst_const_data_offset)
@@ -390,7 +390,7 @@ __device__ void amd_intrinsic_buffer_store<half, 1>(const half& src,
     dst_block_config.range[3] = 0x00027000;
 
 #if CK_USE_AMD_BUFFER_ADDRESSING_INTRINSIC
-    __llvm_amdgcn_buffer_store_f16(src,
+    __llvm_amdgcn_buffer_store_f16(*p_src,
                                    dst_block_config.data,
                                    0,
                                    dst_thread_addr_offset + dst_const_addr_offset,
@@ -402,7 +402,7 @@ __device__ void amd_intrinsic_buffer_store<half, 1>(const half& src,
     "
                  :
                  : "s"(dst_block_config.data),
-                   "v"(src),
+                   "v"(*p_src),
                    "v"(dst_thread_addr_offset),
                    "s"(dst_const_addr_offset));
 #endif
@@ -446,7 +446,7 @@ __device__ void amd_intrinsic_buffer_store<float, 2>(const float* p_src,
 }
 
 template <>
-__device__ void amd_intrinsic_buffer_store<half, 2>(const half2_t& src,
+__device__ void amd_intrinsic_buffer_store<half, 2>(const half* p_src,
                                                     half* p_dst_block,
                                                     index_t dst_thread_data_offset,
                                                     index_t dst_const_data_offset)
@@ -464,7 +464,7 @@ __device__ void amd_intrinsic_buffer_store<half, 2>(const half2_t& src,
     dst_block_config.range[3] = 0x00027000;
 
 #if CK_USE_AMD_BUFFER_ADDRESSING_INTRINSIC
-    __llvm_amdgcn_buffer_storex2_f16(src,
+    __llvm_amdgcn_buffer_storex2_f16(*reinterpret_cast<const half2_t*>(p_src),
                                      dst_block_config.data,
                                      0,
                                      dst_thread_addr_offset + dst_const_addr_offset,
@@ -476,7 +476,7 @@ __device__ void amd_intrinsic_buffer_store<half, 2>(const half2_t& src,
     "
                  :
                  : "s"(dst_block_config.data),
-                   "v"(src),
+                   "v"(*reinterpret_cast<const half2_t*>(p_src)),
                    "v"(dst_thread_addr_offset),
                    "s"(dst_const_addr_offset));
 #endif
@@ -520,7 +520,7 @@ __device__ void amd_intrinsic_buffer_store<float, 4>(const float* p_src,
 }
 
 template <>
-__device__ void amd_intrinsic_buffer_store<half, 4>(const half4_t& src,
+__device__ void amd_intrinsic_buffer_store<half, 4>(const half* p_src,
                                                     half* p_dst_block,
                                                     index_t dst_thread_data_offset,
                                                     index_t dst_const_data_offset)
@@ -538,7 +538,7 @@ __device__ void amd_intrinsic_buffer_store<half, 4>(const half4_t& src,
     dst_block_config.range[3] = 0x00027000;
 
 #if CK_USE_AMD_BUFFER_ADDRESSING_INTRINSIC
-    __llvm_amdgcn_buffer_storex4_f16(src,
+    __llvm_amdgcn_buffer_storex4_f16(*reinterpret_cast<const half4_t*>(p_src),
                                      dst_block_config.data,
                                      0,
                                      dst_thread_addr_offset + dst_const_addr_offset,
@@ -550,7 +550,7 @@ __device__ void amd_intrinsic_buffer_store<half, 4>(const half4_t& src,
     "
                  :
                  : "s"(dst_block_config.data),
-                   "v"(src),
+                   "v"(*reinterpret_cast<const half4_t*>(p_src)),
                    "v"(dst_thread_addr_offset),
                    "s"(dst_const_addr_offset));
 #endif
