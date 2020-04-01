@@ -33,6 +33,18 @@ For HIP backend: `apt-get install miopen-hip`
 
 Currently both the backends cannot be installed on the same system simultaneously. If a different backend other than what currently exists on the system is desired, please uninstall the existing backend completely and then install the new backend.
 
+## Installing MIOpen kernels package
+
+MIOpen provides an optional pre-compiled kernels package to reduce the startup latency. To install the kernels package for your GPU architecture, use the following command:
+
+```
+apt-get install miopen-kernels-<arch>-<num cu>
+```
+
+Where `<arch>` is the GPU architecture ( for example, `gfx900`, `gfx906` ) and `<num cu>` is the number of CUs available in the GPU (for example 56 or 64 etc). 
+
+Not installing these packages would not impact the functioning of MIOpen, since MIOpen will compile these kernels on the target machine once the kernel is run. However, the compilation step may significantly increase the startup time for different operations.
+
 
 ## Installing the dependencies
 
