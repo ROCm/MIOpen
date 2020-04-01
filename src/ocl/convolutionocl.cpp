@@ -1311,7 +1311,10 @@ void ConvFwdImplicitGemm(const ConvolutionContext& /*ctx*/,
            "gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kc1x1_nkhw_lds_double_buffer" ||
        kernel.GetName() ==
            "gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buffer" ||
-       kernel.GetName() == "gridwise_convolution_implicit_gemm_v4r4_nchw_kcyx_nkhw")
+       kernel.GetName() ==
+           "gridwise_convolution_implicit_gemm_v4r4_nchw_kcyx_nkhw" ||
+       kernel.GetName() ==
+           "gridwise_convolution_implicit_gemm_v4r4_ncdhw_kczyx_nkdhw")
     // clang-format on
     {
         kernel(tensors.x, tensors.w, tensors.y);

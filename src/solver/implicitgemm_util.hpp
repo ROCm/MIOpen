@@ -108,6 +108,14 @@ struct ConvolutionContextInterpreter
             return c.n_outputs;
     }
 
+    static auto GetInputDepthDi(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.in_depth;
+        else
+            return c.out_depth;
+    }
+
     static auto GetInputHeightHi(const ConvolutionContext& c)
     {
         if(c.direction.IsForward())
@@ -122,6 +130,14 @@ struct ConvolutionContextInterpreter
             return c.in_width;
         else
             return c.out_width;
+    }
+
+    static auto GetOutputDepthDo(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.out_depth;
+        else
+            return c.in_depth;
     }
 
     static auto GetOutputHeightHo(const ConvolutionContext& c)
@@ -140,9 +156,17 @@ struct ConvolutionContextInterpreter
             return c.in_width;
     }
 
+    static auto GetFilterDepthZ(const ConvolutionContext& c) { return c.kernel_size_d; }
+
     static auto GetFilterHeightY(const ConvolutionContext& c) { return c.kernel_size_h; }
 
     static auto GetFilterWidthX(const ConvolutionContext& c) { return c.kernel_size_w; }
+
+    // adjust conv_stride_d to 1 if Do is 1
+    static auto GetAdjustedConvolutionStrideD(const ConvolutionContext& c)
+    {
+        return GetOutputDepthDo(c) > 1 ? c.kernel_stride_d : 1;
+    }
 
     // adjust conv_stride_h to 1 if Ho is 1
     static auto GetAdjustedConvolutionStrideH(const ConvolutionContext& c)
@@ -154,6 +178,12 @@ struct ConvolutionContextInterpreter
     static auto GetAdjustedConvolutionStrideW(const ConvolutionContext& c)
     {
         return GetOutputWidthWo(c) > 1 ? c.kernel_stride_w : 1;
+    }
+
+    // adjust conv_dilation_d to 1 if Z is 1
+    static auto GetAdjustedConvolutionDilationD(const ConvolutionContext& c)
+    {
+        return GetFilterDepthZ(c) > 1 ? c.kernel_dilation_d : 1;
     }
 
     // adjust conv_dilation_h to 1 if Y is 1
@@ -168,9 +198,29 @@ struct ConvolutionContextInterpreter
         return GetFilterWidthX(c) > 1 ? c.kernel_dilation_w : 1;
     }
 
+    static auto GetInputLeftPadD(const ConvolutionContext& c) { return c.pad_d; }
+
     static auto GetInputLeftPadH(const ConvolutionContext& c) { return c.pad_h; }
 
     static auto GetInputLeftPadW(const ConvolutionContext& c) { return c.pad_w; }
+
+    // adjust right padding size to align with the way implicit GEMM deal with padding
+    static auto GetAdjustedInputRightPadD(const ConvolutionContext& c)
+    {
+        int di              = GetInputDepthDi(c);
+        int dout            = GetOutputDepthDo(c);
+        int z               = GetFilterDepthZ(c);
+        int conv_stride_d   = GetAdjustedConvolutionStrideD(c);
+        int conv_dilation_d = GetAdjustedConvolutionDilationD(c);
+        int in_left_pad_d   = GetInputLeftPadD(c);
+
+        int di_padded = 1 + (z - 1) * conv_dilation_d + (dout - 1) * conv_stride_d;
+
+        int in_right_pad_d =
+            di_padded > (in_left_pad_d + di) ? di_padded - (in_left_pad_d + di) : 0;
+
+        return in_right_pad_d;
+    }
 
     // adjust right padding size to align with the way implicit GEMM deal with padding
     static auto GetAdjustedInputRightPadH(const ConvolutionContext& c)
