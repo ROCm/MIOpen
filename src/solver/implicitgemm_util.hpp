@@ -13,6 +13,8 @@ MIOPEN_DECLARE_ENV_VAR(
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM)
 
+#define WORKAROUND_SWDEV_200782 1
+
 namespace miopen {
 namespace solver {
 
@@ -331,15 +333,18 @@ static inline bool IsXdlopsSupport(const ConvolutionContext& c)
     if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}))
         return true;
 
+    // disable xdlops kernels by default due to possible failures:
+    // 1) inline asm may crash
+    // 2) llvm intrin may has incorrect results
     return StartsWith(c.GetStream().GetDeviceName(), "gfx908") &&
-           // disable xdlops kernels by default due to possible failures:
-           // 1) inline asm may crash
-           // 2) llvm intrin may has incorrect results
-           /// \todo enable xdlops kernels by default after llvm intrin fix (SWDEV-200782) in
-           /// release
+#if WORKAROUND_SWDEV_200782
+           /// \todo Remove workaround when we drop suport of HCC older than 2.10.19392.
            ((miopen::HipGetHccVersion() >= external_tool_version_t{2, 10, 19392})
                 ? !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{})
                 : miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{}));
+#else
+           !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{});
+#endif
 }
 
 inline static uint32_t GetReadWriteVectorSize(const int v)
