@@ -114,26 +114,28 @@ __device__ void __llvm_amdgcn_buffer_storex4_f16(half4_t vdata,
                                                  bool glc,
                                                  bool slc) __asm("llvm.amdgcn.buffer.store.v4f16");
 
-__device__ void __llvm_amdgcn_buffer_store_bf16(ushort vdata,
-                                                int32x4_t rsrc,
-                                                index_t vindex,
-                                                index_t offset,
-                                                bool glc,
-                                                bool slc) __asm("llvm.amdgcn.buffer.store.f16");
+//__device__ void __llvm_amdgcn_buffer_store_bf16(ushort vdata,
+//                                               int32x4_t rsrc,
+//                                               index_t vindex,
+//                                               index_t offset,
+//                                               bool glc,
+//                                               bool slc) __asm("llvm.amdgcn.buffer.store.f16");
 
-__device__ void __llvm_amdgcn_buffer_storex2_bf16(ushort2_t vdata,
-                                                  int32x4_t rsrc,
-                                                  index_t vindex,
-                                                  index_t offset,
-                                                  bool glc,
-                                                  bool slc) __asm("llvm.amdgcn.buffer.store.v2f16");
+//__device__ void __llvm_amdgcn_buffer_storex2_bf16(ushort2_t vdata,
+//                                                 int32x4_t rsrc,
+//                                                 index_t vindex,
+//                                                 index_t offset,
+//                                                 bool glc,
+//                                                 bool slc)
+//                                                 __asm("llvm.amdgcn.buffer.store.v2f16");
 
-__device__ void __llvm_amdgcn_buffer_storex4_bf16(ushort4_t vdata,
-                                                  int32x4_t rsrc,
-                                                  index_t vindex,
-                                                  index_t offset,
-                                                  bool glc,
-                                                  bool slc) __asm("llvm.amdgcn.buffer.store.v4f16");
+//__device__ void __llvm_amdgcn_buffer_storex4_bf16(ushort4_t vdata,
+//                                                 int32x4_t rsrc,
+//                                                 index_t vindex,
+//                                                 index_t offset,
+//                                                 bool glc,
+//                                                 bool slc)
+//                                                 __asm("llvm.amdgcn.buffer.store.v4f16");
 
 __device__ void
 __llvm_amdgcn_buffer_atomic_add(float vdata,
