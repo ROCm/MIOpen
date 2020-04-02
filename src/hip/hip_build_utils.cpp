@@ -39,13 +39,13 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_ENFORCE_COV3)
 
 namespace miopen {
 
-namespace {
-
-inline bool IsHccCompiler()
+bool IsHccCompiler()
 {
     static const auto isHcc = EndsWith(MIOPEN_HIP_COMPILER, "hcc");
     return isHcc;
 }
+
+namespace {
 
 inline bool ProduceCoV3()
 {
