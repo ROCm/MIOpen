@@ -239,6 +239,9 @@ ConvSolution GemmFwd::GetSolution(const ExecutionContext& ctx,
                                         time_precision,
                                         conv.group_count > 1 ? callGemmStridedBatched : callGemm);
 
+                if(gemm_status != miopenStatusSuccess)
+                    MIOPEN_THROW("GEMM execution failure");
+
                 if(handle.IsProfilingEnabled())
                     time_gemm += handle.GetKernelTime();
 
@@ -268,9 +271,6 @@ ConvSolution GemmFwd::GetSolution(const ExecutionContext& ctx,
                     if(handle.IsProfilingEnabled())
                         time_gemm += handle.GetKernelTime();
                 }
-
-                if(gemm_status != miopenStatusSuccess)
-                    MIOPEN_THROW("GEMM execution failure");
 
                 if(handle.IsProfilingEnabled())
                 {
@@ -339,12 +339,13 @@ ConvSolution GemmFwd::GetSolution(const ExecutionContext& ctx,
                                                           nullptr,
                                                           time_precision,
                                                           callGemm);
+
+                        if(gemm_status != miopenStatusSuccess)
+                            MIOPEN_THROW("GEMM execution failure");
+
                         if(handle.IsProfilingEnabled())
                             time += handle.GetKernelTime();
                     }
-
-                    if(gemm_status != miopenStatusSuccess)
-                        MIOPEN_THROW("GEMM execution failure");
 
                     if(conv_params.type != InvokeType::Run)
                         time *= in_n;
@@ -393,6 +394,10 @@ ConvSolution GemmFwd::GetSolution(const ExecutionContext& ctx,
                                                           nullptr,
                                                           time_precision,
                                                           callGemmStridedBatched);
+
+                        if(gemm_status != miopenStatusSuccess)
+                            MIOPEN_THROW("GEMM execution failure");
+
                         if(handle.IsProfilingEnabled())
                         {
                             const auto time = handle.GetKernelTime();
@@ -412,9 +417,6 @@ ConvSolution GemmFwd::GetSolution(const ExecutionContext& ctx,
                         if(handle.IsProfilingEnabled())
                             time_gemm += handle.GetKernelTime();
                     }
-
-                    if(gemm_status != miopenStatusSuccess)
-                        MIOPEN_THROW("GEMM execution failure");
 
                     if(handle.IsProfilingEnabled())
                     {
