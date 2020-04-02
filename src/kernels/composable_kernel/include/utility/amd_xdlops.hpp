@@ -556,8 +556,8 @@ template <>
 __device__ void gcnasm_nop<64>()
 {
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
-    S_NOP(15)
-    S_NOP(2)
+    S_NOP(8)
+    S_NOP(8)
 #endif
 }
 
@@ -645,14 +645,11 @@ __device__ void gcnasm_mfma_f32_16x16x1f32<64, 16>(const float& reg_a, const flo
 }
 
 template <index_t MPerWave, index_t NPerWave>
-__device__ void gcnasm_mfma_f32_4x4x1f32(const float* a, const float* b, float4_t* reg_c);
+__device__ void gcnasm_mfma_f32_4x4x1f32(const float& reg_a, const float& reg_b, float4_t* reg_c);
 
 template <>
-__device__ void gcnasm_mfma_f32_4x4x1f32<4, 64>(const float* a, const float* b, float4_t* reg_c)
+__device__ void gcnasm_mfma_f32_4x4x1f32<4, 64>(const float& reg_a, const float& reg_b, float4_t* reg_c)
 {
-    const float reg_a = *a;
-    const float reg_b = *b;
-
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
     (void)reg_c;
     MFMA_F32_4x4x1F32(0, reg_a, reg_b, 4, 0, 0)
@@ -662,20 +659,15 @@ __device__ void gcnasm_mfma_f32_4x4x1f32<4, 64>(const float* a, const float* b, 
 }
 
 template <>
-__device__ void gcnasm_mfma_f32_4x4x1f32<8, 64>(const float* a, const float* b, float4_t* reg_c)
+__device__ void gcnasm_mfma_f32_4x4x1f32<8, 64>(const float& reg_a, const float& reg_b, float4_t* reg_c)
 {
-    const float reg_a_0 = *a;
-    const float reg_b_0 = *b;
-    const float reg_a_1 = *(a + 4);
-    const float reg_b_1 = reg_b_0;
-
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
     (void)reg_c;
-    MFMA_F32_4x4x1F32(0, reg_a_0, reg_b_0, 4, 0, 0)
-    MFMA_F32_4x4x1F32(4, reg_a_1, reg_b_1, 4, 0, 0)
+    MFMA_F32_4x4x1F32(0, reg_a, reg_b, 4, 0, 0)
+    MFMA_F32_4x4x1F32(4, reg_a, reg_b, 4, 1, 0)
 #else
-    reg_c[0] = llvm_intrin_amdgcn_mfma_f32_4x4x1f32(reg_a_0, reg_b_0, reg_c[0], 4, 0, 0);
-    reg_c[1] = llvm_intrin_amdgcn_mfma_f32_4x4x1f32(reg_a_1, reg_b_1, reg_c[1], 4, 0, 0);
+    reg_c[0] = llvm_intrin_amdgcn_mfma_f32_4x4x1f32(reg_a, reg_b, reg_c[0], 4, 0, 0);
+    reg_c[1] = llvm_intrin_amdgcn_mfma_f32_4x4x1f32(reg_a, reg_b, reg_c[1], 4, 1, 0);
 #endif
 }
 
@@ -684,9 +676,7 @@ __device__ void gcnasm_mfma_f32_32x32x4f16(const half4_t&,
                                            const half4_t&,
                                            float32_t*);
 template <>
-__device__ void gcnasm_mfma_f32_32x32x4f16<64, 64>(const half4_t& reg_a,
-                                               const half4_t& reg_b,
-                                               float32_t* reg_c)
+__device__ void gcnasm_mfma_f32_32x32x4f16<64, 64>(const half4_t& reg_a, const half4_t& reg_b, float32_t* reg_c)
 {
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
     (void)reg_c;
@@ -699,9 +689,7 @@ __device__ void gcnasm_mfma_f32_32x32x4f16<64, 64>(const half4_t& reg_a,
 }
 
 template <>
-__device__ void gcnasm_mfma_f32_32x32x4f16<32, 64>(const half4_t& reg_a,
-                                               const half4_t& reg_b,
-                                               float32_t* reg_c)
+__device__ void gcnasm_mfma_f32_32x32x4f16<32, 64>(const half4_t& reg_a, const half4_t& reg_b, float32_t* reg_c)
 {
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
     (void)reg_c;
@@ -712,9 +700,7 @@ __device__ void gcnasm_mfma_f32_32x32x4f16<32, 64>(const half4_t& reg_a,
 }
 
 template <>
-__device__ void gcnasm_mfma_f32_32x32x4f16<64, 32>(const half4_t& reg_a,
-                                               const half4_t& reg_b,
-                                               float32_t* reg_c)
+__device__ void gcnasm_mfma_f32_32x32x4f16<64, 32>(const half4_t& reg_a, const half4_t& reg_b, float32_t* reg_c)
 {
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
     (void)reg_c;
@@ -724,9 +710,7 @@ __device__ void gcnasm_mfma_f32_32x32x4f16<64, 32>(const half4_t& reg_a,
 #endif
 }
 
-__device__ void gcnasm_mfma_f32_32x32x8f16(const half4_t& reg_a,
-                                               const half4_t& reg_b,
-                                               float16_t* reg_c)
+__device__ void gcnasm_mfma_f32_32x32x8f16(const half4_t& reg_a, const half4_t& reg_b, float16_t* reg_c)
 {
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
     (void)reg_c;
@@ -736,9 +720,7 @@ __device__ void gcnasm_mfma_f32_32x32x8f16(const half4_t& reg_a,
 #endif
 }
 
-__device__ void gcnasm_mfma_f32_16x16x16f16(const half4_t& reg_a,
-                                               const half4_t& reg_b,
-                                               float4_t* reg_c)
+__device__ void gcnasm_mfma_f32_16x16x16f16(const half4_t& reg_a, const half4_t& reg_b, float4_t* reg_c)
 {
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
     (void)reg_c;
@@ -749,14 +731,10 @@ __device__ void gcnasm_mfma_f32_16x16x16f16(const half4_t& reg_a,
 }
 
 template <index_t MPerWave, index_t NPerWave>
-__device__ void gcnasm_mfma_f32_16x16x4f16(const half4_t& reg_a,
-                                               const half4_t& reg_b,
-                                               float16_t* reg_c);
+__device__ void gcnasm_mfma_f32_16x16x4f16(const half4_t& reg_a, const half4_t& reg_b, float16_t* reg_c);
 
 template <>
-__device__ void gcnasm_mfma_f32_16x16x4f16<16, 64>(const half4_t& reg_a,
-                                               const half4_t& reg_b,
-                                               float16_t* reg_c)
+__device__ void gcnasm_mfma_f32_16x16x4f16<16, 64>(const half4_t& reg_a, const half4_t& reg_b, float16_t* reg_c)
 {
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
     (void)reg_c;
@@ -767,9 +745,7 @@ __device__ void gcnasm_mfma_f32_16x16x4f16<16, 64>(const half4_t& reg_a,
 }
 
 template <>
-__device__ void gcnasm_mfma_f32_16x16x4f16<64, 16>(const half4_t& reg_a,
-                                               const half4_t& reg_b,
-                                               float16_t* reg_c)
+__device__ void gcnasm_mfma_f32_16x16x4f16<64, 16>(const half4_t& reg_a, const half4_t& reg_b, float16_t* reg_c)
 
 {
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
@@ -781,18 +757,11 @@ __device__ void gcnasm_mfma_f32_16x16x4f16<64, 16>(const half4_t& reg_a,
 }
 
 template <index_t MPerWave, index_t NPerWave>
-__device__ void gcnasm_mfma_f32_4x4x4f16(const half4_t *a,
-                                               const half4_t* b,
-                                               float4_t* reg_c);
+__device__ void gcnasm_mfma_f32_4x4x4f16(const half4_t& reg_a, const half4_t& reg_b, float4_t* reg_c);
 
 template <>
-__device__ void gcnasm_mfma_f32_4x4x4f16<4, 64>(const half4_t *a,
-                                               const half4_t* b,
-                                               float4_t* reg_c)
+__device__ void gcnasm_mfma_f32_4x4x4f16<4, 64>(const half4_t& reg_a, const half4_t& reg_b, float4_t* reg_c)
 {
-    const half4_t reg_a = *a;
-    const half4_t reg_b = *b;
-
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
     (void)reg_c;
     MFMA_F32_4x4x4F16(0, reg_a, reg_b, 4, 0, 0)
@@ -802,34 +771,23 @@ __device__ void gcnasm_mfma_f32_4x4x4f16<4, 64>(const half4_t *a,
 }
 
 template <>
-__device__ void gcnasm_mfma_f32_4x4x4f16<8, 64>(const half4_t *a,
-                                               const half4_t* b,
-                                               float4_t* reg_c)
+__device__ void gcnasm_mfma_f32_4x4x4f16<8, 64>(const half4_t& reg_a, const half4_t& reg_b, float4_t* reg_c)
 {
-    const half4_t reg_a_0 = *a;
-    const half4_t reg_b_0 = *b;
-    const half4_t reg_a_1 = *(a + 4);
-    const half4_t reg_b_1 = reg_b_0;
-
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
     (void)reg_c;
-    MFMA_F32_4x4x4F16(0, reg_a_0, reg_b_0, 4, 0, 0)
-    MFMA_F32_4x4x4F16(4, reg_a_1, reg_b_1, 4, 0, 0)
+    MFMA_F32_4x4x4F16(0, reg_a, reg_b, 4, 0, 0)
+    MFMA_F32_4x4x4F16(4, reg_a, reg_b, 4, 1, 0)
 #else
-    reg_c[0] = llvm_intrin_amdgcn_mfma_f32_4x4x4f16(reg_a_0, reg_b_0, reg_c[0], 4, 0, 0);
-    reg_c[1] = llvm_intrin_amdgcn_mfma_f32_4x4x4f16(reg_a_1, reg_b_1, reg_c[1], 4, 0, 0);
+    reg_c[0] = llvm_intrin_amdgcn_mfma_f32_4x4x4f16(reg_a, reg_b, reg_c[0], 4, 0, 0);
+    reg_c[1] = llvm_intrin_amdgcn_mfma_f32_4x4x4f16(reg_a, reg_b, reg_c[1], 4, 1, 0);
 #endif
 }
 
 template <index_t MPerWave, index_t NPerWave>
-__device__ void gcnasm_mfma_f32_32x32x2bf16(const ushort2_t&,
-                                            const ushort2_t&,
-                                            float32_t*);
+__device__ void gcnasm_mfma_f32_32x32x2bf16(const ushort2_t&, const ushort2_t&, float32_t*);
 
 template <>
-__device__ void gcnasm_mfma_f32_32x32x2bf16<64, 64>(const ushort2_t& reg_a,
-                                                const ushort2_t& reg_b,
-                                                float32_t* reg_c)
+__device__ void gcnasm_mfma_f32_32x32x2bf16<64, 64>(const ushort2_t& reg_a, const ushort2_t& reg_b, float32_t* reg_c)
 {
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
     (void)reg_c;
@@ -842,9 +800,7 @@ __device__ void gcnasm_mfma_f32_32x32x2bf16<64, 64>(const ushort2_t& reg_a,
 }
 
 template <>
-__device__ void gcnasm_mfma_f32_32x32x2bf16<32, 64>(const ushort2_t& reg_a,
-                                                const ushort2_t& reg_b,
-                                                float32_t* reg_c)
+__device__ void gcnasm_mfma_f32_32x32x2bf16<32, 64>(const ushort2_t& reg_a, const ushort2_t& reg_b, float32_t* reg_c)
 {
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
     (void)reg_c;
@@ -855,9 +811,7 @@ __device__ void gcnasm_mfma_f32_32x32x2bf16<32, 64>(const ushort2_t& reg_a,
 }
 
 template <>
-__device__ void gcnasm_mfma_f32_32x32x2bf16<64, 32>(const ushort2_t& reg_a,
-                                                const ushort2_t& reg_b,
-                                                float32_t* reg_c)
+__device__ void gcnasm_mfma_f32_32x32x2bf16<64, 32>(const ushort2_t& reg_a, const ushort2_t& reg_b, float32_t* reg_c)
 {
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
     (void)reg_c;
@@ -867,9 +821,7 @@ __device__ void gcnasm_mfma_f32_32x32x2bf16<64, 32>(const ushort2_t& reg_a,
 #endif
 }
 
-__device__ void gcnasm_mfma_f32_32x32x4bf16(const ushort2_t& reg_a,
-                                                const ushort2_t& reg_b,
-                                                float16_t* reg_c)
+__device__ void gcnasm_mfma_f32_32x32x4bf16(const ushort2_t& reg_a, const ushort2_t& reg_b, float16_t* reg_c)
 {
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
     (void)reg_c;
@@ -879,9 +831,7 @@ __device__ void gcnasm_mfma_f32_32x32x4bf16(const ushort2_t& reg_a,
 #endif
 }
 
-__device__ void gcnasm_mfma_f32_16x16x8bf16(const ushort2_t& reg_a,
-                                                const ushort2_t& reg_b,
-                                                float4_t* reg_c)
+__device__ void gcnasm_mfma_f32_16x16x8bf16(const ushort2_t& reg_a, const ushort2_t& reg_b, float4_t* reg_c)
 {
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
     (void)reg_c;
@@ -892,14 +842,10 @@ __device__ void gcnasm_mfma_f32_16x16x8bf16(const ushort2_t& reg_a,
 }
 
 template <index_t MPerWave, index_t NPerWave>
-__device__ void gcnasm_mfma_f32_16x16x2bf16(const ushort2_t& reg_a,
-                                                const ushort2_t& reg_b,
-                                                float16_t* reg_c);
+__device__ void gcnasm_mfma_f32_16x16x2bf16(const ushort2_t& reg_a, const ushort2_t& reg_b, float16_t* reg_c);
 
 template <>
-__device__ void gcnasm_mfma_f32_16x16x2bf16<16, 64>(const ushort2_t& reg_a,
-                                                const ushort2_t& reg_b,
-                                                float16_t* reg_c)
+__device__ void gcnasm_mfma_f32_16x16x2bf16<16, 64>(const ushort2_t& reg_a, const ushort2_t& reg_b, float16_t* reg_c)
 {
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
     (void)reg_c;
@@ -910,9 +856,7 @@ __device__ void gcnasm_mfma_f32_16x16x2bf16<16, 64>(const ushort2_t& reg_a,
 }
 
 template <>
-__device__ void gcnasm_mfma_f32_16x16x2bf16<64, 16>(const ushort2_t& reg_a,
-                                                const ushort2_t& reg_b,
-                                                float16_t* reg_c)
+__device__ void gcnasm_mfma_f32_16x16x2bf16<64, 16>(const ushort2_t& reg_a, const ushort2_t& reg_b, float16_t* reg_c)
 {
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
     (void)reg_c;
@@ -923,18 +867,11 @@ __device__ void gcnasm_mfma_f32_16x16x2bf16<64, 16>(const ushort2_t& reg_a,
 }
 
 template <index_t MPerWave, index_t NPerWave>
-__device__ void gcnasm_mfma_f32_4x4x2bf16(const ushort2_t *a,
-                                                const ushort2_t *b,
-                                                float4_t* reg_c);
+__device__ void gcnasm_mfma_f32_4x4x2bf16(const ushort2_t& reg_a, const ushort2_t& reg_b, float4_t* reg_c);
 
 template <>
-__device__ void gcnasm_mfma_f32_4x4x2bf16<4, 64>(const ushort2_t *a,
-                                                const ushort2_t *b,
-                                                float4_t* reg_c)
+__device__ void gcnasm_mfma_f32_4x4x2bf16<4, 64>(const ushort2_t& reg_a, const ushort2_t& reg_b, float4_t* reg_c)
 {
-    const ushort2_t reg_a = *a;
-    const ushort2_t reg_b = *b;
-
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
     (void)reg_c;
     MFMA_F32_4x4x2BF16(0, reg_a, reg_b, 4, 0, 0)
@@ -944,22 +881,15 @@ __device__ void gcnasm_mfma_f32_4x4x2bf16<4, 64>(const ushort2_t *a,
 }
 
 template <>
-__device__ void gcnasm_mfma_f32_4x4x2bf16<8, 64>(const ushort2_t *a,
-                                                const ushort2_t *b,
-                                                float4_t* reg_c)
+__device__ void gcnasm_mfma_f32_4x4x2bf16<8, 64>(const ushort2_t& reg_a, const ushort2_t& reg_b, float4_t* reg_c)
 {
-    const ushort2_t reg_a_0 = *a;
-    const ushort2_t reg_b_0 = *b;
-    const ushort2_t reg_a_1 = *(a + 4);
-    const ushort2_t reg_b_1 = reg_b_0;
-
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
     (void)reg_c;
-    MFMA_F32_4x4x2BF16(0, reg_a_0, reg_b_0, 4, 0, 0)
-    MFMA_F32_4x4x2BF16(4, reg_a_1, reg_b_1, 4, 0, 0)
+    MFMA_F32_4x4x2BF16(0, reg_a, reg_b, 4, 0, 0)
+    MFMA_F32_4x4x2BF16(4, reg_a, reg_b, 4, 1, 0)
 #else
-    reg_c[0] = llvm_intrin_amdgcn_mfma_f32_4x4x2bf16(reg_a_0, reg_b_0, reg_c[0], 4, 0, 0);
-    reg_c[1] = llvm_intrin_amdgcn_mfma_f32_4x4x2bf16(reg_a_1, reg_b_1, reg_c[1], 4, 0, 0);
+    reg_c[0] = llvm_intrin_amdgcn_mfma_f32_4x4x2bf16(reg_a, reg_b, reg_c[0], 4, 0, 0);
+    reg_c[1] = llvm_intrin_amdgcn_mfma_f32_4x4x2bf16(reg_a, reg_b, reg_c[1], 4, 1, 0);
 #endif
 }
 // clang-format on

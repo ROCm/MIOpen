@@ -450,11 +450,12 @@ ConvolutionDescriptor::FindSCGemmSolutions(Handle& handle,
     }
 }
 
+template <class InvokeParams>
 static void EvaluateInvokers(Handle& handle,
                              const std::vector<solver::ConvSolution>& solutions,
                              const AlgorithmName& algorithm_name,
                              const NetworkConfig& network_config,
-                             const boost::any& invoke_ctx,
+                             const InvokeParams& invoke_ctx,
                              DbRecord& record)
 {
     miopen::solver::ConvSolution selected{miopenStatusUnknownError};
@@ -463,6 +464,17 @@ static void EvaluateInvokers(Handle& handle,
 
     for(const auto& sol : solutions)
     {
+        if(sol.workspce_sz > 0 &&
+           (invoke_ctx.workSpace == nullptr || invoke_ctx.workSpaceSize < sol.workspce_sz))
+        {
+            MIOPEN_LOG_I("Skipping solver <" << sol.solver_id << "> due to insufficient workspace ("
+                                             << invoke_ctx.workSpaceSize
+                                             << " < "
+                                             << sol.workspce_sz
+                                             << ")");
+            continue;
+        }
+
         if(!sol.invoker_factory)
             MIOPEN_THROW("Invoker is not provided by solver " + sol.solver_id);
 
@@ -981,7 +993,10 @@ void ConvFwdImplicitGemm(const ConvolutionContext& /*ctx*/,
            "gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kc1x1_nkhw_lds_double_buffer" ||
        kernel.GetName() ==
            "gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_lds_double_buffer" ||
-       kernel.GetName() == "gridwise_convolution_implicit_gemm_v4r4_nchw_kcyx_nkhw")
+       kernel.GetName() ==
+           "gridwise_convolution_implicit_gemm_v4r4_nchw_kcyx_nkhw" ||
+       kernel.GetName() ==
+           "gridwise_convolution_implicit_gemm_v4r4_ncdhw_kczyx_nkdhw")
     // clang-format on
     {
         kernel(tensors.x, tensors.w, tensors.y);

@@ -431,7 +431,7 @@ ConvHipImplicitGemmV4R4GenWrWXdlops::Search(const ConvolutionContext& ctx) const
 {
     // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
     if(ctx.IsFp16() || ctx.IsBfp16())
-        return GenericSearchWrW(*this, ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
+        return GenericSearchWrW(*this, ctx, SearchTweak::WorkspaceInsteadOfWeightsBuffer);
     else
         return GenericSearchWrW(*this, ctx);
 }
