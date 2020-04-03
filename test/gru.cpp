@@ -1831,7 +1831,6 @@ struct verify_forward_infer_gru
                   << std::chrono::duration<double>(t_end - t_start1).count() << " seconds."
                   << std::endl;
 #endif
-        auto retSet = std::make_tuple(output, hiddenState, weights, reserveSpace);
 #if(MIO_GRU_TEST_DEBUG > 0)
         std::cout << "Done with GRU forward inference CPU" << std::endl;
         std::cout << "---------------------------------\n" << std::endl;
@@ -1866,7 +1865,6 @@ struct verify_forward_infer_gru
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
 
         std::vector<T> workSpace(workSpaceSize / sizeof(T));
-        std::vector<T> hiddenState(initHidden.size());
 
         auto input_dev = handle.Write(input);
 
@@ -2152,7 +2150,6 @@ struct verify_forward_train_gru
 
         std::vector<T> workSpace(workSpaceSize / sizeof(T));
         std::vector<T> reserveSpace(reserveSpaceSize / sizeof(T));
-        std::vector<T> hiddenState(initHidden.size());
 
         auto input_dev = handle.Write(input);
 

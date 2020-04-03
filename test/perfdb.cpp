@@ -168,9 +168,9 @@ class DbTest
     protected:
     TempFile temp_file;
 
-    static const std::array<std::pair<const char*, TestData>, 2>& common_data()
+    static const std::array<std::pair<const std::string, TestData>, 2>& common_data()
     {
-        static const std::array<std::pair<const char*, TestData>, 2> data{{
+        static const std::array<std::pair<const std::string, TestData>, 2> data{{
             {id1(), value1()}, {id0(), value0()},
         }};
 
@@ -203,15 +203,31 @@ class DbTest
         return data;
     }
 
-    static const char* id0() { return "0"; }
-    static const char* id1() { return "1"; }
-    static const char* id2() { return "2"; }
-    static const char* missing_id() { return "3"; }
+    static std::string& id0()
+    {
+        static std::string id0_ = "0";
+        return id0_;
+    }
+    static std::string& id1()
+    {
+        static std::string id1_ = "1";
+        return id1_;
+    }
+    static std::string& id2()
+    {
+        static std::string id2_ = "2";
+        return id2_;
+    }
+    static std::string& missing_id()
+    {
+        static std::string missing_id_ = "3";
+        return missing_id_;
+    }
 
     template <class TKey, class TValue, size_t count>
     static void RawWrite(const std::string& db_path,
                          const TKey& key,
-                         const std::array<std::pair<const char*, TValue>, count> values)
+                         const std::array<std::pair<const std::string, TValue>, count> values)
     {
         std::ostringstream ss_vals;
         ss_vals << key.x << ',' << key.y << '=';
@@ -231,9 +247,8 @@ class DbTest
     }
 
     template <class TDb, class TKey, class TValue, size_t count>
-    static void ValidateSingleEntry(TKey key,
-                                    const std::array<std::pair<const char*, TValue>, count> values,
-                                    TDb db)
+    static void ValidateSingleEntry(
+        TKey key, const std::array<std::pair<const std::string, TValue>, count> values, TDb db)
     {
         boost::optional<DbRecord> record = db.FindRecord(key);
 
@@ -258,7 +273,7 @@ class DbFindTest : public DbTest
         ResetDb();
         RawWrite(temp_file, key(), common_data());
 
-        Db db(temp_file);
+        PlainTextDb db(temp_file);
         ValidateSingleEntry(key(), common_data(), db);
 
         const TestData invalid_key(100, 200);
@@ -280,7 +295,7 @@ class DbStoreTest : public DbTest
         EXPECT(record.SetValues(id1(), value1()));
 
         {
-            Db db(temp_file);
+            PlainTextDb db(temp_file);
 
             EXPECT(db.StoreRecord(record));
         }
@@ -288,7 +303,7 @@ class DbStoreTest : public DbTest
         std::string read;
         EXPECT(std::getline(std::ifstream(temp_file), read).good());
 
-        ValidateSingleEntry(key(), common_data(), Db(temp_file));
+        ValidateSingleEntry(key(), common_data(), PlainTextDb(temp_file));
     }
 };
 
@@ -305,7 +320,7 @@ class DbUpdateTest : public DbTest
         EXPECT(record0.SetValues(id0(), value0()));
 
         {
-            Db db(temp_file);
+            PlainTextDb db(temp_file);
 
             EXPECT(db.StoreRecord(record0));
         }
@@ -315,7 +330,7 @@ class DbUpdateTest : public DbTest
         EXPECT(record1.SetValues(id1(), value1()));
 
         {
-            Db db(temp_file);
+            PlainTextDb db(temp_file);
 
             EXPECT(db.UpdateRecord(record1));
         }
@@ -328,7 +343,7 @@ class DbUpdateTest : public DbTest
         EXPECT_EQUAL(value1(), read1);
 
         // Check record that is stored in db (key=id0:value0;id1:value1)
-        ValidateSingleEntry(key(), common_data(), Db(temp_file));
+        ValidateSingleEntry(key(), common_data(), PlainTextDb(temp_file));
     }
 };
 
@@ -345,13 +360,13 @@ class DbRemoveTest : public DbTest
         EXPECT(record.SetValues(id1(), value1()));
 
         {
-            Db db(temp_file);
+            PlainTextDb db(temp_file);
 
             EXPECT(db.StoreRecord(record));
         }
 
         {
-            Db db(temp_file);
+            PlainTextDb db(temp_file);
 
             EXPECT(db.FindRecord(key()));
             EXPECT(db.RemoveRecord(key()));
@@ -369,7 +384,7 @@ class DbReadTest : public DbTest
 
         ResetDb();
         RawWrite(temp_file, key(), common_data());
-        ValidateSingleEntry(key(), common_data(), Db(temp_file));
+        ValidateSingleEntry(key(), common_data(), PlainTextDb(temp_file));
     }
 };
 
@@ -383,7 +398,7 @@ class DbWriteTest : public DbTest
         ResetDb();
 
         {
-            Db db(temp_file);
+            PlainTextDb db(temp_file);
 
             EXPECT(db.Update(key(), id0(), value0()));
             EXPECT(db.Update(key(), id1(), value1()));
@@ -392,7 +407,7 @@ class DbWriteTest : public DbTest
         std::string read;
         EXPECT(std::getline(std::ifstream(temp_file), read).good());
 
-        ValidateSingleEntry(key(), common_data(), Db(temp_file));
+        ValidateSingleEntry(key(), common_data(), PlainTextDb(temp_file));
     }
 };
 
@@ -407,7 +422,7 @@ class DbOperationsTest : public DbTest
         const TestData to_be_rewritten(7, 8);
 
         {
-            Db db(temp_file);
+            PlainTextDb db(temp_file);
 
             EXPECT(db.Update(key(), id0(), to_be_rewritten));
             EXPECT(db.Update(key(), id1(), to_be_rewritten));
@@ -421,7 +436,7 @@ class DbOperationsTest : public DbTest
         }
 
         {
-            Db db(temp_file);
+            PlainTextDb db(temp_file);
 
             // Rewriting existing value to store it to file.
             EXPECT(db.Update(key(), id0(), value0()));
@@ -430,7 +445,7 @@ class DbOperationsTest : public DbTest
         {
             TestData read0, read1, read_missing;
             const auto read_missing_cmp(read_missing);
-            Db db(temp_file);
+            PlainTextDb db(temp_file);
 
             // Loading by id not present in record should execute well but return false as nothing
             // was read.
@@ -461,7 +476,7 @@ class DbOperationsTest : public DbTest
         {
             TestData read0, read1;
             const auto read_missing_cmp(read0);
-            Db db(temp_file);
+            PlainTextDb db(temp_file);
 
             EXPECT(!db.Load(key(), id0(), read0));
             EXPECT(db.Load(key(), id1(), read1));
@@ -483,13 +498,13 @@ class DbParallelTest : public DbTest
         ResetDb();
 
         {
-            Db db(temp_file);
+            PlainTextDb db(temp_file);
             EXPECT(db.Update(key(), id0(), value0()));
         }
 
         {
-            Db db0(temp_file);
-            Db db1(temp_file);
+            PlainTextDb db0(temp_file);
+            PlainTextDb db1(temp_file);
 
             auto r0 = db0.FindRecord(key());
             auto r1 = db1.FindRecord(key());
@@ -504,11 +519,11 @@ class DbParallelTest : public DbTest
             EXPECT(db1.UpdateRecord(*r1));
         }
 
-        const std::array<std::pair<const char*, TestData>, 3> data{{
+        const std::array<std::pair<const std::string, TestData>, 3> data{{
             {id0(), value0()}, {id1(), value1()}, {id2(), value2()},
         }};
 
-        ValidateSingleEntry(key(), data, Db(temp_file));
+        ValidateSingleEntry(key(), data, PlainTextDb(temp_file));
     }
 };
 
@@ -565,12 +580,12 @@ class DBMultiThreadedTestWork
 
         for(auto i = 0u; i < common_part_size; i++)
         {
-            const auto key  = i / ids_per_key;
-            const auto id   = i % ids_per_key;
+            const auto key  = std::to_string(i / ids_per_key);
+            const auto id   = std::to_string(i % ids_per_key);
             const auto data = cp[i];
             TestData read(TestData::NoInit{});
 
-            EXPECT(db.Load(std::to_string(key), std::to_string(id), read));
+            EXPECT(db.Load(key, id, read));
             EXPECT_EQUAL(read, data);
         }
     }
@@ -633,12 +648,12 @@ class DBMultiThreadedTestWork
 
         for(auto i = start; i < end; i++)
         {
-            const auto key  = i / ids_per_key;
-            const auto id   = i % ids_per_key;
+            const auto key  = std::to_string(i / ids_per_key);
+            const auto id   = std::to_string(i % ids_per_key);
             const auto data = cp[i];
             TestData read(TestData::NoInit{});
 
-            EXPECT(db_getter().Load(std::to_string(key), std::to_string(id), read));
+            EXPECT(db_getter().Load(key, id, read));
             EXPECT_EQUAL(read, data);
         }
     }
@@ -665,11 +680,11 @@ class DBMultiThreadedTestWork
 
         for(auto i = start; i < end; i++)
         {
-            const auto key  = i / ids_per_key;
-            const auto id   = i % ids_per_key;
+            const auto key  = std::to_string(i / ids_per_key);
+            const auto id   = std::to_string(i % ids_per_key);
             const auto data = cp[i];
 
-            db_getter().Update(std::to_string(key), std::to_string(id), data);
+            db_getter().Update(key, id, data);
         }
     }
 
@@ -749,7 +764,7 @@ class DbMultiThreadedTest : public DbTest
         std::cout << "Launching test threads..." << std::endl;
         threads.reserve(DBMultiThreadedTestWork::threads_count);
         const std::string p = temp_file;
-        const auto c        = [&p]() { return Db(p); };
+        const auto c        = [&p]() { return PlainTextDb(p); };
 
         {
             std::unique_lock<std::mutex> lock(mutex);
@@ -783,7 +798,7 @@ class DbMultiThreadedReadTest : public DbTest
 
         std::cout << "Initializing test data..." << std::endl;
         const std::string p = temp_file;
-        const auto c        = [&p]() { return Db(p); };
+        const auto c        = [&p]() { return PlainTextDb(p); };
         ResetDb();
         DBMultiThreadedTestWork::FillForReading(c);
 
@@ -859,7 +874,7 @@ class DbMultiProcessTest : public DbTest
         std::remove(lock_file_path.c_str());
 
         const std::string p = temp_file;
-        const auto c        = [&p]() { return Db(p); };
+        const auto c        = [&p]() { return PlainTextDb(p); };
 
         std::cout << "Validating results..." << std::endl;
         DBMultiThreadedTestWork::ValidateCommonPart(c);
@@ -873,7 +888,7 @@ class DbMultiProcessTest : public DbTest
             std::lock_guard<LockFile> lock(file_lock);
         }
 
-        const auto c = [&db_path]() { return Db(db_path); };
+        const auto c = [&db_path]() { return PlainTextDb(db_path); };
 
         if(write)
             DBMultiThreadedTestWork::WorkItem(id, c, "mp");
@@ -897,7 +912,7 @@ class DbMultiProcessReadTest : public DbTest
 
         std::cout << "Initializing test data..." << std::endl;
         std::string p = temp_file;
-        const auto c  = [&p]() { return Db(p); };
+        const auto c  = [&p]() { return PlainTextDb(p); };
         DBMultiThreadedTestWork::FillForReading(c);
 
         std::cout << "Launching test processes..." << std::endl;
@@ -944,7 +959,7 @@ class DbMultiProcessReadTest : public DbTest
             std::lock_guard<LockFile> lock(file_lock);
         }
 
-        const auto c = [&db_path]() { return Db(db_path); };
+        const auto c = [&db_path]() { return PlainTextDb(db_path); };
 
         DBMultiThreadedTestWork::WorkItem(id, c, "mp");
     }
@@ -990,9 +1005,10 @@ class DbMultiFileReadTest : public DbMultiFileTest
     }
 
     private:
-    static const std::array<std::pair<const char*, TestData>, 1>& single_item_data()
+    static const std::array<std::pair<const std::string, TestData>, 1>& single_item_data()
     {
-        static const std::array<std::pair<const char*, TestData>, 1> data{{{id0(), value2()}}};
+        static const std::array<std::pair<const std::string, TestData>, 1> data{
+            {{id0(), value2()}}};
 
         return data;
     }
@@ -1002,11 +1018,11 @@ class DbMultiFileReadTest : public DbMultiFileTest
         RawWrite(temp_file, key(), common_data());
         RawWrite(user_db_path, key(), single_item_data());
 
-        static const std::array<std::pair<const char*, TestData>, 2> merged_data{{
+        static const std::array<std::pair<const std::string, TestData>, 2> merged_data{{
             {id1(), value1()}, {id0(), value2()},
         }};
 
-        MultiFileDb<Db, Db, merge_records> db(temp_file, user_db_path);
+        MultiFileDb<PlainTextDb, PlainTextDb, merge_records> db(temp_file, user_db_path);
         if(merge_records)
             ValidateSingleEntry(key(), merged_data, db);
         else
@@ -1021,14 +1037,18 @@ class DbMultiFileReadTest : public DbMultiFileTest
     {
         RawWrite(user_db_path, key(), single_item_data());
         ValidateSingleEntry(
-            key(), single_item_data(), MultiFileDb<Db, Db, merge_records>(temp_file, user_db_path));
+            key(),
+            single_item_data(),
+            MultiFileDb<PlainTextDb, PlainTextDb, merge_records>(temp_file, user_db_path));
     }
 
     void ReadInstalled() const
     {
         RawWrite(temp_file, key(), single_item_data());
         ValidateSingleEntry(
-            key(), single_item_data(), MultiFileDb<Db, Db, merge_records>(temp_file, user_db_path));
+            key(),
+            single_item_data(),
+            MultiFileDb<PlainTextDb, PlainTextDb, merge_records>(temp_file, user_db_path));
     }
 
     void ReadConflict() const
@@ -1052,7 +1072,7 @@ class DbMultiFileWriteTest : public DbMultiFileTest
         EXPECT(record.SetValues(id1(), value1()));
 
         {
-            MultiFileDb<Db, Db, true> db(temp_file, user_db_path);
+            MultiFileDb<PlainTextDb, PlainTextDb, true> db(temp_file, user_db_path);
 
             EXPECT(db.StoreRecord(record));
         }
@@ -1061,8 +1081,9 @@ class DbMultiFileWriteTest : public DbMultiFileTest
         EXPECT(!std::getline(std::ifstream(temp_file), read).good());
         EXPECT(std::getline(std::ifstream(user_db_path), read).good());
 
-        ValidateSingleEntry(
-            key(), common_data(), MultiFileDb<Db, Db, true>(temp_file, user_db_path));
+        ValidateSingleEntry(key(),
+                            common_data(),
+                            MultiFileDb<PlainTextDb, PlainTextDb, true>(temp_file, user_db_path));
     }
 };
 
@@ -1088,7 +1109,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
             EXPECT(record.SetValues(id0(), value0()));
             EXPECT(record.SetValues(id1(), value2()));
 
-            Db db(temp_file);
+            PlainTextDb db(temp_file);
             EXPECT(db.StoreRecord(record));
         }
     }
@@ -1098,12 +1119,12 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
         std::cout << "Update test..." << std::endl;
 
         {
-            MultiFileDb<Db, Db, true> db(temp_file, user_db_path);
+            MultiFileDb<PlainTextDb, PlainTextDb, true> db(temp_file, user_db_path);
             EXPECT(db.Update(key(), id1(), value1()));
         }
 
         {
-            Db db(user_db_path);
+            PlainTextDb db(user_db_path);
             TestData read(TestData::NoInit{});
             EXPECT(!db.Load(key(), id0(), read));
             EXPECT(db.Load(key(), id1(), read));
@@ -1111,7 +1132,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
         }
 
         {
-            Db db(temp_file);
+            PlainTextDb db(temp_file);
             ValidateData(db, value2());
         }
     }
@@ -1120,7 +1141,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
     {
         std::cout << "Load test..." << std::endl;
 
-        MultiFileDb<Db, Db, true> db(temp_file, user_db_path);
+        MultiFileDb<PlainTextDb, PlainTextDb, true> db(temp_file, user_db_path);
         ValidateData(db, value1());
     }
 
@@ -1128,7 +1149,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
     {
         std::cout << "Remove test..." << std::endl;
 
-        MultiFileDb<Db, Db, true> db(temp_file, user_db_path);
+        MultiFileDb<PlainTextDb, PlainTextDb, true> db(temp_file, user_db_path);
         EXPECT(!db.Remove(key(), id0()));
         EXPECT(db.Remove(key(), id1()));
 
@@ -1139,7 +1160,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
     {
         std::cout << "Remove record test..." << std::endl;
 
-        MultiFileDb<Db, Db, true> db(temp_file, user_db_path);
+        MultiFileDb<PlainTextDb, PlainTextDb, true> db(temp_file, user_db_path);
         EXPECT(db.Update(key(), id1(), value1()));
         EXPECT(db.RemoveRecord(key()));
 
@@ -1170,7 +1191,7 @@ class DbMultiFileMultiThreadedReadTest : public DbMultiFileTest
         std::cout << "Initializing test data..." << std::endl;
         const std::string p = temp_file;
         const auto& up      = user_db_path;
-        const auto c        = [&p, up]() { return MultiFileDb<Db, Db, true>(p, up); };
+        const auto c = [&p, up]() { return MultiFileDb<PlainTextDb, PlainTextDb, true>(p, up); };
         ResetDb();
         DBMultiThreadedTestWork::FillForReading(c);
 
@@ -1213,7 +1234,7 @@ class DbMultiFileMultiThreadedTest : public DbMultiFileTest
         threads.reserve(DBMultiThreadedTestWork::threads_count);
         const std::string p = temp_file;
         const auto up       = user_db_path;
-        const auto c        = [&p, &up]() { return MultiFileDb<Db, Db, true>(p, up); };
+        const auto c = [&p, &up]() { return MultiFileDb<PlainTextDb, PlainTextDb, true>(p, up); };
 
         {
             std::unique_lock<std::mutex> lock(mutex);

@@ -28,6 +28,8 @@
 #include <limits>
 #include <cassert>
 
+#include <miopen/conv/compiled_in_parameters.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/env.hpp>
 #include <miopen/logger.hpp>
@@ -668,6 +670,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
         }
     };
 
+    // cppcheck-suppress unreadVariable
     buff_info ibuf(MemLayout::NCHW,
                    params.batch_sz,
                    params.n_outputs,
@@ -675,6 +678,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
                    AsmImgWidth(params),
                    1,
                    data_len);
+    // cppcheck-suppress unreadVariable
     buff_info obuf(MemLayout::NCHW,
                    params.batch_sz,
                    params.n_inputs,
@@ -682,6 +686,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
                    AsmImgWidth(params),
                    1,
                    data_len);
+    // cppcheck-suppress unreadVariable
     buff_info fbuf(MemLayout::NCHW, params.n_inputs, params.n_outputs, 1, 1, 1, data_len);
     GenerateClangDefsym(options, "input_n_stride", ibuf.byte_stride.nk);
     GenerateClangDefsym(options, "input_c_stride", ibuf.byte_stride.c);
@@ -760,6 +765,53 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     kernel.kernel_name = "miopenGcnAsmConv1x1WrW";
 
     result.construction_params.push_back(kernel);
+
+    int N, C, H, W, K, n_groups;
+    GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);
+
+    if(UseSubsample(params))
+    {
+        result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
+            return [=](Handle& handle, const boost::any& primitive_params) {
+                const auto ss_kernel     = handle.Run(kernels[0]);
+                const auto main_kernel   = handle.Run(kernels[1]);
+                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+                const auto& x            = invoke_params.tensors.x;
+                const auto& dy           = invoke_params.tensors.dy;
+                const auto& dw           = invoke_params.tensors.dw;
+                const auto& workSpace    = invoke_params.workSpace;
+                auto elapsed             = 0.f;
+                ss_kernel(x, workSpace);
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+                int unused       = 0;
+                int* return_addr = nullptr;
+                main_kernel(
+                    N, C, H, W, K, n_groups, unused, unused, workSpace, dw, dy, return_addr);
+                if(handle.IsProfilingEnabled())
+                {
+                    elapsed += handle.GetKernelTime();
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(elapsed);
+                }
+            };
+        };
+    }
+    else
+    {
+        result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
+            return [=](Handle& handle, const boost::any& primitive_params) {
+                const auto main_kernel   = handle.Run(kernels[0]);
+                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+                const auto& x            = invoke_params.tensors.x;
+                const auto& dy           = invoke_params.tensors.dy;
+                const auto& dw           = invoke_params.tensors.dw;
+                int unused               = 0;
+                int* return_addr         = nullptr;
+                main_kernel(N, C, H, W, K, n_groups, unused, unused, x, dw, dy, return_addr);
+            };
+        };
+    }
 
     return result;
 }

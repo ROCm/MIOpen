@@ -56,7 +56,8 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx) con
     if(c % GetEPackLength(ctx, false) != 0)
         return false;
 
-    return n % 8 == 0 && (n * ho * wo) % 32 == 0 && (c * y * x) % eMultiple == 0 && k % 16 == 0;
+    return n % 8 == 0 && (n * ho * wo) % 32 == 0 && (n * ho * wo * k) % 1024 == 0 &&
+           (c * y * x) % eMultiple == 0 && k % 16 == 0;
 }
 
 bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) const
@@ -82,44 +83,45 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) con
     const auto& wo = ctx.in_width;  // unswap
 
     // equivalent dimension for bwd-wrw
-    const auto& n_eqv     = c;
-    const auto& k_eqv     = k;
-    const auto& c_eqv     = n;
-    const auto& y_eqv     = ho;
-    const auto& x_eqv     = wo;
-    const auto& ho_eqv    = y;
-    const auto& wo_eqv    = x;
-    const auto& eMultiple = (ctx.IsFp16() || ctx.IsBfp16()) ? 16 : 8;
+    std::size_t n_eqv     = c;
+    std::size_t k_eqv     = k;
+    std::size_t c_eqv     = n;
+    std::size_t y_eqv     = ho;
+    std::size_t x_eqv     = wo;
+    std::size_t ho_eqv    = y;
+    std::size_t wo_eqv    = x;
+    std::size_t eMultiple = (ctx.IsFp16() || ctx.IsBfp16()) ? 16 : 8;
 
     // batch is divided by epack to pack 2/4 fp16/bfp16
     if(c_eqv % GetEPackLength(ctx, false) != 0)
         return false;
 
     return n_eqv % 8 == 0 && (n_eqv * ho_eqv * wo_eqv) % 64 == 0 &&
-           (c_eqv * y_eqv * x_eqv) % eMultiple == 0 && k_eqv % 16 == 0;
+           (c_eqv * y_eqv * x_eqv) % eMultiple == 0 && k_eqv % 16 == 0 &&
+           (n_eqv * ho_eqv * wo_eqv * k_eqv) % 1024 == 0;
 }
 
-PerformanceImplicitGemm
+PerformanceImplicitGemmV4R1
 ConvHipImplicitGemmV4R1Fwd::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
-    return GetPerformanceConfigBase<PerformanceImplicitGemm>(ctx);
+    return GetPerformanceConfigBase<PerformanceImplicitGemmV4R1>(ctx);
 }
 
-PerformanceImplicitGemm
+PerformanceImplicitGemmV4R1
 ConvHipImplicitGemmV4R1WrW::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
-    return GetPerformanceConfigBase<PerformanceImplicitGemm>(ctx);
+    return GetPerformanceConfigBase<PerformanceImplicitGemmV4R1>(ctx);
 }
 
-bool ConvHipImplicitGemmV4R1Fwd::IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                                          const PerformanceImplicitGemm& c) const
+bool ConvHipImplicitGemmV4R1Fwd::IsValidPerformanceConfig(
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmV4R1& c) const
 {
     MIOPEN_LOG_I("");
     return c.IsValidValue() && c.IsValid(ctx);
 }
 
-bool ConvHipImplicitGemmV4R1WrW::IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                                          const PerformanceImplicitGemm& c) const
+bool ConvHipImplicitGemmV4R1WrW::IsValidPerformanceConfig(
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmV4R1& c) const
 {
     MIOPEN_LOG_I("");
     return c.IsValidValue() && c.IsValid(ctx);
@@ -156,17 +158,19 @@ int ConvHipImplicitGemmV4R1WrW::RunAndMeasureSolution(miopen::Handle& profile_h,
         profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
-PerformanceImplicitGemm ConvHipImplicitGemmV4R1Fwd::Search(const ConvolutionContext& context) const
+PerformanceImplicitGemmV4R1
+ConvHipImplicitGemmV4R1Fwd::Search(const ConvolutionContext& context) const
 {
     return GenericSearchFwd(*this, context);
 }
-PerformanceImplicitGemm ConvHipImplicitGemmV4R1WrW::Search(const ConvolutionContext& context) const
+PerformanceImplicitGemmV4R1
+ConvHipImplicitGemmV4R1WrW::Search(const ConvolutionContext& context) const
 {
     return GenericSearchFwd(*this, context);
 }
 
 ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
-                                                     const PerformanceImplicitGemm& config,
+                                                     const PerformanceImplicitGemmV4R1& config,
                                                      bool) const
 {
     ConvSolution result;
@@ -274,32 +278,19 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
 
     auto InBlockCopySrcDataPerRead_B = GetReadWriteVectorSize(InBlockCopySubLengths_B);
 
-    int WeiBlockCopyDstDataPerWrite_K     = 0;
-    int InBlockCopyDstDataPerWrite_N2     = 0;
-    int WeiBlockCopyDstDataPerWrite_EPack = 0;
-    int InBlockCopyDstDataPerWrite_EPack  = 0;
-
-    if(ctx.IsFp32())
-    {
-        WeiBlockCopyDstDataPerWrite_K = GetReadWriteVectorSize(WeiBlockCopySubLengths_K);
-        InBlockCopyDstDataPerWrite_N2 = GetReadWriteVectorSize(InBlockCopySubLengths_N2);
-        (void)WeiBlockCopyDstDataPerWrite_EPack;
-        (void)InBlockCopyDstDataPerWrite_EPack;
-    }
-    else
-    {
-        WeiBlockCopyDstDataPerWrite_EPack = GetEPackLength(ctx, false);
-        InBlockCopyDstDataPerWrite_EPack  = GetEPackLength(ctx, false);
-        (void)WeiBlockCopyDstDataPerWrite_K;
-        (void)InBlockCopyDstDataPerWrite_N2;
-    }
-
     // Borrowed from non-padded version of v4
     InBlockCopySrcDataPerRead_B =
         ctx.kernel_size_w > 1
             ? std::min(InBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(ctx.kernel_dilation_w))
             : InBlockCopySrcDataPerRead_B;
     InBlockCopySrcDataPerRead_B = ctx.kernel_stride_w > 1 ? 1 : InBlockCopySrcDataPerRead_B;
+
+    const auto WeiBlockCopyDstDataPerWrite_K =
+        ctx.IsFp32() ? GetReadWriteVectorSize(WeiBlockCopySubLengths_K) : 1;
+    const auto InBlockCopyDstDataPerWrite_N2 =
+        ctx.IsFp32() ? GetReadWriteVectorSize(InBlockCopySubLengths_N2) : 1;
+    const auto WeiBlockCopyDstDataPerWrite_EPack = !ctx.IsFp32() ? GetEPackLength(ctx, false) : 1;
+    const auto InBlockCopyDstDataPerWrite_EPack  = !ctx.IsFp32() ? GetEPackLength(ctx, false) : 1;
 
     // clang-format off
     construction_parameters.comp_options = 
@@ -348,7 +339,6 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, false)) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
-        std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
 
@@ -374,7 +364,7 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
 }
 
 ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
-                                                     const PerformanceImplicitGemm& config,
+                                                     const PerformanceImplicitGemmV4R1& config,
                                                      bool) const
 {
     ConvSolution result;
@@ -548,7 +538,6 @@ ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& c
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, false)) + 
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx)? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
-        std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
 

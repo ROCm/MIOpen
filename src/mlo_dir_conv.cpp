@@ -58,36 +58,35 @@
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER)
+// Only select the first applicable igemm solver due to long compilation time
+// (JIRA SWDEV-227826)
+/// \todo enable all applicable solvers of igemm after fixing slow compilation
+#define WORKAROUND_SWDEV_227826 1
 
-// Only select first applicable implicitgemm kernel due to slow compilation time
-// (issue SWDEV-201055) and tuning
-/// \todo enable multiple or all applicable solver search after fixing slow compilation
-#define IMPLICIT_GEMM_FIND_FIRST_SOLUTION 1
+#if WORKAROUND_SWDEV_227826
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)
+#endif
+
 #if MIOPEN_ENABLE_SQLITE
-miopen::PerfDb mlo_construct_base::GetDb() const
+miopen::PerformanceDb mlo_construct_base::GetDb() const
 {
     auto& h = _search_params.GetStream();
     return {
         db_path(), _search_params.GetUserPerfDbPath(), h.GetDeviceName(), h.GetMaxComputeUnits()};
 }
-miopen::PerfDb miopen::GetDb(const miopen::ConvolutionContext& ctx)
+miopen::PerformanceDb miopen::GetDb(const miopen::ConvolutionContext& ctx)
 {
     auto& h = ctx.GetStream();
     return {
         ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath(), h.GetDeviceName(), h.GetMaxComputeUnits()};
 }
 #else
-miopen::PerfDb mlo_construct_base::GetDb() const
+miopen::PerformanceDb mlo_construct_base::GetDb() const
 {
     return {db_path(), _search_params.GetUserPerfDbPath()};
 }
 
-miopen::PerfDb miopen::GetDb(const ConvolutionContext& ctx)
+miopen::PerformanceDb miopen::GetDb(const ConvolutionContext& ctx)
 {
     return {ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath()};
 }
@@ -132,11 +131,15 @@ static auto GetDirectSolvers()
 static auto GetImplicitGemmSolvers()
 {
     return miopen::solver::SolverContainer<miopen::solver::ConvHipImplicitGemmV4R4Xdlops_1x1,
-                                           miopen::solver::ConvHipImplicitGemmV4R4FwdXdlops,
                                            miopen::solver::ConvHipImplicitGemmV4R4GenFwdXdlops,
+                                           miopen::solver::ConvHipImplicitGemmV4R4FwdXdlops,
+                                           miopen::solver::ConvHipImplicitGemmBwdDataV1R1Xdlops,
                                            miopen::solver::ConvHipImplicitGemmV4_1x1,
                                            miopen::solver::ConvHipImplicitGemmV4Fwd,
-                                           miopen::solver::ConvHipImplicitGemmV4R1Fwd>{};
+                                           miopen::solver::ConvHipImplicitGemmV4R1Fwd,
+                                           miopen::solver::ConvHipImplicitGemmV4R4Fwd,
+                                           miopen::solver::ConvHipImplicitGemmBwdDataV1R1,
+                                           miopen::solver::ConvHipImplicitGemmBwdDataV4R1>{};
 }
 
 static auto GetWindogradSolvers()
@@ -149,7 +152,6 @@ static auto GetWindogradSolvers()
 
 static auto GetImplicitGemmWrWSolvers()
 {
-
     return miopen::solver::SolverContainer<miopen::solver::ConvHipImplicitGemmV4R4WrWXdlops,
                                            miopen::solver::ConvHipImplicitGemmV4R4GenWrWXdlops,
                                            miopen::solver::ConvHipImplicitGemmV4WrW,
@@ -211,8 +213,11 @@ AllDirectForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
 std::vector<miopen::solver::ConvSolution>
 FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx)
 {
-#if IMPLICIT_GEMM_FIND_FIRST_SOLUTION
-    return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), 1);
+#if WORKAROUND_SWDEV_227826
+    if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
+        return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+    else
+        return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), 1);
 #else
     return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
 #endif
@@ -229,6 +234,7 @@ FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx)
 {
     return GetWindogradWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
 }
+
 std::vector<std::pair<std::string, size_t>>
 AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx)
 {
@@ -238,8 +244,11 @@ AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx)
 std::vector<miopen::solver::ConvSolution>
 FindImplicitGemmWrWAllSolutions(const miopen::ConvolutionContext& ctx)
 {
-#if IMPLICIT_GEMM_FIND_FIRST_SOLUTION
-    return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), 1);
+#if WORKAROUND_SWDEV_227826
+    if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
+        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+    else
+        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), 1);
 #else
     return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
 #endif
@@ -260,156 +269,6 @@ FindAllFwdSCGemmSolutions(const miopen::ConvolutionContext& ctx)
     (void)ctx;
     return {};
 #endif
-}
-
-#if MIOPEN_BACKEND_OPENCL
-static bool IsTokenWithin(const std::string& s, const char* delimiters, const std::string& find_tok)
-{
-    assert(delimiters);
-    std::size_t cursor = 0;
-    do
-    {
-        const std::size_t tok_begin = s.find_first_not_of(delimiters, cursor);
-        if(tok_begin == std::string::npos)
-        {
-            break;
-        }
-        cursor            = s.find_first_of(delimiters, tok_begin);
-        std::string token = (cursor == std::string::npos) ? s.substr(tok_begin)
-                                                          : s.substr(tok_begin, cursor - tok_begin);
-        if(token == find_tok)
-        {
-            return true;
-        }
-    } while(cursor != std::string::npos);
-    return false;
-}
-
-static bool IsAmdRocmOpencl(const miopen::ConvolutionContext& context)
-{
-    const auto dev             = miopen::GetDevice(context.GetStream().GetStream());
-    const auto platform        = miopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
-    const auto platform_vendor = miopen::GetPlatformInfo<CL_PLATFORM_VENDOR>(platform);
-    if(platform_vendor != "Advanced Micro Devices, Inc.")
-    {
-        return false;
-    }
-    const auto device_vendor_id = miopen::GetDeviceInfo<CL_DEVICE_VENDOR_ID>(dev);
-    if(device_vendor_id != 0x1002) // AMD
-    {
-        return false;
-    }
-    const auto driver_version = miopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
-    const char* delimiters    = " (),*";                    // Specific for ROCm OCL driver version.
-    return IsTokenWithin(driver_version, delimiters, "LC"); // Lightning Compiler.
-}
-#endif // MIOPEN_BACKEND_OPENCL
-
-/// This is intended to use only in Asm Solvers which support both CO v2 and CO v3.
-/// It says which code object format shall be selected during the build process.
-///
-/// If ROCm supports only v2 or v3, the answer is trivial. When Solver supports
-/// single CO version, the logic is trivial as well.
-///
-/// However, when both ROCm and Solver are able to support both code object formats,
-/// these is no objective criterion for making a decision. The following behavior
-/// is implemented:
-/// * By default, the newer format is used (CO v3).
-/// * If MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER is set to 1, then
-///   the behavior is reversed and CO v2 is selected.
-///
-/// \todo Dismiss MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER (and, possibly,
-/// rocm_meta_version::AMDHSA_COv2_COv3) as soon as MIOpen drops support for the
-/// ROCm runtimes that can load and run both v2 and v3 Code Objects.
-///
-/// \todo Move this out of the rocm_meta_version class.
-bool rocm_meta_version::UseV3() const
-{
-    if(val == AMDHSA_COv2_COv3)
-        return !miopen::IsEnabled(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER{});
-    return (val == AMDHSA_COv3);
-}
-
-static std::ostream& operator<<(std::ostream& os, const rocm_meta_version& rmv)
-{
-    switch(rmv.getValue())
-    {
-    case rocm_meta_version::Unknown: return os << "Unknown";
-    case rocm_meta_version::AMDHSA_COv2: return os << "AMDHSA_COv2";
-    case rocm_meta_version::AMDHSA_COv2_COv3: return os << "AMDHSA_COv2_COv3";
-    case rocm_meta_version::AMDHSA_COv3: return os << "AMDHSA_COv3";
-    default: break;
-    }
-    return os << "<Error>";
-}
-
-static rocm_meta_version AmdRocmMetadataVersionGetEnv()
-{
-    const rocm_meta_version val(
-        static_cast<int>(miopen::Value(MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE{})));
-    if(!val.IsValid())
-    {
-        MIOPEN_LOG_W("Incorrect MIOPEN_DEBUG_AMD_ROCM_ENFORCE_MDVERSION = " << val.getValue()
-                                                                            << ", using default.");
-        return rocm_meta_version::Unknown;
-    }
-    return val;
-}
-
-static rocm_meta_version AmdRocmMetadataVersionDetect(const miopen::ConvolutionContext& context)
-{
-    rocm_meta_version rmv = AmdRocmMetadataVersionGetEnv();
-    if(rmv.IsUnknown())
-    {
-#if MIOPEN_BACKEND_OPENCL
-        const auto dev                     = miopen::GetDevice(context.GetStream().GetStream());
-        const auto platform                = miopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
-        const std::string platform_version = miopen::GetPlatformInfo<CL_PLATFORM_VERSION>(
-            platform); // e.g. "OpenCL 2.0 AMD-APP.internal (2334.0)"
-        size_t num_begin = platform_version.find('(');
-        if(num_begin != std::string::npos)
-        {
-            const int num = std::stoi(platform_version.substr(num_begin + 1));
-            if(num >= 3029) // ROCm 2.10 RC 1341
-                rmv = rocm_meta_version::AMDHSA_COv2_COv3;
-            else
-                rmv = rocm_meta_version::AMDHSA_COv2;
-        }
-        else
-        {
-            rmv = rocm_meta_version::Default;
-        }
-#else
-        (void)context;
-        if(miopen::HipGetHccVersion() >=
-           miopen::external_tool_version_t{2, 10, 19392}) // ROCm 2.10 RC 1341
-            rmv = rocm_meta_version::AMDHSA_COv2_COv3;
-        else
-            rmv = rocm_meta_version::Default;
-#endif // MIOPEN_BACKEND_OPENCL
-    }
-    MIOPEN_LOG_NQI(
-        "ROCm MD version "
-        << rmv
-        << ", MIOpen version " MIOPEN_STRINGIZE(MIOPEN_VERSION_MAJOR) "." MIOPEN_STRINGIZE(
-               MIOPEN_VERSION_MINOR) "." MIOPEN_STRINGIZE(MIOPEN_VERSION_PATCH) "." MIOPEN_STRINGIZE(MIOPEN_VERSION_TWEAK));
-    return rmv;
-}
-
-static bool mloIsAmdRocmOpencl(miopen::ConvolutionContext& context)
-{
-    static const bool ret_bool =
-#if MIOPEN_BACKEND_OPENCL
-        IsAmdRocmOpencl(context);
-#else
-        true;
-#endif // MIOPEN_BACKEND_OPENCL
-    if(ret_bool)
-    {
-        static const rocm_meta_version ret_rmv = AmdRocmMetadataVersionDetect(context);
-        context.rmv                            = ret_rmv;
-    }
-    return ret_bool;
 }
 
 void miopen::ConvolutionContext::SetupFloats()
@@ -444,22 +303,5 @@ void mlo_construct_activ_lrn_pooling_common::setupFloats()
                      << miopen::GetDataTypeName(_search_params.in_data_type)
                      << "x"
                      << miopen::GetDataTypeName(_search_params.out_data_type));
-    }
-}
-
-void miopen::ConvolutionContext::DetectRocm()
-{
-    // Detect assembly kernels
-    use_binaries            = false;
-    use_asm_kernels         = false;
-    use_opencl_convolutions = !miopen::IsDisabled(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS{});
-    rmv                     = rocm_meta_version::Default;
-    if(mloIsAmdRocmOpencl(*this))
-    {
-        use_asm_kernels =
-            !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
-#ifndef HIP_OC_FINALIZER
-        use_binaries = !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
-#endif
     }
 }

@@ -152,9 +152,9 @@ __host__ __device__ constexpr auto unfold_tensor_descriptor(NativeTensorDescript
         typename arithmetic_sequence_gen<FirstUnfoldDim, LastUnfoldDim + 1, 1>::type{};
     constexpr auto right = typename arithmetic_sequence_gen<LastUnfoldDim + 1, nDim, 1>::type{};
 
-    // sanity-checknfoldable
+    // sanity-check if unfold-able
     static_assert(are_dimensions_unfoldable(desc.GetLengths(middle), desc.GetStrides(middle)),
-                  "wrong! not unfoldable");
+                  "wrong! not unfold-able");
 
     // unfolded length, stride
     constexpr index_t unfold_length =

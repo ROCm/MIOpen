@@ -124,18 +124,20 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
 
     // for kernel implementation max pooling backward pass,
     //   "index_max" means ghost, and thus should not be reached
-    if(mode == miopenPoolingMax &&
-       ((pool_dim == 4 &&
-         !(index_max >= std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<int>()))) ||
-        (pool_dim == 5 && !(index_max >= xDesc.GetElementSize()))))
+    if(mode == miopenPoolingMax && save_index)
     {
-        MIOPEN_THROW("Index range not enough for max pooling bwd");
-    }
+        if((pool_dim == 4 &&
+            !(index_max >= std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<int>()))) ||
+           (pool_dim == 5 && !(index_max >= xDesc.GetElementSize())))
+        {
+            MIOPEN_THROW("Index range not enough for max pooling bwd");
+        }
 
-    if(mode == miopenPoolingMax && save_index && workSpace == nullptr)
-    {
-        throw std::invalid_argument(
-            "workSpace cannot be NULL in Forward Pooling MAX mode when backward pass is requested");
+        if(workSpace == nullptr)
+        {
+            throw std::invalid_argument("workSpace cannot be NULL in Forward Pooling MAX mode when "
+                                        "backward pass is requested");
+        }
     }
     int pooling_method =
         (mode == miopenPoolingMax)
@@ -208,32 +210,25 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
             kernels.front()(x,
                             y,
                             workSpace,
-                            pool_dim == 4 ? static_cast<uint>(0) : static_cast<uint>(pads[0]),
-                            pool_dim == 4 ? static_cast<uint>(pads[0]) : static_cast<uint>(pads[1]),
-                            pool_dim == 4 ? static_cast<uint>(pads[1]) : static_cast<uint>(pads[2]),
+                            static_cast<uint>(pads[0]),
+                            static_cast<uint>(pads[1]),
+                            static_cast<uint>(pads[2]),
                             static_cast<uint>(batch),
                             static_cast<uint>(chal),
-                            pool_dim == 4 ? static_cast<uint>(1)
-                                          : static_cast<uint>(xDesc.GetLengths()[2]),
-                            pool_dim == 4 ? static_cast<uint>(xDesc.GetLengths()[2])
-                                          : static_cast<uint>(xDesc.GetLengths()[3]),
-                            pool_dim == 4 ? static_cast<uint>(xDesc.GetLengths()[3])
-                                          : static_cast<uint>(xDesc.GetLengths()[4]),
+                            static_cast<uint>(xDesc.GetLengths()[2]),
+                            static_cast<uint>(xDesc.GetLengths()[3]),
+                            static_cast<uint>(xDesc.GetLengths()[4]),
                             static_cast<uint>(top_d),
                             static_cast<uint>(top_h),
                             static_cast<uint>(top_w),
                             static_cast<uint>(xDesc.GetStrides()[0]),
                             static_cast<uint>(xDesc.GetStrides()[1]),
-                            pool_dim == 4 ? static_cast<uint>(xDesc.GetStrides()[1])
-                                          : static_cast<uint>(xDesc.GetStrides()[2]),
-                            pool_dim == 4 ? static_cast<uint>(xDesc.GetStrides()[2])
-                                          : static_cast<uint>(xDesc.GetStrides()[3]),
+                            static_cast<uint>(xDesc.GetStrides()[2]),
+                            static_cast<uint>(xDesc.GetStrides()[3]),
                             static_cast<uint>(yDesc.GetStrides()[0]),
                             static_cast<uint>(yDesc.GetStrides()[1]),
-                            pool_dim == 4 ? static_cast<uint>(yDesc.GetStrides()[1])
-                                          : static_cast<uint>(yDesc.GetStrides()[2]),
-                            pool_dim == 4 ? static_cast<uint>(yDesc.GetStrides()[2])
-                                          : static_cast<uint>(yDesc.GetStrides()[3]),
+                            static_cast<uint>(yDesc.GetStrides()[2]),
+                            static_cast<uint>(yDesc.GetStrides()[3]),
                             static_cast<uint>(total_work));
         }
     }
@@ -241,7 +236,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     {
         if(pool_dim == 4)
         {
-            mlo_construct_pooling2D construct_params(1); // forward
+            mlo_construct_pooling2D construct_params(conv::Direction::Forward);
             construct_params.setStream(&handle);
             construct_params.setTopDescFromMLDesc(yDesc);
             construct_params.setBotDescFromMLDesc(xDesc);
@@ -290,26 +285,12 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
                      std::string(" -DTOP_D_PER_WORK=") +
                      std::to_string(static_cast<uint>(top_d_per_work));
 
-            if(pool_dim == 4)
-            {
-                parms +=
-                    std::string(" -DKERNEL_SZ_D=1 -DKERNEL_SZ_H=") +
-                    std::to_string(static_cast<uint>(lens[0])) + std::string(" -DKERNEL_SZ_W=") +
-                    std::to_string(static_cast<uint>(lens[1])) +
-                    std::string(" -DSTRIDE_D=1 -DSTRIDE_H=") +
-                    std::to_string(static_cast<uint>(strides[0])) + std::string(" -DSTRIDE_W=") +
-                    std::to_string(static_cast<uint>(strides[1]));
-            }
-            else
-            {
-                parms +=
-                    std::string(" -DKERNEL_SZ_D=") + std::to_string(static_cast<uint>(lens[0])) +
-                    std::string(" -DKERNEL_SZ_H=") + std::to_string(static_cast<uint>(lens[1])) +
-                    std::string(" -DKERNEL_SZ_W=") + std::to_string(static_cast<uint>(lens[2])) +
-                    std::string(" -DSTRIDE_D=") + std::to_string(static_cast<uint>(strides[0])) +
-                    std::string(" -DSTRIDE_H=") + std::to_string(static_cast<uint>(strides[1])) +
-                    std::string(" -DSTRIDE_W=") + std::to_string(static_cast<uint>(strides[2]));
-            }
+            parms += std::string(" -DKERNEL_SZ_D=") + std::to_string(static_cast<uint>(lens[0])) +
+                     std::string(" -DKERNEL_SZ_H=") + std::to_string(static_cast<uint>(lens[1])) +
+                     std::string(" -DKERNEL_SZ_W=") + std::to_string(static_cast<uint>(lens[2])) +
+                     std::string(" -DSTRIDE_D=") + std::to_string(static_cast<uint>(strides[0])) +
+                     std::string(" -DSTRIDE_H=") + std::to_string(static_cast<uint>(strides[1])) +
+                     std::string(" -DSTRIDE_W=") + std::to_string(static_cast<uint>(strides[2]));
 
             parms += std::string(save_index ? " -DMLO_POOLING_SAVE_INDEX" : "") +
                      std::string(" -DMLO_POOLING_INDEX_TYPE=") +
@@ -322,31 +303,25 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
                 x,
                 y,
                 workSpace,
-                pool_dim == 4 ? static_cast<uint>(0) : static_cast<uint>(pads[0]),
-                pool_dim == 4 ? static_cast<uint>(pads[0]) : static_cast<uint>(pads[1]),
-                pool_dim == 4 ? static_cast<uint>(pads[1]) : static_cast<uint>(pads[2]),
+                static_cast<uint>(pads[0]),
+                static_cast<uint>(pads[1]),
+                static_cast<uint>(pads[2]),
                 static_cast<uint>(batch),
                 static_cast<uint>(chal),
-                pool_dim == 4 ? static_cast<uint>(1) : static_cast<uint>(xDesc.GetLengths()[2]),
-                pool_dim == 4 ? static_cast<uint>(xDesc.GetLengths()[2])
-                              : static_cast<uint>(xDesc.GetLengths()[3]),
-                pool_dim == 4 ? static_cast<uint>(xDesc.GetLengths()[3])
-                              : static_cast<uint>(xDesc.GetLengths()[4]),
+                static_cast<uint>(xDesc.GetLengths()[2]),
+                static_cast<uint>(xDesc.GetLengths()[3]),
+                static_cast<uint>(xDesc.GetLengths()[4]),
                 static_cast<uint>(top_d),
                 static_cast<uint>(top_h),
                 static_cast<uint>(top_w),
                 static_cast<uint>(xDesc.GetStrides()[0]),
                 static_cast<uint>(xDesc.GetStrides()[1]),
-                pool_dim == 4 ? static_cast<uint>(xDesc.GetStrides()[1])
-                              : static_cast<uint>(xDesc.GetStrides()[2]),
-                pool_dim == 4 ? static_cast<uint>(xDesc.GetStrides()[2])
-                              : static_cast<uint>(xDesc.GetStrides()[3]),
+                static_cast<uint>(xDesc.GetStrides()[2]),
+                static_cast<uint>(xDesc.GetStrides()[3]),
                 static_cast<uint>(yDesc.GetStrides()[0]),
                 static_cast<uint>(yDesc.GetStrides()[1]),
-                pool_dim == 4 ? static_cast<uint>(yDesc.GetStrides()[1])
-                              : static_cast<uint>(yDesc.GetStrides()[2]),
-                pool_dim == 4 ? static_cast<uint>(yDesc.GetStrides()[2])
-                              : static_cast<uint>(yDesc.GetStrides()[3]),
+                static_cast<uint>(yDesc.GetStrides()[2]),
+                static_cast<uint>(yDesc.GetStrides()[3]),
                 static_cast<uint>(total_work));
         }
     }
@@ -500,70 +475,54 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
         {
             if(mode == miopenPoolingMax)
             {
-                kernels.front()(
-                    dy,
-                    dx,
-                    workSpace,
-                    pool_dim == 4 ? static_cast<uint>(0) : static_cast<uint>(pads[0]),
-                    pool_dim == 4 ? static_cast<uint>(pads[0]) : static_cast<uint>(pads[1]),
-                    pool_dim == 4 ? static_cast<uint>(pads[1]) : static_cast<uint>(pads[2]),
-                    static_cast<uint>(batch),
-                    static_cast<uint>(chal),
-                    pool_dim == 4 ? static_cast<uint>(1)
-                                  : static_cast<uint>(dxDesc.GetLengths()[2]),
-                    pool_dim == 4 ? static_cast<uint>(dxDesc.GetLengths()[2])
-                                  : static_cast<uint>(dxDesc.GetLengths()[3]),
-                    pool_dim == 4 ? static_cast<uint>(dxDesc.GetLengths()[3])
-                                  : static_cast<uint>(dxDesc.GetLengths()[4]),
-                    static_cast<uint>(top_d),
-                    static_cast<uint>(top_h),
-                    static_cast<uint>(top_w),
-                    static_cast<uint>(dxDesc.GetStrides()[0]),
-                    static_cast<uint>(dxDesc.GetStrides()[1]),
-                    pool_dim == 4 ? static_cast<uint>(dxDesc.GetStrides()[1])
-                                  : static_cast<uint>(dxDesc.GetStrides()[2]),
-                    pool_dim == 4 ? static_cast<uint>(dxDesc.GetStrides()[2])
-                                  : static_cast<uint>(dxDesc.GetStrides()[3]),
-                    static_cast<uint>(dyDesc.GetStrides()[0]),
-                    static_cast<uint>(dyDesc.GetStrides()[1]),
-                    pool_dim == 4 ? static_cast<uint>(dyDesc.GetStrides()[1])
-                                  : static_cast<uint>(dyDesc.GetStrides()[2]),
-                    pool_dim == 4 ? static_cast<uint>(dyDesc.GetStrides()[2])
-                                  : static_cast<uint>(dyDesc.GetStrides()[3]),
-                    static_cast<uint>(total_work));
+                kernels.front()(dy,
+                                dx,
+                                workSpace,
+                                static_cast<uint>(pads[0]),
+                                static_cast<uint>(pads[1]),
+                                static_cast<uint>(pads[2]),
+                                static_cast<uint>(batch),
+                                static_cast<uint>(chal),
+                                static_cast<uint>(dxDesc.GetLengths()[2]),
+                                static_cast<uint>(dxDesc.GetLengths()[3]),
+                                static_cast<uint>(dxDesc.GetLengths()[4]),
+                                static_cast<uint>(top_d),
+                                static_cast<uint>(top_h),
+                                static_cast<uint>(top_w),
+                                static_cast<uint>(dxDesc.GetStrides()[0]),
+                                static_cast<uint>(dxDesc.GetStrides()[1]),
+                                static_cast<uint>(dxDesc.GetStrides()[2]),
+                                static_cast<uint>(dxDesc.GetStrides()[3]),
+                                static_cast<uint>(dyDesc.GetStrides()[0]),
+                                static_cast<uint>(dyDesc.GetStrides()[1]),
+                                static_cast<uint>(dyDesc.GetStrides()[2]),
+                                static_cast<uint>(dyDesc.GetStrides()[3]),
+                                static_cast<uint>(total_work));
             }
             else
             {
-                kernels.front()(
-                    dy,
-                    dx,
-                    pool_dim == 4 ? static_cast<uint>(0) : static_cast<uint>(pads[0]),
-                    pool_dim == 4 ? static_cast<uint>(pads[0]) : static_cast<uint>(pads[1]),
-                    pool_dim == 4 ? static_cast<uint>(pads[1]) : static_cast<uint>(pads[2]),
-                    static_cast<uint>(batch),
-                    static_cast<uint>(chal),
-                    pool_dim == 4 ? static_cast<uint>(1)
-                                  : static_cast<uint>(dxDesc.GetLengths()[2]),
-                    pool_dim == 4 ? static_cast<uint>(dxDesc.GetLengths()[2])
-                                  : static_cast<uint>(dxDesc.GetLengths()[3]),
-                    pool_dim == 4 ? static_cast<uint>(dxDesc.GetLengths()[3])
-                                  : static_cast<uint>(dxDesc.GetLengths()[4]),
-                    static_cast<uint>(top_d),
-                    static_cast<uint>(top_h),
-                    static_cast<uint>(top_w),
-                    static_cast<uint>(dxDesc.GetStrides()[0]),
-                    static_cast<uint>(dxDesc.GetStrides()[1]),
-                    pool_dim == 4 ? static_cast<uint>(dxDesc.GetStrides()[1])
-                                  : static_cast<uint>(dxDesc.GetStrides()[2]),
-                    pool_dim == 4 ? static_cast<uint>(dxDesc.GetStrides()[2])
-                                  : static_cast<uint>(dxDesc.GetStrides()[3]),
-                    static_cast<uint>(dyDesc.GetStrides()[0]),
-                    static_cast<uint>(dyDesc.GetStrides()[1]),
-                    pool_dim == 4 ? static_cast<uint>(dyDesc.GetStrides()[1])
-                                  : static_cast<uint>(dyDesc.GetStrides()[2]),
-                    pool_dim == 4 ? static_cast<uint>(dyDesc.GetStrides()[2])
-                                  : static_cast<uint>(dyDesc.GetStrides()[3]),
-                    static_cast<uint>(total_work));
+                kernels.front()(dy,
+                                dx,
+                                static_cast<uint>(pads[0]),
+                                static_cast<uint>(pads[1]),
+                                static_cast<uint>(pads[2]),
+                                static_cast<uint>(batch),
+                                static_cast<uint>(chal),
+                                static_cast<uint>(dxDesc.GetLengths()[2]),
+                                static_cast<uint>(dxDesc.GetLengths()[3]),
+                                static_cast<uint>(dxDesc.GetLengths()[4]),
+                                static_cast<uint>(top_d),
+                                static_cast<uint>(top_h),
+                                static_cast<uint>(top_w),
+                                static_cast<uint>(dxDesc.GetStrides()[0]),
+                                static_cast<uint>(dxDesc.GetStrides()[1]),
+                                static_cast<uint>(dxDesc.GetStrides()[2]),
+                                static_cast<uint>(dxDesc.GetStrides()[3]),
+                                static_cast<uint>(dyDesc.GetStrides()[0]),
+                                static_cast<uint>(dyDesc.GetStrides()[1]),
+                                static_cast<uint>(dyDesc.GetStrides()[2]),
+                                static_cast<uint>(dyDesc.GetStrides()[3]),
+                                static_cast<uint>(total_work));
             }
         }
     }
@@ -571,7 +530,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     {
         if(pool_dim == 4)
         {
-            mlo_construct_pooling2D construct_params(0); // backward
+            mlo_construct_pooling2D construct_params(conv::Direction::BackwardData);
             construct_params.setStream(&handle);
             construct_params.setTopDfDescFromMLDesc(dyDesc);
             construct_params.setTopDescFromMLDesc(yDesc);
@@ -641,29 +600,15 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
                      std::string(" -DPIX_D_PER_WORK=") +
                      std::to_string(static_cast<uint>(pix_d_per_work));
 
-            if(pool_dim == 4)
-            {
-                parms +=
-                    std::string(" -DKERNEL_SZ_D=1 -DKERNEL_SZ_H=") +
-                    std::to_string(static_cast<uint>(lens[0])) + std::string(" -DKERNEL_SZ_W=") +
-                    std::to_string(static_cast<uint>(lens[1])) +
-                    std::string(" -DSTRIDE_D=1 -DSTRIDE_H=") +
-                    std::to_string(static_cast<uint>(strides[0])) + std::string(" -DSTRIDE_W=") +
-                    std::to_string(static_cast<uint>(strides[1]));
-            }
-            else
-            {
-                parms +=
-                    std::string(" -DKERNEL_SZ_D=") + std::to_string(static_cast<uint>(lens[0])) +
-                    std::string(" -DKERNEL_SZ_H=") + std::to_string(static_cast<uint>(lens[1])) +
-                    std::string(" -DKERNEL_SZ_W=") + std::to_string(static_cast<uint>(lens[2])) +
-                    std::string(" -DSTRIDE_D=") + std::to_string(static_cast<uint>(strides[0])) +
-                    std::string(" -DSTRIDE_H=") + std::to_string(static_cast<uint>(strides[1])) +
-                    std::string(" -DSTRIDE_W=") + std::to_string(static_cast<uint>(strides[2]));
-            }
+            parms += std::string(" -DKERNEL_SZ_D=") + std::to_string(static_cast<uint>(lens[0])) +
+                     std::string(" -DKERNEL_SZ_H=") + std::to_string(static_cast<uint>(lens[1])) +
+                     std::string(" -DKERNEL_SZ_W=") + std::to_string(static_cast<uint>(lens[2])) +
+                     std::string(" -DSTRIDE_D=") + std::to_string(static_cast<uint>(strides[0])) +
+                     std::string(" -DSTRIDE_H=") + std::to_string(static_cast<uint>(strides[1])) +
+                     std::string(" -DSTRIDE_W=") + std::to_string(static_cast<uint>(strides[2]));
 
             bool territory_overlap = false;
-            for(int i = 0; i < strides.size(); i++)
+            for(std::size_t i = 0; i < strides.size(); i++)
             {
                 territory_overlap |= (strides[i] < lens[i]);
             }
@@ -684,62 +629,50 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
                 k(dy,
                   dx,
                   workSpace,
-                  pool_dim == 4 ? static_cast<uint>(0) : static_cast<uint>(pads[0]),
-                  pool_dim == 4 ? static_cast<uint>(pads[0]) : static_cast<uint>(pads[1]),
-                  pool_dim == 4 ? static_cast<uint>(pads[1]) : static_cast<uint>(pads[2]),
+                  static_cast<uint>(pads[0]),
+                  static_cast<uint>(pads[1]),
+                  static_cast<uint>(pads[2]),
                   static_cast<uint>(batch),
                   static_cast<uint>(chal),
-                  pool_dim == 4 ? static_cast<uint>(1) : static_cast<uint>(dxDesc.GetLengths()[2]),
-                  pool_dim == 4 ? static_cast<uint>(dxDesc.GetLengths()[2])
-                                : static_cast<uint>(dxDesc.GetLengths()[3]),
-                  pool_dim == 4 ? static_cast<uint>(dxDesc.GetLengths()[3])
-                                : static_cast<uint>(dxDesc.GetLengths()[4]),
+                  static_cast<uint>(dxDesc.GetLengths()[2]),
+                  static_cast<uint>(dxDesc.GetLengths()[3]),
+                  static_cast<uint>(dxDesc.GetLengths()[4]),
                   static_cast<uint>(top_d),
                   static_cast<uint>(top_h),
                   static_cast<uint>(top_w),
                   static_cast<uint>(dxDesc.GetStrides()[0]),
                   static_cast<uint>(dxDesc.GetStrides()[1]),
-                  pool_dim == 4 ? static_cast<uint>(dxDesc.GetStrides()[1])
-                                : static_cast<uint>(dxDesc.GetStrides()[2]),
-                  pool_dim == 4 ? static_cast<uint>(dxDesc.GetStrides()[2])
-                                : static_cast<uint>(dxDesc.GetStrides()[3]),
+                  static_cast<uint>(dxDesc.GetStrides()[2]),
+                  static_cast<uint>(dxDesc.GetStrides()[3]),
                   static_cast<uint>(dyDesc.GetStrides()[0]),
                   static_cast<uint>(dyDesc.GetStrides()[1]),
-                  pool_dim == 4 ? static_cast<uint>(dyDesc.GetStrides()[1])
-                                : static_cast<uint>(dyDesc.GetStrides()[2]),
-                  pool_dim == 4 ? static_cast<uint>(dyDesc.GetStrides()[2])
-                                : static_cast<uint>(dyDesc.GetStrides()[3]),
+                  static_cast<uint>(dyDesc.GetStrides()[2]),
+                  static_cast<uint>(dyDesc.GetStrides()[3]),
                   static_cast<uint>(total_work));
             }
             else
             {
                 k(dy,
                   dx,
-                  pool_dim == 4 ? static_cast<uint>(0) : static_cast<uint>(pads[0]),
-                  pool_dim == 4 ? static_cast<uint>(pads[0]) : static_cast<uint>(pads[1]),
-                  pool_dim == 4 ? static_cast<uint>(pads[1]) : static_cast<uint>(pads[2]),
+                  static_cast<uint>(pads[0]),
+                  static_cast<uint>(pads[1]),
+                  static_cast<uint>(pads[2]),
                   static_cast<uint>(batch),
                   static_cast<uint>(chal),
-                  pool_dim == 4 ? static_cast<uint>(1) : static_cast<uint>(dxDesc.GetLengths()[2]),
-                  pool_dim == 4 ? static_cast<uint>(dxDesc.GetLengths()[2])
-                                : static_cast<uint>(dxDesc.GetLengths()[3]),
-                  pool_dim == 4 ? static_cast<uint>(dxDesc.GetLengths()[3])
-                                : static_cast<uint>(dxDesc.GetLengths()[4]),
+                  static_cast<uint>(dxDesc.GetLengths()[2]),
+                  static_cast<uint>(dxDesc.GetLengths()[3]),
+                  static_cast<uint>(dxDesc.GetLengths()[4]),
                   static_cast<uint>(top_d),
                   static_cast<uint>(top_h),
                   static_cast<uint>(top_w),
                   static_cast<uint>(dxDesc.GetStrides()[0]),
                   static_cast<uint>(dxDesc.GetStrides()[1]),
-                  pool_dim == 4 ? static_cast<uint>(dxDesc.GetStrides()[1])
-                                : static_cast<uint>(dxDesc.GetStrides()[2]),
-                  pool_dim == 4 ? static_cast<uint>(dxDesc.GetStrides()[2])
-                                : static_cast<uint>(dxDesc.GetStrides()[3]),
+                  static_cast<uint>(dxDesc.GetStrides()[2]),
+                  static_cast<uint>(dxDesc.GetStrides()[3]),
                   static_cast<uint>(dyDesc.GetStrides()[0]),
                   static_cast<uint>(dyDesc.GetStrides()[1]),
-                  pool_dim == 4 ? static_cast<uint>(dyDesc.GetStrides()[1])
-                                : static_cast<uint>(dyDesc.GetStrides()[2]),
-                  pool_dim == 4 ? static_cast<uint>(dyDesc.GetStrides()[2])
-                                : static_cast<uint>(dyDesc.GetStrides()[3]),
+                  static_cast<uint>(dyDesc.GetStrides()[2]),
+                  static_cast<uint>(dyDesc.GetStrides()[3]),
                   static_cast<uint>(total_work));
             }
         }

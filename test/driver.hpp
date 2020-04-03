@@ -79,7 +79,7 @@ struct tensor_elem_gen_checkboard_sign
         return std::accumulate(dims.begin(),
                                dims.end(),
                                true,
-                               [](bool init, unsigned long x) -> int { return init != (x % 2); })
+                               [](int init, unsigned long x) -> int { return init != (x % 2); })
                    ? 1
                    : -1;
     }

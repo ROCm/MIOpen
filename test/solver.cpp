@@ -120,7 +120,7 @@ int SearchableTestSolver::_serches_done = 0;
 
 static solver::ConvSolution FindSolution(const ConvolutionContext& ctx, const std::string& db_path)
 {
-    Db db(db_path);
+    PlainTextDb db(db_path);
 
     const auto solvers = solver::SolverContainer<TrivialTestSolver, SearchableTestSolver>{};
 
@@ -175,10 +175,10 @@ class SolverTest
                                   [](ConvolutionContext&) {})
     {
         auto ctx = ConvolutionContext{TensorDescriptor{miopenFloat, in},
-                                      TensorDescriptor{},
-                                      TensorDescriptor{},
+                                      TensorDescriptor{miopenFloat, in},
+                                      TensorDescriptor{miopenFloat, in},
                                       ConvolutionDescriptor{},
-                                      1};
+                                      conv::Direction::Forward};
         ctx.SetStream(&get_handle());
         context_filler(ctx);
 

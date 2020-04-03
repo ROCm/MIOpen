@@ -45,6 +45,7 @@ ClProgramPtr LoadProgram(cl_context ctx,
                          std::string params,
                          bool is_kernel_str,
                          const std::string& kernel_src);
+void GetProgramBinary(const ClProgramPtr& program, std::string& binary);
 void SaveProgramBinary(const ClProgramPtr& program, const std::string& name);
 ClKernelPtr CreateKernel(cl_program program, const std::string& kernel_name);
 inline ClKernelPtr CreateKernel(const ClProgramPtr& program, const std::string& kernel_name)

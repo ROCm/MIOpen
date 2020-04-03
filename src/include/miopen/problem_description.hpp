@@ -27,10 +27,13 @@
 #ifndef GUARD_PROBLEM_DESCRIPTION_HPP_
 #define GUARD_PROBLEM_DESCRIPTION_HPP_
 
+#include <miopen/conv/problem_description.hpp>
+#include <miopen/names.hpp>
 #include <miopen/tensor.hpp>
 #if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
 #endif
+
 #include <cassert>
 #include <string>
 #include <unordered_map>
@@ -38,9 +41,6 @@
 namespace miopen {
 
 // Tensor Helper APIs
-std::string
-EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataType_t out);
-
 template <class TTo, class TFunc>
 size_t
 SetDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor, const TFunc method)
@@ -62,26 +62,13 @@ SetDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor, con
 
 struct ConvolutionDescriptor;
 
-inline std::string GetDataTypeName(miopenDataType_t data_type)
-{
-    switch(data_type)
-    {
-    case miopenFloat: return "FP32";
-    case miopenHalf: return "FP16";
-    case miopenInt8: return "INT8";
-    case miopenInt8x4: return "INT8x4";
-    case miopenInt32: return "INT32";
-    case miopenBFloat16: return "BF16";
-    }
-
-    return "Unknown(" + std::to_string(data_type) + ")";
-}
-
+// Todo: change all uses in convolution to conv::ProblemDescription and remove this
 struct ProblemDescription
 #if MIOPEN_ENABLE_SQLITE
     : SQLiteSerializable<ProblemDescription>
 #endif
 {
+    conv::ProblemDescription conv_problem;
     int spatial_dims      = 2;
     int n_inputs          = 0;
     int in_height         = 0;
@@ -108,14 +95,13 @@ struct ProblemDescription
     std::string in_layout;
     std::string weights_layout;
     std::string out_layout;
-    miopenDataType_t in_data_type      = static_cast<miopenDataType_t>(-1);
-    miopenDataType_t weights_data_type = static_cast<miopenDataType_t>(-1);
-    miopenDataType_t out_data_type     = static_cast<miopenDataType_t>(-1);
+    miopenDataType_t in_data_type      = miopenFloat;
+    miopenDataType_t weights_data_type = miopenFloat;
+    miopenDataType_t out_data_type     = miopenFloat;
     size_t bot_sz                      = 0;
     size_t top_sz                      = 0;
     size_t weights_sz                  = 0;
     size_t bias_sz                     = 0;
-    int deconvolution                  = 0;
     int in_stride                      = 0;
     int out_stride                     = 0;
     int in_channel_stride              = 0;
@@ -156,35 +142,26 @@ struct ProblemDescription
 
     struct Direction
     {
-        enum class Value
-        {
-            Unknown,
-            Forward,
-            Backward,
-            BackwardWrW,
-        };
+        public:
+        bool IsKnown() const { return v != boost::none; }
+        bool IsForward() const { return v == conv::Direction::Forward; }
+        bool IsBackwardData() const { return v == conv::Direction::BackwardData; }
+        bool IsBackwardWrW() const { return v == conv::Direction::BackwardWeights; }
+
+        Direction() = default;
+        Direction(conv::Direction value) : v(value) {}
 
         private:
-        Value v = Value::Unknown;
+        boost::optional<conv::Direction> v;
+        void Set(conv::Direction value) { v = value; }
 
-        public:
-        bool IsKnown() const { return v != Value::Unknown; }
-        bool IsForward() const { return v == Value::Forward; }
-        bool IsBackwardData() const { return v == Value::Backward; } // Syntax glue.
-        bool IsBackwardWrW() const { return v == Value::BackwardWrW; }
-        void Set(int forward)
-        {
-            assert(0 <= forward && forward <= 1);
-            v = forward != 0 ? Value::Forward : Value::Backward;
-        }
-        template <typename T>
-        void Set(T) = delete;
-        void SetBackwardWrW() { v = Value::BackwardWrW; }
+        friend struct ProblemDescription;
     } direction;
     int GetBackwardPadW() const { return kernel_size_w - pad_w - 1; }
     int GetBackwardPadH() const { return kernel_size_h - pad_h - 1; }
 
     bool Is2d() const { return spatial_dims == 2; }
+    bool Is3d() const { return spatial_dims == 3; }
 
     bool IsFp32() const
     {
@@ -204,12 +181,17 @@ struct ProblemDescription
 
     ProblemDescription() = default;
 
+    // Temporary, for compatibility with some parts of code.
+    ProblemDescription(miopen::conv::Direction dir) { direction.Set(dir); }
+
     ProblemDescription(const TensorDescriptor& in,
                        const TensorDescriptor& weights,
                        const TensorDescriptor& out,
                        const ConvolutionDescriptor& conv,
-                       int dir,
+                       conv::Direction dir,
                        int bias_ = 0);
+
+    ProblemDescription(conv::ProblemDescription desc);
 
     void Serialize(std::ostream& stream) const;
 
@@ -329,141 +311,11 @@ struct ProblemDescription
 
     int mloBuildConf_Key(std::string& conf_key) const;
 
-    private:
-    /*
-     * set convolutional parameters
-     */
-    void setConvDescr(const ConvolutionDescriptor& conv);
-
-    /*
-     * set weights tensor
-     */
-    void setWeightsDescr(const std::string& layout,
-                         miopenDataType_t data_type,
-                         int batch,
-                         int channels,
-                         int depth,
-                         int height,
-                         int width,
-                         int batch_stride,
-                         int channel_stride,
-                         int stride,
-                         int w_stride)
+    NetworkConfig BuildConfKey() const
     {
-        kernel_size_w     = width;
-        kernel_size_h     = height;
-        kernel_size_d     = depth;
-        weights_data_type = data_type;
-        int data_len      = GetTypeSize(data_type);
-        size_t size       = (layout == "NCHW")
-                          ? batch * channels * depth * height * width * data_len
-                          : batch * batch_stride * channel_stride * stride * w_stride * data_len;
-        weights_sz = size;
-    }
-
-    /*
-     * set output tensor
-     */
-    void setOutputDescr(const std::string& layout,
-                        miopenDataType_t data_type,
-                        int batch,
-                        int channels,
-                        int depth,
-                        int height,
-                        int width,
-                        int batch_stride,
-                        int channel_stride,
-                        int stride,
-                        int w_stride)
-    {
-        batch_sz     = batch;
-        int data_len = GetTypeSize(data_type);
-        size_t size  = (layout == "NCHW")
-                          ? batch * channels * depth * height * width * data_len
-                          : batch * batch_stride * channel_stride * stride * w_stride * data_len;
-        if(direction.IsForward())
-        {
-
-            out_width          = width;
-            out_height         = height;
-            out_depth          = depth;
-            n_outputs          = channels;
-            out_batch_stride   = batch_stride;
-            out_channel_stride = channel_stride;
-            out_stride         = stride;
-            top_sz             = size;
-            out_layout         = layout;
-            out_data_type      = data_type;
-        }
-        else
-        {
-            in_width          = width;
-            in_height         = height;
-            in_depth          = depth;
-            n_inputs          = channels;
-            in_batch_stride   = batch_stride;
-            in_channel_stride = channel_stride;
-            in_stride         = stride;
-            bot_sz            = size;
-            in_layout         = layout;
-            in_data_type      = data_type;
-            //			_tens_layout = layout;
-            //			_tens_data_format = data_type;
-        }
-    }
-
-    /*
-     *  set input tensor
-     */
-
-    void setInputDescr(const std::string& layout,
-                       miopenDataType_t data_type,
-                       int batch,
-                       int channels,
-                       int depth,
-                       int height,
-                       int width,
-                       int batch_stride,
-                       int channel_stride,
-                       int stride,
-                       int w_stride)
-    {
-        batch_sz     = batch;
-        int data_len = GetTypeSize(data_type);
-        size_t size  = (layout == "NCHW")
-                          ? batch * channels * depth * height * width * data_len
-                          : batch * batch_stride * channel_stride * stride * w_stride * data_len;
-        if(direction.IsForward())
-        {
-
-            in_width          = width;
-            in_height         = height;
-            in_depth          = depth;
-            n_inputs          = channels;
-            in_batch_stride   = batch_stride;
-            in_channel_stride = channel_stride;
-            in_stride         = stride;
-            bot_sz            = size;
-            in_layout         = layout;
-            in_data_type      = data_type;
-            //			_tens_layout = layout;
-            //			_tens_data_format = data_type;
-        }
-        else
-        {
-            out_width          = width;
-            out_height         = height;
-            out_depth          = depth;
-            n_outputs          = channels;
-            out_batch_stride   = batch_stride;
-            out_channel_stride = channel_stride;
-            out_stride         = stride;
-            top_sz             = size;
-            out_layout         = layout;
-            out_data_type      = data_type;
-        }
-
-        bias_sz = (bias) != 0 ? n_outputs * data_len : 0;
+        std::string ret;
+        mloBuildConf_Key(ret);
+        return NetworkConfig{ret};
     }
 };
 } // namespace miopen

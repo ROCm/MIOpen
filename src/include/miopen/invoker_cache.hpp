@@ -23,6 +23,49 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "Conv_Winograd_v16_5_0_prologue_F2x3.inc"
-.include "Conv_Winograd_v16_5_0_stride1_F2x3.inc"
-.include "Conv_Winograd_v16_5_0_epilogue_F2x3.inc"
+
+#pragma once
+
+#include <miopen/errors.hpp>
+#include <miopen/invoker.hpp>
+
+#include <boost/optional.hpp>
+
+#include <map>
+#include <memory>
+#include <string>
+#include <utility>
+
+namespace miopen {
+
+class InvokerCache
+{
+    public:
+    // network_config, solver_id
+    using Key = std::pair<std::string, std::string>;
+
+    boost::optional<const Invoker&> operator[](const Key& key) const;
+    // For find 1.0
+    boost::optional<const Invoker&> GetFound1_0(const std::string& network_config,
+                                                const std::string& algorithm) const;
+    void Register(const Key& key, const Invoker& invoker);
+    // For find 1.0
+    void SetAsFound1_0(const std::string& network_config,
+                       const std::string& algorithm,
+                       const std::string& solver_id);
+
+    private:
+    struct Item
+    {
+        // algorithm -> solver_id
+        // for find 1.0
+        std::map<std::string, std::string> found_1_0;
+        // solver_id -> invoker
+        std::map<std::string, Invoker> invokers;
+    };
+
+    // network_config -> Item
+    std::map<std::string, Item> invokers;
+};
+
+} // namespace miopen

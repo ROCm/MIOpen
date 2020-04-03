@@ -129,7 +129,8 @@ void PadBufferSize(size_t& sz, int datatype_sz)
     printf("Usage: ./driver *base_arg* *other_args*\n");
     printf(
         "Supported Base Arguments: conv[fp16|int8|bfp16], CBAInfer[fp16], pool[fp16], lrn[fp16], "
-        "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm, ctc, dropout[fp16]\n");
+        "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm, ctc, dropout[fp16], "
+        "tensorop[fp16]\n");
     exit(0);
 }
 
@@ -148,8 +149,8 @@ std::string ParseBaseArg(int argc, char* argv[])
        arg != "lrn" && arg != "lrnfp16" && arg != "activ" && arg != "activfp16" &&
        arg != "softmax" && arg != "softmaxfp16" && arg != "bnorm" && arg != "bnormfp16" &&
        arg != "rnn" && arg != "rnnfp16" && arg != "gemm" /*&& arg != "gemmfp16"*/ && arg != "ctc" &&
-       arg != "dropout" && arg != "dropoutfp16")
-
+       arg != "dropout" && arg != "dropoutfp16" && arg != "tensorop" && arg != "tensoropfp16" &&
+       arg != "--version")
     {
         printf("Invalid Base Input Argument\n");
         Usage();

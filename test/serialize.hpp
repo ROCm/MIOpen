@@ -103,8 +103,10 @@ auto serialize(std::istream& is, T& x)
 }
 
 template <class... Ts>
-std::enable_if_t<not is_trivial_serializable<std::tuple<Ts...>>{}> serialize(std::istream& is,
-                                                                             std::tuple<Ts...>& t)
+std::enable_if_t<not is_trivial_serializable<std::tuple<Ts...>>{}>
+serialize(std::istream& is,
+          // cppcheck-suppress constParameter
+          std::tuple<Ts...>& t)
 {
     miopen::unpack(
         [&](auto&&... xs) { miopen::each_args([&](auto&& x) { serialize(is, x); }, xs...); }, t);

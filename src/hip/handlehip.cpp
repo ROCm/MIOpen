@@ -23,21 +23,28 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <algorithm>
-#include <miopen/logger.hpp>
+
+#include <miopen/handle.hpp>
+
+#include <miopen/binary_cache.hpp>
 #include <miopen/device_name.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/handle.hpp>
+#include <miopen/gemm_geometry.hpp>
+#include <miopen/handle_lock.hpp>
+#include <miopen/invoker.hpp>
 #include <miopen/kernel_cache.hpp>
-#include <miopen/binary_cache.hpp>
+#include <miopen/logger.hpp>
+
 #include <boost/filesystem.hpp>
 #include <miopen/handle_lock.hpp>
+#include <miopen/load_file.hpp>
 #include <miopen/gemm_geometry.hpp>
 
 #ifndef _WIN32
 #include <unistd.h>
 #endif
 
+#include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <thread>
@@ -293,6 +300,27 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
     return this->Run(obj);
 }
 
+Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
+                               const std::vector<solver::KernelInfo>& kernels)
+{
+    std::vector<Kernel> built;
+    for(auto& k : kernels)
+    {
+        MIOPEN_LOG_I2("Preparing kernel: " << k.kernel_name);
+        const auto kernel = this->impl->cache.AddKernel(*this,
+                                                        "",
+                                                        "",
+                                                        k.kernel_file,
+                                                        k.kernel_name,
+                                                        k.l_wk,
+                                                        k.g_wk,
+                                                        k.comp_options,
+                                                        kernels.size());
+        built.push_back(kernel);
+    }
+    return factory(built);
+}
+
 void Handle::ClearKernels(const std::string& algorithm, const std::string& network_config)
 {
     this->impl->cache.ClearKernels(algorithm, network_config);
@@ -325,24 +353,43 @@ Program Handle::LoadProgram(const std::string& program_name,
 {
     this->impl->set_ctx();
     params += " -mcpu=" + this->GetDeviceName();
-    auto cache_file =
-        miopen::LoadBinary(this->GetDeviceName(), program_name, params, is_kernel_str);
-    if(cache_file.empty())
+    auto hsaco = miopen::LoadBinary(
+        this->GetDeviceName(), this->GetMaxComputeUnits(), program_name, params, is_kernel_str);
+    if(hsaco.empty())
     {
         auto p =
             HIPOCProgram{program_name, params, is_kernel_str, this->GetDeviceName(), kernel_src};
 
-        // Save to cache
-        auto path = miopen::GetCachePath() / boost::filesystem::unique_path();
+// Save to cache
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
+        miopen::SaveBinary(miopen::LoadFile(p.GetBinary().string()),
+                           this->GetDeviceName(),
+                           this->GetMaxComputeUnits(),
+                           program_name,
+                           params,
+                           is_kernel_str);
+#else
+        auto path      = miopen::GetCachePath(false) / boost::filesystem::unique_path();
         boost::filesystem::copy_file(p.GetBinary(), path);
         miopen::SaveBinary(path, this->GetDeviceName(), program_name, params, is_kernel_str);
+#endif
 
         return p;
     }
     else
     {
-        return HIPOCProgram{program_name, cache_file};
+        return HIPOCProgram{program_name, hsaco};
     }
+}
+
+bool Handle::HasProgram(const std::string& program_name, const std::string& params)
+{
+    return this->impl->cache.HasProgram(program_name, params);
+}
+
+void Handle::AddProgram(Program prog, const std::string& program_name, const std::string& params)
+{
+    this->impl->cache.AddProgram(prog, program_name, params);
 }
 
 void Handle::Finish() const
