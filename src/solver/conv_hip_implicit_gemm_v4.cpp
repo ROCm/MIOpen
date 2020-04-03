@@ -40,6 +40,11 @@ namespace solver {
 
 bool ConvHipImplicitGemmV4_1x1::IsApplicable(const ConvolutionContext& ctx) const
 {
+#if WORKAROUND_SWDEV_229277_227616_229195
+    if(!IsHccCompiler())
+        return false;
+#endif
+
     if(!ctx.Is2d())
         return false;
 
@@ -52,6 +57,11 @@ bool ConvHipImplicitGemmV4_1x1::IsApplicable(const ConvolutionContext& ctx) cons
 
 bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
 {
+#if WORKAROUND_SWDEV_229277_227616_229195
+    if(!IsHccCompiler())
+        return false;
+#endif
+
     if(!ctx.direction.IsForward())
         return false;
 

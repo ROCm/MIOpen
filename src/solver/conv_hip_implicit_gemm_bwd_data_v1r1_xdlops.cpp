@@ -216,7 +216,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
     const auto GemmABlockCopySrcDataPerRead_GemmM =
         GetReadWriteVectorSize(ABlockCopySubLengths_GemmM);
     const auto GemmBBlockCopySrcDataPerRead_GemmN =
-        GetReadWriteVectorSize(std::min(ho * wo, BBlockCopySubLengths_GemmN));
+        GetReadWriteVectorSize(gcd(GemmNPerBlock, ho * wo, BBlockCopySubLengths_GemmN));
 
     const auto GemmABlockCopyDstDataPerWrite_GemmM =
         ctx.IsFp32() ? GetReadWriteVectorSize(ABlockCopySubLengths_GemmM) : 1;

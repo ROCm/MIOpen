@@ -627,7 +627,10 @@ ConvHipImplicitGemmBwdDataV4R1::CalculateGemmSize(const ConvolutionContext& ctx,
 
 bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx) const
 {
-    bool is_applicable = true;
+#if WORKAROUND_SWDEV_229277_227616_229195
+    if(!IsHccCompiler())
+        return false;
+#endif
 
     if(!ctx.direction.IsBackwardData())
         return false;
@@ -646,18 +649,17 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx)
 
     std::tie(gemm_m, gemm_n, std::ignore) = CalculateGemmSize(ctx, 0);
 
-    is_applicable = is_applicable && gemm_m % 32 == 0 && gemm_n % 32 == 0;
-
     for(int gemm_id = 0; gemm_id < CalculateNumberOfGemm(ctx); ++gemm_id)
     {
         int gemm_k = 0;
 
         std::tie(std::ignore, std::ignore, gemm_k) = CalculateGemmSize(ctx, gemm_id);
 
-        is_applicable = is_applicable && gemm_k % 4 == 0;
+        if(gemm_k % 4 != 0)
+            return false;
     }
 
-    return is_applicable;
+    return (gemm_m % 32 == 0 && gemm_n % 32 == 0);
 }
 
 PerformanceImplicitGemmBwdDataV4R1
