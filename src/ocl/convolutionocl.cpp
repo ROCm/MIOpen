@@ -479,15 +479,22 @@ static void EvaluateInvokers(Handle& handle,
             MIOPEN_THROW("Invoker is not provided by solver " + sol.solver_id);
 
         const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
-        invoker(handle, invoke_ctx);
-        const auto elapsed = handle.GetKernelTime();
-
-        MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ") << best);
-        if(elapsed < best)
+        try
         {
-            best         = elapsed;
-            selected     = sol;
-            best_invoker = invoker;
+            invoker(handle, invoke_ctx);
+            const auto elapsed = handle.GetKernelTime();
+
+            MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ") << best);
+            if(elapsed < best)
+            {
+                best         = elapsed;
+                selected     = sol;
+                best_invoker = invoker;
+            }
+        }
+        catch(const miopen::Exception& ex)
+        {
+            MIOPEN_LOG_E(ex.what());
         }
     }
 
