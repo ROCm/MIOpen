@@ -203,7 +203,6 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         std::string(" -DCK_USE_AMD_XDLOPS=") + (IsXdlopsSupport(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + (miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
-        std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
 
@@ -281,8 +280,8 @@ int ConvHipImplicitGemmV4R4Xdlops_1x1::RunAndMeasureSolution(miopen::Handle& pro
 
 int ConvHipImplicitGemmV4R4WrWXdlops::RunAndMeasureSolution(miopen::Handle& profile_h,
                                                             ConstData_t bot_buf,
-                                                            Data_t top_buf,
-                                                            ConstData_t wei_buf,
+                                                            ConstData_t top_buf,
+                                                            Data_t wei_buf,
                                                             ConstData_t bias_buf,
                                                             const ConvolutionContext& ctx,
                                                             const ConvSolution& solution,
@@ -385,7 +384,7 @@ ConvHipImplicitGemmV4R4FwdXdlops::Search(const ConvolutionContext& ctx) const
 PerformanceImplicitGemmXdlops
 ConvHipImplicitGemmV4R4WrWXdlops::Search(const ConvolutionContext& ctx) const
 {
-    return GenericSearchFwd(*this, ctx);
+    return GenericSearchWrW(*this, ctx);
 }
 
 } // namespace solver

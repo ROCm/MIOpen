@@ -25,7 +25,10 @@
  *******************************************************************************/
 
 #include <miopen/solver.hpp>
+
+#include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/env.hpp>
+#include <miopen/visit_float.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)
 
@@ -364,7 +367,9 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 
             result.construction_params.push_back(kernel);
         }
-        result.workspce_sz = GetWorkspaceSize(params);
+
+        const auto ws_sz   = GetWorkspaceSize(params);
+        result.workspce_sz = ws_sz;
 
         {
             // std::cout << comp_options << std::endl;
@@ -409,6 +414,55 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
             kernel.comp_options = comp_options;
 
             result.construction_params.push_back(kernel);
+        }
+
+        if(n_passes == 2)
+        {
+            result.invoker_factory = [ws_sz](const std::vector<Kernel>& kernels) {
+                return [=](Handle& handle, const boost::any& primitive_params) {
+                    const auto ss_kernel   = handle.Run(kernels[0]);
+                    const auto main_kernel = handle.Run(kernels[1]);
+                    const auto invoke_params =
+                        boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+
+                    if(invoke_params.workSpaceSize < ws_sz)
+                        MIOPEN_THROW("Not enough workspace for ConvOclBwdWrW1x1");
+
+                    const auto& tensors    = invoke_params.tensors;
+                    const auto& workSpace  = invoke_params.workSpace;
+                    const auto padding_val = 0.f;
+                    auto elapsed           = 0.f;
+
+                    ss_kernel(tensors.x, workSpace);
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
+                    visit_float(tensors.dyDesc.GetType(), [&](auto as_float) {
+                        main_kernel(tensors.dy, workSpace, tensors.dw, as_float(padding_val));
+                    });
+                    if(handle.IsProfilingEnabled())
+                    {
+                        elapsed += handle.GetKernelTime();
+                        handle.ResetKernelTime();
+                        handle.AccumKernelTime(elapsed);
+                    }
+                };
+            };
+        }
+        else if(n_passes == 1)
+        {
+            result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+                return [=](Handle& handle, const boost::any& primitive_params) {
+                    const auto k = handle.Run(kernels[0]);
+                    const auto invoke_params =
+                        boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+                    const auto& tensors    = invoke_params.tensors;
+                    const auto padding_val = 0.f;
+
+                    visit_float(tensors.dyDesc.GetType(), [&](auto as_float) {
+                        k(tensors.dy, tensors.x, tensors.dw, as_float(padding_val));
+                    });
+                };
+            };
         }
     }
     return result;

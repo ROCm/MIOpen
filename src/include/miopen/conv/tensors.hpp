@@ -27,29 +27,28 @@
 #pragma once
 
 #include <miopen/common.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
 
-struct TensorDescriptor;
-
 struct ConvTensors
 {
-    const TensorDescriptor& xDesc;
-    ConstData_t x;
-    const TensorDescriptor& wDesc;
-    ConstData_t w;
-    const TensorDescriptor& yDesc;
-    ConstData_t y;
+    TensorDescriptor xDesc;
+    ConstData_t x = nullptr;
+    TensorDescriptor wDesc;
+    ConstData_t w = nullptr;
+    TensorDescriptor yDesc;
+    ConstData_t y = nullptr;
 };
 
 struct ConvFwdTensors
 {
-    const TensorDescriptor& xDesc;
-    ConstData_t x;
-    const TensorDescriptor& wDesc;
-    ConstData_t w;
-    const TensorDescriptor& yDesc;
-    Data_t y;
+    TensorDescriptor xDesc;
+    ConstData_t x = nullptr;
+    TensorDescriptor wDesc;
+    ConstData_t w = nullptr;
+    TensorDescriptor yDesc;
+    Data_t y = nullptr;
 
     ConstData_t in() const { return x; }
     Data_t out() const { return y; }
@@ -59,12 +58,12 @@ struct ConvFwdTensors
 
 struct ConvBwdTensors
 {
-    const TensorDescriptor& dyDesc;
-    ConstData_t dy;
-    const TensorDescriptor& wDesc;
-    ConstData_t w;
-    const TensorDescriptor& dxDesc;
-    Data_t dx;
+    TensorDescriptor dyDesc;
+    ConstData_t dy = nullptr;
+    TensorDescriptor wDesc;
+    ConstData_t w = nullptr;
+    TensorDescriptor dxDesc;
+    Data_t dx = nullptr;
 
     ConstData_t in() const { return dy; }
     Data_t out() const { return dx; }
@@ -72,14 +71,59 @@ struct ConvBwdTensors
     operator ConvTensors() const { return {dxDesc, dx, wDesc, w, dyDesc, dy}; }
 };
 
+struct ConvDataTensors
+{
+    TensorDescriptor inDesc;
+    ConstData_t in = nullptr;
+    TensorDescriptor wDesc;
+    ConstData_t w = nullptr;
+    TensorDescriptor outDesc;
+    Data_t out = nullptr;
+
+    ConvDataTensors(TensorDescriptor inDesc_,
+                    ConstData_t in_,
+                    TensorDescriptor wDesc_,
+                    ConstData_t w_,
+                    TensorDescriptor outDesc_,
+                    Data_t out_)
+        : inDesc(std::move(inDesc_)),
+          in(in_),
+          wDesc(std::move(wDesc_)),
+          w(w_),
+          outDesc(std::move(outDesc_)),
+          out(out_)
+    {
+    }
+
+    ConvDataTensors(ConvFwdTensors tensors)
+        : inDesc(std::move(tensors.xDesc)),
+          in(tensors.x),
+          wDesc(std::move(tensors.wDesc)),
+          w(tensors.w),
+          outDesc(std::move(tensors.yDesc)),
+          out(tensors.y)
+    {
+    }
+
+    ConvDataTensors(ConvBwdTensors tensors)
+        : inDesc(std::move(tensors.dyDesc)),
+          in(tensors.dy),
+          wDesc(std::move(tensors.wDesc)),
+          w(tensors.w),
+          outDesc(std::move(tensors.dxDesc)),
+          out(tensors.dx)
+    {
+    }
+};
+
 struct ConvWrwTensors
 {
-    const TensorDescriptor& dyDesc;
-    ConstData_t dy;
-    const TensorDescriptor& xDesc;
-    ConstData_t x;
-    const TensorDescriptor& dwDesc;
-    Data_t dw;
+    TensorDescriptor dyDesc;
+    ConstData_t dy = nullptr;
+    TensorDescriptor xDesc;
+    ConstData_t x = nullptr;
+    TensorDescriptor dwDesc;
+    Data_t dw = nullptr;
 
     operator ConvTensors() const { return {xDesc, x, dwDesc, dw, dyDesc, dy}; }
 };

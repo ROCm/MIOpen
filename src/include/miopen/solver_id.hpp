@@ -49,7 +49,7 @@ struct Id
 
     std::string ToString() const;
     AnySolver GetSolver() const;
-    std::string GetAlgo(miopenConvDirection_t dir) const;
+    std::string GetAlgo(conv::Direction dir) const;
 
     bool IsValid() const { return is_valid; }
     uint64_t Value() const { return value; }

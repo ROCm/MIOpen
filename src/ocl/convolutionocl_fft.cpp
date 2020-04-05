@@ -102,24 +102,6 @@ static void cgemm_grid(size_t* global_work_size,
     global_work_size[1] = totalWorkGroups1 * local_work_size[1];
 }
 
-static std::string make_config_prefix(int in_h, int in_w, int in_n, int in_c, int out_c)
-{
-    std::string config_prefix = "FFT_x";
-    config_prefix += "_in_h_";
-    config_prefix += std::to_string(in_h);
-    config_prefix += "_in_w_";
-    config_prefix += std::to_string(in_w);
-    config_prefix += "_in_n_";
-    config_prefix += std::to_string(in_n);
-    config_prefix += "_in_c_";
-    config_prefix += std::to_string(in_c);
-    config_prefix += "_out_c_";
-    config_prefix += std::to_string(out_c);
-    config_prefix += "_kernel_";
-
-    return config_prefix;
-}
-
 static int FindFFTKernel(Handle& handle,
                          const TensorDescriptor& xDesc,
                          const TensorDescriptor& wDesc,
@@ -127,7 +109,7 @@ static int FindFFTKernel(Handle& handle,
                          size_t workSpaceSize,
                          std::vector<KernelInvoke>& kernels,
                          bool fwd,
-                         std::string* kcache_key = nullptr)
+                         const NetworkConfig& kcache_key)
 {
 
     if(workSpaceSize == 0)
@@ -305,10 +287,8 @@ static int FindFFTKernel(Handle& handle,
     const std::string algorithm    = "miopenConvolutionFwdAlgoFFT";
     const std::string program_name = "MIOpenConvFFT.cl";
 
-    const std::string config_prefix = make_config_prefix(in_h, in_w, in_n, in_c, out_c);
-
-    if(kcache_key != nullptr)
-        *kcache_key = config_prefix;
+    handle.ClearKernels(algorithm, kcache_key);
+    auto cacheId = 0;
 
     for(int ik = 0; ik < NumKernels; ik++)
     {
@@ -333,8 +313,6 @@ static int FindFFTKernel(Handle& handle,
         default: assert(false);
         }
 
-        std::string network_config = config_prefix + std::to_string(ik);
-
         std::vector<size_t> vld(3);
         std::vector<size_t> vgd(3);
 
@@ -346,8 +324,8 @@ static int FindFFTKernel(Handle& handle,
         vgd[1] = global_work_size[ik][1];
         vgd[2] = global_work_size[ik][2];
 
-        auto k =
-            handle.AddKernel(algorithm, network_config, program_name, kernel_name, vld, vgd, parms);
+        auto k = handle.AddKernel(
+            algorithm, kcache_key, program_name, kernel_name, vld, vgd, parms, cacheId++);
 
         kernels.push_back(k);
     }
@@ -361,10 +339,10 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
                                             const TensorDescriptor& yDesc,
                                             size_t workSpaceSize,
                                             std::vector<KernelInvoke>& kernels,
-                                            std::string& kcache_key) const
+                                            const NetworkConfig& kcache_key) const
 {
 
-    return FindFFTKernel(handle, xDesc, wDesc, yDesc, workSpaceSize, kernels, true, &kcache_key);
+    return FindFFTKernel(handle, xDesc, wDesc, yDesc, workSpaceSize, kernels, true, kcache_key);
 }
 
 int ConvolutionDescriptor::FindBwdFFTKernel(Handle& handle,
@@ -373,10 +351,10 @@ int ConvolutionDescriptor::FindBwdFFTKernel(Handle& handle,
                                             const TensorDescriptor& dxDesc,
                                             size_t workSpaceSize,
                                             std::vector<KernelInvoke>& kernels,
-                                            std::string& kcache_key) const
+                                            const NetworkConfig& kcache_key) const
 {
 
-    return FindFFTKernel(handle, dyDesc, wDesc, dxDesc, workSpaceSize, kernels, false, &kcache_key);
+    return FindFFTKernel(handle, dyDesc, wDesc, dxDesc, workSpaceSize, kernels, false, kcache_key);
 }
 
 static float ExecuteFFTKernel(Handle& handle,
@@ -389,7 +367,8 @@ static float ExecuteFFTKernel(Handle& handle,
                               Data_t workSpace,
                               size_t workSpaceSize,
                               bool timed,
-                              bool fwd)
+                              bool fwd,
+                              const NetworkConfig& kcache_key)
 {
 
     (void)wDesc; // suppress warning
@@ -406,8 +385,10 @@ static float ExecuteFFTKernel(Handle& handle,
     const int Padding    = FFTConvParams::TransposePadding;
     const int NumKernels = FFTConvParams::NumKernels;
 
-    float time_fft                  = 0;
-    const std::string config_prefix = make_config_prefix(in_h, in_w, in_n, in_c, out_c);
+    float time_fft     = 0;
+    const auto kernels = handle.GetKernels("miopenConvolutionFwdAlgoFFT", kcache_key);
+    auto k_it          = kernels.begin();
+
     for(int ik = 0; ik < NumKernels; ik++)
     {
         // skip front transposes for 7x7
@@ -417,9 +398,9 @@ static float ExecuteFFTKernel(Handle& handle,
                 continue;
         }
 
-        std::string network_config = config_prefix + std::to_string(ik);
-
-        auto k = handle.GetKernel("miopenConvolutionFwdAlgoFFT", network_config);
+        assert(k_it != kernels.end());
+        const auto k = *k_it;
+        ++k_it;
 
         switch(ik)
         {
@@ -468,11 +449,12 @@ float ConvolutionDescriptor::ExecuteFwdFFTKernel(Handle& handle,
                                                  Data_t y,
                                                  Data_t workSpace,
                                                  size_t workSpaceSize,
+                                                 const NetworkConfig& kcache_key,
                                                  bool timed) const
 {
 
     return ExecuteFFTKernel(
-        handle, xDesc, x, wDesc, w, yDesc, y, workSpace, workSpaceSize, timed, true);
+        handle, xDesc, x, wDesc, w, yDesc, y, workSpace, workSpaceSize, timed, true, kcache_key);
 }
 
 float ConvolutionDescriptor::ExecuteBwdFFTKernel(Handle& handle,
@@ -484,11 +466,22 @@ float ConvolutionDescriptor::ExecuteBwdFFTKernel(Handle& handle,
                                                  Data_t dx,
                                                  Data_t workSpace,
                                                  size_t workSpaceSize,
+                                                 const NetworkConfig& kcache_key,
                                                  bool timed) const
 {
 
-    return ExecuteFFTKernel(
-        handle, dyDesc, dy, wDesc, w, dxDesc, dx, workSpace, workSpaceSize, timed, false);
+    return ExecuteFFTKernel(handle,
+                            dyDesc,
+                            dy,
+                            wDesc,
+                            w,
+                            dxDesc,
+                            dx,
+                            workSpace,
+                            workSpaceSize,
+                            timed,
+                            false,
+                            kcache_key);
 }
 
 } // namespace miopen

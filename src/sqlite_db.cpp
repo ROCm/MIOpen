@@ -59,8 +59,7 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
     if(!is_system)
     {
         SQLRes_t res;
-        ProblemDescription prob_desc;
-        prob_desc.direction.Set(1);
+        ProblemDescription prob_desc{conv::Direction::Forward};
         prob_desc.in_data_type          = miopenFloat;
         prob_desc.out_data_type         = miopenFloat;
         prob_desc.weights_data_type     = miopenFloat;
@@ -80,7 +79,7 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
             const auto lock = shared_lock(lock_file, GetLockTimeout());
             MIOPEN_VALIDATE_LOCK(lock);
             // clang-format off
-            const auto check_tables = 
+            const auto check_tables =
                 "SELECT name FROM sqlite_master "
                 "WHERE "
                   "type = 'table' AND "

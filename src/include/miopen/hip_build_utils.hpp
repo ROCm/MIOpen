@@ -52,6 +52,8 @@ struct external_tool_version_t
 
 external_tool_version_t HipGetHccVersion();
 
+bool IsHccCompiler();
+
 } // namespace miopen
 
 #endif
