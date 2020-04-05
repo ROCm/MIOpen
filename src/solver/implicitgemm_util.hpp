@@ -517,10 +517,11 @@ static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
     return lds_size;
 }
 
+template <typename BotBufType, typename TopBufType, typename WeiBufType>
 static inline int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
-                                            ConstData_t bot_buf,
-                                            Data_t top_buf,
-                                            ConstData_t wei_buf,
+                                            BotBufType bot_buf,
+                                            TopBufType top_buf,
+                                            WeiBufType wei_buf,
                                             const ConvolutionContext& ctx,
                                             const ConvSolution& solution,
                                             float& elapsed_time)
@@ -543,7 +544,7 @@ static inline int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
 
             if(ctx.direction.IsBackwardWrW())
             {
-                kernel(bot_buf, top_buf, wei_buf);
+                kernel(top_buf, bot_buf, wei_buf);
             }
             if(ctx.direction.IsBackwardData())
             {

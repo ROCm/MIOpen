@@ -341,35 +341,9 @@ int ConvHipImplicitGemmV4R4GenWrWXdlops::RunAndMeasureSolution(miopen::Handle& p
 {
     assert(bias_buf == nullptr);
     (void)bias_buf;
-    (void)ctx;
 
-    KernelInfo k_info = solution.construction_params[0];
-
-#ifdef NDEBUG
-    try
-#endif
-    {
-        elapsed_time = std::numeric_limits<float>::max();
-        auto kernel  = profile_h.AddKernel("",
-                                          "",
-                                          k_info.kernel_file,
-                                          k_info.kernel_name,
-                                          k_info.l_wk,
-                                          k_info.g_wk,
-                                          k_info.comp_options);
-
-        kernel(bot_buf, top_buf, wei_buf);
-
-        elapsed_time = profile_h.GetKernelTime();
-    }
-#ifdef NDEBUG
-    catch(miopen::Exception& ex)
-    {
-        MIOPEN_LOG_WE(ex.what());
-        return -1;
-    }
-#endif
-    return 0;
+    return RunAndMeasureSolutionBase(
+        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
 bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
