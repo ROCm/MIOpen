@@ -31,7 +31,7 @@
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
 #include <miopen/solver_id.hpp>
-#include <miopen/mlo_internal.hpp>
+#include <miopen/names.hpp>
 
 #include <string>
 #include <tuple>
@@ -42,9 +42,12 @@ namespace miopen {
 namespace solver {
 struct ConvSolution;
 } // namespace solver
+
+struct ConvolutionContext;
 struct Handle;
 struct TensorDescriptor;
 struct ConvolutionUserBuffers;
+struct ProblemDescription;
 
 using ExtraKernelArgs = std::tuple<int /*N*/,
                                    int /*C*/,
@@ -157,7 +160,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                          const TensorDescriptor& yDesc,
                          std::size_t workSpaceSize,
                          std::vector<KernelInvoke>& kernels,
-                         std::string& kcache_key) const;
+                         const NetworkConfig& kcache_key) const;
 
     float ExecuteFwdFFTKernel(Handle& handle,
                               const TensorDescriptor& xDesc,
@@ -168,6 +171,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               Data_t y,
                               Data_t workSpace,
                               std::size_t workSpaceSize,
+                              const NetworkConfig& kcache_key,
                               bool timed = false) const;
 
     int FindBwdFFTKernel(Handle& handle,
@@ -176,7 +180,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                          const TensorDescriptor& dxDesc,
                          std::size_t workSpaceSize,
                          std::vector<KernelInvoke>& kernels,
-                         std::string& kcache_key) const;
+                         const NetworkConfig& kcache_key) const;
 
     float ExecuteBwdFFTKernel(Handle& handle,
                               const TensorDescriptor& dyDesc,
@@ -187,6 +191,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               Data_t dx,
                               Data_t workSpace,
                               std::size_t workSpaceSize,
+                              const NetworkConfig& kcache_key,
                               bool timed = false) const;
 
     std::vector<miopen::solver::ConvSolution>
@@ -196,8 +201,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                             const TensorDescriptor& yDesc,
                             bool exhaustiveSearch,
                             bool isForward,
-                            std::string& network_config,
-                            ExtraKernelArgs& extraArgs,
                             const ConvolutionUserBuffers& bufs) const;
 
     std::vector<miopen::solver::ConvSolution>
@@ -210,7 +213,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                   const TensorDescriptor& yDesc,
                                   bool exhaustiveSearch,
                                   bool isForward,
-                                  std::string& network_config,
                                   const ConvolutionUserBuffers& bufs) const;
 
     std::vector<miopen::solver::ConvSolution>
@@ -220,7 +222,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                         const TensorDescriptor& yDesc,
                         bool exhaustiveSearch,
                         bool isForward,
-                        std::string& network_config,
                         const ConvolutionUserBuffers& bufs) const;
 
     void ConvolutionForward(Handle& handle,
@@ -445,7 +446,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     void ConvFwdFFT(Handle& handle,
                     const ConvFwdTensors& tensors,
                     Data_t workSpace,
-                    std::size_t workSpaceSize) const;
+                    std::size_t workSpaceSize,
+                    const NetworkConfig& kcache_key) const;
 
     void ConvBwdGemm(Handle& handle,
                      const struct ConvBwdTensors& tensors,
@@ -455,7 +457,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     void ConvBwdFFT(Handle& handle,
                     const ConvBwdTensors& tensors,
                     Data_t workSpace,
-                    size_t workSpaceSize) const;
+                    size_t workSpaceSize,
+                    const NetworkConfig& kcache_key) const;
 
     ProblemDescription MakeWrwProblem(const TensorDescriptor& dyDesc,
                                       const TensorDescriptor& xDesc,

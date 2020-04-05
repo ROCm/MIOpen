@@ -59,7 +59,11 @@ std::string FindDbRecord_t<TDb>::GetUserPath(Handle& handle)
 
 bool CheckInvokerSupport(const std::string& algo)
 {
-    return algo == "miopenConvolutionFwdAlgoDirect";
+    return algo == "miopenConvolutionFwdAlgoDirect" ||
+           algo == "miopenConvolutionBwdDataAlgoDirect" ||
+           algo == "miopenConvolutionBwdWeightsAlgoDirect" ||
+           algo == "miopenConvolutionFwdAlgoWinograd" ||
+           algo == "miopenConvolutionBwdDataAlgoWinograd";
 }
 
 template <class TDb>

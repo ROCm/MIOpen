@@ -119,9 +119,11 @@ set( MIOpen_Source
     kernel_build_params.cpp
     find_db.cpp
     conv_algo_name.cpp
+    conv/problem_description.cpp
     dropout.cpp
     dropout_api.cpp
     readonlyramdb.cpp
+    execution_context.cpp
     kern_db.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
@@ -172,9 +174,11 @@ set( MIOpen_Source
     include/miopen/rnn_util.hpp
     md_graph.cpp
     mdg_expr.cpp
-    conv/invokers/gcn_asm_1x1u_fwd.cpp
-    conv/invokers/gcn_asm_1x1u_ss_fwd.cpp
-    conv/invokers/gen_x_w_y_pad_fwd.cpp
+    conv/invokers/gcn_asm_1x1u.cpp
+    conv/invokers/gcn_asm_1x1u_ss.cpp
+    conv/invokers/gcn_asm_1x1u_us.cpp
+    conv/invokers/gen_x_w_y_pad.cpp
+    conv/invokers/ocl_wrw_rdc.cpp
     invoker_cache.cpp
     tensor.cpp
     tensor_api.cpp

@@ -250,19 +250,18 @@ FindAllFwdSCGemmSolutions(const miopen::ConvolutionContext& ctx);
 
 struct mlo_construct_base
 {
-    mlo_construct_base(int dir, bool do_bias = false)
+    mlo_construct_base(miopen::conv::Direction dir, bool do_bias = false) : _search_params(dir)
     {
-        _search_params.direction.Set(dir);
         _search_params.bias              = (do_bias) ? 1 : 0;
         _search_params.pad_w             = 1;
         _search_params.pad_h             = 1;
+        _search_params.kernel_size_d     = 3;
         _search_params.kernel_size_w     = 3;
         _search_params.kernel_size_h     = 3;
         _search_params.kernel_stride_w   = 1;
         _search_params.kernel_stride_h   = 1;
         _search_params.kernel_dilation_w = 1;
         _search_params.kernel_dilation_h = 1;
-        _search_params.deconvolution     = 0;
         _search_params.bot_sz            = 0; // bytes
         _search_params.top_sz            = 0; // bytes
         _search_params.weights_sz        = 0; // bytes
@@ -274,11 +273,10 @@ struct mlo_construct_base
                        const miopen::TensorDescriptor& weights,
                        const miopen::TensorDescriptor& out,
                        const miopen::ConvolutionDescriptor& conv,
-                       int dir,
+                       miopen::conv::Direction dir,
                        bool do_bias = false)
         : _search_params(in, weights, out, conv, dir, (do_bias) ? 1 : 0)
     {
-        _search_params.deconvolution = 0;
     }
 
     void detectRocm() { _search_params.DetectRocm(); }
@@ -340,7 +338,7 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
     std::vector<size_t> _l_wk;
     std::vector<size_t> _g_wk;
 
-    mlo_construct_activ_lrn_pooling_common(int dir) : mlo_construct_base(dir) {}
+    mlo_construct_activ_lrn_pooling_common(miopen::conv::Direction dir) : mlo_construct_base(dir) {}
 
     /*
      * returns kernel file name without location
@@ -576,7 +574,8 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
 
 struct mlo_construct_pooling2D : mlo_construct_activ_lrn_pooling_common
 {
-    mlo_construct_pooling2D(int dir) : mlo_construct_activ_lrn_pooling_common(dir)
+    mlo_construct_pooling2D(miopen::conv::Direction dir)
+        : mlo_construct_activ_lrn_pooling_common(dir)
     {
         _pooling_method = MLO_POOLING_OP_MAX;
         _index_type     = miopenIndexUint8;
@@ -640,7 +639,7 @@ struct mlo_construct_pooling2D : mlo_construct_activ_lrn_pooling_common
 
 struct mlo_construct_norm : mlo_construct_activ_lrn_pooling_common
 {
-    mlo_construct_norm(int dir) : mlo_construct_activ_lrn_pooling_common(dir) {}
+    mlo_construct_norm(miopen::conv::Direction dir) : mlo_construct_activ_lrn_pooling_common(dir) {}
 
     inline void setNormDescr(
         int norm_region, int norm_area, double normAlpha, double normBeta, double normK = 1.)
@@ -683,7 +682,7 @@ struct mlo_construct_norm : mlo_construct_activ_lrn_pooling_common
 
 struct mlo_construct_neuron : mlo_construct_activ_lrn_pooling_common
 {
-    mlo_construct_neuron(int dir) : mlo_construct_activ_lrn_pooling_common(dir)
+    mlo_construct_neuron(miopen::conv::Direction dir) : mlo_construct_activ_lrn_pooling_common(dir)
     {
         _neuron_type = 0;
         _gamma       = 0;
