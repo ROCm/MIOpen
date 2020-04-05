@@ -67,7 +67,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.3.0)
+rocm_setup_version(VERSION 2.4.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -111,6 +111,8 @@ set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
 # HIP is always required
 find_package(hip REQUIRED PATHS /opt/rocm)
 target_flags(HIP_COMPILER_FLAGS hip::device)
+# Remove cuda arch flags
+string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
 
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
@@ -197,11 +199,13 @@ find_program(EXTRACTKERNEL_BIN extractkernel
     PATH_SUFFIXES bin
     PATHS /opt/rocm
 )
-if(EXTRACTKERNEL_BIN)
-    message(STATUS "extractkernel found: ${EXTRACTKERNEL_BIN}")
-    set(EXTRACTKERNEL_BIN "${EXTRACTKERNEL_BIN}")
-else()
-    message(FATAL_ERROR "extractkernel not found")
+if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
+    if(EXTRACTKERNEL_BIN)
+        message(STATUS "extractkernel found: ${EXTRACTKERNEL_BIN}")
+        set(EXTRACTKERNEL_BIN "${EXTRACTKERNEL_BIN}")
+    else()
+        message(FATAL_ERROR "extractkernel not found")
+    endif()
 endif()
 
 # Online assembler
@@ -282,7 +286,7 @@ rocm_create_package(
 
 include(EnableCompilerWarnings)
 set(MIOPEN_TIDY_ERRORS ERRORS * -readability-inconsistent-declaration-parameter-name)
-if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
+if(CMAKE_CXX_COMPILER MATCHES ".*hcc" OR CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+")
     set(MIOPEN_TIDY_CHECKS -modernize-use-override -readability-non-const-parameter)
 # Enable tidy on hip
 elseif(MIOPEN_BACKEND STREQUAL "HIP")

@@ -10,7 +10,7 @@ mlo_construct_direct2D_fusion ConvForwardOpDescriptor::ConstructParams(Handle& h
     TensorDescriptor o_desc;
     GetOutputDesc(o_desc);
     mlo_construct_direct2D_fusion construct_params(
-        input_desc, filter_desc, o_desc, base_desc, 1); // forward
+        input_desc, filter_desc, o_desc, base_desc, miopen::conv::Direction::Forward);
     construct_params.setStream(&handle);
     return construct_params;
 }
