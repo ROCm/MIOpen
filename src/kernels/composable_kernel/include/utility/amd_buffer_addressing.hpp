@@ -45,7 +45,7 @@ __device__ ushort __llvm_amdgcn_buffer_load_bf16(int32x4_t rsrc,
                                                  index_t vindex,
                                                  index_t offset,
                                                  bool glc,
-                                                 bool slc) __asm("llvm.amdgcn.buffer.load.f16");
+                                                 bool slc) __asm("llvm.amdgcn.buffer.load.bf16");
 
 __device__ half2_t __llvm_amdgcn_buffer_loadx2_f16(int32x4_t rsrc,
                                                    index_t vindex,
@@ -58,7 +58,7 @@ __llvm_amdgcn_buffer_loadx2_bf16(int32x4_t rsrc,
                                  index_t vindex,
                                  index_t offset,
                                  bool glc,
-                                 bool slc) __asm("llvm.amdgcn.buffer.load.v2f16");
+                                 bool slc) __asm("llvm.amdgcn.buffer.load.v2bf16");
 
 __device__ half4_t __llvm_amdgcn_buffer_loadx4_f16(int32x4_t rsrc,
                                                    index_t vindex,
@@ -71,7 +71,7 @@ __llvm_amdgcn_buffer_loadx4_bf16(int32x4_t rsrc,
                                  index_t vindex,
                                  index_t offset,
                                  bool glc,
-                                 bool slc) __asm("llvm.amdgcn.buffer.load.v4f16");
+                                 bool slc) __asm("llvm.amdgcn.buffer.load.v4bf16");
 __device__ void __llvm_amdgcn_buffer_store(float vdata,
                                            int32x4_t rsrc,
                                            index_t vindex,
@@ -114,28 +114,28 @@ __device__ void __llvm_amdgcn_buffer_storex4_f16(half4_t vdata,
                                                  bool glc,
                                                  bool slc) __asm("llvm.amdgcn.buffer.store.v4f16");
 
-//__device__ void __llvm_amdgcn_buffer_store_bf16(ushort vdata,
-//                                               int32x4_t rsrc,
-//                                               index_t vindex,
-//                                               index_t offset,
-//                                               bool glc,
-//                                               bool slc) __asm("llvm.amdgcn.buffer.store.f16");
+__device__ void __llvm_amdgcn_buffer_store_bf16(ushort vdata,
+                                                int32x4_t rsrc,
+                                                index_t vindex,
+                                                index_t offset,
+                                                bool glc,
+                                                bool slc) __asm("llvm.amdgcn.buffer.store.bf16");
 
-//__device__ void __llvm_amdgcn_buffer_storex2_bf16(ushort2_t vdata,
-//                                                 int32x4_t rsrc,
-//                                                 index_t vindex,
-//                                                 index_t offset,
-//                                                 bool glc,
-//                                                 bool slc)
-//                                                 __asm("llvm.amdgcn.buffer.store.v2f16");
+__device__ void
+__llvm_amdgcn_buffer_storex2_bf16(ushort2_t vdata,
+                                  int32x4_t rsrc,
+                                  index_t vindex,
+                                  index_t offset,
+                                  bool glc,
+                                  bool slc) __asm("llvm.amdgcn.buffer.store.v2bf16");
 
-//__device__ void __llvm_amdgcn_buffer_storex4_bf16(ushort4_t vdata,
-//                                                 int32x4_t rsrc,
-//                                                 index_t vindex,
-//                                                 index_t offset,
-//                                                 bool glc,
-//                                                 bool slc)
-//                                                 __asm("llvm.amdgcn.buffer.store.v4f16");
+__device__ void
+__llvm_amdgcn_buffer_storex4_bf16(ushort4_t vdata,
+                                  int32x4_t rsrc,
+                                  index_t vindex,
+                                  index_t offset,
+                                  bool glc,
+                                  bool slc) __asm("llvm.amdgcn.buffer.store.v4bf16");
 
 __device__ void
 __llvm_amdgcn_buffer_atomic_add(float vdata,
@@ -572,12 +572,12 @@ __device__ void amd_intrinsic_buffer_store<ushort, 1>(const ushort* p_src,
     dst_block_config.range[3] = 0x00027000;
 
 #if CK_USE_AMD_BUFFER_ADDRESSING_INTRINSIC
-    __llvm_amdgcn_buffer_store_f16(*reinterpret_cast<const half*>(p_src),
-                                   dst_block_config.data,
-                                   0,
-                                   dst_thread_addr_offset + dst_const_addr_offset,
-                                   false,
-                                   false);
+    __llvm_amdgcn_buffer_store_bf16(*p_src,
+                                    dst_block_config.data,
+                                    0,
+                                    dst_thread_addr_offset + dst_const_addr_offset,
+                                    false,
+                                    false);
 #else
     asm volatile("\n \
     buffer_store_short %1, %2, %0, %3 offen offset:0 \n \
@@ -683,12 +683,12 @@ __device__ void amd_intrinsic_buffer_store<ushort, 2>(const ushort* p_src,
     dst_block_config.range[3] = 0x00027000;
 
 #if CK_USE_AMD_BUFFER_ADDRESSING_INTRINSIC
-    __llvm_amdgcn_buffer_storex2_f16(*reinterpret_cast<const half2_t*>(p_src),
-                                     dst_block_config.data,
-                                     0,
-                                     dst_thread_addr_offset + dst_const_addr_offset,
-                                     false,
-                                     false);
+    __llvm_amdgcn_buffer_storex2_bf16(*p_src,
+                                      dst_block_config.data,
+                                      0,
+                                      dst_thread_addr_offset + dst_const_addr_offset,
+                                      false,
+                                      false);
 #else
     asm volatile("\n \
     buffer_store_dword %1, %2, %0, %3 offen offset:0 \n \
@@ -793,12 +793,12 @@ __device__ void amd_intrinsic_buffer_store<ushort, 4>(const ushort* p_src,
     dst_block_config.range[3] = 0x00027000;
 
 #if CK_USE_AMD_BUFFER_ADDRESSING_INTRINSIC
-    __llvm_amdgcn_buffer_storex4_f16(*reinterpret_cast<const half4_t*>(p_src),
-                                     dst_block_config.data,
-                                     0,
-                                     dst_thread_addr_offset + dst_const_addr_offset,
-                                     false,
-                                     false);
+    __llvm_amdgcn_buffer_storex4_bf16(*p_src,
+                                      dst_block_config.data,
+                                      0,
+                                      dst_thread_addr_offset + dst_const_addr_offset,
+                                      false,
+                                      false);
 #else
     asm volatile("\n \
     buffer_store_dwordx2 %1, %2, %0, %3 offen offset:0 \n \
@@ -835,7 +835,7 @@ __device__ void amd_intrinsic_buffer_atomic_add<float, 1>(const float* p_src,
 #else
     // static_assert(false, " wrong! not implemented");
     __llvm_amdgcn_buffer_atomic_add(
-        src, dst_block_config.data, 0, dst_thread_addr_offset + dst_const_addr_offset, false);
+        *p_src, dst_block_config.data, 0, dst_thread_addr_offset + dst_const_addr_offset, false);
 #endif
 }
 
