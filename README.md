@@ -21,6 +21,7 @@ MIOpen supports two programming models -
 * [Boost](http://www.boost.org/) at least version 1.58
   * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html)
 * [rocBlas](https://github.com/ROCmSoftwarePlatform/rocBLAS) Minimum version branch [master-rocm-2.10](https://github.com/ROCmSoftwarePlatform/rocBLAS/tree/master-rocm-2.10)
+* [MIOpenTENSILE](https://github.com/ROCmSoftwarePlatform/MIOpenTensile) Users can enable this library using the cmake configuration flag `-DMIOPEN_USE_MIOPENTENSILE=On`.
 
 
 ## Installing MIOpen with pre-built packages
@@ -62,7 +63,7 @@ MIOpen's HIP backend uses [rocBlas](https://github.com/ROCmSoftwarePlatform/rocB
 
 ## Installing minimum dependencies in ROCm environment
 
-Users who are working in a fully installed and up to date ROCm environment may not wish to additionally install rocm-cmake, clang-ocl, MIOpenGEMM, or rocBLAS. This can be done by simply inserting the command `--minimum` into the cmake command as shown below:
+Users who are working in a fully installed and up to date ROCm environment may not wish to additionally install rocm-cmake, clang-ocl, MIOpenGEMM, MIOpenTensile or rocBLAS. This can be done by simply inserting the command `--minimum` into the cmake command as shown below:
 
 ```
 cmake -P install_deps.cmake --minimum --prefix /some/local/dir

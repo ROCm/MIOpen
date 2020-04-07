@@ -118,6 +118,15 @@ message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
 add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
 
+# miopentensile
+set(MIOPEN_USE_MIOPENTENSILE ON CACHE BOOL "")
+if(MIOPEN_USE_MIOPENTENSILE)
+    find_package(miopentensile)
+    message(STATUS "Build with miopentensile")
+else()
+    message(STATUS "Build without miopentensile")
+endif()
+
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set(MIOPEN_BACKEND_OPENCL 1)

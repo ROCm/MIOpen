@@ -800,7 +800,7 @@ static void DirConvFindCore(Handle& handle,
                 conv.group_count > 1 ? callGemmStridedBatched : callGemm,
                 (conv.group_count > 1 || wDesc.GetType() == miopenInt8 ||
                  wDesc.GetType() == miopenInt8x4 || wDesc.GetType() == miopenBFloat16)
-                    ? GemmBackend_t::rocblas
+                    ? GemmBackend_t::miopentensile
                     : GemmBackend_t::miopengemm);
 
             time_gemm += (in_n * (time_im2col + handle.GetKernelTime()));
@@ -1656,7 +1656,7 @@ void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
                          false,
                          (tensors.wDesc.GetType() == miopenInt8 ||
                           tensors.wDesc.GetType() == miopenInt8x4)
-                             ? GemmBackend_t::rocblas
+                             ? GemmBackend_t::miopentensile
                              : GemmBackend_t::miopengemm);
 
             // Update times for both the kernels
@@ -2800,7 +2800,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                         &kcache_key,
                         time_precision,
                         group_count > 1 ? callGemmStridedBatched : callGemm,
-                        group_count > 1 ? GemmBackend_t::rocblas : GemmBackend_t::miopengemm);
+                        group_count > 1 ? GemmBackend_t::miopentensile : GemmBackend_t::miopengemm);
 
                     float time_gemm = in_n * handle.GetKernelTime();
                     time_col2im     = Col2ImGPU(handle,
@@ -3610,7 +3610,7 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
                                             float* elapsed = nullptr)
 
 {
-#if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
+#if((MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS) || MIOPEN_USE_MIOPENTENSILE)
     int flags         = 0;
     int reserved      = 0;
     int* reserved_ptr = nullptr;
@@ -3741,7 +3741,7 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
                             static_cast<int>(wino_out_offset / GetTypeSize(ctx.in_data_type)),
                             nullptr,
                             false,
-                            GemmBackend_t::rocblas);
+                            GemmBackend_t::miopentensile);
             else
                 CallGemmTimeMeasure(handle,
                             wino_gemm_desc,
@@ -3754,7 +3754,7 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
                             nullptr,
                             time_precision,
                             CallGemmType_t::callGemmStridedBatched,
-                            GemmBackend_t::rocblas);
+                            GemmBackend_t::miopentensile);
             // clang-format on
             if(handle.IsProfilingEnabled() || elapsed != nullptr)
             {
@@ -3966,7 +3966,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     &kcache_key,
                     time_precision,
                     group_count > 1 ? callGemmStridedBatched : callGemm,
-                    group_count > 1 ? GemmBackend_t::rocblas : GemmBackend_t::miopengemm);
+                    group_count > 1 ? GemmBackend_t::miopentensile : GemmBackend_t::miopengemm);
 
                 time_gemm = in_n * (time_im2col + handle.GetKernelTime());
 
@@ -4010,7 +4010,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     &kcache_key,
                     time_precision,
                     group_count > 1 ? callGemmStridedBatched : callGemmStridedBatchedSequential,
-                    group_count > 1 ? GemmBackend_t::rocblas : GemmBackend_t::miopengemm);
+                    group_count > 1 ? GemmBackend_t::miopentensile : GemmBackend_t::miopengemm);
 
                 time_gemm = handle.GetKernelTime();
                 if(group_count > 1)
