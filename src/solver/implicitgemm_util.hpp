@@ -440,6 +440,9 @@ static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
     // forward
     if(ctx.direction.IsForward())
     {
+        // TBD/ Since bfp16/fp16 fwd kernel extracts epack from c*y*x,
+        //      one could relax the following restriction for bfp16/fp16,
+        //      allowing c=1 when y*x=epack.
         if(c % GetEPackLength(ctx, true) != 0)
             return false;
         const auto nonVectorizedC = c / GetEPackLength(ctx, true);
@@ -495,14 +498,14 @@ static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
                                             const unsigned int GemmDataPerReadB,
                                             const unsigned int InBlockCopySubLengths_B,
                                             const unsigned int WeiBlockCopySubLengths_K,
-                                            bool isXdlopsUsed)
+                                            const unsigned int EPACKSize)
 {
     // Extend lds size by to take into account alignment
     // See max_algin code inside kernel_aglorithm files
     const std::size_t worst_case_alignment_adjustment =
         (ctx.IsBfp16() || ctx.IsFp16())
-            ? std::max({GetReadWriteVectorSize(static_cast<int>(InBlockCopySubLengths_B)),
-                        GetEPackLength(ctx, isXdlopsUsed)})
+            ? std::max(
+                  {GetReadWriteVectorSize(static_cast<int>(InBlockCopySubLengths_B)), EPACKSize})
             : std::max({GetReadWriteVectorSize(static_cast<int>(WeiBlockCopySubLengths_K)),
                         GetReadWriteVectorSize(static_cast<int>(InBlockCopySubLengths_B)),
                         GemmDataPerReadA,
@@ -510,9 +513,9 @@ static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
 
     // Multiplied worst_case_alignment_adjustment by 2 as
     // Both A and B matrix LDS size is increased.
-    const std::size_t lds_size = (BPerBlock + KPerBlock) * EPerBlock * GetEPackLength(ctx, true) *
-                                     GetTypeSize(ctx.in_data_type) * 2 +
-                                 2 * worst_case_alignment_adjustment;
+    const std::size_t lds_size =
+        (BPerBlock + KPerBlock) * EPerBlock * EPACKSize * GetTypeSize(ctx.in_data_type) * 2 +
+        2 * worst_case_alignment_adjustment;
 
     return lds_size;
 }

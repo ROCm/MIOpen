@@ -738,6 +738,7 @@ struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlop
     int KPerBlock; // 2^n[32..128]
     int EPerBlock; // 2^n[4..16]
     int EBlocks;   // 2*n[1..64]
+    int EPACKSize; // 2*n[1..4] // 1 - fp32; 2,4 - bfp16; 4 - fp16
 
     int GemmMPerWave;
     int GemmNPerWave;
@@ -750,10 +751,10 @@ struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlop
 
     bool use_spare_set;
 
-    PerformanceImplicitGemmXdlops(int, int, int, int, int, int, int, int, int, int, bool);
+    PerformanceImplicitGemmXdlops(int, int, int, int, int, int, int, int, int, int, int, bool);
 
     PerformanceImplicitGemmXdlops()
-        : PerformanceImplicitGemmXdlops(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false)
+        : PerformanceImplicitGemmXdlops(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false)
     {
     }
 
@@ -766,6 +767,7 @@ struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlop
         f(self.KPerBlock, "KPerBlock");
         f(self.EPerBlock, "EPerBlock");
         f(self.EBlocks, "EBlocks");
+        f(self.EPACKSize, "EPACKSize");
         f(self.GemmMPerWave, "GemmMPerWave");
         f(self.GemmNPerWave, "GemmNPerWave");
         f(self.InBlockCopyClusterLengths_E, "InBlockCopyClusterLengths_E");
