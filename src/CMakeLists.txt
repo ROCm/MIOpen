@@ -510,6 +510,7 @@ generate_export_header(MIOpen
     EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
 )
 set(PACKAGE_DEPENDS)
+set(PACKAGE_STATIC_DEPENDS)
 ############################################################
 # MIOpen depends on OpenCL
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
@@ -534,11 +535,13 @@ endif()
 if(miopengemm_FOUND)
     list(APPEND PACKAGE_DEPENDS PACKAGE miopengemm)
     target_internal_library(MIOpen miopengemm)
+    list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE miopengemm)
 endif()
 
 if(rocblas_FOUND)
     target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:roc::rocblas> )
     target_link_libraries( MIOpen PRIVATE roc::rocblas )
+    list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE rocblas)
 endif()
 
 if(WIN32 AND NOT MSVC)
@@ -551,6 +554,7 @@ endif()
 target_internal_library(MIOpen
     Boost::filesystem
 )
+list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE Boost COMPONTENTS filesystem)
 if(NOT WIN32 AND NOT APPLE)
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/lib.def "
 MIOPEN_${MIOPEN_BACKEND}_1
@@ -607,6 +611,8 @@ rocm_export_targets(
   PREFIX ${MIOPEN_INSTALL_DIR}
   DEPENDS
     ${PACKAGE_DEPENDS}
+  PACKAGE_STATIC_DEPENDS
+    ${PACKAGE_STATIC_DEPENDS}
 )
 
 
