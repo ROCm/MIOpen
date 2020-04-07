@@ -548,12 +548,8 @@ if(WIN32 AND NOT MSVC)
     target_link_libraries(MIOpen PUBLIC -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
 endif()
 
-target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>)
 target_internal_library(MIOpen
-    optimized ${Boost_FILESYSTEM_LIBRARY_RELEASE}
-    optimized ${Boost_SYSTEM_LIBRARY_RELEASE}
-    debug ${Boost_FILESYSTEM_LIBRARY_DEBUG}
-    debug ${Boost_SYSTEM_LIBRARY_DEBUG}
+    Boost::filesystem
 )
 if(NOT WIN32 AND NOT APPLE)
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/lib.def "
