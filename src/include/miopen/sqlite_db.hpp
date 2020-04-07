@@ -30,6 +30,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/lock_file.hpp>
+#include <miopen/exp_backoff.hpp>
 
 #include <boost/core/explicit_operator_bool.hpp>
 #include <boost/none.hpp>
@@ -213,41 +214,32 @@ class SQLiteBase
     template <class F>
     inline int SQLRety(F f) const
     {
-        auto timeout_end = std::chrono::high_resolution_clock::now() +
-                           std::chrono::seconds(30); // TODO: make configurable
-        auto tries = 0;
-        std::random_device rd;  // Will be used to obtain a seed for the random number engine
-        std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
-        while(true)
+        LazyExponentialBackoff exp_bo{10, 2, std::chrono::seconds(30)};
+        int tries = 0;
+        while(exp_bo)
         {
             int rc = f();
             if(rc == SQLITE_BUSY)
             {
                 ++tries;
-                // roll the dice
                 auto slot = -1;
-                if(tries > 10)
-                {
-                    // flatten the curve
-                    std::uniform_int_distribution<> dis(0, std::pow(2, 10));
-                    slot = dis(gen);
-                }
+                // Let the OS deal with it
+                if(tries < 10)
+                    std::this_thread::yield();
+                // Exp backoff steps in
                 else
                 {
-                    std::uniform_int_distribution<> dis(0, std::pow(2, tries));
-                    slot = dis(gen);
+                    slot = *exp_bo;
+                    MIOPEN_LOG_I2("Database busy, sleeping for: " << (100 * slot)
+                                                                  << " microseconds");
+                    if(slot != 0)
+                        std::this_thread::sleep_for(std::chrono::microseconds(100 * slot));
                 }
-
-                std::this_thread::yield();
-                MIOPEN_LOG_I2("Database busy, sleeping for: " << (100 * slot) << " microseconds");
-                if(slot != 0)
-                    std::this_thread::sleep_for(std::chrono::microseconds(100 * slot));
             }
             else
                 return rc;
-            if(std::chrono::high_resolution_clock::now() > timeout_end)
-                MIOPEN_THROW("Timeout while waiting for Database: " + filename);
         }
+        MIOPEN_THROW("Timeout while waiting for Database: " + filename);
     }
 
     inline std::string SQLErrorMessage() const
