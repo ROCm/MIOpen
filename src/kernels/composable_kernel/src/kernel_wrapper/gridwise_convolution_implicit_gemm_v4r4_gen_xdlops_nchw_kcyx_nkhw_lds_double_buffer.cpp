@@ -1,7 +1,8 @@
 #include "common_header.hpp"
 #include "ConstantTensorDescriptor_deprecated.hpp"
 #include "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer.hpp"
-#include "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw_lds_double_buffer.hpp"
+#include "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_fp16_bfp16_fwd_nchw_kcyx_nkhw_lds_double_buffer.hpp"
+#include "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_fp16_bfp16_wrw_nchw_kcyx_nkhw_lds_double_buffer.hpp"
 #include "float_types.h"
 
 extern "C" __global__
@@ -132,6 +133,9 @@ extern "C" __global__
     constexpr index_t GemmBBlockCopyDstDataPerWrite_GemmN =
         CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N;
 
+    constexpr index_t GemmABlockCopySrcDataPerRead_GemmK =
+        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_K;
+
 #elif MIOPEN_USE_FP16 || MIOPEN_USE_BFP16
     constexpr index_t GemmKPACK = CK_PARAM_GEMM_KPACK_LENGTH;
 
@@ -164,12 +168,19 @@ extern "C" __global__
 
     constexpr index_t GemmBBlockCopyDstDataPerWrite_GemmKPACK =
         CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK;
-#endif
+
+#if CK_PARAM_PROBLEM_DIRECTION == 2
+    constexpr index_t GemmABlockCopySrcDataPerRead_GemmK =
+        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_K;
+#else
+    constexpr index_t GemmABlockCopySrcDataPerRead_GemmKPACK =
+        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_KPACK;
+#endif // CK_PARAM_PROBLEM_DIRECTION
+
+#endif // MIOPEN_USE_FP16 || MIOPEN_USE_BFP16
 
     constexpr index_t GemmBBlockCopySrcDataPerRead_GemmN =
         CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N;
-    constexpr index_t GemmABlockCopySrcDataPerRead_GemmK =
-        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_K;
 
     constexpr auto GemmMPerWave                  = CK_PARAM_GEMM_M_PER_WAVE;
     constexpr auto GemmNPerWave                  = CK_PARAM_GEMM_N_PER_WAVE;
@@ -220,7 +231,7 @@ extern "C" __global__
     // Backward weight in fp16/bfp16 uses atomic add to do reduction along K dimension
     // It requires output blob to be of float as no atomic add exists for half/ushort
     constexpr auto gridwise_conv =
-        GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw_lds_double_buffer<
+        GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_wrw_nchw_kcyx_nkhw_lds_double_buffer<
             GridSize,
             BlockSize,
             FLOAT,       // Input data type = half (fp16) or ushort (bfp16)
@@ -265,7 +276,7 @@ extern "C" __global__
     // Forward data doesn't use any atomic add so output blob remains of the same type
     // as input blob
     constexpr auto gridwise_conv =
-        GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw_lds_double_buffer<
+        GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_fwd_nchw_kcyx_nkhw_lds_double_buffer<
             GridSize,
             BlockSize,
             FLOAT,       // Input data type = half (fp16) or ushort (bfp16)
@@ -292,7 +303,7 @@ extern "C" __global__
             GemmABlockCopyThreadClusterArrangeOrder,
             GemmABlockCopySrcAccessOrder,
             GemmABlockCopyDstAccessOrder,
-            GemmABlockCopySrcDataPerRead_GemmK,
+            GemmABlockCopySrcDataPerRead_GemmKPACK,
             GemmABlockCopyDstDataPerWrite_GemmKPACK,
             GemmBBlockCopySubLengths_GemmG_GemmK_GemmN_GemmKPACK,
             GemmBBlockCopyClusterLengths_GemmG_GemmK_GemmN_GemmKPACK,
@@ -305,5 +316,5 @@ extern "C" __global__
     gridwise_conv.Run(p_in_global, p_wei_global, p_out_global);
 #else
     static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
-#endif
+#endif // MIOPEN_USE_FP32
 }
