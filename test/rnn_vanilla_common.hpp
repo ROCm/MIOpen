@@ -2386,6 +2386,12 @@ struct rnn_basic_vanilla_driver : test_driver
         miopenRNNAlgo_t algoMode = miopenRNNdefault;
         if(useDropout)
         {
+// Workaround for issue #2335.
+// OpenCL error creating buffer: 0 Invalid Buffer Size
+#if MIOPEN_BACKEND_OPENCL
+            std::cout << "Skip test for Issue #2335: " << std::endl;
+            return;
+#endif
             miopenHandle_t mio_handle;
             miopenCreateWithStream(&mio_handle, handle.GetStream());
 
