@@ -904,8 +904,8 @@ struct ConvHipImplicitGemmV4R4WrWXdlops : SolverBase<ConvolutionContext>
     PerformanceImplicitGemmXdlops Search(const ConvolutionContext&) const;
     int RunAndMeasureSolution(miopen::Handle& profile_h,
                               ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
+                              ConstData_t top_buf,
+                              Data_t wei_buf,
                               ConstData_t bias_buf,
                               const ConvolutionContext& ctx,
                               const ConvSolution& solution,
@@ -989,8 +989,8 @@ struct ConvHipImplicitGemmV4R1WrW : SolverBase<ConvolutionContext>
     PerformanceImplicitGemmV4R1 Search(const ConvolutionContext&) const;
     int RunAndMeasureSolution(miopen::Handle& profile_h,
                               ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
+                              ConstData_t top_buf,
+                              Data_t wei_buf,
                               ConstData_t bias_buf,
                               const ConvolutionContext& ctx,
                               const ConvSolution& solution,
@@ -1010,8 +1010,8 @@ struct ConvHipImplicitGemmV4WrW : SolverBase<ConvolutionContext>
     PerformanceImplicitGemm Search(const ConvolutionContext&) const;
     int RunAndMeasureSolution(miopen::Handle& profile_h,
                               ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
+                              ConstData_t top_buf,
+                              Data_t wei_buf,
                               ConstData_t bias_buf,
                               const ConvolutionContext& ctx,
                               const ConvSolution& solution,
