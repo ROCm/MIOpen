@@ -13,10 +13,12 @@ typedef float float32_t __attribute__((ext_vector_type(32)));
 // float16
 typedef _Float16 half2_t __attribute__((ext_vector_type(2)));
 typedef _Float16 half4_t __attribute__((ext_vector_type(4)));
+typedef _Float16 half8_t __attribute__((ext_vector_type(8)));
 
 // bfloat16
 typedef ushort ushort2_t __attribute__((ext_vector_type(2)));
 typedef ushort ushort4_t __attribute__((ext_vector_type(4)));
+typedef ushort ushort8_t __attribute__((ext_vector_type(8)));
 
 template <class T, index_t N>
 struct vector_type
@@ -152,6 +154,25 @@ struct vector_type<half, 4>
 };
 
 template <>
+struct vector_type<half, 8>
+{
+    using MemoryType = half8_t;
+
+    union DataType
+    {
+        MemoryType vector;
+        half scalar[8];
+    };
+
+    template <index_t I>
+    __host__ __device__ static void SetScalar(MemoryType& v, half s, Number<I>)
+    {
+        static_assert(I < 8, "wrong");
+        *(reinterpret_cast<half*>(&v) + I) = s;
+    }
+};
+
+template <>
 struct vector_type<ushort, 1>
 {
     using MemoryType = ushort;
@@ -217,6 +238,25 @@ struct vector_type<ushort, 4>
         data.scalar[2] = s2;
         data.scalar[3] = s3;
         return data.vector;
+    }
+};
+
+template <>
+struct vector_type<ushort, 8>
+{
+    using MemoryType = ushort8_t;
+
+    union DataType
+    {
+        MemoryType vector;
+        ushort scalar[8];
+    };
+
+    template <index_t I>
+    __host__ __device__ static void SetScalar(MemoryType& v, ushort s, Number<I>)
+    {
+        static_assert(I < 8, "wrong");
+        *(reinterpret_cast<ushort*>(&v) + I) = s;
     }
 };
 
