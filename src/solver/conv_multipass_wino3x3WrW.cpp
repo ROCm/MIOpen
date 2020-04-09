@@ -36,7 +36,7 @@
 #include <miopen/tensor.hpp>
 #include <miopen/solver.hpp>
 
-#if((MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS) || MIOPEN_USE_MIOPENTENSILE)
+#if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
 #define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
 #endif
 
@@ -369,7 +369,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 // HIP backend required for sending ptr (buffer + offset)
 // ROCBLAS for GEMM step
 
-#if((MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS) || MIOPEN_USE_MIOPENTENSILE)
+#if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
     static const int wino_data_tile   = std::max(WinoDataH, WinoDataW);
     static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
 

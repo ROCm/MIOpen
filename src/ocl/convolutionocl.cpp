@@ -3610,7 +3610,7 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
                                             float* elapsed = nullptr)
 
 {
-#if((MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS) || MIOPEN_USE_MIOPENTENSILE)
+#if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
     int flags         = 0;
     int reserved      = 0;
     int* reserved_ptr = nullptr;

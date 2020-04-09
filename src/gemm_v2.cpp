@@ -30,6 +30,10 @@
 #include <miopen/handle.hpp>
 #include <miopen/finddb_kernel_cache_key.hpp>
 
+#if MIOPEN_BACKEND_HIP
+#include <miopen/hipoc_kernel.hpp>
+#endif
+
 #if MIOPEN_USE_MIOPENTENSILE
 #include <miopentensile/gemm.h>
 #endif
@@ -37,7 +41,6 @@
 #if MIOPEN_USE_ROCBLAS
 #include <half.hpp>
 #include <rocblas.h>
-#include <miopen/hipoc_kernel.hpp>
 #include <miopen/perf_field.hpp>
 #endif
 
@@ -369,10 +372,12 @@ miopenStatus_t CallGemmMIOpenTensile(Handle& handle,
     if(gemm_desc.dataType != miopenFloat)
         return miopenStatusNotImplemented;
 
+#if MIOPEN_BACKEND_HIP
     HipEventPtr start = nullptr;
     HipEventPtr stop  = nullptr;
     if(handle.IsProfilingEnabled())
         ProfilingRecordStart(handle, start, stop);
+#endif
 
     auto mtA_len0  = size_t(gemm_desc.transA ? gemm_desc.k : gemm_desc.m);
     auto mtA_len1  = size_t(gemm_desc.transA ? gemm_desc.m : gemm_desc.k);
@@ -397,23 +402,26 @@ miopenStatus_t CallGemmMIOpenTensile(Handle& handle,
                               {mtA_str0, mtA_str1},
                               {mtA_b_n, mtA_b_str},
                               miopen_tensile_type_float,
-                              Data_t(static_cast<const float*>(A) + a_offset)};
+                              Data_t(reinterpret_cast<const float*>(A) + a_offset)};
     miopen_tensile_matrix mtB{{mtB_len0, mtB_len1},
                               {mtB_str0, mtB_str1},
                               {mtB_b_n, mtB_b_str},
                               miopen_tensile_type_float,
-                              Data_t(static_cast<const float*>(B) + b_offset)};
+                              Data_t(reinterpret_cast<const float*>(B) + b_offset)};
     miopen_tensile_matrix mtC{{mtC_len0, mtC_len1},
                               {mtC_str0, mtC_str1},
                               {mtC_b_n, mtC_b_str},
                               miopen_tensile_type_float,
-                              Data_t(static_cast<float*>(C) + c_offset)};
+                              Data_t(reinterpret_cast<float*>(C) + c_offset)};
 
-    auto mt_status = miopen_tensile_gemm_hip(
+    miopen_tensile_status mt_status = miopen_tensile_status_no_solution;
+#if MIOPEN_BACKEND_HIP
+    mt_status = miopen_tensile_gemm_hip(
         handle.GetStream(), &mtA, &mtB, &mtC, double(gemm_desc.alpha), double(gemm_desc.beta));
 
     if(handle.IsProfilingEnabled())
         ProfilingRecordStop(handle, start, stop);
+#endif
 
     if(kcache_key != nullptr)
         *kcache_key = FindDbKCacheKey::MakeUnused("MIOpenTensile");
