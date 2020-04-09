@@ -73,7 +73,11 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
             "`arch` TEXT NOT NULL,"
             "`num_cu` INTEGER NOT NULL,"
             "`params` TEXT NOT NULL"
-            ");";
+            ");"
+            "CREATE UNIQUE INDEX IF NOT EXISTS "
+            "`idx_perf_db` "
+            "ON perf_db(solver, config, arch, num_cu);";
+
         // clang-format on
         {
             const auto lock = shared_lock(lock_file, GetLockTimeout());

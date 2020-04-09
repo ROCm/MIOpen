@@ -58,6 +58,15 @@
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
 
+// Only select the first applicable igemm solver due to long compilation time
+// (JIRA SWDEV-227826)
+/// \todo enable all applicable solvers of igemm after fixing slow compilation
+#define WORKAROUND_SWDEV_227826 1
+
+#if WORKAROUND_SWDEV_227826
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)
+#endif
+
 #if MIOPEN_ENABLE_SQLITE
 miopen::PerformanceDb mlo_construct_base::GetDb() const
 {
@@ -204,7 +213,14 @@ AllDirectForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
 std::vector<miopen::solver::ConvSolution>
 FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx)
 {
+#if WORKAROUND_SWDEV_227826
+    if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
+        return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+    else
+        return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), 1);
+#else
     return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+#endif
 }
 
 std::vector<miopen::solver::ConvSolution>
@@ -228,7 +244,14 @@ AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx)
 std::vector<miopen::solver::ConvSolution>
 FindImplicitGemmWrWAllSolutions(const miopen::ConvolutionContext& ctx)
 {
+#if WORKAROUND_SWDEV_227826
+    if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
+        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+    else
+        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), 1);
+#else
     return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+#endif
 }
 
 std::vector<miopen::solver::ConvSolution>
