@@ -179,6 +179,7 @@ set( MIOpen_Source
     conv/invokers/gcn_asm_1x1u_us.cpp
     conv/invokers/gen_x_w_y_pad.cpp
     conv/invokers/ocl_wrw_rdc.cpp
+    conv/invokers/impl_gemm.cpp
     invoker_cache.cpp
     tensor.cpp
     tensor_api.cpp
