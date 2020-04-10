@@ -163,17 +163,22 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
     }
 }
 
-inline int EvaluateSCGemmSolution(Handle& handle,
-                                  const miopen::solver::ConvSolution& solution,
-                                  ConstData_t x,
-                                  ConstData_t w,
-                                  Data_t y,
-                                  Data_t workSpace,
-                                  size_t workSpaceSize,
-                                  const ConvolutionContext& params,
-                                  int mask,
-                                  float coef,
-                                  float& elapsed)
+inline int EvaluateSCGemmSolution(
+#if MIOPEN_USE_SCGEMM
+    Handle& handle,
+#else
+    const Handle& handle,
+#endif
+    const miopen::solver::ConvSolution& solution,
+    ConstData_t x,
+    ConstData_t w,
+    Data_t y,
+    Data_t workSpace,
+    size_t workSpaceSize,
+    const ConvolutionContext& params,
+    int mask,
+    float coef,
+    float& elapsed)
 {
 #if MIOPEN_USE_SCGEMM
     // Fail if required workspace is not provided.
