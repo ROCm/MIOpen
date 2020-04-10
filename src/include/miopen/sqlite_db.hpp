@@ -60,8 +60,7 @@ namespace miopen {
         if(!(lock))                                      \
             MIOPEN_THROW("Db lock has failed to lock."); \
     } while(false)
-#define MIOPEN_SQL_BUSY_TIMEOUT 500
-
+#define MIOPEN_SQL_BUSY_TIMEOUT_MS 500
 template <class Derived>
 struct SQLiteSerializable
 {
@@ -194,7 +193,7 @@ class SQLiteBase
         }
         else
         {
-            sqlite3_busy_timeout(ptrDb.get(), MIOPEN_SQL_BUSY_TIMEOUT);
+            sqlite3_busy_timeout(ptrDb.get(), MIOPEN_SQL_BUSY_TIMEOUT_MS);
             dbInvalid = false;
         }
     }
