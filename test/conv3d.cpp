@@ -30,7 +30,8 @@ struct conv3d_driver : conv_driver<T>
 {
     conv3d_driver() : conv_driver<T>()
     {
-        this->add(this->batch_size, "batch_size", this->generate_data_limited(this->get_batch_sizes()));
+        this->add(
+            this->batch_size, "batch_size", this->generate_data_limited(this->get_batch_sizes()));
         this->add(this->input_channels,
                   "input_channels",
                   this->generate_data_limited(this->get_input_channels()));

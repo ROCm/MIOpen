@@ -482,7 +482,6 @@ struct test_driver
         }};
     }
 
-
     template <class T>
     generate_data_t<std::vector<T>> generate_data(std::initializer_list<T> dims)
     {
