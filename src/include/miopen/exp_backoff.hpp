@@ -54,7 +54,7 @@ struct LazyExponentialBackoff
 
     {
         std::random_device rd;
-        gen = std::mt19937(rd());
+        gen = std::mt19937(rd()); // NOLINT
         dis = std::uniform_int_distribution<>(0, max_rand);
         buf.resize(max_buf_sz);
         for(auto idx = 0; idx < max_buf_sz; idx++)

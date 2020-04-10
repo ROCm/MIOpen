@@ -222,14 +222,14 @@ class SQLiteBase
             if(rc == SQLITE_BUSY)
             {
                 ++tries;
-                auto slot = -1;
                 // Let the OS deal with it
                 if(tries < 10)
                     std::this_thread::yield();
                 // Exp backoff steps in
                 else
                 {
-                    slot = *exp_bo;
+                    auto slot = -1;
+                    slot      = *exp_bo;
                     MIOPEN_LOG_I2("Database busy, sleeping for: " << (100 * slot)
                                                                   << " microseconds");
                     if(slot != 0)
