@@ -280,8 +280,8 @@ int ConvHipImplicitGemmV4R4Xdlops_1x1::RunAndMeasureSolution(miopen::Handle& pro
 
 int ConvHipImplicitGemmV4R4WrWXdlops::RunAndMeasureSolution(miopen::Handle& profile_h,
                                                             ConstData_t bot_buf,
-                                                            Data_t top_buf,
-                                                            ConstData_t wei_buf,
+                                                            ConstData_t top_buf,
+                                                            Data_t wei_buf,
                                                             ConstData_t bias_buf,
                                                             const ConvolutionContext& ctx,
                                                             const ConvSolution& solution,
@@ -384,7 +384,7 @@ ConvHipImplicitGemmV4R4FwdXdlops::Search(const ConvolutionContext& ctx) const
 PerformanceImplicitGemmXdlops
 ConvHipImplicitGemmV4R4WrWXdlops::Search(const ConvolutionContext& ctx) const
 {
-    return GenericSearchFwd(*this, ctx);
+    return GenericSearchWrW(*this, ctx);
 }
 
 } // namespace solver

@@ -28,6 +28,9 @@
 
 #include <map>
 #include <string>
+#include <miopen/env.hpp>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENFORCE_DEVICE)
 
 namespace miopen {
 
@@ -53,14 +56,21 @@ std::string inline GetDeviceNameFromMap(const std::string& name)
         {"gfx908", "gfx908"},
     };
 
-    auto device_name_iterator = device_name_map.find(name);
+    std::string n(name);
+    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_ENFORCE_DEVICE{});
+    if(p_asciz != nullptr && strlen(p_asciz) > 0)
+    {
+        n = p_asciz;
+    }
+
+    auto device_name_iterator = device_name_map.find(n);
     if(device_name_iterator != device_name_map.end())
     {
         return device_name_iterator->second;
     }
     else
     {
-        return name;
+        return n;
     }
 }
 

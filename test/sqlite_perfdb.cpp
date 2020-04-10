@@ -375,9 +375,7 @@ class DbFindTest : public DbTest
         auto no_rec = db_inst.FindRecord(p);
         EXPECT(!no_rec);
 
-        auto ids = db_inst.GetConfigIDs(p);
-        EXPECT(ids.size() == 1);
-
+        auto id = db_inst.GetConfigIDs(p);
         const SolverData sol;
         std::ostringstream ss;
         sol.Serialize(ss);
@@ -385,7 +383,7 @@ class DbFindTest : public DbTest
             // clang-formagt off
             "INSERT INTO perf_db(config, solver, params, arch, num_cu) "
             "VALUES( " +
-            ids[0]["id"] + ", '" + id0() + "', '" + ss.str() + "', 'gfx906', 64);"));
+            id + ", '" + id0() + "', '" + ss.str() + "', 'gfx906', 64);"));
         // clang-fromat on
 
         auto sol_res = db_inst.FindRecord(p);
@@ -1116,7 +1114,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
         std::cout << "Remove test..." << std::endl;
 
         MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(temp_file, user_db_path, "gfx906", 64);
-        EXPECT(!db.Remove(key(), id0()));
+        EXPECT(db.Remove(key(), id0()));
         EXPECT(db.Remove(key(), id1()));
 
         ValidateData(db, value2());
