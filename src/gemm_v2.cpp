@@ -156,7 +156,7 @@ dummy_memset(const Handle& handle, Data_t mem, std::size_t mem_len, miopenDataTy
 #endif
 
 #if MIOPEN_BACKEND_HIP
-inline void ProfilingRecordStart(Handle& handle, HipEventPtr& start, HipEventPtr& stop)
+inline void ProfilingRecordStart(const Handle& handle, HipEventPtr& start, HipEventPtr& stop)
 {
     start = make_hip_event();
     stop  = make_hip_event();
