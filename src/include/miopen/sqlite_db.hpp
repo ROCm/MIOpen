@@ -60,6 +60,7 @@ namespace miopen {
         if(!(lock))                                      \
             MIOPEN_THROW("Db lock has failed to lock."); \
     } while(false)
+#define MIOPEN_SQL_BUSY_TIMEOUT 500
 
 template <class Derived>
 struct SQLiteSerializable
@@ -109,11 +110,6 @@ class SQLiteBase
     protected:
     using sqlite3_ptr      = MIOPEN_MANAGE_PTR(sqlite3*, sqlite3_close);
     using sqlite3_stmt_ptr = MIOPEN_MANAGE_PTR(sqlite3_stmt*, sqlite3_finalize);
-    static auto GetLockTimeout()
-    {
-        // return boost::get_system_time() + boost::posix_time::milliseconds(60000);
-        return std::chrono::milliseconds(60000);
-    }
 
     public:
     SQLiteBase(const std::string& filename_,
@@ -156,6 +152,10 @@ class SQLiteBase
                 MIOPEN_LOG_W("Unable to read system database file:" + filename_ +
                              " Performance may degrade");
             }
+        }
+        else
+        {
+            sqlite3_busy_timeout(ptrDb.get(), MIOPEN_SQL_BUSY_TIMEOUT);
         }
     }
 
