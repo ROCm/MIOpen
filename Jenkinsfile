@@ -389,7 +389,7 @@ pipeline {
                 stage('GCC Release All') {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image + "rocm", "", "make -j test_conv2d && bin/test_conv2d --all --disable-verification-cache")
+                        buildJob('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image + "rocm", "", "make -j test_conv2d && bin/test_conv2d --all --limit 4 --disable-verification-cache")
                     }
                 }
 

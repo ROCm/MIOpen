@@ -26,7 +26,7 @@
 
 #include "pooling_common.hpp"
 
-#define TEST_GET_INPUT_TENSOR 1
+#define TEST_GET_INPUT_TENSOR 0
 
 template <class T>
 struct pooling2d_driver : pooling_driver<T>
@@ -60,7 +60,7 @@ struct pooling2d_driver : pooling_driver<T>
         std::vector<std::vector<int>> in_dim_vec(in_dim_set.begin(), in_dim_set.end());
         this->add(this->in_shape, "input", this->generate_data(in_dim_vec, {16, 32, 8, 8}));
 #else
-        this->add(this->in_shape, "input", this->generate_data(get_2d_pooling_input_shapes()));
+        this->add(this->in_shape, "input", this->generate_data_limit(get_2d_pooling_input_shapes()));
 #endif
         this->add(this->lens, "lens", this->generate_data({{2, 2}, {3, 3}}));
         this->add(this->strides, "strides", this->generate_data({{2, 2}, {1, 1}}));

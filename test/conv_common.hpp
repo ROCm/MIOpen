@@ -1425,16 +1425,17 @@ struct conv_driver : test_driver
         {"VALID", miopenPaddingValid},
         {"DEFAULT", miopenPaddingDefault}};
 
-    std::vector<std::size_t> get_batch_sizes() { return {1, 2, 8, 16, 64, 128, 352, 512}; }
+    std::vector<std::size_t> get_batch_sizes() { return {1, 16, 64, 128, 352, 512, 2, 8, 30}; }
 
     std::vector<std::vector<std::size_t>> get_2d_spatial_dims()
     {
         return {{7, 7},
+                {28, 28},
+                {56, 56},
                 {14, 14},
                 {17, 17},
-                {28, 28},
                 {32, 32},
-                {56, 56},
+
                 {55, 55},
                 {64, 128},
                 {224, 224},
