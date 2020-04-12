@@ -163,7 +163,7 @@ struct test_driver
     std::string cache_path = compute_cache_path();
     miopenDataType_t type  = miopenFloat;
     bool full_set          = false;
-    int limit_set          = 3;
+    int limit_set          = 0;
     bool verbose           = false;
     double tolerance       = 80;
     bool time              = false;
