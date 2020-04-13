@@ -243,9 +243,9 @@ class SQLiteBase
             MIOPEN_VALIDATE_LOCK(lock);
             SQLExec(sql_cfg_fds, cfg_res);
         }
-        std::vector<std::string> cfg_fds;
-        for(auto& row : cfg_res)
-            cfg_fds.push_back(row["name"]);
+        std::vector<std::string> cfg_fds(cfg_res.size());
+        std::transform(
+            cfg_res.begin(), cfg_res.end(), cfg_fds.begin(), [](auto row) { return row["name"]; });
         // search in the golden vector
         bool AllFound = true;
         for(auto& goldenName : goldenList)
@@ -253,7 +253,9 @@ class SQLiteBase
             if(std::find(cfg_fds.begin(), cfg_fds.end(), goldenName) == cfg_fds.end())
             {
                 AllFound = false;
-                MIOPEN_LOG_I2("Field " + goldenName + " not found in table: " + tableName);
+                std::ostringstream ss;
+                ss << "Field " << goldenName << " not found in table: " << tableName;
+                MIOPEN_LOG_I2(ss.str());
                 // break; Not breaking to enable logging of all missing fields.
             }
         }
