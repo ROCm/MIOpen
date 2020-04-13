@@ -147,8 +147,8 @@ class SQLiteBase
     {
         void operator()(sqlite3* ptr)
         {
-            std::string filename(sqlite3_db_filename(ptr, "main"));
-            SQLiteBase::SQLRety([&]() { return sqlite3_close(ptr); }, filename);
+            std::string filename_(sqlite3_db_filename(ptr, "main"));
+            SQLiteBase::SQLRety([&]() { return sqlite3_close(ptr); }, filename_);
         }
     };
     using sqlite3_ptr      = std::unique_ptr<sqlite3, SQLiteCloser>;
