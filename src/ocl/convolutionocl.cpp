@@ -2211,9 +2211,7 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
             if(v_kernels.empty())
                 v_kernels = CompileSolver(handle, ctx, solver_id, pair.second.kcache_key);
 
-            if(solver_id == solver::Id::fft())
-                ConvFwdFFT(handle, tensors, workSpace, workSpaceSize, network_config);
-            else if(algo_name == "miopenConvolutionFwdAlgoStaticCompiledGEMM")
+            if(algo_name == "miopenConvolutionFwdAlgoStaticCompiledGEMM")
                 ConvFwdSCGemm(ctx, handle, tensors, workSpace, workSpaceSize, v_kernels);
             else
                 MIOPEN_THROW("Invalid algorithm: " + pair.second.kcache_key.algorithm_name);
@@ -3173,10 +3171,7 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
                 return;
             }
 
-            if(solver_id == solver::Id::fft())
-                ConvBwdFFT(handle, tensors, workSpace, workSpaceSize, network_config);
-            else
-                MIOPEN_THROW("Invalid algorithm: " + pair.second.kcache_key.algorithm_name);
+            MIOPEN_THROW("Invalid algorithm: " + pair.second.kcache_key.algorithm_name);
             return;
         }
 
