@@ -169,9 +169,11 @@ EvaluateDataImplicitGemmSolution(Handle& handle,
                                  const miopen::solver::ConvSolution& solution,
                                  ConstData_t in, // Fwd: x, Bwd: dy, this is really a confusion trap
                                  ConstData_t weights,
-                                 Data_t out,                      // Fwd: y, Bwd: dx
+                                 Data_t out, // Fwd: y, Bwd: dx
+                                 const TensorDescriptor& wDesc,
                                  const TensorDescriptor& outDesc, // Fwd: dyDesc, Bwd: dxDesc
                                  bool isForward,
+                                 const std::vector<int>& padding,
                                  const std::vector<int>& strides,
                                  Data_t workSpace,
                                  const size_t workSpaceSize,
@@ -235,10 +237,6 @@ EvaluateDataImplicitGemmSolution(Handle& handle,
         }
         // clang-format off
         else if(kernel.GetName() ==
-                    "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw" ||
-                kernel.GetName() ==
-                    "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw" ||
-                kernel.GetName() ==
                     "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw" ||
                 kernel.GetName() ==
                     "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_gnchw_gkcyx_gnkhw")
@@ -250,14 +248,61 @@ EvaluateDataImplicitGemmSolution(Handle& handle,
             elapsed += handle.GetKernelTime();
         }
         else if(kernel.GetName() ==
+                    "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw" ||
+                kernel.GetName() ==
+                    "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw")
+        { // only pad=0 stride=1 filter 1 not set zero
+            bool is_1x1_s1 = false;
+            if(miopen::all_of(padding, [](auto v) { return v == 0; }) &&
+               miopen::all_of(strides, [](auto v) { return v == 1; }))
+            {
+                if(wDesc.GetLengths()[2] == 1 && wDesc.GetLengths()[3] == 1)
+                { // filter = 1
+                    if(wDesc.GetSize() == 4 || (wDesc.GetSize() == 5 && wDesc.GetLengths()[4] == 1))
+                    {
+                        is_1x1_s1 = true;
+                    }
+                }
+            }
+
+            if(!is_1x1_s1)
+            {
+                float zero = 0.f;
+                SetTensor(handle, outDesc, out, &zero);
+                elapsed += handle.GetKernelTime();
+            }
+        }
+        else if(kernel.GetName() ==
                     "gridwise_convolution_backward_data_implicit_gemm_v4r1_nchw_kcyx_nkhw" ||
                 kernel.GetName() ==
                     "gridwise_convolution_backward_data_implicit_gemm_v4r1_ncdhw_kczyx_nkdhw")
         {
-            // \todo this kernel doesn't always need to set-zero
-            float zero = 0.f;
-            SetTensor(handle, outDesc, out, &zero);
-            elapsed += handle.GetKernelTime();
+            bool is_1x1_s1 = false;
+            if(miopen::all_of(padding, [](auto v) { return v == 0; }))
+            {
+                if(wDesc.GetSize() == 4)
+                { // 2d
+                    if(wDesc.GetLengths()[2] >= strides[0] && wDesc.GetLengths()[3] >= strides[1])
+                    {
+                        is_1x1_s1 = true;
+                    }
+                }
+                else
+                { // 3d
+                    if(wDesc.GetLengths()[2] >= strides[0] && wDesc.GetLengths()[3] >= strides[1] &&
+                       wDesc.GetLengths()[4] >= strides[2])
+                    {
+                        is_1x1_s1 = true;
+                    }
+                }
+            }
+
+            if(!is_1x1_s1)
+            {
+                float zero = 0.f;
+                SetTensor(handle, outDesc, out, &zero);
+                elapsed += handle.GetKernelTime();
+            }
         }
 
         for(auto& k : kernels)
@@ -879,8 +924,10 @@ static void DirConvFindCore(Handle& handle,
                                                                 x,
                                                                 w,
                                                                 y,
+                                                                wDesc,
                                                                 yDesc,
                                                                 true,
+                                                                conv.GetConvPads(),
                                                                 conv.GetConvStrides(),
                                                                 workSpace,
                                                                 workSpaceSize,
@@ -2543,8 +2590,10 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                                                         dy,
                                                                         w,
                                                                         dx,
+                                                                        wDesc,
                                                                         dxDesc,
                                                                         false,
+                                                                        this->GetConvPads(),
                                                                         this->GetConvStrides(),
                                                                         workSpace,
                                                                         workSpaceSize,
@@ -3034,13 +3083,23 @@ void ConvBwdImplicitGemm(const ConvolutionDescriptor& conv,
             elapsed += handle.GetKernelTime();
     }
     else if(kernel.GetName() ==
-                "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw" ||
-            kernel.GetName() ==
-                "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw" ||
-            kernel.GetName() ==
                 "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw" ||
             kernel.GetName() ==
                 "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_gnchw_gkcyx_gnkhw")
+    {
+        float zero = 0.f;
+        SetTensor(handle, tensors.dxDesc, tensors.dx, &zero);
+        if(handle.IsProfilingEnabled())
+            elapsed += handle.GetKernelTime();
+
+        kernel(tensors.dy, tensors.w, tensors.dx);
+        if(handle.IsProfilingEnabled())
+            elapsed += handle.GetKernelTime();
+    }
+    else if(kernel.GetName() ==
+                "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw" ||
+            kernel.GetName() ==
+                "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw")
     {
         // this kernel accumulate results into input tensor, therefore need to set zero
         bool is_1x1_s1 = false;
