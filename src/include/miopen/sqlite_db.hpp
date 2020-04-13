@@ -62,6 +62,22 @@ namespace miopen {
 template <class Derived>
 struct SQLiteSerializable
 {
+    std::vector<std::string> FieldNames() const
+    {
+        std::vector<std::string> names;
+        Derived::Visit(static_cast<const Derived&>(*this),
+                       [&](const std::string& value, const std::string& name) {
+                           std::ignore = value;
+                           names.push_back(name);
+                       });
+        Derived::Visit(static_cast<const Derived&>(*this),
+                       [&](const int value, const std::string name) {
+                           std::ignore = value;
+                           names.push_back(name);
+                       });
+
+        return names;
+    }
     std::tuple<std::string, std::vector<std::string>> WhereClause() const
     {
         std::vector<std::string> values;
@@ -215,6 +231,33 @@ class SQLiteBase
             record[azColName[i]] = (argv[i] != nullptr) ? argv[i] : "NULL";
         res->push_back(record);
         return 0;
+    }
+
+    inline auto CheckTableColumns(const std::string& tableName,
+                                  const std::vector<std::string>& goldenList) const
+    {
+        const auto sql_cfg_fds = "PRAGMA table_info(" + tableName + ");";
+        SQLRes_t cfg_res;
+        {
+            const auto lock = shared_lock(lock_file, GetLockTimeout());
+            MIOPEN_VALIDATE_LOCK(lock);
+            SQLExec(sql_cfg_fds, cfg_res);
+        }
+        std::vector<std::string> cfg_fds;
+        for(auto& row : cfg_res)
+            cfg_fds.push_back(row["name"]);
+        // search in the golden vector
+        bool AllFound = true;
+        for(auto& goldenName : goldenList)
+        {
+            if(std::find(cfg_fds.begin(), cfg_fds.end(), goldenName) == cfg_fds.end())
+            {
+                AllFound = false;
+                MIOPEN_LOG_I2("Field " + goldenName + " not found in table: " + tableName);
+                // break; Not breaking to enable logging of all missing fields.
+            }
+        }
+        return AllFound;
     }
 
     inline auto SQLExec(const std::string& query)

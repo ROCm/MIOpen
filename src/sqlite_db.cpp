@@ -56,13 +56,13 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
                            const std::size_t num_cu_)
     : SQLiteBase(filename_, is_system, arch_, num_cu_)
 {
+    ProblemDescription prob_desc{conv::Direction::Forward};
+    prob_desc.in_data_type      = miopenFloat;
+    prob_desc.out_data_type     = miopenFloat;
+    prob_desc.weights_data_type = miopenFloat;
     if(!is_system)
     {
         SQLRes_t res;
-        ProblemDescription prob_desc{conv::Direction::Forward};
-        prob_desc.in_data_type          = miopenFloat;
-        prob_desc.out_data_type         = miopenFloat;
-        prob_desc.weights_data_type     = miopenFloat;
         const std::string create_config = prob_desc.CreateQuery();
         // clang-format off
         const std::string create_perfdb_sql =
@@ -100,5 +100,22 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
             MIOPEN_LOG_I2("Database created successfully");
         }
     }
+    // Check fields for the tables
+    if(!dbInvalid)
+    {
+        if(!CheckTableColumns(prob_desc.table_name(), prob_desc.FieldNames()))
+        {
+            MIOPEN_LOG_W("Invalid fields in table: " + prob_desc.table_name() +
+                         " disabling access to " + filename);
+            dbInvalid = true;
+        }
+        if(!CheckTableColumns("perf_db", {"solver", "config", "arch", "num_cu", "params"}))
+        {
+            MIOPEN_LOG_W("Invalid fields in table: perf_db disabling access to " + filename);
+            dbInvalid = true;
+        }
+    }
+    else
+        MIOPEN_LOG_I(filename + " database invalid");
 }
 } // namespace miopen
