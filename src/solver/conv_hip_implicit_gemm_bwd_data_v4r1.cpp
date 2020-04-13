@@ -848,7 +848,6 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1::GetSolution(
 
                 construction_parameters.kernel_name =
                     "gridwise_convolution_backward_data_implicit_gemm_v4r1_nchw_kcyx_nkhw";
-
             }
 
             int GemmMLevel0Cluster                    = 0;
