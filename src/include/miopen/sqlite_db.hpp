@@ -160,8 +160,7 @@ class SQLiteBase
         : filename(filename_),
           arch(arch_),
           num_cu(num_cu_),
-          lock_file(LockFile::Get(is_system ? LockFilePath(filename_).c_str()
-                                            : (filename_ + ".lock").c_str()))
+          lock_file(LockFile::Get(LockFilePath(filename_).c_str()))
     {
         MIOPEN_LOG_I2("Initializing " << (is_system ? "system" : "user") << " database file "
                                       << filename);
