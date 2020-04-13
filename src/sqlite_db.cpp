@@ -103,11 +103,11 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
     // Check fields for the tables
     if(!dbInvalid)
     {
-        if(!CheckTableColumns(prob_desc.table_name(), prob_desc.FieldNames()))
+        if(!CheckTableColumns(ProblemDescription::table_name(), prob_desc.FieldNames()))
         {
             std::ostringstream ss;
-            ss << "Invalid fields in table: " << prob_desc.table_name() << " disabling access to "
-               << filename;
+            ss << "Invalid fields in table: " << ProblemDescription::table_name()
+               << " disabling access to " << filename;
             MIOPEN_LOG_W(ss.str());
             dbInvalid = true;
         }
