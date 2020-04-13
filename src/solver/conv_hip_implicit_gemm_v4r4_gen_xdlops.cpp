@@ -156,10 +156,13 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             // For fp16 group cases, E = C/EPack * Y * X
             // Since C/EPack are not in contiguous memory along with Y*X, vector length
             // needs to be in multiple of Y*X
+            MIOPEN_LOG_I("mul " << (C / config.EPACKSize) * Y * X << " ABlockCopySubLengths_GemmK "
+                                << ABlockCopySubLengths_GemmK);
             ABlockCopySrcDataPerRead_GemmK =
-                ((Y * X) % ABlockCopySubLengths_GemmK) != 0
+                (((C / config.EPACKSize) * Y * X) % ABlockCopySubLengths_GemmK) != 0
                     ? 1
                     : GetReadWriteVectorSize(ABlockCopySubLengths_GemmK);
+            MIOPEN_LOG_I("gemmk " << ABlockCopySrcDataPerRead_GemmK);
         }
         else
         {

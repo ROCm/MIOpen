@@ -38,23 +38,21 @@ struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::ForwardData, GemmKP
         constexpr index_t nonVectorizedC = C / GemmKPACK;
 
         constexpr auto wei_g_k_epack_c_y_x_global_desc = transform_tensor_descriptor(
-            wei_g_k_c_y_x_global_desc,
+            unfold_tensor_descriptor(wei_g_k_c_y_x_global_desc, I3, I4),
             make_tuple(PassThrough<G>{},
                        PassThrough<K>{},
-                       UnMerge<Sequence<nonVectorizedC, GemmKPACK>>{},
-                       PassThrough<Y>{},
-                       PassThrough<X>{}),
-            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}, Sequence<4>{}),
-            make_tuple(
-                Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}, Sequence<4>{}, Sequence<5>{}));
+                       UnMerge<Sequence<GemmKPACK, nonVectorizedC>>{},
+                       PassThrough<Y * X>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}, Sequence<4>{}));
 
         constexpr auto wei_g_e_k_epack_global_desc = transform_tensor_descriptor(
             wei_g_k_epack_c_y_x_global_desc,
             make_tuple(PassThrough<G>{},
-                       Merge<Sequence<nonVectorizedC, Y, X>>{},
+                       Merge<Sequence<nonVectorizedC, Y * X>>{},
                        PassThrough<K>{},
                        PassThrough<GemmKPACK>{}),
-            make_tuple(Sequence<0>{}, Sequence<2, 4, 5>{}, Sequence<1>{}, Sequence<3>{}),
+            make_tuple(Sequence<0>{}, Sequence<3, 4>{}, Sequence<1>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
 
         return wei_g_e_k_epack_global_desc;
@@ -86,23 +84,21 @@ struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::BackwardWeight, Gem
         constexpr index_t nonVectorizedC = C / GemmKPACK;
 
         constexpr auto wei_g_k_epack_c_y_x_global_desc = transform_tensor_descriptor(
-            wei_g_k_c_y_x_global_desc,
+            unfold_tensor_descriptor(wei_g_k_c_y_x_global_desc, I3, I4),
             make_tuple(PassThrough<G>{},
                        PassThrough<K>{},
-                       UnMerge<Sequence<nonVectorizedC, GemmKPACK>>{},
-                       PassThrough<Y>{},
-                       PassThrough<X>{}),
-            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}, Sequence<4>{}),
-            make_tuple(
-                Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}, Sequence<4>{}, Sequence<5>{}));
+                       UnMerge<Sequence<GemmKPACK, nonVectorizedC>>{},
+                       PassThrough<X * Y>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}, Sequence<4>{}));
 
         constexpr auto wei_g_e_k_epack_global_desc = transform_tensor_descriptor(
             wei_g_k_epack_c_y_x_global_desc,
             make_tuple(PassThrough<G>{},
-                       Merge<Sequence<nonVectorizedC, Y, X>>{},
+                       Merge<Sequence<nonVectorizedC, X * Y>>{},
                        PassThrough<K>{},
                        PassThrough<GemmKPACK>{}),
-            make_tuple(Sequence<0>{}, Sequence<2, 4, 5>{}, Sequence<1>{}, Sequence<3>{}),
+            make_tuple(Sequence<0>{}, Sequence<3, 4>{}, Sequence<1>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
 
         return wei_g_e_k_epack_global_desc;
@@ -218,7 +214,7 @@ struct
             in_g_n_c_hip_wip_global_desc,
             make_tuple(PassThrough<G>{},
                        PassThrough<N>{},
-                       UnMerge<Sequence<nonVectorizedC, GemmKPACK>>{},
+                       UnMerge<Sequence<GemmKPACK, nonVectorizedC>>{},
                        Embed<Hip, Sequence<Y, Ho>, Sequence<ConvDilationH, ConvStrideH, 0>>{},
                        Embed<Wip, Sequence<X, Wo>, Sequence<ConvDilationW, ConvStrideW, 0>>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}, Sequence<4>{}),
@@ -234,7 +230,7 @@ struct
                        Merge<Sequence<nonVectorizedC, Y, X>>{},
                        Merge<Sequence<N, Ho, Wo>>{},
                        PassThrough<GemmKPACK>{}),
-            make_tuple(Sequence<0>{}, Sequence<2, 4, 6>{}, Sequence<1, 5, 7>{}, Sequence<3>{}),
+            make_tuple(Sequence<0>{}, Sequence<3, 4, 6>{}, Sequence<1, 5, 7>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
 
         constexpr auto in_gemmg_gemmk0_gemmk1_gemmn_gemmkpack_global_desc =
