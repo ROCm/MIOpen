@@ -60,11 +60,7 @@ boost::filesystem::path ComputeUserCachePath()
 #ifdef MIOPEN_CACHE_DIR
     std::string cache_dir = MIOPEN_CACHE_DIR;
 
-    std::string version = std::to_string(MIOPEN_VERSION_MAJOR) + "." +
-                          std::to_string(MIOPEN_VERSION_MINOR) + "." +
-                          std::to_string(MIOPEN_VERSION_PATCH);
-
-    auto p = boost::filesystem::path{miopen::ExpandUser(cache_dir)} / version;
+    auto p = boost::filesystem::path{miopen::ExpandUser(cache_dir)};
     if(!boost::filesystem::exists(p))
         boost::filesystem::create_directories(p);
     return p;
@@ -98,8 +94,9 @@ KDb GetDb(const std::string& device, size_t num_cu)
     static const auto user_dir = ComputeUserCachePath();
     static const auto sys_dir  = ComputeSysCachePath();
     boost::filesystem::path user_path =
-        user_dir / (Handle::GetDbBasename(device, num_cu) + ".ukdb");
-    boost::filesystem::path sys_path = sys_dir / (Handle::GetDbBasename(device, num_cu) + ".kdb");
+        user_dir / (Handle::GetDbBasename(device, num_cu) + "_" MIOPEN_SQLITE_SCHEMA_VER ".ukdb");
+    boost::filesystem::path sys_path =
+        sys_dir / (Handle::GetDbBasename(device, num_cu) + "_" MIOPEN_SQLITE_SCHEMA_VER ".kdb");
     if(user_dir.empty())
         user_path = user_dir;
     if(!boost::filesystem::exists(sys_path))

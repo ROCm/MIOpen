@@ -86,7 +86,7 @@ struct ExecutionContext
         // clang-format off
         return GetSystemDbPath()
 #if MIOPEN_ENABLE_SQLITE
-            + "/miopen.db";
+            + "/miopen_" MIOPEN_SQLITE_SCHEMA_VER ".db";
 #else
             + "/"
             + GetStream().GetDbBasename()
@@ -100,9 +100,8 @@ struct ExecutionContext
         // clang-format off
         return GetUserDbPath()
 #if MIOPEN_ENABLE_SQLITE
-             + "/miopen.udb";
+             + "miopen_" MIOPEN_SQLITE_SCHEMA_VER ".udb";
 #else
-             + "/"
              + GetStream().GetDbBasename()
              + "."
              + GetUserDbSuffix()

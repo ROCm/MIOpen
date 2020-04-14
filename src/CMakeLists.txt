@@ -617,7 +617,7 @@ rocm_export_targets(
 
 # Install db files
 install(FILES
-    kernels/miopen.db
+    kernels/miopen_${MIOPEN_SQLITE_SCHEMA_VER}.db
     kernels/gfx803_36.HIP.fdb.txt
     kernels/gfx803_64.HIP.fdb.txt
     kernels/gfx900_64.HIP.fdb.txt
