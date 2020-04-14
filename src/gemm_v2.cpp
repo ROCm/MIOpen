@@ -381,19 +381,19 @@ miopenStatus_t CallGemmMIOpenTensile(Handle& handle,
 
     auto mtA_len0  = size_t(gemm_desc.transA ? gemm_desc.k : gemm_desc.m);
     auto mtA_len1  = size_t(gemm_desc.transA ? gemm_desc.m : gemm_desc.k);
-    auto mtA_str0  = size_t(gemm_desc.transA ? 1 : gemm_desc.k);
-    auto mtA_str1  = size_t(gemm_desc.transA ? gemm_desc.m : 1);
+    auto mtA_str0  = size_t(gemm_desc.transA ? 1 : gemm_desc.lda);
+    auto mtA_str1  = size_t(gemm_desc.transA ? gemm_desc.lda : 1);
     auto mtA_b_n   = size_t(gemm_desc.batch_count);
     auto mtA_b_str = size_t(gemm_desc.strideA);
     auto mtB_len0  = size_t(gemm_desc.transB ? gemm_desc.n : gemm_desc.k);
     auto mtB_len1  = size_t(gemm_desc.transB ? gemm_desc.k : gemm_desc.n);
-    auto mtB_str0  = size_t(gemm_desc.transB ? 1 : gemm_desc.n);
-    auto mtB_str1  = size_t(gemm_desc.transB ? gemm_desc.k : 1);
+    auto mtB_str0  = size_t(gemm_desc.transB ? 1 : gemm_desc.ldb);
+    auto mtB_str1  = size_t(gemm_desc.transB ? gemm_desc.ldb : 1);
     auto mtB_b_n   = size_t(gemm_desc.batch_count);
     auto mtB_b_str = size_t(gemm_desc.strideB);
     auto mtC_len0  = size_t(gemm_desc.m);
     auto mtC_len1  = size_t(gemm_desc.n);
-    auto mtC_str0  = size_t(gemm_desc.n);
+    auto mtC_str0  = size_t(gemm_desc.ldc);
     auto mtC_str1  = size_t(1);
     auto mtC_b_n   = size_t(gemm_desc.batch_count);
     auto mtC_b_str = size_t(gemm_desc.strideC);
