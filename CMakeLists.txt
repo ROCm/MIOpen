@@ -118,15 +118,6 @@ message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
 add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
 
-# miopentensile
-set(MIOPEN_USE_MIOPENTENSILE ON CACHE BOOL "")
-if(MIOPEN_USE_MIOPENTENSILE)
-    find_package(miopentensile)
-    message(STATUS "Build with miopentensile")
-else()
-    message(STATUS "Build without miopentensile")
-endif()
-
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set(MIOPEN_BACKEND_OPENCL 1)
@@ -144,6 +135,9 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
 
     # scgemm not support opencl backend yet.
     set(MIOPEN_USE_SCGEMM OFF)
+
+    # miopentensile temporarily not support opencl backend yet.
+    set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
 endif()
 
 # HIP
@@ -201,6 +195,9 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     else()
         message(STATUS "Build without scgemm")
     endif()
+
+    # miopentensile
+    set(MIOPEN_USE_MIOPENTENSILE ON CACHE BOOL "")
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
 # look for and register extractkernel
@@ -232,6 +229,14 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
     NO_DEFAULT_PATH
 )
 message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
+
+# miopentensile
+if(MIOPEN_USE_MIOPENTENSILE)
+    find_package(miopentensile)
+    message(STATUS "Build with miopentensile")
+else()
+    message(STATUS "Build without miopentensile")
+endif()
 
 # miopengemm
 if(MIOPEN_USE_MIOPENGEMM)

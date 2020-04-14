@@ -421,6 +421,11 @@ miopenStatus_t CallGemmMIOpenTensile(Handle& handle,
 
     if(handle.IsProfilingEnabled())
         ProfilingRecordStop(handle, start, stop);
+#else
+    (void)handle;
+    (void)mtA;
+    (void)mtB;
+    (void)mtC;
 #endif
 
     if(kcache_key != nullptr)
