@@ -186,7 +186,8 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_fp16_bfp16_gnchw_
                 2,
                 GemmBBlockCopySrcDataPerRead_GemmN,
                 GemmBBlockCopyDstDataPerWrite_GemmKPACK,
-                in_memory_op>{};
+                in_memory_op,
+                MBlock1NBlock0>{};
 
         gridwise_gemm.Run(p_wei_global, p_out_global, p_in_global);
     }
