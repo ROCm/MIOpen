@@ -469,12 +469,10 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::GetSolution(
              GemmBBlockCopyDstDataPerWrite_GemmN,
              std::ignore) = config.CalculateGemmBBlockCopyPerformanceParameters(ctx);
 
-        construction_parameters.kernel_file =
-            "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_wrw_"
-            "fp32_nchw_kcyx_nkhw_lds_double_buffer.cpp";
-        construction_parameters.kernel_name =
-            "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_wrw_"
-            "fp32_nchw_kcyx_nkhw_lds_double_buffer";
+    construction_parameters.kernel_file = "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_wrw_"
+                                          "fp32_nchw_kcyx_nkhw_lds_double_buffer.cpp";
+    construction_parameters.kernel_name = "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_wrw_"
+                                          "fp32_nchw_kcyx_nkhw_lds_double_buffer";
 
     // clang-format off
     construction_parameters.comp_options =
