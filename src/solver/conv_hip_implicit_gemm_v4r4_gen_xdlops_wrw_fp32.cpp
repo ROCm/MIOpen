@@ -378,7 +378,7 @@ bool PerformanceImplicitGemmV4R4GenXdlopsWrWFp32::SetNextValue()
 void PerformanceImplicitGemmV4R4GenXdlopsWrWFp32::EuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmV4R4GenXdlopsWrWFp32 tmp;
-    tmp = {127, 128, 16, 1, 64, 64, use_spare_set};
+    tmp = {128, 128, 16, 1, 64, 64, use_spare_set};
 
     if(!tmp.IsValid(ctx))
         tmp = {4, 64, 16, 1, 4, 64, use_spare_set};
@@ -446,7 +446,8 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::GetSolution(
 
     const std::size_t block_size = config.GemmNPerBlock * config.GemmMPerBlock /
                                    (config.GemmMPerWave * config.GemmNPerWave) * wave_size;
-    const std::size_t grid_size = (GemmN / config.GemmNPerBlock) * (GemmM / config.GemmMPerBlock);
+    const std::size_t grid_size =
+        (GemmN / config.GemmNPerBlock) * (GemmM / config.GemmMPerBlock) * config.GemmKBlocks;
 
     std::size_t lkl_wk0 = block_size;
     std::size_t lkl_wk1 = 1;
