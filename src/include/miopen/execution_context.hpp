@@ -58,6 +58,7 @@ class rocm_meta_version
 
 namespace miopen {
 
+const char* const MIOPEN_PERFDB_SCHEMA_VER = "1.0.0";
 struct ExecutionContext
 {
     // Operation modes & environment
@@ -86,7 +87,7 @@ struct ExecutionContext
         // clang-format off
         return GetSystemDbPath()
 #if MIOPEN_ENABLE_SQLITE
-            + "/miopen_" MIOPEN_SQLITE_SCHEMA_VER ".db";
+            + "/miopen.db";
 #else
             + "/"
             + GetStream().GetDbBasename()
@@ -100,7 +101,7 @@ struct ExecutionContext
         // clang-format off
         return GetUserDbPath()
 #if MIOPEN_ENABLE_SQLITE
-             + "miopen_" MIOPEN_SQLITE_SCHEMA_VER ".udb";
+             + "miopen_" + std::string{MIOPEN_PERFDB_SCHEMA_VER} + ".udb";
 #else
              + GetStream().GetDbBasename()
              + "."
