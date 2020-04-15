@@ -30,7 +30,6 @@
 #include <miopen/errors.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/lock_file.hpp>
-#include <miopen/exp_backoff.hpp>
 
 #include <boost/core/explicit_operator_bool.hpp>
 #include <boost/none.hpp>
@@ -40,7 +39,6 @@
 #include "sqlite3.h"
 #include <mutex>
 #include <thread>
-#include <random>
 
 #include <string>
 #include <chrono>
@@ -60,7 +58,7 @@ namespace miopen {
         if(!(lock))                                      \
             MIOPEN_THROW("Db lock has failed to lock."); \
     } while(false)
-#define MIOPEN_SQL_BUSY_TIMEOUT_MS 500
+#define MIOPEN_SQL_BUSY_TIMEOUT_MS 60000
 template <class Derived>
 struct SQLiteSerializable
 {
@@ -253,32 +251,13 @@ class SQLiteBase
     template <class F>
     inline int SQLRety(F f) const
     {
-        LazyExponentialBackoff exp_bo{10, 2, std::chrono::seconds(30)};
-        int tries = 0;
-        while(exp_bo)
+        int rc = f();
+        if(rc == SQLITE_BUSY)
         {
-            int rc = f();
-            if(rc == SQLITE_BUSY)
-            {
-                ++tries;
-                // Let the OS deal with it
-                if(tries < 10)
-                    std::this_thread::yield();
-                // Exp backoff steps in
-                else
-                {
-                    auto slot = -1;
-                    slot      = *exp_bo;
-                    MIOPEN_LOG_I2("Database busy, sleeping for: " << (100 * slot)
-                                                                  << " microseconds");
-                    if(slot != 0)
-                        std::this_thread::sleep_for(std::chrono::microseconds(100 * slot));
-                }
-            }
-            else
-                return rc;
+            MIOPEN_THROW("Timeout while waiting for Database: " + filename);
         }
-        MIOPEN_THROW("Timeout while waiting for Database: " + filename);
+        else
+            return rc;
     }
 
     inline std::string SQLErrorMessage() const

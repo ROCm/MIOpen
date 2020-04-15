@@ -79,10 +79,7 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
             "ON perf_db(solver, config, arch, num_cu);";
 
         // clang-format on
-        // std::shared_timed_mutex _access;
         {
-            // const auto lock = shared_lock(_access, GetLockTimeout());
-            // MIOPEN_VALIDATE_LOCK(lock);
             // clang-format off
             const auto check_tables =
                 "SELECT name FROM sqlite_master "
@@ -98,8 +95,6 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
             }
         }
         {
-            // const auto lock = exclusive_lock(_access, GetLockTimeout());
-            // MIOPEN_VALIDATE_LOCK(lock);
             // clang-format off
             const auto check_tables =
                 "SELECT name FROM sqlite_master "
