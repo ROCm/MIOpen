@@ -105,7 +105,7 @@ struct ExecutionContext
 #else
              + GetStream().GetDbBasename()
              + "."
-             + GetUserDbSuffix()
+             + std::string{MIOPEN_PERFDB_SCHEMA_VER}
              + ".cd.updb.txt";
 #endif
         // clang-format on
