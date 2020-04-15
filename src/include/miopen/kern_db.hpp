@@ -33,6 +33,8 @@
 #include <boost/optional/optional.hpp>
 
 #include <string>
+#include <chrono>
+#include <thread>
 
 namespace boost {
 namespace filesystem {
@@ -48,6 +50,10 @@ struct KernelConfig
     std::string kernel_name;
     std::string kernel_args;
     std::string kernel_blob;
+    static std::vector<std::string> FieldNames()
+    {
+        return {"kernel_name", "kernel_args", "kernel_blob"};
+    }
     static std::string CreateQuery()
     {
         std::ostringstream ss;
@@ -86,8 +92,14 @@ class KernDb : public SQLiteBase<KernDb>
         auto del_query =
             "DELETE FROM " + T::table_name() + " WHERE " + problem_config.Where() + ";";
         sqlite3_stmt_ptr pStmt = Prepare(del_query);
-        auto rc                = sqlite3_step(pStmt.get());
-        return rc == SQLITE_DONE;
+        auto rc                = SQLRety([&]() { return sqlite3_step(pStmt.get()); });
+        if(rc == SQLITE_DONE)
+            return true;
+        else
+        {
+            MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
+            return false;
+        }
     }
 
     template <typename T>
@@ -101,7 +113,7 @@ class KernDb : public SQLiteBase<KernDb>
         sqlite3_stmt_ptr pStmt = Prepare(select_query);
         // only one result field
         // assert one row
-        auto rc = sqlite3_step(pStmt.get());
+        auto rc = SQLRety([&]() { return sqlite3_step(pStmt.get()); });
         if(rc == SQLITE_ROW)
         {
             auto ptr = sqlite3_column_blob(pStmt.get(), 0);
@@ -112,11 +124,7 @@ class KernDb : public SQLiteBase<KernDb>
         else if(rc == SQLITE_DONE)
             return boost::none;
         else
-        {
-            // either an illformatted query or the schema is changed.
-            MIOPEN_THROW(miopenStatusInternalError,
-                         "Internal error while accessing kernel database");
-        }
+            MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
         return boost::none;
     }
 
@@ -143,11 +151,9 @@ class KernDb : public SQLiteBase<KernDb>
                           problem_config.kernel_blob.data(),
                           problem_config.kernel_blob.size(),
                           SQLITE_TRANSIENT); // NOLINT
-
-        if(sqlite3_step(pStmt.get()) != SQLITE_DONE)
-        {
-            MIOPEN_THROW(miopenStatusInternalError, "Internal error acessing Kernel Database");
-        }
+        auto rc = SQLRety([&]() { return sqlite3_step(pStmt.get()); });
+        if(rc != SQLITE_DONE)
+            MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
         return problem_config.kernel_blob;
     }
 };

@@ -158,7 +158,7 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
                                                         GemmNPerThreadSubC,
                                                         InBlockCopySubLengths_B,
                                                         WeiBlockCopySubLengths_K,
-                                                        false);
+                                                        GetEPackLength(ctx, false));
 
     if(lds_size > 64 * 1024)
         return false;
@@ -262,7 +262,7 @@ bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx) const
                                                         GemmNPerThreadSubC,
                                                         InBlockCopySubLengths_B,
                                                         WeiBlockCopySubLengths_K,
-                                                        false);
+                                                        GetEPackLength(ctx, false));
 
     if(lds_size > 64 * 1024)
         return false;

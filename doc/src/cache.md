@@ -16,4 +16,12 @@ The are several ways to disable the cache. This is generally useful for developm
 Updating MIOpen and removing the cache
 --------------------------------------
 If the compiler changes, or the user modifies the kernels then the cache must be deleted for the MIOpen version in use; e.g., `rm -rf ~/.cache/miopen/<miopen-version-number>`.
-    
+
+
+Installing pre-compiled kernels
+-------------------------------
+GPU architecture-specific pre-compiled kernel packages are available in the ROCm package repositories, to reduce the startup latency of MIOpen kernels. In essence, these packages have the kernel cache file mentioned above and install them in the ROCm installation directory along with other MIOpen artifacts. Thus, when launching a kernel, MIOpen will first check for the existence of a kernel in the kernel cache installed in the MIOpen installation directory. If the file does not exist or the required kernel is not found, the kernel is compiled and placed in the user's kernel cache.
+
+These packages are optional for the functioning of MIOpen and must be separately installed from MIOpen. Users who wish to conserve disk space may choose not to install these packages at the cost of higher startup latency. Users have the flexibility to only install kernel packages for installed device architecture, thus minimizing disk space usage.
+
+Please refer to the MIOpen installation instructions for guidance on installing the MIOpen kernels package.

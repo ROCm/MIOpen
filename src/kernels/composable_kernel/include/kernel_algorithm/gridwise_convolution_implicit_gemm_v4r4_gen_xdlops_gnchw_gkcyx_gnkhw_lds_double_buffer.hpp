@@ -80,15 +80,15 @@ template <index_t GridSize,
           index_t GemmNPerWave,
           index_t GemmThreadGemmDataPerReadM,
           index_t GemmThreadGemmDataPerReadN,
-          class GemmABlockCopyThreadSliceLengths_GemmGK0_GemmK1_GemmM,
-          class GemmABlockCopyThreadClusterLengths_GemmGK0_GemmK1_GemmM,
+          class GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM,
+          class GemmABlockCopyThreadClusterLengths_GemmG_GemmK_GemmM,
           class GemmABlockCopyThreadClusterArrangeOrder,
           class GemmABlockCopySrcAccessOrder,
           class GemmABlockCopyDstAccessOrder,
           index_t GemmABlockCopySrcDataPerRead_GemmK,
           index_t GemmABlockCopySrcDataPerRead_GemmM,
-          class GemmBBlockCopyThreadSliceLengths_GemmGK0_GemmK1_GemmN,
-          class GemmBBlockCopyThreadClusterLengths_GemmGK0_GemmK1_GemmN,
+          class GemmBBlockCopyThreadSliceLengths_GemmG_GemmK_GemmN,
+          class GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_GemmN,
           class GemmBBlockCopyThreadClusterArrangeOrder,
           class GemmBBlockCopySrcAccessOrder,
           class GemmBBlockCopyDstAccessOrder,
@@ -171,16 +171,44 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_dou
             make_tuple(
                 Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3, 4>{}, Sequence<5, 6>{}));
 
-        constexpr auto in_gemmg_gemmk_gemmn_global_desc = transform_tensor_descriptor(
+        constexpr auto in_gemmg_gemmk_gemmn_global_desc_tmp = transform_tensor_descriptor(
             in_g_n_c_y_ho_x_wo_global_desc,
             make_tuple(PassThrough<G>{}, Merge<Sequence<C, Y, X>>{}, Merge<Sequence<N, Ho, Wo>>{}),
             make_tuple(Sequence<0>{}, Sequence<2, 3, 5>{}, Sequence<1, 4, 6>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
+        constexpr auto in_gemmg_gemmk0_gemmk1_gemmn_global_desc = transform_tensor_descriptor(
+            in_gemmg_gemmk_gemmn_global_desc_tmp,
+            make_tuple(
+                PassThrough<G>{}, UnMerge<Sequence<GemmKBlocks, GemmKSub>>{}, PassThrough<GemmN>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
+            make_tuple(Sequence<0>{}, Sequence<1, 2>{}, Sequence<3>{}));
+
+        constexpr auto in_gemmg_gemmk_gemmn_global_desc = transform_tensor_descriptor(
+            in_gemmg_gemmk0_gemmk1_gemmn_global_desc,
+            make_tuple(
+                Merge<Sequence<G, GemmKBlocks>>{}, PassThrough<GemmKSub>{}, PassThrough<GemmN>{}),
+            make_tuple(Sequence<0, 1>{}, Sequence<2>{}, Sequence<3>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
+
         // weight tensor
         //   global mem
-        constexpr auto wei_gemmg_gemmk_gemmm_global_desc =
+        constexpr auto wei_gemmg_gemmk_gemmm_global_desc_tmp =
             make_WeiDesc_Xdlops<conv_dir>{}.get(wei_g_k_c_y_x_global_desc);
+
+        constexpr auto wei_gemmg_gemmk0_gemmk1_gemmm_global_desc = transform_tensor_descriptor(
+            wei_gemmg_gemmk_gemmm_global_desc_tmp,
+            make_tuple(
+                PassThrough<G>{}, UnMerge<Sequence<GemmKBlocks, GemmKSub>>{}, PassThrough<GemmM>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
+            make_tuple(Sequence<0>{}, Sequence<1, 2>{}, Sequence<3>{}));
+
+        constexpr auto wei_gemmg_gemmk_gemmm_global_desc = transform_tensor_descriptor(
+            wei_gemmg_gemmk0_gemmk1_gemmm_global_desc,
+            make_tuple(
+                Merge<Sequence<G, GemmKBlocks>>{}, PassThrough<GemmKSub>{}, PassThrough<GemmM>{}),
+            make_tuple(Sequence<0, 1>{}, Sequence<2>{}, Sequence<3>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
         constexpr auto out_g_e0_n_k_ho_wo_global_desc =
             make_native_tensor_descriptor(Sequence<out_g_n_k_ho_wo_global_desc.GetLengths()[0],
@@ -196,39 +224,11 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_dou
                                                    out_g_n_k_ho_wo_global_desc.GetStrides()[3],
                                                    out_g_n_k_ho_wo_global_desc.GetStrides()[4]>{});
 
-        constexpr auto out_gemmgk0_gemmm_gemmn_global_desc = transform_tensor_descriptor(
+        constexpr auto out_gemmg_gemmm_gemmn_global_desc = transform_tensor_descriptor(
             out_g_e0_n_k_ho_wo_global_desc,
             make_tuple(
                 Merge<Sequence<G, GemmKBlocks>>{}, PassThrough<K>{}, Merge<Sequence<N, Ho, Wo>>{}),
             make_tuple(Sequence<0, 1>{}, Sequence<3>{}, Sequence<2, 4, 5>{}),
-            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
-
-        constexpr auto in_gemmg_gemmk0_gemmk1_gemmn_global_desc = transform_tensor_descriptor(
-            in_gemmg_gemmk_gemmn_global_desc,
-            make_tuple(
-                PassThrough<G>{}, UnMerge<Sequence<GemmKBlocks, GemmKSub>>{}, PassThrough<GemmN>{}),
-            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
-            make_tuple(Sequence<0>{}, Sequence<1, 2>{}, Sequence<3>{}));
-
-        constexpr auto wei_gemmg_gemmk0_gemmk1_gemmm_global_desc = transform_tensor_descriptor(
-            wei_gemmg_gemmk_gemmm_global_desc,
-            make_tuple(
-                PassThrough<G>{}, UnMerge<Sequence<GemmKBlocks, GemmKSub>>{}, PassThrough<GemmM>{}),
-            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
-            make_tuple(Sequence<0>{}, Sequence<1, 2>{}, Sequence<3>{}));
-
-        constexpr auto in_gemmgk0_gemmk1_gemmn_global_desc = transform_tensor_descriptor(
-            in_gemmg_gemmk0_gemmk1_gemmn_global_desc,
-            make_tuple(
-                Merge<Sequence<G, GemmKBlocks>>{}, PassThrough<GemmKSub>{}, PassThrough<GemmN>{}),
-            make_tuple(Sequence<0, 1>{}, Sequence<2>{}, Sequence<3>{}),
-            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
-
-        constexpr auto wei_gemmgk0_gemmk1_gemmm_global_desc = transform_tensor_descriptor(
-            wei_gemmg_gemmk0_gemmk1_gemmm_global_desc,
-            make_tuple(
-                Merge<Sequence<G, GemmKBlocks>>{}, PassThrough<GemmKSub>{}, PassThrough<GemmM>{}),
-            make_tuple(Sequence<0, 1>{}, Sequence<2>{}, Sequence<3>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
 
         constexpr InMemoryDataOperation CGlobalMemoryDataOperation =
@@ -239,9 +239,9 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_dou
             BlockSize,
             Float,
             AccDataType,
-            decltype(wei_gemmgk0_gemmk1_gemmm_global_desc),
-            decltype(in_gemmgk0_gemmk1_gemmn_global_desc),
-            decltype(out_gemmgk0_gemmm_gemmn_global_desc),
+            decltype(wei_gemmg_gemmk_gemmm_global_desc),
+            decltype(in_gemmg_gemmk_gemmn_global_desc),
+            decltype(out_gemmg_gemmm_gemmn_global_desc),
             GemmMPerBlock,
             GemmNPerBlock,
             GemmKPerBlock,
@@ -249,16 +249,16 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_dou
             GemmNPerWave,
             GemmThreadGemmDataPerReadM,
             GemmThreadGemmDataPerReadN,
-            GemmABlockCopyThreadSliceLengths_GemmGK0_GemmK1_GemmM,
-            GemmABlockCopyThreadClusterLengths_GemmGK0_GemmK1_GemmM,
+            GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM,
+            GemmABlockCopyThreadClusterLengths_GemmG_GemmK_GemmM,
             GemmABlockCopyThreadClusterArrangeOrder,
             GemmABlockCopySrcAccessOrder,
             GemmABlockCopyDstAccessOrder,
             1,
             GemmABlockCopySrcDataPerRead_GemmK,
             GemmABlockCopySrcDataPerRead_GemmM,
-            GemmBBlockCopyThreadSliceLengths_GemmGK0_GemmK1_GemmN,
-            GemmBBlockCopyThreadClusterLengths_GemmGK0_GemmK1_GemmN,
+            GemmBBlockCopyThreadSliceLengths_GemmG_GemmK_GemmN,
+            GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_GemmN,
             GemmBBlockCopyThreadClusterArrangeOrder,
             GemmBBlockCopySrcAccessOrder,
             GemmBBlockCopyDstAccessOrder,
@@ -266,7 +266,6 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_dou
             GemmBBlockCopySrcDataPerRead_GemmN,
             GemmBBlockCopyDstDataPerWrite_GemmN,
             CGlobalMemoryDataOperation>{};
-
         gridwise_gemm.Run(p_wei_global, p_in_global, p_out_global);
     }
 };

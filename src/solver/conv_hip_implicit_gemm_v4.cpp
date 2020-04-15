@@ -40,6 +40,11 @@ namespace solver {
 
 bool ConvHipImplicitGemmV4_1x1::IsApplicable(const ConvolutionContext& ctx) const
 {
+#if WORKAROUND_SWDEV_229277_227616_229195
+    if(!IsHccCompiler())
+        return false;
+#endif
+
     if(!ctx.Is2d())
         return false;
 
@@ -52,6 +57,11 @@ bool ConvHipImplicitGemmV4_1x1::IsApplicable(const ConvolutionContext& ctx) cons
 
 bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
 {
+#if WORKAROUND_SWDEV_229277_227616_229195
+    if(!IsHccCompiler())
+        return false;
+#endif
+
     if(!ctx.direction.IsForward())
         return false;
 
@@ -239,11 +249,6 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer";
     }
 
-    size_t WeiBlockCopyDstDataPerWrite_EPack = 1; // only for fp16/bfp16
-    size_t InBlockCopyDstDataPerWrite_EPack  = 1; // only for fp16/bfp16
-    size_t WeiBlockCopyDstDataPerWrite_K     = 1; // only for fp32
-    size_t InBlockCopyDstDataPerWrite_N2     = 1; // only for fp32
-
     std::size_t WeiBlockCopySubLengths_E = EPerBlock / config.WeiBlockCopyClusterLengths_E;
     std::size_t WeiBlockCopySubLengths_K = KPerBlock / config.WeiBlockCopyClusterLengths_K;
 
@@ -263,17 +268,12 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     WeiBlockCopySrcDataPerRead_E =
         ctx.direction.IsBackwardData() ? 1 : WeiBlockCopySrcDataPerRead_E;
 
-    if(ctx.IsFp16() || ctx.IsBfp16())
-    {
-        // TBD Write_EPack tunable separately from epack length
-        WeiBlockCopyDstDataPerWrite_EPack = GetEPackLength(ctx, false);
-        InBlockCopyDstDataPerWrite_EPack  = GetEPackLength(ctx, false);
-    }
-    else
-    {
-        WeiBlockCopyDstDataPerWrite_K = GetReadWriteVectorSize(WeiBlockCopySubLengths_K);
-        InBlockCopyDstDataPerWrite_N2 = GetReadWriteVectorSize(InBlockCopySubLengths_N2);
-    }
+    const auto WeiBlockCopyDstDataPerWrite_K =
+        ctx.IsFp32() ? GetReadWriteVectorSize(WeiBlockCopySubLengths_K) : 1;
+    const auto InBlockCopyDstDataPerWrite_N2 =
+        ctx.IsFp32() ? GetReadWriteVectorSize(InBlockCopySubLengths_N2) : 1;
+    const auto WeiBlockCopyDstDataPerWrite_EPack = !ctx.IsFp32() ? GetEPackLength(ctx, false) : 1;
+    const auto InBlockCopyDstDataPerWrite_EPack  = !ctx.IsFp32() ? GetEPackLength(ctx, false) : 1;
 
     if(ctx.direction.IsBackwardWrW())
     {
@@ -307,8 +307,6 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             std::to_string(InBlockCopyDstDataPerWrite_EPack) +
             std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_EPACK=") +
             std::to_string(WeiBlockCopyDstDataPerWrite_EPack);
-        (void)InBlockCopyDstDataPerWrite_N2;
-        (void)WeiBlockCopyDstDataPerWrite_K;
     }
     else
     {
@@ -318,8 +316,6 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             std::to_string(InBlockCopyDstDataPerWrite_N2) +
             std::string(" -DCK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K=") +
             std::to_string(WeiBlockCopyDstDataPerWrite_K);
-        (void)InBlockCopyDstDataPerWrite_EPack;
-        (void)WeiBlockCopyDstDataPerWrite_EPack;
     }
 
     // clang-format off
@@ -358,7 +354,6 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, false)) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
-        std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
 
@@ -422,8 +417,8 @@ int ConvHipImplicitGemmV4Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
 
 int ConvHipImplicitGemmV4WrW::RunAndMeasureSolution(miopen::Handle& profile_h,
                                                     ConstData_t bot_buf,
-                                                    Data_t top_buf,
-                                                    ConstData_t wei_buf,
+                                                    ConstData_t top_buf,
+                                                    Data_t wei_buf,
                                                     ConstData_t bias_buf,
                                                     const ConvolutionContext& ctx,
                                                     const ConvSolution& solution,
@@ -456,7 +451,7 @@ PerformanceImplicitGemm ConvHipImplicitGemmV4Fwd::Search(const ConvolutionContex
 }
 PerformanceImplicitGemm ConvHipImplicitGemmV4WrW::Search(const ConvolutionContext& context) const
 {
-    return GenericSearchFwd(*this, context);
+    return GenericSearchWrW(*this, context);
 }
 
 PerformanceImplicitGemm ConvHipImplicitGemmV4_1x1::Search(const ConvolutionContext& context) const

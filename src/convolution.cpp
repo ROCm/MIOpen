@@ -419,7 +419,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
 {
     MIOPEN_LOG_I("");
 
-    auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, 1}; // Forward
+    auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
 
@@ -500,7 +500,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
 {
     MIOPEN_LOG_I("");
 
-    auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, 0}; // Backward
+    auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
 
@@ -515,10 +515,10 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
 
     const size_t implicit_gemm_workspace = ForwardBackwardGetWorkSpaceSizeImplicitGemm(ctx);
 
-    size_t tmp_gemm_workspace  = std::max({direct_workspace, implicit_gemm_workspace});
     size_t workspace_size_gemm = 0;
 
 #if MIOPEN_USE_GEMM
+    size_t tmp_max_workspace = std::max({direct_workspace, implicit_gemm_workspace});
     if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
     {
         workspace_size_gemm = BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc) * group_count;
@@ -536,16 +536,16 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
             size_t gemm_trans = BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc);
             /// \todo WORKAROUND for issue 1430
             if(gemm_trans > MAX_MEM_ALLOC_SZ /*  handle.GetMaxMemoryAllocSize() */)
-                gemm_trans     = 0;
-            tmp_gemm_workspace = std::max(gemm_trans, tmp_gemm_workspace);
-            MIOPEN_LOG_I2(tmp_gemm_workspace);
-            return tmp_gemm_workspace;
+                gemm_trans    = 0;
+            tmp_max_workspace = std::max(gemm_trans, tmp_max_workspace);
+            MIOPEN_LOG_I2(tmp_max_workspace);
+            return tmp_max_workspace;
         }
         if(miopen::any_of(GetConvDilations(), [](auto v) { return v > 1; }))
         {
-            tmp_gemm_workspace = std::max(workspace_size_gemm, tmp_gemm_workspace);
-            MIOPEN_LOG_I2(tmp_gemm_workspace);
-            return tmp_gemm_workspace;
+            tmp_max_workspace = std::max(workspace_size_gemm, tmp_max_workspace);
+            MIOPEN_LOG_I2(tmp_max_workspace);
+            return tmp_max_workspace;
         }
     }
 #endif
@@ -557,8 +557,8 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
             ? BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc)
             : 0;
 
-    const size_t workspace_size =
-        std::max({workspace_size_fft, workspace_size_gemm, tmp_gemm_workspace});
+    const size_t workspace_size = std::max(
+        {workspace_size_fft, workspace_size_gemm, direct_workspace, implicit_gemm_workspace});
     MIOPEN_LOG_I2(workspace_size);
     return workspace_size;
 }
@@ -820,8 +820,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
 {
     MIOPEN_LOG_I("");
 
-    auto ctx = ConvolutionContext(xDesc, dwDesc, dyDesc, *this, 0);
-    ctx.direction.SetBackwardWrW();
+    auto ctx = ConvolutionContext(xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights);
     ctx.SetStream(&handle);
     ctx.DetectRocm();
     ctx.SetupFloats();

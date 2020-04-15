@@ -1,7 +1,8 @@
 #include "common_header.hpp"
 #include "ConstantTensorDescriptor_deprecated.hpp"
 #include "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer.hpp"
-#include "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw_lds_double_buffer.hpp"
+#include "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_fp16_bfp16_fwd_nchw_kcyx_nkhw_lds_double_buffer.hpp"
+#include "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_fp16_bfp16_wrw_nchw_kcyx_nkhw_lds_double_buffer.hpp"
 #include "float_types.h"
 
 extern "C" __global__
@@ -108,73 +109,86 @@ extern "C" __global__
         GemmMPerBlock / GemmABlockCopyClusterLengths_GemmM;
 
 #if MIOPEN_USE_FP32
-    using GemmBBlockCopyThreadSliceLengths_GemmK0_GemmK1_GemmN =
+    using GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM =
+        Sequence<1, GemmABlockCopyThreadSliceLengths_GemmK, GemmABlockCopyThreadSliceLengths_GemmM>;
+    using GemmABlockCopyThreadClusterLengths_GemmG_GemmK_GemmM =
+        Sequence<1, GemmABlockCopyClusterLengths_GemmK, GemmABlockCopyClusterLengths_GemmM>;
+
+    using GemmABlockCopyThreadClusterArrangeOrder = Sequence<0, 2, 1>; // [E0, K, E1]
+    using GemmABlockCopySrcAccessOrder            = Sequence<0, 2, 1>; // [E0, K, E1]
+    using GemmABlockCopyDstAccessOrder            = Sequence<0, 1, 2>; // [E0, E1, K]
+
+    constexpr index_t GemmABlockCopySrcDataPerRead_GemmM =
+        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_M;
+
+    using GemmBBlockCopyThreadSliceLengths_GemmG_GemmK_GemmN =
         Sequence<1, GemmBBlockCopyThreadSliceLengths_GemmK, GemmBBlockCopyThreadSliceLengths_GemmN>;
-    using GemmBBlockCopyThreadClusterLengths_GemmK0_GemmK1_GemmN =
+    using GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_GemmN =
         Sequence<1, GemmBBlockCopyClusterLengths_GemmK, GemmBBlockCopyClusterLengths_GemmN>;
 
     using GemmBBlockCopyThreadClusterArrangeOrder = Sequence<0, 1, 2>; // [E0, E1, B]
     using GemmBBlockCopySrcAccessOrder            = Sequence<0, 1, 2>; // [E0, E1, B]
     using GemmBBlockCopyDstAccessOrder            = Sequence<0, 1, 2>; // [E0, E1, B]
 
-    using GemmABlockCopyThreadSliceLengths_GemmK0_GemmK1_GemmM =
-        Sequence<1, GemmABlockCopyThreadSliceLengths_GemmK, GemmABlockCopyThreadSliceLengths_GemmM>;
-    using GemmABlockCopyThreadClusterLengths_GemmK0_GemmK1_GemmM =
-        Sequence<1, GemmABlockCopyClusterLengths_GemmK, GemmABlockCopyClusterLengths_GemmM>;
-
-    using GemmABlockCopyThreadClusterArrangeOrder = Sequence<0, 2, 1>; // [E0, K, E1]
-    using GemmABlockCopySrcAccessOrder            = Sequence<0, 2, 1>; // [E0, K, E1]
-    using GemmABlockCopyDstAccessOrder            = Sequence<0, 1, 2>; // [E0, E1,K]
-
     constexpr index_t GemmBBlockCopyDstDataPerWrite_GemmN =
         CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N;
-    constexpr index_t GemmABlockCopySrcDataPerRead_GemmM =
-        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_M;
+
+    constexpr index_t GemmABlockCopySrcDataPerRead_GemmK =
+        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_K;
 
 #elif MIOPEN_USE_FP16 || MIOPEN_USE_BFP16
-    static_assert(GemmKBlocks == 1, "do not support GemmKBlocks > 1 for low precision!");
     constexpr index_t GemmKPACK = CK_PARAM_GEMM_KPACK_LENGTH;
 
-    using GemmBBlockCopySubLengths_GemmK_GemmN_GemmKPACK =
-        Sequence<GemmBBlockCopyThreadSliceLengths_GemmK,
-                 GemmBBlockCopyThreadSliceLengths_GemmN,
-                 GemmKPACK>;
-    using GemmBBlockCopyClusterLengths_GemmK_GemmN_GemmKPACK =
-        Sequence<GemmBBlockCopyClusterLengths_GemmK, GemmBBlockCopyClusterLengths_GemmN, 1>;
-
-    using GemmBBlockCopyThreadClusterArrangeOrder = Sequence<0, 1, 2>; // [E, B, GemmKPACK]
-    using GemmBBlockCopySrcAccessOrder            = Sequence<0, 1, 2>; // [E, B, GemmKPACK]
-    using GemmBBlockCopyDstAccessOrder            = Sequence<0, 1, 2>; // [E, B, GemmKPACK]
-
-    using GemmABlockCopySubLengths_GemmK_GemmM_GemmKPACK =
-        Sequence<GemmABlockCopyThreadSliceLengths_GemmK,
+    using GemmABlockCopySubLengths_GemmG_GemmK_GemmM_GemmKPACK =
+        Sequence<1,
+                 GemmABlockCopyThreadSliceLengths_GemmK,
                  GemmABlockCopyThreadSliceLengths_GemmM,
                  GemmKPACK>;
-    using GemmABlockCopyClusterLengths_GemmK_GemmM_GemmKPACK =
-        Sequence<GemmABlockCopyClusterLengths_GemmK, GemmABlockCopyClusterLengths_GemmM, 1>;
+    using GemmABlockCopyClusterLengths_GemmG_GemmK_GemmM_GemmKPACK =
+        Sequence<1, GemmABlockCopyClusterLengths_GemmK, GemmABlockCopyClusterLengths_GemmM, 1>;
 
-    using GemmABlockCopyThreadClusterArrangeOrder = Sequence<1, 0, 2>; // [K, E, GemmKPACK]
-    using GemmABlockCopySrcAccessOrder            = Sequence<1, 0, 2>; // [K, E, GemmKPACK]
-    using GemmABlockCopyDstAccessOrder            = Sequence<0, 1, 2>; // [E, K, GemmKPACK]
+    using GemmABlockCopyThreadClusterArrangeOrder = Sequence<0, 2, 1, 3>; // [G, M, K, GemmKPACK]
+    using GemmABlockCopySrcAccessOrder            = Sequence<0, 2, 1, 3>; // [G, M, K, GemmKPACK]
+    using GemmABlockCopyDstAccessOrder            = Sequence<0, 1, 2, 3>; // [G, K, M, GemmKPACK]
+
+    constexpr index_t GemmABlockCopyDstDataPerWrite_GemmKPACK =
+        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK;
+
+    using GemmBBlockCopySubLengths_GemmG_GemmK_GemmN_GemmKPACK =
+        Sequence<1,
+                 GemmBBlockCopyThreadSliceLengths_GemmK,
+                 GemmBBlockCopyThreadSliceLengths_GemmN,
+                 GemmKPACK>;
+    using GemmBBlockCopyClusterLengths_GemmG_GemmK_GemmN_GemmKPACK =
+        Sequence<1, GemmBBlockCopyClusterLengths_GemmK, GemmBBlockCopyClusterLengths_GemmN, 1>;
+
+    using GemmBBlockCopyThreadClusterArrangeOrder = Sequence<0, 1, 3, 2>; // [G, K, GemmKPACK, B]
+    using GemmBBlockCopySrcAccessOrder            = Sequence<0, 1, 3, 2>; // [G, K, GemmKPACK, B]
+    using GemmBBlockCopyDstAccessOrder            = Sequence<0, 1, 2, 3>; // [G, K, B, GemmKPACK]
 
     constexpr index_t GemmBBlockCopyDstDataPerWrite_GemmKPACK =
         CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK;
-    constexpr index_t GemmABlockCopyDstDataPerWrite_GemmKPACK =
-        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK;
-#endif
+
+#if CK_PARAM_PROBLEM_DIRECTION == 2
+    constexpr index_t GemmABlockCopySrcDataPerRead_GemmK =
+        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_K;
+#else
+    constexpr index_t GemmABlockCopySrcDataPerRead_GemmKPACK =
+        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_KPACK;
+#endif // CK_PARAM_PROBLEM_DIRECTION
+
+#endif // MIOPEN_USE_FP16 || MIOPEN_USE_BFP16
 
     constexpr index_t GemmBBlockCopySrcDataPerRead_GemmN =
         CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N;
-    constexpr index_t GemmABlockCopySrcDataPerRead_GemmK =
-        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_K;
 
     constexpr auto GemmMPerWave                  = CK_PARAM_GEMM_M_PER_WAVE;
     constexpr auto GemmNPerWave                  = CK_PARAM_GEMM_N_PER_WAVE;
     constexpr index_t GemmThreadGemmDataPerReadM = 1;
     constexpr index_t GemmThreadGemmDataPerReadN = 1;
 
-    constexpr auto gridwise_conv =
 #if MIOPEN_USE_FP32
+    constexpr auto gridwise_conv =
         GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer<
             GridSize,
             BlockSize,
@@ -195,27 +209,35 @@ extern "C" __global__
             GemmNPerWave,
             GemmThreadGemmDataPerReadM,
             GemmThreadGemmDataPerReadN,
-            GemmABlockCopyThreadSliceLengths_GemmK0_GemmK1_GemmM,
-            GemmABlockCopyThreadClusterLengths_GemmK0_GemmK1_GemmM,
+            GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM,
+            GemmABlockCopyThreadClusterLengths_GemmG_GemmK_GemmM,
             GemmABlockCopyThreadClusterArrangeOrder,
             GemmABlockCopySrcAccessOrder,
             GemmABlockCopyDstAccessOrder,
             GemmABlockCopySrcDataPerRead_GemmK,
             GemmABlockCopySrcDataPerRead_GemmM,
-            GemmBBlockCopyThreadSliceLengths_GemmK0_GemmK1_GemmN,
-            GemmBBlockCopyThreadClusterLengths_GemmK0_GemmK1_GemmN,
+            GemmBBlockCopyThreadSliceLengths_GemmG_GemmK_GemmN,
+            GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_GemmN,
             GemmBBlockCopyThreadClusterArrangeOrder,
             GemmBBlockCopySrcAccessOrder,
             GemmBBlockCopyDstAccessOrder,
             GemmBBlockCopySrcDataPerRead_GemmN,
             GemmBBlockCopyDstDataPerWrite_GemmN,
             dir>{};
-#elif MIOPEN_USE_FP16 || MIOPEN_USE_BFP16
-        GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_nchw_kcyx_nkhw_lds_double_buffer<
+    gridwise_conv.Run(p_in_global, p_wei_global, p_out_global);
+
+#elif(MIOPEN_USE_FP16 || MIOPEN_USE_BFP16) && CK_PARAM_PROBLEM_DIRECTION == 2
+
+    // Backward weight in fp16/bfp16 uses atomic add to do reduction along K dimension
+    // It requires output blob to be of float as no atomic add exists for half/ushort
+    constexpr auto gridwise_conv =
+        GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_wrw_nchw_kcyx_nkhw_lds_double_buffer<
             GridSize,
             BlockSize,
-            FLOAT,
-            FLOAT_ACCUM,
+            FLOAT,       // Input data type = half (fp16) or ushort (bfp16)
+            FLOAT_ACCUM, // Acc data type = float (see float_types.h)
+            float, // Output data type = float  (not half/ushort) as no atomic add ISA exists for
+                   // half/ushort.
             decltype(in_nchw_desc),
             decltype(wei_kcyx_desc),
             decltype(out_nkhw_desc),
@@ -226,28 +248,82 @@ extern "C" __global__
             GemmMPerBlock,
             GemmNPerBlock,
             GemmKPerBlock,
+            GemmKBlocks,
             GemmKPACK,
             GemmMPerWave,
             GemmNPerWave,
             GemmThreadGemmDataPerReadM,
             GemmThreadGemmDataPerReadN,
-            GemmABlockCopySubLengths_GemmK_GemmM_GemmKPACK,
-            GemmABlockCopyClusterLengths_GemmK_GemmM_GemmKPACK,
+            GemmABlockCopySubLengths_GemmG_GemmK_GemmM_GemmKPACK,
+            GemmABlockCopyClusterLengths_GemmG_GemmK_GemmM_GemmKPACK,
             GemmABlockCopyThreadClusterArrangeOrder,
             GemmABlockCopySrcAccessOrder,
             GemmABlockCopyDstAccessOrder,
             GemmABlockCopySrcDataPerRead_GemmK,
             GemmABlockCopyDstDataPerWrite_GemmKPACK,
-            GemmBBlockCopySubLengths_GemmK_GemmN_GemmKPACK,
-            GemmBBlockCopyClusterLengths_GemmK_GemmN_GemmKPACK,
+            GemmBBlockCopySubLengths_GemmG_GemmK_GemmN_GemmKPACK,
+            GemmBBlockCopyClusterLengths_GemmG_GemmK_GemmN_GemmKPACK,
             GemmBBlockCopyThreadClusterArrangeOrder,
             GemmBBlockCopySrcAccessOrder,
             GemmBBlockCopyDstAccessOrder,
             GemmBBlockCopySrcDataPerRead_GemmN,
             GemmBBlockCopyDstDataPerWrite_GemmKPACK,
             dir>{};
+
+    // Output blob is cast to float as no atomic add exists for half/ushort
+    gridwise_conv.Run(p_in_global, p_wei_global, reinterpret_cast<FLOAT_ACCUM*>(p_out_global));
+#elif(MIOPEN_USE_FP16 || MIOPEN_USE_BFP16) && CK_PARAM_PROBLEM_DIRECTION != 2
+    // Forward data doesn't use any atomic add so output blob remains of the same type
+    // as input blob
+
+    constexpr auto wkgrp_schd_order =
+#if MIOPEN_USE_FP16
+        NBlock1MBlock0;
 #else
-        static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
-#endif
+        MBlock1NBlock0;
+#endif // MIOPEN_USE_FP16
+
+    constexpr auto gridwise_conv =
+        GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_fwd_nchw_kcyx_nkhw_lds_double_buffer<
+            GridSize,
+            BlockSize,
+            FLOAT,       // Input data type = half (fp16) or ushort (bfp16)
+            FLOAT_ACCUM, // Acc data type = float (see float_types.h)
+            FLOAT,       // Input data type = half (fp16) or ushort (bfp16)
+            decltype(in_nchw_desc),
+            decltype(wei_kcyx_desc),
+            decltype(out_nkhw_desc),
+            ConvStrides,
+            ConvDilations,
+            LeftPads,
+            RightPads,
+            GemmMPerBlock,
+            GemmNPerBlock,
+            GemmKPerBlock,
+            GemmKBlocks,
+            GemmKPACK,
+            GemmMPerWave,
+            GemmNPerWave,
+            GemmThreadGemmDataPerReadM,
+            GemmThreadGemmDataPerReadN,
+            GemmABlockCopySubLengths_GemmG_GemmK_GemmM_GemmKPACK,
+            GemmABlockCopyClusterLengths_GemmG_GemmK_GemmM_GemmKPACK,
+            GemmABlockCopyThreadClusterArrangeOrder,
+            GemmABlockCopySrcAccessOrder,
+            GemmABlockCopyDstAccessOrder,
+            GemmABlockCopySrcDataPerRead_GemmKPACK,
+            GemmABlockCopyDstDataPerWrite_GemmKPACK,
+            GemmBBlockCopySubLengths_GemmG_GemmK_GemmN_GemmKPACK,
+            GemmBBlockCopyClusterLengths_GemmG_GemmK_GemmN_GemmKPACK,
+            GemmBBlockCopyThreadClusterArrangeOrder,
+            GemmBBlockCopySrcAccessOrder,
+            GemmBBlockCopyDstAccessOrder,
+            GemmBBlockCopySrcDataPerRead_GemmN,
+            GemmBBlockCopyDstDataPerWrite_GemmKPACK,
+            dir,
+            wkgrp_schd_order>{};
     gridwise_conv.Run(p_in_global, p_wei_global, p_out_global);
+#else
+    static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
+#endif // MIOPEN_USE_FP32
 }

@@ -13,6 +13,10 @@ MIOPEN_DECLARE_ENV_VAR(
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM)
 
+#define WORKAROUND_SWDEV_200782 1
+
+#define WORKAROUND_SWDEV_229277_227616_229195 1
+
 namespace miopen {
 namespace solver {
 
@@ -106,6 +110,14 @@ struct ConvolutionContextInterpreter
             return c.n_outputs;
     }
 
+    static auto GetInputDepthDi(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.in_depth;
+        else
+            return c.out_depth;
+    }
+
     static auto GetInputHeightHi(const ConvolutionContext& c)
     {
         if(c.direction.IsForward())
@@ -120,6 +132,14 @@ struct ConvolutionContextInterpreter
             return c.in_width;
         else
             return c.out_width;
+    }
+
+    static auto GetOutputDepthDo(const ConvolutionContext& c)
+    {
+        if(c.direction.IsForward())
+            return c.out_depth;
+        else
+            return c.in_depth;
     }
 
     static auto GetOutputHeightHo(const ConvolutionContext& c)
@@ -138,9 +158,17 @@ struct ConvolutionContextInterpreter
             return c.in_width;
     }
 
+    static auto GetFilterDepthZ(const ConvolutionContext& c) { return c.kernel_size_d; }
+
     static auto GetFilterHeightY(const ConvolutionContext& c) { return c.kernel_size_h; }
 
     static auto GetFilterWidthX(const ConvolutionContext& c) { return c.kernel_size_w; }
+
+    // adjust conv_stride_d to 1 if Do is 1
+    static auto GetAdjustedConvolutionStrideD(const ConvolutionContext& c)
+    {
+        return GetOutputDepthDo(c) > 1 ? c.kernel_stride_d : 1;
+    }
 
     // adjust conv_stride_h to 1 if Ho is 1
     static auto GetAdjustedConvolutionStrideH(const ConvolutionContext& c)
@@ -152,6 +180,12 @@ struct ConvolutionContextInterpreter
     static auto GetAdjustedConvolutionStrideW(const ConvolutionContext& c)
     {
         return GetOutputWidthWo(c) > 1 ? c.kernel_stride_w : 1;
+    }
+
+    // adjust conv_dilation_d to 1 if Z is 1
+    static auto GetAdjustedConvolutionDilationD(const ConvolutionContext& c)
+    {
+        return GetFilterDepthZ(c) > 1 ? c.kernel_dilation_d : 1;
     }
 
     // adjust conv_dilation_h to 1 if Y is 1
@@ -166,9 +200,29 @@ struct ConvolutionContextInterpreter
         return GetFilterWidthX(c) > 1 ? c.kernel_dilation_w : 1;
     }
 
+    static auto GetInputLeftPadD(const ConvolutionContext& c) { return c.pad_d; }
+
     static auto GetInputLeftPadH(const ConvolutionContext& c) { return c.pad_h; }
 
     static auto GetInputLeftPadW(const ConvolutionContext& c) { return c.pad_w; }
+
+    // adjust right padding size to align with the way implicit GEMM deal with padding
+    static auto GetAdjustedInputRightPadD(const ConvolutionContext& c)
+    {
+        int di              = GetInputDepthDi(c);
+        int dout            = GetOutputDepthDo(c);
+        int z               = GetFilterDepthZ(c);
+        int conv_stride_d   = GetAdjustedConvolutionStrideD(c);
+        int conv_dilation_d = GetAdjustedConvolutionDilationD(c);
+        int in_left_pad_d   = GetInputLeftPadD(c);
+
+        int di_padded = 1 + (z - 1) * conv_dilation_d + (dout - 1) * conv_stride_d;
+
+        int in_right_pad_d =
+            di_padded > (in_left_pad_d + di) ? di_padded - (in_left_pad_d + di) : 0;
+
+        return in_right_pad_d;
+    }
 
     // adjust right padding size to align with the way implicit GEMM deal with padding
     static auto GetAdjustedInputRightPadH(const ConvolutionContext& c)
@@ -331,15 +385,18 @@ static inline bool IsXdlopsSupport(const ConvolutionContext& c)
     if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}))
         return true;
 
+    // disable xdlops kernels by default due to possible failures:
+    // 1) inline asm may crash
+    // 2) llvm intrin may has incorrect results
     return StartsWith(c.GetStream().GetDeviceName(), "gfx908") &&
-           // disable xdlops kernels by default due to possible failures:
-           // 1) inline asm may crash
-           // 2) llvm intrin may has incorrect results
-           /// \todo enable xdlops kernels by default after llvm intrin fix (SWDEV-200782) in
-           /// release
+#if WORKAROUND_SWDEV_200782
+           /// \todo Remove workaround when we drop suport of HCC older than 2.10.19392.
            ((miopen::HipGetHccVersion() >= external_tool_version_t{2, 10, 19392})
                 ? !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{})
                 : miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{}));
+#else
+           !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{});
+#endif
 }
 
 inline static uint32_t GetReadWriteVectorSize(const int v)
@@ -383,6 +440,9 @@ static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
     // forward
     if(ctx.direction.IsForward())
     {
+        // TBD/ Since bfp16/fp16 fwd kernel extracts epack from c*y*x,
+        //      one could relax the following restriction for bfp16/fp16,
+        //      allowing c=1 when y*x=epack.
         if(c % GetEPackLength(ctx, true) != 0)
             return false;
         const auto nonVectorizedC = c / GetEPackLength(ctx, true);
@@ -438,14 +498,14 @@ static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
                                             const unsigned int GemmDataPerReadB,
                                             const unsigned int InBlockCopySubLengths_B,
                                             const unsigned int WeiBlockCopySubLengths_K,
-                                            bool isXdlopsUsed)
+                                            const unsigned int EPACKSize)
 {
     // Extend lds size by to take into account alignment
     // See max_algin code inside kernel_aglorithm files
     const std::size_t worst_case_alignment_adjustment =
         (ctx.IsBfp16() || ctx.IsFp16())
-            ? std::max({GetReadWriteVectorSize(static_cast<int>(InBlockCopySubLengths_B)),
-                        GetEPackLength(ctx, isXdlopsUsed)})
+            ? std::max(
+                  {GetReadWriteVectorSize(static_cast<int>(InBlockCopySubLengths_B)), EPACKSize})
             : std::max({GetReadWriteVectorSize(static_cast<int>(WeiBlockCopySubLengths_K)),
                         GetReadWriteVectorSize(static_cast<int>(InBlockCopySubLengths_B)),
                         GemmDataPerReadA,
@@ -453,17 +513,18 @@ static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
 
     // Multiplied worst_case_alignment_adjustment by 2 as
     // Both A and B matrix LDS size is increased.
-    const std::size_t lds_size = (BPerBlock + KPerBlock) * EPerBlock * GetEPackLength(ctx, true) *
-                                     GetTypeSize(ctx.in_data_type) * 2 +
-                                 2 * worst_case_alignment_adjustment;
+    const std::size_t lds_size =
+        (BPerBlock + KPerBlock) * EPerBlock * EPACKSize * GetTypeSize(ctx.in_data_type) * 2 +
+        2 * worst_case_alignment_adjustment;
 
     return lds_size;
 }
 
+template <typename BotBufType, typename TopBufType, typename WeiBufType>
 static inline int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
-                                            ConstData_t bot_buf,
-                                            Data_t top_buf,
-                                            ConstData_t wei_buf,
+                                            BotBufType bot_buf,
+                                            TopBufType top_buf,
+                                            WeiBufType wei_buf,
                                             const ConvolutionContext& ctx,
                                             const ConvSolution& solution,
                                             float& elapsed_time)
@@ -486,7 +547,7 @@ static inline int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
 
             if(ctx.direction.IsBackwardWrW())
             {
-                kernel(bot_buf, top_buf, wei_buf);
+                kernel(top_buf, bot_buf, wei_buf);
             }
             if(ctx.direction.IsBackwardData())
             {

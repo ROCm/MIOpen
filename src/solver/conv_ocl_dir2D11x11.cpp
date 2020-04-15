@@ -28,8 +28,8 @@
 #include <miopen/handle.hpp>
 #include <miopen/env.hpp>
 #include <miopen/visit_float.hpp>
-#include <miopen/conv/invokers/gen_x_w_y_pad_fwd.hpp>
-#include <miopen/conv/fwd_invoke_params.hpp>
+#include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
+#include <miopen/conv/data_invoke_params.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11)
 
@@ -320,7 +320,7 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
                 MIOPEN_THROW("Two kernels were expected by solver");
 
             return [=](Handle& handle, const boost::any& primitive_parameters) {
-                auto invoke_params  = boost::any_cast<conv::FwdInvokeParams>(primitive_parameters);
+                auto invoke_params  = boost::any_cast<conv::DataInvokeParams>(primitive_parameters);
                 const auto& tensors = invoke_params.tensors;
 
                 const auto first_pass_kernel  = handle.Run(kernels[0]);
@@ -329,15 +329,15 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
                 float padding_val = 0;
                 float elapsed     = 0;
 
-                visit_float(tensors.xDesc.GetType(), [&](auto as_float) {
-                    first_pass_kernel(tensors.x, tensors.w, tensors.y, as_float(padding_val));
+                visit_float(tensors.inDesc.GetType(), [&](auto as_float) {
+                    first_pass_kernel(tensors.in, tensors.w, tensors.out, as_float(padding_val));
                 });
 
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
 
-                visit_float(tensors.xDesc.GetType(), [&](auto as_float) {
-                    second_pass_kernel(tensors.x, tensors.w, tensors.y, as_float(padding_val));
+                visit_float(tensors.inDesc.GetType(), [&](auto as_float) {
+                    second_pass_kernel(tensors.in, tensors.w, tensors.out, as_float(padding_val));
                 });
 
                 if(handle.IsProfilingEnabled())
@@ -351,7 +351,7 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
     }
     else
     {
-        result.invoker_factory = &conv::MakeGenericXWYPadFwdInvoker;
+        result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
     }
     return result;
 }

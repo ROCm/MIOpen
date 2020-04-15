@@ -11,6 +11,39 @@
 
 namespace ck {
 
+template <index_t Gi,
+          index_t MBlockWork,
+          index_t NBlockWork,
+          WorkgroupScheduleOrder WorkgroupSchdOrder>
+struct make_batch_block_work_sequence;
+
+template <index_t Gi, index_t MBlockWork, index_t NBlockWork>
+struct make_batch_block_work_sequence<Gi, MBlockWork, NBlockWork, MBlock1NBlock0>
+{
+    __device__ constexpr auto get() { return Sequence<Gi, MBlockWork, NBlockWork>{}; }
+};
+
+template <index_t Gi, index_t MBlockWork, index_t NBlockWork>
+struct make_batch_block_work_sequence<Gi, MBlockWork, NBlockWork, NBlock1MBlock0>
+{
+    __device__ constexpr auto get() { return Sequence<Gi, NBlockWork, MBlockWork>{}; }
+};
+
+template <index_t MBlockWork, index_t NBlockWork, WorkgroupScheduleOrder WorkgroupSchdOrder>
+struct make_block_work_sequence;
+
+template <index_t MBlockWork, index_t NBlockWork>
+struct make_block_work_sequence<MBlockWork, NBlockWork, MBlock1NBlock0>
+{
+    __device__ constexpr auto get() { return Sequence<MBlockWork, NBlockWork>{}; }
+};
+
+template <index_t MBlockWork, index_t NBlockWork>
+struct make_block_work_sequence<MBlockWork, NBlockWork, NBlock1MBlock0>
+{
+    __device__ constexpr auto get() { return Sequence<NBlockWork, MBlockWork>{}; }
+};
+
 template <index_t GridSize,
           index_t BlockSize,
           class ABFloat,
@@ -42,18 +75,19 @@ template <index_t GridSize,
           index_t BBlockCopySrcVectorReadDim,
           index_t BBlockCopySrcDataPerRead,
           index_t BBlockCopyDstDataPerWrite_KPACK,
-          InMemoryDataOperation OutputMemOp>
+          InMemoryDataOperation OutputMemOp,
+          WorkgroupScheduleOrder WorkgroupSchdOrder>
 struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
 {
     __device__ void Run(const ABFloat* const __restrict__ p_a_global,
                         const ABFloat* const __restrict__ p_b_global,
                         CFloat* const __restrict__ p_c_global) const
     {
-        constexpr auto True = integral_constant<bool, true>{};
-
         constexpr auto b_k_n_kpack_global_desc = BGlobalDesc{};
         constexpr auto a_k_m_kpack_global_desc = AGlobalDesc{};
         constexpr auto c_m_n_global_desc       = CGlobalDesc{};
+
+        constexpr auto True = integral_constant<bool, true>{};
 
         constexpr auto K     = b_k_n_kpack_global_desc.GetLengths()[0];
         constexpr auto N     = b_k_n_kpack_global_desc.GetLengths()[1];
@@ -70,13 +104,18 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
         constexpr index_t MWaves = MPerBlock / MPerWave;
         constexpr index_t NWaves = NPerBlock / NPerWave;
 
-        constexpr auto block_work_desc =
-            make_cluster_descriptor(Sequence<MBlockWork, NBlockWork>{});
+        constexpr auto block_work_sequence =
+            make_block_work_sequence<MBlockWork, NBlockWork, WorkgroupSchdOrder>{}.get();
+        constexpr auto block_work_desc = make_cluster_descriptor(block_work_sequence);
 
         const auto block_work_id = block_work_desc.CalculateClusterIndex(get_block_1d_id());
 
-        const index_t k_block_data_on_global = block_work_id[0] * MPerBlock;
-        const index_t b_block_data_on_global = block_work_id[1] * NPerBlock;
+        const index_t k_block_data_on_global = (WorkgroupSchdOrder == MBlock1NBlock0)
+                                                   ? (block_work_id[0] * MPerBlock)
+                                                   : (block_work_id[1] * MPerBlock);
+        const index_t b_block_data_on_global = (WorkgroupSchdOrder == MBlock1NBlock0)
+                                                   ? (block_work_id[1] * NPerBlock)
+                                                   : (block_work_id[0] * NPerBlock);
 
         //   LDS mem
         constexpr index_t max_align = math::lcm(BBlockCopyDstDataPerWrite_KPACK,
@@ -380,7 +419,8 @@ template <index_t GridSize,
           index_t BBlockCopySrcVectorReadDim,
           index_t BBlockCopySrcDataPerRead,
           index_t BBlockCopyDstDataPerWrite_KPACK,
-          InMemoryDataOperation OutputMemOp>
+          InMemoryDataOperation OutputMemOp,
+          WorkgroupScheduleOrder WorkgroupSchdOrder>
 struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
 {
     __device__ void Run(const ABFloat* const __restrict__ p_a_global,
@@ -388,13 +428,15 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
                         CFloat* const __restrict__ p_c_global) const
     {
 
-        constexpr auto True = integral_constant<bool, true>{};
-
         constexpr auto a_g_k_m_kpack_global_desc = AGlobalDesc{};
         constexpr auto b_g_k_n_kpack_global_desc = BGlobalDesc{};
         constexpr auto c_g_m_n_global_desc       = CGlobalDesc{};
 
-        constexpr auto G     = b_g_k_n_kpack_global_desc.GetLengths()[0];
+        constexpr auto True = integral_constant<bool, true>{};
+
+        constexpr auto Gi = b_g_k_n_kpack_global_desc.GetLengths()[0];
+        constexpr auto Go = c_g_m_n_global_desc.GetLengths()[0];
+
         constexpr auto K     = b_g_k_n_kpack_global_desc.GetLengths()[1];
         constexpr auto N     = b_g_k_n_kpack_global_desc.GetLengths()[2];
         constexpr auto M     = a_g_k_m_kpack_global_desc.GetLengths()[2];
@@ -410,14 +452,19 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
         constexpr index_t MWaves = MPerBlock / MPerWave;
         constexpr index_t NWaves = NPerBlock / NPerWave;
 
-        constexpr auto block_work_desc =
-            make_cluster_descriptor(Sequence<G, MBlockWork, NBlockWork>{});
+        constexpr auto block_work_sequence =
+            make_batch_block_work_sequence<Gi, MBlockWork, NBlockWork, WorkgroupSchdOrder>{}.get();
+        constexpr auto block_work_desc = make_cluster_descriptor(block_work_sequence);
 
         const auto block_work_id = block_work_desc.CalculateClusterIndex(get_block_1d_id());
 
         const index_t group_id               = block_work_id[0];
-        const index_t m_block_data_on_global = block_work_id[1] * MPerBlock;
-        const index_t n_block_data_on_global = block_work_id[2] * NPerBlock;
+        const index_t m_block_data_on_global = (WorkgroupSchdOrder == MBlock1NBlock0)
+                                                   ? (block_work_id[1] * MPerBlock)
+                                                   : (block_work_id[2] * MPerBlock);
+        const index_t n_block_data_on_global = (WorkgroupSchdOrder == MBlock1NBlock0)
+                                                   ? (block_work_id[2] * NPerBlock)
+                                                   : (block_work_id[1] * NPerBlock);
 
         //   LDS mem
         constexpr index_t max_align = math::lcm(BBlockCopyDstDataPerWrite_KPACK,
@@ -650,7 +697,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
 
             constexpr auto c_g_m0_m1_m2_n_global_desc = transform_tensor_descriptor(
                 c_g_m_n_global_desc,
-                make_tuple(PassThrough<G>{}, UnMerge<Sequence<M0, M1, M2>>{}, PassThrough<N>{}),
+                make_tuple(PassThrough<Go>{}, UnMerge<Sequence<M0, M1, M2>>{}, PassThrough<N>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
                 make_tuple(Sequence<0>{}, Sequence<1, 2, 3>{}, Sequence<4>{}));
 

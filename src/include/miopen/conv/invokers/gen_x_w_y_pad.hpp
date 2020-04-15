@@ -35,7 +35,7 @@ namespace miopen {
 
 namespace conv {
 
-Invoker MakeGenericXWYPadFwdInvoker(const std::vector<Kernel>& kernels);
+Invoker MakeGenericXWYPadInvoker(const std::vector<Kernel>& kernels);
 
 } // namespace conv
 } // namespace miopen

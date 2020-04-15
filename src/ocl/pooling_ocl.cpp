@@ -124,18 +124,20 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
 
     // for kernel implementation max pooling backward pass,
     //   "index_max" means ghost, and thus should not be reached
-    if(mode == miopenPoolingMax &&
-       ((pool_dim == 4 &&
-         !(index_max >= std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<int>()))) ||
-        (pool_dim == 5 && !(index_max >= xDesc.GetElementSize()))))
+    if(mode == miopenPoolingMax && save_index)
     {
-        MIOPEN_THROW("Index range not enough for max pooling bwd");
-    }
+        if((pool_dim == 4 &&
+            !(index_max >= std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<int>()))) ||
+           (pool_dim == 5 && !(index_max >= xDesc.GetElementSize())))
+        {
+            MIOPEN_THROW("Index range not enough for max pooling bwd");
+        }
 
-    if(mode == miopenPoolingMax && save_index && workSpace == nullptr)
-    {
-        throw std::invalid_argument(
-            "workSpace cannot be NULL in Forward Pooling MAX mode when backward pass is requested");
+        if(workSpace == nullptr)
+        {
+            throw std::invalid_argument("workSpace cannot be NULL in Forward Pooling MAX mode when "
+                                        "backward pass is requested");
+        }
     }
     int pooling_method =
         (mode == miopenPoolingMax)
@@ -234,7 +236,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     {
         if(pool_dim == 4)
         {
-            mlo_construct_pooling2D construct_params(1); // forward
+            mlo_construct_pooling2D construct_params(conv::Direction::Forward);
             construct_params.setStream(&handle);
             construct_params.setTopDescFromMLDesc(yDesc);
             construct_params.setBotDescFromMLDesc(xDesc);
@@ -528,7 +530,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     {
         if(pool_dim == 4)
         {
-            mlo_construct_pooling2D construct_params(0); // backward
+            mlo_construct_pooling2D construct_params(conv::Direction::BackwardData);
             construct_params.setStream(&handle);
             construct_params.setTopDfDescFromMLDesc(dyDesc);
             construct_params.setTopDescFromMLDesc(yDesc);
