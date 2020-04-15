@@ -1399,7 +1399,9 @@ struct conv_driver : test_driver
     miopen::ConvolutionDescriptor filter;
     std::string conv_mode;
     std::string pad_mode;
-    std::vector<std::size_t> spatial_dim_elements;
+    std::vector<std::size_t> spatial_dim_elements{};
+    std::vector<std::size_t> input_dims{};
+    std::vector<std::size_t> weight_dims{};
     std::size_t batch_size{};
     std::size_t input_channels{};
     std::size_t output_channels{};
@@ -1525,7 +1527,6 @@ struct conv_driver : test_driver
         add(do_backward_weights, "disable-backward-weights", set_value(false));
         add(search, "search", set_value(1));
         add(gen_float, "generate-float", set_value(true));
-
         if(immed)
         {
             add(enable_fdb, "enable-fdb", generate_data({false, true}));
@@ -1538,16 +1539,15 @@ struct conv_driver : test_driver
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];
         std::size_t spatial_dim = filter.GetSpatialDimension();
-        if(spatial_dim == 2)
+
+        if(!input_dims.empty())
+        {
+            input = tensor<T>{input_dims}.generate(tensor_elem_gen_integer{17});
+        }
+        else if(spatial_dim == 2)
         {
             input = tensor<T>{
                 batch_size,
-                input_channels,
-                spatial_dim_elements.at(0),
-                spatial_dim_elements.at(
-                    1)}.generate(tensor_elem_gen_integer{17});
-            weights = tensor<T>{
-                output_channels,
                 input_channels,
                 spatial_dim_elements.at(0),
                 spatial_dim_elements.at(
@@ -1562,6 +1562,23 @@ struct conv_driver : test_driver
                 spatial_dim_elements.at(1),
                 spatial_dim_elements.at(
                     2)}.generate(tensor_elem_gen_integer{17});
+        }
+
+        if(!weight_dims.empty())
+        {
+            weights = tensor<T>{weight_dims}.generate(tensor_elem_gen_integer{17});
+        }
+        else if(spatial_dim == 2)
+        {
+            weights = tensor<T>{
+                output_channels,
+                input_channels,
+                spatial_dim_elements.at(0),
+                spatial_dim_elements.at(
+                    1)}.generate(tensor_elem_gen_integer{17});
+        }
+        else if(spatial_dim == 3)
+        {
             weights = tensor<T>{
                 output_channels,
                 input_channels,
@@ -1570,12 +1587,9 @@ struct conv_driver : test_driver
                 spatial_dim_elements.at(
                     2)}.generate(tensor_elem_gen_integer{17});
         }
-        else
-        {
-            MIOPEN_LOG_E("dimension is wrong!");
-        }
 
-        if(pads_strides_dilations.size() != 3 * spatial_dim ||
+        if(input.desc.GetSize() != 2 + spatial_dim || weights.desc.GetSize() != 2 + spatial_dim ||
+           pads_strides_dilations.size() != 3 * spatial_dim ||
            trans_output_pads.size() != spatial_dim)
         {
             MIOPEN_LOG_E("dimension is wrong!");

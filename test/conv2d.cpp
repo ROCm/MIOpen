@@ -30,6 +30,8 @@ struct conv2d_driver : conv_driver<T>
 {
     conv2d_driver() : conv_driver<T>()
     {
+        this->add(this->input_dims, "input");
+        this->add(this->weight_dims, "weights");
         this->add(
             this->batch_size, "batch_size", this->generate_data_limited(this->get_batch_sizes()));
         this->add(this->input_channels,
