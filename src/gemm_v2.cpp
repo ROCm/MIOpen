@@ -480,15 +480,12 @@ miopenStatus_t CallGemm(Handle& handle,
 
     switch(gemm_backend)
     {
-    case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
-    case GemmBackend_t::miopentensile: {
+    case GemmBackend_t::miopentensile:
 #if MIOPEN_USE_MIOPENTENSILE
         return CallGemmMIOpenTensile(
             handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key);
-#else
-        return miopenStatusNotImplemented;
 #endif
-    }
+    case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
     case GemmBackend_t::rocblas: {
 #if MIOPEN_USE_ROCBLAS
         MIOPEN_LOG_FUNCTION("rocBLAS");
@@ -795,15 +792,12 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
 
     switch(gemm_backend)
     {
-    case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
-    case GemmBackend_t::miopentensile: {
+    case GemmBackend_t::miopentensile:
 #if MIOPEN_USE_MIOPENTENSILE
         return CallGemmMIOpenTensile(
             handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key);
-#else
-        return miopenStatusNotImplemented;
 #endif
-    }
+    case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
     case GemmBackend_t::rocblas: {
 #if MIOPEN_USE_ROCBLAS
         MIOPEN_LOG_FUNCTION("rocBLAS");
@@ -1066,15 +1060,12 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
 
     switch(gemm_backend)
     {
-    case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
-    case GemmBackend_t::miopentensile: {
+    case GemmBackend_t::miopentensile:
 #if MIOPEN_USE_MIOPENTENSILE
         return CallGemmMIOpenTensile(
             handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key);
-#else
-        return miopenStatusNotImplemented;
 #endif
-    }
+    case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
     case GemmBackend_t::rocblas: {
 #if MIOPEN_USE_ROCBLAS
         MIOPEN_LOG_FUNCTION("rocBLAS");
