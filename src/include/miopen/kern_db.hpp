@@ -50,6 +50,10 @@ struct KernelConfig
     std::string kernel_name;
     std::string kernel_args;
     std::string kernel_blob;
+    static std::vector<std::string> FieldNames()
+    {
+        return {"kernel_name", "kernel_args", "kernel_blob"};
+    }
     static std::string CreateQuery()
     {
         std::ostringstream ss;
