@@ -248,10 +248,26 @@ bool PerformanceImplicitGemmV4R4GenXdlopsWrWFp32::IsValid(const ConvolutionConte
     const std::size_t GemmN = c * y * x;
     const std::size_t GemmK = n * ho * wo;
 
-    if(!(ctx.direction.IsBackwardWrW()) && GemmKBlocks > 1)
-        return false;
+    // heuristic to reduce search space
+    {
+        // do not split GemmK if grid_size is large enough
+        const auto GridSize = (GemmN / GemmNPerBlock) * (GemmM / GemmMPerBlock);
+        if(GridSize > 256 && GemmKBlocks > 1)
+            return false;
 
-    if(!(GemmM % GemmMPerBlock == 0 && GemmN % GemmNPerBlock == 0 && GemmK % GemmKPerBlock == 0))
+        // use largest XdlopsGemm
+        if(GemmMPerBlock >= 64 && GemmMPerWave != 64)
+            return false;
+        if(GemmNPerBlock >= 64 && GemmNPerWave != 64)
+            return false;
+        if((GemmMPerBlock == 32 || GemmMPerBlock == 16) && GemmMPerWave != GemmMPerBlock)
+            return false;
+        if((GemmNPerBlock == 32 || GemmNPerBlock == 16) && GemmNPerWave != GemmNPerBlock)
+            return false;
+    }
+
+    if(!(GemmM % GemmMPerBlock == 0 && GemmN % GemmNPerBlock == 0 &&
+         GemmK % (GemmKPerBlock * GemmKBlocks) == 0))
         return false; // wrong! cannot divice N evenly among thread
 
     if(!IsValidXdlopsGemm(GemmMPerBlock, GemmNPerBlock, GemmKPerBlock, GemmMPerWave, GemmNPerWave))
@@ -362,7 +378,7 @@ bool PerformanceImplicitGemmV4R4GenXdlopsWrWFp32::SetNextValue()
 void PerformanceImplicitGemmV4R4GenXdlopsWrWFp32::EuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmV4R4GenXdlopsWrWFp32 tmp;
-    tmp = {128, 128, 16, 1, 64, 64, use_spare_set};
+    tmp = {127, 128, 16, 1, 64, 64, use_spare_set};
 
     if(!tmp.IsValid(ctx))
         tmp = {4, 64, 16, 1, 4, 64, use_spare_set};
