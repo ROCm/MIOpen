@@ -277,14 +277,14 @@ EvaluateDataImplicitGemmSolution(Handle& handle,
                 kernel.GetName() ==
                     "gridwise_convolution_backward_data_implicit_gemm_v4r1_ncdhw_kczyx_nkdhw")
         {
-            bool is_1x1_s1 = false;
+            bool filterGeStride = false;
             if(miopen::all_of(padding, [](auto v) { return v == 0; }))
             {
                 if(wDesc.GetSize() == 4)
                 { // 2d
                     if(wDesc.GetLengths()[2] >= strides[0] && wDesc.GetLengths()[3] >= strides[1])
                     {
-                        is_1x1_s1 = true;
+                        filterGeStride = true;
                     }
                 }
                 else
@@ -292,12 +292,12 @@ EvaluateDataImplicitGemmSolution(Handle& handle,
                     if(wDesc.GetLengths()[2] >= strides[0] && wDesc.GetLengths()[3] >= strides[1] &&
                        wDesc.GetLengths()[4] >= strides[2])
                     {
-                        is_1x1_s1 = true;
+                        filterGeStride = true;
                     }
                 }
             }
 
-            if(!is_1x1_s1)
+            if(!filterGeStride)
             {
                 float zero = 0.f;
                 SetTensor(handle, outDesc, out, &zero);
@@ -3134,7 +3134,7 @@ void ConvBwdImplicitGemm(const ConvolutionDescriptor& conv,
                 "gridwise_convolution_backward_data_implicit_gemm_v4r1_ncdhw_kczyx_nkdhw")
     {
         // \todo this kernel doesn't always need to set-zero
-        bool is_1x1_s1 = false;
+        bool filterGeStride = false;
         if(miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }))
         {
             if(tensors.wDesc.GetSize() == 4)
@@ -3142,7 +3142,7 @@ void ConvBwdImplicitGemm(const ConvolutionDescriptor& conv,
                 if(tensors.wDesc.GetLengths()[2] >= conv.GetConvStrides()[0] &&
                    tensors.wDesc.GetLengths()[3] >= conv.GetConvStrides()[1])
                 {
-                    is_1x1_s1 = true;
+                    filterGeStride = true;
                 }
             }
             else
@@ -3151,12 +3151,12 @@ void ConvBwdImplicitGemm(const ConvolutionDescriptor& conv,
                    tensors.wDesc.GetLengths()[3] >= conv.GetConvStrides()[1] &&
                    tensors.wDesc.GetLengths()[4] >= conv.GetConvStrides()[2])
                 {
-                    is_1x1_s1 = true;
+                    filterGeStride = true;
                 }
             }
         }
 
-        if(!is_1x1_s1)
+        if(!filterGeStride)
         {
             float zero = 0.f;
             SetTensor(handle, tensors.dxDesc, tensors.dx, &zero);
