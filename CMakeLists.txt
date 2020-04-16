@@ -103,8 +103,8 @@ list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/hcc /opt/rocm/hip)
 
 option(ENABLE_HIP_WORKAROUNDS Off)
 
-option(ENABLE_COMGR "When possible, use comgr to build kernels instead of offline tools" Off)
-if(ENABLE_COMGR)
+option(MIOPEN_USE_COMGR "When possible, use comgr to build kernels instead of offline tools" Off)
+if(MIOPEN_USE_COMGR)
     set(MIOPEN_USE_COMGR On)
 else()
     set(MIOPEN_USE_COMGR Off)
