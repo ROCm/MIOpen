@@ -58,7 +58,7 @@ namespace miopen {
         if(!(lock))                                      \
             MIOPEN_THROW("Db lock has failed to lock."); \
     } while(false)
-#define MIOPEN_SQL_BUSY_TIMEOUT_MS 60000
+const auto MIOPEN_SQL_BUSY_TIMEOUT_MS = 60000;
 template <class Derived>
 struct SQLiteSerializable
 {
