@@ -536,6 +536,11 @@ if(miopengemm_FOUND)
     target_internal_library(MIOpen miopengemm)
 endif()
 
+if(MIOPEN_USE_COMGR)
+    list(APPEND PACKAGE_DEPENDS PACKAGE amd_comgr)
+    target_internal_library(MIOpen amd_comgr)
+endif()
+
 if(rocblas_FOUND)
     target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:roc::rocblas> )
     target_link_libraries( MIOpen PRIVATE roc::rocblas )

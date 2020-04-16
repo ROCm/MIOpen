@@ -103,6 +103,13 @@ list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/hcc /opt/rocm/hip)
 
 option(ENABLE_HIP_WORKAROUNDS Off)
 
+option(ENABLE_COMGR "When possible, use comgr to build kernels instead of offline tools" Off)
+if(ENABLE_COMGR)
+    set(MIOPEN_USE_COMGR On)
+else()
+    set(MIOPEN_USE_COMGR Off)
+endif()
+
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
@@ -135,6 +142,10 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
 
     # scgemm not support opencl backend yet.
     set(MIOPEN_USE_SCGEMM OFF)
+
+    # Disable comgr for now for OCL backend.
+    # TODO (priority_low) Use to build HIP and ASM kernels.
+    set(MIOPEN_USE_COMGR Off)
 endif()
 
 # HIP
@@ -151,7 +162,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     else()
         message(FATAL_ERROR "clang-ocl not found")
     endif()
-    
+
     if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
         link_libraries(stdc++)
 
@@ -211,13 +222,13 @@ endif()
 # Online assembler
 find_program(MIOPEN_AMDGCN_ASSEMBLER
     NAMES clang
-    PATHS 
+    PATHS
         ${MIOPEN_AMDGCN_ASSEMBLER_PATH}
         /opt/rocm
         /opt/rocm/hcc
         ${CMAKE_INSTALL_PREFIX}
         ${CMAKE_INSTALL_PREFIX}/hcc
-    PATH_SUFFIXES 
+    PATH_SUFFIXES
         /opencl/bin/x86_64
         /bin
     NO_DEFAULT_PATH
@@ -237,6 +248,19 @@ if(MIOPEN_USE_MIOPENGEMM)
 else()
     message(STATUS "Build without miopengemm")
     set(MIOPEN_USE_MIOPENGEMM 0)
+endif()
+
+if(MIOPEN_USE_COMGR)
+    find_package(amd_comgr CONFIG)
+    if(amd_comgr_FOUND)
+        message(STATUS "Build with comgr ${amd_comgr_VERSION}")
+        set(MIOPEN_USE_COMGR On)
+    else()
+        message(STATUS "Build without comgr (not found)")
+        set(MIOPEN_USE_COMGR Off)
+    endif()
+else()
+    message(STATUS "Build without comgr")
 endif()
 
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
