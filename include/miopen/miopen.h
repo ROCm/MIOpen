@@ -885,9 +885,7 @@ typedef enum {
     miopenConvolutionAlgoStaticCompiledGEMM = 6, /*!< Static Compiled GEMM convolutions */
 } miopenConvAlgorithm_t;
 
-/*! @struct miopenConvAlgoPerf_t
-
- * @brief Perf struct for forward, backward filter, or backward data algorithms
+/*! @brief Perf struct for forward, backward filter, or backward data algorithms
  *
  * Contains the union to hold the selected convolution algorithm for forward, or backwards layers,
  * and also contains the time it took to run the algorithm and the workspace required to run the
@@ -907,10 +905,8 @@ typedef struct
     size_t memory; /*!< Workspace required to run the selected algorithm represented in the union */
 } miopenConvAlgoPerf_t;
 
-/*! @struct miopenConvSolution_t
-
- * @brief Performance struct for forward, backward filter, or backward data algorithms in immediate
- mode
+/*! @brief Performance struct for forward, backward filter, or backward data algorithms in
+ * immediate mode
  *
  * Contains an integer identifying the solution and the algorithm for the solution,
  * as well as the runtime, workspace size and a boolean flag indicating whether the returned
