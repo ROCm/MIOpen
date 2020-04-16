@@ -477,6 +477,13 @@ if(MIOPEN_USE_SCGEMM)
 
 endif()
 
+if(MIOPEN_USE_COMGR)
+    list(APPEND MIOpen_Source
+        comgr.cpp
+        include/miopen/comgr.hpp
+    )
+endif()
+
 # build library
 add_library( MIOpen
     ${MIOpen_Source}
