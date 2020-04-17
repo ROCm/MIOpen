@@ -208,11 +208,10 @@ struct Handle : miopenHandle
     void RegisterInvoker(const Invoker& invoker,
                          const NetworkConfig& config,
                          solver::Id solver,
-                         const boost::optional<AlgorithmName>& algo = boost::none)
+                         const AlgorithmName& algo)
     {
         invokers.Register({config, solver.ToString()}, invoker);
-        if(algo)
-            invokers.SetAsFound1_0(config, *algo, solver.ToString());
+        invokers.SetAsFound1_0(config, algo, solver.ToString());
     }
 
     boost::optional<const Invoker&>
