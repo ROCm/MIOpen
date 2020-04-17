@@ -286,17 +286,18 @@ std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor
 
 RNNDescriptor::RNNDescriptor()
 {
-    nLayers                = 1;
-    hsize                  = 0;
-    nHiddenTensorsPerLayer = 0;
-    rnnMode                = miopenRNNTANH;
-    dirMode                = miopenRNNunidirection;
-    biasMode               = miopenRNNNoBias;
-    algoMode               = miopenRNNdefault;
-    inputMode              = miopenRNNlinear;
-    dataType               = miopenFloat;
-    typeSize               = 4;
-    workspaceScale         = 1;
+    nLayers                     = 1;
+    hsize                       = 0;
+    nHiddenTensorsPerLayer      = 0;
+    rnnMode                     = miopenRNNTANH;
+    dirMode                     = miopenRNNunidirection;
+    biasMode                    = miopenRNNNoBias;
+    algoMode                    = miopenRNNdefault;
+    inputMode                   = miopenRNNlinear;
+    dataType                    = miopenFloat;
+    typeSize                    = 4;
+    workspaceScale              = 1;
+    miopen::deref(&dropoutDesc) = new miopen::DropoutDescriptor();
 }
 
 RNNDescriptor::RNNDescriptor(int hsz,
@@ -311,38 +312,125 @@ RNNDescriptor::RNNDescriptor(int hsz,
 
     if(hsz < 0 || layers < 0)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Parameter to RNN must be a positive integer.");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). RNN hidden size and "
+                     "layer number must be positive integers.");
     }
     if(!(rmode == miopenRNNRELU || rmode == miopenRNNTANH || rmode == miopenLSTM ||
          rmode == miopenGRU))
     {
-        MIOPEN_THROW(miopenStatusBadParm, "RNN mode not supported");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). RNN mode must be "
+                     "vanilla activated with ReLU or Tanh, LSTM or GRU.");
     }
     if(bidir != 0 && bidir != 1)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN directional type not supported");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). Parameters to RNN "
+                     "directional type must be 0 for uni-direction or 1 for "
+                     "bi-direction.");
     }
     if(bmode != 0 && bmode != 1)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN bias type not supported");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). Parameters to RNN bias "
+                     "type must be 0 for disabled bias or 1 for enabled "
+                     "bias.");
     }
     if(dType != miopenFloat && dType != miopenHalf)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN datatype is not supported");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). RNN datatype must be float or half.");
     }
     else
     {
-        typeSize = 4;
+        typeSize = dType == miopenHalf ? 2 : 4;
     }
 
-    hsize     = hsz;
-    nLayers   = layers;
-    inputMode = inMode;
-    dirMode   = bidir;
-    rnnMode   = rmode;
-    algoMode  = amode;
-    biasMode  = bmode;
-    dataType  = dType;
+    hsize                       = hsz;
+    nLayers                     = layers;
+    inputMode                   = inMode;
+    dirMode                     = bidir;
+    rnnMode                     = rmode;
+    algoMode                    = amode;
+    biasMode                    = bmode;
+    dataType                    = dType;
+    miopen::deref(&dropoutDesc) = new miopen::DropoutDescriptor();
+
+    switch(rmode)
+    {
+    case 0: // RNN vanilla
+    case 1: // RNN vanilla
+        nHiddenTensorsPerLayer = 1;
+        workspaceScale         = 1;
+        break;
+    case 2: // LSTM
+        nHiddenTensorsPerLayer = 4;
+        workspaceScale         = 6;
+        break;
+    case 3: // GRU
+        nHiddenTensorsPerLayer = 3;
+        workspaceScale         = 4;
+        break;
+    }
+}
+
+RNNDescriptor::RNNDescriptor(int hsz,
+                             int layers,
+                             miopenRNNMode_t rmode,
+                             miopenRNNInputMode_t inMode,
+                             miopenRNNDirectionMode_t bidir,
+                             miopenRNNBiasMode_t bmode,
+                             miopenRNNAlgo_t amode,
+                             miopenDataType_t dType,
+                             miopenDropoutDescriptor_t dropDesc)
+    : hsize(size_t(hsz)),
+      nLayers(size_t(layers)),
+      rnnMode(rmode),
+      dirMode(bidir),
+      algoMode(amode),
+      inputMode(inMode),
+      biasMode(bmode),
+      dataType(dType),
+      dropoutDesc(dropDesc)
+{
+
+    if(hsz < 0 || layers < 0)
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). RNN hidden size and "
+                     "layer number must be positive integers.");
+    }
+    if(!(rmode == miopenRNNRELU || rmode == miopenRNNTANH || rmode == miopenLSTM ||
+         rmode == miopenGRU))
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). RNN mode must be "
+                     "vanilla activated with ReLU or Tanh, LSTM or GRU.");
+    }
+    if(bidir != 0 && bidir != 1)
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). Parameters to RNN "
+                     "directional type must be 0 for uni-direction or 1 for "
+                     "bi-direction.");
+    }
+    if(bmode != 0 && bmode != 1)
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). Parameters to RNN bias "
+                     "type must be 0 for disabled bias or 1 for enabled "
+                     "bias.");
+    }
+    if(dType != miopenFloat && dType != miopenHalf)
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). RNN datatype must be float or half.");
+    }
+    else
+    {
+        typeSize = dType == miopenHalf ? 2 : 4;
+    }
 
     switch(rmode)
     {
@@ -789,6 +877,7 @@ std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& r)
     stream << r.algoMode << ", ";
     stream << r.inputMode << ", ";
     stream << r.biasMode << ", ";
+    stream << r.dropoutDesc << ", ";
     return stream;
 }
 
