@@ -105,7 +105,7 @@ struct ExecutionContext
 #else
              + GetStream().GetDbBasename()
              + "."
-             + SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER
+             + GetUserDbSuffix()
              + ".cd.updb.txt";
 #endif
         // clang-format on
