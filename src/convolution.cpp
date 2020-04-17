@@ -27,6 +27,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/find_controls.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/miopen.h>
@@ -424,7 +425,34 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     ctx.DetectRocm();
 
     if(IsWinograd3x3SupportedAndFast(ctx))
+    {
+        MIOPEN_LOG_I2(0);
         return 0;
+    }
+
+    /// \ref ffind_special_cases
+    const miopen::FindMode fm;
+    while(fm.IsFast() || fm.IsHybrid())
+    {
+        /// \section ffind_gwss_why_not_0
+        /// Basically we can return 0 here because
+        /// * (A) Find() emulated by Immediate mode does not execute kernels.
+        /// * (B) We expect that applications read output of Find() and
+        ///   allocate WS for Run phase as indicated there
+        ///   (in miopenConvAlgoPerf_t::memory).
+        ///
+        /// However there are some known apps that allocate WS once
+        /// (using size returned by *this* call) and then re-use
+        /// the same workspace for Run phase. That is why we shall return
+        /// actually required workspace here.
+        size_t count;
+        miopenConvSolution_t sol;
+        GetForwardSolutions(handle, wDesc, xDesc, yDesc, 1, &count, &sol);
+        if(count < 1 || (fm.IsHybrid() && sol.time < 0))
+            break; // Fall down to Normal Find.
+        MIOPEN_LOG_I2(sol.workspace_size);
+        return sol.workspace_size;
+    }
 
     ctx.SetupFloats();
     ctx.do_search             = false;
@@ -505,7 +533,24 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
     ctx.DetectRocm();
 
     if(IsWinograd3x3SupportedAndFast(ctx))
+    {
+        MIOPEN_LOG_I2(0);
         return 0;
+    }
+
+    /// \ref ffind_special_cases
+    const miopen::FindMode fm;
+    while(fm.IsFast() || fm.IsHybrid())
+    {
+        /// \ref ffind_gwss_why_not_0
+        size_t count;
+        miopenConvSolution_t sol;
+        GetBackwardSolutions(handle, dyDesc, wDesc, dxDesc, 1, &count, &sol);
+        if(count < 1 || (fm.IsHybrid() && sol.time < 0))
+            break; // Fall down to Normal Find.
+        MIOPEN_LOG_I2(sol.workspace_size);
+        return sol.workspace_size;
+    }
 
     ctx.SetupFloats();
     ctx.do_search             = false;
@@ -819,6 +864,18 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
                                                        const TensorDescriptor& dwDesc) const
 {
     MIOPEN_LOG_I("");
+    const miopen::FindMode fm;
+    while(fm.IsFast() || fm.IsHybrid())
+    {
+        /// \ref ffind_gwss_why_not_0
+        size_t count;
+        miopenConvSolution_t sol;
+        GetWrwSolutions(handle, dyDesc, xDesc, dwDesc, 1, &count, &sol);
+        if(count < 1 || (fm.IsHybrid() && sol.time < 0))
+            break; // Fall down to Normal Find.
+        MIOPEN_LOG_I2(sol.workspace_size);
+        return sol.workspace_size;
+    }
 
     auto ctx = ConvolutionContext(xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights);
     ctx.SetStream(&handle);
@@ -842,9 +899,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
                                             BackwardWeightsGetWorkSpaceSizeWinograd(ctx),
                                             BackwardWeightsGetWorkSpaceSizeDirect(ctx),
                                             workspace_size_gemm});
-
     MIOPEN_LOG_I2(workspace_size);
-
     return workspace_size;
 }
 
