@@ -53,7 +53,12 @@ KernDb::KernDb(const std::string& filename_,
         }
     }
     else
-        MIOPEN_LOG_I(filename + " database invalid");
+    {
+        if(filename.empty())
+            MIOPEN_LOG_I("database not present");
+        else
+            MIOPEN_LOG_I(filename + " database invalid");
+    }
 }
 
 } // namespace miopen
