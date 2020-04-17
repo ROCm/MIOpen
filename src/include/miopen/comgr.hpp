@@ -26,4 +26,18 @@
 #ifndef GUARD_COMGR_HPP
 #define GUARD_COMGR_HPP
 
+#include <miopen/config.h>
+#if MIOPEN_USE_COMGR
+
+#include <string>
+
+namespace miopen {
+namespace comgr {
+
+void BuildOcl(const std::string& text, const std::string& options, std::string& binary);
+
+} // namespace comgr
+} // namespace miopen
+
+#endif // MIOPEN_USE_COMGR
 #endif // GUARD_COMGR_HPP

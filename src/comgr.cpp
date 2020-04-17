@@ -27,6 +27,9 @@
 #include <miopen/logger.hpp>
 #include <amd_comgr.h>
 
+namespace miopen {
+namespace comgr {
+
 namespace {
 
 bool PrintVersion()
@@ -38,6 +41,23 @@ bool PrintVersion()
     return true;
 }
 
-bool once = PrintVersion();
+bool once = PrintVersion(); /// FIXME remove this
 
 } // namespace
+
+void BuildOcl(const std::string& text, const std::string& options, std::string& binary)
+{
+    (void)text;
+    (void)options;
+    (void)binary;
+#if 0
+    if(return_code != 0)
+    {
+        MIOPEN_LOG_W(error_message);
+        MIOPEN_THROW("Assembly error(" + std::to_string(return_code) + ")");
+    }
+#endif
+}
+
+} // namespace comgr
+} // namespace miopen

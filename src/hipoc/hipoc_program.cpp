@@ -33,6 +33,7 @@
 #include <miopen/tmp_dir.hpp>
 #include <miopen/write_file.hpp>
 #include <miopen/env.hpp>
+#include <miopen/comgr.hpp>
 #include <boost/optional.hpp>
 #include <sstream>
 
@@ -178,6 +179,10 @@ struct HIPOCProgramImpl
 
             WriteFile(src, dir->path / filename);
             dir->Execute(HIP_OC_COMPILER, params + " " + filename + " -o " + hsaco_file.string());
+            {
+                std::string binary;
+                comgr::BuildOcl(src, params, binary);
+            }
         }
         if(!boost::filesystem::exists(hsaco_file))
             MIOPEN_THROW("Cant find file: " + hsaco_file.string());
