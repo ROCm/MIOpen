@@ -28,6 +28,7 @@
 #define GUARD_MIOPEN_RNN_HPP_
 
 #include <miopen/common.hpp>
+#include <miopen/dropout.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
@@ -73,6 +74,16 @@ struct RNNDescriptor : miopenRNNDescriptor
                   miopenRNNAlgo_t amode,
                   miopenDataType_t dType);
 
+    RNNDescriptor(int hsz,
+                  int layers,
+                  miopenRNNMode_t rmode,
+                  miopenRNNInputMode_t inMode,
+                  miopenRNNDirectionMode_t bidir,
+                  miopenRNNBiasMode_t bmode,
+                  miopenRNNAlgo_t amode,
+                  miopenDataType_t dType,
+                  miopenDropoutDescriptor_t dropDesc);
+
     size_t hsize;   // DLOWELL: is this uniform over all layers?
     size_t nLayers; // This may be twice the number of actually wDesc layers since the layout for
                     // wDesc is 2-D?
@@ -87,6 +98,7 @@ struct RNNDescriptor : miopenRNNDescriptor
     miopenRNNBiasMode_t biasMode;
     miopenDataType_t dataType;
     std::size_t typeSize;
+    miopenDropoutDescriptor_t dropoutDesc{};
 
     size_t biasOffsetCalculation(const TensorDescriptor& xDesc, int layer, int biasID);
 
