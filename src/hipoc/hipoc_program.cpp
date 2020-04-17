@@ -95,18 +95,17 @@ hipModulePtr CreateModuleInMem(const std::string& hsaco)
 
 struct HIPOCProgramImpl
 {
-    HIPOCProgramImpl(const std::string& program_name, const boost::filesystem::path& hsaco)
-        : name(program_name), hsaco_file(hsaco)
+    HIPOCProgramImpl(const std::string& program_name, const boost::filesystem::path& filespec)
+        : program(program_name), hsaco_file(filespec)
     {
         this->module = CreateModule(this->hsaco_file);
     }
-    HIPOCProgramImpl(const std::string& program_name,
-                     const std::string& hsaco) // the actual module and not just the filename
+
+    HIPOCProgramImpl(const std::string& program_name, const std::string& blob)
 #if MIOPEN_WORKAROUND_SWDEV_225285
-        : name(program_name)
+        : program(program_name)
 #else
-        : name(program_name),
-          module(CreateModuleInMem(hsaco))
+        : program(program_name), module(CreateModuleInMem(blob))
 #endif
     {
 #if MIOPEN_WORKAROUND_SWDEV_225285
@@ -115,69 +114,69 @@ struct HIPOCProgramImpl
         TmpDir tmp_dir("miopen");
         auto file_path =
             tmp_dir.path / boost::filesystem::unique_path("miopen-%%%%-%%%%-%%%%-%%%%");
-        WriteFile(hsaco, file_path);
+        WriteFile(blob, file_path);
         this->module = CreateModule(file_path);
 #endif
     }
+
     HIPOCProgramImpl(const std::string& program_name,
                      std::string params,
                      bool is_kernel_str,
-                     std::string _dev_name,
+                     std::string dev_name,
                      const std::string& kernel_src)
-        : name(program_name), dev_name(_dev_name)
+        : program(program_name), device(dev_name)
     {
-        this->BuildModule(program_name, params, is_kernel_str, kernel_src);
+        this->BuildModule(params, is_kernel_str, kernel_src);
         this->module = CreateModule(this->hsaco_file);
     }
-    std::string name;
-    std::string dev_name;
+
+    std::string program;
+    std::string device;
     boost::filesystem::path hsaco_file;
     hipModulePtr module;
     boost::optional<TmpDir> dir;
-    void BuildModule(const std::string& program_name,
-                     std::string params,
-                     bool is_kernel_str,
-                     const std::string& kernel_src)
+
+    void BuildModule(std::string params, bool is_kernel_str, const std::string& kernel_src)
     {
-        std::string filename =
-            is_kernel_str ? "tinygemm.cl" : program_name; // jn : don't know what this is
+        /// \todo Do not create tmp dir if comgr is used.
+        std::string filename = is_kernel_str ? "tinygemm.cl" // Fixed name for miopengemm.
+                                             : program;
         dir.emplace(filename);
 
         hsaco_file = dir->path / (filename + ".o");
         std::string src;
         if(kernel_src.empty())
-            src = is_kernel_str ? program_name : GetKernelSrc(program_name);
+            src = is_kernel_str ? program : GetKernelSrc(program);
         else
             src = kernel_src;
-        if(!is_kernel_str && miopen::EndsWith(program_name, ".so"))
+        if(!is_kernel_str && miopen::EndsWith(program, ".so"))
         {
             WriteFile(src, hsaco_file);
         }
-        else if(!is_kernel_str && miopen::EndsWith(program_name, ".s"))
+        else if(!is_kernel_str && miopen::EndsWith(program, ".s"))
         {
             AmdgcnAssemble(src, params);
             WriteFile(src, hsaco_file);
         }
-        else if(!is_kernel_str && miopen::EndsWith(program_name, ".cpp"))
+        else if(!is_kernel_str && miopen::EndsWith(program, ".cpp"))
         {
 #if MIOPEN_BUILD_DEV
             params += " -Werror" + HipKernelWarningsString();
 #else
             params += " -Wno-everything";
 #endif
-            hsaco_file = HipBuild(dir, filename, src, params, dev_name);
+            hsaco_file = HipBuild(dir, filename, src, params, device);
         }
         else
         {
-
-            WriteFile(src, dir->path / filename);
-
 #if MIOPEN_BUILD_DEV
             params += " -Werror" + OclKernelWarningsString();
 #else
             params += " -Wno-everything";
 #endif
             params += " " + GetCoV3Option(ProduceCoV3());
+
+            WriteFile(src, dir->path / filename);
             dir->Execute(HIP_OC_COMPILER, params + " " + filename + " -o " + hsaco_file.string());
         }
         if(!boost::filesystem::exists(hsaco_file))

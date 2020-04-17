@@ -33,12 +33,11 @@ bool PrintVersion()
 {
     std::size_t major = 0;
     std::size_t minor = 0;
-    amd_comgr_get_version(&major,&minor);
+    amd_comgr_get_version(&major, &minor);
     MIOPEN_LOG_I("comgr v." << major << '.' << minor);
     return true;
 }
 
 bool once = PrintVersion();
 
-} //namespace
-
+} // namespace
