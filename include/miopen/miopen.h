@@ -3043,6 +3043,33 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor(miopenRNNDescriptor_t rnnDes
                                                     int* hiddenSize,
                                                     int* layer);
 
+/*! @brief Retrieves a RNN layer descriptor's details version 2. This version enables retrieving
+* information of the dropout descriptor of the rnn descriptor.
+*
+* @param rnnDesc     RNN layer descriptor (input)
+* @param hiddenSize  Size of hidden state (output)
+* @param layer       Number of stacked layers (output)
+* @param dropoutDesc Pre-configured dropout descriptor for dropout layer in between RNN layers
+* (output)
+* @param inputMode   RNN data input mode (output)
+* @param dirMode     Uni or bi direction mode (output)
+* @param rnnMode     RNN mode (output)
+* @param biasMode    Bias used (output)
+* @param algoMode    RNN algorithm mode (output)
+* @param dataType    Data type of RNN (output)
+* @return            miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor_V2(miopenRNNDescriptor_t rnnDesc,
+                                                       int* hiddenSize,
+                                                       int* layer,
+                                                       miopenDropoutDescriptor_t* dropoutDesc,
+                                                       miopenRNNInputMode_t* inputMode,
+                                                       miopenRNNDirectionMode_t* dirMode,
+                                                       miopenRNNMode_t* rnnMode,
+                                                       miopenRNNBiasMode_t* biasMode,
+                                                       miopenRNNAlgo_t* algoMode,
+                                                       miopenDataType_t* dataType);
+
 /*! @brief Destroys the tensor descriptor object
 *
 * @param rnnDesc RNN tensor descriptor type (input)
@@ -3074,6 +3101,35 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor(miopenRNNDescriptor_t rnnDes
                                                     miopenRNNBiasMode_t biasMode,
                                                     miopenRNNAlgo_t algo,
                                                     miopenDataType_t dataType);
+
+/*! @brief Set the details of the RNN descriptor version 2. This version enables the use of dropout
+ * in rnn.
+ *
+ * Interface for setting the values of the RNN descriptor object. This function requires specific
+ * algorithm selection.
+ * @param rnnDesc      RNN layer descriptor type (input/output)
+ * @param hsize        Hidden layer size (input)
+ * @param nlayers      Number of layers (input)
+ * @param dropoutDesc  Pre-initialized dropout descriptor for dropout layer in between RNN layers
+ * (input)
+ * @param inMode       RNN first layer input mode (input)
+ * @param direction    RNN direction (input)
+ * @param rnnMode      RNN model type (input)
+ * @param biasMode     RNN bias included (input)
+ * @param algo         RNN algorithm selected (input)
+ * @param dataType     Only fp32 currently supported for RNNs (input)
+ * @return             miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor_V2(miopenRNNDescriptor_t rnnDesc,
+                                                       const int hsize,
+                                                       const int nlayers,
+                                                       miopenDropoutDescriptor_t dropoutDesc,
+                                                       miopenRNNInputMode_t inMode,
+                                                       miopenRNNDirectionMode_t direction,
+                                                       miopenRNNMode_t rnnMode,
+                                                       miopenRNNBiasMode_t biasMode,
+                                                       miopenRNNAlgo_t algo,
+                                                       miopenDataType_t dataType);
 
 /*! @brief Query the amount of memory required to execute the RNN layer
  *

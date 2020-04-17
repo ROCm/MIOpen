@@ -95,6 +95,67 @@ extern "C" miopenStatus_t miopenGetRNNDescriptor(miopenRNNDescriptor_t rnnDesc,
     });
 }
 
+extern "C" miopenStatus_t miopenGetRNNDescriptor_V2(miopenRNNDescriptor_t rnnDesc,
+                                                    int* hiddenSize,
+                                                    int* layer,
+                                                    miopenDropoutDescriptor_t* dropoutDesc,
+                                                    miopenRNNInputMode_t* inputMode,
+                                                    miopenRNNDirectionMode_t* dirMode,
+                                                    miopenRNNMode_t* rnnMode,
+                                                    miopenRNNBiasMode_t* biasMode,
+                                                    miopenRNNAlgo_t* algoMode,
+                                                    miopenDataType_t* dataType)
+{
+    MIOPEN_LOG_FUNCTION(rnnDesc,
+                        hiddenSize,
+                        layer,
+                        dropoutDesc,
+                        inputMode,
+                        dirMode,
+                        rnnMode,
+                        biasMode,
+                        algoMode,
+                        dataType);
+    return miopen::try_([&] {
+        if(rnnMode != nullptr)
+        {
+            miopen::deref(rnnMode) = miopen::deref(rnnDesc).rnnMode;
+        }
+        if(algoMode != nullptr)
+        {
+            miopen::deref(algoMode) = miopen::deref(rnnDesc).algoMode;
+        }
+        if(inputMode != nullptr)
+        {
+            miopen::deref(inputMode) = miopen::deref(rnnDesc).inputMode;
+        }
+        if(layer != nullptr)
+        {
+            miopen::deref(layer) = miopen::deref(rnnDesc).nLayers;
+        }
+        if(biasMode != nullptr)
+        {
+            miopen::deref(biasMode) = miopen::deref(rnnDesc).biasMode;
+        }
+        if(dirMode != nullptr)
+        {
+            miopen::deref(dirMode) = miopen::deref(rnnDesc).dirMode;
+        }
+        if(hiddenSize != nullptr)
+        {
+            miopen::deref(hiddenSize) = miopen::deref(rnnDesc).hsize;
+        }
+        if(dropoutDesc != nullptr)
+        {
+            miopen::deref(dropoutDesc) = miopen::deref(rnnDesc).dropoutDesc;
+        }
+        if(dataType != nullptr)
+        {
+            miopen::deref(dataType) = miopen::deref(rnnDesc).dataType;
+        }
+    });
+}
+
 extern "C" miopenStatus_t miopenSetRNNDescriptor(miopenRNNDescriptor_t rnnDesc,
                                                  const int hsize,
                                                  const int nlayers,
@@ -112,6 +173,27 @@ extern "C" miopenStatus_t miopenSetRNNDescriptor(miopenRNNDescriptor_t rnnDesc,
 
         miopen::deref(rnnDesc) = miopen::RNNDescriptor(
             hsize, nlayers, rnnMode, inMode, direction, biasMode, algo, dataType);
+    });
+}
+
+extern "C" miopenStatus_t miopenSetRNNDescriptor_V2(miopenRNNDescriptor_t rnnDesc,
+                                                    const int hsize,
+                                                    const int nlayers,
+                                                    miopenDropoutDescriptor_t dropoutDesc,
+                                                    miopenRNNInputMode_t inMode,
+                                                    miopenRNNDirectionMode_t direction,
+                                                    miopenRNNMode_t rnnMode,
+                                                    miopenRNNBiasMode_t biasMode,
+                                                    miopenRNNAlgo_t algo,
+                                                    miopenDataType_t dataType)
+{
+
+    MIOPEN_LOG_FUNCTION(
+        rnnDesc, hsize, nlayers, dropoutDesc, inMode, direction, rnnMode, biasMode, algo, dataType);
+    return miopen::try_([&] {
+
+        miopen::deref(rnnDesc) = miopen::RNNDescriptor(
+            hsize, nlayers, rnnMode, inMode, direction, biasMode, algo, dataType, dropoutDesc);
     });
 }
 
