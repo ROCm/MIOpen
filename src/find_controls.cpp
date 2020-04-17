@@ -36,12 +36,14 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_ENFORCE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_ENFORCE_SCOPE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_MODE)
 
 namespace miopen {
 
 namespace debug {
 
 bool FindEnforceDisable = false;
+bool FindModeDisable    = false;
 
 } // namespace debug
 
@@ -182,5 +184,69 @@ solver::Id GetEnvFindOnlySolver()
     static const auto once = GetEnvFindOnlySolverImpl();
     return once;
 }
+
+namespace {
+
+const char* ToCString(const FindMode::Values mode)
+{
+    switch(mode)
+    {
+    case FindMode::Values::Normal: return "NORMAL";
+    case FindMode::Values::Fast: return "FAST";
+    case FindMode::Values::Hybrid: return "HYBRID";
+    case FindMode::Values::End_: break;
+    }
+    return "<Unknown>";
+}
+
+std::ostream& operator<<(std::ostream& os, const FindMode::Values& v)
+{
+    return os << ToCString(v) << "(" << static_cast<int>(v) << ')';
+}
+
+FindMode::Values GetFindModeValueImpl2()
+{
+    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_FIND_MODE{});
+    if(p_asciz == nullptr)
+        return FindMode::Values::Default_;
+    std::string str = p_asciz;
+    for(auto& c : str)
+        c = toupper(static_cast<unsigned char>(c));
+    if(str == "NORMAL")
+        return FindMode::Values::Normal;
+    else if(str == "FAST")
+        return FindMode::Values::Fast;
+    else if(str == "HYBRID")
+        return FindMode::Values::Hybrid;
+    else
+    { // Nop. Fall down & try numerics.
+    }
+    const auto val = static_cast<FindMode::Values>(miopen::Value(MIOPEN_FIND_MODE{}));
+    if(FindMode::Values::Begin_ <= val && val < FindMode::Values::End_)
+        return val;
+    MIOPEN_LOG_NQE("Wrong MIOPEN_FIND_MODE, using default.");
+    return FindMode::Values::Default_;
+}
+
+FindMode::Values GetFindModeValueImpl()
+{
+    const auto rv = GetFindModeValueImpl2();
+    if(rv == FindMode::Values::Default_)
+        MIOPEN_LOG_NQI2("MIOPEN_FIND_MODE = " << rv);
+    else
+        MIOPEN_LOG_NQI("MIOPEN_FIND_MODE = " << rv);
+    return rv;
+}
+
+FindMode::Values GetFindModeValue()
+{
+    static const FindMode::Values val = GetFindModeValueImpl();
+    return val;
+}
+
+} // namespace
+
+FindMode::FindMode() { value = GetFindModeValue(); }
+std::ostream& operator<<(std::ostream& os, const FindMode& obj) { return os << obj.value; }
 
 } // namespace miopen
