@@ -130,7 +130,15 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     if(MIOPEN_HIP_COMPILER)
         message("hip compiler: ${MIOPEN_HIP_COMPILER}")
     else()
-        message(FATAL_ERROR "hip compiler not found")
+        find_program(MIOPEN_HIP_COMPILER clang++
+            PATH_SUFFIXES bin
+            PATHS /opt/rocm/llvm
+        )
+        if(MIOPEN_HIP_COMPILER)
+            message("hip compiler: ${MIOPEN_HIP_COMPILER}")
+        else()
+            message(FATAL_ERROR "hip compiler not found")
+        endif()
     endif()
 
     # scgemm not support opencl backend yet.
@@ -215,8 +223,10 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
         ${MIOPEN_AMDGCN_ASSEMBLER_PATH}
         /opt/rocm
         /opt/rocm/hcc
+        /opt/rocm/llvm
         ${CMAKE_INSTALL_PREFIX}
         ${CMAKE_INSTALL_PREFIX}/hcc
+        ${CMAKE_INSTALL_PREFIX}/llvm
     PATH_SUFFIXES 
         /opencl/bin/x86_64
         /bin
