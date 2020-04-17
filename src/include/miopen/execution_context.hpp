@@ -28,6 +28,7 @@
 
 #include <miopen/db_path.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/sqlite_db.hpp>
 
 #include <string>
 
@@ -58,7 +59,6 @@ class rocm_meta_version
 
 namespace miopen {
 
-const char* const MIOPEN_PERFDB_SCHEMA_VER = "1.0.0";
 struct ExecutionContext
 {
     // Operation modes & environment
@@ -101,11 +101,11 @@ struct ExecutionContext
         // clang-format off
         return GetUserDbPath()
 #if MIOPEN_ENABLE_SQLITE
-             + "miopen_" + std::string{MIOPEN_PERFDB_SCHEMA_VER} + ".udb";
+             + "miopen_" + SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER + ".udb";
 #else
              + GetStream().GetDbBasename()
              + "."
-             + std::string{MIOPEN_PERFDB_SCHEMA_VER}
+             + SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER
              + ".cd.updb.txt";
 #endif
         // clang-format on

@@ -50,6 +50,8 @@
 
 namespace miopen {
 
+const std::string SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER = "1.0.0";
+
 SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
                            bool is_system,
                            const std::string& arch_,
