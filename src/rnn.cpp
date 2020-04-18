@@ -307,28 +307,39 @@ RNNDescriptor::RNNDescriptor(int hsz,
 
     if(hsz < 0 || layers < 0)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Parameter to RNN must be a positive integer.");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). RNN hidden size and "
+                     "layer number must be positive integers.");
     }
     if(!(rmode == miopenRNNRELU || rmode == miopenRNNTANH || rmode == miopenLSTM ||
          rmode == miopenGRU))
     {
-        MIOPEN_THROW(miopenStatusBadParm, "RNN mode not supported");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). RNN mode must be "
+                     "vanilla activated with ReLU or Tanh, LSTM or GRU.");
     }
     if(bidir != 0 && bidir != 1)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN directional type not supported");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). Parameters to RNN "
+                     "directional type must be 0 for uni-direction or 1 for "
+                     "bi-direction.");
     }
     if(bmode != 0 && bmode != 1)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN bias type not supported");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). Parameters to RNN bias "
+                     "type must be 0 for disabled bias or 1 for enabled "
+                     "bias.");
     }
     if(dType != miopenFloat && dType != miopenHalf)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN datatype is not supported");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). RNN datatype must be float or half.");
     }
     else
     {
-        typeSize = 4;
+        typeSize = dType == miopenHalf ? 2 : 4;
     }
 
     hsize                       = hsz;
@@ -381,28 +392,39 @@ RNNDescriptor::RNNDescriptor(int hsz,
 
     if(hsz < 0 || layers < 0)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Parameter to RNN must be a positive integer.");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). RNN hidden size and "
+                     "layer number must be positive integers.");
     }
     if(!(rmode == miopenRNNRELU || rmode == miopenRNNTANH || rmode == miopenLSTM ||
          rmode == miopenGRU))
     {
-        MIOPEN_THROW(miopenStatusBadParm, "RNN mode not supported");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). RNN mode must be "
+                     "vanilla activated with ReLU or Tanh, LSTM or GRU.");
     }
     if(bidir != 0 && bidir != 1)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN directional type not supported");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). Parameters to RNN "
+                     "directional type must be 0 for uni-direction or 1 for "
+                     "bi-direction.");
     }
     if(bmode != 0 && bmode != 1)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN bias type not supported");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). Parameters to RNN bias "
+                     "type must be 0 for disabled bias or 1 for enabled "
+                     "bias.");
     }
     if(dType != miopenFloat && dType != miopenHalf)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Parameters to RNN datatype is not supported");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "RNNDescriptor: Bad parameter(s). RNN datatype must be float or half.");
     }
     else
     {
-        typeSize = dataType == miopenFloat ? 4 : 2;
+        typeSize = dType == miopenHalf ? 2 : 4;
     }
 
     switch(rmode)

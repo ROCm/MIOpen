@@ -152,6 +152,7 @@ class RNNDriver : public Driver
     std::vector<Tref> cy_host;
     std::vector<Tref> dhx_host;
     std::vector<Tref> dcx_host;
+    std::vector<prngStates> dropout_states_host;
 
     miopenRNNDescriptor_t rnnDesc;
 

@@ -3043,7 +3043,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor(miopenRNNDescriptor_t rnnDes
                                                     int* hiddenSize,
                                                     int* layer);
 
-/*! @brief Retrieves a RNN layer descriptor's details version 2
+/*! @brief Retrieves a RNN layer descriptor's details version 2. This version enables retrieving
+* information of the dropout descriptor of the rnn descriptor.
 *
 * @param rnnDesc     RNN layer descriptor (input)
 * @param hiddenSize  Size of hidden state (output)
@@ -3101,7 +3102,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor(miopenRNNDescriptor_t rnnDes
                                                     miopenRNNAlgo_t algo,
                                                     miopenDataType_t dataType);
 
-/*! @brief Set the details of the RNN descriptor version 2
+/*! @brief Set the details of the RNN descriptor version 2. This version enables the use of dropout
+ * in rnn.
  *
  * Interface for setting the values of the RNN descriptor object. This function requires specific
  * algorithm selection.
