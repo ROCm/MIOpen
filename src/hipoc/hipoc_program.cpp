@@ -181,7 +181,7 @@ struct HIPOCProgramImpl
             dir->Execute(HIP_OC_COMPILER, params + " " + filename + " -o " + hsaco_file.string());
             {
                 std::string binary;
-                comgr::BuildOcl(src, params, binary);
+                comgr::BuildOcl(filename, src, params, binary);
             }
         }
         if(!boost::filesystem::exists(hsaco_file))

@@ -24,15 +24,32 @@
  *
  *******************************************************************************/
 
+#include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
 #include <amd_comgr.h>
+#include <cstddef>
 
 namespace miopen {
 namespace comgr {
 
-namespace {
+#define EC(expr)                                                                     \
+    do                                                                               \
+    {                                                                                \
+        status = (expr);                                                             \
+        if((failed = (status != AMD_COMGR_STATUS_SUCCESS)))                          \
+        {                                                                            \
+            const char* reason;                                                      \
+            if(AMD_COMGR_STATUS_SUCCESS != amd_comgr_status_string(status, &reason)) \
+                reason = "UNKNOWN";                                                  \
+            MIOPEN_LOG_E("\'" #expr "\' :" << std::string(reason));                  \
+        }                                                                            \
+        else                                                                         \
+        {                                                                            \
+            MIOPEN_LOG_I("Ok \'" #expr "\'");                                        \
+        }                                                                            \
+    } while(false)
 
-bool PrintVersion()
+static bool PrintVersion()
 {
     std::size_t major = 0;
     std::size_t minor = 0;
@@ -41,22 +58,75 @@ bool PrintVersion()
     return true;
 }
 
-bool once = PrintVersion(); /// FIXME remove this
+static bool once = PrintVersion(); /// FIXME remove this
 
-} // namespace
-
-void BuildOcl(const std::string& text, const std::string& options, std::string& binary)
+static amd_comgr_status_t DatasetAddData(const std::string& name,
+                                         const std::string& content,
+                                         const amd_comgr_data_kind_t type,
+                                         const amd_comgr_data_set_t dataset)
 {
-    (void)text;
+    amd_comgr_data_t handle;
+    amd_comgr_status_t status;
+    bool failed = false;
+
+    EC(amd_comgr_create_data(type, &handle));
+    if(failed)
+        return status;
+
+    do
+    {
+        EC(amd_comgr_set_data(handle, content.size(), content.data()));
+        if(failed)
+            break;
+        EC(amd_comgr_set_data_name(handle, name.c_str()));
+        if(failed)
+            break;
+        EC(amd_comgr_data_set_add(dataset, handle));
+        if(failed)
+            break;
+
+    } while(false);
+
+    EC(amd_comgr_release_data(handle)); // Will be destroyed with data set.
+    return status;
+}
+
+void BuildOcl(const std::string& name,
+              const std::string& text,
+              const std::string& options,
+              std::string& binary)
+{
     (void)options;
     (void)binary;
-#if 0
-    if(return_code != 0)
+
+    amd_comgr_status_t status;
+    bool failed = false;
+    amd_comgr_data_set_t inputs;
+    bool inputs_created = false;
+    do
     {
-        MIOPEN_LOG_W(error_message);
-        MIOPEN_THROW("Assembly error(" + std::to_string(return_code) + ")");
+        // Create input data set.
+        EC(amd_comgr_create_data_set(&inputs));
+        if(!(inputs_created = !failed))
+            break;
+        // Add source text.
+        EC(DatasetAddData(name, text, AMD_COMGR_DATA_KIND_SOURCE, inputs));
+        if(failed)
+            break;
+
+    } while(false);
+
+    { // If cleanup fails, then do not throw, just issue error messages.
+        const auto failed_save = failed;
+        if(inputs_created)
+            EC(amd_comgr_destroy_data_set(inputs));
+        failed = failed_save;
     }
-#endif
+
+    if(failed)
+    {
+        MIOPEN_THROW("comgr::BuildOcl");
+    }
 }
 
 } // namespace comgr
