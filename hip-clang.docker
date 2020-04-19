@@ -43,7 +43,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
 
 
 # Patch hip-clang
-ADD cmake/hip-config.cmake /opt/rocm/hip/lib/cmake/hip/hip-config.cmake
+#ADD cmake/hip-config.cmake /opt/rocm/hip/lib/cmake/hip/hip-config.cmake
 
 # Install cget
 RUN pip install cget
