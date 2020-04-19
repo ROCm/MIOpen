@@ -99,7 +99,7 @@ else()
     set(WINE_CMD)
 endif()
 
-list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/hcc /opt/rocm/hip)
+list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/llvm /opt/rocm/hcc /opt/rocm/hip)
 
 option(ENABLE_HIP_WORKAROUNDS Off)
 
