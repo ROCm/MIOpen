@@ -125,6 +125,7 @@ set( MIOpen_Source
     readonlyramdb.cpp
     execution_context.cpp
     kern_db.cpp
+    implicitgemm_dynamic.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -216,6 +217,7 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_bwd_data_v1r1.cpp
     solver/conv_hip_implicit_gemm_bwd_data_v4r1.cpp
     solver/conv_hip_implicit_gemm_bwd_data_v1r1_xdlops.cpp
+    solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
     )
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
@@ -226,6 +228,7 @@ endif()
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_INCLUDE "kernels/composable_kernel/include/*/*.hpp")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_SOURCE "kernels/composable_kernel/src/*/*.cpp")
+    file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_SOURCE "kernels/composable_kernel/asm/*.s")
 
     set(MIOPEN_KERNEL_INCLUDES
         ${COMPOSABLE_KERNEL_INCLUDE}
@@ -281,6 +284,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
 
     set(MIOPEN_KERNELS
         ${COMPOSABLE_KERNEL_SOURCE}
+        ${COMPOSABLE_KERNEL_DYNAMIC_SOURCE}
         kernels/MIOpenCheckNumerics.cl
         kernels/MIOpenBatchNormActivBwdPerAct.cl
         kernels/MIOpenBatchNormActivBwdSpatial.cl

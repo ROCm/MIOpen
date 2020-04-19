@@ -49,6 +49,7 @@
 #include <miopen/conv/compiled_in_parameters.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/implicitgemm_dynamic.hpp>
 
 #if MIOPEN_USE_SCGEMM
 #include <miopen/scgemm_utils.hpp>
@@ -167,6 +168,7 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
 template <typename T>
 inline int
 EvaluateDataImplicitGemmSolution(Handle& handle,
+                                 const ConvolutionContext& ctx,
                                  const miopen::solver::ConvSolution& solution,
                                  ConstData_t in, // Fwd: x, Bwd: dy, this is really a confusion trap
                                  ConstData_t weights,
@@ -191,6 +193,12 @@ EvaluateDataImplicitGemmSolution(Handle& handle,
     auto kernel = kernels[0];
 
     elapsed = 0.0f;
+
+    if(kernel.GetName().find("igemm_v4r1_dynamic") == 0)
+    {
+        elapsed = CallImplicitGemmDynamic(handle, ctx, in, out, weights, kernels);
+        return 0;
+    }
 
     // For fp16/bfp16 backward data case, do zero init, bwd data with fp32 output
     // and cast from fp32 to fp16/bfp16
@@ -850,6 +858,7 @@ static void DirConvFindCore(Handle& handle,
     // Implicit GEMM algo
     if(!use_winograd_only)
     {
+        ConvolutionContext params(xDesc, wDesc, yDesc, conv, conv::Direction::Forward, 0);
         ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
         bufs.SetFwd(x, w, y);
         const auto all = conv.FindDataImplicitGemmSolutions(
@@ -862,6 +871,7 @@ static void DirConvFindCore(Handle& handle,
             {
                 float elapsed = 0.0f;
                 const int rc  = EvaluateDataImplicitGemmSolution(handle,
+                                                                params,
                                                                 sol,
                                                                 x,
                                                                 w,
@@ -1254,7 +1264,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 }
 
 template <class TKernels>
-void ConvFwdImplicitGemm(const ConvolutionContext& /*ctx*/,
+void ConvFwdImplicitGemm(const ConvolutionContext& ctx,
                          Handle& handle,
                          const ConvFwdTensors& tensors,
                          Data_t /*workSpace*/,
@@ -1296,6 +1306,16 @@ void ConvFwdImplicitGemm(const ConvolutionContext& /*ctx*/,
 
         if(handle.IsProfilingEnabled())
             elapsed += handle.GetKernelTime();
+    }
+    else if(kernel.GetName().find("igemm_v4r1_dynamic") == 0)
+    {
+        float time;
+
+        auto ks = std::vector<KernelInvoke>{kernels.begin(), kernels.end()};
+
+        time = CallImplicitGemmDynamic(handle, ctx, tensors.x, tensors.y, tensors.w, ks);
+        if(handle.IsProfilingEnabled())
+            elapsed += time;
     }
     else
     {
@@ -2584,6 +2604,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             // Implicit GEMM algo
             if(!use_winograd_only)
             {
+                ConvolutionContext params(
+                    dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData, 0);
                 ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
                 bufs.SetBwd(dx, w, dy);
                 const auto all = this->FindDataImplicitGemmSolutions(
@@ -2596,6 +2618,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     {
                         float elapsed = 0.0f;
                         const int rc  = EvaluateDataImplicitGemmSolution(handle,
+                                                                        params,
                                                                         sol,
                                                                         dy,
                                                                         w,
