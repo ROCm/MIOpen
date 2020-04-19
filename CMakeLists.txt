@@ -122,17 +122,17 @@ add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set(MIOPEN_BACKEND_OPENCL 1)
     find_package( OpenCL REQUIRED )
-    find_program(MIOPEN_HIP_COMPILER hcc
+    find_program(MIOPEN_HIP_COMPILER clang++
         PATH_SUFFIXES bin
-        PATHS /opt/rocm
+        PATHS /opt/rocm/llvm
     )
     set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
     if(MIOPEN_HIP_COMPILER)
         message("hip compiler: ${MIOPEN_HIP_COMPILER}")
     else()
-        find_program(MIOPEN_HIP_COMPILER clang++
+        find_program(MIOPEN_HIP_COMPILER hcc
             PATH_SUFFIXES bin
-            PATHS /opt/rocm/llvm
+            PATHS /opt/rocm
         )
         if(MIOPEN_HIP_COMPILER)
             message("hip compiler: ${MIOPEN_HIP_COMPILER}")
