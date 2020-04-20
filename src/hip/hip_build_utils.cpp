@@ -96,7 +96,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     WriteFile(src, tmp_dir->path / filename);
     if(IsHccCompiler())
     {
-        params += " --std=c++11 -amdgpu-target=" + dev_name;
+        params += " -amdgpu-target=" + dev_name;
     }
     else
     {
