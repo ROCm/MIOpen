@@ -99,7 +99,7 @@ else()
     set(WINE_CMD)
 endif()
 
-list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/llvm /opt/rocm/hcc /opt/rocm/hip)
+list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/hcc)
 
 option(ENABLE_HIP_WORKAROUNDS Off)
 
@@ -124,7 +124,7 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     find_package( OpenCL REQUIRED )
     find_program(MIOPEN_HIP_COMPILER clang++
         PATH_SUFFIXES bin
-	HINTS /opt/rocm/llvm
+	PATHS /opt/rocm/llvm
     )
     set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
     if(MIOPEN_HIP_COMPILER)
@@ -222,11 +222,11 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
     PATHS 
         ${MIOPEN_AMDGCN_ASSEMBLER_PATH}
         /opt/rocm
-        /opt/rocm/hcc
         /opt/rocm/llvm
+	/opt/rocm/hcc
         ${CMAKE_INSTALL_PREFIX}
-        ${CMAKE_INSTALL_PREFIX}/hcc
         ${CMAKE_INSTALL_PREFIX}/llvm
+	${CMAKE_INSTALL_PREFIX}/hcc
     PATH_SUFFIXES 
         /opencl/bin/x86_64
         /bin
