@@ -3104,7 +3104,9 @@ void ConvBwdImplicitGemm(const ConvolutionContext& /*ctx*/,
             elapsed += handle.GetKernelTime();
     }
     else if(kernel.GetName() ==
-            "gridwise_convolution_backward_data_implicit_gemm_v4r1_nchw_kcyx_nkhw")
+                "gridwise_convolution_backward_data_implicit_gemm_v4r1_nchw_kcyx_nkhw" ||
+            kernel.GetName() ==
+                "gridwise_convolution_backward_data_implicit_gemm_v4r1_xdlops_nchw_kcyx_nkhw")
     {
         // \todo this kernel doesn't always need to set-zero
         float zero = 0.f;
