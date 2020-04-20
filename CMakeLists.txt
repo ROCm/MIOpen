@@ -124,7 +124,7 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     find_package( OpenCL REQUIRED )
     find_program(MIOPEN_HIP_COMPILER clang++
         PATH_SUFFIXES bin
-        PATHS /opt/rocm/llvm
+	HINTS /opt/rocm/llvm
     )
     set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
     if(MIOPEN_HIP_COMPILER)
