@@ -32,6 +32,9 @@
 #include <cstddef>
 #include <vector>
 
+/// FIXME Rework debug stuff.
+#define DEBUG_DETAILED_LOG 0
+#define DEBUG_CORRUPT_SOURCE 0
 #define COMPILER_LC 1
 
 #define EC_FAILED (status != AMD_COMGR_STATUS_SUCCESS)
@@ -63,6 +66,7 @@
 namespace miopen {
 namespace comgr {
 
+#if DEBUG_DETAILED_LOG
 static bool PrintVersion()
 {
     std::size_t major = 0;
@@ -72,6 +76,7 @@ static bool PrintVersion()
     return true;
 }
 static bool once = PrintVersion(); /// FIXME remove this
+#endif
 
 typedef std::vector<std::string> OptionList;
 
@@ -119,6 +124,7 @@ static std::string GetIsaName(const std::string& device)
 
 } // namespace compiler_specific
 
+#if DEBUG_DETAILED_LOG
 static void LogOptions(const char* options[], size_t count)
 {
     if(miopen::IsLogging(miopen::LoggingLevel::Info))
@@ -129,6 +135,7 @@ static void LogOptions(const char* options[], size_t count)
         MIOPEN_LOG_I(oss.str());
     }
 }
+#endif
 
 static std::string GetLog(amd_comgr_data_set_t dataset)
 {
@@ -157,7 +164,7 @@ static std::string GetLog(amd_comgr_data_set_t dataset)
         EC_BREAK(amd_comgr_get_data(data, &size, nullptr));
         if(size < 1)
             break;
-        buffer = new char[size + 1];
+        buffer = new char[size + 1]; // FIXME try data()
         if(buffer == nullptr)
         {
             status = AMD_COMGR_STATUS_ERROR_OUT_OF_RESOURCES;
@@ -199,19 +206,27 @@ static amd_comgr_status_t DatasetAddData(const std::string& name,
 
     do
     {
-        MIOPEN_LOG_I(name << ' ' << content.size() << "bytes");
+        MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
         EC_BREAK(amd_comgr_set_data_name(handle, name.c_str()));
-        /*if(miopen::IsLogging(miopen::LoggingLevel::Info) && type == AMD_COMGR_DATA_KIND_SOURCE)
+#if DEBUG_DETAILED_LOG
+        if(miopen::IsLogging(miopen::LoggingLevel::Info) && type == AMD_COMGR_DATA_KIND_SOURCE)
         {
             const auto text_length = (content.size() > 256) ? 256 : content.size();
             const std::string text(content, 0, text_length);
             MIOPEN_LOG_I(text);
-        }*/
+        }
+#endif
+#if DEBUG_CORRUPT_SOURCE
+        std::string bad("int xxx = 1 yyy = 2;\n");
+        bad += content;
+        EC_BREAK(amd_comgr_set_data(handle, bad.size(), bad.data()));
+#else
         EC_BREAK(amd_comgr_set_data(handle, content.size(), content.data()));
+#endif
         EC_BREAK(amd_comgr_data_set_add(dataset, handle));
     } while(false);
 
-    EC(amd_comgr_release_data(handle)); // Will be destroyed with data set.
+    EC(amd_comgr_release_data(handle)); // Will be finally destroyed together with dataset.
     return status;
 }
 
@@ -230,6 +245,8 @@ void BuildOcl(const std::string& name,
     bool action_created = false;
     amd_comgr_data_set_t pch;
     bool pch_created = false;
+    amd_comgr_data_set_t src2bc;
+    bool src2bc_created = false;
     do
     {
         EC_BREAK(amd_comgr_create_data_set(&inputs));
@@ -252,7 +269,9 @@ void BuildOcl(const std::string& name,
             std::vector<const char*> vp;
             for(auto& opt : optList) // cppcheck-suppress useStlAlgorithm
                 vp.push_back(opt.c_str());
-            // FIXME LogOptions(vp.data(), vp.size());
+#if DEBUG_DETAILED_LOG
+            LogOptions(vp.data(), vp.size());
+#endif
             EC_BREAK(amd_comgr_action_info_set_option_list(action, vp.data(), vp.size()));
         }
 
@@ -265,10 +284,21 @@ void BuildOcl(const std::string& name,
             break;
         }
 
+        EC_BREAK(amd_comgr_create_data_set(&src2bc));
+        src2bc_created = true;
+        EC(amd_comgr_do_action(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC, action, pch, src2bc));
+        if(EC_FAILED)
+        {
+            MIOPEN_LOG_W("comgr: " << GetLog(src2bc));
+            break;
+        }
+
     } while(false);
 
     { // If cleanup fails, then do not throw, just issue error messages.
         const auto status_save = status;
+        if(src2bc_created)
+            EC(amd_comgr_destroy_data_set(src2bc));
         if(pch_created)
             EC(amd_comgr_destroy_data_set(pch));
         if(action_created)
