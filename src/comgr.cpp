@@ -34,7 +34,7 @@
 
 /// FIXME Rework debug stuff.
 #define DEBUG_DETAILED_LOG 0
-#define DEBUG_CORRUPT_SOURCE 0
+#define DEBUG_CORRUPT_SOURCE 1
 #define COMPILER_LC 1
 
 #define EC_FAILED (status != AMD_COMGR_STATUS_SUCCESS)
@@ -143,7 +143,6 @@ static std::string GetLog(amd_comgr_data_set_t dataset)
     std::string log;
     amd_comgr_data_t data;
     bool data_object_obtained = false;
-    char* buffer              = nullptr;
 
     do
     {
@@ -164,15 +163,10 @@ static std::string GetLog(amd_comgr_data_set_t dataset)
         EC_BREAK(amd_comgr_get_data(data, &size, nullptr));
         if(size < 1)
             break;
-        buffer = new char[size + 1]; // FIXME try data()
-        if(buffer == nullptr)
-        {
-            status = AMD_COMGR_STATUS_ERROR_OUT_OF_RESOURCES;
-            break;
-        }
-        EC(amd_comgr_get_data(data, &size, buffer));
-        buffer[size] = '\0';
-        log          = buffer;
+        std::vector<char> buffer(size + 1);
+        EC(amd_comgr_get_data(data, &size, &buffer[0]));
+        buffer[size] = ('\0');
+        log = std::string(&buffer[0], size + 1);
 
     } while(0);
 
@@ -184,8 +178,6 @@ static std::string GetLog(amd_comgr_data_set_t dataset)
         ; // nop
 
     // Cleanup
-    if(buffer != nullptr)
-        delete[] buffer;
     if(data_object_obtained)
         EC(amd_comgr_release_data(data));
 
