@@ -58,7 +58,7 @@ float CallImplicitGemmDynamic(const miopen::Handle& handle,
     int pad_w       = ctx.pad_w;
     int y           = ctx.kernel_size_h;
     int x           = ctx.kernel_size_w;
-    int __pack0;
+    int __pack0     = 0;
     // clang-format on
     std::vector<OpKernelArg> opArgs;
     opArgs.emplace_back(src);

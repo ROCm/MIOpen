@@ -97,7 +97,7 @@ GetImplicitGemmV4R1DynamicGridSize(const ConvolutionContext& ctx,
     const auto& b_per_block = config.BPerBlock;
     const auto& k_per_block = config.KPerBlock;
 
-    return (b / b_per_block) * (k / k_per_block);
+    return (b / b_per_block) * (k / k_per_block); // NOLINT
 }
 
 template <typename BotBufType, typename TopBufType, typename WeiBufType>
@@ -270,25 +270,18 @@ bool PerformanceImplicitGemmV4R1Dynamic::IsValid(const ConvolutionContext& ctx) 
 
 void PerformanceImplicitGemmV4R1Dynamic::EuristicInit(const ConvolutionContext& config)
 {
-    bool found              = false;
-    std::string kernel_name = "";
-    for(const auto& tunable : GetImplicitGemmV4R1DynamicTunables())
-    {
-        if(tunable.IsValid(config))
-        {
-            kernel_name = GetKernelNameImplicitGemmV4R1Dynamic(tunable);
-            found       = true;
-            Copy(tunable);
-            break;
-        }
-    }
+    auto tunables = GetImplicitGemmV4R1DynamicTunables();
+    auto it       = std::find_if(
+        tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(config); });
 
-    if(!found)
+    if(it == tunables.end())
     {
         MIOPEN_LOG_E("All attempts failed");
         assert(false);
     }
 
+    Copy(*it);
+    std::string kernel_name = GetKernelNameImplicitGemmV4R1Dynamic(*it);
     MIOPEN_LOG_I(kernel_name << " : " << ToString());
 }
 
@@ -355,6 +348,8 @@ std::string PerformanceImplicitGemmV4R1Dynamic::ToString() const
 }
 
 PerformanceImplicitGemmV4R1Dynamic::PerformanceImplicitGemmV4R1Dynamic(bool)
+    : PerformanceImplicitGemmV4R1Dynamic(
+          -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
 {
     // get the minimal routine
     Copy(GetImplicitGemmV4R1DynamicTunables()[0]);
@@ -413,11 +408,11 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ConvolutionContext& c
     if(ctx.group_counts != 1)
         return false;
 
-    for(const auto& tunable : GetImplicitGemmV4R1DynamicTunables())
-    {
-        if(!tunable.IsValid(ctx))
-            return false;
-    }
+    auto tunables = GetImplicitGemmV4R1DynamicTunables();
+    if(std::none_of(
+           tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx); }))
+        return false;
+
     return true;
     /*
         std::size_t n         = ctx.batch_sz;
