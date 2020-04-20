@@ -409,11 +409,8 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ConvolutionContext& c
         return false;
 
     auto tunables = GetImplicitGemmV4R1DynamicTunables();
-    if(std::none_of(
-           tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx); }))
-        return false;
-
-    return true;
+    return !std::none_of(
+        tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx); });
     /*
         std::size_t n         = ctx.batch_sz;
         std::size_t k         = ctx.n_outputs / ctx.group_counts;
