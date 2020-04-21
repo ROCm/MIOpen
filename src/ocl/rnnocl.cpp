@@ -29,12 +29,8 @@
 
 #include <miopen/activ.hpp>
 #include <miopen/env.hpp>
-#include <miopen/errors.hpp>
-#include <miopen/float_equal.hpp>
 #include <miopen/gemm_v2.hpp>
 #include <miopen/logger.hpp>
-#include <miopen/tensor_ops.hpp>
-#include <miopen/tensor.hpp>
 
 #include <vector>
 #include <numeric>
@@ -1545,13 +1541,57 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
             prelayer_shift = (li - 1) * batch_n * hy_stride + hid_off;
 
+            bool use_dropout = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
+            if(use_dropout)
+            {
+                std::vector<int> drop_size(2), drop_in_str(2, 1), drop_out_str(2, 1);
+                drop_size[0]    = batch_n;
+                drop_size[1]    = hy_h * bi;
+                drop_in_str[0]  = hy_stride;
+                drop_out_str[0] = hy_h * bi;
+
+                auto drop_in_desc = miopen::TensorDescriptor(
+                    wDesc.GetType(), drop_size.data(), drop_in_str.data(), 2);
+                auto drop_out_desc = miopen::TensorDescriptor(
+                    wDesc.GetType(), drop_size.data(), drop_out_str.data(), 2);
+
+                size_t drop_rsv_size = drop_out_desc.GetElementSize();
+                size_t drop_rsv_start =
+                    algoMode == miopenRNNdefault && rnnMode == miopenLSTM
+                        ? nLayers * batch_n * hy_stride + nLayers * batch_n * hy_h * bi
+                        : 2 * nLayers * batch_n * hy_stride;
+
+                size_t drop_in_offset  = prelayer_shift;
+                size_t drop_out_offset = drop_rsv_start + (li - 1) * batch_n * hy_h * bi;
+                size_t drop_rsv_offset = (drop_rsv_start + (nLayers - 1) * batch_n * hy_h * bi) *
+                                             (wDesc.GetType() == miopenFloat ? 4 : 2) +
+                                         (li - 1) * drop_rsv_size;
+
+                miopen::deref(dropoutDesc)
+                    .DropoutForward(handle,
+                                    drop_in_desc,
+                                    drop_in_desc,
+                                    reserveSpace,
+                                    drop_out_desc,
+                                    reserveSpace,
+                                    reserveSpace,
+                                    drop_rsv_size,
+                                    drop_in_offset,
+                                    drop_out_offset,
+                                    drop_rsv_offset);
+                // Update time
+                profileRNNkernels(handle, 1, ctime);
+
+                prelayer_shift = drop_out_offset;
+            }
+
             miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
                                                               false,
                                                               true,
                                                               batch_n,
                                                               wei_len * bi,
                                                               hy_h * bi,
-                                                              hy_stride,
+                                                              use_dropout ? hy_h * bi : hy_stride,
                                                               bi_stride,
                                                               hy_stride,
                                                               1, // batch count
@@ -2566,8 +2606,6 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     (void)dcyDesc;
     (void)dhyDesc;
     (void)wDesc;
-    (void)workSpaceSize;
-    (void)reserveSpaceSize;
 
     if(dx == nullptr || w == nullptr || dy == nullptr)
     {
@@ -2812,6 +2850,42 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             }
             // Update time
             profileRNNkernels(handle, 1, ctime);
+
+            if(!float_equal(miopen::deref(dropoutDesc).dropout, 0))
+            {
+                std::vector<int> drop_size(2), drop_in_str(2, 1);
+                drop_size[0]   = batch_n;
+                drop_size[1]   = hy_h * bi;
+                drop_in_str[0] = hy_stride;
+
+                auto drop_in_desc = miopen::TensorDescriptor(
+                    wDesc.GetType(), drop_size.data(), drop_in_str.data(), 2);
+
+                size_t drop_rsv_size = drop_in_desc.GetElementSize();
+                size_t drop_rsv_start =
+                    algoMode == miopenRNNdefault && rnnMode == miopenLSTM
+                        ? nLayers * batch_n * hy_stride + nLayers * batch_n * hy_h * bi
+                        : 2 * nLayers * batch_n * hy_stride;
+
+                size_t drop_rsv_offset = (drop_rsv_start + (nLayers - 1) * batch_n * hy_h * bi) *
+                                             (wDesc.GetType() == miopenFloat ? 4 : 2) +
+                                         li * drop_rsv_size;
+
+                miopen::deref(dropoutDesc)
+                    .DropoutBackward(handle,
+                                     drop_in_desc,
+                                     drop_in_desc,
+                                     workSpace,
+                                     drop_in_desc,
+                                     workSpace,
+                                     reserveSpace,
+                                     drop_rsv_size,
+                                     hid_shift + dhd_off,
+                                     hid_shift + dhd_off,
+                                     drop_rsv_offset);
+                // Update time
+                profileRNNkernels(handle, 1, ctime);
+            }
         }
 
         // from hidden state
@@ -4211,7 +4285,15 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         }
         else
         {
-            int prelayer_shift               = (li - 1) * batch_n * hy_stride + hid_off;
+            bool use_dropout    = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
+            auto prelayer_shift = static_cast<int>(
+                use_dropout
+                    ? (algoMode == miopenRNNdefault && rnnMode == miopenLSTM
+                           ? nLayers * batch_n * hy_stride + nLayers * batch_n * hy_h * bi
+                           : 2 * nLayers * batch_n * hy_stride) +
+                          (li - 1) * batch_n * hy_h * bi
+                    : (li - 1) * batch_n * hy_stride + hid_off);
+
             miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
                                                               true,
                                                               false,
@@ -4219,7 +4301,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                               hy_h * bi,
                                                               batch_n,
                                                               hy_stride,
-                                                              hy_stride,
+                                                              use_dropout ? hy_h * bi : hy_stride,
                                                               bi_stride,
                                                               1, // batch count
                                                               0, // Stride A
