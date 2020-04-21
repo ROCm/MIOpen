@@ -153,10 +153,12 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     {
         if(ctx.group_counts > 1)
         {
-            // For bfp16/fp16 group fwd cases, E = C/EPack * Y * X, where C/EPack are in 
-	    // continuous memory with Y*X because EPack is extracted from 
+            // For bfp16/fp16 group fwd cases, E = C/EPack * Y * X, where C/EPack are in
+            // continuous memory with Y*X because EPack is extracted from
             ABlockCopySrcDataPerRead_GemmK =
-                (((C / config.EPACKSize) * Y * X) % ABlockCopySubLengths_GemmK) != 0 ? 1 : GetReadWriteVectorSize(ABlockCopySubLengths_GemmK);
+                (((C / config.EPACKSize) * Y * X) % ABlockCopySubLengths_GemmK) != 0
+                    ? 1
+                    : GetReadWriteVectorSize(ABlockCopySubLengths_GemmK);
         }
         else
         {
