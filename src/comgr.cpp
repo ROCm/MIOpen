@@ -78,7 +78,7 @@ static bool PrintVersion()
 static bool once = PrintVersion(); /// FIXME remove this
 #endif
 
-typedef std::vector<std::string> OptionList;
+using OptionList = std::vector<std::string>;
 
 /// Compiler implementation-specific functionality (compiler abstraction layer).
 namespace compiler {
@@ -122,7 +122,7 @@ static std::string GetIsaName(const std::string& device)
 #undef OCL_EARLY_INLINE
 #endif // COMPILER_LC
 
-} // namespace compiler_specific
+} // namespace compiler
 
 #if DEBUG_DETAILED_LOG
 static void LogOptions(const char* options[], size_t count)
@@ -166,9 +166,9 @@ static std::string GetLog(amd_comgr_data_set_t dataset)
         std::vector<char> buffer(size + 1);
         EC(amd_comgr_get_data(data, &size, &buffer[0]));
         buffer[size] = ('\0');
-        log = std::string(&buffer[0], size + 1);
+        log          = std::string(&buffer[0], size + 1);
 
-    } while(0);
+    } while(false);
 
     if(EC_FAILED)
         log = "Failed to get log from comgr";
@@ -258,7 +258,7 @@ void BuildOcl(const std::string& name,
         compiler::lc::RemoveSuperfluousOptions(optList);
         compiler::lc::AddOclCompilerOptions(optList);
         {
-            std::vector<const char*> vp;
+            std::vector<const char*> vp(optList.size());
             for(auto& opt : optList) // cppcheck-suppress useStlAlgorithm
                 vp.push_back(opt.c_str());
 #if DEBUG_DETAILED_LOG
