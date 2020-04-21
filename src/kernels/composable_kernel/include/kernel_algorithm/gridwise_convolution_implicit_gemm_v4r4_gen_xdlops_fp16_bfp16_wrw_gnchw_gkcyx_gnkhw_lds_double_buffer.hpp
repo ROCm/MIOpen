@@ -11,7 +11,6 @@
 
 namespace ck {
 
-
 // B = merge(N, Ho, Wo)
 template <index_t GridSize,
           index_t BlockSize,
@@ -172,14 +171,15 @@ struct
             make_tuple(
                 Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}, Sequence<4>{}, Sequence<5>{}));
 
-        constexpr auto wei_gemmg_gemmk_gemmm_gemmkpack_global_desc_tmp = transform_tensor_descriptor(
-            wei_g_k_epack_c_y_x_global_desc,
-            make_tuple(PassThrough<G>{},
-                       Merge<Sequence<nonVectorizedC, Y, X>>{},
-                       PassThrough<K>{},
-                       PassThrough<GemmKPACK>{}),
-            make_tuple(Sequence<0>{}, Sequence<2, 4, 5>{}, Sequence<1>{}, Sequence<3>{}),
-            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
+        constexpr auto wei_gemmg_gemmk_gemmm_gemmkpack_global_desc_tmp =
+            transform_tensor_descriptor(
+                wei_g_k_epack_c_y_x_global_desc,
+                make_tuple(PassThrough<G>{},
+                           Merge<Sequence<nonVectorizedC, Y, X>>{},
+                           PassThrough<K>{},
+                           PassThrough<GemmKPACK>{}),
+                make_tuple(Sequence<0>{}, Sequence<2, 4, 5>{}, Sequence<1>{}, Sequence<3>{}),
+                make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
 
         constexpr auto wei_gemmg_gemmk0_gemmk1_gemmm_gemmkpack_global_desc =
             transform_tensor_descriptor(
