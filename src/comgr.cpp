@@ -258,7 +258,8 @@ void BuildOcl(const std::string& name,
         compiler::lc::RemoveSuperfluousOptions(optList);
         compiler::lc::AddOclCompilerOptions(optList);
         {
-            std::vector<const char*> vp(optList.size());
+            std::vector<const char*> vp;
+            vp.reserve(optList.size());
             for(auto& opt : optList) // cppcheck-suppress useStlAlgorithm
                 vp.push_back(opt.c_str());
 #if DEBUG_DETAILED_LOG
