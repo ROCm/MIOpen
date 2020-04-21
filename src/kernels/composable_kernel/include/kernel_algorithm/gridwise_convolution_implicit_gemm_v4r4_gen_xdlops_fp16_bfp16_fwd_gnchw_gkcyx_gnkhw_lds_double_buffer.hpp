@@ -160,7 +160,7 @@ struct
 
         // weight tensor
         //   global mem
-	//
+        //
         constexpr auto wei_g_k_epack_c_y_x_global_desc = transform_tensor_descriptor(
             unfold_tensor_descriptor(wei_g_k_c_y_x_global_desc, I3, I4),
             make_tuple(PassThrough<G>{},
@@ -170,14 +170,15 @@ struct
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}, Sequence<4>{}));
 
-        constexpr auto wei_gemmg_gemmk_gemmm_gemmkpack_global_desc_tmp = transform_tensor_descriptor(
-            wei_g_k_epack_c_y_x_global_desc,
-            make_tuple(PassThrough<G>{},
-                       Merge<Sequence<nonVectorizedC, Y * X>>{},
-                       PassThrough<K>{},
-                       PassThrough<GemmKPACK>{}),
-            make_tuple(Sequence<0>{}, Sequence<3, 4>{}, Sequence<1>{}, Sequence<2>{}),
-            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
+        constexpr auto wei_gemmg_gemmk_gemmm_gemmkpack_global_desc_tmp =
+            transform_tensor_descriptor(
+                wei_g_k_epack_c_y_x_global_desc,
+                make_tuple(PassThrough<G>{},
+                           Merge<Sequence<nonVectorizedC, Y * X>>{},
+                           PassThrough<K>{},
+                           PassThrough<GemmKPACK>{}),
+                make_tuple(Sequence<0>{}, Sequence<3, 4>{}, Sequence<1>{}, Sequence<2>{}),
+                make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
 
         constexpr auto wei_gemmg_gemmk0_gemmk1_gemmm_gemmkpack_global_desc =
             transform_tensor_descriptor(
