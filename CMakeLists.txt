@@ -108,15 +108,6 @@ set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
     OpenCL HIP HIPOC )
 
-# HIP is always required
-find_package(hip REQUIRED PATHS /opt/rocm)
-target_flags(HIP_COMPILER_FLAGS hip::device)
-# Remove cuda arch flags
-string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
-
-message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
-
-add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
 
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
@@ -141,9 +132,24 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
         endif()
     endif()
 
+    set (HIP_CXX_COMPILER ${MIOPEN_HIP_COMPILER})
+
     # scgemm not support opencl backend yet.
     set(MIOPEN_USE_SCGEMM OFF)
 endif()
+
+
+# HIP is always required
+find_package(hip REQUIRED PATHS /opt/rocm)
+target_flags(HIP_COMPILER_FLAGS hip::device)
+# Remove cuda arch flags
+string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+
+message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
+
+add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
+
+
 
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
