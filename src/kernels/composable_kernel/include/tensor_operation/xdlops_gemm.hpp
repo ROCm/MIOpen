@@ -851,6 +851,7 @@ struct XdlopsGemm_t
             auto pa = reinterpret_cast<const data_type*>(&a);
             auto pb = reinterpret_cast<const data_type*>(&b);
 
+#pragma unroll
             for(index_t k = 0; k < K; ++k)
             {
                 constexpr index_t nxdlops = sizeof(FloatA) / (mfma_type.k * sizeof(data_type));
@@ -883,6 +884,7 @@ struct XdlopsGemm_t
             constexpr index_t nxdlops =
                 (sizeof(FloatA) * mfma_type.num_input_blks) / (mfma_type.k * sizeof(data_type));
 
+#pragma unroll
             for(index_t k = 0; k < K; k += mfma_type.num_input_blks)
             {
                 for(index_t i = 0; i < nxdlops; ++i, pa += mfma_type.k, pb += mfma_type.k)
