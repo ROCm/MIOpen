@@ -165,7 +165,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     else()
         message(FATAL_ERROR "clang-ocl not found")
     endif()
-    
+
     if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
         link_libraries(stdc++)
 
@@ -225,7 +225,7 @@ endif()
 # Online assembler
 find_program(MIOPEN_AMDGCN_ASSEMBLER
     NAMES clang
-    PATHS 
+    PATHS
         ${MIOPEN_AMDGCN_ASSEMBLER_PATH}
         /opt/rocm
         /opt/rocm/llvm
