@@ -62,6 +62,22 @@ namespace miopen {
 template <class Derived>
 struct SQLiteSerializable
 {
+    std::vector<std::string> FieldNames() const
+    {
+        std::vector<std::string> names;
+        Derived::Visit(static_cast<const Derived&>(*this),
+                       [&](const std::string& value, const std::string& name) {
+                           std::ignore = value;
+                           names.push_back(name);
+                       });
+        Derived::Visit(static_cast<const Derived&>(*this),
+                       [&](const int value, const std::string name) {
+                           std::ignore = value;
+                           names.push_back(name);
+                       });
+
+        return names;
+    }
     std::tuple<std::string, std::vector<std::string>> WhereClause() const
     {
         std::vector<std::string> values;
@@ -160,8 +176,7 @@ class SQLiteBase
         : filename(filename_),
           arch(arch_),
           num_cu(num_cu_),
-          lock_file(LockFile::Get(is_system ? LockFilePath(filename_).c_str()
-                                            : (filename_ + ".lock").c_str()))
+          lock_file(LockFile::Get(LockFilePath(filename_).c_str()))
     {
         MIOPEN_LOG_I2("Initializing " << (is_system ? "system" : "user") << " database file "
                                       << filename);
@@ -216,6 +231,35 @@ class SQLiteBase
             record[azColName[i]] = (argv[i] != nullptr) ? argv[i] : "NULL";
         res->push_back(record);
         return 0;
+    }
+
+    inline auto CheckTableColumns(const std::string& tableName,
+                                  const std::vector<std::string>& goldenList) const
+    {
+        const auto sql_cfg_fds = "PRAGMA table_info(" + tableName + ");";
+        SQLRes_t cfg_res;
+        {
+            const auto lock = shared_lock(lock_file, GetLockTimeout());
+            MIOPEN_VALIDATE_LOCK(lock);
+            SQLExec(sql_cfg_fds, cfg_res);
+        }
+        std::vector<std::string> cfg_fds(cfg_res.size());
+        std::transform(
+            cfg_res.begin(), cfg_res.end(), cfg_fds.begin(), [](auto row) { return row["name"]; });
+        // search in the golden vector
+        bool AllFound = true;
+        for(auto& goldenName : goldenList)
+        {
+            if(std::find(cfg_fds.begin(), cfg_fds.end(), goldenName) == cfg_fds.end())
+            {
+                AllFound = false;
+                std::ostringstream ss;
+                ss << "Field " << goldenName << " not found in table: " << tableName;
+                MIOPEN_LOG_I2(ss.str());
+                // break; Not breaking to enable logging of all missing fields.
+            }
+        }
+        return AllFound;
     }
 
     inline auto SQLExec(const std::string& query)
