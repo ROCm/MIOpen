@@ -145,8 +145,8 @@ int ConvHipImplicitGemmV4R1Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
 
 int ConvHipImplicitGemmV4R1WrW::RunAndMeasureSolution(miopen::Handle& profile_h,
                                                       ConstData_t bot_buf,
-                                                      Data_t top_buf,
-                                                      ConstData_t wei_buf,
+                                                      ConstData_t top_buf,
+                                                      Data_t wei_buf,
                                                       ConstData_t bias_buf,
                                                       const ConvolutionContext& ctx,
                                                       const ConvSolution& solution,
@@ -166,7 +166,7 @@ ConvHipImplicitGemmV4R1Fwd::Search(const ConvolutionContext& context) const
 PerformanceImplicitGemmV4R1
 ConvHipImplicitGemmV4R1WrW::Search(const ConvolutionContext& context) const
 {
-    return GenericSearchFwd(*this, context);
+    return GenericSearchWrW(*this, context);
 }
 
 ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
