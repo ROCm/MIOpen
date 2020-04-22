@@ -56,16 +56,17 @@ using AsmImplicitGemmKernelV4R1Fwd_t = enum {
 };
 
 static inline std::string
-GetKernelNameImplicitGemmV4R1Dynamic(const PerformanceImplicitGemmV4R1Dynamic& config, AsmImplicitGemmKernelV4R1Fwd_t kernel_type)
+GetKernelNameImplicitGemmV4R1Dynamic(const PerformanceImplicitGemmV4R1Dynamic& config,
+                                     AsmImplicitGemmKernelV4R1Fwd_t kernel_type)
 {
     int GemmMRepeat = config.KPerBlock / (config.GemmMPerThreadSubC * config.GemmMLevel0Cluster *
                                           config.GemmMLevel1Cluster);
-    int ThreadTileM = GemmMRepeat * config.GemmMPerThreadSubC;
-    int ThreadTileN = config.GemmNRepeat * config.GemmNPerThreadSubC;
+    int ThreadTileM                = GemmMRepeat * config.GemmMPerThreadSubC;
+    int ThreadTileN                = config.GemmNRepeat * config.GemmNPerThreadSubC;
     std::string kernel_name_prefix = std::string("igemm_v4r1_dynamic_");
-    if (AsmImplicitGemmV4R1 == kernel_type)
+    if(AsmImplicitGemmV4R1 == kernel_type)
         kernel_name_prefix = std::string("igemm_v4r1_dynamic_");
-    else //if (AsmImplicitGemmV4R1_1x1 == kernel_type)
+    else // if (AsmImplicitGemmV4R1_1x1 == kernel_type)
         kernel_name_prefix = std::string("igemm_v4r1_1x1_dynamic_");
 
     return kernel_name_prefix + std::to_string(config.KPerBlock) + "x" +
@@ -292,8 +293,8 @@ void PerformanceImplicitGemmV4R1Dynamic::EuristicInit(const ConvolutionContext& 
     }
 
     Copy(*it);
-    std::string kernel_name = GetKernelNameImplicitGemmV4R1Dynamic(*it);
-    MIOPEN_LOG_I(kernel_name << " : " << ToString());
+    // std::string kernel_name = GetKernelNameImplicitGemmV4R1Dynamic(*it);
+    // MIOPEN_LOG_I(kernel_name << " : " << ToString());
 }
 
 bool PerformanceImplicitGemmV4R1Dynamic::IsValidValue() const
@@ -470,7 +471,6 @@ ConvAsmImplicitGemmV4R1DynamicFwd::GetPerformanceConfig(const ConvolutionContext
     return GetPerformanceConfigBase<PerformanceImplicitGemmV4R1Dynamic>(ctx);
 }
 
-
 PerformanceImplicitGemmV4R1Dynamic
 ConvAsmImplicitGemmV4R1DynamicFwd_1x1::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
@@ -508,13 +508,13 @@ int ConvAsmImplicitGemmV4R1DynamicFwd::RunAndMeasureSolution(miopen::Handle& pro
 }
 
 int ConvAsmImplicitGemmV4R1DynamicFwd_1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                                             ConstData_t bot_buf,
-                                                             Data_t top_buf,
-                                                             ConstData_t wei_buf,
-                                                             ConstData_t bias_buf,
-                                                             const ConvolutionContext& ctx,
-                                                             const ConvSolution& solution,
-                                                             float& elapsed_time) const
+                                                                 ConstData_t bot_buf,
+                                                                 Data_t top_buf,
+                                                                 ConstData_t wei_buf,
+                                                                 ConstData_t bias_buf,
+                                                                 const ConvolutionContext& ctx,
+                                                                 const ConvSolution& solution,
+                                                                 float& elapsed_time) const
 {
     assert(bias_buf == nullptr);
     (void)bias_buf;
@@ -535,10 +535,9 @@ ConvAsmImplicitGemmV4R1DynamicFwd_1x1::Search(const ConvolutionContext& context)
     return GenericSearchFwd(*this, context);
 }
 
-static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx, 
-                                           const PerformanceImplicitGemmV4R1Dynamic& config, 
-                                           const AsmImplicitGemmKernelV4R1Fwd_t& kernel_type, 
-                                           bool)
+static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
+                                           const PerformanceImplicitGemmV4R1Dynamic& config,
+                                           const AsmImplicitGemmKernelV4R1Fwd_t& kernel_type)
 {
     ConvSolution result;
 
