@@ -42,6 +42,11 @@ float CallImplicitGemmDynamic(const miopen::Handle& handle,
 
     auto kernel = kernels[0];
     MIOPEN_LOG_I2(kernel.GetName());
+    bool kernel_is_1x1  = false;
+    if (kernel.GetName().find("igemm_v4r1_1x1_dynamic") == 0)
+        kernel_is_1x1 = true;
+    else
+        kernel_is_1x1 = false;
     // clang-format off
     int hi          = ctx.in_height;
     int wi          = ctx.in_width;
@@ -77,9 +82,16 @@ float CallImplicitGemmDynamic(const miopen::Handle& handle,
     opArgs.emplace_back(dilation_w);
     opArgs.emplace_back(pad_h);
     opArgs.emplace_back(pad_w);
-    opArgs.emplace_back(y);
-    opArgs.emplace_back(x);
-    opArgs.emplace_back(__pack0);
+    if (kernel_is_1x1)
+    {
+        opArgs.emplace_back(__pack0);
+    }
+    else
+    {
+        opArgs.emplace_back(y);
+        opArgs.emplace_back(x);
+        opArgs.emplace_back(__pack0);
+    }
     kernel(opArgs);
 
     if(handle.IsProfilingEnabled())
