@@ -50,14 +50,25 @@ GetImplicitGemmV4R1DynamicTunables()
     return tunables;
 }
 
+using AsmImplicitGemmKernelV4R1Fwd_t = enum {
+    AsmImplicitGemmV4R1     = 0,
+    AsmImplicitGemmV4R1_1x1 = 1,
+};
+
 static inline std::string
-GetKernelNameImplicitGemmV4R1Dynamic(const PerformanceImplicitGemmV4R1Dynamic& config)
+GetKernelNameImplicitGemmV4R1Dynamic(const PerformanceImplicitGemmV4R1Dynamic& config, AsmImplicitGemmKernelV4R1Fwd_t kernel_type)
 {
     int GemmMRepeat = config.KPerBlock / (config.GemmMPerThreadSubC * config.GemmMLevel0Cluster *
                                           config.GemmMLevel1Cluster);
     int ThreadTileM = GemmMRepeat * config.GemmMPerThreadSubC;
     int ThreadTileN = config.GemmNRepeat * config.GemmNPerThreadSubC;
-    return std::string("igemm_v4r1_dynamic_") + std::to_string(config.KPerBlock) + "x" +
+    std::string kernel_name_prefix = std::string("igemm_v4r1_dynamic_");
+    if (AsmImplicitGemmV4R1 == kernel_type)
+        kernel_name_prefix = std::string("igemm_v4r1_dynamic_");
+    else //if (AsmImplicitGemmV4R1_1x1 == kernel_type)
+        kernel_name_prefix = std::string("igemm_v4r1_1x1_dynamic_");
+
+    return kernel_name_prefix + std::to_string(config.KPerBlock) + "x" +
            std::to_string(config.BPerBlock * config.GemmNRepeat * config.GemmNPerThreadSubC) + "x" +
            std::to_string(config.EPerBlock) + "_" + std::to_string(ThreadTileM) + "x" +
            std::to_string(ThreadTileN) + "_" + std::to_string(config.GemmMPerThreadSubC) + "x" +
@@ -430,13 +441,50 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ConvolutionContext& c
     */
 }
 
+bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ConvolutionContext& ctx) const
+{
+    if(!ctx.direction.IsForward())
+        return false;
+
+    if(!ctx.Is2d())
+        return false;
+
+    // if(!ctx.IsFp32() && !ctx.IsFp16() && !ctx.IsBfp16())
+    if(!ctx.IsFp32())
+        return false;
+
+    if(ctx.group_counts != 1)
+        return false;
+
+    if((ctx.kernel_size_h != 1) || (ctx.kernel_size_w != 1))
+        return false;
+
+    auto tunables = GetImplicitGemmV4R1DynamicTunables();
+    return !std::none_of(
+        tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx); });
+}
+
 PerformanceImplicitGemmV4R1Dynamic
 ConvAsmImplicitGemmV4R1DynamicFwd::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmV4R1Dynamic>(ctx);
 }
 
+
+PerformanceImplicitGemmV4R1Dynamic
+ConvAsmImplicitGemmV4R1DynamicFwd_1x1::GetPerformanceConfig(const ConvolutionContext& ctx) const
+{
+    return GetPerformanceConfigBase<PerformanceImplicitGemmV4R1Dynamic>(ctx);
+}
+
 bool ConvAsmImplicitGemmV4R1DynamicFwd::IsValidPerformanceConfig(
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmV4R1Dynamic& c) const
+{
+    MIOPEN_LOG_I("");
+    return c.IsValidValue() && c.IsValid(ctx);
+}
+
+bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsValidPerformanceConfig(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmV4R1Dynamic& c) const
 {
     MIOPEN_LOG_I("");
@@ -459,18 +507,42 @@ int ConvAsmImplicitGemmV4R1DynamicFwd::RunAndMeasureSolution(miopen::Handle& pro
         profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
+int ConvAsmImplicitGemmV4R1DynamicFwd_1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
+                                                             ConstData_t bot_buf,
+                                                             Data_t top_buf,
+                                                             ConstData_t wei_buf,
+                                                             ConstData_t bias_buf,
+                                                             const ConvolutionContext& ctx,
+                                                             const ConvSolution& solution,
+                                                             float& elapsed_time) const
+{
+    assert(bias_buf == nullptr);
+    (void)bias_buf;
+
+    return RunAndMeasureSolutionDynamicBase(
+        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
+}
+
 PerformanceImplicitGemmV4R1Dynamic
 ConvAsmImplicitGemmV4R1DynamicFwd::Search(const ConvolutionContext& context) const
 {
     return GenericSearchFwd(*this, context);
 }
 
-ConvSolution ConvAsmImplicitGemmV4R1DynamicFwd::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceImplicitGemmV4R1Dynamic& config, bool) const
+PerformanceImplicitGemmV4R1Dynamic
+ConvAsmImplicitGemmV4R1DynamicFwd_1x1::Search(const ConvolutionContext& context) const
+{
+    return GenericSearchFwd(*this, context);
+}
+
+static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx, 
+                                           const PerformanceImplicitGemmV4R1Dynamic& config, 
+                                           const AsmImplicitGemmKernelV4R1Fwd_t& kernel_type, 
+                                           bool)
 {
     ConvSolution result;
 
-    std::string kernel_name = GetKernelNameImplicitGemmV4R1Dynamic(config);
+    std::string kernel_name = GetKernelNameImplicitGemmV4R1Dynamic(config, kernel_type);
 
     int block_size = GetImplicitGemmV4R1DynamicBlockSize(config);
     int grid_size  = GetImplicitGemmV4R1DynamicGridSize(ctx, config);
@@ -498,6 +570,18 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicFwd::GetSolution(
 
     result.construction_params.push_back(kernel);
     return result;
+}
+
+ConvSolution ConvAsmImplicitGemmV4R1DynamicFwd::GetSolution(
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmV4R1Dynamic& config, bool) const
+{
+    return GetSolutionBase(ctx, config, AsmImplicitGemmV4R1);
+}
+
+ConvSolution ConvAsmImplicitGemmV4R1DynamicFwd_1x1::GetSolution(
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmV4R1Dynamic& config, bool) const
+{
+    return GetSolutionBase(ctx, config, AsmImplicitGemmV4R1_1x1);
 }
 
 } // namespace solver
