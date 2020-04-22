@@ -215,7 +215,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValid(const ConvolutionContext&
                                                  1,
                                                  GemmBBlockCopyThreadSliceLengths_GemmN,
                                                  GemmABlockCopyThreadSliceLengths_GemmM,
-                                                 true);
+                                                 1);
     return lds_size <= 64 * 1024;
 }
 
