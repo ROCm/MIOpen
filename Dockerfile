@@ -61,7 +61,7 @@ RUN wget https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.
 RUN dpkg -i dumb-init_*.deb && rm dumb-init_*.deb
 
 # Install cget
-RUN pip3 install cget
+RUN pip3 install https://github.com/pfultz2/cget/archive/cmake-tar.tar.gz
 
 # Install rclone
 RUN pip install https://github.com/pfultz2/rclone/archive/master.tar.gz
