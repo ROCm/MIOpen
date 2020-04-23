@@ -61,8 +61,8 @@ GetKernelNameImplicitGemmV4R1Dynamic(const PerformanceImplicitGemmV4R1Dynamic& c
 {
     int GemmMRepeat = config.KPerBlock / (config.GemmMPerThreadSubC * config.GemmMLevel0Cluster *
                                           config.GemmMLevel1Cluster);
-    int ThreadTileM                = GemmMRepeat * config.GemmMPerThreadSubC;
-    int ThreadTileN                = config.GemmNRepeat * config.GemmNPerThreadSubC;
+    int ThreadTileM = GemmMRepeat * config.GemmMPerThreadSubC;
+    int ThreadTileN = config.GemmNRepeat * config.GemmNPerThreadSubC;
     std::string kernel_name_prefix;
     if(AsmImplicitGemmV4R1 == kernel_type)
         kernel_name_prefix = std::string("igemm_v4r1_dynamic_");
