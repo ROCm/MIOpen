@@ -40,24 +40,25 @@
 #define DEBUG_CORRUPT_SOURCE 0
 #define COMPILER_LC 1
 
-#define EC_BASE(expr, expr2)                                          \
-    do                                                                \
-    {                                                                 \
-        const amd_comgr_status_t status = (expr);                     \
-        if(status != AMD_COMGR_STATUS_SUCCESS)                        \
-        {                                                             \
-            MIOPEN_LOG_E("\'" #expr "\': " << GetStatusText(status)); \
-            (expr2);                                                  \
-        }                                                             \
-        else                                                          \
-        {                                                             \
-            MIOPEN_LOG_I("Ok \'" #expr "\'");                         \
-        }                                                             \
+#define EC_BASE(expr, info, expr2)                                                              \
+    do                                                                                          \
+    {                                                                                           \
+        const amd_comgr_status_t status = (expr);                                               \
+        if(status != AMD_COMGR_STATUS_SUCCESS)                                                  \
+        {                                                                                       \
+            MIOPEN_LOG_E("\'" #expr "\' " << to_string(info) << ": " << GetStatusText(status)); \
+            (expr2);                                                                            \
+        }                                                                                       \
+        else                                                                                    \
+        {                                                                                       \
+            MIOPEN_LOG_I("Ok \'" #expr "\' " << to_string(info));                               \
+        }                                                                                       \
     } while(false)
 
-#define EC(expr) EC_BASE(expr, (void)0)
-#define EC_THROW(expr) EC_BASE(expr, Throw(status))
-#define EC_THROW_TEXT(expr, text) EC_BASE(expr, Throw(status, (text)))
+#define EC(expr) EC_BASE(expr, NoInfo, (void)0)
+#define EC_THROW(expr) EC_BASE(expr, NoInfo, Throw(status))
+#define ECI_THROW(expr, info) EC_BASE(expr, info, Throw(status))
+#define ECI_THROW_MSG(expr, info, msg) EC_BASE(expr, info, Throw(status, (msg)))
 
 namespace miopen {
 namespace comgr {
@@ -70,6 +71,10 @@ namespace compiler {
 #if COMPILER_LC
 namespace lc {
 #define OCL_EARLY_INLINE 1
+
+/// gfx1000+
+/// - WGP mode: not enabled.
+/// - WAVE32 mode: not enabled.
 
 static void AddOclCompilerOptions(OptionList& list)
 {
@@ -107,6 +112,73 @@ static std::string GetIsaName(const std::string& device)
 #endif // COMPILER_LC
 
 } // namespace compiler
+
+struct EcInfoNone
+{
+};
+static const EcInfoNone NoInfo;
+static inline std::string to_string(const EcInfoNone&) { return {}; }
+static inline std::string to_string(const std::string& v) { return {v}; }
+static inline std::string to_string(const bool& v) { return v ? "true" : "false"; }
+static inline auto to_string(const std::size_t& v) { return std::to_string(v); }
+
+#define CASE_TO_STRING(id) \
+    case id: return #id
+
+static std::string to_string(const amd_comgr_language_t val)
+{
+    switch(val)
+    {
+        CASE_TO_STRING(AMD_COMGR_LANGUAGE_NONE);
+        CASE_TO_STRING(AMD_COMGR_LANGUAGE_OPENCL_1_2);
+        CASE_TO_STRING(AMD_COMGR_LANGUAGE_OPENCL_2_0);
+        CASE_TO_STRING(AMD_COMGR_LANGUAGE_HC);
+        CASE_TO_STRING(AMD_COMGR_LANGUAGE_HIP);
+    }
+    return "<Unknown language>";
+}
+
+static std::string to_string(const amd_comgr_data_kind_t val)
+{
+    switch(val)
+    {
+        CASE_TO_STRING(AMD_COMGR_DATA_KIND_UNDEF);
+        CASE_TO_STRING(AMD_COMGR_DATA_KIND_SOURCE);
+        CASE_TO_STRING(AMD_COMGR_DATA_KIND_INCLUDE);
+        CASE_TO_STRING(AMD_COMGR_DATA_KIND_PRECOMPILED_HEADER);
+        CASE_TO_STRING(AMD_COMGR_DATA_KIND_DIAGNOSTIC);
+        CASE_TO_STRING(AMD_COMGR_DATA_KIND_LOG);
+        CASE_TO_STRING(AMD_COMGR_DATA_KIND_BC);
+        CASE_TO_STRING(AMD_COMGR_DATA_KIND_RELOCATABLE);
+        CASE_TO_STRING(AMD_COMGR_DATA_KIND_EXECUTABLE);
+        CASE_TO_STRING(AMD_COMGR_DATA_KIND_BYTES);
+        CASE_TO_STRING(AMD_COMGR_DATA_KIND_FATBIN);
+    }
+    return "<Unknown data kind>";
+}
+
+static std::string to_string(const amd_comgr_action_kind_t val)
+{
+    switch(val)
+    {
+        CASE_TO_STRING(AMD_COMGR_ACTION_SOURCE_TO_PREPROCESSOR);
+        CASE_TO_STRING(AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS);
+        CASE_TO_STRING(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC);
+        CASE_TO_STRING(AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES);
+        CASE_TO_STRING(AMD_COMGR_ACTION_LINK_BC_TO_BC);
+        CASE_TO_STRING(AMD_COMGR_ACTION_OPTIMIZE_BC_TO_BC);
+        CASE_TO_STRING(AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE);
+        CASE_TO_STRING(AMD_COMGR_ACTION_CODEGEN_BC_TO_ASSEMBLY);
+        CASE_TO_STRING(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_RELOCATABLE);
+        CASE_TO_STRING(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE);
+        CASE_TO_STRING(AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE);
+        CASE_TO_STRING(AMD_COMGR_ACTION_DISASSEMBLE_RELOCATABLE_TO_SOURCE);
+        CASE_TO_STRING(AMD_COMGR_ACTION_DISASSEMBLE_EXECUTABLE_TO_SOURCE);
+        CASE_TO_STRING(AMD_COMGR_ACTION_DISASSEMBLE_BYTES_TO_SOURCE);
+        CASE_TO_STRING(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_FATBIN);
+    }
+    return "<Unknown action kind>";
+}
 
 static bool PrintVersion()
 {
@@ -175,17 +247,17 @@ class Data : ComgrOwner
     Data(amd_comgr_data_t h) : handle(h) {}
 
     public:
-    Data(amd_comgr_data_kind_t kind) { EC_THROW(amd_comgr_create_data(kind, &handle)); }
+    Data(amd_comgr_data_kind_t kind) { ECI_THROW(amd_comgr_create_data(kind, &handle), kind); }
     Data(Data&&) = default;
     ~Data() { EC(amd_comgr_release_data(handle)); }
     auto operator()() const { return handle; }
     void SetName(const std::string& s) const
     {
-        EC_THROW(amd_comgr_set_data_name(handle, s.c_str()));
+        ECI_THROW(amd_comgr_set_data_name(handle, s.c_str()), s);
     }
     void SetBytes(const std::string& bytes) const
     {
-        EC_THROW(amd_comgr_set_data(handle, bytes.size(), bytes.data()));
+        ECI_THROW(amd_comgr_set_data(handle, bytes.size(), bytes.data()), bytes.size());
     }
 
     private:
@@ -199,7 +271,7 @@ class Data : ComgrOwner
     {
         std::size_t sz = GetSize();
         bytes.resize(sz);
-        EC_THROW(amd_comgr_get_data(handle, &sz, &bytes[0]));
+        ECI_THROW(amd_comgr_get_data(handle, &sz, &bytes[0]), sz);
         return sz;
     }
 
@@ -224,13 +296,13 @@ class Dataset : ComgrOwner
     size_t GetDataCount(const amd_comgr_data_kind_t kind) const
     {
         std::size_t count = 0;
-        EC_THROW(amd_comgr_action_data_count(handle, kind, &count));
+        ECI_THROW(amd_comgr_action_data_count(handle, kind, &count), kind);
         return count;
     }
     Data GetData(const amd_comgr_data_kind_t kind, const std::size_t index) const
     {
         amd_comgr_data_t d;
-        EC_THROW(amd_comgr_action_data_get_data(handle, kind, index, &d));
+        ECI_THROW(amd_comgr_action_data_get_data(handle, kind, index, &d), kind);
         return {d};
     }
 };
@@ -245,15 +317,15 @@ class ActionInfo : ComgrOwner
     auto operator()() const { return handle; }
     void SetLanguage(const amd_comgr_language_t language) const
     {
-        EC_THROW(amd_comgr_action_info_set_language(handle, language));
+        ECI_THROW(amd_comgr_action_info_set_language(handle, language), language);
     }
     void SetIsaName(const std::string& isa) const
     {
-        EC_THROW_TEXT(amd_comgr_action_info_set_isa_name(handle, isa.c_str()), isa);
+        ECI_THROW_MSG(amd_comgr_action_info_set_isa_name(handle, isa.c_str()), isa, isa);
     }
     void SetLogging(const bool state) const
     {
-        EC_THROW(amd_comgr_action_info_set_logging(handle, state));
+        ECI_THROW(amd_comgr_action_info_set_logging(handle, state), state);
     }
     void SetOptionList(const std::vector<std::string>& options) const
     {
@@ -262,17 +334,24 @@ class ActionInfo : ComgrOwner
         for(auto& opt : options) // cppcheck-suppress useStlAlgorithm
             vp.push_back(opt.c_str());
         LogOptions(vp.data(), vp.size());
-        EC_THROW(amd_comgr_action_info_set_option_list(handle, vp.data(), vp.size()));
+        ECI_THROW(amd_comgr_action_info_set_option_list(handle, vp.data(), vp.size()), vp.size());
     }
     void Do(const amd_comgr_action_kind_t kind, const Dataset& in, const Dataset& out) const
     {
-        EC_THROW_TEXT(amd_comgr_do_action(kind, handle, in(), out()), GetLog(out, true));
+        ECI_THROW_MSG(amd_comgr_do_action(kind, handle, in(), out()), kind, GetLog(out, true));
+#if DEBUG_DETAILED_LOG
+        const auto log = GetLog(out);
+        if(!log.empty())
+            MIOPEN_LOG_I(GetLog(out));
+#endif
     }
 };
 
-/// This function should not throw comgr-induced exception
+/// If called from the context of comgr error handling:
+/// - We do not allow the comgr-induced exceptions to escape.
+/// -
 /// when called the context of comgr error handling.
-static std::string GetLog(const Dataset& dataset, const bool catch_comgr_exceptions)
+static std::string GetLog(const Dataset& dataset, const bool comgr_error_handling)
 {
     std::string text;
     try
@@ -284,17 +363,17 @@ static std::string GetLog(const Dataset& dataset, const bool catch_comgr_excepti
         /// \todo Clarify API and update implementation.
         const auto count = dataset.GetDataCount(AMD_COMGR_DATA_KIND_LOG);
         if(count < 1)
-            return {"comgr: no log found"};
+            return {comgr_error_handling ? "comgr warning: error log not found" : ""};
 
         const auto data = dataset.GetData(AMD_COMGR_DATA_KIND_LOG, 0);
         text            = data.GetString();
         if(text.empty())
-            return {"comgr: log empty"};
+            return {comgr_error_handling ? "comgr info: error log empty" : ""};
     }
     catch(ComgrError&)
     {
-        if(catch_comgr_exceptions)
-            return {"comgr: failed to get log"};
+        if(comgr_error_handling)
+            return {"comgr error: failed to get error log"};
         throw;
     }
     return text;
@@ -356,7 +435,7 @@ void BuildOcl(const std::string& name,
         action.Do(AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS, inputs, pch);
         const Dataset src2bc;
         action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC, pch, src2bc);
-    }
+        }
     catch(ComgrError& ex)
     {
         MIOPEN_LOG_E("comgr status = " << GetStatusText(ex.status));
