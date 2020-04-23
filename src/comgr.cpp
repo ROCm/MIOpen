@@ -435,7 +435,30 @@ void BuildOcl(const std::string& name,
         action.Do(AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS, inputs, pch);
         const Dataset src2bc;
         action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC, pch, src2bc);
+
+        OptionList optLink;
+        optLink.push_back("wavefrontsize64");
+        for(const auto& opt : optList)
+        {
+            if(opt == "-cl-fp32-correctly-rounded-divide-sqrt")
+                optLink.push_back("correctly_rounded_sqrt");
+            else if(opt == "-cl-denorms-are-zero")
+                optLink.push_back("daz_opt");
+            else if(opt == "-cl-finite-math-only" || opt == "cl-fast-relaxed-math")
+                optLink.push_back("finite_only");
+            else if(opt == "-cl-unsafe-math-optimizations" || opt == "-cl-fast-relaxed-math")
+                optLink.push_back("unsafe_math");
+            else
+            {
+            } // nop
         }
+        action.SetOptionList(optLink);
+        const Dataset withDevLibs;
+        action.Do(AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES, src2bc, withDevLibs);
+        const Dataset linkedBc2bc;
+        action.Do(AMD_COMGR_ACTION_LINK_BC_TO_BC, withDevLibs, linkedBc2bc);
+
+    }
     catch(ComgrError& ex)
     {
         MIOPEN_LOG_E("comgr status = " << GetStatusText(ex.status));
