@@ -242,6 +242,19 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::IsValid(const ConvolutionConte
     const std::size_t GemmN = n * ho * wo;
     const std::size_t GemmK = c * y * x;
 
+    // heuristic to reduce search space
+    {
+        // use largest XdlopsGemm
+        if(GemmMPerBlock >= 64 && GemmMPerWave != 64)
+            return false;
+        if(GemmNPerBlock >= 64 && GemmNPerWave != 64)
+            return false;
+        if((GemmMPerBlock == 32 || GemmMPerBlock == 16) && GemmMPerWave != GemmMPerBlock)
+            return false;
+        if((GemmNPerBlock == 32 || GemmNPerBlock == 16) && GemmNPerWave != GemmNPerBlock)
+            return false;
+    }
+
     if(!(GemmM % GemmMPerBlock == 0 && GemmN % GemmNPerBlock == 0 && GemmK % GemmKPerBlock == 0))
         return false; // wrong! cannot divice N evenly among thread
 
