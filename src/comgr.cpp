@@ -412,6 +412,8 @@ static void DatasetAddData(const Dataset& dataset,
     const Data d(type);
     MIOPEN_LOG_I2(name << ' ' << content.size() << " bytes");
     d.SetName(name);
+    d.SetBytes(content);
+    dataset.AddData(d);
 #if DEBUG_DETAILED_LOG
     if(miopen::IsLogging(miopen::LoggingLevel::Info) && type == AMD_COMGR_DATA_KIND_SOURCE)
     {
@@ -421,14 +423,6 @@ static void DatasetAddData(const Dataset& dataset,
         MIOPEN_LOG_I(text);
     }
 #endif
-#if DEBUG_CORRUPT_SOURCE
-    std::string bad("int xxx = 1 yyy = 2;\n");
-    bad += content;
-    d.SetBytes(bad);
-#else
-    d.SetBytes(content);
-#endif
-    dataset.AddData(d);
 }
 
 void BuildOcl(const std::string& name,
