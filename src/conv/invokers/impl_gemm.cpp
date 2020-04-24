@@ -1,6 +1,7 @@
 #include <miopen/conv/invokers/impl_gemm.hpp>
 
 #include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/algorithm.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/tensor_ops.hpp>
 
@@ -23,17 +24,19 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
     }
     else
     {
-        const auto lowp_quant = ctx.conv_problem.GetConv().lowp_quant;
+        const auto& conv       = ctx.conv_problem.GetConv();
+        const auto& lowp_quant = conv.lowp_quant;
 
-        return [lowp_quant](const std::vector<Kernel>& kernels) {
+        return [conv, lowp_quant](const std::vector<Kernel>& kernels) {
             return [=](Handle& handle, const boost::any& primitive_parameters) {
                 const auto data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_parameters);
                 const auto& tensors = data_ctx.tensors;
                 const auto& workSpace = data_ctx.workSpace;
 
+
                 // Miminum checks. Only check what is required to select
                 // proper invocation procedure & workspace sanity.
-                auto kernel = kernels[0];
+                auto kernel = handle.Run(kernels[0]);
 
                 float elapsed = 0;
                 // clang-format off
@@ -179,7 +182,7 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     // a group kernels (compiled from same source code) will be launched
                     for(const auto& k : kernels)
                     {
-                        k(tensors.in, tensors.w, tensors.out);
+                        handle.Run(k)(tensors.in, tensors.w, tensors.out);
                         elapsed += handle.GetKernelTime();
                     }
                 }
