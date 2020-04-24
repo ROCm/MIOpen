@@ -579,8 +579,8 @@ bool ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::IsApplicable(const ConvolutionCont
     const std::size_t wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
 
     const std::size_t GemmM = k;
-    const std::size_t GemmN = n * ho * wo;
-    const std::size_t GemmK = c * y * x;
+    const std::size_t GemmN = c * y * x;
+    const std::size_t GemmK = n * ho * wo;
 
     return IsValidGridGemmXdlops(GemmM, GemmN, GemmK) && IsXdlopsSupport(ctx);
 }
