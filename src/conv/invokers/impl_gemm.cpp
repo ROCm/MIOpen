@@ -36,16 +36,14 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                 auto kernel = kernels[0];
 
                 float elapsed = 0;
+                // clang-format off
                 if((tensors.outDesc.GetType() == miopenHalf ||
                     tensors.outDesc.GetType() == miopenBFloat16) &&
-                   (kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_"
-                                        "xdlops_nchw_kcyx_nkhw" ||
-                    kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_"
-                                        "xdlops_gnchw_gkcyx_gnkhw" ||
-                    kernel.GetName() ==
-                        "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw" ||
-                    kernel.GetName() ==
-                        "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw"))
+                   (kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw" ||
+                    kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_gnchw_gkcyx_gnkhw" ||
+                    kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw" ||
+                    kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw"))
+                // clang-format on
                 {
                     float zero = 0.f;
                     TensorDescriptor workspaceDesc(
@@ -69,10 +67,10 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
                 }
-                else if((kernel.GetName() == "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_"
-                                             "nkhw_lds_double_buffer") ||
-                        (kernel.GetName() == "gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_"
-                                             "kc1x1_nkhw_lds_double_buffer"))
+                // clang-format off
+                else if((kernel.GetName() == "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer") ||
+                        (kernel.GetName() == "gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kc1x1_nkhw_lds_double_buffer"))
+                // clang-format on
                 {
                     bool hasStride =
                         (tensors.inDesc.GetLengths()[2] != tensors.outDesc.GetLengths()[2]) ||
@@ -93,10 +91,10 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
                 }
-                else if(kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_"
-                                            "xdlops_nchw_kcyx_nkhw" ||
-                        kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_"
-                                            "xdlops_gnchw_gkcyx_gnkhw")
+                // clang-format off
+                else if(kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw" ||
+                        kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_gnchw_gkcyx_gnkhw")
+                // clang-format on
                 {
                     float zero = 0.f;
                     SetTensor(handle, tensors.outDesc, tensors.out, &zero);
@@ -107,11 +105,11 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
                 }
+                // clang-format off
                 else if(
-                    kernel.GetName() ==
-                        "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw" ||
-                    kernel.GetName() ==
-                        "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw")
+                    kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw" ||
+                    kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw")
+                // clang-format on
                 {
                     // this kernel accumulate results into input tensor, therefore need to set zero
                     bool is_1x1_s1 = false;
@@ -140,11 +138,11 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
                 }
+                // clang-format off
                 else if(
-                    kernel.GetName() ==
-                        "gridwise_convolution_backward_data_implicit_gemm_v4r1_nchw_kcyx_nkhw" ||
-                    kernel.GetName() ==
-                        "gridwise_convolution_backward_data_implicit_gemm_v4r1_ncdhw_kczyx_nkdhw")
+                    kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v4r1_nchw_kcyx_nkhw" ||
+                    kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v4r1_ncdhw_kczyx_nkdhw")
+                // clang-format on
                 {
                     // \todo this kernel doesn't always need to set-zero
                     bool filterGeStride = false;
