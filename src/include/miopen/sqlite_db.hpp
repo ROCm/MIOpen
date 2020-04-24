@@ -188,8 +188,6 @@ class SQLiteBase
             {
                 MIOPEN_LOG_I2(query);
                 MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
-                sqlite3_close(ptrDb.get());
-                return false;
             }
         }
         return true;
@@ -207,8 +205,6 @@ class SQLiteBase
             {
                 MIOPEN_LOG_I2(query);
                 MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
-                sqlite3_close(ptrDb.get());
-                return false;
             }
         }
         return true;

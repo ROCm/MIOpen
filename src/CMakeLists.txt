@@ -572,8 +572,8 @@ local:
 };
 ")
     target_link_libraries(MIOpen PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_BINARY_DIR}/lib.def")
-    target_link_libraries(MIOpen PRIVATE "-Wl,--exclude-libs,ALL")
-    # set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET protected)
+    # target_link_libraries(MIOpen PRIVATE "-Wl,--exclude-libs,ALL")
+    # set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET hidden)
     set_target_properties(MIOpen PROPERTIES VISIBILITY_INLINES_HIDDEN 1)
 endif()
 #######################################
