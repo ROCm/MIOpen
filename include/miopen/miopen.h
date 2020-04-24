@@ -876,6 +876,9 @@ typedef enum {
     miopenConvolutionBwdDataAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions, fp32 only */
 } miopenConvBwdDataAlgorithm_t;
 
+/*! @enum miopenConvAlgorithm_t
+ * Top-level convolutional algorithm mode
+ */
 typedef enum {
     miopenConvolutionAlgoGEMM         = 0, /*!< GEMM variant */
     miopenConvolutionAlgoDirect       = 1, /*!< Direct convolutions */
@@ -901,14 +904,16 @@ typedef struct
         miopenConvBwdDataAlgorithm_t
             bwd_data_algo; /*!< Back propagation on data convolution algorithm enum selection */
     };
+
     float time;    /*!< Time to exectued the selected algorithm represented in the union */
     size_t memory; /*!< Workspace required to run the selected algorithm represented in the union */
+
 } miopenConvAlgoPerf_t;
 
 /*! @brief Performance struct for forward, backward filter, or backward data algorithms in
  * immediate mode
  *
- * Contains an integer identifying the solution and the algorithm for the solution,
+ * Contains a 64-bit integer identifying the solution and the algorithm for the solution,
  * as well as the runtime, workspace size and a boolean flag indicating whether the returned
  * solution is a heuristic or resulting from an actual run
  *
@@ -917,11 +922,12 @@ typedef struct
 {
     float time; /*!< Represents the approximate time required to execute this solution on the GPU,
                      in milliseconds. This value may either be based on an acutal kernel run or an
-                     esitmate based on a heuristic.*/
+                     estimate based on a heuristic.*/
     size_t workspace_size; /*!< Workspace required to run the selected algorithm represented in the
                               union */
     uint64_t solution_id;  /*!< Identifier for the returned solution */
     miopenConvAlgorithm_t algorithm; /*!< The algorithm used to compute the solution */
+
 } miopenConvSolution_t;
 
 /*! @brief Query the maximum number of solutions applicable for the given input/output and weights
