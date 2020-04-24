@@ -33,7 +33,6 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                 const auto& tensors = data_ctx.tensors;
                 const auto& workSpace = data_ctx.workSpace;
 
-
                 // Miminum checks. Only check what is required to select
                 // proper invocation procedure & workspace sanity.
                 auto kernel = handle.Run(kernels[0]);
