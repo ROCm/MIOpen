@@ -6,9 +6,11 @@
 #include <math.h>
 #include <cassert>
 #include <algorithm>
+#include "dropout_gpu_emulator.hpp"
 
 template <typename Tgpu, typename Tref>
-void RunGRUForwardGEMMCPUVerify(std::vector<Tgpu>& in,
+void RunGRUForwardGEMMCPUVerify(miopenHandle_t handle,
+                                std::vector<Tgpu>& in,
                                 std::vector<Tgpu>& wei, // [ input_state_weight_trans
                                                         // hidden_state_weight0_trans input1_trans
                                                         // hidden1_trans ... output_weight;
@@ -29,6 +31,8 @@ void RunGRUForwardGEMMCPUVerify(std::vector<Tgpu>& in,
                                            // related function for bidirection
                                 int inputMode,
                                 std::vector<Tref>& rsvspace_host,
+                                bool use_dropout,
+                                miopenDropoutDescriptor_t dropoutDesc,
                                 bool hx_is_null = false)
 {
     int batch_n = sumvc(in_n);
@@ -45,8 +49,7 @@ void RunGRUForwardGEMMCPUVerify(std::vector<Tgpu>& in,
     int uni_stride = hy_h;
     int bi_stride  = hy_h * bi;
 
-    Tref* hid_state = new Tref[numlayer * batch_n * hy_stride * 2];
-    memset(hid_state, 0, numlayer * batch_n * hy_stride * 2 * sizeof(Tref));
+    std::vector<Tref> hid_state(numlayer * batch_n * hy_stride * 2, static_cast<Tref>(0));
 
     Tref* out_state = new Tref[batch_n * out_h];
     memset(out_state, 0, batch_n * out_h * sizeof(Tref));
@@ -94,6 +97,39 @@ void RunGRUForwardGEMMCPUVerify(std::vector<Tgpu>& in,
     for(int h = 0; h < wei_len; h++)
     {
         wei_state[h] = wei[h];
+    }
+
+    // initial dropoput
+    std::vector<prngStates> dropout_states_host;
+    std::vector<unsigned char> dropout_reservespace_host;
+    std::vector<Tref> dropout_hid_state;
+    miopenTensorDescriptor_t dropout_inputTensor{}, dropout_outputTensor{};
+    if(use_dropout)
+    {
+        size_t statesSizeInBytes = 0;
+        miopenDropoutGetStatesSize(handle, &statesSizeInBytes);
+        size_t states_size  = statesSizeInBytes / sizeof(prngStates);
+        dropout_states_host = std::vector<prngStates>(states_size);
+        InitKernelStateEmulator(dropout_states_host, dropoutDesc);
+
+        std::array<int, 2> drop_in_len  = {{batch_n, hy_h * bi}};
+        std::array<int, 2> drop_in_str  = {{hy_stride, 1}};
+        std::array<int, 2> drop_out_str = {{hy_h * bi, 1}};
+        miopenCreateTensorDescriptor(&dropout_inputTensor);
+        miopenCreateTensorDescriptor(&dropout_outputTensor);
+        miopenSetTensorDescriptor(
+            dropout_inputTensor, miopenFloat, 2, drop_in_len.data(), drop_in_str.data());
+        miopenSetTensorDescriptor(
+            dropout_outputTensor, miopenFloat, 2, drop_in_len.data(), drop_out_str.data());
+
+        size_t reserveSpaceSizeInBytes = 0;
+        miopenDropoutGetReserveSpaceSize(dropout_inputTensor, &reserveSpaceSizeInBytes);
+        size_t reserve_size       = reserveSpaceSizeInBytes / sizeof(unsigned char);
+        dropout_reservespace_host = std::vector<unsigned char>(reserve_size * (numlayer - 1),
+                                                               static_cast<unsigned char>(1));
+
+        dropout_hid_state =
+            std::vector<Tref>((numlayer - 1) * batch_n * hy_h * bi, static_cast<Tref>(0));
     }
 
     // forward emulator
@@ -174,11 +210,32 @@ void RunGRUForwardGEMMCPUVerify(std::vector<Tgpu>& in,
         {
             int wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
             int prelayer_shift = (li - 1) * batch_n * hy_stride + bi * 3 * hy_h;
+            if(use_dropout)
+            {
+                auto dropout_states_tmp = dropout_states_host;
+                size_t drop_out_offset  = (li - 1) * batch_n * hy_h * bi;
 
-            ADNN_mm_cpu<Tref>(const_cast<Tref*>(&hid_state[prelayer_shift]),
+                RunDropoutForwardEmulator<Tref>(handle,
+                                                dropoutDesc,
+                                                dropout_inputTensor,
+                                                dropout_inputTensor,
+                                                hid_state,
+                                                dropout_outputTensor,
+                                                dropout_hid_state,
+                                                dropout_reservespace_host,
+                                                dropout_states_tmp,
+                                                prelayer_shift,
+                                                drop_out_offset,
+                                                drop_out_offset);
+
+                prelayer_shift = drop_out_offset;
+            }
+
+            ADNN_mm_cpu<Tref>(use_dropout ? &dropout_hid_state[prelayer_shift]
+                                          : &hid_state[prelayer_shift],
                               hy_h * bi,
                               batch_n,
-                              hy_stride,
+                              use_dropout ? hy_h * bi : hy_stride,
                               0,
                               const_cast<Tref*>(&wei_state[wei_shift]),
                               hy_h * bi,
@@ -759,6 +816,20 @@ void RunGRUForwardGEMMCPUVerify(std::vector<Tgpu>& in,
     {
         rsvspace_host[i] = hid_state[i];
     }
+    if(use_dropout)
+    {
+        for(int i = 0; i < (numlayer - 1) * batch_n * hy_h * bi; i++)
+        {
+            rsvspace_host.at(numlayer * batch_n * hy_stride * 2 + i) = dropout_hid_state.at(i);
+        }
+        auto p_drop_rsv =
+            reinterpret_cast<unsigned char*>(&rsvspace_host[numlayer * batch_n * hy_stride * 2 +
+                                                            (numlayer - 1) * batch_n * hy_h * bi]);
+        for(int i = 0; i < (numlayer - 1) * batch_n * hy_h * bi; i++)
+        {
+            *(p_drop_rsv + i) = dropout_reservespace_host.at(i);
+        }
+    }
 
     for(int i = 0; i < hy_d * hy_n * hy_h; i++)
     {
@@ -773,7 +844,6 @@ void RunGRUForwardGEMMCPUVerify(std::vector<Tgpu>& in,
         }
     }
 
-    delete[] hid_state;
     delete[] out_state;
     delete[] in_state;
     delete[] hx_state;
@@ -806,6 +876,8 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
                                      int inputMode,
                                      std::vector<Tref>& rsvspace_host,
                                      std::vector<Tref>& wkspace_host,
+                                     bool use_dropout,
+                                     miopenDropoutDescriptor_t dropoutDesc,
                                      bool hx_is_null  = false,
                                      bool dhy_is_null = false)
 {
@@ -824,8 +896,7 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
     int uni_stride = hy_h;
     int bi_stride  = hy_h * bi;
 
-    Tref* dh_state = new Tref[numlayer * batch_n * hy_stride];
-    memset(dh_state, 0, numlayer * batch_n * hy_stride * sizeof(Tref));
+    std::vector<Tref> dh_state(numlayer * batch_n * hy_stride, static_cast<Tref>(0));
 
     Tref* din_state = new Tref[batch_n * in_h];
     memset(din_state, 0, batch_n * in_h * sizeof(Tref));
@@ -881,6 +952,32 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
         wei_state[h] = wei[h];
     }
 
+    // initial dropoput
+    miopenTensorDescriptor_t dropout_inputTensor{};
+    std::vector<unsigned char> dropout_reservespace_host;
+    if(use_dropout)
+    {
+        std::array<int, 2> drop_in_len = {{batch_n, hy_h * bi}};
+        std::array<int, 2> drop_in_str = {{hy_stride, 1}};
+        miopenCreateTensorDescriptor(&dropout_inputTensor);
+        miopenSetTensorDescriptor(
+            dropout_inputTensor, miopenFloat, 2, drop_in_len.data(), drop_in_str.data());
+
+        size_t reserveSpaceSizeInBytes = 0;
+        miopenDropoutGetReserveSpaceSize(dropout_inputTensor, &reserveSpaceSizeInBytes);
+        size_t reserve_size       = reserveSpaceSizeInBytes / sizeof(unsigned char);
+        dropout_reservespace_host = std::vector<unsigned char>(reserve_size * (numlayer - 1),
+                                                               static_cast<unsigned char>(0));
+
+        auto p_drop_rsv =
+            reinterpret_cast<unsigned char*>(&rsvspace_host[numlayer * batch_n * hy_stride * 2 +
+                                                            (numlayer - 1) * batch_n * hy_h * bi]);
+        for(int i = 0; i < (numlayer - 1) * batch_n * hy_h * bi; i++)
+        {
+            dropout_reservespace_host.at(i) = *(p_drop_rsv + i);
+        }
+    }
+
     // bwd data emulator
     for(int li = numlayer - 1; li >= 0; li--)
     {
@@ -904,7 +1001,7 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
         {
             int prelayer_shift = (li + 1) * batch_n * hy_stride;
 
-            ADNN_mm_cpu<Tref>(const_cast<Tref*>(&dh_state[prelayer_shift]),
+            ADNN_mm_cpu<Tref>(&dh_state[prelayer_shift],
                               hy_h * bi * 3,
                               batch_n,
                               hy_stride,
@@ -921,6 +1018,19 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
                               0,
                               1,
                               1);
+
+            if(use_dropout)
+            {
+                RunDropoutBackwardEmulator<Tref>(dropoutDesc,
+                                                 dropout_inputTensor,
+                                                 dh_state,
+                                                 dropout_inputTensor,
+                                                 dh_state,
+                                                 dropout_reservespace_host,
+                                                 hid_shift + bi * 3 * hy_h,
+                                                 hid_shift + bi * 3 * hy_h,
+                                                 li * batch_n * hy_h * bi);
+            }
         }
 
         // from hidden state
@@ -973,7 +1083,7 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
 
                 int pretime_shift = li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride;
 
-                ADNN_mm_cpu<Tref>(const_cast<Tref*>(&dh_state[pretime_shift]),
+                ADNN_mm_cpu<Tref>(&dh_state[pretime_shift],
                                   hy_h * 2,
                                   in_n[ti + 1],
                                   hy_stride,
@@ -1006,7 +1116,7 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
                 }
 
                 ADNN_mm_cpu<Tref>(
-                    const_cast<Tref*>(&dh_state[hid_shift + bacc * hy_stride + 2 * hy_h]),
+                    &dh_state[hid_shift + bacc * hy_stride + 2 * hy_h],
                     hy_h,
                     in_n[ti + 1],
                     hy_stride,
@@ -1026,9 +1136,10 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
 
                 for(int bs = 0; bs < in_n[ti + 1]; bs++)
                 {
-                    memset(&dh_state[hid_shift + (bacc + bs) * hy_stride + 2 * hy_h],
-                           0,
-                           hy_h * sizeof(Tref));
+                    for(int hs = 0; hs < hy_h; hs++)
+                    {
+                        dh_state[hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + hs] = 0;
+                    }
                 }
 
                 if(bidirection)
@@ -1037,7 +1148,7 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
                                     (baccbi - in_n[seqLength - 2 - ti]) * hy_stride + hy_h * 3;
 
                     ADNN_mm_cpu<Tref>(
-                        const_cast<Tref*>(&dh_state[pretime_shift]),
+                        &dh_state[pretime_shift],
                         hy_h * 2,
                         in_n[seqLength - 1 - ti],
                         hy_stride,
@@ -1072,7 +1183,7 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
                     }
 
                     ADNN_mm_cpu<Tref>(
-                        const_cast<Tref*>(&dh_state[hid_shift + baccbi * hy_stride + 5 * hy_h]),
+                        &dh_state[hid_shift + baccbi * hy_stride + 5 * hy_h],
                         hy_h,
                         in_n[seqLength - 1 - ti],
                         hy_stride,
@@ -1092,9 +1203,10 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
 
                     for(int bs = 0; bs < in_n[seqLength - 1 - ti]; bs++)
                     {
-                        memset(&dh_state[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h],
-                               0,
-                               hy_h * sizeof(Tref));
+                        for(int hs = 0; hs < hy_h; hs++)
+                        {
+                            dh_state[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + hs] = 0;
+                        }
                     }
                 }
             }
@@ -1242,7 +1354,7 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
         // dhx
         int pretime_shift = li * batch_n * hy_stride;
 
-        ADNN_mm_cpu<Tref>(const_cast<Tref*>(&dh_state[pretime_shift]),
+        ADNN_mm_cpu<Tref>(&dh_state[pretime_shift],
                           hy_h * 2,
                           in_n[0],
                           hy_stride,
@@ -1304,7 +1416,7 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
                     pretime_shift = li * batch_n * hy_stride + (pre_bat + cur_bat) * hy_stride;
 
                     ADNN_mm_cpu<Tref>(
-                        const_cast<Tref*>(&dh_state[pretime_shift + 3 * hy_h]),
+                        &dh_state[pretime_shift + 3 * hy_h],
                         hy_h * 2,
                         (in_n.at(ti) - cur_bat),
                         hy_stride,
@@ -1387,7 +1499,7 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
     }
     else
     {
-        ADNN_mm_cpu<Tref>(const_cast<Tref*>(dh_state),
+        ADNN_mm_cpu<Tref>(&dh_state[0],
                           hy_h * bi * 3,
                           batch_n,
                           hy_stride,
@@ -1424,7 +1536,6 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
         }
     }
 
-    delete[] dh_state;
     delete[] dout_state;
     delete[] din_state;
     delete[] hx_state;
@@ -1458,6 +1569,7 @@ void RunGRUBackwardWeightGEMMCPUVerify(std::vector<Tgpu>& in,
                                        int inputMode,
                                        std::vector<Tref>& rsvspace_host,
                                        std::vector<Tref>& wkspace_host,
+                                       bool use_dropout,
                                        bool hx_is_null = false)
 {
     int batch_n  = sumvc(in_n);
@@ -1493,12 +1605,16 @@ void RunGRUBackwardWeightGEMMCPUVerify(std::vector<Tgpu>& in,
     }
 
     // initial saved data
-    Tref* wkspace_state  = new Tref[numlayer * batch_n * hy_stride];
-    Tref* rsvspace_state = new Tref[numlayer * batch_n * hy_stride];
+    Tref* wkspace_state = new Tref[numlayer * batch_n * hy_stride];
     for(int h = 0; h < numlayer * batch_n * hy_stride; h++)
     {
+        wkspace_state[h] = wkspace_host[h];
+    }
+    size_t rsvsp_sz      = use_dropout ? rsvspace_host.size() : numlayer * batch_n * hy_stride;
+    Tref* rsvspace_state = new Tref[rsvsp_sz];
+    for(int h = 0; h < rsvsp_sz; h++)
+    {
         rsvspace_state[h] = rsvspace_host[h];
-        wkspace_state[h]  = wkspace_host[h];
     }
 
     // initial hidden states
@@ -1571,8 +1687,10 @@ void RunGRUBackwardWeightGEMMCPUVerify(std::vector<Tgpu>& in,
         }
         else
         {
-            int prelayer_shift = (li - 1) * batch_n * hy_stride + bi * hy_h * 3;
-            int hid_shift      = li * batch_n * hy_stride;
+            int prelayer_shift =
+                use_dropout ? 2 * numlayer * batch_n * hy_stride + (li - 1) * batch_n * hy_h * bi
+                            : (li - 1) * batch_n * hy_stride + bi * hy_h * 3;
+            int hid_shift = li * batch_n * hy_stride;
             int wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
 
             ADNN_mm_cpu<Tref>(const_cast<Tref*>(&wkspace_state[hid_shift]),
@@ -1583,7 +1701,7 @@ void RunGRUBackwardWeightGEMMCPUVerify(std::vector<Tgpu>& in,
                               const_cast<Tref*>(&rsvspace_state[prelayer_shift]),
                               hy_h * bi,
                               batch_n,
-                              hy_stride,
+                              use_dropout ? hy_h * bi : hy_stride,
                               0,
                               &dwei_state[wei_shift],
                               hy_h * bi,
