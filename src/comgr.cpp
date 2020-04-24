@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/stringutils.hpp>
@@ -34,6 +35,9 @@
 #include <cstring>
 #include <tuple> // std::ignore
 #include <vector>
+
+/// \todo see issue #1222, PR #1316
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 
 /// FIXME Rework debug stuff.
 #define DEBUG_DETAILED_LOG 0
@@ -72,19 +76,24 @@ namespace compiler {
 namespace lc {
 #define OCL_EARLY_INLINE 1
 
-/// gfx1000+
-/// - WGP mode: not enabled.
-/// - WAVE32 mode: not enabled.
-
-static void AddOclCompilerOptions(OptionList& list)
+static void AddOcl20CompilerOptions(OptionList& list)
 {
+    list.push_back("-cl-kernel-arg-info");
+    list.push_back("-D__IMAGE_SUPPORT__=1");
+    list.push_back("-D__OPENCL_VERSION__=200");
 #if OCL_EARLY_INLINE
     list.push_back("-mllvm");
     list.push_back("-amdgpu-early-inline-all");
 #endif
     list.push_back("-mllvm");
     list.push_back("-amdgpu-prelink");
-    list.push_back("-mwavefrontsize64");
+    list.push_back("-mwavefrontsize64"); // gfx1000+ WAVE32 mode: always disabled.
+    list.push_back("-mcumode");          // gfx1000+ WGP mode: always disabled.
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_SRAM_EDC_DISABLED{}))
+        list.push_back("-msram-ecc");
+    else
+        list.push_back("-mno-sram-ecc");
+    list.push_back("-O3");
 }
 
 /// These are produced for offline compiler and not necessary at least
@@ -102,7 +111,11 @@ static void RemoveSuperfluousOptions(OptionList& list)
 /// \todo Get list of supported isa names from comgr and select.
 static std::string GetIsaName(const std::string& device)
 {
-    return {"amdgcn-amd-amdhsa--" + device};
+    const char* const ecc_suffix = (!miopen::IsEnabled(MIOPEN_DEBUG_SRAM_EDC_DISABLED{}) &&
+                                    (device == "gfx906" || device == "gfx908"))
+                                       ? "+sram-ecc"
+                                       : "";
+    return {"amdgcn-amd-amdhsa--" + device + ecc_suffix};
 }
 
 /// \todo Handle "-cl-fp32-correctly-rounded-divide-sqrt".
@@ -125,6 +138,7 @@ static inline auto to_string(const std::size_t& v) { return std::to_string(v); }
 #define CASE_TO_STRING(id) \
     case id: return #id
 
+/// \todo Request comgr to expose this stuff via API.
 static std::string to_string(const amd_comgr_language_t val)
 {
     switch(val)
@@ -420,25 +434,25 @@ void BuildOcl(const std::string& name,
         const Dataset inputs;
         DatasetAddData(inputs, name, text, AMD_COMGR_DATA_KIND_SOURCE);
         const ActionInfo action;
-        action.SetLanguage(AMD_COMGR_LANGUAGE_OPENCL_1_2);
+        action.SetLanguage(AMD_COMGR_LANGUAGE_OPENCL_2_0);
         const auto isaName = compiler::lc::GetIsaName(device);
         MIOPEN_LOG_I(isaName); // FIXME
         action.SetIsaName(isaName);
         action.SetLogging(true);
 
-        auto optList = SplitSpaceSeparated(options);
-        compiler::lc::RemoveSuperfluousOptions(optList);
-        compiler::lc::AddOclCompilerOptions(optList);
-        action.SetOptionList(optList);
+        auto optCompile = SplitSpaceSeparated(options);
+        compiler::lc::RemoveSuperfluousOptions(optCompile);
+        compiler::lc::AddOcl20CompilerOptions(optCompile);
+        action.SetOptionList(optCompile);
 
-        const Dataset pch;
-        action.Do(AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS, inputs, pch);
-        const Dataset src2bc;
-        action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC, pch, src2bc);
+        const Dataset addedPch;
+        action.Do(AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS, inputs, addedPch);
+        const Dataset compiledBc;
+        action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC, addedPch, compiledBc);
 
         OptionList optLink;
         optLink.push_back("wavefrontsize64");
-        for(const auto& opt : optList)
+        for(const auto& opt : optCompile)
         {
             if(opt == "-cl-fp32-correctly-rounded-divide-sqrt")
                 optLink.push_back("correctly_rounded_sqrt");
@@ -453,11 +467,18 @@ void BuildOcl(const std::string& name,
             } // nop
         }
         action.SetOptionList(optLink);
-        const Dataset withDevLibs;
-        action.Do(AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES, src2bc, withDevLibs);
-        const Dataset linkedBc2bc;
-        action.Do(AMD_COMGR_ACTION_LINK_BC_TO_BC, withDevLibs, linkedBc2bc);
+        const Dataset addedDevLibs;
+        action.Do(AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES, compiledBc, addedDevLibs);
+        const Dataset linkedBc;
+        action.Do(AMD_COMGR_ACTION_LINK_BC_TO_BC, addedDevLibs, linkedBc);
 
+        action.SetOptionList(optCompile);
+        const Dataset relocatable;
+        action.Do(AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE, linkedBc, relocatable);
+
+        action.SetOptionList(OptionList());
+        const Dataset executable;
+        action.Do(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE, relocatable, executable);
     }
     catch(ComgrError& ex)
     {
