@@ -25,10 +25,8 @@
  *******************************************************************************/
 
 #include <miopen/rnn.hpp>
-#include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
-#include <miopen/tensor_ops.hpp>
 #include <vector>
 
 enum RNNDir_t
@@ -463,8 +461,11 @@ static void LogCmdRNN(const miopenTensorDescriptor_t* xDesc,
         }
 
         std::stringstream ss;
-        ss << "rnn"
-           << " -n " << batch_sz // clang-format off
+        if(miopen::deref(xDesc[0]).GetType() == miopenFloat)
+            ss << "rnn";
+        else if(miopen::deref(xDesc[0]).GetType() == miopenHalf)
+            ss << "rnnfp16";
+        ss << " -n " << batch_sz // clang-format off
            << " -W " << miopen::deref(xDesc[0]).GetLengths()[1]
            << " -H " << miopen::deref(rnnDesc).hsize
            << " -l " << miopen::deref(rnnDesc).nLayers
@@ -476,7 +477,14 @@ static void LogCmdRNN(const miopenTensorDescriptor_t* xDesc,
         if(dir == ForwardInference || dir == ForwardTraining)
            ss << " -c " << ((dir == ForwardTraining)?"0":"1");
         ss << " -F " << ((dir == ForwardInference || dir == ForwardTraining)?"1":(dir == BackwardData)?"2":"4")
-           << " -t 1 -w 1"; // clang-format on
+           << " -t 1 -w 1";
+        if(miopen::deref(miopen::deref(rnnDesc).dropoutDesc).dropout > 0)
+        {
+            ss << " -U 1 -P " << std::to_string(miopen::deref(miopen::deref(rnnDesc).dropoutDesc).dropout)
+               << " -L " << (miopen::deref(miopen::deref(rnnDesc).dropoutDesc).seed & 0xFFFFFFFF)
+               << " -M " << ((miopen::deref(miopen::deref(rnnDesc).dropoutDesc).seed >> 32) & 0xFFFFFFFF);
+        } // clang-format on
+        std::cout << ss.str() << std::endl;
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 }

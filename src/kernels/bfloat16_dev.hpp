@@ -36,7 +36,7 @@ extern "C" {
 #define EXECUTION_SPECIFIER
 #endif // MIOPEN_BACKEND_HIP
 
-typedef union
+typedef union cvt_bf16_fp32
 {
     uint u32;
     ushort2 ushortx2;

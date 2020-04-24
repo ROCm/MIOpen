@@ -33,7 +33,7 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
 
                 // Miminum checks. Only check what is required to select
                 // proper invocation procedure & workspace sanity.
-                const auto kernel = handle.Run(kernels[0]);
+                auto kernel = kernels[0];
 
                 float elapsed = 0;
                 if((tensors.outDesc.GetType() == miopenHalf ||
@@ -43,7 +43,9 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_"
                                         "xdlops_gnchw_gkcyx_gnkhw" ||
                     kernel.GetName() ==
-                        "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw"))
+                        "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw" ||
+                    kernel.GetName() ==
+                        "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw"))
                 {
                     float zero = 0.f;
                     TensorDescriptor workspaceDesc(
@@ -69,9 +71,8 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                 }
                 else if((kernel.GetName() == "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_"
                                              "nkhw_lds_double_buffer") ||
-                        (kernel.GetName() ==
-                         "gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kc1x1_"
-                         "nkhw_lds_double_buffer"))
+                        (kernel.GetName() == "gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_"
+                                             "kc1x1_nkhw_lds_double_buffer"))
                 {
                     bool hasStride =
                         (tensors.inDesc.GetLengths()[2] != tensors.outDesc.GetLengths()[2]) ||
@@ -93,14 +94,10 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                         elapsed += handle.GetKernelTime();
                 }
                 else if(kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_"
-                                            "nchw_kcyx_nkhw" ||
-                        kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_"
                                             "xdlops_nchw_kcyx_nkhw" ||
-                        kernel.GetName() ==
-                            "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_"
-                            "gnchw_gkcyx_gnkhw")
+                        kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_"
+                                            "xdlops_gnchw_gkcyx_gnkhw")
                 {
-                    // this kernel accumulate results into input tensor, therefore need to set zero
                     float zero = 0.f;
                     SetTensor(handle, tensors.outDesc, tensors.out, &zero);
                     if(handle.IsProfilingEnabled())
@@ -110,20 +107,81 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
                 }
-                else if(kernel.GetName() ==
-                        "gridwise_convolution_backward_data_implicit_gemm_v4r1_nchw_kcyx_nkhw")
+                else if(
+                    kernel.GetName() ==
+                        "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw" ||
+                    kernel.GetName() ==
+                        "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw")
                 {
-                    // \todo this kernel doesn't always need to set-zero
-                    float zero = 0.f;
-                    SetTensor(handle, tensors.outDesc, tensors.out, &zero);
+                    // this kernel accumulate results into input tensor, therefore need to set zero
+                    bool is_1x1_s1 = false;
+                    if(miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
+                       miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }))
+                    {
+                        if(tensors.wDesc.GetLengths()[2] == 1 && tensors.wDesc.GetLengths()[3] == 1)
+                        { // filter = 1
+                            if(tensors.wDesc.GetSize() == 4 ||
+                               (tensors.wDesc.GetSize() == 5 && tensors.wDesc.GetLengths()[4] == 1))
+                            {
+                                is_1x1_s1 = true;
+                            }
+                        }
+                    }
 
+                    if(!is_1x1_s1)
+                    {
+                        float zero = 0.f;
+                        SetTensor(handle, tensors.outDesc, tensors.out, &zero);
+                        if(handle.IsProfilingEnabled())
+                            elapsed += handle.GetKernelTime();
+                    }
+
+                    kernel(tensors.in, tensors.w, tensors.out);
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
+                }
+                else if(
+                    kernel.GetName() ==
+                        "gridwise_convolution_backward_data_implicit_gemm_v4r1_nchw_kcyx_nkhw" ||
+                    kernel.GetName() ==
+                        "gridwise_convolution_backward_data_implicit_gemm_v4r1_ncdhw_kczyx_nkdhw")
+                {
+                    // \todo this kernel doesn't always need to set-zero
+                    bool filterGeStride = false;
+                    if(miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }))
+                    {
+                        if(tensors.wDesc.GetSize() == 4)
+                        { // 2d
+                            if(tensors.wDesc.GetLengths()[2] >= conv.GetConvStrides()[0] &&
+                               tensors.wDesc.GetLengths()[3] >= conv.GetConvStrides()[1])
+                            {
+                                filterGeStride = true;
+                            }
+                        }
+                        else
+                        { // 3d
+                            if(tensors.wDesc.GetLengths()[2] >= conv.GetConvStrides()[0] &&
+                               tensors.wDesc.GetLengths()[3] >= conv.GetConvStrides()[1] &&
+                               tensors.wDesc.GetLengths()[4] >= conv.GetConvStrides()[2])
+                            {
+                                filterGeStride = true;
+                            }
+                        }
+                    }
+
+                    if(!filterGeStride)
+                    {
+                        float zero = 0.f;
+                        SetTensor(handle, tensors.outDesc, tensors.out, &zero);
+
+                        if(handle.IsProfilingEnabled())
+                            elapsed += handle.GetKernelTime();
+                    }
 
                     // a group kernels (compiled from same source code) will be launched
                     for(const auto& k : kernels)
                     {
-                        handle.Run(k)(tensors.in, tensors.w, tensors.out);
+                        k(tensors.in, tensors.w, tensors.out);
                         elapsed += handle.GetKernelTime();
                     }
                 }
