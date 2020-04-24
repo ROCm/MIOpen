@@ -39,9 +39,7 @@
 /// \todo see issue #1222, PR #1316
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 
-/// FIXME Rework debug stuff.
 #define DEBUG_DETAILED_LOG 0
-#define DEBUG_CORRUPT_SOURCE 0
 #define COMPILER_LC 1
 
 #if DEBUG_DETAILED_LOG
@@ -75,7 +73,8 @@ namespace comgr {
 
 using OptionList = std::vector<std::string>;
 
-/// Compiler implementation-specific functionality (compiler abstraction layer).
+/// Compiler implementation-specific functionality
+/// (minimal compiler abstraction layer).
 namespace compiler {
 
 #if COMPILER_LC
