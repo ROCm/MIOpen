@@ -44,6 +44,13 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 #define DEBUG_CORRUPT_SOURCE 0
 #define COMPILER_LC 1
 
+#if DEBUG_DETAILED_LOG
+#define EC_BASE_DETAILED_INFO(comgrcall, info) \
+    MIOPEN_LOG_I("Ok \'" #comgrcall "\' " << to_string(info))
+#else
+#define EC_BASE_DETAILED_INFO(comgrcall, info)
+#endif
+
 #define EC_BASE(comgrcall, info, expr2)                                   \
     do                                                                    \
     {                                                                     \
@@ -55,9 +62,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
             (expr2);                                                      \
         }                                                                 \
         else                                                              \
-        {                                                                 \
-            MIOPEN_LOG_I("Ok \'" #comgrcall "\' " << to_string(info));    \
-        }                                                                 \
+            EC_BASE_DETAILED_INFO((comgrcall), (info));                   \
     } while(false)
 
 #define EC(comgrcall) EC_BASE(comgrcall, NoInfo, (void)0)
@@ -205,7 +210,7 @@ static bool PrintVersion()
     std::size_t major = 0;
     std::size_t minor = 0;
     (void)amd_comgr_get_version(&major, &minor);
-    MIOPEN_LOG_I("comgr v." << major << '.' << minor);
+    MIOPEN_LOG_I2("comgr v." << major << '.' << minor);
     return true;
 }
 
@@ -405,12 +410,13 @@ static void DatasetAddData(const Dataset& dataset,
                            const amd_comgr_data_kind_t type)
 {
     const Data d(type);
-    MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
+    MIOPEN_LOG_I2(name << ' ' << content.size() << " bytes");
     d.SetName(name);
 #if DEBUG_DETAILED_LOG
     if(miopen::IsLogging(miopen::LoggingLevel::Info) && type == AMD_COMGR_DATA_KIND_SOURCE)
     {
-        const auto text_length = (content.size() > 256) ? 256 : content.size();
+        constexpr auto SHOW_FIRST = 1024;
+        const auto text_length    = (content.size() > SHOW_FIRST) ? SHOW_FIRST : content.size();
         const std::string text(content, 0, text_length);
         MIOPEN_LOG_I(text);
     }
@@ -441,7 +447,7 @@ void BuildOcl(const std::string& name,
         const ActionInfo action;
         action.SetLanguage(AMD_COMGR_LANGUAGE_OPENCL_2_0);
         const auto isaName = compiler::lc::GetIsaName(device);
-        MIOPEN_LOG_I(isaName); // FIXME
+        MIOPEN_LOG_I2(isaName);
         action.SetIsaName(isaName);
         action.SetLogging(true);
 
