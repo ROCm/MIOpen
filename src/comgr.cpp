@@ -44,25 +44,26 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 #define DEBUG_CORRUPT_SOURCE 0
 #define COMPILER_LC 1
 
-#define EC_BASE(expr, info, expr2)                                                              \
-    do                                                                                          \
-    {                                                                                           \
-        const amd_comgr_status_t status = (expr);                                               \
-        if(status != AMD_COMGR_STATUS_SUCCESS)                                                  \
-        {                                                                                       \
-            MIOPEN_LOG_E("\'" #expr "\' " << to_string(info) << ": " << GetStatusText(status)); \
-            (expr2);                                                                            \
-        }                                                                                       \
-        else                                                                                    \
-        {                                                                                       \
-            MIOPEN_LOG_I("Ok \'" #expr "\' " << to_string(info));                               \
-        }                                                                                       \
+#define EC_BASE(comgrcall, info, expr2)                                   \
+    do                                                                    \
+    {                                                                     \
+        const amd_comgr_status_t status = (comgrcall);                    \
+        if(status != AMD_COMGR_STATUS_SUCCESS)                            \
+        {                                                                 \
+            MIOPEN_LOG_E("\'" #comgrcall "\' " << to_string(info) << ": " \
+                                               << GetStatusText(status)); \
+            (expr2);                                                      \
+        }                                                                 \
+        else                                                              \
+        {                                                                 \
+            MIOPEN_LOG_I("Ok \'" #comgrcall "\' " << to_string(info));    \
+        }                                                                 \
     } while(false)
 
-#define EC(expr) EC_BASE(expr, NoInfo, (void)0)
-#define EC_THROW(expr) EC_BASE(expr, NoInfo, Throw(status))
-#define ECI_THROW(expr, info) EC_BASE(expr, info, Throw(status))
-#define ECI_THROW_MSG(expr, info, msg) EC_BASE(expr, info, Throw(status, (msg)))
+#define EC(comgrcall) EC_BASE(comgrcall, NoInfo, (void)0)
+#define EC_THROW(comgrcall) EC_BASE(comgrcall, NoInfo, Throw(status))
+#define ECI_THROW(comgrcall, info) EC_BASE(comgrcall, info, Throw(status))
+#define ECI_THROW_MSG(comgrcall, info, msg) EC_BASE(comgrcall, info, Throw(status, (msg)))
 
 namespace miopen {
 namespace comgr {
@@ -286,6 +287,8 @@ class Data : ComgrOwner
         EC_THROW(amd_comgr_get_data(handle, &sz, nullptr));
         return sz;
     }
+
+    public:
     std::size_t GetBytes(std::vector<char>& bytes) const
     {
         std::size_t sz = GetSize();
@@ -293,8 +296,6 @@ class Data : ComgrOwner
         ECI_THROW(amd_comgr_get_data(handle, &sz, &bytes[0]), sz);
         return sz;
     }
-
-    public:
     std::string GetString() const
     {
         std::vector<char> bytes;
@@ -428,9 +429,8 @@ void BuildOcl(const std::string& name,
               const std::string& text,
               const std::string& options,
               const std::string& device,
-              const std::string& binary)
+              std::vector<char>& binary)
 {
-    (void)binary;
     static const auto once = PrintVersion();
     std::ignore            = once;
 
@@ -482,8 +482,15 @@ void BuildOcl(const std::string& name,
         action.Do(AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE, linkedBc, relocatable);
 
         action.SetOptionList(OptionList());
-        const Dataset executable;
-        action.Do(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE, relocatable, executable);
+        const Dataset exe;
+        action.Do(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE, relocatable, exe);
+
+        constexpr auto INTENTIONALY_UNKNOWN = static_cast<amd_comgr_status_t>(0xffff);
+        if(exe.GetDataCount(AMD_COMGR_DATA_KIND_EXECUTABLE) < 1)
+            throw ComgrError{INTENTIONALY_UNKNOWN, "Executable binary not found"};
+        // Assume that the first exec data contains the binary we need.
+        const auto data = exe.GetData(AMD_COMGR_DATA_KIND_EXECUTABLE, 0);
+        data.GetBytes(binary);
     }
     catch(ComgrError& ex)
     {

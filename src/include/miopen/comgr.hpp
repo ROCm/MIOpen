@@ -38,7 +38,7 @@ void BuildOcl(const std::string& name,
               const std::string& text,
               const std::string& options,
               const std::string& device,
-              const std::string& binary);
+              std::vector<char>& binary);
 
 } // namespace comgr
 } // namespace miopen

@@ -177,12 +177,14 @@ struct HIPOCProgramImpl
 #endif
             params += " " + GetCoV3Option(ProduceCoV3());
 
+#if !MIOPEN_USE_COMGR
             WriteFile(src, dir->path / filename);
             dir->Execute(HIP_OC_COMPILER, params + " " + filename + " -o " + hsaco_file.string());
-            {
-                std::string binary;
-                comgr::BuildOcl(filename, src, params, device, binary);
-            }
+#else
+            std::vector<char> binary;
+            comgr::BuildOcl(filename, src, params, device, binary);
+            WriteFile(binary, hsaco_file);
+#endif
         }
         if(!boost::filesystem::exists(hsaco_file))
             MIOPEN_THROW("Cant find file: " + hsaco_file.string());
