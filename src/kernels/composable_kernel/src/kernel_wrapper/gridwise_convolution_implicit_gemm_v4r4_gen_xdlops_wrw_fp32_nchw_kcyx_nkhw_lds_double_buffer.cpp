@@ -9,7 +9,7 @@ extern "C" __global__
         const FLOAT* const __restrict__ p_out_global,
         FLOAT* const __restrict__ p_wei_global)
 {
-#if !(MIOPEN_USE_FP32 && CK_PARAM_PROBLEM_CONV_DIRECTION_FORWARD)
+#if !(MIOPEN_USE_FP32 && CK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_WEIGHT)
     static_assert(false, "Only support backward weight fp32!");
 #endif
 

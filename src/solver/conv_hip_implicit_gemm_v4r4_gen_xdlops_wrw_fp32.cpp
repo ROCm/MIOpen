@@ -492,9 +492,9 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::GetSolution(
 
     construction_parameters.comp_options =
         std::string(" -std=c++14 ") +
-        std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_FORWARD=") + std::to_string(1) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_FORWARD=") + std::to_string(0) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_DATA=") + std::to_string(0) +
-        std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_WEIGHT=") + std::to_string(0) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_WEIGHT=") + std::to_string(1) +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(n) +
         std::string(" -DCK_PARAM_PROBLEM_C=") + std::to_string(c) +
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(k) +
