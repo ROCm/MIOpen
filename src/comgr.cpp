@@ -89,11 +89,16 @@ static void AddOcl20CompilerOptions(OptionList& list)
     list.push_back("-amdgpu-prelink");
     list.push_back("-mwavefrontsize64"); // gfx1000+ WAVE32 mode: always disabled.
     list.push_back("-mcumode");          // gfx1000+ WGP mode: always disabled.
+    list.push_back("-O3");
+
+    // It seems like these options are used only in codegen.
+    // However it seems ok to pass these to compiler.
     if(!miopen::IsEnabled(MIOPEN_DEBUG_SRAM_EDC_DISABLED{}))
         list.push_back("-msram-ecc");
     else
         list.push_back("-mno-sram-ecc");
-    list.push_back("-O3");
+    list.push_back("-mllvm");
+    list.push_back("-amdgpu-internalize-symbols");
 }
 
 /// These are produced for offline compiler and not necessary at least
