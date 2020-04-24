@@ -209,7 +209,7 @@ static bool PrintVersion()
     std::size_t major = 0;
     std::size_t minor = 0;
     (void)amd_comgr_get_version(&major, &minor);
-    MIOPEN_LOG_I2("comgr v." << major << '.' << minor);
+    MIOPEN_LOG_I("comgr v." << major << '.' << minor);
     return true;
 }
 
@@ -373,8 +373,7 @@ class ActionInfo : ComgrOwner
 
 /// If called from the context of comgr error handling:
 /// - We do not allow the comgr-induced exceptions to escape.
-/// -
-/// when called the context of comgr error handling.
+/// - If obtaining log fails, write some diagnostics into output.
 static std::string GetLog(const Dataset& dataset, const bool comgr_error_handling)
 {
     std::string text;
@@ -430,7 +429,7 @@ void BuildOcl(const std::string& name,
               const std::string& device,
               std::vector<char>& binary)
 {
-    static const auto once = PrintVersion();
+    static const auto once = PrintVersion(); // Nice to see in the user's logs.
     std::ignore            = once;
 
     try
