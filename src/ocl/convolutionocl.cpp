@@ -4548,9 +4548,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         // For fp16/bfp16 backward data case, do zero init, bwd data with fp32
                         // output and cast (convert) from fp32 to fp16/bfp16.
                         // clang-format off
-                    if((dwDesc.GetType() == miopenHalf || dwDesc.GetType() == miopenBFloat16) &&
-                       (kernel.GetName() == "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer" ||
-                        kernel.GetName() == "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer"))
+                        if((dwDesc.GetType() == miopenHalf || dwDesc.GetType() == miopenBFloat16) &&
+                           (kernel.GetName() == "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer" ||
+                            kernel.GetName() == "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer"))
                         // clang-format on
                         {
                             float zero = 0.f;
