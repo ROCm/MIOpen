@@ -67,6 +67,48 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
         mDstSliceOrigin = dst_slice_origin;
     }
 
+    template <typename DstData>
+    __device__ void Zero(DstData* p_dst) const
+    {
+        constexpr auto vector_access_dim = Number<SrcDstVectorReadWriteDim>{};
+
+        constexpr auto data_per_access = Number<1>{};
+
+        constexpr auto long_vector_size = Number<math::lcm(SrcDataPerRead, DstDataPerWrite)>{};
+
+        constexpr auto long_vector_access_lengths = SliceLengths::Modify(
+            vector_access_dim, SliceLengths::Get(vector_access_dim) / long_vector_size);
+
+        ford<decltype(long_vector_access_lengths), SrcDstDimAccessOrder>{}([&](
+            auto long_vector_access_id) {
+
+            // data id w.r.t slicing-window
+            auto long_vector_data_begin_id = long_vector_access_id;
+            long_vector_data_begin_id(vector_access_dim) =
+                long_vector_size * long_vector_access_id[vector_access_dim];
+
+            for(index_t i = 0; i < long_vector_size / data_per_access; ++i)
+            {
+                auto scalar_id               = make_zero_array<index_t, nDim>();
+                scalar_id(vector_access_dim) = i * data_per_access;
+
+                const auto src_coord = mSrcSliceOrigin + (long_vector_data_begin_id + scalar_id);
+                const auto dst_coord = mDstSliceOrigin + (long_vector_data_begin_id + scalar_id);
+
+                DstData p_dst_zero = 0;
+
+                if(!src_coord.IsOffsetValidAssumingUpperIndexIsValid())
+                {
+                    transfer_data<DstData,
+                                  DstDataPerWrite,
+                                  AddressSpace::Vgpr,
+                                  DstAddressSpace,
+                                  DstInMemOp>(&p_dst_zero, 0, p_dst, dst_coord.GetOffset());
+                }
+            }
+        });
+    }
+
     template <typename SrcData, typename DstData>
     __device__ void Run(const SrcData* p_src, DstData* p_dst) const
     {
@@ -107,11 +149,13 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
 
                 const auto src_coord = mSrcSliceOrigin + (long_vector_data_begin_id + scalar_id);
 
-                // Check src data's valid mapping situation, only check the first data in this src
-                //   vector. It's user's responsiblity to make sure all data in the src vector
+                // Check src data's valid mapping situation, only check the first data in
+                // this src
+                //   vector. It's user's responsiblity to make sure all data in the src
+                //   vector
                 //   has the valid/invalid mapping situation
                 constexpr index_t BufferSize = SrcDesc::GetElementSpace() * sizeof(SrcData);
-                if(src_coord.IsOffsetValidAssumingUpperIndexIsValid())
+                // if(src_coord.IsOffsetValidAssumingUpperIndexIsValid())
                 {
                     transfer_data<SrcData,
                                   SrcDataPerRead,
@@ -141,8 +185,10 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
 
                 const auto dst_coord = mDstSliceOrigin + (long_vector_data_begin_id + scalar_id);
 
-                // Check dst data's valid mapping situation, only check the first data in this dst
-                //   vector. It's user's responsiblity to make sure all data in the dst vector
+                // Check dst data's valid mapping situation, only check the first data in
+                // this dst
+                //   vector. It's user's responsiblity to make sure all data in the dst
+                //   vector
                 //   has the valid/invalid mapping situation
                 if(dst_coord.IsOffsetValidAssumingUpperIndexIsValid())
                 {
@@ -258,9 +304,11 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                         src_coord.GetOffset() - src_nonlinear_coord.GetOffset();
 #endif
 
-                    // Check src data's valid mapping situation, only check the first data in this
+                    // Check src data's valid mapping situation, only check the first data in
+                    // this
                     // src
-                    //   vector. It's user's responsiblity to make sure all data in the src vector
+                    //   vector. It's user's responsiblity to make sure all data in the src
+                    //   vector
                     //   has the valid/invalid mapping situation
                     if(src_coord.IsOffsetValidAssumingUpperIndexIsValid())
                     {
@@ -297,9 +345,11 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                     const auto dst_coord = mDstSliceOrigin + (nonlinear_dim_data_steps +
                                                               linear_dim_data_steps + scalar_id);
 
-                    // Check dst data's valid mapping situation, only check the first data in this
+                    // Check dst data's valid mapping situation, only check the first data in
+                    // this
                     // dst
-                    //   vector. It's user's responsiblity to make sure all data in the dst vector
+                    //   vector. It's user's responsiblity to make sure all data in the dst
+                    //   vector
                     //   has the valid/invalid mapping situation
                     if(dst_coord.IsOffsetValidAssumingUpperIndexIsValid())
                     {
@@ -397,9 +447,11 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                     const auto src_coord = mSrcSliceOrigin + (nonlinear_dim_data_steps +
                                                               linear_dim_data_steps + scalar_id);
 
-                    // Check src data's valid mapping situation, only check the first data in this
+                    // Check src data's valid mapping situation, only check the first data in
+                    // this
                     // src
-                    //   vector. It's user's responsiblity to make sure all data in the src vector
+                    //   vector. It's user's responsiblity to make sure all data in the src
+                    //   vector
                     //   has the valid/invalid mapping situation
                     if(src_coord.IsOffsetValidAssumingUpperIndexIsValid())
                     {
@@ -442,9 +494,11 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                         dst_coord.GetOffset() - dst_nonlinear_coord.GetOffset();
 #endif
 
-                    // Check dst data's valid mapping situation, only check the first data in this
+                    // Check dst data's valid mapping situation, only check the first data in
+                    // this
                     // dst
-                    //   vector. It's user's responsiblity to make sure all data in the dst vector
+                    //   vector. It's user's responsiblity to make sure all data in the dst
+                    //   vector
                     //   has the valid/invalid mapping situation
                     if(dst_coord.IsOffsetValidAssumingUpperIndexIsValid())
                     {
