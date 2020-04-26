@@ -116,7 +116,8 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                                   SrcDataPerRead,
                                   SrcAddressSpace,
                                   AddressSpace::Vgpr,
-                                  InMemoryDataOperation::Set>(
+                                  InMemoryDataOperation::Set,
+                                  SrcData.GetElementSpace()>(
                         p_src, src_coord.GetOffset(), p_src_long_vector, buffer_offset);
                 }
             }

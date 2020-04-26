@@ -67,7 +67,7 @@ __llvm_amdgcn_buffer_atomic_add(float vdata,
 // It is user's responsibility to make sure that is true.
 template <typename T, index_t VectorSize>
 __device__ typename vector_type<T, VectorSize>::MemoryType amd_intrinsic_buffer_load(
-    const T* p_src_block, index_t src_thread_data_offset, index_t src_const_data_offset);
+    const T* p_src_block, index_t src_thread_data_offset, index_t src_const_data_offset, index_t buffer_size);
 
 // buffer_store requires:
 //   1) p_src must be in vgpr space, d_dst must be global memory
@@ -88,7 +88,8 @@ __device__ void amd_intrinsic_buffer_atomic_add(const T* p_src,
 template <>
 __device__ float amd_intrinsic_buffer_load<float, 1>(const float* p_src_block,
                                                      index_t src_thread_data_offset,
-                                                     index_t src_const_data_offset)
+                                                     index_t src_const_data_offset,
+                                                     index_t buffer_size)
 {
     float dst;
 
@@ -100,7 +101,7 @@ __device__ float amd_intrinsic_buffer_load<float, 1>(const float* p_src_block,
     // fill in byte 0 - 1
     src_block_config.address[0] = const_cast<float*>(p_src_block);
     // fill in byte 2
-    src_block_config.range[2] = -1;
+    src_block_config.range[2] = buffer_size;
     // fill in byte 3
     src_block_config.range[3] = 0x00027000;
 
@@ -123,7 +124,8 @@ __device__ float amd_intrinsic_buffer_load<float, 1>(const float* p_src_block,
 template <>
 __device__ float2_t amd_intrinsic_buffer_load<float, 2>(const float* p_src_block,
                                                         index_t src_thread_data_offset,
-                                                        index_t src_const_data_offset)
+                                                        index_t src_const_data_offset,
+                                                        index_t buffer_size)
 {
     float2_t dst;
 
@@ -135,7 +137,7 @@ __device__ float2_t amd_intrinsic_buffer_load<float, 2>(const float* p_src_block
     // fill in byte 0 - 1
     src_block_config.address[0] = const_cast<float*>(p_src_block);
     // fill in byte 2
-    src_block_config.range[2] = -1;
+    src_block_config.range[2] = buffer_size;
     // fill in byte 3
     src_block_config.range[3] = 0x00027000;
 
@@ -158,7 +160,8 @@ __device__ float2_t amd_intrinsic_buffer_load<float, 2>(const float* p_src_block
 template <>
 __device__ float4_t amd_intrinsic_buffer_load<float, 4>(const float* p_src_block,
                                                         index_t src_thread_data_offset,
-                                                        index_t src_const_data_offset)
+                                                        index_t src_const_data_offset,
+                                                        index_t buffer_size)
 {
     float4_t dst;
 
@@ -170,7 +173,7 @@ __device__ float4_t amd_intrinsic_buffer_load<float, 4>(const float* p_src_block
     // fill in byte 0 - 1
     src_block_config.address[0] = const_cast<float*>(p_src_block);
     // fill in byte 2
-    src_block_config.range[2] = -1;
+    src_block_config.range[2] = buffer_size;
     // fill in byte 3
     src_block_config.range[3] = 0x00027000;
 

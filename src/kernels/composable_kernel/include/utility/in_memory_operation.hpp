@@ -40,7 +40,8 @@ __device__ void atomic_add_impl<float4_t>(float4_t* p_dst, float4_t src)
 template <typename T,
           index_t DataPerAccess,
           AddressSpace SrcAddressSpace,
-          AddressSpace DstAddressSpace>
+          AddressSpace DstAddressSpace,
+          index_t BufferSize>
 __device__ void set_data(const T* p_src, index_t src_offset, T* p_dst, index_t dst_offset)
 {
     using vector_t = typename vector_type<T, DataPerAccess>::MemoryType;
@@ -54,7 +55,7 @@ __device__ void set_data(const T* p_src, index_t src_offset, T* p_dst, index_t d
         //   2) p_src to be a block-invariant pointer.
         // It is user's responsibility to make sure that is true.
         *reinterpret_cast<vector_t*>(&p_dst[dst_offset]) =
-            amd_intrinsic_buffer_load<T, DataPerAccess>(p_src, src_offset, 0);
+            amd_intrinsic_buffer_load<T, DataPerAccess>(p_src, src_offset, 0, BufferSize);
     }).Else([&](auto) {
         static_if<SrcAddressSpace == AddressSpace::Vgpr &&
                   DstAddressSpace == AddressSpace::Global>{}([&](auto) {
@@ -101,7 +102,8 @@ template <typename T,
           index_t DataPerAccess,
           AddressSpace SrcAddressSpace,
           AddressSpace DstAddressSpace,
-          InMemoryDataOperation DstInMemOp>
+          InMemoryDataOperation DstInMemOp,
+          index_t BufferSize = -1>
 __device__ void transfer_data(const T* p_src, index_t src_offset, T* p_dst, index_t dst_offset)
 {
     static_assert(DstInMemOp == InMemoryDataOperation::Set ||
@@ -110,7 +112,7 @@ __device__ void transfer_data(const T* p_src, index_t src_offset, T* p_dst, inde
 
     // TODO: use static_if::ElseIf
     static_if<DstInMemOp == InMemoryDataOperation::Set>{}([&](auto) {
-        set_data<T, DataPerAccess, SrcAddressSpace, DstAddressSpace>(
+        set_data<T, DataPerAccess, SrcAddressSpace, DstAddressSpace, BufferSize>(
             p_src, src_offset, p_dst, dst_offset);
     });
 
