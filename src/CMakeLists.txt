@@ -125,6 +125,7 @@ set( MIOpen_Source
     readonlyramdb.cpp
     execution_context.cpp
     kern_db.cpp
+    bz2.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -172,6 +173,7 @@ set( MIOpen_Source
     include/miopen/dropout.hpp
     include/miopen/readonlyramdb.hpp
     include/miopen/rnn_util.hpp
+    include/miopen/bz2.hpp
     md_graph.cpp
     mdg_expr.cpp
     conv/invokers/gcn_asm_1x1u.cpp
@@ -505,7 +507,8 @@ target_include_directories(MIOpen PUBLIC
 )
 
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
-
+target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
+target_link_libraries(MIOpen PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES})
 generate_export_header(MIOpen
     EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
 )
