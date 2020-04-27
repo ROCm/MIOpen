@@ -59,6 +59,7 @@ if(MIOPEN_ENABLE_SQLITE)
     find_package(PkgConfig)
     pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 endif()
+find_package(BZip2)
 option( BUILD_DEV "Build for development only" OFF)
 
 # Strip symbols for release
