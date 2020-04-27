@@ -362,7 +362,7 @@ Program Handle::LoadProgram(const std::string& program_name,
 
 // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
-        miopen::SaveBinary(miopen::LoadFile(p.GetBinary().string()),
+        miopen::SaveBinary(miopen::LoadFile(p.GetCodeObjectPathname().string()),
                            this->GetDeviceName(),
                            this->GetMaxComputeUnits(),
                            program_name,
@@ -370,7 +370,7 @@ Program Handle::LoadProgram(const std::string& program_name,
                            is_kernel_str);
 #else
         auto path      = miopen::GetCachePath(false) / boost::filesystem::unique_path();
-        boost::filesystem::copy_file(p.GetBinary(), path);
+        boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
         miopen::SaveBinary(path, this->GetDeviceName(), program_name, params, is_kernel_str);
 #endif
 

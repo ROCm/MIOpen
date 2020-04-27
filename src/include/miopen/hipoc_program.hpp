@@ -47,7 +47,7 @@ struct HIPOCProgram
     HIPOCProgram(const std::string& program_name, const std::string& hsaco);
     std::shared_ptr<const HIPOCProgramImpl> impl;
     hipModule_t GetModule() const;
-    boost::filesystem::path GetBinary() const;
+    boost::filesystem::path GetCodeObjectPathname() const;
 };
 } // namespace miopen
 

@@ -74,7 +74,7 @@ inline const std::string& GetCoV3Option(const bool enable)
 }
 } // namespace
 
-hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
+static hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
 {
     hipModule_t raw_m;
     auto status = hipModuleLoad(&raw_m, hsaco_file.string().c_str());
@@ -84,7 +84,8 @@ hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
     return m;
 }
 
-hipModulePtr CreateModuleInMem(const std::string& hsaco)
+#if !MIOPEN_WORKAROUND_SWDEV_225285
+static hipModulePtr CreateModuleInMem(const std::string& hsaco)
 {
     hipModule_t raw_m;
     auto status = hipModuleLoadData(&raw_m, reinterpret_cast<const void*>(hsaco.data()));
@@ -93,32 +94,31 @@ hipModulePtr CreateModuleInMem(const std::string& hsaco)
         MIOPEN_THROW_HIP_STATUS(status, "Failed loading module");
     return m;
 }
+#endif
 
 struct HIPOCProgramImpl
 {
     HIPOCProgramImpl(const std::string& program_name, const boost::filesystem::path& filespec)
         : program(program_name), hsaco_file(filespec)
     {
-        this->module = CreateModule(this->hsaco_file);
+        module = CreateModule(hsaco_file);
     }
 
     HIPOCProgramImpl(const std::string& program_name, const std::string& blob)
-#if MIOPEN_WORKAROUND_SWDEV_225285
-        : program(program_name)
-#else
+#if !MIOPEN_WORKAROUND_SWDEV_225285
         : program(program_name), module(CreateModuleInMem(blob))
-#endif
     {
-#if MIOPEN_WORKAROUND_SWDEV_225285
-        // This should use the CreateModuleInMem function above, however that is disabled
-        // due to SWDEV-225285
+    }
+#else
+        : program(program_name)
+    {
         TmpDir tmp_dir("miopen");
         auto file_path =
             tmp_dir.path / boost::filesystem::unique_path("miopen-%%%%-%%%%-%%%%-%%%%");
         WriteFile(blob, file_path);
-        this->module = CreateModule(file_path);
-#endif
+        module = CreateModule(file_path);
     }
+#endif
 
     HIPOCProgramImpl(const std::string& program_name,
                      std::string params,
@@ -127,8 +127,8 @@ struct HIPOCProgramImpl
                      const std::string& kernel_src)
         : program(program_name), device(dev_name)
     {
-        this->BuildModule(params, is_kernel_str, kernel_src);
-        this->module = CreateModule(this->hsaco_file);
+        BuildCodeObject(params, is_kernel_str, kernel_src);
+        module = CreateModule(hsaco_file);
     }
 
     std::string program;
@@ -137,7 +137,7 @@ struct HIPOCProgramImpl
     hipModulePtr module;
     boost::optional<TmpDir> dir;
 
-    void BuildModule(std::string params, bool is_kernel_str, const std::string& kernel_src)
+    void BuildCodeObject(std::string params, bool is_kernel_str, const std::string& kernel_src)
     {
         /// \todo Do not create tmp dir if comgr is used.
         std::string filename = is_kernel_str ? "tinygemm.cl" // Fixed name for miopengemm.
@@ -212,8 +212,8 @@ HIPOCProgram::HIPOCProgram(const std::string& program_name, const std::string& h
 {
 }
 
-hipModule_t HIPOCProgram::GetModule() const { return this->impl->module.get(); }
+hipModule_t HIPOCProgram::GetModule() const { return impl->module.get(); }
 
-boost::filesystem::path HIPOCProgram::GetBinary() const { return this->impl->hsaco_file; }
+boost::filesystem::path HIPOCProgram::GetCodeObjectPathname() const { return impl->hsaco_file; }
 
 } // namespace miopen
