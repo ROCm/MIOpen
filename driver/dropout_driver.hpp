@@ -30,7 +30,7 @@
 #include "driver.hpp"
 #include "timer.hpp"
 #include "dropout_gpu_emulator.hpp"
-#include <../src/include/miopen/dropout.hpp>
+#include <miopen/dropout.hpp>
 #include <../test/verify.hpp>
 #include <algorithm>
 #include <cstdlib>

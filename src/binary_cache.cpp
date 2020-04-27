@@ -128,7 +128,7 @@ std::string LoadBinary(const std::string& device,
     auto db              = GetDb(device, num_cu);
     std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
     KernelConfig cfg{filename, args, ""};
-
+    MIOPEN_LOG_I2("Loading binary for: " << name << " ;args: " << args);
     auto record = db.FindRecord(cfg);
     if(record)
         return record.get();
@@ -159,6 +159,7 @@ void SaveBinary(const std::string& hsaco,
 
     std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
     KernelConfig cfg{filename, args, hsaco};
+    MIOPEN_LOG_I2("Saving binary for: " << name << " ;args: " << args);
     if(miopen::IsCacheDisabled())
         db.RemoveRecord(cfg);
     else
