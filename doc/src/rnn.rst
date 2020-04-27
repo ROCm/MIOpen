@@ -51,6 +51,12 @@ miopenGetRNNDescriptor
 .. doxygenfunction::  miopenGetRNNDescriptor
 
 
+miopenGetRNNDescriptor_V2
+-------------------------
+
+.. doxygenfunction::  miopenGetRNNDescriptor_V2
+
+
 miopenDestroyRNNDescriptor
 --------------------------
 
@@ -61,6 +67,12 @@ miopenSetRNNDescriptor
 ----------------------
 
 .. doxygenfunction::  miopenSetRNNDescriptor
+
+
+miopenSetRNNDescriptor_V2
+-------------------------
+
+.. doxygenfunction::  miopenSetRNNDescriptor_V2
 
 
 miopenGetRNNWorkspaceSize

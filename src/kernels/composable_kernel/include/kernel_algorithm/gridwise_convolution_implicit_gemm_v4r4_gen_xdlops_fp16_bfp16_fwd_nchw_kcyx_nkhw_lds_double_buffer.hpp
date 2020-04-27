@@ -93,7 +93,8 @@ template <index_t GridSize,
           class GemmBBlockCopyDstAccessOrder,
           index_t GemmBBlockCopySrcDataPerRead_GemmN,
           index_t GemmBBlockCopyDstDataPerWrite_GemmKPACK,
-          ImplicitGemmDirection conv_dir>
+          ImplicitGemmDirection conv_dir,
+          WorkgroupScheduleOrder WorkgroupSchdOrder>
 struct
     GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_fwd_nchw_kcyx_nkhw_lds_double_buffer
 {
@@ -260,7 +261,8 @@ struct
                 2, // N dimension
                 GemmBBlockCopySrcDataPerRead_GemmN,
                 GemmBBlockCopyDstDataPerWrite_GemmKPACK,
-                CGlobalMemoryDataOperation>{};
+                CGlobalMemoryDataOperation,
+                WorkgroupSchdOrder>{};
 
         gridwise_gemm.Run(p_wei_global, p_in_global, p_out_global);
     }

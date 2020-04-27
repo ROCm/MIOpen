@@ -316,6 +316,7 @@ DropoutBackward(
 #endif
     const __global prngStates* state,
     const float dropout,
+    const float scale,
     const int dim1,
     const int dim2,
     const int dim3,
@@ -350,7 +351,6 @@ DropoutBackward(
 {
     _FLOAT dat_blk[RD_BLCK];
     uchar is_kept[RD_BLCK];
-    float scale = 1 / (1 - dropout);
 #if(RUN_FORWARD && !USE_MASK) || (!RUN_FORWARD && USE_PRNG)
     uint sid = get_global_id(0);
     prngStates cur_state;
@@ -403,5 +403,6 @@ DropoutBackward(
 #endif
             )) = *((READ_DAT_TYPE*)dat_blk);
     }
+    (void)dropout;
 }
 #endif
