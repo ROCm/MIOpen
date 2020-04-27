@@ -6,9 +6,11 @@
 #include <math.h>
 #include <cassert>
 #include <algorithm>
+#include "dropout_gpu_emulator.hpp"
 
 template <typename Tgpu, typename Tref>
 void RunLSTMForwardGEMMCPUVerify(
+    miopenHandle_t handle,
     std::vector<Tgpu>& in,
     std::vector<Tgpu>& wei,     // [ input_state_weight_trans
                                 // hidden_state_weight0_trans input1_trans
@@ -32,6 +34,8 @@ void RunLSTMForwardGEMMCPUVerify(
                             // related function for bidirection
     int inputMode,
     std::vector<Tref>& rsvspace_host,
+    bool use_dropout,
+    miopenDropoutDescriptor_t dropoutDesc,
     bool hx_is_null = false,
     bool cx_is_null = false)
 {
@@ -100,6 +104,39 @@ void RunLSTMForwardGEMMCPUVerify(
     for(int h = 0; h < wei_len; h++)
     {
         wei_state.at(h) = wei.at(h);
+    }
+
+    // initial dropoput
+    std::vector<prngStates> dropout_states_host;
+    std::vector<unsigned char> dropout_reservespace_host;
+    std::vector<Tref> dropout_hid_state;
+    miopenTensorDescriptor_t dropout_inputTensor{}, dropout_outputTensor{};
+    if(use_dropout)
+    {
+        size_t statesSizeInBytes = 0;
+        miopenDropoutGetStatesSize(handle, &statesSizeInBytes);
+        size_t states_size  = statesSizeInBytes / sizeof(prngStates);
+        dropout_states_host = std::vector<prngStates>(states_size);
+        InitKernelStateEmulator(dropout_states_host, dropoutDesc);
+
+        std::array<int, 2> drop_in_len  = {{batch_n, hy_h * bi}};
+        std::array<int, 2> drop_in_str  = {{hy_stride, 1}};
+        std::array<int, 2> drop_out_str = {{hy_h * bi, 1}};
+        miopenCreateTensorDescriptor(&dropout_inputTensor);
+        miopenCreateTensorDescriptor(&dropout_outputTensor);
+        miopenSetTensorDescriptor(
+            dropout_inputTensor, miopenFloat, 2, drop_in_len.data(), drop_in_str.data());
+        miopenSetTensorDescriptor(
+            dropout_outputTensor, miopenFloat, 2, drop_in_len.data(), drop_out_str.data());
+
+        size_t reserveSpaceSizeInBytes = 0;
+        miopenDropoutGetReserveSpaceSize(dropout_inputTensor, &reserveSpaceSizeInBytes);
+        size_t reserve_size       = reserveSpaceSizeInBytes / sizeof(unsigned char);
+        dropout_reservespace_host = std::vector<unsigned char>(reserve_size * (numlayer - 1),
+                                                               static_cast<unsigned char>(1));
+
+        dropout_hid_state =
+            std::vector<Tref>((numlayer - 1) * batch_n * hy_h * bi, static_cast<Tref>(0));
     }
 
     // forward emulator
@@ -181,11 +218,32 @@ void RunLSTMForwardGEMMCPUVerify(
         {
             int wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
             int prelayer_shift = (li - 1) * batch_n * hy_stride + bi * 5 * hy_h;
+            if(use_dropout)
+            {
+                auto dropout_states_tmp = dropout_states_host;
+                size_t drop_out_offset  = (li - 1) * batch_n * hy_h * bi;
 
-            ADNN_mm_cpu<Tref>(&hid_state[prelayer_shift],
+                RunDropoutForwardEmulator<Tref>(handle,
+                                                dropoutDesc,
+                                                dropout_inputTensor,
+                                                dropout_inputTensor,
+                                                hid_state,
+                                                dropout_outputTensor,
+                                                dropout_hid_state,
+                                                dropout_reservespace_host,
+                                                dropout_states_tmp,
+                                                prelayer_shift,
+                                                drop_out_offset,
+                                                drop_out_offset);
+
+                prelayer_shift = drop_out_offset;
+            }
+
+            ADNN_mm_cpu<Tref>(use_dropout ? &dropout_hid_state[prelayer_shift]
+                                          : &hid_state[prelayer_shift],
                               hy_h * bi,
                               batch_n,
-                              hy_stride,
+                              use_dropout ? hy_h * bi : hy_stride,
                               0,
                               &wei_state[wei_shift],
                               hy_h * bi,
@@ -590,6 +648,20 @@ void RunLSTMForwardGEMMCPUVerify(
     {
         rsvspace_host.at(i) = hid_state.at(i);
     }
+    if(use_dropout)
+    {
+        for(int i = 0; i < (numlayer - 1) * batch_n * hy_h * bi; i++)
+        {
+            rsvspace_host.at(numlayer * batch_n * hy_stride * 2 + i) = dropout_hid_state.at(i);
+        }
+        auto p_drop_rsv =
+            reinterpret_cast<unsigned char*>(&rsvspace_host[numlayer * batch_n * hy_stride * 2 +
+                                                            (numlayer - 1) * batch_n * hy_h * bi]);
+        for(int i = 0; i < (numlayer - 1) * batch_n * hy_h * bi; i++)
+        {
+            *(p_drop_rsv + i) = dropout_reservespace_host.at(i);
+        }
+    }
 
     for(int i = 0; i < hy_d * hy_n * hy_h; i++)
     {
@@ -635,6 +707,8 @@ void RunLSTMBackwardDataGEMMCPUVerify(
     int inputMode,
     std::vector<Tref>& rsvspace_host,
     std::vector<Tref>& wkspace_host,
+    bool use_dropout,
+    miopenDropoutDescriptor_t dropoutDesc,
     bool cx_is_null  = false,
     bool dhy_is_null = false,
     bool dcy_is_null = false)
@@ -716,6 +790,32 @@ void RunLSTMBackwardDataGEMMCPUVerify(
         wei_state[h] = wei[h];
     }
 
+    // initial dropoput
+    miopenTensorDescriptor_t dropout_inputTensor{};
+    std::vector<unsigned char> dropout_reservespace_host;
+    if(use_dropout)
+    {
+        std::array<int, 2> drop_in_len = {{batch_n, hy_h * bi}};
+        std::array<int, 2> drop_in_str = {{hy_stride, 1}};
+        miopenCreateTensorDescriptor(&dropout_inputTensor);
+        miopenSetTensorDescriptor(
+            dropout_inputTensor, miopenFloat, 2, drop_in_len.data(), drop_in_str.data());
+
+        size_t reserveSpaceSizeInBytes = 0;
+        miopenDropoutGetReserveSpaceSize(dropout_inputTensor, &reserveSpaceSizeInBytes);
+        size_t reserve_size       = reserveSpaceSizeInBytes / sizeof(unsigned char);
+        dropout_reservespace_host = std::vector<unsigned char>(reserve_size * (numlayer - 1),
+                                                               static_cast<unsigned char>(0));
+
+        auto p_drop_rsv =
+            reinterpret_cast<unsigned char*>(&rsvspace_host[numlayer * batch_n * hy_stride * 2 +
+                                                            (numlayer - 1) * batch_n * hy_h * bi]);
+        for(int i = 0; i < (numlayer - 1) * batch_n * hy_h * bi; i++)
+        {
+            dropout_reservespace_host.at(i) = *(p_drop_rsv + i);
+        }
+    }
+
     // bwd data emulator
     for(int li = numlayer - 1; li >= 0; li--)
     {
@@ -755,6 +855,19 @@ void RunLSTMBackwardDataGEMMCPUVerify(
                               0,
                               1,
                               1);
+
+            if(use_dropout)
+            {
+                RunDropoutBackwardEmulator<Tref>(dropoutDesc,
+                                                 dropout_inputTensor,
+                                                 dh_state,
+                                                 dropout_inputTensor,
+                                                 dh_state,
+                                                 dropout_reservespace_host,
+                                                 hid_shift + bi * 5 * hy_h,
+                                                 hid_shift + bi * 5 * hy_h,
+                                                 li * batch_n * hy_h * bi);
+            }
         }
 
         // from hidden state
@@ -1222,6 +1335,7 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<Tgpu>& in,
                                         int inputMode,
                                         std::vector<Tref>& rsvspace_host,
                                         std::vector<Tref>& wkspace_host,
+                                        bool use_dropout,
                                         bool hx_is_null = false)
 {
     int batch_n  = sumvc(in_n);
@@ -1258,11 +1372,15 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<Tgpu>& in,
 
     // initial saved data
     std::vector<Tref> wkspace_state(numlayer * batch_n * hy_stride, static_cast<Tref>(0));
-    std::vector<Tref> rsvspace_state(numlayer * batch_n * hy_stride, static_cast<Tref>(0));
     for(int h = 0; h < numlayer * batch_n * hy_stride; h++)
     {
+        wkspace_state[h] = wkspace_host[h];
+    }
+    std::vector<Tref> rsvspace_state(
+        use_dropout ? rsvspace_host.size() : numlayer * batch_n * hy_stride, static_cast<Tref>(0));
+    for(int h = 0; h < rsvspace_state.size(); h++)
+    {
         rsvspace_state[h] = rsvspace_host[h];
-        wkspace_state[h]  = wkspace_host[h];
     }
 
     // initial hidden states
@@ -1334,8 +1452,10 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<Tgpu>& in,
         }
         else
         {
-            int prelayer_shift = (li - 1) * batch_n * hy_stride + bi * hy_h * 5;
-            int hid_shift      = li * batch_n * hy_stride;
+            int prelayer_shift =
+                use_dropout ? 2 * numlayer * batch_n * hy_stride + (li - 1) * batch_n * hy_h * bi
+                            : (li - 1) * batch_n * hy_stride + bi * hy_h * 5;
+            int hid_shift = li * batch_n * hy_stride;
             int wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
 
             ADNN_mm_cpu<Tref>(&wkspace_state[hid_shift],
@@ -1346,7 +1466,7 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<Tgpu>& in,
                               &rsvspace_state[prelayer_shift],
                               hy_h * bi,
                               batch_n,
-                              hy_stride,
+                              use_dropout ? hy_h * bi : hy_stride,
                               0,
                               &dwei_state[wei_shift],
                               hy_h * bi,

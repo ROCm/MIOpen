@@ -275,6 +275,14 @@ extern "C" __global__
 #elif(MIOPEN_USE_FP16 || MIOPEN_USE_BFP16) && CK_PARAM_PROBLEM_DIRECTION != 2
     // Forward data doesn't use any atomic add so output blob remains of the same type
     // as input blob
+
+    constexpr auto wkgrp_schd_order =
+#if MIOPEN_USE_FP16
+        NBlock1MBlock0;
+#else
+        MBlock1NBlock0;
+#endif // MIOPEN_USE_FP16
+
     constexpr auto gridwise_conv =
         GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_fwd_nchw_kcyx_nkhw_lds_double_buffer<
             GridSize,
@@ -312,7 +320,8 @@ extern "C" __global__
             GemmBBlockCopyDstAccessOrder,
             GemmBBlockCopySrcDataPerRead_GemmN,
             GemmBBlockCopyDstDataPerWrite_GemmKPACK,
-            dir>{};
+            dir,
+            wkgrp_schd_order>{};
     gridwise_conv.Run(p_in_global, p_wei_global, p_out_global);
 #else
     static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
