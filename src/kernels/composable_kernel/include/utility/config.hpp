@@ -73,6 +73,12 @@ enum InMemoryDataOperation
     AtomicAdd
 };
 
+enum WorkgroupScheduleOrder
+{
+    MBlock1NBlock0,
+    NBlock1MBlock0
+};
+
 #if CK_UNSIGNED_INDEX_TYPE
 using index_t = uint32_t;
 #else
