@@ -337,7 +337,8 @@ struct
                 2,
                 GemmBBlockCopySrcDataPerRead_GemmN,
                 GemmBBlockCopyDstDataPerWrite_GemmKPACK,
-                CGlobalMemoryDataOperation>{};
+                CGlobalMemoryDataOperation,
+                MBlock1NBlock0>{};
 
         gridwise_batched_gemm.Run(p_wei_global, p_in_global, p_out_global);
     }
