@@ -159,7 +159,15 @@ template <typename Derived>
 class SQLiteBase
 {
     protected:
-    using sqlite3_ptr      = MIOPEN_MANAGE_PTR(sqlite3*, sqlite3_close);
+    struct SQLiteCloser
+    {
+        void operator()(sqlite3* ptr)
+        {
+            std::string filename_(sqlite3_db_filename(ptr, "main"));
+            SQLiteBase::SQLRety([&]() { return sqlite3_close(ptr); }, filename_);
+        }
+    };
+    using sqlite3_ptr      = std::unique_ptr<sqlite3, SQLiteCloser>;
     using exclusive_lock   = boost::unique_lock<LockFile>;
     using shared_lock      = boost::shared_lock<LockFile>;
     using sqlite3_stmt_ptr = MIOPEN_MANAGE_PTR(sqlite3_stmt*, sqlite3_finalize);
@@ -301,6 +309,12 @@ class SQLiteBase
 
     template <class F>
     inline int SQLRety(F f) const
+    {
+        return SQLiteBase::SQLRety(f, filename);
+    }
+
+    template <class F>
+    static inline int SQLRety(F f, std::string filename)
     {
         auto timeout_end = std::chrono::high_resolution_clock::now() +
                            std::chrono::seconds(30); // TODO: make configurable
