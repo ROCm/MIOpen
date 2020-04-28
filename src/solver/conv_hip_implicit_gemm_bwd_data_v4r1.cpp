@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
@@ -958,6 +959,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1::GetSolution(
         }
     }
 
+    result.invoker_factory = MakeImplGemmDataInvokerFactory(ctx);
     return result;
 }
 
