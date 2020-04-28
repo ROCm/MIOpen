@@ -84,17 +84,23 @@ static hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
     return m;
 }
 
-#if !MIOPEN_WORKAROUND_SWDEV_225285
-static hipModulePtr CreateModuleInMem(const std::string& hsaco)
+template <typename T> /// intended for std::string and std::vector<char>
+hipModulePtr CreateModuleInMem(const T& blob)
 {
+#if !MIOPEN_WORKAROUND_SWDEV_225285
     hipModule_t raw_m;
-    auto status = hipModuleLoadData(&raw_m, reinterpret_cast<const void*>(hsaco.data()));
+    auto status = hipModuleLoadData(&raw_m, reinterpret_cast<const void*>(blob.data()));
     hipModulePtr m{raw_m};
     if(status != hipSuccess)
         MIOPEN_THROW_HIP_STATUS(status, "Failed loading module");
     return m;
-}
+#else
+    TmpDir tmp_dir("miopen");
+    auto file_path = tmp_dir.path / boost::filesystem::unique_path("miopen-%%%%-%%%%-%%%%-%%%%");
+    WriteFile(blob, file_path);
+    return CreateModule(file_path);
 #endif
+}
 
 struct HIPOCProgramImpl
 {
@@ -105,20 +111,9 @@ struct HIPOCProgramImpl
     }
 
     HIPOCProgramImpl(const std::string& program_name, const std::string& blob)
-#if !MIOPEN_WORKAROUND_SWDEV_225285
         : program(program_name), module(CreateModuleInMem(blob))
     {
     }
-#else
-        : program(program_name)
-    {
-        TmpDir tmp_dir("miopen");
-        auto file_path =
-            tmp_dir.path / boost::filesystem::unique_path("miopen-%%%%-%%%%-%%%%-%%%%");
-        WriteFile(blob, file_path);
-        module = CreateModule(file_path);
-    }
-#endif
 
     HIPOCProgramImpl(const std::string& program_name,
                      std::string params,
@@ -129,7 +124,7 @@ struct HIPOCProgramImpl
     {
         BuildCodeObject(params, is_kernel_str, kernel_src);
         if(!binary.empty())
-            MIOPEN_THROW("create module from memory");
+            module = CreateModuleInMem(binary);
         else
             module = CreateModule(hsaco_file);
     }
