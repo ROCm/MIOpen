@@ -33,6 +33,8 @@
 #include <miopen/solver_id.hpp>
 #include <miopen/names.hpp>
 
+#include <boost/any.hpp>
+
 #include <string>
 #include <tuple>
 #include <vector>
@@ -201,10 +203,11 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                             const TensorDescriptor& yDesc,
                             bool exhaustiveSearch,
                             bool isForward,
-                            const ConvolutionUserBuffers& bufs) const;
+                            const ConvolutionUserBuffers& bufs,
+                            const boost::any& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
-    FindWinogradSolutions(const ConvolutionContext& ctx) const;
+    FindWinogradSolutions(const ConvolutionContext& ctx, const boost::any& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
     FindDataImplicitGemmSolutions(Handle& handle,
@@ -213,7 +216,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                   const TensorDescriptor& yDesc,
                                   bool exhaustiveSearch,
                                   bool isForward,
-                                  const ConvolutionUserBuffers& bufs) const;
+                                  const ConvolutionUserBuffers& bufs,
+                                  const boost::any& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
     FindSCGemmSolutions(Handle& handle,
@@ -222,7 +226,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                         const TensorDescriptor& yDesc,
                         bool exhaustiveSearch,
                         bool isForward,
-                        const ConvolutionUserBuffers& bufs) const;
+                        const ConvolutionUserBuffers& bufs,
+                        const boost::any& invoke_ctx) const;
 
     void ConvolutionForward(Handle& handle,
                             const void* alpha,

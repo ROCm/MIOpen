@@ -32,6 +32,8 @@
 #include <miopen/sqlite_db.hpp>
 #include <miopen/tensor.hpp>
 
+#include <boost/any.hpp>
+
 namespace miopen {
 
 std::string
@@ -262,6 +264,12 @@ struct ProblemDescription
         BuildConfKey(ret);
         return NetworkConfig{ret};
     }
+
+    boost::any MakeInvokeContext(ConstData_t in0_data,
+                                 ConstData_t in1_data,
+                                 Data_t out_data,
+                                 Data_t workspace,
+                                 std::size_t workspace_size) const;
 
     void Serialize(std::ostream& stream) const;
 

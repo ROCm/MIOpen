@@ -199,9 +199,9 @@ static auto GetFwdSCGemmSolvers()
 #endif
 
 std::vector<miopen::solver::ConvSolution>
-FindAllDirectSolutions(const miopen::ConvolutionContext& ctx)
+FindAllDirectSolutions(const miopen::ConvolutionContext& ctx, const boost::any& invoke_ctx)
 {
-    return GetDirectSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+    return GetDirectSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
 }
 
 std::vector<std::pair<std::string, size_t>>
@@ -211,28 +211,28 @@ AllDirectForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
 }
 
 std::vector<miopen::solver::ConvSolution>
-FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx)
+FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx, const boost::any& invoke_ctx)
 {
 #if WORKAROUND_SWDEV_227826
     if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
-        return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+        return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
     else
-        return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), 1);
+        return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx, 1);
 #else
     return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
 #endif
 }
 
 std::vector<miopen::solver::ConvSolution>
-FindAllWinogradSolutions(const miopen::ConvolutionContext& ctx)
+FindAllWinogradSolutions(const miopen::ConvolutionContext& ctx, const boost::any& invoke_ctx)
 {
-    return GetWindogradSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+    return GetWindogradSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
 }
 
 std::vector<miopen::solver::ConvSolution>
-FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx)
+FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx, const boost::any& invoke_ctx)
 {
-    return GetWindogradWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+    return GetWindogradWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
 }
 
 std::vector<std::pair<std::string, size_t>>
@@ -242,29 +242,29 @@ AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx)
 }
 
 std::vector<miopen::solver::ConvSolution>
-FindImplicitGemmWrWAllSolutions(const miopen::ConvolutionContext& ctx)
+FindImplicitGemmWrWAllSolutions(const miopen::ConvolutionContext& ctx, const boost::any& invoke_ctx)
 {
 #if WORKAROUND_SWDEV_227826
     if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
-        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
     else
-        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), 1);
+        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx, 1);
 #else
-    return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+    return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
 #endif
 }
 
 std::vector<miopen::solver::ConvSolution>
-FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx)
+FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx, const boost::any& invoke_ctx)
 {
-    return GetBwdWrW2DSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+    return GetBwdWrW2DSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
 }
 
 std::vector<miopen::solver::ConvSolution>
-FindAllFwdSCGemmSolutions(const miopen::ConvolutionContext& ctx)
+FindAllFwdSCGemmSolutions(const miopen::ConvolutionContext& ctx, const boost::any& invoke_ctx)
 {
 #if MIOPEN_USE_SCGEMM
-    return GetFwdSCGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+    return GetFwdSCGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
 #else
     (void)ctx;
     return {};

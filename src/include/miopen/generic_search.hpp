@@ -324,31 +324,43 @@ auto GenericSearchWrW(const Solver s,
 template <class Solver, class Context>
 auto GenericSearchFwd(const Solver s,
                       const Context& context,
+                      const boost::any& invoke_ctx,
                       const SearchTweak tweak = SearchTweak::None)
     -> decltype(s.GetPerformanceConfig(context))
 {
     const auto& bufs = context.GetBufs().io.fwd;
-    return GenericSearch(s, context, tweak, bufs.y, bufs.x, bufs.w);
+    /*const auto& problem   = context.conv_problem;
+    const auto invoke_ctx = problem.MakeInvokeContext(
+        bufs.x, bufs.w, bufs.y, context.GetBufs().workSpace, context.GetBufs().workSpaceSize);*/
+    return GenericSearch(s, context, tweak, invoke_ctx, bufs.y, bufs.x, bufs.w);
 }
 
 template <class Solver, class Context>
 auto GenericSearchBwd(const Solver s,
                       const Context& context,
+                      const boost::any& invoke_ctx,
                       const SearchTweak tweak = SearchTweak::None)
     -> decltype(s.GetPerformanceConfig(context))
 {
-    const auto& bufs = context.GetBufs().io.bwd;
-    return GenericSearch(s, context, tweak, bufs.dx, bufs.dy, bufs.w);
+    const auto& bufs      = context.GetBufs().io.bwd;
+    /*const auto& problem   = context.conv_problem;
+    const auto invoke_ctx = problem.MakeInvokeContext(
+        bufs.dy, bufs.w, bufs.dx, context.GetBufs().workSpace, context.GetBufs().workSpaceSize);*/
+    return GenericSearch(s, context, tweak, invoke_ctx, bufs.dx, bufs.dy, bufs.w);
 }
 
 template <class Solver, class Context>
 auto GenericSearchWrW(const Solver s,
                       const Context& context,
+                      const boost::any& invoke_ctx,
                       const SearchTweak tweak = SearchTweak::None)
     -> decltype(s.GetPerformanceConfig(context))
 {
-    const auto& bufs = context.GetBufs().io.wrw;
-    return GenericSearch(s, context, tweak, bufs.dx, bufs.dy, bufs.dw);
+    const auto& bufs      = context.GetBufs().io.wrw;
+    /*const auto& problem   = context.conv_problem;
+    const auto invoke_ctx = problem.MakeInvokeContext(
+        bufs.dy, bufs.dx, bufs.dw, context.GetBufs().workSpace, context.GetBufs().workSpaceSize);*/
+    return GenericSearch(s, context, tweak, invoke_ctx, bufs.dx, bufs.dy, bufs.dw);
 }
 #endif
 
@@ -362,6 +374,7 @@ template <class Solver, class Context, typename TopT, typename BotT, typename We
 auto GenericSearch(const Solver s,
                    const Context& context,
                    const SearchTweak tweak,
+                   const boost::any& invoke_ctx,
                    TopT top_ocl_ptr,
                    BotT bot_ocl_ptr,
                    WeiT wei_ocl_ptr)
@@ -370,7 +383,7 @@ auto GenericSearch(const Solver s,
 {
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
     PerformanceConfig best_config;
-    const auto default_solution = s.GetSolution(context, s.GetPerformanceConfig(context));
+    const auto default_solution = s.GetSolution(context, s.GetPerformanceConfig(context), invoke_ctx);
 
 #if MIOPEN_ALLOC_BUFFERS
     // Allocate buffers, init input buffers.
@@ -492,14 +505,26 @@ auto GenericSearch(const Solver s,
 
         if(ret == 0)
         {
-            ret = s.RunAndMeasureSolution(profile_h,
-                                          bot_ocl_ptr,
-                                          top_ocl_ptr,
-                                          wei_ocl_ptr,
-                                          bias_ocl_ptr,
-                                          context,
-                                          current_solution,
-                                          elapsed_time);
+            if(current_solution.invoker_factory)
+            {
+                auto& handle        = context.GetStream();
+                const auto& invoker = handle.PrepareInvoker(
+                    *current_solution.invoker_factory, current_solution.construction_params);
+                invoker(handle, invoke_ctx);
+                elapsed_time = handle.GetKernelTime();
+            }
+            else
+            {
+                // Todo: remove
+                ret = s.RunAndMeasureSolution(profile_h,
+                                              bot_ocl_ptr,
+                                              top_ocl_ptr,
+                                              wei_ocl_ptr,
+                                              bias_ocl_ptr,
+                                              context,
+                                              current_solution,
+                                              elapsed_time);
+            }
         }
         MIOPEN_LOG_T("##"
                      << "(n_current, n_failed, n_runs_total):  "

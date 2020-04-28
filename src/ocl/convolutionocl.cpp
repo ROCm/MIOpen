@@ -212,13 +212,14 @@ inline int EvaluateSCGemmSolution(Handle& handle,
 }
 
 std::vector<miopen::solver::ConvSolution>
-ConvolutionDescriptor::FindWinogradSolutions(const ConvolutionContext& ctx) const
+ConvolutionDescriptor::FindWinogradSolutions(const ConvolutionContext& ctx,
+                                             const boost::any& invoke_ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
         return {};
     try
     {
-        return FindAllWinogradSolutions(ctx);
+        return FindAllWinogradSolutions(ctx, invoke_ctx);
     }
     catch(miopen::Exception& ex)
     {
@@ -234,7 +235,8 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
                                                const TensorDescriptor& yDesc,
                                                bool exhaustiveSearch,
                                                bool isForward,
-                                               const ConvolutionUserBuffers& bufs) const
+                                               const ConvolutionUserBuffers& bufs,
+                                               const boost::any& invoke_ctx) const
 {
 
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
@@ -252,7 +254,7 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
 
     try
     {
-        return FindAllDirectSolutions(ctx);
+        return FindAllDirectSolutions(ctx, invoke_ctx);
     }
     catch(miopen::Exception& ex)
     {
@@ -268,7 +270,8 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
                                                      const TensorDescriptor& yDesc,
                                                      bool exhaustiveSearch,
                                                      bool isForward,
-                                                     const ConvolutionUserBuffers& bufs) const
+                                                     const ConvolutionUserBuffers& bufs,
+                                                     const boost::any& invoke_ctx) const
 {
 
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
@@ -286,7 +289,7 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
 
     try
     {
-        return FindAllImplicitGemmSolutions(ctx);
+        return FindAllImplicitGemmSolutions(ctx, invoke_ctx);
     }
     catch(miopen::Exception& ex)
     {
@@ -302,7 +305,8 @@ ConvolutionDescriptor::FindSCGemmSolutions(Handle& handle,
                                            const TensorDescriptor& yDesc,
                                            bool exhaustiveSearch,
                                            bool isForward,
-                                           const ConvolutionUserBuffers& bufs) const
+                                           const ConvolutionUserBuffers& bufs,
+                                           const boost::any& invoke_ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_SCGEMM{}))
         return {};
@@ -319,7 +323,7 @@ ConvolutionDescriptor::FindSCGemmSolutions(Handle& handle,
 
     try
     {
-        return FindAllFwdSCGemmSolutions(ctx);
+        return FindAllFwdSCGemmSolutions(ctx, invoke_ctx);
     }
     catch(miopen::Exception& ex)
     {
@@ -728,7 +732,7 @@ static void DirConvFindCore(Handle& handle,
 
     // Winograd algo
     {
-        const auto all = conv.FindWinogradSolutions(ctx);
+        const auto all = conv.FindWinogradSolutions(ctx, invoke_ctx);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoWinograd"};
         PrecompileSolutions(handle, all);
         EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
@@ -740,7 +744,7 @@ static void DirConvFindCore(Handle& handle,
         ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
         bufs.SetFwd(x, w, y);
         const auto all =
-            conv.FindDataDirectSolutions(handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs);
+            conv.FindDataDirectSolutions(handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
         PrecompileSolutions(handle, all);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoDirect"};
         EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
@@ -752,7 +756,7 @@ static void DirConvFindCore(Handle& handle,
         ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
         bufs.SetFwd(x, w, y);
         const auto all = conv.FindDataImplicitGemmSolutions(
-            handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs);
+            handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
         PrecompileSolutions(handle, all);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoImplicitGEMM"};
         EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
@@ -799,7 +803,7 @@ static void DirConvFindCore(Handle& handle,
         ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
         bufs.SetFwd(x, w, y);
         const auto all =
-            conv.FindSCGemmSolutions(handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs);
+            conv.FindSCGemmSolutions(handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
         PrecompileSolutions(handle, all);
         miopen::solver::ConvSolution selected{miopenStatusUnknownError};
 
@@ -2059,7 +2063,8 @@ static std::vector<KernelInvoke> CompileSolver(Handle& handle,
 
     const auto solver   = solver_id.GetSolver();
     auto db             = GetDb(ctx);
-    const auto solution = solver.FindSolution(ctx, db);
+    const auto solution =
+        solver.FindSolution(ctx, db, boost::none); // auto tune is not expected here
 
     std::vector<KernelInvoke> kernels;
     AddKernels(handle, key.algorithm_name, key.network_config, solution, &kernels);
@@ -2077,7 +2082,7 @@ static Invoker PrepareInvoker(Handle& handle,
 
     const auto solver = solver_id.GetSolver();
     auto db           = GetDb(ctx);
-    auto solution     = solver.FindSolution(ctx, db);
+    auto solution     = solver.FindSolution(ctx, db, boost::none); // auto tune is not expected here
     const auto invoker =
         handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
 
@@ -2342,7 +2347,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 ctx.SetBufs(bufs);
                 ctx.SetStream(&handle);
                 ctx.DetectRocm();
-                const auto all            = FindWinogradSolutions(ctx);
+                const auto all            = FindWinogradSolutions(ctx, invoke_ctx);
                 const auto algorithm_name = AlgorithmName{"miopenConvolutionBwdDataAlgoWinograd"};
                 PrecompileSolutions(handle, all);
                 EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
@@ -2354,7 +2359,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
                 bufs.SetBwd(dx, w, dy);
                 const auto all = FindDataDirectSolutions(
-                    handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs);
+                    handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx);
                 const auto algorithm_name = AlgorithmName{"miopenConvolutionBwdDataAlgoDirect"};
                 PrecompileSolutions(handle, all);
                 EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
@@ -2366,7 +2371,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
                 bufs.SetBwd(dx, w, dy);
                 const auto all = this->FindDataImplicitGemmSolutions(
-                    handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs);
+                    handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx);
                 PrecompileSolutions(handle, all);
                 const auto algorithm_name =
                     AlgorithmName{"miopenConvolutionBwdDataAlgoImplicitGEMM"};

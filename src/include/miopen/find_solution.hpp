@@ -39,8 +39,9 @@ namespace miopen {
 namespace solver {
 
 template <class Solver, class Context, class Db>
-auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
-    -> decltype(s.GetSolution(context, s.Search(context)))
+auto FindSolutionImpl(
+    rank<1>, Solver s, const Context& context, Db& db, const boost::any& invoke_ctx)
+    -> decltype(s.GetSolution(context, s.Search(context), invoke_ctx))
 {
     const FindEnforce enforce;
     if(context.disable_perfdb_access)
@@ -69,7 +70,7 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
                 MIOPEN_LOG_I2("Perf Db: record loaded: " << SolverDbId(s));
                 if(s.IsValidPerformanceConfig(context, config))
                 {
-                    return s.GetSolution(context, config);
+                    return s.GetSolution(context, config, invoke_ctx);
                 }
                 MIOPEN_LOG_WE(
                     "Invalid config loaded from Perf Db: " << SolverDbId(s) << ": " << config
@@ -88,7 +89,7 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
             {
                 auto c = s.Search(context);
                 db.Update(context, SolverDbId(s), c);
-                return s.GetSolution(context, c);
+                return s.GetSolution(context, c, invoke_ctx);
             }
             catch(const miopen::Exception& ex)
             {
@@ -101,11 +102,11 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
 }
 
 template <class Solver, class Context, class Db>
-auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&)
-    -> decltype(s.GetSolution(context))
+auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&, const boost::any& invoke_ctx)
+    -> decltype(s.GetSolution(context, invoke_ctx))
 {
     MIOPEN_LOG_I(SolverDbId(s) << " (not searchable)");
-    return s.GetSolution(context);
+    return s.GetSolution(context, invoke_ctx);
 }
 
 /// Finds optimized Solution. Generic method.
@@ -115,12 +116,12 @@ auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&)
 /// Could take long if an exhaustive search is requested/performed.
 /// May read/write perfDb.
 template <class Solver, class Context, class Db>
-ConvSolution FindSolution(Solver s, const Context& context, Db& db)
+ConvSolution FindSolution(Solver s, const Context& context, Db& db, const boost::any& invoke_ctx)
 {
     static_assert(std::is_empty<Solver>{} && std::is_trivially_constructible<Solver>{},
                   "Solver must be stateless");
     // TODO: This assumes all solutions are ConvSolution
-    auto solution      = FindSolutionImpl(rank<1>{}, s, context, db);
+    auto solution      = FindSolutionImpl(rank<1>{}, s, context, db, invoke_ctx);
     solution.solver_id = SolverDbId(s);
     return solution;
 }
@@ -133,6 +134,7 @@ struct SolverContainer
     std::vector<Solution>
     SearchForAllSolutions(const Context& search_params,
                           Db&& db,
+                          const boost::any& invoke_ctx,
                           std::size_t limit = std::numeric_limits<std::size_t>::max()) const
     {
         std::vector<Solution> ss;
@@ -147,7 +149,7 @@ struct SolverContainer
                 }
                 else if(solver.IsApplicable(search_params))
                 {
-                    const Solution s = FindSolution(solver, search_params, db);
+                    const Solution s = FindSolution(solver, search_params, db, invoke_ctx);
                     if(s.Succeeded())
                     {
                         ++count;
