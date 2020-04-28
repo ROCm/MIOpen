@@ -122,8 +122,7 @@ PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::CalculateGemmBBlockCopyPerformanceP
         const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
         const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
-        if(y == 1 && x == 1 && conv_stride_h == 1 && conv_stride_w == 1 && in_left_pad_h == 0 &&
-           in_left_pad_w == 0 && in_right_pad_h == 0 && in_right_pad_w == 0)
+        if(conv_stride_h == 1 && conv_stride_w == 1 && in_left_pad_w == 0 && in_right_pad_w == 0)
         {
             // \todo there are more configs that can go through this if branch
             SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, hi * wi);
