@@ -959,7 +959,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1::GetSolution(
         }
     }
 
-    result.invoker_factory = MakeImplGemmDataInvokerFactory(ctx);
+    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
     return result;
 }
 
