@@ -188,6 +188,13 @@ class SQLiteBase
     {
         MIOPEN_LOG_I2("Initializing " << (is_system ? "system" : "user") << " database file "
                                       << filename);
+
+        if(filename.empty())
+        {
+            dbInvalid = true;
+            return;
+        }
+
         if(!is_system && !filename.empty())
         {
             auto file            = boost::filesystem::path(filename_);
