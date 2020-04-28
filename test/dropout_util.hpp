@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,35 +23,119 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_DROPOUT_GPU_EMULATOR_HPP
-#define GUARD_MIOPEN_DROPOUT_GPU_EMULATOR_HPP
 
-#include <cmath>
-#include <cassert>
-#include <algorithm>
-#include <cstdlib>
-#include <cstring>
-#include <cfloat>
-#include <fstream>
-#include <memory>
-#include <numeric>
-#include <sstream>
-#include <vector>
+#ifndef GUARD_MIOPEN_TEST_DROPOUT_CPU_HPP
+#define GUARD_MIOPEN_TEST_DROPOUT_CPU_HPP
+
 #include <array>
+#include <cmath>
+#include <algorithm>
+#include <iostream>
+#include <iterator>
+#include <limits>
+#include <memory>
+#include <utility>
+
 #include <miopen/dropout.hpp>
-#include <miopen/float_equal.hpp>
+#include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
 #include <miopen/precalc_xorwow_skipahead_matrices.hpp>
 #include <miopen/precalc_xorwow_skipahead_sequence_matrices.hpp>
-#include "xorwow_skipahead_generator.hpp"
 
 #define ROCRAND_2POW32_INV (2.3283064e-10f)
 
-float uniform_distribution_emu(size_t v) { return ROCRAND_2POW32_INV + (v * ROCRAND_2POW32_INV); }
+#define XORWOW_DIM 5
+#define XORWOW_BITS 32
+#define XORWOW_PRECALC_MATRICES_SZ (XORWOW_BITS * XORWOW_DIM * XORWOW_DIM)
+#define XORWOW_PRECALC_MATRICES_NUM 32
+#define XORWOW_JUMP_LOG2 2
+#define XORWOW_JUMP_LOG2_MASK ((1 << XORWOW_JUMP_LOG2) - 1)
 
-void xorwow_skipahead_emu(unsigned long long skp,
-                          prngStates* state,
-                          const unsigned int skipahead_mat[XORWOW_PRECALC_MATRICES_NUM]
-                                                          [XORWOW_PRECALC_MATRICES_SZ])
+inline unsigned int xorwow_next(prngStates* cur_state)
+{
+    const unsigned int t = cur_state->x ^ (cur_state->x >> 2);
+    cur_state->x         = cur_state->y;
+    cur_state->y         = cur_state->z;
+    cur_state->z         = cur_state->w;
+    cur_state->w         = cur_state->v;
+    cur_state->v         = (cur_state->v ^ (cur_state->v << 4)) ^ (t ^ (t << 1));
+
+    cur_state->d += 362437;
+
+    return cur_state->d + cur_state->v;
+}
+
+inline void mat_vec(const unsigned int* matrix, unsigned int* vector)
+{
+    unsigned int result[XORWOW_DIM] = {0};
+    for(unsigned int i = 0; i < XORWOW_DIM; i++)
+    {
+        for(unsigned int j = 0; j < XORWOW_BITS; j++)
+        {
+            if(bool(vector[i] & (1U << j)))
+            {
+                std::transform(result,
+                               result + XORWOW_DIM,
+                               matrix + (XORWOW_DIM * (i * XORWOW_BITS + j)),
+                               result,
+                               std::bit_xor<unsigned int>{});
+            }
+        }
+    }
+    std::copy(std::begin(result), std::end(result), vector);
+}
+
+inline void mat_mat(unsigned int* matrixA, const unsigned int* matrixB)
+{
+    for(int i = 0; i < XORWOW_DIM * XORWOW_BITS; i++)
+    {
+        mat_vec(matrixB, matrixA + i * XORWOW_DIM);
+    }
+}
+
+inline void mat_identity(unsigned int* matrix)
+{
+    for(unsigned int i = 0; i < XORWOW_DIM; i++)
+    {
+        for(unsigned int j = 0; j < XORWOW_BITS; j++)
+        {
+            for(unsigned int k = 0; k < XORWOW_DIM; k++)
+            {
+                matrix[(i * XORWOW_BITS + j) * XORWOW_DIM + k] = i == k ? (1 << j) : 0;
+            }
+        }
+    }
+}
+
+inline void mat_pow(unsigned int* matrixP, const unsigned int* matrix, unsigned long long power)
+{
+    mat_identity(matrixP);
+
+    unsigned int matrixA[XORWOW_PRECALC_MATRICES_SZ];
+    unsigned int matrixB[XORWOW_PRECALC_MATRICES_SZ];
+    std::copy(matrix, matrix + XORWOW_PRECALC_MATRICES_SZ, std::begin(matrixA));
+    while(bool(power))
+    {
+        if(bool(power & 1))
+        {
+            mat_mat(matrixP, matrixA);
+        }
+
+        std::copy(std::begin(matrixA), std::end(matrixA), std::begin(matrixB));
+        mat_mat(matrixA, matrixB);
+        power >>= 1;
+    }
+}
+
+inline float uniform_distribution_emu(size_t v)
+{
+    return ROCRAND_2POW32_INV + (v * ROCRAND_2POW32_INV);
+}
+
+inline void xorwow_skipahead_emu(unsigned long long skp,
+                                 prngStates* state,
+                                 const unsigned int skipahead_mat[XORWOW_PRECALC_MATRICES_NUM]
+                                                                 [XORWOW_PRECALC_MATRICES_SZ])
 {
     unsigned int xor_vec[XORWOW_DIM];
     unsigned int* p = &(state->x);
@@ -98,10 +182,10 @@ void xorwow_skipahead_emu(unsigned long long skp,
     std::copy(std::begin(xor_vec), std::end(xor_vec), p);
 }
 
-void xorwow_lite_init_emu(prngStates* cur_state,
-                          const unsigned long long seed,
-                          const unsigned long long subsequence,
-                          const unsigned long long offset)
+inline void xorwow_lite_init_emu(prngStates* cur_state,
+                                 const unsigned long long seed,
+                                 const unsigned long long subsequence,
+                                 const unsigned long long offset)
 {
     cur_state->x = 123456789;
     cur_state->y = 362436069;
@@ -129,10 +213,10 @@ void xorwow_lite_init_emu(prngStates* cur_state,
     cur_state->d += static_cast<unsigned int>(offset) * 362437;
 }
 
-void InitKernelStateEmulator(std::vector<prngStates>& states,
-                             const miopenDropoutDescriptor_t dropoutDesc)
+inline void InitKernelStateEmulator(std::vector<prngStates>& states,
+                                    const miopen::DropoutDescriptor& dropoutDesc)
 {
-    size_t states_num = miopen::deref(dropoutDesc).stateSizeInBytes / sizeof(prngStates);
+    size_t states_num = dropoutDesc.stateSizeInBytes / sizeof(prngStates);
     size_t wk_grp_num = std::min(size_t(MAX_PRNG_STATE / 256), (states_num + 255) / 256);
     size_t glb_sz     = wk_grp_num * 256;
 
@@ -143,7 +227,7 @@ void InitKernelStateEmulator(std::vector<prngStates>& states,
             size_t gid                = i + j * glb_sz;
             unsigned long long seq    = gid;
             unsigned long long offset = 0;
-            xorwow_lite_init_emu(&states[gid], miopen::deref(dropoutDesc).seed, seq, offset);
+            xorwow_lite_init_emu(&states[gid], dropoutDesc.seed, seq, offset);
         }
     }
 }
@@ -184,52 +268,23 @@ inline void ExpandTensorDim(std::vector<T> x_len,
 
     while(itr_os >= out_str.begin())
         *(itr_os--) = *(itr_os + 1) * *(itr_os + 1 - out_str.begin() + out_len.begin());
-
-    if(!std::equal(in_len.begin(), in_len.end(), out_len.begin()))
-    {
-        printf("CPU verification: Input/Output tensor lengths do not match\n");
-    }
 }
 
-template <typename Tgpu, typename Tref = Tgpu>
-void RunDropoutForwardEmulator(miopenHandle_t handle,
-                               const miopenDropoutDescriptor_t dropoutDesc,
-                               const miopenTensorDescriptor_t noise_shape,
-                               const miopenTensorDescriptor_t inputTensor,
-                               std::vector<Tgpu>& in,
-                               const miopenTensorDescriptor_t outputTensor,
-                               std::vector<Tref>& out,
-                               std::vector<unsigned char>& reservespace,
-                               std::vector<prngStates>& states,
-                               size_t in_offset    = 0,
-                               size_t out_offset   = 0,
-                               size_t rsvsp_offset = 0)
+template <typename T>
+void DropoutForwardVerify(miopen::Handle& handle,
+                          const miopen::DropoutDescriptor& DropoutDesc,
+                          const miopen::TensorDescriptor& inputTensor,
+                          const std::vector<T>& input,
+                          const miopen::TensorDescriptor& outputTensor,
+                          std::vector<T>& output,
+                          std::vector<unsigned char>& reservespace,
+                          std::vector<prngStates>& states,
+                          size_t in_offset    = 0,
+                          size_t out_offset   = 0,
+                          size_t rsvsp_offset = 0)
 {
-    (void)noise_shape;
-    auto in_dim  = miopen::deref(inputTensor).GetSize();
-    auto out_dim = miopen::deref(outputTensor).GetSize();
-    if(in_dim != out_dim)
-    {
-        printf("CPU verification: Input/Output dimension does not match\n");
-        return;
-    }
-
-    if(in_dim > 5)
-    {
-        printf("CPU verification: Only support 1D to 5D tensors\n");
-    }
-
-    if(miopen::deref(inputTensor).GetElementSize() != miopen::deref(outputTensor).GetElementSize())
-    {
-        printf("CPU verification: Input/Output element size does not match\n");
-    }
-
-    auto use_mask     = miopen::deref(dropoutDesc).use_mask;
-    auto dropout_rate = miopen::deref(dropoutDesc).dropout;
-    if(dropout_rate < 0.0 || dropout_rate > 1.0)
-    {
-        printf("CPU verification: Invalid dropout rate\n");
-    }
+    auto use_mask     = DropoutDesc.use_mask;
+    auto dropout_rate = DropoutDesc.dropout;
 
     // support up to 5D tensor
     std::vector<size_t> in_len(5, 1);
@@ -237,27 +292,25 @@ void RunDropoutForwardEmulator(miopenHandle_t handle,
     std::vector<size_t> out_len(5, 1);
     std::vector<size_t> out_str(5, 1);
 
-    ExpandTensorDim(miopen::deref(inputTensor).GetLengths(),
-                    miopen::deref(inputTensor).GetStrides(),
-                    miopen::deref(outputTensor).GetLengths(),
-                    miopen::deref(outputTensor).GetStrides(),
+    ExpandTensorDim(inputTensor.GetLengths(),
+                    inputTensor.GetStrides(),
+                    outputTensor.GetLengths(),
+                    outputTensor.GetStrides(),
                     in_len,
                     in_str,
                     out_len,
                     out_str);
 
     size_t glb_sz =
-        std::min(
-            size_t(std::min(size_t(MAX_PRNG_STATE), miopen::deref(handle).GetImage3dMaxWidth()) /
-                   256),
-            ((in_len[4] * in_len[3] * in_len[2] * in_len[1] * in_len[0] + 255) / 256)) *
+        std::min(size_t(std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth()) / 256),
+                 ((in_len[4] * in_len[3] * in_len[2] * in_len[1] * in_len[0] + 255) / 256)) *
         256;
 
-    for(int i0 = 0; i0 < in_len[0]; i0++)
-        for(int i1 = 0; i1 < in_len[1]; i1++)
-            for(int i2 = 0; i2 < in_len[2]; i2++)
-                for(int i3 = 0; i3 < in_len[3]; i3++)
-                    for(int i4 = 0; i4 < in_len[4]; i4++)
+    for(size_t i0 = 0; i0 < in_len[0]; i0++)
+        for(size_t i1 = 0; i1 < in_len[1]; i1++)
+            for(size_t i2 = 0; i2 < in_len[2]; i2++)
+                for(size_t i3 = 0; i3 < in_len[3]; i3++)
+                    for(size_t i4 = 0; i4 < in_len[4]; i4++)
                     {
                         size_t oi = out_offset + i0 * out_str[0] + i1 * out_str[1] +
                                     i2 * out_str[2] + i3 * out_str[3] + i4;
@@ -273,46 +326,25 @@ void RunDropoutForwardEmulator(miopenHandle_t handle,
                                 uniform_distribution_emu(xorwow_next(&states[si % glb_sz])) >
                                 dropout_rate;
 
-                        out[oi] = bool(reservespace[ri]) && !miopen::float_equal(dropout_rate, 1.0)
-                                      ? static_cast<Tref>(in[ii] / (1 - dropout_rate))
-                                      : 0;
+                        output[oi] =
+                            bool(reservespace[ri]) && !miopen::float_equal(dropout_rate, 1.0)
+                                ? static_cast<T>(input[ii] / (1 - dropout_rate))
+                                : T(0);
                     }
 }
 
-template <typename Tgpu, typename Tref = Tgpu>
-void RunDropoutBackwardEmulator(const miopenDropoutDescriptor_t dropoutDesc,
-                                const miopenTensorDescriptor_t outputTensor,
-                                std::vector<Tgpu>& dout,
-                                const miopenTensorDescriptor_t inputTensor,
-                                std::vector<Tref>& din,
-                                std::vector<unsigned char>& reservespace,
-                                size_t in_offset    = 0,
-                                size_t out_offset   = 0,
-                                size_t rsvsp_offset = 0)
+template <typename T>
+void DropoutBackwardVerify(const miopen::DropoutDescriptor& DropoutDesc,
+                           const miopen::TensorDescriptor& outputTensor,
+                           const std::vector<T>& dout,
+                           const miopen::TensorDescriptor& inputTensor,
+                           std::vector<T>& din,
+                           std::vector<unsigned char>& reservespace,
+                           size_t in_offset    = 0,
+                           size_t out_offset   = 0,
+                           size_t rsvsp_offset = 0)
 {
-    auto in_dim  = miopen::deref(inputTensor).GetSize();
-    auto out_dim = miopen::deref(outputTensor).GetSize();
-    if(in_dim != out_dim)
-    {
-        printf("CPU verification: Input/Output dimension does not match\n");
-        return;
-    }
-
-    if(in_dim > 5)
-    {
-        printf("CPU verification: Only support 1D to 5D tensors\n");
-    }
-
-    if(miopen::deref(inputTensor).GetElementSize() != miopen::deref(outputTensor).GetElementSize())
-    {
-        printf("CPU verification: Input/Output element size does not match\n");
-    }
-
-    auto dropout_rate = miopen::deref(dropoutDesc).dropout;
-    if(dropout_rate < 0.0 || dropout_rate > 1.0)
-    {
-        printf("CPU verification: Invalid dropout rate\n");
-    }
+    auto dropout_rate = DropoutDesc.dropout;
 
     // support up to 5D tensor
     std::vector<size_t> in_len(5, 1);
@@ -320,35 +352,29 @@ void RunDropoutBackwardEmulator(const miopenDropoutDescriptor_t dropoutDesc,
     std::vector<size_t> out_len(5, 1);
     std::vector<size_t> out_str(5, 1);
 
-    ExpandTensorDim(miopen::deref(inputTensor).GetLengths(),
-                    miopen::deref(inputTensor).GetStrides(),
-                    miopen::deref(outputTensor).GetLengths(),
-                    miopen::deref(outputTensor).GetStrides(),
+    ExpandTensorDim(inputTensor.GetLengths(),
+                    inputTensor.GetStrides(),
+                    outputTensor.GetLengths(),
+                    outputTensor.GetStrides(),
                     in_len,
                     in_str,
                     out_len,
                     out_str);
 
-    for(int i0 = 0; i0 < in_len[0]; i0++)
-        for(int i1 = 0; i1 < in_len[1]; i1++)
-            for(int i2 = 0; i2 < in_len[2]; i2++)
-                for(int i3 = 0; i3 < in_len[3]; i3++)
-                    for(int i4 = 0; i4 < in_len[4]; i4++)
-                    {
-                        size_t oi = out_offset + i0 * out_str[0] + i1 * out_str[1] +
-                                    i2 * out_str[2] + i3 * out_str[3] + i4;
-                        size_t ii = in_offset + i0 * in_str[0] + i1 * in_str[1] + i2 * in_str[2] +
-                                    i3 * in_str[3] + i4;
-                        size_t ri = rsvsp_offset +
-                                    i0 * in_len[1] * in_len[2] * in_len[3] * in_len[4] +
-                                    i1 * in_len[2] * in_len[3] * in_len[4] +
-                                    i2 * in_len[3] * in_len[4] + i3 * in_len[4] + i4;
+    par_ford(in_len[0], in_len[1], in_len[2], in_len[3], in_len[4])([&](
+        int i0, int i1, int i2, int i3, int i4) {
+        size_t oi =
+            out_offset + i0 * out_str[0] + i1 * out_str[1] + i2 * out_str[2] + i3 * out_str[3] + i4;
+        size_t ii =
+            in_offset + i0 * in_str[0] + i1 * in_str[1] + i2 * in_str[2] + i3 * in_str[3] + i4;
+        size_t ri = rsvsp_offset + i0 * in_len[1] * in_len[2] * in_len[3] * in_len[4] +
+                    i1 * in_len[2] * in_len[3] * in_len[4] + i2 * in_len[3] * in_len[4] +
+                    i3 * in_len[4] + i4;
 
-                        din[ii] = static_cast<Tref>(bool(reservespace[ri]) &&
-                                                            !miopen::float_equal(dropout_rate, 1.0)
-                                                        ? dout[oi] / (1 - dropout_rate)
-                                                        : 0);
-                    }
+        din[ii] = static_cast<T>(bool(reservespace[ri]) && !miopen::float_equal(dropout_rate, 1.0)
+                                     ? dout[oi] / (1 - dropout_rate)
+                                     : 0);
+    });
 }
 
-#endif // GUARD_MIOPEN_DROPOUT_GPU_EMULATOR_HPP
+#endif
