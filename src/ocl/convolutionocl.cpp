@@ -196,7 +196,8 @@ EvaluateDataImplicitGemmSolution(Handle& handle,
 
     elapsed = 0.0f;
 
-    if(kernel.GetName().find("igemm_v4r1_dynamic") == 0)
+    if((kernel.GetName().find("igemm_v4r1_dynamic") == 0) ||
+       (kernel.GetName().find("igemm_v4r1_1x1_dynamic") == 0))
     {
         elapsed = CallImplicitGemmDynamic(handle, ctx, in, out, weights, kernels);
         return 0;
@@ -1361,7 +1362,8 @@ void ConvFwdImplicitGemm(const ConvolutionContext& ctx,
         if(handle.IsProfilingEnabled())
             elapsed += handle.GetKernelTime();
     }
-    else if(kernel.GetName().find("igemm_v4r1_dynamic") == 0)
+    else if(kernel.GetName().find("igemm_v4r1_dynamic") == 0 ||
+            kernel.GetName().find("igemm_v4r1_1x1_dynamic") == 0)
     {
         float time;
 
