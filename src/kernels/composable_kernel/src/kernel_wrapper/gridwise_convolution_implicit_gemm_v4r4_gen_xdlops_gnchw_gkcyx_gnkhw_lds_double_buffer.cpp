@@ -1,7 +1,8 @@
 #include "common_header.hpp"
 #include "ConstantTensorDescriptor_deprecated.hpp"
 #include "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer.hpp"
-#include "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_fp16_bfp16_gnchw_gkcyx_gnkhw_lds_double_buffer.hpp"
+#include "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_fp16_bfp16_fwd_gnchw_gkcyx_gnkhw_lds_double_buffer.hpp"
+#include "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_fp16_bfp16_wrw_gnchw_gkcyx_gnkhw_lds_double_buffer.hpp"
 #include "float_types.h"
 
 extern "C" __global__
@@ -231,7 +232,7 @@ extern "C" __global__
     // Backward weight in fp16/bfp16 uses atomic add to do reduction along K dimension
     // It requires output blob to be of float as no atomic add exists for half/ushort
     constexpr auto gridwise_conv =
-        GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_gnchw_gkcyx_gnkhw_lds_double_buffer<
+        GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_wrw_gnchw_gkcyx_gnkhw_lds_double_buffer<
             GridSize,
             BlockSize,
             FLOAT,       // Input data type = half (fp16) or ushort (bfp16)
@@ -275,7 +276,7 @@ extern "C" __global__
     // Forward data doesn't use any atomic add so output blob remains of the same type
     // as input blob
     constexpr auto gridwise_conv =
-        GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_gnchw_gkcyx_gnkhw_lds_double_buffer<
+        GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_fwd_gnchw_gkcyx_gnkhw_lds_double_buffer<
             GridSize,
             BlockSize,
             FLOAT,       // Input data type = half (fp16) or ushort (bfp16)
