@@ -23,12 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/solver.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/generic_search.hpp>
+
+#include "implicitgemm_util.hpp"
+
 #include <cstddef>
 #include <numeric>
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
-#include <miopen/generic_search.hpp>
-#include "implicitgemm_util.hpp"
 
 namespace miopen {
 namespace solver {
