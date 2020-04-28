@@ -128,7 +128,10 @@ struct HIPOCProgramImpl
         : program(program_name), device(dev_name)
     {
         BuildCodeObject(params, is_kernel_str, kernel_src);
-        module = CreateModule(hsaco_file);
+        if(!binary.empty())
+            MIOPEN_THROW("create module from memory");
+        else
+            module = CreateModule(hsaco_file);
     }
 
     std::string program;
@@ -136,31 +139,40 @@ struct HIPOCProgramImpl
     boost::filesystem::path hsaco_file;
     hipModulePtr module;
     boost::optional<TmpDir> dir;
+    std::vector<char> binary;
 
     void BuildCodeObject(std::string params, bool is_kernel_str, const std::string& kernel_src)
     {
         /// \todo Do not create tmp dir if comgr is used.
         std::string filename = is_kernel_str ? "tinygemm.cl" // Fixed name for miopengemm.
                                              : program;
-        dir.emplace(filename);
 
-        hsaco_file = dir->path / (filename + ".o");
+        /// \todo Intentionally ugly. This should go away.
+        auto create_tmpdir__set_hsaco_file = [&]() {
+            dir.emplace(filename);
+            hsaco_file = dir->path / (filename + ".o");
+        };
+
         std::string src;
         if(kernel_src.empty())
             src = is_kernel_str ? program : GetKernelSrc(program);
         else
             src = kernel_src;
+
         if(!is_kernel_str && miopen::EndsWith(program, ".so"))
         {
+            create_tmpdir__set_hsaco_file();
             WriteFile(src, hsaco_file);
         }
         else if(!is_kernel_str && miopen::EndsWith(program, ".s"))
         {
+            create_tmpdir__set_hsaco_file();
             AmdgcnAssemble(src, params);
             WriteFile(src, hsaco_file);
         }
         else if(!is_kernel_str && miopen::EndsWith(program, ".cpp"))
         {
+            create_tmpdir__set_hsaco_file();
 #if MIOPEN_BUILD_DEV
             params += " -Werror" + HipKernelWarningsString();
 #else
@@ -178,15 +190,14 @@ struct HIPOCProgramImpl
             params += " " + GetCoV3Option(ProduceCoV3());
 
 #if !MIOPEN_USE_COMGR
+            create_tmpdir__set_hsaco_file();
             WriteFile(src, dir->path / filename);
             dir->Execute(HIP_OC_COMPILER, params + " " + filename + " -o " + hsaco_file.string());
 #else
-            std::vector<char> binary;
             comgr::BuildOcl(filename, src, params, device, binary);
-            WriteFile(binary, hsaco_file);
 #endif
         }
-        if(!boost::filesystem::exists(hsaco_file))
+        if(!hsaco_file.empty() && !boost::filesystem::exists(hsaco_file))
             MIOPEN_THROW("Cant find file: " + hsaco_file.string());
     }
 };
@@ -215,5 +226,12 @@ HIPOCProgram::HIPOCProgram(const std::string& program_name, const std::string& h
 hipModule_t HIPOCProgram::GetModule() const { return impl->module.get(); }
 
 boost::filesystem::path HIPOCProgram::GetCodeObjectPathname() const { return impl->hsaco_file; }
+
+std::string HIPOCProgram::GetCodeObjectBlob() const
+{
+    return {impl->binary.data(), impl->binary.size()};
+}
+
+bool HIPOCProgram::IsCodeObjectInMemory() const { return !impl->binary.empty(); };
 
 } // namespace miopen
