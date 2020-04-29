@@ -145,63 +145,60 @@ static inline std::string to_string(const std::string& v) { return {v}; }
 static inline std::string to_string(const bool& v) { return v ? "true" : "false"; }
 static inline auto to_string(const std::size_t& v) { return std::to_string(v); }
 
-#define CASE_TO_STRING(id) \
-    case id: return #id
-
 /// \todo Request comgr to expose this stuff via API.
 static std::string to_string(const amd_comgr_language_t val)
 {
-    switch(val)
-    {
-        CASE_TO_STRING(AMD_COMGR_LANGUAGE_NONE);
-        CASE_TO_STRING(AMD_COMGR_LANGUAGE_OPENCL_1_2);
-        CASE_TO_STRING(AMD_COMGR_LANGUAGE_OPENCL_2_0);
-        CASE_TO_STRING(AMD_COMGR_LANGUAGE_HC);
-        CASE_TO_STRING(AMD_COMGR_LANGUAGE_HIP);
-    }
-    return "<Unknown language>";
+    std::ostringstream oss;
+    MIOPEN_LOG_ENUM(oss,
+                    val,
+                    AMD_COMGR_LANGUAGE_NONE,
+                    AMD_COMGR_LANGUAGE_OPENCL_1_2,
+                    AMD_COMGR_LANGUAGE_OPENCL_2_0,
+                    AMD_COMGR_LANGUAGE_HC,
+                    AMD_COMGR_LANGUAGE_HIP);
+    return oss.str();
 }
 
 static std::string to_string(const amd_comgr_data_kind_t val)
 {
-    switch(val)
-    {
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_UNDEF);
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_SOURCE);
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_INCLUDE);
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_PRECOMPILED_HEADER);
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_DIAGNOSTIC);
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_LOG);
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_BC);
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_RELOCATABLE);
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_EXECUTABLE);
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_BYTES);
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_FATBIN);
-    }
-    return "<Unknown data kind>";
+    std::ostringstream oss;
+    MIOPEN_LOG_ENUM(oss,
+                    val,
+                    AMD_COMGR_DATA_KIND_UNDEF,
+                    AMD_COMGR_DATA_KIND_SOURCE,
+                    AMD_COMGR_DATA_KIND_INCLUDE,
+                    AMD_COMGR_DATA_KIND_PRECOMPILED_HEADER,
+                    AMD_COMGR_DATA_KIND_DIAGNOSTIC,
+                    AMD_COMGR_DATA_KIND_LOG,
+                    AMD_COMGR_DATA_KIND_BC,
+                    AMD_COMGR_DATA_KIND_RELOCATABLE,
+                    AMD_COMGR_DATA_KIND_EXECUTABLE,
+                    AMD_COMGR_DATA_KIND_BYTES,
+                    AMD_COMGR_DATA_KIND_FATBIN);
+    return oss.str();
 }
 
 static std::string to_string(const amd_comgr_action_kind_t val)
 {
-    switch(val)
-    {
-        CASE_TO_STRING(AMD_COMGR_ACTION_SOURCE_TO_PREPROCESSOR);
-        CASE_TO_STRING(AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS);
-        CASE_TO_STRING(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC);
-        CASE_TO_STRING(AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES);
-        CASE_TO_STRING(AMD_COMGR_ACTION_LINK_BC_TO_BC);
-        CASE_TO_STRING(AMD_COMGR_ACTION_OPTIMIZE_BC_TO_BC);
-        CASE_TO_STRING(AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE);
-        CASE_TO_STRING(AMD_COMGR_ACTION_CODEGEN_BC_TO_ASSEMBLY);
-        CASE_TO_STRING(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_RELOCATABLE);
-        CASE_TO_STRING(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE);
-        CASE_TO_STRING(AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE);
-        CASE_TO_STRING(AMD_COMGR_ACTION_DISASSEMBLE_RELOCATABLE_TO_SOURCE);
-        CASE_TO_STRING(AMD_COMGR_ACTION_DISASSEMBLE_EXECUTABLE_TO_SOURCE);
-        CASE_TO_STRING(AMD_COMGR_ACTION_DISASSEMBLE_BYTES_TO_SOURCE);
-        CASE_TO_STRING(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_FATBIN);
-    }
-    return "<Unknown action kind>";
+    std::ostringstream oss;
+    MIOPEN_LOG_ENUM(oss,
+                    val,
+                    AMD_COMGR_ACTION_SOURCE_TO_PREPROCESSOR,
+                    AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS,
+                    AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC,
+                    AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES,
+                    AMD_COMGR_ACTION_LINK_BC_TO_BC,
+                    AMD_COMGR_ACTION_OPTIMIZE_BC_TO_BC,
+                    AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE,
+                    AMD_COMGR_ACTION_CODEGEN_BC_TO_ASSEMBLY,
+                    AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_RELOCATABLE,
+                    AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE,
+                    AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE,
+                    AMD_COMGR_ACTION_DISASSEMBLE_RELOCATABLE_TO_SOURCE,
+                    AMD_COMGR_ACTION_DISASSEMBLE_EXECUTABLE_TO_SOURCE,
+                    AMD_COMGR_ACTION_DISASSEMBLE_BYTES_TO_SOURCE,
+                    AMD_COMGR_ACTION_COMPILE_SOURCE_TO_FATBIN);
+    return oss.str();
 }
 
 static bool PrintVersion()
