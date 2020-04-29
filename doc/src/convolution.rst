@@ -30,6 +30,11 @@ miopenConvAlgoPerf_t
 
 .. doxygenstruct::  miopenConvAlgoPerf_t
 
+miopenConvSolution_t
+--------------------
+
+.. doxygenstruct::  miopenConvSolution_t
+
 miopenCreateConvolutionDescriptor
 ---------------------------------
 
