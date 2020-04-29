@@ -250,6 +250,12 @@ struct ComgrError : std::exception
     const char* what() const noexcept override { return text.c_str(); }
 };
 
+[[noreturn]] static void Throw(const amd_comgr_status_t s) { throw ComgrError{s}; }
+[[noreturn]] static void Throw(const amd_comgr_status_t s, const std::string& text)
+{
+    throw ComgrError{s, text};
+}
+
 struct ComgrOwner
 {
     ComgrOwner(const ComgrOwner&) = delete;
@@ -257,11 +263,6 @@ struct ComgrOwner
     protected:
     ComgrOwner() {}
     ComgrOwner(ComgrOwner&&) = default;
-    [[noreturn]] void Throw(const amd_comgr_status_t s) const { throw ComgrError{s}; }
-    [[noreturn]] void Throw(const amd_comgr_status_t s, const std::string& text) const
-    {
-        throw ComgrError{s, text};
-    }
 };
 
 class Data : ComgrOwner
