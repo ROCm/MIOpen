@@ -941,7 +941,7 @@ struct PerformanceImplicitGemmV4R4GenXdlopsWrWFp32
     int GemmMPerBlock; // 2^n[32..128]
     int GemmNPerBlock; // 2^n[8..16]
     int GemmKPerBlock; // 2^n[4..16]
-    int GemmKBlocks;   // 2*n[1..64]
+    int GemmKBlocks;   // 2^n[1..64]
 
     int GemmMPerWave; // [4, 16, 32, 64]
     int GemmNPerWave; // [4, 16, 32, 64]
