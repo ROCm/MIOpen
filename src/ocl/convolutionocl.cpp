@@ -4046,7 +4046,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                             float zero = 0.f;
                             SetTensor(handle, dwDesc, dw, &zero);
                             elapsed = handle.GetKernelTime();
-
                             kernel(x, dy, dw);
                             elapsed += handle.GetKernelTime();
                         }
