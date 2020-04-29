@@ -513,14 +513,7 @@ static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
         GemmK                     = static_cast<std::size_t>(nonVectorizedN) * ho * wo;
     }
 
-    // unsupported xdlops-gemm
-    if(GemmM % 16 != 0 && GemmN % 64 != 0)
-        return false;
-
-    const auto WaveSize = 64;
-
-    return (GemmM * GemmN) % 256 == 0 && (GemmK * GemmM) % WaveSize == 0 &&
-           (GemmK * GemmN) % WaveSize == 0 && GemmN % 16 == 0 && GemmM % 4 == 0 && GemmK % 4 == 0;
+    return IsValidGridGemmXdlops(GemmM, GemmN, GemmK);
 }
 
 template <class PerformanceImplicitGemm_t>

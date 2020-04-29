@@ -62,6 +62,22 @@ namespace miopen {
 template <class Derived>
 struct SQLiteSerializable
 {
+    std::vector<std::string> FieldNames() const
+    {
+        std::vector<std::string> names;
+        Derived::Visit(static_cast<const Derived&>(*this),
+                       [&](const std::string& value, const std::string& name) {
+                           std::ignore = value;
+                           names.push_back(name);
+                       });
+        Derived::Visit(static_cast<const Derived&>(*this),
+                       [&](const int value, const std::string name) {
+                           std::ignore = value;
+                           names.push_back(name);
+                       });
+
+        return names;
+    }
     std::tuple<std::string, std::vector<std::string>> WhereClause() const
     {
         std::vector<std::string> values;
@@ -143,7 +159,15 @@ template <typename Derived>
 class SQLiteBase
 {
     protected:
-    using sqlite3_ptr      = MIOPEN_MANAGE_PTR(sqlite3*, sqlite3_close);
+    struct SQLiteCloser
+    {
+        void operator()(sqlite3* ptr)
+        {
+            std::string filename_(sqlite3_db_filename(ptr, "main"));
+            SQLiteBase::SQLRety([&]() { return sqlite3_close(ptr); }, filename_);
+        }
+    };
+    using sqlite3_ptr      = std::unique_ptr<sqlite3, SQLiteCloser>;
     using exclusive_lock   = boost::unique_lock<LockFile>;
     using shared_lock      = boost::shared_lock<LockFile>;
     using sqlite3_stmt_ptr = MIOPEN_MANAGE_PTR(sqlite3_stmt*, sqlite3_finalize);
@@ -217,6 +241,35 @@ class SQLiteBase
         return 0;
     }
 
+    inline auto CheckTableColumns(const std::string& tableName,
+                                  const std::vector<std::string>& goldenList) const
+    {
+        const auto sql_cfg_fds = "PRAGMA table_info(" + tableName + ");";
+        SQLRes_t cfg_res;
+        {
+            const auto lock = shared_lock(lock_file, GetLockTimeout());
+            MIOPEN_VALIDATE_LOCK(lock);
+            SQLExec(sql_cfg_fds, cfg_res);
+        }
+        std::vector<std::string> cfg_fds(cfg_res.size());
+        std::transform(
+            cfg_res.begin(), cfg_res.end(), cfg_fds.begin(), [](auto row) { return row["name"]; });
+        // search in the golden vector
+        bool AllFound = true;
+        for(auto& goldenName : goldenList)
+        {
+            if(std::find(cfg_fds.begin(), cfg_fds.end(), goldenName) == cfg_fds.end())
+            {
+                AllFound = false;
+                std::ostringstream ss;
+                ss << "Field " << goldenName << " not found in table: " << tableName;
+                MIOPEN_LOG_I2(ss.str());
+                // break; Not breaking to enable logging of all missing fields.
+            }
+        }
+        return AllFound;
+    }
+
     inline auto SQLExec(const std::string& query)
     {
         MIOPEN_LOG_T(std::this_thread::get_id() << ":" << query);
@@ -256,6 +309,12 @@ class SQLiteBase
 
     template <class F>
     inline int SQLRety(F f) const
+    {
+        return SQLiteBase::SQLRety(f, filename);
+    }
+
+    template <class F>
+    static inline int SQLRety(F f, std::string filename)
     {
         auto timeout_end = std::chrono::high_resolution_clock::now() +
                            std::chrono::seconds(30); // TODO: make configurable
