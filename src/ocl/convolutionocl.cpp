@@ -3725,7 +3725,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             // direct convolution
             if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
             {
-                const auto all            = FindAllBwdWrW2DSolutions(ctx);
+                const auto all            = FindAllBwdWrW2DSolutions(ctx, invoke_ctx);
                 const auto algorithm_name = AlgorithmName{"miopenConvolutionBwdWeightsAlgoDirect"};
                 EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
             }
@@ -3734,7 +3734,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             {
                 const auto all = miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{})
                                      ? std::vector<miopen::solver::ConvSolution>()
-                                     : FindWinogradWrWAllSolutions(ctx);
+                                     : FindWinogradWrWAllSolutions(ctx, invoke_ctx);
 
                 float elapsed = 0.0f;
                 if(!all.empty())
@@ -4009,7 +4009,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             // Implicit GEMM
             if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
             {
-                const auto all = FindImplicitGemmWrWAllSolutions(ctx);
+                const auto all = FindImplicitGemmWrWAllSolutions(ctx, invoke_ctx);
                 float best     = std::numeric_limits<float>::max();
                 miopen::solver::ConvSolution selected{miopenStatusUnknownError};
                 const auto algo_name = "miopenConvolutionBwdWeightsAlgoImplicitGEMM";

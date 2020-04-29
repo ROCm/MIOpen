@@ -617,9 +617,10 @@ bool ConvHipImplicitGemmV4R4Fwd::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmV4R4Fwd
-ConvHipImplicitGemmV4R4Fwd::Search(const ConvolutionContext& context) const
+ConvHipImplicitGemmV4R4Fwd::Search(const ConvolutionContext& context,
+                                   const boost::any& invoke_ctx) const
 {
-    return GenericSearchFwd(*this, context);
+    return GenericSearchFwd(*this, context, invoke_ctx);
 }
 
 int ConvHipImplicitGemmV4R4Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,

@@ -284,12 +284,13 @@ bool ConvBinWinogradRxSf2x3::IsValidPerformanceConfig(
 }
 
 PerformanceConfigConvBinWinogradRxSf2x3
-ConvBinWinogradRxSf2x3::Search(const ConvolutionContext& context) const
+ConvBinWinogradRxSf2x3::Search(const ConvolutionContext& context,
+                               const boost::any& invoke_ctx) const
 {
     if(context.direction.IsForward())
-        return GenericSearchFwd(*this, context);
+        return GenericSearchFwd(*this, context, invoke_ctx);
     else
-        return GenericSearchBwd(*this, context);
+        return GenericSearchBwd(*this, context, invoke_ctx);
 }
 
 inline void FillVarsFromConfig(int& H,

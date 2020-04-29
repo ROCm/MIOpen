@@ -837,12 +837,13 @@ int ConvOclBwdWrW2<N_BATCH_LOOPS>::RunAndMeasureSolution(miopen::Handle& profile
 
 template <int N_BATCH_LOOPS>
 PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
-ConvOclBwdWrW2<N_BATCH_LOOPS>::Search(const ConvolutionContext& context) const
+ConvOclBwdWrW2<N_BATCH_LOOPS>::Search(const ConvolutionContext& context,
+                                      const boost::any& invoke_ctx) const
 {
     if(GetNBatchBlks<N_BATCH_LOOPS>(context) > 1)
-        return GenericSearchWrW(*this, context, SearchTweak::WorkspaceInsteadOfWeightsBuffer);
+        return GenericSearchWrW(*this, context, invoke_ctx, SearchTweak::WorkspaceInsteadOfWeightsBuffer);
     else
-        return GenericSearchWrW(*this, context);
+        return GenericSearchWrW(*this, context, invoke_ctx);
 }
 
 /// We need to instantiate required classes implicitly.

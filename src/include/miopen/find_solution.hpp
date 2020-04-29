@@ -41,7 +41,7 @@ namespace solver {
 template <class Solver, class Context, class Db>
 auto FindSolutionImpl(
     rank<1>, Solver s, const Context& context, Db& db, const boost::any& invoke_ctx)
-    -> decltype(s.GetSolution(context, s.Search(context), invoke_ctx))
+    -> decltype(s.GetSolution(context, s.Search(context, invoke_ctx)))
 {
     const FindEnforce enforce;
     if(context.disable_perfdb_access)
@@ -70,7 +70,7 @@ auto FindSolutionImpl(
                 MIOPEN_LOG_I2("Perf Db: record loaded: " << SolverDbId(s));
                 if(s.IsValidPerformanceConfig(context, config))
                 {
-                    return s.GetSolution(context, config, invoke_ctx);
+                    return s.GetSolution(context, config);
                 }
                 MIOPEN_LOG_WE(
                     "Invalid config loaded from Perf Db: " << SolverDbId(s) << ": " << config
@@ -87,9 +87,9 @@ auto FindSolutionImpl(
             MIOPEN_LOG_I("Starting search: " << SolverDbId(s) << ", enforce: " << enforce);
             try
             {
-                auto c = s.Search(context);
+                auto c = s.Search(context, invoke_ctx);
                 db.Update(context, SolverDbId(s), c);
-                return s.GetSolution(context, c, invoke_ctx);
+                return s.GetSolution(context, c);
             }
             catch(const miopen::Exception& ex)
             {
@@ -102,11 +102,11 @@ auto FindSolutionImpl(
 }
 
 template <class Solver, class Context, class Db>
-auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&, const boost::any& invoke_ctx)
-    -> decltype(s.GetSolution(context, invoke_ctx))
+auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&, const boost::any&)
+    -> decltype(s.GetSolution(context))
 {
     MIOPEN_LOG_I(SolverDbId(s) << " (not searchable)");
-    return s.GetSolution(context, invoke_ctx);
+    return s.GetSolution(context);
 }
 
 /// Finds optimized Solution. Generic method.

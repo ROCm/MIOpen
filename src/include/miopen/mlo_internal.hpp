@@ -206,11 +206,12 @@ auto FindFirstSolution(T& x) -> decltype(x.FindSolution())
 }
 
 template <class T, class U>
-auto FindFirstSolution(T& x, U& solvers) -> decltype(x.FindSolution(solvers))
+auto FindFirstSolution(T& x, U& solvers, const boost::any& invoke_ctx)
+    -> decltype(x.FindSolution(solvers, invoke_ctx))
 {
     x.detectRocm();
     x.setupFloats();
-    return x.FindSolution(solvers);
+    return x.FindSolution(solvers, invoke_ctx);
 }
 
 template <class T>

@@ -202,7 +202,6 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
 
 ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
                                       const PerformanceConfigConvAsm3x3U& config,
-                                      const boost::any& invoke_ctx,
                                       const bool disableConfigOverrideFromEnv) const
 {
     ConvSolution result;

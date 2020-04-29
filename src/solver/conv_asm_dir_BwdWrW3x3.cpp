@@ -568,9 +568,10 @@ int ConvAsmBwdWrW3x3::RunAndMeasureSolution(miopen::Handle& profile_h,
     return 0;
 }
 
-PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ConvolutionContext& context) const
+PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ConvolutionContext& context,
+                                                          const boost::any& invoke_ctx) const
 {
-    return GenericSearchWrW(*this, context);
+    return GenericSearchWrW(*this, context, invoke_ctx);
 }
 
 } // namespace solver

@@ -877,12 +877,13 @@ int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
     return 0;
 }
 
-PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& context) const
+PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& context,
+                                                           const boost::any& invoke_ctx) const
 {
     if(UseSubsample(context))
-        return GenericSearchWrW(*this, context, SearchTweak::WorkspaceInsteadOfXBuffer);
+        return GenericSearchWrW(*this, context, invoke_ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
     else
-        return GenericSearchWrW(*this, context);
+        return GenericSearchWrW(*this, context, invoke_ctx);
 }
 
 } // namespace solver

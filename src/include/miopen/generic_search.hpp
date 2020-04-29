@@ -329,9 +329,6 @@ auto GenericSearchFwd(const Solver s,
     -> decltype(s.GetPerformanceConfig(context))
 {
     const auto& bufs = context.GetBufs().io.fwd;
-    /*const auto& problem   = context.conv_problem;
-    const auto invoke_ctx = problem.MakeInvokeContext(
-        bufs.x, bufs.w, bufs.y, context.GetBufs().workSpace, context.GetBufs().workSpaceSize);*/
     return GenericSearch(s, context, tweak, invoke_ctx, bufs.y, bufs.x, bufs.w);
 }
 
@@ -343,9 +340,6 @@ auto GenericSearchBwd(const Solver s,
     -> decltype(s.GetPerformanceConfig(context))
 {
     const auto& bufs      = context.GetBufs().io.bwd;
-    /*const auto& problem   = context.conv_problem;
-    const auto invoke_ctx = problem.MakeInvokeContext(
-        bufs.dy, bufs.w, bufs.dx, context.GetBufs().workSpace, context.GetBufs().workSpaceSize);*/
     return GenericSearch(s, context, tweak, invoke_ctx, bufs.dx, bufs.dy, bufs.w);
 }
 
@@ -357,9 +351,6 @@ auto GenericSearchWrW(const Solver s,
     -> decltype(s.GetPerformanceConfig(context))
 {
     const auto& bufs      = context.GetBufs().io.wrw;
-    /*const auto& problem   = context.conv_problem;
-    const auto invoke_ctx = problem.MakeInvokeContext(
-        bufs.dy, bufs.dx, bufs.dw, context.GetBufs().workSpace, context.GetBufs().workSpaceSize);*/
     return GenericSearch(s, context, tweak, invoke_ctx, bufs.dx, bufs.dy, bufs.dw);
 }
 #endif
@@ -383,7 +374,7 @@ auto GenericSearch(const Solver s,
 {
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
     PerformanceConfig best_config;
-    const auto default_solution = s.GetSolution(context, s.GetPerformanceConfig(context), invoke_ctx);
+    const auto default_solution = s.GetSolution(context, s.GetPerformanceConfig(context));
 
 #if MIOPEN_ALLOC_BUFFERS
     // Allocate buffers, init input buffers.

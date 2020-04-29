@@ -92,14 +92,15 @@ miopen::PerformanceDb miopen::GetDb(const ConvolutionContext& ctx)
 }
 #endif
 miopen::solver::ConvSolution
-mlo_construct_direct2D_fusion::FindSolution(const std::vector<miopen::solver::AnySolver>& solvers)
+mlo_construct_direct2D_fusion::FindSolution(const std::vector<miopen::solver::AnySolver>& solvers,
+                                            const boost::any& invoke_ctx)
 {
     miopen::solver::ConvSolution solution{miopenStatusUnknownError};
     std::string solver_id;
     auto db = this->GetDb();
     for(auto& solver : solvers)
     {
-        solution = solver.FindSolution(_search_params, db);
+        solution = solver.FindSolution(_search_params, db, invoke_ctx);
         if(solution.Succeeded() && solver.IsApplicable(_search_params))
         {
             solver_id = miopen::solver::SolverDbId(solver);
@@ -219,7 +220,7 @@ FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx, const boost:
     else
         return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx, 1);
 #else
-    return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+    return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
 #endif
 }
 
@@ -266,7 +267,8 @@ FindAllFwdSCGemmSolutions(const miopen::ConvolutionContext& ctx, const boost::an
 #if MIOPEN_USE_SCGEMM
     return GetFwdSCGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
 #else
-    (void)ctx;
+    std::ignore = ctx;
+    std::ignore = invoke_ctx;
     return {};
 #endif
 }

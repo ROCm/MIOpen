@@ -699,7 +699,9 @@ std::size_t ConvolutionDescriptor::ForwardBackwardGetWorkSpaceSizeImplicitGemm(
 
     try
     {
-        const auto ss  = FindAllImplicitGemmSolutions(ctx);
+        if (ctx.do_search)
+            MIOPEN_THROW("Auto-tune is not supported in the get workspace size");
+        const auto ss  = FindAllImplicitGemmSolutions(ctx, boost::none);
         std::size_t sz = 0;
         for(const auto& solution : ss)
         {
@@ -811,7 +813,9 @@ std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeWinograd(
 
     try
     {
-        const auto ss  = FindWinogradWrWAllSolutions(ctx);
+        if(ctx.do_search)
+            MIOPEN_THROW("Auto-tune is not supported in the get workspace size");
+        const auto ss  = FindWinogradWrWAllSolutions(ctx, boost::none);
         std::size_t sz = 0;
         for(const auto& solution : ss)
         {
@@ -838,7 +842,9 @@ std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeImplicitGemm(
 
     try
     {
-        const auto ss  = FindImplicitGemmWrWAllSolutions(ctx);
+        if(ctx.do_search)
+            MIOPEN_THROW("Auto-tune is not supported in the get workspace size");
+        const auto ss  = FindImplicitGemmWrWAllSolutions(ctx, boost::none);
         std::size_t sz = 0;
         for(const auto& solution : ss)
         {

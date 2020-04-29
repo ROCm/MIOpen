@@ -671,13 +671,13 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmBwdDataV1R1
-ConvHipImplicitGemmBwdDataV1R1::Search(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmBwdDataV1R1::Search(const ConvolutionContext& ctx, const boost::any& invoke_ctx) const
 {
     // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
     if(ctx.IsFp16() || ctx.IsBfp16())
-        return GenericSearchBwd(*this, ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
+        return GenericSearchBwd(*this, ctx, invoke_ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
     else
-        return GenericSearchBwd(*this, ctx);
+        return GenericSearchBwd(*this, ctx, invoke_ctx);
 }
 
 int ConvHipImplicitGemmBwdDataV1R1::RunAndMeasureSolution(miopen::Handle& profile_h,

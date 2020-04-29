@@ -163,15 +163,15 @@ int ConvHipImplicitGemmV4R1WrW::RunAndMeasureSolution(miopen::Handle& profile_h,
         profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
-PerformanceImplicitGemmV4R1
-ConvHipImplicitGemmV4R1Fwd::Search(const ConvolutionContext& context) const
+PerformanceImplicitGemmV4R1 ConvHipImplicitGemmV4R1Fwd::Search(const ConvolutionContext& context,
+                                                               const boost::any& invoke_ctx) const
 {
-    return GenericSearchFwd(*this, context);
+    return GenericSearchFwd(*this, context, invoke_ctx);
 }
-PerformanceImplicitGemmV4R1
-ConvHipImplicitGemmV4R1WrW::Search(const ConvolutionContext& context) const
+PerformanceImplicitGemmV4R1 ConvHipImplicitGemmV4R1WrW::Search(const ConvolutionContext& context,
+                                                               const boost::any& invoke_ctx) const
 {
-    return GenericSearchWrW(*this, context);
+    return GenericSearchWrW(*this, context, invoke_ctx);
 }
 
 ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
