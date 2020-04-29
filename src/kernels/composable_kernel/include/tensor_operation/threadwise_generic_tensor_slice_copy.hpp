@@ -149,13 +149,13 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
 
                 const auto src_coord = mSrcSliceOrigin + (long_vector_data_begin_id + scalar_id);
 
+                constexpr index_t BufferSize = SrcDesc::GetElementSpace() * sizeof(SrcData);
 #if !CK_USE_VECTOR_LOAD_WITH_PADDING
                 // Check src data's valid mapping situation, only check the first data in this src
                 //   vector. It's user's responsiblity to make sure all data in the src vector
                 //   has the valid/invalid mapping situation
                 if(src_coord.IsOffsetValidAssumingUpperIndexIsValid())
 #endif
-                    constexpr index_t BufferSize = SrcDesc::GetElementSpace() * sizeof(SrcData);
                 {
                     transfer_data<SrcData,
                                   SrcDataPerRead,
