@@ -108,7 +108,9 @@ struct BlockwiseGenericTensorSliceCopy_v4
         }
         else
         {
-            mThreadwiseLoad.Zero(p_thread_buffer);
+#if CK_USE_VECTOR_LOAD_WITH_PADDING
+            mThreadwiseLoad.FillZero(p_thread_buffer);
+#endif
             mThreadwiseStore.Run(p_thread_buffer, p_block_dst);
         }
     }

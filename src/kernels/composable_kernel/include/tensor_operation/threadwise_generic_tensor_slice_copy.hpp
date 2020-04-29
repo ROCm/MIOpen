@@ -68,7 +68,7 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
     }
 
     template <typename DstData>
-    __device__ void Zero(DstData* p_dst) const
+    __device__ void FillZero(DstData* p_dst) const
     {
         constexpr auto vector_access_dim = Number<SrcDstVectorReadWriteDim>{};
 
@@ -149,14 +149,22 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
 
                 const auto src_coord = mSrcSliceOrigin + (long_vector_data_begin_id + scalar_id);
 
-                constexpr index_t BufferSize = SrcDesc::GetElementSpace() * sizeof(SrcData);
-                transfer_data<SrcData,
-                              SrcDataPerRead,
-                              SrcAddressSpace,
-                              AddressSpace::Vgpr,
-                              InMemoryDataOperation::Set,
-                              BufferSize>(
-                    p_src, src_coord.GetOffset(), p_src_long_vector, buffer_offset);
+#if !CK_USE_VECTOR_LOAD_WITH_PADDING
+                // Check src data's valid mapping situation, only check the first data in this src
+                //   vector. It's user's responsiblity to make sure all data in the src vector
+                //   has the valid/invalid mapping situation
+                if(src_coord.IsOffsetValidAssumingUpperIndexIsValid())
+#endif
+                    constexpr index_t BufferSize = SrcDesc::GetElementSpace() * sizeof(SrcData);
+                {
+                    transfer_data<SrcData,
+                                  SrcDataPerRead,
+                                  SrcAddressSpace,
+                                  AddressSpace::Vgpr,
+                                  InMemoryDataOperation::Set,
+                                  BufferSize>(
+                        p_src, src_coord.GetOffset(), p_src_long_vector, buffer_offset);
+                }
             }
 
             // SrcData to DstData conversion
