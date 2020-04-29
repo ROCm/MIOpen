@@ -206,7 +206,7 @@ static bool PrintVersion()
     std::size_t major = 0;
     std::size_t minor = 0;
     (void)amd_comgr_get_version(&major, &minor);
-    MIOPEN_LOG_I("comgr v." << major << '.' << minor);
+    MIOPEN_LOG_NQI("comgr v." << major << '.' << minor);
     return true;
 }
 
