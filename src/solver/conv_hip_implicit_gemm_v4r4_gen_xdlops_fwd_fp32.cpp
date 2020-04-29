@@ -115,8 +115,6 @@ PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::CalculateGemmBBlockCopyPerformanceP
             ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
         const auto conv_stride_w =
             ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-        const auto conv_dilation_w =
-            ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
         const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
         const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
         const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
