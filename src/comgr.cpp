@@ -496,7 +496,6 @@ void BuildOcl(const std::string& name,
         MIOPEN_LOG_E("comgr status = " << GetStatusText(ex.status));
         if(!ex.text.empty())
             MIOPEN_LOG_W(ex.text);
-        MIOPEN_THROW(MIOPEN_GET_FN_NAME() + ": comgr status = " + GetStatusText(ex.status));
     }
 }
 
