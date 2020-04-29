@@ -315,6 +315,25 @@ class Dataset : ComgrOwner
     ~Dataset() { EC(amd_comgr_destroy_data_set(handle)); }
     auto operator()() const { return handle; }
     void AddData(const Data& d) const { EC_THROW(amd_comgr_data_set_add(handle, d())); }
+    void AddData(const std::string& name,
+                 const std::string& content,
+                 const amd_comgr_data_kind_t type) const
+    {
+        const Data d(type);
+        MIOPEN_LOG_I2(name << ' ' << content.size() << " bytes");
+        d.SetName(name);
+        d.SetBytes(content);
+        AddData(d);
+#if DEBUG_DETAILED_LOG
+        if(miopen::IsLogging(miopen::LoggingLevel::Info) && type == AMD_COMGR_DATA_KIND_SOURCE)
+        {
+            constexpr auto SHOW_FIRST = 1024;
+            const auto text_length    = (content.size() > SHOW_FIRST) ? SHOW_FIRST : content.size();
+            const std::string text(content, 0, text_length);
+            MIOPEN_LOG_I(text);
+        }
+#endif
+    }
     size_t GetDataCount(const amd_comgr_data_kind_t kind) const
     {
         std::size_t count = 0;
@@ -400,27 +419,6 @@ static std::string GetLog(const Dataset& dataset, const bool comgr_error_handlin
     return text;
 }
 
-static void DatasetAddData(const Dataset& dataset,
-                           const std::string& name,
-                           const std::string& content,
-                           const amd_comgr_data_kind_t type)
-{
-    const Data d(type);
-    MIOPEN_LOG_I2(name << ' ' << content.size() << " bytes");
-    d.SetName(name);
-    d.SetBytes(content);
-    dataset.AddData(d);
-#if DEBUG_DETAILED_LOG
-    if(miopen::IsLogging(miopen::LoggingLevel::Info) && type == AMD_COMGR_DATA_KIND_SOURCE)
-    {
-        constexpr auto SHOW_FIRST = 1024;
-        const auto text_length    = (content.size() > SHOW_FIRST) ? SHOW_FIRST : content.size();
-        const std::string text(content, 0, text_length);
-        MIOPEN_LOG_I(text);
-    }
-#endif
-}
-
 void BuildOcl(const std::string& name,
               const std::string& text,
               const std::string& options,
@@ -433,7 +431,7 @@ void BuildOcl(const std::string& name,
     try
     {
         const Dataset inputs;
-        DatasetAddData(inputs, name, text, AMD_COMGR_DATA_KIND_SOURCE);
+        inputs.AddData(name, text, AMD_COMGR_DATA_KIND_SOURCE);
         const ActionInfo action;
         action.SetLanguage(AMD_COMGR_LANGUAGE_OPENCL_2_0);
         const auto isaName = compiler::lc::GetIsaName(device);
