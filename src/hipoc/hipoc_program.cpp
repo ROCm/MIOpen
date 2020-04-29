@@ -183,6 +183,8 @@ struct HIPOCProgramImpl
 #else
             std::vector<char> binary;
             comgr::BuildOcl(filename, src, params, device, binary);
+            if(binary.empty())
+                MIOPEN_THROW("Code object build failed. Source: " + filename);
             WriteFile(binary, hsaco_file);
 #endif
         }
