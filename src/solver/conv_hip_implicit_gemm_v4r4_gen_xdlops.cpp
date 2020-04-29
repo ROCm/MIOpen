@@ -153,11 +153,10 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     {
         if(ctx.group_counts > 1)
         {
-            // For fp16 group cases, E = C/EPack * Y * X
-            // Since C/EPack are not in contiguous memory along with Y*X, vector length
-            // needs to be in multiple of Y*X
+            // For bfp16/fp16 group fwd cases, E = C/EPack * Y * X, where C/EPack are in
+            // continuous memory with Y*X because EPack is extracted from
             ABlockCopySrcDataPerRead_GemmK =
-                ((Y * X) % ABlockCopySubLengths_GemmK) != 0
+                (((C / config.EPACKSize) * Y * X) % ABlockCopySubLengths_GemmK) != 0
                     ? 1
                     : GetReadWriteVectorSize(ABlockCopySubLengths_GemmK);
         }
@@ -386,7 +385,7 @@ int ConvHipImplicitGemmV4R4GenWrWXdlops::RunAndMeasureSolution(miopen::Handle& p
 
 bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
-    if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
+    if(!(ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 
     if(!ctx.direction.IsForward())
