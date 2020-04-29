@@ -164,9 +164,9 @@ OpenCL support for immediate mode via the fallback is limited to fp32 datatypes.
 
 MIOpen provides a set of Find modes which are used to accelerate the Find calls. The different modes are set by using the environment variable `MIOPEN_FIND_MODE`, and setting it to one of the values:
 
-- `NORMAL`: Normal Find: This is the full Find mode call, which will benchmark all the solvers and return a list.
-- `FAST`: Fast Find: Checks the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html) for an entry. If there is a Find-Db hit, use that entry. If there is a miss, utilize the Immediate mode fallback. If Start-up times are expected to be faster, but worse GPU performance.
-- `HYBRID`: Hybrid Find: Checks the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html) for an entry. If there is a Find-Db hit, use that entry. If there is a miss, use the existing Find machinery. Slower start-up times but none GPU performance drop at all.
+- `NORMAL`, or `1`: Normal Find: This is the full Find mode call, which will benchmark all the solvers and return a list.
+- `FAST`, or `2`: Fast Find: Checks the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html) for an entry. If there is a Find-Db hit, use that entry. If there is a miss, utilize the Immediate mode fallback. If Start-up times are expected to be faster, but worse GPU performance.
+- `HYBRID`, or `3`: Hybrid Find: Checks the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html) for an entry. If there is a Find-Db hit, use that entry. If there is a miss, use the existing Find machinery. Slower start-up times than Fast Find, but no GPU performance drop.
 
  As of MIOpen 2.4, the default mode is set to `HYBRID` mode as default. To run the full `NORMAL` Find mode, set the environment as:
  ```
