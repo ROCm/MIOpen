@@ -44,6 +44,14 @@ KernDb::KernDb(const std::string& filename_,
       compress_fn(_compress_fn),
       decompress_fn(_decompress_fn)
 {
+    if(dbInvalid)
+    {
+        if(filename.empty())
+            MIOPEN_LOG_I("database not present");
+        else
+            MIOPEN_LOG_I(filename + " database invalid");
+        return;
+    }
     if(!is_system)
     {
         const auto lock = exclusive_lock(lock_file, GetLockTimeout());
@@ -53,23 +61,13 @@ KernDb::KernDb(const std::string& filename_,
             MIOPEN_THROW(miopenStatusInternalError);
         MIOPEN_LOG_I2("Database created successfully");
     }
-    if(!dbInvalid)
+    if(!CheckTableColumns(KernelConfig::table_name(), KernelConfig::FieldNames()))
     {
-        if(!CheckTableColumns(KernelConfig::table_name(), KernelConfig::FieldNames()))
-        {
-            std::ostringstream ss;
-            ss << "Invalid fields in table: " << KernelConfig::table_name()
-               << " disabling access to " << filename;
-            MIOPEN_LOG_W(ss.str());
-            dbInvalid = true;
-        }
-    }
-    else
-    {
-        if(filename.empty())
-            MIOPEN_LOG_I("database not present");
-        else
-            MIOPEN_LOG_I(filename + " database invalid");
+        std::ostringstream ss;
+        ss << "Invalid fields in table: " << KernelConfig::table_name()
+           << " disabling access to " << filename;
+        MIOPEN_LOG_W(ss.str());
+        dbInvalid = true;
     }
 }
 
