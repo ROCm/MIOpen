@@ -133,8 +133,6 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
         endif()
     endif()
 
-    set (HIP_CXX_COMPILER ${MIOPEN_HIP_COMPILER})
-
     # scgemm not support opencl backend yet.
     set(MIOPEN_USE_SCGEMM OFF)
 endif()
