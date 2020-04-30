@@ -50,6 +50,180 @@
 
 namespace miopen {
 
+class SQLite::impl
+{
+    struct SQLiteCloser
+    {
+        void operator()(sqlite3* ptr)
+        {
+            std::string filename_(sqlite3_db_filename(ptr, "main"));
+            SQLiteBase::SQLRety([&]() { return sqlite3_close(ptr); }, filename_);
+        }
+    };
+
+    public:
+    impl(const std::string& filename_)
+    {
+        sqlite3* ptr_tmp;
+        int rc = 0;
+        if(is_system)
+            rc = sqlite3_open_v2(filename_.c_str(), &ptr_tmp, SQLITE_OPEN_READONLY, nullptr);
+        else
+            rc = sqlite3_open_v2(
+                filename_.c_str(), &ptr_tmp, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
+        ptrDb   = sqlite3_ptr{ptr_tmp};
+        isValid = (rc == 0);
+    }
+    bool Exec(const std::string& query) const
+    {
+        MIOPEN_LOG_T(std::this_thread::get_id() << ":" << query);
+        auto rc = Retry([&]() {
+            return sqlite3_exec(ptrDb.get(), query.c_str(), find_callback, nullptr, nullptr);
+        });
+        if(rc != SQLITE_OK)
+        {
+            MIOPEN_LOG_I2(query);
+            MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
+            sqlite3_close(ptrDb.get());
+            return false;
+        }
+        return true;
+    }
+    bool Exec(const std::string& query, SQLRes_t& res) const
+    {
+        res.clear();
+        MIOPEN_LOG_T(std::this_thread::get_id() << ":" << query);
+        {
+            auto rc = Retry([&]() {
+                return sqlite3_exec(
+                    ptrDb.get(), query.c_str(), find_callback, static_cast<void*>(&res), nullptr);
+            });
+            if(rc != SQLITE_OK)
+            {
+                MIOPEN_LOG_I2(query);
+                MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
+                sqlite3_close(ptrDb.get());
+                return false;
+            }
+        }
+        return true;
+    }
+
+    static int find_callback(void* _res, int argc, char** argv, char** azColName)
+    {
+        SQLRes_t* res = static_cast<SQLRes_t*>(_res);
+        std::unordered_map<std::string, std::string> record;
+        for(auto i               = 0; i < argc; i++)
+            record[azColName[i]] = (argv[i] != nullptr) ? argv[i] : "NULL";
+        res->push_back(record);
+        return 0;
+    }
+    inline int Retry(std::function<int()> f) const { return SQLiteBase::SQLRety(f, filename); }
+
+    static inline int Retry(std::function<int()> f, std::string filename)
+    {
+        auto timeout_end = std::chrono::high_resolution_clock::now() +
+                           std::chrono::seconds(30); // TODO: make configurable
+        auto tries = 0;
+        while(true)
+        {
+            int rc = f();
+            if(rc == SQLITE_BUSY)
+            {
+                MIOPEN_LOG_I2("Database" + filename + "  busy, retrying ...");
+                ++tries;
+                if(tries > 50)
+                    std::this_thread::sleep_for(std::chrono::microseconds(100));
+                else
+                    std::this_thread::yield();
+            }
+            else
+                return rc;
+            if(std::chrono::high_resolution_clock::now() > timeout_end)
+                MIOPEN_THROW("Timeout while waiting for Database: " + filename);
+        }
+    }
+
+    int Changes() { return sqlite3_changes(ptrDb.get()); }
+
+    inline std::string ErrorMessage() const
+    {
+        std::string errMsg = "Internal error while accessing SQLite database: ";
+        return errMsg + sqlite3_errmsg(ptrDb.get());
+    }
+
+    protected:
+    using sqlite3_ptr = std::unique_ptr<sqlite3, SQLiteCloser>;
+    sqlite3_ptr ptrDb = nullptr;
+    bool isValid;
+};
+
+class SQLiteStmt::impl
+{
+    sqlite3_stmt_ptr Prepare(const SQL& sql, const std::string& query)
+    {
+        sqlite3_stmt* ptr = nullptr;
+        MIOPEN_LOG_I2(query);
+        auto rc =
+            sqlite3_prepare_v2(sql.pImpl->ptrDb.get(), query.c_str(), query.size(), &ptr, nullptr);
+        if(rc != SQLITE_OK)
+        {
+            std::string err_msg = "SQLite prepare error: ";
+            MIOPEN_THROW(miopenStatusInternalError, err_msg + sql.ErrorMessage());
+        }
+        return sqlite3_stmt_ptr{ptr};
+    }
+
+    public:
+    using sqlite3_stmt_ptr = MIOPEN_MANAGE_PTR(sqlite3_stmt*, sqlite3_finalize);
+    SQLiteStmt(const SQL& sql, const std::string& query) { ptrStmt = Prepare(sql, query); }
+    SQLiteStmt(const SQL& sql, const std::string& query, const std::vector<std::string>& vals)
+    {
+        ptrStmt = Prepare(sql, query);
+        int cnt = 1;
+        for(auto& kinder : values)
+        {
+            auto rc = sqlite3_bind_text(
+                stmt.get(), cnt++, kinder.data(), kinder.size(), SQLITE_TRANSIENT); // NOLINT
+            if(rc != SQLITE_OK)
+                MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
+        }
+        MIOPEN_LOG_I2("[" << JoinStrings(values, ",") << "]");
+    }
+
+    int Step()
+    {
+        return SQL::Retry([&]() { return sqlite3_step(ptrStmt.get()); });
+    }
+    std::string ColumnText(int idx)
+    {
+        return std::string{reinterpret_cast<const char*>(sqlite3_column_text(ptrStmt.get(), idx)),
+                           sqlite3_column_bytes(ptrStmt.get(), idx)};
+    }
+
+    std::string ColumnBlob(int idx)
+    {
+        auto ptr = sqlite3_column_blob(pStmt.get(), 0);
+        auto sz  = sqlite3_column_bytes(pStmt.get(), 0);
+        return std::string{reinterpret_cast<const char*>(ptr), sz};
+    }
+    int64_t ColumnInt64(int idx) { return sqlite3_column_int64(ptrStmt.get(), idx); }
+
+    int BindText(int idx, const std::string& txt)
+    {
+        sqlite3_bind_text(ptrStmt.get(), idx, txt.data(), txt.size(), SQLITE_TRANSIENT); // NOLINT
+        return 0;
+    }
+    int BindBlob(int idx, const std::string& blob)
+    {
+        sqlite3_bind_blob(ptrStmt.get(), idx, blob.data(), blob.size(), SQLITE_TRANSIENT); // NOLINT
+        return 0;
+    }
+
+    protected:
+    sqlite3_stmt_ptr ptrStmt = nullptr;
+};
+
 SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
                            bool is_system,
                            const std::string& arch_,
