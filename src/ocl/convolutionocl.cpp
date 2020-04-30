@@ -1094,7 +1094,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         }
     });
 }
-
 void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
                                         const ConvFwdTensors& tensors,
                                         Data_t workSpace,
@@ -4050,7 +4049,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                             float zero = 0.f;
                             SetTensor(handle, dwDesc, dw, &zero);
                             elapsed = handle.GetKernelTime();
-
                             kernel(x, dy, dw);
                             elapsed += handle.GetKernelTime();
                         }
