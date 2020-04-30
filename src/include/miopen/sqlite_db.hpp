@@ -457,6 +457,7 @@ Derived& SQLiteBase<Derived>::GetCached(const std::string& path,
 class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
 {
     public:
+    static constexpr char const* MIOPEN_PERFDB_SCHEMA_VER = "1.0.0";
     SQLitePerfDb(const std::string& filename_,
                  bool is_system,
                  const std::string& arch_,
