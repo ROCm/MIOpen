@@ -174,6 +174,9 @@ struct ProblemDescription
     int GetBackwardPadW() const { return kernel_size_w - pad_w - 1; }
     int GetBackwardPadH() const { return kernel_size_h - pad_h - 1; }
 
+    bool IsAsymmetricPadH() const { return conv_problem.IsAsymmetricPadH(); }
+    bool IsAsymmetricPadW() const { return conv_problem.IsAsymmetricPadW(); }
+
     bool Is2d() const { return spatial_dims == 2; }
     bool Is3d() const { return spatial_dims == 3; }
 
