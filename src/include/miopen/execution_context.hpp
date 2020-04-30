@@ -28,6 +28,7 @@
 
 #include <miopen/db_path.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/sqlite_db.hpp>
 
 #include <string>
 
@@ -100,9 +101,8 @@ struct ExecutionContext
         // clang-format off
         return GetUserDbPath()
 #if MIOPEN_ENABLE_SQLITE
-             + "/miopen.udb";
+             + "miopen_" + SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER + ".udb";
 #else
-             + "/"
              + GetStream().GetDbBasename()
              + "."
              + GetUserDbSuffix()
