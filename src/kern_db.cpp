@@ -64,8 +64,8 @@ KernDb::KernDb(const std::string& filename_,
     if(!CheckTableColumns(KernelConfig::table_name(), KernelConfig::FieldNames()))
     {
         std::ostringstream ss;
-        ss << "Invalid fields in table: " << KernelConfig::table_name()
-           << " disabling access to " << filename;
+        ss << "Invalid fields in table: " << KernelConfig::table_name() << " disabling access to "
+           << filename;
         MIOPEN_LOG_W(ss.str());
         dbInvalid = true;
     }
