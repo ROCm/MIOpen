@@ -57,7 +57,7 @@ class SQLite::impl
         void operator()(sqlite3* ptr)
         {
             std::string filename_(sqlite3_db_filename(ptr, "main"));
-            SQLiteBase::SQLRety([&]() { return sqlite3_close(ptr); }, filename_);
+            SQLite::Retry([&]() { return sqlite3_close(ptr); }, filename_);
         }
     };
 
@@ -118,9 +118,9 @@ class SQLite::impl
         res->push_back(record);
         return 0;
     }
-    inline int Retry(std::function<int()> f) const { return SQLiteBase::SQLRety(f, filename); }
+    int Retry(std::function<int()> f) const { return SQLiteBase::SQLRety(f, filename); }
 
-    static inline int Retry(std::function<int()> f, std::string filename)
+    static int Retry(std::function<int()> f, std::string filename) const
     {
         auto timeout_end = std::chrono::high_resolution_clock::now() +
                            std::chrono::seconds(30); // TODO: make configurable
@@ -144,9 +144,9 @@ class SQLite::impl
         }
     }
 
-    int Changes() { return sqlite3_changes(ptrDb.get()); }
+    int Changes() const { return sqlite3_changes(ptrDb.get()); }
 
-    inline std::string ErrorMessage() const
+    std::string ErrorMessage() const
     {
         std::string errMsg = "Internal error while accessing SQLite database: ";
         return errMsg + sqlite3_errmsg(ptrDb.get());
