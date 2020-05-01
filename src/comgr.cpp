@@ -36,18 +36,16 @@
 #include <tuple> // std::ignore
 #include <vector>
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_CALLS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_OPTIONS)
+/// Integer, set to max number of first characters
+/// you would like to log onto console.
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT)
+
 /// \todo see issue #1222, PR #1316
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 
-#define DEBUG_DETAILED_LOG 0
 #define COMPILER_LC 1
-
-#if DEBUG_DETAILED_LOG
-#define EC_BASE_DETAILED_INFO(comgrcall, info) \
-    MIOPEN_LOG_I("Ok \'" #comgrcall "\' " << to_string(info))
-#else
-#define EC_BASE_DETAILED_INFO(comgrcall, info)
-#endif
 
 #define EC_BASE(comgrcall, info, expr2)                                   \
     do                                                                    \
@@ -59,8 +57,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
                                                << GetStatusText(status)); \
             (expr2);                                                      \
         }                                                                 \
-        else                                                              \
-            EC_BASE_DETAILED_INFO((comgrcall), (info));                   \
+        else if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_CALLS{}))        \
+            MIOPEN_LOG_I("Ok \'" #comgrcall "\' " << to_string(info));    \
     } while(false)
 
 #define EC(comgrcall) EC_BASE(comgrcall, NoInfo, (void)0)
@@ -220,18 +218,14 @@ static std::string GetStatusText(const amd_comgr_status_t status)
 
 static void LogOptions(const char* options[], size_t count)
 {
-#if DEBUG_DETAILED_LOG
-    if(miopen::IsLogging(miopen::LoggingLevel::Info))
+    if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_OPTIONS{}) &&
+       miopen::IsLogging(miopen::LoggingLevel::Info))
     {
         std::ostringstream oss;
         for(std::size_t i = 0; i < count; ++i)
             oss << options[i] << '\t';
         MIOPEN_LOG_I(oss.str());
     }
-#else
-    std::ignore = options;
-    std::ignore = count;
-#endif
 }
 
 class Dataset;
@@ -324,15 +318,14 @@ class Dataset : ComgrOwner
         d.SetName(name);
         d.SetBytes(content);
         AddData(d);
-#if DEBUG_DETAILED_LOG
-        if(miopen::IsLogging(miopen::LoggingLevel::Info) && type == AMD_COMGR_DATA_KIND_SOURCE)
+        const auto show_first = miopen::Value(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT{}, 0);
+        if(show_first > 0 && miopen::IsLogging(miopen::LoggingLevel::Info) &&
+           type == AMD_COMGR_DATA_KIND_SOURCE)
         {
-            constexpr auto SHOW_FIRST = 1024;
-            const auto text_length    = (content.size() > SHOW_FIRST) ? SHOW_FIRST : content.size();
+            const auto text_length = (content.size() > show_first) ? show_first : content.size();
             const std::string text(content, 0, text_length);
             MIOPEN_LOG_I(text);
         }
-#endif
     }
     size_t GetDataCount(const amd_comgr_data_kind_t kind) const
     {
@@ -380,11 +373,9 @@ class ActionInfo : ComgrOwner
     void Do(const amd_comgr_action_kind_t kind, const Dataset& in, const Dataset& out) const
     {
         ECI_THROW_MSG(amd_comgr_do_action(kind, handle, in(), out()), kind, GetLog(out, true));
-#if DEBUG_DETAILED_LOG
         const auto log = GetLog(out);
         if(!log.empty())
-            MIOPEN_LOG_I(GetLog(out));
-#endif
+            MIOPEN_LOG_I(to_string(kind) << ": " << GetLog(out));
     }
 };
 
