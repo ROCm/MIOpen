@@ -11,6 +11,7 @@ typedef float float16_t __attribute__((ext_vector_type(16)));
 typedef float float32_t __attribute__((ext_vector_type(32)));
 
 // float16
+typedef _Float16 half_t;
 typedef _Float16 half2_t __attribute__((ext_vector_type(2)));
 typedef _Float16 half4_t __attribute__((ext_vector_type(4)));
 typedef _Float16 half8_t __attribute__((ext_vector_type(8)));
@@ -85,37 +86,37 @@ struct vector_type<float, 4>
 };
 
 template <>
-struct vector_type<half, 1>
+struct vector_type<half_t, 1>
 {
-    using MemoryType = half;
+    using MemoryType = half_t;
 
     template <index_t I>
-    __host__ __device__ static void SetScalar(MemoryType& v, half s, Number<I>)
+    __host__ __device__ static void SetScalar(MemoryType& v, half_t s, Number<I>)
     {
         static_assert(I < 1, "wrong");
-        *(reinterpret_cast<half*>(&v) + I) = s;
+        *(reinterpret_cast<half_t*>(&v) + I) = s;
     }
 };
 
 template <>
-struct vector_type<half, 2>
+struct vector_type<half_t, 2>
 {
     using MemoryType = half2_t;
 
     union DataType
     {
         MemoryType vector;
-        half scalar[2];
+        half_t scalar[2];
     };
 
     template <index_t I>
-    __host__ __device__ static void SetScalar(MemoryType& v, half s, Number<I>)
+    __host__ __device__ static void SetScalar(MemoryType& v, half_t s, Number<I>)
     {
         static_assert(I < 2, "wrong");
-        *(reinterpret_cast<half*>(&v) + I) = s;
+        *(reinterpret_cast<half_t*>(&v) + I) = s;
     }
 
-    __host__ __device__ static MemoryType Pack(half s0, half s1)
+    __host__ __device__ static MemoryType Pack(half_t s0, half_t s1)
     {
         DataType data;
         data.scalar[0] = s0;
@@ -125,24 +126,24 @@ struct vector_type<half, 2>
 };
 
 template <>
-struct vector_type<half, 4>
+struct vector_type<half_t, 4>
 {
     using MemoryType = half4_t;
 
     union DataType
     {
         MemoryType vector;
-        half scalar[4];
+        half_t scalar[4];
     };
 
     template <index_t I>
-    __host__ __device__ static void SetScalar(MemoryType& v, half s, Number<I>)
+    __host__ __device__ static void SetScalar(MemoryType& v, half_t s, Number<I>)
     {
         static_assert(I < 4, "wrong");
-        *(reinterpret_cast<half*>(&v) + I) = s;
+        *(reinterpret_cast<half_t*>(&v) + I) = s;
     }
 
-    __host__ __device__ static MemoryType Pack(half s0, half s1, half s2, half s3)
+    __host__ __device__ static MemoryType Pack(half_t s0, half_t s1, half_t s2, half_t s3)
     {
         DataType data;
         data.scalar[0] = s0;
@@ -154,21 +155,21 @@ struct vector_type<half, 4>
 };
 
 template <>
-struct vector_type<half, 8>
+struct vector_type<half_t, 8>
 {
     using MemoryType = half8_t;
 
     union DataType
     {
         MemoryType vector;
-        half scalar[8];
+        half_t scalar[8];
     };
 
     template <index_t I>
-    __host__ __device__ static void SetScalar(MemoryType& v, half s, Number<I>)
+    __host__ __device__ static void SetScalar(MemoryType& v, half_t s, Number<I>)
     {
         static_assert(I < 8, "wrong");
-        *(reinterpret_cast<half*>(&v) + I) = s;
+        *(reinterpret_cast<half_t*>(&v) + I) = s;
     }
 };
 
@@ -294,8 +295,8 @@ struct inner_product_with_conversion
 
     __device__ T operator()(half2_t a, half2_t b) const
     {
-        const half* p_a_half = reinterpret_cast<const half*>(&a);
-        const half* p_b_half = reinterpret_cast<const half*>(&b);
+        const half_t* p_a_half = reinterpret_cast<const half_t*>(&a);
+        const half_t* p_b_half = reinterpret_cast<const half_t*>(&b);
 
         T acc = 0;
         for(index_t v = 0; v < 2; ++v)
@@ -308,8 +309,8 @@ struct inner_product_with_conversion
 
     __device__ T operator()(half4_t a, half4_t b) const
     {
-        const half* p_a_half = reinterpret_cast<const half*>(&a);
-        const half* p_b_half = reinterpret_cast<const half*>(&b);
+        const half_t* p_a_half = reinterpret_cast<const half_t*>(&a);
+        const half_t* p_b_half = reinterpret_cast<const half_t*>(&b);
 
         T acc = 0;
         for(index_t v = 0; v < 4; ++v)

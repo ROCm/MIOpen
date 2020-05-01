@@ -36,7 +36,7 @@
 
 #if MIOPEN_USE_FP16 == 1
 #ifdef __HIP_PLATFORM_HCC__
-#define FLOAT half
+#define FLOAT _Float16
 #define FLOAT_ACCUM float
 #else
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
