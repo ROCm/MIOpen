@@ -172,7 +172,12 @@ class SQLite
         Statement(const SQLite& sql,
                   const std::string& query,
                   const std::vector<std::string>& vals);
+        Statement();
         ~Statement();
+        Statement(Statement&&);
+        Statement(const Statement&) = delete;
+        Statement& operator         =(Statement&&);
+        Statement& operator=(const Statement&) = delete;
         int Step(const SQLite& sql);
         std::string ColumnText(int idx);
         std::string ColumnBlob(int idx);
@@ -183,13 +188,18 @@ class SQLite
     };
 
     using SQLRes_t = std::vector<std::unordered_map<std::string, std::string>>;
-    SQLite() : pImpl(nullptr) {}
+    SQLite();
     SQLite(const std::string& filename_, bool is_system);
     ~SQLite();
+    SQLite(SQLite&&);
+    SQLite(const SQLite&) = delete;
+    SQLite& operator      =(SQLite&&);
+    SQLite& operator=(const SQLite&) = delete;
     bool Valid();
     bool Exec(const std::string& query, SQLRes_t& res) const;
     bool Exec(const std::string& query) const;
     int Changes() const;
+    int Retry(std::function<int()>) const;
     std::string ErrorMessage() const;
 };
 

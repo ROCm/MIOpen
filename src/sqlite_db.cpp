@@ -146,7 +146,7 @@ class SQLite::impl
     int Retry(std::function<int()> f) const
     {
         std::string filename(sqlite3_db_filename(ptrDb.get(), "main"));
-        return SQLite::Retry(f, filename);
+        return SQLite::impl::Retry(f, filename);
     }
 
     int Changes() const { return sqlite3_changes(ptrDb.get()); }
@@ -189,11 +189,11 @@ class SQLite::Statement::impl
         for(auto& kinder : vals)
         {
             auto rc = sqlite3_bind_text(
-                stmt.get(), cnt++, kinder.data(), kinder.size(), SQLITE_TRANSIENT); // NOLINT
+                ptrStmt.get(), cnt++, kinder.data(), kinder.size(), SQLITE_TRANSIENT); // NOLINT
             if(rc != SQLITE_OK)
                 MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
         }
-        MIOPEN_LOG_I2("[" << JoinStrings(values, ",") << "]");
+        MIOPEN_LOG_I2("[" << JoinStrings(vals, ",") << "]");
     }
 
     int Step(const SQLite& sql)
@@ -202,15 +202,16 @@ class SQLite::Statement::impl
     }
     std::string ColumnText(int idx)
     {
+        auto bytes = sqlite3_column_bytes(ptrStmt.get(), idx);
         return std::string{reinterpret_cast<const char*>(sqlite3_column_text(ptrStmt.get(), idx)),
-                           sqlite3_column_bytes(ptrStmt.get(), idx)};
+                           bytes};
     }
 
     std::string ColumnBlob(int idx)
     {
-        auto ptr = sqlite3_column_blob(pStmt.get(), 0);
-        auto sz  = sqlite3_column_bytes(pStmt.get(), 0);
-        return std::string{reinterpret_cast<const char*>(ptr), sz};
+        auto ptr = sqlite3_column_blob(ptrStmt.get(), idx);
+        auto sz  = sqlite3_column_bytes(ptrStmt.get(), idx);
+        return std::string{reinterpret_cast<const char*>(ptr), static_cast<size_t>(sz)};
     }
     int64_t ColumnInt64(int idx) { return sqlite3_column_int64(ptrStmt.get(), idx); }
 
@@ -239,14 +240,18 @@ SQLite::SQLite(const std::string& filename_, bool is_system)
     : pImpl{std::make_unique<impl>(filename_, is_system)}
 {
 }
-SQLite::~SQLite() = default;
+SQLite::SQLite() : pImpl(nullptr) {}
+SQLite::~SQLite()        = default;
+SQLite::SQLite(SQLite&&) = default;
+SQLite& SQLite::operator=(SQLite&&) = default;
+
 bool SQLite::Exec(const std::string& query) const { return pImpl->Exec(query); }
 
 bool SQLite::Exec(const std::string& query, SQLRes_t& res) const { return pImpl->Exec(query, res); }
 
 int SQLite::Changes() const { return pImpl->Changes(); }
-
-std::string SQLite::ErrorMessage() { return pImpl->ErrorMessage(); }
+int SQLite::Retry(std::function<int()> f) const { return pImpl->Retry(f); }
+std::string SQLite::ErrorMessage() const { return pImpl->ErrorMessage(); }
 
 SQLite::Statement::Statement(const SQLite& sql, const std::string& query)
     : pImpl{std::make_unique<impl>(sql, query)}
@@ -272,6 +277,11 @@ int SQLite::Statement::BindText(int idx, const std::string& txt)
     return pImpl->BindText(idx, txt);
 }
 
+SQLite::Statement::Statement() : pImpl{nullptr} {}
+SQLite::Statement::~Statement()               = default;
+SQLite::Statement::Statement(Statement&&)     = default;
+SQLite::Statement& SQLite::Statement::operator=(Statement&&) = default;
+
 int SQLite::Statement::BindBlob(int idx, const std::string& blob)
 {
     return pImpl->BindBlob(idx, blob);
@@ -291,7 +301,7 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
     prob_desc.weights_data_type = miopenFloat;
     if(!is_system)
     {
-        SQLRes_t res;
+        SQLite::SQLRes_t res;
         const std::string create_config = prob_desc.CreateQuery();
         // clang-format off
         const std::string create_perfdb_sql =
@@ -324,7 +334,7 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
         {
             const auto lock = exclusive_lock(lock_file, GetLockTimeout());
             MIOPEN_VALIDATE_LOCK(lock);
-            if(!SQLExec(create_config + create_perfdb_sql))
+            if(!sql.Exec(create_config + create_perfdb_sql))
                 MIOPEN_THROW(miopenStatusInternalError);
             MIOPEN_LOG_I2("Database created successfully");
         }
