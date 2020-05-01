@@ -195,7 +195,7 @@ class SQLite
     SQLite(const SQLite&) = delete;
     SQLite& operator      =(SQLite&&);
     SQLite& operator=(const SQLite&) = delete;
-    bool Valid();
+    bool Valid() const;
     bool Exec(const std::string& query, SQLRes_t& res) const;
     bool Exec(const std::string& query) const;
     int Changes() const;

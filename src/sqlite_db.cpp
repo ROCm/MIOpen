@@ -202,7 +202,7 @@ class SQLite::Statement::impl
     }
     std::string ColumnText(int idx)
     {
-        auto bytes = sqlite3_column_bytes(ptrStmt.get(), idx);
+        size_t bytes = sqlite3_column_bytes(ptrStmt.get(), idx);
         return std::string{reinterpret_cast<const char*>(sqlite3_column_text(ptrStmt.get(), idx)),
                            bytes};
     }
@@ -252,7 +252,7 @@ bool SQLite::Exec(const std::string& query, SQLRes_t& res) const { return pImpl-
 int SQLite::Changes() const { return pImpl->Changes(); }
 int SQLite::Retry(std::function<int()> f) const { return pImpl->Retry(f); }
 std::string SQLite::ErrorMessage() const { return pImpl->ErrorMessage(); }
-
+bool SQLite::Valid() const { return pImpl->isValid; }
 SQLite::Statement::Statement(const SQLite& sql, const std::string& query)
     : pImpl{std::make_unique<impl>(sql, query)}
 {
@@ -264,6 +264,9 @@ SQLite::Statement::Statement(const SQLite& sql,
 {
 }
 SQLite::Statement::~Statement() = default;
+SQLite::Statement::Statement() : pImpl{nullptr} {}
+SQLite::Statement::Statement(Statement&&)     = default;
+SQLite::Statement& SQLite::Statement::operator=(Statement&&) = default;
 int SQLite::Statement::Step(const SQLite& sql) { return pImpl->Step(sql); }
 
 std::string SQLite::Statement::ColumnText(int idx) { return pImpl->ColumnText(idx); }
@@ -276,11 +279,6 @@ int SQLite::Statement::BindText(int idx, const std::string& txt)
 {
     return pImpl->BindText(idx, txt);
 }
-
-SQLite::Statement::Statement() : pImpl{nullptr} {}
-SQLite::Statement::~Statement()               = default;
-SQLite::Statement::Statement(Statement&&)     = default;
-SQLite::Statement& SQLite::Statement::operator=(Statement&&) = default;
 
 int SQLite::Statement::BindBlob(int idx, const std::string& blob)
 {
