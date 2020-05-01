@@ -405,6 +405,7 @@ static std::string GetLog(const Dataset& dataset, const bool comgr_error_handlin
     {
         if(comgr_error_handling)
             return {"comgr error: failed to get error log"};
+        // deepcode ignore EmptyThrowOutsideCatch: false positive
         throw;
     }
     return text;
