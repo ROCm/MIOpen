@@ -347,8 +347,11 @@ class SQLiteBase
 
     inline std::string SQLErrorMessage() const
     {
-        std::string errMsg = "Internal error while accessing SQLite database: ";
-        return errMsg + sqlite3_errmsg(ptrDb.get());
+        std::ostringstream ss;
+        ss << "Internal error while accessing SQLite database: ";
+        ss << sqlite3_errstr(sqlite3_errcode(ptrDb.get())) << ":";
+        ss << sqlite3_errmsg(ptrDb.get());
+        return ss.str();
     }
 
     auto Prepare(const std::string& query) const
