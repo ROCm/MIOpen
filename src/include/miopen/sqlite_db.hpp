@@ -159,7 +159,15 @@ template <typename Derived>
 class SQLiteBase
 {
     protected:
-    using sqlite3_ptr      = MIOPEN_MANAGE_PTR(sqlite3*, sqlite3_close);
+    struct SQLiteCloser
+    {
+        void operator()(sqlite3* ptr)
+        {
+            std::string filename_(sqlite3_db_filename(ptr, "main"));
+            SQLiteBase::SQLRety([&]() { return sqlite3_close(ptr); }, filename_);
+        }
+    };
+    using sqlite3_ptr      = std::unique_ptr<sqlite3, SQLiteCloser>;
     using exclusive_lock   = boost::unique_lock<LockFile>;
     using shared_lock      = boost::shared_lock<LockFile>;
     using sqlite3_stmt_ptr = MIOPEN_MANAGE_PTR(sqlite3_stmt*, sqlite3_finalize);
@@ -180,6 +188,13 @@ class SQLiteBase
     {
         MIOPEN_LOG_I2("Initializing " << (is_system ? "system" : "user") << " database file "
                                       << filename);
+
+        if(filename.empty())
+        {
+            dbInvalid = true;
+            return;
+        }
+
         if(!is_system && !filename.empty())
         {
             auto file            = boost::filesystem::path(filename_);
@@ -302,6 +317,12 @@ class SQLiteBase
     template <class F>
     inline int SQLRety(F f) const
     {
+        return SQLiteBase::SQLRety(f, filename);
+    }
+
+    template <class F>
+    static inline int SQLRety(F f, std::string filename)
+    {
         auto timeout_end = std::chrono::high_resolution_clock::now() +
                            std::chrono::seconds(30); // TODO: make configurable
         auto tries = 0;
@@ -326,8 +347,11 @@ class SQLiteBase
 
     inline std::string SQLErrorMessage() const
     {
-        std::string errMsg = "Internal error while accessing SQLite database: ";
-        return errMsg + sqlite3_errmsg(ptrDb.get());
+        std::ostringstream ss;
+        ss << "Internal error while accessing SQLite database: ";
+        ss << sqlite3_errstr(sqlite3_errcode(ptrDb.get())) << ":";
+        ss << sqlite3_errmsg(ptrDb.get());
+        return ss.str();
     }
 
     auto Prepare(const std::string& query) const
@@ -436,6 +460,7 @@ Derived& SQLiteBase<Derived>::GetCached(const std::string& path,
 class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
 {
     public:
+    static constexpr char const* MIOPEN_PERFDB_SCHEMA_VER = "1.0.0";
     SQLitePerfDb(const std::string& filename_,
                  bool is_system,
                  const std::string& arch_,
