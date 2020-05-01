@@ -42,6 +42,7 @@ template <index_t GridSize,
           index_t BBlockCopySrcDataPerRead,
           index_t BBlockCopyDstDataPerWrite_N,
           InMemoryDataOperation CGlobalMemoryDataOperation,
+          index_t ABlockCopySrcDataStride = 1,
           index_t BBlockCopySrcDataStride = 1>
 struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
 {
@@ -109,8 +110,9 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
                                                AddressSpace::Global,
                                                AddressSpace::Vgpr,
                                                AddressSpace::Lds,
-                                               InMemoryDataOperation::Set>(
-                {0, m_block_data_on_global}, {0, 0});
+                                               InMemoryDataOperation::Set,
+                                               ABlockCopySrcDataStride>({0, m_block_data_on_global},
+                                                                        {0, 0});
 
         constexpr auto b_k_n_block_desc = make_native_tensor_descriptor_aligned(
             Sequence<KPerBlock, NPerBlock>{}, Number<max_align>{});
