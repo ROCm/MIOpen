@@ -98,8 +98,13 @@ struct ExecutionContext
 
     std::string GetUserPerfDbPath() const
     {
+        // an empty user-db path indicates user intent to disable
+        // the database. Default in when dev builds are on
         // clang-format off
-        return GetUserDbPath()
+	auto udb = GetUserDbPath();
+	if(udb.empty())
+		return "";
+        return udb
 #if MIOPEN_ENABLE_SQLITE
              + "miopen_" + SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER + ".udb";
 #else
