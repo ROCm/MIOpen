@@ -116,6 +116,7 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                 if(src_coord.IsOffsetValidAssumingUpperIndexIsValid())
                 {
                     static_if<SrcDataStride == 2>{}([&](auto) {
+                        const auto src_offset = src_coord.GetOffset();
                         for(index_t j = 0; j < SrcDataPerRead; j++)
                         {
                             transfer_data<SrcData,
@@ -123,7 +124,7 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                                           SrcAddressSpace,
                                           AddressSpace::Vgpr,
                                           InMemoryDataOperation::Set>(p_src,
-                                                                      src_coord.GetOffset() +
+                                                                      src_offset +
                                                                           j * SrcDataStride,
                                                                       p_src_long_vector,
                                                                       buffer_offset + j);
