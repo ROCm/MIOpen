@@ -236,6 +236,15 @@ struct ProblemDescription
     std::size_t GetBackwardPadW() const { return GetWeightsWidth() - GetPadW() - 1; }
     std::size_t GetBackwardPadH() const { return GetWeightsHeight() - GetPadW() - 1; }
 
+    bool IsAsymmetricPadH() const
+    {
+        return conv.paddingMode == miopenPaddingSame && (GetWeightsHeight() % 2) == 0;
+    }
+    bool IsAsymmetricPadW() const
+    {
+        return conv.paddingMode == miopenPaddingSame && (GetWeightsWidth() % 2) == 0;
+    }
+
     bool Is2d() const { return GetSpatialDims() == 2; }
 
     bool IsFp32() const
