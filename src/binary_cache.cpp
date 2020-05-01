@@ -60,9 +60,9 @@ boost::filesystem::path ComputeUserCachePath()
 #ifdef MIOPEN_CACHE_DIR
     std::string cache_dir = MIOPEN_CACHE_DIR;
 
-    std::string version = std::to_string(MIOPEN_VERSION_MAJOR) + "." +
-                          std::to_string(MIOPEN_VERSION_MINOR) + "." +
-                          std::to_string(MIOPEN_VERSION_PATCH);
+    std::string version =
+        std::to_string(MIOPEN_VERSION_MAJOR) + "." + std::to_string(MIOPEN_VERSION_MINOR) + "." +
+        std::to_string(MIOPEN_VERSION_PATCH) + "." + MIOPEN_STRINGIZE(MIOPEN_VERSION_TWEAK);
 
     auto p = boost::filesystem::path{miopen::ExpandUser(cache_dir)} / version;
     if(!boost::filesystem::exists(p))

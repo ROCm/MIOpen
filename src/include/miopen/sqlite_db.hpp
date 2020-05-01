@@ -347,8 +347,11 @@ class SQLiteBase
 
     inline std::string SQLErrorMessage() const
     {
-        std::string errMsg = "Internal error while accessing SQLite database: ";
-        return errMsg + sqlite3_errmsg(ptrDb.get());
+        std::ostringstream ss;
+        ss << "Internal error while accessing SQLite database: ";
+        ss << sqlite3_errstr(sqlite3_errcode(ptrDb.get())) << ":";
+        ss << sqlite3_errmsg(ptrDb.get());
+        return ss.str();
     }
 
     auto Prepare(const std::string& query) const
@@ -457,6 +460,7 @@ Derived& SQLiteBase<Derived>::GetCached(const std::string& path,
 class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
 {
     public:
+    static constexpr char const* MIOPEN_PERFDB_SCHEMA_VER = "1.0.0";
     SQLitePerfDb(const std::string& filename_,
                  bool is_system,
                  const std::string& arch_,
