@@ -117,8 +117,8 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set(MIOPEN_BACKEND_OPENCL 1)
     find_package( OpenCL REQUIRED )
     find_program(MIOPEN_HIP_COMPILER hcc
-        PATH_SUFFIXES bin
-        PATHS /opt/rocm
+            PATH_SUFFIXES bin
+            PATHS /opt/rocm
     )
     set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
     if(MIOPEN_HIP_COMPILER)
@@ -131,8 +131,8 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
         if(MIOPEN_HIP_COMPILER)
             message("hip compiler: ${MIOPEN_HIP_COMPILER}")
         else()
-        message(FATAL_ERROR "hip compiler not found")
-    endif()
+            message(FATAL_ERROR "hip compiler not found")
+        endif()
     endif()
 
     set (HIP_CXX_COMPILER ${MIOPEN_HIP_COMPILER})
@@ -250,7 +250,7 @@ message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 
 # miopengemm
 if(MIOPEN_USE_MIOPENGEMM)
-    find_package(miopengemm REQUIRED PATHS /opt/rocm)
+    find_package(miopengemm PATHS /opt/rocm)
     if(miopengemm_FOUND)
         message(STATUS "Build with miopengemm")
         set(MIOPEN_USE_MIOPENGEMM 1)
