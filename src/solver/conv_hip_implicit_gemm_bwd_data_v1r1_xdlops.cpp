@@ -23,11 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cstddef>
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
+#include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/solver.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
+
 #include "implicitgemm_util.hpp"
+
+#include <cstddef>
 
 namespace miopen {
 namespace solver {
@@ -283,6 +286,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
             std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") + std::to_string(GemmBBlockCopyDstDataPerWrite_GemmKPACK);
     }
 
+    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
     result.construction_params.push_back(construction_parameters);
     return result;
 }

@@ -24,13 +24,15 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
+#include <miopen/solver.hpp>
+
+#include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
-#include "miopen/stringutils.hpp"
-#include "implicitgemm_util.hpp"
-#include "miopen/implicitgemm_params.hpp"
-#include "miopen/hip_build_utils.hpp"
+#include <miopen/stringutils.hpp>
+#include <miopen/implicitgemm_params.hpp>
+#include <miopen/hip_build_utils.hpp>
+
 #include "implicitgemm_util.hpp"
 
 #define WORKAROUND_ISSUE_2174_2222_2224_2243 1
@@ -356,6 +358,9 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         ctx.general_compile_options;
     // clang-format on
+
+    if(ctx.direction.IsForward() || ctx.direction.IsBackwardData())
+        result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
 
     result.construction_params.push_back(construction_parameters);
     return result;
