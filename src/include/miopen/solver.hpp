@@ -119,16 +119,6 @@ struct SolverBase
     /// Searchable solvers provide a GetSolution that takes a Context and PerformanceConfig
     /// ConvSolution GetSolution(const ConvolutionContext& params,
     ///                          const PerformanceConfig& config) const;
-
-    /// Temporary solver-specific method until we have generic means for running solutions.
-    /// int RunAndMeasureSolution(miopen::Handle& profile_h,
-    ///                          Data_t bot_ocl_buf,
-    ///                          Data_t top_ocl_buf,
-    ///                          Data_t wei_ocl_buf,
-    ///                          Data_t bias_ocl_buf,
-    ///                          const ConvolutionContext& params,
-    ///                          const ConvSolution& solution,
-    ///                          float& elapsed_time) const;
 };
 
 struct PerformanceConfigConvAsm3x3U : Serializable<PerformanceConfigConvAsm3x3U>
@@ -168,15 +158,6 @@ struct ConvAsm3x3U : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsm3x3U& config,
                              bool disableConfigOverrideFromEnv = false) const;
-    template <typename B, typename T>
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              B bot_ocl_buf,
-                              T top_ocl_buf,
-                              ConstData_t wei_ocl_buf,
-                              ConstData_t bias_ocl_buf,
-                              const ConvolutionContext& params,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 };
 
 struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
@@ -245,15 +226,6 @@ struct ConvAsm1x1U : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsm1x1U& config,
                              bool disableConfigOverrideFromEnv = false) const;
-    template <typename B, typename T>
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              B bot_ocl_buf,
-                              T top_ocl_buf,
-                              ConstData_t wei_ocl_buf,
-                              ConstData_t bias_ocl_buf,
-                              const ConvolutionContext& params,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 };
 
 struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
@@ -270,15 +242,6 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
 struct ConvBiasActivAsm1x1U : ConvAsm1x1U
 {
     PerformanceConfigConvBiasActivAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const;
-    template <typename B, typename T>
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              B bot_ocl_buf,
-                              T top_ocl_buf,
-                              ConstData_t wei_ocl_buf,
-                              ConstData_t bias_ocl_buf,
-                              const ConvolutionContext& params,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 
     PerformanceConfigConvBiasActivAsm1x1U Search(const ConvolutionContext&,
                                                  const boost::any& invoke_ctx) const;
@@ -355,15 +318,6 @@ struct ConvAsm1x1UV2 : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsm1x1UV2& config,
                              bool disableConfigOverrideFromEnv = false) const;
-    template <typename B, typename T>
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              B bot_ocl_buf,
-                              T top_ocl_buf,
-                              ConstData_t wei_ocl_buf,
-                              ConstData_t bias_ocl_buf,
-                              const ConvolutionContext& params,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 };
 
 struct ConvAsm5x10u2v2f1 : SolverBase<ConvolutionContext>
@@ -685,14 +639,6 @@ struct ConvHipImplicitGemmV4R1Fwd : SolverBase<ConvolutionContext>
 
     PerformanceImplicitGemmV4R1 Search(const ConvolutionContext&,
                                        const boost::any& invoke_ctx) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 };
 
 struct ConvHipImplicitGemmV4R4Fwd : SolverBase<ConvolutionContext>
@@ -704,14 +650,6 @@ struct ConvHipImplicitGemmV4R4Fwd : SolverBase<ConvolutionContext>
                                   const PerformanceImplicitGemmV4R4Fwd& config) const;
     PerformanceImplicitGemmV4R4Fwd Search(const ConvolutionContext&,
                                           const boost::any& invoke_ctx) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmV4R4Fwd& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -728,14 +666,6 @@ struct ConvHipImplicitGemmV4Fwd : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 
     PerformanceImplicitGemm Search(const ConvolutionContext&, const boost::any& invoke_ctx) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 };
 
 struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
@@ -796,14 +726,6 @@ struct ConvHipImplicitGemmV4R4GenXdlopsFwdFp32 : SolverBase<ConvolutionContext>
 
     PerformanceImplicitGemmV4R4GenXdlopsFwdFp32 Search(const ConvolutionContext&,
                                                        const boost::any& invoke_ctx) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 };
 
 struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlops>
@@ -870,14 +792,6 @@ struct ConvHipImplicitGemmV4R4FwdXdlops : SolverBase<ConvolutionContext>
 
     PerformanceImplicitGemmXdlops Search(const ConvolutionContext&,
                                          const boost::any& invoke_ctx) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 };
 
 struct ConvHipImplicitGemmV4R4Xdlops_1x1 : SolverBase<ConvolutionContext>
@@ -892,14 +806,6 @@ struct ConvHipImplicitGemmV4R4Xdlops_1x1 : SolverBase<ConvolutionContext>
 
     PerformanceImplicitGemmXdlops Search(const ConvolutionContext&,
                                          const boost::any& invoke_ctx) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 };
 
 struct ConvHipImplicitGemmV4R4WrWXdlops : SolverBase<ConvolutionContext>
@@ -914,14 +820,6 @@ struct ConvHipImplicitGemmV4R4WrWXdlops : SolverBase<ConvolutionContext>
 
     PerformanceImplicitGemmXdlops Search(const ConvolutionContext&,
                                          const boost::any& invoke_ctx) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              ConstData_t top_buf,
-                              Data_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 };
 
 struct ConvHipImplicitGemmV4R4GenFwdXdlops : SolverBase<ConvolutionContext>
@@ -936,14 +834,6 @@ struct ConvHipImplicitGemmV4R4GenFwdXdlops : SolverBase<ConvolutionContext>
 
     PerformanceImplicitGemmXdlops Search(const ConvolutionContext&,
                                          const boost::any& invoke_ctx) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 };
 
 struct ConvHipImplicitGemmV4R4GenWrWXdlops : SolverBase<ConvolutionContext>
@@ -959,14 +849,6 @@ struct ConvHipImplicitGemmV4R4GenWrWXdlops : SolverBase<ConvolutionContext>
 
     PerformanceImplicitGemmXdlops Search(const ConvolutionContext&,
                                          const boost::any& invoke_ctx) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              ConstData_t top_buf,
-                              Data_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 };
 
 struct ConvHipImplicitGemmV4_1x1 : SolverBase<ConvolutionContext>
@@ -980,14 +862,6 @@ struct ConvHipImplicitGemmV4_1x1 : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 
     PerformanceImplicitGemm Search(const ConvolutionContext&, const boost::any& invoke_ctx) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 };
 
 struct ConvHipImplicitGemmV4R1WrW : SolverBase<ConvolutionContext>
@@ -1002,14 +876,6 @@ struct ConvHipImplicitGemmV4R1WrW : SolverBase<ConvolutionContext>
 
     PerformanceImplicitGemmV4R1 Search(const ConvolutionContext&,
                                        const boost::any& invoke_ctx) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              ConstData_t top_buf,
-                              Data_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 };
 
 struct ConvHipImplicitGemmV4WrW : SolverBase<ConvolutionContext>
@@ -1023,14 +889,6 @@ struct ConvHipImplicitGemmV4WrW : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 
     PerformanceImplicitGemm Search(const ConvolutionContext&, const boost::any& invoke_ctx) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              ConstData_t top_buf,
-                              Data_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 };
 
 struct ConvHipImplicitGemmBwdDataV1R1 : SolverBase<ConvolutionContext>
@@ -1042,14 +900,6 @@ struct ConvHipImplicitGemmBwdDataV1R1 : SolverBase<ConvolutionContext>
                                   const PerformanceImplicitGemmBwdDataV1R1& config) const;
     PerformanceImplicitGemmBwdDataV1R1 Search(const ConvolutionContext&,
                                               const boost::any& invoke_ctx) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmBwdDataV1R1& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -1066,14 +916,6 @@ struct ConvHipImplicitGemmBwdDataV4R1 : SolverBase<ConvolutionContext>
                                   const PerformanceImplicitGemmBwdDataV4R1& config) const;
     PerformanceImplicitGemmBwdDataV4R1 Search(const ConvolutionContext&,
                                               const boost::any& invoke_ctx) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmBwdDataV4R1& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -1091,14 +933,6 @@ struct ConvHipImplicitGemmBwdDataV1R1Xdlops : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
     PerformanceImplicitGemmXdlops Search(const ConvolutionContext&,
                                          const boost::any& invoke_ctx) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 };
 
 /// Holds common member functions for the Solvers which share the same
@@ -1200,16 +1034,6 @@ struct ConvBinWinogradRxSf2x3 : SolverBase<ConvolutionContext>
         assert(group_conv != 0);
         return grid_group_size / group_conv;
     }
-
-    template <typename B, typename T, typename TW>
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              B bot_ocl_buf,
-                              T top_ocl_buf,
-                              TW wei_ocl_buf,
-                              ConstData_t bias_ocl_buf,
-                              const ConvolutionContext& config,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 };
 
 struct ConvBinWinogradRxSFused : SolverBase<ConvolutionContext>
@@ -1321,15 +1145,6 @@ struct ConvAsmBwdWrW3x3 : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigAsmDirect3x3WrW& config,
                              bool disableConfigOverrideFromEnv = false) const;
-    template <typename B, typename T>
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              B bot_ocl_buf,
-                              T top_ocl_buf,
-                              Data_t wei_ocl_buf,
-                              ConstData_t bias_ocl_buf,
-                              const ConvolutionContext& params,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 };
 
 struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsmBwdWrW1x1>
@@ -1435,14 +1250,6 @@ struct ConvAsmBwdWrW1x1 : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsmBwdWrW1x1& config,
                              bool disableConfigOverrideFromEnv = false) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_ocl_buf,
-                              ConstData_t top_ocl_buf,
-                              Data_t wei_ocl_buf,
-                              ConstData_t bias_ocl_buf,
-                              const ConvolutionContext& params,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 };
 
 /// N_BATCH_LOOPS - {1,2,4,8,16} Num batches processed in single workitem.
@@ -1520,28 +1327,9 @@ struct ConvOclBwdWrW2 : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config,
                              bool disableConfigOverrideFromEnv = false) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_ocl_buf,
-                              ConstData_t top_ocl_buf,
-                              Data_t wei_ocl_buf,
-                              ConstData_t bias_ocl_buf,
-                              const ConvolutionContext& context,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 
     protected:
     bool IsApplicableBase(const ConvolutionContext& params) const;
-
-    private:
-    template <typename Tgpu>
-    int RunAndMeasureSolutionImpl(miopen::Handle& profile_h,
-                                  ConstData_t bot_ocl_buf,
-                                  ConstData_t top_ocl_buf,
-                                  Data_t wei_ocl_buf,
-                                  ConstData_t bias_ocl_buf,
-                                  const ConvolutionContext& context,
-                                  const ConvSolution& solution,
-                                  float& elapsed_time) const;
 };
 
 extern template struct ConvOclBwdWrW2<1>;
@@ -1616,15 +1404,6 @@ struct ConvSCGemmFGemm : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigSCGemmFwd<SCGemmOpFGemm>& config,
                              bool disableConfigOverrideFromEnv = false) const;
-    template <typename B, typename TopT>
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              B bot_ocl_buf,
-                              TopT top_ocl_buf,
-                              ConstData_t wei_ocl_buf,
-                              ConstData_t bias_ocl_buf,
-                              const ConvolutionContext& params,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
     size_t GetWorkspaceSize(const ConvolutionContext& params) const;
 };
 
