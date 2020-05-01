@@ -140,9 +140,10 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     # scgemm not support opencl backend yet.
     set(MIOPEN_USE_SCGEMM OFF)
 
-    # Disable comgr for now for OCL backend.
     # TODO (priority_low) Use to build HIP and ASM kernels.
-    set(MIOPEN_USE_COMGR Off)
+    if(MIOPEN_USE_COMGR)
+        message(FATAL_ERROR "comgr cannot be used with OpenCL backend")
+    endif()
 endif()
 
 
@@ -249,7 +250,7 @@ message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 
 # miopengemm
 if(MIOPEN_USE_MIOPENGEMM)
-    find_package(miopengemm PATHS /opt/rocm)
+    find_package(miopengemm REQUIRED PATHS /opt/rocm)
     if(miopengemm_FOUND)
         message(STATUS "Build with miopengemm")
         set(MIOPEN_USE_MIOPENGEMM 1)
@@ -263,15 +264,8 @@ else()
 endif()
 
 if(MIOPEN_USE_COMGR)
-    find_package(amd_comgr CONFIG)
-    if(amd_comgr_FOUND)
-        message(STATUS "Build with comgr ${amd_comgr_VERSION}")
-    else()
-        message(STATUS "Build without comgr (not found)")
-        set(MIOPEN_USE_COMGR Off)
-    endif()
-else()
-    message(STATUS "Build without comgr")
+    find_package(amd_comgr REQUIRED CONFIG)
+    message(STATUS "Build with comgr ${amd_comgr_VERSION}")
 endif()
 
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)

@@ -229,7 +229,7 @@ static void LogOptions(const char* options[], size_t count)
 }
 
 class Dataset;
-static std::string GetLog(const Dataset& dataset, bool catch_comgr_exceptions = false);
+static std::string GetLog(const Dataset& dataset, bool comgr_error_handling = false);
 
 struct ComgrError : std::exception
 {
