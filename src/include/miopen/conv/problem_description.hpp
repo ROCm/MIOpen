@@ -224,6 +224,7 @@ struct ProblemDescription
     const TensorDescriptor& GetIn() const { return in; }
     const TensorDescriptor& GetWeights() const { return weights; }
     const TensorDescriptor& GetOut() const { return out; }
+    const ConvolutionDescriptor& GetConv() const { return conv; }
     Direction GetDirection() const { return direction; }
     int GetBias() const { return bias; }
 
