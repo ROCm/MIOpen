@@ -128,7 +128,7 @@ PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::CalculateGemmBBlockCopyPerformanceP
         }
         else if(conv_stride_w == 1)
         {
-            SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, in_left_pad_w, wi, in_right_pad_w);
+            SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, wi);
         }
         else
         {
