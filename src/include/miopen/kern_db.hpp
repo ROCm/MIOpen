@@ -105,8 +105,8 @@ class KernDb : public SQLiteBase<KernDb>
             return true;
         auto del_query =
             "DELETE FROM " + T::table_name() + " WHERE " + problem_config.Where() + ";";
-        auto stmt = SQL::Statement{sql, del_query};
-        auto rc   = stmt.Step();
+        auto stmt = SQLite::Statement{sql, del_query};
+        auto rc   = stmt.Step(sql);
         if(rc == SQLITE_DONE)
             return true;
         else
@@ -124,10 +124,10 @@ class KernDb : public SQLiteBase<KernDb>
         // Where clause with inserted values defeats the purpose of a prepraed statement
         auto select_query = "SELECT kernel_blob, kernel_hash, uncompressed_size FROM " +
                             T::table_name() + " WHERE " + problem_config.Where() + ";";
-        auto stmt = SQL::Statement{sql, select_query};
+        auto stmt = SQLite::Statement{sql, select_query};
         // only one result field
         // assert one row
-        auto rc = stmt.Step();
+        auto rc = stmt.Step(sql);
         if(rc == SQLITE_ROW)
         {
             auto compressed_blob           = stmt.ColumnBlob(0);
@@ -146,7 +146,7 @@ class KernDb : public SQLiteBase<KernDb>
         else if(rc == SQLITE_DONE)
             return boost::none;
         else
-            MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
+            MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
         return boost::none;
     }
 
@@ -162,7 +162,7 @@ class KernDb : public SQLiteBase<KernDb>
         auto uncompressed_size = problem_config.kernel_blob.size();
         bool success           = false;
         auto compressed_blob   = compress_fn(problem_config.kernel_blob, &success);
-        auto stmt              = SQL::Statement{sql, insert_query};
+        auto stmt              = SQLite::Statement{sql, insert_query};
         stmt.BindText(1, problem_config.kernel_name);
         stmt.BindText(2, problem_config.kernel_args);
         if(!success)
@@ -177,7 +177,7 @@ class KernDb : public SQLiteBase<KernDb>
         }
         stmt.BindText(4, md5_sum);
 
-        auto rc = stmt.Step();
+        auto rc = stmt.Step(sql);
         if(rc != SQLITE_DONE)
             MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
         return problem_config.kernel_blob;

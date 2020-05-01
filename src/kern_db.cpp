@@ -49,7 +49,7 @@ KernDb::KernDb(const std::string& filename_,
         const auto lock = exclusive_lock(lock_file, GetLockTimeout());
         MIOPEN_VALIDATE_LOCK(lock);
         const std::string create_table = KernelConfig::CreateQuery();
-        if(!SQLExec(create_table))
+        if(!sql.Exec(create_table))
             MIOPEN_THROW(miopenStatusInternalError);
         MIOPEN_LOG_I2("Database created successfully");
     }

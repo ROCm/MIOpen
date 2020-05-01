@@ -57,12 +57,12 @@ class SQLite::impl
         void operator()(sqlite3* ptr)
         {
             std::string filename_(sqlite3_db_filename(ptr, "main"));
-            SQLite::Retry([&]() { return sqlite3_close(ptr); }, filename_);
+            SQLite::impl::Retry([&]() { return sqlite3_close(ptr); }, filename_);
         }
     };
 
     public:
-    impl(const std::string& filename_)
+    impl(const std::string& filename_, bool is_system)
     {
         sqlite3* ptr_tmp;
         int rc = 0;
@@ -83,7 +83,7 @@ class SQLite::impl
         if(rc != SQLITE_OK)
         {
             MIOPEN_LOG_I2(query);
-            MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
+            MIOPEN_THROW(miopenStatusInternalError, ErrorMessage());
             sqlite3_close(ptrDb.get());
             return false;
         }
@@ -101,7 +101,7 @@ class SQLite::impl
             if(rc != SQLITE_OK)
             {
                 MIOPEN_LOG_I2(query);
-                MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
+                MIOPEN_THROW(miopenStatusInternalError, ErrorMessage());
                 sqlite3_close(ptrDb.get());
                 return false;
             }
@@ -118,9 +118,8 @@ class SQLite::impl
         res->push_back(record);
         return 0;
     }
-    int Retry(std::function<int()> f) const { return SQLiteBase::SQLRety(f, filename); }
 
-    static int Retry(std::function<int()> f, std::string filename) const
+    static int Retry(std::function<int()> f, std::string filename)
     {
         auto timeout_end = std::chrono::high_resolution_clock::now() +
                            std::chrono::seconds(30); // TODO: make configurable
@@ -144,6 +143,12 @@ class SQLite::impl
         }
     }
 
+    int Retry(std::function<int()> f) const
+    {
+        std::string filename(sqlite3_db_filename(ptrDb.get(), "main"));
+        return SQLite::Retry(f, filename);
+    }
+
     int Changes() const { return sqlite3_changes(ptrDb.get()); }
 
     std::string ErrorMessage() const
@@ -152,15 +157,16 @@ class SQLite::impl
         return errMsg + sqlite3_errmsg(ptrDb.get());
     }
 
-    protected:
+    public:
     using sqlite3_ptr = std::unique_ptr<sqlite3, SQLiteCloser>;
     sqlite3_ptr ptrDb = nullptr;
     bool isValid;
 };
 
-class SQLiteStmt::impl
+class SQLite::Statement::impl
 {
-    sqlite3_stmt_ptr Prepare(const SQL& sql, const std::string& query)
+    using sqlite3_stmt_ptr = MIOPEN_MANAGE_PTR(sqlite3_stmt*, sqlite3_finalize);
+    sqlite3_stmt_ptr Prepare(const SQLite& sql, const std::string& query)
     {
         sqlite3_stmt* ptr = nullptr;
         MIOPEN_LOG_I2(query);
@@ -175,25 +181,24 @@ class SQLiteStmt::impl
     }
 
     public:
-    using sqlite3_stmt_ptr = MIOPEN_MANAGE_PTR(sqlite3_stmt*, sqlite3_finalize);
-    SQLiteStmt(const SQL& sql, const std::string& query) { ptrStmt = Prepare(sql, query); }
-    SQLiteStmt(const SQL& sql, const std::string& query, const std::vector<std::string>& vals)
+    impl(const SQLite& sql, const std::string& query) { ptrStmt = Prepare(sql, query); }
+    impl(const SQLite& sql, const std::string& query, const std::vector<std::string>& vals)
     {
         ptrStmt = Prepare(sql, query);
         int cnt = 1;
-        for(auto& kinder : values)
+        for(auto& kinder : vals)
         {
             auto rc = sqlite3_bind_text(
                 stmt.get(), cnt++, kinder.data(), kinder.size(), SQLITE_TRANSIENT); // NOLINT
             if(rc != SQLITE_OK)
-                MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
+                MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
         }
         MIOPEN_LOG_I2("[" << JoinStrings(values, ",") << "]");
     }
 
-    int Step()
+    int Step(const SQLite& sql)
     {
-        return SQL::Retry([&]() { return sqlite3_step(ptrStmt.get()); });
+        return sql.Retry([&]() { return sqlite3_step(ptrStmt.get()); });
     }
     std::string ColumnText(int idx)
     {
@@ -220,9 +225,59 @@ class SQLiteStmt::impl
         return 0;
     }
 
+    int BindInt64(int idx, const int64_t num)
+    {
+        sqlite3_bind_int64(ptrStmt.get(), idx, num);
+        return 0;
+    }
+
     protected:
     sqlite3_stmt_ptr ptrStmt = nullptr;
 };
+
+SQLite::SQLite(const std::string& filename_, bool is_system)
+    : pImpl{std::make_unique<impl>(filename_, is_system)}
+{
+}
+SQLite::~SQLite() = default;
+bool SQLite::Exec(const std::string& query) const { return pImpl->Exec(query); }
+
+bool SQLite::Exec(const std::string& query, SQLRes_t& res) const { return pImpl->Exec(query, res); }
+
+int SQLite::Changes() const { return pImpl->Changes(); }
+
+std::string SQLite::ErrorMessage() { return pImpl->ErrorMessage(); }
+
+SQLite::Statement::Statement(const SQLite& sql, const std::string& query)
+    : pImpl{std::make_unique<impl>(sql, query)}
+{
+}
+SQLite::Statement::Statement(const SQLite& sql,
+                             const std::string& query,
+                             const std::vector<std::string>& vals)
+    : pImpl{std::make_unique<impl>(sql, query, vals)}
+{
+}
+SQLite::Statement::~Statement() = default;
+int SQLite::Statement::Step(const SQLite& sql) { return pImpl->Step(sql); }
+
+std::string SQLite::Statement::ColumnText(int idx) { return pImpl->ColumnText(idx); }
+
+std::string SQLite::Statement::ColumnBlob(int idx) { return pImpl->ColumnBlob(idx); }
+
+int64_t SQLite::Statement::ColumnInt64(int idx) { return pImpl->ColumnInt64(idx); }
+
+int SQLite::Statement::BindText(int idx, const std::string& txt)
+{
+    return pImpl->BindText(idx, txt);
+}
+
+int SQLite::Statement::BindBlob(int idx, const std::string& blob)
+{
+    return pImpl->BindBlob(idx, blob);
+}
+
+int SQLite::Statement::BindInt64(int idx, const int64_t num) { return pImpl->BindInt64(idx, num); }
 
 SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
                            bool is_system,
@@ -263,7 +318,7 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
                   "type = 'table' AND "
                   "(name = 'config' OR name = 'perf_db');";
             // clang-format on
-            SQLExec(check_tables, res);
+            sql.Exec(check_tables, res);
         }
         if(res.empty())
         {

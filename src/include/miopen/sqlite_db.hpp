@@ -159,33 +159,38 @@ class SQLite
 {
     class impl;
     // do we need propagate const
-    std::unique<impl> pImpl;
-    using SQLRes_t = std::vector<std::unordered_map<std::string, std::string>>;
-
-    public:
-    SQLite();
-    bool Valid();
-    bool Exec(const std::string& query, SQLRes_t& res);
-    bool Exec(const std::string& query);
-    int Changes();
-    std::string ErrorMessage();
-};
-
-class SQLiteStmt
-{
-    class impl;
     std::unique_ptr<impl> pImpl;
 
     public:
-    SQLiteStmt(const std::string& query);
-    SQLiteStmt(const std::string& query, const std::vector<std::string>& vals);
-    int Step();
-    std::string ColumnText(int idx);
-    std::string ColumnBlob(int idx);
-    int64_t ColumnInt64(int idx);
-    int BindText(int idx, const std::string& txt);
-    int BindBlob(int idx, const std::string& blob);
-    int BindInt64(int idx, int64_t);
+    class Statement
+    {
+        class impl;
+        std::unique_ptr<impl> pImpl;
+
+        public:
+        Statement(const SQLite& sql, const std::string& query);
+        Statement(const SQLite& sql,
+                  const std::string& query,
+                  const std::vector<std::string>& vals);
+        ~Statement();
+        int Step(const SQLite& sql);
+        std::string ColumnText(int idx);
+        std::string ColumnBlob(int idx);
+        int64_t ColumnInt64(int idx);
+        int BindText(int idx, const std::string& txt);
+        int BindBlob(int idx, const std::string& blob);
+        int BindInt64(int idx, int64_t);
+    };
+
+    using SQLRes_t = std::vector<std::unordered_map<std::string, std::string>>;
+    SQLite() : pImpl(nullptr) {}
+    SQLite(const std::string& filename_, bool is_system);
+    ~SQLite();
+    bool Valid();
+    bool Exec(const std::string& query, SQLRes_t& res) const;
+    bool Exec(const std::string& query) const;
+    int Changes() const;
+    std::string ErrorMessage() const;
 };
 
 template <typename Derived>
@@ -207,7 +212,7 @@ class SQLiteBase
         : filename(filename_),
           arch(arch_),
           num_cu(num_cu_),
-          lock_file(LockFile::Get(LockFilePath(filename_).c_str())),
+          lock_file(LockFile::Get(LockFilePath(filename_).c_str()))
     {
         MIOPEN_LOG_I2("Initializing " << (is_system ? "system" : "user") << " database file "
                                       << filename);
@@ -224,7 +229,7 @@ class SQLiteBase
                     boost::filesystem::permissions(directory, boost::filesystem::all_all);
             }
         }
-        sql = SQL{filename_};
+        sql = std::move(SQLite{filename_, is_system});
         if(!sql.Valid())
         {
             dbInvalid = true;
@@ -246,7 +251,7 @@ class SQLiteBase
                                   const std::vector<std::string>& goldenList) const
     {
         const auto sql_cfg_fds = "PRAGMA table_info(" + tableName + ");";
-        SQLRes_t cfg_res;
+        SQLite::SQLRes_t cfg_res;
         {
             const auto lock = shared_lock(lock_file, GetLockTimeout());
             MIOPEN_VALIDATE_LOCK(lock);
@@ -361,11 +366,11 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
         std::string clause;
         std::vector<std::string> vals;
         std::tie(clause, vals) = prob_desc.InsertQuery();
-        auto stmt = SQL : Statement{sql, clause, vals};
-        auto rc   = stmt.Step();
+        auto stmt = SQLite::Statement{sql, clause, vals};
+        auto rc   = stmt.Step(sql);
         if(rc != SQLITE_DONE)
             MIOPEN_THROW(miopenStatusInternalError,
-                         "Failed to insert config: " + SQLErrorMessage());
+                         "Failed to insert config: " + sql.ErrorMessage());
         auto cnt = sql.Changes();
         MIOPEN_LOG_I2(cnt << " rows updated");
     }
@@ -376,10 +381,10 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
         std::vector<std::string> vals;
         std::tie(clause, vals) = prob_desc.WhereClause();
         auto query = "SELECT id FROM " + prob_desc.table_name() + " WHERE ( " + clause + " );";
-        auto stmt  = SQL::Statement{sql, query, vals};
+        auto stmt  = SQLite::Statement{sql, query, vals};
         while(true)
         {
-            auto rc = stmt.Step();
+            auto rc = stmt.Step(sql);
             if(rc == SQLITE_ROW)
                 return stmt.ColumnText(0);
             else if(rc == SQLITE_DONE)
@@ -407,17 +412,17 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
             "AND (arch = '" + arch + "' ) "
             "AND (num_cu = '" + std::to_string(num_cu) + "');";
         // clang-format on
-        auto stmt = SQL::Statement{sql, select_query, values};
+        auto stmt = SQLite::Statement{sql, select_query, values};
         DbRecord rec;
         while(true)
         {
-            auto rc = stmt.Step();
+            auto rc = stmt.Step(sql);
             if(rc == SQLITE_ROW)
                 rec.SetValues(stmt.ColumnText(0), stmt.ColumnText(1));
             else if(rc == SQLITE_DONE)
                 break;
             else if(rc == SQLITE_ERROR || rc == SQLITE_MISUSE)
-                MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
+                MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
         }
         if(rec.GetSize() == 0)
             return boost::none;
@@ -445,8 +450,8 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
             + clause + " ) )"
             "AND solver == '" +  id + "' ;";
         // clang-format on
-        auto stmt = SQL::Statement{sql, query, values};
-        auto rc   = stmt.Step();
+        auto stmt = SQLite::Statement{sql, query, values};
+        auto rc   = stmt.Step(sql);
         if(rc == SQLITE_DONE)
             return true;
         else
@@ -470,8 +475,8 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
             std::string clause;
             std::vector<std::string> vals;
             std::tie(clause, vals) = problem_config.InsertQuery();
-            auto stmt = SQL::Statement{sql, clause, vals};
-            auto rc   = stmt.Step();
+            auto stmt = SQLite::Statement{sql, clause, vals};
+            auto rc   = stmt.Step(sql);
             if(rc != SQLITE_DONE)
                 MIOPEN_THROW(miopenStatusInternalError,
                              "Failed to insert config: " + sql.ErrorMessage());
@@ -499,8 +504,8 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
             vals.push_back(params.str());
             vals.push_back(arch);
             vals.push_back(std::to_string(num_cu));
-            auto stmt = SQL::Statement{sql, query, vals};
-            auto rc   = stmt.Step();
+            auto stmt = SQLite::Statement{sql, query, vals};
+            auto rc   = stmt.Step(sql);
             if(rc != SQLITE_DONE)
             {
                 MIOPEN_LOG_E("Failed to insert performance record in the database: " +
@@ -539,11 +544,11 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
             "SELECT id FROM config WHERE ( "
             + clause + " ))";
         // clang-format on
-        auto stmt = SQL::Statement{sql, query, values};
-        auto rc   = stmt.Step();
+        auto stmt = SQLite::Statement{sql, query, values};
+        auto rc   = stmt.Step(sql);
         if(rc != SQLITE_DONE)
         {
-            MIOPEN_LOG_E("Unable to Clear databaes entry: " + SQLErrorMessage());
+            MIOPEN_LOG_E("Unable to Clear databaes entry: " + sql.ErrorMessage());
             return false;
         }
         else
