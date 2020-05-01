@@ -85,16 +85,16 @@ struct ExecutionContext
     std::string GetPerfDbPath() const
     {
         boost::filesystem::path pdb_path(GetSystemDbPath());
-        std::string filename =
+        std::ostringstream filename;
 // clang-format off
 #if MIOPEN_ENABLE_SQLITE
-            "miopen.db";
+            filename << "miopen.db";
 #else
-            GetStream().GetDbBasename()
-            + ".cd.pdb.txt";
+            filename << GetStream().GetDbBasename()
+            << ".cd.pdb.txt";
 #endif
         // clang-format on
-        return (pdb_path / filename).string();
+        return (pdb_path / filename.str()).string();
     }
 
     std::string GetUserPerfDbPath() const
@@ -106,17 +106,17 @@ struct ExecutionContext
 	if(udb.empty())
 		return "";
         boost::filesystem::path pdb_path(udb);
-        std::string filename = 
+        std::ostringstream filename;
 #if MIOPEN_ENABLE_SQLITE
-             ("miopen_" + std::string{SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER} + ".udb");
+             filename << "miopen_" << SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER << ".udb";
 #else
-             (GetStream().GetDbBasename()
-             + "."
-             + GetUserDbSuffix()
-             + ".cd.updb.txt");
+             filename << GetStream().GetDbBasename()
+             << "."
+             << GetUserDbSuffix()
+             << ".cd.updb.txt";
 #endif
         // clang-format on
-        return (pdb_path / filename).string();
+        return (pdb_path / filename.str()).string();
     }
 
     private:
