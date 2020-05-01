@@ -794,7 +794,8 @@ struct ConvHipImplicitGemmV4R4GenXdlopsFwdFp32 : SolverBase<ConvolutionContext>
                              const PerformanceImplicitGemmV4R4GenXdlopsFwdFp32& config,
                              bool disableConfigOverrideFromEnv = false) const;
 
-    PerformanceImplicitGemmV4R4GenXdlopsFwdFp32 Search(const ConvolutionContext&) const;
+    PerformanceImplicitGemmV4R4GenXdlopsFwdFp32 Search(const ConvolutionContext&,
+                                                       const boost::any& invoke_ctx) const;
     int RunAndMeasureSolution(miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               Data_t top_buf,

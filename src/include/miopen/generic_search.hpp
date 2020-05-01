@@ -28,6 +28,8 @@
 #define GUARD_MIOPEN_GENERIC_SEARCH_HPP_
 
 #include <miopen/config.h>
+#include <miopen/logger.hpp>
+#include <miopen/handle.hpp>
 
 #include <vector>
 #include <cstdlib>
@@ -36,8 +38,9 @@
 #include <chrono>
 #include <cassert>
 
-#include <miopen/logger.hpp>
-#include <miopen/handle.hpp>
+// Todo: remove
+#include <miopen/conv/context.hpp>
+#include <miopen/conv_solution.hpp>
 
 namespace miopen {
 namespace solver {
@@ -251,23 +254,6 @@ inline size_t divide_round_plus_inf(const size_t x, const unsigned y)
     return x / y;
 }
 
-enum class SearchTweak
-{
-    None,
-    /// Enforces the generic search algorithm
-    /// to use workspace buffer instead of input data (x/dx) buffer.
-    /// Example use case: Solution uses (non-tunable) subsampling or upsampling
-    /// kernel which reads x/dx buffer and writes workspace, and then tunable
-    /// convolution kernel which reads workspace instead of x/dx buffer.
-    /// Another example: the first tunable kernel writes workspace (instead of x/dx),
-    /// and the second non-tunable kernel converts workspace to user's buffer.
-    WorkspaceInsteadOfXBuffer,
-    /// This tweak is like previous one and use cases are similar,
-    /// but it enforces the generic search algorithm
-    /// to use workspace buffer instead of weights buffer.
-    WorkspaceInsteadOfWeightsBuffer,
-};
-
 /// Solver member function requirements:
 /// * GetPerformanceConfig shall be implemented.
 ///   - Its return type shall be suitable for instantiation of the ComputedContainer.
@@ -293,89 +279,93 @@ enum class SearchTweak
 ///         bot[] (dy) --> +--------+
 /// ------------------------------------------------
 /// clang-format-on
-#if MIOPEN_ALLOC_BUFFERS
 template <class Solver, class Context>
 auto GenericSearchFwd(const Solver s,
                       const Context& context,
-                      const SearchTweak tweak = SearchTweak::None)
+                      const boost::any& invoke_ctx)
     -> decltype(s.GetPerformanceConfig(context))
 {
-    return GenericSearch(s, context, tweak);
+    return GenericSearch(s, context, invoke_ctx);
 }
 
 template <class Solver, class Context>
 auto GenericSearchBwd(const Solver s,
                       const Context& context,
-                      const SearchTweak tweak = SearchTweak::None)
+                      const boost::any& invoke_ctx)
     -> decltype(s.GetPerformanceConfig(context))
 {
-    return GenericSearch(s, context, tweak);
+    return GenericSearch(s, context, invoke_ctx);
 }
 
 template <class Solver, class Context>
 auto GenericSearchWrW(const Solver s,
                       const Context& context,
-                      const SearchTweak tweak = SearchTweak::None)
+                      const boost::any& invoke_ctx)
     -> decltype(s.GetPerformanceConfig(context))
 {
-    return GenericSearch(s, context, tweak);
-}
-#else
-template <class Solver, class Context>
-auto GenericSearchFwd(const Solver s,
-                      const Context& context,
-                      const boost::any& invoke_ctx,
-                      const SearchTweak tweak = SearchTweak::None)
-    -> decltype(s.GetPerformanceConfig(context))
-{
-    const auto& bufs = context.GetBufs().io.fwd;
-    return GenericSearch(s, context, tweak, invoke_ctx, bufs.y, bufs.x, bufs.w);
+    return GenericSearch(s, context, invoke_ctx);
 }
 
-template <class Solver, class Context>
-auto GenericSearchBwd(const Solver s,
-                      const Context& context,
-                      const boost::any& invoke_ctx,
-                      const SearchTweak tweak = SearchTweak::None)
-    -> decltype(s.GetPerformanceConfig(context))
-{
-    const auto& bufs      = context.GetBufs().io.bwd;
-    return GenericSearch(s, context, tweak, invoke_ctx, bufs.dx, bufs.dy, bufs.w);
-}
+// Todo: remove
+namespace detail {
+template <typename...>
+using void_t = void;
 
-template <class Solver, class Context>
-auto GenericSearchWrW(const Solver s,
-                      const Context& context,
-                      const boost::any& invoke_ctx,
-                      const SearchTweak tweak = SearchTweak::None)
-    -> decltype(s.GetPerformanceConfig(context))
+template <class Default, class AlwaysVoid, template <class...> class Op, class... Args>
+struct detector
 {
-    const auto& bufs      = context.GetBufs().io.wrw;
-    return GenericSearch(s, context, tweak, invoke_ctx, bufs.dx, bufs.dy, bufs.dw);
-}
-#endif
+    using value_t = std::false_type;
+    using type    = Default;
+};
+
+template <class Default, template <class...> class Op, class... Args>
+struct detector<Default, void_t<Op<Args...>>, Op, Args...>
+{
+    using value_t = std::true_type;
+    using type    = Op<Args...>;
+};
+
+} // namespace detail
+
+template <template<class...> class Op, class... Args>
+using is_detected = typename detail::detector<void, void, Op, Args...>::value_t;
+
+template <template <class...> class Op, class... Args>
+constexpr bool is_detected_v = is_detected<Op, Args...>::value;
+
+template <class Solver, class Top, class Bottom>
+using RunAndMeasure_t =
+    decltype(std::declval<Solver>().RunAndMeasureSolution(std::declval<miopen::Handle&>(),
+                                                          std::declval<Bottom>(),
+                                                          std::declval<Top>(),
+                                                          std::declval<ConstData_t>(),
+                                                          std::declval<ConstData_t>(),
+                                                          std::declval<ConvolutionContext>(),
+                                                          std::declval<ConvSolution>(),
+                                                          std::declval<float&>()));
 
 #if MIOPEN_ALLOC_BUFFERS
 template <class Solver, class Context>
 auto GenericSearch(const Solver s,
-                   const Context& context,
-                   const SearchTweak tweak = SearchTweak::None)
+                   const Context& context)
 #else
-template <class Solver, class Context, typename TopT, typename BotT, typename WeiT>
+template <class Solver, class Context>
 auto GenericSearch(const Solver s,
                    const Context& context,
-                   const SearchTweak tweak,
-                   const boost::any& invoke_ctx,
-                   TopT top_ocl_ptr,
-                   BotT bot_ocl_ptr,
-                   WeiT wei_ocl_ptr)
+                   const boost::any& invoke_ctx)
 #endif
     -> decltype(s.GetPerformanceConfig(context))
 {
+    static_assert(
+        !(is_detected_v<RunAndMeasure_t, Solver, ConstData_t, Data_t> ||
+          is_detected_v<RunAndMeasure_t, Solver, Data_t, ConstData_t>),
+        "RunAndMeasure is obsolete. Solvers should implement auto-tune evaluation in invoker");
+
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
     PerformanceConfig best_config;
     const auto default_solution = s.GetSolution(context, s.GetPerformanceConfig(context));
 
+    /*
 #if MIOPEN_ALLOC_BUFFERS
     // Allocate buffers, init input buffers.
     size_t top_size  = context.top_sz / sizeof(float);
@@ -419,7 +409,6 @@ auto GenericSearch(const Solver s,
     auto wei_ocl_ptr  = wei_ocl_buf.get();
     auto bias_ocl_ptr = bias_ocl_buf.get();
 #else
-    auto& profile_h          = context.GetStream();
     ConstData_t bias_ocl_ptr = context.GetBufs().bias;
     if(context.bias != 0 && bias_ocl_ptr == nullptr)
         MIOPEN_THROW("GenericSearch: context.bias != 0 && bias_ocl_ptr == nullptr");
@@ -451,6 +440,8 @@ auto GenericSearch(const Solver s,
     default: MIOPEN_THROW("GenericSearch: Unsupported SearchTweak value.");
     }
 #endif
+    */
+    auto& profile_h          = context.GetStream();
     AutoEnableProfiling enableProfiling{profile_h};
 
     const ComputedContainer<PerformanceConfig, Context> main(context);
@@ -473,7 +464,6 @@ auto GenericSearch(const Solver s,
     HeartBeat<PerformanceConfig> heartbeat;
     heartbeat.Start();
 
-    profile_h.EnableProfiling(true);
     for(const auto& current_config : all_configs)
     {
         float elapsed_time = 0.0f;
@@ -482,7 +472,7 @@ auto GenericSearch(const Solver s,
                           << current_config);
 
         const auto current_solution = s.GetSolution(context, current_config, true);
-        if((tweak == SearchTweak::WorkspaceInsteadOfXBuffer ||
+        /*if((tweak == SearchTweak::WorkspaceInsteadOfXBuffer ||
             tweak == SearchTweak::WorkspaceInsteadOfWeightsBuffer) &&
            default_solution.workspce_sz != current_solution.workspce_sz)
         {
@@ -492,30 +482,14 @@ auto GenericSearch(const Solver s,
                              << default_solution.workspce_sz
                              << " != "
                              << current_solution.workspce_sz);
-        }
+        }*/
 
         if(ret == 0)
         {
-            if(current_solution.invoker_factory)
-            {
-                auto& handle        = context.GetStream();
-                const auto& invoker = handle.PrepareInvoker(
-                    *current_solution.invoker_factory, current_solution.construction_params);
-                invoker(handle, invoke_ctx);
-                elapsed_time = handle.GetKernelTime();
-            }
-            else
-            {
-                // Todo: remove
-                ret = s.RunAndMeasureSolution(profile_h,
-                                              bot_ocl_ptr,
-                                              top_ocl_ptr,
-                                              wei_ocl_ptr,
-                                              bias_ocl_ptr,
-                                              context,
-                                              current_solution,
-                                              elapsed_time);
-            }
+            const auto& invoker = profile_h.PrepareInvoker(
+                *current_solution.invoker_factory, current_solution.construction_params);
+            invoker(profile_h, invoke_ctx);
+            elapsed_time = profile_h.GetKernelTime();
         }
         MIOPEN_LOG_T("##"
                      << "(n_current, n_failed, n_runs_total):  "
@@ -541,22 +515,12 @@ auto GenericSearch(const Solver s,
             {
                 MIOPEN_LOG_I2("Finding average for: " << elapsed_time << " / " << best_time << " = "
                                                       << (elapsed_time / best_time));
-                float temp;
                 for(int i = 0; i < 4; ++i)
                 {
-                    ret = s.RunAndMeasureSolution(profile_h,
-                                                  bot_ocl_ptr,
-                                                  top_ocl_ptr,
-                                                  wei_ocl_ptr,
-                                                  bias_ocl_ptr,
-                                                  context,
-                                                  current_solution,
-                                                  temp);
-                    if(ret != 0)
-                    {
-                        break;
-                    }
-                    elapsed_time += temp;
+                    const auto& invoker = profile_h.PrepareInvoker(
+                        *current_solution.invoker_factory, current_solution.construction_params);
+                    invoker(profile_h, invoke_ctx);
+                    elapsed_time += profile_h.GetKernelTime();
                 }
                 if(ret == 0)
                 {
@@ -596,7 +560,6 @@ auto GenericSearch(const Solver s,
         ++n_current;
     }
 
-    profile_h.EnableProfiling(false);
     MIOPEN_LOG_W("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"
                           << n_best
                           << ' '
@@ -606,21 +569,14 @@ auto GenericSearch(const Solver s,
     if(!is_passed)
         MIOPEN_THROW("Search failed");
     // Run once with the default config and show score.
-    float default_time = 0.0f;
-    profile_h.EnableProfiling(true);
-    if(s.RunAndMeasureSolution(profile_h,
-                               bot_ocl_ptr,
-                               top_ocl_ptr,
-                               wei_ocl_ptr,
-                               bias_ocl_ptr,
-                               context,
-                               default_solution,
-                               default_time) == 0)
-    {
-        const float score = (best_time > 0.0f) ? default_time / best_time : 0.0f;
-        MIOPEN_LOG_W("...Score: " << score << " (default time " << default_time << ')');
-    }
-    profile_h.EnableProfiling(false);
+
+    const auto& invoker = profile_h.PrepareInvoker(*default_solution.invoker_factory,
+                                                   default_solution.construction_params);
+    invoker(profile_h, invoke_ctx);
+    const auto default_time = profile_h.GetKernelTime();
+    const auto score = (best_time > 0.0f) ? default_time / best_time : 0.0f;
+    MIOPEN_LOG_W("...Score: " << score << " (default time " << default_time << ')');
+
     return best_config;
 }
 
