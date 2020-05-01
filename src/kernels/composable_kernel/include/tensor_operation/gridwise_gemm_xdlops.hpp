@@ -41,7 +41,8 @@ template <index_t GridSize,
           index_t BBlockCopySrcVectorReadDim,
           index_t BBlockCopySrcDataPerRead,
           index_t BBlockCopyDstDataPerWrite_N,
-          InMemoryDataOperation CGlobalMemoryDataOperation>
+          InMemoryDataOperation CGlobalMemoryDataOperation,
+          index_t BBlockCopySrcDataStride = 1>
 struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
 {
     __device__ void Run(const Float* const __restrict__ p_a_global,
@@ -131,8 +132,9 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
                                                AddressSpace::Global,
                                                AddressSpace::Vgpr,
                                                AddressSpace::Lds,
-                                               InMemoryDataOperation::Set>(
-                {0, n_block_data_on_global}, {0, 0});
+                                               InMemoryDataOperation::Set,
+                                               BBlockCopySrcDataStride>({0, n_block_data_on_global},
+                                                                        {0, 0});
 
         // GEMM definition
         // c_mtx += transpose(a_mtx) * b_mtx

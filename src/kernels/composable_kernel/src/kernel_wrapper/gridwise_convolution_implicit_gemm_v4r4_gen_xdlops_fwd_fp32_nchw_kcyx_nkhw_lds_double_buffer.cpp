@@ -131,7 +131,8 @@ extern "C" __global__
             GemmBBlockCopyThreadSliceLengths_GemmK_GemmN,
             GemmBBlockCopyThreadClusterLengths_GemmK_GemmN,
             GemmBBlockCopySrcDataPerRead_GemmN,
-            GemmBBlockCopyDstDataPerWrite_GemmN>{};
+            GemmBBlockCopyDstDataPerWrite_GemmN,
+            ConvStrideW>{};
 
     gridwise_conv.Run(p_in_global, p_wei_global, p_out_global);
 }

@@ -128,14 +128,10 @@ PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::CalculateGemmBBlockCopyPerformanceP
             // \todo there are more configs that can go through this if branch
             SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, hi * wi);
         }
-        else if(conv_stride_w == 1)
-        {
-            SrcDataPerRead_GemmN =
-                gcd(SrcDataPerRead_GemmN, in_left_pad_w, wi, in_right_pad_w, conv_dilation_w);
-        }
         else
         {
-            SrcDataPerRead_GemmN = 1;
+            SrcDataPerRead_GemmN =
+                gcd(SrcDataPerRead_GemmN, in_left_pad_w, wi, conv_stride_w, in_right_pad_w);
         }
 
         // calculate threadwise copy size

@@ -31,7 +31,8 @@ template <index_t BlockSize,
           AddressSpace SrcAddressSpace          = AddressSpace::Generic,
           AddressSpace ThreadBufferAddressSpace = AddressSpace::Generic,
           AddressSpace DstAddressSpace          = AddressSpace::Generic,
-          InMemoryDataOperation DstInMemOp      = InMemoryDataOperation::Set>
+          InMemoryDataOperation DstInMemOp      = InMemoryDataOperation::Set,
+          index_t SrcDataStride                 = 1>
 struct BlockwiseGenericTensorSliceCopy_v4
 {
     static constexpr index_t nDim = BlockSrcDesc::GetNumOfDimension();
@@ -157,7 +158,8 @@ struct BlockwiseGenericTensorSliceCopy_v4
                                                                  1,
                                                                  SrcAddressSpace,
                                                                  ThreadBufferAddressSpace,
-                                                                 InMemoryDataOperation::Set>;
+                                                                 InMemoryDataOperation::Set,
+                                                                 SrcDataStride>;
 
     using ThreadwiseStore = ThreadwiseGenericTensorSliceCopy_v4r2<ThreadBufferDesc,
                                                                   BlockDstDesc,

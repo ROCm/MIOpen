@@ -39,7 +39,8 @@ template <index_t GridSize,
           class GemmBBlockCopyThreadSliceLengths_GemmK_GemmN,
           class GemmBBlockCopyThreadClusterLengths_GemmK_GemmN,
           index_t GemmBBlockCopySrcDataPerRead_GemmN,
-          index_t GemmBBlockCopyDstDataPerWrite_GemmN>
+          index_t GemmBBlockCopyDstDataPerWrite_GemmN,
+          index_t GemmBBlockCopySrcDataStride>
 struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fwd_fp32_nchw_kcyx_nkhw_lds_double_buffer
 {
     __device__ void Run(const Float* const __restrict__ p_in_global,
@@ -80,12 +81,6 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fwd_fp32_nchw_kcyx_nkhw_l
         static_assert(GemmM % GemmMPerBlock == 0 && GemmN % GemmNPerBlock == 0 &&
                           GemmK % GemmKPerBlock == 0,
                       "wrong! cannot divide work evenly among block");
-
-        // sanity-check for vectorized memory load
-        static_assert((Wo == 1 || (ConvStrideW == 1 || GemmBBlockCopySrcDataPerRead_GemmN == 1)) &&
-                          (X == 1 || ConvDilationW % GemmBBlockCopySrcDataPerRead_GemmN == 0),
-                      "wrong! aligment requirement for vectorized global load of input tensor will "
-                      "be violated");
 
         // input tensor
         //   global mem
@@ -155,7 +150,8 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fwd_fp32_nchw_kcyx_nkhw_l
             1,
             GemmBBlockCopySrcDataPerRead_GemmN,
             GemmBBlockCopyDstDataPerWrite_GemmN,
-            InMemoryDataOperation::Set>{};
+            InMemoryDataOperation::Set,
+            GemmBBlockCopySrcDataStride>{};
 
         gridwise_gemm.Run(p_wei_global, p_in_global, p_out_global);
     }
