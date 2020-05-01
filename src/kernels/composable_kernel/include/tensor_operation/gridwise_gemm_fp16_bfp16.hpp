@@ -49,7 +49,9 @@ template <index_t GridSize,
           index_t BBlockCopyDstDataPerWrite_KPACK,
           typename CThreadCopySrcDstAccessOrder,
           index_t CThreadCopySrcDstVectorReadWriteDim,
-          index_t CThreadCopyDstDataPerWrite>
+          index_t CThreadCopyDstDataPerWrite,
+          index_t ABlockCopySrcDataStride = 1,
+          index_t BBlockCopySrcDataStride = 1>
 struct GridwiseGemmTransposedANormalBNormalCFp16Bfp16_v1
 {
     __host__ __device__ static constexpr index_t GetSharedMemoryNumberOfByte()
@@ -144,7 +146,8 @@ struct GridwiseGemmTransposedANormalBNormalCFp16Bfp16_v1
                                                AddressSpace::Generic,
                                                AddressSpace::Vgpr,
                                                AddressSpace::Lds,
-                                               InMemoryDataOperation::Set>(
+                                               InMemoryDataOperation::Set,
+                                               ABlockCopySrcDataStride>(
                 {0, m_block_data_on_global, 0}, {0, 0, 0});
 
         // B matrix in LDS memory, dst of blockwise copy
@@ -170,7 +173,8 @@ struct GridwiseGemmTransposedANormalBNormalCFp16Bfp16_v1
                                                AddressSpace::Generic,
                                                AddressSpace::Vgpr,
                                                AddressSpace::Lds,
-                                               InMemoryDataOperation::Set>(
+                                               InMemoryDataOperation::Set,
+                                               BBlockCopySrcDataStride>(
                 {0, n_block_data_on_global, 0}, {0, 0, 0});
 
         // GEMM definition

@@ -76,7 +76,9 @@ template <index_t GridSize,
           index_t BBlockCopySrcDataPerRead,
           index_t BBlockCopyDstDataPerWrite_KPACK,
           InMemoryDataOperation OutputMemOp,
-          WorkgroupScheduleOrder WorkgroupSchdOrder>
+          WorkgroupScheduleOrder WorkgroupSchdOrder,
+          index_t ABlockCopySrcDataStride = 1,
+          index_t BBlockCopySrcDataStride = 1>
 struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
 {
     __device__ void Run(const ABFloat* const __restrict__ p_a_global,
@@ -420,7 +422,9 @@ template <index_t GridSize,
           index_t BBlockCopySrcDataPerRead,
           index_t BBlockCopyDstDataPerWrite_KPACK,
           InMemoryDataOperation OutputMemOp,
-          WorkgroupScheduleOrder WorkgroupSchdOrder>
+          WorkgroupScheduleOrder WorkgroupSchdOrder,
+          index_t ABlockCopySrcDataStride = 1,
+          index_t BBlockCopySrcDataStride = 1>
 struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
 {
     __device__ void Run(const ABFloat* const __restrict__ p_a_global,
@@ -494,7 +498,8 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
             AddressSpace::Generic,
             AddressSpace::Vgpr,
             AddressSpace::Lds,
-            InMemoryDataOperation::Set>({group_id, 0, m_block_data_on_global, 0}, {0, 0, 0, 0});
+            InMemoryDataOperation::Set,
+            ABlockCopySrcDataStride>({group_id, 0, m_block_data_on_global, 0}, {0, 0, 0, 0});
 
         constexpr auto b_g_k_n_kpack_block_desc = make_native_tensor_descriptor_aligned(
             Sequence<1, KPerBlock, NPerBlock, KPACK>{}, Number<max_align>{});
@@ -517,7 +522,8 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
             AddressSpace::Generic,
             AddressSpace::Vgpr,
             AddressSpace::Lds,
-            InMemoryDataOperation::Set>({group_id, 0, n_block_data_on_global, 0}, {0, 0, 0, 0});
+            InMemoryDataOperation::Set,
+            BBlockCopySrcDataStride>({group_id, 0, n_block_data_on_global, 0}, {0, 0, 0, 0});
 
         // GEMM definition
         // c_mtx += transpose(a_mtx) * b_mtx
