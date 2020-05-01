@@ -101,7 +101,7 @@ struct ExecutionContext
         // an empty user-db path indicates user intent to disable
         // the database. Default in when dev builds are on
         // clang-format off
-	auto udb = GetUserDbPath();
+	const auto& udb = GetUserDbPath();
 	if(udb.empty())
 		return "";
         return udb
