@@ -375,7 +375,7 @@ class ActionInfo : ComgrOwner
         ECI_THROW_MSG(amd_comgr_do_action(kind, handle, in(), out()), kind, GetLog(out, true));
         const auto log = GetLog(out);
         if(!log.empty())
-            MIOPEN_LOG_I(to_string(kind) << ": " << GetLog(out));
+            MIOPEN_LOG_I(to_string(kind) << ": " << log);
     }
 };
 
