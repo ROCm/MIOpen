@@ -226,6 +226,13 @@ class SQLiteBase
     {
         MIOPEN_LOG_I2("Initializing " << (is_system ? "system" : "user") << " database file "
                                       << filename);
+
+        if(filename.empty())
+        {
+            dbInvalid = true;
+            return;
+        }
+
         if(!is_system && !filename.empty())
         {
             auto file            = boost::filesystem::path(filename_);
@@ -365,6 +372,7 @@ Derived& SQLiteBase<Derived>::GetCached(const std::string& path,
 class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
 {
     public:
+    static constexpr char const* MIOPEN_PERFDB_SCHEMA_VER = "1.0.0";
     SQLitePerfDb(const std::string& filename_,
                  bool is_system,
                  const std::string& arch_,

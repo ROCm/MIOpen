@@ -293,6 +293,14 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
                            const std::size_t num_cu_)
     : SQLiteBase(filename_, is_system, arch_, num_cu_)
 {
+    if(dbInvalid)
+    {
+        if(filename.empty())
+            MIOPEN_LOG_I("database not present");
+        else
+            MIOPEN_LOG_I(filename + " database invalid");
+        return;
+    }
     ProblemDescription prob_desc{conv::Direction::Forward};
     prob_desc.in_data_type      = miopenFloat;
     prob_desc.out_data_type     = miopenFloat;
@@ -354,7 +362,5 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
             dbInvalid = true;
         }
     }
-    else
-        MIOPEN_LOG_I(filename + " database invalid");
 }
 } // namespace miopen
