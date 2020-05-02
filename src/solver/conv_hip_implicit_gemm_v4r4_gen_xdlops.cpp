@@ -24,12 +24,15 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
+#include <miopen/solver.hpp>
+
+#include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
-#include "miopen/stringutils.hpp"
+#include <miopen/stringutils.hpp>
+#include <miopen/implicitgemm_params.hpp>
+
 #include "implicitgemm_util.hpp"
-#include "miopen/implicitgemm_params.hpp"
 
 namespace miopen {
 namespace solver {
@@ -319,6 +322,9 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
                 std::to_string(ABlockCopySrcDataPerRead_GemmKPACK);
         }
     }
+
+    if(ctx.direction.IsForward() || ctx.direction.IsBackwardData())
+        result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
 
     result.construction_params.push_back(construction_parameters);
     return result;

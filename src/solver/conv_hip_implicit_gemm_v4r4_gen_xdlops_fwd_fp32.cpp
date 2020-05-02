@@ -24,13 +24,15 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
-#include <miopen/generic_search.hpp>
-#include "miopen/stringutils.hpp"
-#include "implicitgemm_util.hpp"
-#include "miopen/implicitgemm_params.hpp"
+#include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/env.hpp>
+#include <miopen/generic_search.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/implicitgemm_params.hpp>
+#include <miopen/solver.hpp>
+#include <miopen/stringutils.hpp>
+
+#include "implicitgemm_util.hpp"
 
 namespace miopen {
 namespace solver {
@@ -528,6 +530,7 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::GetSolution(
         ctx.general_compile_options;
     // clang-format on
 
+    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
     result.construction_params.push_back(construction_parameters);
     return result;
 }
