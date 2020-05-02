@@ -147,7 +147,7 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
 
                 const auto src_coord = mSrcSliceOrigin + (long_vector_data_begin_id + scalar_id);
 
-                // constexpr index_t BufferSize = SrcDesc::GetElementSpace();
+                // constexpr index_t BufferSize = SrcDesc::GetElementSpace() * sizeof(SrcData);
                 constexpr index_t BufferSize = -1;
 #if CK_USE_VECTOR_LOAD_WITH_PADDING
                 const auto src_offset = src_coord.GetOffset();
@@ -164,7 +164,9 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                 else
                 {
                     for(index_t j = 0; j < SrcDataPerRead; j++)
+                    {
                         if((src_offset + j) >= 0 && (src_offset + j) < SrcDesc::GetElementSpace())
+                        {
                             transfer_data<SrcData,
                                           1,
                                           SrcAddressSpace,
@@ -172,6 +174,8 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                                           InMemoryDataOperation::Set,
                                           BufferSize>(
                                 p_src, src_offset + j, p_src_long_vector, buffer_offset + j);
+                        }
+                    }
                 }
 #else
                 // Check src data's valid mapping situation, only check the first data in this src
