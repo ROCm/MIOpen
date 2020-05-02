@@ -199,6 +199,11 @@ class SQLiteBase
         {
             auto file            = boost::filesystem::path(filename_);
             const auto directory = file.remove_filename();
+            if(directory.string().empty())
+            {
+                dbInvalid = true;
+                return;
+            }
 
             if(!(boost::filesystem::exists(directory)))
             {
