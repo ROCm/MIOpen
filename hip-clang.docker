@@ -18,6 +18,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     g++ \
     gdb \
     git \
+    hcc \
     lcov \
     libelf-dev \
     libncurses5-dev \
