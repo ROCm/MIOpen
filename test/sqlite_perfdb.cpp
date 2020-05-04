@@ -225,12 +225,16 @@ std::ostream& operator<<(std::ostream& s, const SolverData& td)
 class DbTest
 {
     public:
-    DbTest() : temp_file("miopen.tests.perfdb") {}
+    DbTest()
+        : temp_file("miopen.tests.perfdb"), db_inst{std::string(temp_file), false, "gfx906", 64}
+    {
+    }
 
     virtual ~DbTest() {}
 
     protected:
     TempFile temp_file;
+    SQLitePerfDb db_inst;
 
     static const std::array<std::pair<std::string, SolverData>, 2>& common_data()
     {
@@ -246,7 +250,7 @@ class DbTest
         db.sql.Exec("delete from config; delete from perf_db;");
     }
 
-    void ResetDb() const {}
+    void ResetDb() const { db_inst.sql.Exec("delete from config; delete from perf_db;"); }
 
     static const ProblemData& key()
     {
@@ -327,9 +331,6 @@ class SchemaTest : public DbTest
     public:
     void Run() const
     {
-        SQLitePerfDb db_inst(
-            std::string(temp_file), false, "gfx906", 64); // cppcheck-suppress unreadVariable
-
         // check if the config and perf_db tables exist
         SQLite::result_type res = db_inst.sql.Exec(
             // clang-format off
@@ -356,10 +357,9 @@ class SchemaTest : public DbTest
 class DbFindTest : public DbTest
 {
     public:
-    void Run() const
+    void Run()
     {
-        SQLitePerfDb db_inst(std::string(temp_file), false, "gfx906", 64);
-        ResetDb(); // redundant
+        ResetDb();
 
         const ProblemData p;
         db_inst.InsertConfig(p);
