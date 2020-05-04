@@ -148,7 +148,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     else
 #endif
 #ifdef OFFLOADBUNDLER_BIN
-        if(IsClangXXCompiler())
+        if(IsClangXXCompiler()) // NOLINT
     {
         // call clang-offload-bundler
         tmp_dir->Execute(OFFLOADBUNDLER_BIN,
