@@ -327,7 +327,8 @@ class SchemaTest : public DbTest
     public:
     void Run() const
     {
-        SQLitePerfDb db_inst(std::string(temp_file), false, "gfx906", 64);
+        SQLitePerfDb db_inst(
+            std::string(temp_file), false, "gfx906", 64); // cppcheck-suppress unreadVariable
 
         // check if the config and perf_db tables exist
         SQLite::result_type res = db_inst.sql.Exec(
