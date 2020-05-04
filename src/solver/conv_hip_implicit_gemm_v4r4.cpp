@@ -623,22 +623,6 @@ ConvHipImplicitGemmV4R4Fwd::Search(const ConvolutionContext& context,
     return GenericSearch(*this, context, invoke_ctx);
 }
 
-int ConvHipImplicitGemmV4R4Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                                      ConstData_t bot_buf,
-                                                      Data_t top_buf,
-                                                      ConstData_t wei_buf,
-                                                      ConstData_t bias_buf,
-                                                      const ConvolutionContext& ctx,
-                                                      const ConvSolution& solution,
-                                                      float& elapsed_time) const
-{
-    assert(bias_buf == nullptr);
-    (void)bias_buf;
-
-    return RunAndMeasureSolutionBase(
-        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
-}
-
 ConvSolution ConvHipImplicitGemmV4R4Fwd::GetSolution(const ConvolutionContext& ctx,
                                                      const PerformanceImplicitGemmV4R4Fwd& config,
                                                      bool) const

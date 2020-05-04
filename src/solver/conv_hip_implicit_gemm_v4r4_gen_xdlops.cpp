@@ -357,38 +357,6 @@ ConvSolution ConvHipImplicitGemmV4R4GenWrWXdlops::GetSolution(
     return result;
 }
 
-int ConvHipImplicitGemmV4R4GenFwdXdlops::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                                               ConstData_t bot_buf,
-                                                               Data_t top_buf,
-                                                               ConstData_t wei_buf,
-                                                               ConstData_t bias_buf,
-                                                               const ConvolutionContext& ctx,
-                                                               const ConvSolution& solution,
-                                                               float& elapsed_time) const
-{
-    assert(bias_buf == nullptr);
-    (void)bias_buf;
-
-    return RunAndMeasureSolutionBase(
-        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
-}
-
-int ConvHipImplicitGemmV4R4GenWrWXdlops::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                                               ConstData_t bot_buf,
-                                                               ConstData_t top_buf,
-                                                               Data_t wei_buf,
-                                                               ConstData_t bias_buf,
-                                                               const ConvolutionContext& ctx,
-                                                               const ConvSolution& solution,
-                                                               float& elapsed_time) const
-{
-    assert(bias_buf == nullptr);
-    (void)bias_buf;
-
-    return RunAndMeasureSolutionBase(
-        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
-}
-
 bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(!(ctx.IsFp16() || ctx.IsBfp16()))

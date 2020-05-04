@@ -56,9 +56,12 @@ InvokerFactory MakeGcnAsm1x1USSInvokerFactory(
             if(workSpaceSize < workspce_sz)
                 MIOPEN_THROW("Not enough workspace has been provided for SubSample.");
 
-            handle.Run(ss_kernel)(tensors.in, workSpace);
-            if(handle.IsProfilingEnabled())
-                elapsed += handle.GetKernelTime();
+            if(params.type != InvokeType::AutoTune)
+            {
+                handle.Run(ss_kernel)(tensors.in, workSpace);
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+            }
 
             int unused       = 0;
             int* return_addr = nullptr;

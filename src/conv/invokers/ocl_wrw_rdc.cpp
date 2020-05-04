@@ -42,7 +42,6 @@ InvokerFactory MakeOclWrWRdcInvokerFactory(bool twoKernels, size_t workspaceSize
         return [workspaceSize](const std::vector<Kernel>& kernels) {
             return [=](Handle& handle, const AnyInvokeParams& primitive_params) {
                 const auto main_kernel   = handle.Run(kernels[0]);
-                const auto rdc_kernel    = handle.Run(kernels[1]);
                 const auto invoke_params = primitive_params.CastTo<WrWInvokeParams>();
                 const auto& tensors      = invoke_params.tensors;
                 const auto padding_val   = 0.f;
@@ -55,16 +54,21 @@ InvokerFactory MakeOclWrWRdcInvokerFactory(bool twoKernels, size_t workspaceSize
                     main_kernel(
                         tensors.dy, tensors.x, invoke_params.workSpace, as_float(padding_val));
                 });
-                if(handle.IsProfilingEnabled())
-                    elapsed = handle.GetKernelTime();
 
-                rdc_kernel(invoke_params.workSpace, tensors.dw); // reduction
-                if(handle.IsProfilingEnabled())
+                if(invoke_params.type != InvokeType::AutoTune)
                 {
-                    elapsed += handle.GetKernelTime();
-                    handle.ResetKernelTime();
-                    handle.AccumKernelTime(elapsed);
-                };
+                    if(handle.IsProfilingEnabled())
+                        elapsed = handle.GetKernelTime();
+
+                    const auto rdc_kernel = handle.Run(kernels[1]);
+                    rdc_kernel(invoke_params.workSpace, tensors.dw); // reduction
+                    if(handle.IsProfilingEnabled())
+                    {
+                        elapsed += handle.GetKernelTime();
+                        handle.ResetKernelTime();
+                        handle.AccumKernelTime(elapsed);
+                    };
+                }
             };
         };
     }

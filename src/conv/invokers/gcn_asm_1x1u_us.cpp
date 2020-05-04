@@ -49,8 +49,6 @@ InvokerFactory MakeGcnAsm1x1UUSInvokerFactory(
             const auto& workSpace     = params.workSpace;
             const auto& workSpaceSize = params.workSpaceSize;
 
-            float elapsed = 0;
-
             if(workSpace == nullptr || workSpaceSize == 0)
                 MIOPEN_THROW("Workspace is required for SubSample");
 
@@ -72,25 +70,30 @@ InvokerFactory MakeGcnAsm1x1UUSInvokerFactory(
                                workSpace,
                                return_addr);
 
-            if(handle.IsProfilingEnabled())
-                elapsed += handle.GetKernelTime();
-
-            /// \todo Initialization is required for upsampling. This leads to small perf drop.
-            /// 1: Add kernel (from SetTensor) to the Solution in the Solver.
-            /// 2: Fix UpSample kernel, probably by means of conditional compilation.
-            float zero = 0.f;
-            SetTensor(handle, tensors.outDesc, tensors.out, &zero);
-
-            if(handle.IsProfilingEnabled())
-                elapsed += handle.GetKernelTime();
-
-            handle.Run(us_kernel)(workSpace, tensors.out);
-
-            if(handle.IsProfilingEnabled())
+            if(params.type != InvokeType::AutoTune)
             {
-                elapsed += handle.GetKernelTime();
-                handle.ResetKernelTime();
-                handle.AccumKernelTime(elapsed);
+                float elapsed = 0;
+
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+
+                /// \todo Initialization is required for upsampling. This leads to small perf drop.
+                /// 1: Add kernel (from SetTensor) to the Solution in the Solver.
+                /// 2: Fix UpSample kernel, probably by means of conditional compilation.
+                float zero = 0.f;
+                SetTensor(handle, tensors.outDesc, tensors.out, &zero);
+
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+
+                handle.Run(us_kernel)(workSpace, tensors.out);
+
+                if(handle.IsProfilingEnabled())
+                {
+                    elapsed += handle.GetKernelTime();
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(elapsed);
+                }
             }
         };
     };

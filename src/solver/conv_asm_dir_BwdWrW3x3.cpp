@@ -512,62 +512,6 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     return result;
 }
 
-template <typename B, typename T>
-int ConvAsmBwdWrW3x3::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                            B bot_ocl_buf,
-                                            T top_ocl_buf,
-                                            Data_t wei_ocl_buf,
-                                            ConstData_t bias_ocl_buf,
-                                            const ConvolutionContext& params,
-                                            const ConvSolution& solution,
-                                            float& elapsed_time) const
-{
-    assert(bias_ocl_buf == nullptr);
-    (void)bias_ocl_buf;
-    const KernelInfo k_info = solution.construction_params.back();
-#ifdef NDEBUG
-    try
-#endif
-    {
-        elapsed_time = std::numeric_limits<float>::max();
-        // ConvolutionContext::general_compile_options is for OpenCL kernels
-        // and thus not applicable for assembly.
-        auto kernel = profile_h.AddKernel("",
-                                          "",
-                                          k_info.kernel_file,
-                                          k_info.kernel_name,
-                                          k_info.l_wk,
-                                          k_info.g_wk,
-                                          k_info.comp_options);
-        int unused       = 0;
-        int* return_addr = nullptr;
-        auto n_groups =
-            static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
-
-        kernel(params.batch_sz,   // N
-               params.n_outputs,  // C
-               params.out_height, // H
-               params.out_width,  // W
-               params.n_inputs,   // K
-               n_groups,          // n_groups
-               unused,
-               unused,
-               top_ocl_buf,
-               wei_ocl_buf,
-               bot_ocl_buf,
-               return_addr);
-        elapsed_time = profile_h.GetKernelTime();
-    }
-#ifdef NDEBUG
-    catch(miopen::Exception& ex)
-    {
-        MIOPEN_LOG_WE(ex.what());
-        return -1;
-    }
-#endif
-    return 0;
-}
-
 PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ConvolutionContext& context,
                                                           const AnyInvokeParams& invoke_ctx) const
 {

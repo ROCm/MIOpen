@@ -781,9 +781,14 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
                 const auto& dw           = invoke_params.tensors.dw;
                 const auto& workSpace    = invoke_params.workSpace;
                 auto elapsed             = 0.f;
-                ss_kernel(x, workSpace);
-                if(handle.IsProfilingEnabled())
-                    elapsed += handle.GetKernelTime();
+
+                if(invoke_params.type != InvokeType::AutoTune)
+                {
+                    ss_kernel(x, workSpace);
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
+                }
+
                 int unused       = 0;
                 int* return_addr = nullptr;
                 main_kernel(
@@ -816,76 +821,9 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     return result;
 }
 
-int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                            ConstData_t bot_ocl_buf,
-                                            ConstData_t top_ocl_buf,
-                                            Data_t wei_ocl_buf,
-                                            ConstData_t bias_ocl_buf,
-                                            const ConvolutionContext& params,
-                                            const ConvSolution& solution,
-                                            float& elapsed_time) const
-{
-    assert(bias_ocl_buf == nullptr);
-    (void)bias_ocl_buf;
-    /// \note This is used during auto-tune process.
-    /// Elapsed time of the subsampling kernel
-    /// does not depend on the PerformanceConfig, and thus
-    /// considered constant for all available Solutions.
-    /// So we do not need to time the subsampling kernel
-    /// during auto-tune and just skipping it here.
-    const KernelInfo k_info = solution.construction_params.back();
-#ifdef NDEBUG
-    try
-#endif
-    {
-        elapsed_time = std::numeric_limits<float>::max();
-        // ConvolutionContext::general_compile_options is for OpenCL kernels
-        // and thus not applicable for assembly.
-        auto kernel = profile_h.AddKernel("",
-                                          "",
-                                          k_info.kernel_file,
-                                          k_info.kernel_name,
-                                          k_info.l_wk,
-                                          k_info.g_wk,
-                                          k_info.comp_options);
-        int unused       = 0;
-        int* return_addr = nullptr;
-        auto n_groups =
-            static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
-
-        kernel(params.batch_sz,      // N
-               params.n_outputs,     // C
-               AsmImgHeight(params), // H
-               AsmImgWidth(params),  // W
-               params.n_inputs,      // K
-               n_groups,             // n_groups
-               unused,
-               unused,
-               top_ocl_buf,
-               wei_ocl_buf,
-               bot_ocl_buf,
-               return_addr);
-        elapsed_time = profile_h.GetKernelTime();
-    }
-#ifdef NDEBUG
-    catch(miopen::Exception& ex)
-    {
-        MIOPEN_LOG_WE(ex.what());
-        return -1;
-    }
-#endif
-    return 0;
-}
-
 PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& context,
                                                            const AnyInvokeParams& invoke_ctx) const
 {
-    // Todo: remove, left for compile error
-    if(UseSubsample(context))
-        return GenericSearchWrW(*this, context, invoke_ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
-    else
-        return GenericSearchWrW(*this, context, invoke_ctx);
-
     return GenericSearch(*this, context, invoke_ctx);
 }
 

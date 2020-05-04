@@ -132,37 +132,6 @@ bool ConvHipImplicitGemmV4R1WrW::IsValidPerformanceConfig(
     return c.IsValidValue() && c.IsValid(ctx);
 }
 
-int ConvHipImplicitGemmV4R1Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                                      ConstData_t bot_buf,
-                                                      Data_t top_buf,
-                                                      ConstData_t wei_buf,
-                                                      ConstData_t bias_buf,
-                                                      const ConvolutionContext& ctx,
-                                                      const ConvSolution& solution,
-                                                      float& elapsed_time) const
-{
-    assert(bias_buf == nullptr);
-    (void)bias_buf;
-
-    return RunAndMeasureSolutionBase(
-        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
-}
-
-int ConvHipImplicitGemmV4R1WrW::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                                      ConstData_t bot_buf,
-                                                      ConstData_t top_buf,
-                                                      Data_t wei_buf,
-                                                      ConstData_t bias_buf,
-                                                      const ConvolutionContext& ctx,
-                                                      const ConvSolution& solution,
-                                                      float& elapsed_time) const
-{
-    assert(bias_buf == nullptr);
-    (void)bias_buf;
-    return RunAndMeasureSolutionBase(
-        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
-}
-
 PerformanceImplicitGemmV4R1
 ConvHipImplicitGemmV4R1Fwd::Search(const ConvolutionContext& context,
                                    const AnyInvokeParams& invoke_ctx) const
