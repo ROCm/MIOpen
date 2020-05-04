@@ -250,7 +250,7 @@ pipeline {
                     }
                 }
 
-                stage('hip-clang DEBUG PARALLEL=1 CXX=hcc') {
+                stage('Hip clang release') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
@@ -258,8 +258,8 @@ pipeline {
                             rm -rf build
                             mkdir build
                             cd build
-                            CXX=${compilerpath} cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache .. 
-                            CTEST_PARALLEL_LEVEL=1 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache .. 
+                            CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
 
                     }
