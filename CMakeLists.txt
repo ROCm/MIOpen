@@ -215,13 +215,31 @@ find_program(EXTRACTKERNEL_BIN extractkernel
     PATHS /opt/rocm
 )
 if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
+    # look for and register extractkernel
+    find_program(EXTRACTKERNEL_BIN extractkernel
+        PATH_SUFFIXES bin
+        PATHS /opt/rocm
+    )
     if(EXTRACTKERNEL_BIN)
         message(STATUS "extractkernel found: ${EXTRACTKERNEL_BIN}")
         set(EXTRACTKERNEL_BIN "${EXTRACTKERNEL_BIN}")
     else()
         message(FATAL_ERROR "extractkernel not found")
     endif()
+elseif(CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+")
+# look for and register clang-offload-bundler
+    find_program(OFFLOADBUNDLER_BIN clang-offload-bundler
+        PATH_SUFFIXES bin
+        PATHS /opt/rocm/llvm
+    )
+    if(OFFLOADBUNDLER_BIN)
+        message(STATUS "clang-offload-bundler found: ${OFFLOADBUNDLER_BIN}")
+        set(OFFLOADBUNDLER_BIN "${OFFLOADBUNDLER_BIN}")
+    else()
+        message(FATAL_ERROR "clang-offload-bundler not found")
+    endif()
 endif()
+
 
 # Online assembler
 find_program(MIOPEN_AMDGCN_ASSEMBLER

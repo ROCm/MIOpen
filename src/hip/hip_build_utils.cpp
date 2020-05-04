@@ -139,6 +139,26 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
 
         return hsaco->path();
     }
+#elif OFFLOADBUNDLER_BIN
+    if(IsClangXXCompiler())
+    {
+        // call clang-offload-bundler
+        tmp_dir->Execute(OFFLOADBUNDLER_BIN,
+                         "-type=o -targets=hip-amdgcn-amd-amdhsa-" + dev_name + " -inputs=" +
+                             bin_file.string() + " -unbundle");
+
+        auto hsaco =
+            std::find_if(boost::filesystem::directory_iterator{tmp_dir->path},
+                         {},
+                         [](auto entry) { return (entry.path().extension() == ".hsaco"); });
+
+        if(hsaco == boost::filesystem::directory_iterator{})
+        {
+            MIOPEN_LOG_E("failed to find *.hsaco in " << hsaco->path().string());
+        }
+
+        return hsaco->path();
+    }
     else
 #endif
     {
