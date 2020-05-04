@@ -32,9 +32,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     python3-pip \
     software-properties-common \
     wget \
-    hip-vdi \
     rocm-device-libs \
-    hcc \
     rocblas \
     zlib1g-dev && \
     apt-get clean && \
