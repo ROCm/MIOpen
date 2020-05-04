@@ -45,6 +45,12 @@ bool IsHccCompiler()
     return isHcc;
 }
 
+bool IsClangXXCompiler()
+{
+    static const auto isClangXX = EndsWith(MIOPEN_HIP_COMPILER, "clang++");
+    return isClangXX;
+}
+
 namespace {
 
 inline bool ProduceCoV3()
@@ -139,25 +145,28 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
 
         return hsaco->path();
     }
-#elif OFFLOADBUNDLER_BIN
-    if(IsClangXXCompiler())
+    else
+#endif
+#ifdef OFFLOADBUNDLER_BIN
+        if(IsClangXXCompiler())
     {
         // call clang-offload-bundler
         tmp_dir->Execute(OFFLOADBUNDLER_BIN,
-                         "-type=o -targets=hip-amdgcn-amd-amdhsa-" + dev_name + " -inputs=" +
-                             bin_file.string() + " -unbundle");
+                         "--type=o --targets=hip-amdgcn-amd-amdhsa-" + dev_name + " --inputs=" +
+                             bin_file.string() + " --outputs=" + bin_file.string() +
+                             ".hipfb --unbundle");
 
-        auto hsaco =
+        auto hipfb =
             std::find_if(boost::filesystem::directory_iterator{tmp_dir->path},
                          {},
-                         [](auto entry) { return (entry.path().extension() == ".hsaco"); });
+                         [](auto entry) { return (entry.path().extension() == ".hipfb"); });
 
-        if(hsaco == boost::filesystem::directory_iterator{})
+        if(hipfb == boost::filesystem::directory_iterator{})
         {
-            MIOPEN_LOG_E("failed to find *.hsaco in " << hsaco->path().string());
+            MIOPEN_LOG_E("failed to find *.hipfb in " << hipfb->path().string());
         }
-
-        return hsaco->path();
+        std::cout << "hipfb->path:: " << hipfb->path() << std::endl;
+        return hipfb->path();
     }
     else
 #endif
