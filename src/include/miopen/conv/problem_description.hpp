@@ -265,12 +265,6 @@ struct ProblemDescription
         return NetworkConfig{ret};
     }
 
-    boost::any MakeInvokeContext(ConstData_t in0_data,
-                                 ConstData_t in1_data,
-                                 Data_t out_data,
-                                 Data_t workspace,
-                                 std::size_t workspace_size) const;
-
     void Serialize(std::ostream& stream) const;
 
     friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)

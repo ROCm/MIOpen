@@ -878,12 +878,15 @@ int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
 }
 
 PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& context,
-                                                           const boost::any& invoke_ctx) const
+                                                           const AnyInvokeParams& invoke_ctx) const
 {
+    // Todo: remove, left for compile error
     if(UseSubsample(context))
         return GenericSearchWrW(*this, context, invoke_ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
     else
         return GenericSearchWrW(*this, context, invoke_ctx);
+
+    return GenericSearch(*this, context, invoke_ctx);
 }
 
 } // namespace solver

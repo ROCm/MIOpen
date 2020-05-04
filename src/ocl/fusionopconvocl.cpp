@@ -1,6 +1,8 @@
 #include <miopen/fusion.hpp>
-#include <miopen/solver.hpp>
+
 #include <miopen/gcn_asm_utils.hpp>
+#include <miopen/invoke_params.hpp>
+#include <miopen/solver.hpp>
 
 namespace miopen {
 
@@ -34,7 +36,7 @@ ConvForwardOpDescriptor::GetCompileParms(std::string& compile_config,
     mlo_construct_direct2D_fusion construct_params = ConstructParams(handle);
     if(construct_params.IsAutoTuneEnabled())
         MIOPEN_THROW("Auto-tune not implemented for fusion.");
-    const auto solution                            = FindFirstSolution(construct_params, solvers, boost::none);
+    const auto solution = FindFirstSolution(construct_params, solvers, {});
     if(!solution.Succeeded())
     {
         return solution.status;

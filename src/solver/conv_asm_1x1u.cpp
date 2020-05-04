@@ -804,22 +804,25 @@ int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
 }
 
 PerformanceConfigConvAsm1x1U ConvAsm1x1U::Search(const ConvolutionContext& context,
-                                                 const boost::any& invoke_ctx) const
+                                                 const AnyInvokeParams& invoke_ctx) const
 {
+    // todo remove, left for compile error
     if(context.direction.IsForward())
     {
         if(UseSubsample(context) || UseUpsample(context))
-            return GenericSearchFwd(*this, context, invoke_ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
+            return GenericSearch(*this, context, invoke_ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
         else
-            return GenericSearchFwd(*this, context, invoke_ctx);
+            return GenericSearch(*this, context, invoke_ctx);
     }
     else
     {
         if(UseSubsample(context) || UseUpsample(context))
-            return GenericSearchBwd(*this, context, invoke_ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
+            return GenericSearch(*this, context, invoke_ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
         else
-            return GenericSearchBwd(*this, context, invoke_ctx);
+            return GenericSearch(*this, context, invoke_ctx);
     }
+
+    return GenericSearch(*this, context, invoke_ctx);
 }
 
 } // namespace solver

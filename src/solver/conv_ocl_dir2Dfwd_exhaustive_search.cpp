@@ -206,7 +206,7 @@ static int MeasurePerfConfig(Handle& handle,
 
 LegacyPerformanceConfig
 ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params,
-                                               const boost::any&) const
+                                               const AnyInvokeParams&) const
 {
     if(params.IsFp16())
         return SearchImpl<half_float::half>(params);

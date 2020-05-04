@@ -56,8 +56,9 @@ struct AnySolver
         return ptr_value->Type();
     };
     bool IsEmpty() const { return ptr_value == nullptr; };
-    ConvSolution
-    FindSolution(const ConvolutionContext& ctx, Db& db, const boost::any& invoke_ctx) const
+    ConvSolution FindSolution(const ConvolutionContext& ctx,
+                              Db& db,
+                              const miopen::AnyInvokeParams& invoke_ctx) const
     {
         assert(ptr_value != nullptr);
         return ptr_value->FindSolution(ctx, db, invoke_ctx);
@@ -83,8 +84,9 @@ struct AnySolver
         virtual bool IsApplicable(const ConvolutionContext& ctx) const = 0;
         virtual const std::type_info& Type() const                     = 0;
         virtual std::string GetSolverDbId() const                      = 0;
-        virtual ConvSolution
-        FindSolution(const ConvolutionContext& ctx, Db& db, const boost::any& invoke_ctx) const = 0;
+        virtual ConvSolution FindSolution(const ConvolutionContext& ctx,
+                                          Db& db,
+                                          const miopen::AnyInvokeParams& invoke_ctx) const = 0;
         virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const = 0;
     };
 
@@ -99,7 +101,7 @@ struct AnySolver
         }
         ConvSolution FindSolution(const ConvolutionContext& ctx,
                                   Db& db,
-                                  const boost::any& invoke_ctx) const override
+                                  const miopen::AnyInvokeParams& invoke_ctx) const override
         {
             return miopen::solver::FindSolution(value, ctx, db, invoke_ctx);
         };

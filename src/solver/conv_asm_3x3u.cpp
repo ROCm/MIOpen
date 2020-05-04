@@ -322,12 +322,9 @@ int ConvAsm3x3U::RunAndMeasureSolution(miopen::Handle& profile_h,
 }
 
 PerformanceConfigConvAsm3x3U ConvAsm3x3U::Search(const ConvolutionContext& context,
-                                                 const boost::any& invoke_ctx) const
+                                                 const AnyInvokeParams& invoke_ctx) const
 {
-    if(context.direction.IsForward())
-        return GenericSearchFwd(*this, context, invoke_ctx);
-    else
-        return GenericSearchBwd(*this, context, invoke_ctx);
+    return GenericSearch(*this, context, invoke_ctx);
 }
 
 } // namespace solver

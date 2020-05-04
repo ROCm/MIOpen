@@ -141,6 +141,8 @@ class PlainTextDb;
 template <class TInnerDb>
 class DbTimer;
 
+struct AnyInvokeParams;
+
 template <class TInstance>
 class StaticContainer
 {
@@ -206,7 +208,7 @@ auto FindFirstSolution(T& x) -> decltype(x.FindSolution())
 }
 
 template <class T, class U>
-auto FindFirstSolution(T& x, U& solvers, const boost::any& invoke_ctx)
+auto FindFirstSolution(T& x, U& solvers, const miopen::AnyInvokeParams& invoke_ctx)
     -> decltype(x.FindSolution(solvers, invoke_ctx))
 {
     x.detectRocm();
@@ -223,7 +225,8 @@ auto FindAllSolutions(T& x) -> decltype(x.FindAllSolutions())
 }
 
 std::vector<miopen::solver::ConvSolution>
-FindAllDirectSolutions(const miopen::ConvolutionContext& ctx, const boost::any& invoke_ctx);
+FindAllDirectSolutions(const miopen::ConvolutionContext& ctx,
+                       const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<std::pair<std::string, size_t>>
 AllDirectForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx);
@@ -231,25 +234,30 @@ std::vector<std::pair<std::string, size_t>>
 AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx);
 
 std::vector<miopen::solver::ConvSolution>
-FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx, const boost::any& invoke_ctx);
+FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx,
+                             const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<miopen::solver::ConvSolution>
-FindAllWinogradSolutions(const miopen::ConvolutionContext& ctx, const boost::any& invoke_ctx);
+FindAllWinogradSolutions(const miopen::ConvolutionContext& ctx,
+                         const miopen::AnyInvokeParams& invoke_ctx);
 miopen::solver::ConvSolution FindWinogradSolution(const miopen::ConvolutionContext& ctx,
-                                                  const boost::any& invoke_ctx);
+                                                  const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<miopen::solver::ConvSolution>
-FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx, const boost::any& invoke_ctx);
+FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx,
+                            const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<miopen::solver::ConvSolution>
 FindImplicitGemmWrWAllSolutions(const miopen::ConvolutionContext& ctx,
                                 const boost::any& invoke_ctx);
 
 std::vector<miopen::solver::ConvSolution>
-FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx, const boost::any& invoke_ctx);
+FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx,
+                         const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<miopen::solver::ConvSolution>
-FindAllFwdSCGemmSolutions(const miopen::ConvolutionContext& ctx, const boost::any& invoke_ctx);
+FindAllFwdSCGemmSolutions(const miopen::ConvolutionContext& ctx,
+                          const miopen::AnyInvokeParams& invoke_ctx);
 
 struct mlo_construct_base
 {

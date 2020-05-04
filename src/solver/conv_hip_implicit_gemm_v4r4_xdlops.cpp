@@ -377,23 +377,23 @@ bool ConvHipImplicitGemmV4R4WrWXdlops::IsValidPerformanceConfig(
 
 PerformanceImplicitGemmXdlops
 ConvHipImplicitGemmV4R4Xdlops_1x1::Search(const ConvolutionContext& ctx,
-                                          const boost::any& invoke_ctx) const
+                                          const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearchFwd(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, invoke_ctx);
 }
 
 PerformanceImplicitGemmXdlops
 ConvHipImplicitGemmV4R4FwdXdlops::Search(const ConvolutionContext& ctx,
-                                         const boost::any& invoke_ctx) const
+                                         const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearchFwd(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, invoke_ctx);
 }
 
 PerformanceImplicitGemmXdlops
 ConvHipImplicitGemmV4R4WrWXdlops::Search(const ConvolutionContext& ctx,
-                                         const boost::any& invoke_ctx) const
+                                         const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearchWrW(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, invoke_ctx);
 }
 
 } // namespace solver

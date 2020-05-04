@@ -23,19 +23,21 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/config.h>
 #include <miopen/convolution.hpp>
+
+#include <miopen/algorithm.hpp>
+#include <miopen/config.h>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/find_controls.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/invoke_params.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/miopen.h>
 #include <miopen/mlo_internal.hpp>
+#include <miopen/scgemm_utils.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/algorithm.hpp>
-#include <miopen/scgemm_utils.hpp>
 
 #include <cassert>
 #include <cstddef>
@@ -701,7 +703,7 @@ std::size_t ConvolutionDescriptor::ForwardBackwardGetWorkSpaceSizeImplicitGemm(
     {
         if (ctx.do_search)
             MIOPEN_THROW("Auto-tune is not supported in the get workspace size");
-        const auto ss  = FindAllImplicitGemmSolutions(ctx, boost::none);
+        const auto ss  = FindAllImplicitGemmSolutions(ctx, {});
         std::size_t sz = 0;
         for(const auto& solution : ss)
         {
@@ -815,7 +817,7 @@ std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeWinograd(
     {
         if(ctx.do_search)
             MIOPEN_THROW("Auto-tune is not supported in the get workspace size");
-        const auto ss  = FindWinogradWrWAllSolutions(ctx, boost::none);
+        const auto ss  = FindWinogradWrWAllSolutions(ctx, {});
         std::size_t sz = 0;
         for(const auto& solution : ss)
         {
@@ -844,7 +846,7 @@ std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeImplicitGemm(
     {
         if(ctx.do_search)
             MIOPEN_THROW("Auto-tune is not supported in the get workspace size");
-        const auto ss  = FindImplicitGemmWrWAllSolutions(ctx, boost::none);
+        const auto ss  = FindImplicitGemmWrWAllSolutions(ctx, {});
         std::size_t sz = 0;
         for(const auto& solution : ss)
         {

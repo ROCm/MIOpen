@@ -403,9 +403,9 @@ int ConvSCGemmFGemm::RunAndMeasureSolution(miopen::Handle& profile_h,
 }
 
 PerformanceConfigSCGemmFwd<SCGemmOpFGemm>
-ConvSCGemmFGemm::Search(const ConvolutionContext& context) const
+ConvSCGemmFGemm::Search(const ConvolutionContext& context, const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearchFwd(*this, context);
+    return GenericSearch(*this, context, invoke_ctx);
 }
 
 template struct PerformanceConfigSCGemmFwd<SCGemmOpFGemm>;

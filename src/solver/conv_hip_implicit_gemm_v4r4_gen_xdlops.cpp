@@ -439,20 +439,22 @@ bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsValidPerformanceConfig(
 
 PerformanceImplicitGemmXdlops
 ConvHipImplicitGemmV4R4GenFwdXdlops::Search(const ConvolutionContext& ctx,
-                                            const boost::any& invoke_ctx) const
+                                            const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearchFwd(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, invoke_ctx);
 }
 
 PerformanceImplicitGemmXdlops
 ConvHipImplicitGemmV4R4GenWrWXdlops::Search(const ConvolutionContext& ctx,
-                                            const boost::any& invoke_ctx) const
+                                            const AnyInvokeParams& invoke_ctx) const
 {
     // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
     if(ctx.IsFp16() || ctx.IsBfp16())
         return GenericSearchWrW(*this, ctx, invoke_ctx, SearchTweak::WorkspaceInsteadOfWeightsBuffer);
     else
         return GenericSearchWrW(*this, ctx, invoke_ctx);
+
+    return GenericSearch(*this, ctx, invoke_ctx);
 }
 
 size_t ConvHipImplicitGemmV4R4GenWrWXdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const

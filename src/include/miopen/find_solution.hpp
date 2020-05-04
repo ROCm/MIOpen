@@ -36,11 +36,14 @@
 #include <vector>
 
 namespace miopen {
+
+struct AnyInvokeParams;
+
 namespace solver {
 
 template <class Solver, class Context, class Db>
 auto FindSolutionImpl(
-    rank<1>, Solver s, const Context& context, Db& db, const boost::any& invoke_ctx)
+    rank<1>, Solver s, const Context& context, Db& db, const AnyInvokeParams& invoke_ctx)
     -> decltype(s.GetSolution(context, s.Search(context, invoke_ctx)))
 {
     const FindEnforce enforce;
@@ -102,7 +105,7 @@ auto FindSolutionImpl(
 }
 
 template <class Solver, class Context, class Db>
-auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&, const boost::any&)
+auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&, const AnyInvokeParams&)
     -> decltype(s.GetSolution(context))
 {
     MIOPEN_LOG_I(SolverDbId(s) << " (not searchable)");
@@ -116,7 +119,8 @@ auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&, const boos
 /// Could take long if an exhaustive search is requested/performed.
 /// May read/write perfDb.
 template <class Solver, class Context, class Db>
-ConvSolution FindSolution(Solver s, const Context& context, Db& db, const boost::any& invoke_ctx)
+ConvSolution
+FindSolution(Solver s, const Context& context, Db& db, const AnyInvokeParams& invoke_ctx)
 {
     static_assert(std::is_empty<Solver>{} && std::is_trivially_constructible<Solver>{},
                   "Solver must be stateless");
@@ -134,7 +138,7 @@ struct SolverContainer
     std::vector<Solution>
     SearchForAllSolutions(const Context& search_params,
                           Db&& db,
-                          const boost::any& invoke_ctx,
+                          const AnyInvokeParams& invoke_ctx,
                           std::size_t limit = std::numeric_limits<std::size_t>::max()) const
     {
         std::vector<Solution> ss;

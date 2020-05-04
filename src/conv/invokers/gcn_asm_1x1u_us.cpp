@@ -33,8 +33,6 @@
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
 
-#include <boost/any.hpp>
-
 namespace miopen {
 namespace conv {
 
@@ -45,8 +43,8 @@ InvokerFactory MakeGcnAsm1x1UUSInvokerFactory(
         const auto kernel    = kernels[0];
         const auto us_kernel = kernels[1];
 
-        return [=](Handle& handle, const boost::any& primitive_parameters) {
-            const auto params         = boost::any_cast<DataInvokeParams>(primitive_parameters);
+        return [=](Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            const auto params         = primitive_parameters.CastTo<DataInvokeParams>();
             const auto& tensors       = params.tensors;
             const auto& workSpace     = params.workSpace;
             const auto& workSpaceSize = params.workSpaceSize;

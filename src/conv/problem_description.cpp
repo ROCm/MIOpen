@@ -83,25 +83,6 @@ void ProblemDescription::BuildConfKey(std::string& conf_key) const
     conf_key = ss.str();
 }
 
-boost::any ProblemDescription::MakeInvokeContext(ConstData_t in0_data, ConstData_t in1_data, Data_t out_data, Data_t workspace, std::size_t workspace_size) const
-{
-    switch(GetDirection())
-    {
-    case Direction::Forward:
-        return conv::DataInvokeParams{
-            {in, in0_data, weights, in1_data, out, out_data}, workspace, workspace_size};
-        break;
-    case Direction::BackwardData:
-        return conv::DataInvokeParams{
-            {in, in0_data, weights, in1_data, out, out_data}, workspace, workspace_size};
-        break;
-    case Direction::BackwardWeights:
-        return conv::WrWInvokeParams{
-            {in, in0_data, weights, in1_data, out, out_data}, workspace, workspace_size};
-        break;
-    }
-}
-
 void ProblemDescription::Serialize(std::ostream& stream) const
 {
     const auto sep = '-';

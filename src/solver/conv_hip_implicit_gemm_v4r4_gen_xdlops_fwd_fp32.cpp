@@ -586,9 +586,9 @@ bool ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::IsValidPerformanceConfig(
 
 PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
 ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::Search(const ConvolutionContext& ctx,
-                                                const boost::any& invoke_ctx) const
+                                                const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearchFwd(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, invoke_ctx);
 }
 
 } // namespace solver

@@ -32,8 +32,6 @@
 #include <miopen/tensor.hpp>
 #include <miopen/visit_float.hpp>
 
-#include <boost/any.hpp>
-
 namespace miopen {
 namespace conv {
 
@@ -42,10 +40,10 @@ InvokerFactory MakeOclWrWRdcInvokerFactory(bool twoKernels, size_t workspaceSize
     if(twoKernels)
     {
         return [workspaceSize](const std::vector<Kernel>& kernels) {
-            return [=](Handle& handle, const boost::any& primitive_params) {
+            return [=](Handle& handle, const AnyInvokeParams& primitive_params) {
                 const auto main_kernel   = handle.Run(kernels[0]);
                 const auto rdc_kernel    = handle.Run(kernels[1]);
-                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+                const auto invoke_params = primitive_params.CastTo<WrWInvokeParams>();
                 const auto& tensors      = invoke_params.tensors;
                 const auto padding_val   = 0.f;
                 auto elapsed             = 0.f;
@@ -73,9 +71,9 @@ InvokerFactory MakeOclWrWRdcInvokerFactory(bool twoKernels, size_t workspaceSize
     else
     {
         return [](const std::vector<Kernel>& kernels) {
-            return [=](Handle& handle, const boost::any& primitive_params) {
+            return [=](Handle& handle, const AnyInvokeParams& primitive_params) {
                 const auto main_kernel   = handle.Run(kernels[0]);
-                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+                const auto invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
                 const auto& tensors      = invoke_params.tensors;
                 const auto padding_val   = 0.f;
                 visit_float(tensors.dyDesc.GetType(), [&](auto as_float) {

@@ -213,7 +213,7 @@ inline int EvaluateSCGemmSolution(Handle& handle,
 
 std::vector<miopen::solver::ConvSolution>
 ConvolutionDescriptor::FindWinogradSolutions(const ConvolutionContext& ctx,
-                                             const boost::any& invoke_ctx) const
+                                             const AnyInvokeParams& invoke_ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
         return {};
@@ -236,7 +236,7 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
                                                bool exhaustiveSearch,
                                                bool isForward,
                                                const ConvolutionUserBuffers& bufs,
-                                               const boost::any& invoke_ctx) const
+                                               const AnyInvokeParams& invoke_ctx) const
 {
 
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
@@ -271,7 +271,7 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
                                                      bool exhaustiveSearch,
                                                      bool isForward,
                                                      const ConvolutionUserBuffers& bufs,
-                                                     const boost::any& invoke_ctx) const
+                                                     const AnyInvokeParams& invoke_ctx) const
 {
 
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
@@ -306,7 +306,7 @@ ConvolutionDescriptor::FindSCGemmSolutions(Handle& handle,
                                            bool exhaustiveSearch,
                                            bool isForward,
                                            const ConvolutionUserBuffers& bufs,
-                                           const boost::any& invoke_ctx) const
+                                           const AnyInvokeParams& invoke_ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_SCGEMM{}))
         return {};
@@ -1062,7 +1062,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward}; // forward
         ctx.SetStream(&handle);
         const auto network_config = ctx.BuildConfKey();
-        const auto& invoker       = handle.GetInvoker(network_config, boost::none, algorithm_name);
+        const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(invoker)
         {
@@ -2062,8 +2062,7 @@ static std::vector<KernelInvoke> CompileSolver(Handle& handle,
 
     const auto solver   = solver_id.GetSolver();
     auto db             = GetDb(ctx);
-    const auto solution =
-        solver.FindSolution(ctx, db, boost::none); // auto tune is not expected here
+    const auto solution = solver.FindSolution(ctx, db, {}); // auto tune is not expected here
 
     std::vector<KernelInvoke> kernels;
     AddKernels(handle, key.algorithm_name, key.network_config, solution, &kernels);
@@ -2081,7 +2080,7 @@ static Invoker PrepareInvoker(Handle& handle,
 
     const auto solver = solver_id.GetSolver();
     auto db           = GetDb(ctx);
-    auto solution     = solver.FindSolution(ctx, db, boost::none); // auto tune is not expected here
+    auto solution     = solver.FindSolution(ctx, db, {}); // auto tune is not expected here
     const auto invoker =
         handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
 
@@ -2713,7 +2712,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
         ctx.SetStream(&handle);
         const auto network_config = ctx.BuildConfKey();
-        const auto& invoker       = handle.GetInvoker(network_config, boost::none, algorithm_name);
+        const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(invoker)
         {
@@ -4164,7 +4163,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             ConvolutionContext{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
         ctx.SetStream(&handle);
         const auto network_config = ctx.BuildConfKey();
-        const auto& invoker       = handle.GetInvoker(network_config, boost::none, algorithm_name);
+        const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(invoker)
         {

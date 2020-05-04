@@ -41,6 +41,8 @@
 
 namespace miopen {
 
+struct AnyInvokeParams;
+
 namespace solver {
 struct ConvSolution;
 } // namespace solver
@@ -204,10 +206,10 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                             bool exhaustiveSearch,
                             bool isForward,
                             const ConvolutionUserBuffers& bufs,
-                            const boost::any& invoke_ctx) const;
+                            const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
-    FindWinogradSolutions(const ConvolutionContext& ctx, const boost::any& invoke_ctx) const;
+    FindWinogradSolutions(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
     FindDataImplicitGemmSolutions(Handle& handle,
@@ -217,7 +219,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                   bool exhaustiveSearch,
                                   bool isForward,
                                   const ConvolutionUserBuffers& bufs,
-                                  const boost::any& invoke_ctx) const;
+                                  const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
     FindSCGemmSolutions(Handle& handle,
@@ -227,7 +229,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                         bool exhaustiveSearch,
                         bool isForward,
                         const ConvolutionUserBuffers& bufs,
-                        const boost::any& invoke_ctx) const;
+                        const AnyInvokeParams& invoke_ctx) const;
 
     void ConvolutionForward(Handle& handle,
                             const void* alpha,

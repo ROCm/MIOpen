@@ -30,6 +30,7 @@
 #include <miopen/config.h>
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/invoke_params.hpp>
 
 #include <vector>
 #include <cstdlib>
@@ -258,7 +259,6 @@ inline size_t divide_round_plus_inf(const size_t x, const unsigned y)
 /// * GetPerformanceConfig shall be implemented.
 ///   - Its return type shall be suitable for instantiation of the ComputedContainer.
 /// * GetSolution shall be implemented.
-/// * RunAndMeasureSolution shall be implemented.
 ///
 /// clang-format-off
 /// -----------------------------------------------
@@ -279,32 +279,6 @@ inline size_t divide_round_plus_inf(const size_t x, const unsigned y)
 ///         bot[] (dy) --> +--------+
 /// ------------------------------------------------
 /// clang-format-on
-template <class Solver, class Context>
-auto GenericSearchFwd(const Solver s,
-                      const Context& context,
-                      const boost::any& invoke_ctx)
-    -> decltype(s.GetPerformanceConfig(context))
-{
-    return GenericSearch(s, context, invoke_ctx);
-}
-
-template <class Solver, class Context>
-auto GenericSearchBwd(const Solver s,
-                      const Context& context,
-                      const boost::any& invoke_ctx)
-    -> decltype(s.GetPerformanceConfig(context))
-{
-    return GenericSearch(s, context, invoke_ctx);
-}
-
-template <class Solver, class Context>
-auto GenericSearchWrW(const Solver s,
-                      const Context& context,
-                      const boost::any& invoke_ctx)
-    -> decltype(s.GetPerformanceConfig(context))
-{
-    return GenericSearch(s, context, invoke_ctx);
-}
 
 // Todo: remove
 namespace detail {
@@ -344,16 +318,10 @@ using RunAndMeasure_t =
                                                           std::declval<ConvSolution>(),
                                                           std::declval<float&>()));
 
-#if MIOPEN_ALLOC_BUFFERS
-template <class Solver, class Context>
-auto GenericSearch(const Solver s,
-                   const Context& context)
-#else
 template <class Solver, class Context>
 auto GenericSearch(const Solver s,
                    const Context& context,
-                   const boost::any& invoke_ctx)
-#endif
+                   const AnyInvokeParams& invoke_ctx_)
     -> decltype(s.GetPerformanceConfig(context))
 {
     static_assert(
@@ -363,52 +331,14 @@ auto GenericSearch(const Solver s,
 
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
     PerformanceConfig best_config;
-    const auto default_solution = s.GetSolution(context, s.GetPerformanceConfig(context));
+    const auto default_solution   = s.GetSolution(context, s.GetPerformanceConfig(context));
+    const auto invoke_ctx             = [invoke_ctx_]() {
+        auto copy = invoke_ctx_;
+        copy.SetInvokeType(InvokeType::AutoTune);
+        return copy;
+    }();
 
     /*
-#if MIOPEN_ALLOC_BUFFERS
-    // Allocate buffers, init input buffers.
-    size_t top_size  = context.top_sz / sizeof(float);
-    size_t bot_size  = context.bot_sz / sizeof(float);
-    size_t wei_size  = context.weights_sz / sizeof(float);
-    size_t bias_size = context.bias_sz / sizeof(float);
-
-    if(tweak == SearchTweak::WorkspaceInsteadOfXBuffer)
-    {
-        assert(default_solution.workspce_sz != 0);
-        if(context.direction.IsForward())
-            bot_size = default_solution.workspce_sz;
-        else
-            top_size = default_solution.workspce_sz; // Ok for both Bwd and WrW.
-    }
-    else if(tweak == SearchTweak::WorkspaceInsteadOfWeightsBuffer)
-    {
-        assert(default_solution.workspce_sz != 0);
-        wei_size = default_solution.workspce_sz;
-    }
-
-    std::vector<float> top(top_size);
-    std::vector<float> bot(bot_size);
-    std::vector<float> wei(wei_size);
-    std::vector<float> bias(bias_size);
-    InitRandomly(bot);
-    if(!(context.direction.IsBackwardData() || context.direction.IsForward()))
-        InitRandomly(top);
-    if(!context.direction.IsBackwardWrW())
-        InitRandomly(wei, -0.5, 0.001);
-    if(context.bias)
-        InitRandomly(bias);
-
-    miopen::Handle profile_h;
-    auto bot_ocl_buf  = profile_h.Write(bot);
-    auto top_ocl_buf  = profile_h.Write(top);
-    auto wei_ocl_buf  = profile_h.Write(wei);
-    auto bias_ocl_buf = context.bias ? profile_h.Write(bias) : nullptr;
-    auto bot_ocl_ptr  = bot_ocl_buf.get();
-    auto top_ocl_ptr  = top_ocl_buf.get();
-    auto wei_ocl_ptr  = wei_ocl_buf.get();
-    auto bias_ocl_ptr = bias_ocl_buf.get();
-#else
     ConstData_t bias_ocl_ptr = context.GetBufs().bias;
     if(context.bias != 0 && bias_ocl_ptr == nullptr)
         MIOPEN_THROW("GenericSearch: context.bias != 0 && bias_ocl_ptr == nullptr");
@@ -439,7 +369,6 @@ auto GenericSearch(const Solver s,
     break;
     default: MIOPEN_THROW("GenericSearch: Unsupported SearchTweak value.");
     }
-#endif
     */
     auto& profile_h          = context.GetStream();
     AutoEnableProfiling enableProfiling{profile_h};
