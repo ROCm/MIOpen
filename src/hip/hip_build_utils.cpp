@@ -145,7 +145,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
 
         return hsaco->path();
     }
-    else
+    else // NOLINT
 #endif
 #ifdef OFFLOADBUNDLER_BIN
         if(IsClangXXCompiler()) // NOLINT
