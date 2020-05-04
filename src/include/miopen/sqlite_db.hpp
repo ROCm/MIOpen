@@ -174,9 +174,8 @@ class SQLite
                   const std::vector<std::string>& vals);
         Statement();
         ~Statement();
-        Statement(Statement&&);
-        Statement(const Statement&) = delete;
-        Statement& operator         =(Statement&&);
+        Statement(Statement&&) noexcept;
+        Statement& operator=(Statement&&) noexcept;
         Statement& operator=(const Statement&) = delete;
         int Step(const SQLite& sql);
         std::string ColumnText(int idx);
@@ -187,19 +186,18 @@ class SQLite
         int BindInt64(int idx, int64_t);
     };
 
-    using SQLRes_t = std::vector<std::unordered_map<std::string, std::string>>;
+    using result_type = std::vector<std::unordered_map<std::string, std::string>>;
     SQLite();
     SQLite(const std::string& filename_, bool is_system);
     ~SQLite();
-    SQLite(SQLite&&);
-    SQLite(const SQLite&) = delete;
-    SQLite& operator      =(SQLite&&);
+    SQLite(SQLite&&) noexcept;
+    SQLite& operator=(SQLite&&) noexcept;
     SQLite& operator=(const SQLite&) = delete;
     bool Valid() const;
-    bool Exec(const std::string& query, SQLRes_t& res) const;
-    bool Exec(const std::string& query) const;
+    result_type Exec(const std::string& query) const;
     int Changes() const;
     int Retry(std::function<int()>) const;
+    static int Retry(std::function<int()> f, std::string filename);
     std::string ErrorMessage() const;
 };
 
@@ -268,11 +266,11 @@ class SQLiteBase
                                   const std::vector<std::string>& goldenList) const
     {
         const auto sql_cfg_fds = "PRAGMA table_info(" + tableName + ");";
-        SQLite::SQLRes_t cfg_res;
+        SQLite::result_type cfg_res;
         {
             const auto lock = shared_lock(lock_file, GetLockTimeout());
             MIOPEN_VALIDATE_LOCK(lock);
-            sql.Exec(sql_cfg_fds, cfg_res);
+            cfg_res = sql.Exec(sql_cfg_fds);
         }
         std::vector<std::string> cfg_fds(cfg_res.size());
         std::transform(
@@ -341,7 +339,6 @@ class SQLiteBase
         return reinterpret_cast<Derived*>(this)->LoadUnsafe(args...);
     }
 
-    protected:
     std::string filename;
     std::string arch;
     size_t num_cu;

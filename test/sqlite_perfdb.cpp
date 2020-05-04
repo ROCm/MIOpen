@@ -243,8 +243,7 @@ class DbTest
 
     void ClearDb(SQLitePerfDb& db) const
     {
-        auto res = db.SQLExec("delete from config; delete from perf_db;");
-        EXPECT(res);
+        db.sql.Exec("delete from config; delete from perf_db;");
     }
 
     void ResetDb() const {}
@@ -331,32 +330,24 @@ class SchemaTest : public DbTest
         SQLitePerfDb db_inst(std::string(temp_file), false, "gfx906", 64);
 
         // check if the config and perf_db tables exist
-        SQLitePerfDb::SQLRes_t res;
-        if(db_inst.SQLExec(
-               // clang-format off
-               "SELECT name, sql "
-               "FROM sqlite_master "
-               "WHERE type='table' "
-                 "AND name = 'config';"
-               // clang-format on
-               ,
-               res))
-            EXPECT(res.size() == 1);
-        else
-            EXPECT(false);
-        if(db_inst.SQLExec(
-               // clang-format off
-               "SELECT name, sql "
-               "FROM sqlite_master "
-               "WHERE type='table' "
-                 "AND name = 'perf_db';"
-               // clang-format on
-               ,
-               res))
-
-            EXPECT(res.size() == 1);
-        else
-            EXPECT(false);
+        SQLite::result_type res = db_inst.sql.Exec(
+            // clang-format off
+                "SELECT name, sql "
+                "FROM sqlite_master "
+                "WHERE type='table' "
+                "AND name = 'config';"
+            // clang-format on
+            );
+        EXPECT(res.size() == 1);
+        res = db_inst.sql.Exec(
+            // clang-format off
+                "SELECT name, sql "
+                "FROM sqlite_master "
+                "WHERE type='table' "
+                "AND name = 'perf_db';"
+            // clang-format on
+            );
+        EXPECT(res.size() == 1);
         // TODO: check for indices
     }
 };
@@ -379,11 +370,11 @@ class DbFindTest : public DbTest
         const SolverData sol;
         std::ostringstream ss;
         sol.Serialize(ss);
-        EXPECT(db_inst.SQLExec(
+        db_inst.sql.Exec(
             // clang-formagt off
             "INSERT INTO perf_db(config, solver, params, arch, num_cu) "
             "VALUES( " +
-            id + ", '" + id0() + "', '" + ss.str() + "', 'gfx906', 64);"));
+            id + ", '" + id0() + "', '" + ss.str() + "', 'gfx906', 64);");
         // clang-fromat on
 
         auto sol_res = db_inst.FindRecord(p);

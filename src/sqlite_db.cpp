@@ -57,7 +57,7 @@ class SQLite::impl
         void operator()(sqlite3* ptr)
         {
             std::string filename_(sqlite3_db_filename(ptr, "main"));
-            SQLite::impl::Retry([&]() { return sqlite3_close(ptr); }, filename_);
+            SQLite::Retry([&]() { return sqlite3_close(ptr); }, filename_);
         }
     };
 
@@ -74,94 +74,86 @@ class SQLite::impl
         ptrDb   = sqlite3_ptr{ptr_tmp};
         isValid = (rc == 0);
     }
-    bool Exec(const std::string& query) const
+
+    using sqlite3_ptr = std::unique_ptr<sqlite3, SQLiteCloser>;
+    sqlite3_ptr ptrDb = nullptr;
+    bool isValid;
+};
+
+static int find_callback(void* _res, int argc, char** argv, char** azColName)
+{
+    SQLite::result_type* res = static_cast<SQLite::result_type*>(_res);
+    std::unordered_map<std::string, std::string> record;
+    for(auto i               = 0; i < argc; i++)
+        record[azColName[i]] = (argv[i] != nullptr) ? argv[i] : "NULL";
+    if(res != nullptr)
+        res->push_back(record);
+    return 0;
+}
+
+SQLite::SQLite() : pImpl(nullptr) {}
+SQLite::~SQLite()                 = default;
+SQLite::SQLite(SQLite&&) noexcept = default;
+SQLite& SQLite::operator=(SQLite&&) noexcept = default;
+SQLite::result_type SQLite::Exec(const std::string& query) const
+{
+    SQLite::result_type res;
+    MIOPEN_LOG_T(std::this_thread::get_id() << ":" << query);
     {
-        MIOPEN_LOG_T(std::this_thread::get_id() << ":" << query);
         auto rc = Retry([&]() {
-            return sqlite3_exec(ptrDb.get(), query.c_str(), find_callback, nullptr, nullptr);
+            return sqlite3_exec(pImpl->ptrDb.get(),
+                                query.c_str(),
+                                find_callback,
+                                static_cast<void*>(&res),
+                                nullptr);
         });
         if(rc != SQLITE_OK)
         {
             MIOPEN_LOG_I2(query);
             MIOPEN_THROW(miopenStatusInternalError, ErrorMessage());
-            sqlite3_close(ptrDb.get());
-            return false;
         }
-        return true;
     }
-    bool Exec(const std::string& query, SQLRes_t& res) const
-    {
-        res.clear();
-        MIOPEN_LOG_T(std::this_thread::get_id() << ":" << query);
-        {
-            auto rc = Retry([&]() {
-                return sqlite3_exec(
-                    ptrDb.get(), query.c_str(), find_callback, static_cast<void*>(&res), nullptr);
-            });
-            if(rc != SQLITE_OK)
-            {
-                MIOPEN_LOG_I2(query);
-                MIOPEN_THROW(miopenStatusInternalError, ErrorMessage());
-                sqlite3_close(ptrDb.get());
-                return false;
-            }
-        }
-        return true;
-    }
+    return res;
+}
 
-    static int find_callback(void* _res, int argc, char** argv, char** azColName)
+int SQLite::Retry(std::function<int()> f, std::string filename)
+{
+    auto timeout_end = std::chrono::high_resolution_clock::now() +
+                       std::chrono::seconds(30); // TODO: make configurable
+    auto tries = 0;
+    while(true)
     {
-        SQLRes_t* res = static_cast<SQLRes_t*>(_res);
-        std::unordered_map<std::string, std::string> record;
-        for(auto i               = 0; i < argc; i++)
-            record[azColName[i]] = (argv[i] != nullptr) ? argv[i] : "NULL";
-        res->push_back(record);
-        return 0;
-    }
-
-    static int Retry(std::function<int()> f, std::string filename)
-    {
-        auto timeout_end = std::chrono::high_resolution_clock::now() +
-                           std::chrono::seconds(30); // TODO: make configurable
-        auto tries = 0;
-        while(true)
+        int rc = f();
+        if(rc == SQLITE_BUSY)
         {
-            int rc = f();
-            if(rc == SQLITE_BUSY)
-            {
-                MIOPEN_LOG_I2("Database" + filename + "  busy, retrying ...");
-                ++tries;
-                if(tries > 50)
-                    std::this_thread::sleep_for(std::chrono::microseconds(100));
-                else
-                    std::this_thread::yield();
-            }
+            MIOPEN_LOG_I2("Database" + filename + "  busy, retrying ...");
+            ++tries;
+            if(tries > 50)
+                std::this_thread::sleep_for(std::chrono::microseconds(100));
             else
-                return rc;
-            if(std::chrono::high_resolution_clock::now() > timeout_end)
-                MIOPEN_THROW("Timeout while waiting for Database: " + filename);
+                std::this_thread::yield();
         }
+        else
+            return rc;
+        if(std::chrono::high_resolution_clock::now() > timeout_end)
+            MIOPEN_THROW("Timeout while waiting for Database: " + filename);
     }
+}
 
-    int Retry(std::function<int()> f) const
-    {
-        std::string filename(sqlite3_db_filename(ptrDb.get(), "main"));
-        return SQLite::impl::Retry(f, filename);
-    }
+int SQLite::Retry(std::function<int()> f) const
+{
+    std::string filename(sqlite3_db_filename(pImpl->ptrDb.get(), "main"));
+    return SQLite::Retry(f, filename);
+}
 
-    int Changes() const { return sqlite3_changes(ptrDb.get()); }
+int SQLite::Changes() const { return sqlite3_changes(pImpl->ptrDb.get()); }
 
-    std::string ErrorMessage() const
-    {
-        std::string errMsg = "Internal error while accessing SQLite database: ";
-        return errMsg + sqlite3_errmsg(ptrDb.get());
-    }
-
-    public:
-    using sqlite3_ptr = std::unique_ptr<sqlite3, SQLiteCloser>;
-    sqlite3_ptr ptrDb = nullptr;
-    bool isValid;
-};
+std::string SQLite::ErrorMessage() const
+{
+    std::string errMsg = "Internal error while accessing SQLite database: ";
+    return errMsg + sqlite3_errmsg(pImpl->ptrDb.get());
+}
+bool SQLite::Valid() const { return pImpl->isValid; }
 
 class SQLite::Statement::impl
 {
@@ -196,43 +188,6 @@ class SQLite::Statement::impl
         MIOPEN_LOG_I2("[" << JoinStrings(vals, ",") << "]");
     }
 
-    int Step(const SQLite& sql)
-    {
-        return sql.Retry([&]() { return sqlite3_step(ptrStmt.get()); });
-    }
-    std::string ColumnText(int idx)
-    {
-        size_t bytes = sqlite3_column_bytes(ptrStmt.get(), idx);
-        return std::string{reinterpret_cast<const char*>(sqlite3_column_text(ptrStmt.get(), idx)),
-                           bytes};
-    }
-
-    std::string ColumnBlob(int idx)
-    {
-        auto ptr = sqlite3_column_blob(ptrStmt.get(), idx);
-        auto sz  = sqlite3_column_bytes(ptrStmt.get(), idx);
-        return std::string{reinterpret_cast<const char*>(ptr), static_cast<size_t>(sz)};
-    }
-    int64_t ColumnInt64(int idx) { return sqlite3_column_int64(ptrStmt.get(), idx); }
-
-    int BindText(int idx, const std::string& txt)
-    {
-        sqlite3_bind_text(ptrStmt.get(), idx, txt.data(), txt.size(), SQLITE_TRANSIENT); // NOLINT
-        return 0;
-    }
-    int BindBlob(int idx, const std::string& blob)
-    {
-        sqlite3_bind_blob(ptrStmt.get(), idx, blob.data(), blob.size(), SQLITE_TRANSIENT); // NOLINT
-        return 0;
-    }
-
-    int BindInt64(int idx, const int64_t num)
-    {
-        sqlite3_bind_int64(ptrStmt.get(), idx, num);
-        return 0;
-    }
-
-    protected:
     sqlite3_stmt_ptr ptrStmt = nullptr;
 };
 
@@ -240,19 +195,7 @@ SQLite::SQLite(const std::string& filename_, bool is_system)
     : pImpl{std::make_unique<impl>(filename_, is_system)}
 {
 }
-SQLite::SQLite() : pImpl(nullptr) {}
-SQLite::~SQLite()        = default;
-SQLite::SQLite(SQLite&&) = default;
-SQLite& SQLite::operator=(SQLite&&) = default;
 
-bool SQLite::Exec(const std::string& query) const { return pImpl->Exec(query); }
-
-bool SQLite::Exec(const std::string& query, SQLRes_t& res) const { return pImpl->Exec(query, res); }
-
-int SQLite::Changes() const { return pImpl->Changes(); }
-int SQLite::Retry(std::function<int()> f) const { return pImpl->Retry(f); }
-std::string SQLite::ErrorMessage() const { return pImpl->ErrorMessage(); }
-bool SQLite::Valid() const { return pImpl->isValid; }
 SQLite::Statement::Statement(const SQLite& sql, const std::string& query)
     : pImpl{std::make_unique<impl>(sql, query)}
 {
@@ -265,27 +208,48 @@ SQLite::Statement::Statement(const SQLite& sql,
 }
 SQLite::Statement::~Statement() = default;
 SQLite::Statement::Statement() : pImpl{nullptr} {}
-SQLite::Statement::Statement(Statement&&)     = default;
-SQLite::Statement& SQLite::Statement::operator=(Statement&&) = default;
-int SQLite::Statement::Step(const SQLite& sql) { return pImpl->Step(sql); }
+SQLite::Statement::Statement(Statement&&) noexcept = default;
+SQLite::Statement& SQLite::Statement::operator=(Statement&&) noexcept = default;
+int SQLite::Statement::Step(const SQLite& sql)
+{
+    return sql.Retry([&]() { return sqlite3_step(pImpl->ptrStmt.get()); });
+}
+std::string SQLite::Statement::ColumnText(int idx)
+{
+    size_t bytes = sqlite3_column_bytes(pImpl->ptrStmt.get(), idx);
+    return std::string{
+        reinterpret_cast<const char*>(sqlite3_column_text(pImpl->ptrStmt.get(), idx)), bytes};
+}
 
-std::string SQLite::Statement::ColumnText(int idx) { return pImpl->ColumnText(idx); }
-
-std::string SQLite::Statement::ColumnBlob(int idx) { return pImpl->ColumnBlob(idx); }
-
-int64_t SQLite::Statement::ColumnInt64(int idx) { return pImpl->ColumnInt64(idx); }
+std::string SQLite::Statement::ColumnBlob(int idx)
+{
+    auto ptr = sqlite3_column_blob(pImpl->ptrStmt.get(), idx);
+    auto sz  = sqlite3_column_bytes(pImpl->ptrStmt.get(), idx);
+    return std::string{reinterpret_cast<const char*>(ptr), static_cast<size_t>(sz)};
+}
+int64_t SQLite::Statement::ColumnInt64(int idx)
+{
+    return sqlite3_column_int64(pImpl->ptrStmt.get(), idx);
+}
 
 int SQLite::Statement::BindText(int idx, const std::string& txt)
 {
-    return pImpl->BindText(idx, txt);
+    sqlite3_bind_text(
+        pImpl->ptrStmt.get(), idx, txt.data(), txt.size(), SQLITE_TRANSIENT); // NOLINT
+    return 0;
 }
-
 int SQLite::Statement::BindBlob(int idx, const std::string& blob)
 {
-    return pImpl->BindBlob(idx, blob);
+    sqlite3_bind_blob(
+        pImpl->ptrStmt.get(), idx, blob.data(), blob.size(), SQLITE_TRANSIENT); // NOLINT
+    return 0;
 }
 
-int SQLite::Statement::BindInt64(int idx, const int64_t num) { return pImpl->BindInt64(idx, num); }
+int SQLite::Statement::BindInt64(int idx, const int64_t num)
+{
+    sqlite3_bind_int64(pImpl->ptrStmt.get(), idx, num);
+    return 0;
+}
 
 SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
                            bool is_system,
@@ -307,7 +271,7 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
     prob_desc.weights_data_type = miopenFloat;
     if(!is_system)
     {
-        SQLite::SQLRes_t res;
+        SQLite::result_type res;
         const std::string create_config = prob_desc.CreateQuery();
         // clang-format off
         const std::string create_perfdb_sql =
@@ -334,14 +298,13 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
                   "type = 'table' AND "
                   "(name = 'config' OR name = 'perf_db');";
             // clang-format on
-            sql.Exec(check_tables, res);
+            res = sql.Exec(check_tables);
         }
         if(res.empty())
         {
             const auto lock = exclusive_lock(lock_file, GetLockTimeout());
             MIOPEN_VALIDATE_LOCK(lock);
-            if(!sql.Exec(create_config + create_perfdb_sql))
-                MIOPEN_THROW(miopenStatusInternalError);
+            sql.Exec(create_config + create_perfdb_sql);
             MIOPEN_LOG_I2("Database created successfully");
         }
     }
