@@ -18,12 +18,12 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     g++ \
     gdb \
     git \
-    hcc \
     lcov \
     libelf-dev \
     libncurses5-dev \
     libnuma-dev \
     libpthread-stubs0-dev \
+    llvm-amdgpu \
     pkg-config \
     python \
     python3 \
@@ -34,10 +34,13 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     software-properties-common \
     wget \
     rocm-device-libs \
+    rocm-opencl \
+    rocm-opencl-dev \
     rocblas \
     zlib1g-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
 
 # Install cget
 RUN pip install cget
