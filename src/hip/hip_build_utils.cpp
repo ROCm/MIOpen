@@ -154,19 +154,19 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
         tmp_dir->Execute(OFFLOADBUNDLER_BIN,
                          "--type=o --targets=hip-amdgcn-amd-amdhsa-" + dev_name + " --inputs=" +
                              bin_file.string() + " --outputs=" + bin_file.string() +
-                             ".hipfb --unbundle");
+                             ".hsaco --unbundle");
 
-        auto hipfb =
+        auto hsaco =
             std::find_if(boost::filesystem::directory_iterator{tmp_dir->path},
                          {},
-                         [](auto entry) { return (entry.path().extension() == ".hipfb"); });
+                         [](auto entry) { return (entry.path().extension() == ".hsaco"); });
 
-        if(hipfb == boost::filesystem::directory_iterator{})
+        if(hsaco == boost::filesystem::directory_iterator{})
         {
-            MIOPEN_LOG_E("failed to find *.hipfb in " << hipfb->path().string());
+            MIOPEN_LOG_E("failed to find *.hsaco in " << hsaco->path().string());
         }
-        std::cout << "hipfb->path:: " << hipfb->path() << std::endl;
-        return hipfb->path();
+        std::cout << "hsaco->path:: " << hsaco->path() << std::endl;
+        return hsaco->path();
     }
     else
 #endif
