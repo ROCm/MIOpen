@@ -146,8 +146,6 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
             params += " -save-temps";
         }
     }
-
-    MIOPEN_LOG_I2(std::string("params: ") + params);
 #endif
 
     params += " ";
