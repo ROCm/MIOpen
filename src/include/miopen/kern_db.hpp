@@ -105,13 +105,13 @@ class KernDb : public SQLiteBase<KernDb>
             return true;
         auto del_query =
             "DELETE FROM " + T::table_name() + " WHERE " + problem_config.Where() + ";";
-        sqlite3_stmt_ptr pStmt = Prepare(del_query);
-        auto rc                = SQLRety([&]() { return sqlite3_step(pStmt.get()); });
+        auto stmt = SQLite::Statement{sql, del_query};
+        auto rc   = stmt.Step(sql);
         if(rc == SQLITE_DONE)
             return true;
         else
         {
-            MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
+            MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
             return false;
         }
     }
@@ -124,18 +124,15 @@ class KernDb : public SQLiteBase<KernDb>
         // Where clause with inserted values defeats the purpose of a prepraed statement
         auto select_query = "SELECT kernel_blob, kernel_hash, uncompressed_size FROM " +
                             T::table_name() + " WHERE " + problem_config.Where() + ";";
-        sqlite3_stmt_ptr pStmt = Prepare(select_query);
+        auto stmt = SQLite::Statement{sql, select_query};
         // only one result field
         // assert one row
-        auto rc = SQLRety([&]() { return sqlite3_step(pStmt.get()); });
+        auto rc = stmt.Step(sql);
         if(rc == SQLITE_ROW)
         {
-            auto ptr = sqlite3_column_blob(pStmt.get(), 0);
-            auto sz  = sqlite3_column_bytes(pStmt.get(), 0);
-            std::string compressed_blob(reinterpret_cast<const char*>(ptr), sz);
-            std::string md5_hash(reinterpret_cast<const char*>(sqlite3_column_text(pStmt.get(), 1)),
-                                 sqlite3_column_bytes(pStmt.get(), 1));
-            auto uncompressed_size         = sqlite3_column_int64(pStmt.get(), 2);
+            auto compressed_blob           = stmt.ColumnBlob(0);
+            auto md5_hash                  = stmt.ColumnText(1);
+            auto uncompressed_size         = stmt.ColumnInt64(2);
             std::string& decompressed_blob = compressed_blob;
             if(uncompressed_size != 0)
             {
@@ -149,7 +146,7 @@ class KernDb : public SQLiteBase<KernDb>
         else if(rc == SQLITE_DONE)
             return boost::none;
         else
-            MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
+            MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
         return boost::none;
     }
 
@@ -165,44 +162,24 @@ class KernDb : public SQLiteBase<KernDb>
         auto uncompressed_size = problem_config.kernel_blob.size();
         bool success           = false;
         auto compressed_blob   = compress_fn(problem_config.kernel_blob, &success);
-        sqlite3_stmt_ptr pStmt = Prepare(insert_query);
-        sqlite3_bind_text(pStmt.get(),
-                          1,
-                          problem_config.kernel_name.data(),
-                          problem_config.kernel_name.size(),
-                          SQLITE_TRANSIENT); // NOLINT
-        sqlite3_bind_text(pStmt.get(),
-                          2,
-                          problem_config.kernel_args.data(),
-                          problem_config.kernel_args.size(),
-                          SQLITE_TRANSIENT); // NOLINT
+        auto stmt              = SQLite::Statement{sql, insert_query};
+        stmt.BindText(1, problem_config.kernel_name);
+        stmt.BindText(2, problem_config.kernel_args);
         if(!success)
         {
-            sqlite3_bind_blob(pStmt.get(),
-                              3,
-                              problem_config.kernel_blob.data(),
-                              problem_config.kernel_blob.size(),
-                              SQLITE_TRANSIENT); // NOLINT
-            sqlite3_bind_int64(pStmt.get(), 5, 0);
+            stmt.BindBlob(3, problem_config.kernel_blob);
+            stmt.BindInt64(5, 0);
         }
         else
         {
-            sqlite3_bind_blob(pStmt.get(),
-                              3,
-                              compressed_blob.data(),
-                              compressed_blob.size(),
-                              SQLITE_TRANSIENT); // NOLINT
-            sqlite3_bind_int64(pStmt.get(), 5, uncompressed_size);
+            stmt.BindBlob(3, compressed_blob);
+            stmt.BindInt64(5, uncompressed_size);
         }
-        sqlite3_bind_text(pStmt.get(),
-                          4,
-                          md5_sum.data(),
-                          md5_sum.size(),
-                          SQLITE_TRANSIENT); // NOLINT
+        stmt.BindText(4, md5_sum);
 
-        auto rc = SQLRety([&]() { return sqlite3_step(pStmt.get()); });
+        auto rc = stmt.Step(sql);
         if(rc != SQLITE_DONE)
-            MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
+            MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
         return problem_config.kernel_blob;
     }
 };

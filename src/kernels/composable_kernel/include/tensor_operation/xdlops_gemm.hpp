@@ -5,6 +5,8 @@
 #include "ConstantMatrixDescriptor.hpp"
 #include "math.hpp"
 
+#define WORKAROUND_SWDEV_229564 1
+
 namespace ck {
 
 enum struct mfma_instr
@@ -205,7 +207,7 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x4f16>
 
     template <index_t MPerWave, index_t NPerWave>
     __device__ void
-    run(Number<MPerWave>, Number<NPerWave>, const half* a, const half* b, float* reg_c) const
+    run(Number<MPerWave>, Number<NPerWave>, const half_t* a, const half_t* b, float* reg_c) const
     {
         static_assert((MPerWave == 64 && NPerWave == 64) || (MPerWave == 32 && NPerWave == 64) ||
                           (MPerWave == 64 && NPerWave == 32),
@@ -237,7 +239,7 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x8f16>
 
     template <index_t MPerWave, index_t NPerWave>
     __device__ void
-    run(Number<MPerWave>, Number<NPerWave>, const half* a, const half* b, float* reg_c) const
+    run(Number<MPerWave>, Number<NPerWave>, const half_t* a, const half_t* b, float* reg_c) const
     {
         static_assert((MPerWave == 32 && NPerWave == 32), "unsupported xdlops gemm");
 
@@ -267,7 +269,7 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x16f16>
 
     template <index_t MPerWave, index_t NPerWave>
     __device__ void
-    run(Number<MPerWave>, Number<NPerWave>, const half* a, const half* b, float* reg_c) const
+    run(Number<MPerWave>, Number<NPerWave>, const half_t* a, const half_t* b, float* reg_c) const
     {
         static_assert((MPerWave == 16 && NPerWave == 16), "unsupported xdlops gemm");
 
@@ -297,7 +299,7 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x4f16>
 
     template <index_t MPerWave, index_t NPerWave>
     __device__ void
-    run(Number<MPerWave>, Number<NPerWave>, const half* a, const half* b, float* reg_c) const
+    run(Number<MPerWave>, Number<NPerWave>, const half_t* a, const half_t* b, float* reg_c) const
     {
         static_assert((MPerWave == 16 && NPerWave == 64) || (MPerWave == 64 && NPerWave == 16),
                       "unsupported xdlops gemm");
@@ -328,7 +330,7 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x4f16>
 
     template <index_t MPerWave, index_t NPerWave>
     __device__ void
-    run(Number<MPerWave>, Number<NPerWave>, const half* a, const half* b, float* reg_c) const
+    run(Number<MPerWave>, Number<NPerWave>, const half_t* a, const half_t* b, float* reg_c) const
     {
         static_assert((MPerWave == 4 || MPerWave == 8) && NPerWave == 64,
                       "unsupported xdlops gemm");
@@ -616,55 +618,55 @@ struct XdlopsGemm_t
     }
 
     template <>
-    __device__ static constexpr auto GetMFMAInfo<half, 64, 64>()
+    __device__ static constexpr auto GetMFMAInfo<half_t, 64, 64>()
     {
         return mfma_info<mfma_instr::mfma_f32_32x32x4f16>{};
     }
 
     template <>
-    __device__ static constexpr auto GetMFMAInfo<half, 64, 32>()
+    __device__ static constexpr auto GetMFMAInfo<half_t, 64, 32>()
     {
         return mfma_info<mfma_instr::mfma_f32_32x32x4f16>{};
     }
 
     template <>
-    __device__ static constexpr auto GetMFMAInfo<half, 32, 64>()
+    __device__ static constexpr auto GetMFMAInfo<half_t, 32, 64>()
     {
         return mfma_info<mfma_instr::mfma_f32_32x32x4f16>{};
     }
 
     template <>
-    __device__ static constexpr auto GetMFMAInfo<half, 32, 32>()
+    __device__ static constexpr auto GetMFMAInfo<half_t, 32, 32>()
     {
         return mfma_info<mfma_instr::mfma_f32_32x32x8f16>{};
     }
 
     template <>
-    __device__ static constexpr auto GetMFMAInfo<half, 16, 16>()
+    __device__ static constexpr auto GetMFMAInfo<half_t, 16, 16>()
     {
         return mfma_info<mfma_instr::mfma_f32_16x16x16f16>{};
     }
 
     template <>
-    __device__ static constexpr auto GetMFMAInfo<half, 16, 64>()
+    __device__ static constexpr auto GetMFMAInfo<half_t, 16, 64>()
     {
         return mfma_info<mfma_instr::mfma_f32_16x16x4f16>{};
     }
 
     template <>
-    __device__ static constexpr auto GetMFMAInfo<half, 64, 16>()
+    __device__ static constexpr auto GetMFMAInfo<half_t, 64, 16>()
     {
         return mfma_info<mfma_instr::mfma_f32_16x16x4f16>{};
     }
 
     template <>
-    __device__ static constexpr auto GetMFMAInfo<half, 4, 64>()
+    __device__ static constexpr auto GetMFMAInfo<half_t, 4, 64>()
     {
         return mfma_info<mfma_instr::mfma_f32_4x4x4f16>{};
     }
 
     template <>
-    __device__ static constexpr auto GetMFMAInfo<half, 8, 64>()
+    __device__ static constexpr auto GetMFMAInfo<half_t, 8, 64>()
     {
         return mfma_info<mfma_instr::mfma_f32_4x4x4f16>{};
     }
@@ -851,6 +853,9 @@ struct XdlopsGemm_t
             auto pa = reinterpret_cast<const data_type*>(&a);
             auto pb = reinterpret_cast<const data_type*>(&b);
 
+#if WORKAROUND_SWDEV_229564
+#pragma unroll
+#endif
             for(index_t k = 0; k < K; ++k)
             {
                 constexpr index_t nxdlops = sizeof(FloatA) / (mfma_type.k * sizeof(data_type));
@@ -883,6 +888,9 @@ struct XdlopsGemm_t
             constexpr index_t nxdlops =
                 (sizeof(FloatA) * mfma_type.num_input_blks) / (mfma_type.k * sizeof(data_type));
 
+#if WORKAROUND_SWDEV_229564
+#pragma unroll
+#endif
             for(index_t k = 0; k < K; k += mfma_type.num_input_blks)
             {
                 for(index_t i = 0; i < nxdlops; ++i, pa += mfma_type.k, pb += mfma_type.k)
