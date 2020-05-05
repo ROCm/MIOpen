@@ -225,12 +225,16 @@ std::ostream& operator<<(std::ostream& s, const SolverData& td)
 class DbTest
 {
     public:
-    DbTest() : temp_file("miopen.tests.perfdb") {}
+    DbTest()
+        : temp_file("miopen.tests.perfdb"), db_inst{std::string(temp_file), false, "gfx906", 64}
+    {
+    }
 
     virtual ~DbTest() {}
 
     protected:
     TempFile temp_file;
+    SQLitePerfDb db_inst;
 
     static const std::array<std::pair<std::string, SolverData>, 2>& common_data()
     {
@@ -243,11 +247,10 @@ class DbTest
 
     void ClearDb(SQLitePerfDb& db) const
     {
-        auto res = db.SQLExec("delete from config; delete from perf_db;");
-        EXPECT(res);
+        db.sql.Exec("delete from config; delete from perf_db;");
     }
 
-    void ResetDb() const {}
+    void ResetDb() const { db_inst.sql.Exec("delete from config; delete from perf_db;"); }
 
     static const ProblemData& key()
     {
@@ -328,35 +331,25 @@ class SchemaTest : public DbTest
     public:
     void Run() const
     {
-        SQLitePerfDb db_inst(std::string(temp_file), false, "gfx906", 64);
-
         // check if the config and perf_db tables exist
-        SQLitePerfDb::SQLRes_t res;
-        if(db_inst.SQLExec(
-               // clang-format off
-               "SELECT name, sql "
-               "FROM sqlite_master "
-               "WHERE type='table' "
-                 "AND name = 'config';"
-               // clang-format on
-               ,
-               res))
-            EXPECT(res.size() == 1);
-        else
-            EXPECT(false);
-        if(db_inst.SQLExec(
-               // clang-format off
-               "SELECT name, sql "
-               "FROM sqlite_master "
-               "WHERE type='table' "
-                 "AND name = 'perf_db';"
-               // clang-format on
-               ,
-               res))
-
-            EXPECT(res.size() == 1);
-        else
-            EXPECT(false);
+        SQLite::result_type res = db_inst.sql.Exec(
+            // clang-format off
+                "SELECT name, sql "
+                "FROM sqlite_master "
+                "WHERE type='table' "
+                "AND name = 'config';"
+            // clang-format on
+            );
+        EXPECT(res.size() == 1);
+        res = db_inst.sql.Exec(
+            // clang-format off
+                "SELECT name, sql "
+                "FROM sqlite_master "
+                "WHERE type='table' "
+                "AND name = 'perf_db';"
+            // clang-format on
+            );
+        EXPECT(res.size() == 1);
         // TODO: check for indices
     }
 };
@@ -364,10 +357,9 @@ class SchemaTest : public DbTest
 class DbFindTest : public DbTest
 {
     public:
-    void Run() const
+    void Run()
     {
-        SQLitePerfDb db_inst(std::string(temp_file), false, "gfx906", 64);
-        ResetDb(); // redundant
+        ResetDb();
 
         const ProblemData p;
         db_inst.InsertConfig(p);
@@ -379,11 +371,11 @@ class DbFindTest : public DbTest
         const SolverData sol;
         std::ostringstream ss;
         sol.Serialize(ss);
-        EXPECT(db_inst.SQLExec(
+        db_inst.sql.Exec(
             // clang-formagt off
             "INSERT INTO perf_db(config, solver, params, arch, num_cu) "
             "VALUES( " +
-            id + ", '" + id0() + "', '" + ss.str() + "', 'gfx906', 64);"));
+            id + ", '" + id0() + "', '" + ss.str() + "', 'gfx906', 64);");
         // clang-fromat on
 
         auto sol_res = db_inst.FindRecord(p);
