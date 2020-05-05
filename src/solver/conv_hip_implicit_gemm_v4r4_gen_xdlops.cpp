@@ -136,10 +136,14 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         // \todo there are more configs that can go through this if branch
         BBlockCopySrcDataPerRead_GemmN = gcd(BBlockCopySrcDataPerRead_GemmN, hi * wi);
     }
-    else
+    else if(conv_stride_w == 1)
     {
         BBlockCopySrcDataPerRead_GemmN =
-            gcd(BBlockCopySrcDataPerRead_GemmN, in_left_pad_w, wi, in_right_pad_w, conv_stride_w);
+            gcd(BBlockCopySrcDataPerRead_GemmN, in_left_pad_w, wi, in_right_pad_w, conv_dilation_w);
+    }
+    else
+    {
+        BBlockCopySrcDataPerRead_GemmN = 1;
     }
 
     std::size_t ABlockCopySrcDataPerRead_GemmK     = 1;
