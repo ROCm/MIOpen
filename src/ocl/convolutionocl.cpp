@@ -4188,7 +4188,6 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         case miopenConvolutionBwdWeightsAlgoImplicitGEMM:
         {
             float elapsed = 0.0;
-            handle.ResetKernelTime();
             auto&& kernels = handle.GetKernels(algorithm_name, network_config);
             if(kernels.empty())
                 MIOPEN_THROW("Error running Implicit GEMM WrW. Was Find() run previously?");
