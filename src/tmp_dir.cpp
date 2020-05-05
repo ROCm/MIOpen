@@ -53,11 +53,16 @@ TmpDir::TmpDir(std::string prefix)
            boost::filesystem::unique_path("miopen-" + prefix + "-%%%%-%%%%-%%%%-%%%%"))
 {
     boost::filesystem::create_directories(this->path);
+
 }
 
 void TmpDir::Execute(std::string exe, std::string args)
 {
     std::string cd  = "cd " + this->path.string() + "; ";
+    if(miopen::IsEnabled(MIOPEN_DEBUG_SAVE_TEMP_DIR{}))
+    {
+        MIOPEN_LOG_I2(cd);
+    }
     std::string cmd = cd + exe + " " + args; // + " > /dev/null";
     SystemCmd(cmd);
 }
