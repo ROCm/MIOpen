@@ -168,7 +168,6 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
         {
             MIOPEN_LOG_E("failed to find *.hsaco in " << hsaco->path().string());
         }
-        std::cout << "hsaco->path:: " << hsaco->path() << std::endl;
         return hsaco->path();
     }
     else
