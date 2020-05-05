@@ -24,7 +24,8 @@ template <typename SrcDesc,
           AddressSpace SrcAddressSpace     = AddressSpace::Generic,
           AddressSpace DstAddressSpace     = AddressSpace::Generic,
           InMemoryDataOperation DstInMemOp = InMemoryDataOperation::Set,
-          index_t SrcDataStride            = 1>
+          index_t SrcDataStride            = 1,
+          index_t DstDataStride            = 1>
 struct ThreadwiseGenericTensorSliceCopy_v4r2
 {
     static constexpr index_t nDim = SliceLengths::Size();
@@ -111,32 +112,16 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                 // Check src data's valid mapping situation, only check the first data in this src
                 //   vector. It's user's responsiblity to make sure all data in the src vector
                 //   has the valid/invalid mapping situation
-                static_assert(SrcDataStride == 1 || SrcDataStride == 2,
-                              "only support stride = 1 or 2");
                 if(src_coord.IsOffsetValidAssumingUpperIndexIsValid())
                 {
-                    static_if<SrcDataStride == 2>{}([&](auto) {
-                        const auto src_offset = src_coord.GetOffset();
-                        for(index_t j = 0; j < SrcDataPerRead; j++)
-                        {
-                            transfer_data<SrcData,
-                                          1,
-                                          SrcAddressSpace,
-                                          AddressSpace::Vgpr,
-                                          InMemoryDataOperation::Set>(p_src,
-                                                                      src_offset +
-                                                                          j * SrcDataStride,
-                                                                      p_src_long_vector,
-                                                                      buffer_offset + j);
-                        }
-                    }).Else([&](auto) {
-                        transfer_data<SrcData,
-                                      SrcDataPerRead,
-                                      SrcAddressSpace,
-                                      AddressSpace::Vgpr,
-                                      InMemoryDataOperation::Set>(
-                            p_src, src_coord.GetOffset(), p_src_long_vector, buffer_offset);
-                    });
+                    transfer_data<SrcData,
+                                  SrcDataPerRead,
+                                  SrcAddressSpace,
+                                  AddressSpace::Vgpr,
+                                  InMemoryDataOperation::Set,
+                                  SrcDataStride,
+                                  1>(
+                        p_src, src_coord.GetOffset(), p_src_long_vector, buffer_offset);
                 }
             }
 
@@ -167,7 +152,9 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                                   DstDataPerWrite,
                                   AddressSpace::Vgpr,
                                   DstAddressSpace,
-                                  DstInMemOp>(
+                                  DstInMemOp,
+                                  1,
+                                  DstDataStride>(
                         p_dst_long_vector, buffer_offset, p_dst, dst_coord.GetOffset());
                 }
             }
