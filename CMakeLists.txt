@@ -224,8 +224,8 @@ if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
     else()
         message(FATAL_ERROR "extractkernel not found")
     endif()
-elseif(CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+$")
-# look for and register clang-offload-bundler
+else()
+    # look for and register clang-offload-bundler
     find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
         PATH_SUFFIXES bin
         PATHS /opt/rocm/llvm
@@ -237,7 +237,6 @@ elseif(CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+$")
         message(FATAL_ERROR "clang-offload-bundler not found")
     endif()
 endif()
-
 
 # Online assembler
 find_program(MIOPEN_AMDGCN_ASSEMBLER
