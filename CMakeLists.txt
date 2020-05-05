@@ -209,7 +209,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     endif()
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
-if(CMAKE_CXX_COMPILER MATCHES ".*hcc$")
+if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
     # look for and register extractkernel
     find_program(EXTRACTKERNEL_BIN extractkernel
         PATH_SUFFIXES bin
