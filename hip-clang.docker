@@ -18,6 +18,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     g++ \
     gdb \
     git \
+    hip-rocclr \
     lcov \
     libelf-dev \
     libncurses5-dev \
@@ -36,7 +37,9 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     rocm-device-libs \
     rocm-opencl \
     rocm-opencl-dev \
+    rocm-cmake \
     rocblas \
+    pkg-config \
     zlib1g-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
