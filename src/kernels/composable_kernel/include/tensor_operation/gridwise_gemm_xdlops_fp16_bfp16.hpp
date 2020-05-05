@@ -147,7 +147,8 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
             AddressSpace::Generic,
             AddressSpace::Vgpr,
             AddressSpace::Lds,
-            InMemoryDataOperation::Set>({0, k_block_data_on_global, 0}, {0, 0, 0});
+            InMemoryDataOperation::Set,
+            ABlockCopySrcDataStride>({0, k_block_data_on_global, 0}, {0, 0, 0});
 
         constexpr auto b_k_n_kpack_block_desc = make_native_tensor_descriptor_aligned(
             Sequence<KPerBlock, NPerBlock, KPACK>{}, Number<max_align>{});
@@ -170,7 +171,8 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
             AddressSpace::Generic,
             AddressSpace::Vgpr,
             AddressSpace::Lds,
-            InMemoryDataOperation::Set>({0, b_block_data_on_global, 0}, {0, 0, 0});
+            InMemoryDataOperation::Set,
+            BBlockCopySrcDataStride>({0, b_block_data_on_global, 0}, {0, 0, 0});
 
         // GEMM definition
         // c_mtx += transpose(a_mtx) * b_mtx
