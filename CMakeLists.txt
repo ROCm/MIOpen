@@ -228,13 +228,13 @@ if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
     endif()
 elseif(CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+")
 # look for and register clang-offload-bundler
-    find_program(OFFLOADBUNDLER_BIN clang-offload-bundler
+    find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
         PATH_SUFFIXES bin
         PATHS /opt/rocm/llvm
     )
-    if(OFFLOADBUNDLER_BIN)
-        message(STATUS "clang-offload-bundler found: ${OFFLOADBUNDLER_BIN}")
-        set(OFFLOADBUNDLER_BIN "${OFFLOADBUNDLER_BIN}")
+    if(MIOPEN_OFFLOADBUNDLER_BIN)
+	    message(STATUS "clang-offload-bundler found: ${MIOPEN_OFFLOADBUNDLER_BIN}")
+	    set(MIOPEN_OFFLOADBUNDLER_BIN "${MIOPEN_OFFLOADBUNDLER_BIN}")
     else()
         message(FATAL_ERROR "clang-offload-bundler not found")
     endif()

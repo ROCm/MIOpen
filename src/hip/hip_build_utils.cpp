@@ -146,12 +146,14 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
         return hsaco->path();
     }
     else // NOLINT
-#endif
-#ifdef OFFLOADBUNDLER_BIN
-        if(IsClangXXCompiler()) // NOLINT
+#ifdef MIOPEN_OFFLOADBUNDLER_BIN
+        // clang-format off
+    if(IsClangXXCompiler())
     {
+        // clang-format on
+
         // call clang-offload-bundler
-        tmp_dir->Execute(OFFLOADBUNDLER_BIN,
+        tmp_dir->Execute(MIOPEN_OFFLOADBUNDLER_BIN,
                          "--type=o --targets=hip-amdgcn-amd-amdhsa-" + dev_name + " --inputs=" +
                              bin_file.string() + " --outputs=" + bin_file.string() +
                              ".hsaco --unbundle");
