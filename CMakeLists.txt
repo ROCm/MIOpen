@@ -209,14 +209,25 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     endif()
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
-if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
+	
+# look for and register clang-offload-bundler
+find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
+    PATH_SUFFIXES bin
+    PATHS /opt/rocm/llvm
+)
+if(MIOPEN_OFFLOADBUNDLER_BIN)
+    message(STATUS "clang-offload-bundler found: ${MIOPEN_OFFLOADBUNDLER_BIN}")
+    set(MIOPEN_OFFLOADBUNDLER_BIN "${MIOPEN_OFFLOADBUNDLER_BIN}")
+else()
     # look for and register extractkernel
+    message(STATUS "clang-offload-bundler not found")
+
     find_program(EXTRACTKERNEL_BIN extractkernel
         PATH_SUFFIXES bin
-        PATHS 
-	    /opt/rocm/hip
-	    /opt/rocm/hcc
-	    /opt/rocm
+        PATHS
+            /opt/rocm/hip
+            /opt/rocm/hcc
+            /opt/rocm
     )
     if(EXTRACTKERNEL_BIN)
         message(STATUS "extractkernel found: ${EXTRACTKERNEL_BIN}")
@@ -224,19 +235,8 @@ if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
     else()
         message(FATAL_ERROR "extractkernel not found")
     endif()
-else()
-    # look for and register clang-offload-bundler
-    find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
-        PATH_SUFFIXES bin
-        PATHS /opt/rocm/llvm
-    )
-    if(MIOPEN_OFFLOADBUNDLER_BIN)
-	    message(STATUS "clang-offload-bundler found: ${MIOPEN_OFFLOADBUNDLER_BIN}")
-	    set(MIOPEN_OFFLOADBUNDLER_BIN "${MIOPEN_OFFLOADBUNDLER_BIN}")
-    else()
-        message(FATAL_ERROR "clang-offload-bundler not found")
-    endif()
 endif()
+
 
 # Online assembler
 find_program(MIOPEN_AMDGCN_ASSEMBLER
