@@ -97,7 +97,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     src += "\nint main() {}\n";
     WriteFile(src, tmp_dir->path / filename);
 
-    auto env=std::string("");
+    auto env = std::string("");
     if(IsHccCompiler())
     {
         params += " -amdgpu-target=" + dev_name;
@@ -128,7 +128,6 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
         params += " -mllvm --amdgpu-spill-vgpr-to-agpr=0";
     }
 
-
 #if MIOPEN_BUILD_DEV
     if(miopen::IsEnabled(MIOPEN_DEBUG_HIP_VERBOSE{}))
     {
@@ -147,6 +146,8 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
             params += " -save-temps";
         }
     }
+
+    MIOPEN_LOG_I2(std::string("params: ") + params);
 #endif
 
     params += " ";
