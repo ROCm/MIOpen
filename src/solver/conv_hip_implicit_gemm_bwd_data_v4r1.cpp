@@ -23,12 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/solver.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/generic_search.hpp>
+
+#include "implicitgemm_util.hpp"
+
 #include <cstddef>
 #include <numeric>
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
-#include <miopen/generic_search.hpp>
-#include "implicitgemm_util.hpp"
 
 namespace miopen {
 namespace solver {
@@ -446,9 +449,9 @@ bool PerformanceImplicitGemmBwdDataV4R1::IsValidValue() const
 {
     // clang-format off
     return IsTwoPower<64, 256>(BlockSize) &&
-           IsTwoPower<32, 128>(GemmMPerBlock) && 
+           IsTwoPower<32, 128>(GemmMPerBlock) &&
            IsTwoPower<32, 128>(GemmNPerBlock) &&
-           IsTwoPower<4, 16>(GemmKPerBlock) && 
+           IsTwoPower<4, 16>(GemmKPerBlock) &&
            IsTwoPower<2, 4>(GemmMPerThread) &&
            IsTwoPower<2, 4>(GemmNPerThread);
     // clang-format on
@@ -956,6 +959,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1::GetSolution(
         }
     }
 
+    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
     return result;
 }
 
