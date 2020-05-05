@@ -209,11 +209,14 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     endif()
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
-if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
+if(CMAKE_CXX_COMPILER MATCHES ".*hcc$")
     # look for and register extractkernel
     find_program(EXTRACTKERNEL_BIN extractkernel
         PATH_SUFFIXES bin
-        PATHS /opt/rocm
+        PATHS 
+	    /opt/rocm/hip
+	    /opt/rocm/hcc
+	    /opt/rocm
     )
     if(EXTRACTKERNEL_BIN)
         message(STATUS "extractkernel found: ${EXTRACTKERNEL_BIN}")
@@ -221,7 +224,7 @@ if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
     else()
         message(FATAL_ERROR "extractkernel not found")
     endif()
-elseif(CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+")
+elseif(CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+$")
 # look for and register clang-offload-bundler
     find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
         PATH_SUFFIXES bin
