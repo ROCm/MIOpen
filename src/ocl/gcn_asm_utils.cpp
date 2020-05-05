@@ -48,6 +48,12 @@
 #include <unistd.h>
 #endif // __linux__
 
+/// SWDEV-220166: hcc reports unknown target instead of amdgpu but reports "HCC" at least.
+#define WORKAROUND_SWDEV_220166 1
+/// SWDEV-233338: hip-clang reports unknown target instead of amdgpu.
+/// \todo Try to assemble AMD GCN source?
+#define WORKAROUND_SWDEV_233338 1
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH)
 
 static const char option_no_co_v3[] = "-mno-code-object-v3";
@@ -81,10 +87,13 @@ bool ValidateGcnAssemblerImpl()
     const auto path = GetGcnAssemblerPath();
     if(path.empty())
     {
+        MIOPEN_LOG_NQE("Path to assembler is not provided. Expect performance degradation.");
         return false;
     }
     if(!std::ifstream(path).good())
     {
+        MIOPEN_LOG_NQE("Wrong path to assembler: '" << path
+                                                    << "'. Expect performance degradation.");
         return false;
     }
 
@@ -100,23 +109,28 @@ bool ValidateGcnAssemblerImpl()
     std::string clang_result_line;
     std::getline(clang_stdout, clang_result_line);
     MIOPEN_LOG_NQI2(clang_result_line);
+
+#if WORKAROUND_SWDEV_220166
     if(clang_result_line.find("HCC") != std::string::npos)
-        // Temporary fix for SWDEV-220166 which causes clang to report unknown
-        // architecture for AMD GCN
         return true;
-    else if(clang_result_line.find("clang") != std::string::npos)
+#endif
+
+    if(clang_result_line.find("clang") != std::string::npos)
     {
         while(!clang_stdout.eof())
         {
             std::getline(clang_stdout, clang_result_line);
             MIOPEN_LOG_NQI2(clang_result_line);
-            if(clang_result_line.find("Target: ") != std::string::npos)
-            {
-                return clang_result_line.find("amdgcn") != std::string::npos;
-            }
+            if(clang_result_line.find("Target: ") != std::string::npos &&
+               clang_result_line.find("amdgcn") != std::string::npos)
+                return true;
         }
+#if WORKAROUND_SWDEV_233338
+        return true;
+#endif
     }
 #endif // __linux__
+    MIOPEN_LOG_NQE("Specified assembler does not support AMDGPU. Expect performance degradation.");
     return false;
 }
 
