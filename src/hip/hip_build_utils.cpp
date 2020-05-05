@@ -145,7 +145,8 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
 
         return hsaco->path();
     }
-    else // NOLINT
+    else
+#endif
 #ifdef MIOPEN_OFFLOADBUNDLER_BIN
         // clang-format off
     if(IsClangXXCompiler())
