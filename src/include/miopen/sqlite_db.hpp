@@ -296,6 +296,113 @@ class SQLiteBase
         return AllFound;
     }
 
+<<<<<<< HEAD
+=======
+    inline auto SQLExec(const std::string& query)
+    {
+        MIOPEN_LOG_T(std::this_thread::get_id() << ":" << query);
+        {
+            auto rc = SQLRety([&]() {
+                return sqlite3_exec(ptrDb.get(), query.c_str(), find_callback, nullptr, nullptr);
+            });
+            if(rc != SQLITE_OK)
+            {
+                MIOPEN_LOG_I2(query);
+                MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
+                sqlite3_close(ptrDb.get());
+                return false;
+            }
+        }
+        return true;
+    }
+    inline auto SQLExec(const std::string& query, SQLRes_t& res) const
+    {
+        res.clear();
+        MIOPEN_LOG_T(std::this_thread::get_id() << ":" << query);
+        {
+            auto rc = SQLRety([&]() {
+                return sqlite3_exec(
+                    ptrDb.get(), query.c_str(), find_callback, static_cast<void*>(&res), nullptr);
+            });
+            if(rc != SQLITE_OK)
+            {
+                MIOPEN_LOG_I2(query);
+                MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
+                sqlite3_close(ptrDb.get());
+                return false;
+            }
+        }
+        return true;
+    }
+
+    template <class F>
+    inline int SQLRety(F f) const
+    {
+        return SQLiteBase::SQLRety(f, filename);
+    }
+
+    template <class F>
+    static inline int SQLRety(F f, std::string filename)
+    {
+        auto timeout_end = std::chrono::high_resolution_clock::now() +
+                           std::chrono::seconds(30); // TODO: make configurable
+        auto tries = 0;
+        while(true)
+        {
+            int rc = f();
+            if(rc == SQLITE_BUSY)
+            {
+                MIOPEN_LOG_I2("Database" + filename + "  busy, retrying ...");
+                ++tries;
+                if(tries > 50)
+                    std::this_thread::sleep_for(std::chrono::microseconds(100));
+                else
+                    std::this_thread::yield();
+            }
+            else
+                return rc;
+            if(std::chrono::high_resolution_clock::now() > timeout_end)
+                MIOPEN_THROW("Timeout while waiting for Database: " + filename);
+        }
+    }
+
+    inline std::string SQLErrorMessage() const
+    {
+        std::ostringstream ss;
+        ss << "Internal error while accessing SQLite database: ";
+        ss << sqlite3_errstr(sqlite3_errcode(ptrDb.get())) << ":";
+        ss << sqlite3_errmsg(ptrDb.get());
+        return ss.str();
+    }
+
+    auto Prepare(const std::string& query) const
+    {
+        sqlite3_stmt* ptr = nullptr;
+        MIOPEN_LOG_I2(query);
+        auto rc = sqlite3_prepare_v2(ptrDb.get(), query.c_str(), query.size(), &ptr, nullptr);
+        if(rc != SQLITE_OK)
+        {
+            std::string err_msg = "SQLite prepare error: ";
+            MIOPEN_THROW(miopenStatusInternalError, err_msg + sqlite3_errmsg(ptrDb.get()));
+        }
+        return sqlite3_stmt_ptr{ptr};
+    }
+    auto PrepareAndBind(const std::string& query, std::vector<std::string>& values) const
+    {
+        auto stmt = Prepare(query);
+        int cnt   = 1;
+        for(auto& kinder : values)
+        {
+            auto rc = sqlite3_bind_text(
+                stmt.get(), cnt++, kinder.data(), kinder.size(), SQLITE_TRANSIENT); // NOLINT
+            if(rc != SQLITE_OK)
+                MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
+        }
+        MIOPEN_LOG_I2("[" << JoinStrings(values, ",") << "]");
+        return stmt;
+    }
+
+>>>>>>> 5609daf1df27ee7a7d4a5c90c28ef1dc979ffdfc
     template <typename... U>
     inline auto FindRecord(U&... args)
     {
