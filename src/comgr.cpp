@@ -47,7 +47,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 
 #define COMPILER_LC 1
 
-#define EC_BASE(comgrcall, info, expr2)                                   \
+#define EC_BASE(comgrcall, info, action)                                  \
     do                                                                    \
     {                                                                     \
         const amd_comgr_status_t status = (comgrcall);                    \
@@ -55,11 +55,18 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
         {                                                                 \
             MIOPEN_LOG_E("\'" #comgrcall "\' " << to_string(info) << ": " \
                                                << GetStatusText(status)); \
-            (expr2);                                                      \
+            (action);                                                     \
         }                                                                 \
         else if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_CALLS{}))        \
             MIOPEN_LOG_I("Ok \'" #comgrcall "\' " << to_string(info));    \
     } while(false)
+
+// Regarding EC*THROW* macros:
+// Q: Whats the point in logging if it is going to throw?
+// A: This prints build log (that presumably contains warning
+// and error messages from compiler/linker etc) onto console,
+// thus informing the *user*. MIOPEN_THROW informs the *library*
+// that compilation has failed.
 
 #define EC(comgrcall) EC_BASE(comgrcall, NoInfo, (void)0)
 #define EC_THROW(comgrcall) EC_BASE(comgrcall, NoInfo, Throw(status))
@@ -231,6 +238,28 @@ static void LogOptions(const char* options[], size_t count)
 class Dataset;
 static std::string GetLog(const Dataset& dataset, bool comgr_error_handling = false);
 
+// Q: Why arent we using MIOPEN_THROW? Using MIOPEN_THROW can report back the
+// source line numbers where the exception was thrown. Usually we write
+// a function to convert the error enum into a message and then pass that
+// MIOPEN_THROW.
+//
+// A: These exceptions are not intended to report "normal" miopen errors.
+// The main purpose is to prevent resource leakage (comgr handles)
+// when compilation of the device code fails. The side functionality is to
+// hold status codes and diagnostic messages received from comgr
+// when build failure happens.
+//
+// The diagnostic messages are expected to be like the ones that
+// offline compiler prints after build errors. Usually these
+// contain the file/line information of the problematic device code,
+// so file/line of the host code is not needed here
+// (and even considered harmful).
+//
+// These exceptions are not allowed to escape comgr module.
+//
+// The comgr module can be considered as a "library within a library"
+// that provides HIP backend with functionality similar to clBuildProgram().
+
 struct ComgrError : std::exception
 {
     amd_comgr_status_t status;
@@ -266,7 +295,7 @@ class Data : ComgrOwner
     Data(amd_comgr_data_kind_t kind) { ECI_THROW(amd_comgr_create_data(kind, &handle), kind); }
     Data(Data&&) = default;
     ~Data() { EC(amd_comgr_release_data(handle)); }
-    auto operator()() const { return handle; }
+    auto GetHandle() const { return handle; }
     void SetName(const std::string& s) const
     {
         ECI_THROW(amd_comgr_set_data_name(handle, s.c_str()), s);
@@ -307,8 +336,8 @@ class Dataset : ComgrOwner
     public:
     Dataset() { EC_THROW(amd_comgr_create_data_set(&handle)); }
     ~Dataset() { EC(amd_comgr_destroy_data_set(handle)); }
-    auto operator()() const { return handle; }
-    void AddData(const Data& d) const { EC_THROW(amd_comgr_data_set_add(handle, d())); }
+    auto GetHandle() const { return handle; }
+    void AddData(const Data& d) const { EC_THROW(amd_comgr_data_set_add(handle, d.GetHandle())); }
     void AddData(const std::string& name,
                  const std::string& content,
                  const amd_comgr_data_kind_t type) const
@@ -348,7 +377,6 @@ class ActionInfo : ComgrOwner
     public:
     ActionInfo() { EC_THROW(amd_comgr_create_action_info(&handle)); }
     ~ActionInfo() { EC(amd_comgr_destroy_action_info(handle)); }
-    auto operator()() const { return handle; }
     void SetLanguage(const amd_comgr_language_t language) const
     {
         ECI_THROW(amd_comgr_action_info_set_language(handle, language), language);
@@ -365,14 +393,17 @@ class ActionInfo : ComgrOwner
     {
         std::vector<const char*> vp;
         vp.reserve(options.size());
-        for(auto& opt : options) // cppcheck-suppress useStlAlgorithm
-            vp.push_back(opt.c_str());
+        std::transform(options.begin(), options.end(), std::back_inserter(vp), [&](auto& opt) {
+            return opt.c_str();
+        });
         LogOptions(vp.data(), vp.size());
         ECI_THROW(amd_comgr_action_info_set_option_list(handle, vp.data(), vp.size()), vp.size());
     }
     void Do(const amd_comgr_action_kind_t kind, const Dataset& in, const Dataset& out) const
     {
-        ECI_THROW_MSG(amd_comgr_do_action(kind, handle, in(), out()), kind, GetLog(out, true));
+        ECI_THROW_MSG(amd_comgr_do_action(kind, handle, in.GetHandle(), out.GetHandle()),
+                      kind,
+                      GetLog(out, true));
         const auto log = GetLog(out);
         if(!log.empty())
             MIOPEN_LOG_I(to_string(kind) << ": " << log);
@@ -407,6 +438,20 @@ static std::string GetLog(const Dataset& dataset, const bool comgr_error_handlin
             return {"comgr error: failed to get error log"};
         // deepcode ignore EmptyThrowOutsideCatch: false positive
         throw;
+        // Q: What the point in catching the error if you are just going to rethrow it?
+        //
+        // A: In the context of handling of build error, the function is invoked to get build log
+        // from comgr. If it fails, it doesn't rethrow because this would overwrite the
+        // original comgr status.
+        //
+        // The use case is when some build error happens (e.g. linking error) but we unable to
+        // obtain log data from the dataset due to comgr error. We keep original error information
+        // (albeit only status code). The user will see error message with original status code
+        // plus comgr error: "failed to get error log."
+        //
+        // Rethrowing happens when/if this function is invoked during normal flow, i.e. when
+        // there is no build errors. In such a case, the catch block does nothing and allows
+        // all exceptions to escape. This would effectively stop the build.
     }
     return text;
 }
