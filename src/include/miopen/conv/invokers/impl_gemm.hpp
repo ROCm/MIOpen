@@ -23,38 +23,19 @@
 * SOFTWARE.
 *
 *******************************************************************************/
-#ifndef MIOPEN_GUARD_MLOPEN_HIP_BUILD_UTILS_HPP
-#define MIOPEN_GUARD_MLOPEN_HIP_BUILD_UTILS_HPP
 
+#pragma once
+
+#include <miopen/invoker.hpp>
 #include <miopen/kernel.hpp>
-#include <miopen/tmp_dir.hpp>
-#include <miopen/write_file.hpp>
-#include <boost/optional.hpp>
-#include <string>
+#include <miopen/conv/context.hpp>
+
+#include <vector>
 
 namespace miopen {
+namespace conv {
 
-boost::filesystem::path HipBuild(boost::optional<miopen::TmpDir>& tmp_dir,
-                                 const std::string& filename,
-                                 std::string src,
-                                 std::string params,
-                                 const std::string& dev_name);
+InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx);
 
-void bin_file_to_str(const boost::filesystem::path& file, std::string& buf);
-
-struct external_tool_version_t
-{
-    int major = -1;
-    int minor = -1;
-    int patch = -1;
-    bool operator>=(const external_tool_version_t& rhs) const;
-};
-
-external_tool_version_t HipGetHccVersion();
-
-bool IsHccCompiler();
-bool IsClangXXCompiler();
-
+} // namespace conv
 } // namespace miopen
-
-#endif
