@@ -92,8 +92,8 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             construction_parameters.kernel_file =
                 "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer.cpp";
 
-            construction_parameters.kernel_name = 
-		"gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer";
+            construction_parameters.kernel_name =
+        "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer";
         }
         else
         {
@@ -101,8 +101,8 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             construction_parameters.kernel_file =
                 "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer.cpp";
 
-            construction_parameters.kernel_name = 
-		"gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer";
+            construction_parameters.kernel_name =
+        "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer";
         }
         // clang-format on
     }
@@ -416,12 +416,6 @@ PerformanceImplicitGemmXdlops
 ConvHipImplicitGemmV4R4GenWrWXdlops::Search(const ConvolutionContext& ctx,
                                             const AnyInvokeParams& invoke_ctx) const
 {
-    // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
-    if(ctx.IsFp16() || ctx.IsBfp16())
-        return GenericSearchWrW(*this, ctx, invoke_ctx, SearchTweak::WorkspaceInsteadOfWeightsBuffer);
-    else
-        return GenericSearchWrW(*this, ctx, invoke_ctx);
-
     return GenericSearch(*this, ctx, invoke_ctx);
 }
 

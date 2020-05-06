@@ -77,12 +77,6 @@ PerformanceImplicitGemmXdlops
 ConvHipImplicitGemmBwdDataV1R1Xdlops::Search(const ConvolutionContext& ctx,
                                              const AnyInvokeParams& invoke_ctx) const
 {
-    // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
-    if(ctx.IsFp16() || ctx.IsBfp16())
-        return GenericSearchBwd(*this, ctx, invoke_ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
-    else
-        return GenericSearchBwd(*this, ctx, invoke_ctx);
-
     return GenericSearch(*this, ctx, invoke_ctx);
 }
 
@@ -193,7 +187,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
         !ctx.IsFp32() ? GetEPackLength(ctx, true) : 1;
 
     // clang-format off
-    construction_parameters.comp_options = 
+    construction_parameters.comp_options =
         std::string(" -std=c++14 ") +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(n) +
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(k) +
