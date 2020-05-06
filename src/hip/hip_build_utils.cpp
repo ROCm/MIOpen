@@ -47,6 +47,12 @@ bool IsHccCompiler()
     return isHcc;
 }
 
+static bool IsClangXXCompiler()
+{
+    static const auto isClangXX = EndsWith(MIOPEN_HIP_COMPILER, "clang++");
+    return isClangXX;
+}
+
 namespace {
 
 inline bool ProduceCoV3()
@@ -101,16 +107,17 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     if(IsHccCompiler())
     {
         params += " -amdgpu-target=" + dev_name;
+        params += " " + GetCoV3Option(ProduceCoV3());
     }
-    else
+    else if(IsClangXXCompiler())
     {
         if(params.find("-std=") == std::string::npos)
             params += " --std=c++11";
         params += " --cuda-gpu-arch=" + dev_name;
-        params += " --cuda-device-only -c";
+        params += " --cuda-device-only";
+        params += " -c";
         params += " -O3 ";
     }
-    params += " " + GetCoV3Option(ProduceCoV3());
 
     // params += " -Wno-unused-command-line-argument -c -fno-gpu-rdc -I. ";
     params += " -Wno-unused-command-line-argument -I. ";
@@ -122,7 +129,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
             env += " --amdgpu-spill-vgpr-to-agpr=0";
         env += '\"';
     }
-    else
+    else if(IsClangXXCompiler())
     {
         params += " -mllvm -amdgpu-enable-global-sgpr-addr";
         params += " -mllvm --amdgpu-spill-vgpr-to-agpr=0";
@@ -141,7 +148,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
             env += " KMDUMPISA=1";
             env += " KMDUMPLLVM=1";
         }
-        else
+        else if(IsClangXXCompiler())
         {
             params += " -save-temps";
         }
