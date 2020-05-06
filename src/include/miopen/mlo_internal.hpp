@@ -249,7 +249,7 @@ FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx,
 
 std::vector<miopen::solver::ConvSolution>
 FindImplicitGemmWrWAllSolutions(const miopen::ConvolutionContext& ctx,
-                                const boost::any& invoke_ctx);
+                                const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<miopen::solver::ConvSolution>
 FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx,

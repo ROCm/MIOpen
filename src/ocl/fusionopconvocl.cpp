@@ -34,8 +34,6 @@ ConvForwardOpDescriptor::GetCompileParms(std::string& compile_config,
                                          const std::vector<solver::AnySolver>& solvers)
 {
     mlo_construct_direct2D_fusion construct_params = ConstructParams(handle);
-    if(construct_params.IsAutoTuneEnabled())
-        MIOPEN_THROW("Auto-tune not implemented for fusion.");
     const auto solution = FindFirstSolution(construct_params, solvers, {});
     if(!solution.Succeeded())
     {

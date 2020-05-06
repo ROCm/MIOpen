@@ -117,6 +117,8 @@ struct AnyInvokeParams
         return *reinterpret_cast<Actual*>(impl->GetRawPtr());
     }
 
+    operator bool() const { return !!impl; }
+
     private:
     struct Interface
     {
