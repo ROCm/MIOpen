@@ -148,6 +148,7 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                             p_src, src_coord.GetOffset(), p_src_long_vector, buffer_offset);
                     }
                 }).Else([&](auto) {
+#if 1
                     transfer_data<SrcData,
                                   SrcDataPerRead,
                                   SrcAddressSpace,
@@ -155,6 +156,37 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                                   InMemoryDataOperation::Set,
                                   BufferSize>(
                         p_src, src_coord.GetOffset(), p_src_long_vector, buffer_offset);
+#else
+                    const auto src_offset = src_coord.GetOffset();
+                    if((src_offset >= 0) &&
+                       ((src_offset + SrcDataPerRead) < SrcDesc::GetElementSpace()))
+                    {
+                        transfer_data<SrcData,
+                                      SrcDataPerRead,
+                                      SrcAddressSpace,
+                                      AddressSpace::Vgpr,
+                                      InMemoryDataOperation::Set,
+                                      BufferSize>(
+                            p_src, src_offset, p_src_long_vector, buffer_offset);
+                    }
+                    else
+                    {
+                        for(index_t j = 0; j < SrcDataPerRead; j++)
+                        {
+                            if((src_offset + j) >= 0 &&
+                               (src_offset + j) < SrcDesc::GetElementSpace())
+                            {
+                                transfer_data<SrcData,
+                                              1,
+                                              SrcAddressSpace,
+                                              AddressSpace::Vgpr,
+                                              InMemoryDataOperation::Set,
+                                              BufferSize>(
+                                    p_src, src_offset + j, p_src_long_vector, buffer_offset + j);
+                            }
+                        }
+                    }
+#endif
                 });
             }
 
