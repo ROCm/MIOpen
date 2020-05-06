@@ -142,10 +142,10 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_f16_bfp16_nchw_kc
         constexpr auto gridwise_gemm = GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1<
             GridSize,
             BlockSize,
-            Float,    // Input data type = half (fp16) or ushort (bfp16)
+            Float,    // Input data type = fp16 (fp16) or ushort (bfp16)
             AccFloat, // Acc data type = float
-            AccFloat, // Output data type = float  (not half/ushort as this kernel uses atomic add.
-                      // No ISA for half/ushort atomic add)
+            AccFloat, // Output data type = float  (not fp16/ushort as this kernel uses atomic add.
+                      // No ISA for fp16/ushort atomic add)
             decltype(wei_gemmk_gemmm_gemmkpack_global_desc),
             decltype(out_gemmk_gemmn_gemmkpack_global_desc),
             decltype(in_gemmm_gemmn_global_desc),
