@@ -603,13 +603,25 @@ endif()
 
 ############################################################
 # Installation
+if(MIOPEN_INSTALL_CXX_HEADERS)
 rocm_install_targets(
   TARGETS MIOpen
   INCLUDE
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_BINARY_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src/include
   PREFIX ${MIOPEN_INSTALL_DIR}
  )
+else()
+rocm_install_targets(
+  TARGETS MIOpen
+  INCLUDE
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_BINARY_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src/include
+  PREFIX ${MIOPEN_INSTALL_DIR}
+ )
+endif()
 
 rocm_export_targets(
   TARGETS MIOpen
