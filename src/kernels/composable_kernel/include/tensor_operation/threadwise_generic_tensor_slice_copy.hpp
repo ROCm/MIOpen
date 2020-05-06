@@ -23,7 +23,8 @@ template <typename SrcDesc,
           index_t DstDataPerWrite,
           AddressSpace SrcAddressSpace     = AddressSpace::Generic,
           AddressSpace DstAddressSpace     = AddressSpace::Generic,
-          InMemoryDataOperation DstInMemOp = InMemoryDataOperation::Set>
+          InMemoryDataOperation DstInMemOp = InMemoryDataOperation::Set,
+          bool SrcOffsetCheck              = true>
 struct ThreadwiseGenericTensorSliceCopy_v4r2
 {
     static constexpr index_t nDim = SliceLengths::Size();
@@ -72,37 +73,21 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
     {
         constexpr auto vector_access_dim = Number<SrcDstVectorReadWriteDim>{};
 
-        constexpr auto long_vector_size = Number<math::lcm(SrcDataPerRead, DstDataPerWrite)>{};
-
-        constexpr auto long_vector_access_lengths = SliceLengths::Modify(
-            vector_access_dim, SliceLengths::Get(vector_access_dim) / long_vector_size);
+        constexpr auto long_vector_access_lengths = SliceLengths{};
 
         ford<decltype(long_vector_access_lengths), SrcDstDimAccessOrder>{}([&](
             auto long_vector_access_id) {
 
             // data id w.r.t slicing-window
-            auto long_vector_data_begin_id = long_vector_access_id;
-            long_vector_data_begin_id(vector_access_dim) =
-                long_vector_size * long_vector_access_id[vector_access_dim];
+            auto long_vector_data_begin_id               = long_vector_access_id;
+            long_vector_data_begin_id(vector_access_dim) = long_vector_access_id[vector_access_dim];
 
-            for(index_t i = 0; i < long_vector_size; ++i)
+            const auto src_coord = mSrcSliceOrigin + (long_vector_data_begin_id);
+            const auto dst_coord = mDstSliceOrigin + (long_vector_data_begin_id);
+
+            if(!src_coord.IsOffsetValidAssumingUpperIndexIsValid())
             {
-                auto scalar_id               = make_zero_array<index_t, nDim>();
-                scalar_id(vector_access_dim) = i;
-
-                const auto src_coord = mSrcSliceOrigin + (long_vector_data_begin_id + scalar_id);
-                const auto dst_coord = mDstSliceOrigin + (long_vector_data_begin_id + scalar_id);
-
-                DstData p_dst_zero = 0;
-
-                if(!src_coord.IsOffsetValidAssumingUpperIndexIsValid())
-                {
-                    transfer_data<DstData,
-                                  DstDataPerWrite,
-                                  AddressSpace::Vgpr,
-                                  DstAddressSpace,
-                                  DstInMemOp>(&p_dst_zero, 0, p_dst, dst_coord.GetOffset());
-                }
+                p_dst[dst_coord.GetOffset()] = 0;
             }
         });
     }
@@ -147,42 +132,23 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
 
                 const auto src_coord = mSrcSliceOrigin + (long_vector_data_begin_id + scalar_id);
 
-                // constexpr index_t BufferSize = SrcDesc::GetElementSpace() * sizeof(SrcData);
-                constexpr index_t BufferSize = -1;
-#if CK_USE_VECTOR_LOAD_WITH_PADDING
-                const auto src_offset = src_coord.GetOffset();
-                if((src_offset >= 0) &&
-                   ((src_offset + SrcDataPerRead) < SrcDesc::GetElementSpace()))
-                {
-                    transfer_data<SrcData,
-                                  SrcDataPerRead,
-                                  SrcAddressSpace,
-                                  AddressSpace::Vgpr,
-                                  InMemoryDataOperation::Set,
-                                  BufferSize>(p_src, src_offset, p_src_long_vector, buffer_offset);
-                }
-                else
-                {
-                    for(index_t j = 0; j < SrcDataPerRead; j++)
+                constexpr index_t BufferSize = SrcDesc::GetElementSpace() * sizeof(SrcData);
+                static_if<SrcOffsetCheck>{}([&](auto) {
+                    // Check src data's valid mapping situation, only check the first data in this
+                    // src
+                    //   vector. It's user's responsiblity to make sure all data in the src vector
+                    //   has the valid/invalid mapping situation
+                    if(src_coord.IsOffsetValidAssumingUpperIndexIsValid())
                     {
-                        if((src_offset + j) >= 0 && (src_offset + j) < SrcDesc::GetElementSpace())
-                        {
-                            transfer_data<SrcData,
-                                          1,
-                                          SrcAddressSpace,
-                                          AddressSpace::Vgpr,
-                                          InMemoryDataOperation::Set,
-                                          BufferSize>(
-                                p_src, src_offset + j, p_src_long_vector, buffer_offset + j);
-                        }
+                        transfer_data<SrcData,
+                                      SrcDataPerRead,
+                                      SrcAddressSpace,
+                                      AddressSpace::Vgpr,
+                                      InMemoryDataOperation::Set,
+                                      BufferSize>(
+                            p_src, src_coord.GetOffset(), p_src_long_vector, buffer_offset);
                     }
-                }
-#else
-                // Check src data's valid mapping situation, only check the first data in this src
-                //   vector. It's user's responsiblity to make sure all data in the src vector
-                //   has the valid/invalid mapping situation
-                if(src_coord.IsOffsetValidAssumingUpperIndexIsValid())
-                {
+                }).Else([&](auto) {
                     transfer_data<SrcData,
                                   SrcDataPerRead,
                                   SrcAddressSpace,
@@ -190,8 +156,7 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                                   InMemoryDataOperation::Set,
                                   BufferSize>(
                         p_src, src_coord.GetOffset(), p_src_long_vector, buffer_offset);
-                }
-#endif
+                });
             }
 
             // SrcData to DstData conversion

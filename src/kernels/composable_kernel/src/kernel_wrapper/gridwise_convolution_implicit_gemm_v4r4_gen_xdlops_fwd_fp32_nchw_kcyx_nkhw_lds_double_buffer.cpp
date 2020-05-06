@@ -104,6 +104,9 @@ extern "C" __global__
     constexpr index_t ThreadGemmDataPerRead_GemmM = 1;
     constexpr index_t ThreadGemmDataPerRead_GemmN = 1;
 
+    constexpr bool VectorLoadWithPadding =
+        (GemmBBlockCopySrcDataPerRead_GemmN > 1 && LeftPadW > 0) ? true : false;
+
     constexpr auto gridwise_conv =
         GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fwd_fp32_nchw_kcyx_nkhw_lds_double_buffer<
             GridSize,
@@ -131,7 +134,8 @@ extern "C" __global__
             GemmBBlockCopyThreadSliceLengths_GemmK_GemmN,
             GemmBBlockCopyThreadClusterLengths_GemmK_GemmN,
             GemmBBlockCopySrcDataPerRead_GemmN,
-            GemmBBlockCopyDstDataPerWrite_GemmN>{};
+            GemmBBlockCopyDstDataPerWrite_GemmN,
+            VectorLoadWithPadding>{};
 
     gridwise_conv.Run(p_in_global, p_wei_global, p_out_global);
 }

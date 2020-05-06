@@ -31,7 +31,8 @@ template <index_t BlockSize,
           AddressSpace SrcAddressSpace          = AddressSpace::Generic,
           AddressSpace ThreadBufferAddressSpace = AddressSpace::Generic,
           AddressSpace DstAddressSpace          = AddressSpace::Generic,
-          InMemoryDataOperation DstInMemOp      = InMemoryDataOperation::Set>
+          InMemoryDataOperation DstInMemOp      = InMemoryDataOperation::Set,
+          bool VectorLoadWithPadding            = false>
 struct BlockwiseGenericTensorSliceCopy_v4
 {
     static constexpr index_t nDim = BlockSrcDesc::GetNumOfDimension();
@@ -108,9 +109,9 @@ struct BlockwiseGenericTensorSliceCopy_v4
         }
         else
         {
-#if CK_USE_VECTOR_LOAD_WITH_PADDING
-            mThreadwiseLoad.FillZero(p_thread_buffer);
-#endif
+            static_if<VectorLoadWithPadding>{}(
+                [&](auto) { mThreadwiseLoad.FillZero(p_thread_buffer); });
+
             mThreadwiseStore.Run(p_thread_buffer, p_block_dst);
         }
     }
@@ -160,7 +161,8 @@ struct BlockwiseGenericTensorSliceCopy_v4
                                                                  1,
                                                                  SrcAddressSpace,
                                                                  ThreadBufferAddressSpace,
-                                                                 InMemoryDataOperation::Set>;
+                                                                 InMemoryDataOperation::Set,
+                                                                 !VectorLoadWithPadding>;
 
     using ThreadwiseStore = ThreadwiseGenericTensorSliceCopy_v4r2<ThreadBufferDesc,
                                                                   BlockDstDesc,

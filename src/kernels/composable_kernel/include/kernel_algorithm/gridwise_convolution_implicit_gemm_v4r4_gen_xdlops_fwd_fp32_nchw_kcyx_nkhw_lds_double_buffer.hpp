@@ -39,7 +39,8 @@ template <index_t GridSize,
           class GemmBBlockCopyThreadSliceLengths_GemmK_GemmN,
           class GemmBBlockCopyThreadClusterLengths_GemmK_GemmN,
           index_t GemmBBlockCopySrcDataPerRead_GemmN,
-          index_t GemmBBlockCopyDstDataPerWrite_GemmN>
+          index_t GemmBBlockCopyDstDataPerWrite_GemmN,
+          bool VectorLoadWithPadding>
 struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fwd_fp32_nchw_kcyx_nkhw_lds_double_buffer
 {
     __device__ void Run(const Float* const __restrict__ p_in_global,
@@ -149,7 +150,8 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fwd_fp32_nchw_kcyx_nkhw_l
             1,
             GemmBBlockCopySrcDataPerRead_GemmN,
             GemmBBlockCopyDstDataPerWrite_GemmN,
-            InMemoryDataOperation::Set>{};
+            InMemoryDataOperation::Set,
+            VectorLoadWithPadding>{};
 
         gridwise_gemm.Run(p_wei_global, p_in_global, p_out_global);
     }

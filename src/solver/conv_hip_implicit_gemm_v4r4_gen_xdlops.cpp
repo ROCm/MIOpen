@@ -138,7 +138,8 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     }
     else if(conv_stride_w == 1)
     {
-        BBlockCopySrcDataPerRead_GemmN = gcd(BBlockCopySrcDataPerRead_GemmN, wi);
+        BBlockCopySrcDataPerRead_GemmN =
+            gcd(BBlockCopySrcDataPerRead_GemmN, in_left_pad_w, wi, in_right_pad_w, conv_dilation_w);
     }
     else
     {
@@ -287,7 +288,6 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
-        std::string(" -DCK_USE_VECTOR_LOAD_WITH_PADDING=") + ( BBlockCopySrcDataPerRead_GemmN > 1 && in_left_pad_w > 0 ? '1' : '0') +
         ctx.general_compile_options;
     // clang-format on
 
