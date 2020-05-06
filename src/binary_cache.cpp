@@ -159,7 +159,9 @@ void SaveBinary(const std::string& hsaco,
 
     std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
     KernelConfig cfg{filename, args, hsaco};
-    MIOPEN_LOG_I2("Saving binary for: " << name << " ;args: " << args);
+    MIOPEN_LOG_I2("Saving binary for: " << (is_kernel_str ? std::string("tinygemm.cl") : name)
+                                        << " ;args: "
+                                        << args);
     if(miopen::IsCacheDisabled())
         db.RemoveRecord(cfg);
     else
