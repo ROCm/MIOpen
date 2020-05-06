@@ -5,6 +5,8 @@
 #include <miopen/handle.hpp>
 #include <miopen/tensor_ops.hpp>
 
+#include <boost/any.hpp>
+
 namespace miopen {
 namespace conv {
 
@@ -13,8 +15,8 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
     if(ctx.direction.IsForward())
     {
         return [](const std::vector<Kernel>& kernels) {
-            return [=](Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                const auto data_ctx = primitive_parameters.CastTo<DataInvokeParams>();
+            return [=](Handle& handle, const boost::any& primitive_parameters) {
+                const auto data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_parameters);
                 const auto& tensors = data_ctx.tensors;
                 handle.Run(kernels[0])(tensors.in, tensors.w, tensors.out);
             };
@@ -26,8 +28,8 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
         const auto& lowp_quant = conv.lowp_quant;
 
         return [conv, lowp_quant](const std::vector<Kernel>& kernels) {
-            return [=](Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                const auto data_ctx   = primitive_parameters.CastTo<DataInvokeParams>();
+            return [=](Handle& handle, const boost::any& primitive_parameters) {
+                const auto data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_parameters);
                 const auto& tensors = data_ctx.tensors;
                 const auto& workSpace = data_ctx.workSpace;
 

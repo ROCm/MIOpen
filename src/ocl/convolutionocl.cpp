@@ -734,7 +734,6 @@ static void DirConvFindCore(Handle& handle,
     {
         const auto all = conv.FindWinogradSolutions(ctx, invoke_ctx);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoWinograd"};
-        PrecompileSolutions(handle, all);
         EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
     }
 
@@ -1094,6 +1093,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         }
     });
 }
+
 void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
                                         const ConvFwdTensors& tensors,
                                         Data_t workSpace,
