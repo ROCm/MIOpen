@@ -23,8 +23,10 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                    kernel.GetName().find("igemm_v4r1_1x1_dynamic") == 0)
                 {
                     std::vector<KernelInvoke> ks;
-                    for(auto& k : kernels)
-                        ks.push_back(handle.Run(k));
+                    std::transform(kernels.begin(),
+                                   kernels.end(),
+                                   std::back_inserter(ks),
+                                   [&](const Kernel& k) { return handle.Run(k); });
                     float elapsed = 0;
                     elapsed       = CallImplicitGemmDynamic(
                         handle, ctx, tensors.in, tensors.out, tensors.w, ks);
