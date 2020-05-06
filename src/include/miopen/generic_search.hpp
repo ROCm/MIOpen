@@ -259,6 +259,8 @@ inline size_t divide_round_plus_inf(const size_t x, const unsigned y)
 /// * GetPerformanceConfig shall be implemented.
 ///   - Its return type shall be suitable for instantiation of the ComputedContainer.
 /// * GetSolution shall be implemented.
+/// * Solution should provide invoker
+/// * RunAndMeasureSolution must NOT be implemented. Invoker will be used instead.
 ///
 /// clang-format-off
 /// -----------------------------------------------
@@ -280,7 +282,7 @@ inline size_t divide_round_plus_inf(const size_t x, const unsigned y)
 /// ------------------------------------------------
 /// clang-format-on
 
-// Todo: remove
+// This is to detect new solvers attempting to use obsolete functionality
 namespace detail {
 template <typename...>
 using void_t = void;
@@ -338,38 +340,6 @@ auto GenericSearch(const Solver s,
         return copy;
     }();
 
-    /*
-    ConstData_t bias_ocl_ptr = context.GetBufs().bias;
-    if(context.bias != 0 && bias_ocl_ptr == nullptr)
-        MIOPEN_THROW("GenericSearch: context.bias != 0 && bias_ocl_ptr == nullptr");
-    if(top_ocl_ptr == nullptr || bot_ocl_ptr == nullptr || wei_ocl_ptr == nullptr)
-        MIOPEN_THROW("GenericSearch: top_ocl_ptr == nullptr || bot_ocl_ptr == nullptr || "
-                     "wei_ocl_ptr == nullptr");
-    switch(tweak)
-    {
-    case SearchTweak::None: break;
-    case SearchTweak::WorkspaceInsteadOfXBuffer:
-    {
-        if(context.GetBufs().workSpaceSize < default_solution.workspce_sz ||
-           context.GetBufs().workSpace == nullptr)
-            MIOPEN_THROW("GenericSearch: Too small workspace or nullptr");
-        if(context.direction.IsForward())
-            bot_ocl_ptr = context.GetBufs().workSpace;
-        else // bwd or wrw
-            top_ocl_ptr = context.GetBufs().workSpace;
-    }
-    break;
-    case SearchTweak::WorkspaceInsteadOfWeightsBuffer:
-    {
-        if(context.GetBufs().workSpaceSize < default_solution.workspce_sz ||
-           context.GetBufs().workSpace == nullptr)
-            MIOPEN_THROW("GenericSearch: Too small workspace or nullptr");
-        wei_ocl_ptr = context.GetBufs().workSpace;
-    }
-    break;
-    default: MIOPEN_THROW("GenericSearch: Unsupported SearchTweak value.");
-    }
-    */
     auto& profile_h          = context.GetStream();
     AutoEnableProfiling enableProfiling{profile_h};
 
@@ -401,17 +371,6 @@ auto GenericSearch(const Solver s,
                           << current_config);
 
         const auto current_solution = s.GetSolution(context, current_config, true);
-        /*if((tweak == SearchTweak::WorkspaceInsteadOfXBuffer ||
-            tweak == SearchTweak::WorkspaceInsteadOfWeightsBuffer) &&
-           default_solution.workspce_sz != current_solution.workspce_sz)
-        {
-            ret = -2;
-            MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
-                             << "Workspace size should not depend on PerformanceConfig: "
-                             << default_solution.workspce_sz
-                             << " != "
-                             << current_solution.workspce_sz);
-        }*/
 
         if(ret == 0)
         {
