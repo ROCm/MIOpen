@@ -400,9 +400,6 @@ class SQLiteBase
         return stmt;
     }
 
->>>>>>> 5609daf1df27ee7a7d4a5c90c28ef1dc979ffdfc
-=======
->>>>>>> develop
     template <typename... U>
     inline auto FindRecord(U&... args)
     {
