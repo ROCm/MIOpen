@@ -41,7 +41,7 @@ float CallImplicitGemmDynamic(const miopen::Handle& handle,
     float elapsed = 0.0f;
 
     auto kernel = kernels[0];
-    MIOPEN_LOG_I2(kernel.GetName());
+    MIOPEN_LOG_I(kernel.GetName());
     bool kernel_is_1x1 = (kernel.GetName().find("igemm_v4r1_1x1_dynamic") == 0);
     // clang-format off
     int hi          = ctx.in_height;
