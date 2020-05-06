@@ -211,10 +211,12 @@ endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
 	
 # look for and register clang-offload-bundler
-find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
-    PATH_SUFFIXES bin
-    PATHS /opt/rocm/llvm
-)
+if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+$")
+    find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
+        PATH_SUFFIXES bin
+        PATHS /opt/rocm/llvm
+    )
+endif()
 if(MIOPEN_OFFLOADBUNDLER_BIN)
     message(STATUS "clang-offload-bundler found: ${MIOPEN_OFFLOADBUNDLER_BIN}")
     set(MIOPEN_OFFLOADBUNDLER_BIN "${MIOPEN_OFFLOADBUNDLER_BIN}")
