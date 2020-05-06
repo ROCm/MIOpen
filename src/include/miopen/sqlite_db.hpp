@@ -296,8 +296,6 @@ class SQLiteBase
         return AllFound;
     }
 
-<<<<<<< HEAD
-=======
     inline auto SQLExec(const std::string& query)
     {
         MIOPEN_LOG_T(std::this_thread::get_id() << ":" << query);
@@ -403,6 +401,8 @@ class SQLiteBase
     }
 
 >>>>>>> 5609daf1df27ee7a7d4a5c90c28ef1dc979ffdfc
+=======
+>>>>>>> develop
     template <typename... U>
     inline auto FindRecord(U&... args)
     {
