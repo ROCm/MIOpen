@@ -284,7 +284,7 @@ struct conv_forward : output_tensor_fixture
                                             convFilter,
                                             wei_dev,
                                             convDesc,
-                                            miopenConvolutionFwdAlgoDirect,
+                                            perf.fwd_algo,
                                             &beta,
                                             outputTensor,
                                             out_dev,
