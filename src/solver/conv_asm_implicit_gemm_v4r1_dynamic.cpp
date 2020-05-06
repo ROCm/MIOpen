@@ -26,6 +26,7 @@
 #include <cstddef>
 #include "miopen/solver.hpp"
 #include "miopen/handle.hpp"
+#include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/implicitgemm_dynamic.hpp>
 #include "implicitgemm_util.hpp"
@@ -567,6 +568,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
 
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
+    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
     result.construction_params.push_back(kernel);
     return result;
 }
