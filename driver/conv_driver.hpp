@@ -2391,7 +2391,6 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
                flopCnt / kernel_average_time / 1e6,
                (readBytes + outputBytes) / kernel_average_time / 1e6,
                kernel_average_time);
-
     }
 }
 
