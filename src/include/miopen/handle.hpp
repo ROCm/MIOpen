@@ -183,7 +183,7 @@ struct Handle : miopenHandle
 
     static std::string GetDbBasename(const std::string& device, size_t num_cu)
     {
-        const auto ret = device + [&]() {
+        auto ret = device + [&]() {
             std::ostringstream ss;
             if(num_cu <= 64)
                 ss << '_' << num_cu;

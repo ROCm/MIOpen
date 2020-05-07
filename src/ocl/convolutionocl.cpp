@@ -2078,8 +2078,7 @@ static Invoker PrepareInvoker(Handle& handle,
     const auto solver = solver_id.GetSolver();
     auto db           = GetDb(ctx);
     auto solution     = solver.FindSolution(ctx, db);
-    const auto invoker =
-        handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
+    auto invoker = handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
 
     handle.RegisterInvoker(invoker, config, solver_id, AlgorithmName(solver_id.GetAlgo(dir)));
     return invoker;
