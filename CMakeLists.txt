@@ -59,6 +59,7 @@ if(MIOPEN_ENABLE_SQLITE)
     find_package(PkgConfig)
     pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 endif()
+find_package(BZip2)
 option( BUILD_DEV "Build for development only" OFF)
 
 # Strip symbols for release
@@ -104,11 +105,6 @@ list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/h
 option(ENABLE_HIP_WORKAROUNDS Off)
 
 option(MIOPEN_USE_COMGR "When possible, use comgr to build kernels instead of offline tools" Off)
-if(MIOPEN_USE_COMGR)
-    set(MIOPEN_USE_COMGR On)
-else()
-    set(MIOPEN_USE_COMGR Off)
-endif()
 
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
@@ -121,8 +117,8 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set(MIOPEN_BACKEND_OPENCL 1)
     find_package( OpenCL REQUIRED )
     find_program(MIOPEN_HIP_COMPILER hcc
-        PATH_SUFFIXES bin
-        PATHS /opt/rocm
+            PATH_SUFFIXES bin
+            PATHS /opt/rocm
     )
     set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
     if(MIOPEN_HIP_COMPILER)
@@ -135,8 +131,8 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
         if(MIOPEN_HIP_COMPILER)
             message("hip compiler: ${MIOPEN_HIP_COMPILER}")
         else()
-        message(FATAL_ERROR "hip compiler not found")
-    endif()
+            message(FATAL_ERROR "hip compiler not found")
+        endif()
     endif()
 
     set (HIP_CXX_COMPILER ${MIOPEN_HIP_COMPILER})
@@ -144,9 +140,10 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     # scgemm not support opencl backend yet.
     set(MIOPEN_USE_SCGEMM OFF)
 
-    # Disable comgr for now for OCL backend.
     # TODO (priority_low) Use to build HIP and ASM kernels.
-    set(MIOPEN_USE_COMGR Off)
+    if(MIOPEN_USE_COMGR)
+        message(FATAL_ERROR "comgr cannot be used with OpenCL backend")
+    endif()
 endif()
 
 
@@ -267,16 +264,8 @@ else()
 endif()
 
 if(MIOPEN_USE_COMGR)
-    find_package(amd_comgr CONFIG)
-    if(amd_comgr_FOUND)
-        message(STATUS "Build with comgr ${amd_comgr_VERSION}")
-        set(MIOPEN_USE_COMGR On)
-    else()
-        message(STATUS "Build without comgr (not found)")
-        set(MIOPEN_USE_COMGR Off)
-    endif()
-else()
-    message(STATUS "Build without comgr")
+    find_package(amd_comgr REQUIRED CONFIG)
+    message(STATUS "Build with comgr ${amd_comgr_VERSION}")
 endif()
 
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
@@ -305,7 +294,7 @@ else()
     set(MIOPEN_USER_DB_PATH "~/.config/miopen/" CACHE STRING "Default path of user db files")
     set(MIOPEN_CACHE_DIR "~/.cache/miopen/" CACHE STRING "")
 endif()
-set(MIOPEN_USER_DB_SUFFIX "${MIOPEN_BACKEND}.${MIOpen_VERSION_MAJOR}_${MIOpen_VERSION_MINOR}_${MIOpen_VERSION_PATCH}" CACHE PATH "Filename suffix for the user find-db files")
+set(MIOPEN_USER_DB_SUFFIX "${MIOPEN_BACKEND}.${MIOpen_VERSION_MAJOR}_${MIOpen_VERSION_MINOR}_${MIOpen_VERSION_PATCH}_${MIOpen_VERSION_TWEAK}" CACHE PATH "Filename suffix for the user find-db files")
 set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix for the system find-db files")
 
 

@@ -190,6 +190,8 @@ struct HIPOCProgramImpl
             dir->Execute(HIP_OC_COMPILER, params + " " + filename + " -o " + hsaco_file.string());
 #else
             comgr::BuildOcl(filename, src, params, device, binary);
+            if(binary.empty())
+                MIOPEN_THROW("Code object build failed. Source: " + filename);
 #endif
         }
         if(!hsaco_file.empty() && !boost::filesystem::exists(hsaco_file))

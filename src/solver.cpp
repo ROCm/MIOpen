@@ -24,9 +24,10 @@
  *
  *******************************************************************************/
 
+#include <miopen/config.h>
+
 #include <miopen/solver.hpp>
 #include <miopen/conv_algo_name.hpp>
-
 #include <miopen/db.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/par_for.hpp>
@@ -35,6 +36,8 @@
 
 #include <boost/range/adaptor/transformed.hpp>
 #include <ostream>
+
+#define WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27 1
 
 namespace miopen {
 namespace solver {
@@ -52,11 +55,14 @@ std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
     return os << "} '" << k.comp_options << '\'';
 }
 
+constexpr auto PARALLEL_LEVEL_DEFAULT =
+    (MIOPEN_USE_COMGR && WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27) ? 1 : 20;
+
 std::vector<Program> PrecompileKernels(Handle& h, const std::vector<KernelInfo>& kernels)
 {
     std::vector<Program> programs(kernels.size());
     par_for(kernels.size(),
-            max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
+            max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, PARALLEL_LEVEL_DEFAULT)},
             [&](auto i) {
                 const KernelInfo& k = kernels[i];
                 programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
@@ -302,6 +308,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     RegisterWithSolver(
         registry, ++id, ConvHipImplicitGemmBwdDataV1R1Xdlops{}, miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(registry,
+                       ++id,
+                       ConvHipImplicitGemmV4R4GenXdlopsFwdFp32{},
+                       miopenConvolutionAlgoImplicitGEMM);
 }
 
 } // namespace solver

@@ -36,20 +36,18 @@
 #include <tuple> // std::ignore
 #include <vector>
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_CALLS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_OPTIONS)
+/// Integer, set to max number of first characters
+/// you would like to log onto console.
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT)
+
 /// \todo see issue #1222, PR #1316
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 
-#define DEBUG_DETAILED_LOG 0
 #define COMPILER_LC 1
 
-#if DEBUG_DETAILED_LOG
-#define EC_BASE_DETAILED_INFO(comgrcall, info) \
-    MIOPEN_LOG_I("Ok \'" #comgrcall "\' " << to_string(info))
-#else
-#define EC_BASE_DETAILED_INFO(comgrcall, info)
-#endif
-
-#define EC_BASE(comgrcall, info, expr2)                                   \
+#define EC_BASE(comgrcall, info, action)                                  \
     do                                                                    \
     {                                                                     \
         const amd_comgr_status_t status = (comgrcall);                    \
@@ -57,11 +55,18 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
         {                                                                 \
             MIOPEN_LOG_E("\'" #comgrcall "\' " << to_string(info) << ": " \
                                                << GetStatusText(status)); \
-            (expr2);                                                      \
+            (action);                                                     \
         }                                                                 \
-        else                                                              \
-            EC_BASE_DETAILED_INFO((comgrcall), (info));                   \
+        else if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_CALLS{}))        \
+            MIOPEN_LOG_I("Ok \'" #comgrcall "\' " << to_string(info));    \
     } while(false)
+
+// Regarding EC*THROW* macros:
+// Q: Whats the point in logging if it is going to throw?
+// A: This prints build log (that presumably contains warning
+// and error messages from compiler/linker etc) onto console,
+// thus informing the *user*. MIOPEN_THROW informs the *library*
+// that compilation has failed.
 
 #define EC(comgrcall) EC_BASE(comgrcall, NoInfo, (void)0)
 #define EC_THROW(comgrcall) EC_BASE(comgrcall, NoInfo, Throw(status))
@@ -145,63 +150,60 @@ static inline std::string to_string(const std::string& v) { return {v}; }
 static inline std::string to_string(const bool& v) { return v ? "true" : "false"; }
 static inline auto to_string(const std::size_t& v) { return std::to_string(v); }
 
-#define CASE_TO_STRING(id) \
-    case id: return #id
-
 /// \todo Request comgr to expose this stuff via API.
 static std::string to_string(const amd_comgr_language_t val)
 {
-    switch(val)
-    {
-        CASE_TO_STRING(AMD_COMGR_LANGUAGE_NONE);
-        CASE_TO_STRING(AMD_COMGR_LANGUAGE_OPENCL_1_2);
-        CASE_TO_STRING(AMD_COMGR_LANGUAGE_OPENCL_2_0);
-        CASE_TO_STRING(AMD_COMGR_LANGUAGE_HC);
-        CASE_TO_STRING(AMD_COMGR_LANGUAGE_HIP);
-    }
-    return "<Unknown language>";
+    std::ostringstream oss;
+    MIOPEN_LOG_ENUM(oss,
+                    val,
+                    AMD_COMGR_LANGUAGE_NONE,
+                    AMD_COMGR_LANGUAGE_OPENCL_1_2,
+                    AMD_COMGR_LANGUAGE_OPENCL_2_0,
+                    AMD_COMGR_LANGUAGE_HC,
+                    AMD_COMGR_LANGUAGE_HIP);
+    return oss.str();
 }
 
 static std::string to_string(const amd_comgr_data_kind_t val)
 {
-    switch(val)
-    {
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_UNDEF);
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_SOURCE);
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_INCLUDE);
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_PRECOMPILED_HEADER);
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_DIAGNOSTIC);
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_LOG);
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_BC);
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_RELOCATABLE);
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_EXECUTABLE);
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_BYTES);
-        CASE_TO_STRING(AMD_COMGR_DATA_KIND_FATBIN);
-    }
-    return "<Unknown data kind>";
+    std::ostringstream oss;
+    MIOPEN_LOG_ENUM(oss,
+                    val,
+                    AMD_COMGR_DATA_KIND_UNDEF,
+                    AMD_COMGR_DATA_KIND_SOURCE,
+                    AMD_COMGR_DATA_KIND_INCLUDE,
+                    AMD_COMGR_DATA_KIND_PRECOMPILED_HEADER,
+                    AMD_COMGR_DATA_KIND_DIAGNOSTIC,
+                    AMD_COMGR_DATA_KIND_LOG,
+                    AMD_COMGR_DATA_KIND_BC,
+                    AMD_COMGR_DATA_KIND_RELOCATABLE,
+                    AMD_COMGR_DATA_KIND_EXECUTABLE,
+                    AMD_COMGR_DATA_KIND_BYTES,
+                    AMD_COMGR_DATA_KIND_FATBIN);
+    return oss.str();
 }
 
 static std::string to_string(const amd_comgr_action_kind_t val)
 {
-    switch(val)
-    {
-        CASE_TO_STRING(AMD_COMGR_ACTION_SOURCE_TO_PREPROCESSOR);
-        CASE_TO_STRING(AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS);
-        CASE_TO_STRING(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC);
-        CASE_TO_STRING(AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES);
-        CASE_TO_STRING(AMD_COMGR_ACTION_LINK_BC_TO_BC);
-        CASE_TO_STRING(AMD_COMGR_ACTION_OPTIMIZE_BC_TO_BC);
-        CASE_TO_STRING(AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE);
-        CASE_TO_STRING(AMD_COMGR_ACTION_CODEGEN_BC_TO_ASSEMBLY);
-        CASE_TO_STRING(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_RELOCATABLE);
-        CASE_TO_STRING(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE);
-        CASE_TO_STRING(AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE);
-        CASE_TO_STRING(AMD_COMGR_ACTION_DISASSEMBLE_RELOCATABLE_TO_SOURCE);
-        CASE_TO_STRING(AMD_COMGR_ACTION_DISASSEMBLE_EXECUTABLE_TO_SOURCE);
-        CASE_TO_STRING(AMD_COMGR_ACTION_DISASSEMBLE_BYTES_TO_SOURCE);
-        CASE_TO_STRING(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_FATBIN);
-    }
-    return "<Unknown action kind>";
+    std::ostringstream oss;
+    MIOPEN_LOG_ENUM(oss,
+                    val,
+                    AMD_COMGR_ACTION_SOURCE_TO_PREPROCESSOR,
+                    AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS,
+                    AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC,
+                    AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES,
+                    AMD_COMGR_ACTION_LINK_BC_TO_BC,
+                    AMD_COMGR_ACTION_OPTIMIZE_BC_TO_BC,
+                    AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE,
+                    AMD_COMGR_ACTION_CODEGEN_BC_TO_ASSEMBLY,
+                    AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_RELOCATABLE,
+                    AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE,
+                    AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE,
+                    AMD_COMGR_ACTION_DISASSEMBLE_RELOCATABLE_TO_SOURCE,
+                    AMD_COMGR_ACTION_DISASSEMBLE_EXECUTABLE_TO_SOURCE,
+                    AMD_COMGR_ACTION_DISASSEMBLE_BYTES_TO_SOURCE,
+                    AMD_COMGR_ACTION_COMPILE_SOURCE_TO_FATBIN);
+    return oss.str();
 }
 
 static bool PrintVersion()
@@ -209,7 +211,7 @@ static bool PrintVersion()
     std::size_t major = 0;
     std::size_t minor = 0;
     (void)amd_comgr_get_version(&major, &minor);
-    MIOPEN_LOG_I("comgr v." << major << '.' << minor);
+    MIOPEN_LOG_NQI("comgr v." << major << '.' << minor);
     return true;
 }
 
@@ -223,22 +225,40 @@ static std::string GetStatusText(const amd_comgr_status_t status)
 
 static void LogOptions(const char* options[], size_t count)
 {
-#if DEBUG_DETAILED_LOG
-    if(miopen::IsLogging(miopen::LoggingLevel::Info))
+    if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_OPTIONS{}) &&
+       miopen::IsLogging(miopen::LoggingLevel::Info))
     {
         std::ostringstream oss;
         for(std::size_t i = 0; i < count; ++i)
             oss << options[i] << '\t';
         MIOPEN_LOG_I(oss.str());
     }
-#else
-    std::ignore = options;
-    std::ignore = count;
-#endif
 }
 
 class Dataset;
-static std::string GetLog(const Dataset& dataset, bool catch_comgr_exceptions = false);
+static std::string GetLog(const Dataset& dataset, bool comgr_error_handling = false);
+
+// Q: Why arent we using MIOPEN_THROW? Using MIOPEN_THROW can report back the
+// source line numbers where the exception was thrown. Usually we write
+// a function to convert the error enum into a message and then pass that
+// MIOPEN_THROW.
+//
+// A: These exceptions are not intended to report "normal" miopen errors.
+// The main purpose is to prevent resource leakage (comgr handles)
+// when compilation of the device code fails. The side functionality is to
+// hold status codes and diagnostic messages received from comgr
+// when build failure happens.
+//
+// The diagnostic messages are expected to be like the ones that
+// offline compiler prints after build errors. Usually these
+// contain the file/line information of the problematic device code,
+// so file/line of the host code is not needed here
+// (and even considered harmful).
+//
+// These exceptions are not allowed to escape comgr module.
+//
+// The comgr module can be considered as a "library within a library"
+// that provides HIP backend with functionality similar to clBuildProgram().
 
 struct ComgrError : std::exception
 {
@@ -250,6 +270,12 @@ struct ComgrError : std::exception
     const char* what() const noexcept override { return text.c_str(); }
 };
 
+[[noreturn]] static void Throw(const amd_comgr_status_t s) { throw ComgrError{s}; }
+[[noreturn]] static void Throw(const amd_comgr_status_t s, const std::string& text)
+{
+    throw ComgrError{s, text};
+}
+
 struct ComgrOwner
 {
     ComgrOwner(const ComgrOwner&) = delete;
@@ -257,11 +283,6 @@ struct ComgrOwner
     protected:
     ComgrOwner() {}
     ComgrOwner(ComgrOwner&&) = default;
-    [[noreturn]] void Throw(const amd_comgr_status_t s) const { throw ComgrError{s}; }
-    [[noreturn]] void Throw(const amd_comgr_status_t s, const std::string& text) const
-    {
-        throw ComgrError{s, text};
-    }
 };
 
 class Data : ComgrOwner
@@ -274,7 +295,7 @@ class Data : ComgrOwner
     Data(amd_comgr_data_kind_t kind) { ECI_THROW(amd_comgr_create_data(kind, &handle), kind); }
     Data(Data&&) = default;
     ~Data() { EC(amd_comgr_release_data(handle)); }
-    auto operator()() const { return handle; }
+    auto GetHandle() const { return handle; }
     void SetName(const std::string& s) const
     {
         ECI_THROW(amd_comgr_set_data_name(handle, s.c_str()), s);
@@ -315,8 +336,26 @@ class Dataset : ComgrOwner
     public:
     Dataset() { EC_THROW(amd_comgr_create_data_set(&handle)); }
     ~Dataset() { EC(amd_comgr_destroy_data_set(handle)); }
-    auto operator()() const { return handle; }
-    void AddData(const Data& d) const { EC_THROW(amd_comgr_data_set_add(handle, d())); }
+    auto GetHandle() const { return handle; }
+    void AddData(const Data& d) const { EC_THROW(amd_comgr_data_set_add(handle, d.GetHandle())); }
+    void AddData(const std::string& name,
+                 const std::string& content,
+                 const amd_comgr_data_kind_t type) const
+    {
+        const Data d(type);
+        MIOPEN_LOG_I2(name << ' ' << content.size() << " bytes");
+        d.SetName(name);
+        d.SetBytes(content);
+        AddData(d);
+        const auto show_first = miopen::Value(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT{}, 0);
+        if(show_first > 0 && miopen::IsLogging(miopen::LoggingLevel::Info) &&
+           type == AMD_COMGR_DATA_KIND_SOURCE)
+        {
+            const auto text_length = (content.size() > show_first) ? show_first : content.size();
+            const std::string text(content, 0, text_length);
+            MIOPEN_LOG_I(text);
+        }
+    }
     size_t GetDataCount(const amd_comgr_data_kind_t kind) const
     {
         std::size_t count = 0;
@@ -338,7 +377,6 @@ class ActionInfo : ComgrOwner
     public:
     ActionInfo() { EC_THROW(amd_comgr_create_action_info(&handle)); }
     ~ActionInfo() { EC(amd_comgr_destroy_action_info(handle)); }
-    auto operator()() const { return handle; }
     void SetLanguage(const amd_comgr_language_t language) const
     {
         ECI_THROW(amd_comgr_action_info_set_language(handle, language), language);
@@ -355,19 +393,20 @@ class ActionInfo : ComgrOwner
     {
         std::vector<const char*> vp;
         vp.reserve(options.size());
-        for(auto& opt : options) // cppcheck-suppress useStlAlgorithm
-            vp.push_back(opt.c_str());
+        std::transform(options.begin(), options.end(), std::back_inserter(vp), [&](auto& opt) {
+            return opt.c_str();
+        });
         LogOptions(vp.data(), vp.size());
         ECI_THROW(amd_comgr_action_info_set_option_list(handle, vp.data(), vp.size()), vp.size());
     }
     void Do(const amd_comgr_action_kind_t kind, const Dataset& in, const Dataset& out) const
     {
-        ECI_THROW_MSG(amd_comgr_do_action(kind, handle, in(), out()), kind, GetLog(out, true));
-#if DEBUG_DETAILED_LOG
+        ECI_THROW_MSG(amd_comgr_do_action(kind, handle, in.GetHandle(), out.GetHandle()),
+                      kind,
+                      GetLog(out, true));
         const auto log = GetLog(out);
         if(!log.empty())
-            MIOPEN_LOG_I(GetLog(out));
-#endif
+            MIOPEN_LOG_I(to_string(kind) << ": " << log);
     }
 };
 
@@ -397,30 +436,24 @@ static std::string GetLog(const Dataset& dataset, const bool comgr_error_handlin
     {
         if(comgr_error_handling)
             return {"comgr error: failed to get error log"};
+        // deepcode ignore EmptyThrowOutsideCatch: false positive
         throw;
+        // Q: What the point in catching the error if you are just going to rethrow it?
+        //
+        // A: In the context of handling of build error, the function is invoked to get build log
+        // from comgr. If it fails, it doesn't rethrow because this would overwrite the
+        // original comgr status.
+        //
+        // The use case is when some build error happens (e.g. linking error) but we unable to
+        // obtain log data from the dataset due to comgr error. We keep original error information
+        // (albeit only status code). The user will see error message with original status code
+        // plus comgr error: "failed to get error log."
+        //
+        // Rethrowing happens when/if this function is invoked during normal flow, i.e. when
+        // there is no build errors. In such a case, the catch block does nothing and allows
+        // all exceptions to escape. This would effectively stop the build.
     }
     return text;
-}
-
-static void DatasetAddData(const Dataset& dataset,
-                           const std::string& name,
-                           const std::string& content,
-                           const amd_comgr_data_kind_t type)
-{
-    const Data d(type);
-    MIOPEN_LOG_I2(name << ' ' << content.size() << " bytes");
-    d.SetName(name);
-    d.SetBytes(content);
-    dataset.AddData(d);
-#if DEBUG_DETAILED_LOG
-    if(miopen::IsLogging(miopen::LoggingLevel::Info) && type == AMD_COMGR_DATA_KIND_SOURCE)
-    {
-        constexpr auto SHOW_FIRST = 1024;
-        const auto text_length    = (content.size() > SHOW_FIRST) ? SHOW_FIRST : content.size();
-        const std::string text(content, 0, text_length);
-        MIOPEN_LOG_I(text);
-    }
-#endif
 }
 
 void BuildOcl(const std::string& name,
@@ -435,7 +468,7 @@ void BuildOcl(const std::string& name,
     try
     {
         const Dataset inputs;
-        DatasetAddData(inputs, name, text, AMD_COMGR_DATA_KIND_SOURCE);
+        inputs.AddData(name, text, AMD_COMGR_DATA_KIND_SOURCE);
         const ActionInfo action;
         action.SetLanguage(AMD_COMGR_LANGUAGE_OPENCL_2_0);
         const auto isaName = compiler::lc::GetIsaName(device);
@@ -495,7 +528,6 @@ void BuildOcl(const std::string& name,
         MIOPEN_LOG_E("comgr status = " << GetStatusText(ex.status));
         if(!ex.text.empty())
             MIOPEN_LOG_W(ex.text);
-        MIOPEN_THROW(MIOPEN_GET_FN_NAME() + ": comgr status = " + GetStatusText(ex.status));
     }
 }
 
