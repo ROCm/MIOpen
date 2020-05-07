@@ -92,12 +92,12 @@ cmake -DMIOPEN_BACKEND=OpenCL ..
 The above assumes that OpenCL is installed in one of the standard locations. If not, then manually set these cmake variables: 
 
 ```
-cmake -DMIOPEN_BACKEND=OpenCL -DHIP_CXX_COMPILER=<hip-compiler-path> -DOPENCL_LIBRARIES=<opencl-library-path> -DOPENCL_INCLUDE_DIRS=<opencl-headers-path> ..
+cmake -DMIOPEN_BACKEND=OpenCL -DMIOPEN_HIP_COMPILER=<hip-compiler-path> -DOPENCL_LIBRARIES=<opencl-library-path> -DOPENCL_INCLUDE_DIRS=<opencl-headers-path> ..
 ```
 
 And an example setting the dependency path for an envirnment in ROCm 3.5 and later:
 ```
-cmake -DMIOPEN_BACKEND=OpenCL -DHIP_CXX_COMPILER=/opt/rocm/llvm/bin/clang++ -DCMAKE_PREFIX_PATH=/some/local/dir ..
+cmake -DMIOPEN_BACKEND=OpenCL -DMIOPEN_HIP_COMPILER=/opt/rocm/llvm/bin/clang++ -DCMAKE_PREFIX_PATH=/some/local/dir ..
 ```
 
 For ROCm 3.3 and earlier:
@@ -127,7 +127,7 @@ cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="<hip-installed-path>;<rocm-insta
 
 An example cmake step can be:
 ```
-CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm;/opt/rocm/hip;/some/local/dir" ..
+CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/some/local/dir" ..
 ```
 
 Note: When specifying the path for the `CMAKE_PREFIX_PATH` variable, **do not** use the `~` shorthand for the user home directory.
