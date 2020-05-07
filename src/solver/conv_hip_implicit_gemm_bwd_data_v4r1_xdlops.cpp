@@ -510,15 +510,8 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsValidPerformanceConfig(
 PerformanceImplicitGemmBwdDataV4R1Xdlops
 ConvHipImplicitGemmBwdDataV4R1Xdlops::Search(const ConvolutionContext& ctx) const
 {
-
     // \todo add fp16 and bfp16 kernels
     return GenericSearchBwd(*this, ctx);
-
-    // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
-    // if(ctx.IsFp16() || ctx.IsBfp16())
-    //     return GenericSearchBwd(*this, ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
-    // else
-    //     return GenericSearchBwd(*this, ctx);
 }
 
 int ConvHipImplicitGemmBwdDataV4R1Xdlops::RunAndMeasureSolution(miopen::Handle& profile_h,
