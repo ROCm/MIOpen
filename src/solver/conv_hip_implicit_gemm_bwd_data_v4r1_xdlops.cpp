@@ -79,7 +79,7 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmABlockCopyPerformancePara
             SrcDataPerRead_GemmM = 1;
 
         // calculate threadwise copy size
-        const auto a_data_per_thread_copy = GemmMPerBlock / WeiBlockCopyClusterLengths_GemmM;
+        const auto a_data_per_thread_copy = GemmMPerBlock / GemmABlockCopyClusterLengths_GemmM;
 
         if(!(a_data_per_thread_copy > 0))
             MIOPEN_THROW("invalid performance parameter");
@@ -127,7 +127,7 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
         }
 
         // calculate threadwise copy size
-        int b_data_per_thread_copy = GemmNPerBlock / InBlockCopyClusterLengths_GemmN;
+        int b_data_per_thread_copy = GemmNPerBlock / GemmBBlockCopyClusterLengths_GemmN;
 
         if(!(b_data_per_thread_copy > 0))
             MIOPEN_THROW("invalid performance parameter");
@@ -165,11 +165,6 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValid(const ConvolutionContext&
              GemmK % (GemmKPerBlock * GemmKBlocks) == 0))
             return false; // wrong! cannot divice N evenly among thread
     }
-
-    const auto& GemmBBlockCopyClusterLengths_GemmK = InBlockCopyClusterLengths_GemmK;
-    const auto& GemmBBlockCopyClusterLengths_GemmN = InBlockCopyClusterLengths_GemmN;
-    const auto& GemmABlockCopyClusterLengths_GemmK = WeiBlockCopyClusterLengths_GemmK;
-    const auto& GemmABlockCopyClusterLengths_GemmM = WeiBlockCopyClusterLengths_GemmM;
 
     if(!(GemmKPerBlock % GemmBBlockCopyClusterLengths_GemmK == 0 &&
          GemmKPerBlock % GemmABlockCopyClusterLengths_GemmK == 0 &&
@@ -229,35 +224,35 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::PerformanceImplicitGemmBwdDataV4R1Xdlo
     GemmMPerWave = spare ? 4 : 64;
     GemmNPerWave = spare ? 16 : 64;
 
-    InBlockCopyClusterLengths_GemmK = 4;
-    InBlockCopyClusterLengths_GemmN = 4;
+    GemmBBlockCopyClusterLengths_GemmK = 4;
+    GemmBBlockCopyClusterLengths_GemmN = 4;
 
-    WeiBlockCopyClusterLengths_GemmK = 2;
-    WeiBlockCopyClusterLengths_GemmM = 4;
+    GemmABlockCopyClusterLengths_GemmK = 2;
+    GemmABlockCopyClusterLengths_GemmM = 4;
 
     use_spare_set = spare;
 }
 
 PerformanceImplicitGemmBwdDataV4R1Xdlops::PerformanceImplicitGemmBwdDataV4R1Xdlops(
-    int BPerBlock_,
-    int KPerBlock_,
-    int EPerBlock_,
+    int GemmNPerBlock_,
+    int GemmMPerBlock_,
+    int GemmKPerBlock_,
     int GemmMPerWave_,
     int GemmNPerWave_,
-    int InBlockCopyClusterLengths_E_,
-    int InBlockCopyClusterLengths_B_,
-    int WeiBlockCopyClusterLengths_E_,
-    int WeiBlockCopyClusterLengths_K_,
+    int GemmBBlockCopyClusterLengths_GemmK_,
+    int GemmBBlockCopyClusterLengths_GemmN_,
+    int GemmABlockCopyClusterLengths_GemmK_,
+    int GemmABlockCopyClusterLengths_GemmM_,
     bool use_spare_set_)
-    : GemmNPerBlock(BPerBlock_),
-      GemmMPerBlock(KPerBlock_),
-      GemmKPerBlock(EPerBlock_),
+    : GemmNPerBlock(GemmNPerBlock_),
+      GemmMPerBlock(GemmMPerBlock_),
+      GemmKPerBlock(GemmKPerBlock_),
       GemmMPerWave(GemmMPerWave_),
       GemmNPerWave(GemmNPerWave_),
-      InBlockCopyClusterLengths_GemmK(InBlockCopyClusterLengths_E_),
-      InBlockCopyClusterLengths_GemmN(InBlockCopyClusterLengths_B_),
-      WeiBlockCopyClusterLengths_GemmK(WeiBlockCopyClusterLengths_E_),
-      WeiBlockCopyClusterLengths_GemmM(WeiBlockCopyClusterLengths_K_),
+      GemmBBlockCopyClusterLengths_GemmK(GemmBBlockCopyClusterLengths_GemmK_),
+      GemmBBlockCopyClusterLengths_GemmN(GemmBBlockCopyClusterLengths_GemmN_),
+      GemmABlockCopyClusterLengths_GemmK(GemmABlockCopyClusterLengths_GemmK_),
+      GemmABlockCopyClusterLengths_GemmM(GemmABlockCopyClusterLengths_GemmM_),
       use_spare_set(use_spare_set_)
 {
 }
@@ -271,10 +266,10 @@ operator==(const PerformanceImplicitGemmBwdDataV4R1Xdlops& other) const
         && GemmKPerBlock == other.GemmKPerBlock
         && GemmMPerWave == other.GemmMPerWave
         && GemmNPerWave == other.GemmNPerWave
-        && InBlockCopyClusterLengths_GemmK == other.InBlockCopyClusterLengths_GemmK
-        && InBlockCopyClusterLengths_GemmN == other.InBlockCopyClusterLengths_GemmN
-        && WeiBlockCopyClusterLengths_GemmK == other.WeiBlockCopyClusterLengths_GemmK
-        && WeiBlockCopyClusterLengths_GemmM == other.WeiBlockCopyClusterLengths_GemmM
+        && GemmBBlockCopyClusterLengths_GemmK == other.GemmBBlockCopyClusterLengths_GemmK
+        && GemmBBlockCopyClusterLengths_GemmN == other.GemmBBlockCopyClusterLengths_GemmN
+        && GemmABlockCopyClusterLengths_GemmK == other.GemmABlockCopyClusterLengths_GemmK
+        && GemmABlockCopyClusterLengths_GemmM == other.GemmABlockCopyClusterLengths_GemmM
         && use_spare_set == other.use_spare_set;
     // clang-format on
 }
@@ -287,10 +282,10 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValidValue() const
         && IsTwoPower<4,32>(GemmKPerBlock)
         && IsTwoPower<4,64>(GemmMPerWave)
         && IsTwoPower<16,64>(GemmNPerWave)
-        && IsTwoPower<4,16>(InBlockCopyClusterLengths_GemmK)
-        && IsTwoPower<4,64>(InBlockCopyClusterLengths_GemmN)
-        && IsTwoPower<2,16>(WeiBlockCopyClusterLengths_GemmK)
-        && IsTwoPower<4,128>(WeiBlockCopyClusterLengths_GemmM); // clang-format on
+        && IsTwoPower<4,16>(GemmBBlockCopyClusterLengths_GemmK)
+        && IsTwoPower<4,64>(GemmBBlockCopyClusterLengths_GemmN)
+        && IsTwoPower<2,16>(GemmABlockCopyClusterLengths_GemmK)
+        && IsTwoPower<4,128>(GemmABlockCopyClusterLengths_GemmM); // clang-format on
 }
 
 bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue()
@@ -319,13 +314,13 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue()
             if(!NextTwoPower<16, 64>(GemmNPerWave))
                 break;
         }
-        if(!NextTwoPower<4, 16>(InBlockCopyClusterLengths_GemmK))
+        if(!NextTwoPower<4, 16>(GemmBBlockCopyClusterLengths_GemmK))
             break;
-        if(!NextTwoPower<4, 64>(InBlockCopyClusterLengths_GemmN))
+        if(!NextTwoPower<4, 64>(GemmBBlockCopyClusterLengths_GemmN))
             break;
-        if(!NextTwoPower<2, 16>(WeiBlockCopyClusterLengths_GemmK))
+        if(!NextTwoPower<2, 16>(GemmABlockCopyClusterLengths_GemmK))
             break;
-        if(!NextTwoPower<4, 128>(WeiBlockCopyClusterLengths_GemmM))
+        if(!NextTwoPower<4, 128>(GemmABlockCopyClusterLengths_GemmM))
             break;
         return false;
     } while(false);
@@ -653,12 +648,12 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
                 std::string(" -DCK_PARAM_TUNABLE_GEMM_K_PER_BLOCK=") + std::to_string(GemmKPerBlock) +
                 std::string(" -DCK_PARAM_GEMM_M_PER_WAVE=") + std::to_string(GemmMPerWave) +
                 std::string(" -DCK_PARAM_GEMM_N_PER_WAVE=") + std::to_string(GemmNPerWave) +
-                std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K=") + std::to_string(config.WeiBlockCopyClusterLengths_GemmK) +
-                std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_M=") + std::to_string(config.WeiBlockCopyClusterLengths_GemmM) +
+                std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K=") + std::to_string(config.GemmABlockCopyClusterLengths_GemmK) +
+                std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_M=") + std::to_string(config.GemmABlockCopyClusterLengths_GemmM) +
                 std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_M=") + std::to_string(GemmABlockCopySrcDataPerRead_GemmM     ) +
                 std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_M=") + std::to_string(GemmABlockCopyDstDataPerWrite_GemmM) +
-                std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K=") + std::to_string(config.InBlockCopyClusterLengths_GemmK) +
-                std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_N=") + std::to_string(config.InBlockCopyClusterLengths_GemmN) +
+                std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K=") + std::to_string(config.GemmBBlockCopyClusterLengths_GemmK) +
+                std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_N=") + std::to_string(config.GemmBBlockCopyClusterLengths_GemmN) +
                 std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N=") + std::to_string(GemmBBlockCopySrcDataPerRead_GemmN     ) +
                 std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N=") + std::to_string(GemmBBlockCopyDstDataPerWrite_GemmN) +
                 std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +

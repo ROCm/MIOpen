@@ -678,11 +678,11 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
     int GemmMPerWave;
     int GemmNPerWave;
 
-    int InBlockCopyClusterLengths_GemmK; // 2^n[4..16]
-    int InBlockCopyClusterLengths_GemmN; // 2^n[8..64]
+    int GemmBBlockCopyClusterLengths_GemmK; // 2^n[4..16]
+    int GemmBBlockCopyClusterLengths_GemmN; // 2^n[8..64]
 
-    int WeiBlockCopyClusterLengths_GemmK; // 2^n[1..4]
-    int WeiBlockCopyClusterLengths_GemmM; // 2^n[16..128]
+    int GemmABlockCopyClusterLengths_GemmK; // 2^n[1..4]
+    int GemmABlockCopyClusterLengths_GemmM; // 2^n[16..128]
 
     bool use_spare_set;
 
@@ -711,10 +711,10 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
         f(self.GemmKPerBlock, "GemmKPerBlock");
         f(self.GemmMPerWave, "GemmMPerWave");
         f(self.GemmNPerWave, "GemmNPerWave");
-        f(self.InBlockCopyClusterLengths_GemmK, "InBlockCopyClusterLengths_GemmK");
-        f(self.InBlockCopyClusterLengths_GemmN, "InBlockCopyClusterLengths_GemmN");
-        f(self.WeiBlockCopyClusterLengths_GemmK, "WeiBlockCopyClusterLengths_GemmK");
-        f(self.WeiBlockCopyClusterLengths_GemmM, "WeiBlockCopyClusterLengths_GemmM");
+        f(self.GemmBBlockCopyClusterLengths_GemmK, "GemmBBlockCopyClusterLengths_GemmK");
+        f(self.GemmBBlockCopyClusterLengths_GemmN, "GemmBBlockCopyClusterLengths_GemmN");
+        f(self.GemmABlockCopyClusterLengths_GemmK, "GemmABlockCopyClusterLengths_GemmK");
+        f(self.GemmABlockCopyClusterLengths_GemmM, "GemmABlockCopyClusterLengths_GemmM");
     }
 
     std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
