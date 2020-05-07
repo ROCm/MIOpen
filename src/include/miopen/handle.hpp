@@ -231,11 +231,10 @@ struct Handle : miopenHandle
 
     private:
     rocblas_handle_ptr CreateRocblasHandle() const;
-
     rocblas_handle_ptr rhandle_;
-#endif
-
+#else
     private:
+#endif
     InvokerCache invokers;
 };
 
