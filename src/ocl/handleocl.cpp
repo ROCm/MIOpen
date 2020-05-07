@@ -471,10 +471,10 @@ void Handle::SetAllocator(miopenAllocatorFunction allocator,
         allocatorContext == nullptr ? this->impl->context.get() : allocatorContext;
 }
 
-void Handle::EnableProfiling(bool enable) { this->impl->enable_profiling = enable; }
+void Handle::EnableProfiling(bool enable) const { this->impl->enable_profiling = enable; }
 
-void Handle::ResetKernelTime() { this->impl->ResetProfilingResult(); }
-void Handle::AccumKernelTime(float curr_time) { this->impl->AccumProfilingResult(curr_time); }
+void Handle::ResetKernelTime() const { this->impl->ResetProfilingResult(); }
+void Handle::AccumKernelTime(float curr_time) const { this->impl->AccumProfilingResult(curr_time); }
 
 float Handle::GetKernelTime() const { return this->impl->profiling_result; }
 
@@ -530,19 +530,19 @@ bool Handle::HasKernel(const std::string& algorithm, const std::string& network_
     return this->impl->cache.HasKernels(algorithm, network_config);
 }
 
-void Handle::ClearKernels(const std::string& algorithm, const std::string& network_config)
+void Handle::ClearKernels(const std::string& algorithm, const std::string& network_config) const
 {
 
     this->impl->cache.ClearKernels(algorithm, network_config);
 }
 
 const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
-                                                  const std::string& network_config)
+                                                  const std::string& network_config) const
 {
     return this->impl->cache.GetKernels(algorithm, network_config);
 }
 
-KernelInvoke Handle::Run(Kernel k)
+KernelInvoke Handle::Run(Kernel k) const
 {
     auto q = this->GetStream();
     if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
@@ -604,12 +604,14 @@ Program Handle::LoadProgram(const std::string& program_name,
     }
 }
 
-bool Handle::HasProgram(const std::string& program_name, const std::string& params)
+bool Handle::HasProgram(const std::string& program_name, const std::string& params) const
 {
     return this->impl->cache.HasProgram(program_name, params);
 }
 
-void Handle::AddProgram(Program prog, const std::string& program_name, const std::string& params)
+void Handle::AddProgram(Program prog,
+                        const std::string& program_name,
+                        const std::string& params) const
 {
     this->impl->cache.AddProgram(prog, program_name, params);
 }
@@ -620,17 +622,17 @@ void Handle::Flush() const { clFlush(this->GetStream()); }
 
 bool Handle::IsProfilingEnabled() const { return this->impl->enable_profiling; }
 
-std::size_t Handle::GetLocalMemorySize()
+std::size_t Handle::GetLocalMemorySize() const
 {
     return miopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(miopen::GetDevice(this->GetStream()));
 }
 
-std::size_t Handle::GetGlobalMemorySize()
+std::size_t Handle::GetGlobalMemorySize() const
 {
     return miopen::GetDeviceInfo<CL_DEVICE_GLOBAL_MEM_SIZE>(miopen::GetDevice(this->GetStream()));
 }
 
-std::string Handle::GetDeviceName()
+std::string Handle::GetDeviceName() const
 {
     std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(miopen::GetDevice(this->GetStream()));
     ParseDevName(name);
@@ -651,23 +653,23 @@ std::size_t Handle::GetMaxMemoryAllocSize()
     return m_MaxMemoryAllocSizeCached;
 }
 
-std::size_t Handle::GetMaxComputeUnits()
+std::size_t Handle::GetMaxComputeUnits() const
 {
     return miopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(miopen::GetDevice(this->GetStream()));
 }
 
-std::size_t Handle::GetImage3dMaxWidth()
+std::size_t Handle::GetImage3dMaxWidth() const
 {
     return miopen::GetDeviceInfo<CL_DEVICE_IMAGE3D_MAX_WIDTH>(miopen::GetDevice(this->GetStream()));
 }
 
-std::size_t Handle::GetWavefrontWidth()
+std::size_t Handle::GetWavefrontWidth() const
 {
     return miopen::GetDeviceInfo<CL_DEVICE_WAVEFRONT_WIDTH_AMD>(
         miopen::GetDevice(this->GetStream()));
 }
 
-Allocator::ManageDataPtr Handle::Create(std::size_t sz)
+Allocator::ManageDataPtr Handle::Create(std::size_t sz) const
 {
     MIOPEN_HANDLE_LOCK
     this->Finish();
@@ -675,7 +677,7 @@ Allocator::ManageDataPtr Handle::Create(std::size_t sz)
 }
 
 Allocator::ManageDataPtr&
-Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz)
+Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz) const
 {
     MIOPEN_HANDLE_LOCK
     this->Finish();
@@ -688,7 +690,7 @@ Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t s
     return ddata;
 }
 
-void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz)
+void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz) const
 {
     MIOPEN_HANDLE_LOCK
     this->Finish();
@@ -700,7 +702,7 @@ void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size
     }
 }
 
-void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size)
+void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size) const
 {
     MIOPEN_HANDLE_LOCK
     this->Finish();
