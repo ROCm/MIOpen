@@ -15,8 +15,9 @@ The are several ways to disable the cache. This is generally useful for developm
 
 Updating MIOpen and removing the cache
 --------------------------------------
-If the compiler changes, or the user modifies the kernels then the cache must be deleted for the MIOpen version in use; e.g., `rm -rf ~/.cache/miopen/<miopen-version-number>`.
+For MIOpen version 2.3 and earlier, if the compiler changes, or the user modifies the kernels then the cache must be deleted for the MIOpen version in use; e.g., `rm -rf $HOME/.cache/miopen/<miopen-version-number>`. More information about the cache can be found [here](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html).
 
+For MIOpen version 2.4 and later, MIOpen's kernel cache directory is versioned so that users' cached kernels will not collide when upgrading from earlier version.
 
 Installing pre-compiled kernels
 -------------------------------

@@ -89,30 +89,48 @@ Next configure cmake. The preferred backend for MIOpen can be set using the `-DM
 cmake -DMIOPEN_BACKEND=OpenCL ..
 ```
 
-The above assumes that OpenCL is installed in one of the standard locations. If not, then manually set these two cmake variables: 
+The above assumes that OpenCL is installed in one of the standard locations. If not, then manually set these cmake variables: 
 
 ```
-cmake -DMIOPEN_BACKEND=OpenCL -DOPENCL_LIBRARIES=<opencl-library-path> -DOPENCL_INCLUDE_DIRS=<opencl-headers-path> ..
+cmake -DMIOPEN_BACKEND=OpenCL -DMIOPEN_HIP_COMPILER=<hip-compiler-path> -DOPENCL_LIBRARIES=<opencl-library-path> -DOPENCL_INCLUDE_DIRS=<opencl-headers-path> ..
 ```
 
-And an example setting the dependency path:
+And an example setting the dependency path for an envirnment in ROCm 3.5 and later:
+```
+cmake -DMIOPEN_BACKEND=OpenCL -DMIOPEN_HIP_COMPILER=/opt/rocm/llvm/bin/clang++ -DCMAKE_PREFIX_PATH=/some/local/dir ..
+```
+
+For ROCm 3.3 and earlier:
 ```
 cmake -DMIOPEN_BACKEND=OpenCL -DCMAKE_PREFIX_PATH=/some/local/dir ..
 ```
 
-### For HIP, run:
+### For the HIP backend on ROCm 3.3 and earlier, run:
 
 Set the C++ compiler to `hcc`.
 ```
 export CXX=<location-of-hcc-compiler>
-cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="<hip-installed-path>;<hcc-installed-path>;<clang-ocl-installed-path>" ..
-```
-An example cmake step can be:
-```
-CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/hcc;/opt/rocm/hip" ..
+cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="<hip-installed-path>;<hcc-installed-path>;<clang-ocl-installed-path>;<miopen-dependency-path>" ..
 ```
 
-Note: When specifying the path for the `CMAKE_PREFIX_PATH` variable, do not use the `~` shorthand for the user home directory.
+An example cmake step can be:
+```
+CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/hcc;/opt/rocm/hip;/some/local/dir" ..
+```
+
+### For the HIP backend on ROCm 3.5 and later, run:
+Set the C++ compiler to `clang++`.
+```
+export CXX=<location-of-clang++-compiler>
+cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="<hip-installed-path>;<rocm-installed-path>;<miopen-dependency-path>" ..
+```
+
+An example cmake step can be:
+```
+CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/some/local/dir" ..
+```
+
+Note: When specifying the path for the `CMAKE_PREFIX_PATH` variable, **do not** use the `~` shorthand for the user home directory.
 
 ### Setting Up Locations
 
@@ -137,12 +155,15 @@ More information about the performance database can be found [here](https://rocm
 
 ### Persistent Program Cache
 
-MIOpen by default caches the device programs in the location `~/.cache/miopen/`. In the cache directory there exists a directory for each version of MIOpen. Users change the location of the cache directory during configuration using the flag `-DMIOPEN_CACHE_DIR=<cache-directory-path>`. 
+MIOpen by default caches the device programs in the location `~/.cache/miopen/`. In the cache directory there exists a directory for each version of MIOpen. Users can change the location of the cache directory during configuration using the flag `-DMIOPEN_CACHE_DIR=<cache-directory-path>`. 
 
 Users can also disable the cache during runtime using the environmental variable set as `MIOPEN_DISABLE_CACHE=1`. 
 
+#### For MIOpen version 2.3 and earlier
 If the compiler changes, or the user modifies the kernels then the cache must be deleted for the MIOpen version in use; e.g., `rm -rf ~/.cache/miopen/<miopen-version-number>`. More information about the cache can be found [here](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html).
 
+#### For MIOpen version 2.4 and later
+MIOpen's kernel cache directory is versioned so that users' cached kernels will not collide when upgrading from earlier version.
 
 ### Changing the cmake configuration
 
@@ -150,7 +171,7 @@ The configuration can be changed after running cmake by using `ccmake`:
 
 ` ccmake .. ` **OR** `cmake-gui`: ` cmake-gui ..`
 
-The `ccmake` program is not available on windows.
+The `ccmake` program can be downloaded as the Linux package `cmake-curses-gui`, but is not available on windows.
 
 ## Building the library
 
@@ -244,12 +265,12 @@ The `half` header needs to be installed from [here](http://half.sourceforge.net/
 
 The easiest way is to use docker. You can build the top-level docker file:
 ```
-docker build -t miopen .
+docker build -t miopen-image .
 ```
 
-Then to enter the development environment use `docker run`:
+Then to enter the development environment use `docker run`, for example:
 ```
-docker run --device='/dev/kfd' --device='/dev/dri' -v=`pwd`:/data -w /data --group-add video -it miopen
+docker run -it -v $HOME:/data --privileged --rm --device=/dev/kfd --device /dev/dri:/dev/dri:rw  --volume /dev/dri:/dev/dri:rw -v /var/lib/docker/:/var/lib/docker --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined miopen-image
 ```
 
 Prebuilt docker images can be found on [ROCm's public docker hub here](https://hub.docker.com/r/rocm/miopen/tags).
