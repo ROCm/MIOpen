@@ -2105,7 +2105,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, floa
     printf("GPU Kernel Time Backward Data Conv. Elapsed: %f ms (average)\n", kernel_average_time);
 
     const auto num_dim = miopen::deref(inputTensor).GetSize() - 2;
-    if(num_dim != 2)
+    if(num_dim != 2 && num_dim != 3)
     {
         printf("stats: <not implemented> for conv%dd\n", num_dim);
         return;
@@ -2113,45 +2113,97 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, floa
 
     int group_count = std::max(inflags.GetValueInt("group_count"), 1);
 
-    int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
-    int wei_c, wei_n, wei_h, wei_w;
-    std::tie(wei_c, wei_n, wei_h, wei_w) =
-        miopen::tien<4>(miopen::deref(weightTensor).GetLengths());
-    int out_n, out_c, out_h, out_w;
-    std::tie(out_n, out_c, out_h, out_w) =
-        miopen::tien<4>(miopen::deref(outputTensor).GetLengths());
+    if(num_dim == 2)
+    {
+        int in_n, in_c, in_h, in_w;
+        std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
+        int wei_c, wei_n, wei_h, wei_w;
+        std::tie(wei_c, wei_n, wei_h, wei_w) =
+            miopen::tien<4>(miopen::deref(weightTensor).GetLengths());
+        int out_n, out_c, out_h, out_w;
+        std::tie(out_n, out_c, out_h, out_w) =
+            miopen::tien<4>(miopen::deref(outputTensor).GetLengths());
 
-    size_t flopCnt = 2L * in_n * in_c * wei_h * wei_w * out_c * out_h * out_w / group_count;
-    size_t weightBytes =
-        wei_n * wei_c * wei_h * wei_w * miopen::GetTypeSize(miopen::deref(weightTensor).GetType());
-    size_t inputBytes =
-        in_n * in_c * out_c * miopen::GetTypeSize(miopen::deref(inputTensor).GetType());
-    size_t readBytes = inputBytes + weightBytes;
+        size_t flopCnt     = 2L * in_n * in_c * wei_h * wei_w * out_c * out_h * out_w / group_count;
+        size_t weightBytes = wei_n * wei_c * wei_h * wei_w *
+                             miopen::GetTypeSize(miopen::deref(weightTensor).GetType());
+        size_t inputBytes =
+            in_n * in_c * out_c * miopen::GetTypeSize(miopen::deref(inputTensor).GetType());
+        size_t readBytes = inputBytes + weightBytes;
 
-    size_t outputBytes = 1.0 * out_n * out_c * out_h * out_w *
-                         miopen::GetTypeSize(miopen::deref(outputTensor).GetType());
+        size_t outputBytes = 1.0 * out_n * out_c * out_h * out_w *
+                             miopen::GetTypeSize(miopen::deref(outputTensor).GetType());
 
-    printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
-           "GB/s, timeMs\n");
-    printf("stats: %s%dx%du%d, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
-           "bwdd-conv",
-           wei_h,
-           wei_w,
-           miopen::deref(convDesc).GetConvStrides()[0],
-           in_n,
-           in_c,
-           wei_h,
-           wei_w,
-           out_c,
-           out_h,
-           out_w,
-           flopCnt,
-           readBytes,
-           outputBytes,
-           flopCnt / kernel_average_time / 1e6,
-           (readBytes + outputBytes) / kernel_average_time / 1e6,
-           kernel_average_time);
+        printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
+               "GB/s, timeMs\n");
+        printf("stats: %s%dx%du%d, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
+               "bwdd-conv",
+               wei_h,
+               wei_w,
+               miopen::deref(convDesc).GetConvStrides()[0],
+               in_n,
+               in_c,
+               wei_h,
+               wei_w,
+               out_c,
+               out_h,
+               out_w,
+               flopCnt,
+               readBytes,
+               outputBytes,
+               flopCnt / kernel_average_time / 1e6,
+               (readBytes + outputBytes) / kernel_average_time / 1e6,
+               kernel_average_time);
+    }
+    else
+    { // 3d
+        int in_n, in_c, in_d, in_h, in_w;
+        std::tie(in_n, in_c, in_d, in_h, in_w) =
+            miopen::tien<5>(miopen::deref(inputTensor).GetLengths());
+        int wei_c, wei_n, wei_d, wei_h, wei_w;
+        std::tie(wei_c, wei_n, wei_d, wei_h, wei_w) =
+            miopen::tien<5>(miopen::deref(weightTensor).GetLengths());
+        int out_n, out_c, out_d, out_h, out_w;
+        std::tie(out_n, out_c, out_d, out_h, out_w) =
+            miopen::tien<5>(miopen::deref(outputTensor).GetLengths());
+
+        size_t flopCnt =
+            2L * in_n * in_c * wei_d * wei_h * wei_w * out_c * out_d * out_h * out_w / group_count;
+        size_t weightBytes = wei_n * wei_c * wei_d * wei_h * wei_w *
+                             miopen::GetTypeSize(miopen::deref(weightTensor).GetType());
+        size_t inputBytes =
+            in_n * in_c * out_c * miopen::GetTypeSize(miopen::deref(inputTensor).GetType());
+        size_t readBytes = inputBytes + weightBytes;
+
+        size_t outputBytes = 1.0 * out_n * out_c * out_d * out_h * out_w *
+                             miopen::GetTypeSize(miopen::deref(outputTensor).GetType());
+
+        printf(
+            "stats: name, n, c, do, ho, wo, z, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
+            "GB/s, timeMs\n");
+        printf("stats: %s%dx%dx%du%d, %u, %u, %u, %u, %u, %u, %u, %u, %u  %zu, %zu, %zu, %.0f, "
+               "%.0f, %f\n",
+               "bwdd-conv",
+               wei_d,
+               wei_h,
+               wei_w,
+               miopen::deref(convDesc).GetConvStrides()[0],
+               in_n,
+               in_c,
+               wei_d,
+               wei_h,
+               wei_w,
+               out_c,
+               out_d,
+               out_h,
+               out_w,
+               flopCnt,
+               readBytes,
+               outputBytes,
+               flopCnt / kernel_average_time / 1e6,
+               (readBytes + outputBytes) / kernel_average_time / 1e6,
+               kernel_average_time);
+    }
 }
 
 template <typename Tgpu, typename Tref>

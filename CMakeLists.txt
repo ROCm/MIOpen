@@ -59,6 +59,7 @@ if(MIOPEN_ENABLE_SQLITE)
     find_package(PkgConfig)
     pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 endif()
+find_package(BZip2)
 option( BUILD_DEV "Build for development only" OFF)
 
 # Strip symbols for release
@@ -99,7 +100,7 @@ else()
     set(WINE_CMD)
 endif()
 
-list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/hcc /opt/rocm/hip)
+list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/hcc)
 
 option(ENABLE_HIP_WORKAROUNDS Off)
 
@@ -107,6 +108,40 @@ set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
     OpenCL HIP HIPOC )
+
+
+# OpenCL 1.2
+if( MIOPEN_BACKEND STREQUAL "OpenCL")
+    set(MIOPEN_BACKEND_OPENCL 1)
+    find_package( OpenCL REQUIRED )
+    find_program(MIOPEN_HIP_COMPILER hcc
+            PATH_SUFFIXES bin
+            PATHS /opt/rocm
+    )
+    set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
+    if(MIOPEN_HIP_COMPILER)
+        message("hip compiler: ${MIOPEN_HIP_COMPILER}")
+    else()
+        find_program(MIOPEN_HIP_COMPILER clang++
+            PATH_SUFFIXES bin
+	        PATHS /opt/rocm/llvm
+        )
+        if(MIOPEN_HIP_COMPILER)
+            message("hip compiler: ${MIOPEN_HIP_COMPILER}")
+        else()
+            message(FATAL_ERROR "hip compiler not found")
+        endif()
+    endif()
+
+    set (HIP_CXX_COMPILER ${MIOPEN_HIP_COMPILER})
+
+    # scgemm not support opencl backend yet.
+    set(MIOPEN_USE_SCGEMM OFF)
+
+    # miopentensile temporarily not support opencl backend yet.
+    set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
+endif()
+
 
 # HIP is always required
 find_package(hip REQUIRED PATHS /opt/rocm)
@@ -118,27 +153,7 @@ message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
 add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
 
-# OpenCL 1.2
-if( MIOPEN_BACKEND STREQUAL "OpenCL")
-    set(MIOPEN_BACKEND_OPENCL 1)
-    find_package( OpenCL REQUIRED )
-    find_program(MIOPEN_HIP_COMPILER hcc
-        PATH_SUFFIXES bin
-        PATHS /opt/rocm
-    )
-    set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
-    if(MIOPEN_HIP_COMPILER)
-        message("hip compiler: ${MIOPEN_HIP_COMPILER}")
-    else()
-        message(FATAL_ERROR "hip compiler not found")
-    endif()
 
-    # scgemm not support opencl backend yet.
-    set(MIOPEN_USE_SCGEMM OFF)
-
-    # miopentensile temporarily not support opencl backend yet.
-    set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
-endif()
 
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
@@ -154,7 +169,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     else()
         message(FATAL_ERROR "clang-ocl not found")
     endif()
-    
+
     if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
         link_libraries(stdc++)
 
@@ -200,12 +215,28 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     set(MIOPEN_USE_MIOPENTENSILE ON CACHE BOOL "")
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
-# look for and register extractkernel
-find_program(EXTRACTKERNEL_BIN extractkernel
-    PATH_SUFFIXES bin
-    PATHS /opt/rocm
-)
-if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
+	
+# look for and register clang-offload-bundler
+if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+$")
+    find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
+        PATH_SUFFIXES bin
+        PATHS /opt/rocm/llvm
+    )
+endif()
+if(MIOPEN_OFFLOADBUNDLER_BIN)
+    message(STATUS "clang-offload-bundler found: ${MIOPEN_OFFLOADBUNDLER_BIN}")
+    set(MIOPEN_OFFLOADBUNDLER_BIN "${MIOPEN_OFFLOADBUNDLER_BIN}")
+else()
+    # look for and register extractkernel
+    message(STATUS "clang-offload-bundler not found")
+
+    find_program(EXTRACTKERNEL_BIN extractkernel
+        PATH_SUFFIXES bin
+        PATHS
+            /opt/rocm/hip
+            /opt/rocm/hcc
+            /opt/rocm
+    )
     if(EXTRACTKERNEL_BIN)
         message(STATUS "extractkernel found: ${EXTRACTKERNEL_BIN}")
         set(EXTRACTKERNEL_BIN "${EXTRACTKERNEL_BIN}")
@@ -214,15 +245,18 @@ if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
     endif()
 endif()
 
+
 # Online assembler
 find_program(MIOPEN_AMDGCN_ASSEMBLER
     NAMES clang
-    PATHS 
+    PATHS
         ${MIOPEN_AMDGCN_ASSEMBLER_PATH}
         /opt/rocm
-        /opt/rocm/hcc
+        /opt/rocm/llvm
+	/opt/rocm/hcc
         ${CMAKE_INSTALL_PREFIX}
-        ${CMAKE_INSTALL_PREFIX}/hcc
+        ${CMAKE_INSTALL_PREFIX}/llvm
+	${CMAKE_INSTALL_PREFIX}/hcc
     PATH_SUFFIXES 
         /opencl/bin/x86_64
         /bin
@@ -279,7 +313,7 @@ else()
     set(MIOPEN_USER_DB_PATH "~/.config/miopen/" CACHE STRING "Default path of user db files")
     set(MIOPEN_CACHE_DIR "~/.cache/miopen/" CACHE STRING "")
 endif()
-set(MIOPEN_USER_DB_SUFFIX "${MIOPEN_BACKEND}.${MIOpen_VERSION_MAJOR}_${MIOpen_VERSION_MINOR}_${MIOpen_VERSION_PATCH}" CACHE PATH "Filename suffix for the user find-db files")
+set(MIOPEN_USER_DB_SUFFIX "${MIOPEN_BACKEND}.${MIOpen_VERSION_MAJOR}_${MIOpen_VERSION_MINOR}_${MIOpen_VERSION_PATCH}_${MIOpen_VERSION_TWEAK}" CACHE PATH "Filename suffix for the user find-db files")
 set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix for the system find-db files")
 
 

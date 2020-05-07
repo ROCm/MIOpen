@@ -24,13 +24,8 @@
  *
  *******************************************************************************/
 
-#include <miopen/errors.hpp>
-#include <miopen/common.hpp>
 #include <miopen/handle.hpp>
-#include <miopen/miopen.h>
 #include <miopen/rnn.hpp>
-#include <miopen/tensor.hpp>
-#include <miopen/tensor_ops.hpp>
 
 #include <cassert>
 #include <cstddef>
@@ -488,6 +483,11 @@ size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
     {
         x /= 2;
         x += nLayers * inputBatchLenSum * hsize * typeSize;
+    }
+    if(!float_equal(miopen::deref(dropoutDesc).dropout, 0))
+    {
+        x += (nLayers - 1) * inputBatchLenSum * hsize * typeSize;
+        x += (nLayers - 1) * inputBatchLenSum * hsize * sizeof(bool);
     }
     return size_t(dirMode == miopenRNNbidirection ? 2 * x : x);
 }
