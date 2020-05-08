@@ -279,7 +279,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(const TensorDescr
                                                        out_spatial.end(),
                                                        std::size_t(1),
                                                        std::multiplies<std::size_t>()) *
-                                       GetTypeSize(wDesc.GetType());
+                                       GetTypeSize(wDesc.GetType()) * group_count;
 
     // No workspace is needed for 1x1 convolutions
     if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
@@ -364,7 +364,7 @@ ConvolutionDescriptor::ForwardGetValidWorkSpaceSizeGemm(Handle& handle,
             return gemm_trans;
         }
 
-        size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc) * group_count;
+        size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc);
         /// \todo WORKAROUND for issue 1430
         if(workspace_size_gemm > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
             workspace_size_gemm = 0;
@@ -396,7 +396,7 @@ ConvolutionDescriptor::WrwGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDe
         if((miopen::any_of(wei_spatial, [](auto v) { return v != 1; }) ||
             miopen::any_of(GetConvPads(), [](auto v) { return v != 0; }) ||
             miopen::any_of(GetConvStrides(), [](auto v) { return v != 1; })))
-            return BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc) * group_count;
+            return BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc);
 
         if(miopen::any_of(wei_spatial, [](auto v) { return v == 1; }) &&
            miopen::any_of(GetConvPads(), [](auto v) { return v == 0; }) &&
@@ -471,7 +471,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         const std::size_t spatial_dim = GetSpatialDimension();
         const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
-        workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc) * group_count;
+        workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc);
         /// \todo WORKAROUND for issue 1430
         if(workspace_size_gemm > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
             workspace_size_gemm = 0;
@@ -566,7 +566,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
     size_t tmp_max_workspace = std::max({direct_workspace, implicit_gemm_workspace});
     if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
     {
-        workspace_size_gemm = BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc) * group_count;
+        workspace_size_gemm = BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc);
         /// \todo WORKAROUND for issue 1430
         if(workspace_size_gemm > MAX_MEM_ALLOC_SZ /*  handle.GetMaxMemoryAllocSize() */)
             workspace_size_gemm = 0;
@@ -627,7 +627,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMM(const TensorDescriptor& 
                                             out_spatial.end(),
                                             std::size_t(1),
                                             std::multiplies<std::size_t>()) *
-                            GetTypeSize(dyDesc.GetType());
+                            GetTypeSize(dyDesc.GetType()) * group_count;
 
     // No workspace is needed for 1x1_stride=1 convolutions
     if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
@@ -670,13 +670,16 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(const TensorDescripto
 
     const std::size_t wei_c = dwDesc.GetLengths()[1];
 
-    const std::size_t gemm_size =
-        GetTypeSize(dyDesc.GetType()) * wei_c * std::accumulate(out_spatial.begin(),
-                                                                out_spatial.end(),
-                                                                std::size_t(1),
-                                                                std::multiplies<std::size_t>()) *
-        std::accumulate(
-            wei_spatial.begin(), wei_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
+    const std::size_t gemm_size = GetTypeSize(dyDesc.GetType()) * wei_c *
+                                  std::accumulate(out_spatial.begin(),
+                                                  out_spatial.end(),
+                                                  std::size_t(1),
+                                                  std::multiplies<std::size_t>()) *
+                                  std::accumulate(wei_spatial.begin(),
+                                                  wei_spatial.end(),
+                                                  std::size_t(1),
+                                                  std::multiplies<std::size_t>()) *
+                                  group_count;
 
     // No workspace is needed for 1x1_stride=1 convolutions
     if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
@@ -888,7 +891,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
 #if MIOPEN_USE_GEMM
     if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
     {
-        workspace_size_gemm = BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc) * group_count;
+        workspace_size_gemm = BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc);
         /// \todo WORKAROUND for issue 1430
         if(workspace_size_gemm > MAX_MEM_ALLOC_SZ /*  handle.GetMaxMemoryAllocSize() */)
             workspace_size_gemm = 0;
