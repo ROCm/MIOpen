@@ -1646,6 +1646,18 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
     float kernel_total_time = 0.0;
     float kernel_first_time = 0.0;
 
+#if MIOPEN_BACKEND_OPENCL
+    cl_context ctx;
+
+    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
+#elif MIOPEN_BACKEND_HIP
+    uint32_t ctx = 0;
+#endif
+
+    workspace_dev.reset();
+    if(perf_results[0].memory > 0)
+        workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, perf_results[0].memory, 1));
+
     wall.start(wall_enabled);
 
     auto in_tens  = (is_transform ? inputTensor_vect4 : inputTensor);
@@ -2036,6 +2048,18 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
     float kernel_first_time = 0.0;
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
+#if MIOPEN_BACKEND_OPENCL
+    cl_context ctx;
+
+    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
+#elif MIOPEN_BACKEND_HIP
+    uint32_t ctx = 0;
+#endif
+
+    workspace_dev.reset();
+    if(perf_results_data[0].memory > 0)
+        workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, perf_results_data[0].memory, 1));
+
     wall.start(wall_enabled);
 
     for(int i = 0; i < num_iterations; i++)
@@ -2231,6 +2255,18 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
     const auto algo    = perf_results_weights[0].bwd_weights_algo;
     const auto ws_size = perf_results_weights[0].memory;
     is_wrw_winograd    = (algo == miopenConvolutionBwdWeightsAlgoWinograd);
+
+#if MIOPEN_BACKEND_OPENCL
+    cl_context ctx;
+
+    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
+#elif MIOPEN_BACKEND_HIP
+    uint32_t ctx = 0;
+#endif
+
+    workspace_dev.reset();
+    if(perf_results_weights[0].memory > 0)
+        workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, perf_results_weights[0].memory, 1));
 
     wall.start(wall_enabled);
 
