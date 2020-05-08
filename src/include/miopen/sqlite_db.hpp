@@ -52,12 +52,6 @@ class path;
 
 namespace miopen {
 
-#define MIOPEN_VALIDATE_LOCK(lock)                       \
-    do                                                   \
-    {                                                    \
-        if(!(lock))                                      \
-            MIOPEN_THROW("Db lock has failed to lock."); \
-    } while(false)
 const auto MIOPEN_SQL_BUSY_TIMEOUT_MS = 60000;
 template <class Derived>
 struct SQLiteSerializable
@@ -251,7 +245,6 @@ class SQLiteBase
         }
         else
         {
-            sqlite3_busy_timeout(ptrDb.get(), MIOPEN_SQL_BUSY_TIMEOUT_MS);
             dbInvalid = false;
         }
     }
@@ -284,49 +277,47 @@ class SQLiteBase
         }
         return AllFound;
     }
-}
+    template <typename... U>
+    inline auto FindRecord(U&... args)
+    {
+        return reinterpret_cast<Derived*>(this)->FindRecordUnsafe(args...);
+    }
 
-template <typename... U>
-inline auto FindRecord(U&... args)
-{
-    return reinterpret_cast<Derived*>(this)->FindRecordUnsafe(args...);
-}
+    template <typename... U>
+    inline auto RemoveRecord(U&... args)
+    {
+        return reinterpret_cast<Derived*>(this)->RemoveRecordUnsafe(args...);
+    }
 
-template <typename... U>
-inline auto RemoveRecord(U&... args)
-{
-    return reinterpret_cast<Derived*>(this)->RemoveRecordUnsafe(args...);
-}
+    template <typename... U>
+    inline auto StoreRecord(U&... args)
+    {
+        return reinterpret_cast<Derived*>(this)->StoreRecordUnsafe(args...);
+    }
 
-template <typename... U>
-inline auto StoreRecord(U&... args)
-{
-    return reinterpret_cast<Derived*>(this)->StoreRecordUnsafe(args...);
-}
+    template <typename... U>
+    inline auto Remove(const U&... args)
+    {
+        return reinterpret_cast<Derived*>(this)->RemoveUnsafe(args...);
+    }
 
-template <typename... U>
-inline auto Remove(const U&... args)
-{
-    return reinterpret_cast<Derived*>(this)->RemoveUnsafe(args...);
-}
+    template <typename... U>
+    inline auto Update(const U&... args)
+    {
+        return reinterpret_cast<Derived*>(this)->UpdateUnsafe(args...);
+    }
 
-template <typename... U>
-inline auto Update(const U&... args)
-{
-    return reinterpret_cast<Derived*>(this)->UpdateUnsafe(args...);
-}
+    template <typename... U>
+    inline auto Load(U&&... args)
+    {
+        return reinterpret_cast<Derived*>(this)->LoadUnsafe(args...);
+    }
 
-template <typename... U>
-inline auto Load(U&&... args)
-{
-    return reinterpret_cast<Derived*>(this)->LoadUnsafe(args...);
-}
-
-std::string filename;
-std::string arch;
-size_t num_cu;
-bool dbInvalid;
-SQLite sql;
+    std::string filename;
+    std::string arch;
+    size_t num_cu;
+    bool dbInvalid;
+    SQLite sql;
 };
 
 template <typename Derived>

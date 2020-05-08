@@ -71,7 +71,8 @@ class SQLite::impl
         else
             rc = sqlite3_open_v2(
                 filename_.c_str(), &ptr_tmp, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
-        ptrDb   = sqlite3_ptr{ptr_tmp};
+        ptrDb = sqlite3_ptr{ptr_tmp};
+        sqlite3_busy_timeout(ptrDb.get(), MIOPEN_SQL_BUSY_TIMEOUT_MS);
         isValid = (rc == 0);
     }
 
@@ -286,7 +287,7 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
             res = sql.Exec(check_tables);
             if(res.empty())
             {
-                sql.exec(create_config_sql);
+                sql.Exec(create_config_sql);
             }
         }
         {
@@ -300,7 +301,7 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
             res = sql.Exec(check_tables);
             if(res.empty())
             {
-                sql.exec(create_perfdb_sql);
+                sql.Exec(create_perfdb_sql);
             }
         }
         MIOPEN_LOG_T("Database created successfully");
