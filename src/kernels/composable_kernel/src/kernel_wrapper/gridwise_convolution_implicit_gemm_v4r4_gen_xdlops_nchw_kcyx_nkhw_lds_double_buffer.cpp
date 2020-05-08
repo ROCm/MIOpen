@@ -229,15 +229,15 @@ extern "C" __global__
 #elif(MIOPEN_USE_FP16 || MIOPEN_USE_BFP16) && CK_PARAM_PROBLEM_DIRECTION == 2
 
     // Backward weight in fp16/bfp16 uses atomic add to do reduction along K dimension
-    // It requires output blob to be of float as no atomic add exists for half/ushort
+    // It requires output blob to be of float as no atomic add exists for fp16/ushort
     constexpr auto gridwise_conv =
         GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_wrw_nchw_kcyx_nkhw_lds_double_buffer<
             GridSize,
             BlockSize,
-            FLOAT,       // Input data type = half (fp16) or ushort (bfp16)
+            FLOAT,       // Input data type = fp16 (fp16) or ushort (bfp16)
             FLOAT_ACCUM, // Acc data type = float (see float_types.h)
-            float, // Output data type = float  (not half/ushort) as no atomic add ISA exists for
-                   // half/ushort.
+            float, // Output data type = float  (not fp16/ushort) as no atomic add ISA exists for
+                   // fp16/ushort.
             decltype(in_nchw_desc),
             decltype(wei_kcyx_desc),
             decltype(out_nkhw_desc),
@@ -270,18 +270,26 @@ extern "C" __global__
             GemmBBlockCopyDstDataPerWrite_GemmKPACK,
             dir>{};
 
-    // Output blob is cast to float as no atomic add exists for half/ushort
+    // Output blob is cast to float as no atomic add exists for fp16/ushort
     gridwise_conv.Run(p_in_global, p_wei_global, reinterpret_cast<FLOAT_ACCUM*>(p_out_global));
 #elif(MIOPEN_USE_FP16 || MIOPEN_USE_BFP16) && CK_PARAM_PROBLEM_DIRECTION != 2
     // Forward data doesn't use any atomic add so output blob remains of the same type
     // as input blob
+
+    constexpr auto wkgrp_schd_order =
+#if MIOPEN_USE_FP16
+        NBlock1MBlock0;
+#else
+        MBlock1NBlock0;
+#endif // MIOPEN_USE_FP16
+
     constexpr auto gridwise_conv =
         GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_fwd_nchw_kcyx_nkhw_lds_double_buffer<
             GridSize,
             BlockSize,
-            FLOAT,       // Input data type = half (fp16) or ushort (bfp16)
+            FLOAT,       // Input data type = fp16 (fp16) or ushort (bfp16)
             FLOAT_ACCUM, // Acc data type = float (see float_types.h)
-            FLOAT,       // Input data type = half (fp16) or ushort (bfp16)
+            FLOAT,       // Input data type = fp16 (fp16) or ushort (bfp16)
             decltype(in_nchw_desc),
             decltype(wei_kcyx_desc),
             decltype(out_nkhw_desc),
@@ -312,7 +320,8 @@ extern "C" __global__
             GemmBBlockCopyDstAccessOrder,
             GemmBBlockCopySrcDataPerRead_GemmN,
             GemmBBlockCopyDstDataPerWrite_GemmKPACK,
-            dir>{};
+            dir,
+            wkgrp_schd_order>{};
     gridwise_conv.Run(p_in_global, p_wei_global, p_out_global);
 #else
     static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
