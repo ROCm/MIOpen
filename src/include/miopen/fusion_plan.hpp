@@ -45,7 +45,7 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     TensorDescriptor DeriveOutputDescriptor();
     miopenStatus_t
     GetWorkspaceSizeImmed(Handle& handle, size_t& workSpaceSize, miopenConvFwdAlgorithm_t algo);
-    miopenStatus_t Execute(Handle& handle,
+    miopenStatus_t Execute(const Handle& handle,
                            const TensorDescriptor& inputDesc,
                            ConstData_t input,
                            const TensorDescriptor& outputDesc,
@@ -60,16 +60,16 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
 
     miopenStatus_t GetOp(int op_idx, std::shared_ptr<FusionOpDescriptor>& desc);
 
-    std::string GetKernelName(Handle& handle);
-    std::string GetProgramName(Handle& handle);
-    std::string GetAlgorithmName(Handle& handle);
+    std::string GetKernelName(const Handle& handle);
+    std::string GetProgramName(const Handle& handle);
+    std::string GetAlgorithmName(const Handle& handle);
 
     protected:
     auto GetLocalWGSz();
     auto GetGlobalWGSz();
-    std::vector<Exec_arg_t> CalcArgOrder(Handle& handle);
+    std::vector<Exec_arg_t> CalcArgOrder(const Handle& handle);
     bool GetEnumVal(const std::string& sym, int& val) const;
-    OpKernelArg GetDevAttribute(const std::string& k, Handle& handle) const;
+    OpKernelArg GetDevAttribute(const std::string& k, const Handle& handle) const;
     OpKernelArg GetTensorAttr(const std::string& sym) const;
     bool GetTensorAttr(const std::string& sym, int& val) const;
 

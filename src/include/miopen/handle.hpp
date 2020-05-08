@@ -97,13 +97,13 @@ struct Handle : miopenHandle
                            const std::string& params,
                            std::size_t cache_index       = 0,
                            bool is_kernel_str            = false,
-                           const std::string& kernel_src = "");
+                           const std::string& kernel_src = "") const;
 
     bool HasKernel(const std::string& algorithm, const std::string& network_config) const;
 
     void ClearKernels(const std::string& algorithm, const std::string& network_config) const;
 
-    auto GetKernels(const std::string& algorithm, const std::string& network_config)
+    auto GetKernels(const std::string& algorithm, const std::string& network_config) const
     {
         return this->GetKernelsImpl(algorithm, network_config) |
                boost::adaptors::transformed([this](Kernel k) { return this->Run(k); });
@@ -126,7 +126,7 @@ struct Handle : miopenHandle
     Program LoadProgram(const std::string& program_name,
                         std::string params,
                         bool is_kernel_str,
-                        const std::string& kernel_src);
+                        const std::string& kernel_src) const;
 
     bool HasProgram(const std::string& program_name, const std::string& params) const;
 
@@ -227,7 +227,8 @@ struct Handle : miopenHandle
     }
 
 #if MIOPEN_USE_ROCBLAS
-    rocblas_handle_ptr& rhandle() { return rhandle_; }
+    const rocblas_handle_ptr& rhandle() const { return rhandle_; }
+    // rocblas_handle_ptr& rhandle() { return rhandle_; }
 
     private:
     rocblas_handle_ptr CreateRocblasHandle() const;
@@ -242,7 +243,7 @@ inline std::ostream& operator<<(std::ostream& os, const Handle& handle) { return
 
 struct AutoEnableProfiling
 {
-    AutoEnableProfiling(Handle& x) : h(x)
+    AutoEnableProfiling(const Handle& x) : h(x)
     {
         prev_state = h.IsProfilingEnabled();
         h.EnableProfiling();
@@ -255,7 +256,7 @@ struct AutoEnableProfiling
     }
 
     private:
-    Handle& h;
+    const Handle& h;
     bool prev_state;
 };
 

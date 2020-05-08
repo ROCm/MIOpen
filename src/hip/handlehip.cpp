@@ -282,7 +282,7 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                const std::string& params,
                                std::size_t cache_index,
                                bool is_kernel_str,
-                               const std::string& kernel_src)
+                               const std::string& kernel_src) const
 {
 
     auto obj = this->impl->cache.AddKernel(*this,
@@ -348,7 +348,7 @@ KernelInvoke Handle::Run(Kernel k) const
 Program Handle::LoadProgram(const std::string& program_name,
                             std::string params,
                             bool is_kernel_str,
-                            const std::string& kernel_src)
+                            const std::string& kernel_src) const
 {
     this->impl->set_ctx();
     params += " -mcpu=" + this->GetDeviceName();

@@ -43,7 +43,7 @@
 
 namespace miopen {
 
-void profileRNNkernels(Handle& handle, unsigned char select, float& ctime)
+void profileRNNkernels(const Handle& handle, unsigned char select, float& ctime)
 {
 
     float ktime = 0.;
@@ -611,7 +611,7 @@ std::size_t RNNDescriptor::GetLayerBiasSize(Handle& /* handle */, int /*layer*/,
     return size_t(typeSize * hsize); // is ther more needed here?
 }
 
-void RNNDescriptor::GetLayerParam(Handle& handle,
+void RNNDescriptor::GetLayerParam(const Handle& handle,
                                   const int layer,
                                   const TensorDescriptor& xDesc,
                                   const TensorDescriptor& /* wDesc */,
@@ -651,7 +651,7 @@ void RNNDescriptor::GetLayerParam(Handle& handle,
     miopen::CopyTensor(handle, paramDesc, w, paramDesc, param, poffset, 0);
 }
 
-void RNNDescriptor::GetLayerBias(Handle& handle,
+void RNNDescriptor::GetLayerBias(const Handle& handle,
                                  const int layer,
                                  const TensorDescriptor& xDesc,
                                  const TensorDescriptor& /* wDesc */,
@@ -693,7 +693,7 @@ void RNNDescriptor::GetLayerBias(Handle& handle,
     miopen::CopyTensor(handle, biasDesc, w, biasDesc, bias, boffset, 0);
 }
 
-void RNNDescriptor::SetLayerParam(Handle& handle,
+void RNNDescriptor::SetLayerParam(const Handle& handle,
                                   const int layer,
                                   const TensorDescriptor& xDesc,
                                   const TensorDescriptor& /* wDesc */,
@@ -745,7 +745,7 @@ void RNNDescriptor::SetLayerParam(Handle& handle,
     miopen::CopyTensor(handle, paramDesc, param, paramSrc, w, 0, poffset);
 }
 
-void RNNDescriptor::SetLayerBias(Handle& handle,
+void RNNDescriptor::SetLayerBias(const Handle& handle,
                                  const int layer,
                                  const TensorDescriptor& xDesc,
                                  const TensorDescriptor& /* wDesc */,

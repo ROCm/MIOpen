@@ -62,7 +62,7 @@ struct c_array_view
     value_type& operator[](size_t i) { return deref(data[i]); }
 };
 
-void profileRNNkernels(Handle& handle, unsigned char select, float& ctime);
+void profileRNNkernels(const Handle& handle, unsigned char select, float& ctime);
 
 struct RNNDescriptor : miopenRNNDescriptor
 {
@@ -130,7 +130,7 @@ struct RNNDescriptor : miopenRNNDescriptor
 
     std::size_t GetLayerBiasSize(Handle& handle, int layer, int biasID);
 
-    void GetLayerParam(Handle& handle,
+    void GetLayerParam(const Handle& handle,
                        int layer,
                        const TensorDescriptor& xDesc,
                        const TensorDescriptor& wDesc,
@@ -139,7 +139,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                        TensorDescriptor& paramDesc,
                        Data_t param);
 
-    void GetLayerBias(Handle& handle,
+    void GetLayerBias(const Handle& handle,
                       int layer,
                       const TensorDescriptor& xDesc,
                       const TensorDescriptor& wDesc,
@@ -148,7 +148,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                       TensorDescriptor& biasDesc,
                       Data_t bias);
 
-    void SetLayerParam(Handle& handle,
+    void SetLayerParam(const Handle& handle,
                        int layer,
                        const TensorDescriptor& xDesc,
                        const TensorDescriptor& wDesc,
@@ -157,7 +157,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                        const TensorDescriptor& paramDesc,
                        ConstData_t param);
 
-    void SetLayerBias(Handle& handle,
+    void SetLayerBias(const Handle& handle,
                       int layer,
                       const TensorDescriptor& xDesc,
                       const TensorDescriptor& wDesc,
