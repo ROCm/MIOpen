@@ -677,25 +677,24 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
 
     int GemmMPerWave;
     int GemmNPerWave;
-
+#if 0
     int GemmBBlockCopyClusterLengths_GemmK; // 2^n[4..16]
     int GemmBBlockCopyClusterLengths_GemmN; // 2^n[8..64]
 
     int GemmABlockCopyClusterLengths_GemmK; // 2^n[1..4]
     int GemmABlockCopyClusterLengths_GemmM; // 2^n[16..128]
-
+#endif
     bool use_spare_set;
 
-    PerformanceImplicitGemmBwdDataV4R1Xdlops(int, int, int, int, int, int, int, int, int, bool);
+    PerformanceImplicitGemmBwdDataV4R1Xdlops(int, int, int, int, int, bool);
 
     PerformanceImplicitGemmBwdDataV4R1Xdlops()
-        : PerformanceImplicitGemmBwdDataV4R1Xdlops(-1, -1, -1, -1, -1, -1, -1, -1, -1, false)
+        : PerformanceImplicitGemmBwdDataV4R1Xdlops(-1, -1, -1, -1, -1, false)
     {
     }
 
-    PerformanceImplicitGemmBwdDataV4R1Xdlops(
-        int a, int b, int c, int d, int e, int f, int g, int h, int i)
-        : PerformanceImplicitGemmBwdDataV4R1Xdlops(a, b, c, d, e, f, g, h, i, false)
+    PerformanceImplicitGemmBwdDataV4R1Xdlops(int a, int b, int c, int d, int e)
+        : PerformanceImplicitGemmBwdDataV4R1Xdlops(a, b, c, d, e, false)
     {
     }
 
@@ -711,20 +710,20 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
         f(self.GemmKPerBlock, "GemmKPerBlock");
         f(self.GemmMPerWave, "GemmMPerWave");
         f(self.GemmNPerWave, "GemmNPerWave");
+#if 0
         f(self.GemmBBlockCopyClusterLengths_GemmK, "GemmBBlockCopyClusterLengths_GemmK");
         f(self.GemmBBlockCopyClusterLengths_GemmN, "GemmBBlockCopyClusterLengths_GemmN");
         f(self.GemmABlockCopyClusterLengths_GemmK, "GemmABlockCopyClusterLengths_GemmK");
         f(self.GemmABlockCopyClusterLengths_GemmM, "GemmABlockCopyClusterLengths_GemmM");
+#endif
     }
 
     std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
-    std::tuple<int, int, bool>
-    CalculateBlockGemmPerformanceParameters(const ConvolutionContext& ctx) const;
-    std::tuple<int, int, bool>
+    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, bool>
     CalculateGemmABlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
-    std::tuple<int, int, bool>
+    std::tuple<int, int, int, int, bool>
     CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
-    // std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     void EuristicInit(const ConvolutionContext& ctx);
