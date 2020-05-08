@@ -300,7 +300,7 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
 }
 
 Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
-                               const std::vector<solver::KernelInfo>& kernels)
+                               const std::vector<solver::KernelInfo>& kernels) const
 {
     std::vector<Kernel> built;
     for(auto& k : kernels)

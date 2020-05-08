@@ -1575,8 +1575,11 @@ void SetTensor(const Handle& handle,
     }
 }
 
-void ScaleTensor(
-    const Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha, const int offset)
+void ScaleTensor(const Handle& handle,
+                 const TensorDescriptor& yDesc,
+                 Data_t y,
+                 const void* alpha,
+                 const int offset)
 {
     if(y == nullptr || alpha == nullptr)
     {

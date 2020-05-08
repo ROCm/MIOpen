@@ -108,7 +108,7 @@ struct Handle : miopenHandle
         return this->GetKernelsImpl(algorithm, network_config) |
                boost::adaptors::transformed([this](Kernel k) { return this->Run(k); });
     }
-    KernelInvoke GetKernel(const std::string& algorithm, const std::string& network_config)
+    KernelInvoke GetKernel(const std::string& algorithm, const std::string& network_config) const
     {
         auto ks = this->GetKernelsImpl(algorithm, network_config);
         if(ks.empty())
@@ -194,7 +194,10 @@ struct Handle : miopenHandle
         return ret;
     }
 
-    std::string GetDbBasename() { return GetDbBasename(GetDeviceName(), GetMaxComputeUnits()); }
+    std::string GetDbBasename() const
+    {
+        return GetDbBasename(GetDeviceName(), GetMaxComputeUnits());
+    }
 
     std::unique_ptr<HandleImpl> impl;
     std::unordered_map<std::string, std::vector<miopenConvSolution_t>> find_map;

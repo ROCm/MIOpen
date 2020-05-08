@@ -149,8 +149,11 @@ GetConsistentFlattenedTensorDescriptors(const TDescriptors&... real_descriptor_p
     });
 }
 
-void ScaleTensor(
-    const Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha, int offset = 0);
+void ScaleTensor(const Handle& handle,
+                 const TensorDescriptor& yDesc,
+                 Data_t y,
+                 const void* alpha,
+                 int offset = 0);
 
 void SetTensor(const Handle& handle,
                const TensorDescriptor& yDesc,
