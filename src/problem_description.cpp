@@ -111,7 +111,7 @@ ProblemDescription::ProblemDescription(conv::ProblemDescription desc)
       n_outputs(conv_problem.GetOutChannels()),
       out_height(conv_problem.GetOutHeight()),
       out_width(conv_problem.GetOutWidth()),
-      out_depth(conv_problem.GetOutHeight()),
+      out_depth(conv_problem.GetOutDepth()),
 
       batch_sz(conv_problem.GetInBatchSize()),
       pad_h(conv_problem.GetPadH()),

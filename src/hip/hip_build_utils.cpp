@@ -35,15 +35,23 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_ENFORCE_COV3)
 
+#define WORKAROUND_ISSUE_2514 1
+
 namespace miopen {
 
-namespace {
-
-inline bool IsHccCompiler()
+bool IsHccCompiler()
 {
     static const auto isHcc = EndsWith(MIOPEN_HIP_COMPILER, "hcc");
     return isHcc;
 }
+
+bool IsClangXXCompiler()
+{
+    static const auto isClangXX = EndsWith(MIOPEN_HIP_COMPILER, "clang++");
+    return isClangXX;
+}
+
+namespace {
 
 inline bool ProduceCoV3()
 {
@@ -139,6 +147,31 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     }
     else
 #endif
+#ifdef MIOPEN_OFFLOADBUNDLER_BIN
+        // clang-format off
+    if(IsClangXXCompiler())
+    {
+        // clang-format on
+
+        // call clang-offload-bundler
+        tmp_dir->Execute(MIOPEN_OFFLOADBUNDLER_BIN,
+                         "--type=o --targets=hip-amdgcn-amd-amdhsa-" + dev_name + " --inputs=" +
+                             bin_file.string() + " --outputs=" + bin_file.string() +
+                             ".hsaco --unbundle");
+
+        auto hsaco =
+            std::find_if(boost::filesystem::directory_iterator{tmp_dir->path},
+                         {},
+                         [](auto entry) { return (entry.path().extension() == ".hsaco"); });
+
+        if(hsaco == boost::filesystem::directory_iterator{})
+        {
+            MIOPEN_LOG_E("failed to find *.hsaco in " << hsaco->path().string());
+        }
+        return hsaco->path();
+    }
+    else
+#endif
     {
         return bin_file;
     }
@@ -172,6 +205,11 @@ static external_tool_version_t HipGetHccVersionImpl()
         if(miopen::exec::Run(path + " --version", nullptr, &out) != 0)
             break;
 
+#if WORKAROUND_ISSUE_2514
+        // If compiler is not hcc and mandatory prefix is not found,
+        // then assume hip-clang 3.2.0.
+        bool mandatory_prefix_found = false;
+#endif
         std::string line;
         while(!out.eof())
         {
@@ -181,6 +219,9 @@ static external_tool_version_t HipGetHccVersionImpl()
             if(begin == std::string::npos)
                 continue;
 
+#if WORKAROUND_ISSUE_2514
+            mandatory_prefix_found = true;
+#endif
             begin += mandatory_prefix.size();
             int v3, v2, v1 = v2 = v3 = -1;
             char c2, c1 = c2 = 'X';
@@ -198,6 +239,15 @@ static external_tool_version_t HipGetHccVersionImpl()
             }
             break;
         }
+#if WORKAROUND_ISSUE_2514
+        if(!mandatory_prefix_found && !IsHccCompiler())
+        {
+            MIOPEN_LOG_NQI2("Assuming 3.2.0 (hip-clang?)");
+            hcc_version.major = 3;
+            hcc_version.minor = 2;
+            hcc_version.patch = 0;
+        }
+#endif
     } while(false);
     MIOPEN_LOG_NQI("HCC base: " << hcc_version.major << '.' << hcc_version.minor << '.'
                                 << hcc_version.patch);
