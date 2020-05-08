@@ -206,7 +206,7 @@ struct Handle : miopenHandle
 #endif
 
     Invoker PrepareInvoker(const InvokerFactory& factory,
-                           const std::vector<solver::KernelInfo>& kernels);
+                           const std::vector<solver::KernelInfo>& kernels) const;
 
     void RegisterInvoker(const Invoker& invoker,
                          const NetworkConfig& config,
