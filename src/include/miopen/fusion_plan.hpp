@@ -39,7 +39,7 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
 {
     FusionPlanDescriptor(miopenFusionDirection_t dir, const TensorDescriptor& inDesc);
     ~FusionPlanDescriptor();
-    bool isValid() { return is_valid; };
+    bool isValid() const { return is_valid; };
     miopenStatus_t AddOp(std::shared_ptr<FusionOpDescriptor> desc);
     miopenStatus_t RemoveOp(FusionOpDescriptor& desc);
     TensorDescriptor DeriveOutputDescriptor();

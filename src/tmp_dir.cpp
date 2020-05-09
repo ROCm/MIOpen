@@ -55,7 +55,7 @@ TmpDir::TmpDir(std::string prefix)
     boost::filesystem::create_directories(this->path);
 }
 
-void TmpDir::Execute(std::string exe, std::string args)
+void TmpDir::Execute(std::string exe, std::string args) const
 {
     std::string cd  = "cd " + this->path.string() + "; ";
     std::string cmd = cd + exe + " " + args; // + " > /dev/null";

@@ -169,7 +169,7 @@ std::vector<DefaultKernelArg> FusionMDGraph::GetKernelArgs(const Handle& handle)
     }
 }
 
-std::vector<miopenConvFwdAlgorithm_t> FusionMDGraph::GetConvAlgos()
+std::vector<miopenConvFwdAlgorithm_t> FusionMDGraph::GetConvAlgos() const
 {
     std::vector<miopenConvFwdAlgorithm_t> ret(conv_algo_set.begin(), conv_algo_set.end());
     return ret;

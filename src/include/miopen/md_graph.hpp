@@ -105,7 +105,7 @@ struct FusionMDGraph
     std::string GetKernelName(const Handle& handle);
     std::string GetAlgoName(const Handle& handle);
     std::vector<DefaultKernelArg> GetKernelArgs(const Handle& handle);
-    std::vector<miopenConvFwdAlgorithm_t> GetConvAlgos();
+    std::vector<miopenConvFwdAlgorithm_t> GetConvAlgos() const;
     bool SetConvAlgo(miopenConvFwdAlgorithm_t algo);
     std::vector<solver::AnySolver> GetSolvers();
     void WriteToFile(std::string filename = "");
