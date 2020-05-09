@@ -242,9 +242,13 @@ struct tensor
     template <class F>
     void par_for_each(F f) const
     {
-        visit_tensor_size(
-            desc.GetLengths().size(),
-            std::bind(for_each_handler{}, this, par_ford, std::move(f), std::placeholders::_1));
+        visit_tensor_size(desc.GetLengths().size(),
+                          std::bind( // NOLINT
+                              for_each_handler{},
+                              this,
+                              par_ford,
+                              std::move(f),
+                              std::placeholders::_1));
     }
 
     template <class... Ts>
