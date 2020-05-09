@@ -181,7 +181,7 @@ struct test_driver
         return arguments.at(argument_index.at(s));
     }
 
-    bool has_argument(const std::string& arg) { return argument_index.count(arg) > 0; }
+    bool has_argument(const std::string& arg) const { return argument_index.count(arg) > 0; }
 
     template <class Visitor>
     void parse(Visitor v)
@@ -225,8 +225,7 @@ struct test_driver
         arg.type        = miopen::get_type_name<T>();
         arg.write_value = [&](std::vector<std::string> params) { args::write_value{}(x, params); };
         arg.read_value  = [&] { return args::read_value{}(x); };
-        miopen::each_args(std::bind(per_arg{}, std::ref(x), std::ref(arg), std::placeholders::_1),
-                          fs...);
+        miopen::each_args([&](auto& f) { per_arg()(x, arg, f); }, fs...);
         // assert(get_argument(name).name == name);
     }
 

@@ -104,7 +104,8 @@ template <class T>
 struct ford_wrapper
 {
     template <class... Ts>
-    auto operator()(Ts... xs) const MIOPEN_RETURNS(std::bind(T{}, std::placeholders::_1, xs...));
+    auto operator()(Ts... xs) const
+        MIOPEN_RETURNS(std::bind(T{}, std::placeholders::_1, xs...)); // NOLINT
 };
 
 // Multidimensional for loop
