@@ -379,16 +379,6 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue()
             if(!NextTwoPower<16, 64>(GemmNPerWave))
                 break;
         }
-#if 0
-        if(!NextTwoPower<4, 16>(GemmBBlockCopyClusterLengths_GemmK))
-            break;
-        if(!NextTwoPower<4, 64>(GemmBBlockCopyClusterLengths_GemmN))
-            break;
-        if(!NextTwoPower<2, 16>(GemmABlockCopyClusterLengths_GemmK))
-            break;
-        if(!NextTwoPower<4, 128>(GemmABlockCopyClusterLengths_GemmM))
-            break;
-#endif
         return false;
     } while(false);
 

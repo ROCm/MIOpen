@@ -677,13 +677,7 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
 
     int GemmMPerWave;
     int GemmNPerWave;
-#if 0
-    int GemmBBlockCopyClusterLengths_GemmK; // 2^n[4..16]
-    int GemmBBlockCopyClusterLengths_GemmN; // 2^n[8..64]
 
-    int GemmABlockCopyClusterLengths_GemmK; // 2^n[1..4]
-    int GemmABlockCopyClusterLengths_GemmM; // 2^n[16..128]
-#endif
     bool use_spare_set;
 
     PerformanceImplicitGemmBwdDataV4R1Xdlops(int, int, int, int, int, bool);
@@ -710,12 +704,6 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
         f(self.GemmKPerBlock, "GemmKPerBlock");
         f(self.GemmMPerWave, "GemmMPerWave");
         f(self.GemmNPerWave, "GemmNPerWave");
-#if 0
-        f(self.GemmBBlockCopyClusterLengths_GemmK, "GemmBBlockCopyClusterLengths_GemmK");
-        f(self.GemmBBlockCopyClusterLengths_GemmN, "GemmBBlockCopyClusterLengths_GemmN");
-        f(self.GemmABlockCopyClusterLengths_GemmK, "GemmABlockCopyClusterLengths_GemmK");
-        f(self.GemmABlockCopyClusterLengths_GemmM, "GemmABlockCopyClusterLengths_GemmM");
-#endif
     }
 
     std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
