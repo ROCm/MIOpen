@@ -24,12 +24,15 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
+#include <miopen/solver.hpp>
+
+#include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
-#include "miopen/stringutils.hpp"
+#include <miopen/stringutils.hpp>
+#include <miopen/implicitgemm_params.hpp>
+
 #include "implicitgemm_util.hpp"
-#include "miopen/implicitgemm_params.hpp"
 
 namespace miopen {
 namespace solver {
@@ -320,6 +323,9 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         }
     }
 
+    if(ctx.direction.IsForward() || ctx.direction.IsBackwardData())
+        result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
+
     result.construction_params.push_back(construction_parameters);
     return result;
 }
@@ -400,6 +406,10 @@ bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext&
 bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
+        return false;
+
+    // covered by ConvHipImplicitGemmV4R4GenXdlopsWrWFp32
+    if(ctx.IsFp32() && ctx.group_counts == 1)
         return false;
 
     if(!ctx.direction.IsBackwardWrW())
