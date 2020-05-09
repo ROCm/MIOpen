@@ -95,8 +95,8 @@ struct Serializable
         auto out = static_cast<const Derived&>(*this);
         bool ok  = true;
         std::istringstream ss(s);
-        Derived::Visit(
-            out, [&](auto& x, const char*) { return DeserializeField()(ok, ss, Separator, x); });
+        Derived::Visit(out,
+                       [&](auto& x, const char*) { DeserializeField()(ok, ss, Separator, x); });
 
         if(!ok)
             return false;
