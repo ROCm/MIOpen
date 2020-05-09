@@ -965,6 +965,72 @@ L_igemm_v4r1_dynamic_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_4x64_end:
 ; block_size                       : 256
 ; thread_tile                      : 8x8
 ; 
+; kernarg offset
+.set k_p_in,                0
+.set k_p_wei,               8
+.set k_p_out,               16
+.set k_hi,                  24
+.set k_wi,                  28
+.set k_n,                   32
+.set k_k,                   36
+.set k_c,                   40
+.set k_ho,                  44
+.set k_wo,                  48
+.set k_stride_h,            52
+.set k_stride_w,            56
+.set k_dilation_h,          60
+.set k_dilation_w,          64
+.set k_pad_h,               68
+.set k_pad_w,               72
+.set k_y,                   76
+.set k_x,                   80
+.set k_end,                 84
+
+; sgpr
+.set s_ka,                  0
+.set s_bx,                  2
+.set s_p_in,                4
+.set s_p_wei,               6
+.set s_hi,                  8
+.set s_wi,                  9
+.set s_n,                   10
+.set s_k,                   11
+.set s_c,                   12
+.set s_ho,                  13
+.set s_wo,                  14
+.set s_stride_h,            15
+.set s_stride_w,            16
+.set s_dilation_h,          17
+.set s_dilation_w,          18
+.set s_pad_h,               19
+.set s_pad_w,               20
+.set s_y,                   21
+.set s_x,                   22
+.set s_p_out,               24
+.set s_block_ik,            26
+.set s_block_ib,            27
+.set s_in_stride_c,         28
+.set s_in_stride_n2,        29
+.set s_in_stride_n1,        30
+.set s_in_ic,               31
+.set s_in_iy,               32
+.set s_in_ix,               33
+.set s_wei_stride_c,        34
+.set s_wei_stride_k,        35
+.set s_wei_ic,              s_in_ic     ; weight&input ic, iy, ix from EPerBlock is the same
+.set s_wei_iy,              s_in_iy
+.set s_wei_ix,              s_in_ix
+.set s_out_stride_k0,       36
+.set s_out_stride_k1,       37
+.set s_out_stride_n1,       38
+.set s_out_stride_n2,       39
+.set s_kitr,                0
+.set s_tmp,                 40
+.set s_p_buf_in,            s_p_in      ; 4 sgpr used for MUBUF
+.set s_p_buf_wei,           44
+.set s_p_buf_out,           s_p_out
+.set s_end,                 48
+
 ; vgpr
 .set v_c,                   0
 .set v_a,                   64
@@ -1372,6 +1438,72 @@ L_igemm_v4r1_dynamic_128x128x8_8x8_4x4x4x4x4x4_8x2x16x1_2x128_end:
 ; block_size                       : 128
 ; thread_tile                      : 8x8
 ; 
+; kernarg offset
+.set k_p_in,                0
+.set k_p_wei,               8
+.set k_p_out,               16
+.set k_hi,                  24
+.set k_wi,                  28
+.set k_n,                   32
+.set k_k,                   36
+.set k_c,                   40
+.set k_ho,                  44
+.set k_wo,                  48
+.set k_stride_h,            52
+.set k_stride_w,            56
+.set k_dilation_h,          60
+.set k_dilation_w,          64
+.set k_pad_h,               68
+.set k_pad_w,               72
+.set k_y,                   76
+.set k_x,                   80
+.set k_end,                 84
+
+; sgpr
+.set s_ka,                  0
+.set s_bx,                  2
+.set s_p_in,                4
+.set s_p_wei,               6
+.set s_hi,                  8
+.set s_wi,                  9
+.set s_n,                   10
+.set s_k,                   11
+.set s_c,                   12
+.set s_ho,                  13
+.set s_wo,                  14
+.set s_stride_h,            15
+.set s_stride_w,            16
+.set s_dilation_h,          17
+.set s_dilation_w,          18
+.set s_pad_h,               19
+.set s_pad_w,               20
+.set s_y,                   21
+.set s_x,                   22
+.set s_p_out,               24
+.set s_block_ik,            26
+.set s_block_ib,            27
+.set s_in_stride_c,         28
+.set s_in_stride_n2,        29
+.set s_in_stride_n1,        30
+.set s_in_ic,               31
+.set s_in_iy,               32
+.set s_in_ix,               33
+.set s_wei_stride_c,        34
+.set s_wei_stride_k,        35
+.set s_wei_ic,              s_in_ic     ; weight&input ic, iy, ix from EPerBlock is the same
+.set s_wei_iy,              s_in_iy
+.set s_wei_ix,              s_in_ix
+.set s_out_stride_k0,       36
+.set s_out_stride_k1,       37
+.set s_out_stride_n1,       38
+.set s_out_stride_n2,       39
+.set s_kitr,                0
+.set s_tmp,                 40
+.set s_p_buf_in,            s_p_in      ; 4 sgpr used for MUBUF
+.set s_p_buf_wei,           44
+.set s_p_buf_out,           s_p_out
+.set s_end,                 48
+
 ; vgpr
 .set v_c,                   0
 .set v_a,                   64
@@ -1781,6 +1913,72 @@ L_igemm_v4r1_dynamic_128x64x8_8x8_4x4x4x4x4x2_8x1x8x2_2x64_end:
 ; block_size                       : 64
 ; thread_tile                      : 8x8
 ; 
+; kernarg offset
+.set k_p_in,                0
+.set k_p_wei,               8
+.set k_p_out,               16
+.set k_hi,                  24
+.set k_wi,                  28
+.set k_n,                   32
+.set k_k,                   36
+.set k_c,                   40
+.set k_ho,                  44
+.set k_wo,                  48
+.set k_stride_h,            52
+.set k_stride_w,            56
+.set k_dilation_h,          60
+.set k_dilation_w,          64
+.set k_pad_h,               68
+.set k_pad_w,               72
+.set k_y,                   76
+.set k_x,                   80
+.set k_end,                 84
+
+; sgpr
+.set s_ka,                  0
+.set s_bx,                  2
+.set s_p_in,                4
+.set s_p_wei,               6
+.set s_hi,                  8
+.set s_wi,                  9
+.set s_n,                   10
+.set s_k,                   11
+.set s_c,                   12
+.set s_ho,                  13
+.set s_wo,                  14
+.set s_stride_h,            15
+.set s_stride_w,            16
+.set s_dilation_h,          17
+.set s_dilation_w,          18
+.set s_pad_h,               19
+.set s_pad_w,               20
+.set s_y,                   21
+.set s_x,                   22
+.set s_p_out,               24
+.set s_block_ik,            26
+.set s_block_ib,            27
+.set s_in_stride_c,         28
+.set s_in_stride_n2,        29
+.set s_in_stride_n1,        30
+.set s_in_ic,               31
+.set s_in_iy,               32
+.set s_in_ix,               33
+.set s_wei_stride_c,        34
+.set s_wei_stride_k,        35
+.set s_wei_ic,              s_in_ic     ; weight&input ic, iy, ix from EPerBlock is the same
+.set s_wei_iy,              s_in_iy
+.set s_wei_ix,              s_in_ix
+.set s_out_stride_k0,       36
+.set s_out_stride_k1,       37
+.set s_out_stride_n1,       38
+.set s_out_stride_n2,       39
+.set s_kitr,                0
+.set s_tmp,                 40
+.set s_p_buf_in,            s_p_in      ; 4 sgpr used for MUBUF
+.set s_p_buf_wei,           44
+.set s_p_buf_out,           s_p_out
+.set s_end,                 48
+
 ; vgpr
 .set v_c,                   0
 .set v_a,                   64
@@ -2187,6 +2385,72 @@ L_igemm_v4r1_dynamic_64x64x8_8x8_4x4x2x4x2x4_8x1x8x1_4x16_end:
 ; block_size                       : 64
 ; thread_tile                      : 8x8
 ; 
+; kernarg offset
+.set k_p_in,                0
+.set k_p_wei,               8
+.set k_p_out,               16
+.set k_hi,                  24
+.set k_wi,                  28
+.set k_n,                   32
+.set k_k,                   36
+.set k_c,                   40
+.set k_ho,                  44
+.set k_wo,                  48
+.set k_stride_h,            52
+.set k_stride_w,            56
+.set k_dilation_h,          60
+.set k_dilation_w,          64
+.set k_pad_h,               68
+.set k_pad_w,               72
+.set k_y,                   76
+.set k_x,                   80
+.set k_end,                 84
+
+; sgpr
+.set s_ka,                  0
+.set s_bx,                  2
+.set s_p_in,                4
+.set s_p_wei,               6
+.set s_hi,                  8
+.set s_wi,                  9
+.set s_n,                   10
+.set s_k,                   11
+.set s_c,                   12
+.set s_ho,                  13
+.set s_wo,                  14
+.set s_stride_h,            15
+.set s_stride_w,            16
+.set s_dilation_h,          17
+.set s_dilation_w,          18
+.set s_pad_h,               19
+.set s_pad_w,               20
+.set s_y,                   21
+.set s_x,                   22
+.set s_p_out,               24
+.set s_block_ik,            26
+.set s_block_ib,            27
+.set s_in_stride_c,         28
+.set s_in_stride_n2,        29
+.set s_in_stride_n1,        30
+.set s_in_ic,               31
+.set s_in_iy,               32
+.set s_in_ix,               33
+.set s_wei_stride_c,        34
+.set s_wei_stride_k,        35
+.set s_wei_ic,              s_in_ic     ; weight&input ic, iy, ix from EPerBlock is the same
+.set s_wei_iy,              s_in_iy
+.set s_wei_ix,              s_in_ix
+.set s_out_stride_k0,       36
+.set s_out_stride_k1,       37
+.set s_out_stride_n1,       38
+.set s_out_stride_n2,       39
+.set s_kitr,                0
+.set s_tmp,                 40
+.set s_p_buf_in,            s_p_in      ; 4 sgpr used for MUBUF
+.set s_p_buf_wei,           44
+.set s_p_buf_out,           s_p_out
+.set s_end,                 48
+
 ; vgpr
 .set v_c,                   0
 .set v_a,                   64
@@ -2592,6 +2856,72 @@ L_igemm_v4r1_dynamic_32x128x4_8x8_4x1x4x4x4x4_4x1x16x1_4x16_end:
 ; block_size                       : 64
 ; thread_tile                      : 4x4
 ; 
+; kernarg offset
+.set k_p_in,                0
+.set k_p_wei,               8
+.set k_p_out,               16
+.set k_hi,                  24
+.set k_wi,                  28
+.set k_n,                   32
+.set k_k,                   36
+.set k_c,                   40
+.set k_ho,                  44
+.set k_wo,                  48
+.set k_stride_h,            52
+.set k_stride_w,            56
+.set k_dilation_h,          60
+.set k_dilation_w,          64
+.set k_pad_h,               68
+.set k_pad_w,               72
+.set k_y,                   76
+.set k_x,                   80
+.set k_end,                 84
+
+; sgpr
+.set s_ka,                  0
+.set s_bx,                  2
+.set s_p_in,                4
+.set s_p_wei,               6
+.set s_hi,                  8
+.set s_wi,                  9
+.set s_n,                   10
+.set s_k,                   11
+.set s_c,                   12
+.set s_ho,                  13
+.set s_wo,                  14
+.set s_stride_h,            15
+.set s_stride_w,            16
+.set s_dilation_h,          17
+.set s_dilation_w,          18
+.set s_pad_h,               19
+.set s_pad_w,               20
+.set s_y,                   21
+.set s_x,                   22
+.set s_p_out,               24
+.set s_block_ik,            26
+.set s_block_ib,            27
+.set s_in_stride_c,         28
+.set s_in_stride_n2,        29
+.set s_in_stride_n1,        30
+.set s_in_ic,               31
+.set s_in_iy,               32
+.set s_in_ix,               33
+.set s_wei_stride_c,        34
+.set s_wei_stride_k,        35
+.set s_wei_ic,              s_in_ic     ; weight&input ic, iy, ix from EPerBlock is the same
+.set s_wei_iy,              s_in_iy
+.set s_wei_ix,              s_in_ix
+.set s_out_stride_k0,       36
+.set s_out_stride_k1,       37
+.set s_out_stride_n1,       38
+.set s_out_stride_n2,       39
+.set s_kitr,                0
+.set s_tmp,                 40
+.set s_p_buf_in,            s_p_in      ; 4 sgpr used for MUBUF
+.set s_p_buf_wei,           44
+.set s_p_buf_out,           s_p_out
+.set s_end,                 48
+
 ; vgpr
 .set v_c,                   0
 .set v_a,                   16
@@ -2996,6 +3326,72 @@ L_igemm_v4r1_dynamic_16x64x4_4x4_2x2x2x2x4x4_4x1x16x1_4x16_end:
 ; block_size                       : 64
 ; thread_tile                      : 4x4
 ; 
+; kernarg offset
+.set k_p_in,                0
+.set k_p_wei,               8
+.set k_p_out,               16
+.set k_hi,                  24
+.set k_wi,                  28
+.set k_n,                   32
+.set k_k,                   36
+.set k_c,                   40
+.set k_ho,                  44
+.set k_wo,                  48
+.set k_stride_h,            52
+.set k_stride_w,            56
+.set k_dilation_h,          60
+.set k_dilation_w,          64
+.set k_pad_h,               68
+.set k_pad_w,               72
+.set k_y,                   76
+.set k_x,                   80
+.set k_end,                 84
+
+; sgpr
+.set s_ka,                  0
+.set s_bx,                  2
+.set s_p_in,                4
+.set s_p_wei,               6
+.set s_hi,                  8
+.set s_wi,                  9
+.set s_n,                   10
+.set s_k,                   11
+.set s_c,                   12
+.set s_ho,                  13
+.set s_wo,                  14
+.set s_stride_h,            15
+.set s_stride_w,            16
+.set s_dilation_h,          17
+.set s_dilation_w,          18
+.set s_pad_h,               19
+.set s_pad_w,               20
+.set s_y,                   21
+.set s_x,                   22
+.set s_p_out,               24
+.set s_block_ik,            26
+.set s_block_ib,            27
+.set s_in_stride_c,         28
+.set s_in_stride_n2,        29
+.set s_in_stride_n1,        30
+.set s_in_ic,               31
+.set s_in_iy,               32
+.set s_in_ix,               33
+.set s_wei_stride_c,        34
+.set s_wei_stride_k,        35
+.set s_wei_ic,              s_in_ic     ; weight&input ic, iy, ix from EPerBlock is the same
+.set s_wei_iy,              s_in_iy
+.set s_wei_ix,              s_in_ix
+.set s_out_stride_k0,       36
+.set s_out_stride_k1,       37
+.set s_out_stride_n1,       38
+.set s_out_stride_n2,       39
+.set s_kitr,                0
+.set s_tmp,                 40
+.set s_p_buf_in,            s_p_in      ; 4 sgpr used for MUBUF
+.set s_p_buf_wei,           44
+.set s_p_buf_out,           s_p_out
+.set s_end,                 48
+
 ; vgpr
 .set v_c,                   0
 .set v_a,                   16
@@ -3828,6 +4224,62 @@ L_igemm_v4r1_1x1_dynamic_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_4x64_end:
 ; block_size                       : 256
 ; thread_tile                      : 8x8
 ; 
+; kernarg offset
+.set k_p_in,                0
+.set k_p_wei,               8
+.set k_p_out,               16
+.set k_hi,                  24
+.set k_wi,                  28
+.set k_n,                   32
+.set k_k,                   36
+.set k_c,                   40
+.set k_ho,                  44
+.set k_wo,                  48
+.set k_stride_h,            52
+.set k_stride_w,            56
+.set k_dilation_h,          60
+.set k_dilation_w,          64
+.set k_pad_h,               68
+.set k_pad_w,               72
+.set k_end,             76
+
+; sgpr
+.set s_ka,                  0
+.set s_bx,                  2
+.set s_p_in,                4
+.set s_p_wei,               6
+.set s_hi,                  8
+.set s_wi,                  9
+.set s_n,                   10
+.set s_k,                   11
+.set s_c,                   12
+.set s_ho,                  13
+.set s_wo,                  14
+.set s_stride_h,            15
+.set s_stride_w,            16
+.set s_dilation_h,          17
+.set s_dilation_w,          18
+.set s_pad_h,               19
+.set s_pad_w,               20
+.set s_p_out,               24
+.set s_block_ik,            26
+.set s_block_ib,            27
+.set s_in_stride,         28
+.set s_in_stride_n2,        29
+.set s_in_stride_n1,        30
+.set s_wei_stride,        31
+.set s_wei_stride_k,        32
+.set s_out_stride_k0,       36
+.set s_out_stride_k1,       37
+.set s_out_stride_n1,       38
+.set s_out_stride_n2,       39
+.set s_kitr,                0
+.set s_tmp,                 40
+.set s_p_buf_in,            s_p_in      ; 4 sgpr used for MUBUF
+.set s_p_buf_wei,           44
+.set s_p_buf_out,           s_p_out
+.set s_end,                 48
+
 ; vgpr
 .set v_c,                   0
 .set v_a,                   64
@@ -4198,6 +4650,62 @@ L_igemm_v4r1_1x1_dynamic_128x128x8_8x8_4x4x4x4x4x4_8x2x16x1_2x128_end:
 ; block_size                       : 128
 ; thread_tile                      : 8x8
 ; 
+; kernarg offset
+.set k_p_in,                0
+.set k_p_wei,               8
+.set k_p_out,               16
+.set k_hi,                  24
+.set k_wi,                  28
+.set k_n,                   32
+.set k_k,                   36
+.set k_c,                   40
+.set k_ho,                  44
+.set k_wo,                  48
+.set k_stride_h,            52
+.set k_stride_w,            56
+.set k_dilation_h,          60
+.set k_dilation_w,          64
+.set k_pad_h,               68
+.set k_pad_w,               72
+.set k_end,             76
+
+; sgpr
+.set s_ka,                  0
+.set s_bx,                  2
+.set s_p_in,                4
+.set s_p_wei,               6
+.set s_hi,                  8
+.set s_wi,                  9
+.set s_n,                   10
+.set s_k,                   11
+.set s_c,                   12
+.set s_ho,                  13
+.set s_wo,                  14
+.set s_stride_h,            15
+.set s_stride_w,            16
+.set s_dilation_h,          17
+.set s_dilation_w,          18
+.set s_pad_h,               19
+.set s_pad_w,               20
+.set s_p_out,               24
+.set s_block_ik,            26
+.set s_block_ib,            27
+.set s_in_stride,         28
+.set s_in_stride_n2,        29
+.set s_in_stride_n1,        30
+.set s_wei_stride,        31
+.set s_wei_stride_k,        32
+.set s_out_stride_k0,       36
+.set s_out_stride_k1,       37
+.set s_out_stride_n1,       38
+.set s_out_stride_n2,       39
+.set s_kitr,                0
+.set s_tmp,                 40
+.set s_p_buf_in,            s_p_in      ; 4 sgpr used for MUBUF
+.set s_p_buf_wei,           44
+.set s_p_buf_out,           s_p_out
+.set s_end,                 48
+
 ; vgpr
 .set v_c,                   0
 .set v_a,                   64
@@ -4570,6 +5078,62 @@ L_igemm_v4r1_1x1_dynamic_128x64x8_8x8_4x4x4x4x4x2_8x1x8x2_2x64_end:
 ; block_size                       : 64
 ; thread_tile                      : 8x8
 ; 
+; kernarg offset
+.set k_p_in,                0
+.set k_p_wei,               8
+.set k_p_out,               16
+.set k_hi,                  24
+.set k_wi,                  28
+.set k_n,                   32
+.set k_k,                   36
+.set k_c,                   40
+.set k_ho,                  44
+.set k_wo,                  48
+.set k_stride_h,            52
+.set k_stride_w,            56
+.set k_dilation_h,          60
+.set k_dilation_w,          64
+.set k_pad_h,               68
+.set k_pad_w,               72
+.set k_end,             76
+
+; sgpr
+.set s_ka,                  0
+.set s_bx,                  2
+.set s_p_in,                4
+.set s_p_wei,               6
+.set s_hi,                  8
+.set s_wi,                  9
+.set s_n,                   10
+.set s_k,                   11
+.set s_c,                   12
+.set s_ho,                  13
+.set s_wo,                  14
+.set s_stride_h,            15
+.set s_stride_w,            16
+.set s_dilation_h,          17
+.set s_dilation_w,          18
+.set s_pad_h,               19
+.set s_pad_w,               20
+.set s_p_out,               24
+.set s_block_ik,            26
+.set s_block_ib,            27
+.set s_in_stride,         28
+.set s_in_stride_n2,        29
+.set s_in_stride_n1,        30
+.set s_wei_stride,        31
+.set s_wei_stride_k,        32
+.set s_out_stride_k0,       36
+.set s_out_stride_k1,       37
+.set s_out_stride_n1,       38
+.set s_out_stride_n2,       39
+.set s_kitr,                0
+.set s_tmp,                 40
+.set s_p_buf_in,            s_p_in      ; 4 sgpr used for MUBUF
+.set s_p_buf_wei,           44
+.set s_p_buf_out,           s_p_out
+.set s_end,                 48
+
 ; vgpr
 .set v_c,                   0
 .set v_a,                   64
@@ -4939,6 +5503,62 @@ L_igemm_v4r1_1x1_dynamic_64x64x8_8x8_4x4x2x4x2x4_8x1x8x1_4x16_end:
 ; block_size                       : 64
 ; thread_tile                      : 8x8
 ; 
+; kernarg offset
+.set k_p_in,                0
+.set k_p_wei,               8
+.set k_p_out,               16
+.set k_hi,                  24
+.set k_wi,                  28
+.set k_n,                   32
+.set k_k,                   36
+.set k_c,                   40
+.set k_ho,                  44
+.set k_wo,                  48
+.set k_stride_h,            52
+.set k_stride_w,            56
+.set k_dilation_h,          60
+.set k_dilation_w,          64
+.set k_pad_h,               68
+.set k_pad_w,               72
+.set k_end,             76
+
+; sgpr
+.set s_ka,                  0
+.set s_bx,                  2
+.set s_p_in,                4
+.set s_p_wei,               6
+.set s_hi,                  8
+.set s_wi,                  9
+.set s_n,                   10
+.set s_k,                   11
+.set s_c,                   12
+.set s_ho,                  13
+.set s_wo,                  14
+.set s_stride_h,            15
+.set s_stride_w,            16
+.set s_dilation_h,          17
+.set s_dilation_w,          18
+.set s_pad_h,               19
+.set s_pad_w,               20
+.set s_p_out,               24
+.set s_block_ik,            26
+.set s_block_ib,            27
+.set s_in_stride,         28
+.set s_in_stride_n2,        29
+.set s_in_stride_n1,        30
+.set s_wei_stride,        31
+.set s_wei_stride_k,        32
+.set s_out_stride_k0,       36
+.set s_out_stride_k1,       37
+.set s_out_stride_n1,       38
+.set s_out_stride_n2,       39
+.set s_kitr,                0
+.set s_tmp,                 40
+.set s_p_buf_in,            s_p_in      ; 4 sgpr used for MUBUF
+.set s_p_buf_wei,           44
+.set s_p_buf_out,           s_p_out
+.set s_end,                 48
+
 ; vgpr
 .set v_c,                   0
 .set v_a,                   64
@@ -5307,6 +5927,62 @@ L_igemm_v4r1_1x1_dynamic_32x128x4_8x8_4x1x4x4x4x4_4x1x16x1_4x16_end:
 ; block_size                       : 64
 ; thread_tile                      : 4x4
 ; 
+; kernarg offset
+.set k_p_in,                0
+.set k_p_wei,               8
+.set k_p_out,               16
+.set k_hi,                  24
+.set k_wi,                  28
+.set k_n,                   32
+.set k_k,                   36
+.set k_c,                   40
+.set k_ho,                  44
+.set k_wo,                  48
+.set k_stride_h,            52
+.set k_stride_w,            56
+.set k_dilation_h,          60
+.set k_dilation_w,          64
+.set k_pad_h,               68
+.set k_pad_w,               72
+.set k_end,             76
+
+; sgpr
+.set s_ka,                  0
+.set s_bx,                  2
+.set s_p_in,                4
+.set s_p_wei,               6
+.set s_hi,                  8
+.set s_wi,                  9
+.set s_n,                   10
+.set s_k,                   11
+.set s_c,                   12
+.set s_ho,                  13
+.set s_wo,                  14
+.set s_stride_h,            15
+.set s_stride_w,            16
+.set s_dilation_h,          17
+.set s_dilation_w,          18
+.set s_pad_h,               19
+.set s_pad_w,               20
+.set s_p_out,               24
+.set s_block_ik,            26
+.set s_block_ib,            27
+.set s_in_stride,         28
+.set s_in_stride_n2,        29
+.set s_in_stride_n1,        30
+.set s_wei_stride,        31
+.set s_wei_stride_k,        32
+.set s_out_stride_k0,       36
+.set s_out_stride_k1,       37
+.set s_out_stride_n1,       38
+.set s_out_stride_n2,       39
+.set s_kitr,                0
+.set s_tmp,                 40
+.set s_p_buf_in,            s_p_in      ; 4 sgpr used for MUBUF
+.set s_p_buf_wei,           44
+.set s_p_buf_out,           s_p_out
+.set s_end,                 48
+
 ; vgpr
 .set v_c,                   0
 .set v_a,                   16
@@ -5674,6 +6350,62 @@ L_igemm_v4r1_1x1_dynamic_16x64x4_4x4_2x2x2x2x4x4_4x1x16x1_4x16_end:
 ; block_size                       : 64
 ; thread_tile                      : 4x4
 ; 
+; kernarg offset
+.set k_p_in,                0
+.set k_p_wei,               8
+.set k_p_out,               16
+.set k_hi,                  24
+.set k_wi,                  28
+.set k_n,                   32
+.set k_k,                   36
+.set k_c,                   40
+.set k_ho,                  44
+.set k_wo,                  48
+.set k_stride_h,            52
+.set k_stride_w,            56
+.set k_dilation_h,          60
+.set k_dilation_w,          64
+.set k_pad_h,               68
+.set k_pad_w,               72
+.set k_end,             76
+
+; sgpr
+.set s_ka,                  0
+.set s_bx,                  2
+.set s_p_in,                4
+.set s_p_wei,               6
+.set s_hi,                  8
+.set s_wi,                  9
+.set s_n,                   10
+.set s_k,                   11
+.set s_c,                   12
+.set s_ho,                  13
+.set s_wo,                  14
+.set s_stride_h,            15
+.set s_stride_w,            16
+.set s_dilation_h,          17
+.set s_dilation_w,          18
+.set s_pad_h,               19
+.set s_pad_w,               20
+.set s_p_out,               24
+.set s_block_ik,            26
+.set s_block_ib,            27
+.set s_in_stride,         28
+.set s_in_stride_n2,        29
+.set s_in_stride_n1,        30
+.set s_wei_stride,        31
+.set s_wei_stride_k,        32
+.set s_out_stride_k0,       36
+.set s_out_stride_k1,       37
+.set s_out_stride_n1,       38
+.set s_out_stride_n2,       39
+.set s_kitr,                0
+.set s_tmp,                 40
+.set s_p_buf_in,            s_p_in      ; 4 sgpr used for MUBUF
+.set s_p_buf_wei,           44
+.set s_p_buf_out,           s_p_out
+.set s_end,                 48
+
 ; vgpr
 .set v_c,                   0
 .set v_a,                   16
@@ -6031,6 +6763,26 @@ amdhsa.kernels:
     .wavefront_size: 64
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: __pack0   , .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_v4r1_dynamic_128x128x8_8x8_4x4x4x4x4x4_8x2x16x1_2x128
     .symbol: igemm_v4r1_dynamic_128x128x8_8x8_4x4x4x4x4x4_8x2x16x1_2x128.kd
     .sgpr_count: 54
@@ -6042,6 +6794,26 @@ amdhsa.kernels:
     .wavefront_size: 64
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: __pack0   , .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_v4r1_dynamic_128x64x8_8x8_4x4x4x4x4x2_8x1x8x2_2x64
     .symbol: igemm_v4r1_dynamic_128x64x8_8x8_4x4x4x4x4x2_8x1x8x2_2x64.kd
     .sgpr_count: 54
@@ -6053,6 +6825,26 @@ amdhsa.kernels:
     .wavefront_size: 64
     .reqd_workgroup_size : [128, 1, 1]
     .max_flat_workgroup_size: 128
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: __pack0   , .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_v4r1_dynamic_64x64x8_8x8_4x4x2x4x2x4_8x1x8x1_4x16
     .symbol: igemm_v4r1_dynamic_64x64x8_8x8_4x4x2x4x2x4_8x1x8x1_4x16.kd
     .sgpr_count: 54
@@ -6064,6 +6856,26 @@ amdhsa.kernels:
     .wavefront_size: 64
     .reqd_workgroup_size : [64, 1, 1]
     .max_flat_workgroup_size: 64
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: __pack0   , .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_v4r1_dynamic_32x128x4_8x8_4x1x4x4x4x4_4x1x16x1_4x16
     .symbol: igemm_v4r1_dynamic_32x128x4_8x8_4x1x4x4x4x4_4x1x16x1_4x16.kd
     .sgpr_count: 54
@@ -6075,6 +6887,26 @@ amdhsa.kernels:
     .wavefront_size: 64
     .reqd_workgroup_size : [64, 1, 1]
     .max_flat_workgroup_size: 64
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: __pack0   , .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_v4r1_dynamic_16x64x4_4x4_2x2x2x2x4x4_4x1x16x1_4x16
     .symbol: igemm_v4r1_dynamic_16x64x4_4x4_2x2x2x2x4x4_4x1x16x1_4x16.kd
     .sgpr_count: 54
@@ -6086,6 +6918,26 @@ amdhsa.kernels:
     .wavefront_size: 64
     .reqd_workgroup_size : [64, 1, 1]
     .max_flat_workgroup_size: 64
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: __pack0   , .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_v4r1_dynamic_32x32x4_4x4_2x2x4x2x4x2_4x2x8x1_4x16
     .symbol: igemm_v4r1_dynamic_32x32x4_4x4_2x2x4x2x4x2_4x2x8x1_4x16.kd
     .sgpr_count: 54
@@ -6097,82 +6949,228 @@ amdhsa.kernels:
     .wavefront_size: 64
     .reqd_workgroup_size : [64, 1, 1]
     .max_flat_workgroup_size: 64
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
+    - { .name: __pack0   , .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_v4r1_1x1_dynamic_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_4x64
     .symbol: igemm_v4r1_1x1_dynamic_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_4x64.kd
     .sgpr_count: 54
     .vgpr_count: 104
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
+    .kernarg_segment_size: 80
     .group_segment_fixed_size: 32768
     .private_segment_fixed_size: 0
     .wavefront_size: 64
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: __pack0   , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
   - .name: igemm_v4r1_1x1_dynamic_128x128x8_8x8_4x4x4x4x4x4_8x2x16x1_2x128
     .symbol: igemm_v4r1_1x1_dynamic_128x128x8_8x8_4x4x4x4x4x4_8x2x16x1_2x128.kd
     .sgpr_count: 54
     .vgpr_count: 96
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
+    .kernarg_segment_size: 80
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
     .reqd_workgroup_size : [256, 1, 1]
     .max_flat_workgroup_size: 256
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: __pack0   , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
   - .name: igemm_v4r1_1x1_dynamic_128x64x8_8x8_4x4x4x4x4x2_8x1x8x2_2x64
     .symbol: igemm_v4r1_1x1_dynamic_128x64x8_8x8_4x4x4x4x4x2_8x1x8x2_2x64.kd
     .sgpr_count: 54
     .vgpr_count: 100
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
+    .kernarg_segment_size: 80
     .group_segment_fixed_size: 16384
     .private_segment_fixed_size: 0
     .wavefront_size: 64
     .reqd_workgroup_size : [128, 1, 1]
     .max_flat_workgroup_size: 128
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: __pack0   , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
   - .name: igemm_v4r1_1x1_dynamic_64x64x8_8x8_4x4x2x4x2x4_8x1x8x1_4x16
     .symbol: igemm_v4r1_1x1_dynamic_64x64x8_8x8_4x4x2x4x2x4_8x1x8x1_4x16.kd
     .sgpr_count: 54
     .vgpr_count: 104
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
+    .kernarg_segment_size: 80
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
     .reqd_workgroup_size : [64, 1, 1]
     .max_flat_workgroup_size: 64
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: __pack0   , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
   - .name: igemm_v4r1_1x1_dynamic_32x128x4_8x8_4x1x4x4x4x4_4x1x16x1_4x16
     .symbol: igemm_v4r1_1x1_dynamic_32x128x4_8x8_4x1x4x4x4x4_4x1x16x1_4x16.kd
     .sgpr_count: 54
     .vgpr_count: 98
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
+    .kernarg_segment_size: 80
     .group_segment_fixed_size: 8192
     .private_segment_fixed_size: 0
     .wavefront_size: 64
     .reqd_workgroup_size : [64, 1, 1]
     .max_flat_workgroup_size: 64
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: __pack0   , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
   - .name: igemm_v4r1_1x1_dynamic_16x64x4_4x4_2x2x2x2x4x4_4x1x16x1_4x16
     .symbol: igemm_v4r1_1x1_dynamic_16x64x4_4x4_2x2x2x2x4x4_4x1x16x1_4x16.kd
     .sgpr_count: 54
     .vgpr_count: 47
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
+    .kernarg_segment_size: 80
     .group_segment_fixed_size: 4096
     .private_segment_fixed_size: 0
     .wavefront_size: 64
     .reqd_workgroup_size : [64, 1, 1]
     .max_flat_workgroup_size: 64
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: __pack0   , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
   - .name: igemm_v4r1_1x1_dynamic_32x32x4_4x4_2x2x4x2x4x2_4x2x8x1_4x16
     .symbol: igemm_v4r1_1x1_dynamic_32x32x4_4x4_2x2x4x2x4x2_4x2x8x1_4x16.kd
     .sgpr_count: 54
     .vgpr_count: 46
     .kernarg_segment_align: 8
-    .kernarg_segment_size: 88
+    .kernarg_segment_size: 80
     .group_segment_fixed_size: 2048
     .private_segment_fixed_size: 0
     .wavefront_size: 64
     .reqd_workgroup_size : [64, 1, 1]
     .max_flat_workgroup_size: 64
+    .args:
+    - { .name: p_in      , .size: 8, .offset:   0, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_wei     , .size: 8, .offset:   8, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
+    - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
+    - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
+    - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
+    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
+    - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
+    - { .name: wo        , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_h  , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}
+    - { .name: stride_w  , .size: 4, .offset:  56, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_h, .size: 4, .offset:  60, .value_kind: by_value, .value_type: i32}
+    - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
+    - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
+    - { .name: __pack0   , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
 ...
 .end_amdgpu_metadata
