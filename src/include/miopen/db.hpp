@@ -176,8 +176,8 @@ class MultiFileDb
     template <bool merge = merge_records, std::enable_if_t<merge>* = nullptr, typename... U>
     auto FindRecord(const U&... args)
     {
-        auto users           = _user.FindRecord(args...);
-        const auto installed = _installed.FindRecord(args...);
+        auto users     = _user.FindRecord(args...);
+        auto installed = _installed.FindRecord(args...);
 
         if(users && installed)
         {
