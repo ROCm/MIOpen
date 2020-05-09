@@ -4182,6 +4182,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         break;
         case miopenConvolutionBwdWeightsAlgoImplicitGEMM:
         {
+            float elapsed  = 0.0;
             auto&& kernels = handle.GetKernels(algorithm_name, network_config);
             if(kernels.empty())
                 MIOPEN_THROW("Error running Implicit GEMM WrW. Was Find() run previously?");
@@ -4200,14 +4201,25 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 TensorDescriptor workSpaceDesc(
                     miopenFloat, dwDesc.GetLengths(), dwDesc.GetStrides());
                 SetTensor(handle, workSpaceDesc, workSpace, &zero);
+                elapsed = handle.GetKernelTime();
                 kernel(x, dy, workSpace);
+                elapsed += handle.GetKernelTime();
                 CastTensor(handle, &lowp_quant, workSpaceDesc, workSpace, dwDesc, dw, 0, 0);
+                elapsed += handle.GetKernelTime();
             }
             else
             {
                 float zero = 0.f;
                 SetTensor(handle, dwDesc, dw, &zero);
+                elapsed += handle.GetKernelTime();
                 kernel(x, dy, dw);
+                elapsed += handle.GetKernelTime();
+            }
+
+            if(handle.IsProfilingEnabled())
+            {
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
             }
         }
         }
