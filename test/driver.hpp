@@ -225,7 +225,7 @@ struct test_driver
         arg.type        = miopen::get_type_name<T>();
         arg.write_value = [&](std::vector<std::string> params) { args::write_value{}(x, params); };
         arg.read_value  = [&] { return args::read_value{}(x); };
-        miopen::each_args([&](auto& f) { per_arg()(x, arg, f); }, fs...);
+        miopen::each_args([&](const auto& f) { per_arg()(x, arg, f); }, fs...);
         // assert(get_argument(name).name == name);
     }
 

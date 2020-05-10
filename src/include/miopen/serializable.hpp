@@ -83,6 +83,7 @@ struct Serializable
         }
     };
 
+    // cppcheck-suppress constParameter
     void Serialize(std::ostream& stream) const
     {
         char sep = 0;
@@ -95,9 +96,9 @@ struct Serializable
         auto out = static_cast<const Derived&>(*this);
         bool ok  = true;
         std::istringstream ss(s);
-        Derived::Visit(out,
+        Derived::Visit(out, // cppcheck-suppress constParameter
                        [&](auto& x, const char*) { DeserializeField()(ok, ss, Separator, x); });
-
+        // cppcheck-suppress knownConditionTrueFalse
         if(!ok)
             return false;
 

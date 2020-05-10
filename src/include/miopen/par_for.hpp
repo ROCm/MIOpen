@@ -94,6 +94,7 @@ void par_for_impl(std::size_t n, std::size_t threadsize, F f)
         std::generate(threads.begin(), threads.end(), [&]() {
             return thread_factory()(work, n, grainsize, f);
         });
+        // cppcheck-suppress unsignedLessThanZero
         assert(work >= n);
     }
 }

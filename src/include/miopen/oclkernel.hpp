@@ -113,10 +113,12 @@ struct OCLKernelInvoke
     template <class... Ts>
     void operator()(const Ts&... xs) const
     {
-        each_args_i(
-            std::bind(
-                OCLSetKernelArg{}, kernel.get(), std::placeholders::_1, std::placeholders::_2),
-            xs...);
+        each_args_i(std::bind( // NOLINT
+                        OCLSetKernelArg{},
+                        kernel.get(),
+                        std::placeholders::_1,
+                        std::placeholders::_2),
+                    xs...);
         run();
     }
 

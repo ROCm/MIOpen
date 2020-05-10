@@ -324,7 +324,7 @@ struct HandleImpl
         }
         return result;
     }
-    ContextPtr create_context_from_queue()
+    ContextPtr create_context_from_queue() const
     {
         // FIXME: hack for all the queues on the same context
         // do we need anything special to handle multiple GPUs
@@ -548,9 +548,10 @@ KernelInvoke Handle::Run(Kernel k) const
     if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
     {
         return k.Invoke(q,
-                        std::bind(&HandleImpl::SetProfilingResult,
-                                  std::ref(*this->impl),
-                                  std::placeholders::_1));
+                        std::bind( // NOLINT
+                            &HandleImpl::SetProfilingResult,
+                            std::ref(*this->impl),
+                            std::placeholders::_1));
     }
     else
     {
