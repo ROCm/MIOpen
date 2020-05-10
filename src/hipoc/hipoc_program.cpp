@@ -170,6 +170,9 @@ struct HIPOCProgramImpl
                                  const std::string& filename)
     {
 #if !MIOPEN_USE_COMGR
+        (void)params;
+        (void)src;
+        (void)filename;
         return false;
 #else
         if(miopen::EndsWith(filename, ".so") || miopen::EndsWith(filename, ".s") ||
