@@ -136,66 +136,81 @@ struct HIPOCProgramImpl
     boost::optional<TmpDir> dir;
     std::vector<char> binary;
 
+    void
+    BuildCodeObjectInFile(std::string& params, const std::string& src, const std::string& filename)
+    {
+        dir.emplace(filename);
+        hsaco_file = dir->path / (filename + ".o");
+
+        if(miopen::EndsWith(filename, ".so"))
+        {
+            WriteFile(src, hsaco_file);
+        }
+        else if(miopen::EndsWith(filename, ".s"))
+        {
+            const auto assembled = AmdgcnAssemble(src, params);
+            WriteFile(assembled, hsaco_file);
+        }
+        else if(miopen::EndsWith(filename, ".cpp"))
+        {
+            hsaco_file = HipBuild(dir, filename, src, params, device);
+        }
+        else
+        {
+            params += " " + GetCoV3Option(ProduceCoV3());
+            WriteFile(src, dir->path / filename);
+            dir->Execute(HIP_OC_COMPILER, params + " " + filename + " -o " + hsaco_file.string());
+        }
+        if(!boost::filesystem::exists(hsaco_file))
+            MIOPEN_THROW("Cant find file: " + hsaco_file.string());
+    }
+
+    bool BuildCodeObjectInMemory(const std::string& params,
+                                 const std::string& src,
+                                 const std::string& filename)
+    {
+#if !MIOPEN_USE_COMGR
+        return false;
+#else
+        if(miopen::EndsWith(filename, ".so") || miopen::EndsWith(filename, ".s") ||
+           miopen::EndsWith(filename, ".cpp"))
+            return false;
+        else
+            comgr::BuildOcl(filename, src, params, device, binary);
+
+        if(binary.empty())
+            MIOPEN_THROW("Code object build failed. Source: " + filename);
+        return true;
+#endif
+    }
+
     void BuildCodeObject(std::string params, bool is_kernel_str, const std::string& kernel_src)
     {
-        /// \todo Do not create tmp dir if comgr is used.
         std::string filename = is_kernel_str ? "tinygemm.cl" // Fixed name for miopengemm.
                                              : program;
+        const std::string src =
+            !kernel_src.empty() ? kernel_src : is_kernel_str ? program : GetKernelSrc(program);
 
-        /// \todo Intentionally ugly. This should go away.
-        auto create_tmpdir__set_hsaco_file = [&]() {
-            dir.emplace(filename);
-            hsaco_file = dir->path / (filename + ".o");
-        };
-
-        std::string src;
-        if(kernel_src.empty())
-            src = is_kernel_str ? program : GetKernelSrc(program);
-        else
-            src = kernel_src;
-
-        if(!is_kernel_str && miopen::EndsWith(program, ".so"))
+        if(miopen::EndsWith(filename, ".cpp"))
         {
-            create_tmpdir__set_hsaco_file();
-            WriteFile(src, hsaco_file);
-        }
-        else if(!is_kernel_str && miopen::EndsWith(program, ".s"))
-        {
-            create_tmpdir__set_hsaco_file();
-            AmdgcnAssemble(src, params);
-            WriteFile(src, hsaco_file);
-        }
-        else if(!is_kernel_str && miopen::EndsWith(program, ".cpp"))
-        {
-            create_tmpdir__set_hsaco_file();
 #if MIOPEN_BUILD_DEV
             params += " -Werror" + HipKernelWarningsString();
 #else
             params += " -Wno-everything";
 #endif
-            hsaco_file = HipBuild(dir, filename, src, params, device);
         }
-        else
+        else if(miopen::EndsWith(filename, ".cl"))
         {
 #if MIOPEN_BUILD_DEV
             params += " -Werror" + OclKernelWarningsString();
 #else
             params += " -Wno-everything";
 #endif
-            params += " " + GetCoV3Option(ProduceCoV3());
-
-#if !MIOPEN_USE_COMGR
-            create_tmpdir__set_hsaco_file();
-            WriteFile(src, dir->path / filename);
-            dir->Execute(HIP_OC_COMPILER, params + " " + filename + " -o " + hsaco_file.string());
-#else
-            comgr::BuildOcl(filename, src, params, device, binary);
-            if(binary.empty())
-                MIOPEN_THROW("Code object build failed. Source: " + filename);
-#endif
         }
-        if(!hsaco_file.empty() && !boost::filesystem::exists(hsaco_file))
-            MIOPEN_THROW("Cant find file: " + hsaco_file.string());
+
+        if(BuildCodeObjectInMemory(params, src, filename))
+            return;
+        BuildCodeObjectInFile(params, src, filename);
     }
 };
 
