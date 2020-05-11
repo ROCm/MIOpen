@@ -249,7 +249,7 @@ class SQLiteBase
                     boost::filesystem::permissions(directory, boost::filesystem::all_all);
             }
         }
-        sql = std::move(SQLite{filename_, is_system});
+        sql = SQLite{filename_, is_system};
         if(!sql.Valid())
         {
             dbInvalid = true;
