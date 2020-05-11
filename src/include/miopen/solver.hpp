@@ -935,6 +935,75 @@ struct ConvHipImplicitGemmV4R4GenFwdXdlops : SolverBase<ConvolutionContext>
                               float& elapsed_time) const;
 };
 
+struct PerformanceImplicitGemmV4R4GenXdlopsWrWFp32
+    : Serializable<PerformanceImplicitGemmV4R4GenXdlopsWrWFp32>
+{
+    int GemmMPerBlock; // 2^n[32..128]
+    int GemmNPerBlock; // 2^n[8..16]
+    int GemmKPerBlock; // 2^n[4..16]
+    int GemmKBlocks;   // 2^n[1..64]
+
+    int GemmMPerWave; // [4, 16, 32, 64]
+    int GemmNPerWave; // [4, 16, 32, 64]
+
+    bool use_spare_set;
+
+    PerformanceImplicitGemmV4R4GenXdlopsWrWFp32(int, int, int, int, int, int, bool);
+
+    PerformanceImplicitGemmV4R4GenXdlopsWrWFp32()
+        : PerformanceImplicitGemmV4R4GenXdlopsWrWFp32(-1, -1, -1, -1, -1, -1, false)
+    {
+    }
+
+    PerformanceImplicitGemmV4R4GenXdlopsWrWFp32(bool spare);
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.GemmMPerBlock, "GemmMPerBlock");
+        f(self.GemmNPerBlock, "GemmNPerBlock");
+        f(self.GemmKPerBlock, "GemmKPerBlock");
+        f(self.GemmKBlocks, "GemmKBlocks");
+        f(self.GemmMPerWave, "GemmMPerWave");
+        f(self.GemmNPerWave, "GemmNPerWave");
+    }
+
+    void EuristicInit(const ConvolutionContext& ctx);
+    bool IsValidValue() const;
+    bool SetNextValue();
+    bool IsValid(const ConvolutionContext& ctx) const;
+    bool operator==(const PerformanceImplicitGemmV4R4GenXdlopsWrWFp32& other) const;
+    std::string ToString() const;
+
+    std::tuple<int, int, int, int, bool>
+    CalculateGemmABlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, bool>
+    CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
+};
+
+struct ConvHipImplicitGemmV4R4GenXdlopsWrWFp32 : SolverBase<ConvolutionContext>
+{
+    PerformanceImplicitGemmV4R4GenXdlopsWrWFp32
+    GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceImplicitGemmV4R4GenXdlopsWrWFp32& c) const;
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceImplicitGemmV4R4GenXdlopsWrWFp32& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+
+    PerformanceImplicitGemmV4R4GenXdlopsWrWFp32 Search(const ConvolutionContext&) const;
+    int RunAndMeasureSolution(miopen::Handle& profile_h,
+                              ConstData_t bot_buf,
+                              ConstData_t top_buf,
+                              Data_t wei_buf,
+                              ConstData_t bias_buf,
+                              const ConvolutionContext& ctx,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
+};
+
 struct ConvHipImplicitGemmV4R4GenWrWXdlops : SolverBase<ConvolutionContext>
 {
     PerformanceImplicitGemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
