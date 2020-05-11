@@ -1,5 +1,5 @@
 #include <miopen/conv/invokers/impl_gemm.hpp>
-#include <miopen/implicitgemm_dynamic.hpp>
+
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/algorithm.hpp>
 #include <miopen/handle.hpp>
@@ -14,32 +14,11 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
 {
     if(ctx.direction.IsForward())
     {
-        return [ctx](const std::vector<Kernel>& kernels) {
+        return [](const std::vector<Kernel>& kernels) {
             return [=](Handle& handle, const boost::any& primitive_parameters) {
                 const auto data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_parameters);
                 const auto& tensors = data_ctx.tensors;
-                auto kernel         = handle.Run(kernels[0]);
-                if(kernel.GetName().find("igemm_v4r1_dynamic") == 0 ||
-                   kernel.GetName().find("igemm_v4r1_1x1_dynamic") == 0)
-                {
-                    std::vector<KernelInvoke> ks;
-                    std::transform(kernels.begin(),
-                                   kernels.end(),
-                                   std::back_inserter(ks),
-                                   [&](const Kernel& k) { return handle.Run(k); });
-                    float elapsed = 0;
-                    elapsed       = CallImplicitGemmDynamic(
-                        handle, ctx, tensors.in, tensors.out, tensors.w, ks);
-                    if(handle.IsProfilingEnabled())
-                    {
-                        handle.ResetKernelTime();
-                        handle.AccumKernelTime(elapsed);
-                    }
-                }
-                else
-                {
-                    handle.Run(kernels[0])(tensors.in, tensors.w, tensors.out);
-                }
+                handle.Run(kernels[0])(tensors.in, tensors.w, tensors.out);
             };
         };
     }

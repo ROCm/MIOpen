@@ -23,12 +23,11 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cstddef>
 #include "miopen/solver.hpp"
 #include "miopen/handle.hpp"
-#include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/conv/invokers/impl_gemm_dynamic.hpp>
 #include <miopen/generic_search.hpp>
-#include <miopen/implicitgemm_dynamic.hpp>
+#include <miopen/gcn_asm_utils.hpp>
 #include "implicitgemm_util.hpp"
 
 namespace miopen {
@@ -113,6 +112,7 @@ GetImplicitGemmV4R1DynamicGridSize(const ConvolutionContext& ctx,
     return (b / b_per_block) * (k / k_per_block); // NOLINT
 }
 
+// Remove This function when invoker is fully re-factored
 template <typename BotBufType, typename TopBufType, typename WeiBufType>
 static inline int RunAndMeasureSolutionDynamicBase(miopen::Handle& profile_h,
                                                    BotBufType bot_buf,
@@ -141,7 +141,8 @@ static inline int RunAndMeasureSolutionDynamicBase(miopen::Handle& profile_h,
                                               k_info.comp_options);
             kernels.push_back(kernel);
         }
-        float time = CallImplicitGemmDynamic(profile_h, ctx, bot_buf, top_buf, wei_buf, kernels);
+        float time =
+            conv::CallImplicitGemmDynamic(profile_h, ctx, bot_buf, top_buf, wei_buf, kernels);
         elapsed_time += time;
     }
 #ifdef NDEBUG
@@ -408,6 +409,10 @@ PerformanceImplicitGemmV4R1Dynamic::PerformanceImplicitGemmV4R1Dynamic(
 
 bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ConvolutionContext& ctx) const
 {
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    if(!(StartsWith(device_name, "gfx900") || StartsWith(device_name, "gfx906")))
+        return false;
+
     if(!ctx.direction.IsForward())
         return false;
 
@@ -416,6 +421,9 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ConvolutionContext& c
 
     // if(!ctx.IsFp32() && !ctx.IsFp16() && !ctx.IsBfp16())
     if(!ctx.IsFp32())
+        return false;
+
+    if(!ctx.rmv.IsV3())
         return false;
 
     if(ctx.group_counts != 1)
@@ -445,6 +453,10 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ConvolutionContext& c
 
 bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ConvolutionContext& ctx) const
 {
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    if(!(StartsWith(device_name, "gfx900") || StartsWith(device_name, "gfx906")))
+        return false;
+
     if(!ctx.direction.IsForward())
         return false;
 
@@ -453,6 +465,9 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ConvolutionContex
 
     // if(!ctx.IsFp32() && !ctx.IsFp16() && !ctx.IsBfp16())
     if(!ctx.IsFp32())
+        return false;
+
+    if(!ctx.rmv.IsV3())
         return false;
 
     if(ctx.group_counts != 1)
@@ -548,6 +563,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     int grid_size  = GetImplicitGemmV4R1DynamicGridSize(ctx, config);
 
     KernelInfo kernel;
+    std::ostringstream options;
 
     kernel.kernel_file = "igemm_v4r1_dynamic.s";
     kernel.kernel_name = kernel_name;
@@ -564,11 +580,13 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    kernel.comp_options = std::string(" -mcode-object-v3 ");
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
+
+    kernel.comp_options = options.str();
 
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
+    result.invoker_factory = conv::MakeImplGemmDynamicDataInvokerFactory(ctx);
     result.construction_params.push_back(kernel);
     return result;
 }

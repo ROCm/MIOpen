@@ -125,7 +125,6 @@ set( MIOpen_Source
     readonlyramdb.cpp
     execution_context.cpp
     kern_db.cpp
-    implicitgemm_dynamic.cpp
     bz2.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
@@ -183,6 +182,7 @@ set( MIOpen_Source
     conv/invokers/gen_x_w_y_pad.cpp
     conv/invokers/ocl_wrw_rdc.cpp
     conv/invokers/impl_gemm.cpp
+    conv/invokers/impl_gemm_dynamic.cpp
     invoker_cache.cpp
     tensor.cpp
     tensor_api.cpp

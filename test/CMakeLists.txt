@@ -517,15 +517,11 @@ COMMAND	$<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 64	 
 set(DYNAMIC_IMPLICITGEMM_ENVS
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicFwd
     MIOPEN_DEBUG_CONV_FFT=0
-    MIOPEN_DEBUG_CONV_DIRECT=0
-    MIOPEN_DEBUG_CONV_GEMM=0
-    MIOPEN_DEBUG_CONV_WINOGRAD=0)
+    MIOPEN_DEBUG_CONV_GEMM=0)
 set(DYNAMIC_IMPLICITGEMM_1X1_ENVS
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicFwd_1x1
     MIOPEN_DEBUG_CONV_FFT=0
-    MIOPEN_DEBUG_CONV_DIRECT=0
-    MIOPEN_DEBUG_CONV_GEMM=0
-    MIOPEN_DEBUG_CONV_WINOGRAD=0)
+    MIOPEN_DEBUG_CONV_GEMM=0)
 add_custom_test(test_conv_for_dynamic_implicit_gemm
 COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64   64 56 56 --weights 256  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64  256 34 34 --weights 256  256 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights

@@ -49,7 +49,6 @@
 #include <miopen/conv/compiled_in_parameters.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
-#include <miopen/implicitgemm_dynamic.hpp>
 
 #if MIOPEN_USE_SCGEMM
 #include <miopen/scgemm_utils.hpp>
