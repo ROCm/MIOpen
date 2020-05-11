@@ -116,6 +116,7 @@ PerformanceImplicitGemmV4R4GenXdlopsWrWFp32::CalculateGemmBBlockCopyPerformanceP
 
         const auto hi = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
         const auto wi = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
+        const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
         // calculate vector length on gemmn dimension
         const auto conv_stride_h =
             ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
@@ -133,6 +134,10 @@ PerformanceImplicitGemmV4R4GenXdlopsWrWFp32::CalculateGemmBBlockCopyPerformanceP
         {
             // \todo there are more configs that can go through this if branch
             SrcDataPerRead_GemmK = gcd(SrcDataPerRead_GemmK, hi * wi);
+        }
+        else if(in_left_pad_w == 0 && in_right_pad_w == 0)
+        {
+            SrcDataPerRead_GemmK = gcd(SrcDataPerRead_GemmK, wo);
         }
         else if(conv_stride_w == 1)
         {

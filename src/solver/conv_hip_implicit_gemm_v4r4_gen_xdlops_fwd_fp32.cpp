@@ -129,7 +129,7 @@ PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::CalculateGemmBBlockCopyPerformanceP
             // \todo there are more configs that can go through this if branch
             SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, hi * wi);
         }
-        else if(y == 1 && x == 1 && in_left_pad_w == 0 && in_right_pad_w == 0)
+        else if(in_left_pad_w == 0 && in_right_pad_w == 0)
         {
             SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, wo);
         }
