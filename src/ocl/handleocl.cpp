@@ -548,10 +548,9 @@ KernelInvoke Handle::Run(Kernel k) const
     if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
     {
         return k.Invoke(q,
-                        std::bind( // NOLINT
-                            &HandleImpl::SetProfilingResult,
-                            std::ref(*this->impl),
-                            std::placeholders::_1));
+                        std::bind(&HandleImpl::SetProfilingResult,
+                                  std::ref(*this->impl),
+                                  std::placeholders::_1));
     }
     else
     {

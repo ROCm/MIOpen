@@ -152,7 +152,8 @@ struct HandleImpl
 
     std::function<void(hipEvent_t, hipEvent_t)> elapsed_time_handler()
     {
-        return [this](hipEvent_t start, hipEvent_t stop) { elapsed_time(start, stop); };
+        return std::bind(
+            &HandleImpl::elapsed_time, this, std::placeholders::_1, std::placeholders::_2);
     }
 
     void set_ctx() const

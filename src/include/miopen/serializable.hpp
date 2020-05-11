@@ -49,7 +49,7 @@ struct Parse
     }
 };
 
-template <class Derived, char Separator = ','>
+template <class Derived, char Seperator = ','>
 struct Serializable
 {
     struct SerializeField
@@ -60,7 +60,7 @@ struct Serializable
             if(sep != 0)
                 stream << sep;
             stream << x;
-            sep = Separator;
+            sep = Seperator;
         }
     };
 
@@ -82,13 +82,12 @@ struct Serializable
             ok = Parse<T>::apply(part, x);
         }
     };
-
-    // cppcheck-suppress constParameter
     void Serialize(std::ostream& stream) const
     {
         char sep = 0;
-        Derived::Visit(static_cast<const Derived&>(*this),
-                       [&](const auto& x, const char*) { SerializeField()(stream, sep, x); });
+        Derived::Visit(
+            static_cast<const Derived&>(*this),
+            std::bind(SerializeField{}, std::ref(stream), std::ref(sep), std::placeholders::_1));
     }
 
     bool Deserialize(const std::string& s)
@@ -96,9 +95,11 @@ struct Serializable
         auto out = static_cast<const Derived&>(*this);
         bool ok  = true;
         std::istringstream ss(s);
-        Derived::Visit(out, // cppcheck-suppress constParameter
-                       [&](auto& x, const char*) { DeserializeField()(ok, ss, Separator, x); });
-        // cppcheck-suppress knownConditionTrueFalse
+        Derived::Visit(
+            out,
+            std::bind(
+                DeserializeField{}, std::ref(ok), std::ref(ss), Seperator, std::placeholders::_1));
+
         if(!ok)
             return false;
 

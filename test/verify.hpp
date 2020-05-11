@@ -157,7 +157,11 @@ double max_diff(R1&& r1, R2&& r2)
 template <class R1, class R2, class T>
 std::size_t mismatch_diff(R1&& r1, R2&& r2, T diff)
 {
-    return mismatch_idx(r1, r2, std::bind(float_equal, diff, [&]() { return abs_diff(r1, r2); }));
+    return mismatch_idx(
+        r1,
+        r2,
+        std::bind(
+            float_equal, diff, std::bind(abs_diff, std::placeholders::_1, std::placeholders::_2)));
 }
 
 template <class R1, class R2>

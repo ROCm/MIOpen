@@ -231,7 +231,6 @@ struct Handle : miopenHandle
 
 #if MIOPEN_USE_ROCBLAS
     const rocblas_handle_ptr& rhandle() const { return rhandle_; }
-    // rocblas_handle_ptr& rhandle() { return rhandle_; }
 
     private:
     rocblas_handle_ptr CreateRocblasHandle() const;

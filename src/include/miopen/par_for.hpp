@@ -91,10 +91,9 @@ void par_for_impl(std::size_t n, std::size_t threadsize, F f)
         const std::size_t grainsize = std::ceil(static_cast<double>(n) / threads.size());
 
         std::size_t work = 0;
-        std::generate(threads.begin(), threads.end(), [&]() {
-            return thread_factory()(work, n, grainsize, f);
-        });
-        // cppcheck-suppress unsignedLessThanZero
+        std::generate(threads.begin(),
+                      threads.end(),
+                      std::bind(thread_factory{}, std::ref(work), n, grainsize, f));
         assert(work >= n);
     }
 }
