@@ -126,6 +126,8 @@ struct AnyInvokeParams
         Interface& operator=(const Interface&) = delete;
         Interface& operator=(Interface&&) = delete;
 
+        virtual ~Interface(){};
+
         virtual void SetInvokeType(InvokeType type)         = 0;
         virtual InvokeType GetInvokeType() const            = 0;
         virtual bool CanCastTo(const std::type_info&) const = 0;
