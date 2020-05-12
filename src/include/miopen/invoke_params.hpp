@@ -72,13 +72,15 @@ struct AnyInvokeParams
 
     AnyInvokeParams& operator=(const AnyInvokeParams& other)
     {
-        impl = other.impl ? other.impl->Copy() : nullptr;
+        if(&other != this)
+            impl = other.impl ? other.impl->Copy() : nullptr;
         return *this;
     }
 
     AnyInvokeParams& operator=(AnyInvokeParams&& other) noexcept
     {
-        impl = std::move(other.impl);
+        if(&other != this)
+            impl = std::move(other.impl);
         return *this;
     }
 
