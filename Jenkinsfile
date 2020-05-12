@@ -257,6 +257,13 @@ pipeline {
                     }
                 }
 
+                stage('Hip Static Release on /usr/local') {
+                    agent{ label rocmnode("vega") }
+                    steps{
+                        buildJob('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DBUILD_SHARED_LIBS=On', image, "")
+                    }
+                }
+
                 stage('Hip clang debug') {
                     agent{ label rocmnode("vega") }
                     environment{
