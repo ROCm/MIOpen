@@ -17,7 +17,7 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
         return [](const std::vector<Kernel>& kernels) {
             return [=](Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
-                const auto& tensors = data_ctx.tensors;
+                const auto& tensors  = data_ctx.tensors;
                 handle.Run(kernels[0])(tensors.in, tensors.w, tensors.out);
             };
         };
@@ -29,8 +29,8 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
 
         return [conv, lowp_quant](const std::vector<Kernel>& kernels) {
             return [=](Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
-                const auto& tensors = data_ctx.tensors;
+                const auto& data_ctx  = primitive_parameters.CastTo<conv::DataInvokeParams>();
+                const auto& tensors   = data_ctx.tensors;
                 const auto& workSpace = data_ctx.workSpace;
 
                 // Miminum checks. Only check what is required to select
