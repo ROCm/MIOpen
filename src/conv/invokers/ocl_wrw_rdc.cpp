@@ -41,11 +41,10 @@ InvokerFactory MakeOclWrWRdcInvokerFactory(bool twoKernels, size_t workspaceSize
     {
         return [workspaceSize](const std::vector<Kernel>& kernels) {
             return [=](Handle& handle, const AnyInvokeParams& primitive_params) {
-                const auto main_kernel   = handle.Run(kernels[0]);
-                const auto invoke_params = primitive_params.CastTo<WrWInvokeParams>();
-                const auto& tensors      = invoke_params.tensors;
-                const auto padding_val   = 0.f;
-                auto elapsed             = 0.f;
+                const auto main_kernel    = handle.Run(kernels[0]);
+                const auto& invoke_params = primitive_params.CastTo<WrWInvokeParams>();
+                const auto& tensors       = invoke_params.tensors;
+                const auto padding_val    = 0.f;
 
                 if(invoke_params.workSpaceSize < workspaceSize)
                     MIOPEN_THROW("Not enough workspace for invoker");
@@ -57,6 +56,7 @@ InvokerFactory MakeOclWrWRdcInvokerFactory(bool twoKernels, size_t workspaceSize
 
                 if(invoke_params.type != InvokeType::AutoTune)
                 {
+                    auto elapsed = 0.f;
                     if(handle.IsProfilingEnabled())
                         elapsed = handle.GetKernelTime();
 
@@ -76,10 +76,10 @@ InvokerFactory MakeOclWrWRdcInvokerFactory(bool twoKernels, size_t workspaceSize
     {
         return [](const std::vector<Kernel>& kernels) {
             return [=](Handle& handle, const AnyInvokeParams& primitive_params) {
-                const auto main_kernel   = handle.Run(kernels[0]);
-                const auto invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
-                const auto& tensors      = invoke_params.tensors;
-                const auto padding_val   = 0.f;
+                const auto main_kernel    = handle.Run(kernels[0]);
+                const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+                const auto& tensors       = invoke_params.tensors;
+                const auto padding_val    = 0.f;
                 visit_float(tensors.dyDesc.GetType(), [&](auto as_float) {
                     main_kernel(tensors.dy, tensors.x, tensors.dw, as_float(padding_val));
                 });

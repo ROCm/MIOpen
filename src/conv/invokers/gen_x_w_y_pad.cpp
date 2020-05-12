@@ -43,7 +43,7 @@ Invoker MakeGenericXWYPadInvoker(const std::vector<Kernel>& kernels)
     const auto kernel = kernels[0];
 
     return [kernel](Handle& handle, const AnyInvokeParams& primitive_parameters) {
-        auto params         = primitive_parameters.CastTo<DataInvokeParams>();
+        const auto& params  = primitive_parameters.CastTo<DataInvokeParams>();
         const auto& tensors = params.tensors;
         float padding_val   = 0;
 

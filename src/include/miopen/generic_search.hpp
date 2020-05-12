@@ -365,15 +365,22 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
         MIOPEN_LOG_I2('#' << n_current << '/' << n_failed << '/' << n_runs_total << ' '
                           << current_config);
 
-        const auto current_solution = s.GetSolution(context, current_config, true);
+        ConvSolution current_solution;
+        Invoker invoker;
 
-        if(ret == 0)
+        try
         {
-            const auto& invoker = profile_h.PrepareInvoker(*current_solution.invoker_factory,
-                                                           current_solution.construction_params);
+            current_solution = s.GetSolution(context, current_config, true);
+            invoker          = profile_h.PrepareInvoker(*current_solution.invoker_factory,
+                                               current_solution.construction_params);
             invoker(profile_h, invoke_ctx);
             elapsed_time = profile_h.GetKernelTime();
         }
+        catch(...)
+        {
+            ret = 1;
+        }
+
         MIOPEN_LOG_T("##"
                      << "(n_current, n_failed, n_runs_total):  "
                      << n_current
@@ -400,8 +407,6 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
                                                       << (elapsed_time / best_time));
                 for(int i = 0; i < 4; ++i)
                 {
-                    const auto& invoker = profile_h.PrepareInvoker(
-                        *current_solution.invoker_factory, current_solution.construction_params);
                     invoker(profile_h, invoke_ctx);
                     elapsed_time += profile_h.GetKernelTime();
                 }
