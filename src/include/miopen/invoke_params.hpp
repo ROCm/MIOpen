@@ -57,9 +57,10 @@ struct AnyInvokeParams
     {
     }
 
-    template <class Actual>
+    template <class Actual,
+              class = std::enable_if_t<!std::is_same<Actual, AnyInvokeParams>::value, void>>
     AnyInvokeParams(Actual&& value)
-        : impl(std::make_unique<Implementation<Actual>>(std::move(value)))
+        : impl(std::make_unique<Implementation<Actual>>(std::forward(value)))
     {
     }
 
@@ -67,7 +68,7 @@ struct AnyInvokeParams
     {
     }
 
-    AnyInvokeParams(AnyInvokeParams&& other) : impl(std::move(other.impl)) {}
+    AnyInvokeParams(AnyInvokeParams&& other) noexcept : impl(std::move(other.impl)) {}
 
     AnyInvokeParams& operator=(const AnyInvokeParams& other)
     {
@@ -75,7 +76,7 @@ struct AnyInvokeParams
         return *this;
     }
 
-    AnyInvokeParams& operator=(AnyInvokeParams&& other)
+    AnyInvokeParams& operator=(AnyInvokeParams&& other) noexcept
     {
         impl = std::move(other.impl);
         return *this;
