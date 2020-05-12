@@ -101,7 +101,7 @@ struct AnyInvokeParams
     }
 
     template <class Actual>
-    std::remove_cv_t<Actual>& CastTo() const
+    std::remove_cv_t<Actual>& CastTo()
     {
         if(!impl)
             MIOPEN_THROW("Attempt to use empty AnyInvokeParams.");
