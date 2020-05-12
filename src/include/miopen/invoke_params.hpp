@@ -76,13 +76,6 @@ struct AnyInvokeParams
         return *this;
     }
 
-    AnyInvokeParams& operator=(AnyInvokeParams&& other) noexcept
-    {
-        if(&other != this)
-            impl = std::move(other.impl);
-        return *this;
-    }
-
     void SetInvokeType(InvokeType type)
     {
         if(!impl)
@@ -98,23 +91,13 @@ struct AnyInvokeParams
     }
 
     template <class Actual>
-    const Actual& CastTo() const
+    const std::remove_cv_t<Actual>& CastTo() const
     {
         if(!impl)
             MIOPEN_THROW("Attempt to use empty AnyInvokeParams.");
         if(!impl->CanCastTo(typeid(Actual)))
             MIOPEN_THROW("Attempt to cast AnyInvokeParams to invalid type.");
-        return *reinterpret_cast<Actual*>(impl->GetRawPtr());
-    }
-
-    template <class Actual>
-    Actual& CastTo()
-    {
-        if(!impl)
-            MIOPEN_THROW("Attempt to use empty AnyInvokeParams.");
-        if(!impl->CanCastTo(typeid(Actual)))
-            MIOPEN_THROW("Attempt to cast AnyInvokeParams to invalid type.");
-        return *reinterpret_cast<Actual*>(impl->GetRawPtr());
+        return *reinterpret_cast<const std::remove_cv_t<Actual>*>(impl->GetRawPtr());
     }
 
     operator bool() const { return impl != nullptr; }
