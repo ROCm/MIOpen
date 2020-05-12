@@ -306,9 +306,6 @@ struct detector<Default, void_t<Op<Args...>>, Op, Args...>
 template <template <class...> class Op, class... Args>
 using is_detected = typename detail::detector<void, void, Op, Args...>::value_t;
 
-template <template <class...> class Op, class... Args>
-constexpr bool is_detected_v = is_detected<Op, Args...>::value;
-
 template <class Solver, class Top, class Bottom>
 using RunAndMeasure_t =
     decltype(std::declval<Solver>().RunAndMeasureSolution(std::declval<miopen::Handle&>(),
@@ -325,8 +322,8 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
     -> decltype(s.GetPerformanceConfig(context))
 {
     static_assert(
-        !(is_detected_v<RunAndMeasure_t, Solver, ConstData_t, Data_t> ||
-          is_detected_v<RunAndMeasure_t, Solver, Data_t, ConstData_t>),
+        !(is_detected<RunAndMeasure_t, Solver, ConstData_t, Data_t>::value ||
+          is_detected<RunAndMeasure_t, Solver, Data_t, ConstData_t>::value),
         "RunAndMeasure is obsolete. Solvers should implement auto-tune evaluation in invoker");
 
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
