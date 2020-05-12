@@ -58,7 +58,7 @@ struct AnyInvokeParams
     }
 
     template <class Actual,
-              class = std::enable_if_t<!std::is_same<Actual, AnyInvokeParams>::value, void>>
+              class = std::enable_if_t<!std::is_same<Actual, AnyInvokeParams>{}, void>>
     AnyInvokeParams(Actual&& value)
         : impl(std::make_unique<Implementation<Actual>>(std::forward(value)))
     {
@@ -68,12 +68,11 @@ struct AnyInvokeParams
     {
     }
 
-    AnyInvokeParams(AnyInvokeParams&& other) noexcept : impl(std::move(other.impl)) {}
+    AnyInvokeParams(AnyInvokeParams&& other) noexcept = default;
 
-    AnyInvokeParams& operator=(const AnyInvokeParams& other)
+    AnyInvokeParams& operator=(AnyInvokeParams other)
     {
-        if(&other != this)
-            impl = other.impl ? other.impl->Copy() : nullptr;
+        impl.swap(other.impl);
         return *this;
     }
 
@@ -118,7 +117,7 @@ struct AnyInvokeParams
         return *reinterpret_cast<Actual*>(impl->GetRawPtr());
     }
 
-    operator bool() const { return !!impl; }
+    operator bool() const { return impl != nullptr; }
 
     private:
     struct Interface
