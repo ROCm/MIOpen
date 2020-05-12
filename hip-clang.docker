@@ -41,8 +41,11 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
+
 # Install cget
-RUN pip install cget
+RUN pip3 install cget
 
 # Build using hip-clang
 RUN cget -p $PREFIX init --cxx /opt/rocm/llvm/bin/clang++ --std=c++14
