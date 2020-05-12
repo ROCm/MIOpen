@@ -405,11 +405,20 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
             {
                 MIOPEN_LOG_I2("Finding average for: " << elapsed_time << " / " << best_time << " = "
                                                       << (elapsed_time / best_time));
-                for(int i = 0; i < 4; ++i)
+
+                try
                 {
-                    invoker(profile_h, invoke_ctx);
-                    elapsed_time += profile_h.GetKernelTime();
+                    for(int i = 0; i < 4; ++i)
+                    {
+                        invoker(profile_h, invoke_ctx);
+                        elapsed_time += profile_h.GetKernelTime();
+                    }
                 }
+                catch(...)
+                {
+                    ret = 1;
+                }
+
                 if(ret == 0)
                 {
                     is_passed = true;
