@@ -322,8 +322,8 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
     -> decltype(s.GetPerformanceConfig(context))
 {
     static_assert(
-        !(is_detected<RunAndMeasure_t, Solver, ConstData_t, Data_t>::value ||
-          is_detected<RunAndMeasure_t, Solver, Data_t, ConstData_t>::value),
+        !(is_detected<RunAndMeasure_t, Solver, ConstData_t, Data_t>{} ||
+          is_detected<RunAndMeasure_t, Solver, Data_t, ConstData_t>{}),
         "RunAndMeasure is obsolete. Solvers should implement auto-tune evaluation in invoker");
 
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
