@@ -243,6 +243,13 @@ pipeline {
                     }
                 }
 
+                stage('Hip Debug COMGR') {
+                    agent{ label rocmnode("vega") }
+                    steps{
+                        buildJob('hcc', '-DMIOPEN_USE_COMGR=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image + "rocm")
+                    }
+                }
+
                 stage('Hip Release on /usr/local') {
                     agent{ label rocmnode("vega") }
                     steps{
