@@ -732,7 +732,7 @@ static void DirConvFindCore(Handle& handle,
 
     // Winograd algo
     {
-        const auto all = conv.FindWinogradSolutions(ctx, invoke_ctx);
+        const auto all            = conv.FindWinogradSolutions(ctx, invoke_ctx);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoWinograd"};
         EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
     }
@@ -742,8 +742,8 @@ static void DirConvFindCore(Handle& handle,
     {
         ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
         bufs.SetFwd(x, w, y);
-        const auto all =
-            conv.FindDataDirectSolutions(handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
+        const auto all = conv.FindDataDirectSolutions(
+            handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
         PrecompileSolutions(handle, all);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoDirect"};
         EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
@@ -801,8 +801,8 @@ static void DirConvFindCore(Handle& handle,
         ConvolutionContext params(xDesc, wDesc, yDesc, conv, conv::Direction::Forward, 0);
         ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
         bufs.SetFwd(x, w, y);
-        const auto all =
-            conv.FindSCGemmSolutions(handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
+        const auto all = conv.FindSCGemmSolutions(
+            handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx);
         PrecompileSolutions(handle, all);
         miopen::solver::ConvSolution selected{miopenStatusUnknownError};
 

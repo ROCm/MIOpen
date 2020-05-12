@@ -67,9 +67,7 @@ struct AnyInvokeParams
     {
     }
 
-    AnyInvokeParams(AnyInvokeParams&& other) : impl(std::move(other.impl))
-    {
-    }
+    AnyInvokeParams(AnyInvokeParams&& other) : impl(std::move(other.impl)) {}
 
     AnyInvokeParams& operator=(const AnyInvokeParams& other)
     {
@@ -97,7 +95,7 @@ struct AnyInvokeParams
         return impl->GetInvokeType();
     }
 
-    template<class Actual>
+    template <class Actual>
     const Actual& CastTo() const
     {
         if(!impl)
@@ -125,8 +123,8 @@ struct AnyInvokeParams
         public:
         Interface(const Interface&) = delete;
         Interface(Interface&&)      = delete;
-        Interface& operator =(const Interface&) = delete;
-        Interface& operator =(Interface&&)      = delete;
+        Interface& operator=(const Interface&) = delete;
+        Interface& operator=(Interface&&) = delete;
 
         virtual void SetInvokeType(InvokeType type)         = 0;
         virtual InvokeType GetInvokeType() const            = 0;

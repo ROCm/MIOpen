@@ -546,41 +546,41 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                 << " f_buf.byte_stride.g=" << f_buf.byte_stride.g); // clang-format on
 
             k(N,
-                C,
-                H,
-                W,
-                K,
-                n_groups,
-                flags,
-                reserved,
-                tensors.in,
-                tensors.w,
-                tensors.out,
-                reserved_ptr, // Unused return_addr.
-                R,
-                S,
-                pad_H, // Like Fwd wino.
-                pad_W,
-                out_H,
-                out_W,
-                reserved_ptr, // Unused bias_addr.
-                reserved,     // Unused relu_alpha.
-                d_buf.byte_stride.nk,
-                d_buf.byte_stride.c,
-                d_buf.byte_stride.h,
-                d_buf.byte_stride.w,
-                f_buf.byte_stride.nk,
-                f_buf.byte_stride.c,
-                f_buf.byte_stride.h,
-                f_buf.byte_stride.w,
-                o_buf.byte_stride.nk,
-                o_buf.byte_stride.c,
-                o_buf.byte_stride.h,
-                o_buf.byte_stride.w,
-                group_cnt,
-                d_buf.byte_stride.g,
-                f_buf.byte_stride.g,
-                o_buf.byte_stride.g);
+              C,
+              H,
+              W,
+              K,
+              n_groups,
+              flags,
+              reserved,
+              tensors.in,
+              tensors.w,
+              tensors.out,
+              reserved_ptr, // Unused return_addr.
+              R,
+              S,
+              pad_H, // Like Fwd wino.
+              pad_W,
+              out_H,
+              out_W,
+              reserved_ptr, // Unused bias_addr.
+              reserved,     // Unused relu_alpha.
+              d_buf.byte_stride.nk,
+              d_buf.byte_stride.c,
+              d_buf.byte_stride.h,
+              d_buf.byte_stride.w,
+              f_buf.byte_stride.nk,
+              f_buf.byte_stride.c,
+              f_buf.byte_stride.h,
+              f_buf.byte_stride.w,
+              o_buf.byte_stride.nk,
+              o_buf.byte_stride.c,
+              o_buf.byte_stride.h,
+              o_buf.byte_stride.w,
+              group_cnt,
+              d_buf.byte_stride.g,
+              f_buf.byte_stride.g,
+              o_buf.byte_stride.g);
         };
     };
 

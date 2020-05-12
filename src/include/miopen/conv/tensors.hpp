@@ -135,7 +135,7 @@ struct FusedConvDataTensors
     TensorDescriptor wDesc;
     ConstData_t w = nullptr;
     TensorDescriptor outDesc;
-    Data_t out = nullptr;
+    Data_t out       = nullptr;
     ConstData_t bias = nullptr;
 };
 

@@ -87,7 +87,7 @@ struct AnySolver
         virtual ConvSolution FindSolution(const ConvolutionContext& ctx,
                                           Db& db,
                                           const miopen::AnyInvokeParams& invoke_ctx) const = 0;
-        virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const = 0;
+        virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const               = 0;
     };
 
     // templated derived class

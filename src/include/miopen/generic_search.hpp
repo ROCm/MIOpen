@@ -303,7 +303,7 @@ struct detector<Default, void_t<Op<Args...>>, Op, Args...>
 
 } // namespace detail
 
-template <template<class...> class Op, class... Args>
+template <template <class...> class Op, class... Args>
 using is_detected = typename detail::detector<void, void, Op, Args...>::value_t;
 
 template <template <class...> class Op, class... Args>
@@ -321,9 +321,7 @@ using RunAndMeasure_t =
                                                           std::declval<float&>()));
 
 template <class Solver, class Context>
-auto GenericSearch(const Solver s,
-                   const Context& context,
-                   const AnyInvokeParams& invoke_ctx_)
+auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams& invoke_ctx_)
     -> decltype(s.GetPerformanceConfig(context))
 {
     static_assert(
@@ -333,14 +331,14 @@ auto GenericSearch(const Solver s,
 
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
     PerformanceConfig best_config;
-    const auto default_solution   = s.GetSolution(context, s.GetPerformanceConfig(context));
-    const auto invoke_ctx             = [invoke_ctx_]() {
+    const auto default_solution = s.GetSolution(context, s.GetPerformanceConfig(context));
+    const auto invoke_ctx       = [invoke_ctx_]() {
         auto copy = invoke_ctx_;
         copy.SetInvokeType(InvokeType::AutoTune);
         return copy;
     }();
 
-    auto& profile_h          = context.GetStream();
+    auto& profile_h = context.GetStream();
     AutoEnableProfiling enableProfiling{profile_h};
 
     const ComputedContainer<PerformanceConfig, Context> main(context);
@@ -374,8 +372,8 @@ auto GenericSearch(const Solver s,
 
         if(ret == 0)
         {
-            const auto& invoker = profile_h.PrepareInvoker(
-                *current_solution.invoker_factory, current_solution.construction_params);
+            const auto& invoker = profile_h.PrepareInvoker(*current_solution.invoker_factory,
+                                                           current_solution.construction_params);
             invoker(profile_h, invoke_ctx);
             elapsed_time = profile_h.GetKernelTime();
         }
@@ -462,7 +460,7 @@ auto GenericSearch(const Solver s,
                                                    default_solution.construction_params);
     invoker(profile_h, invoke_ctx);
     const auto default_time = profile_h.GetKernelTime();
-    const auto score = (best_time > 0.0f) ? default_time / best_time : 0.0f;
+    const auto score        = (best_time > 0.0f) ? default_time / best_time : 0.0f;
     MIOPEN_LOG_W("...Score: " << score << " (default time " << default_time << ')');
 
     return best_config;

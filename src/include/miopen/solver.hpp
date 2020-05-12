@@ -670,7 +670,8 @@ struct ConvHipImplicitGemmV4Fwd : SolverBase<ConvolutionContext>
                              const PerformanceImplicitGemm& config,
                              bool disableConfigOverrideFromEnv = false) const;
 
-    PerformanceImplicitGemm Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
+    PerformanceImplicitGemm Search(const ConvolutionContext&,
+                                   const AnyInvokeParams& invoke_ctx) const;
 };
 
 struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
@@ -866,7 +867,8 @@ struct ConvHipImplicitGemmV4_1x1 : SolverBase<ConvolutionContext>
                              const PerformanceImplicitGemm& config,
                              bool disableConfigOverrideFromEnv = false) const;
 
-    PerformanceImplicitGemm Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
+    PerformanceImplicitGemm Search(const ConvolutionContext&,
+                                   const AnyInvokeParams& invoke_ctx) const;
 };
 
 struct ConvHipImplicitGemmV4R1WrW : SolverBase<ConvolutionContext>
@@ -893,7 +895,8 @@ struct ConvHipImplicitGemmV4WrW : SolverBase<ConvolutionContext>
                              const PerformanceImplicitGemm& config,
                              bool disableConfigOverrideFromEnv = false) const;
 
-    PerformanceImplicitGemm Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
+    PerformanceImplicitGemm Search(const ConvolutionContext&,
+                                   const AnyInvokeParams& invoke_ctx) const;
 };
 
 struct ConvHipImplicitGemmBwdDataV1R1 : SolverBase<ConvolutionContext>
@@ -945,7 +948,8 @@ struct ConvHipImplicitGemmBwdDataV1R1Xdlops : SolverBase<ConvolutionContext>
 struct ConvOclDirectFwdLegacyExhaustiveSearch : SolverBase<ConvolutionContext>
 {
     LegacyPerformanceConfig GetPerformanceConfig(const ConvolutionContext&) const;
-    LegacyPerformanceConfig Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
+    LegacyPerformanceConfig Search(const ConvolutionContext&,
+                                   const AnyInvokeParams& invoke_ctx) const;
 
     private:
     template <typename Tgpu>

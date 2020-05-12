@@ -701,7 +701,7 @@ std::size_t ConvolutionDescriptor::ForwardBackwardGetWorkSpaceSizeImplicitGemm(
 
     try
     {
-        if (ctx.do_search)
+        if(ctx.do_search)
             MIOPEN_THROW("Auto-tune is not supported in the get workspace size");
         const auto ss  = FindAllImplicitGemmSolutions(ctx, {});
         std::size_t sz = 0;
