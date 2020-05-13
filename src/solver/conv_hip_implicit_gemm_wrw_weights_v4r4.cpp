@@ -189,6 +189,7 @@ PerformanceImplicitGemmV4R4WrW::CalculateGemmABlockCopyPerformanceParameters(
         if(!(a_data_per_thread_copy > 0))
             MIOPEN_THROW("invalid performance parameter");
 
+        SrcDataPerRead_GemmK = gcd(SrcDataPerRead_GemmK, a_data_per_thread_copy);
         // decide threadwise copy lengths
         const auto a_data_per_thread_copy_gemmk = SrcDataPerRead_GemmK;
         const auto a_data_per_thread_copy_gemmm =
@@ -218,16 +219,89 @@ PerformanceImplicitGemmV4R4WrW::CalculateGemmABlockCopyPerformanceParameters(
 
 std::tuple<int, int, int, int, bool>
 PerformanceImplicitGemmV4R4WrW::CalculateGemmBBlockCopyPerformanceParameters(
-    const ConvolutionContext&) const
+    const ConvolutionContext& ctx) const
 {
     int ClusterLengths_GemmK  = 0;
     int ClusterLengths_GemmN  = 0;
-    int SrcDataPerRead_GemmN  = 1;
+    int SrcDataPerRead_GemmK  = amd_lds_write_max_length<float>();
     int DstDataPerWrite_GemmN = amd_lds_write_max_length<float>();
 
     try
     {
-        SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, GemmNPerBlock);
+        SrcDataPerRead_GemmK = gcd(SrcDataPerRead_GemmK, GemmKPerBlock);
+
+        const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+        const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+        const auto hi = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
+        const auto wi = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
+        const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+        const auto conv_stride_h =
+            ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
+        const auto conv_stride_w =
+            ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
+        const auto conv_dilation_w =
+            ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
+        const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
+        const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
+        const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
+        const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
+
+        if(ctx.Is3d())
+        {
+            const auto di = ConvolutionContextInterpreter::GetInputDepthDi(ctx);
+            const auto z  = ConvolutionContextInterpreter::GetFilterDepthZ(ctx);
+            const auto conv_stride_d =
+                ConvolutionContextInterpreter::GetAdjustedConvolutionStrideD(ctx);
+            const auto in_left_pad_d = ConvolutionContextInterpreter::GetInputLeftPadD(ctx);
+            const auto in_right_pad_d =
+                ConvolutionContextInterpreter::GetAdjustedInputRightPadD(ctx);
+
+            if(z == 1 && y == 1 && x == 1 && conv_stride_d == 1 && conv_stride_h == 1 &&
+               conv_stride_w == 1 && in_left_pad_d == 0 && in_left_pad_h == 0 &&
+               in_left_pad_w == 0 && in_right_pad_d == 0 && in_right_pad_h == 0 &&
+               in_right_pad_w == 0)
+            {
+                // \todo there are more configs that can go through this if branch
+                SrcDataPerRead_GemmK = gcd(SrcDataPerRead_GemmK, di * hi * wi);
+            }
+            else if(conv_stride_w == 1 && in_left_pad_w == 0 && in_right_pad_w == 0 &&
+                    conv_dilation_w == 1)
+            {
+                SrcDataPerRead_GemmK = gcd(SrcDataPerRead_GemmK, wo);
+            }
+            else if(conv_stride_w == 1)
+            {
+                SrcDataPerRead_GemmK =
+                    gcd(SrcDataPerRead_GemmK, in_left_pad_w, wi, in_right_pad_w, conv_dilation_w);
+            }
+            else
+            {
+                SrcDataPerRead_GemmK = 1;
+            }
+        }
+        else
+        {
+            if(y == 1 && x == 1 && conv_stride_h == 1 && conv_stride_w == 1 && in_left_pad_h == 0 &&
+               in_left_pad_w == 0 && in_right_pad_h == 0 && in_right_pad_w == 0)
+            {
+                // \todo there are more configs that can go through this if branch
+                SrcDataPerRead_GemmK = gcd(SrcDataPerRead_GemmK, hi * wi);
+            }
+            else if(conv_stride_w == 1 && in_left_pad_w == 0 && in_right_pad_w == 0 &&
+                    conv_dilation_w == 1)
+            {
+                SrcDataPerRead_GemmK = gcd(SrcDataPerRead_GemmK, wo);
+            }
+            else if(conv_stride_w == 1)
+            {
+                SrcDataPerRead_GemmK =
+                    gcd(SrcDataPerRead_GemmK, in_left_pad_w, wi, in_right_pad_w, conv_dilation_w);
+            }
+            else
+            {
+                SrcDataPerRead_GemmK = 1;
+            }
+        }
 
         // calculate threadwise copy size
         const auto b_data_per_thread_copy = (GemmKPerBlock * GemmNPerBlock) / BlockSize;
@@ -236,11 +310,12 @@ PerformanceImplicitGemmV4R4WrW::CalculateGemmBBlockCopyPerformanceParameters(
             MIOPEN_THROW("invalid performance parameter");
 
         // GemmBBlockCopySrcDataPerRead_GemmN also bounded by size of threadwise copy
-        SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, b_data_per_thread_copy);
+        SrcDataPerRead_GemmK = gcd(SrcDataPerRead_GemmK, b_data_per_thread_copy);
 
-        const auto b_data_per_thread_copy_gemmn = SrcDataPerRead_GemmN;
-        const auto b_data_per_thread_copy_gemmk =
-            b_data_per_thread_copy / b_data_per_thread_copy_gemmn;
+        const auto b_data_per_thread_copy_gemmk = SrcDataPerRead_GemmK;
+
+        const auto b_data_per_thread_copy_gemmn =
+            b_data_per_thread_copy / b_data_per_thread_copy_gemmk;
 
         // GemmBBlockCopyDstDataPerWrite_GemmN also bounded by size of threadwise copy
         DstDataPerWrite_GemmN = gcd(DstDataPerWrite_GemmN, b_data_per_thread_copy_gemmn);
@@ -260,7 +335,7 @@ PerformanceImplicitGemmV4R4WrW::CalculateGemmBBlockCopyPerformanceParameters(
 
     return std::make_tuple(ClusterLengths_GemmK,
                            ClusterLengths_GemmN,
-                           SrcDataPerRead_GemmN,
+                           SrcDataPerRead_GemmK,
                            DstDataPerWrite_GemmN,
                            true);
 }
@@ -396,7 +471,7 @@ bool PerformanceImplicitGemmV4R4WrW::IsValid(const ConvolutionContext& ctx) cons
         return false;
 
     // check LDS allocation
-    std::size_t lds_size = 0;
+    std::size_t lds_size      = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= get_lds_max_number_of_byte());
@@ -614,7 +689,7 @@ ConvSolution ConvHipImplicitGemmV4R4WrW::GetSolution(const ConvolutionContext& c
     int GemmABlockCopyDstDataPerWrite_GemmM   = 0;
     int GemmBBlockCopyClusterLengths_GemmK    = 0;
     int GemmBBlockCopyClusterLengths_GemmN    = 0;
-    int GemmBBlockCopySrcDataPerRead_GemmN    = 0;
+    int GemmBBlockCopySrcDataPerRead_GemmK    = 0;
     int GemmBBlockCopyDstDataPerWrite_GemmN   = 0;
     int GemmCThreadCopyDstDataPerWrite_GemmN1 = 0;
 
@@ -632,7 +707,7 @@ ConvSolution ConvHipImplicitGemmV4R4WrW::GetSolution(const ConvolutionContext& c
 
     std::tie(GemmBBlockCopyClusterLengths_GemmK,
              GemmBBlockCopyClusterLengths_GemmN,
-             GemmBBlockCopySrcDataPerRead_GemmN,
+             GemmBBlockCopySrcDataPerRead_GemmK,
              GemmBBlockCopyDstDataPerWrite_GemmN,
              std::ignore) = config.CalculateGemmBBlockCopyPerformanceParameters(ctx);
 
@@ -678,7 +753,7 @@ ConvSolution ConvHipImplicitGemmV4R4WrW::GetSolution(const ConvolutionContext& c
         std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_M=") + std::to_string(GemmABlockCopyDstDataPerWrite_GemmM) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K=") + std::to_string(GemmBBlockCopyClusterLengths_GemmK) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_N=") + std::to_string(GemmBBlockCopyClusterLengths_GemmN) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N=") + std::to_string(GemmBBlockCopySrcDataPerRead_GemmN) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_K=") + std::to_string(GemmBBlockCopySrcDataPerRead_GemmK) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N=") + std::to_string(GemmBBlockCopyDstDataPerWrite_GemmN) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_C_THREAD_COPY_DST_DATA_PER_WRITE_GEMM_N1=") + std::to_string(GemmCThreadCopyDstDataPerWrite_GemmN1) +
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +

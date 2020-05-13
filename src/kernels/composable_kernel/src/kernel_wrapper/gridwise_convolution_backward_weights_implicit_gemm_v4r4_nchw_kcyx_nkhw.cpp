@@ -111,8 +111,8 @@ extern "C" __global__
     using GemmBBlockCopyThreadClusterLengths_GemmK_GemmN =
         Sequence<GemmBBlockCopyClusterLengths_GemmK, GemmBBlockCopyClusterLengths_GemmN>;
 
-    constexpr index_t GemmBBlockCopySrcDataPerRead_GemmN =
-        CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N;
+    constexpr index_t GemmBBlockCopySrcDataPerRead_GemmK =
+        CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_K;
 
     constexpr index_t GemmBBlockCopyDstDataPerWrite_GemmN =
         CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N;
@@ -152,7 +152,7 @@ extern "C" __global__
             GemmABlockCopyDstDataPerWrite_GemmM,
             GemmBBlockCopyThreadSliceLengths_GemmK_GemmN,
             GemmBBlockCopyThreadClusterLengths_GemmK_GemmN,
-            GemmBBlockCopySrcDataPerRead_GemmN,
+            GemmBBlockCopySrcDataPerRead_GemmK,
             GemmBBlockCopyDstDataPerWrite_GemmN,
             GemmCThreadCopyDstDataPerWrite_GemmN1>{};
     // in hpp is in,out,wei => dout * din = wei
