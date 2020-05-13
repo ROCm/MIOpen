@@ -505,10 +505,6 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(const ConvolutionContext
 
 bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
-#if WORKAROUND_SWDEV_229277_227616_229195
-    if(!IsHccCompiler())
-        return false;
-#endif
     bool is_applicable = true;
 
     if(!ctx.direction.IsBackwardData())
