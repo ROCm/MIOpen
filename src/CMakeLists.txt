@@ -604,13 +604,19 @@ endif()
 
 ############################################################
 # Installation
+set(MIOPEN_CXX_HEADER_PATH)
+if(MIOPEN_INSTALL_CXX_HEADERS)
+set(MIOPEN_CXX_HEADER_PATH ${PROJECT_SOURCE_DIR}/src/include)
+endif()
+
 rocm_install_targets(
   TARGETS MIOpen
   INCLUDE
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_BINARY_DIR}/include
+    ${MIOPEN_CXX_HEADER_PATH}
   PREFIX ${MIOPEN_INSTALL_DIR}
- )
+)
 
 rocm_export_targets(
   TARGETS MIOpen
