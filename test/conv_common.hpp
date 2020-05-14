@@ -359,6 +359,13 @@ struct verify_forward_conv : conv_base<T, Tout>
                 filter.CompileBackwardSolution(
                     handle, input.desc, weights.desc, rout.desc, selected.solution_id);
 
+                workspace_dev.reset();
+                if(selected.workspace_size > 0)
+                {
+                    workspace.resize(selected.workspace_size);
+                    workspace_dev = handle.Write(workspace);
+                }
+
                 filter.ConvolutionBackwardImmediate(handle,
                                                     input.desc,
                                                     in_dev.get(),
@@ -423,6 +430,13 @@ struct verify_forward_conv : conv_base<T, Tout>
 
                 filter.CompileForwardSolution(
                     handle, weights.desc, input.desc, rout.desc, selected.solution_id);
+
+                workspace_dev.reset();
+                if(selected.workspace_size > 0)
+                {
+                    workspace.resize(selected.workspace_size);
+                    workspace_dev = handle.Write(workspace);
+                }
 
                 filter.ConvolutionForwardImmediate(handle,
                                                    weights.desc,
@@ -515,6 +529,13 @@ struct verify_forward_conv : conv_base<T, Tout>
                 filter.GetForwardSolutions(
                     handle, wei_desc, in_desc, rout.desc, 1, &count, &selected);
 
+                workspace_dev.reset();
+                if(selected.workspace_size > 0)
+                {
+                    workspace.resize(selected.workspace_size);
+                    workspace_dev = handle.Write(workspace);
+                }
+
                 filter.ConvolutionForward(handle,
                                           &alpha,
                                           in_desc,
@@ -563,6 +584,13 @@ struct verify_forward_conv : conv_base<T, Tout>
                     filter.GetBackwardSolutions(
                         handle, input.desc, weights.desc, rout.desc, 1, &count, &selected);
 
+                    workspace_dev.reset();
+                    if(selected.workspace_size > 0)
+                    {
+                        workspace.resize(selected.workspace_size);
+                        workspace_dev = handle.Write(workspace);
+                    }
+
                     filter.ConvolutionBackwardData(handle,
                                                    &alpha,
                                                    input.desc,
@@ -594,6 +622,13 @@ struct verify_forward_conv : conv_base<T, Tout>
 
                     filter.GetForwardSolutions(
                         handle, weights.desc, input.desc, rout.desc, 1, &count, &selected);
+
+                    workspace_dev.reset();
+                    if(selected.workspace_size > 0)
+                    {
+                        workspace.resize(selected.workspace_size);
+                        workspace_dev = handle.Write(workspace);
+                    }
 
                     filter.ConvolutionForward(handle,
                                               &alpha,
@@ -772,6 +807,13 @@ struct verify_backward_conv : conv_base<T>
                 filter.CompileForwardSolution(
                     handle, weights.desc, out.desc, rinput.desc, selected.solution_id);
 
+                workspace_dev.reset();
+                if(selected.workspace_size > 0)
+                {
+                    workspace.resize(selected.workspace_size);
+                    workspace_dev = handle.Write(workspace);
+                }
+
                 filter.ConvolutionForwardImmediate(handle,
                                                    weights.desc,
                                                    wei_dev.get(),
@@ -837,6 +879,13 @@ struct verify_backward_conv : conv_base<T>
                 filter.CompileBackwardSolution(
                     handle, out.desc, weights.desc, rinput.desc, selected.solution_id);
 
+                workspace_dev.reset();
+                if(selected.workspace_size > 0)
+                {
+                    workspace.resize(selected.workspace_size);
+                    workspace_dev = handle.Write(workspace);
+                }
+
                 filter.ConvolutionBackwardImmediate(handle,
                                                     out.desc,
                                                     out_dev.get(),
@@ -884,6 +933,13 @@ struct verify_backward_conv : conv_base<T>
                 filter.GetForwardSolutions(
                     handle, weights.desc, out.desc, rinput.desc, 1, &count, &selected);
 
+                workspace_dev.reset();
+                if(selected.workspace_size > 0)
+                {
+                    workspace.resize(selected.workspace_size);
+                    workspace_dev = handle.Write(workspace);
+                }
+
                 filter.ConvolutionForward(handle,
                                           &alpha,
                                           out.desc,
@@ -915,6 +971,13 @@ struct verify_backward_conv : conv_base<T>
 
                 filter.GetBackwardSolutions(
                     handle, out.desc, weights.desc, rinput.desc, 1, &count, &selected);
+
+                workspace_dev.reset();
+                if(selected.workspace_size > 0)
+                {
+                    workspace.resize(selected.workspace_size);
+                    workspace_dev = handle.Write(workspace);
+                }
 
                 filter.ConvolutionBackwardData(handle,
                                                &alpha,
@@ -1106,6 +1169,13 @@ struct verify_backward_weights_conv : conv_base<T>
                                       rweights.desc,
                                       selected.solution_id);
 
+            workspace_dev.reset();
+            if(selected.workspace_size > 0)
+            {
+                workspace.resize(selected.workspace_size);
+                workspace_dev = handle.Write(workspace);
+            }
+
             filter.ConvolutionWrwImmediate(
                 handle,
                 filter.mode == miopenTranspose ? input.desc : out.desc,
@@ -1156,6 +1226,13 @@ struct verify_backward_weights_conv : conv_base<T>
                                    1,
                                    &count,
                                    &selected);
+
+            workspace_dev.reset();
+            if(selected.workspace_size > 0)
+            {
+                workspace.resize(selected.workspace_size);
+                workspace_dev = handle.Write(workspace);
+            }
 
             filter.ConvolutionBackwardWeights(
                 handle,
@@ -1360,6 +1437,13 @@ struct verify_forward_conv_int8 : conv_base<T>
                                       (is_transform ? input_vpad_desc : input.desc),
                                       rout.desc,
                                       selected.solution_id);
+
+        workspace_dev.reset();
+        if(selected.workspace_size > 0)
+        {
+            workspace.resize(selected.workspace_size);
+            workspace_dev = handle.Write(workspace);
+        }
 
         filter.ConvolutionForwardImmediate(handle,
                                            (is_transform ? weight_vpad_desc : weights.desc),
