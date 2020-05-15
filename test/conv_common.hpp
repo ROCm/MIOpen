@@ -283,10 +283,13 @@ struct verify_forward_conv : conv_base<T, Tout>
         auto wei_dev = handle.Write(weights.data);
         auto out_dev = handle.Write(rout.data);
 
-        // Find() updates find-db with the most recent information (unless find-db is
-        // disabled). Therefore, after Find(), Immediate mode returns the "best" found solution
-        // as the 1st solution in the list, and we can use Immediate mode to find out
-        // the name of the Solver selected during Find() and then used in Run().
+        /// \section read_solver_name
+        /// Find() updates find-db with the most recent information (unless find-db is
+        /// disabled). Therefore, after Find(), Immediate mode returns the "best" found solution
+        /// as the 1st solution in the list, and we can use Immediate mode to find out
+        /// the name of the Solver selected during Find() and then used in Run().
+        /// So we use one Immediate mode call during Find mode tests,
+        /// to print solver name onto console.
         miopenConvSolution_t selected;
         std::size_t count = 0;
 
@@ -526,13 +529,10 @@ struct verify_forward_conv : conv_base<T, Tout>
                                             workspace_size,
                                             search);
 
-                filter.GetForwardSolutions(
-                    handle, wei_desc, in_desc, rout.desc, 1, &count, &selected);
-
                 workspace_dev.reset();
-                if(selected.workspace_size > 0)
+                if(perf.memory > 0)
                 {
-                    workspace.resize(selected.workspace_size);
+                    workspace.resize(perf.memory);
                     workspace_dev = handle.Write(workspace);
                 }
 
@@ -548,6 +548,14 @@ struct verify_forward_conv : conv_base<T, Tout>
                                           out_dev.get(),
                                           workspace_dev.get(),
                                           workspace_size);
+
+                filter.GetForwardSolutions(handle,
+                                           wei_desc,
+                                           in_desc,
+                                           rout.desc,
+                                           1,
+                                           &count,
+                                           &selected); /// \ref read_solver_name
             }
             else
             {
@@ -581,13 +589,10 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                     workspace_size,
                                                     search);
 
-                    filter.GetBackwardSolutions(
-                        handle, input.desc, weights.desc, rout.desc, 1, &count, &selected);
-
                     workspace_dev.reset();
-                    if(selected.workspace_size > 0)
+                    if(perf.memory > 0)
                     {
-                        workspace.resize(selected.workspace_size);
+                        workspace.resize(perf.memory);
                         workspace_dev = handle.Write(workspace);
                     }
 
@@ -603,6 +608,14 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                    out_dev.get(),
                                                    workspace_dev.get(),
                                                    workspace_size);
+
+                    filter.GetBackwardSolutions(handle,
+                                                input.desc,
+                                                weights.desc,
+                                                rout.desc,
+                                                1,
+                                                &count,
+                                                &selected); /// \ref read_solver_name
                 }
                 else
                 {
@@ -620,13 +633,10 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                 workspace_size,
                                                 search);
 
-                    filter.GetForwardSolutions(
-                        handle, weights.desc, input.desc, rout.desc, 1, &count, &selected);
-
                     workspace_dev.reset();
-                    if(selected.workspace_size > 0)
+                    if(perf.memory > 0)
                     {
-                        workspace.resize(selected.workspace_size);
+                        workspace.resize(perf.memory);
                         workspace_dev = handle.Write(workspace);
                     }
 
@@ -642,6 +652,14 @@ struct verify_forward_conv : conv_base<T, Tout>
                                               out_dev.get(),
                                               workspace_dev.get(),
                                               workspace_size);
+
+                    filter.GetForwardSolutions(handle,
+                                               weights.desc,
+                                               input.desc,
+                                               rout.desc,
+                                               1,
+                                               &count,
+                                               &selected); /// \ref read_solver_name
                 }
             }
         }
@@ -930,13 +948,10 @@ struct verify_backward_conv : conv_base<T>
                                             workspace_size,
                                             search);
 
-                filter.GetForwardSolutions(
-                    handle, weights.desc, out.desc, rinput.desc, 1, &count, &selected);
-
                 workspace_dev.reset();
-                if(selected.workspace_size > 0)
+                if(perf.memory > 0)
                 {
-                    workspace.resize(selected.workspace_size);
+                    workspace.resize(perf.memory);
                     workspace_dev = handle.Write(workspace);
                 }
 
@@ -952,6 +967,14 @@ struct verify_backward_conv : conv_base<T>
                                           in_dev.get(),
                                           workspace_dev.get(),
                                           workspace_size);
+
+                filter.GetForwardSolutions(handle,
+                                           weights.desc,
+                                           out.desc,
+                                           rinput.desc,
+                                           1,
+                                           &count,
+                                           &selected); /// \ref read_solver_name
             }
             else
             {
@@ -969,13 +992,10 @@ struct verify_backward_conv : conv_base<T>
                                                 workspace_size,
                                                 search);
 
-                filter.GetBackwardSolutions(
-                    handle, out.desc, weights.desc, rinput.desc, 1, &count, &selected);
-
                 workspace_dev.reset();
-                if(selected.workspace_size > 0)
+                if(perf.memory > 0)
                 {
-                    workspace.resize(selected.workspace_size);
+                    workspace.resize(perf.memory);
                     workspace_dev = handle.Write(workspace);
                 }
 
@@ -991,6 +1011,14 @@ struct verify_backward_conv : conv_base<T>
                                                in_dev.get(),
                                                workspace_dev.get(),
                                                workspace_size);
+
+                filter.GetBackwardSolutions(handle,
+                                            out.desc,
+                                            weights.desc,
+                                            rinput.desc,
+                                            1,
+                                            &count,
+                                            &selected); /// \ref read_solver_name
             }
         }
 
@@ -1219,18 +1247,10 @@ struct verify_backward_weights_conv : conv_base<T>
                 workspace_size,
                 search);
 
-            filter.GetWrwSolutions(handle,
-                                   filter.mode == miopenTranspose ? input.desc : out.desc,
-                                   filter.mode == miopenTranspose ? out.desc : input.desc,
-                                   rweights.desc,
-                                   1,
-                                   &count,
-                                   &selected);
-
             workspace_dev.reset();
-            if(selected.workspace_size > 0)
+            if(perf.memory > 0)
             {
-                workspace.resize(selected.workspace_size);
+                workspace.resize(perf.memory);
                 workspace_dev = handle.Write(workspace);
             }
 
@@ -1247,6 +1267,14 @@ struct verify_backward_weights_conv : conv_base<T>
                 wei_dev.get(),
                 workspace_dev.get(),
                 workspace_size);
+
+            filter.GetWrwSolutions(handle,
+                                   filter.mode == miopenTranspose ? input.desc : out.desc,
+                                   filter.mode == miopenTranspose ? out.desc : input.desc,
+                                   rweights.desc,
+                                   1,
+                                   &count,
+                                   &selected); /// \ref read_solver_name
         }
 
         if(count != 0)
