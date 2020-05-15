@@ -103,6 +103,7 @@ endif()
 list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/hcc)
 
 option(ENABLE_HIP_WORKAROUNDS Off)
+set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
 
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
@@ -274,7 +275,7 @@ else()
 endif()
 
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
-set(BOOST_COMPONENTS filesystem system)
+set(BOOST_COMPONENTS filesystem)
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
@@ -309,7 +310,7 @@ if(MIOPEN_USE_MIOPENGEMM)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, miopengemm")
 endif()
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}, rocm-opencl-dev")
-set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}, rocm-opencl-devel")
+set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}, rocm-opencl-dev")
 
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}

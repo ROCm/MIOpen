@@ -520,6 +520,7 @@ generate_export_header(MIOpen
     EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
 )
 set(PACKAGE_DEPENDS)
+set(PACKAGE_STATIC_DEPENDS)
 ############################################################
 # MIOpen depends on OpenCL
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
@@ -544,11 +545,13 @@ endif()
 if(miopengemm_FOUND)
     list(APPEND PACKAGE_DEPENDS PACKAGE miopengemm)
     target_internal_library(MIOpen miopengemm)
+    list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE miopengemm)
 endif()
 
 if(rocblas_FOUND)
     target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:roc::rocblas> )
     target_link_libraries( MIOpen PRIVATE roc::rocblas )
+    list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE rocblas)
 endif()
 
 if(WIN32 AND NOT MSVC)
@@ -558,13 +561,10 @@ if(WIN32 AND NOT MSVC)
     target_link_libraries(MIOpen PUBLIC -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
 endif()
 
-target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>)
 target_internal_library(MIOpen
-    optimized ${Boost_FILESYSTEM_LIBRARY_RELEASE}
-    optimized ${Boost_SYSTEM_LIBRARY_RELEASE}
-    debug ${Boost_FILESYSTEM_LIBRARY_DEBUG}
-    debug ${Boost_SYSTEM_LIBRARY_DEBUG}
+    Boost::filesystem
 )
+list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE Boost COMPONTENTS filesystem)
 if(NOT WIN32 AND NOT APPLE)
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/lib.def "
 MIOPEN_${MIOPEN_BACKEND}_1
@@ -583,7 +583,7 @@ local:
 ")
     target_link_libraries(MIOpen PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_BINARY_DIR}/lib.def")
     target_link_libraries(MIOpen PRIVATE "-Wl,--exclude-libs,ALL")
-    # set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET protected)
+    # set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET hidden)
     set_target_properties(MIOpen PROPERTIES VISIBILITY_INLINES_HIDDEN 1)
 endif()
 #######################################
@@ -608,19 +608,27 @@ endif()
 
 ############################################################
 # Installation
+set(MIOPEN_CXX_HEADER_PATH)
+if(MIOPEN_INSTALL_CXX_HEADERS)
+set(MIOPEN_CXX_HEADER_PATH ${PROJECT_SOURCE_DIR}/src/include)
+endif()
+
 rocm_install_targets(
   TARGETS MIOpen
   INCLUDE
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_BINARY_DIR}/include
+    ${MIOPEN_CXX_HEADER_PATH}
   PREFIX ${MIOPEN_INSTALL_DIR}
- )
+)
 
 rocm_export_targets(
   TARGETS MIOpen
   PREFIX ${MIOPEN_INSTALL_DIR}
   DEPENDS
     ${PACKAGE_DEPENDS}
+  PACKAGE_STATIC_DEPENDS
+    ${PACKAGE_STATIC_DEPENDS}
 )
 
 
