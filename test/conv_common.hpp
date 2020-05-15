@@ -274,6 +274,19 @@ struct verify_forward_conv : conv_base<T, Tout>
         return rout;
     }
 
+    void resize_workspace(miopen::Handle& h,
+                          const std::size_t sz,
+                          std::vector<char>& ws,
+                          miopen::Allocator::ManageDataPtr& ws_dev) const
+    {
+        ws_dev.reset();
+        if(sz > 0)
+        {
+            ws.resize(sz);
+            ws_dev = h.Write(ws);
+        }
+    }
+
     tensor<Tout> gpu() const
     {
         auto&& handle = get_handle();
@@ -293,24 +306,21 @@ struct verify_forward_conv : conv_base<T, Tout>
         miopenConvSolution_t selected;
         std::size_t count = 0;
 
+        std::vector<char> ws;
+        miopen::Allocator::ManageDataPtr ws_dev = nullptr;
+
         if(immed)
         {
-            size_t workspace_size =
-                filter.mode == miopenTranspose
-                    ? filter.BackwardDataGetWorkSpaceSize(
-                          handle, weights.desc, input.desc, rout.desc)
-                    : filter.ForwardGetWorkSpaceSize(handle, weights.desc, input.desc, rout.desc);
-
-            std::vector<char> workspace(workspace_size);
-            auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
-
-            int ret_algo_count;
-            miopenConvAlgoPerf_t perf;
-
             if(filter.mode == miopenTranspose)
             {
                 if(miopen::testing_find_db_enabled)
                 {
+                    int ret_algo_count;
+                    miopenConvAlgoPerf_t perf;
+                    const size_t workspace_size = filter.BackwardDataGetWorkSpaceSize(
+                        handle, weights.desc, input.desc, rout.desc);
+                    resize_workspace(handle, workspace_size, ws, ws_dev);
+
                     filter.FindConvBwdDataAlgorithm(handle,
                                                     input.desc,
                                                     in_dev.get(),
@@ -321,7 +331,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                     1,
                                                     &ret_algo_count,
                                                     &perf,
-                                                    workspace_dev.get(),
+                                                    ws_dev.get(),
                                                     workspace_size,
                                                     search);
                 }
@@ -335,8 +345,6 @@ struct verify_forward_conv : conv_base<T, Tout>
                     exit(-1);
                 }
 
-                // std::cout << "Transpose forward Conv solutions available: " << count <<
-                // std::endl;
                 auto solutions = std::vector<miopenConvSolution_t>(count);
 
                 filter.GetBackwardSolutions(
@@ -348,26 +356,19 @@ struct verify_forward_conv : conv_base<T, Tout>
                               << " Solution count: " << count << std::endl;
                     exit(-1);
                 }
-                solutions.resize(count);
-                std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {
-                    return l.time < r.time;
-                });
                 selected = solutions.front();
 
-                std::size_t ws_size;
-
-                ws_size = filter.GetBackwardSolutionWorkspaceSize(
-                    handle, input.desc, weights.desc, rout.desc, selected.solution_id);
+                {
+                    const std::size_t ws_size = filter.GetBackwardSolutionWorkspaceSize(
+                        handle, input.desc, weights.desc, rout.desc, selected.solution_id);
+                    if(ws_size != selected.workspace_size)
+                        std::cout << "WARNING: workspace size mismatch: " << selected.workspace_size
+                                  << " != " << ws_size << std::endl;
+                }
+                resize_workspace(handle, selected.workspace_size, ws, ws_dev);
 
                 filter.CompileBackwardSolution(
                     handle, input.desc, weights.desc, rout.desc, selected.solution_id);
-
-                workspace_dev.reset();
-                if(selected.workspace_size > 0)
-                {
-                    workspace.resize(selected.workspace_size);
-                    workspace_dev = handle.Write(workspace);
-                }
 
                 filter.ConvolutionBackwardImmediate(handle,
                                                     input.desc,
@@ -376,14 +377,20 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                     wei_dev.get(),
                                                     rout.desc,
                                                     out_dev.get(),
-                                                    workspace_dev.get(),
-                                                    ws_size,
+                                                    ws_dev.get(),
+                                                    selected.workspace_size,
                                                     selected.solution_id);
             }
             else
             {
                 if(miopen::testing_find_db_enabled)
                 {
+                    int ret_algo_count;
+                    miopenConvAlgoPerf_t perf;
+                    const size_t workspace_size =
+                        filter.ForwardGetWorkSpaceSize(handle, weights.desc, input.desc, rout.desc);
+                    resize_workspace(handle, workspace_size, ws, ws_dev);
+
                     filter.FindConvFwdAlgorithm(handle,
                                                 input.desc,
                                                 in_dev.get(),
@@ -394,7 +401,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                 1,
                                                 &ret_algo_count,
                                                 &perf,
-                                                workspace_dev.get(),
+                                                ws_dev.get(),
                                                 workspace_size,
                                                 search);
                 }
@@ -420,26 +427,19 @@ struct verify_forward_conv : conv_base<T, Tout>
                               << " Solution count: " << count << std::endl;
                     exit(-1);
                 }
-                solutions.resize(count);
-                std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {
-                    return l.time < r.time;
-                });
                 selected = solutions.front();
 
-                std::size_t ws_size;
-
-                ws_size = filter.GetForwardSolutionWorkspaceSize(
-                    handle, weights.desc, input.desc, rout.desc, selected.solution_id);
+                {
+                    const std::size_t ws_size = filter.GetForwardSolutionWorkspaceSize(
+                        handle, weights.desc, input.desc, rout.desc, selected.solution_id);
+                    if(ws_size != selected.workspace_size)
+                        std::cout << "WARNING: workspace size mismatch: " << selected.workspace_size
+                                  << " != " << ws_size << std::endl;
+                }
+                resize_workspace(handle, selected.workspace_size, ws, ws_dev);
 
                 filter.CompileForwardSolution(
                     handle, weights.desc, input.desc, rout.desc, selected.solution_id);
-
-                workspace_dev.reset();
-                if(selected.workspace_size > 0)
-                {
-                    workspace.resize(selected.workspace_size);
-                    workspace_dev = handle.Write(workspace);
-                }
 
                 filter.ConvolutionForwardImmediate(handle,
                                                    weights.desc,
@@ -448,8 +448,8 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                    in_dev.get(),
                                                    rout.desc,
                                                    out_dev.get(),
-                                                   workspace_dev.get(),
-                                                   ws_size,
+                                                   ws_dev.get(),
+                                                   selected.workspace_size,
                                                    selected.solution_id);
             }
         }
