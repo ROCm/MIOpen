@@ -219,10 +219,10 @@ struct verify_forward_conv : conv_base<T, Tout>
                         const tensor<T>& pweights,
                         const miopen::ConvolutionDescriptor& pfilter,
                         conv_stats& pstats,
-                        int pbias   = 0,
-                        int psearch = 0,
-                        bool pvect  = false,
-                        bool pimmed = false)
+                        int pbias,
+                        int psearch,
+                        bool pvect,
+                        bool pimmed)
     {
         input   = pinput;
         weights = pweights;
@@ -682,9 +682,9 @@ struct verify_backward_conv : conv_base<T>
                          const tensor<T>& pout,
                          const miopen::ConvolutionDescriptor& pfilter,
                          conv_stats& pstats,
-                         int pbias   = 0,
-                         int psearch = 0,
-                         bool pimmed = false)
+                         int pbias,
+                         int psearch,
+                         bool pimmed)
     {
         input   = pinput;
         weights = pweights;
@@ -1030,9 +1030,9 @@ struct verify_backward_weights_conv : conv_base<T>
                                  const tensor<T>& pout,
                                  const miopen::ConvolutionDescriptor& pfilter,
                                  conv_stats& pstats,
-                                 int pbias   = 0,
-                                 int psearch = 0,
-                                 bool pimmed = false)
+                                 int pbias,
+                                 int psearch,
+                                 bool pimmed)
     {
         input   = pinput;
         weights = pweights;
@@ -1847,18 +1847,18 @@ struct conv_driver : test_driver
                     if(is_int8)
                     {
                         verify(verify_forward_conv<T, float>{
-                            input, weights, filter, stats, 0, search, immed});
+                            input, weights, filter, stats, 0, search, false, immed});
                         verify(verify_forward_conv<T, float>{
                             input, weights, filter, stats, 0, search, true, immed});
                         verify(verify_forward_conv<T, int>{
-                            input, weights, filter, stats, 0, search, immed});
+                            input, weights, filter, stats, 0, search, false, immed});
                         verify(verify_forward_conv<T, int>{
                             input, weights, filter, stats, 0, search, true, immed});
                     }
                     else
                     {
                         verify(verify_forward_conv<T>{
-                            input, weights, filter, stats, 0, search, immed});
+                            input, weights, filter, stats, 0, search, false, immed});
                     }
                 }
 
