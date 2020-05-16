@@ -419,11 +419,10 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
         if(n_passes == 2)
         {
             result.invoker_factory = [ws_sz](const std::vector<Kernel>& kernels) {
-                return [=](Handle& handle, const boost::any& primitive_params) {
+                return [=](Handle& handle, const AnyInvokeParams& primitive_params) {
                     const auto ss_kernel   = handle.Run(kernels[0]);
                     const auto main_kernel = handle.Run(kernels[1]);
-                    const auto invoke_params =
-                        boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+                    const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
 
                     if(invoke_params.workSpaceSize < ws_sz)
                         MIOPEN_THROW("Not enough workspace for ConvOclBwdWrW1x1");
@@ -451,10 +450,9 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
         else if(n_passes == 1)
         {
             result.invoker_factory = [](const std::vector<Kernel>& kernels) {
-                return [=](Handle& handle, const boost::any& primitive_params) {
+                return [=](Handle& handle, const AnyInvokeParams& primitive_params) {
                     const auto k = handle.Run(kernels[0]);
-                    const auto invoke_params =
-                        boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+                    const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
                     const auto& tensors    = invoke_params.tensors;
                     const auto padding_val = 0.f;
 

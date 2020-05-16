@@ -497,14 +497,14 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);
 
     result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
-        return [=](Handle& handle, const boost::any& primitive_params) {
-            const auto k             = handle.Run(kernels[0]);
-            const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
-            int unused               = 0;
-            int* return_addr         = nullptr;
-            const auto& x            = invoke_params.tensors.x;
-            const auto& dy           = invoke_params.tensors.dy;
-            const auto& dw           = invoke_params.tensors.dw;
+        return [=](Handle& handle, const AnyInvokeParams& primitive_params) {
+            const auto k              = handle.Run(kernels[0]);
+            const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            int unused                = 0;
+            int* return_addr          = nullptr;
+            const auto& x             = invoke_params.tensors.x;
+            const auto& dy            = invoke_params.tensors.dy;
+            const auto& dw            = invoke_params.tensors.dw;
             k(N, C, H, W, K, n_groups, unused, unused, x, dw, dy, return_addr);
         };
     };

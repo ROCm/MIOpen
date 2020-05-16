@@ -25,13 +25,15 @@
 *******************************************************************************/
 
 #include <miopen/solver.hpp>
-#include <miopen/env.hpp>
-#include <miopen/stringutils.hpp>
-#include <miopen/sequences.hpp>
-#include <miopen/kernel_build_params.hpp>
-#include <miopen/generic_search.hpp>
+
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/compiled_in_parameters.hpp>
+#include <miopen/env.hpp>
+#include <miopen/generic_search.hpp>
+#include <miopen/invoke_params.hpp>
+#include <miopen/kernel_build_params.hpp>
+#include <miopen/sequences.hpp>
+#include <miopen/stringutils.hpp>
 
 #include <boost/any.hpp>
 
@@ -527,10 +529,10 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
               GetTypeSize(params.weights_data_type));
 
     result.invoker_factory = [=](std::vector<Kernel> kernels) {
-        return [=](Handle& handle, const boost::any& primitive_params) {
-            const auto k        = handle.Run(kernels[0]);
-            const auto data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_params);
-            const auto tensors  = data_ctx.tensors;
+        return [=](Handle& handle, const AnyInvokeParams& primitive_params) {
+            const auto k         = handle.Run(kernels[0]);
+            const auto& data_ctx = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& tensors  = data_ctx.tensors;
 
             // clang-format off
             MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K

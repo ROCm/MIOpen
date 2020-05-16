@@ -772,15 +772,15 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     if(UseSubsample(params))
     {
         result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
-            return [=](Handle& handle, const boost::any& primitive_params) {
-                const auto ss_kernel     = handle.Run(kernels[0]);
-                const auto main_kernel   = handle.Run(kernels[1]);
-                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
-                const auto& x            = invoke_params.tensors.x;
-                const auto& dy           = invoke_params.tensors.dy;
-                const auto& dw           = invoke_params.tensors.dw;
-                const auto& workSpace    = invoke_params.workSpace;
-                auto elapsed             = 0.f;
+            return [=](Handle& handle, const AnyInvokeParams& primitive_params) {
+                const auto ss_kernel      = handle.Run(kernels[0]);
+                const auto main_kernel    = handle.Run(kernels[1]);
+                const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+                const auto& x             = invoke_params.tensors.x;
+                const auto& dy            = invoke_params.tensors.dy;
+                const auto& dw            = invoke_params.tensors.dw;
+                const auto& workSpace     = invoke_params.workSpace;
+                auto elapsed              = 0.f;
 
                 if(invoke_params.type != InvokeType::AutoTune)
                 {
@@ -805,14 +805,14 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     else
     {
         result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
-            return [=](Handle& handle, const boost::any& primitive_params) {
-                const auto main_kernel   = handle.Run(kernels[0]);
-                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
-                const auto& x            = invoke_params.tensors.x;
-                const auto& dy           = invoke_params.tensors.dy;
-                const auto& dw           = invoke_params.tensors.dw;
-                int unused               = 0;
-                int* return_addr         = nullptr;
+            return [=](Handle& handle, const AnyInvokeParams& primitive_params) {
+                const auto main_kernel    = handle.Run(kernels[0]);
+                const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+                const auto& x             = invoke_params.tensors.x;
+                const auto& dy            = invoke_params.tensors.dy;
+                const auto& dw            = invoke_params.tensors.dw;
+                int unused                = 0;
+                int* return_addr          = nullptr;
                 main_kernel(N, C, H, W, K, n_groups, unused, unused, x, dw, dy, return_addr);
             };
         };
