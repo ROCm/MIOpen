@@ -45,8 +45,7 @@ template <index_t GridSize,
           index_t GemmBBlockCopySrcDataPerRead_GemmN,
           index_t GemmBBlockCopyDstDataPerWrite_GemmKPACK,
           WorkgroupScheduleOrder WorkgroupSchdOrder>
-struct
-    GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_fp16_bfp16_nchw_kcyx_nkhw
+struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_fp16_bfp16_nchw_kcyx_nkhw
 {
     __device__ void Run(const ABFloat* const __restrict__ p_in_global,
                         const ABFloat* const __restrict__ p_wei_global,

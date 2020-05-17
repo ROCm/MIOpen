@@ -851,6 +851,61 @@ struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlop
     std::string ToString() const;
 };
 
+struct PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16
+    : Serializable<PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16>
+{
+    int BPerBlock; // 2^n[8..16]
+    int KPerBlock; // 2^n[32..128]
+    int EPerBlock; // 2^n[4..16]
+    int EBlocks;   // 2*n[1..64]
+    int EPACKSize; // 2*n[1..4] // 1 - fp32; 2,4 - bfp16; 4 - fp16
+
+    int GemmMPerWave;
+    int GemmNPerWave;
+
+    int InBlockCopyClusterLengths_E; // 2^n[4..16]
+    int InBlockCopyClusterLengths_B; // 2^n[8..16]
+
+    int WeiBlockCopyClusterLengths_E; // 2^n[1..4]
+    int WeiBlockCopyClusterLengths_K; // 2^n[16..128]
+
+    bool use_spare_set;
+
+    PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16(
+        int, int, int, int, int, int, int, int, int, int, int, bool);
+
+    PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16()
+        : PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16(
+              -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false)
+    {
+    }
+
+    PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16(bool spare);
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.BPerBlock, "BPerBlock");
+        f(self.KPerBlock, "KPerBlock");
+        f(self.EPerBlock, "EPerBlock");
+        f(self.EBlocks, "EBlocks");
+        f(self.EPACKSize, "EPACKSize");
+        f(self.GemmMPerWave, "GemmMPerWave");
+        f(self.GemmNPerWave, "GemmNPerWave");
+        f(self.InBlockCopyClusterLengths_E, "InBlockCopyClusterLengths_E");
+        f(self.InBlockCopyClusterLengths_B, "InBlockCopyClusterLengths_B");
+        f(self.WeiBlockCopyClusterLengths_E, "WeiBlockCopyClusterLengths_E");
+        f(self.WeiBlockCopyClusterLengths_K, "WeiBlockCopyClusterLengths_K");
+    }
+
+    void EuristicInit(const ConvolutionContext& ctx);
+    bool IsValidValue() const;
+    bool SetNextValue();
+    bool IsValid(const ConvolutionContext& ctx) const;
+    bool operator==(const PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16& other) const;
+    std::string ToString() const;
+};
+
 struct ConvHipImplicitGemmV4R4FwdXdlops : SolverBase<ConvolutionContext>
 {
     PerformanceImplicitGemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
@@ -937,15 +992,16 @@ struct ConvHipImplicitGemmV4R4GenFwdXdlops : SolverBase<ConvolutionContext>
 
 struct ConvHipImplicitGemmForwardV4R4XdlopsFp16Bfp16 : SolverBase<ConvolutionContext>
 {
-    PerformanceImplicitGemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16
+    GetPerformanceConfig(const ConvolutionContext& ctx) const;
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmXdlops& c) const;
+                                  const PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16& c) const;
     bool IsApplicable(const ConvolutionContext& ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmXdlops& config,
+                             const PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16& config,
                              bool disableConfigOverrideFromEnv = false) const;
 
-    PerformanceImplicitGemmXdlops Search(const ConvolutionContext&) const;
+    PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16 Search(const ConvolutionContext&) const;
     int RunAndMeasureSolution(miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               Data_t top_buf,

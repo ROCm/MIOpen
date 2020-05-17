@@ -122,8 +122,7 @@ extern "C" __global__
     // Forward data doesn't use any atomic add so output blob remains of the same type
     // as input blob
 
-    constexpr auto wkgrp_schd_order =
-        NBlock1MBlock0;
+    constexpr auto wkgrp_schd_order = NBlock1MBlock0;
 
     constexpr auto gridwise_conv =
         GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_fp16_bfp16_nchw_kcyx_nkhw<
