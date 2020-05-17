@@ -49,10 +49,6 @@ bool PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::IsValid(const Convolutio
 
     std::size_t GemmM, GemmN, GemmK;
 
-    // EPACKSize = 1 for fp32
-    if(ctx.IsFp32() && EPACKSize != 1)
-        return false;
-
     // EPACKSize = 4 for fp16
     if(ctx.IsFp16() && EPACKSize != 4)
         return false;
@@ -300,29 +296,7 @@ bool PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::SetNextValue()
 void PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::EuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16 tmp;
-    if(ctx.IsFp32())
-    {
-        tmp = {128, 128, 16, 1, 1, 64, 64, 8, 32, 4, 64, use_spare_set};
-        if(!tmp.IsValid(ctx))
-            tmp = {64, 32, 4, 1, 1, 32, 64, 4, 16, 2, 32, use_spare_set};
-        if(!tmp.IsValid(ctx))
-            tmp = {64, 32, 4, 1, 1, 32, 64, 4, 16, 4, 16, use_spare_set};
-        if(!tmp.IsValid(ctx))
-            tmp = {32, 64, 4, 1, 1, 64, 32, 4, 16, 4, 16, use_spare_set};
-        if(!tmp.IsValid(ctx))
-            tmp = {32, 32, 4, 1, 1, 32, 32, 4, 16, 2, 32, use_spare_set};
-        if(!tmp.IsValid(ctx))
-            tmp = {64, 16, 4, 1, 1, 16, 64, 4, 16, 4, 16, use_spare_set};
-        if(!tmp.IsValid(ctx))
-            tmp = {16, 64, 4, 1, 1, 64, 16, 4, 16, 4, 16, use_spare_set};
-        if(!tmp.IsValid(ctx))
-            tmp = {16, 16, 4, 1, 1, 16, 16, 4, 16, 4, 16, use_spare_set};
-        if(!tmp.IsValid(ctx))
-            tmp = {64, 4, 16, 1, 1, 4, 64, 16, 4, 16, 4, use_spare_set};
-        if(!tmp.IsValid(ctx))
-            tmp = {64, 8, 8, 1, 1, 8, 64, 4, 16, 8, 8, use_spare_set};
-    }
-    else if(ctx.IsBfp16())
+    if(ctx.IsBfp16())
     {
         tmp = {128, 128, 16, 1, 2, 64, 64, 8, 32, 4, 64, use_spare_set};
         if(!tmp.IsValid(ctx))
