@@ -92,7 +92,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             construction_parameters.kernel_file =
                 "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer.cpp";
 
-            construction_parameters.kernel_name = 
+            construction_parameters.kernel_name =
 		"gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer";
         }
         else
@@ -101,7 +101,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             construction_parameters.kernel_file =
                 "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer.cpp";
 
-            construction_parameters.kernel_name = 
+            construction_parameters.kernel_name =
 		"gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer";
         }
         // clang-format on
@@ -408,9 +408,16 @@ bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext&
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 
+#if 0 /// \todo Enable when Invoker is implemented.
+    /// \todo Please use:
+    /// if(solver::ConvHipImplicitGemmV4R4GenXdlopsWrWFp32{}.IsApplicable(ctx))
+    /// instead of:
+    /// if(ctx.IsFp32() && ctx.group_counts == 1)
+    /// --atamazov
     // covered by ConvHipImplicitGemmV4R4GenXdlopsWrWFp32
     if(ctx.IsFp32() && ctx.group_counts == 1)
         return false;
+#endif
 
     if(!ctx.direction.IsBackwardWrW())
         return false;
