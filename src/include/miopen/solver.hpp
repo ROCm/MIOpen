@@ -854,20 +854,20 @@ struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlop
 struct PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16
     : Serializable<PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16>
 {
-    int BPerBlock; // 2^n[8..16]
-    int KPerBlock; // 2^n[32..128]
-    int EPerBlock; // 2^n[4..16]
-    int EBlocks;   // 2*n[1..64]
-    int EPACKSize; // 2*n[1..4] // 1 - fp32; 2,4 - bfp16; 4 - fp16
+    int GemmMPerBlock; // 2^n[32..128]
+    int GemmNPerBlock; // 2^n[32..128]
+    int GemmKPerBlock; // 2^n[4..16]
+    int GemmKSegment;  // 2*n[1..64]
+    int GemmKPack;     // 2*n[1..4] // 1 - fp32; 2,4 - bfp16; 4 - fp16
 
     int GemmMPerWave;
     int GemmNPerWave;
 
-    int InBlockCopyClusterLengths_E; // 2^n[4..16]
-    int InBlockCopyClusterLengths_B; // 2^n[8..16]
+    int GemmABlockCopyClusterLengths_GemmK;
+    int GemmABlockCopyClusterLengths_GemmM;
 
-    int WeiBlockCopyClusterLengths_E; // 2^n[1..4]
-    int WeiBlockCopyClusterLengths_K; // 2^n[16..128]
+    int GemmBBlockCopyClusterLengths_GemmK;
+    int GemmBBlockCopyClusterLengths_GemmN;
 
     bool use_spare_set;
 
@@ -885,17 +885,18 @@ struct PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
-        f(self.BPerBlock, "BPerBlock");
-        f(self.KPerBlock, "KPerBlock");
-        f(self.EPerBlock, "EPerBlock");
-        f(self.EBlocks, "EBlocks");
-        f(self.EPACKSize, "EPACKSize");
+        f(self.GemmMPerBlock, "GemmMPerBlock");
+        f(self.GemmNPerBlock, "GemmNPerBlock");
+        f(self.GemmKPerBlock, "GemmKPerBlock");
+        f(self.GemmKSegment, "GemmKSegment");
+        f(self.GemmKPack, "GemmKPack");
         f(self.GemmMPerWave, "GemmMPerWave");
         f(self.GemmNPerWave, "GemmNPerWave");
-        f(self.InBlockCopyClusterLengths_E, "InBlockCopyClusterLengths_E");
-        f(self.InBlockCopyClusterLengths_B, "InBlockCopyClusterLengths_B");
-        f(self.WeiBlockCopyClusterLengths_E, "WeiBlockCopyClusterLengths_E");
-        f(self.WeiBlockCopyClusterLengths_K, "WeiBlockCopyClusterLengths_K");
+        f(self.GemmABlockCopyClusterLengths_GemmK, "GemmABlockCopyClusterLengths_GemmK");
+        f(self.GemmABlockCopyClusterLengths_GemmM, "GemmABlockCopyClusterLengths_GemmM");
+        f(self.GemmBBlockCopyClusterLengths_GemmK, "GemmBBlockCopyClusterLengths_GemmK");
+        f(self.GemmBBlockCopyClusterLengths_GemmN,
+          "GemmBBlockCopyClusterLengths_GemmNnBlockCopyClusterLengths_B");
     }
 
     void EuristicInit(const ConvolutionContext& ctx);
