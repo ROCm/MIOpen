@@ -6,8 +6,7 @@ ARG PREFIX=/usr/local
 RUN dpkg --add-architecture i386
 
 # Add rocm repository
-RUN sh -c 'echo deb [arch=amd64 trusted=yes] http://compute-artifactory.amd.com/artifactory/list/rocm-osdb-deb/ compute-rocm-dkms-no-npi-hipclang 1927 > /etc/apt/sources.list.d/rocm.list'
-
+RUN sh -c 'echo deb [arch=amd64 trusted=yes] http://compute-artifactory.amd.com/artifactory/list/rocm-osdb-deb/ compute-rocm-dkms-no-npi-hipclang 2272 > /etc/apt/sources.list.d/rocm.list'
 
 # Install dependencies
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
@@ -19,11 +18,14 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     g++ \
     gdb \
     git \
+    hip-rocclr \
     lcov \
     libelf-dev \
     libncurses5-dev \
     libnuma-dev \
     libpthread-stubs0-dev \
+    llvm-amdgpu \
+    miopengemm \
     pkg-config \
     python \
     python3 \
@@ -33,9 +35,11 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     python3-pip \
     software-properties-common \
     wget \
-    hip-vdi \
+    rocm-dev \
     rocm-device-libs \
-    hcc \
+    rocm-opencl \
+    rocm-opencl-dev \
+    rocm-cmake \
     rocblas \
     zlib1g-dev && \
     apt-get clean && \
