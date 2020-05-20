@@ -555,7 +555,7 @@ struct XdlopsGemm_t
     __device__ static constexpr bool IsKReduction()
     {
         constexpr auto mfma_type = GetMFMAInfo();
-        return mfma_type.num_output_blks == 1 && mfma_type.num_input_blks != 1;
+        return (mfma_type.num_output_blks == 1) && (mfma_type.num_input_blks > 1);
     }
 
     template <class data_type_  = data_type,
