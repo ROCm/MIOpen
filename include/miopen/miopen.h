@@ -876,6 +876,9 @@ typedef enum {
     miopenConvolutionBwdDataAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions, fp32 only */
 } miopenConvBwdDataAlgorithm_t;
 
+/*! @enum miopenConvAlgorithm_t
+ * Top-level convolutional algorithm mode
+ */
 typedef enum {
     miopenConvolutionAlgoGEMM         = 0, /*!< GEMM variant */
     miopenConvolutionAlgoDirect       = 1, /*!< Direct convolutions */
@@ -885,9 +888,7 @@ typedef enum {
     miopenConvolutionAlgoStaticCompiledGEMM = 6, /*!< Static Compiled GEMM convolutions */
 } miopenConvAlgorithm_t;
 
-/*! @struct miopenConvAlgoPerf_t
-
- * @brief Perf struct for forward, backward filter, or backward data algorithms
+/*! @brief Perf struct for forward, backward filter, or backward data algorithms
  *
  * Contains the union to hold the selected convolution algorithm for forward, or backwards layers,
  * and also contains the time it took to run the algorithm and the workspace required to run the
@@ -903,16 +904,16 @@ typedef struct
         miopenConvBwdDataAlgorithm_t
             bwd_data_algo; /*!< Back propagation on data convolution algorithm enum selection */
     };
+
     float time;    /*!< Time to exectued the selected algorithm represented in the union */
     size_t memory; /*!< Workspace required to run the selected algorithm represented in the union */
+
 } miopenConvAlgoPerf_t;
 
-/*! @struct miopenConvSolution_t
-
- * @brief Performance struct for forward, backward filter, or backward data algorithms in immediate
- mode
+/*! @brief Performance struct for forward, backward filter, or backward data algorithms in
+ * immediate mode
  *
- * Contains an integer identifying the solution and the algorithm for the solution,
+ * Contains a 64-bit integer identifying the solution and the algorithm for the solution,
  * as well as the runtime, workspace size and a boolean flag indicating whether the returned
  * solution is a heuristic or resulting from an actual run
  *
@@ -921,11 +922,12 @@ typedef struct
 {
     float time; /*!< Represents the approximate time required to execute this solution on the GPU,
                      in milliseconds. This value may either be based on an acutal kernel run or an
-                     esitmate based on a heuristic.*/
+                     estimate based on a heuristic.*/
     size_t workspace_size; /*!< Workspace required to run the selected algorithm represented in the
                               union */
     uint64_t solution_id;  /*!< Identifier for the returned solution */
     miopenConvAlgorithm_t algorithm; /*!< The algorithm used to compute the solution */
+
 } miopenConvSolution_t;
 
 /*! @brief Query the maximum number of solutions applicable for the given input/output and weights
@@ -3043,6 +3045,33 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor(miopenRNNDescriptor_t rnnDes
                                                     int* hiddenSize,
                                                     int* layer);
 
+/*! @brief Retrieves a RNN layer descriptor's details version 2. This version enables retrieving
+* information of the dropout descriptor of the rnn descriptor.
+*
+* @param rnnDesc     RNN layer descriptor (input)
+* @param hiddenSize  Size of hidden state (output)
+* @param layer       Number of stacked layers (output)
+* @param dropoutDesc Pre-configured dropout descriptor for dropout layer in between RNN layers
+* (output)
+* @param inputMode   RNN data input mode (output)
+* @param dirMode     Uni or bi direction mode (output)
+* @param rnnMode     RNN mode (output)
+* @param biasMode    Bias used (output)
+* @param algoMode    RNN algorithm mode (output)
+* @param dataType    Data type of RNN (output)
+* @return            miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor_V2(miopenRNNDescriptor_t rnnDesc,
+                                                       int* hiddenSize,
+                                                       int* layer,
+                                                       miopenDropoutDescriptor_t* dropoutDesc,
+                                                       miopenRNNInputMode_t* inputMode,
+                                                       miopenRNNDirectionMode_t* dirMode,
+                                                       miopenRNNMode_t* rnnMode,
+                                                       miopenRNNBiasMode_t* biasMode,
+                                                       miopenRNNAlgo_t* algoMode,
+                                                       miopenDataType_t* dataType);
+
 /*! @brief Destroys the tensor descriptor object
 *
 * @param rnnDesc RNN tensor descriptor type (input)
@@ -3074,6 +3103,35 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor(miopenRNNDescriptor_t rnnDes
                                                     miopenRNNBiasMode_t biasMode,
                                                     miopenRNNAlgo_t algo,
                                                     miopenDataType_t dataType);
+
+/*! @brief Set the details of the RNN descriptor version 2. This version enables the use of dropout
+ * in rnn.
+ *
+ * Interface for setting the values of the RNN descriptor object. This function requires specific
+ * algorithm selection.
+ * @param rnnDesc      RNN layer descriptor type (input/output)
+ * @param hsize        Hidden layer size (input)
+ * @param nlayers      Number of layers (input)
+ * @param dropoutDesc  Pre-initialized dropout descriptor for dropout layer in between RNN layers
+ * (input)
+ * @param inMode       RNN first layer input mode (input)
+ * @param direction    RNN direction (input)
+ * @param rnnMode      RNN model type (input)
+ * @param biasMode     RNN bias included (input)
+ * @param algo         RNN algorithm selected (input)
+ * @param dataType     Only fp32 currently supported for RNNs (input)
+ * @return             miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor_V2(miopenRNNDescriptor_t rnnDesc,
+                                                       const int hsize,
+                                                       const int nlayers,
+                                                       miopenDropoutDescriptor_t dropoutDesc,
+                                                       miopenRNNInputMode_t inMode,
+                                                       miopenRNNDirectionMode_t direction,
+                                                       miopenRNNMode_t rnnMode,
+                                                       miopenRNNBiasMode_t biasMode,
+                                                       miopenRNNAlgo_t algo,
+                                                       miopenDataType_t dataType);
 
 /*! @brief Query the amount of memory required to execute the RNN layer
  *

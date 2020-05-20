@@ -52,16 +52,26 @@ class path;
 
 namespace miopen {
 
-#define MIOPEN_VALIDATE_LOCK(lock)                       \
-    do                                                   \
-    {                                                    \
-        if(!(lock))                                      \
-            MIOPEN_THROW("Db lock has failed to lock."); \
-    } while(false)
-
+const auto MIOPEN_SQL_BUSY_TIMEOUT_MS = 60000;
 template <class Derived>
 struct SQLiteSerializable
 {
+    std::vector<std::string> FieldNames() const
+    {
+        std::vector<std::string> names;
+        Derived::Visit(static_cast<const Derived&>(*this),
+                       [&](const std::string& value, const std::string& name) {
+                           std::ignore = value;
+                           names.push_back(name);
+                       });
+        Derived::Visit(static_cast<const Derived&>(*this),
+                       [&](const int value, const std::string name) {
+                           std::ignore = value;
+                           names.push_back(name);
+                       });
+
+        return names;
+    }
     std::tuple<std::string, std::vector<std::string>> WhereClause() const
     {
         std::vector<std::string> values;
@@ -139,36 +149,81 @@ struct SQLiteSerializable
     }
 };
 
+class SQLite
+{
+    class impl;
+    // do we need propagate const
+    std::unique_ptr<impl> pImpl;
+
+    public:
+    class Statement
+    {
+        class impl;
+        std::unique_ptr<impl> pImpl;
+
+        public:
+        Statement(const SQLite& sql, const std::string& query);
+        Statement(const SQLite& sql,
+                  const std::string& query,
+                  const std::vector<std::string>& vals);
+        Statement();
+        ~Statement();
+        Statement(Statement&&) noexcept;
+        Statement& operator=(Statement&&) noexcept;
+        Statement& operator=(const Statement&) = delete;
+        int Step(const SQLite& sql);
+        std::string ColumnText(int idx);
+        std::string ColumnBlob(int idx);
+        int64_t ColumnInt64(int idx);
+        int BindText(int idx, const std::string& txt);
+        int BindBlob(int idx, const std::string& blob);
+        int BindInt64(int idx, int64_t);
+    };
+
+    using result_type = std::vector<std::unordered_map<std::string, std::string>>;
+    SQLite();
+    SQLite(const std::string& filename_, bool is_system);
+    ~SQLite();
+    SQLite(SQLite&&) noexcept;
+    SQLite& operator=(SQLite&&) noexcept;
+    SQLite& operator=(const SQLite&) = delete;
+    bool Valid() const;
+    result_type Exec(const std::string& query) const;
+    int Changes() const;
+    int Retry(std::function<int()>) const;
+    static int Retry(std::function<int()> f, std::string filename);
+    std::string ErrorMessage() const;
+};
+
 template <typename Derived>
 class SQLiteBase
 {
     protected:
-    using sqlite3_ptr      = MIOPEN_MANAGE_PTR(sqlite3*, sqlite3_close);
-    using exclusive_lock   = boost::unique_lock<LockFile>;
-    using shared_lock      = boost::shared_lock<LockFile>;
-    using sqlite3_stmt_ptr = MIOPEN_MANAGE_PTR(sqlite3_stmt*, sqlite3_finalize);
-    static boost::system_time GetLockTimeout()
-    {
-        return boost::get_system_time() + boost::posix_time::milliseconds(60000);
-    }
-
     public:
     SQLiteBase(const std::string& filename_,
                bool is_system,
                const std::string& arch_,
                std::size_t num_cu_)
-        : filename(filename_),
-          arch(arch_),
-          num_cu(num_cu_),
-          lock_file(LockFile::Get(is_system ? LockFilePath(filename_).c_str()
-                                            : (filename_ + ".lock").c_str()))
+        : filename(filename_), arch(arch_), num_cu(num_cu_)
     {
         MIOPEN_LOG_I2("Initializing " << (is_system ? "system" : "user") << " database file "
                                       << filename);
+
+        if(filename.empty())
+        {
+            dbInvalid = true;
+            return;
+        }
+
         if(!is_system && !filename.empty())
         {
             auto file            = boost::filesystem::path(filename_);
             const auto directory = file.remove_filename();
+            if(directory.string().empty())
+            {
+                dbInvalid = true;
+                return;
+            }
 
             if(!(boost::filesystem::exists(directory)))
             {
@@ -178,196 +233,91 @@ class SQLiteBase
                     boost::filesystem::permissions(directory, boost::filesystem::all_all);
             }
         }
-        sqlite3* ptr_tmp;
-        int rc = 0;
-        if(is_system)
-            rc = sqlite3_open_v2(filename_.c_str(), &ptr_tmp, SQLITE_OPEN_READONLY, nullptr);
-        else
-            rc = sqlite3_open_v2(
-                filename_.c_str(), &ptr_tmp, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
-        ptrDb = sqlite3_ptr{ptr_tmp};
-        if(rc != 0)
+        sql = std::move(SQLite{filename_, is_system});
+        if(!sql.Valid())
         {
             dbInvalid = true;
             if(!is_system)
-            {
                 MIOPEN_THROW(miopenStatusInternalError, "Cannot open database file:" + filename_);
-            }
             else
-            {
                 MIOPEN_LOG_W("Unable to read system database file:" + filename_ +
                              " Performance may degrade");
-            }
         }
         else
+        {
             dbInvalid = false;
+        }
     }
 
     static Derived&
     GetCached(const std::string& path, bool is_system, const std::string& arch, std::size_t num_cu);
     // TODO: Fix this for the overhead of having fields per record
-    using SQLRes_t = std::vector<std::unordered_map<std::string, std::string>>;
 
-    static int find_callback(void* _res, int argc, char** argv, char** azColName)
+    inline auto CheckTableColumns(const std::string& tableName,
+                                  const std::vector<std::string>& goldenList) const
     {
-        SQLRes_t* res = static_cast<SQLRes_t*>(_res);
-        std::unordered_map<std::string, std::string> record;
-        for(auto i               = 0; i < argc; i++)
-            record[azColName[i]] = (argv[i] != nullptr) ? argv[i] : "NULL";
-        res->push_back(record);
-        return 0;
-    }
-
-    inline auto SQLExec(const std::string& query)
-    {
-        MIOPEN_LOG_T(std::this_thread::get_id() << ":" << query);
+        const auto sql_cfg_fds = "PRAGMA table_info(" + tableName + ");";
+        SQLite::result_type cfg_res;
+        cfg_res = sql.Exec(sql_cfg_fds);
+        std::vector<std::string> cfg_fds(cfg_res.size());
+        std::transform(
+            cfg_res.begin(), cfg_res.end(), cfg_fds.begin(), [](auto row) { return row["name"]; });
+        // search in the golden vector
+        bool AllFound = true;
+        for(auto& goldenName : goldenList)
         {
-            auto rc = SQLRety([&]() {
-                return sqlite3_exec(ptrDb.get(), query.c_str(), find_callback, nullptr, nullptr);
-            });
-            if(rc != SQLITE_OK)
+            if(std::find(cfg_fds.begin(), cfg_fds.end(), goldenName) == cfg_fds.end())
             {
-                MIOPEN_LOG_I2(query);
-                MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
-                sqlite3_close(ptrDb.get());
-                return false;
+                AllFound = false;
+                std::ostringstream ss;
+                ss << "Field " << goldenName << " not found in table: " << tableName;
+                MIOPEN_LOG_I2(ss.str());
+                // break; Not breaking to enable logging of all missing fields.
             }
         }
-        return true;
+        return AllFound;
     }
-    inline auto SQLExec(const std::string& query, SQLRes_t& res) const
-    {
-        res.clear();
-        MIOPEN_LOG_T(std::this_thread::get_id() << ":" << query);
-        {
-            auto rc = SQLRety([&]() {
-                return sqlite3_exec(
-                    ptrDb.get(), query.c_str(), find_callback, static_cast<void*>(&res), nullptr);
-            });
-            if(rc != SQLITE_OK)
-            {
-                MIOPEN_LOG_I2(query);
-                MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
-                sqlite3_close(ptrDb.get());
-                return false;
-            }
-        }
-        return true;
-    }
-
-    template <class F>
-    inline int SQLRety(F f) const
-    {
-        auto timeout_end = std::chrono::high_resolution_clock::now() +
-                           std::chrono::seconds(30); // TODO: make configurable
-        auto tries = 0;
-        while(true)
-        {
-            int rc = f();
-            if(rc == SQLITE_BUSY)
-            {
-                MIOPEN_LOG_I2("Database" + filename + "  busy, retrying ...");
-                ++tries;
-                if(tries > 50)
-                    std::this_thread::sleep_for(std::chrono::microseconds(100));
-                else
-                    std::this_thread::yield();
-            }
-            else
-                return rc;
-            if(std::chrono::high_resolution_clock::now() > timeout_end)
-                MIOPEN_THROW("Timeout while waiting for Database: " + filename);
-        }
-    }
-
-    inline std::string SQLErrorMessage() const
-    {
-        std::string errMsg = "Internal error while accessing SQLite database: ";
-        return errMsg + sqlite3_errmsg(ptrDb.get());
-    }
-
-    auto Prepare(const std::string& query) const
-    {
-        sqlite3_stmt* ptr = nullptr;
-        MIOPEN_LOG_I2(query);
-        auto rc = sqlite3_prepare_v2(ptrDb.get(), query.c_str(), query.size(), &ptr, nullptr);
-        if(rc != SQLITE_OK)
-        {
-            std::string err_msg = "SQLite prepare error: ";
-            MIOPEN_THROW(miopenStatusInternalError, err_msg + sqlite3_errmsg(ptrDb.get()));
-        }
-        return sqlite3_stmt_ptr{ptr};
-    }
-    auto PrepareAndBind(const std::string& query, std::vector<std::string>& values) const
-    {
-        auto stmt = Prepare(query);
-        int cnt   = 1;
-        for(auto& kinder : values)
-        {
-            auto rc = sqlite3_bind_text(
-                stmt.get(), cnt++, kinder.data(), kinder.size(), SQLITE_TRANSIENT); // NOLINT
-            if(rc != SQLITE_OK)
-                MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
-        }
-        MIOPEN_LOG_I2("[" << JoinStrings(values, ",") << "]");
-        return stmt;
-    }
-
     template <typename... U>
     inline auto FindRecord(U&... args)
     {
-        const auto lock = shared_lock(lock_file, GetLockTimeout());
-        MIOPEN_VALIDATE_LOCK(lock);
         return reinterpret_cast<Derived*>(this)->FindRecordUnsafe(args...);
     }
 
     template <typename... U>
     inline auto RemoveRecord(U&... args)
     {
-        const auto lock = exclusive_lock(lock_file, GetLockTimeout());
-        MIOPEN_VALIDATE_LOCK(lock);
         return reinterpret_cast<Derived*>(this)->RemoveRecordUnsafe(args...);
     }
 
     template <typename... U>
     inline auto StoreRecord(U&... args)
     {
-        const auto lock = exclusive_lock(lock_file, GetLockTimeout());
-        MIOPEN_VALIDATE_LOCK(lock);
         return reinterpret_cast<Derived*>(this)->StoreRecordUnsafe(args...);
     }
 
     template <typename... U>
     inline auto Remove(const U&... args)
     {
-        const auto lock = exclusive_lock(lock_file, GetLockTimeout());
-        MIOPEN_VALIDATE_LOCK(lock);
         return reinterpret_cast<Derived*>(this)->RemoveUnsafe(args...);
     }
 
     template <typename... U>
     inline auto Update(const U&... args)
     {
-        const auto lock = exclusive_lock(lock_file, GetLockTimeout());
-        MIOPEN_VALIDATE_LOCK(lock);
         return reinterpret_cast<Derived*>(this)->UpdateUnsafe(args...);
     }
 
     template <typename... U>
     inline auto Load(U&&... args)
     {
-        const auto lock = shared_lock(lock_file, GetLockTimeout());
-        MIOPEN_VALIDATE_LOCK(lock);
         return reinterpret_cast<Derived*>(this)->LoadUnsafe(args...);
     }
 
-    protected:
     std::string filename;
     std::string arch;
     size_t num_cu;
-    LockFile& lock_file;
-    sqlite3_ptr ptrDb = nullptr;
     bool dbInvalid;
+    SQLite sql;
 };
 
 template <typename Derived>
@@ -392,6 +342,7 @@ Derived& SQLiteBase<Derived>::GetCached(const std::string& path,
 class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
 {
     public:
+    static constexpr char const* MIOPEN_PERFDB_SCHEMA_VER = "1.0.0";
     SQLitePerfDb(const std::string& filename_,
                  bool is_system,
                  const std::string& arch_,
@@ -403,12 +354,12 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
         std::string clause;
         std::vector<std::string> vals;
         std::tie(clause, vals) = prob_desc.InsertQuery();
-        auto stmt = PrepareAndBind(clause, vals);
-        auto rc   = SQLRety([&]() { return sqlite3_step(stmt.get()); });
+        auto stmt = SQLite::Statement{sql, clause, vals};
+        auto rc   = stmt.Step(sql);
         if(rc != SQLITE_DONE)
             MIOPEN_THROW(miopenStatusInternalError,
-                         "Failed to insert config: " + SQLErrorMessage());
-        auto cnt = sqlite3_changes(ptrDb.get());
+                         "Failed to insert config: " + sql.ErrorMessage());
+        auto cnt = sql.Changes();
         MIOPEN_LOG_I2(cnt << " rows updated");
     }
     template <class T>
@@ -418,20 +369,16 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
         std::vector<std::string> vals;
         std::tie(clause, vals) = prob_desc.WhereClause();
         auto query = "SELECT id FROM " + prob_desc.table_name() + " WHERE ( " + clause + " );";
-        auto stmt  = PrepareAndBind(query, vals);
+        auto stmt  = SQLite::Statement{sql, query, vals};
         while(true)
         {
-            auto rc = SQLRety([&]() { return sqlite3_step(stmt.get()); });
+            auto rc = stmt.Step(sql);
             if(rc == SQLITE_ROW)
-            {
-                auto id =
-                    std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt.get(), 0)));
-                return id;
-            }
+                return stmt.ColumnText(0);
             else if(rc == SQLITE_DONE)
                 return "";
             else if(rc == SQLITE_ERROR || rc == SQLITE_MISUSE)
-                MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
+                MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
         }
     }
     template <typename T>
@@ -453,22 +400,17 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
             "AND (arch = '" + arch + "' ) "
             "AND (num_cu = '" + std::to_string(num_cu) + "');";
         // clang-format on
-        auto stmt = PrepareAndBind(select_query, values);
+        auto stmt = SQLite::Statement{sql, select_query, values};
         DbRecord rec;
         while(true)
         {
-            auto rc = SQLRety([&]() { return sqlite3_step(stmt.get()); });
+            auto rc = stmt.Step(sql);
             if(rc == SQLITE_ROW)
-            {
-                auto c_slvr   = sqlite3_column_text(stmt.get(), 0);
-                auto c_params = sqlite3_column_text(stmt.get(), 1);
-                rec.SetValues(std::string(reinterpret_cast<const char*>(c_slvr)),
-                              std::string(reinterpret_cast<const char*>(c_params)));
-            }
+                rec.SetValues(stmt.ColumnText(0), stmt.ColumnText(1));
             else if(rc == SQLITE_DONE)
                 break;
             else if(rc == SQLITE_ERROR || rc == SQLITE_MISUSE)
-                MIOPEN_THROW(miopenStatusInternalError, SQLErrorMessage());
+                MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
         }
         if(rec.GetSize() == 0)
             return boost::none;
@@ -496,14 +438,14 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
             + clause + " ) )"
             "AND solver == '" +  id + "' ;";
         // clang-format on
-        auto stmt = PrepareAndBind(query, values);
-        auto rc   = SQLRety([&]() { return sqlite3_step(stmt.get()); });
+        auto stmt = SQLite::Statement{sql, query, values};
+        auto rc   = stmt.Step(sql);
         if(rc == SQLITE_DONE)
             return true;
         else
         {
             std::string msg = "Unable to remove database entry: ";
-            MIOPEN_LOG_E(msg + SQLErrorMessage());
+            MIOPEN_LOG_E(msg + sql.ErrorMessage());
             return false;
         }
     }
@@ -521,12 +463,12 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
             std::string clause;
             std::vector<std::string> vals;
             std::tie(clause, vals) = problem_config.InsertQuery();
-            auto stmt = PrepareAndBind(clause, vals);
-            auto rc   = SQLRety([&]() { return sqlite3_step(stmt.get()); });
+            auto stmt = SQLite::Statement{sql, clause, vals};
+            auto rc   = stmt.Step(sql);
             if(rc != SQLITE_DONE)
                 MIOPEN_THROW(miopenStatusInternalError,
-                             "Failed to insert config: " + SQLErrorMessage());
-            auto cnt = sqlite3_changes(ptrDb.get());
+                             "Failed to insert config: " + sql.ErrorMessage());
+            auto cnt = sql.Changes();
             MIOPEN_LOG_I2(cnt << " rows updated");
         }
 
@@ -550,12 +492,12 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
             vals.push_back(params.str());
             vals.push_back(arch);
             vals.push_back(std::to_string(num_cu));
-            auto stmt = PrepareAndBind(query, vals);
-            auto rc   = SQLRety([&]() { return sqlite3_step(stmt.get()); });
+            auto stmt = SQLite::Statement{sql, query, vals};
+            auto rc   = stmt.Step(sql);
             if(rc != SQLITE_DONE)
             {
                 MIOPEN_LOG_E("Failed to insert performance record in the database: " +
-                             SQLErrorMessage());
+                             sql.ErrorMessage());
                 return boost::none;
             }
         }
@@ -590,11 +532,11 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
             "SELECT id FROM config WHERE ( "
             + clause + " ))";
         // clang-format on
-        auto stmt = PrepareAndBind(query, values);
-        auto rc   = SQLRety([&]() { return sqlite3_step(stmt.get()); });
+        auto stmt = SQLite::Statement{sql, query, values};
+        auto rc   = stmt.Step(sql);
         if(rc != SQLITE_DONE)
         {
-            MIOPEN_LOG_E("Unable to Clear databaes entry: " + SQLErrorMessage());
+            MIOPEN_LOG_E("Unable to Clear databaes entry: " + sql.ErrorMessage());
             return false;
         }
         else

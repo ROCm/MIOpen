@@ -1,6 +1,17 @@
 
 ## MIOpen Release notes
 
+### 05/06/2020 [ 2.4.0 ]
+
+- This release contains new implementations of 3D convolutions using implicitGEMM, general performance improvements for convolutions, bug fixes, better versioning in directories, integration with the new rocclr, and dropout support in RNNs.
+
+- Added 3D convolutions for the implicitGEMM algorithm in the forward and backward-data passes
+- Added dropout support for RNN layer; e.g., RNN-vanilla, GRU, and LSTM
+- Added support for AMD's rocclr runtime and compiler
+- Improved performance for implicitGEMM and Winograd algorithms
+- Improved database locking
+- Fixed issue with GPU memory segmentation fault on asymmetric padding [#142](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/142)
+
 
 ### 03/01/2020 [ 2.3.0 ]
 

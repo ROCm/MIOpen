@@ -62,17 +62,17 @@ float Im2d2ColGPU(Handle& handle,
 
     // clang-format off
     std::string network_config =
-        "c" + std::to_string(c) + 
-        "i" + std::to_string(in_h) + 
-        "_" + std::to_string(in_w) + 
-        "w" + std::to_string(wei_h) + 
-        "_" + std::to_string(wei_w) + 
-        "p" + std::to_string(pad_h) + 
-        "_" + std::to_string(pad_w) + 
-        "s" + std::to_string(stride_h) + 
-        "_" + std::to_string(stride_w) + 
-        "d" + std::to_string(dilation_h) + 
-        "_" + std::to_string(dilation_w) + 
+        "c" + std::to_string(c) +
+        "i" + std::to_string(in_h) +
+        "_" + std::to_string(in_w) +
+        "w" + std::to_string(wei_h) +
+        "_" + std::to_string(wei_w) +
+        "p" + std::to_string(pad_h) +
+        "_" + std::to_string(pad_w) +
+        "s" + std::to_string(stride_h) +
+        "_" + std::to_string(stride_w) +
+        "d" + std::to_string(dilation_h) +
+        "_" + std::to_string(dilation_w) +
         "t" + std::to_string(type);
     // clang-format on
 
@@ -249,22 +249,22 @@ float Im3d2ColGPU(Handle& handle,
 
     // clang-format off
     std::string network_config =
-        "c" + std::to_string(im_c) + 
-        "i" + std::to_string(im_d) + 
-        "_" + std::to_string(im_h) + 
-        "_" + std::to_string(im_w) + 
-        "w" + std::to_string(wei_d) + 
-        "_" + std::to_string(wei_h) + 
-        "_" + std::to_string(wei_w) + 
-        "p" + std::to_string(pad_d) + 
-        "_" + std::to_string(pad_h) + 
-        "_" + std::to_string(pad_w) + 
-        "s" + std::to_string(stride_d) + 
+        "c" + std::to_string(im_c) +
+        "i" + std::to_string(im_d) +
+        "_" + std::to_string(im_h) +
+        "_" + std::to_string(im_w) +
+        "w" + std::to_string(wei_d) +
+        "_" + std::to_string(wei_h) +
+        "_" + std::to_string(wei_w) +
+        "p" + std::to_string(pad_d) +
+        "_" + std::to_string(pad_h) +
+        "_" + std::to_string(pad_w) +
+        "s" + std::to_string(stride_d) +
         "_" + std::to_string(stride_h) +
-        "_" + std::to_string(stride_w) + 
-        "d" + std::to_string(dilation_d) + 
-        "_" + std::to_string(dilation_h) + 
-        "_" + std::to_string(dilation_w) + 
+        "_" + std::to_string(stride_w) +
+        "d" + std::to_string(dilation_d) +
+        "_" + std::to_string(dilation_h) +
+        "_" + std::to_string(dilation_w) +
         "t" + std::to_string(type);
     // clang-format on
 
@@ -364,17 +364,17 @@ float Col2Im2dGPU(Handle& handle,
 
     // clang-format off
     std::string network_config =
-        "c" + std::to_string(in_c) + 
+        "c" + std::to_string(in_c) +
         "in_h" + std::to_string(in_h) +
-        "in_w" + std::to_string(in_w) + 
-        "y" + std::to_string(wei_h) + 
-        "x" + std::to_string(wei_w) + 
-        "p" + std::to_string(pad_h) + 
-        "q" + std::to_string(pad_w) + 
-        "u" + std::to_string(stride_h) + 
-        "v" + std::to_string(stride_w) + 
-        "l" + std::to_string(dilation_h) + 
-        "j" + std::to_string(dilation_w) + 
+        "in_w" + std::to_string(in_w) +
+        "y" + std::to_string(wei_h) +
+        "x" + std::to_string(wei_w) +
+        "p" + std::to_string(pad_h) +
+        "q" + std::to_string(pad_w) +
+        "u" + std::to_string(stride_h) +
+        "v" + std::to_string(stride_w) +
+        "l" + std::to_string(dilation_h) +
+        "j" + std::to_string(dilation_w) +
         "t" + std::to_string(type);
     // clang-format on
 
@@ -458,22 +458,22 @@ float Col2Im3dGPU(Handle& handle,
 
     // clang-format off
     std::string network_config =
-        "c" + std::to_string(in_c) + 
-        "i" + std::to_string(in_d) + 
-        "_" + std::to_string(in_h) + 
-        "_" + std::to_string(in_w) + 
-        "w" + std::to_string(wei_d) + 
-        "_" + std::to_string(wei_h) + 
-        "_" + std::to_string(wei_w) + 
-        "p" + std::to_string(pad_d) + 
-        "_" + std::to_string(pad_h) + 
-        "_" + std::to_string(pad_w) + 
-        "s" + std::to_string(stride_d) + 
+        "c" + std::to_string(in_c) +
+        "i" + std::to_string(in_d) +
+        "_" + std::to_string(in_h) +
+        "_" + std::to_string(in_w) +
+        "w" + std::to_string(wei_d) +
+        "_" + std::to_string(wei_h) +
+        "_" + std::to_string(wei_w) +
+        "p" + std::to_string(pad_d) +
+        "_" + std::to_string(pad_h) +
+        "_" + std::to_string(pad_w) +
+        "s" + std::to_string(stride_d) +
         "_" + std::to_string(stride_h) +
-        "_" + std::to_string(stride_w) + 
-        "d" + std::to_string(dilation_d) + 
-        "_" + std::to_string(dilation_h) + 
-        "_" + std::to_string(dilation_w) + 
+        "_" + std::to_string(stride_w) +
+        "d" + std::to_string(dilation_d) +
+        "_" + std::to_string(dilation_h) +
+        "_" + std::to_string(dilation_w) +
         "t" + std::to_string(type);
     // clang-format on
 
@@ -960,7 +960,7 @@ float transpose_NCHW2Vec(Handle& handle,
         lens.begin() + 2, lens.end(), std::size_t(1), std::multiplies<std::size_t>());
 
     // clang-format off
-    std::string network_config = 
+    std::string network_config =
         "n" + std::to_string(n) +
         "c" + std::to_string(c) +
         "hw" + std::to_string(hw) +

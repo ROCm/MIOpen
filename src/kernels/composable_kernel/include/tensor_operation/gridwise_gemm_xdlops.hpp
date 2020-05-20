@@ -179,6 +179,9 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
             b_blockwise_copy.Run(p_b_global, p_b_block_double);
         }
 
+        using b_blockwise_copy_src_step = Sequence<KPerBlock, 0>;
+        using a_blockwise_copy_src_step = Sequence<KPerBlock, 0>;
+
         // LDS double buffer: main body
         for(index_t k_block_data_begin = 0; k_block_data_begin + 2 * KPerBlock < K;
             k_block_data_begin += 2 * KPerBlock)
@@ -201,8 +204,8 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
                 Float p_a_thread_buffer[a_blockwise_copy.GetThreadBufferSize()];
                 Float p_b_thread_buffer[b_blockwise_copy.GetThreadBufferSize()];
 
-                a_blockwise_copy.MoveSrcSliceWindow(Sequence<KPerBlock, 0>{}, True);
-                b_blockwise_copy.MoveSrcSliceWindow(Sequence<KPerBlock, 0>{}, True);
+                a_blockwise_copy.MoveSrcSliceWindow(a_blockwise_copy_src_step{}, True);
+                b_blockwise_copy.MoveSrcSliceWindow(b_blockwise_copy_src_step{}, True);
 
                 __syncthreads();
 
@@ -228,8 +231,8 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
                 Float p_a_thread_buffer[a_blockwise_copy.GetThreadBufferSize()];
                 Float p_b_thread_buffer[b_blockwise_copy.GetThreadBufferSize()];
 
-                a_blockwise_copy.MoveSrcSliceWindow(Sequence<KPerBlock, 0>{}, True);
-                b_blockwise_copy.MoveSrcSliceWindow(Sequence<KPerBlock, 0>{}, True);
+                a_blockwise_copy.MoveSrcSliceWindow(a_blockwise_copy_src_step{}, True);
+                b_blockwise_copy.MoveSrcSliceWindow(b_blockwise_copy_src_step{}, True);
 
                 __syncthreads();
 
