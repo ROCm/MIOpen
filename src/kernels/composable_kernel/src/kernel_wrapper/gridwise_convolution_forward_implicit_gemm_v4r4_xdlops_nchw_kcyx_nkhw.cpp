@@ -1,9 +1,9 @@
 #include "common_header.hpp"
-#include "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_fp16_bfp16_nchw_kcyx_nkhw.hpp"
+#include "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw.hpp"
 #include "float_types.h"
 
 extern "C" __global__
-    __launch_bounds__(CK_PARAM_DEPENDENT_BLOCK_SIZE, 2) void gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_fp16_bfp16_nchw_kcyx_nkhw(
+    __launch_bounds__(CK_PARAM_DEPENDENT_BLOCK_SIZE, 2) void gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw(
         const FLOAT* const __restrict__ p_in_global,
         const FLOAT* const __restrict__ p_wei_global,
         FLOAT* const __restrict__ p_out_global)
@@ -47,10 +47,10 @@ extern "C" __global__
     constexpr index_t GemmMPerBlock = CK_PARAM_TUNABLE_GEMM_M_PER_BLOCK;
     constexpr index_t GemmNPerBlock = CK_PARAM_TUNABLE_GEMM_N_PER_BLOCK;
     constexpr index_t GemmKPerBlock = CK_PARAM_TUNABLE_GEMM_K_PER_BLOCK;
-    constexpr auto GemmMPerWave = CK_PARAM_TUNABLE_GEMM_M_PER_WAVE;
-    constexpr auto GemmNPerWave = CK_PARAM_TUNABLE_GEMM_N_PER_WAVE;
-    constexpr index_t GemmKSegment = CK_PARAM_TUNABLE_GEMM_KSEGMENT;
-    constexpr index_t GemmKPack    = CK_PARAM_TUNABLE_GEMM_KPACK;
+    constexpr auto GemmMPerWave     = CK_PARAM_TUNABLE_GEMM_M_PER_WAVE;
+    constexpr auto GemmNPerWave     = CK_PARAM_TUNABLE_GEMM_N_PER_WAVE;
+    constexpr index_t GemmKSegment  = CK_PARAM_TUNABLE_GEMM_KSEGMENT;
+    constexpr index_t GemmKPack     = CK_PARAM_TUNABLE_GEMM_KPACK;
 
     static_assert(GemmKSegment == 1, "do not support GemmKSegment > 1 for forward!");
 
@@ -134,7 +134,7 @@ extern "C" __global__
     constexpr auto wkgrp_schd_order = NBlock1MBlock0;
 
     constexpr auto gridwise_conv =
-        GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_fp16_bfp16_nchw_kcyx_nkhw<
+        GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw<
             GridSize,
             BlockSize,
             FLOAT,       // Input data type = fp16 (fp16) or ushort (bfp16)
