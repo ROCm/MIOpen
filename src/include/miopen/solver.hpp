@@ -857,26 +857,23 @@ struct PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16
     int GemmMPerBlock; // 2^n[32..128]
     int GemmNPerBlock; // 2^n[32..128]
     int GemmKPerBlock; // 2^n[4..16]
-    int GemmKSegment;  // 2*n[1..64]
-    int GemmKPack;     // 2*n[1..4] // 1 - fp32; 2,4 - bfp16; 4 - fp16
-
     int GemmMPerWave;
     int GemmNPerWave;
-
-    int GemmABlockCopyClusterLengths_GemmK;
-    int GemmABlockCopyClusterLengths_GemmM;
-
-    int GemmBBlockCopyClusterLengths_GemmK;
-    int GemmBBlockCopyClusterLengths_GemmN;
+    int GemmKSegment; // 2*n[1..64]
+    int GemmKPack;    // 2*n[1..8]
 
     bool use_spare_set;
 
+    PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16(int, int, int, int, int, int, int, bool);
+
     PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16(
-        int, int, int, int, int, int, int, int, int, int, int, bool);
+        int a, int b, int c, int d, int e, int f, int g)
+        : PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16(a, b, c, d, e, f, g, false)
+    {
+    }
 
     PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16()
-        : PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16(
-              -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false)
+        : PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16(-1, -1, -1, -1, -1, -1, -1, false)
     {
     }
 
@@ -888,15 +885,10 @@ struct PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16
         f(self.GemmMPerBlock, "GemmMPerBlock");
         f(self.GemmNPerBlock, "GemmNPerBlock");
         f(self.GemmKPerBlock, "GemmKPerBlock");
-        f(self.GemmKSegment, "GemmKSegment");
-        f(self.GemmKPack, "GemmKPack");
         f(self.GemmMPerWave, "GemmMPerWave");
         f(self.GemmNPerWave, "GemmNPerWave");
-        f(self.GemmABlockCopyClusterLengths_GemmK, "GemmABlockCopyClusterLengths_GemmK");
-        f(self.GemmABlockCopyClusterLengths_GemmM, "GemmABlockCopyClusterLengths_GemmM");
-        f(self.GemmBBlockCopyClusterLengths_GemmK, "GemmBBlockCopyClusterLengths_GemmK");
-        f(self.GemmBBlockCopyClusterLengths_GemmN,
-          "GemmBBlockCopyClusterLengths_GemmNnBlockCopyClusterLengths_B");
+        f(self.GemmKSegment, "GemmKSegment");
+        f(self.GemmKPack, "GemmKPack");
     }
 
     void EuristicInit(const ConvolutionContext& ctx);
@@ -905,6 +897,15 @@ struct PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16
     bool IsValid(const ConvolutionContext& ctx) const;
     bool operator==(const PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16& other) const;
     std::string ToString() const;
+
+    std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx) const;
+    std::tuple<int, bool> CalculateBlockSize() const;
+    std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, int, bool>
+    CalculateGemmABlockCopyPerformanceParameters(const ConvolutionContext&) const;
+    std::tuple<int, int, int, int, int, bool>
+    CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext&) const;
+    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte() const;
 };
 
 struct ConvHipImplicitGemmV4R4FwdXdlops : SolverBase<ConvolutionContext>

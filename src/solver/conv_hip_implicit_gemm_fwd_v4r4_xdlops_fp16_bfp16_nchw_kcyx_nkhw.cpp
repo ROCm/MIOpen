@@ -24,65 +24,27 @@
  *
  *******************************************************************************/
 
-#include <miopen/solver.hpp>
-
 #include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/solver.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
-#include <miopen/stringutils.hpp>
-#include <miopen/implicitgemm_params.hpp>
-
 #include "implicitgemm_util.hpp"
 
 namespace miopen {
 namespace solver {
 
-bool PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::IsValid(const ConvolutionContext& ctx) const
+static inline bool IsValidXdlopsGemm_v2(const ConvolutionContext& ctx,
+                                        const int GemmMPerBlock,
+                                        const int GemmNPerBlock,
+                                        const int GemmMPerWave,
+                                        const int GemmNPerWave,
+                                        const int GemmKPack)
 {
-    const auto n  = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const auto k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx) / ctx.group_counts;
-    const auto c  = ConvolutionContextInterpreter::GetInputChannelC(ctx) / ctx.group_counts;
-    const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-
-    std::size_t GemmM, GemmN, GemmK;
-
-    // GemmKPack = 4 for fp16
-    if(ctx.IsFp16() && GemmKPack != 4)
+    if(ctx.IsFp16() && GemmKPack % 4 != 0)
         return false;
 
-    // GemmKPack = 2, 4 for bfp16 fwd non-group
-    if(ctx.direction.IsForward() && ctx.IsBfp16() && ctx.group_counts == 1 && GemmKPack != 4 &&
-       GemmKPack != 2)
+    if(ctx.IsBfp16() && GemmKPack % 2 != 0)
         return false;
-
-    // GemmKPack = 2 for bfp16 fwd group
-    if(ctx.direction.IsForward() && ctx.IsBfp16() && ctx.group_counts > 1 && GemmKPack != 2)
-        return false;
-
-    // GemmKPack = 2 for bfp16 bwd, wrw
-    if(!ctx.direction.IsForward() && ctx.IsBfp16() && GemmKPack != 2)
-        return false;
-
-    if(c % GemmKPack != 0)
-        return false;
-
-    const auto nonVectorizedC = c / GemmKPack;
-    GemmM                     = k;
-    GemmN                     = static_cast<std::size_t>(n) * ho * wo;
-    GemmK                     = static_cast<std::size_t>(nonVectorizedC) * y * x;
-
-    if(!(GemmKPerBlock % GemmBBlockCopyClusterLengths_GemmK == 0 &&
-         GemmKPerBlock % GemmABlockCopyClusterLengths_GemmK == 0 &&
-         GemmNPerBlock % GemmBBlockCopyClusterLengths_GemmN == 0 &&
-         GemmMPerBlock % GemmABlockCopyClusterLengths_GemmM == 0))
-        return false;
-
-    if(!(GemmM % GemmMPerBlock == 0 && GemmN % GemmNPerBlock == 0 &&
-         GemmK % (GemmKPerBlock * GemmKSegment) == 0))
-        return false; // wrong! cannot divice N evenly among thread
 
     // unsupported xdlops-gemm
     if(GemmMPerWave == 16 && GemmNPerWave == 32)
@@ -93,57 +55,34 @@ bool PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::IsValid(const Convolutio
         return false;
     if(GemmMPerWave == 4 && GemmNPerWave != 64)
         return false;
+    if(GemmMPerWave == 32 && GemmNPerWave == 32 && GemmKPack % 2 != 0)
+        return false;
+    if(GemmMPerWave == 16 && GemmNPerWave == 16 && GemmKPack % 4 != 0)
+        return false;
 
-    const auto WaveSize  = 64;
-    const auto BlockSize = GemmNPerBlock * GemmMPerBlock / (GemmMPerWave * GemmNPerWave) * WaveSize;
+    const auto WaveSize = 64;
+    const auto BlockSize =
+        (GemmNPerBlock * GemmMPerBlock) / (GemmMPerWave * GemmNPerWave) * WaveSize;
 
-    // fail with blockSize >= 512
-    /// \todo fix the issue with blockSize >= 512
     if(BlockSize < 64 || BlockSize > 256)
         return false;
 
-    if(BlockSize != GemmBBlockCopyClusterLengths_GemmK * GemmBBlockCopyClusterLengths_GemmN)
-        return false;
-
-    if(BlockSize != GemmABlockCopyClusterLengths_GemmM * GemmABlockCopyClusterLengths_GemmK)
-        return false;
-
-    if((GemmMPerBlock % GemmMPerWave) != 0 || (GemmNPerBlock % GemmNPerWave) != 0)
-        return false;
-
-    const auto GemmBBlockCopyThreadSliceLengths_GemmN =
-        GemmNPerBlock / GemmBBlockCopyClusterLengths_GemmN;
-    const auto GemmABlockCopyThreadSliceLengths_GemmM =
-        GemmMPerBlock / GemmABlockCopyClusterLengths_GemmM;
-    const auto lds_size = ComputeLDSRequiredSize(ctx,
-                                                 GemmNPerBlock,
-                                                 GemmMPerBlock,
-                                                 GemmKPerBlock,
-                                                 1,
-                                                 1,
-                                                 GemmBBlockCopyThreadSliceLengths_GemmN,
-                                                 GemmABlockCopyThreadSliceLengths_GemmM,
-                                                 GemmKPack);
-    return lds_size <= 64 * 1024;
+    return (GemmMPerBlock % GemmMPerWave) == 0 && (GemmNPerBlock % GemmNPerWave) == 0;
 }
 
 PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::
     PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16(bool spare)
 {
-    GemmNPerBlock = spare ? 16 : 64;
-    GemmMPerBlock = spare ? 4 : 64;
-    GemmKPerBlock = spare ? 4 : 8;
-    GemmKSegment  = 1;
-    GemmKPack     = 1;
+    // always search full space, no matter if use_spare_set or not
+    GemmMPerBlock = 32;
+    GemmNPerBlock = 32;
+    GemmKPerBlock = 4;
 
-    GemmMPerWave = spare ? 4 : 64;
-    GemmNPerWave = spare ? 16 : 64;
+    GemmMPerWave = 16;
+    GemmNPerWave = 16;
 
-    GemmBBlockCopyClusterLengths_GemmK = 4;
-    GemmBBlockCopyClusterLengths_GemmN = 4;
-
-    GemmABlockCopyClusterLengths_GemmK = 2;
-    GemmABlockCopyClusterLengths_GemmM = 4;
+    GemmKSegment = 1;
+    GemmKPack    = 1;
 
     use_spare_set = spare;
 }
@@ -152,26 +91,18 @@ PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::
     PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16(int GemmMPerBlock_,
                                                       int GemmNPerBlock_,
                                                       int GemmKPerBlock_,
-                                                      int GemmKSegment_,
-                                                      int GemmKPack_,
                                                       int GemmMPerWave_,
                                                       int GemmNPerWave_,
-                                                      int GemmABlockCopyClusterLengths_GemmK_,
-                                                      int GemmABlockCopyClusterLengths_GemmM_,
-                                                      int GemmBBlockCopyClusterLengths_GemmK_,
-                                                      int GemmBBlockCopyClusterLengths_GemmN_,
+                                                      int GemmKSegment_,
+                                                      int GemmKPack_,
                                                       bool use_spare_set_)
     : GemmMPerBlock(GemmMPerBlock_),
       GemmNPerBlock(GemmNPerBlock_),
       GemmKPerBlock(GemmKPerBlock_),
-      GemmKSegment(GemmKSegment_),
-      GemmKPack(GemmKPack_),
       GemmMPerWave(GemmMPerWave_),
       GemmNPerWave(GemmNPerWave_),
-      GemmABlockCopyClusterLengths_GemmK(GemmABlockCopyClusterLengths_GemmK_),
-      GemmABlockCopyClusterLengths_GemmM(GemmABlockCopyClusterLengths_GemmM_),
-      GemmBBlockCopyClusterLengths_GemmK(GemmBBlockCopyClusterLengths_GemmK_),
-      GemmBBlockCopyClusterLengths_GemmN(GemmBBlockCopyClusterLengths_GemmN_),
+      GemmKSegment(GemmKSegment_),
+      GemmKPack(GemmKPack_),
       use_spare_set(use_spare_set_)
 {
 }
@@ -183,14 +114,10 @@ operator==(const PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16& other) const
     return GemmMPerBlock == other.GemmMPerBlock
         && GemmNPerBlock == other.GemmNPerBlock
         && GemmKPerBlock == other.GemmKPerBlock
-        && GemmKSegment == other.GemmKSegment
-        && GemmKPack == other.GemmKPack 
         && GemmMPerWave == other.GemmMPerWave
         && GemmNPerWave == other.GemmNPerWave
-        && GemmABlockCopyClusterLengths_GemmK == other.GemmABlockCopyClusterLengths_GemmK
-        && GemmABlockCopyClusterLengths_GemmM == other.GemmABlockCopyClusterLengths_GemmM
-        && GemmBBlockCopyClusterLengths_GemmK == other.GemmBBlockCopyClusterLengths_GemmK
-        && GemmBBlockCopyClusterLengths_GemmN == other.GemmBBlockCopyClusterLengths_GemmN
+        && GemmKSegment == other.GemmKSegment
+        && GemmKPack == other.GemmKPack 
         && use_spare_set == other.use_spare_set;
     // clang-format on
 }
@@ -201,55 +128,30 @@ bool PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::IsValidValue() const
     return IsTwoPower<32,128>(GemmMPerBlock)
         && IsTwoPower<32,128>(GemmNPerBlock)
         && IsTwoPower<4,32>(GemmKPerBlock)
-        && IsTwoPower<1,64>(GemmKSegment)
-        && IsTwoPower<1,4>(GemmKPack)
-        && IsTwoPower<4,64>(GemmMPerWave)
+        && IsTwoPower<16,64>(GemmMPerWave)
         && IsTwoPower<16,64>(GemmNPerWave)
-        && IsTwoPower<2,16>(GemmABlockCopyClusterLengths_GemmK)
-        && IsTwoPower<4,128>(GemmABlockCopyClusterLengths_GemmM)
-        && IsTwoPower<4,16>(GemmBBlockCopyClusterLengths_GemmK)
-        && IsTwoPower<4,32>(GemmBBlockCopyClusterLengths_GemmN);
+        && IsTwoPower<1,1>(GemmKSegment)
+        && IsTwoPower<1,8>(GemmKPack);
+    // clang-format on
 }
 
 bool PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::SetNextValue()
 {
     do
     {
-        if(!use_spare_set)
-        {
-            if(!NextTwoPower<64, 128>(GemmMPerBlock))
-                break;
-            if(!NextTwoPower<64, 128>(GemmNPerBlock))
-                break;
-            if(!NextTwoPower<4, 32>(GemmKPerBlock))
-                break;
-            if(!NextTwoPower<1, 4>(GemmKPack))
-                break;
-        }
-        else
-        {
-            if(!NextTwoPower<4, 128>(GemmMPerBlock))
-                break;
-            if(!NextTwoPower<16, 128>(GemmNPerBlock))
-                break;
-            if(!NextTwoPower<4, 32>(GemmKPerBlock))
-                break;
-            if(!NextTwoPower<1, 4>(GemmKPack))
-                break;
-            if(!NextTwoPower<4, 64>(GemmMPerWave))
-                break;
-            if(!NextTwoPower<16, 64>(GemmNPerWave))
-                break;
-        }
-        if(!NextTwoPower<1, 64>(GemmKSegment))
+        if(!NextTwoPower<32, 128>(GemmMPerBlock))
             break;
-        if(!NextTwoPower<2, 16>(GemmABlockCopyClusterLengths_GemmK))
+        if(!NextTwoPower<32, 128>(GemmNPerBlock))
             break;
-        if(!NextTwoPower<4, 128>(GemmABlockCopyClusterLengths_GemmM))
+        if(!NextTwoPower<4, 32>(GemmKPerBlock))
             break;
-        if(!NextTwoPower<4, 16>(GemmBBlockCopyClusterLengths_GemmK))
+        if(!NextTwoPower<16, 64>(GemmMPerWave))
             break;
-        if(!NextTwoPower<4, 32>(GemmBBlockCopyClusterLengths_GemmN))
+        if(!NextTwoPower<16, 64>(GemmNPerWave))
+            break;
+        if(!NextTwoPower<1, 1>(GemmKSegment))
+            break;
+        if(!NextTwoPower<1, 8>(GemmKPack))
             break;
         return false;
     } while(false);
@@ -262,47 +164,49 @@ void PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::EuristicInit(const Convo
     PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16 tmp;
     if(ctx.IsBfp16())
     {
-        tmp = {128, 128, 16, 1, 2, 64, 64, 8, 32, 4, 64, use_spare_set};
+        tmp = {128, 128, 16, 64, 64, 1, 2};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 32, 4, 1, 2, 32, 64, 4, 16, 2, 32, use_spare_set};
+            tmp = {64, 32, 4, 32, 64, 1, 2};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 32, 4, 1, 2, 32, 64, 4, 16, 4, 16, use_spare_set};
+            tmp = {64, 32, 4, 32, 64, 1, 2};
         if(!tmp.IsValid(ctx))
-            tmp = {32, 64, 4, 1, 2, 64, 32, 4, 16, 4, 16, use_spare_set};
+            tmp = {32, 64, 4, 64, 32, 1, 2};
         if(!tmp.IsValid(ctx))
-            tmp = {32, 32, 4, 1, 2, 32, 32, 4, 16, 2, 32, use_spare_set};
+            tmp = {32, 32, 4, 32, 32, 1, 2};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 16, 4, 1, 2, 16, 64, 4, 16, 4, 16, use_spare_set};
+            tmp = {64, 16, 4, 16, 64, 1, 2};
         if(!tmp.IsValid(ctx))
-            tmp = {16, 64, 4, 1, 2, 64, 16, 4, 16, 4, 16, use_spare_set};
+            tmp = {16, 64, 4, 64, 16, 1, 2};
         if(!tmp.IsValid(ctx))
-            tmp = {16, 16, 4, 1, 2, 16, 16, 4, 16, 4, 16, use_spare_set};
+            tmp = {16, 16, 4, 16, 16, 1, 2};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 4, 16, 1, 2, 4, 64, 16, 4, 16, 4, use_spare_set};
+            tmp = {64, 4, 16, 4, 64, 1, 2};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 8, 8, 1, 2, 8, 64, 4, 16, 8, 8, use_spare_set};
+            tmp = {64, 8, 8, 8, 64, 1, 2};
     }
     else if(ctx.IsFp16())
     {
-        tmp = {128, 128, 16, 1, 4, 64, 64, 8, 32, 4, 64, use_spare_set};
+        tmp = {128, 128, 4, 64, 64, 1, 8};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 32, 4, 1, 4, 32, 64, 4, 16, 2, 32, use_spare_set};
+            tmp = {128, 128, 8, 64, 64, 1, 4};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 32, 4, 1, 4, 32, 64, 4, 16, 4, 16, use_spare_set};
+            tmp = {64, 32, 4, 32, 64, 1, 4};
         if(!tmp.IsValid(ctx))
-            tmp = {32, 64, 4, 1, 4, 64, 32, 4, 16, 4, 16, use_spare_set};
+            tmp = {64, 32, 4, 32, 64, 1, 4};
         if(!tmp.IsValid(ctx))
-            tmp = {32, 32, 4, 1, 4, 32, 32, 4, 16, 2, 32, use_spare_set};
+            tmp = {32, 64, 4, 64, 32, 1, 4};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 16, 4, 1, 4, 16, 64, 4, 16, 4, 16, use_spare_set};
+            tmp = {32, 32, 4, 32, 32, 1, 4};
         if(!tmp.IsValid(ctx))
-            tmp = {16, 64, 4, 1, 4, 64, 16, 4, 16, 4, 16, use_spare_set};
+            tmp = {64, 16, 4, 16, 64, 1, 4};
         if(!tmp.IsValid(ctx))
-            tmp = {16, 16, 4, 1, 4, 16, 16, 4, 16, 4, 16, use_spare_set};
+            tmp = {16, 64, 4, 64, 16, 1, 4};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 4, 16, 1, 4, 4, 64, 16, 4, 16, 4, use_spare_set};
+            tmp = {16, 16, 4, 16, 16, 1, 4};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 8, 8, 1, 4, 8, 64, 4, 16, 8, 8, use_spare_set};
+            tmp = {64, 4, 16, 4, 64, 1, 4};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 8, 8, 8, 64, 1, 4};
     }
     else
     {
@@ -326,6 +230,300 @@ std::string PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::ToString() const
     return ss.str();
 }
 
+std::tuple<int, int, int> PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::CalculateGemmSize(
+    const ConvolutionContext& ctx) const
+{
+    const auto n  = ConvolutionContextInterpreter::GetBatchN(ctx);
+    const auto k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
+    const auto c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
+    const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+    const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+    const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+    const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+
+    const auto gemm_m       = k;
+    const auto gemm_n       = n * ho * wo;
+    const auto gemm_k_total = c * y * x;
+
+    return std::make_tuple(gemm_m, gemm_n, gemm_k_total);
+}
+
+std::tuple<int, bool> PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::CalculateBlockSize() const
+{
+    int block_size = 0;
+
+    try
+    {
+        if(!(GemmMPerBlock % GemmMPerWave == 0 && GemmNPerBlock % GemmNPerWave == 0))
+            MIOPEN_THROW("invalid performance parameter");
+
+        const auto WaveSize = 64;
+        block_size = (GemmNPerBlock * GemmMPerBlock) / (GemmMPerWave * GemmNPerWave) * WaveSize;
+    }
+    catch(...)
+    {
+        return std::make_tuple(-1, false);
+    }
+
+    return std::make_tuple(block_size, true);
+}
+
+std::tuple<int, bool> PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::CalculateGridSize(
+    const ConvolutionContext& ctx) const
+{
+    int GridSize = 0;
+
+    try
+    {
+        int gemm_m = 0;
+        int gemm_n = 0;
+
+        std::tie(gemm_m, gemm_n, std::ignore) = CalculateGemmSize(ctx);
+
+        if(!(gemm_m % GemmMPerBlock == 0 && gemm_n % GemmNPerBlock == 0))
+            MIOPEN_THROW("invalid performance parameter");
+
+        GridSize = (gemm_m / GemmMPerBlock) * (gemm_n / GemmNPerBlock);
+    }
+    catch(...)
+    {
+        return std::make_tuple(-1, false);
+    }
+
+    return std::make_tuple(GridSize, true);
+}
+
+std::tuple<int, int, int, int, int, bool>
+PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::CalculateGemmABlockCopyPerformanceParameters(
+    const ConvolutionContext&) const
+{
+    // A tensor shape [GemmKSeqment, GemmK, GemmM, GemmKPack]
+
+    int ClusterLengths_GemmK      = 0;
+    int ClusterLengths_GemmM      = 0;
+    int ClusterLengths_GemmKPack  = 0;
+    int SrcDataPerRead_GemmKPack  = amd_buffer_load_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = amd_lds_write_max_length<half_float::half>();
+
+    try
+    {
+        bool valid = false;
+
+        int block_size = -1;
+
+        std::tie(block_size, valid) = CalculateBlockSize();
+
+        if(!valid)
+            MIOPEN_THROW("invalid performance parameter");
+
+        if(!((GemmKPerBlock * GemmMPerBlock * GemmKPack) % block_size == 0))
+            MIOPEN_THROW("invalid performance parameter");
+
+        // GemmKPack is src vector read dimension
+        SrcDataPerRead_GemmKPack = gcd(SrcDataPerRead_GemmKPack, GemmKPack);
+
+        // calculate threadwise copy size
+        const auto a_data_per_thread_copy =
+            (GemmKPerBlock * GemmMPerBlock * GemmKPack) / block_size;
+
+        // SrcDataPerRead bounded by size of threadwise copy
+        SrcDataPerRead_GemmKPack = gcd(SrcDataPerRead_GemmKPack, a_data_per_thread_copy);
+
+        const auto a_data_per_thread_copy_gemmkpack = SrcDataPerRead_GemmKPack;
+        const auto tmp = a_data_per_thread_copy / a_data_per_thread_copy_gemmkpack;
+        const auto a_data_per_thread_copy_gemmk = gcd(GemmKPerBlock, tmp);
+        const auto a_data_per_thread_copy_gemmm = tmp / a_data_per_thread_copy_gemmk;
+
+        // vector write into LDS
+        DstDataPerWrite_GemmKPack =
+            gcd(DstDataPerWrite_GemmKPack, a_data_per_thread_copy_gemmkpack);
+
+        if(!(GemmKPerBlock % a_data_per_thread_copy_gemmk == 0 &&
+             GemmMPerBlock % a_data_per_thread_copy_gemmm == 0 &&
+             GemmKPack % a_data_per_thread_copy_gemmkpack == 0))
+            MIOPEN_THROW("invalid performance parameter");
+
+        ClusterLengths_GemmK     = GemmKPerBlock / a_data_per_thread_copy_gemmk;
+        ClusterLengths_GemmM     = GemmMPerBlock / a_data_per_thread_copy_gemmm;
+        ClusterLengths_GemmKPack = GemmKPack / a_data_per_thread_copy_gemmkpack;
+    }
+    catch(...)
+    {
+        return std::make_tuple(-1, -1, -1, -1, -1, false);
+    }
+
+    return std::make_tuple(ClusterLengths_GemmK,
+                           ClusterLengths_GemmM,
+                           ClusterLengths_GemmKPack,
+                           SrcDataPerRead_GemmKPack,
+                           DstDataPerWrite_GemmKPack,
+                           true);
+}
+
+std::tuple<int, int, int, int, int, bool>
+PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::CalculateGemmBBlockCopyPerformanceParameters(
+    const ConvolutionContext& ctx) const
+{
+    // B tensor shape [GemmKSeqment, GemmK, GemmN, GemmKPack]
+
+    int ClusterLengths_GemmK      = 0;
+    int ClusterLengths_GemmN      = 0;
+    int ClusterLengths_GemmKPack  = 0;
+    int SrcDataPerRead_GemmN      = amd_buffer_load_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = amd_lds_write_max_length<half_float::half>();
+
+    try
+    {
+        bool valid = false;
+
+        int block_size = -1;
+
+        std::tie(block_size, valid) = CalculateBlockSize();
+
+        if(!valid)
+            MIOPEN_THROW("invalid performance parameter");
+
+        if(!((GemmKPerBlock * GemmNPerBlock * GemmKPack) % block_size == 0))
+            MIOPEN_THROW("invalid performance parameter");
+
+        // GemmN is src vector read dimension
+        // calculate vector length on gemmn dimension based on global tensor layout
+        const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+        const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+        const auto hi = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
+        const auto wi = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
+        const auto conv_stride_h =
+            ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
+        const auto conv_stride_w =
+            ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
+        const auto conv_dilation_w =
+            ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
+        const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
+        const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
+        const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
+        const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
+
+        if(y == 1 && x == 1 && conv_stride_h == 1 && conv_stride_w == 1 && in_left_pad_h == 0 &&
+           in_left_pad_w == 0 && in_right_pad_h == 0 && in_right_pad_w == 0)
+        {
+            // \todo there are more configs that can go through this if branch
+            SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, hi * wi);
+        }
+        else if(conv_stride_w == 1)
+        {
+            SrcDataPerRead_GemmN =
+                gcd(SrcDataPerRead_GemmN, in_left_pad_w, wi, in_right_pad_w, conv_dilation_w);
+        }
+        else
+        {
+            SrcDataPerRead_GemmN = 1;
+        }
+
+        // calculate threadwise copy size
+        const auto a_data_per_thread_copy =
+            (GemmKPerBlock * GemmNPerBlock * GemmKPack) / block_size;
+
+        // SrcDataPerRead_GemmN bounded by size of threadwise copy
+        SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, a_data_per_thread_copy);
+
+        // SrcDataPerRead also bounded by GemmKPack;
+        SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, GemmNPerBlock);
+
+        const auto a_data_per_thread_copy_gemmn = SrcDataPerRead_GemmN;
+        const auto tmp = a_data_per_thread_copy / a_data_per_thread_copy_gemmn;
+        const auto a_data_per_thread_copy_gemmkpack = gcd(GemmKPack, tmp);
+        const auto a_data_per_thread_copy_gemmk = tmp / a_data_per_thread_copy_gemmkpack;
+
+        // vector write into LDS
+        DstDataPerWrite_GemmKPack =
+            gcd(DstDataPerWrite_GemmKPack, a_data_per_thread_copy_gemmkpack);
+
+        if(!(GemmKPerBlock % a_data_per_thread_copy_gemmk == 0 &&
+             GemmNPerBlock % a_data_per_thread_copy_gemmn == 0 &&
+             GemmKPack % a_data_per_thread_copy_gemmkpack == 0))
+            MIOPEN_THROW("invalid performance parameter");
+
+        ClusterLengths_GemmK     = GemmKPerBlock / a_data_per_thread_copy_gemmk;
+        ClusterLengths_GemmN     = GemmNPerBlock / a_data_per_thread_copy_gemmn;
+        ClusterLengths_GemmKPack = GemmKPack / a_data_per_thread_copy_gemmkpack;
+    }
+    catch(...)
+    {
+        return std::make_tuple(-1, -1, -1, -1, -1, false);
+    }
+
+    return std::make_tuple(ClusterLengths_GemmK,
+                           ClusterLengths_GemmN,
+                           ClusterLengths_GemmKPack,
+                           SrcDataPerRead_GemmN,
+                           DstDataPerWrite_GemmKPack,
+                           true);
+}
+
+std::tuple<std::size_t, bool>
+PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::CalculateLdsNumberOfByte() const
+{
+    const auto a_block_space = GemmKPerBlock * GemmMPerBlock * GemmKPack;
+    const auto b_block_space = GemmKPerBlock * GemmMPerBlock * GemmKPack;
+
+    std::size_t lds_size = 2 * (a_block_space + b_block_space) * sizeof(half_float::half);
+
+    return std::make_tuple(lds_size, true);
+}
+
+bool PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::IsValid(const ConvolutionContext& ctx) const
+{
+    if(!IsValidValue())
+        return false;
+
+    if(!IsValidXdlopsGemm_v2(
+           ctx, GemmMPerBlock, GemmNPerBlock, GemmMPerWave, GemmNPerWave, GemmKPack))
+        return false;
+
+    bool valid = false;
+
+    // check blockwise GEMM size
+    const auto n  = ConvolutionContextInterpreter::GetBatchN(ctx);
+    const auto k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
+    const auto c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
+    const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+    const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+    const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+    const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+
+    const auto gemm_m       = k;
+    const auto gemm_n       = static_cast<std::size_t>(n) * ho * wo;
+    const auto gemm_k_total = static_cast<std::size_t>(c) * y * x;
+
+    if(gemm_k_total % (GemmKSegment * GemmKPack) != 0)
+        return false;
+
+    const auto gemm_k = gemm_k_total / (GemmKSegment * GemmKPack);
+
+    if(!(gemm_m % GemmMPerBlock == 0 && gemm_n % GemmNPerBlock == 0 && gemm_k % GemmKPerBlock == 0))
+        return false;
+
+    // check blockwise copy of A matrix
+    std::tie(std::ignore, std::ignore, std::ignore, std::ignore, std::ignore, valid) =
+        CalculateGemmABlockCopyPerformanceParameters(ctx);
+
+    if(!valid)
+        return false;
+
+    // check blockwise copy of B matrix
+    std::tie(std::ignore, std::ignore, std::ignore, std::ignore, std::ignore, valid) =
+        CalculateGemmBBlockCopyPerformanceParameters(ctx);
+
+    if(!valid)
+        return false;
+
+    // check LDS allocation
+    std::size_t lds_size = 0;
+    std::tie(lds_size, valid) = CalculateLdsNumberOfByte();
+
+    return (valid and lds_size <= get_lds_max_number_of_byte());
+}
+
 PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16
 ConvHipImplicitGemmForwardV4R4XdlopsFp16Bfp16::GetPerformanceConfig(
     const ConvolutionContext& ctx) const
@@ -341,33 +539,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R4XdlopsFp16Bfp16::GetSolution(
     ConvSolution result;
     KernelInfo construction_parameters;
 
-    const int n  = KernelBatchN(ctx);
-    const int k  = KernelOutputChannelK(ctx);
-    const int ho = KernelOutputHeightHo(ctx);
-    const int wo = KernelOutputWidthWo(ctx);
-
-    auto gemm_m = k;
-    auto gemm_n = (n * ho * wo);
-
-    std::size_t block_size =
-        (config.GemmNPerBlock * config.GemmMPerBlock) / (config.GemmMPerWave * config.GemmNPerWave) * wave_size;
-    std::size_t grid_size = (gemm_m / config.GemmMPerBlock) * (gemm_n / config.GemmNPerBlock) * config.GemmKSegment;
-
-    std::size_t lkl_wk0 = block_size;
-    std::size_t lkl_wk1 = 1;
-    std::size_t lkl_wk2 = 1;
-
-    construction_parameters.l_wk.push_back(lkl_wk0);
-    construction_parameters.l_wk.push_back(lkl_wk1);
-    construction_parameters.l_wk.push_back(lkl_wk2);
-
-    std::size_t gbl_wk0 = lkl_wk0 * grid_size;
-    std::size_t gbl_wk1 = 1;
-    std::size_t gbl_wk2 = 1;
-
-    construction_parameters.g_wk.push_back(gbl_wk0);
-    construction_parameters.g_wk.push_back(gbl_wk1);
-    construction_parameters.g_wk.push_back(gbl_wk2);
+    assert(config.IsValid(ctx));
 
     construction_parameters.kernel_file =
         "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_fp16_bfp16_nchw_kcyx_nkhw.cpp";
@@ -375,90 +547,88 @@ ConvSolution ConvHipImplicitGemmForwardV4R4XdlopsFp16Bfp16::GetSolution(
     construction_parameters.kernel_name =
         "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_fp16_bfp16_nchw_kcyx_nkhw";
 
-    std::size_t BBlockCopySubLengths_GemmN =
-        config.GemmNPerBlock / config.GemmBBlockCopyClusterLengths_GemmN;
+    int grid_size  = 0;
+    int block_size = 0;
 
-    // Ensure that vectorized b is read via right alignment from global memory
-    // Consider slicing window's stride and dilation to ensure global memory reads of B are aligned
-    // with vector length.
-    int BBlockCopySrcDataPerRead_GemmN = GetReadWriteVectorSize(BBlockCopySubLengths_GemmN);
+    std::tie(grid_size, std::ignore)  = config.CalculateGridSize(ctx);
+    std::tie(block_size, std::ignore) = config.CalculateBlockSize();
 
-    const int y              = KernelFilterHeightY(ctx);
-    const int x              = KernelFilterWidthX(ctx);
-    const int c              = KernelInputChannelC(ctx);
-    const auto hi            = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
-    const auto wi            = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
-    const auto conv_stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
-    const auto conv_stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-    const auto conv_dilation_w =
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
-    const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
-    const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
-    const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
-    const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
+    construction_parameters.l_wk.push_back(block_size);
+    construction_parameters.l_wk.push_back(1);
+    construction_parameters.l_wk.push_back(1);
 
-    if(y == 1 && x == 1 && conv_stride_h == 1 && conv_stride_w == 1 && in_left_pad_h == 0 &&
-       in_left_pad_w == 0 && in_right_pad_h == 0 && in_right_pad_w == 0)
-    {
-        // \todo there are more configs that can go through this if branch
-        BBlockCopySrcDataPerRead_GemmN = gcd(BBlockCopySrcDataPerRead_GemmN, hi * wi);
-    }
-    else if(conv_stride_w == 1)
-    {
-        BBlockCopySrcDataPerRead_GemmN =
-            gcd(BBlockCopySrcDataPerRead_GemmN, in_left_pad_w, wi, in_right_pad_w, conv_dilation_w);
-    }
-    else
-    {
-        BBlockCopySrcDataPerRead_GemmN = 1;
-    }
+    construction_parameters.g_wk.push_back(block_size * grid_size);
+    construction_parameters.g_wk.push_back(1);
+    construction_parameters.g_wk.push_back(1);
 
-    std::size_t ABlockCopySrcDataPerRead_GemmKPACK = 1;
+    int GemmABlockCopyClusterLengths_GemmK      = -1;
+    int GemmABlockCopyClusterLengths_GemmM      = -1;
+    int GemmABlockCopyClusterLengths_GemmKPack  = -1;
+    int GemmABlockCopySrcDataPerRead_GemmKPack  = -1;
+    int GemmABlockCopyDstDataPerWrite_GemmKPack = -1;
 
-    // For fp16 non-group fwd cases, E = (C * Y * X)/EPack
-    // Since C*Y*X are in contiguous memory, EPack extracted from it, could be vectorized.
-    ABlockCopySrcDataPerRead_GemmKPACK = (c * y * x) % config.GemmKPack != 0 ? 1 : config.GemmKPack;
+    int GemmBBlockCopyClusterLengths_GemmK      = -1;
+    int GemmBBlockCopyClusterLengths_GemmN      = -1;
+    int GemmBBlockCopyClusterLengths_GemmKPack  = -1;
+    int GemmBBlockCopySrcDataPerRead_GemmN      = -1;
+    int GemmBBlockCopyDstDataPerWrite_GemmKPack = -1;
 
-    const auto ABlockCopyDstDataPerWrite_GemmKPACK = config.GemmKPack;
-    const auto BBlockCopyDstDataPerWrite_GemmKPACK = config.GemmKPack;
+    std::tie(GemmABlockCopyClusterLengths_GemmK,
+             GemmABlockCopyClusterLengths_GemmM,
+             GemmABlockCopyClusterLengths_GemmKPack,
+             GemmABlockCopySrcDataPerRead_GemmKPack,
+             GemmABlockCopyDstDataPerWrite_GemmKPack,
+             std::ignore) = config.CalculateGemmABlockCopyPerformanceParameters(ctx);
+
+    std::tie(GemmBBlockCopyClusterLengths_GemmK,
+             GemmBBlockCopyClusterLengths_GemmN,
+             GemmBBlockCopyClusterLengths_GemmKPack,
+             GemmBBlockCopySrcDataPerRead_GemmN,
+             GemmBBlockCopyDstDataPerWrite_GemmKPack,
+             std::ignore) = config.CalculateGemmBBlockCopyPerformanceParameters(ctx);
 
     // clang-format off
     construction_parameters.comp_options =
         std::string(" -std=c++14 ") +
-        std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ctx.batch_sz) +
-        std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ctx.n_outputs) +
-        std::string(" -DCK_PARAM_PROBLEM_C=") + std::to_string(ctx.n_inputs) +
-        std::string(" -DCK_PARAM_PROBLEM_Y=") + std::to_string(ctx.kernel_size_h) +
-        std::string(" -DCK_PARAM_PROBLEM_X=") + std::to_string(ctx.kernel_size_w) +
-        std::string(" -DCK_PARAM_PROBLEM_HI=") + std::to_string(ctx.in_height) +
-        std::string(" -DCK_PARAM_PROBLEM_WI=") + std::to_string(ctx.in_width) +
-        std::string(" -DCK_PARAM_PROBLEM_HO=") + std::to_string(ctx.out_height) +
-        std::string(" -DCK_PARAM_PROBLEM_WO=") + std::to_string(ctx.out_width) +
-        std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_H=") + std::to_string(ctx.kernel_stride_h) +
-        std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_W=") + std::to_string(ctx.kernel_stride_w) +
-        std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_H=") + std::to_string(ctx.kernel_dilation_h) +
-        std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_W=") + std::to_string(ctx.kernel_dilation_w) +
-        std::string(" -DCK_PARAM_PROBLEM_LEFT_PAD_H=") + std::to_string(in_left_pad_h) +
-        std::string(" -DCK_PARAM_PROBLEM_LEFT_PAD_W=") + std::to_string(in_left_pad_w) +
-        std::string(" -DCK_PARAM_PROBLEM_RIGHT_PAD_H=") + std::to_string(in_right_pad_h) +
-        std::string(" -DCK_PARAM_PROBLEM_RIGHT_PAD_W=") + std::to_string(in_right_pad_w) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_K_BLOCKS=") + std::to_string(config.GemmKSegment) +
-        std::string(" -DCK_PARAM_GEMM_KPACK_LENGTH=") + std::to_string(config.GemmKPack) +
-        std::string(" -DCK_PARAM_TUNABLE_BLOCK_SIZE=") + std::to_string(block_size) +
+        std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ConvolutionContextInterpreter::GetBatchN(ctx)) +
+        std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ConvolutionContextInterpreter::GetOutputChannelK(ctx)) +
+        std::string(" -DCK_PARAM_PROBLEM_C=") + std::to_string(ConvolutionContextInterpreter::GetInputChannelC(ctx)) +
+        std::string(" -DCK_PARAM_PROBLEM_HI=") + std::to_string(ConvolutionContextInterpreter::GetInputHeightHi(ctx)) +
+        std::string(" -DCK_PARAM_PROBLEM_WI=") + std::to_string(ConvolutionContextInterpreter::GetInputWidthWi(ctx)) +
+        std::string(" -DCK_PARAM_PROBLEM_HO=") + std::to_string(ConvolutionContextInterpreter::GetOutputHeightHo(ctx)) +
+        std::string(" -DCK_PARAM_PROBLEM_WO=") + std::to_string(ConvolutionContextInterpreter::GetOutputWidthWo(ctx)) +
+        std::string(" -DCK_PARAM_PROBLEM_Y=") + std::to_string(ConvolutionContextInterpreter::GetFilterHeightY(ctx)) +
+        std::string(" -DCK_PARAM_PROBLEM_X=") + std::to_string(ConvolutionContextInterpreter::GetFilterWidthX(ctx)) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_H=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx)) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_W=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx)) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_H=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx)) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_W=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx)) +
+        std::string(" -DCK_PARAM_PROBLEM_IN_LEFT_PAD_H=") + std::to_string(ConvolutionContextInterpreter::GetInputLeftPadH(ctx)) +
+        std::string(" -DCK_PARAM_PROBLEM_IN_LEFT_PAD_W=") + std::to_string(ConvolutionContextInterpreter::GetInputLeftPadW(ctx)) +
+        std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_H=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx)) +
+        std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_W=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx)) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_FORWARD=") + std::to_string(1) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_DATA=") + std::to_string(0) +
+        std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_WEIGHT=") + std::to_string(0) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_N_PER_BLOCK=") + std::to_string(config.GemmNPerBlock) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_M_PER_BLOCK=") + std::to_string(config.GemmMPerBlock) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_K_PER_BLOCK=") + std::to_string(config.GemmKPerBlock) +
-        std::string(" -DCK_PARAM_GEMM_M_PER_WAVE=") + std::to_string(config.GemmMPerWave) +
-        std::string(" -DCK_PARAM_GEMM_N_PER_WAVE=") + std::to_string(config.GemmNPerWave) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_M_PER_WAVE=") + std::to_string(config.GemmMPerWave) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_N_PER_WAVE=") + std::to_string(config.GemmNPerWave) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_KSEGMENT=") + std::to_string(config.GemmKSegment) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_KPACK=") + std::to_string(config.GemmKPack) +
+        std::string(" -DCK_PARAM_DEPENDENT_BLOCK_SIZE=") + std::to_string(block_size) +
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K=") + std::to_string(config.GemmABlockCopyClusterLengths_GemmK) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_M=") + std::to_string(config.GemmABlockCopyClusterLengths_GemmM) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_KPACK=") + std::to_string(ABlockCopySrcDataPerRead_GemmKPACK) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") + std::to_string(ABlockCopyDstDataPerWrite_GemmKPACK) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K=") + std::to_string(config.GemmBBlockCopyClusterLengths_GemmK) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_N=") + std::to_string(config.GemmBBlockCopyClusterLengths_GemmN) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N=") + std::to_string(BBlockCopySrcDataPerRead_GemmN) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") + std::to_string(BBlockCopyDstDataPerWrite_GemmKPACK) +
+        std::string(" -DCK_PARAM_DEPENDENT_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K=") + std::to_string(GemmABlockCopyClusterLengths_GemmK) +
+        std::string(" -DCK_PARAM_DEPENDENT_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_M=") + std::to_string(GemmABlockCopyClusterLengths_GemmM) +
+        std::string(" -DCK_PARAM_DEPENDENT_GEMM_A_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_KPACK=") + std::to_string(GemmABlockCopyClusterLengths_GemmKPack) +
+        std::string(" -DCK_PARAM_DEPENDENT_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_KPACK=") + std::to_string(GemmABlockCopySrcDataPerRead_GemmKPack) +
+        std::string(" -DCK_PARAM_DEPENDENT_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") + std::to_string(GemmABlockCopyDstDataPerWrite_GemmKPack) +
+        std::string(" -DCK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_K=") + std::to_string(GemmBBlockCopyClusterLengths_GemmK) +
+        std::string(" -DCK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_N=") + std::to_string(GemmBBlockCopyClusterLengths_GemmN) +
+        std::string(" -DCK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_CLUSTER_LENGTHS_GEMM_KPACK=") + std::to_string(GemmBBlockCopyClusterLengths_GemmKPack) +
+        std::string(" -DCK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N=") + std::to_string(GemmBBlockCopySrcDataPerRead_GemmN) +
+        std::string(" -DCK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") + std::to_string(GemmBBlockCopyDstDataPerWrite_GemmKPack) +
         std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
@@ -498,6 +668,9 @@ bool ConvHipImplicitGemmForwardV4R4XdlopsFp16Bfp16::IsApplicable(
         return false;
 
     if(!ctx.Is2d())
+        return false;
+
+    if(ctx.group_counts > 1)
         return false;
 
     return IsApplicableXdlops(ctx);

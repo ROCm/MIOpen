@@ -18,6 +18,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM)
 #define WORKAROUND_SWDEV_229277_227616_229195 1
 
 namespace miopen {
+
 namespace solver {
 
 // greatest common divisor, aka highest common factor
@@ -443,8 +444,9 @@ static inline bool IsValidXdlopsGemm(const int GemmMPerBlock,
     if(GemmMPerWave == 16 && GemmNPerWave == 16 && GemmKPackedPerBlock % 4 != 0)
         return false;
 
-    const auto WaveSize  = 64;
-    const auto BlockSize = GemmNPerBlock * GemmMPerBlock / (GemmMPerWave * GemmNPerWave) * WaveSize;
+    const auto WaveSize = 64;
+    const auto BlockSize =
+        (GemmNPerBlock * GemmMPerBlock) / (GemmMPerWave * GemmNPerWave) * WaveSize;
 
     if(BlockSize < 64 || BlockSize > 256)
         return false;
@@ -633,6 +635,10 @@ int amd_buffer_load_max_length()
     {
         return 4;
     }
+    else if(std::is_same<half_float::half, T>())
+    {
+        return 8;
+    }
     else
     {
         MIOPEN_LOG_I("not implemented");
@@ -646,6 +652,10 @@ int amd_buffer_store_max_length()
     if(std::is_same<float, T>())
     {
         return 4;
+    }
+    else if(std::is_same<half_float::half, T>())
+    {
+        return 8;
     }
     else
     {
@@ -661,6 +671,10 @@ int amd_lds_read_max_length()
     {
         return 4;
     }
+    else if(std::is_same<half_float::half, T>())
+    {
+        return 8;
+    }
     else
     {
         MIOPEN_LOG_I("not implemented");
@@ -675,6 +689,10 @@ int amd_lds_write_max_length()
     {
         return 4;
     }
+    else if(std::is_same<half_float::half, T>())
+    {
+        return 8;
+    }
     else
     {
         MIOPEN_LOG_I("not implemented");
@@ -686,4 +704,5 @@ constexpr std::size_t get_lds_max_number_of_byte() { return 65536; }
 
 } // namespace solver
 } // namespace miopen
+
 #endif
