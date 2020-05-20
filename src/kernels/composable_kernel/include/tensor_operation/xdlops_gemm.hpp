@@ -49,6 +49,7 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x1xf32>
     static constexpr index_t n               = 32;
     static constexpr index_t k               = 1;
     static constexpr index_t cycles          = 64;
+    static constexpr index_t k_base          = 1;
 
     template <index_t MPerWave, index_t NPerWave>
     __device__ void
@@ -81,6 +82,7 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x2xf32>
     static constexpr index_t n               = 32;
     static constexpr index_t k               = 2;
     static constexpr index_t cycles          = 64;
+    static constexpr index_t k_base          = 1;
 
     template <index_t MPerWave, index_t NPerWave>
     __device__ void
@@ -111,6 +113,7 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x4xf32>
     static constexpr index_t n               = 16;
     static constexpr index_t k               = 4;
     static constexpr index_t cycles          = 32;
+    static constexpr index_t k_base          = 1;
 
     template <index_t MPerWave, index_t NPerWave>
     __device__ void
@@ -141,6 +144,7 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x1xf32>
     static constexpr index_t n               = 16;
     static constexpr index_t k               = 1;
     static constexpr index_t cycles          = 32;
+    static constexpr index_t k_base          = 1;
 
     template <index_t MPerWave, index_t NPerWave>
     __device__ void
@@ -173,6 +177,7 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x1xf32>
     static constexpr index_t n               = 64;
     static constexpr index_t k               = 1;
     static constexpr index_t cycles          = 8;
+    static constexpr index_t k_base          = 1;
 
     template <index_t MPerWave, index_t NPerWave>
     __device__ void
@@ -204,6 +209,7 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x4f16>
     static constexpr index_t n               = 32;
     static constexpr index_t k               = 4;
     static constexpr index_t cycles          = 64;
+    static constexpr index_t k_base          = 4;
 
     template <index_t MPerWave, index_t NPerWave>
     __device__ void
@@ -236,6 +242,7 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x8f16>
     static constexpr index_t n               = 32;
     static constexpr index_t k               = 8;
     static constexpr index_t cycles          = 64;
+    static constexpr index_t k_base          = 4;
 
     template <index_t MPerWave, index_t NPerWave>
     __device__ void
@@ -266,6 +273,7 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x16f16>
     static constexpr index_t n               = 16;
     static constexpr index_t k               = 16;
     static constexpr index_t cycles          = 32;
+    static constexpr index_t k_base          = 4;
 
     template <index_t MPerWave, index_t NPerWave>
     __device__ void
@@ -296,6 +304,7 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x4f16>
     static constexpr index_t n               = 16;
     static constexpr index_t k               = 4;
     static constexpr index_t cycles          = 32;
+    static constexpr index_t k_base          = 4;
 
     template <index_t MPerWave, index_t NPerWave>
     __device__ void
@@ -327,6 +336,7 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x4f16>
     static constexpr index_t n               = 64;
     static constexpr index_t k               = 4;
     static constexpr index_t cycles          = 8;
+    static constexpr index_t k_base          = 4;
 
     template <index_t MPerWave, index_t NPerWave>
     __device__ void
@@ -358,6 +368,7 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x2bf16>
     static constexpr index_t n               = 32;
     static constexpr index_t k               = 2;
     static constexpr index_t cycles          = 64;
+    static constexpr index_t k_base          = 2;
 
     template <index_t MPerWave, index_t NPerWave>
     __device__ void
@@ -390,6 +401,7 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x4bf16>
     static constexpr index_t n               = 32;
     static constexpr index_t k               = 4;
     static constexpr index_t cycles          = 64;
+    static constexpr index_t k_base          = 2;
 
     template <index_t MPerWave, index_t NPerWave>
     __device__ void
@@ -420,6 +432,7 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x8bf16>
     static constexpr index_t n               = 16;
     static constexpr index_t k               = 8;
     static constexpr index_t cycles          = 32;
+    static constexpr index_t k_base          = 2;
 
     template <index_t MPerWave, index_t NPerWave>
     __device__ void
@@ -450,6 +463,7 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x2bf16>
     static constexpr index_t n               = 16;
     static constexpr index_t k               = 2;
     static constexpr index_t cycles          = 32;
+    static constexpr index_t k_base          = 2;
 
     template <index_t MPerWave, index_t NPerWave>
     __device__ void
@@ -481,6 +495,7 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x2bf16>
     static constexpr index_t n               = 64;
     static constexpr index_t k               = 2;
     static constexpr index_t cycles          = 8;
+    static constexpr index_t k_base          = 2;
 
     template <index_t MPerWave, index_t NPerWave>
     __device__ void
@@ -548,6 +563,8 @@ struct XdlopsGemm_t
                       "incorrect num_output_blks");
         static_assert(mfma_type.num_regs_blk * mfma_type.wave_size == mfma_type.m * mfma_type.n,
                       "num_regs_blk incorrect");
+
+        static_assert(mfma_type.k % mfma_type.k_base == 0, "k and k_base is inconsistent!");
     }
 
     __device__ static constexpr bool IsABroadcast() { return NPerWave >= MPerWave; }
@@ -830,17 +847,28 @@ struct XdlopsGemm_t
         static_assert(is_same<FloatA, FloatB>::value, "FloatA != FloatB");
         static_assert(is_same<FloatC, float>::value, "FloatC != float");
 
+        static_assert(is_same<data_type, float>::value || is_same<data_type, half_t>::value ||
+                          is_same<data_type, ushort>::value,
+                      "base data_type must be float, half, ushort!");
+
 #if CK_USE_AMD_XDLOPS_EMULATE
         XdlopsEmulate<M, N, K>(p_a_wave, p_b_wave, p_c_thread);
 #else
         constexpr auto mfma_type = GetMFMAInfo();
 
+        const index_t laneId = get_thread_local_1d_id() % mfma_type.wave_size;
+
+        FloatA a[K];
+        FloatB b[K];
+
+        static_assert(sizeof(FloatA) % (sizeof(data_type) * mfma_type.k_base) == 0,
+                      "wrong! FloatA is consistent with mfma");
+
+        constexpr index_t nxdlops = sizeof(FloatA) / (sizeof(data_type) * mfma_type.k_base);
+
+        static_assert(nxdlops == 1 && IsKReduction(), "");
+
         static_if<!IsKReduction()>{}([&](auto) {
-
-            const index_t laneId = get_thread_local_1d_id() % mfma_type.wave_size;
-
-            FloatA a[K];
-            FloatB b[K];
 
             // load into registers
             for(index_t k = 0; k < K; ++k)
@@ -858,18 +886,18 @@ struct XdlopsGemm_t
 #endif
             for(index_t k = 0; k < K; ++k)
             {
-                constexpr index_t nxdlops = sizeof(FloatA) / (mfma_type.k * sizeof(data_type));
-
-                for(index_t i = 0; i < nxdlops; ++i, pa += mfma_type.k, pb += mfma_type.k)
-                    mfma_type.run(Number<MPerWave>{}, Number<NPerWave>{}, pa, pb, p_c_thread);
+                for(index_t i = 0; i < nxdlops; ++i)
+                    mfma_type.run(Number<MPerWave>{},
+                                  Number<NPerWave>{},
+                                  &pa[(k * nxdlops + i) * mfma_type.k_base],
+                                  &pb[(k * nxdlops + i) * mfma_type.k_base],
+                                  p_c_thread);
             }
 
         }).Else([&](auto) {
 
-            const index_t laneId = get_thread_local_1d_id() % mfma_type.wave_size;
-
-            FloatA a[K];
-            FloatB b[K];
+            static_assert(K % mfma_type.num_input_blks == 0,
+                          "K cannot divided by mfma_type.num_input_blks!");
 
             const index_t blk_id = laneId / mfma_type.num_threads_blk;
             const index_t blk_td = laneId % mfma_type.num_threads_blk;
@@ -885,16 +913,17 @@ struct XdlopsGemm_t
             auto pa = reinterpret_cast<const data_type*>(&a);
             auto pb = reinterpret_cast<const data_type*>(&b);
 
-            constexpr index_t nxdlops =
-                (sizeof(FloatA) * mfma_type.num_input_blks) / (mfma_type.k * sizeof(data_type));
-
 #if WORKAROUND_SWDEV_229564
 #pragma unroll
 #endif
             for(index_t k = 0; k < K; k += mfma_type.num_input_blks)
             {
-                for(index_t i = 0; i < nxdlops; ++i, pa += mfma_type.k, pb += mfma_type.k)
-                    mfma_type.run(Number<MPerWave>{}, Number<NPerWave>{}, pa, pb, p_c_thread);
+                for(index_t i = 0; i < nxdlops; ++i)
+                    mfma_type.run(Number<MPerWave>{},
+                                  Number<NPerWave>{},
+                                  &pa[(k * nxdlops + i) * mfma_type.k_base],
+                                  &pb[(k * nxdlops + i) * mfma_type.k_base],
+                                  p_c_thread);
             }
 
         });
