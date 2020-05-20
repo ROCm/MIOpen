@@ -70,8 +70,7 @@ static inline bool IsValidXdlopsGemm_v2(const ConvolutionContext& ctx,
     return (GemmMPerBlock % GemmMPerWave) == 0 && (GemmNPerBlock % GemmNPerWave) == 0;
 }
 
-PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::
-    PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16(bool spare)
+PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops(bool spare)
 {
     // always search full space, no matter if use_spare_set or not
     GemmMPerBlock = 32;
@@ -87,15 +86,15 @@ PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::
     use_spare_set = spare;
 }
 
-PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::
-    PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16(int GemmMPerBlock_,
-                                                      int GemmNPerBlock_,
-                                                      int GemmKPerBlock_,
-                                                      int GemmMPerWave_,
-                                                      int GemmNPerWave_,
-                                                      int GemmKSegment_,
-                                                      int GemmKPack_,
-                                                      bool use_spare_set_)
+PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops(
+    int GemmMPerBlock_,
+    int GemmNPerBlock_,
+    int GemmKPerBlock_,
+    int GemmMPerWave_,
+    int GemmNPerWave_,
+    int GemmKSegment_,
+    int GemmKPack_,
+    bool use_spare_set_)
     : GemmMPerBlock(GemmMPerBlock_),
       GemmNPerBlock(GemmNPerBlock_),
       GemmKPerBlock(GemmKPerBlock_),
@@ -107,8 +106,8 @@ PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::
 {
 }
 
-bool PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::
-operator==(const PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16& other) const
+bool PerformanceImplicitGemmForwardV4R4Xdlops::
+operator==(const PerformanceImplicitGemmForwardV4R4Xdlops& other) const
 {
     // clang-format off
     return GemmMPerBlock == other.GemmMPerBlock
@@ -122,7 +121,7 @@ operator==(const PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16& other) const
     // clang-format on
 }
 
-bool PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::IsValidValue() const
+bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValidValue() const
 {
     // clang-format off
     return IsTwoPower<32,128>(GemmMPerBlock)
@@ -135,7 +134,7 @@ bool PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::IsValidValue() const
     // clang-format on
 }
 
-bool PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::SetNextValue()
+bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue()
 {
     do
     {
@@ -159,12 +158,14 @@ bool PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::SetNextValue()
     return true;
 }
 
-void PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::EuristicInit(const ConvolutionContext& ctx)
+void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionContext& ctx)
 {
-    PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16 tmp;
-    if(ctx.IsBfp16())
+    PerformanceImplicitGemmForwardV4R4Xdlops tmp;
+    if(ctx.IsFp32())
     {
-        tmp = {128, 128, 16, 64, 64, 1, 2};
+        tmp = {128, 128, 4, 64, 64, 1, 4};
+        if(!tmp.IsValid(ctx))
+            tmp = {128, 128, 8, 64, 64, 1, 2};
         if(!tmp.IsValid(ctx))
             tmp = {64, 32, 4, 32, 64, 1, 2};
         if(!tmp.IsValid(ctx))
@@ -208,6 +209,28 @@ void PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::EuristicInit(const Convo
         if(!tmp.IsValid(ctx))
             tmp = {64, 8, 8, 8, 64, 1, 4};
     }
+    else if(ctx.IsBfp16())
+    {
+        tmp = {128, 128, 16, 64, 64, 1, 2};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 32, 4, 32, 64, 1, 2};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 32, 4, 32, 64, 1, 2};
+        if(!tmp.IsValid(ctx))
+            tmp = {32, 64, 4, 64, 32, 1, 2};
+        if(!tmp.IsValid(ctx))
+            tmp = {32, 32, 4, 32, 32, 1, 2};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 16, 4, 16, 64, 1, 2};
+        if(!tmp.IsValid(ctx))
+            tmp = {16, 64, 4, 64, 16, 1, 2};
+        if(!tmp.IsValid(ctx))
+            tmp = {16, 16, 4, 16, 16, 1, 2};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 4, 16, 4, 64, 1, 2};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 8, 8, 8, 64, 1, 2};
+    }
     else
     {
         MIOPEN_LOG_E("Only fp16, and bfp16 are supported");
@@ -223,15 +246,15 @@ void PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::EuristicInit(const Convo
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::ToString() const
+std::string PerformanceImplicitGemmForwardV4R4Xdlops::ToString() const
 {
     std::ostringstream ss;
     Serialize(ss);
     return ss.str();
 }
 
-std::tuple<int, int, int> PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::CalculateGemmSize(
-    const ConvolutionContext& ctx) const
+std::tuple<int, int, int>
+PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmSize(const ConvolutionContext& ctx) const
 {
     const auto n  = ConvolutionContextInterpreter::GetBatchN(ctx);
     const auto k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
@@ -248,7 +271,7 @@ std::tuple<int, int, int> PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::Cal
     return std::make_tuple(gemm_m, gemm_n, gemm_k_total);
 }
 
-std::tuple<int, bool> PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::CalculateBlockSize() const
+std::tuple<int, bool> PerformanceImplicitGemmForwardV4R4Xdlops::CalculateBlockSize() const
 {
     int block_size = 0;
 
@@ -268,8 +291,8 @@ std::tuple<int, bool> PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::Calcula
     return std::make_tuple(block_size, true);
 }
 
-std::tuple<int, bool> PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::CalculateGridSize(
-    const ConvolutionContext& ctx) const
+std::tuple<int, bool>
+PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGridSize(const ConvolutionContext& ctx) const
 {
     int GridSize = 0;
 
@@ -294,16 +317,18 @@ std::tuple<int, bool> PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::Calcula
 }
 
 std::tuple<int, int, int, int, int, bool>
-PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::CalculateGemmABlockCopyPerformanceParameters(
-    const ConvolutionContext&) const
+PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmABlockCopyPerformanceParameters(
+    const ConvolutionContext& ctx) const
 {
     // A tensor shape [GemmKSeqment, GemmK, GemmM, GemmKPack]
 
-    int ClusterLengths_GemmK      = 0;
-    int ClusterLengths_GemmM      = 0;
-    int ClusterLengths_GemmKPack  = 0;
-    int SrcDataPerRead_GemmKPack  = amd_buffer_load_max_length<half_float::half>();
-    int DstDataPerWrite_GemmKPack = amd_lds_write_max_length<half_float::half>();
+    int ClusterLengths_GemmK     = 0;
+    int ClusterLengths_GemmM     = 0;
+    int ClusterLengths_GemmKPack = 0;
+    int SrcDataPerRead_GemmKPack = ctx.IsFp32() ? amd_buffer_load_max_length<float>()
+                                                : amd_buffer_load_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = ctx.IsFp32() ? amd_lds_write_max_length<float>()
+                                                 : amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -361,16 +386,18 @@ PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::CalculateGemmABlockCopyPerfor
 }
 
 std::tuple<int, int, int, int, int, bool>
-PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::CalculateGemmBBlockCopyPerformanceParameters(
+PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformanceParameters(
     const ConvolutionContext& ctx) const
 {
     // B tensor shape [GemmKSeqment, GemmK, GemmN, GemmKPack]
 
-    int ClusterLengths_GemmK      = 0;
-    int ClusterLengths_GemmN      = 0;
-    int ClusterLengths_GemmKPack  = 0;
-    int SrcDataPerRead_GemmN      = amd_buffer_load_max_length<half_float::half>();
-    int DstDataPerWrite_GemmKPack = amd_lds_write_max_length<half_float::half>();
+    int ClusterLengths_GemmK     = 0;
+    int ClusterLengths_GemmN     = 0;
+    int ClusterLengths_GemmKPack = 0;
+    int SrcDataPerRead_GemmN     = ctx.IsFp32() ? amd_buffer_load_max_length<float>()
+                                            : amd_buffer_load_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = ctx.IsFp32() ? amd_lds_write_max_length<float>()
+                                                 : amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -432,7 +459,7 @@ PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::CalculateGemmBBlockCopyPerfor
         const auto a_data_per_thread_copy_gemmn = SrcDataPerRead_GemmN;
         const auto tmp = a_data_per_thread_copy / a_data_per_thread_copy_gemmn;
         const auto a_data_per_thread_copy_gemmkpack = gcd(GemmKPack, tmp);
-        const auto a_data_per_thread_copy_gemmk = tmp / a_data_per_thread_copy_gemmkpack;
+        const auto a_data_per_thread_copy_gemmk     = tmp / a_data_per_thread_copy_gemmkpack;
 
         // vector write into LDS
         DstDataPerWrite_GemmKPack =
@@ -460,18 +487,19 @@ PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::CalculateGemmBBlockCopyPerfor
                            true);
 }
 
-std::tuple<std::size_t, bool>
-PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::CalculateLdsNumberOfByte() const
+std::tuple<std::size_t, bool> PerformanceImplicitGemmForwardV4R4Xdlops::CalculateLdsNumberOfByte(
+    const ConvolutionContext& ctx) const
 {
     const auto a_block_space = GemmKPerBlock * GemmMPerBlock * GemmKPack;
     const auto b_block_space = GemmKPerBlock * GemmMPerBlock * GemmKPack;
 
-    std::size_t lds_size = 2 * (a_block_space + b_block_space) * sizeof(half_float::half);
+    std::size_t lds_size = 2 * (a_block_space + b_block_space) *
+                           (ctx.IsFp32() ? sizeof(float) : sizeof(half_float::half));
 
     return std::make_tuple(lds_size, true);
 }
 
-bool PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::IsValid(const ConvolutionContext& ctx) const
+bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValid(const ConvolutionContext& ctx) const
 {
     if(!IsValidValue())
         return false;
@@ -519,21 +547,20 @@ bool PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16::IsValid(const Convolutio
 
     // check LDS allocation
     std::size_t lds_size = 0;
-    std::tie(lds_size, valid) = CalculateLdsNumberOfByte();
+    std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= get_lds_max_number_of_byte());
 }
 
-PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16
-ConvHipImplicitGemmForwardV4R4XdlopsFp16Bfp16::GetPerformanceConfig(
-    const ConvolutionContext& ctx) const
+PerformanceImplicitGemmForwardV4R4Xdlops
+ConvHipImplicitGemmForwardV4R4Xdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
-    return GetPerformanceConfigBase<PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16>(ctx);
+    return GetPerformanceConfigBase<PerformanceImplicitGemmForwardV4R4Xdlops>(ctx);
 }
 
-ConvSolution ConvHipImplicitGemmForwardV4R4XdlopsFp16Bfp16::GetSolution(
+ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
     const ConvolutionContext& ctx,
-    const PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16& config,
+    const PerformanceImplicitGemmForwardV4R4Xdlops& config,
     bool) const
 {
     ConvSolution result;
@@ -542,10 +569,10 @@ ConvSolution ConvHipImplicitGemmForwardV4R4XdlopsFp16Bfp16::GetSolution(
     assert(config.IsValid(ctx));
 
     construction_parameters.kernel_file =
-        "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_fp16_bfp16_nchw_kcyx_nkhw.cpp";
+        "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw.cpp";
 
     construction_parameters.kernel_name =
-        "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_fp16_bfp16_nchw_kcyx_nkhw";
+        "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw";
 
     int grid_size  = 0;
     int block_size = 0;
@@ -641,15 +668,14 @@ ConvSolution ConvHipImplicitGemmForwardV4R4XdlopsFp16Bfp16::GetSolution(
     return result;
 }
 
-int ConvHipImplicitGemmForwardV4R4XdlopsFp16Bfp16::RunAndMeasureSolution(
-    miopen::Handle& profile_h,
-    ConstData_t bot_buf,
-    Data_t top_buf,
-    ConstData_t wei_buf,
-    ConstData_t bias_buf,
-    const ConvolutionContext& ctx,
-    const ConvSolution& solution,
-    float& elapsed_time) const
+int ConvHipImplicitGemmForwardV4R4Xdlops::RunAndMeasureSolution(miopen::Handle& profile_h,
+                                                                ConstData_t bot_buf,
+                                                                Data_t top_buf,
+                                                                ConstData_t wei_buf,
+                                                                ConstData_t bias_buf,
+                                                                const ConvolutionContext& ctx,
+                                                                const ConvSolution& solution,
+                                                                float& elapsed_time) const
 {
     assert(bias_buf == nullptr);
     (void)bias_buf;
@@ -658,10 +684,9 @@ int ConvHipImplicitGemmForwardV4R4XdlopsFp16Bfp16::RunAndMeasureSolution(
         profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
-bool ConvHipImplicitGemmForwardV4R4XdlopsFp16Bfp16::IsApplicable(
-    const ConvolutionContext& ctx) const
+bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
-    if(!(ctx.IsFp16() || ctx.IsBfp16()))
+    if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 
     if(!ctx.direction.IsForward())
@@ -676,15 +701,15 @@ bool ConvHipImplicitGemmForwardV4R4XdlopsFp16Bfp16::IsApplicable(
     return IsApplicableXdlops(ctx);
 }
 
-bool ConvHipImplicitGemmForwardV4R4XdlopsFp16Bfp16::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx, const PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16& c) const
+bool ConvHipImplicitGemmForwardV4R4Xdlops::IsValidPerformanceConfig(
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmForwardV4R4Xdlops& c) const
 {
     MIOPEN_LOG_I("");
     return c.IsValidValue() && c.IsValid(ctx);
 }
 
-PerformanceImplicitGemmForwardV4R4XdlopsFp16Bfp16
-ConvHipImplicitGemmForwardV4R4XdlopsFp16Bfp16::Search(const ConvolutionContext& ctx) const
+PerformanceImplicitGemmForwardV4R4Xdlops
+ConvHipImplicitGemmForwardV4R4Xdlops::Search(const ConvolutionContext& ctx) const
 {
     return GenericSearchFwd(*this, ctx);
 }
