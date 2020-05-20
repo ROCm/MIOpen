@@ -866,8 +866,6 @@ struct XdlopsGemm_t
 
         constexpr index_t nxdlops = sizeof(FloatA) / (sizeof(data_type) * mfma_type.k_base);
 
-        static_assert(nxdlops == 1 && IsKReduction(), "");
-
         static_if<!IsKReduction()>{}([&](auto) {
 
             // load into registers
