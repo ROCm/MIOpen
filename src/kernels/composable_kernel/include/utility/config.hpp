@@ -57,6 +57,10 @@
 #define CK_EXPERIMENTAL_IMPLICIT_GEMM_BACKWARD_DATA_V4R1_OUTPUT_SKIP_OUT_OF_BOUND_CHECK 0
 #define CK_EXPERIMENTAL_IMPLICIT_GEMM_BACKWARD_DATA_V4R1_INPUT_SKIP_OUT_OF_BOUND_CHECK 0
 
+// workaround: put all workaround here
+// workaround for buffer load/store fp16/bfp16 intrinsic bug
+#define CK_WORKAROUND_BUFFER_LOAD_STORE_F16_INTRINSIC_BUG 1
+
 namespace ck {
 
 enum AddressSpace
