@@ -722,22 +722,22 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
                 const index_t n_thread_data_on_global =
                     n_block_data_on_global + c_thread_mtx_on_block.col;
 
-                ThreadwiseGenericTensorSliceCopy_v4r2<
-                    decltype(c_g_m0_m1_m2_n_thread_desc),
-                    decltype(c_g_m0_m1_m2_n_global_desc),
-                    CThreadCopySliceLengths,
-                    arithmetic_sequence_gen<0, 5, 1>::type,
-                    4,
-                    1,
-                    1,
-                    AddressSpace::Vgpr,
-                    AddressSpace::Global,
-                    OutputMemOp>({0, 0, 0, 0, 0},
-                                 {group_id,
-                                  m_thread_data_on_global / (M2 * M1),
-                                  m_thread_data_on_global % (M2 * M1) / M2,
-                                  m_thread_data_on_global % M2,
-                                  n_thread_data_on_global})
+                ThreadwiseGenericTensorSliceCopy_v4r2<decltype(c_g_m0_m1_m2_n_thread_desc),
+                                                      decltype(c_g_m0_m1_m2_n_global_desc),
+                                                      CThreadCopySliceLengths,
+                                                      arithmetic_sequence_gen<0, 5, 1>::type,
+                                                      4,
+                                                      1,
+                                                      1,
+                                                      AddressSpace::Vgpr,
+                                                      AddressSpace::Global,
+                                                      OutputMemOp>(
+                    {0, 0, 0, 0, 0},
+                    {group_id,
+                     m_thread_data_on_global / (M2 * M1),
+                     m_thread_data_on_global % (M2 * M1) / M2,
+                     m_thread_data_on_global % M2,
+                     n_thread_data_on_global})
                     .Run(p_c_thread + i * BlkSize, p_c_global);
             }
         }
