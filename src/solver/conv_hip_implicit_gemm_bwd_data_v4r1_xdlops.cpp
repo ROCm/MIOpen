@@ -258,8 +258,11 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValid(const ConvolutionContext&
         std::tie(GemmM, GemmN, GemmK) =
             ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(ctx, gemm_id);
 
-        GemmM = GemmM / ctx.group_counts;
-        GemmK = GemmK / ctx.group_counts;
+        if(ctx.group_counts > 1)
+        {
+            GemmM = GemmM / ctx.group_counts;
+            GemmK = GemmK / ctx.group_counts;
+        }
 
         if(!(GemmM % GemmMPerBlock == 0 && GemmN % GemmNPerBlock == 0 &&
              GemmK % (GemmKPerBlock * GemmKBlocks) == 0))
@@ -562,10 +565,7 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsValidPerformanceConfig(
 PerformanceImplicitGemmBwdDataV4R1Xdlops
 ConvHipImplicitGemmBwdDataV4R1Xdlops::Search(const ConvolutionContext& ctx) const
 {
-    if(ctx.IsFp16() || ctx.IsBfp16())
-        return GenericSearchBwd(*this, ctx);
-    else
-        return GenericSearchBwd(*this, ctx);
+    return GenericSearchBwd(*this, ctx);
 }
 
 int ConvHipImplicitGemmBwdDataV4R1Xdlops::RunAndMeasureSolution(miopen::Handle& profile_h,
