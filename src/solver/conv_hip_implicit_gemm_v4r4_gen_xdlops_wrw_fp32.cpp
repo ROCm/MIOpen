@@ -24,13 +24,15 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
+#include <miopen/solver.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
-#include "miopen/stringutils.hpp"
-#include "implicitgemm_util.hpp"
-#include "miopen/implicitgemm_params.hpp"
+#include <miopen/stringutils.hpp>
+#include <miopen/implicitgemm_params.hpp>
 #include <miopen/env.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
+
+#include "implicitgemm_util.hpp"
 
 namespace miopen {
 namespace solver {
@@ -537,6 +539,15 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::GetSolution(
     // clang-format on
 
     result.construction_params.push_back(construction_parameters);
+
+    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+        return [=](Handle& handle, const boost::any& primitve_params) {
+            const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitve_params);
+            const auto& tensors      = invoke_params.tensors;
+            handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
+        };
+    };
+
     return result;
 }
 

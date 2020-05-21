@@ -27,6 +27,7 @@
 #include <miopen/solver.hpp>
 
 #include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/stringutils.hpp>
@@ -209,10 +210,23 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         ctx.general_compile_options;
     // clang-format on
 
+    result.construction_params.push_back(construction_parameters);
+
     if(ctx.direction.IsForward() || ctx.direction.IsBackwardData())
         result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
+    else
+    {
+        result.invoker_factory = [](const std::vector<Kernel>& kernels)
+        {
+            return [=](Handle& handle, const boost::any& primitve_params)
+            {
+                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitve_params);
+                const auto& tensors      = invoke_params.tensors;
+                handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
+            };
+        };
+    }
 
-    result.construction_params.push_back(construction_parameters);
     return result;
 }
 

@@ -4168,6 +4168,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         switch(algo)
         {
         case miopenConvolutionBwdWeightsAlgoDirect:
+        case miopenConvolutionBwdWeightsAlgoImplicitGEMM:
             MIOPEN_THROW("No invoker was registered for convolution weights. Was find executed?");
         case miopenConvolutionBwdWeightsAlgoGEMM:
             BackwardWeightsGemm(handle, tensors, workSpace, workSpaceSize);
@@ -4180,48 +4181,6 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             BackwardWeightsWinograd(handle, ctx, tensors, workSpace, kernels);
         }
         break;
-        case miopenConvolutionBwdWeightsAlgoImplicitGEMM:
-        {
-            float elapsed  = 0.0;
-            auto&& kernels = handle.GetKernels(algorithm_name, network_config);
-            if(kernels.empty())
-                MIOPEN_THROW("Error running Implicit GEMM WrW. Was Find() run previously?");
-
-            auto kernel = kernels[0];
-
-            // For fp16/bfp16 backward data case, do zero init, bwd data with fp32 output
-            // and cast from fp32 to fp16/bfp16
-            // clang-format off
-            if((dwDesc.GetType() == miopenHalf || dwDesc.GetType() == miopenBFloat16) &&
-               (kernel.GetName() == "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer" ||
-                kernel.GetName() == "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer"))
-            // clang-format on
-            {
-                float zero = 0.f;
-                TensorDescriptor workSpaceDesc(
-                    miopenFloat, dwDesc.GetLengths(), dwDesc.GetStrides());
-                SetTensor(handle, workSpaceDesc, workSpace, &zero);
-                elapsed = handle.GetKernelTime();
-                kernel(x, dy, workSpace);
-                elapsed += handle.GetKernelTime();
-                CastTensor(handle, &lowp_quant, workSpaceDesc, workSpace, dwDesc, dw, 0, 0);
-                elapsed += handle.GetKernelTime();
-            }
-            else
-            {
-                float zero = 0.f;
-                SetTensor(handle, dwDesc, dw, &zero);
-                elapsed += handle.GetKernelTime();
-                kernel(x, dy, dw);
-                elapsed += handle.GetKernelTime();
-            }
-
-            if(handle.IsProfilingEnabled())
-            {
-                handle.ResetKernelTime();
-                handle.AccumKernelTime(elapsed);
-            }
-        }
         }
     });
 }
@@ -4805,8 +4764,6 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
 
             if(algo_name == "miopenConvolutionBwdWeightsAlgoWinograd")
                 BackwardWeightsWinograd(handle, ctx, tensors, workSpace, v_chk_kernels);
-            else if(algo_name == "miopenConvolutionBwdWeightsAlgoImplicitGEMM")
-                v_chk_kernels[0](x, dy, dw);
             else
                 MIOPEN_THROW("Invalid algorithm: " + algo_name);
             return;
@@ -4828,9 +4785,6 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
 
             if(pair.second.kcache_key.algorithm_name == "miopenConvolutionBwdWeightsAlgoWinograd")
                 BackwardWeightsWinograd(handle, ctx, tensors, workSpace, v_kernels);
-            else if(pair.second.kcache_key.algorithm_name ==
-                    "miopenConvolutionBwdWeightsAlgoImplicitGEMM")
-                v_kernels[0](x, dy, dw);
             else
                 MIOPEN_THROW("Invalid algorithm: " + pair.second.kcache_key.algorithm_name);
             return;

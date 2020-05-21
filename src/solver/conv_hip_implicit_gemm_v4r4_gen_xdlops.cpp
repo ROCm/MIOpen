@@ -27,9 +27,11 @@
 #include <miopen/solver.hpp>
 
 #include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/stringutils.hpp>
+#include <miopen/tensor_ops.hpp>
 #include <miopen/implicitgemm_params.hpp>
 
 #include "implicitgemm_util.hpp"
@@ -93,7 +95,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
                 "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer.cpp";
 
             construction_parameters.kernel_name = 
-		"gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer";
+        "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer";
         }
         else
         {
@@ -102,7 +104,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
                 "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer.cpp";
 
             construction_parameters.kernel_name = 
-		"gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer";
+        "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer";
         }
         // clang-format on
     }
@@ -323,10 +325,61 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         }
     }
 
-    if(ctx.direction.IsForward() || ctx.direction.IsBackwardData())
-        result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
-
     result.construction_params.push_back(construction_parameters);
+    const auto& dwDesc = ctx.conv_problem.GetWeights();
+
+    if(ctx.direction.IsForward() || ctx.direction.IsBackwardData())
+    {
+        result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
+    }
+    else if(dwDesc.GetType() == miopenHalf || dwDesc.GetType() == miopenBFloat16)
+    {
+        const auto lowp_quant  = ctx.conv_problem.GetConv().lowp_quant;
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+            return [=](Handle& handle, const boost::any& primitve_params) {
+                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitve_params);
+                const auto& tensors      = invoke_params.tensors;
+                float zero               = 0.f;
+                TensorDescriptor workSpaceDesc(
+                    miopenFloat, tensors.dwDesc.GetLengths(), tensors.dwDesc.GetStrides());
+                SetTensor(handle, workSpaceDesc, invoke_params.workSpace, &zero);
+                float elapsed = std::numeric_limits<float>::max();
+                if(handle.IsProfilingEnabled())
+                    elapsed = handle.GetKernelTime();
+
+                handle.Run(kernels[0])(tensors.x, tensors.dy, invoke_params.workSpace);
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+
+                CastTensor(handle,
+                           &lowp_quant,
+                           workSpaceDesc,
+                           invoke_params.workSpace,
+                           tensors.dwDesc,
+                           tensors.dw,
+                           0,
+                           0);
+
+                if(handle.IsProfilingEnabled())
+                {
+                    elapsed += handle.GetKernelTime();
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(elapsed);
+                }
+            };
+        };
+    }
+    else
+    {
+        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+            return [=](Handle& handle, const boost::any& primitve_params) {
+                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitve_params);
+                const auto& tensors      = invoke_params.tensors;
+                handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
+            };
+        };
+    }
+
     return result;
 }
 
