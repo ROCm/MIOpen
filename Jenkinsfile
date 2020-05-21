@@ -163,7 +163,7 @@ def buildCommandJob(cmd, prefixpath=""){
             dockerArgs = ""
         }
         withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
-            timeout(time: 2, unit: 'HOURS')
+            timeout(time: 5, unit: 'HOURS')
             {
                 sh cmd
             }
