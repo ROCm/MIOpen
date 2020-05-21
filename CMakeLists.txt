@@ -68,7 +68,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.4.0)
+rocm_setup_version(VERSION 2.5.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -133,8 +133,6 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
             message(FATAL_ERROR "hip compiler not found")
         endif()
     endif()
-
-    set (HIP_CXX_COMPILER ${MIOPEN_HIP_COMPILER})
 
     # scgemm not support opencl backend yet.
     set(MIOPEN_USE_SCGEMM OFF)
@@ -310,7 +308,7 @@ if(MIOPEN_USE_MIOPENGEMM)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, miopengemm")
 endif()
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}, rocm-opencl-dev")
-set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}, rocm-opencl-dev")
+set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}, rocm-opencl-devel")
 
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}
