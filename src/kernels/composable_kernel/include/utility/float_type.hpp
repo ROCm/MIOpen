@@ -291,6 +291,34 @@ struct inner_product_with_conversion
 {
     static constexpr auto convert = type_convert<T>();
 
+    __device__ T operator()(float4_t a, float4_t b) const
+    {
+        const float* p_a_float = reinterpret_cast<const float*>(&a);
+        const float* p_b_float = reinterpret_cast<const float*>(&b);
+
+        T acc = 0;
+        for(index_t v = 0; v < 4; ++v)
+        {
+            acc += convert(p_a_float[v]) * convert(p_b_float[v]);
+        }
+
+        return acc;
+    }
+
+    __device__ T operator()(float2_t a, float2_t b) const
+    {
+        const float* p_a_float = reinterpret_cast<const float*>(&a);
+        const float* p_b_float = reinterpret_cast<const float*>(&b);
+
+        T acc = 0;
+        for(index_t v = 0; v < 2; ++v)
+        {
+            acc += convert(p_a_float[v]) * convert(p_b_float[v]);
+        }
+
+        return acc;
+    }
+
     __device__ T operator()(float a, float b) const { return convert(a) * convert(b); }
 
     __device__ T operator()(half2_t a, half2_t b) const
