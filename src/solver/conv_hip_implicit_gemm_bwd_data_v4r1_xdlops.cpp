@@ -455,8 +455,8 @@ std::tuple<int, int, int>
 ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(const ConvolutionContext& ctx, int gemm_id)
 {
     const auto n  = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const auto k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx); // / ctx.group_counts;
-    const auto c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);  // / ctx.group_counts;
+    const auto k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx); 
+    const auto c  = ConvolutionContextInterpreter::GetInputChannelC(ctx); 
     const auto hi = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
     const auto wi = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
     const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
