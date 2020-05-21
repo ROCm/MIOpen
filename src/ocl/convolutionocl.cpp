@@ -4001,7 +4001,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
             {
                 const auto all = FindImplicitGemmWrWAllSolutions(ctx);
-                const auto algorithm_name = AlgorithmName{"miopenConvolutionBwdWeightsAlgoImplicitGEMM"};
+                const auto algorithm_name =
+                    AlgorithmName{"miopenConvolutionBwdWeightsAlgoImplicitGEMM"};
                 EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
             }
         });

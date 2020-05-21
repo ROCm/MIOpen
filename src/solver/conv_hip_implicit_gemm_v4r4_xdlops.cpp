@@ -216,10 +216,8 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
     else
     {
-        result.invoker_factory = [](const std::vector<Kernel>& kernels)
-        {
-            return [=](Handle& handle, const boost::any& primitve_params)
-            {
+        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+            return [=](Handle& handle, const boost::any& primitve_params) {
                 const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitve_params);
                 const auto& tensors      = invoke_params.tensors;
                 handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
