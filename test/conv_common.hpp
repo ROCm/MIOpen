@@ -1872,11 +1872,6 @@ struct conv_driver : test_driver
 
                 if(do_forward && !skip_forward)
                 {
-#if 1 // debug
-                    input.generate(tensor_elem_gen_one{});
-                    output.generate(tensor_elem_gen_one{});
-                    weights.generate(tensor_elem_gen_one{});
-#endif
                     if(is_int8)
                     {
                         verify(verify_forward_conv<T, float>{

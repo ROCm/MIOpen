@@ -80,8 +80,8 @@ PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlo
     GemmMPerWave = 16;
     GemmNPerWave = 16;
 
-    GemmKSegment = 1;
-    GemmKPack    = 1;
+    GemmG     = 1;
+    GemmKPack = 1;
 
     use_spare_set = spare;
 }
@@ -92,7 +92,7 @@ PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlo
     int GemmKPerBlock_,
     int GemmMPerWave_,
     int GemmNPerWave_,
-    int GemmKSegment_,
+    int GemmG_,
     int GemmKPack_,
     bool use_spare_set_)
     : GemmMPerBlock(GemmMPerBlock_),
@@ -100,7 +100,7 @@ PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlo
       GemmKPerBlock(GemmKPerBlock_),
       GemmMPerWave(GemmMPerWave_),
       GemmNPerWave(GemmNPerWave_),
-      GemmKSegment(GemmKSegment_),
+      GemmG(GemmG_),
       GemmKPack(GemmKPack_),
       use_spare_set(use_spare_set_)
 {
@@ -115,7 +115,7 @@ operator==(const PerformanceImplicitGemmForwardV4R4Xdlops& other) const
         && GemmKPerBlock == other.GemmKPerBlock
         && GemmMPerWave == other.GemmMPerWave
         && GemmNPerWave == other.GemmNPerWave
-        && GemmKSegment == other.GemmKSegment
+        && GemmG == other.GemmG
         && GemmKPack == other.GemmKPack 
         && use_spare_set == other.use_spare_set;
     // clang-format on
@@ -129,7 +129,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValidValue() const
         && IsTwoPower<4,32>(GemmKPerBlock)
         && IsTwoPower<16,64>(GemmMPerWave)
         && IsTwoPower<16,64>(GemmNPerWave)
-        && IsTwoPower<1,1>(GemmKSegment)
+        && IsTwoPower<1,1>(GemmG)
         && IsTwoPower<1,8>(GemmKPack);
     // clang-format on
 }
@@ -138,17 +138,17 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue()
 {
     do
     {
-        if(!NextTwoPower<32, 128>(GemmMPerBlock))
+        if(!NextTwoPower<64, 128>(GemmMPerBlock))
             break;
-        if(!NextTwoPower<32, 128>(GemmNPerBlock))
+        if(!NextTwoPower<64, 128>(GemmNPerBlock))
             break;
         if(!NextTwoPower<4, 32>(GemmKPerBlock))
             break;
-        if(!NextTwoPower<16, 64>(GemmMPerWave))
+        if(!NextTwoPower<32, 64>(GemmMPerWave))
             break;
-        if(!NextTwoPower<16, 64>(GemmNPerWave))
+        if(!NextTwoPower<32, 64>(GemmNPerWave))
             break;
-        if(!NextTwoPower<1, 1>(GemmKSegment))
+        if(!NextTwoPower<1, 1>(GemmG))
             break;
         if(!NextTwoPower<1, 8>(GemmKPack))
             break;
@@ -320,7 +320,7 @@ std::tuple<int, int, int, int, int, bool>
 PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmABlockCopyPerformanceParameters(
     const ConvolutionContext& ctx) const
 {
-    // A tensor shape [GemmKSeqment, GemmK, GemmM, GemmKPack]
+    // A tensor shape [GemmG, GemmK, GemmM, GemmKPack]
 
     int ClusterLengths_GemmK     = 0;
     int ClusterLengths_GemmM     = 0;
@@ -389,7 +389,7 @@ std::tuple<int, int, int, int, int, bool>
 PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformanceParameters(
     const ConvolutionContext& ctx) const
 {
-    // B tensor shape [GemmKSeqment, GemmK, GemmN, GemmKPack]
+    // B tensor shape [GemmG, GemmK, GemmN, GemmKPack]
 
     int ClusterLengths_GemmK     = 0;
     int ClusterLengths_GemmN     = 0;
@@ -417,14 +417,12 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
         // calculate vector length on gemmn dimension based on global tensor layout
         const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
         const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-        const auto hi = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
-        const auto wi = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
+        const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+        const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
         const auto conv_stride_h =
             ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
         const auto conv_stride_w =
             ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-        const auto conv_dilation_w =
-            ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
         const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
         const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
         const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
@@ -434,12 +432,11 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
            in_left_pad_w == 0 && in_right_pad_h == 0 && in_right_pad_w == 0)
         {
             // \todo there are more configs that can go through this if branch
-            SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, hi * wi);
+            SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, ho * wo);
         }
-        else if(conv_stride_w == 1)
+        else if(conv_stride_w == 1 && in_left_pad_w == 0 && in_right_pad_w == 0)
         {
-            SrcDataPerRead_GemmN =
-                gcd(SrcDataPerRead_GemmN, in_left_pad_w, wi, in_right_pad_w, conv_dilation_w);
+            SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, wo);
         }
         else
         {
@@ -491,7 +488,7 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmForwardV4R4Xdlops::Calculat
     const ConvolutionContext& ctx) const
 {
     const auto a_block_space = GemmKPerBlock * GemmMPerBlock * GemmKPack;
-    const auto b_block_space = GemmKPerBlock * GemmMPerBlock * GemmKPack;
+    const auto b_block_space = GemmKPerBlock * GemmNPerBlock * GemmKPack;
 
     std::size_t lds_size = 2 * (a_block_space + b_block_space) *
                            (ctx.IsFp32() ? sizeof(float) : sizeof(half_float::half));
@@ -523,10 +520,10 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValid(const ConvolutionContext&
     const auto gemm_n       = static_cast<std::size_t>(n) * ho * wo;
     const auto gemm_k_total = static_cast<std::size_t>(c) * y * x;
 
-    if(gemm_k_total % (GemmKSegment * GemmKPack) != 0)
+    if(gemm_k_total % (GemmG * GemmKPack) != 0)
         return false;
 
-    const auto gemm_k = gemm_k_total / (GemmKSegment * GemmKPack);
+    const auto gemm_k = gemm_k_total / (GemmG * GemmKPack);
 
     if(!(gemm_m % GemmMPerBlock == 0 && gemm_n % GemmNPerBlock == 0 && gemm_k % GemmKPerBlock == 0))
         return false;
@@ -637,12 +634,12 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
         std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_FORWARD=") + std::to_string(1) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_DATA=") + std::to_string(0) +
         std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_WEIGHT=") + std::to_string(0) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_N_PER_BLOCK=") + std::to_string(config.GemmNPerBlock) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_M_PER_BLOCK=") + std::to_string(config.GemmMPerBlock) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_N_PER_BLOCK=") + std::to_string(config.GemmNPerBlock) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_K_PER_BLOCK=") + std::to_string(config.GemmKPerBlock) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_M_PER_WAVE=") + std::to_string(config.GemmMPerWave) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_N_PER_WAVE=") + std::to_string(config.GemmNPerWave) +
-        std::string(" -DCK_PARAM_TUNABLE_GEMM_KSEGMENT=") + std::to_string(config.GemmKSegment) +
+        std::string(" -DCK_PARAM_TUNABLE_GEMM_G=") + std::to_string(config.GemmG) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_KPACK=") + std::to_string(config.GemmKPack) +
         std::string(" -DCK_PARAM_DEPENDENT_BLOCK_SIZE=") + std::to_string(block_size) +
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
@@ -712,6 +709,7 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops::IsValidPerformanceConfig(
 
 PerformanceImplicitGemmForwardV4R4Xdlops
 ConvHipImplicitGemmForwardV4R4Xdlops::Search(const ConvolutionContext& ctx) const
+
 {
     return GenericSearchFwd(*this, ctx);
 }

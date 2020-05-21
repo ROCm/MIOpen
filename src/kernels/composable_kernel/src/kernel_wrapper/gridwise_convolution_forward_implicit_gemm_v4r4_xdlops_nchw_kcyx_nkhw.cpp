@@ -49,10 +49,10 @@ extern "C" __global__
     constexpr index_t GemmKPerBlock = CK_PARAM_TUNABLE_GEMM_K_PER_BLOCK;
     constexpr auto GemmMPerWave     = CK_PARAM_TUNABLE_GEMM_M_PER_WAVE;
     constexpr auto GemmNPerWave     = CK_PARAM_TUNABLE_GEMM_N_PER_WAVE;
-    constexpr index_t GemmKSegment  = CK_PARAM_TUNABLE_GEMM_KSEGMENT;
+    constexpr index_t GemmG         = CK_PARAM_TUNABLE_GEMM_G;
     constexpr index_t GemmKPack     = CK_PARAM_TUNABLE_GEMM_KPACK;
 
-    static_assert(GemmKSegment == 1, "do not support GemmKSegment > 1 for forward!");
+    static_assert(GemmG == 1, "do not support GemmG > 1 for forward!");
 
     // read params: dependent parameters
     constexpr index_t BlockSize = CK_PARAM_DEPENDENT_BLOCK_SIZE;
@@ -139,7 +139,7 @@ extern "C" __global__
             BlockSize,
             FLOAT,       // Input data type = fp16 (fp16) or ushort (bfp16)
             FLOAT_ACCUM, // Acc data type = float (see float_types.h)
-            FLOAT,       // Input data type = fp16 (fp16) or ushort (bfp16)
+            FLOAT,       // Ouput data type = fp16 (fp16) or ushort (bfp16)
             decltype(in_nchw_desc),
             decltype(wei_kcyx_desc),
             decltype(out_nkhw_desc),
@@ -150,12 +150,10 @@ extern "C" __global__
             GemmMPerBlock,
             GemmNPerBlock,
             GemmKPerBlock,
-            GemmKSegment,
-            GemmKPack,
             GemmMPerWave,
             GemmNPerWave,
-            1, // GemmThreadGemmDataPerReadM
-            1, // GemmThreadGemmDataPerReadN
+            GemmG,
+            GemmKPack,
             GemmABlockCopySubLengths_GemmG_GemmK_GemmM_GemmKPack,
             GemmABlockCopyClusterLengths_GemmG_GemmK_GemmM_GemmKPack,
             GemmABlockCopyThreadClusterArrangeOrder,

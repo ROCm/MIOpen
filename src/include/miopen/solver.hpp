@@ -910,8 +910,8 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     int GemmKPerBlock; // 2^n[4..16]
     int GemmMPerWave;
     int GemmNPerWave;
-    int GemmKSegment; // 2*n[1..64]
-    int GemmKPack;    // 2*n[1..8]
+    int GemmG;     // 2*n[1..64]
+    int GemmKPack; // 2*n[1..8]
 
     bool use_spare_set;
 
@@ -937,7 +937,7 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
         f(self.GemmKPerBlock, "GemmKPerBlock");
         f(self.GemmMPerWave, "GemmMPerWave");
         f(self.GemmNPerWave, "GemmNPerWave");
-        f(self.GemmKSegment, "GemmKSegment");
+        f(self.GemmG, "GemmG");
         f(self.GemmKPack, "GemmKPack");
     }
 
