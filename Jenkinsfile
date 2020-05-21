@@ -111,7 +111,7 @@ def buildHipClangJob(compiler, flags, image, prefixpath="/opt/rocm", cmd = ""){
             withDockerContainer(image: image, args: dockerOpts) {
                 timeout(time: 5, unit: 'MINUTES')
                 {
-                    sh 'PATH="/opt/rocm/opencl/bin/x86_64/:$PATH" clinfo'
+                    sh 'PATH="/opt/rocm/opencl/bin:/opt/rocm/opencl/bin/x86_64:$PATH" clinfo'
                 }
             }
         } catch(Exception ex) {
@@ -119,7 +119,7 @@ def buildHipClangJob(compiler, flags, image, prefixpath="/opt/rocm", cmd = ""){
             withDockerContainer(image: image, args: dockerOpts) {
                 timeout(time: 5, unit: 'MINUTES')
                 {
-                    sh 'PATH="/opt/rocm/opencl/bin/x86_64/:$PATH" clinfo'
+                    sh 'PATH="/opt/rocm/opencl/bin:/opt/rocm/opencl/bin/x86_64:$PATH" clinfo'
                 }
             }
         }
@@ -250,7 +250,14 @@ pipeline {
                     }
                 }
 
-                stage('Hip clang release') {
+                stage('Hip Static Release on /usr/local') {
+                    agent{ label rocmnode("vega") }
+                    steps{
+                        buildJob('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DBUILD_SHARED_LIBS=On', image, "")
+                    }
+                }
+
+                stage('Hip clang debug') {
                     agent{ label rocmnode("vega") }
                     environment{
                         cmd = """
@@ -258,7 +265,7 @@ pipeline {
                             rm -rf build
                             mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache .. 
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache .. 
                             CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
 
@@ -401,6 +408,24 @@ pipeline {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         buildJob('hcc', '-DMIOPEN_TEST_HALF=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image + "rocm")
+                    }
+                }
+
+                stage('Hip Clang Release All') {
+                    agent{ label rocmnode("vega20") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            rm -rf build
+                            mkdir build
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_FLAGS=--disable-verification-cache .. 
+                            CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
+                        """
+
+                    }
+                    steps{
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', image+'-hip-clang', "/usr/local", cmd)
                     }
                 }
             }

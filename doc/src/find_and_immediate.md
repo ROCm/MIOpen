@@ -64,7 +64,7 @@ The results of Find() are returned in an array of `miopenConvAlgoPerf_t` structs
 
 This call sequence is executed once per session as it is inherently expensive. Of those, `miopenFindConvolution*()` is the most expensive call. It caches its own results on disk, so the subsequent calls during the same MIOpen session will execute faster. However, it is better to remember results of `miopenFindConvolution*()` in the application, as recommended above. 
 
-
+Internally MIOpen's Find calls will compile and benchmark a set of `solvers` contained in `miopenConvAlgoPerf_t` this is done in parallel per `miopenConvAlgorithm_t`. The level of parallelism can be controlled using an environment variable. See the debugging section [controlling parallel compilation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/DebugAndLogging.html#controlling-parallel-compilation) for more details.
 
 
 ## Immediate Mode API
@@ -75,7 +75,7 @@ MIOpen v2.0 introduces the immediate which removes the requirement for the `miop
 * With the above data structures, the user calls `miopenConvolution*GetSolutionCount` to get the **maximum** number of supported solutions for the convolution descriptor in question.
 * The count obtained above is used to allocate memory for the `miopenConvSolution_t` structure introduced in MIOpen v2.0
 * The user calls `miopenConvolution*GetSolution` to populate the `miopenConvSolution_t` structures allocated above. The returned list is ordered in the order of best performance, thus the first element would be the fastest. 
-* While the above structure returns the amount of workspace required for an alogrithm, the user may inquire the amount of a workspace required for a known solution id by using the `miopenConvolution*GetSolutionWorkspaceSize` API call. However, this is not a requirement, since the strucure returned by `miopenConvolution*GetSolution` would already have this information. 
+* While the above structure returns the amount of workspace required for an algorithm, the user may inquire the amount of a workspace required for a known solution id by using the `miopenConvolution*GetSolutionWorkspaceSize` API call. However, this is not a requirement, since the strucure returned by `miopenConvolution*GetSolution` would already have this information. 
 * Now the user may initiate the convolution operation in _immediate_ mode by calling `miopenConvolution*Immediate`. Which would populate the output tensor descriptor with the respective convolution result. However, the first call to `miopenConvolution*Immediate` may consume more time since the kernel may not be present in the kernel cache and may need to be compiled.
 * Optionally, the user may compile the solution of choice by calling `miopenConvolution*CompileSolution` which would ensure that the kernel represented by the chosen solution is populated in the kernel cache a priori, removing the necessity for compiling the kernel in question. 
 

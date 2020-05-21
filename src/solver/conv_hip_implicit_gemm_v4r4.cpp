@@ -23,11 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cstddef>
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
+#include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/solver.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
+
 #include "implicitgemm_util.hpp"
+
+#include <cstddef>
 
 namespace miopen {
 namespace solver {
@@ -345,9 +348,9 @@ std::tuple<int, bool> PerformanceImplicitGemmV4R4Fwd::CalculateGemmCThreadCopyPe
         const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
         const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
         DstDataPerWrite_GemmN1 =
-            (ctx.Is3d()) ? gcd(DstDataPerWrite_GemmN1,
-                               ho * wo * ConvolutionContextInterpreter::GetOutputDepthDo(ctx))
-                         : gcd(DstDataPerWrite_GemmN1, ho * wo);
+            ctx.Is3d() ? gcd(DstDataPerWrite_GemmN1,
+                             ho * wo * ConvolutionContextInterpreter::GetOutputDepthDo(ctx))
+                       : gcd(DstDataPerWrite_GemmN1, ho * wo);
     }
     catch(...)
     {
@@ -569,11 +572,11 @@ ConvHipImplicitGemmV4R4Fwd::CalculateGemmSize(const ConvolutionContext& ctx)
     const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
 
     const auto gemm_m = k;
-    const auto gemm_n = (ctx.Is3d())
+    const auto gemm_n = ctx.Is3d()
                             ? n * ho * wo * ConvolutionContextInterpreter::GetOutputDepthDo(ctx)
                             : n * ho * wo;
     const auto gemm_k =
-        (ctx.Is3d()) ? c * y * x * ConvolutionContextInterpreter::GetFilterDepthZ(ctx) : c * y * x;
+        ctx.Is3d() ? c * y * x * ConvolutionContextInterpreter::GetFilterDepthZ(ctx) : c * y * x;
 
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
 }
@@ -769,6 +772,7 @@ ConvSolution ConvHipImplicitGemmV4R4Fwd::GetSolution(const ConvolutionContext& c
 
     // clang-format on
 
+    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
     result.construction_params.push_back(construction_parameters);
     return result;
 }
