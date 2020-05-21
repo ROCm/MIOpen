@@ -57,6 +57,10 @@ TmpDir::TmpDir(std::string prefix)
 
 void TmpDir::Execute(std::string exe, std::string args)
 {
+    if(miopen::IsEnabled(MIOPEN_DEBUG_SAVE_TEMP_DIR{}))
+    {
+        MIOPEN_LOG_I2(this->path.string());
+    }
     std::string cd  = "cd " + this->path.string() + "; ";
     std::string cmd = cd + exe + " " + args; // + " > /dev/null";
     SystemCmd(cmd);
