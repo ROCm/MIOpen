@@ -52,7 +52,13 @@ class path;
 
 namespace miopen {
 
-const auto MIOPEN_SQL_BUSY_TIMEOUT_MS = 60000;
+#define MIOPEN_VALIDATE_LOCK(lock)                       \
+    do                                                   \
+    {                                                    \
+        if(!(lock))                                      \
+            MIOPEN_THROW("Db lock has failed to lock."); \
+    } while(false)
+
 template <class Derived>
 struct SQLiteSerializable
 {
@@ -199,12 +205,22 @@ template <typename Derived>
 class SQLiteBase
 {
     protected:
+    using exclusive_lock = boost::unique_lock<LockFile>;
+    using shared_lock    = boost::shared_lock<LockFile>;
+    static boost::system_time GetLockTimeout()
+    {
+        return boost::get_system_time() + boost::posix_time::milliseconds(60000);
+    }
+
     public:
     SQLiteBase(const std::string& filename_,
                bool is_system,
                const std::string& arch_,
                std::size_t num_cu_)
-        : filename(filename_), arch(arch_), num_cu(num_cu_)
+        : filename(filename_),
+          arch(arch_),
+          num_cu(num_cu_),
+          lock_file(LockFile::Get(LockFilePath(filename_).c_str()))
     {
         MIOPEN_LOG_I2("Initializing " << (is_system ? "system" : "user") << " database file "
                                       << filename);
@@ -244,9 +260,7 @@ class SQLiteBase
                              " Performance may degrade");
         }
         else
-        {
             dbInvalid = false;
-        }
     }
 
     static Derived&
@@ -258,7 +272,11 @@ class SQLiteBase
     {
         const auto sql_cfg_fds = "PRAGMA table_info(" + tableName + ");";
         SQLite::result_type cfg_res;
-        cfg_res = sql.Exec(sql_cfg_fds);
+        {
+            const auto lock = shared_lock(lock_file, GetLockTimeout());
+            MIOPEN_VALIDATE_LOCK(lock);
+            cfg_res = sql.Exec(sql_cfg_fds);
+        }
         std::vector<std::string> cfg_fds(cfg_res.size());
         std::transform(
             cfg_res.begin(), cfg_res.end(), cfg_fds.begin(), [](auto row) { return row["name"]; });
@@ -277,45 +295,59 @@ class SQLiteBase
         }
         return AllFound;
     }
+
     template <typename... U>
     inline auto FindRecord(U&... args)
     {
+        const auto lock = shared_lock(lock_file, GetLockTimeout());
+        MIOPEN_VALIDATE_LOCK(lock);
         return reinterpret_cast<Derived*>(this)->FindRecordUnsafe(args...);
     }
 
     template <typename... U>
     inline auto RemoveRecord(U&... args)
     {
+        const auto lock = exclusive_lock(lock_file, GetLockTimeout());
+        MIOPEN_VALIDATE_LOCK(lock);
         return reinterpret_cast<Derived*>(this)->RemoveRecordUnsafe(args...);
     }
 
     template <typename... U>
     inline auto StoreRecord(U&... args)
     {
+        const auto lock = exclusive_lock(lock_file, GetLockTimeout());
+        MIOPEN_VALIDATE_LOCK(lock);
         return reinterpret_cast<Derived*>(this)->StoreRecordUnsafe(args...);
     }
 
     template <typename... U>
     inline auto Remove(const U&... args)
     {
+        const auto lock = exclusive_lock(lock_file, GetLockTimeout());
+        MIOPEN_VALIDATE_LOCK(lock);
         return reinterpret_cast<Derived*>(this)->RemoveUnsafe(args...);
     }
 
     template <typename... U>
     inline auto Update(const U&... args)
     {
+        const auto lock = exclusive_lock(lock_file, GetLockTimeout());
+        MIOPEN_VALIDATE_LOCK(lock);
         return reinterpret_cast<Derived*>(this)->UpdateUnsafe(args...);
     }
 
     template <typename... U>
     inline auto Load(U&&... args)
     {
+        const auto lock = shared_lock(lock_file, GetLockTimeout());
+        MIOPEN_VALIDATE_LOCK(lock);
         return reinterpret_cast<Derived*>(this)->LoadUnsafe(args...);
     }
 
     std::string filename;
     std::string arch;
     size_t num_cu;
+    LockFile& lock_file;
     bool dbInvalid;
     SQLite sql;
 };

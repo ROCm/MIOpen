@@ -71,8 +71,7 @@ class SQLite::impl
         else
             rc = sqlite3_open_v2(
                 filename_.c_str(), &ptr_tmp, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
-        ptrDb = sqlite3_ptr{ptr_tmp};
-        sqlite3_busy_timeout(ptrDb.get(), MIOPEN_SQL_BUSY_TIMEOUT_MS);
+        ptrDb   = sqlite3_ptr{ptr_tmp};
         isValid = (rc == 0);
     }
 
@@ -119,13 +118,26 @@ SQLite::result_type SQLite::Exec(const std::string& query) const
 
 int SQLite::Retry(std::function<int()> f, std::string filename)
 {
-    int rc = f();
-    if(rc == SQLITE_BUSY)
+    auto timeout_end = std::chrono::high_resolution_clock::now() +
+                       std::chrono::seconds(30); // TODO: make configurable
+    auto tries = 0;
+    while(true)
     {
-        MIOPEN_THROW("Timeout while waiting for Database: " + filename);
+        int rc = f();
+        if(rc == SQLITE_BUSY)
+        {
+            MIOPEN_LOG_I2("Database" + filename + "  busy, retrying ...");
+            ++tries;
+            if(tries > 50)
+                std::this_thread::sleep_for(std::chrono::microseconds(100));
+            else
+                std::this_thread::yield();
+        }
+        else
+            return rc;
+        if(std::chrono::high_resolution_clock::now() > timeout_end)
+            MIOPEN_THROW("Timeout while waiting for Database: " + filename);
     }
-    else
-        return rc;
 }
 
 int SQLite::Retry(std::function<int()> f) const
@@ -260,7 +272,7 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
     if(!is_system)
     {
         SQLite::result_type res;
-        const std::string create_config_sql = prob_desc.CreateQuery();
+        const std::string create_config = prob_desc.CreateQuery();
         // clang-format off
         const std::string create_perfdb_sql =
             "CREATE TABLE  IF NOT EXISTS `perf_db` ("
@@ -277,34 +289,24 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
 
         // clang-format on
         {
+            const auto lock = shared_lock(lock_file, GetLockTimeout());
+            MIOPEN_VALIDATE_LOCK(lock);
             // clang-format off
             const auto check_tables =
                 "SELECT name FROM sqlite_master "
                 "WHERE "
                   "type = 'table' AND "
-                  "(name = 'config');";
+                  "(name = 'config' OR name = 'perf_db');";
             // clang-format on
             res = sql.Exec(check_tables);
-            if(res.empty())
-            {
-                sql.Exec(create_config_sql);
-            }
         }
+        if(res.empty())
         {
-            // clang-format off
-            const auto check_tables =
-                "SELECT name FROM sqlite_master "
-                "WHERE "
-                  "type = 'table' AND "
-                  "(name = 'perf_db');";
-            // clang-format on
-            res = sql.Exec(check_tables);
-            if(res.empty())
-            {
-                sql.Exec(create_perfdb_sql);
-            }
+            const auto lock = exclusive_lock(lock_file, GetLockTimeout());
+            MIOPEN_VALIDATE_LOCK(lock);
+            sql.Exec(create_config + create_perfdb_sql);
+            MIOPEN_LOG_I2("Database created successfully");
         }
-        MIOPEN_LOG_T("Database created successfully");
     }
     // Check fields for the tables
     if(!dbInvalid)
