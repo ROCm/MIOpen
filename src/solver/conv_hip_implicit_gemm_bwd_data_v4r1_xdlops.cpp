@@ -454,15 +454,15 @@ int ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateNumberOfGemm(const Convolutio
 std::tuple<int, int, int>
 ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(const ConvolutionContext& ctx, int gemm_id)
 {
-    const auto n  = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const auto k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx); 
-    const auto c  = ConvolutionContextInterpreter::GetInputChannelC(ctx); 
-    const auto hi = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
-    const auto wi = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
-    const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+    const auto n             = ConvolutionContextInterpreter::GetBatchN(ctx);
+    const auto k             = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
+    const auto c             = ConvolutionContextInterpreter::GetInputChannelC(ctx);
+    const auto hi            = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
+    const auto wi            = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
+    const auto ho            = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+    const auto wo            = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+    const auto y             = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+    const auto x             = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
     const auto conv_stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
     const auto conv_stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
     const auto conv_dilation_h =
