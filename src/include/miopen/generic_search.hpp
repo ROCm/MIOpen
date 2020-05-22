@@ -371,7 +371,17 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
         try
         {
             current_solution = s.GetSolution(context, current_config, true);
-            invoker          = profile_h.PrepareInvoker(*current_solution.invoker_factory,
+
+            if(default_solution.workspce_sz != current_solution.workspce_sz)
+            {
+                ret = -2;
+                MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
+                                 << "Workspace size should not depend on PerformanceConfig: "
+                                 << default_solution.workspce_sz
+                                 << " != " << current_solution.workspce_sz);
+            }
+
+            invoker = profile_h.PrepareInvoker(*current_solution.invoker_factory,
                                                current_solution.construction_params);
             invoker(profile_h, invoke_ctx);
             elapsed_time = profile_h.GetKernelTime();
