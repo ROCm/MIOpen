@@ -384,6 +384,17 @@ inline static bool NextTwoPower(int& v)
     return false;
 }
 
+inline static bool NextFlag(bool& flag)
+{
+    if(flag)
+    {
+        flag = false;
+        return true;
+    }
+    flag = true;
+    return false;
+}
+
 static inline bool IsXdlopsSupport(const ConvolutionContext& c)
 {
     if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}))

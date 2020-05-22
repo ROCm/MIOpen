@@ -83,6 +83,9 @@ PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlo
     GemmG     = 1;
     GemmKPack = 1;
 
+    GemmAThreadCopyMoreGemmK     = false;
+    GemmBThreadCopyMoreGemmKPack = false;
+
     use_spare_set = spare;
 }
 
@@ -94,6 +97,8 @@ PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlo
     int GemmNPerWave_,
     int GemmG_,
     int GemmKPack_,
+    bool GemmAThreadCopyMoreGemmK_,
+    bool GemmBThreadCopyMoreGemmKPack_,
     bool use_spare_set_)
     : GemmMPerBlock(GemmMPerBlock_),
       GemmNPerBlock(GemmNPerBlock_),
@@ -102,6 +107,8 @@ PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlo
       GemmNPerWave(GemmNPerWave_),
       GemmG(GemmG_),
       GemmKPack(GemmKPack_),
+      GemmAThreadCopyMoreGemmK(GemmAThreadCopyMoreGemmK_),
+      GemmBThreadCopyMoreGemmKPack(GemmBThreadCopyMoreGemmKPack_),
       use_spare_set(use_spare_set_)
 {
 }
@@ -117,6 +124,8 @@ operator==(const PerformanceImplicitGemmForwardV4R4Xdlops& other) const
         && GemmNPerWave == other.GemmNPerWave
         && GemmG == other.GemmG
         && GemmKPack == other.GemmKPack 
+        && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
+        && GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack
         && use_spare_set == other.use_spare_set;
     // clang-format on
 }
@@ -124,13 +133,13 @@ operator==(const PerformanceImplicitGemmForwardV4R4Xdlops& other) const
 bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValidValue() const
 {
     // clang-format off
-    return IsTwoPower<32,128>(GemmMPerBlock)
-        && IsTwoPower<32,128>(GemmNPerBlock)
-        && IsTwoPower<4,32>(GemmKPerBlock)
+    return IsTwoPower<16,128>(GemmMPerBlock)
+        && IsTwoPower<16,128>(GemmNPerBlock)
+        && IsTwoPower<1,32>(GemmKPerBlock)
         && IsTwoPower<16,64>(GemmMPerWave)
         && IsTwoPower<16,64>(GemmNPerWave)
         && IsTwoPower<1,1>(GemmG)
-        && IsTwoPower<1,8>(GemmKPack);
+        && IsTwoPower<1,16>(GemmKPack);
     // clang-format on
 }
 
@@ -138,19 +147,23 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue()
 {
     do
     {
-        if(!NextTwoPower<64, 128>(GemmMPerBlock))
+        if(!NextTwoPower<128, 128>(GemmMPerBlock))
             break;
-        if(!NextTwoPower<64, 128>(GemmNPerBlock))
+        if(!NextTwoPower<128, 128>(GemmNPerBlock))
             break;
-        if(!NextTwoPower<4, 32>(GemmKPerBlock))
+        if(!NextTwoPower<4, 16>(GemmKPerBlock))
             break;
-        if(!NextTwoPower<32, 64>(GemmMPerWave))
+        if(!NextTwoPower<64, 64>(GemmMPerWave))
             break;
-        if(!NextTwoPower<32, 64>(GemmNPerWave))
+        if(!NextTwoPower<64, 64>(GemmNPerWave))
             break;
         if(!NextTwoPower<1, 1>(GemmG))
             break;
-        if(!NextTwoPower<1, 8>(GemmKPack))
+        if(!NextTwoPower<4, 8>(GemmKPack))
+            break;
+        if(!NextFlag(GemmAThreadCopyMoreGemmK))
+            break;
+        if(!NextFlag(GemmBThreadCopyMoreGemmKPack))
             break;
         return false;
     } while(false);
@@ -163,77 +176,77 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
     PerformanceImplicitGemmForwardV4R4Xdlops tmp;
     if(ctx.IsFp32())
     {
-        tmp = {128, 128, 4, 64, 64, 1, 4};
+        tmp = {128, 128, 4, 64, 64, 1, 4, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {128, 128, 8, 64, 64, 1, 2};
+            tmp = {128, 128, 8, 64, 64, 1, 2, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 32, 4, 32, 64, 1, 2};
+            tmp = {64, 32, 4, 32, 64, 1, 2, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 32, 4, 32, 64, 1, 2};
+            tmp = {64, 32, 4, 32, 64, 1, 2, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {32, 64, 4, 64, 32, 1, 2};
+            tmp = {32, 64, 4, 64, 32, 1, 2, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {32, 32, 4, 32, 32, 1, 2};
+            tmp = {32, 32, 4, 32, 32, 1, 2, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 16, 4, 16, 64, 1, 2};
+            tmp = {64, 16, 4, 16, 64, 1, 2, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {16, 64, 4, 64, 16, 1, 2};
+            tmp = {16, 64, 4, 64, 16, 1, 2, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {16, 16, 4, 16, 16, 1, 2};
+            tmp = {16, 16, 4, 16, 16, 1, 2, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 4, 16, 4, 64, 1, 2};
+            tmp = {64, 4, 16, 4, 64, 1, 2, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 8, 8, 8, 64, 1, 2};
+            tmp = {64, 8, 8, 8, 64, 1, 2, false, true};
     }
     else if(ctx.IsFp16())
     {
-        tmp = {128, 128, 4, 64, 64, 1, 8};
+        tmp = {128, 128, 4, 64, 64, 1, 8, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {128, 128, 8, 64, 64, 1, 4};
+            tmp = {128, 128, 8, 64, 64, 1, 4, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 32, 4, 32, 64, 1, 4};
+            tmp = {64, 32, 4, 32, 64, 1, 4, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 32, 4, 32, 64, 1, 4};
+            tmp = {64, 32, 4, 32, 64, 1, 4, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {32, 64, 4, 64, 32, 1, 4};
+            tmp = {32, 64, 4, 64, 32, 1, 4, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {32, 32, 4, 32, 32, 1, 4};
+            tmp = {32, 32, 4, 32, 32, 1, 4, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 16, 4, 16, 64, 1, 4};
+            tmp = {64, 16, 4, 16, 64, 1, 4, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {16, 64, 4, 64, 16, 1, 4};
+            tmp = {16, 64, 4, 64, 16, 1, 4, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {16, 16, 4, 16, 16, 1, 4};
+            tmp = {16, 16, 4, 16, 16, 1, 4, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 4, 16, 4, 64, 1, 4};
+            tmp = {64, 4, 16, 4, 64, 1, 4, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 8, 8, 8, 64, 1, 4};
+            tmp = {64, 8, 8, 8, 64, 1, 4, false, true};
     }
     else if(ctx.IsBfp16())
     {
-        tmp = {128, 128, 16, 64, 64, 1, 2};
+        tmp = {128, 128, 16, 64, 64, 1, 2, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 32, 4, 32, 64, 1, 2};
+            tmp = {64, 32, 4, 32, 64, 1, 2, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 32, 4, 32, 64, 1, 2};
+            tmp = {64, 32, 4, 32, 64, 1, 2, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {32, 64, 4, 64, 32, 1, 2};
+            tmp = {32, 64, 4, 64, 32, 1, 2, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {32, 32, 4, 32, 32, 1, 2};
+            tmp = {32, 32, 4, 32, 32, 1, 2, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 16, 4, 16, 64, 1, 2};
+            tmp = {64, 16, 4, 16, 64, 1, 2, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {16, 64, 4, 64, 16, 1, 2};
+            tmp = {16, 64, 4, 64, 16, 1, 2, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {16, 16, 4, 16, 16, 1, 2};
+            tmp = {16, 16, 4, 16, 16, 1, 2, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 4, 16, 4, 64, 1, 2};
+            tmp = {64, 4, 16, 4, 64, 1, 2, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 8, 8, 8, 64, 1, 2};
+            tmp = {64, 8, 8, 8, 64, 1, 2, false, true};
     }
     else
     {
-        MIOPEN_LOG_E("Only fp16, and bfp16 are supported");
+        MIOPEN_LOG_E("Only fp32, fp16, and bfp16 are supported");
         assert(false);
     }
 
@@ -348,29 +361,39 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmABlockCopyPerformancePara
         SrcDataPerRead_GemmKPack = gcd(SrcDataPerRead_GemmKPack, GemmKPack);
 
         // calculate threadwise copy size
-        const auto a_data_per_thread_copy =
-            (GemmKPerBlock * GemmMPerBlock * GemmKPack) / block_size;
+        const auto data_per_thread_copy = (GemmKPerBlock * GemmMPerBlock * GemmKPack) / block_size;
 
         // SrcDataPerRead bounded by size of threadwise copy
-        SrcDataPerRead_GemmKPack = gcd(SrcDataPerRead_GemmKPack, a_data_per_thread_copy);
+        SrcDataPerRead_GemmKPack = gcd(SrcDataPerRead_GemmKPack, data_per_thread_copy);
 
-        const auto a_data_per_thread_copy_gemmkpack = SrcDataPerRead_GemmKPack;
-        const auto tmp = a_data_per_thread_copy / a_data_per_thread_copy_gemmkpack;
-        const auto a_data_per_thread_copy_gemmk = gcd(GemmKPerBlock, tmp);
-        const auto a_data_per_thread_copy_gemmm = tmp / a_data_per_thread_copy_gemmk;
+        const auto data_per_thread_copy_gemmkpack = SrcDataPerRead_GemmKPack;
+        const auto tmp = data_per_thread_copy / data_per_thread_copy_gemmkpack;
+
+        int data_per_thread_copy_gemmk = 0;
+        int data_per_thread_copy_gemmm = 0;
+
+        if(GemmAThreadCopyMoreGemmK)
+        {
+            data_per_thread_copy_gemmk = gcd(GemmKPerBlock, tmp);
+            data_per_thread_copy_gemmm = tmp / data_per_thread_copy_gemmk;
+        }
+        else
+        {
+            data_per_thread_copy_gemmm = gcd(GemmMPerBlock, tmp);
+            data_per_thread_copy_gemmk = tmp / data_per_thread_copy_gemmm;
+        }
 
         // vector write into LDS
-        DstDataPerWrite_GemmKPack =
-            gcd(DstDataPerWrite_GemmKPack, a_data_per_thread_copy_gemmkpack);
+        DstDataPerWrite_GemmKPack = gcd(DstDataPerWrite_GemmKPack, data_per_thread_copy_gemmkpack);
 
-        if(!(GemmKPerBlock % a_data_per_thread_copy_gemmk == 0 &&
-             GemmMPerBlock % a_data_per_thread_copy_gemmm == 0 &&
-             GemmKPack % a_data_per_thread_copy_gemmkpack == 0))
+        if(!(GemmKPerBlock % data_per_thread_copy_gemmk == 0 &&
+             GemmMPerBlock % data_per_thread_copy_gemmm == 0 &&
+             GemmKPack % data_per_thread_copy_gemmkpack == 0))
             MIOPEN_THROW("invalid performance parameter");
 
-        ClusterLengths_GemmK     = GemmKPerBlock / a_data_per_thread_copy_gemmk;
-        ClusterLengths_GemmM     = GemmMPerBlock / a_data_per_thread_copy_gemmm;
-        ClusterLengths_GemmKPack = GemmKPack / a_data_per_thread_copy_gemmkpack;
+        ClusterLengths_GemmK     = GemmKPerBlock / data_per_thread_copy_gemmk;
+        ClusterLengths_GemmM     = GemmMPerBlock / data_per_thread_copy_gemmm;
+        ClusterLengths_GemmKPack = GemmKPack / data_per_thread_copy_gemmkpack;
     }
     catch(...)
     {
@@ -423,20 +446,27 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
             ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
         const auto conv_stride_w =
             ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
+        const auto conv_dilation_w =
+            ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
         const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
         const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
         const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
         const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
+        // \todo this logic need to be more aggresive
         if(y == 1 && x == 1 && conv_stride_h == 1 && conv_stride_w == 1 && in_left_pad_h == 0 &&
            in_left_pad_w == 0 && in_right_pad_h == 0 && in_right_pad_w == 0)
         {
-            // \todo there are more configs that can go through this if branch
             SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, ho * wo);
         }
         else if(conv_stride_w == 1 && in_left_pad_w == 0 && in_right_pad_w == 0)
         {
             SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, wo);
+        }
+        else if(conv_stride_w == 1)
+        {
+            SrcDataPerRead_GemmN =
+                gcd(SrcDataPerRead_GemmN, wo, in_left_pad_w, in_right_pad_w, conv_dilation_w);
         }
         else
         {
@@ -444,32 +474,42 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
         }
 
         // calculate threadwise copy size
-        const auto a_data_per_thread_copy =
-            (GemmKPerBlock * GemmNPerBlock * GemmKPack) / block_size;
+        const auto data_per_thread_copy = (GemmKPerBlock * GemmNPerBlock * GemmKPack) / block_size;
 
         // SrcDataPerRead_GemmN bounded by size of threadwise copy
-        SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, a_data_per_thread_copy);
+        SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, data_per_thread_copy);
 
         // SrcDataPerRead also bounded by GemmKPack;
         SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, GemmNPerBlock);
 
-        const auto a_data_per_thread_copy_gemmn = SrcDataPerRead_GemmN;
-        const auto tmp = a_data_per_thread_copy / a_data_per_thread_copy_gemmn;
-        const auto a_data_per_thread_copy_gemmkpack = gcd(GemmKPack, tmp);
-        const auto a_data_per_thread_copy_gemmk     = tmp / a_data_per_thread_copy_gemmkpack;
+        const auto data_per_thread_copy_gemmn = SrcDataPerRead_GemmN;
+        const auto tmp                        = data_per_thread_copy / data_per_thread_copy_gemmn;
+
+        int data_per_thread_copy_gemmkpack = 0;
+        int data_per_thread_copy_gemmk     = 0;
+
+        if(GemmBThreadCopyMoreGemmKPack)
+        {
+            data_per_thread_copy_gemmkpack = gcd(GemmKPack, tmp);
+            data_per_thread_copy_gemmk     = tmp / data_per_thread_copy_gemmkpack;
+        }
+        else
+        {
+            data_per_thread_copy_gemmk     = gcd(GemmKPerBlock, tmp);
+            data_per_thread_copy_gemmkpack = tmp / data_per_thread_copy_gemmk;
+        }
 
         // vector write into LDS
-        DstDataPerWrite_GemmKPack =
-            gcd(DstDataPerWrite_GemmKPack, a_data_per_thread_copy_gemmkpack);
+        DstDataPerWrite_GemmKPack = gcd(DstDataPerWrite_GemmKPack, data_per_thread_copy_gemmkpack);
 
-        if(!(GemmKPerBlock % a_data_per_thread_copy_gemmk == 0 &&
-             GemmNPerBlock % a_data_per_thread_copy_gemmn == 0 &&
-             GemmKPack % a_data_per_thread_copy_gemmkpack == 0))
+        if(!(GemmKPerBlock % data_per_thread_copy_gemmk == 0 &&
+             GemmNPerBlock % data_per_thread_copy_gemmn == 0 &&
+             GemmKPack % data_per_thread_copy_gemmkpack == 0))
             MIOPEN_THROW("invalid performance parameter");
 
-        ClusterLengths_GemmK     = GemmKPerBlock / a_data_per_thread_copy_gemmk;
-        ClusterLengths_GemmN     = GemmNPerBlock / a_data_per_thread_copy_gemmn;
-        ClusterLengths_GemmKPack = GemmKPack / a_data_per_thread_copy_gemmkpack;
+        ClusterLengths_GemmK     = GemmKPerBlock / data_per_thread_copy_gemmk;
+        ClusterLengths_GemmN     = GemmNPerBlock / data_per_thread_copy_gemmn;
+        ClusterLengths_GemmKPack = GemmKPack / data_per_thread_copy_gemmkpack;
     }
     catch(...)
     {
@@ -490,8 +530,8 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmForwardV4R4Xdlops::Calculat
     const auto a_block_space = GemmKPerBlock * GemmMPerBlock * GemmKPack;
     const auto b_block_space = GemmKPerBlock * GemmNPerBlock * GemmKPack;
 
-    std::size_t lds_size = 2 * (a_block_space + b_block_space) *
-                           (ctx.IsFp32() ? sizeof(float) : sizeof(half_float::half));
+    std::size_t lds_size =
+        (a_block_space + b_block_space) * (ctx.IsFp32() ? sizeof(float) : sizeof(half_float::half));
 
     return std::make_tuple(lds_size, true);
 }

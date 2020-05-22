@@ -52,8 +52,6 @@ extern "C" __global__
     constexpr index_t GemmG         = CK_PARAM_TUNABLE_GEMM_G;
     constexpr index_t GemmKPack     = CK_PARAM_TUNABLE_GEMM_KPACK;
 
-    static_assert(GemmG == 1, "do not support GemmG > 1 for forward!");
-
     // read params: dependent parameters
     constexpr index_t BlockSize = CK_PARAM_DEPENDENT_BLOCK_SIZE;
     constexpr index_t GridSize  = CK_PARAM_DEPENDENT_GRID_SIZE;
@@ -74,19 +72,20 @@ extern "C" __global__
         GemmKPack / GemmABlockCopyClusterLengths_GemmKPack;
 
     using GemmABlockCopyClusterLengths_GemmG_GemmK_GemmM_GemmKPack =
-        Sequence<1,
+        Sequence<GemmG,
                  GemmABlockCopyClusterLengths_GemmK,
                  GemmABlockCopyClusterLengths_GemmM,
                  GemmABlockCopyClusterLengths_GemmKPack>;
     using GemmABlockCopySubLengths_GemmG_GemmK_GemmM_GemmKPack =
-        Sequence<1,
+        Sequence<GemmG,
                  GemmABlockCopyThreadSliceLengths_GemmK,
                  GemmABlockCopyThreadSliceLengths_GemmM,
                  GemmABlockCopyThreadSliceLengths_GemmKPack>;
 
-    using GemmABlockCopyThreadClusterArrangeOrder = Sequence<0, 2, 1, 3>; // [G, M, K, GemmKPack]
-    using GemmABlockCopySrcAccessOrder            = Sequence<0, 2, 1, 3>; // [G, M, K, GemmKPack]
-    using GemmABlockCopyDstAccessOrder            = Sequence<0, 1, 2, 3>; // [G, K, M, GemmKPack]
+    using GemmABlockCopyThreadClusterArrangeOrder =
+        Sequence<0, 2, 1, 3>;                                  // [GemmG, GemmM, GemmK, GemmKPack]
+    using GemmABlockCopySrcAccessOrder = Sequence<0, 2, 1, 3>; // [GemmG, GemmM, GemmK, GemmKPack]
+    using GemmABlockCopyDstAccessOrder = Sequence<0, 1, 2, 3>; // [GemmG, GemmK, GemmM, GemmKPack]
 
     constexpr index_t GemmABlockCopySrcDataPerRead_GemmKPack =
         CK_PARAM_DEPENDENT_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_KPACK;
@@ -110,19 +109,20 @@ extern "C" __global__
         GemmKPack / GemmBBlockCopyClusterLengths_GemmKPack;
 
     using GemmBBlockCopyClusterLengths_GemmG_GemmK_GemmN_GemmKPack =
-        Sequence<1,
+        Sequence<GemmG,
                  GemmBBlockCopyClusterLengths_GemmK,
                  GemmBBlockCopyClusterLengths_GemmN,
                  GemmBBlockCopyClusterLengths_GemmKPack>;
     using GemmBBlockCopySubLengths_GemmG_GemmK_GemmN_GemmKPack =
-        Sequence<1,
+        Sequence<GemmG,
                  GemmBBlockCopyThreadSliceLengths_GemmK,
                  GemmBBlockCopyThreadSliceLengths_GemmN,
                  GemmBBlockCopyThreadSliceLengths_GemmKPack>;
 
-    using GemmBBlockCopyThreadClusterArrangeOrder = Sequence<0, 1, 3, 2>; // [G, K, GemmKPack, B]
-    using GemmBBlockCopySrcAccessOrder            = Sequence<0, 1, 3, 2>; // [G, K, GemmKPack, B]
-    using GemmBBlockCopyDstAccessOrder            = Sequence<0, 1, 2, 3>; // [G, K, B, GemmKPack]
+    using GemmBBlockCopyThreadClusterArrangeOrder =
+        Sequence<0, 1, 3, 2>;                                  // [GemmG, GemmK, GemmKPack, GemmN]
+    using GemmBBlockCopySrcAccessOrder = Sequence<0, 1, 3, 2>; // [GemmG, GemmK, GemmKPack, GemmN]
+    using GemmBBlockCopyDstAccessOrder = Sequence<0, 1, 2, 3>; // [GemmG, GemmK, GemmN, GemmKPack]
 
     constexpr index_t GemmBBlockCopySrcDataPerRead_GemmN =
         CK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N;
@@ -137,9 +137,9 @@ extern "C" __global__
         GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw<
             GridSize,
             BlockSize,
-            FLOAT,       // Input data type = fp16 (fp16) or ushort (bfp16)
-            FLOAT_ACCUM, // Acc data type = float (see float_types.h)
-            FLOAT,       // Ouput data type = fp16 (fp16) or ushort (bfp16)
+            FLOAT,       // Input data type
+            FLOAT_ACCUM, // Acc data type
+            FLOAT,       // Ouput data type
             decltype(in_nchw_desc),
             decltype(wei_kcyx_desc),
             decltype(out_nkhw_desc),

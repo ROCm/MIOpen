@@ -912,18 +912,21 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     int GemmNPerWave;
     int GemmG;     // 2*n[1..64]
     int GemmKPack; // 2*n[1..8]
+    bool GemmAThreadCopyMoreGemmK;
+    bool GemmBThreadCopyMoreGemmKPack;
 
     bool use_spare_set;
 
-    PerformanceImplicitGemmForwardV4R4Xdlops(int, int, int, int, int, int, int, bool);
+    PerformanceImplicitGemmForwardV4R4Xdlops(int, int, int, int, int, int, int, bool, bool, bool);
 
-    PerformanceImplicitGemmForwardV4R4Xdlops(int a, int b, int c, int d, int e, int f, int g)
-        : PerformanceImplicitGemmForwardV4R4Xdlops(a, b, c, d, e, f, g, false)
+    PerformanceImplicitGemmForwardV4R4Xdlops(
+        int a, int b, int c, int d, int e, int f, int g, bool h, bool i)
+        : PerformanceImplicitGemmForwardV4R4Xdlops(a, b, c, d, e, f, g, h, i, false)
     {
     }
 
     PerformanceImplicitGemmForwardV4R4Xdlops()
-        : PerformanceImplicitGemmForwardV4R4Xdlops(-1, -1, -1, -1, -1, -1, -1, false)
+        : PerformanceImplicitGemmForwardV4R4Xdlops(-1, -1, -1, -1, -1, -1, -1, false, false, false)
     {
     }
 
@@ -939,6 +942,8 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
         f(self.GemmNPerWave, "GemmNPerWave");
         f(self.GemmG, "GemmG");
         f(self.GemmKPack, "GemmKPack");
+        f(self.GemmAThreadCopyMoreGemmK, "GemmAThreadCopyMoreGemmK");
+        f(self.GemmBThreadCopyMoreGemmKPack, "GemmBThreadCopyMoreGemmKPack");
     }
 
     void EuristicInit(const ConvolutionContext& ctx);

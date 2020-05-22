@@ -159,7 +159,7 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
             GemmG > 1 ? InMemoryDataOperation::AtomicAdd : InMemoryDataOperation::Set;
 
         constexpr auto gridwise_gemm =
-            GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1<
+            GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v2<
                 GridSize,
                 BlockSize,
                 ABFloat,
