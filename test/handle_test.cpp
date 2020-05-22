@@ -173,7 +173,7 @@ void test_warnings(kernel_type_t kern_type)
         }));
     else
 #endif
-    if(kern_type == miopenHIPKernelType)
+        if(kern_type == miopenHIPKernelType)
         EXPECT(throws([&] {
             h.AddKernel("NoAlgo",
                         "",
