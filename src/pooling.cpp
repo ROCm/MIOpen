@@ -56,7 +56,8 @@ PoolingDescriptor::PoolingDescriptor(miopenPoolingMode_t m,
       pads(ppads, ppads + size),
       mode(m),
       pmode(pm),
-      indexType(miopenIndexUint8)
+      indexType(miopenIndexUint64),
+      workspaceIndexMode(miopenPoolingWorkspaceIndexImage)
 {
 }
 
@@ -65,13 +66,29 @@ PoolingDescriptor::PoolingDescriptor(miopenPoolingMode_t m,
                                      const std::vector<int>& plens,
                                      const std::vector<int>& pstrides,
                                      const std::vector<int>& ppads)
-    : lens(plens), strides(pstrides), pads(ppads), mode(m), pmode(pm), indexType(miopenIndexUint8)
+    : lens(plens),
+      strides(pstrides),
+      pads(ppads),
+      mode(m),
+      pmode(pm),
+      indexType(miopenIndexUint64),
+      workspaceIndexMode(miopenPoolingWorkspaceIndexImage)
 {
 }
 
 void PoolingDescriptor::SetIndexType(miopenIndexType_t index_type) { indexType = index_type; }
 
 miopenIndexType_t PoolingDescriptor::GetIndexType() const { return indexType; }
+
+void PoolingDescriptor::SetWorkspaceIndexMode(miopenPoolingWorkspaceIndexMode_t workspace_index)
+{
+    workspaceIndexMode = workspace_index;
+}
+
+miopenPoolingWorkspaceIndexMode_t PoolingDescriptor::GetWorkspaceIndexMode() const
+{
+    return workspaceIndexMode;
+}
 
 miopenPoolingMode_t PoolingDescriptor::GetMode() const { return (mode); }
 

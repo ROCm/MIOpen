@@ -179,7 +179,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
             get_vect_config(xDesc.GetStrides()) + "_yd" + get_vect_config(yDesc.GetLengths()) +
             "_ys" + get_vect_config(yDesc.GetStrides()) + "_ker" + get_vect_config(lens) + "_str" +
             get_vect_config(strides) + "_pad" + get_vect_config(pads) + "_it" +
-            std::to_string(GetIndexType());
+            std::to_string(GetIndexType()) + "_wsidx" + std::to_string(GetWorkspaceIndexMode());
     }
     else
     {
@@ -242,6 +242,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
             construct_params.setBotDescFromMLDesc(xDesc);
             construct_params.setPoolingDescr(pooling_method,
                                              GetIndexType(),
+                                             GetWorkspaceIndexMode(),
                                              lens[0],
                                              lens[1],
                                              pads[0],
@@ -438,7 +439,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
             "_dyd" + get_vect_config(dyDesc.GetLengths()) + "_dys" +
             get_vect_config(dyDesc.GetStrides()) + "_ker" + get_vect_config(lens) + "_str" +
             get_vect_config(strides) + "_pad" + get_vect_config(pads) + "_it" +
-            std::to_string(GetIndexType());
+            std::to_string(GetIndexType()) + "_wsidx" + std::to_string(GetWorkspaceIndexMode());
     }
     else
     {
@@ -538,6 +539,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
             construct_params.setBotDescFromMLDesc(xDesc);
             construct_params.setPoolingDescr(pooling_method,
                                              GetIndexType(),
+                                             GetWorkspaceIndexMode(),
                                              lens[0],
                                              lens[1],
                                              pads[0],

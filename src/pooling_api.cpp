@@ -120,6 +120,23 @@ extern "C" miopenStatus_t miopenGetPoolingIndexType(miopenPoolingDescriptor_t po
     return miopen::try_([&] { *index_type = miopen::deref(poolDesc).GetIndexType(); });
 }
 
+extern "C" miopenStatus_t
+miopenSetPoolingWorkSpaceIndexMode(miopenPoolingDescriptor_t poolDesc,
+                                   miopenPoolingWorkspaceIndexMode_t workspace_index)
+{
+    MIOPEN_LOG_FUNCTION(poolDesc, workspace_index);
+    return miopen::try_([&] { miopen::deref(poolDesc).SetWorkspaceIndexMode(workspace_index); });
+}
+
+extern "C" miopenStatus_t
+miopenGetPoolingWorkSpaceIndexMode(miopenPoolingDescriptor_t poolDesc,
+                                   miopenPoolingWorkspaceIndexMode_t* workspace_index)
+{
+    MIOPEN_LOG_FUNCTION(poolDesc, workspace_index);
+    return miopen::try_(
+        [&] { *workspace_index = miopen::deref(poolDesc).GetWorkspaceIndexMode(); });
+}
+
 extern "C" miopenStatus_t miopenSet2dPoolingDescriptor(miopenPoolingDescriptor_t poolDesc,
                                                        miopenPoolingMode_t mode,
                                                        int windowHeight,

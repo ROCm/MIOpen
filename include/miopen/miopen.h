@@ -381,6 +381,15 @@ typedef enum {
     miopenPoolingAverageInclusive = 2, /*!< Inclusive Average pooling */
 } miopenPoolingMode_t;
 
+/*! @ingroup pooling
+ * @enum miopenPoolingWorkspaceIndexMode_t
+ * Pooling layer workspace index mode.
+*/
+typedef enum {
+    miopenPoolingWorkspaceIndexMask  = 0, /*!< Use mask indices, 2D pooling only */
+    miopenPoolingWorkspaceIndexImage = 1, /*!< Use image indices */
+} miopenPoolingWorkspaceIndexMode_t;
+
 /*! @ingroup LRN
  * @enum miopenLRNMode_t
  * Local Response Normalization layer mode
@@ -1792,6 +1801,25 @@ MIOPEN_EXPORT miopenStatus_t miopenSetPoolingIndexType(miopenPoolingDescriptor_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetPoolingIndexType(miopenPoolingDescriptor_t poolDesc,
                                                        miopenIndexType_t* index_type);
+
+/*! @brief Set workspace index mode for pooling layer. The default mode is
+ * miopenPoolingWorkSpaceIndexImage.
+ *
+ * @param poolDesc         Pointer to a pooling layer descriptor (input/output)
+ * @param workspace_index  Workspace index mode (input)
+ * @return                 miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetPoolingWorkSpaceIndexMode(
+    miopenPoolingDescriptor_t poolDesc, miopenPoolingWorkspaceIndexMode_t workspace_index);
+
+/*! @brief Get workspace index mode for pooling layer.
+ *
+ * @param poolDesc         Pointer to a pooling layer descriptor (input)
+ * @param workspace_index  Workspace index mode (output)
+ * @return                 miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetPoolingWorkSpaceIndexMode(
+    miopenPoolingDescriptor_t poolDesc, miopenPoolingWorkspaceIndexMode_t* workspace_index);
 
 /*! @brief Sets a 2-D pooling layer descriptor details.
  *

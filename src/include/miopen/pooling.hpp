@@ -56,11 +56,15 @@ struct PoolingDescriptor : miopenPoolingDescriptor
 
     void SetIndexType(miopenIndexType_t index_type);
 
+    void SetWorkspaceIndexMode(miopenPoolingWorkspaceIndexMode_t workspace_index);
+
     miopenPoolingMode_t GetMode() const;
 
     miopenPaddingMode_t GetPaddingMode() const;
 
     miopenIndexType_t GetIndexType() const;
+
+    miopenPoolingWorkspaceIndexMode_t GetWorkspaceIndexMode() const;
 
     const std::vector<int>& GetLengths() const;
 
@@ -114,7 +118,8 @@ struct PoolingDescriptor : miopenPoolingDescriptor
     miopenPoolingMode_t mode  = miopenPoolingMax;
     miopenPaddingMode_t pmode = miopenPaddingDefault;
 
-    miopenIndexType_t indexType = miopenIndexUint8;
+    miopenIndexType_t indexType                          = miopenIndexUint64;
+    miopenPoolingWorkspaceIndexMode_t workspaceIndexMode = miopenPoolingWorkspaceIndexImage;
 };
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenPoolingDescriptor, miopen::PoolingDescriptor);

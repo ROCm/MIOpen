@@ -47,9 +47,11 @@
 #include "verify.hpp"
 #include "cpu_conv.hpp"
 
-static int num_uint16_case = 0;
-static int num_uint32_case = 0;
-static int num_uint64_case = 0;
+static int num_uint16_case        = 0;
+static int num_uint32_case        = 0;
+static int num_uint32_case_imgidx = 0;
+static int num_uint64_case        = 0;
+static int num_uint64_case_imgidx = 0;
 
 template <class T>
 tensor<T> get_output_tensor(const miopen::PoolingDescriptor& filter, const tensor<T>& input)
@@ -455,6 +457,7 @@ struct pooling_driver : test_driver
     std::string mode;
     std::string pmode;
     int verify_indices{};
+    int wsidx{};
     std::unordered_map<std::string, miopenIndexType_t> index_type_lookup = {
         {miopen::ToUpper("miopenIndexUint8"), miopenIndexUint8},
         {miopen::ToUpper("miopenIndexUint16"), miopenIndexUint16},
@@ -507,7 +510,7 @@ struct pooling_driver : test_driver
                out.first,
                filter,
                indices,
-               input.desc.GetSize() == 4 ? false : true,
+               wsidx == 0 ? false : true,
                static_cast<bool>(this->verify_indices));
     }
 
@@ -521,7 +524,7 @@ struct pooling_driver : test_driver
         case miopenIndexUint8:
         {
             // index size too small for 3D image
-            if(spt_dim == 3)
+            if(spt_dim == 3 || (spt_dim == 2 && wsidx == 1))
             {
                 return;
             }
@@ -530,7 +533,7 @@ struct pooling_driver : test_driver
         case miopenIndexUint16:
         {
             // index size too small for 3D image
-            if(spt_dim == 3)
+            if(spt_dim == 3 || (spt_dim == 2 && wsidx == 1))
             {
                 return;
             }
@@ -547,25 +550,41 @@ struct pooling_driver : test_driver
         case miopenIndexUint32:
         {
             // test_pooling_test --all only test 5 uint32 cases
-            if(num_uint32_case > 5)
+            if(wsidx == 0)
             {
-                return;
+                if(num_uint32_case > 5 && spt_dim == 3)
+                    return;
+
+                ++num_uint32_case;
             }
+            else
+            {
+                if(num_uint32_case_imgidx > 5)
+                    return;
+
+                ++num_uint32_case_imgidx;
+            }
+
             idx_sz = sizeof(uint32_t);
-            ++num_uint32_case;
             break;
         }
         case miopenIndexUint64:
         {
-            if(spt_dim == 2)
+            if(wsidx == 0)
             {
-                // test_pooling_test --all only test 5 uint64 cases
-                if(num_uint64_case > 5)
-                {
+                if(num_uint64_case > 5 && spt_dim == 3)
                     return;
-                }
+
                 ++num_uint64_case;
             }
+            else
+            {
+                if(num_uint64_case_imgidx > 5 && spt_dim == 2)
+                    return;
+
+                ++num_uint64_case_imgidx;
+            }
+
             idx_sz = sizeof(uint64_t);
             break;
         }
@@ -585,6 +604,7 @@ struct pooling_driver : test_driver
                                            pads};
 
         filter.SetIndexType(idx_typ);
+        filter.SetWorkspaceIndexMode(miopenPoolingWorkspaceIndexMode_t(wsidx));
 
         for(int i = 0; i < spt_dim; i++)
             if(lens[i] >= (input_desc.GetLengths()[i + 2] + 2 * pads[i]))
