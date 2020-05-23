@@ -454,6 +454,10 @@ static inline bool IsValidXdlopsGemm(const int GemmMPerBlock,
         return false;
     if(GemmMPerWave == 16 && GemmNPerWave == 16 && GemmKPackedPerBlock % 4 != 0)
         return false;
+    if(GemmMPerWave > 64 && GemmNPerWave < 64)
+        return false;
+    if(GemmNPerWave > 64 && GemmMPerWave < 64)
+        return false;
 
     const auto WaveSize = 64;
     const auto BlockSize =

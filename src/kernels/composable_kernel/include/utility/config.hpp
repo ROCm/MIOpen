@@ -73,6 +73,8 @@
 // workaround for unnecessary VGPA <--> AGRP data movement when using mfma intrinsic
 #define CK_WORKAROUND_SWDEV_229564 1
 
+#define WORKAROUND_SWDEV_229564 1
+
 namespace ck {
 
 enum AddressSpace

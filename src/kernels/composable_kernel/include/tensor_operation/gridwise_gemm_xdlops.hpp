@@ -294,34 +294,45 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
             constexpr index_t BlkSize = CLayout.GetBlkSize();
             constexpr index_t NumBlks = CLayout.GetNumBlks();
 
-            for(index_t i = 0; i < NumBlks; ++i)
+            constexpr index_t MRepeats = blockwise_gemm.GetMRepeats();
+            constexpr index_t NRepeats = blockwise_gemm.GetNRepeats();
+
+            for(index_t m = 0; m < MRepeats; m++)
             {
-                // calculate origin of thread output tensor on global memory
-                //     blockwise GEMM c matrix starting index
-                const auto c_thread_mtx_on_block = blockwise_gemm.GetBeginOfThreadMatrixC(i);
+                for(index_t n = 0; n < NRepeats; n++)
+                {
+                    for(index_t i = 0; i < NumBlks; ++i)
+                    {
+                        // calculate origin of thread output tensor on global memory
+                        //     blockwise GEMM c matrix starting index
+                        const auto c_thread_mtx_on_block =
+                            blockwise_gemm.GetBeginOfThreadMatrixC(i, m, n);
 
-                const index_t m_thread_data_on_global =
-                    m_block_data_on_global + c_thread_mtx_on_block.row;
+                        const index_t m_thread_data_on_global =
+                            m_block_data_on_global + c_thread_mtx_on_block.row;
 
-                const index_t n_thread_data_on_global =
-                    n_block_data_on_global + c_thread_mtx_on_block.col;
+                        const index_t n_thread_data_on_global =
+                            n_block_data_on_global + c_thread_mtx_on_block.col;
 
-                ThreadwiseGenericTensorSliceCopy_v4r2<decltype(c_m0_m1_m2_n_thread_desc),
-                                                      decltype(c_m0_m1_m2_n_global_desc),
-                                                      CThreadCopySliceLengths,
-                                                      arithmetic_sequence_gen<0, 4, 1>::type,
-                                                      3,
-                                                      1,
-                                                      1,
-                                                      AddressSpace::Vgpr,
-                                                      AddressSpace::Global,
-                                                      CGlobalMemoryDataOperation>(
-                    {0, 0, 0, 0},
-                    {m_thread_data_on_global / (M2 * M1),
-                     m_thread_data_on_global % (M2 * M1) / M2,
-                     m_thread_data_on_global % M2,
-                     n_thread_data_on_global})
-                    .Run(p_c_thread + i * BlkSize, p_c_global);
+                        ThreadwiseGenericTensorSliceCopy_v4r2<
+                            decltype(c_m0_m1_m2_n_thread_desc),
+                            decltype(c_m0_m1_m2_n_global_desc),
+                            CThreadCopySliceLengths,
+                            arithmetic_sequence_gen<0, 4, 1>::type,
+                            3,
+                            1,
+                            1,
+                            AddressSpace::Vgpr,
+                            AddressSpace::Global,
+                            CGlobalMemoryDataOperation>({0, 0, 0, 0},
+                                                        {m_thread_data_on_global / (M2 * M1),
+                                                         m_thread_data_on_global % (M2 * M1) / M2,
+                                                         m_thread_data_on_global % M2,
+                                                         n_thread_data_on_global})
+                            .Run(p_c_thread + (NRepeats * m + n) * BlkSize * NumBlks + i * BlkSize,
+                                 p_c_global);
+                    }
+                }
             }
         }
     }
