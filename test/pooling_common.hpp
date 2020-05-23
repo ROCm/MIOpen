@@ -47,6 +47,8 @@
 #include "verify.hpp"
 #include "cpu_conv.hpp"
 
+#define TEST_PADDING_MODE 0
+
 static int num_uint16_case        = 0;
 static int num_uint32_case        = 0;
 static int num_uint32_case_imgidx = 0;
@@ -455,7 +457,9 @@ struct pooling_driver : test_driver
     std::vector<int> strides;
     std::string index_type;
     std::string mode;
+#if TEST_PADDING_MODE == 1
     std::string pmode;
+#endif
     int verify_indices{};
     int wsidx{};
     std::unordered_map<std::string, miopenIndexType_t> index_type_lookup = {
@@ -472,13 +476,13 @@ struct pooling_driver : test_driver
         {"AVERAGEINCLUSIVE", miopenPoolingAverageInclusive},
         {"MIOPENPOOLINGAVERAGEINCLUSIVE", miopenPoolingAverageInclusive},
     };
-
+#if TEST_PADDING_MODE == 1
     std::unordered_map<std::string, miopenPaddingMode_t> pmode_lookup = {
         {"DEFAULT", miopenPaddingDefault},
         {"SAME", miopenPaddingSame},
         {"VALID", miopenPaddingValid},
     };
-
+#endif
     pooling_driver()
     {
         add(index_type,
@@ -491,7 +495,9 @@ struct pooling_driver : test_driver
             "mode",
             generate_data(
                 {"miopenPoolingMax", "miopenPoolingAverage", "miopenPoolingAverageInclusive"}));
+#if TEST_PADDING_MODE == 1
         add(pmode, "pmode", generate_data({"default", "same", "valid"}));
+#endif
         add(verify_indices, "verify_indices", generate_data({0}));
     }
 
@@ -597,11 +603,17 @@ struct pooling_driver : test_driver
             return;
         }
 
-        filter = miopen::PoolingDescriptor{mode_lookup.at(miopen::ToUpper(mode)),
-                                           pmode_lookup.at(miopen::ToUpper(pmode)),
-                                           lens,
-                                           strides,
-                                           pads};
+        filter = miopen::PoolingDescriptor
+        {
+            mode_lookup.at(miopen::ToUpper(mode)),
+#if TEST_PADDING_MODE == 1
+                pmode_lookup.at(miopen::ToUpper(pmode))
+#else
+                miopenPaddingDefault
+#endif
+                    ,
+                lens, strides, pads
+        };
 
         filter.SetIndexType(idx_typ);
         filter.SetWorkspaceIndexMode(miopenPoolingWorkspaceIndexMode_t(wsidx));
@@ -629,6 +641,7 @@ struct pooling_driver : test_driver
         std::vector<int> in_dim(input_desc.GetLengths().begin() + 2, input_desc.GetLengths().end());
         std::vector<int> out_dim(spt_dim);
         std::vector<int> ker_dim(filter.GetLengths().begin(), filter.GetLengths().end());
+#if TEST_PADDING_MODE == 1
         if(filter.pmode == miopenPaddingSame)
         {
             if(std::any_of(filter.GetStrides().begin(), filter.GetStrides().end(), [](int i) {
@@ -666,7 +679,7 @@ struct pooling_driver : test_driver
             if(std::any_of(out_dim.begin(), out_dim.end(), [](int i) { return i <= 0; }))
                 return;
         }
-
+#endif
         std::vector<int> check_dim(spt_dim);
         for(int i = 0; i < spt_dim; i++)
         {
