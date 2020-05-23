@@ -757,8 +757,6 @@ template <index_t GridSize,
           index_t KPerBlock,
           index_t MPerWave,
           index_t NPerWave,
-          index_t GemmDataPerReadM,
-          index_t GemmDataPerReadN,
           class ABlockCopyThreadSliceLengths_G_K_M_KPACK,
           class ABlockCopyThreadClusterLengths_G_K_M_KPACK,
           class ABlockCopyThreadClusterArrangeOrder,
@@ -777,7 +775,7 @@ template <index_t GridSize,
           index_t BBlockCopyDstDataPerWrite_KPACK,
           InMemoryDataOperation OutputMemOp,
           WorkgroupScheduleOrder WorkgroupSchdOrder>
-struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v2
+struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v2
 {
     __device__ void Run(const ABFloat* const __restrict__ p_a_global,
                         const ABFloat* const __restrict__ p_b_global,
@@ -823,10 +821,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v2
                                                    : (block_work_id[1] * NPerBlock);
 
         //   LDS mem
-        constexpr index_t max_align = math::lcm(BBlockCopyDstDataPerWrite_KPACK,
-                                                ABlockCopyDstDataPerWrite_KPACK,
-                                                KPACK * GemmDataPerReadM,
-                                                KPACK * GemmDataPerReadN);
+        constexpr index_t max_align = KPACK;
 
         //   LDS
         //     be careful of LDS alignment
@@ -895,8 +890,8 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v2
             NPerWave,
             MWaves,
             NWaves,
-            GemmDataPerReadM,
-            GemmDataPerReadN>{};
+            1,
+            1>{};
 
         constexpr auto c_k_thread_mtx_desc = blockwise_gemm.GetThreadMatrixCDescriptor();
 
@@ -939,7 +934,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v2
             a_blockwise_copy.RunLoadThreadBuffer(p_a_global, p_a_thread_buffer);
             b_blockwise_copy.RunLoadThreadBuffer(p_b_global, p_b_thread_buffer);
 
-            __syncthreads();
+            block_sync_lds();
 
             // GEMM on current data
             const typename vector_type<ABFloat, KPACK>::MemoryType* p_a_block_vec =
@@ -950,7 +945,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v2
                     p_b_block);
             blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
 
-            __syncthreads();
+            block_sync_lds_vmem();
 
             // store next data to LDS
             a_blockwise_copy.RunStoreThreadBuffer(p_a_thread_buffer, p_a_block);
@@ -959,7 +954,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v2
 
         // tail
         {
-            __syncthreads();
+            block_sync_lds();
 
             // GEMM on last data
             const typename vector_type<ABFloat, KPACK>::MemoryType* p_a_block_vec =

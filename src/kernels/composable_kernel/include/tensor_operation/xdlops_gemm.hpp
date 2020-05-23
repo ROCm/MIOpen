@@ -5,8 +5,6 @@
 #include "ConstantMatrixDescriptor.hpp"
 #include "math.hpp"
 
-#define WORKAROUND_SWDEV_229564 1
-
 namespace ck {
 
 enum struct mfma_instr
@@ -879,7 +877,7 @@ struct XdlopsGemm_t
             auto pa = reinterpret_cast<const data_type*>(&a);
             auto pb = reinterpret_cast<const data_type*>(&b);
 
-#if WORKAROUND_SWDEV_229564
+#if CK_WORKAROUND_SWDEV_229564
 #pragma unroll
 #endif
             for(index_t k = 0; k < K; ++k)
@@ -911,7 +909,7 @@ struct XdlopsGemm_t
             auto pa = reinterpret_cast<const data_type*>(&a);
             auto pb = reinterpret_cast<const data_type*>(&b);
 
-#if WORKAROUND_SWDEV_229564
+#if CK_WORKAROUND_SWDEV_229564
 #pragma unroll
 #endif
             for(index_t k = 0; k < K; k += mfma_type.num_input_blks)

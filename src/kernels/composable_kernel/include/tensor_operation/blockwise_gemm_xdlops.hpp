@@ -16,8 +16,9 @@ template <index_t BlockSize,
           index_t GemmNPerWave,
           index_t GemmMWaves,
           index_t GemmNWaves,
-          index_t GemmDataPerReadA,
-          index_t GemmDataPerReadB>
+          index_t GemmDataPerReadA, // \todo unused parameter, remove
+          index_t GemmDataPerReadB  // \todo unused parameter, remove
+          >
 struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
 {
     struct MatrixIndex

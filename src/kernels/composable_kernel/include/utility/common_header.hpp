@@ -29,4 +29,6 @@
 #include "amd_xdlops.hpp"
 #endif
 
+#include "synchronize.hpp"
+
 #endif

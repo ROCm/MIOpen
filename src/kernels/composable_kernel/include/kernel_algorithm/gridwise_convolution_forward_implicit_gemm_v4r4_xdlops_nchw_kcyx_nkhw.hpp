@@ -158,41 +158,38 @@ struct GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw
         constexpr auto CGlobalMemoryDataOperation =
             GemmG > 1 ? InMemoryDataOperation::AtomicAdd : InMemoryDataOperation::Set;
 
-        constexpr auto gridwise_gemm =
-            GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v2<
-                GridSize,
-                BlockSize,
-                ABFloat,
-                AccFloat,
-                CFloat,
-                decltype(wei_gemmg_gemmk_gemmm_gemmkpack_global_desc),
-                decltype(in_gemmg_gemmk_gemmn_gemmkpack_global_desc),
-                decltype(out_gemmg_gemmm_gemmn_global_desc),
-                GemmMPerBlock,
-                GemmNPerBlock,
-                GemmKPerBlock,
-                GemmMPerWave,
-                GemmNPerWave,
-                1, // GemmDataPerReadM (unused argument)
-                1, // GemmDataPerReadN (unused argument)
-                GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM_GemmKPack,
-                GemmABlockCopyThreadClusterLengths_GemmG_GemmK_GemmM_GemmKPack,
-                GemmABlockCopyThreadClusterArrangeOrder,
-                GemmABlockCopySrcAccessOrder,
-                GemmABlockCopyDstAccessOrder,
-                3, // src vector read dimension of A matrix is GemmKPack
-                GemmABlockCopySrcDataPerRead_GemmKPack,
-                GemmABlockCopyDstDataPerWrite_GemmKPack,
-                GemmBBlockCopyThreadSliceLengths_GemmG_GemmK_GemmN_GemmKPack,
-                GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_GemmN_GemmKPack,
-                GemmBBlockCopyThreadClusterArrangeOrder,
-                GemmBBlockCopySrcAccessOrder,
-                GemmBBlockCopyDstAccessOrder,
-                2, // Src vetor read diemsnion of B matrix is GemmN
-                GemmBBlockCopySrcDataPerRead_GemmN,
-                GemmBBlockCopyDstDataPerWrite_GemmKPack,
-                CGlobalMemoryDataOperation,
-                WorkgroupSchdOrder>{};
+        constexpr auto gridwise_gemm = GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v2<
+            GridSize,
+            BlockSize,
+            ABFloat,
+            AccFloat,
+            CFloat,
+            decltype(wei_gemmg_gemmk_gemmm_gemmkpack_global_desc),
+            decltype(in_gemmg_gemmk_gemmn_gemmkpack_global_desc),
+            decltype(out_gemmg_gemmm_gemmn_global_desc),
+            GemmMPerBlock,
+            GemmNPerBlock,
+            GemmKPerBlock,
+            GemmMPerWave,
+            GemmNPerWave,
+            GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM_GemmKPack,
+            GemmABlockCopyThreadClusterLengths_GemmG_GemmK_GemmM_GemmKPack,
+            GemmABlockCopyThreadClusterArrangeOrder,
+            GemmABlockCopySrcAccessOrder,
+            GemmABlockCopyDstAccessOrder,
+            3, // src vector read dimension of A matrix is GemmKPack
+            GemmABlockCopySrcDataPerRead_GemmKPack,
+            GemmABlockCopyDstDataPerWrite_GemmKPack,
+            GemmBBlockCopyThreadSliceLengths_GemmG_GemmK_GemmN_GemmKPack,
+            GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_GemmN_GemmKPack,
+            GemmBBlockCopyThreadClusterArrangeOrder,
+            GemmBBlockCopySrcAccessOrder,
+            GemmBBlockCopyDstAccessOrder,
+            2, // Src vetor read diemsnion of B matrix is GemmN
+            GemmBBlockCopySrcDataPerRead_GemmN,
+            GemmBBlockCopyDstDataPerWrite_GemmKPack,
+            CGlobalMemoryDataOperation,
+            WorkgroupSchdOrder>{};
 
         gridwise_gemm.Run(p_wei_global, p_in_global, p_out_global);
     }
