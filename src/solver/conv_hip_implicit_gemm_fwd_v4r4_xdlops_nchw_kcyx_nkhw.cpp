@@ -133,11 +133,11 @@ operator==(const PerformanceImplicitGemmForwardV4R4Xdlops& other) const
 bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValidValue() const
 {
     // clang-format off
-    return IsTwoPower<16,128>(GemmMPerBlock)
-        && IsTwoPower<16,128>(GemmNPerBlock)
+    return IsTwoPower<16,256>(GemmMPerBlock)
+        && IsTwoPower<16,256>(GemmNPerBlock)
         && IsTwoPower<1,32>(GemmKPerBlock)
-        && IsTwoPower<16,64>(GemmMPerWave)
-        && IsTwoPower<16,64>(GemmNPerWave)
+        && IsTwoPower<16,128>(GemmMPerWave)
+        && IsTwoPower<16,128>(GemmNPerWave)
         && IsTwoPower<1,1>(GemmG)
         && IsTwoPower<1,16>(GemmKPack);
     // clang-format on
@@ -147,15 +147,15 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue()
 {
     do
     {
-        if(!NextTwoPower<128, 128>(GemmMPerBlock))
+        if(!NextTwoPower<128, 256>(GemmMPerBlock))
             break;
-        if(!NextTwoPower<128, 128>(GemmNPerBlock))
+        if(!NextTwoPower<128, 256>(GemmNPerBlock))
             break;
         if(!NextTwoPower<4, 16>(GemmKPerBlock))
             break;
-        if(!NextTwoPower<64, 64>(GemmMPerWave))
+        if(!NextTwoPower<64, 128>(GemmMPerWave))
             break;
-        if(!NextTwoPower<64, 64>(GemmNPerWave))
+        if(!NextTwoPower<64, 128>(GemmNPerWave))
             break;
         if(!NextTwoPower<1, 1>(GemmG))
             break;
