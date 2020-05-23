@@ -5,8 +5,6 @@
 #include "ConstantMatrixDescriptor.hpp"
 #include "math.hpp"
 
-#define WORKAROUND_SWDEV_229564 1
-
 namespace ck {
 
 enum struct mfma_instr
