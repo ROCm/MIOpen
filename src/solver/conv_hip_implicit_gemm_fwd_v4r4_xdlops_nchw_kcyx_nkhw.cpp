@@ -40,6 +40,14 @@ static inline bool IsValidXdlopsGemm_v2(const ConvolutionContext& ctx,
                                         const int GemmNPerWave,
                                         const int GemmKPack)
 {
+#if 0 // debug
+    if(GemmMPerBlock == 128 && GemmNPerBlock == 128 && GemmMPerWave == 128 && GemmNPerWave == 64)
+        return false;
+
+    if(GemmMPerWave * GemmNPerWave >= 128*128)
+        return false;
+#endif
+
     if(ctx.IsFp16() && GemmKPack % 4 != 0)
         return false;
 
@@ -151,7 +159,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue()
             break;
         if(!NextTwoPower<128, 256>(GemmNPerBlock))
             break;
-        if(!NextTwoPower<4, 16>(GemmKPerBlock))
+        if(!NextTwoPower<4, 8>(GemmKPerBlock))
             break;
         if(!NextTwoPower<64, 128>(GemmMPerWave))
             break;
@@ -597,9 +605,13 @@ ConvHipImplicitGemmForwardV4R4Xdlops::GetPerformanceConfig(const ConvolutionCont
 
 ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
     const ConvolutionContext& ctx,
-    const PerformanceImplicitGemmForwardV4R4Xdlops& config,
+    const PerformanceImplicitGemmForwardV4R4Xdlops& config_,
     bool) const
 {
+#if 1
+    const auto config = PerformanceImplicitGemmForwardV4R4Xdlops(128, 128, 4, 128, 64, 1, 4, 0, 0);
+#endif
+
     ConvSolution result;
     KernelInfo construction_parameters;
 
@@ -643,6 +655,10 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
              GemmABlockCopySrcDataPerRead_GemmKPack,
              GemmABlockCopyDstDataPerWrite_GemmKPack,
              std::ignore) = config.CalculateGemmABlockCopyPerformanceParameters(ctx);
+#if 0
+     GemmABlockCopySrcDataPerRead_GemmKPack = 1;
+     GemmABlockCopyDstDataPerWrite_GemmKPack = 1;
+#endif
 
     std::tie(GemmBBlockCopyClusterLengths_GemmK,
              GemmBBlockCopyClusterLengths_GemmN,
@@ -650,6 +666,11 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
              GemmBBlockCopySrcDataPerRead_GemmN,
              GemmBBlockCopyDstDataPerWrite_GemmKPack,
              std::ignore) = config.CalculateGemmBBlockCopyPerformanceParameters(ctx);
+
+#if 0
+             GemmBBlockCopySrcDataPerRead_GemmN= 1;
+             GemmBBlockCopyDstDataPerWrite_GemmKPack = 1;
+#endif
 
     // clang-format off
     construction_parameters.comp_options =
