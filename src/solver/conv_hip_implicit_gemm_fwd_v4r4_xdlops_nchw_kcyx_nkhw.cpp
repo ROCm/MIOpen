@@ -30,6 +30,8 @@
 #include <miopen/generic_search.hpp>
 #include "implicitgemm_util.hpp"
 
+#define WORKAROUND_LARGE_WAVEWISE_GEMM_FOR_PAD_FAILURE 1
+
 namespace miopen {
 namespace solver {
 
@@ -40,14 +42,6 @@ static inline bool IsValidXdlopsGemm_v2(const ConvolutionContext& ctx,
                                         const int GemmNPerWave,
                                         const int GemmKPack)
 {
-#if 0 // debug
-    if(GemmMPerBlock == 128 && GemmNPerBlock == 128 && GemmMPerWave == 128 && GemmNPerWave == 64)
-        return false;
-
-    if(GemmMPerWave * GemmNPerWave >= 128*128)
-        return false;
-#endif
-
     if(ctx.IsFp16() && GemmKPack % 4 != 0)
         return false;
 
@@ -546,6 +540,17 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmForwardV4R4Xdlops::Calculat
 
 bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValid(const ConvolutionContext& ctx) const
 {
+#if WORKAROUND_LARGE_WAVEWISE_GEMM_FOR_PAD_FAILURE
+    const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
+    const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
+    const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
+    const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
+
+    if((in_left_pad_h > 0 || in_right_pad_w > 0 || in_left_pad_w > 0 || in_right_pad_h > 0) &&
+       GemmMPerWave * GemmNPerWave >= 128 * 64)
+        return false;
+#endif
+
     if(!IsValidValue())
         return false;
 
@@ -605,10 +610,10 @@ ConvHipImplicitGemmForwardV4R4Xdlops::GetPerformanceConfig(const ConvolutionCont
 
 ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
     const ConvolutionContext& ctx,
-    const PerformanceImplicitGemmForwardV4R4Xdlops& config_,
+    const PerformanceImplicitGemmForwardV4R4Xdlops& config,
     bool) const
 {
-#if 1
+#if 0
     const auto config = PerformanceImplicitGemmForwardV4R4Xdlops(128, 128, 4, 128, 64, 1, 4, 0, 0);
 #endif
 
@@ -668,8 +673,8 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
              std::ignore) = config.CalculateGemmBBlockCopyPerformanceParameters(ctx);
 
 #if 0
-             GemmBBlockCopySrcDataPerRead_GemmN= 1;
-             GemmBBlockCopyDstDataPerWrite_GemmKPack = 1;
+     GemmBBlockCopySrcDataPerRead_GemmN= 1;
+     GemmBBlockCopyDstDataPerWrite_GemmKPack = 1;
 #endif
 
     // clang-format off
