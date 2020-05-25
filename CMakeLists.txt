@@ -53,7 +53,7 @@ include(CheckCXXCompilerFlag)
 
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
 # Use SQLITE for compiled kernels, when turned off this will use raw files
-set(MIOPEN_ENABLE_SQLITE_KERN_CACHE On CACHE BOOL "")
+set(MIOPEN_ENABLE_SQLITE_KERN_CACHE Off CACHE BOOL "")
 if(MIOPEN_ENABLE_SQLITE)
     # MIOpen now depends on SQLite as well
     find_package(PkgConfig)
