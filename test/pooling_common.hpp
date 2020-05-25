@@ -558,7 +558,7 @@ struct pooling_driver : test_driver
             // test_pooling_test --all only test 5 uint32 cases
             if(wsidx == 0)
             {
-                if(num_uint32_case > 5 && spt_dim == 3)
+                if(num_uint32_case > 5 || spt_dim == 3)
                     return;
 
                 ++num_uint32_case;
@@ -578,7 +578,7 @@ struct pooling_driver : test_driver
         {
             if(wsidx == 0)
             {
-                if(num_uint64_case > 5 && spt_dim == 3)
+                if(num_uint64_case > 5 || spt_dim == 3)
                     return;
 
                 ++num_uint64_case;

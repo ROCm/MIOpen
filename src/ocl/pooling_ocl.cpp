@@ -126,9 +126,10 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     //   "index_max" means ghost, and thus should not be reached
     if(mode == miopenPoolingMax && save_index)
     {
-        if((pool_dim == 4 &&
+        if((workspaceIndexMode == miopenPoolingWorkspaceIndexMask &&
             !(index_max >= std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<int>()))) ||
-           (pool_dim == 5 && !(index_max >= xDesc.GetElementSize())))
+           (workspaceIndexMode == miopenPoolingWorkspaceIndexImage &&
+            !(index_max >= xDesc.GetElementSize())))
         {
             MIOPEN_THROW("Index range not enough for max pooling bwd");
         }
@@ -380,9 +381,10 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     // for kernel implementation max pooling backward pass,
     //   "index_max" means ghost, and thus should not be reached
     if(mode == miopenPoolingMax &&
-       ((pool_dim == 4 &&
+       ((workspaceIndexMode == miopenPoolingWorkspaceIndexMask &&
          !(index_max >= std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<int>()))) ||
-        (pool_dim == 5 && !(index_max >= xDesc.GetElementSize()))))
+        (workspaceIndexMode == miopenPoolingWorkspaceIndexImage &&
+         !(index_max >= xDesc.GetElementSize()))))
     {
         MIOPEN_THROW("Index range not enough for max pooling bwd");
     }
