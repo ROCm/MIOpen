@@ -382,6 +382,7 @@ enable_clang_tidy(
         -llvm-include-order
         -misc-misplaced-const
         -misc-non-private-member-variables-in-classes
+        -modernize-avoid-bind
         -modernize-avoid-c-arrays
         -modernize-pass-by-value
         -modernize-use-auto

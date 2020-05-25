@@ -73,7 +73,7 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::GetPerformanceConfig(const ConvolutionCont
     return GetPerformanceConfigBase<PerformanceImplicitGemmXdlops>(ctx);
 }
 
-int ConvHipImplicitGemmBwdDataV1R1Xdlops::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmBwdDataV1R1Xdlops::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                                 ConstData_t bot_buf,
                                                                 Data_t top_buf,
                                                                 ConstData_t wei_buf,
@@ -231,7 +231,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
         !ctx.IsFp32() ? GetEPackLength(ctx, true) : 1;
 
     // clang-format off
-    construction_parameters.comp_options = 
+    construction_parameters.comp_options =
         std::string(" -std=c++14 ") +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(n) +
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(k) +
