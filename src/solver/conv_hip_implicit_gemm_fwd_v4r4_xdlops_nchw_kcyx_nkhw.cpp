@@ -660,10 +660,6 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
              GemmABlockCopySrcDataPerRead_GemmKPack,
              GemmABlockCopyDstDataPerWrite_GemmKPack,
              std::ignore) = config.CalculateGemmABlockCopyPerformanceParameters(ctx);
-#if 0
-     GemmABlockCopySrcDataPerRead_GemmKPack = 1;
-     GemmABlockCopyDstDataPerWrite_GemmKPack = 1;
-#endif
 
     std::tie(GemmBBlockCopyClusterLengths_GemmK,
              GemmBBlockCopyClusterLengths_GemmN,
@@ -671,11 +667,6 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
              GemmBBlockCopySrcDataPerRead_GemmN,
              GemmBBlockCopyDstDataPerWrite_GemmKPack,
              std::ignore) = config.CalculateGemmBBlockCopyPerformanceParameters(ctx);
-
-#if 0
-     GemmBBlockCopySrcDataPerRead_GemmN= 1;
-     GemmBBlockCopyDstDataPerWrite_GemmKPack = 1;
-#endif
 
     // clang-format off
     construction_parameters.comp_options =
