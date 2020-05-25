@@ -945,7 +945,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v2
                     p_b_block);
             blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
 
-            __syncthreads();
+            block_sync_lds();
 
             // store next data to LDS
             a_blockwise_copy.RunStoreThreadBuffer(p_a_thread_buffer, p_a_block);
@@ -954,7 +954,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v2
 
         // tail
         {
-            __syncthreads();
+            block_sync_lds();
 
             // GEMM on last data
             const typename vector_type<ABFloat, KPACK>::MemoryType* p_a_block_vec =
