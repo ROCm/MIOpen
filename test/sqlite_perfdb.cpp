@@ -708,8 +708,8 @@ class DBMultiThreadedTestWork
 };
 
 unsigned int DBMultiThreadedTestWork::threads_count    = 16;
-unsigned int DBMultiThreadedTestWork::common_part_size = 32;
-unsigned int DBMultiThreadedTestWork::unique_part_size = 32;
+unsigned int DBMultiThreadedTestWork::common_part_size = 16;
+unsigned int DBMultiThreadedTestWork::unique_part_size = 16;
 
 class DbMultiThreadedTest : public DbTest
 {
@@ -1234,14 +1234,10 @@ struct PerfDbDriver : test_driver
 
         if(full_set)
         {
-            tests::full_set() = true;
-#if MIOPEN_BACKEND_HIP
-            DBMultiThreadedTestWork::threads_count = 20;
-#else
-            DBMultiThreadedTestWork::threads_count = 64;
-#endif
-            DBMultiThreadedTestWork::common_part_size = 64;
-            DBMultiThreadedTestWork::unique_part_size = 64;
+            tests::full_set()                         = true;
+            DBMultiThreadedTestWork::threads_count    = 16;
+            DBMultiThreadedTestWork::common_part_size = 32;
+            DBMultiThreadedTestWork::unique_part_size = 32;
         }
         if(mt_child_id >= 0)
         {
