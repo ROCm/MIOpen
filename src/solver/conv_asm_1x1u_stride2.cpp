@@ -729,7 +729,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
 }
 
 template <typename B, typename T>
-int ConvAsm1x1UV2::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvAsm1x1UV2::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                          B bot_ocl_buf,
                                          T top_ocl_buf,
                                          ConstData_t wei_ocl_buf,

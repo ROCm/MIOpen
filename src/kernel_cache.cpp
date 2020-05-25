@@ -174,7 +174,7 @@ void KernelCache::AddProgram(Program prog, const std::string& program_name, std:
     program_map[std::make_pair(program_name, params)] = prog;
 }
 
-Kernel KernelCache::AddKernel(Handle& h,
+Kernel KernelCache::AddKernel(const Handle& h,
                               const std::string& algorithm,
                               const std::string& network_config,
                               const std::string& program_name,

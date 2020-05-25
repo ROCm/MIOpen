@@ -176,8 +176,8 @@ class MultiFileDb
     template <bool merge = merge_records, std::enable_if_t<merge>* = nullptr, typename... U>
     auto FindRecord(const U&... args)
     {
-        auto users           = _user.FindRecord(args...);
-        const auto installed = _installed.FindRecord(args...);
+        auto users     = _user.FindRecord(args...);
+        auto installed = _installed.FindRecord(args...);
 
         if(users && installed)
         {
@@ -332,7 +332,7 @@ class DbTimer
             return func();
 
         const auto start = std::chrono::high_resolution_clock::now();
-        const auto ret   = func();
+        auto ret         = func();
         const auto end   = std::chrono::high_resolution_clock::now();
         MIOPEN_LOG_I2("Db::" << funcName << " time: " << (end - start).count() * .000001f << " ms");
         return ret;

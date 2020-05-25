@@ -772,7 +772,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     if(UseSubsample(params))
     {
         result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
-            return [=](Handle& handle, const boost::any& primitive_params) {
+            return [=](const Handle& handle, const boost::any& primitive_params) {
                 const auto ss_kernel     = handle.Run(kernels[0]);
                 const auto main_kernel   = handle.Run(kernels[1]);
                 const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
@@ -800,7 +800,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     else
     {
         result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
-            return [=](Handle& handle, const boost::any& primitive_params) {
+            return [=](const Handle& handle, const boost::any& primitive_params) {
                 const auto main_kernel   = handle.Run(kernels[0]);
                 const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
                 const auto& x            = invoke_params.tensors.x;
@@ -816,7 +816,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     return result;
 }
 
-int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvAsmBwdWrW1x1::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                             ConstData_t bot_ocl_buf,
                                             ConstData_t top_ocl_buf,
                                             Data_t wei_ocl_buf,

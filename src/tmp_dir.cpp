@@ -55,7 +55,7 @@ TmpDir::TmpDir(std::string prefix)
     boost::filesystem::create_directories(this->path);
 }
 
-void TmpDir::Execute(std::string exe, std::string args)
+void TmpDir::Execute(std::string exe, std::string args) const
 {
     if(miopen::IsEnabled(MIOPEN_DEBUG_SAVE_TEMP_DIR{}))
     {

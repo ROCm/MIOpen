@@ -51,7 +51,7 @@ struct deriveSpatialTensorTest
         miopenSet4dTensorDescriptor(ctensor, miopenFloat, 100, 32, 8, 16);
     }
 
-    void run()
+    void run() const
     {
         std::array<int, 4> lens{};
         miopenDataType_t dt;
@@ -86,7 +86,7 @@ struct derivePerActTensorTest
         miopenSet4dTensorDescriptor(ctensor, miopenFloat, 100, 32, 8, 16);
     }
 
-    void run()
+    void run() const
     {
         std::array<int, 4> lens{};
         miopenDataType_t dt;

@@ -33,7 +33,7 @@
 
 namespace miopen {
 
-void LSTMForwardHiddenStateUpdate(Handle& handle,
+void LSTMForwardHiddenStateUpdate(const Handle& handle,
                                   miopenDataType_t rnn_data_type,
                                   bool is_inference,
                                   bool is_seq_begin,
@@ -146,7 +146,7 @@ void LSTMForwardHiddenStateUpdate(Handle& handle,
     }
 }
 
-void LSTMBackwardHiddenStateUpdate(Handle& handle,
+void LSTMBackwardHiddenStateUpdate(const Handle& handle,
                                    miopenDataType_t rnn_data_type,
                                    bool is_seq_begin,
                                    bool is_seq_end,

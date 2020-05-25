@@ -497,7 +497,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);
 
     result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
-        return [=](Handle& handle, const boost::any& primitive_params) {
+        return [=](const Handle& handle, const boost::any& primitive_params) {
             const auto k             = handle.Run(kernels[0]);
             const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
             int unused               = 0;
@@ -513,7 +513,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
 }
 
 template <typename B, typename T>
-int ConvAsmBwdWrW3x3::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvAsmBwdWrW3x3::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                             B bot_ocl_buf,
                                             T top_ocl_buf,
                                             Data_t wei_ocl_buf,

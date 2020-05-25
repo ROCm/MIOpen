@@ -67,7 +67,7 @@ struct input_tensor_fixture
 
     ~input_tensor_fixture() { miopenDestroyTensorDescriptor(inputTensor); }
 
-    void run()
+    void run() const
     {
         int n, c, h, w;
         int nStride, cStride, hStride, wStride;
@@ -117,7 +117,7 @@ struct conv_filter_fixture : virtual handle_fixture
         miopenDestroyConvolutionDescriptor(convDesc);
     }
 
-    void run()
+    void run() const
     {
         // TODO: Update API to not require mode by pointer
         miopenConvolutionMode_t lcmode = c_mode;

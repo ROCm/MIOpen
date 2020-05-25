@@ -224,7 +224,7 @@ static bool IsApplicableBase(const ConvolutionContext& params)
 }
 
 template <typename B, typename TopT>
-static int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
+static int RunAndMeasureSolutionBase(const miopen::Handle& profile_h,
                                      B bot_ocl_buf,
                                      TopT top_ocl_buf,
                                      ConstData_t wei_ocl_buf,
@@ -383,7 +383,7 @@ ConvSolution ConvSCGemmFGemm::GetSolution(const ConvolutionContext& params,
 }
 
 template <typename B, typename TopT>
-int ConvSCGemmFGemm::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvSCGemmFGemm::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                            B bot_ocl_buf,
                                            TopT top_ocl_buf,
                                            ConstData_t wei_ocl_buf,

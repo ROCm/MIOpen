@@ -1872,7 +1872,7 @@ struct verify_forward_infer_gru
 
         auto&& handle = get_handle();
 
-        int bi        = dirMode ? 2 : 1;
+        int bi        = dirMode != 0 ? 2 : 1;
         int hy_h      = hiddenSize;
         int bi_stride = bi * hy_h;
         size_t out_sz = 0;
@@ -1889,7 +1889,7 @@ struct verify_forward_infer_gru
         createTensorDescArray(outputCPPDescs,
                               outputDescs,
                               batch_seq,
-                              hiddenSize * ((dirMode) ? 2 : 1),
+                              hiddenSize * ((dirMode != 0) ? 2 : 1),
                               miopen::deref(rnnDesc).dataType);
 
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
@@ -1975,7 +1975,7 @@ struct verify_forward_infer_gru
         createTensorDescArray(outputCPPDescs,
                               outputDescs,
                               batch_seq,
-                              hiddenSize * ((dirMode) ? 2 : 1),
+                              hiddenSize * ((dirMode != 0) ? 2 : 1),
                               miopen::deref(rnnDesc).dataType);
 
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
@@ -1996,7 +1996,7 @@ struct verify_forward_infer_gru
         auto workSpace_dev = handle.Write(workSpace);
 
         std::vector<int> hlens(3, 0);
-        hlens[0] = nLayers * (dirMode ? 2 : 1);
+        hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens.data(), 3);
@@ -2156,7 +2156,7 @@ struct verify_forward_train_gru
 
         auto&& handle = get_handle();
 
-        int bi        = dirMode ? 2 : 1;
+        int bi        = dirMode != 0 ? 2 : 1;
         int hy_h      = hiddenSize;
         int bi_stride = bi * hy_h;
         size_t out_sz = 0;
@@ -2172,7 +2172,7 @@ struct verify_forward_train_gru
         createTensorDescArray(outputCPPDescs,
                               outputDescs,
                               batch_seq,
-                              hiddenSize * ((dirMode) ? 2 : 1),
+                              hiddenSize * ((dirMode != 0) ? 2 : 1),
                               miopen::deref(rnnDesc).dataType);
 
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
@@ -2261,7 +2261,7 @@ struct verify_forward_train_gru
         createTensorDescArray(outputCPPDescs,
                               outputDescs,
                               batch_seq,
-                              hiddenSize * ((dirMode) ? 2 : 1),
+                              hiddenSize * ((dirMode != 0) ? 2 : 1),
                               miopen::deref(rnnDesc).dataType);
 
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
@@ -2287,7 +2287,7 @@ struct verify_forward_train_gru
         auto reserveSpace_dev = handle.Write(reserveSpace);
 
         std::vector<int> hlens(3, 0);
-        hlens[0] = nLayers * (dirMode ? 2 : 1);
+        hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens.data(), 3);
@@ -2480,7 +2480,7 @@ struct verify_backward_data_gru
 
         auto&& handle = get_handle();
 
-        int bi        = dirMode ? 2 : 1;
+        int bi        = dirMode != 0 ? 2 : 1;
         int hy_h      = hiddenSize;
         int bi_stride = bi * hy_h;
         size_t workSpaceSize;
@@ -2574,7 +2574,7 @@ struct verify_backward_data_gru
         createTensorDescArray(outputCPPDescs,
                               outputDescs,
                               batch_seq,
-                              hiddenSize * ((dirMode) ? 2 : 1),
+                              hiddenSize * ((dirMode != 0) ? 2 : 1),
                               miopen::deref(rnnDesc).dataType);
 
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
@@ -2588,7 +2588,7 @@ struct verify_backward_data_gru
         auto weights_dev      = handle.Write(weights);
 
         std::vector<int> hlens(3, 0);
-        hlens[0] = nLayers * (dirMode ? 2 : 1);
+        hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens.data(), 3);
@@ -2773,7 +2773,7 @@ struct verify_backward_weights_gru
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_start = std::chrono::high_resolution_clock::now();
 #endif
-        int bi = dirMode ? 2 : 1;
+        int bi = dirMode != 0 ? 2 : 1;
         std::vector<T> dweights(weightSize);
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
@@ -2838,7 +2838,7 @@ struct verify_backward_weights_gru
         createTensorDescArray(outputCPPDescs,
                               outputDescs,
                               batch_seq,
-                              hiddenSize * ((dirMode) ? 2 : 1),
+                              hiddenSize * ((dirMode != 0) ? 2 : 1),
                               miopen::deref(rnnDesc).dataType);
 
         auto workSpace_dev    = handle.Write(workSpace);
@@ -2848,7 +2848,7 @@ struct verify_backward_weights_gru
         miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, &weightSize, 1);
 
         std::vector<int> hlens(3, 0);
-        hlens[0] = nLayers * (dirMode ? 2 : 1);
+        hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens.data(), 3);
@@ -2952,7 +2952,7 @@ struct gru_basic_driver : test_driver
             exit(EXIT_SUCCESS);
 #endif
 
-        if(batchSeq.empty() || !batchSeq[0])
+        if(batchSeq.empty() || 0 == batchSeq[0])
         {
             std::cout << "Empty batch sequence. Filling uniformly with batch size: " << batchSize
                       << std::endl;
@@ -2992,7 +2992,7 @@ struct gru_basic_driver : test_driver
         miopenCreateDropoutDescriptor(&DropoutDesc);
         size_t statesSizeInBytes = 0;
 
-        if(useDropout)
+        if(useDropout != 0)
         {
 // Workaround for issue #2335.
 // OpenCL error creating buffer: 0 Invalid Buffer Size
@@ -3054,7 +3054,7 @@ struct gru_basic_driver : test_driver
 
         // Create input tensor
         // If we are in skip mode, take the real input size to be the vector length.
-        auto inVecReal    = (inputMode) ? hiddenSize : inVecLen;
+        auto inVecReal    = (inputMode != 0) ? hiddenSize : inVecLen;
         std::size_t in_sz = inVecReal * batch_n;
         std::vector<T> input(in_sz);
         srand(0);
@@ -3063,7 +3063,7 @@ struct gru_basic_driver : test_driver
             input[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
         }
 
-        std::size_t hx_sz = ((dirMode) ? 2 : 1) * hiddenSize * batchSize * numLayers;
+        std::size_t hx_sz = ((dirMode != 0) ? 2 : 1) * hiddenSize * batchSize * numLayers;
         std::vector<T> hx(hx_sz);
         std::vector<T> dhyin(hx_sz);
 
@@ -3118,7 +3118,7 @@ struct gru_basic_driver : test_driver
         createTensorDescArray(outputCPPDescs,
                               outputDescs,
                               batchSeq,
-                              hiddenSize * ((dirMode) ? 2 : 1),
+                              hiddenSize * ((dirMode != 0) ? 2 : 1),
                               miopen::deref(rnnDesc).dataType);
 
         size_t out_sz;

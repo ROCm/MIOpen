@@ -156,7 +156,7 @@ struct HandleImpl
             &HandleImpl::elapsed_time, this, std::placeholders::_1, std::placeholders::_2);
     }
 
-    void set_ctx()
+    void set_ctx() const
     {
         miopen::set_ctx(this->ctx);
         // miopen::set_device(this->device);
@@ -234,11 +234,11 @@ void Handle::SetAllocator(miopenAllocatorFunction allocator,
     this->impl->allocator.context = allocatorContext;
 }
 
-void Handle::EnableProfiling(bool enable) { this->impl->enable_profiling = enable; }
+void Handle::EnableProfiling(bool enable) const { this->impl->enable_profiling = enable; }
 
 float Handle::GetKernelTime() const { return this->impl->profiling_result; }
 
-Allocator::ManageDataPtr Handle::Create(std::size_t sz)
+Allocator::ManageDataPtr Handle::Create(std::size_t sz) const
 {
     MIOPEN_HANDLE_LOCK
     this->Finish();
@@ -246,7 +246,7 @@ Allocator::ManageDataPtr Handle::Create(std::size_t sz)
 }
 
 Allocator::ManageDataPtr&
-Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz)
+Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz) const
 {
     MIOPEN_HANDLE_LOCK
     this->Finish();
@@ -256,7 +256,7 @@ Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t s
     return ddata;
 }
 
-void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz)
+void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz) const
 {
     MIOPEN_HANDLE_LOCK
     this->Finish();
@@ -265,7 +265,7 @@ void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size
         MIOPEN_THROW_HIP_STATUS(status, "Hip error reading from buffer: ");
 }
 
-void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size)
+void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size) const
 {
     MIOPEN_HANDLE_LOCK
     this->impl->set_ctx();
@@ -283,7 +283,7 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                const std::string& params,
                                std::size_t cache_index,
                                bool is_kernel_str,
-                               const std::string& kernel_src)
+                               const std::string& kernel_src) const
 {
 
     auto obj = this->impl->cache.AddKernel(*this,
@@ -301,7 +301,7 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
 }
 
 Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
-                               const std::vector<solver::KernelInfo>& kernels)
+                               const std::vector<solver::KernelInfo>& kernels) const
 {
     std::vector<Kernel> built;
     for(auto& k : kernels)
@@ -321,13 +321,13 @@ Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
     return factory(built);
 }
 
-void Handle::ClearKernels(const std::string& algorithm, const std::string& network_config)
+void Handle::ClearKernels(const std::string& algorithm, const std::string& network_config) const
 {
     this->impl->cache.ClearKernels(algorithm, network_config);
 }
 
 const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
-                                                  const std::string& network_config)
+                                                  const std::string& network_config) const
 {
     return this->impl->cache.GetKernels(algorithm, network_config);
 }
@@ -337,7 +337,7 @@ bool Handle::HasKernel(const std::string& algorithm, const std::string& network_
     return this->impl->cache.HasKernels(algorithm, network_config);
 }
 
-KernelInvoke Handle::Run(Kernel k)
+KernelInvoke Handle::Run(Kernel k) const
 {
     this->impl->set_ctx();
     if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
@@ -349,7 +349,7 @@ KernelInvoke Handle::Run(Kernel k)
 Program Handle::LoadProgram(const std::string& program_name,
                             std::string params,
                             bool is_kernel_str,
-                            const std::string& kernel_src)
+                            const std::string& kernel_src) const
 {
     this->impl->set_ctx();
     params += " -mcpu=" + this->GetDeviceName();
@@ -382,12 +382,14 @@ Program Handle::LoadProgram(const std::string& program_name,
     }
 }
 
-bool Handle::HasProgram(const std::string& program_name, const std::string& params)
+bool Handle::HasProgram(const std::string& program_name, const std::string& params) const
 {
     return this->impl->cache.HasProgram(program_name, params);
 }
 
-void Handle::AddProgram(Program prog, const std::string& program_name, const std::string& params)
+void Handle::AddProgram(Program prog,
+                        const std::string& program_name,
+                        const std::string& params) const
 {
     this->impl->cache.AddProgram(prog, program_name, params);
 }
@@ -421,10 +423,10 @@ void Handle::Flush() const {}
 
 bool Handle::IsProfilingEnabled() const { return this->impl->enable_profiling; }
 
-void Handle::ResetKernelTime() { this->impl->profiling_result = 0.0; }
-void Handle::AccumKernelTime(float curr_time) { this->impl->profiling_result += curr_time; }
+void Handle::ResetKernelTime() const { this->impl->profiling_result = 0.0; }
+void Handle::AccumKernelTime(float curr_time) const { this->impl->profiling_result += curr_time; }
 
-std::size_t Handle::GetLocalMemorySize()
+std::size_t Handle::GetLocalMemorySize() const
 {
     int result;
     auto status = hipDeviceGetAttribute(
@@ -435,7 +437,7 @@ std::size_t Handle::GetLocalMemorySize()
     return result;
 }
 
-std::size_t Handle::GetGlobalMemorySize()
+std::size_t Handle::GetGlobalMemorySize() const
 {
     size_t result;
     auto status = hipDeviceTotalMem(&result, this->impl->device);
@@ -446,7 +448,7 @@ std::size_t Handle::GetGlobalMemorySize()
     return result;
 }
 
-std::size_t Handle::GetMaxComputeUnits()
+std::size_t Handle::GetMaxComputeUnits() const
 {
     int result;
     auto status =
@@ -457,7 +459,7 @@ std::size_t Handle::GetMaxComputeUnits()
     return result;
 }
 
-std::size_t Handle::GetImage3dMaxWidth()
+std::size_t Handle::GetImage3dMaxWidth() const
 {
     int result;
     auto status = hipDeviceGetAttribute(&result, hipDeviceAttributeMaxGridDimX, this->impl->device);
@@ -467,7 +469,7 @@ std::size_t Handle::GetImage3dMaxWidth()
     return result;
 }
 
-std::size_t Handle::GetWavefrontWidth()
+std::size_t Handle::GetWavefrontWidth() const
 {
     hipDeviceProp_t props{};
     hipGetDeviceProperties(&props, this->impl->device);
@@ -491,7 +493,7 @@ std::size_t Handle::GetMaxMemoryAllocSize()
     return m_MaxMemoryAllocSizeCached;
 }
 
-std::string Handle::GetDeviceName()
+std::string Handle::GetDeviceName() const
 {
     hipDeviceProp_t props{};
     hipGetDeviceProperties(&props, this->impl->device);
