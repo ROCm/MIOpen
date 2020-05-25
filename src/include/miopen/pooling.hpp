@@ -68,8 +68,6 @@ struct PoolingDescriptor : miopenPoolingDescriptor
 
     const std::vector<int>& GetPads() const;
 
-    miopenPoolingMode_t GetMode();
-
     int GetSize() const;
 
     std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>

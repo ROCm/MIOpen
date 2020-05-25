@@ -64,7 +64,7 @@ class KernelCache
     using KernelMap  = std::unordered_map<Key, std::vector<Kernel>, SimpleHash>;
     using ProgramMap = std::unordered_map<Key, Program, SimpleHash>;
 
-    Kernel AddKernel(Handle& h,
+    Kernel AddKernel(const Handle& h,
                      const std::string& algorithm,
                      const std::string& network_config,
                      const std::string& program_name,

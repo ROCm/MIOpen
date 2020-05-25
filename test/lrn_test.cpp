@@ -60,8 +60,8 @@ struct verify_lrn_foward
         auto beta        = lrn.GetBeta();
         auto K           = lrn.GetK();
         auto lrn_n       = lrn.GetN();
-        int radius_lower = (lrn_n - 1) / 2;
-        int radius_upper = lrn_n / 2;
+        int radius_lower = static_cast<int>((lrn_n - 1) / 2);
+        int radius_upper = static_cast<int>(lrn_n / 2);
         auto mode        = lrn.GetMode();
 
         if(mode == miopenLRNCrossChannel)
@@ -177,8 +177,8 @@ struct verify_lrn_bwd
         auto beta        = lrn.GetBeta();
         auto lrn_n       = lrn.GetN();
         auto mode        = lrn.GetMode();
-        int radius_lower = (lrn_n - 1) / 2;
-        int radius_upper = lrn_n / 2;
+        int radius_lower = static_cast<int>((lrn_n - 1) / 2);
+        int radius_upper = static_cast<int>(lrn_n / 2);
 
         if(mode == miopenLRNWithinChannel)
         {

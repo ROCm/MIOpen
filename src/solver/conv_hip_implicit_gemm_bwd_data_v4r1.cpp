@@ -787,7 +787,7 @@ ConvHipImplicitGemmBwdDataV4R1::Search(const ConvolutionContext& context) const
     return GenericSearchFwd(*this, context);
 }
 
-int ConvHipImplicitGemmBwdDataV4R1::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmBwdDataV4R1::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                           ConstData_t bot_buf,
                                                           Data_t top_buf,
                                                           ConstData_t wei_buf,

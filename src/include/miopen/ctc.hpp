@@ -56,7 +56,7 @@ struct CTCLossDescriptor : miopenCTCLossDescriptor
                                    const int* inputLengths,
                                    miopenCTCLossAlgo_t algo) const;
 
-    void CTCLoss(Handle& handle,
+    void CTCLoss(const Handle& handle,
                  const TensorDescriptor& probsDesc,
                  ConstData_t probs,
                  const int* labels,

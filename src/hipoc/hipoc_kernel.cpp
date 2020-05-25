@@ -97,7 +97,7 @@ void HIPOCKernelInvoke::run(void* args, std::size_t size) const
 }
 
 HIPOCKernelInvoke HIPOCKernel::Invoke(hipStream_t stream,
-                                      std::function<void(hipEvent_t, hipEvent_t)> callback)
+                                      std::function<void(hipEvent_t, hipEvent_t)> callback) const
 {
     return HIPOCKernelInvoke{stream, fun, ldims, gdims, name, callback};
 }

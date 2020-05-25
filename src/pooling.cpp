@@ -73,7 +73,7 @@ void PoolingDescriptor::SetIndexType(miopenIndexType_t index_type) { indexType =
 
 miopenIndexType_t PoolingDescriptor::GetIndexType() const { return indexType; }
 
-miopenPoolingMode_t PoolingDescriptor::GetMode() const { return (mode); }
+miopenPoolingMode_t PoolingDescriptor::GetMode() const { return mode; }
 
 miopenPaddingMode_t PoolingDescriptor::GetPaddingMode() const { return (pmode); }
 
@@ -82,8 +82,6 @@ const std::vector<int>& PoolingDescriptor::GetLengths() const { return lens; }
 const std::vector<int>& PoolingDescriptor::GetStrides() const { return strides; }
 
 const std::vector<int>& PoolingDescriptor::GetPads() const { return pads; }
-
-miopenPoolingMode_t PoolingDescriptor::GetMode() { return mode; }
 
 int PoolingDescriptor::GetSize() const
 {

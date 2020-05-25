@@ -166,7 +166,7 @@ void DropoutDescriptor::InitPRNGState(Handle& handle,
     }
 }
 
-void DropoutDescriptor::DropoutForward(Handle& handle,
+void DropoutDescriptor::DropoutForward(const Handle& handle,
                                        const TensorDescriptor& noise_shape,
                                        const TensorDescriptor& xDesc,
                                        ConstData_t x,
@@ -375,7 +375,7 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
     }
 }
 
-void DropoutDescriptor::DropoutBackward(Handle& handle,
+void DropoutDescriptor::DropoutBackward(const Handle& handle,
                                         const TensorDescriptor& noise_shape,
                                         const TensorDescriptor& dyDesc,
                                         ConstData_t dy,
