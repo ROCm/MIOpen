@@ -103,6 +103,7 @@ endif()
 list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/hcc)
 
 option(ENABLE_HIP_WORKAROUNDS Off)
+set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
 
 option(MIOPEN_USE_COMGR "When possible, use comgr to build kernels instead of offline tools" Off)
 
@@ -134,8 +135,6 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
             message(FATAL_ERROR "hip compiler not found")
         endif()
     endif()
-
-    set (HIP_CXX_COMPILER ${MIOPEN_HIP_COMPILER})
 
     # scgemm not support opencl backend yet.
     set(MIOPEN_USE_SCGEMM OFF)
@@ -216,12 +215,28 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     endif()
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
-# look for and register extractkernel
-find_program(EXTRACTKERNEL_BIN extractkernel
-    PATH_SUFFIXES bin
-    PATHS /opt/rocm
-)
-if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
+	
+# look for and register clang-offload-bundler
+if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+$")
+    find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
+        PATH_SUFFIXES bin
+        PATHS /opt/rocm/llvm
+    )
+endif()
+if(MIOPEN_OFFLOADBUNDLER_BIN)
+    message(STATUS "clang-offload-bundler found: ${MIOPEN_OFFLOADBUNDLER_BIN}")
+    set(MIOPEN_OFFLOADBUNDLER_BIN "${MIOPEN_OFFLOADBUNDLER_BIN}")
+else()
+    # look for and register extractkernel
+    message(STATUS "clang-offload-bundler not found")
+
+    find_program(EXTRACTKERNEL_BIN extractkernel
+        PATH_SUFFIXES bin
+        PATHS
+            /opt/rocm/hip
+            /opt/rocm/hcc
+            /opt/rocm
+    )
     if(EXTRACTKERNEL_BIN)
         message(STATUS "extractkernel found: ${EXTRACTKERNEL_BIN}")
         set(EXTRACTKERNEL_BIN "${EXTRACTKERNEL_BIN}")
@@ -229,6 +244,7 @@ if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
         message(FATAL_ERROR "extractkernel not found")
     endif()
 endif()
+
 
 # Online assembler
 find_program(MIOPEN_AMDGCN_ASSEMBLER
@@ -269,7 +285,7 @@ if(MIOPEN_USE_COMGR)
 endif()
 
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
-set(BOOST_COMPONENTS filesystem system)
+set(BOOST_COMPONENTS filesystem)
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
@@ -287,14 +303,15 @@ if(BUILD_DEV)
     set(MIOPEN_BUILD_DEV 1)
     set(MIOPEN_SYSTEM_DB_PATH "${CMAKE_SOURCE_DIR}/src/kernels" CACHE PATH "Default path of system db files")
     set(MIOPEN_USER_DB_PATH "${CMAKE_SOURCE_DIR}/src/kernels" CACHE PATH "Default path of user db files")
+    set(MIOPEN_USER_DB_SUFFIX "${MIOPEN_BACKEND}.${MIOpen_VERSION_MAJOR}_${MIOpen_VERSION_MINOR}_${MIOpen_VERSION_PATCH}" CACHE PATH "Filename suffix for the user find-db files")
     set(MIOPEN_CACHE_DIR "" CACHE STRING "")
 else()
     set(MIOPEN_BUILD_DEV 0)
     set(MIOPEN_SYSTEM_DB_PATH "${CMAKE_INSTALL_PREFIX}/${DATA_INSTALL_DIR}/db" CACHE PATH "Default path of system db files")
     set(MIOPEN_USER_DB_PATH "~/.config/miopen/" CACHE STRING "Default path of user db files")
     set(MIOPEN_CACHE_DIR "~/.cache/miopen/" CACHE STRING "")
+    set(MIOPEN_USER_DB_SUFFIX "${MIOPEN_BACKEND}.${MIOpen_VERSION_MAJOR}_${MIOpen_VERSION_MINOR}_${MIOpen_VERSION_PATCH}_${MIOpen_VERSION_TWEAK}" CACHE PATH "Filename suffix for the user find-db files")
 endif()
-set(MIOPEN_USER_DB_SUFFIX "${MIOPEN_BACKEND}.${MIOpen_VERSION_MAJOR}_${MIOpen_VERSION_MINOR}_${MIOpen_VERSION_PATCH}_${MIOpen_VERSION_TWEAK}" CACHE PATH "Filename suffix for the user find-db files")
 set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix for the system find-db files")
 
 

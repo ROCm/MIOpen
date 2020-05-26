@@ -30,6 +30,7 @@
 #if MIOPEN_USE_COMGR
 
 #include <string>
+#include <vector>
 
 namespace miopen {
 namespace comgr {

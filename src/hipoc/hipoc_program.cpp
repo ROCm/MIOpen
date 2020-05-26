@@ -23,6 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/config.h>
+
 #include <miopen/errors.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/hip_build_utils.hpp>
@@ -35,6 +37,8 @@
 #include <miopen/env.hpp>
 #include <miopen/comgr.hpp>
 #include <boost/optional.hpp>
+
+#include <mutex>
 #include <sstream>
 
 #include <unistd.h>
@@ -42,6 +46,10 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_COV3)
 
 #define MIOPEN_WORKAROUND_SWDEV_225285 1
+
+#if MIOPEN_USE_COMGR
+#define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27 1
+#endif
 
 namespace miopen {
 
@@ -177,9 +185,17 @@ struct HIPOCProgramImpl
 #else
         if(miopen::EndsWith(filename, ".so") || miopen::EndsWith(filename, ".s") ||
            miopen::EndsWith(filename, ".cpp"))
+        {
             return false;
+        }
         else
+        {
+#if MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27
+            static std::mutex mutex;
+            std::lock_guard<std::mutex> lock(mutex);
+#endif
             comgr::BuildOcl(filename, src, params, device, binary);
+        }
 
         if(binary.empty())
             MIOPEN_THROW("Code object build failed. Source: " + filename);
