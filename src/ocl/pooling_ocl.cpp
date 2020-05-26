@@ -168,27 +168,38 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     size_t lcl_work = 64;
     size_t grp_num  = (activ_work + lcl_work - 1) / lcl_work;
 
-    std::string network_config;
+    mlo_construct_pooling2D construct_params(conv::Direction::Forward);
+    std::string network_config =
+        "m" + std::to_string(pooling_method) + "_i" + std::to_string(static_cast<int>(save_index)) +
+        "_dt" + std::to_string(xDesc.GetType()) + "_ker" + get_vect_config(lens) + "_str" +
+        get_vect_config(strides) + "_it" + std::to_string(GetIndexType());
 
     if(pool_dim == 4)
     {
-        network_config +=
-            "m" + std::to_string(pooling_method) + "_i" +
-            std::to_string(static_cast<int>(save_index)) + "_dt" + std::to_string(xDesc.GetType()) +
-            "_xd" + get_vect_config(xDesc.GetLengths()) + "_xs" +
-            get_vect_config(xDesc.GetStrides()) + "_yd" + get_vect_config(yDesc.GetLengths()) +
-            "_ys" + get_vect_config(yDesc.GetStrides()) + "_ker" + get_vect_config(lens) + "_str" +
-            get_vect_config(strides) + "_pad" + get_vect_config(pads) + "_it" +
-            std::to_string(GetIndexType());
+        construct_params.setStream(&handle);
+        construct_params.setTopDescFromMLDesc(yDesc);
+        construct_params.setBotDescFromMLDesc(xDesc);
+        construct_params.setPoolingDescr(pooling_method,
+                                         GetIndexType(),
+                                         lens[0],
+                                         lens[1],
+                                         pads[0],
+                                         pads[1],
+                                         strides[0],
+                                         strides[1]);
+        construct_params.doBackward(save_index);
+        mloConstruct(construct_params);
+
+        network_config += "_nout" + std::to_string(xDesc.GetLengths()[1]) + "_tile" +
+                          std::to_string(static_cast<int>(construct_params._out_pix_tile1)) + "x" +
+                          std::to_string(static_cast<int>(construct_params._out_pix_tile0)) +
+                          "_grp" + std::to_string(static_cast<uint>(construct_params._grp_tile1)) +
+                          "x" + std::to_string(static_cast<uint>(construct_params._grp_tile0)) +
+                          "_glb" + get_vect_config(construct_params._g_wk);
     }
     else
     {
-        network_config += "m" + std::to_string(pooling_method) + "_i" +
-                          std::to_string(static_cast<int>(save_index)) + "_dt" +
-                          std::to_string(xDesc.GetType()) + "_ker" + get_vect_config(lens) +
-                          "_str" + get_vect_config(strides) + "_it" +
-                          std::to_string(GetIndexType()) + "_tile" +
-                          std::to_string(static_cast<int>(top_d_per_work)) + "x" +
+        network_config += "_tile" + std::to_string(static_cast<int>(top_d_per_work)) + "x" +
                           std::to_string(static_cast<int>(top_h_per_work)) + "x" +
                           std::to_string(static_cast<int>(top_w_per_work)) + "_maxwkitm" +
                           std::to_string(static_cast<uint>(max_activ_workitem)) + "_lcl" +
@@ -203,7 +214,21 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     {
         if(pool_dim == 4)
         {
-            kernels.front()(x, y, workSpace);
+            kernels.front()(x,
+                            y,
+                            workSpace,
+                            static_cast<uint>(pads[0]),
+                            static_cast<uint>(pads[1]),
+                            static_cast<uint>(xDesc.GetLengths()[2]),
+                            static_cast<uint>(xDesc.GetLengths()[3]),
+                            static_cast<uint>(yDesc.GetLengths()[2]),
+                            static_cast<uint>(yDesc.GetLengths()[3]),
+                            static_cast<uint>(xDesc.GetStrides()[0]),
+                            static_cast<uint>(xDesc.GetStrides()[1]),
+                            static_cast<uint>(xDesc.GetStrides()[2]),
+                            static_cast<uint>(yDesc.GetStrides()[0]),
+                            static_cast<uint>(yDesc.GetStrides()[1]),
+                            static_cast<uint>(yDesc.GetStrides()[2]));
         }
         else
         {
@@ -236,21 +261,6 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     {
         if(pool_dim == 4)
         {
-            mlo_construct_pooling2D construct_params(conv::Direction::Forward);
-            construct_params.setStream(&handle);
-            construct_params.setTopDescFromMLDesc(yDesc);
-            construct_params.setBotDescFromMLDesc(xDesc);
-            construct_params.setPoolingDescr(pooling_method,
-                                             GetIndexType(),
-                                             lens[0],
-                                             lens[1],
-                                             pads[0],
-                                             pads[1],
-                                             strides[0],
-                                             strides[1]);
-            construct_params.doBackward(save_index);
-
-            mloConstruct(construct_params);
             std::string parms              = construct_params.getCompilerOptions(); // kernel
             std::string program_name       = construct_params.getKernelFile();      // CL kernel
             std::string kernel_name        = construct_params.getKernelName();      // kernel name
@@ -258,7 +268,21 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
             const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
 
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                x, y, workSpace);
+                x,
+                y,
+                workSpace,
+                static_cast<uint>(pads[0]),
+                static_cast<uint>(pads[1]),
+                static_cast<uint>(xDesc.GetLengths()[2]),
+                static_cast<uint>(xDesc.GetLengths()[3]),
+                static_cast<uint>(yDesc.GetLengths()[2]),
+                static_cast<uint>(yDesc.GetLengths()[3]),
+                static_cast<uint>(xDesc.GetStrides()[0]),
+                static_cast<uint>(xDesc.GetStrides()[1]),
+                static_cast<uint>(xDesc.GetStrides()[2]),
+                static_cast<uint>(yDesc.GetStrides()[0]),
+                static_cast<uint>(yDesc.GetStrides()[1]),
+                static_cast<uint>(yDesc.GetStrides()[2]));
         }
         else
         {

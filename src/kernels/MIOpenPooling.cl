@@ -48,7 +48,19 @@ mloPoolingG(const __global _FLOAT* bot,
 #if !defined(MLO_POOLING_SAVE_INDEX) || MLO_POOLING_OP_ID != MLO_POOLING_OP_MAX
             UNUSED
 #endif
-                __global index_t* mask)
+                __global index_t* mask,
+            uint mlo_pad1,
+            uint mlo_pad0,
+            uint mlo_bot_height,
+            uint mlo_bot_width,
+            uint mlo_top_height,
+            uint mlo_top_width,
+            uint mlo_bot_batch_str,
+            uint mlo_bot_channel_str,
+            uint mlo_bot_str,
+            uint mlo_top_batch_str,
+            uint mlo_top_channel_str,
+            uint mlo_top_str)
 {
 
     uint x       = get_group_id(0) * MLO_POOLING_GROUP_SZ0 * MLO_POOLING_N_HORIZ_OUT_PIX;
@@ -61,7 +73,7 @@ mloPoolingG(const __global _FLOAT* bot,
     uint o       = ob - b * MLO_POOLING_N_OUTPUTS;
     uint bot_x   = (x + lcl_id0 * MLO_POOLING_N_HORIZ_OUT_PIX) * MLO_POOLING_STRIDE0;
     uint bot_y   = (y + lcl_id1 * MLO_POOLING_N_VERT_OUT_PIX) * MLO_POOLING_STRIDE1;
-    uint bot_off = b * MLO_POOLING_BOT_BATCH_STRIDE + o * MLO_POOLING_BOT_CHANNEL_STRIDE;
+    uint bot_off = b * mlo_bot_batch_str + o * mlo_bot_channel_str;
 
     _FLOAT bot_data[MLO_BOT_DATA_SZ1][MLO_BOT_DATA_SZ0];
     _FLOAT res[MLO_POOLING_N_VERT_OUT_PIX][MLO_POOLING_N_HORIZ_OUT_PIX];
@@ -83,22 +95,20 @@ mloPoolingG(const __global _FLOAT* bot,
 
     for(uint j = 0; j < MLO_BOT_DATA_SZ1; ++j)
     {
-        int run_y = (int)bot_y + j - MLO_POOLING_PAD1;
+        int run_y  = (int)bot_y + j - mlo_pad1;
+        bool vis_y = run_y >= 0 && run_y < mlo_bot_height;
 
         for(uint i = 0; i < MLO_BOT_DATA_SZ0; ++i)
         {
-            int run_x        = (int)bot_x + i - MLO_POOLING_PAD0;
-            uint bot_gbl_off = bot_off + (uint)run_y * MLO_POOLING_BOT_STRIDE + (uint)run_x;
-            bool vis         = ((run_y >= 0 && run_y < MLO_POOLING_BOT_HEIGHT) &&
-                        (run_x >= 0 && run_x < MLO_POOLING_BOT_WIDTH))
-                           ? true
-                           : false;
-            bot_data[j][i] = (vis) ? bot[bot_gbl_off] :
+            int run_x        = (int)bot_x + i - mlo_pad0;
+            uint bot_gbl_off = bot_off + (uint)run_y * mlo_bot_str + (uint)run_x;
+            bool vis_x       = run_x >= 0 && run_x < mlo_bot_width;
+            bot_data[j][i]   = vis_y && vis_x ? bot[bot_gbl_off] :
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-                                   (_FLOAT)(-MAX_VAL)
+                                            (_FLOAT)(-MAX_VAL)
 #elif(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || \
     (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
-                                   (_FLOAT)(0)
+                                            (_FLOAT)(0)
 #endif
                 ;
         }
@@ -109,8 +119,8 @@ mloPoolingG(const __global _FLOAT* bot,
     {
 #if(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
         uint y_dst = y + lcl_id1 * MLO_POOLING_N_VERT_OUT_PIX + k;
-        int hstart = (int)y_dst * MLO_POOLING_STRIDE1 - MLO_POOLING_PAD1;
-        int hend   = min((hstart + MLO_POOLING_KERNEL_SZ1), (int)(MLO_POOLING_BOT_HEIGHT));
+        int hstart = (int)y_dst * MLO_POOLING_STRIDE1 - mlo_pad1;
+        int hend   = min((hstart + MLO_POOLING_KERNEL_SZ1), (int)mlo_bot_height);
         hstart     = max(hstart, 0);
 #endif
         for(uint l = 0; l < MLO_POOLING_N_HORIZ_OUT_PIX; l++)
@@ -118,8 +128,8 @@ mloPoolingG(const __global _FLOAT* bot,
 
 #if(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
             uint x_dst = x + lcl_id0 * MLO_POOLING_N_HORIZ_OUT_PIX + l;
-            int wstart = (int)x_dst * MLO_POOLING_STRIDE0 - MLO_POOLING_PAD0;
-            int wend   = min((wstart + MLO_POOLING_KERNEL_SZ0), (int)(MLO_POOLING_BOT_WIDTH));
+            int wstart = (int)x_dst * MLO_POOLING_STRIDE0 - mlo_pad0;
+            int wend   = min((wstart + MLO_POOLING_KERNEL_SZ0), (int)mlo_bot_width);
             wstart     = max(wstart, 0);
             uint pool_size =
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE
@@ -129,7 +139,7 @@ mloPoolingG(const __global _FLOAT* bot,
 #else
                 (hend - hstart) * (wend - wstart);
 #endif
-            pool_size = (pool_size == 0) ? 1 : pool_size;
+            pool_size = max(pool_size, 1);
 #endif
 #if defined(MLO_POOLING_SAVE_INDEX) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
             mask_private[k][l] = 0;
@@ -163,17 +173,16 @@ mloPoolingG(const __global _FLOAT* bot,
 
     uint top_y   = (y + lcl_id1 * MLO_POOLING_N_VERT_OUT_PIX);
     uint top_x   = (x + lcl_id0 * MLO_POOLING_N_HORIZ_OUT_PIX);
-    uint top_off = b * MLO_POOLING_TOP_BATCH_STRIDE + o * MLO_POOLING_TOP_CHANNEL_STRIDE +
-                   top_y * MLO_POOLING_TOP_STRIDE + top_x;
+    uint top_off = b * mlo_top_batch_str + o * mlo_top_channel_str + top_y * mlo_top_str + top_x;
     for(uint k = 0; k < MLO_POOLING_N_VERT_OUT_PIX; k++)
     {
         for(uint l = 0; l < MLO_POOLING_N_HORIZ_OUT_PIX; l++)
         {
-            if(top_y + k < MLO_POOLING_TOP_HEIGHT && top_x + l < MLO_POOLING_TOP_WIDTH)
+            if(top_y + k < mlo_top_height && top_x + l < mlo_top_width)
             {
-                top[top_off + k * MLO_POOLING_TOP_STRIDE + l] = res[k][l];
+                top[top_off + k * mlo_top_str + l] = res[k][l];
 #if defined(MLO_POOLING_SAVE_INDEX) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-                mask[top_off + k * MLO_POOLING_TOP_STRIDE + l] = mask_private[k][l];
+                mask[top_off + k * mlo_top_str + l] = mask_private[k][l];
 #endif
             }
         }
