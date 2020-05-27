@@ -198,7 +198,7 @@ struct verify_forward_conv_bias_activ
         EXPECT(miopenError == miopenStatusSuccess);
         miopenSetOpArgsConvForward(ptr_fusionargs.get(), convoOp, &alpha, &beta, wei_dev.get());
 
-        if(bias_mode)
+        if(bias_mode != 0)
         {
             miopenError = miopenFusionPlanGetOp(fusionplan, opcounter++, &biasOp);
             EXPECT(miopenError == miopenStatusSuccess);
