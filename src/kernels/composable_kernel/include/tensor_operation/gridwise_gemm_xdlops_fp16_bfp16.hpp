@@ -994,50 +994,41 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v2
 
             using CThreadCopySliceLengths = Sequence<1, M0, 1, M2, 1>;
 
-            constexpr index_t BlkSize = CLayout.GetBlkSize();
-            constexpr index_t NumBlks = CLayout.GetNumBlks();
+            constexpr index_t BlkSize = blockwise_gemm.GetBlkSize();
+            constexpr index_t NumBlks = blockwise_gemm.GetNumBlks();
 
             constexpr index_t MRepeats = blockwise_gemm.GetMRepeats();
             constexpr index_t NRepeats = blockwise_gemm.GetNRepeats();
 
-            for(index_t m_repeat = 0; m_repeat < MRepeats; m_repeat++)
+            for(index_t i = 0; i < NumBlks; ++i)
             {
-                for(index_t n_repeat = 0; n_repeat < NRepeats; n_repeat++)
-                {
-                    for(index_t i = 0; i < NumBlks; ++i)
-                    {
-                        // calculate origin of thread output tensor on global memory
-                        //     blockwise GEMM c matrix starting index
-                        const auto c_thread_mtx_on_block =
-                            blockwise_gemm.GetBeginOfThreadMatrixC(i, m_repeat, n_repeat);
+                // calculate origin of thread output tensor on global memory
+                //     blockwise GEMM c matrix starting index
+                const auto c_thread_mtx_on_block = blockwise_gemm.GetBeginOfThreadMatrixC(i);
 
-                        const index_t m_thread_data_on_global =
-                            m_block_data_on_global + c_thread_mtx_on_block.row;
+                const index_t m_thread_data_on_global =
+                    m_block_data_on_global + c_thread_mtx_on_block.row;
 
-                        const index_t n_thread_data_on_global =
-                            n_block_data_on_global + c_thread_mtx_on_block.col;
+                const index_t n_thread_data_on_global =
+                    n_block_data_on_global + c_thread_mtx_on_block.col;
 
-                        ThreadwiseGenericTensorSliceCopy_v4r2<
-                            decltype(c_g_m0_m1_m2_n_thread_desc),
-                            decltype(c_g_m0_m1_m2_n_global_desc),
-                            CThreadCopySliceLengths,
-                            arithmetic_sequence_gen<0, 5, 1>::type,
-                            4,
-                            1,
-                            1,
-                            AddressSpace::Vgpr,
-                            AddressSpace::Global,
-                            OutputMemOp>({0, 0, 0, 0, 0},
-                                         {group_id,
-                                          m_thread_data_on_global / (M2 * M1),
-                                          m_thread_data_on_global % (M2 * M1) / M2,
-                                          m_thread_data_on_global % M2,
-                                          n_thread_data_on_global})
-                            .Run(p_c_thread + (NRepeats * m_repeat + n_repeat) * BlkSize * NumBlks +
-                                     i * BlkSize,
-                                 p_c_global);
-                    }
-                }
+                ThreadwiseGenericTensorSliceCopy_v4r2<decltype(c_g_m0_m1_m2_n_thread_desc),
+                                                      decltype(c_g_m0_m1_m2_n_global_desc),
+                                                      CThreadCopySliceLengths,
+                                                      arithmetic_sequence_gen<0, 5, 1>::type,
+                                                      4,
+                                                      1,
+                                                      1,
+                                                      AddressSpace::Vgpr,
+                                                      AddressSpace::Global,
+                                                      OutputMemOp>(
+                    {0, 0, 0, 0, 0},
+                    {group_id,
+                     m_thread_data_on_global / (M2 * M1),
+                     m_thread_data_on_global % (M2 * M1) / M2,
+                     m_thread_data_on_global % M2,
+                     n_thread_data_on_global})
+                    .Run(p_c_thread + i * BlkSize, p_c_global);
             }
         }
     }
