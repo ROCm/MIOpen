@@ -134,6 +134,11 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
             MIOPEN_THROW("Index range not enough for max pooling bwd");
         }
 
+        if(workspaceIndexMode == miopenPoolingWorkspaceIndexMask && pool_dim == 5)
+        {
+            MIOPEN_THROW("3D pooling doesn't support workspace index mask mode");
+        }
+
         if(workSpace == nullptr)
         {
             throw std::invalid_argument("workSpace cannot be NULL in Forward Pooling MAX mode when "
@@ -387,6 +392,12 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
          !(index_max >= xDesc.GetElementSize()))))
     {
         MIOPEN_THROW("Index range not enough for max pooling bwd");
+    }
+
+    if(mode == miopenPoolingMax && workspaceIndexMode == miopenPoolingWorkspaceIndexMask &&
+       pool_dim == 5)
+    {
+        MIOPEN_THROW("3D pooling doesn't support workspace index mask mode");
     }
 
     if(mode == miopenPoolingMax && workSpace == nullptr)
