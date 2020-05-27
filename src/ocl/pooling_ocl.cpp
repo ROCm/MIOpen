@@ -129,7 +129,10 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
         if((workspaceIndexMode == miopenPoolingWorkspaceIndexMask &&
             !(index_max >= std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<int>()))) ||
            (workspaceIndexMode == miopenPoolingWorkspaceIndexImage &&
-            !(index_max >= xDesc.GetElementSize())))
+            !(index_max >= std::accumulate(xDesc.GetLengths().begin() + 2,
+                                           xDesc.GetLengths().end(),
+                                           1,
+                                           std::multiplies<int>()))))
         {
             MIOPEN_THROW("Index range not enough for max pooling bwd");
         }
@@ -389,7 +392,10 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
        ((workspaceIndexMode == miopenPoolingWorkspaceIndexMask &&
          !(index_max >= std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<int>()))) ||
         (workspaceIndexMode == miopenPoolingWorkspaceIndexImage &&
-         !(index_max >= xDesc.GetElementSize()))))
+         !(index_max >= std::accumulate(xDesc.GetLengths().begin() + 2,
+                                        xDesc.GetLengths().end(),
+                                        1,
+                                        std::multiplies<int>())))))
     {
         MIOPEN_THROW("Index range not enough for max pooling bwd");
     }

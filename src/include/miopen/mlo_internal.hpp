@@ -578,15 +578,15 @@ struct mlo_construct_pooling2D : mlo_construct_activ_lrn_pooling_common
         : mlo_construct_activ_lrn_pooling_common(dir)
     {
         _pooling_method = MLO_POOLING_OP_MAX;
-        _index_type     = miopenIndexUint64;
-        _wsp_index      = miopenPoolingWorkspaceIndexImage;
+        _index_type     = miopenIndexUint8;
+        _wsp_index      = miopenPoolingWorkspaceIndexMask;
         _NAN_option     = 0;
     }
 
     inline void
     setPoolingDescr(int pooling_method                          = MLO_POOLING_OP_MAX,
-                    miopenIndexType_t index_type                = miopenIndexUint64,
-                    miopenPoolingWorkspaceIndexMode_t wsp_index = miopenPoolingWorkspaceIndexImage,
+                    miopenIndexType_t index_type                = miopenIndexUint8,
+                    miopenPoolingWorkspaceIndexMode_t wsp_index = miopenPoolingWorkspaceIndexMask,
                     int windowHeight                            = 3,
                     int windowWidth                             = 3,
                     int padding_h                               = 0,

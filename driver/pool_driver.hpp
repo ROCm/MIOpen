@@ -171,7 +171,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AddCmdLineArgs()
     inflags.AddInputFlag("pad_w", 'q', "0", "Zero Padding Width (Default=0)", "int");
     inflags.AddInputFlag("pad_val", 'r', "0", "Padding Value (Default=0)", "int");
     inflags.AddInputFlag(
-        "index_position", 'M', "1", "Image index 1, mask index 0 (Default=1)", "int");
+        "index_position", 'M', "0", "Image index 1, mask index 0 (Default=0)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -184,9 +184,9 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AddCmdLineArgs()
         "pad_mode", 'z', "default", "Padding Mode (same, valid, default) (Default=default)", "str");
     inflags.AddInputFlag("index_type",
                          'I',
-                         "miopenIndexUint64",
+                         "miopenIndexUint8",
                          "Index Data Type (miopenIndexUint8, miopenIndexUint16, miopenIndexUint32, "
-                         "miopenIndexUint64) (Default=miopenIndexUint64)",
+                         "miopenIndexUint64) (Default=miopenIndexUint8)",
                          "str");
 
     return 0;
@@ -216,7 +216,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::SetPoolDescriptorFromCmdLineArgs()
 
     miopenPoolingMode_t mode;
     miopenPaddingMode_t pmode    = miopenPaddingDefault;
-    miopenIndexType_t index_type = miopenIndexUint64;
+    miopenIndexType_t index_type = miopenIndexUint8;
     int pad_d                    = inflags.GetValueInt("pad_d");
     int pad_h                    = inflags.GetValueInt("pad_h");
     int pad_w                    = inflags.GetValueInt("pad_w");
@@ -297,7 +297,9 @@ int PoolDriver_impl<Tgpu, Tref, Index>::SetPoolDescriptorFromCmdLineArgs()
     miopen::deref(poolDesc).SetIndexType(index_type);
 
     miopenSetPoolingWorkSpaceIndexMode(
-        poolDesc, miopenPoolingWorkspaceIndexMode_t(inflags.GetValueInt("index_position")));
+        poolDesc,
+        miopenPoolingWorkspaceIndexMode_t(
+            spatial_dim == 3 ? 1 : inflags.GetValueInt("index_position")));
 
     return miopenStatusSuccess;
 }
@@ -576,40 +578,40 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyForward()
             : ((mode == miopenPoolingAverage) ? MLO_POOLING_OP_AVE : MLO_POOLING_OP_AVE_INCLUSIVE);
 
     const Tref tolerance = (sizeof(Tgpu) == 4 || sizeof(Tgpu) == 8) ? 1e-6 : 5e-3;
-    bool match =
-        mloPoolingForwardRunHostAndVerify<Tgpu, Tref, Index>(pooling_method,
-                                                             pad_d,
-                                                             stride_d,
-                                                             windowDepth,
-                                                             pad_h,
-                                                             stride_h,
-                                                             windowHeight,
-                                                             pad_w,
-                                                             stride_w,
-                                                             windowWidth,
-                                                             nIn,
-                                                             cOut,
-                                                             dIn,
-                                                             hIn,
-                                                             wIn,
-                                                             hInStride,
-                                                             dInStride,
-                                                             cInStride,
-                                                             nInStride,
-                                                             dOut,
-                                                             hOut,
-                                                             wOut,
-                                                             hOutStride,
-                                                             dOutStride,
-                                                             cOutStride,
-                                                             nOutStride,
-                                                             in.data(),
-                                                             out.data(),
-                                                             do_backward,
-                                                             maskhost.data(),
-                                                             mask.data(),
-                                                             tolerance,
-                                                             inflags.GetValueInt("index_position"));
+    bool match           = mloPoolingForwardRunHostAndVerify<Tgpu, Tref, Index>(
+        pooling_method,
+        pad_d,
+        stride_d,
+        windowDepth,
+        pad_h,
+        stride_h,
+        windowHeight,
+        pad_w,
+        stride_w,
+        windowWidth,
+        nIn,
+        cOut,
+        dIn,
+        hIn,
+        wIn,
+        hInStride,
+        dInStride,
+        cInStride,
+        nInStride,
+        dOut,
+        hOut,
+        wOut,
+        hOutStride,
+        dOutStride,
+        cOutStride,
+        nOutStride,
+        in.data(),
+        out.data(),
+        do_backward,
+        maskhost.data(),
+        mask.data(),
+        tolerance,
+        spatial_dim == 3 ? 1 : inflags.GetValueInt("index_position"));
 
     printf(match ? "Forward Pooling Verifies on CPU and GPU\n"
                  : "Forward Pooling Verification Failed !!\n");
@@ -796,21 +798,21 @@ class PoolDriver : public Driver
 
     int ParseCmdLineArgs(int argc, char* argv[])
     {
-        pool_driver_impl = &pool_driver_impl_uint64;
+        pool_driver_impl = &pool_driver_impl_uint8;
 
         std::vector<std::string> as(argv + 1, argv + argc);
 
-        if(std::any_of(as.begin(), as.end(), [](auto v) { return v == "miopenIndexUint8"; }))
-        {
-            pool_driver_impl = &pool_driver_impl_uint8;
-        }
-        else if(std::any_of(as.begin(), as.end(), [](auto v) { return v == "miopenIndexUint16"; }))
+        if(std::any_of(as.begin(), as.end(), [](auto v) { return v == "miopenIndexUint16"; }))
         {
             pool_driver_impl = &pool_driver_impl_uint16;
         }
         else if(std::any_of(as.begin(), as.end(), [](auto v) { return v == "miopenIndexUint32"; }))
         {
             pool_driver_impl = &pool_driver_impl_uint32;
+        }
+        else if(std::any_of(as.begin(), as.end(), [](auto v) { return v == "miopenIndexUint64"; }))
+        {
+            pool_driver_impl = &pool_driver_impl_uint64;
         }
 
         pool_driver_impl->ParseCmdLineArgs(argc, argv);

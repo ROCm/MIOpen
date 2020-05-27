@@ -116,8 +116,8 @@ struct PoolingDescriptor : miopenPoolingDescriptor
     miopenPoolingMode_t mode  = miopenPoolingMax;
     miopenPaddingMode_t pmode = miopenPaddingDefault;
 
-    miopenIndexType_t indexType                          = miopenIndexUint64;
-    miopenPoolingWorkspaceIndexMode_t workspaceIndexMode = miopenPoolingWorkspaceIndexImage;
+    miopenIndexType_t indexType                          = miopenIndexUint8;
+    miopenPoolingWorkspaceIndexMode_t workspaceIndexMode = miopenPoolingWorkspaceIndexMask;
 };
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenPoolingDescriptor, miopen::PoolingDescriptor);

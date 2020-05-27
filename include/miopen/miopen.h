@@ -1803,7 +1803,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetPoolingIndexType(miopenPoolingDescriptor_t
                                                        miopenIndexType_t* index_type);
 
 /*! @brief Set workspace index mode for pooling layer. The default mode is
- * miopenPoolingWorkSpaceIndexImage.
+ * miopenPoolingWorkSpaceIndexMask.
  *
  * @param poolDesc         Pointer to a pooling layer descriptor (input/output)
  * @param workspace_index  Workspace index mode (input)
