@@ -202,7 +202,15 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
     }
     else if(ctx.IsFp16())
     {
-        tmp = {128, 128, 4, 64, 64, 1, 8, false, true};
+        tmp = {256, 128, 4, 64, 128, 1, 8, false, true};
+        if(!tmp.IsValid(ctx))
+            tmp = {256, 128, 4, 128, 64, 1, 8, false, true};
+        if(!tmp.IsValid(ctx))
+            tmp = {128, 256, 4, 64, 128, 1, 8, false, true};
+        if(!tmp.IsValid(ctx))
+            tmp = {256, 128, 4, 128, 64, 1, 8, false, true};
+        if(!tmp.IsValid(ctx))
+            tmp = {128, 128, 4, 64, 64, 1, 8, false, true};
         if(!tmp.IsValid(ctx))
             tmp = {128, 128, 8, 64, 64, 1, 4, false, true};
         if(!tmp.IsValid(ctx))
@@ -546,8 +554,21 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValid(const ConvolutionContext&
     const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
     const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
-    if((in_left_pad_h > 0 || in_right_pad_w > 0 || in_left_pad_w > 0 || in_right_pad_h > 0) &&
-       GemmMPerWave * GemmNPerWave >= 128 * 64)
+    if((in_left_pad_h > 0 || in_right_pad_w > 0 || in_left_pad_w > 0 || in_right_pad_h > 0))
+    {
+        if((GemmMPerBlock * GemmNPerBlock == 128 * 128 &&
+            GemmMPerWave * GemmNPerWave >= 128 * 64) ||
+           (GemmMPerBlock * GemmNPerBlock == 256 * 128 &&
+            GemmMPerWave * GemmNPerWave >= 128 * 64) ||
+           (GemmMPerBlock * GemmNPerBlock == 256 * 256 && GemmMPerWave * GemmNPerWave >= 128 * 128))
+        {
+            return false;
+        }
+    }
+#endif
+
+#if 0 // reduce tuning range
+    if(GemmMPerWave * GemmNPerWave != 128 * 64 || GemmMPerBlock * GemmNPerBlock != 256 * 128)
         return false;
 #endif
 
@@ -614,7 +635,30 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
     bool) const
 {
 #if 0
-    const auto config = PerformanceImplicitGemmForwardV4R4Xdlops(128, 128, 4, 128, 64, 1, 4, 0, 0);
+    // bin/MIOpenDriver convfp16 -n 128 -c 1024 -H 14 -W 14 -k 2048 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -V 0 -w 1 -t 1 -F 1 -i 1
+    const auto config = PerformanceImplicitGemmForwardV4R4Xdlops(128, 256, 4, 128,  64, 1, 8, 0, 1);
+#elif 0
+    // bin/MIOpenDriver convfp16 -n 256 -c 288 -H 35 -W 35 -k 2048 -y 3 -x 3 -p 0 -q 0 -u 2 -v 2 -l
+    // 1 -j 1 -V 0 -w 1 -t 1 -F 1 -i 1
+    const auto config = PerformanceImplicitGemmForwardV4R4Xdlops(256, 128, 4, 128, 64, 1, 8, 0, 1);
+#elif 0
+    // bin/MIOpenDriver convfp16 -n 128 -c 256 -H 14 -W 14 -k 1024 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l
+    // 1 -j 1 -V 0 -w 1 -t 1 -F 1 -i 1
+    const auto config = PerformanceImplicitGemmForwardV4R4Xdlops(256, 128, 4, 128, 64, 1, 8, 0, 0);
+#elif 0
+    // bin/MIOpenDriver convfp16 -n 128 -c 256 -H 17 -W 17 -k 1024 -y 1 -x 7 -p 0 -q 3 -u 1 -v 1 -l
+    // 1 -j 1 -V 0 -w 1 -t 1 -F 1 -i 1
+    // const auto config = PerformanceImplicitGemmForwardV4R4Xdlops(128, 128, 4,  64,  64, 1, 8, 0,
+    // 1);
+    const auto config = PerformanceImplicitGemmForwardV4R4Xdlops(256, 128, 4, 64, 128, 1, 8, 0, 1);
+#elif 0
+    // bin/MIOpenDriver conv     -n 128 -c 256 -H 14 -W 14 -k 1024 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l
+    // 1 -j 1 -V 0 -w 1 -t 1 -F 1 -i 1
+    const auto config = PerformanceImplicitGemmForwardV4R4Xdlops(128, 128, 4, 64, 64, 1, 4, 0, 0);
+#elif 0
+    const auto config = PerformanceImplicitGemmForwardV4R4Xdlops(128, 128, 4, 64, 64, 1, 8, 0, 1);
+#elif 0
+    const auto config = PerformanceImplicitGemmForwardV4R4Xdlops(128, 128, 4, 64, 64, 1, 4, 0, 0);
 #endif
 
     ConvSolution result;
@@ -688,9 +732,6 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
         std::string(" -DCK_PARAM_PROBLEM_IN_LEFT_PAD_W=") + std::to_string(ConvolutionContextInterpreter::GetInputLeftPadW(ctx)) +
         std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_H=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx)) +
         std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_W=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx)) +
-        std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_FORWARD=") + std::to_string(1) +
-        std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_DATA=") + std::to_string(0) +
-        std::string(" -DCK_PARAM_PROBLEM_CONV_DIRECTION_BACKWARD_WEIGHT=") + std::to_string(0) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_M_PER_BLOCK=") + std::to_string(config.GemmMPerBlock) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_N_PER_BLOCK=") + std::to_string(config.GemmNPerBlock) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_K_PER_BLOCK=") + std::to_string(config.GemmKPerBlock) +
@@ -713,8 +754,6 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
         std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
-        std::string(" -DCK_USE_AMD_BUFFER_ADDRESSING=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_USE_AMD_BUFFER_ADDRESSING{}) ? '1' : '0') +
-        std::string(" -DCK_USE_AMD_BUFFER_ADDRESSING_INTRINSIC=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_USE_AMD_BUFFER_ADDRESSING_INTRINSIC{}) ? '1' : '0') +
         std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM{}) ? '1' : '0') +
         ctx.general_compile_options;
     // clang-format on

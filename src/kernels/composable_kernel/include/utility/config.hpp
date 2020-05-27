@@ -25,11 +25,7 @@
 #define CK_USE_AMD_BUFFER_ADDRESSING 1
 #endif
 
-#ifndef CK_USE_AMD_BUFFER_ADDRESSING_INTRINSIC
-#define CK_USE_AMD_BUFFER_ADDRESSING_INTRINSIC 1
-#endif
-
-// only support gfx908
+// only gfx908 support native floating point atomic add
 #ifndef CK_USE_AMD_BUFFER_ATOMIC_ADD
 #define CK_USE_AMD_BUFFER_ATOMIC_ADD 0
 #endif
@@ -47,6 +43,7 @@
 #define CK_USE_AMD_XDLOPS_EMULATE 0 // For internal debug purposes
 #endif
 
+// block synchronization only s_wait lgkmcnt(0), not vmcnt(0)
 #ifndef CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM
 #define CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM 0
 #endif
@@ -73,8 +70,6 @@
 // workaround for unnecessary VGPA <--> AGRP data movement when using mfma intrinsic
 #define CK_WORKAROUND_SWDEV_229564 1
 
-#define WORKAROUND_SWDEV_229564 1
-
 namespace ck {
 
 enum AddressSpace
@@ -89,12 +84,6 @@ enum InMemoryDataOperation
 {
     Set,
     AtomicAdd
-};
-
-enum WorkgroupScheduleOrder
-{
-    MBlock1NBlock0,
-    NBlock1MBlock0
 };
 
 #if CK_UNSIGNED_INDEX_TYPE
