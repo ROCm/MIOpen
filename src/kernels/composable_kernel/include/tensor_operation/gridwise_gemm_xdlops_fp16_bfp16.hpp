@@ -1003,9 +1003,6 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v2
             constexpr index_t BlkSize = blockwise_gemm.GetBlkSize();
             constexpr index_t NumBlks = blockwise_gemm.GetNumBlks();
 
-            constexpr index_t MRepeats = blockwise_gemm.GetMRepeats();
-            constexpr index_t NRepeats = blockwise_gemm.GetNRepeats();
-
             for(index_t i = 0; i < NumBlks; ++i)
             {
                 // calculate origin of thread output tensor on global memory
