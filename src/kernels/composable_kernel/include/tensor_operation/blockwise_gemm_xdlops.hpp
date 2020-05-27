@@ -46,6 +46,16 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
 
     __device__ constexpr auto GetNRepeats() const { return NRepeats; }
 
+    __device__ constexpr auto GetNumBlks() const
+    {
+        return XdlopsGemm.GetOutputLayout().GetNumBlks() * MRepeats * NRepeats;
+    }
+
+    __device__ constexpr auto GetBlkSize() const
+    {
+        return XdlopsGemm.GetOutputLayout().GetBlkSize();
+    }
+
     __device__ BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops()
     {
         static_assert(BlockMatrixA::NRow() == BlockMatrixB::NRow(),
@@ -59,10 +69,6 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
 
         static_assert(BlockSize == GemmMWaves * GemmNWaves * WaveSize,
                       "BlockSize != GemmMWaves * GemmNWaves * WaveSize\n");
-
-        static_assert((GemmMPerWave >= 64 && GemmNPerWave >= 64) ||
-                          (GemmMPerWave <= 64 && GemmNPerWave <= 64),
-                      "invalid GemmMPerWave/GemmNPerWave");
 
         const index_t waveId   = get_thread_local_1d_id() / WaveSize;
         const index_t waveId_m = waveId / GemmNWaves;
@@ -82,7 +88,7 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         constexpr index_t N = BlockMatrixB::NCol();
         constexpr index_t K = BlockMatrixA::NRow();
 
-        constexpr auto thread_mtx_size = MPerXdlops * NPerXdlops / WaveSize;
+        constexpr auto reg_size_xdlops = MPerXdlops * NPerXdlops / WaveSize;
 
         for(index_t m = 0; m < MRepeats; m++)
         {
@@ -90,20 +96,23 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
             {
                 XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * m],
                                                  &p_b_block[mMyWaveOffsetB + NPerXdlops * n],
-                                                 p_c_thread + (NRepeats * m + n) * thread_mtx_size);
+                                                 p_c_thread + (NRepeats * m + n) * reg_size_xdlops);
             }
         }
     }
 
-    __device__ static MatrixIndex GetBeginOfThreadMatrixC(index_t i, index_t m = 0, index_t n = 0)
+    __device__ static MatrixIndex GetBeginOfThreadMatrixC(index_t i)
     {
 
         const index_t waveId = get_thread_local_1d_id() / WaveSize;
 
-        (void)m;
-        (void)n;
+        const index_t xdlops_i = i / XdlopsGemm.GetOutputLayout().GetNumBlks();
+        const index_t j        = i % XdlopsGemm.GetOutputLayout().GetNumBlks();
 
-        const auto thread_mtx_on_blk = XdlopsGemm.GetBeginOfThreadBlk(i);
+        const index_t m = xdlops_i / NRepeats;
+        const index_t n = xdlops_i % NRepeats;
+
+        const auto thread_mtx_on_blk = XdlopsGemm.GetBeginOfThreadBlk(j);
 
         const index_t col =
             (waveId % GemmNWaves) * GemmNPerWave + n * NPerXdlops + thread_mtx_on_blk.col;
@@ -116,21 +125,21 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
 
     __device__ constexpr auto GetThreadMatrixCDescriptor() const
     {
-        const index_t reg_size = GemmMPerWave * GemmNPerWave / WaveSize;
-        return make_ConstantMatrixDescriptor_packed(Number<reg_size>{}, Number<1>{});
+        const index_t total_reg_size = GemmMPerWave * GemmNPerWave / WaveSize;
+        return make_ConstantMatrixDescriptor_packed(Number<total_reg_size>{}, Number<1>{});
     }
 
     __device__ void XdlopsMatrixCSetZero() const
     {
-        constexpr auto thread_mtx_size = MPerXdlops * NPerXdlops / WaveSize;
-        XdlopsGemm.SetZeroXdlopsRegs(Number<thread_mtx_size>{});
+        constexpr auto reg_size_xdlops = MPerXdlops * NPerXdlops / WaveSize;
+        XdlopsGemm.SetZeroXdlopsRegs(Number<reg_size_xdlops>{});
     }
 
     template <class FloatC>
     __device__ void XdlopsMatrixCRead(FloatC* __restrict__ p_c_thread) const
     {
-        constexpr auto thread_mtx_size = MPerXdlops * NPerXdlops / WaveSize;
-        XdlopsGemm.ReadXdlopsRegs(Number<thread_mtx_size>{}, p_c_thread);
+        constexpr auto reg_size_xdlops = MPerXdlops * NPerXdlops / WaveSize;
+        XdlopsGemm.ReadXdlopsRegs(Number<reg_size_xdlops>{}, p_c_thread);
     }
 };
 
