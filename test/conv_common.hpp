@@ -2086,4 +2086,3 @@ struct conv_bias_driver : test_driver
         verify(verify_backwards_bias<T>{output, bias});
     }
 };
-
