@@ -558,6 +558,14 @@ int ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::RunAndMeasureSolution(const miopen:
 
 bool ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::IsApplicable(const ConvolutionContext& ctx) const
 {
+/// \todo Fix and remove this workaround.
+/// There are random failures with certain configs,
+/// see https://github.com/ROCmSoftwarePlatform/MIOpen/pull/228
+/// We can't trust this solver until the reason is found and fixed.
+#if 1
+    (void)ctx;
+    return false;
+#else
     if(!(ctx.IsFp32()))
         return false;
 
@@ -583,6 +591,7 @@ bool ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::IsApplicable(const ConvolutionCont
     const std::size_t GemmK = n * ho * wo;
 
     return IsValidGridGemmXdlops(GemmM, GemmN, GemmK) && IsXdlopsSupport(ctx);
+#endif
 }
 
 bool ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::IsValidPerformanceConfig(
