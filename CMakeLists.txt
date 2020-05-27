@@ -40,6 +40,8 @@ endif()
 
 project ( MIOpen C CXX )
 
+option( BUILD_SHARED_LIBS "Build as a shared library" ON )
+
 enable_testing()
 
 find_package(ROCM REQUIRED PATHS /opt/rocm)
@@ -278,8 +280,6 @@ add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
 find_path(HALF_INCLUDE_DIR half.hpp)
-
-option( BUILD_SHARED_LIBS "Build as a shared library" ON )
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 
