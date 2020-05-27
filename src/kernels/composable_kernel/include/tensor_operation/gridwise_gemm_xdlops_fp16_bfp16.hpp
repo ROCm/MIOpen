@@ -11,6 +11,12 @@
 
 namespace ck {
 
+enum WorkgroupScheduleOrder
+{
+    MBlock1NBlock0,
+    NBlock1MBlock0
+};
+
 template <index_t Gi,
           index_t MBlockWork,
           index_t NBlockWork,
