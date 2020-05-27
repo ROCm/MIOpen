@@ -631,10 +631,10 @@ ConvHipImplicitGemmForwardV4R4Xdlops::GetPerformanceConfig(const ConvolutionCont
 
 ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
     const ConvolutionContext& ctx,
-    const PerformanceImplicitGemmForwardV4R4Xdlops& config,
+    const PerformanceImplicitGemmForwardV4R4Xdlops& config_,
     bool) const
 {
-#if 0
+#if 1
     // bin/MIOpenDriver convfp16 -n 128 -c 1024 -H 14 -W 14 -k 2048 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -V 0 -w 1 -t 1 -F 1 -i 1
     const auto config = PerformanceImplicitGemmForwardV4R4Xdlops(128, 256, 4, 128,  64, 1, 8, 0, 1);
 #elif 0

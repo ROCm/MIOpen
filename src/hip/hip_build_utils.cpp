@@ -119,7 +119,6 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
         params += " -O3 ";
     }
 
-    // params += " -Wno-unused-command-line-argument -c -fno-gpu-rdc -I. ";
     params += " -Wno-unused-command-line-argument -I. ";
     params += MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
     if(IsHccCompiler())
@@ -145,11 +144,13 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     {
         if(IsHccCompiler())
         {
+            params += " -gline-tables-only";
             env += " KMDUMPISA=1";
             env += " KMDUMPLLVM=1";
         }
         else if(IsClangXXCompiler())
         {
+            params += " -gline-tables-only";
             params += " -save-temps";
         }
     }

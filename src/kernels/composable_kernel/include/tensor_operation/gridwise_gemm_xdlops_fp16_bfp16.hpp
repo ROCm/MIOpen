@@ -800,7 +800,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v2
         constexpr auto K     = b_g_k_n_kpack_global_desc.GetLengths()[1];
         constexpr auto N     = b_g_k_n_kpack_global_desc.GetLengths()[2];
         constexpr auto M     = a_g_k_m_kpack_global_desc.GetLengths()[2];
-        constexpr auto KPACK = b_g_k_n_kpack_global_desc.GetLengths()[3];
+        constexpr auto KPack = b_g_k_n_kpack_global_desc.GetLengths()[3];
 
         // divide block work by [M, N]
         static_assert(M % MPerBlock == 0 && N % NPerBlock == 0 && K % KPerBlock == 0,
@@ -827,12 +827,12 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v2
                                                    : (block_work_id[1] * NPerBlock);
 
         //   LDS mem
-        constexpr index_t max_align = KPACK;
+        constexpr index_t max_align = KPack;
 
         //   LDS
         //     be careful of LDS alignment
         constexpr auto a_g_k_m_kpack_block_desc = make_native_tensor_descriptor_aligned(
-            Sequence<1, KPerBlock, MPerBlock, KPACK>{}, Number<max_align>{});
+            Sequence<1, KPerBlock, MPerBlock, KPack>{}, Number<max_align>{});
 
         auto a_blockwise_copy = BlockwiseGenericTensorSliceCopy_v4<
             BlockSize,
@@ -845,7 +845,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v2
             ABlockCopySrcAccessOrder,
             ABlockCopyDstAccessOrder,
             ABlockCopySrcVectorReadDim, // Src dim to be read in vector form (K dimension)
-            3,                          // Dst dim to be written in vector form (KPACK dimension)
+            3,                          // Dst dim to be written in vector form (KPack dimension)
             ABlockCopySrcDataPerRead,
             ABlockCopyDstDataPerWrite_KPACK,
             AddressSpace::Global,
@@ -854,7 +854,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v2
             InMemoryDataOperation::Set>({group_id, 0, m_block_data_on_global, 0}, {0, 0, 0, 0});
 
         constexpr auto b_g_k_n_kpack_block_desc = make_native_tensor_descriptor_aligned(
-            Sequence<1, KPerBlock, NPerBlock, KPACK>{}, Number<max_align>{});
+            Sequence<1, KPerBlock, NPerBlock, KPack>{}, Number<max_align>{});
 
         // input blockwise copy
         auto b_blockwise_copy = BlockwiseGenericTensorSliceCopy_v4<
@@ -868,7 +868,7 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v2
             BBlockCopySrcAccessOrder,
             BBlockCopyDstAccessOrder,
             BBlockCopySrcVectorReadDim, // Src dim to be read in vector form (K dimension)
-            3,                          // Dst dim to be written in vector form (KPACK dimension)
+            3,                          // Dst dim to be written in vector form (KPack dimension)
             BBlockCopySrcDataPerRead,   // N dimension
             BBlockCopyDstDataPerWrite_KPACK,
             AddressSpace::Global,
@@ -943,11 +943,11 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v2
             block_sync_lds();
 
             // GEMM on current data
-            const typename vector_type<ABFloat, KPACK>::MemoryType* p_a_block_vec =
-                reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
+            const typename vector_type<ABFloat, KPack>::MemoryType* p_a_block_vec =
+                reinterpret_cast<const typename vector_type<ABFloat, KPack>::MemoryType*>(
                     p_a_block);
-            const typename vector_type<ABFloat, KPACK>::MemoryType* p_b_block_vec =
-                reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
+            const typename vector_type<ABFloat, KPack>::MemoryType* p_b_block_vec =
+                reinterpret_cast<const typename vector_type<ABFloat, KPack>::MemoryType*>(
                     p_b_block);
             blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
 
@@ -963,11 +963,11 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v2
             block_sync_lds();
 
             // GEMM on last data
-            const typename vector_type<ABFloat, KPACK>::MemoryType* p_a_block_vec =
-                reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
+            const typename vector_type<ABFloat, KPack>::MemoryType* p_a_block_vec =
+                reinterpret_cast<const typename vector_type<ABFloat, KPack>::MemoryType*>(
                     p_a_block);
-            const typename vector_type<ABFloat, KPACK>::MemoryType* p_b_block_vec =
-                reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
+            const typename vector_type<ABFloat, KPack>::MemoryType* p_b_block_vec =
+                reinterpret_cast<const typename vector_type<ABFloat, KPack>::MemoryType*>(
                     p_b_block);
             blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
         }
