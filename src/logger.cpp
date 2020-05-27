@@ -192,7 +192,7 @@ std::string LoggingPrefix()
 /// Expected to be invoked with __func__ and __PRETTY_FUNCTION__.
 std::string LoggingParseFunction(const char* func, const char* pretty_func)
 {
-    const std::string fname{func};
+    std::string fname{func};
     if(fname != "operator()")
         return fname;
     // lambda

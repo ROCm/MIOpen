@@ -37,7 +37,7 @@ namespace miopen {
 
 struct Handle;
 
-using Invoker        = std::function<void(Handle&, const boost::any& primitive_parameters)>;
+using Invoker        = std::function<void(const Handle&, const boost::any& primitive_parameters)>;
 using InvokerFactory = std::function<Invoker(const std::vector<Kernel>&)>;
 
 } // namespace miopen
