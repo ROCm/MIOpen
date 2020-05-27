@@ -1647,7 +1647,7 @@ struct conv_driver : test_driver
 
     void run()
     {
-        
+
         filter.spatialDim       = spatial_dim_elements.size();
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];
@@ -1655,10 +1655,10 @@ struct conv_driver : test_driver
 
         if(!input_dims.empty())
         {
-            input = tensor<T>{input_dims}.generate(tensor_elem_gen_integer{17});
-            batch_size = input_dims.at(0);
+            input          = tensor<T>{input_dims}.generate(tensor_elem_gen_integer{17});
+            batch_size     = input_dims.at(0);
             input_channels = input_dims.at(1);
-            std::copy(input_dims.begin()+2, input_dims.end(), spatial_dim_elements.begin());
+            std::copy(input_dims.begin() + 2, input_dims.end(), spatial_dim_elements.begin());
         }
         else if(spatial_dim == 2)
         {
@@ -1682,7 +1682,7 @@ struct conv_driver : test_driver
 
         if(!weight_dims.empty())
         {
-            weights = tensor<T>{weight_dims}.generate(tensor_elem_gen_integer{17});
+            weights         = tensor<T>{weight_dims}.generate(tensor_elem_gen_integer{17});
             output_channels = weight_dims.at(0);
         }
         else if(spatial_dim == 2)
@@ -1704,7 +1704,6 @@ struct conv_driver : test_driver
                 spatial_dim_elements.at(
                     2)}.generate(tensor_elem_gen_integer{17});
         }
-
 
         if(input.desc.GetSize() != 2 + spatial_dim || weights.desc.GetSize() != 2 + spatial_dim ||
            pads_strides_dilations.size() != 3 * spatial_dim ||
@@ -1948,7 +1947,7 @@ struct conv_driver : test_driver
                     std::vector<size_t> workspace_sizes = {
                         workspace_size_1, workspace_size_2, workspace_size_3};
                     size_t workspace_size =
-                      *std::max_element(workspace_sizes.begin(), workspace_sizes.end());
+                        *std::max_element(workspace_sizes.begin(), workspace_sizes.end());
 
                     total_mem = input.desc.GetNumBytes() + weights.desc.GetNumBytes() +
                                 output.desc.GetNumBytes() +
@@ -2087,3 +2086,4 @@ struct conv_bias_driver : test_driver
         verify(verify_backwards_bias<T>{output, bias});
     }
 };
+
