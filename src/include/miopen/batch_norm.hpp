@@ -47,7 +47,7 @@ void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
 
 TensorDescriptor BuildReshaped4DTensorDescriptor(const miopen::TensorDescriptor& tDesc);
 
-void bnBwdTrainSelectSingle(Handle& handle,
+void bnBwdTrainSelectSingle(const Handle& handle,
                             miopenDataType_t dtype,
                             const std::string& program_name,
                             const std::string& algo_name,
@@ -68,7 +68,7 @@ void bnBwdTrainSelectSingle(Handle& handle,
                             ConstData_t savedInvVariance,
                             float inhw);
 
-void bnBwdTrainSelectMulti(Handle& handle,
+void bnBwdTrainSelectMulti(const Handle& handle,
                            miopenDataType_t dtype,
                            const std::string& program_name,
                            const std::string& algo_name,
@@ -89,7 +89,7 @@ void bnBwdTrainSelectMulti(Handle& handle,
                            ConstData_t savedInvVariance,
                            float inhw);
 
-void bnFwdTrainSelectSingle(Handle& handle,
+void bnFwdTrainSelectSingle(const Handle& handle,
                             miopenDataType_t dtype,
                             const std::string& program_name,
                             const std::string& algo_name,
@@ -112,7 +112,7 @@ void bnFwdTrainSelectSingle(Handle& handle,
                             Data_t resultSaveInvVariance,
                             float inhw);
 
-void bnFwdTrainSelectMulti(Handle& handle,
+void bnFwdTrainSelectMulti(const Handle& handle,
                            miopenDataType_t dtype,
                            const std::string& program_name,
                            const std::string& algo_name,
@@ -135,7 +135,7 @@ void bnFwdTrainSelectMulti(Handle& handle,
                            Data_t resultSaveInvVariance,
                            float inhw);
 
-void profileSequence(Handle& handle, unsigned char select, float* ctime);
+void profileSequence(const Handle& handle, unsigned char select, float* ctime);
 
 void BatchNormForwardInference(Handle& handle,
                                miopenBatchNormMode_t bn_mode,

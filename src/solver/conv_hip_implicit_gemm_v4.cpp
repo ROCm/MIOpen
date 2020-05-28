@@ -415,7 +415,7 @@ ConvSolution ConvHipImplicitGemmV4_1x1::GetSolution(const ConvolutionContext& ct
                            KernelOutputWidthWo(ctx));
 }
 
-int ConvHipImplicitGemmV4Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmV4Fwd::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                     ConstData_t bot_buf,
                                                     Data_t top_buf,
                                                     ConstData_t wei_buf,
@@ -431,7 +431,7 @@ int ConvHipImplicitGemmV4Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
         profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
-int ConvHipImplicitGemmV4WrW::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmV4WrW::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                     ConstData_t bot_buf,
                                                     ConstData_t top_buf,
                                                     Data_t wei_buf,
@@ -446,7 +446,7 @@ int ConvHipImplicitGemmV4WrW::RunAndMeasureSolution(miopen::Handle& profile_h,
         profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
-int ConvHipImplicitGemmV4_1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmV4_1x1::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                      ConstData_t bot_buf,
                                                      Data_t top_buf,
                                                      ConstData_t wei_buf,

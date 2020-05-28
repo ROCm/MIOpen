@@ -35,7 +35,7 @@ namespace miopen {
 
 struct Handle;
 
-void AddMiopengemmSolution(Handle& handle,
+void AddMiopengemmSolution(const Handle& handle,
                            const std::string& algorithm_name,
                            const std::string& network_config,
                            const MIOpenGEMM::Geometry& mgg,
@@ -45,7 +45,7 @@ void AddMiopengemmSolution(Handle& handle,
                            float time,
                            bool enforce_determinism);
 
-void RunMiopengemmSolution(Handle& handle,
+void RunMiopengemmSolution(const Handle& handle,
                            const decltype(handle.GetKernels("_", "_"))& kernels,
                            float alpha,
                            ConstData_t A,
