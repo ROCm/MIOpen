@@ -1513,7 +1513,8 @@ struct conv_driver : test_driver
     std::string pad_mode;
     std::vector<std::size_t> spatial_dim_elements{};
     std::vector<std::size_t> input_dims{};
-    std::vector<std::size_t> weight_dims{};
+    std::vector<std::size_t> weight_tensor_dims{};
+    std::vector<std::size_t> filter_dims{};
     std::size_t batch_size{};
     std::size_t input_channels{};
     std::size_t output_channels{};
@@ -1559,6 +1560,11 @@ struct conv_driver : test_driver
                 {7, 1}};
     }
 
+    std::vector<std::vector<std::size_t>> get_2d_filter_dims()
+    {
+        return {{1, 1}, {3, 3}, {1, 7}, {7, 1}, {5, 5}, {7, 7}, {11, 11}, {2, 2}, {4, 4}};
+    }
+
     std::vector<std::size_t> get_output_channels()
     {
         return {16, 32, 96, 112, 128, 192, 256, 320, 512, 1024};
@@ -1595,6 +1601,19 @@ struct conv_driver : test_driver
                 {4, 227, 227},
                 {1, 1, 1},
                 {1, 2, 2}};
+    }
+
+    std::vector<std::vector<std::size_t>> get_3d_filter_dims()
+    {
+        return {{1, 1, 1},
+                {3, 3, 3},
+                {3, 5, 5},
+                {3, 7, 7},
+                {5, 7, 7},
+                {3, 11, 11},
+                {3, 1, 7},
+                {3, 7, 1},
+                {3, 5, 20}};
     }
 
     std::vector<std::vector<int>> get_2d_trans_output_pads() { return {{0, 0}}; }
@@ -1648,7 +1667,7 @@ struct conv_driver : test_driver
     void run()
     {
 
-        filter.spatialDim       = spatial_dim_elements.size();
+        filter.spatialDim       = filter_dims.size();
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];
         std::size_t spatial_dim = filter.GetSpatialDimension();
@@ -1680,28 +1699,25 @@ struct conv_driver : test_driver
                     2)}.generate(tensor_elem_gen_integer{17});
         }
 
-        if(!weight_dims.empty())
+        if(!weight_tensor_dims.empty())
         {
-            weights         = tensor<T>{weight_dims}.generate(tensor_elem_gen_integer{17});
-            output_channels = weight_dims.at(0);
+            weights         = tensor<T>{weight_tensor_dims}.generate(tensor_elem_gen_integer{17});
+            output_channels = weight_tensor_dims.at(0);
         }
         else if(spatial_dim == 2)
         {
-            weights = tensor<T>{
-                output_channels,
-                input_channels,
-                spatial_dim_elements.at(0),
-                spatial_dim_elements.at(
-                    1)}.generate(tensor_elem_gen_integer{17});
+            weights =
+                tensor<T>{output_channels, input_channels, filter_dims.at(0), filter_dims.at(1)}
+                    .generate(tensor_elem_gen_integer{17});
         }
         else if(spatial_dim == 3)
         {
             weights = tensor<T>{
                 output_channels,
                 input_channels,
-                spatial_dim_elements.at(0),
-                spatial_dim_elements.at(1),
-                spatial_dim_elements.at(
+                filter_dims.at(0),
+                filter_dims.at(1),
+                filter_dims.at(
                     2)}.generate(tensor_elem_gen_integer{17});
         }
 

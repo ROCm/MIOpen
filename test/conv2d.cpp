@@ -31,7 +31,7 @@ struct conv2d_driver : conv_driver<T>
     conv2d_driver() : conv_driver<T>()
     {
         this->add(this->input_dims, "input");
-        this->add(this->weight_dims, "weights");
+        this->add(this->weight_tensor_dims, "weights");
         this->add(
             this->batch_size, "batch_size", this->generate_data_limited(this->get_batch_sizes()));
         this->add(this->input_channels,
@@ -43,7 +43,9 @@ struct conv2d_driver : conv_driver<T>
         this->add(this->spatial_dim_elements,
                   "spatial_dim_elements",
                   this->generate_data_limited(this->get_2d_spatial_dims()));
-
+        this->add(this->filter_dims,
+                  "filter_dims",
+                  this->generate_data_limited(this->get_2d_filter_dims()));
         this->add(this->pads_strides_dilations,
                   "pads_strides_dilations",
                   this->generate_data(this->get_2d_pads_strides_dilations()));
