@@ -560,7 +560,7 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::Search(const ConvolutionContext& ctx) cons
     return GenericSearchBwd(*this, ctx);
 }
 
-int ConvHipImplicitGemmBwdDataV4R1Xdlops::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmBwdDataV4R1Xdlops::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                                 ConstData_t bot_buf,
                                                                 Data_t top_buf,
                                                                 ConstData_t wei_buf,

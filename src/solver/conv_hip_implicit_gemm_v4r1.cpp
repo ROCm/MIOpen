@@ -569,7 +569,7 @@ ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& c
     result.construction_params.push_back(construction_parameters);
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
-        return [=](Handle& handle, const boost::any& primitve_params) {
+        return [=](const Handle& handle, const boost::any& primitve_params) {
             const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitve_params);
             const auto& tensors      = invoke_params.tensors;
             handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
