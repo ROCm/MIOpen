@@ -538,7 +538,7 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::GetSolution(
     return result;
 }
 
-int ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                                    ConstData_t bot_buf,
                                                                    Data_t top_buf,
                                                                    ConstData_t wei_buf,

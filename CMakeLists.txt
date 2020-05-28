@@ -40,6 +40,8 @@ endif()
 
 project ( MIOpen C CXX )
 
+option( BUILD_SHARED_LIBS "Build as a shared library" ON )
+
 enable_testing()
 
 find_package(ROCM REQUIRED PATHS /opt/rocm)
@@ -68,7 +70,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.4.0)
+rocm_setup_version(VERSION 2.5.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -133,8 +135,6 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
             message(FATAL_ERROR "hip compiler not found")
         endif()
     endif()
-
-    set (HIP_CXX_COMPILER ${MIOPEN_HIP_COMPILER})
 
     # scgemm not support opencl backend yet.
     set(MIOPEN_USE_SCGEMM OFF)
@@ -281,8 +281,6 @@ find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
 find_path(HALF_INCLUDE_DIR half.hpp)
 
-option( BUILD_SHARED_LIBS "Build as a shared library" ON )
-
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 
 set( MIOPEN_INSTALL_DIR miopen)
@@ -334,6 +332,7 @@ include(ClangTidy)
 enable_clang_tidy(
     CHECKS
         *
+        -abseil-string-find-startswith
         -android-cloexec-fopen
         # Yea we shouldn't be using rand()
         -cert-msc30-c
@@ -383,6 +382,7 @@ enable_clang_tidy(
         -llvm-include-order
         -misc-misplaced-const
         -misc-non-private-member-variables-in-classes
+        -modernize-avoid-bind
         -modernize-avoid-c-arrays
         -modernize-pass-by-value
         -modernize-use-auto
