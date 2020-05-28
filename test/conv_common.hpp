@@ -1667,7 +1667,11 @@ struct conv_driver : test_driver
     void run()
     {
 
-        filter.spatialDim       = filter_dims.size();
+        if(input.desc.GetSize() > 0)
+            filter.spatialDim = get_spatial_dim();
+        else
+            filter.spatialDim = filter_dims.size();
+
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];
         std::size_t spatial_dim = filter.GetSpatialDimension();
@@ -1679,24 +1683,27 @@ struct conv_driver : test_driver
             input_channels = input_dims.at(1);
             std::copy(input_dims.begin() + 2, input_dims.end(), spatial_dim_elements.begin());
         }
-        else if(spatial_dim == 2)
+        else if(input.desc.GetSize() == 0)
         {
-            input = tensor<T>{
-                batch_size,
-                input_channels,
-                spatial_dim_elements.at(0),
-                spatial_dim_elements.at(
-                    1)}.generate(tensor_elem_gen_integer{17});
-        }
-        else if(spatial_dim == 3)
-        {
-            input = tensor<T>{
-                batch_size,
-                input_channels,
-                spatial_dim_elements.at(0),
-                spatial_dim_elements.at(1),
-                spatial_dim_elements.at(
-                    2)}.generate(tensor_elem_gen_integer{17});
+            if(spatial_dim == 2)
+            {
+                input = tensor<T>{
+                    batch_size,
+                    input_channels,
+                    spatial_dim_elements.at(0),
+                    spatial_dim_elements.at(
+                        1)}.generate(tensor_elem_gen_integer{17});
+            }
+            else if(spatial_dim == 3)
+            {
+                input = tensor<T>{
+                    batch_size,
+                    input_channels,
+                    spatial_dim_elements.at(0),
+                    spatial_dim_elements.at(1),
+                    spatial_dim_elements.at(
+                        2)}.generate(tensor_elem_gen_integer{17});
+            }
         }
 
         if(!weight_tensor_dims.empty())
@@ -1704,21 +1711,24 @@ struct conv_driver : test_driver
             weights         = tensor<T>{weight_tensor_dims}.generate(tensor_elem_gen_integer{17});
             output_channels = weight_tensor_dims.at(0);
         }
-        else if(spatial_dim == 2)
+        else if(weights.desc.GetSize() == 0)
         {
-            weights =
-                tensor<T>{output_channels, input_channels, filter_dims.at(0), filter_dims.at(1)}
-                    .generate(tensor_elem_gen_integer{17});
-        }
-        else if(spatial_dim == 3)
-        {
-            weights = tensor<T>{
-                output_channels,
-                input_channels,
-                filter_dims.at(0),
-                filter_dims.at(1),
-                filter_dims.at(
-                    2)}.generate(tensor_elem_gen_integer{17});
+            if(spatial_dim == 2)
+            {
+                weights =
+                    tensor<T>{output_channels, input_channels, filter_dims.at(0), filter_dims.at(1)}
+                        .generate(tensor_elem_gen_integer{17});
+            }
+            else if(spatial_dim == 3)
+            {
+                weights = tensor<T>{
+                    output_channels,
+                    input_channels,
+                    filter_dims.at(0),
+                    filter_dims.at(1),
+                    filter_dims.at(
+                        2)}.generate(tensor_elem_gen_integer{17});
+            }
         }
 
         if(input.desc.GetSize() != 2 + spatial_dim || weights.desc.GetSize() != 2 + spatial_dim ||
