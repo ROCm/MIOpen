@@ -92,7 +92,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             construction_parameters.kernel_file =
                 "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer.cpp";
 
-            construction_parameters.kernel_name = 
+            construction_parameters.kernel_name =
 		"gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer";
         }
         else
@@ -101,7 +101,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             construction_parameters.kernel_file =
                 "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer.cpp";
 
-            construction_parameters.kernel_name = 
+            construction_parameters.kernel_name =
 		"gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer";
         }
         // clang-format on
@@ -357,7 +357,7 @@ ConvSolution ConvHipImplicitGemmV4R4GenWrWXdlops::GetSolution(
     return result;
 }
 
-int ConvHipImplicitGemmV4R4GenFwdXdlops::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmV4R4GenFwdXdlops::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                                ConstData_t bot_buf,
                                                                Data_t top_buf,
                                                                ConstData_t wei_buf,
@@ -373,7 +373,7 @@ int ConvHipImplicitGemmV4R4GenFwdXdlops::RunAndMeasureSolution(miopen::Handle& p
         profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
-int ConvHipImplicitGemmV4R4GenWrWXdlops::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmV4R4GenWrWXdlops::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                                ConstData_t bot_buf,
                                                                ConstData_t top_buf,
                                                                Data_t wei_buf,
