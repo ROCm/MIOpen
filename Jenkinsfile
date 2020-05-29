@@ -312,28 +312,21 @@ pipeline {
                     }
                 }
 
-                stage('Half GCC Debug') {
+                stage('Int8 HCC Release') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildJob('g++-5', '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image, "")
+                        buildJob('hcc', '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image + "rocm")
                     }
                 }
 
-                stage('Int8 GCC Release') {
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildJob('g++-5', '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', image, "")
-                    }
-                }
-
-                stage('Bfloat16 gfx908 Hip Debug') {
+                stage('Bfloat16 gfx908 HCC Debug') {
                     agent{ label rocmnode("gfx908") }   
                     steps{
                         buildJob('hcc', '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image + "rocm")
                     }
                 }
 
-                stage('Half gfx908 Hip Debug') {
+                stage('Half gfx908 HCC Debug') {
                     agent{ label rocmnode("gfx908") }   
                     steps{
                         buildJob('hcc', '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', image + "rocm")
