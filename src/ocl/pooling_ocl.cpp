@@ -217,18 +217,19 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
             kernels.front()(x,
                             y,
                             workSpace,
-                            static_cast<uint>(pads[0]),
-                            static_cast<uint>(pads[1]),
-                            static_cast<uint>(xDesc.GetLengths()[2]),
-                            static_cast<uint>(xDesc.GetLengths()[3]),
-                            static_cast<uint>(yDesc.GetLengths()[2]),
-                            static_cast<uint>(yDesc.GetLengths()[3]),
-                            static_cast<uint>(xDesc.GetStrides()[0]),
-                            static_cast<uint>(xDesc.GetStrides()[1]),
-                            static_cast<uint>(xDesc.GetStrides()[2]),
-                            static_cast<uint>(yDesc.GetStrides()[0]),
-                            static_cast<uint>(yDesc.GetStrides()[1]),
-                            static_cast<uint>(yDesc.GetStrides()[2]));
+                            static_cast<int>(pads[0]),
+                            static_cast<int>(pads[1]),
+                            static_cast<int>(chal),
+                            static_cast<int>(xDesc.GetLengths()[2]),
+                            static_cast<int>(xDesc.GetLengths()[3]),
+                            static_cast<int>(yDesc.GetLengths()[2]),
+                            static_cast<int>(yDesc.GetLengths()[3]),
+                            static_cast<int>(xDesc.GetStrides()[0]),
+                            static_cast<int>(xDesc.GetStrides()[1]),
+                            static_cast<int>(xDesc.GetStrides()[2]),
+                            static_cast<int>(yDesc.GetStrides()[0]),
+                            static_cast<int>(yDesc.GetStrides()[1]),
+                            static_cast<int>(yDesc.GetStrides()[2]));
         }
         else
         {
@@ -271,18 +272,19 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
                 x,
                 y,
                 workSpace,
-                static_cast<uint>(pads[0]),
-                static_cast<uint>(pads[1]),
-                static_cast<uint>(xDesc.GetLengths()[2]),
-                static_cast<uint>(xDesc.GetLengths()[3]),
-                static_cast<uint>(yDesc.GetLengths()[2]),
-                static_cast<uint>(yDesc.GetLengths()[3]),
-                static_cast<uint>(xDesc.GetStrides()[0]),
-                static_cast<uint>(xDesc.GetStrides()[1]),
-                static_cast<uint>(xDesc.GetStrides()[2]),
-                static_cast<uint>(yDesc.GetStrides()[0]),
-                static_cast<uint>(yDesc.GetStrides()[1]),
-                static_cast<uint>(yDesc.GetStrides()[2]));
+                static_cast<int>(pads[0]),
+                static_cast<int>(pads[1]),
+                static_cast<int>(chal),
+                static_cast<int>(xDesc.GetLengths()[2]),
+                static_cast<int>(xDesc.GetLengths()[3]),
+                static_cast<int>(yDesc.GetLengths()[2]),
+                static_cast<int>(yDesc.GetLengths()[3]),
+                static_cast<int>(xDesc.GetStrides()[0]),
+                static_cast<int>(xDesc.GetStrides()[1]),
+                static_cast<int>(xDesc.GetStrides()[2]),
+                static_cast<int>(yDesc.GetStrides()[0]),
+                static_cast<int>(yDesc.GetStrides()[1]),
+                static_cast<int>(yDesc.GetStrides()[2]));
         }
         else
         {
@@ -488,11 +490,40 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
         {
             if(mode == miopenPoolingMax)
             {
-                kernels.front()(dy, dx, workSpace);
+                kernels.front()(dy,
+                                dx,
+                                workSpace,
+                                static_cast<int>(pads[0]),
+                                static_cast<int>(pads[1]),
+                                static_cast<int>(chal),
+                                static_cast<int>(dxDesc.GetLengths()[2]),
+                                static_cast<int>(dxDesc.GetLengths()[3]),
+                                static_cast<int>(dyDesc.GetLengths()[2]),
+                                static_cast<int>(dyDesc.GetLengths()[3]),
+                                static_cast<int>(dxDesc.GetStrides()[0]),
+                                static_cast<int>(dxDesc.GetStrides()[1]),
+                                static_cast<int>(dxDesc.GetStrides()[2]),
+                                static_cast<int>(dyDesc.GetStrides()[0]),
+                                static_cast<int>(dyDesc.GetStrides()[1]),
+                                static_cast<int>(dyDesc.GetStrides()[2]));
             }
             else
             {
-                kernels.front()(dy, dx);
+                kernels.front()(dy,
+                                dx,
+                                static_cast<int>(pads[0]),
+                                static_cast<int>(pads[1]),
+                                static_cast<int>(chal),
+                                static_cast<int>(dxDesc.GetLengths()[2]),
+                                static_cast<int>(dxDesc.GetLengths()[3]),
+                                static_cast<int>(dyDesc.GetLengths()[2]),
+                                static_cast<int>(dyDesc.GetLengths()[3]),
+                                static_cast<int>(dxDesc.GetStrides()[0]),
+                                static_cast<int>(dxDesc.GetStrides()[1]),
+                                static_cast<int>(dxDesc.GetStrides()[2]),
+                                static_cast<int>(dyDesc.GetStrides()[0]),
+                                static_cast<int>(dyDesc.GetStrides()[1]),
+                                static_cast<int>(dyDesc.GetStrides()[2]));
             }
         }
         else
@@ -580,11 +611,40 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
 
             if(mode == miopenPoolingMax)
             {
-                k(dy, dx, workSpace);
+                k(dy,
+                  dx,
+                  workSpace,
+                  static_cast<int>(pads[0]),
+                  static_cast<int>(pads[1]),
+                  static_cast<int>(chal),
+                  static_cast<int>(dxDesc.GetLengths()[2]),
+                  static_cast<int>(dxDesc.GetLengths()[3]),
+                  static_cast<int>(dyDesc.GetLengths()[2]),
+                  static_cast<int>(dyDesc.GetLengths()[3]),
+                  static_cast<int>(dxDesc.GetStrides()[0]),
+                  static_cast<int>(dxDesc.GetStrides()[1]),
+                  static_cast<int>(dxDesc.GetStrides()[2]),
+                  static_cast<int>(dyDesc.GetStrides()[0]),
+                  static_cast<int>(dyDesc.GetStrides()[1]),
+                  static_cast<int>(dyDesc.GetStrides()[2]));
             }
             else
             {
-                k(dy, dx);
+                k(dy,
+                  dx,
+                  static_cast<int>(pads[0]),
+                  static_cast<int>(pads[1]),
+                  static_cast<int>(chal),
+                  static_cast<int>(dxDesc.GetLengths()[2]),
+                  static_cast<int>(dxDesc.GetLengths()[3]),
+                  static_cast<int>(dyDesc.GetLengths()[2]),
+                  static_cast<int>(dyDesc.GetLengths()[3]),
+                  static_cast<int>(dxDesc.GetStrides()[0]),
+                  static_cast<int>(dxDesc.GetStrides()[1]),
+                  static_cast<int>(dxDesc.GetStrides()[2]),
+                  static_cast<int>(dyDesc.GetStrides()[0]),
+                  static_cast<int>(dyDesc.GetStrides()[1]),
+                  static_cast<int>(dyDesc.GetStrides()[2]));
             }
         }
         else

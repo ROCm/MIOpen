@@ -147,8 +147,6 @@ int mlo_construct_pooling2D::mloConstructFwd()
                     std::to_string(static_cast<long long>(_search_params.kernel_size_w)) +
                     std::string(" -DMLO_POOLING_STRIDE0=") +
                     std::to_string(static_cast<long long>(_search_params.kernel_stride_w)) +
-                    std::string(" -DMLO_POOLING_N_OUTPUTS=") +
-                    std::to_string(static_cast<long long>(_search_params.n_outputs)) +
                     std::string(" -DMLO_POOLING_N_HORIZ_OUT_PIX=") +
                     std::to_string(static_cast<long long>(_out_pix_tile0)) +
                     std::string(" -DMLO_POOLING_N_VERT_OUT_PIX=") +
@@ -201,18 +199,12 @@ int mlo_construct_pooling2D::mloConstructBwd()
                     std::to_string(static_cast<long long>(_pooling_method)) +
                     std::string(" -DMLO_POOLING_KERNEL_SZ1=") +
                     std::to_string(static_cast<long long>(_search_params.kernel_size_h)) +
-                    std::string(" -DMLO_POOLING_PAD1=") +
-                    std::to_string(static_cast<long long>(_search_params.pad_h)) +
                     std::string(" -DMLO_POOLING_STRIDE1=") +
                     std::to_string(static_cast<long long>(_search_params.kernel_stride_h)) +
                     std::string(" -DMLO_POOLING_KERNEL_SZ0=") +
                     std::to_string(static_cast<long long>(_search_params.kernel_size_w)) +
-                    std::string(" -DMLO_POOLING_PAD0=") +
-                    std::to_string(static_cast<long long>(_search_params.pad_w)) +
                     std::string(" -DMLO_POOLING_STRIDE0=") +
                     std::to_string(static_cast<long long>(_search_params.kernel_stride_w)) +
-                    std::string(" -DMLO_POOLING_N_OUTPUTS=") +
-                    std::to_string(static_cast<long long>(_search_params.n_outputs)) +
                     std::string(" -DMLO_POOLBWD_N_HORIZ_OUT_PIX=") +
                     std::to_string(static_cast<long long>(_out_pix_tile0)) +
                     std::string(" -DMLO_POOLBWD_N_VERT_OUT_PIX=") +
@@ -221,26 +213,6 @@ int mlo_construct_pooling2D::mloConstructBwd()
                     std::to_string(static_cast<long long>(_grp_tile0)) +
                     std::string(" -DMLO_POOLBWD_GROUP_SZ1=") +
                     std::to_string(static_cast<long long>(_grp_tile1)) +
-                    std::string(" -DMLO_POOLBWD_BOT_WIDTH=") +
-                    std::to_string(static_cast<long long>(_search_params.in_width)) +
-                    std::string(" -DMLO_POOLBWD_BOT_HEIGHT=") +
-                    std::to_string(static_cast<long long>(_search_params.in_height)) +
-                    std::string(" -DMLO_POOLBWD_TOP_WIDTH=") +
-                    std::to_string(static_cast<long long>(_search_params.out_width)) +
-                    std::string(" -DMLO_POOLBWD_TOP_HEIGHT=") +
-                    std::to_string(static_cast<long long>(_search_params.out_height)) +
-                    std::string(" -DMLO_POOLBWD_BOTDF_BATCH_STRIDE=") +
-                    std::to_string(static_cast<long long>(_in_df_batch_stride)) +
-                    std::string(" -DMLO_POOLBWD_BOTDF_CHANNEL_STRIDE=") +
-                    std::to_string(static_cast<long long>(_in_df_channel_stride)) +
-                    std::string(" -DMLO_POOLBWD_BOTDF_STRIDE=") +
-                    std::to_string(static_cast<long long>(_in_df_stride)) +
-                    std::string(" -DMLO_POOLBWD_TOPDF_BATCH_STRIDE=") +
-                    std::to_string(static_cast<long long>(_out_df_batch_stride)) +
-                    std::string(" -DMLO_POOLBWD_TOPDF_CHANNEL_STRIDE=") +
-                    std::to_string(static_cast<long long>(_out_df_channel_stride)) +
-                    std::string(" -DMLO_POOLBWD_TOPDF_STRIDE=") +
-                    std::to_string(static_cast<long long>(_out_df_stride)) +
                     std::string(" -DMLO_POOLING_INDEX_TYPE=") +
                     get_pooling_index_type_name(_index_type) +
                     std::string(" -DMLO_POOLING_INDEX_MAX=") +

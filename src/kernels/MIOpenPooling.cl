@@ -49,18 +49,19 @@ mloPoolingG(const __global _FLOAT* bot,
             UNUSED
 #endif
                 __global index_t* mask,
-            uint mlo_pad1,
-            uint mlo_pad0,
-            uint mlo_bot_height,
-            uint mlo_bot_width,
-            uint mlo_top_height,
-            uint mlo_top_width,
-            uint mlo_bot_batch_str,
-            uint mlo_bot_channel_str,
-            uint mlo_bot_str,
-            uint mlo_top_batch_str,
-            uint mlo_top_channel_str,
-            uint mlo_top_str)
+            int mlo_pad1,
+            int mlo_pad0,
+            int mlo_n_outputs,
+            int mlo_bot_height,
+            int mlo_bot_width,
+            int mlo_top_height,
+            int mlo_top_width,
+            int mlo_bot_batch_str,
+            int mlo_bot_channel_str,
+            int mlo_bot_str,
+            int mlo_top_batch_str,
+            int mlo_top_channel_str,
+            int mlo_top_str)
 {
 
     uint x       = get_group_id(0) * MLO_POOLING_GROUP_SZ0 * MLO_POOLING_N_HORIZ_OUT_PIX;
@@ -69,8 +70,8 @@ mloPoolingG(const __global _FLOAT* bot,
     uint lcl_id1 = get_local_id(1);
     //		int lcl_id = (lcl_id1 << MLO_POOLING_GROUP_LG2SZ0) + lcl_id0;
     uint ob      = get_global_id(2); // output * batch_sz
-    uint b       = ob / MLO_POOLING_N_OUTPUTS;
-    uint o       = ob - b * MLO_POOLING_N_OUTPUTS;
+    uint b       = ob / mlo_n_outputs;
+    uint o       = ob - b * mlo_n_outputs;
     uint bot_x   = (x + lcl_id0 * MLO_POOLING_N_HORIZ_OUT_PIX) * MLO_POOLING_STRIDE0;
     uint bot_y   = (y + lcl_id1 * MLO_POOLING_N_VERT_OUT_PIX) * MLO_POOLING_STRIDE1;
     uint bot_off = b * mlo_bot_batch_str + o * mlo_bot_channel_str;
@@ -131,7 +132,7 @@ mloPoolingG(const __global _FLOAT* bot,
             int wstart = (int)x_dst * MLO_POOLING_STRIDE0 - mlo_pad0;
             int wend   = min((wstart + MLO_POOLING_KERNEL_SZ0), (int)mlo_bot_width);
             wstart     = max(wstart, 0);
-            uint pool_size =
+            int pool_size =
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE
                 MLO_POOLING_KERNEL_SZ0 * MLO_POOLING_KERNEL_SZ1;
             (void)wend;
