@@ -113,12 +113,11 @@ PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::CalculateGemmBBlockCopyPerformanceP
         const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
         const auto hi = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
         const auto wi = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
+        const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
         const auto conv_stride_h =
             ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
         const auto conv_stride_w =
             ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-        const auto conv_dilation_w =
-            ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
         const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
         const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
         const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
@@ -130,10 +129,13 @@ PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::CalculateGemmBBlockCopyPerformanceP
             // \todo there are more configs that can go through this if branch
             SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, hi * wi);
         }
+        else if(in_left_pad_w == 0 && in_right_pad_w == 0)
+        {
+            SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, wo);
+        }
         else if(conv_stride_w == 1)
         {
-            SrcDataPerRead_GemmN =
-                gcd(SrcDataPerRead_GemmN, in_left_pad_w, wi, in_right_pad_w, conv_dilation_w);
+            SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, in_left_pad_w, wi, in_right_pad_w);
         }
         else
         {
