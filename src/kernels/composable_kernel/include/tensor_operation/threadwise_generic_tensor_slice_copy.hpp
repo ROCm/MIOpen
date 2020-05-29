@@ -23,7 +23,9 @@ template <typename SrcDesc,
           index_t DstDataPerWrite,
           AddressSpace SrcAddressSpace     = AddressSpace::Generic,
           AddressSpace DstAddressSpace     = AddressSpace::Generic,
-          InMemoryDataOperation DstInMemOp = InMemoryDataOperation::Set>
+          InMemoryDataOperation DstInMemOp = InMemoryDataOperation::Set,
+          index_t SrcDataStride            = 1,
+          index_t DstDataStride            = 1>
 struct ThreadwiseGenericTensorSliceCopy_v4r2
 {
     static constexpr index_t nDim = SliceLengths::Size();
@@ -116,7 +118,9 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                                   SrcDataPerRead,
                                   SrcAddressSpace,
                                   AddressSpace::Vgpr,
-                                  InMemoryDataOperation::Set>(
+                                  InMemoryDataOperation::Set,
+                                  SrcDataStride,
+                                  1>(
                         p_src, src_coord.GetOffset(), p_src_long_vector, buffer_offset);
                 }
             }
@@ -148,7 +152,9 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                                   DstDataPerWrite,
                                   AddressSpace::Vgpr,
                                   DstAddressSpace,
-                                  DstInMemOp>(
+                                  DstInMemOp,
+                                  1,
+                                  DstDataStride>(
                         p_dst_long_vector, buffer_offset, p_dst, dst_coord.GetOffset());
                 }
             }
