@@ -101,22 +101,44 @@ template <typename T,
           index_t DataPerAccess,
           AddressSpace SrcAddressSpace,
           AddressSpace DstAddressSpace,
-          InMemoryDataOperation DstInMemOp>
+          InMemoryDataOperation DstInMemOp,
+          index_t SrcDataStride = 1,
+          index_t DstDataStride = 1>
 __device__ void transfer_data(const T* p_src, index_t src_offset, T* p_dst, index_t dst_offset)
 {
     static_assert(DstInMemOp == InMemoryDataOperation::Set ||
                       DstInMemOp == InMemoryDataOperation::AtomicAdd,
                   "wrong! InMemoryDataOperation not supported!");
 
-    // TODO: use static_if::ElseIf
-    static_if<DstInMemOp == InMemoryDataOperation::Set>{}([&](auto) {
-        set_data<T, DataPerAccess, SrcAddressSpace, DstAddressSpace>(
-            p_src, src_offset, p_dst, dst_offset);
-    });
+    static_if<(SrcDataStride > 1 || DstDataStride > 1)>{}([&](auto) {
 
-    static_if<DstInMemOp == InMemoryDataOperation::AtomicAdd>{}([&](auto) {
-        atomic_add_data<T, DataPerAccess, SrcAddressSpace, DstAddressSpace>(
-            p_src, src_offset, p_dst, dst_offset);
+        for(index_t j = 0; j < DataPerAccess; j++)
+        {
+            // TODO: use static_if::ElseIf
+            static_if<DstInMemOp == InMemoryDataOperation::Set>{}([&](auto) {
+                set_data<T, 1, SrcAddressSpace, DstAddressSpace>(
+                    p_src, src_offset + j * SrcDataStride, p_dst, dst_offset + j * DstDataStride);
+            });
+
+            static_if<DstInMemOp == InMemoryDataOperation::AtomicAdd>{}([&](auto) {
+                atomic_add_data<T, 1, SrcAddressSpace, DstAddressSpace>(
+                    p_src, src_offset + j * SrcDataStride, p_dst, dst_offset + j * DstDataStride);
+            });
+        }
+
+    }).Else([&](auto) {
+
+        // TODO: use static_if::ElseIf
+        static_if<DstInMemOp == InMemoryDataOperation::Set>{}([&](auto) {
+            set_data<T, DataPerAccess, SrcAddressSpace, DstAddressSpace>(
+                p_src, src_offset, p_dst, dst_offset);
+        });
+
+        static_if<DstInMemOp == InMemoryDataOperation::AtomicAdd>{}([&](auto) {
+            atomic_add_data<T, DataPerAccess, SrcAddressSpace, DstAddressSpace>(
+                p_src, src_offset, p_dst, dst_offset);
+        });
+
     });
 }
 
