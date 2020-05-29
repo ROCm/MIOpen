@@ -49,14 +49,15 @@ struct NetworkConfig;
 template <class TDb>
 class FindDbRecord_t;
 
-#if MIOPEN_DEBUG_FIND_DB_CACHING
+#if MIOPEN_LINK_DB
+using SystemFindDb = FindRamDb;
+#elif MIOPEN_DEBUG_FIND_DB_CACHING
 using SystemFindDb = ReadonlyRamDb;
-using UserFindDb   = PlainTextDb;
 #else
 using SystemFindDb = PlainTextDb;
-using UserFindDb   = PlainTextDb;
 #endif
 
+using UserFindDb       = PlainTextDb;
 using FindDb           = MultiFileDb<SystemFindDb, UserFindDb, false>;
 using FindDbRecord     = FindDbRecord_t<FindDb>;
 using UserFindDbRecord = FindDbRecord_t<UserFindDb>;

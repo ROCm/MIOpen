@@ -35,8 +35,13 @@
 #include <sstream>
 
 namespace miopen {
+struct CacheItem
+{
+    int line;
+    std::string content;
+};
 
-class ReadonlyRamDb
+struct ReadonlyRamDb
 {
     public:
     ReadonlyRamDb(std::string path) : db_path(path) {}
@@ -88,13 +93,6 @@ class ReadonlyRamDb
         return record->GetValues(id, value);
     }
 
-    private:
-    struct CacheItem
-    {
-        int line;
-        std::string content;
-    };
-
     std::string db_path;
     std::unordered_map<std::string, CacheItem> cache;
 
@@ -104,6 +102,24 @@ class ReadonlyRamDb
     ReadonlyRamDb& operator=(ReadonlyRamDb&&) = default;
 
     void Prefetch(const std::string& path, bool warn_if_unreadable);
+};
+
+struct FindRamDb : ReadonlyRamDb
+{
+    std::unordered_map<std::string, CacheItem> find_db_init(std::string /*path*/);
+    FindRamDb(std::string path) : ReadonlyRamDb(":memory: " + path)
+    {
+        static const auto m = find_db_init(path);
+        cache               = m;
+    }
+#if 0
+    // Override GetCached, since this does not have state or init overhead
+    FindRamDb& GetCached(const std::string& path, bool /*warn_if_unreadble*/, const std::string& /*arch*/, const std::size_t /*num_cu*/) 
+    {
+
+        return {path};
+    }
+#endif
 };
 
 } // namespace miopen
