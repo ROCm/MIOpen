@@ -1641,7 +1641,7 @@ struct conv_driver : test_driver
     {
         for(int i = 2; i < 4; i++)
         {
-            if(input.desc.GetSize() == i + 2 and weights.desc.GetSize() == i + 2 and
+            if(input_dims.size() == i + 2 and weight_tensor_dims.size() == i + 2 and
                pads_strides_dilations.size() == i * 3 and trans_output_pads.size() == i)
                 return i;
         }
