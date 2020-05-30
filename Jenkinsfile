@@ -340,14 +340,14 @@ pipeline {
                 stage('Int8 Hip Release All') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildJob('hcc', '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image + "rocm", "/opt/rocm", "", "--limit 4")
+                        buildJob('hcc', '-DMIOPEN_TEST_INT8=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image + "rocm", "/opt/rocm", "", "--limit 3")
                     }
                 }
 
                 stage('Bfloat16 Hip Release All') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildJob('hcc', '-DMIOPEN_TEST_BFLOAT16=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image + "rocm", "/opt/rocm", "", "--limit 4")
+                        buildJob('hcc', '-DMIOPEN_TEST_BFLOAT16=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image + "rocm", "/opt/rocm", "", "--limit 3")
                     }
                 }
 
@@ -373,7 +373,7 @@ pipeline {
                 stage('Bfloat16 gfx908 Hip Release All Subset') {
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildJob('hcc', '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image + "rocm", "/opt/rocm", "", "--limit 4")
+                        buildJob('hcc', '-DMIOPEN_TEST_BFLOAT16=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image + "rocm", "/opt/rocm", "", "--limit 3")
                     }
                 }
             }
@@ -390,7 +390,7 @@ pipeline {
                             rm -rf build
                             mkdir build
                             cd build
-                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_FLAGS="--disable-verification-cache --limit 4" .. 
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_ALL=On -DMIOPEN_TEST_FLAGS="--disable-verification-cache --limit 3" .. 
                             CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 make -j\$(nproc) check
                         """
 
@@ -403,7 +403,7 @@ pipeline {
                 stage('FP32 gfx908 Hip Debug All subset') {
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildJob('hcc', '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image + "rocm", "/opt/rocm", "", "--limit 4")
+                        buildJob('hcc', '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image + "rocm", "/opt/rocm", "", "--limit 3")
                     }
                 }
             }
@@ -415,14 +415,14 @@ pipeline {
                 stage('Half Hip Release All') {
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildJob('hcc', '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image + "rocm", "/opt/rocm", "", "--limit 4")
+                        buildJob('hcc', '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image + "rocm", "/opt/rocm", "", "--limit 3")
                     }
                 }
                 
                 stage('Half gfx908 Hip Release All Subset') {
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildJob('hcc', '-DMIOPEN_TEST_HALF=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image + "rocm", "/opt/rocm", "", "--limit 4")
+                        buildJob('hcc', '-DMIOPEN_TEST_HALF=On -DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image + "rocm", "/opt/rocm", "", "--limit 3")
                     }
                 }
             }
