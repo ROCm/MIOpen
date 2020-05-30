@@ -149,9 +149,9 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue()
 {
     do
     {
-        if(!NextTwoPower<64, 256>(GemmMPerBlock))
+        if(!NextTwoPower<128, 256>(GemmMPerBlock))
             break;
-        if(!NextTwoPower<64, 256>(GemmNPerBlock))
+        if(!NextTwoPower<128, 256>(GemmNPerBlock))
             break;
         if(!NextTwoPower<4, 8>(GemmKPerBlock))
             break;
@@ -250,25 +250,35 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
     }
     else if(ctx.IsBfp16())
     {
-        tmp = {128, 128, 16, 64, 64, 1, 2, false, true};
+        tmp = {256, 128, 4, 64, 128, 1, 8, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 32, 4, 32, 64, 1, 2, false, true};
+            tmp = {256, 128, 4, 128, 64, 1, 8, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 32, 4, 32, 64, 1, 2, false, true};
+            tmp = {128, 256, 4, 64, 128, 1, 8, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {32, 64, 4, 64, 32, 1, 2, false, true};
+            tmp = {256, 128, 4, 128, 64, 1, 8, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {32, 32, 4, 32, 32, 1, 2, false, true};
+            tmp = {128, 128, 4, 64, 64, 1, 8, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 16, 4, 16, 64, 1, 2, false, true};
+            tmp = {128, 128, 8, 64, 64, 1, 4, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {16, 64, 4, 64, 16, 1, 2, false, true};
+            tmp = {64, 32, 4, 32, 64, 1, 4, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {16, 16, 4, 16, 16, 1, 2, false, true};
+            tmp = {64, 32, 4, 32, 64, 1, 4, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 4, 16, 4, 64, 1, 2, false, true};
+            tmp = {32, 64, 4, 64, 32, 1, 4, false, true};
         if(!tmp.IsValid(ctx))
-            tmp = {64, 8, 8, 8, 64, 1, 2, false, true};
+            tmp = {32, 32, 4, 32, 32, 1, 4, false, true};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 16, 4, 16, 64, 1, 4, false, true};
+        if(!tmp.IsValid(ctx))
+            tmp = {16, 64, 4, 64, 16, 1, 4, false, true};
+        if(!tmp.IsValid(ctx))
+            tmp = {16, 16, 4, 16, 16, 1, 4, false, true};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 4, 16, 4, 64, 1, 4, false, true};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 8, 8, 8, 64, 1, 4, false, true};
     }
     else
     {
@@ -584,7 +594,8 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValid(const ConvolutionContext&
 #endif
 
 #if 0 // reduce tuning range
-    if(GemmMPerWave * GemmNPerWave != 128 * 64 || GemmMPerBlock * GemmNPerBlock != 256 * 128)
+    if(!(GemmMPerBlock * GemmNPerBlock == 256 * 128 && GemmMPerWave * GemmNPerWave ==  64 * 128) ||
+        (GemmMPerBlock * GemmNPerBlock == 128 * 128 && GemmMPerWave * GemmNPerWave ==  64 *  64))
         return false;
 #endif
 
