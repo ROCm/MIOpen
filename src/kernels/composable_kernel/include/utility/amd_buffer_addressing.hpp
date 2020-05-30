@@ -422,6 +422,33 @@ __device__ ushort4_t amd_buffer_load<ushort, 4>(const ushort* p_src_block,
 }
 
 template <>
+__device__ ushort8_t amd_buffer_load<ushort, 8>(const ushort* p_src_block,
+                                                index_t src_thread_data_offset,
+                                                index_t src_const_data_offset)
+{
+    BufferLoadStoreDwordConfig<ushort> src_block_config;
+
+    // fill in byte 0 - 1
+    src_block_config.address[0] = const_cast<ushort*>(p_src_block);
+    // fill in byte 2
+    src_block_config.range[2] = -1;
+    // fill in byte 3
+    src_block_config.range[3] = 0x00027000;
+
+    index_t src_thread_addr_offset = src_thread_data_offset * sizeof(ushort);
+    index_t src_const_addr_offset  = src_const_data_offset * sizeof(ushort);
+
+#if !CK_WORKAROUND_BUFFER_LOAD_STORE_F16_INTRINSIC_BUG
+    static_assert(false, "wrong! not implemented");
+#else
+    float4_t dst_out_tmp = __llvm_amdgcn_buffer_load_f32x4(
+        src_block_config.data, 0, src_thread_addr_offset + src_const_addr_offset, false, false);
+
+    return *reinterpret_cast<ushort8_t*>(&dst_out_tmp);
+#endif
+}
+
+template <>
 __device__ void amd_buffer_store<float, 1>(const float* p_src,
                                            float* p_dst_block,
                                            index_t dst_thread_data_offset,
