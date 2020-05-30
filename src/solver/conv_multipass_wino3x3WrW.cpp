@@ -39,6 +39,7 @@
 #if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
 #define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
 #endif
+#define WORKAROUND_SWDEV_234193 1
 
 namespace miopen {
 namespace solver {
@@ -383,7 +384,8 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
             return false;
 
     const std::string name = params.GetStream().GetDeviceName();
-    if(params.IsFp16() && StartsWith(name, "gfx908") && params.kernel_stride_h == 1)
+#if WORKAROUND_SWDEV_234193
+    if(params.IsFp16() && StartsWith(name, "gfx908"))
     {
         if(wino_data_tile == 3 && wino_filter_tile == 4)
             if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4{}))
@@ -396,6 +398,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
                 return false;
     }
     else
+#endif
     {
         if(wino_data_tile == 3 && wino_filter_tile == 4)
             if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4{}))
