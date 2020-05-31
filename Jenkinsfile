@@ -344,13 +344,6 @@ pipeline {
                     }
                 }
 
-                stage('Bfloat16 Hip Release All') {
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildJob('hcc', '-DMIOPEN_TEST_BFLOAT16=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release', image + "rocm", "/opt/rocm", "", "--limit 3")
-                    }
-                }
-
                 stage('GCC Release All') {
                     agent{ label rocmnode("vega") }
                     environment{
