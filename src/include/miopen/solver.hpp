@@ -914,7 +914,7 @@ struct ConvHipImplicitGemmV4R4WrW : SolverBase<ConvolutionContext>
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const PerformanceImplicitGemmV4R4WrW& config) const;
     PerformanceImplicitGemmV4R4WrW Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               ConstData_t top_buf,
                               Data_t wei_buf,
