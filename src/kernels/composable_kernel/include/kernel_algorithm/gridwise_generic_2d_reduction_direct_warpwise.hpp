@@ -96,17 +96,14 @@ struct Gridwise_generic_reduction_xy_to_x_direct_warpwise
                                                                           InMemoryDataOperation::Set>( {warp_global_1d_id, thread_inwarp_id*GredAccessesPerThreadInWarp}, {0,0} );
          using warpwise_reduce = warp_reduce<compType, GredAccessesPerThreadInWarp, opReduce, nanPropaOpt>;
 
-         // zero the data on the Thread Buffer
-	 warpwise_reduce::set_buffer_value(p_in_thread_buffer, zeroVal);
-
          for (index_t reducedLength=0; reducedLength < toReduceLength; reducedLength += warpSize*GredAccessesPerThreadInWarp) {
+               // zero the data on the Thread Buffer
+	       warpwise_reduce::set_buffer_value(p_in_thread_buffer, zeroVal);
+
                threadwise_src_load.Run(p_src_global, p_in_thread_buffer, type_convert<srcDataType>{}(zeroVal));
 
                // do the warp-wise reduction on data of all thread buffers 
 	       warpwise_reduce::reduce(p_in_thread_buffer, accuValue); 
-
-               // zero the data on the Thread Buffer 
-	       warpwise_reduce::set_buffer_value(p_in_thread_buffer, zeroVal);
 
                constexpr auto True = integral_constant<bool, true>{};
                threadwise_src_load.MoveSrcSliceWindow(Sequence<0, warpSize*GredAccessesPerThreadInWarp>{}, True);
@@ -180,18 +177,15 @@ struct Gridwise_generic_reduction_xy_to_x_direct_warpwise
                                                                           InMemoryDataOperation::Set>( {warp_global_1d_id, thread_inwarp_id*GredAccessesPerThreadInWarp}, {0,0} );
          using warpwise_reduce = warp_reduce<compType, GredAccessesPerThreadInWarp, opReduce, nanPropaOpt>;
 
-         // zero the data on the Thread Buffer
-         warpwise_reduce::set_buffer_value(p_in_thread_buffer, zeroVal);
-
          int indexOffset = 0; 
          for (index_t reducedLength=0; reducedLength < toReduceLength; reducedLength += warpSize*GredAccessesPerThreadInWarp) {
+               // zero the data on the Thread Buffer
+               warpwise_reduce::set_buffer_value(p_in_thread_buffer, zeroVal);
+
                threadwise_src_load.Run(p_src_global, p_in_thread_buffer, type_convert<srcDataType>{}(zeroVal));
 
                // do the warp-wise reduction on data of all thread buffers 
                warpwise_reduce::reduce2(p_in_thread_buffer, accuValue, accuIndex, indexOffset);
-
-               // zero the data on the Thread Buffer 
-               warpwise_reduce::set_buffer_value(p_in_thread_buffer, zeroVal);
 
                indexOffset += warpSize*GredAccessesPerThreadInWarp; 
 

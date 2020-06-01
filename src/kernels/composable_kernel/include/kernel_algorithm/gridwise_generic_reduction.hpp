@@ -48,10 +48,10 @@ template <index_t BlkGroupSize,
           typename toReduceDims,        // the Sequence<...> consists of the indexes of toReduce dimensions in the source tensor descriptor
 	  typename invariantDims,       // the Sequence<...> consists of the indexes of invariant dimensions in the source tensor descriptor (can be empty)  
           typename dstDesc,             // the descriptor representing the destination tensor where the reduced tensor data are saved/added 
-          int op_I,          // the enumerate value representing the operation used in Reduction 
-          int reduceImpl_I,
-          int nanPropaOpt_I, 
-          int reduceIndicesOpt_I,
+          int op_I,                     // the enumerate value representing the operation used in Reduction 
+          int reduceImpl_I,             // the enumerate value representing the ReductionMethod
+          int nanPropaOpt_I,            // the enumerate value representing the NanPropagation Option 
+          int reduceIndicesOpt_I,       // the enumerate value representing the Reduce Indices Option
 	  index_t GredThreadBufferLength,
 	  index_t GredAccessesPerThreadInBlock,
 	  index_t GredAccessesPerThreadInWarp>

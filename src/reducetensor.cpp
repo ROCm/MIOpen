@@ -344,7 +344,6 @@ void ReduceTensorDescriptor::ReduceTensor(Handle& handle,
      auto invariantLength = cDesc.GetElementSize();
      auto toReduceLength = aDesc.GetElementSize() / invariantLength;
 
-     std::vector<std::size_t> toReduceLengths; 
      std::vector<std::size_t> invariantLengths;
      std::vector<std::size_t> invariantStrides;            // for construct the compressed destinaton descriptor used for Reduction
      std::vector<int> toReduceDims; 
@@ -358,7 +357,6 @@ void ReduceTensorDescriptor::ReduceTensor(Handle& handle,
           }
 	  else {                                           // this dimension is toReduce
                toReduceDims.push_back(i); 
-               toReduceLengths.push_back(inDescLengths[i]); 	       
 	  }
      };  
 

@@ -94,18 +94,15 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
 									  InMemoryDataOperation::Set>( {thread_global_1d_id,0}, {0,0} );  
          using threadwise_reduce = thread_reduce<compType, GredThreadBufferLength, opReduce, nanPropaOpt>;   
 
-          // zero the data on the Thread Buffer
-	 threadwise_reduce::set_buffer_value(p_in_thread_buffer, zeroVal); 
+	 for (index_t reducedLength=0; reducedLength < toReduceLength; reducedLength += GredThreadBufferLength) {
+               // zero the data on the Thread Buffer 
+               threadwise_reduce::set_buffer_value(p_in_thread_buffer, zeroVal); 
 
-	  for (index_t reducedLength=0; reducedLength < toReduceLength; reducedLength += GredThreadBufferLength) {
                threadwise_src_load.Run(p_src_global, p_in_thread_buffer, type_convert<srcDataType>{}(zeroVal)); 
 
                // do the reduction on the Thread Buffer 
 	       threadwise_reduce::reduce(p_in_thread_buffer, accuValue); 
 	       
-               // zero the data on the Thread Buffer 
-               threadwise_reduce::set_buffer_value(p_in_thread_buffer, zeroVal); 
-
                constexpr auto True = integral_constant<bool, true>{}; 
 	       threadwise_src_load.MoveSrcSliceWindow(Sequence<0, GredThreadBufferLength>{}, True); 
 	 }; 
@@ -173,18 +170,15 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
                                                                           InMemoryDataOperation::Set>( {thread_global_1d_id,0}, {0,0} );
          using threadwise_reduce = thread_reduce<compType, GredThreadBufferLength, opReduce, nanPropaOpt>;
 
-          // zero the data on the Thread Buffer
-         threadwise_reduce::set_buffer_value(p_in_thread_buffer, zeroVal);
-
          int indexStart = 0; 
          for (int reducedLength=0; reducedLength < toReduceLength; reducedLength += GredThreadBufferLength) {
+               // zero the data on the Thread Buffer 
+               threadwise_reduce::set_buffer_value(p_in_thread_buffer, zeroVal);
+
                threadwise_src_load.Run(p_src_global, p_in_thread_buffer, type_convert<srcDataType>{}(zeroVal));
 
                // do the reduction on the Thread Buffer 
                threadwise_reduce::reduce2(p_in_thread_buffer, accuValue, accuIndex, indexStart);
-
-               // zero the data on the Thread Buffer 
-               threadwise_reduce::set_buffer_value(p_in_thread_buffer, zeroVal);
 
                indexStart += GredThreadBufferLength; 
 
@@ -256,18 +250,15 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
                                                                           InMemoryDataOperation::Set>( {thread_global_1d_id,0}, {0,0} );
          using threadwise_reduce = thread_reduce<compType, GredThreadBufferLength, opReduce, nanPropaOpt>;
 
-          // zero the data on the Thread Buffer
-         threadwise_reduce::set_buffer_value(p_in_thread_buffer, zeroVal);
-
          for (int reducedLength=0; reducedLength < toReduceLength; reducedLength += GredThreadBufferLength) {
+               // zero the data on the Thread Buffer 
+               threadwise_reduce::set_buffer_value(p_in_thread_buffer, zeroVal);
+
                threadwise_src_load.Run(p_src_global, p_in_thread_buffer, type_convert<srcDataType>{}(zeroVal));
                threadwise_src_load.Run(ws_indices_global, thread_indices_buffer, static_cast<int>(0));
 
                // do the reduction on the Thread Buffer 
                threadwise_reduce::reduce3(p_in_thread_buffer, thread_indices_buffer, accuValue, accuIndex);
-
-               // zero the data on the Thread Buffer 
-               threadwise_reduce::set_buffer_value(p_in_thread_buffer, zeroVal);
 
                constexpr auto True = integral_constant<bool, true>{};
                threadwise_src_load.MoveSrcSliceWindow(Sequence<0, GredThreadBufferLength>{}, True);

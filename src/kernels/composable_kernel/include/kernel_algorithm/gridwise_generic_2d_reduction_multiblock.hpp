@@ -113,17 +113,15 @@ struct Gridwise_generic_reduction_xy_to_x_multiblock
 
           //static_assert( toReduceBlocks == 4, "Invalid toReduceBlocks!"); 
 
-	  blockwise_reduce::set_buffer_value(p_in_block_buffer, zeroVal);
-
           for (index_t reducedBlocks=0; reducedBlocks < toReduceBlocks; reducedBlocks += GredAccessesPerThreadInBlock) {
+	       blockwise_reduce::set_buffer_value(p_in_block_buffer, zeroVal);
+
                // load block data from global to LDS, no use of double buffers (to be improved) 
                blockwise_src_load.Run(p_src_global, p_in_block_buffer, type_convert<srcDataType>{}(zeroVal));     
                __syncthreads();
 
                index_t BlocksInOneOp = (reducedBlocks < toReduceBlocks-GredAccessesPerThreadInBlock)? GredAccessesPerThreadInBlock : toReduceBlocks-reducedBlocks;
                blockwise_reduce::reduce(p_in_block_buffer, BlocksInOneOp, accuValue);
-
-	       blockwise_reduce::set_buffer_value(p_in_block_buffer, zeroVal);
 
                constexpr auto True = integral_constant<bool, true>{};
                blockwise_src_load.MoveSrcSliceWindow(Sequence<0, BlockBufferSize>{}, True);
@@ -202,9 +200,10 @@ struct Gridwise_generic_reduction_xy_to_x_multiblock
           blockwise_reduce::set_buffer_value(p_in_block_buffer, zeroVal);
 
           int indexOffset = block_local_id*reduceSizePerBlock; 
-          blockwise_reduce::init_buffer_indices(block_indices_buffer, indexOffset);
 
           for (index_t reducedBlocks=0; reducedBlocks < toReduceBlocks; reducedBlocks += GredAccessesPerThreadInBlock) {
+               blockwise_reduce::init_buffer_indices(block_indices_buffer, indexOffset);
+
                // load block data from global to LDS, no use of double buffers (to be improved) 
                blockwise_src_load.Run(p_src_global, p_in_block_buffer, type_convert<srcDataType>{}(zeroVal));
                __syncthreads();
@@ -216,7 +215,6 @@ struct Gridwise_generic_reduction_xy_to_x_multiblock
                blockwise_reduce::set_buffer_value(p_in_block_buffer, zeroVal);
 
                indexOffset += BlockBufferSize; 
-               blockwise_reduce::init_buffer_indices(block_indices_buffer, indexOffset); 
 
                constexpr auto True = integral_constant<bool, true>{};
                blockwise_src_load.MoveSrcSliceWindow(Sequence<0, BlockBufferSize>{}, True);
