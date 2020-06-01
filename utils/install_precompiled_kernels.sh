@@ -21,6 +21,7 @@ do
           sudo yum -y install "miopenkernels-$line"
     elif [ -f /etc/lsb-release ]; then
           echo sudo apt install -y "miopenkernels-$line"
+          sudo apt update
           sudo apt install -y "miopenkernels-$line"
     else
         echo "Unknown distribution"
