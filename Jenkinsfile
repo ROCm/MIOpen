@@ -289,7 +289,7 @@ pipeline {
 
                     }
                     steps{
-                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', image+'-hip-clang', "/usr/local", cmd)
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd)
                     }
                 }
 
