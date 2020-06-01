@@ -121,6 +121,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     const int C              = KernelInputChannelC(ctx);
     const auto hi            = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
     const auto wi            = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
+    const auto wo_           = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
     const auto conv_stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
     const auto conv_stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
     const auto conv_dilation_w =
@@ -135,6 +136,10 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     {
         // \todo there are more configs that can go through this if branch
         BBlockCopySrcDataPerRead_GemmN = gcd(BBlockCopySrcDataPerRead_GemmN, hi * wi);
+    }
+    else if(in_left_pad_w == 0 && in_right_pad_w == 0)
+    {
+        BBlockCopySrcDataPerRead_GemmN = gcd(BBlockCopySrcDataPerRead_GemmN, wo_);
     }
     else if(conv_stride_w == 1)
     {
@@ -408,8 +413,7 @@ bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext&
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 
-    // covered by ConvHipImplicitGemmV4R4GenXdlopsWrWFp32
-    if(ctx.IsFp32() && ctx.group_counts == 1)
+    if(ConvHipImplicitGemmV4R4GenXdlopsWrWFp32{}.IsApplicable(ctx))
         return false;
 
     if(!ctx.direction.IsBackwardWrW())
