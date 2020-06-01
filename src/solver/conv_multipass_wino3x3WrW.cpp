@@ -35,11 +35,10 @@
 #include <miopen/generic_search.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/solver.hpp>
-
 #if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
 #define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
-#endif
 #define WORKAROUND_SWDEV_234193 1
+#endif
 
 namespace miopen {
 namespace solver {
