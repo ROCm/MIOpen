@@ -267,7 +267,7 @@ struct verify_reduce
         for (int i=0; i < toReduceDims.size(); i++)
              toReduceLengths.push_back( inLengths[ toReduceDims[i] ] );
 
-        bool reduceAllDims = ( invariantDims.size() == 0 ) ? true : false;
+        bool reduceAllDims = invariantDims.empty() ? true : false;
 
         auto opReduce = ReduceOpFn<compType>( reduceOp );
         bool need_indices = ( indicesOpt == MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES ) && (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX);

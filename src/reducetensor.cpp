@@ -360,7 +360,7 @@ void ReduceTensorDescriptor::ReduceTensor(Handle& handle,
 	  }
      };  
 
-     if ( toReduceDims.size() == 0 ) 
+     if ( toReduceDims.empty() ) 
 	  MIOPEN_THROW("Invalid TensorDescriptor, at least one dimension of the input tensor should be reduced.");
 
      const int blockSize = 256;     // tunable 
@@ -372,7 +372,7 @@ void ReduceTensorDescriptor::ReduceTensor(Handle& handle,
 
      bool useTwoCalls = ( reduceImpl == Reduce_MultiBlock )? true : false;       
 
-     bool reduceAllDims = (invariantDims.size() == 0) ? true : false; 
+     bool reduceAllDims = invariantDims.empty() ? true : false; 
 
      detail::get_tunable_reduction_kernel_constants get_constants(reduceImpl); 
 

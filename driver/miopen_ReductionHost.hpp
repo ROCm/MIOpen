@@ -268,8 +268,6 @@ private:
 	     get_all_indexes(this->invariantLengths, 0, indexes_1);  // generate the invariant indexes space
 	     get_all_indexes(this->toReduceLengths, 0, indexes_2);   // generate the toReduce indexes space
 
-             std::cout << "Number of indexes in invariant space : " << std::dec << indexes_1.size() << ", Number of indexes in toReduce space : " << indexes_2.size() << std::endl; 
-
              // go through indexes of the invariant dimensions
              for (int i1=0; i1 < indexes_1.size(); i1++) {
                   auto & index_1 = indexes_1[i1]; 
