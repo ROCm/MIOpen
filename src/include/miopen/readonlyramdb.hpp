@@ -112,11 +112,11 @@ struct FindRamDb : ReadonlyRamDb
         static const auto m = find_db_init(path);
         cache               = m;
     }
-    // Override GetCached, since this does not have state or init overhead
-    FindRamDb& GetCached(const std::string& path,
-                         bool /*warn_if_unreadble*/,
-                         const std::string& /*arch*/,
-                         const std::size_t /*num_cu*/)
+    // Override GetCached, since FindRamDb does not have state or init overhead
+    static FindRamDb& GetCached(const std::string& path,
+                                bool /*warn_if_unreadble*/,
+                                const std::string& /*arch*/,
+                                const std::size_t /*num_cu*/)
     {
         static auto inst = new FindRamDb{path};
         return *inst;
