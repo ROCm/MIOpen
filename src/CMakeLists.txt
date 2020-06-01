@@ -213,6 +213,7 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_v4.cpp
     solver/conv_hip_implicit_gemm_v4r1.cpp
     solver/conv_hip_implicit_gemm_v4r4.cpp
+    solver/conv_hip_implicit_gemm_wrw_weights_v4r4.cpp
     solver/conv_hip_implicit_gemm_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops_wrw_fp32.cpp
@@ -221,6 +222,7 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_bwd_data_v1r1.cpp
     solver/conv_hip_implicit_gemm_bwd_data_v4r1.cpp
     solver/conv_hip_implicit_gemm_bwd_data_v1r1_xdlops.cpp
+    solver/conv_hip_implicit_gemm_bwd_data_v4r1_xdlops.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops_fwd_fp32.cpp
     )
 
@@ -633,7 +635,7 @@ rocm_export_targets(
   PREFIX ${MIOPEN_INSTALL_DIR}
   DEPENDS
     ${PACKAGE_DEPENDS}
-  PACKAGE_STATIC_DEPENDS
+  STATIC_DEPENDS
     ${PACKAGE_STATIC_DEPENDS}
 )
 
