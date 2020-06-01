@@ -1274,7 +1274,7 @@ struct ConvHipImplicitGemmBwdDataV4R1Xdlops : SolverBase<ConvolutionContext>
                              const PerformanceImplicitGemmBwdDataV4R1Xdlops& config,
                              bool disableConfigOverrideFromEnv = false) const;
     PerformanceImplicitGemmBwdDataV4R1Xdlops Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               Data_t top_buf,
                               ConstData_t wei_buf,
