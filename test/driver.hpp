@@ -181,7 +181,7 @@ struct test_driver
         return arguments.at(argument_index.at(s));
     }
 
-    bool has_argument(const std::string& arg) { return argument_index.count(arg) > 0; }
+    bool has_argument(const std::string& arg) const { return argument_index.count(arg) > 0; }
 
     template <class Visitor>
     void parse(Visitor v)

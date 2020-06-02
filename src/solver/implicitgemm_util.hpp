@@ -571,7 +571,7 @@ static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
 }
 
 template <typename BotBufType, typename TopBufType, typename WeiBufType>
-static inline int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
+static inline int RunAndMeasureSolutionBase(const miopen::Handle& profile_h,
                                             BotBufType bot_buf,
                                             TopBufType top_buf,
                                             WeiBufType wei_buf,

@@ -40,6 +40,8 @@ endif()
 
 project ( MIOpen C CXX )
 
+option( BUILD_SHARED_LIBS "Build as a shared library" ON )
+
 enable_testing()
 
 find_package(ROCM REQUIRED PATHS /opt/rocm)
@@ -53,7 +55,7 @@ include(CheckCXXCompilerFlag)
 
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
 # Use SQLITE for compiled kernels, when turned off this will use raw files
-set(MIOPEN_ENABLE_SQLITE_KERN_CACHE On CACHE BOOL "")
+set(MIOPEN_ENABLE_SQLITE_KERN_CACHE Off CACHE BOOL "")
 if(MIOPEN_ENABLE_SQLITE)
     # MIOpen now depends on SQLite as well
     find_package(PkgConfig)
@@ -279,8 +281,6 @@ find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
 find_path(HALF_INCLUDE_DIR half.hpp)
 
-option( BUILD_SHARED_LIBS "Build as a shared library" ON )
-
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 
 set( MIOPEN_INSTALL_DIR miopen)
@@ -382,6 +382,7 @@ enable_clang_tidy(
         -llvm-include-order
         -misc-misplaced-const
         -misc-non-private-member-variables-in-classes
+        -modernize-avoid-bind
         -modernize-avoid-c-arrays
         -modernize-pass-by-value
         -modernize-use-auto

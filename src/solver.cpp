@@ -52,7 +52,7 @@ std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
     return os << "} '" << k.comp_options << '\'';
 }
 
-std::vector<Program> PrecompileKernels(Handle& h, const std::vector<KernelInfo>& kernels)
+std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<KernelInfo>& kernels)
 {
     std::vector<Program> programs(kernels.size());
     par_for(kernels.size(),
@@ -64,7 +64,7 @@ std::vector<Program> PrecompileKernels(Handle& h, const std::vector<KernelInfo>&
     return programs;
 }
 
-void PrecompileSolutions(Handle& h, const std::vector<ConvSolution>& sols)
+void PrecompileSolutions(const Handle& h, const std::vector<ConvSolution>& sols)
 {
     // Find all kernels that need to be compiled from the solutions
     std::vector<KernelInfo> kernels;
@@ -318,6 +318,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     RegisterWithSolver(
         registry, ++id, ConvHipImplicitGemmForwardV4R4Xdlops{}, miopenConvolutionAlgoImplicitGEMM);
+
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmV4R4WrW{}, miopenConvolutionAlgoImplicitGEMM);
 }
 
 } // namespace solver

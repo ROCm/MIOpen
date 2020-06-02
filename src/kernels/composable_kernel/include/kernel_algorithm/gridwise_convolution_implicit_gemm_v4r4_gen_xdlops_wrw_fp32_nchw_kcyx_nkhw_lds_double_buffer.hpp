@@ -182,7 +182,9 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_wrw_fp32_nchw_kcyx_nkhw_l
             1,
             GemmBBlockCopySrcDataPerRead_GemmK,
             GemmBBlockCopyDstDataPerWrite_GemmN,
-            CGlobalMemoryDataOperation>{};
+            CGlobalMemoryDataOperation,
+            1,
+            ConvStrideW>{};
 
         gridwise_gemm.Run(p_out_global, p_in_global, p_wei_global);
     }

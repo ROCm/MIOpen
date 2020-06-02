@@ -752,7 +752,7 @@ find_replace_first(std::string& s_where, const std::string& s_find, const std::s
         s_where.replace(pos, s_find.length(), s_replace);
 }
 
-std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
+std::string FusionPlanDescriptor::GetProgramName(const Handle& handle)
 {
     if(!op_map.empty())
     {
@@ -769,7 +769,7 @@ std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
     }
 }
 
-std::string FusionPlanDescriptor::GetKernelName(Handle& handle)
+std::string FusionPlanDescriptor::GetKernelName(const Handle& handle)
 {
     if(!op_map.empty())
     {
@@ -782,7 +782,7 @@ std::string FusionPlanDescriptor::GetKernelName(Handle& handle)
     }
 }
 
-std::string FusionPlanDescriptor::GetAlgorithmName(Handle& handle)
+std::string FusionPlanDescriptor::GetAlgorithmName(const Handle& handle)
 {
     if(!op_map.empty())
     {
@@ -900,7 +900,7 @@ OpKernelArg FusionPlanDescriptor::GetTensorAttr(const std::string& sym) const
         MIOPEN_THROW(miopenStatusInternalError, "Unknown Tensor Attribute: " + sym);
     }
 }
-OpKernelArg FusionPlanDescriptor::GetDevAttribute(const std::string& k, Handle& handle) const
+OpKernelArg FusionPlanDescriptor::GetDevAttribute(const std::string& k, const Handle& handle) const
 {
     if(k == "devCUs")
     {
@@ -1061,7 +1061,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     return status;
 }
 
-std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder(Handle& handle)
+std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder(const Handle& handle)
 {
     std::vector<Exec_arg_t> arg_keys;
     // Construct the kernel args
@@ -1228,7 +1228,7 @@ std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder(Handle& handle)
     return arg_keys;
 }
 
-miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
+miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
                                              const TensorDescriptor& inputDesc,
                                              ConstData_t input,
                                              const TensorDescriptor& outputDesc,
