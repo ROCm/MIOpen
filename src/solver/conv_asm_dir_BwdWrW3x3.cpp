@@ -497,7 +497,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);
 
     result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
-        return [=](Handle& handle, const AnyInvokeParams& primitive_params) {
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto k              = handle.Run(kernels[0]);
             const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
             int unused                = 0;

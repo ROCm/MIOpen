@@ -403,7 +403,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
                             << " out_W="
                             << out_W);
 
-        return [=](Handle& handle, const AnyInvokeParams& ctx) {
+        return [=](const Handle& handle, const AnyInvokeParams& ctx) {
             const auto k        = handle.Run(kernels[0]);
             const auto& fwd_ctx = ctx.CastTo<conv::DataInvokeParams>();
             const auto& tensors = fwd_ctx.tensors;

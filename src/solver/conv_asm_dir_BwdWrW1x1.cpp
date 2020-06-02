@@ -772,7 +772,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     if(UseSubsample(params))
     {
         result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
-            return [=](Handle& handle, const AnyInvokeParams& primitive_params) {
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
                 const auto ss_kernel      = handle.Run(kernels[0]);
                 const auto main_kernel    = handle.Run(kernels[1]);
                 const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
@@ -805,7 +805,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     else
     {
         result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
-            return [=](Handle& handle, const AnyInvokeParams& primitive_params) {
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
                 const auto main_kernel    = handle.Run(kernels[0]);
                 const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
                 const auto& x             = invoke_params.tensors.x;

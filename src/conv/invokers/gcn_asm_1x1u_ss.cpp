@@ -42,7 +42,7 @@ InvokerFactory MakeGcnAsm1x1USSInvokerFactory(
         const auto ss_kernel = kernels[0];
         const auto kernel    = kernels[1];
 
-        return [=](Handle& handle, const AnyInvokeParams& primitive_parameters) {
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
             const auto& params        = primitive_parameters.CastTo<DataInvokeParams>();
             const auto& tensors       = params.tensors;
             const auto& workSpace     = params.workSpace;

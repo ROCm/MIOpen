@@ -319,7 +319,7 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
             if(kernels.size() != 2)
                 MIOPEN_THROW("Two kernels were expected by solver");
 
-            return [=](Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 const auto& invoke_params = primitive_parameters.CastTo<conv::DataInvokeParams>();
                 const auto& tensors       = invoke_params.tensors;
 

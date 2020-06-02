@@ -93,7 +93,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
                 "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer.cpp";
 
             construction_parameters.kernel_name =
-        "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer";
+		"gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer";
         }
         else
         {
@@ -102,7 +102,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
                 "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer.cpp";
 
             construction_parameters.kernel_name =
-        "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer";
+		"gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer";
         }
         // clang-format on
     }
@@ -121,6 +121,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     const int C              = KernelInputChannelC(ctx);
     const auto hi            = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
     const auto wi            = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
+    const auto wo_           = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
     const auto conv_stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
     const auto conv_stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
     const auto conv_dilation_w =
@@ -135,6 +136,10 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     {
         // \todo there are more configs that can go through this if branch
         BBlockCopySrcDataPerRead_GemmN = gcd(BBlockCopySrcDataPerRead_GemmN, hi * wi);
+    }
+    else if(in_left_pad_w == 0 && in_right_pad_w == 0)
+    {
+        BBlockCopySrcDataPerRead_GemmN = gcd(BBlockCopySrcDataPerRead_GemmN, wo_);
     }
     else if(conv_stride_w == 1)
     {
@@ -374,6 +379,9 @@ bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext&
 bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
+        return false;
+
+    if(ConvHipImplicitGemmV4R4GenXdlopsWrWFp32{}.IsApplicable(ctx))
         return false;
 
     if(!ctx.direction.IsBackwardWrW())

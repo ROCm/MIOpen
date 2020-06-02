@@ -137,7 +137,7 @@ ConvSolution ConvBiasActivAsm1x1U::GetSolution(const ConvolutionContext& params,
     const auto out_data_type = params.conv_problem.GetOutDataType();
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-        return [=](Handle& handle, const AnyInvokeParams& primitive_parameters) {
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
             const auto& kernel       = handle.Run(kernels[0]);
             const auto& invoke_ctx   = primitive_parameters.CastTo<conv::FusedDataInvokeParams>();
             const auto& tensors      = invoke_ctx.tensors;

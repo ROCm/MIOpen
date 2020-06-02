@@ -109,7 +109,7 @@ size_t GetKernelLocalWorkDim(const KernelInvoke& kernel, int dim)
 #endif
 }
 
-static inline void AddKernels(Handle& handle,
+static inline void AddKernels(const Handle& handle,
                               const std::string& algorithm_name,
                               const std::string& network_config,
                               const miopen::solver::ConvSolution& s,
@@ -555,9 +555,10 @@ static void DirConvFindCore(Handle& handle,
             // y = w * x
             FindDbKCacheKey kcache_key;
             miopenStatus_t gemm_status = miopenStatusNotInitialized;
-
+            size_t workspace_req       = 0;
             if(wDesc.GetType() == miopenInt8)
             {
+                workspace_req            = conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc);
                 GemmDescriptor gemm_desc = CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
 
                 std::size_t out_offset      = 0;
@@ -621,12 +622,12 @@ static void DirConvFindCore(Handle& handle,
             if(gemm_status == miopenStatusSuccess)
                 record.SetValues(
                     "miopenConvolutionFwdAlgoGEMM",
-                    FindDbData{"gemm", time_gemm, 0, kcache_key}); // Todo: gemm solver id?
+                    FindDbData{
+                        "gemm", time_gemm, workspace_req, kcache_key}); // Todo: gemm solver id?
         }
         // if not 1x1
         else if(workSpace != nullptr &&
-                workSpaceSize >=
-                    (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc) * conv.group_count))
+                workSpaceSize >= (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)))
         {
             if(conv.group_count > 1)
             {
@@ -716,12 +717,11 @@ static void DirConvFindCore(Handle& handle,
             }
 
             if(gemm_status == miopenStatusSuccess)
-                record.SetValues(
-                    "miopenConvolutionFwdAlgoGEMM",
-                    FindDbData{"gemm",
-                               time_gemm,
-                               (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc) * conv.group_count),
-                               kcache_key}); // Todo: gemm solver id?
+                record.SetValues("miopenConvolutionFwdAlgoGEMM",
+                                 FindDbData{"gemm",
+                                            time_gemm,
+                                            (conv.ForwardGetWorkSpaceSizeGEMM(wDesc, yDesc)),
+                                            kcache_key}); // Todo: gemm solver id?
         }
     }
 #endif
@@ -1001,7 +1001,7 @@ void ValidateAlphaBeta(const void* alpha, const void* beta)
     }
 }
 
-static void ConvForwardCheckNumerics(Handle& handle,
+static void ConvForwardCheckNumerics(const Handle& handle,
                                      const ConvFwdTensors& tensors,
                                      std::function<void()>&& worker)
 {
@@ -1389,8 +1389,7 @@ void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
             MIOPEN_LOG_FUNCTION("convolution, non 1x1");
         }
         assert(workSpace != nullptr &&
-               workSpaceSize >=
-                   (ForwardGetWorkSpaceSizeGEMM(tensors.wDesc, tensors.yDesc) * group_count));
+               workSpaceSize >= (ForwardGetWorkSpaceSizeGEMM(tensors.wDesc, tensors.yDesc)));
 
         // tensors.y = tensors.w * Im2Col(tensors.x)
         GemmDescriptor gemm_desc{};
@@ -1521,7 +1520,7 @@ void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
 #endif
 }
 
-void ConvolutionDescriptor::ConvFwdFFT(Handle& handle,
+void ConvolutionDescriptor::ConvFwdFFT(const Handle& handle,
                                        const ConvFwdTensors& tensors,
                                        Data_t workSpace,
                                        std::size_t workSpaceSize,
@@ -1987,7 +1986,7 @@ ConvolutionDescriptor::BackwardGetValidWorkSpaceSizeGemm(const TensorDescriptor&
        miopen::all_of(GetConvStrides(), [](auto v) { return v == 1; }))
         return 0;
 
-    return BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc) * group_count;
+    return BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc);
 }
 
 std::size_t
@@ -2052,7 +2051,7 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handl
 }
 
 // Todo: remove when all immediate mode calls will support invokers
-static std::vector<KernelInvoke> CompileSolver(Handle& handle,
+static std::vector<KernelInvoke> CompileSolver(const Handle& handle,
                                                ConvolutionContext& ctx,
                                                solver::Id solver_id,
                                                const FindDbKCacheKey& key)
@@ -2566,8 +2565,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 }
                 // if not 1x1
                 else if(workSpace != nullptr &&
-                        workSpaceSize >=
-                            (BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc) * group_count))
+                        workSpaceSize >= (BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc)))
                 {
                     if(group_count > 1)
                     {
@@ -2655,7 +2653,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                           << ", "
                                           << perf_db[0].time);
 }
-static void ConvBwdCheckNumerics(Handle& handle,
+static void ConvBwdCheckNumerics(const Handle& handle,
                                  const ConvBwdTensors& tensors,
                                  const void* beta,
                                  std::function<void()>&& worker)
@@ -2940,8 +2938,7 @@ void ConvolutionDescriptor::ConvBwdGemm(Handle& handle,
             MIOPEN_LOG_FUNCTION("convolution, non 1x1");
         }
         assert(workSpace != nullptr &&
-               workSpaceSize >=
-                   (BackwardDataGetWorkSpaceSizeGEMM(tensors.wDesc, tensors.dyDesc) * group_count));
+               workSpaceSize >= (BackwardDataGetWorkSpaceSizeGEMM(tensors.wDesc, tensors.dyDesc)));
 
         // tensors.dx = transpose(tensors.w) * tensors.dy
         GemmDescriptor gemm_desc{};
@@ -3032,7 +3029,7 @@ void ConvolutionDescriptor::ConvBwdGemm(Handle& handle,
 #endif
 }
 
-void ConvolutionDescriptor::ConvBwdFFT(Handle& handle,
+void ConvolutionDescriptor::ConvBwdFFT(const Handle& handle,
                                        const ConvBwdTensors& tensors,
                                        Data_t workSpace,
                                        size_t workSpaceSize,
@@ -3594,8 +3591,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 auto out_spatial =
                     boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + GetSpatialDimension());
 
-                size_t workspace_req =
-                    BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc) * group_count;
+                size_t workspace_req = BackwardWeightsGetWorkSpaceSizeGEMM(dyDesc, dwDesc);
 
                 float time_gemm = 0;
 
@@ -4098,7 +4094,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                            << perf_db[0].time);
 }
 
-static void ConvWrwCheckNumerics(Handle& handle,
+static void ConvWrwCheckNumerics(const Handle& handle,
                                  const ConvWrwTensors& tensors,
                                  const void* beta,
                                  std::function<void()>&& worker)
@@ -4189,6 +4185,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         break;
         case miopenConvolutionBwdWeightsAlgoImplicitGEMM:
         {
+            float elapsed  = 0.0;
             auto&& kernels = handle.GetKernels(algorithm_name, network_config);
             if(kernels.empty())
                 MIOPEN_THROW("Error running Implicit GEMM WrW. Was Find() run previously?");
@@ -4207,14 +4204,25 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 TensorDescriptor workSpaceDesc(
                     miopenFloat, dwDesc.GetLengths(), dwDesc.GetStrides());
                 SetTensor(handle, workSpaceDesc, workSpace, &zero);
+                elapsed = handle.GetKernelTime();
                 kernel(x, dy, workSpace);
+                elapsed += handle.GetKernelTime();
                 CastTensor(handle, &lowp_quant, workSpaceDesc, workSpace, dwDesc, dw, 0, 0);
+                elapsed += handle.GetKernelTime();
             }
             else
             {
                 float zero = 0.f;
                 SetTensor(handle, dwDesc, dw, &zero);
+                elapsed += handle.GetKernelTime();
                 kernel(x, dy, dw);
+                elapsed += handle.GetKernelTime();
+            }
+
+            if(handle.IsProfilingEnabled())
+            {
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
             }
         }
         }
@@ -4268,8 +4276,7 @@ void ConvolutionDescriptor::BackwardWeightsGemm(Handle& handle,
         }
         assert(workSpace != nullptr &&
                workSpaceSize >=
-                   (BackwardWeightsGetWorkSpaceSizeGEMM(tensors.dyDesc, tensors.dwDesc) *
-                    group_count));
+                   (BackwardWeightsGetWorkSpaceSizeGEMM(tensors.dyDesc, tensors.dwDesc)));
 
         std::size_t out_spatial_size = std::accumulate(
             out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
@@ -4837,7 +4844,7 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
     });
 }
 
-void ConvolutionBackwardBias(Handle& handle,
+void ConvolutionBackwardBias(const Handle& handle,
                              const void* alpha,
                              const TensorDescriptor& dyDesc,
                              ConstData_t dy,
