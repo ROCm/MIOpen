@@ -585,7 +585,7 @@ ConvHipImplicitGemmV4R4WrW::CalculateGemmSize(const ConvolutionContext& ctx)
 
 bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ConvolutionContext& ctx) const
 {
-    if(ctx.direction.IsForward())
+    if(ctx.direction.IsForward() || ctx.direction.IsBackwardData())
         return false;
 
     if(!ctx.Is2d() && !ctx.Is3d())
@@ -624,7 +624,7 @@ ConvHipImplicitGemmV4R4WrW::Search(const ConvolutionContext& context) const
     return GenericSearchWrW(*this, context);
 }
 
-int ConvHipImplicitGemmV4R4WrW::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmV4R4WrW::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                       ConstData_t bot_buf,
                                                       ConstData_t top_buf,
                                                       Data_t wei_buf,
