@@ -27,8 +27,10 @@
 #define GUARD_MIOPEN_STRINGUTILS_HPP
 
 #include <algorithm>
+#include <iterator>
 #include <numeric>
 #include <string>
+#include <sstream>
 
 #define MIOPEN_STRINGIZE_1(...) #__VA_ARGS__
 #define MIOPEN_STRINGIZE(...) MIOPEN_STRINGIZE_1(__VA_ARGS__)
@@ -90,6 +92,13 @@ inline std::string RemovePrefix(std::string s, std::string prefix)
         return s.substr(prefix.length());
     else
         return s;
+}
+
+inline std::vector<std::string> SplitSpaceSeparated(const std::string& in)
+{
+    std::stringstream ss(in);
+    std::istream_iterator<std::string> begin(ss), end;
+    return {begin, end};
 }
 
 } // namespace miopen
