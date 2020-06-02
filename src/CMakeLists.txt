@@ -124,8 +124,6 @@ set( MIOpen_Source
     dropout_api.cpp
     readonlyramdb.cpp
     execution_context.cpp
-    kern_db.cpp
-    bz2.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -228,6 +226,10 @@ set( MIOpen_Source
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
 if(MIOPEN_ENABLE_SQLITE)
     list(APPEND MIOpen_Source sqlite_db.cpp include/miopen/sqlite_db.hpp )
+endif()
+
+if(MIOPEN_ENABLE_SQLITE AND MIOPEN_ENABLE_SQLITE_KERN_CACHE)
+    list(APPEND MIOpen_Source kern_db.cpp bz2.cpp include/miopen/kern_db.hpp)
 endif()
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")

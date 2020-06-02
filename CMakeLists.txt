@@ -62,6 +62,10 @@ if(MIOPEN_ENABLE_SQLITE)
     pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 endif()
 find_package(BZip2)
+if(MIOPEN_ENABLE_SQLITE_KERN_CACHE AND NOT MIOPEN_ENABLE_SQLITE)
+    message(FATAL_ERROR "MIOPEN_ENABLE_SQLITE_KERN_CACHE requires MIOPEN_ENABLE_SQLITE")
+endif()
+
 option( BUILD_DEV "Build for development only" OFF)
 
 # Strip symbols for release
