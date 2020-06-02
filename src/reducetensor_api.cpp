@@ -30,54 +30,70 @@
 #include <miopen/tensor_ops.hpp>
 #include <algorithm>
 
-
-extern "C" miopenStatus_t miopenCreateReduceTensorDescriptor(miopenReduceTensorDescriptor_t* reduceTensorDesc)
+extern "C" miopenStatus_t
+miopenCreateReduceTensorDescriptor(miopenReduceTensorDescriptor_t* reduceTensorDesc)
 {
     MIOPEN_LOG_FUNCTION(reduceTensorDesc);
-    return miopen::try_([&] { miopen::deref(reduceTensorDesc) = new miopen::ReduceTensorDescriptor(); });
-}; 
+    return miopen::try_(
+        [&] { miopen::deref(reduceTensorDesc) = new miopen::ReduceTensorDescriptor(); });
+};
 
-extern "C" miopenStatus_t miopenDestroyReduceTensorDescriptor(miopenReduceTensorDescriptor_t reduceTensorDesc)
+extern "C" miopenStatus_t
+miopenDestroyReduceTensorDescriptor(miopenReduceTensorDescriptor_t reduceTensorDesc)
 {
     MIOPEN_LOG_FUNCTION(reduceTensorDesc);
     return miopen::try_([&] { miopen_destroy_object(reduceTensorDesc); });
-}; 
+};
 
-extern "C" miopenStatus_t miopenSetReduceTensorDescriptor(miopenReduceTensorDescriptor_t reduceTensorDesc,
+extern "C" miopenStatus_t
+miopenSetReduceTensorDescriptor(miopenReduceTensorDescriptor_t reduceTensorDesc,
                                 miopenReduceTensorOp_t reduceTensorOp,
                                 miopenDataType_t reduceTensorCompType,
                                 miopenNanPropagation_t reduceTensorNanOpt,
                                 miopenReduceTensorIndices_t reduceTensorIndices,
                                 miopenIndicesType_t reduceTensorIndicesType)
 {
-    MIOPEN_LOG_FUNCTION(reduceTensorDesc, reduceTensorOp, reduceTensorCompType, reduceTensorNanOpt, reduceTensorIndices, reduceTensorIndicesType);
+    MIOPEN_LOG_FUNCTION(reduceTensorDesc,
+                        reduceTensorOp,
+                        reduceTensorCompType,
+                        reduceTensorNanOpt,
+                        reduceTensorIndices,
+                        reduceTensorIndicesType);
     return miopen::try_([&] {
-        miopen::deref(reduceTensorDesc) = miopen::ReduceTensorDescriptor(reduceTensorOp, 
-			                                                reduceTensorCompType, 
-									reduceTensorNanOpt, 
-									reduceTensorIndices, 
-									reduceTensorIndicesType);
+        miopen::deref(reduceTensorDesc) = miopen::ReduceTensorDescriptor(reduceTensorOp,
+                                                                         reduceTensorCompType,
+                                                                         reduceTensorNanOpt,
+                                                                         reduceTensorIndices,
+                                                                         reduceTensorIndicesType);
     });
-}; 
+};
 
-extern "C" miopenStatus_t miopenGetReduceTensorDescriptor(const miopenReduceTensorDescriptor_t reduceTensorDesc,
+extern "C" miopenStatus_t
+miopenGetReduceTensorDescriptor(const miopenReduceTensorDescriptor_t reduceTensorDesc,
                                 miopenReduceTensorOp_t* reduceTensorOp,
                                 miopenDataType_t* reduceTensorCompType,
                                 miopenNanPropagation_t* reduceTensorNanOpt,
                                 miopenReduceTensorIndices_t* reduceTensorIndices,
                                 miopenIndicesType_t* reduceTensorIndicesType)
 {
-    MIOPEN_LOG_FUNCTION(reduceTensorDesc, reduceTensorOp, reduceTensorCompType, reduceTensorNanOpt, reduceTensorIndices, reduceTensorIndicesType);
+    MIOPEN_LOG_FUNCTION(reduceTensorDesc,
+                        reduceTensorOp,
+                        reduceTensorCompType,
+                        reduceTensorNanOpt,
+                        reduceTensorIndices,
+                        reduceTensorIndicesType);
     return miopen::try_([&] {
-        miopen::deref(reduceTensorOp) = miopen::deref(reduceTensorDesc).reduceTensorOp_;
+        miopen::deref(reduceTensorOp)       = miopen::deref(reduceTensorDesc).reduceTensorOp_;
         miopen::deref(reduceTensorCompType) = miopen::deref(reduceTensorDesc).reduceTensorCompType_;
-        miopen::deref(reduceTensorNanOpt) = miopen::deref(reduceTensorDesc).reduceTensorNanOpt_;
-        miopen::deref(reduceTensorIndices) = miopen::deref(reduceTensorDesc).reduceTensorIndices_;
-        miopen::deref(reduceTensorIndicesType) = miopen::deref(reduceTensorDesc).reduceTensorIndicesType_;
+        miopen::deref(reduceTensorNanOpt)   = miopen::deref(reduceTensorDesc).reduceTensorNanOpt_;
+        miopen::deref(reduceTensorIndices)  = miopen::deref(reduceTensorDesc).reduceTensorIndices_;
+        miopen::deref(reduceTensorIndicesType) =
+            miopen::deref(reduceTensorDesc).reduceTensorIndicesType_;
     });
-}; 
+};
 
-extern "C" miopenStatus_t miopenGetReductionIndicesSize(miopenHandle_t handle,
+extern "C" miopenStatus_t
+miopenGetReductionIndicesSize(miopenHandle_t handle,
                               const miopenReduceTensorDescriptor_t reduceTensorDesc,
                               const miopenTensorDescriptor_t aDesc,
                               const miopenTensorDescriptor_t cDesc,
@@ -86,48 +102,68 @@ extern "C" miopenStatus_t miopenGetReductionIndicesSize(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(handle, reduceTensorDesc, aDesc, cDesc, sizeInBytes);
 
     return miopen::try_([&] {
-        miopen::deref(sizeInBytes) = miopen::deref(reduceTensorDesc).GetIndicesSize( miopen::deref(handle), 
-									             miopen::deref(aDesc),
-									             miopen::deref(cDesc)); 
-    });  
-}; 
+        miopen::deref(sizeInBytes) =
+            miopen::deref(reduceTensorDesc)
+                .GetIndicesSize(miopen::deref(handle), miopen::deref(aDesc), miopen::deref(cDesc));
+    });
+};
 
-extern "C" miopenStatus_t miopenGetReductionWorkSpaceSize(miopenHandle_t handle,
+extern "C" miopenStatus_t
+miopenGetReductionWorkSpaceSize(miopenHandle_t handle,
                                 const miopenReduceTensorDescriptor_t reduceTensorDesc,
                                 const miopenTensorDescriptor_t aDesc,
                                 const miopenTensorDescriptor_t cDesc,
                                 size_t* sizeInBytes)
 {
-      
+
     MIOPEN_LOG_FUNCTION(handle, reduceTensorDesc, aDesc, cDesc, sizeInBytes);
 
     return miopen::try_([&] {
-        miopen::deref(sizeInBytes) = miopen::deref(reduceTensorDesc).GetWorkSpaceSize( miopen::deref(handle), 
-									             miopen::deref(aDesc),
-									             miopen::deref(cDesc)); 
-    });  
-}; 
+        miopen::deref(sizeInBytes) = miopen::deref(reduceTensorDesc)
+                                         .GetWorkSpaceSize(miopen::deref(handle),
+                                                           miopen::deref(aDesc),
+                                                           miopen::deref(cDesc));
+    });
+};
 
 extern "C" miopenStatus_t miopenReduceTensor(miopenHandle_t handle,
-                   const miopenReduceTensorDescriptor_t reduceTensorDesc,
-                   void* indices,
-                   size_t indicesSizeInBytes,
-                   void* workspace,
-                   size_t workspaceSizeInBytes,
-                   const void* alpha,
-                   const miopenTensorDescriptor_t aDesc,
-                   const void* A,
-                   const void* beta,
-                   const miopenTensorDescriptor_t cDesc,
-                   void* C)
+                                             const miopenReduceTensorDescriptor_t reduceTensorDesc,
+                                             void* indices,
+                                             size_t indicesSizeInBytes,
+                                             void* workspace,
+                                             size_t workspaceSizeInBytes,
+                                             const void* alpha,
+                                             const miopenTensorDescriptor_t aDesc,
+                                             const void* A,
+                                             const void* beta,
+                                             const miopenTensorDescriptor_t cDesc,
+                                             void* C)
 {
-     MIOPEN_LOG_FUNCTION(handle, reduceTensorDesc, indices, indicesSizeInBytes, workspace, workspaceSizeInBytes, alpha, aDesc, A, beta, cDesc, C); 
+    MIOPEN_LOG_FUNCTION(handle,
+                        reduceTensorDesc,
+                        indices,
+                        indicesSizeInBytes,
+                        workspace,
+                        workspaceSizeInBytes,
+                        alpha,
+                        aDesc,
+                        A,
+                        beta,
+                        cDesc,
+                        C);
 
-     return miopen::try_([&] {
-            miopen::deref(reduceTensorDesc).ReduceTensor( miopen::deref(handle),  
-			                                  DataCast(indices), indicesSizeInBytes, DataCast(workspace), workspaceSizeInBytes,
-							  alpha, miopen::deref(aDesc), DataCast(A), 
-							  beta, miopen::deref(cDesc), DataCast(C)); 
-     }); 
-}; 
-
+    return miopen::try_([&] {
+        miopen::deref(reduceTensorDesc)
+            .ReduceTensor(miopen::deref(handle),
+                          DataCast(indices),
+                          indicesSizeInBytes,
+                          DataCast(workspace),
+                          workspaceSizeInBytes,
+                          alpha,
+                          miopen::deref(aDesc),
+                          DataCast(A),
+                          beta,
+                          miopen::deref(cDesc),
+                          DataCast(C));
+    });
+};

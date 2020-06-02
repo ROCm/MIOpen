@@ -32,40 +32,45 @@ using float16 = half_float::half;
 
 // this enumerate should be synchronized with include/miopen/reduce_common.hpp
 namespace ck {
-typedef  enum {
-      CK_Reduce_DirectThreadWise=1, 
-      CK_Reduce_DirectWarpWise=2,
-      CK_Reduce_BlockWise=3,
-      CK_Reduce_MultiBlock=4
-} ckReductionMethod_t; // end of namespace ck 
+typedef enum
+{
+    CK_Reduce_DirectThreadWise = 1,
+    CK_Reduce_DirectWarpWise   = 2,
+    CK_Reduce_BlockWise        = 3,
+    CK_Reduce_MultiBlock       = 4
+} ckReductionMethod_t; // end of namespace ck
 
 // this enumerate should be synchronized with include/miopen.h
-typedef enum {
-    CK_REDUCE_TENSOR_ADD = 0, 
-    CK_REDUCE_TENSOR_MUL = 1, 
-    CK_REDUCE_TENSOR_MIN = 2, 
-    CK_REDUCE_TENSOR_MAX = 3, 
-    //CK_REDUCE_TENSOR_AMAX = 4,
-    //CK_REDUCE_TENSOR_AVG =  5, 
-    //CK_REDUCE_TENSOR_NORM1 = 6, 
-    //CK_REDUCE_TENSOR_NORM2 = 7, 
-    //CK_REDUCE_TENSOR_MUL_NO_ZEROS = 8,
-} ckReduceTensorOp_t; 
+typedef enum
+{
+    CK_REDUCE_TENSOR_ADD = 0,
+    CK_REDUCE_TENSOR_MUL = 1,
+    CK_REDUCE_TENSOR_MIN = 2,
+    CK_REDUCE_TENSOR_MAX = 3,
+    // CK_REDUCE_TENSOR_AMAX = 4,
+    // CK_REDUCE_TENSOR_AVG =  5,
+    // CK_REDUCE_TENSOR_NORM1 = 6,
+    // CK_REDUCE_TENSOR_NORM2 = 7,
+    // CK_REDUCE_TENSOR_MUL_NO_ZEROS = 8,
+} ckReduceTensorOp_t;
 
 // this enumerate should be synchronized with include/miopen.h
-typedef enum {
+typedef enum
+{
     CK_NOT_PROPAGATE_NAN = 0,
     CK_PROPAGATE_NAN     = 1,
 } ckNanPropagation_t;
 
 // this enumerate should be synchronized with include/miopen.h
-typedef enum {
+typedef enum
+{
     CK_REDUCE_TENSOR_NO_INDICES        = 0,
     CK_REDUCE_TENSOR_FLATTENED_INDICES = 1,
 } ckReduceTensorIndices_t;
 
 // this enumerate should be synchronized with include/miopen.h
-typedef enum {
+typedef enum
+{
     CK_32BIT_INDICES = 0,
     CK_64BIT_INDICES = 1,
     CK_16BIT_INDICES = 2,
@@ -73,43 +78,43 @@ typedef enum {
 } ckIndicesType_t;
 
 // this enumerate should be synchronized with include/miopen.h
-typedef enum {
-    ckHalf  = 0,
-    ckFloat = 1, 
-    ckInt32 = 2, 
-    ckInt8  = 3, 
-    ckInt8x4 = 4,
-    ckBFloat16 = 5, 
-    ckDouble = 6,
-} ckDataType_t; 
+typedef enum
+{
+    ckHalf     = 0,
+    ckFloat    = 1,
+    ckInt32    = 2,
+    ckInt8     = 3,
+    ckInt8x4   = 4,
+    ckBFloat16 = 5,
+    ckDouble   = 6,
+} ckDataType_t;
 
-template <ckDataType_t typeNum> 
-struct get_type_from_type_enum; 
+template <ckDataType_t typeNum>
+struct get_type_from_type_enum;
 
 template <>
-struct get_type_from_type_enum<ckHalf> 
+struct get_type_from_type_enum<ckHalf>
 {
-    using type = float16; 
-}; 
+    using type = float16;
+};
 
 template <>
 struct get_type_from_type_enum<ckFloat>
 {
-    using type = float; 
-}; 
+    using type = float;
+};
 
 template <>
 struct get_type_from_type_enum<ckDouble>
 {
-    using type = double; 
-}; 
+    using type = double;
+};
 
 template <>
 struct get_type_from_type_enum<ckInt32>
 {
-    using type = int; 
-}; 
+    using type = int;
+};
 
 }; // end of namespace ck
-#endif 
-
+#endif

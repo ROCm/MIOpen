@@ -43,24 +43,36 @@ namespace miopen {
 
 struct ReduceTensorDescriptor : miopenReduceTensorDescriptor
 {
-    ReduceTensorDescriptor() = default; 
+    ReduceTensorDescriptor() = default;
     ReduceTensorDescriptor(miopenReduceTensorOp_t reduceTensorOp,
                            miopenDataType_t reduceTensorCompType,
                            miopenNanPropagation_t reduceTensorNanOpt,
                            miopenReduceTensorIndices_t reduceTensorIndices,
-                           miopenIndicesType_t reduceTensorIndicesType); 
+                           miopenIndicesType_t reduceTensorIndicesType);
 
-    miopenReduceTensorOp_t reduceTensorOp_; 
+    miopenReduceTensorOp_t reduceTensorOp_;
     miopenDataType_t reduceTensorCompType_;
     miopenNanPropagation_t reduceTensorNanOpt_;
     miopenReduceTensorIndices_t reduceTensorIndices_;
-    miopenIndicesType_t reduceTensorIndicesType_; 
+    miopenIndicesType_t reduceTensorIndicesType_;
 
-    std::size_t GetWorkSpaceSize(Handle& handle, const TensorDescriptor& inDesc, const TensorDescriptor& outDesc) const;
-    std::size_t GetIndicesSize(Handle& handle, const TensorDescriptor& inDesc, const TensorDescriptor& outDesc) const;   
-    void ReduceTensor(Handle& handle, Data_t indices, size_t indicesSizeInBytes, Data_t workspace, size_t workspaceSizeInBytes,
-                   const void* alpha, const TensorDescriptor &aDesc, ConstData_t A,
-                   const void* beta, const TensorDescriptor &cDesc, Data_t C) const;
+    std::size_t GetWorkSpaceSize(Handle& handle,
+                                 const TensorDescriptor& inDesc,
+                                 const TensorDescriptor& outDesc) const;
+    std::size_t GetIndicesSize(Handle& handle,
+                               const TensorDescriptor& inDesc,
+                               const TensorDescriptor& outDesc) const;
+    void ReduceTensor(Handle& handle,
+                      Data_t indices,
+                      size_t indicesSizeInBytes,
+                      Data_t workspace,
+                      size_t workspaceSizeInBytes,
+                      const void* alpha,
+                      const TensorDescriptor& aDesc,
+                      ConstData_t A,
+                      const void* beta,
+                      const TensorDescriptor& cDesc,
+                      Data_t C) const;
 };
 
 std::ostream& operator<<(std::ostream& stream, const ReduceTensorDescriptor& c);

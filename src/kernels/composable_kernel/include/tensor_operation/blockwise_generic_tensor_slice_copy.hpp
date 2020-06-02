@@ -79,7 +79,8 @@ struct BlockwiseGenericTensorSliceCopy_v4
 
     template <typename BlockSrcData, typename ThreadBufferData>
     __device__ void RunLoadThreadBuffer(const BlockSrcData* p_block_src,
-                                        ThreadBufferData* p_thread_buffer, BlockSrcData zeroVal=static_cast<BlockSrcData>(0.0)) const
+                                        ThreadBufferData* p_thread_buffer,
+                                        BlockSrcData zeroVal = static_cast<BlockSrcData>(0.0)) const
     {
         constexpr bool has_optimized_address_calculation =
             decltype(mThreadwiseStore)::HasWorkingOptimizedAddressCalculation();
@@ -87,7 +88,8 @@ struct BlockwiseGenericTensorSliceCopy_v4
         // TODO: threadwise copy is still being tweaked
         if(has_optimized_address_calculation)
         {
-            mThreadwiseLoad.Run_optimized_src_address_calculation(p_block_src, p_thread_buffer, zeroVal);
+            mThreadwiseLoad.Run_optimized_src_address_calculation(
+                p_block_src, p_thread_buffer, zeroVal);
         }
         else
         {
@@ -96,8 +98,10 @@ struct BlockwiseGenericTensorSliceCopy_v4
     }
 
     template <typename ThreadBufferData, typename BlockDstData>
-    __device__ void RunStoreThreadBuffer(const ThreadBufferData* p_thread_buffer,
-                                         BlockDstData* p_block_dst, ThreadBufferData zeroVal=static_cast<ThreadBufferData>(0.0)) const
+    __device__ void
+    RunStoreThreadBuffer(const ThreadBufferData* p_thread_buffer,
+                         BlockDstData* p_block_dst,
+                         ThreadBufferData zeroVal = static_cast<ThreadBufferData>(0.0)) const
     {
         constexpr bool has_optimized_address_calculation =
             decltype(mThreadwiseStore)::HasWorkingOptimizedAddressCalculation();
@@ -105,7 +109,8 @@ struct BlockwiseGenericTensorSliceCopy_v4
         // TODO: threadwise copy is still being tweaked
         if(has_optimized_address_calculation)
         {
-            mThreadwiseStore.Run_optimized_dst_address_calculation(p_thread_buffer, p_block_dst, zeroVal);
+            mThreadwiseStore.Run_optimized_dst_address_calculation(
+                p_thread_buffer, p_block_dst, zeroVal);
         }
         else
         {
@@ -114,7 +119,9 @@ struct BlockwiseGenericTensorSliceCopy_v4
     }
 
     template <typename BlockSrcData, typename BlockDstData>
-    __device__ void Run(const BlockSrcData* p_block_src, BlockDstData* p_block_dst, BlockSrcData zeroVal=static_cast<BlockSrcData>(0.0)) const
+    __device__ void Run(const BlockSrcData* p_block_src,
+                        BlockDstData* p_block_dst,
+                        BlockSrcData zeroVal = static_cast<BlockSrcData>(0.0)) const
     {
         static_assert(ThreadBufferAddressSpace == AddressSpace::Vgpr,
                       "wrong! This function use vgpr as its thread "

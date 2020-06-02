@@ -26,12 +26,12 @@
 #ifndef GURAD_REDUCE_COMMON_HPP_
 #define GURAD_REDUCE_COMMON_HPP_ 1
 
-typedef enum {
-      Reduce_DirectThreadWise=1,
-      Reduce_DirectWarpWise=2,
-      Reduce_BlockWise=3,
-      Reduce_MultiBlock=4
-} ReductionMethod_t ;
+typedef enum
+{
+    Reduce_DirectThreadWise = 1,
+    Reduce_DirectWarpWise   = 2,
+    Reduce_BlockWise        = 3,
+    Reduce_MultiBlock       = 4
+} ReductionMethod_t;
 
-#endif 
-
+#endif
