@@ -123,6 +123,25 @@ struct FindRamDb : ReadonlyRamDb
     }
 };
 
+struct PerfRamDb : ReadonlyRamDb
+{
+    std::unordered_map<std::string, CacheItem> perf_db_init(std::string /*path*/);
+    PerfRamDb(std::string path) : ReadonlyRamDb(":memory:" + path)
+    {
+        static const auto m = perf_db_init(path);
+        cache               = m;
+    }
+
+    static PerfRamDb& GetCached(const std::string& path,
+                                bool /*warn_if_unreadable*/,
+                                const std::string& /*arch*/,
+                                const std::size_t /*num_cu*/)
+    {
+        static auto inst = new PerfRamDb{path};
+        return *inst;
+    }
+};
+
 } // namespace miopen
 
 #endif

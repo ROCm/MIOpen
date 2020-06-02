@@ -111,7 +111,7 @@ struct ProblemDescription
     int group_counts                   = 0;
 
     static std::string table_name() { return "config"; }
-
+    // TODO: fix repition
     template <class Self>
     static void Visit(Self&& self, std::function<void(int, std::string)> f)
     {
@@ -140,9 +140,50 @@ struct ProblemDescription
         f(self.bias, "bias");
         f(self.group_counts, "group_count");
     }
+    template <class Self>
+    static void Visit2(Self&& self, std::function<void(int&, std::string)> f)
+    {
+        if(!self.direction.IsKnown())
+            MIOPEN_THROW("!direction.IsKnown()");
+        // The column names match the driver command line argument names
+        f(self.spatial_dims, "spatial_dim");
+        f(self.n_inputs, "in_channels");
+        f(self.in_height, "in_h");
+        f(self.in_width, "in_w");
+        f(self.in_depth, "in_d");
+        f(self.kernel_size_h, "fil_h");
+        f(self.kernel_size_w, "fil_w");
+        f(self.kernel_size_d, "fil_d");
+        f(self.n_outputs, "out_channels");
+        f(self.batch_sz, "batchsize");
+        f(self.pad_h, "pad_h");
+        f(self.pad_w, "pad_w");
+        f(self.pad_d, "pad_d");
+        f(self.kernel_stride_h, "conv_stride_h");
+        f(self.kernel_stride_w, "conv_stride_w");
+        f(self.kernel_stride_d, "conv_stride_d");
+        f(self.kernel_dilation_h, "dilation_h");
+        f(self.kernel_dilation_w, "dilation_w");
+        f(self.kernel_dilation_d, "dilation_d");
+        f(self.bias, "bias");
+        f(self.group_counts, "group_count");
+    }
+    template <class Self>
+    static void Visit2(Self& self, std::function<void(std::string&, std::string)> f)
+    {
+        if(!self.direction.IsKnown())
+            MIOPEN_THROW("!direction.IsKnown()");
+        f(self.in_layout, "layout");
+        std::string data_type =
+            EncodeDataTypesForKey(self.in_data_type, self.weights_data_type, self.out_data_type);
+        f(data_type, "data_type");
+        std::string dir =
+            self.direction.IsForward() ? "F" : self.direction.IsBackwardData() ? "B" : "W";
+        f(dir, "direction");
+    }
 
     template <class Self>
-    static void Visit(Self&& self, std::function<void(std::string, std::string)> f)
+    static void Visit(const Self& self, std::function<void(const std::string&, std::string)> f)
     {
         if(!self.direction.IsKnown())
             MIOPEN_THROW("!direction.IsKnown()");

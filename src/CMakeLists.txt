@@ -124,8 +124,6 @@ set( MIOpen_Source
     dropout_api.cpp
     readonlyramdb.cpp
     execution_context.cpp
-    kern_db.cpp
-    bz2.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -228,6 +226,10 @@ set( MIOpen_Source
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
 if(MIOPEN_ENABLE_SQLITE)
     list(APPEND MIOpen_Source sqlite_db.cpp include/miopen/sqlite_db.hpp )
+endif()
+
+if(MIOPEN_ENABLE_SQLITE AND MIOPEN_ENABLE_SQLITE_KERN_CACHE)
+    list(APPEND MIOpen_Source kern_db.cpp bz2.cpp include/miopen/kern_db.hpp)
 endif()
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
@@ -441,7 +443,14 @@ if( MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
 endif()
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
-    list(APPEND MIOpen_Source ${PROJECT_BINARY_DIR}/include/miopen_kernels.h)
+    list(APPEND MIOpen_Source ${PROJECT_BINARY_DIR}/include/miopen_kernels.h ${PROJECT_BINARY_DIR}/include/perf_db_init.h)
+    add_custom_command(
+        OUTPUT ${PROJECT_BINARY_DIR}/include/perf_db_init.h
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        DEPENDS addDbs src/kernels/miopen.db
+        COMMAND ${WINE_CMD} $<TARGET_FILE:addDbs> --sqlite --output ${PROJECT_BINARY_DIR}/include/perf_db_init.h src/kernels/miopen.db
+        COMMENT "Inlining PerfDb"
+        )
     add_custom_command(
         OUTPUT ${PROJECT_BINARY_DIR}/include/miopen_kernels.h
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -649,3 +658,4 @@ install(FILES
  DESTINATION ${DATA_INSTALL_DIR}/db)
 
 rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})
+add_subdirectory(addDbs)

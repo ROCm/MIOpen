@@ -33,7 +33,9 @@
 #include <miopen/expanduser.hpp>
 #include <miopen/miopen.h>
 #include <miopen/version.h>
+#if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
+#endif
 #include <miopen/kern_db.hpp>
 #include <miopen/db.hpp>
 #include <miopen/db_path.hpp>
@@ -92,6 +94,7 @@ bool IsCacheDisabled()
 #endif
 }
 
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
 using KDb = DbTimer<MultiFileDb<KernDb, KernDb, false>>;
 KDb GetDb(const std::string& device, size_t num_cu)
 {
@@ -106,6 +109,7 @@ KDb GetDb(const std::string& device, size_t num_cu)
         sys_path = boost::filesystem::path{};
     return {sys_path.string(), user_path.string(), device, num_cu};
 }
+#endif
 boost::filesystem::path GetCacheFile(const std::string& device,
                                      const std::string& name,
                                      const std::string& args,

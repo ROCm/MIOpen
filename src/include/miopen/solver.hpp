@@ -37,6 +37,7 @@
 #include <miopen/miopen.h>
 #include <miopen/buffer_info.hpp>
 #include <miopen/scgemm_param.hpp>
+#include <miopen/stringutils.hpp>
 
 #include <memory>
 #include <string>

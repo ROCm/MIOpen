@@ -61,6 +61,18 @@ std::unordered_map<std::string, CacheItem> FindRamDb::find_db_init(std::string /
             {"key1", {1, "value1"}}};
 }
 
+std::unordered_map<std::string, CacheItem> PerfRamDb::perf_db_init(std::string /*path*/)
+{
+    return {{"3-64-32-1x1-32-64-32-100-0x0-1x1-1x1-0-NCHW-FP32-F",
+             {0,
+              "ConvBinWinogradRxSf2x3:60;ConvOclDirectFwd1x1:1,64,1,1,0,2,4,4,0;ConvAsm1x1U:1,8,"
+              "1,64,3,1,1,1"}},
+            {"3-32-32-1x1-32-32-32-100-0x0-1x1-1x1-0-NCHW-FP32-F",
+             {1,
+              "ConvBinWinogradRxSf2x3:58;ConvOclDirectFwd1x1:1,64,1,1,0,2,4,4,0;ConvAsm1x1U:1,8,"
+              "1,64,3,1,1,1"}}};
+}
+
 ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path,
                                         bool warn_if_unreadable,
                                         const std::string& /*arch*/,
