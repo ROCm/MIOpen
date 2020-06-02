@@ -681,7 +681,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
                      std::ignore) = config.CalculateGemmBBlockCopyPerformanceParameters(ctx);
 
             // clang-format off
-            construction_parameters.comp_options = 
+            construction_parameters.comp_options =
                 std::string(" -std=c++14 ") +
                 std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ConvolutionContextInterpreter::GetBatchN(ctx)) +
                 std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ConvolutionContextInterpreter::GetOutputChannelK(ctx)) +
@@ -723,9 +723,9 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
                 std::string(" -DCK_PARAM_GEMM_ID=") + std::to_string(gemm_id) +
                 std::string(" -D__HIP_PLATFORM_HCC__=1") +
                 ctx.general_compile_options;
-        
+
             result.construction_params.push_back(construction_parameters);
-            
+
         }
     }
     result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
