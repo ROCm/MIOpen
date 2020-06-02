@@ -394,7 +394,7 @@ int ReduceDriver<Tgpu, Tref>::VerifyForward()
               std::cout << "ReduceTensor() with indices output Failed: " << error2 << "\n";
 	   }
 	   else {
-              printf("ReduceTensor() with indices output Verifies on CPU and GPU (err=%f)\n", error);
+              printf("ReduceTensor() with indices output Verifies on CPU and GPU (err=%f, err2=%f)\n", error, error2);
            };  
        }
        else

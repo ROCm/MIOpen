@@ -18,8 +18,6 @@ static void get_all_indexes(const std::vector<int> & dimLengths, int dim, std::v
         std::vector< std::vector<int> > updated_indexes; 	
 
         if ( dim == 0 ) {
-             assert( indxes.size() == 0 ); 	
-             assert( dimLengths[dim] > 0 ); 
              for (int i=0; i < dimLengths[dim]; i++) {
 		  std::vector<int> index = { i }; 
 	     
@@ -61,13 +59,20 @@ static int get_flatten_offset(const std::vector<int> & lengths, const std::vecto
 {
    int offset = 0; 
 
-   assert( lengths.size() == index.size() ); 
+   assert( lengths.size() == index.size() && lengths.size() > 0 ); 
 
-   for (int i=lengths.size()-1; i > 0; i--) 
-	offset += index[i] * lengths[i-1]; 
+   int len = lengths.size(); 
+   int stride = 1; 
 
-   offset += index[0]; 
+   // for len==1, the loop is not executed
+   for (int i=len-1; i > 0; i--) {
+        offset += stride * index[i]; 
 
+        stride *= lengths[i]; 	     
+   }; 	
+
+   offset += stride * index[0]; 
+   
    return(offset); 
 }; 
 
@@ -84,10 +89,10 @@ static std::function<compType(compType, compType)>  ReduceOpFn(miopenReduceTenso
 	   return( [&](compType a_, compType b_) { return a_ * b_; } ); 
 
       case MIOPEN_REDUCE_TENSOR_MIN:
-	   return( [&](compType a_, compType b_) { return (a_> b_)? b_ : a_; } ); 
+	   return( [&](compType a_, compType b_) { return (a_ > b_)? b_ : a_; } );  // a is selected when they are equal
 
       case MIOPEN_REDUCE_TENSOR_MAX:
-	   return( [&](compType a_, compType b_) { return (a_> b_)? a_ : b_; } ); 
+	   return( [&](compType a_, compType b_) { return (a_ < b_)? b_ : a_; } );  // a is selected when they are equal
     }
 };
 
@@ -165,7 +170,7 @@ public:
         this->toReduceDims = toReduceDims_;
 
         assert( this->inLengths.size() == this->outLengths ); 
-        assert( this->toReduceDims.size() > 0 );
+        assert( !this->toReduceDims.empty() );
 
         for (int i=0; i < this->invariantDims.size(); i++)
              this->invariantLengths.push_back( this->inLengths[ this->invariantDims[i] ] );
@@ -173,7 +178,7 @@ public:
         for (int i=0; i < this->toReduceDims.size(); i++)
              toReduceLengths.push_back( this->inLengths[ this->toReduceDims[i] ] );
 
-        this->reduceAllDims = ( this->invariantDims.size() == 0 ) ? true : false;
+        this->reduceAllDims = this->invariantDims.empty() ? true: false;
     }; 
 
     ~miopenReductionHost() {};  
@@ -260,7 +265,8 @@ private:
 
              // store the reduced value to dst location
              out_data[0] = static_cast<Tref>(accuVal); 
-             // indices[0] = accuIndex; 
+             if ( need_indices )
+                  indices[0] = accuIndex; 
         }
         else {
              std::vector< std::vector<int> > indexes_1, indexes_2; 
@@ -277,6 +283,7 @@ private:
 	          src_index.resize( this->inLengths.size() ); 
 	          dst_index.resize( this->inLengths.size() ); 
 
+                  // generate the srd index 
                   for (int k=0; k < dst_index.size(); k++)
 		       dst_index[k] = 0; 
 
@@ -325,7 +332,8 @@ private:
 
                   // store the reduced value to dst location
                   out_data[dst_offset] = static_cast<Tref>(accuVal); 
-                  //indices[dst_offset] = accuIndex; 
+                  if ( need_indices )
+                       indices[dst_offset] = accuIndex; 
              };   
         }; 
    };  // end of RunImpl()
