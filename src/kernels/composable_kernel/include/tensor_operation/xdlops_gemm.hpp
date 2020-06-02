@@ -882,14 +882,13 @@ struct XdlopsGemm_t
 #if WORKAROUND_SWDEV_229564
 #pragma unroll
 #endif
-            for(index_t k = 0; k < K; ++k)
+            for(index_t k = 0; k < K * nxdlops; ++k)
             {
-                for(index_t i = 0; i < nxdlops; ++i)
-                    mfma_type.run(Number<MPerWave>{},
-                                  Number<NPerWave>{},
-                                  &pa[(k * nxdlops + i) * mfma_type.k_base],
-                                  &pb[(k * nxdlops + i) * mfma_type.k_base],
-                                  p_c_thread);
+                mfma_type.run(Number<MPerWave>{},
+                              Number<NPerWave>{},
+                              &pa[k * mfma_type.k_base],
+                              &pb[k * mfma_type.k_base],
+                              p_c_thread);
             }
 
         }).Else([&](auto) {
@@ -914,14 +913,13 @@ struct XdlopsGemm_t
 #if WORKAROUND_SWDEV_229564
 #pragma unroll
 #endif
-            for(index_t k = 0; k < K; k += mfma_type.num_input_blks)
+            for(index_t k = 0; k < K * nxdlops; k += mfma_type.num_input_blks)
             {
-                for(index_t i = 0; i < nxdlops; ++i)
-                    mfma_type.run(Number<MPerWave>{},
-                                  Number<NPerWave>{},
-                                  &pa[(k * nxdlops + i) * mfma_type.k_base],
-                                  &pb[(k * nxdlops + i) * mfma_type.k_base],
-                                  p_c_thread);
+                mfma_type.run(Number<MPerWave>{},
+                              Number<NPerWave>{},
+                              &pa[k * mfma_type.k_base],
+                              &pb[k * mfma_type.k_base],
+                              p_c_thread);
             }
 
         });
