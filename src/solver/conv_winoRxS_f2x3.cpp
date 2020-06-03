@@ -620,7 +620,7 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
         if(StartsWith(name, "gfx906"))
             kernel_postfix += "_dot2_edc";
         else
-            kernel_postfix += "_fp16_pk";
+            kernel_postfix += "_pk";
     }
     if(params.kernel_stride_w == 1)
     {
