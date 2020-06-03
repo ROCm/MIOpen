@@ -28,6 +28,8 @@
 #include <limits>
 #include <cassert>
 
+#include <miopen/conv/compiled_in_parameters.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/env.hpp>
 #include <miopen/logger.hpp>
@@ -490,6 +492,23 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
 
     result.construction_params.push_back(kernel);
     result.workspce_sz = 0;
+
+    int N, C, H, W, K, n_groups;
+    GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);
+
+    result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
+        return [=](Handle& handle, const boost::any& primitive_params) {
+            const auto k             = handle.Run(kernels[0]);
+            const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+            int unused               = 0;
+            int* return_addr         = nullptr;
+            const auto& x            = invoke_params.tensors.x;
+            const auto& dy           = invoke_params.tensors.dy;
+            const auto& dw           = invoke_params.tensors.dw;
+            k(N, C, H, W, K, n_groups, unused, unused, x, dw, dy, return_addr);
+        };
+    };
+
     return result;
 }
 

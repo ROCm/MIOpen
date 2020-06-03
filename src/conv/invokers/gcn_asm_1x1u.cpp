@@ -24,10 +24,9 @@
 *
 *******************************************************************************/
 
-#include <miopen/conv/invokers/gcn_asm_1x1u_ss_fwd.hpp>
+#include <miopen/conv/invokers/gcn_asm_1x1u.hpp>
 
-#include <miopen/conv/fwd_invoke_params.hpp>
-#include <miopen/errors.hpp>
+#include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/tensor.hpp>
@@ -37,52 +36,31 @@
 namespace miopen {
 namespace conv {
 
-InvokerFactory MakeGcnAsm1x1USSFwdInvokerFactory(
-    int N, int C, int K, int n_groups, int out_H, int out_W, std::size_t workspce_sz)
+InvokerFactory MakeGcnAsm1x1UInvokerFactory(int N, int C, int H, int W, int K, int n_groups)
 {
     return [=](const std::vector<Kernel>& kernels) {
-        const auto ss_kernel = kernels[0];
-        const auto kernel    = kernels[1];
+        if(kernels.size() != 1)
+            MIOPEN_THROW("Solver expects one kernel");
+
+        const auto kernel = kernels[0];
 
         return [=](Handle& handle, const boost::any& primitive_parameters) {
-            const auto params         = boost::any_cast<FwdInvokeParams>(primitive_parameters);
-            const auto& tensors       = params.tensors;
-            const auto& workSpace     = params.workSpace;
-            const auto& workSpaceSize = params.workSpaceSize;
-
-            float elapsed = 0;
-
-            if(workSpace == nullptr || workSpaceSize == 0)
-                MIOPEN_THROW("Workspace is required for SubSample");
-
-            if(workSpaceSize < workspce_sz)
-                MIOPEN_THROW("Not enough workspace has been provided for SubSample.");
-
-            handle.Run(ss_kernel)(tensors.x, workSpace);
-            if(handle.IsProfilingEnabled())
-                elapsed += handle.GetKernelTime();
-
-            int unused       = 0;
-            int* return_addr = nullptr;
+            auto params         = boost::any_cast<DataInvokeParams>(primitive_parameters);
+            const auto& tensors = params.tensors;
+            int unused          = 0;
+            int* return_addr    = nullptr;
             handle.Run(kernel)(N,
                                C,
-                               out_H,
-                               out_W,
+                               H,
+                               W,
                                K,
                                n_groups,
                                unused,
                                unused,
-                               workSpace,
+                               tensors.in,
                                tensors.w,
-                               tensors.y,
+                               tensors.out,
                                return_addr);
-
-            if(handle.IsProfilingEnabled())
-            {
-                elapsed += handle.GetKernelTime();
-                handle.ResetKernelTime();
-                handle.AccumKernelTime(elapsed);
-            }
         };
     };
 }

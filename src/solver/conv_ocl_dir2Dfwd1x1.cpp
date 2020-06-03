@@ -28,7 +28,7 @@
 #include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/env.hpp>
-#include <miopen/conv/invokers/gen_x_w_y_pad_fwd.hpp>
+#include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
 
 /// Disable kernel due to compiler bug: Compiler runs out of registers.
 /// JIRA: SWDEV-216194, SWDEV-216489.
@@ -381,8 +381,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
         }
     }
 
-    if(params.direction.IsForward())
-        result.invoker_factory = &conv::MakeGenericXWYPadFwdInvoker;
+    result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
     return result;
 }
 } // namespace solver

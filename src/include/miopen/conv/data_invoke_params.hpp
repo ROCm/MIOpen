@@ -31,9 +31,9 @@
 namespace miopen {
 namespace conv {
 
-struct FwdInvokeParams
+struct DataInvokeParams
 {
-    ConvFwdTensors tensors;
+    ConvDataTensors tensors;
     Data_t workSpace;
     std::size_t workSpaceSize;
 };

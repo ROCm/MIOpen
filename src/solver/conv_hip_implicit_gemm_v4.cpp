@@ -24,13 +24,15 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
+#include <miopen/solver.hpp>
+
+#include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
-#include "miopen/stringutils.hpp"
-#include "implicitgemm_util.hpp"
-#include "miopen/implicitgemm_params.hpp"
-#include "miopen/hip_build_utils.hpp"
+#include <miopen/stringutils.hpp>
+#include <miopen/implicitgemm_params.hpp>
+#include <miopen/hip_build_utils.hpp>
+
 #include "implicitgemm_util.hpp"
 
 #define WORKAROUND_ISSUE_2174_2222_2224_2243 1
@@ -40,6 +42,11 @@ namespace solver {
 
 bool ConvHipImplicitGemmV4_1x1::IsApplicable(const ConvolutionContext& ctx) const
 {
+#if WORKAROUND_SWDEV_229277_227616_229195
+    if(!IsHccCompiler())
+        return false;
+#endif
+
     if(!ctx.Is2d())
         return false;
 
@@ -52,6 +59,11 @@ bool ConvHipImplicitGemmV4_1x1::IsApplicable(const ConvolutionContext& ctx) cons
 
 bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
 {
+#if WORKAROUND_SWDEV_229277_227616_229195
+    if(!IsHccCompiler())
+        return false;
+#endif
+
     if(!ctx.direction.IsForward())
         return false;
 
@@ -344,9 +356,11 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, false)) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
-        std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
+
+    if(ctx.direction.IsForward() || ctx.direction.IsBackwardData())
+        result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
 
     result.construction_params.push_back(construction_parameters);
     return result;
@@ -408,8 +422,8 @@ int ConvHipImplicitGemmV4Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
 
 int ConvHipImplicitGemmV4WrW::RunAndMeasureSolution(miopen::Handle& profile_h,
                                                     ConstData_t bot_buf,
-                                                    Data_t top_buf,
-                                                    ConstData_t wei_buf,
+                                                    ConstData_t top_buf,
+                                                    Data_t wei_buf,
                                                     ConstData_t bias_buf,
                                                     const ConvolutionContext& ctx,
                                                     const ConvSolution& solution,
@@ -442,7 +456,7 @@ PerformanceImplicitGemm ConvHipImplicitGemmV4Fwd::Search(const ConvolutionContex
 }
 PerformanceImplicitGemm ConvHipImplicitGemmV4WrW::Search(const ConvolutionContext& context) const
 {
-    return GenericSearchFwd(*this, context);
+    return GenericSearchWrW(*this, context);
 }
 
 PerformanceImplicitGemm ConvHipImplicitGemmV4_1x1::Search(const ConvolutionContext& context) const

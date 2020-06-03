@@ -32,7 +32,7 @@
 #include <miopen/generic_search.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/sequences.hpp>
-#include <miopen/conv/invokers/gen_x_w_y_pad_fwd.hpp>
+#include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
 
 #include <sstream>
 #include <limits>
@@ -275,9 +275,7 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
     construction_params.kernel_name = "miopenGcnAsmConv3x3U";
 
     result.construction_params.push_back(construction_params);
-
-    if(params.direction.IsForward())
-        result.invoker_factory = &conv::MakeGenericXWYPadFwdInvoker;
+    result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
 
     return result;
 }
