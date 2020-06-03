@@ -35,7 +35,7 @@ struct tensor_base
 {
     miopenTensorDescriptor_t tensor{};
 
-    miopen::TensorDescriptor& get_tensor()
+    miopen::TensorDescriptor& get_tensor() const
     {
         CHECK(this->tensor != nullptr);
         return miopen::get_object(*tensor);
