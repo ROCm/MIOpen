@@ -64,13 +64,13 @@ struct ReadonlyRamDb
 
         auto record = DbRecord{problem};
 
-        if(!record.ParseContents(it->second.content))
+        if(!record.ParseContents(it->second))
         {
             MIOPEN_LOG_E("Error parsing payload under the key: " << problem << " form file "
                                                                  << db_path
                                                                  << "#"
-                                                                 << it->second.line);
-            MIOPEN_LOG_E("Contents: " << it->second.content);
+                                                                 << it->second);
+            MIOPEN_LOG_E("Contents: " << it->second);
             return boost::none;
         }
         else
@@ -98,7 +98,7 @@ struct ReadonlyRamDb
     }
 
     std::string db_path;
-    std::unordered_map<std::string, CacheItem> cache;
+    std::unordered_map<std::string, std::string> cache;
     std::string arch;
     std::size_t num_cu;
 
@@ -112,7 +112,7 @@ struct ReadonlyRamDb
 
 struct FindRamDb : ReadonlyRamDb
 {
-    std::unordered_map<std::string, CacheItem> find_db_init(std::string /*path*/);
+    std::unordered_map<std::string, std::string> find_db_init(std::string /*path*/);
     FindRamDb(std::string path) : ReadonlyRamDb(":memory: " + path)
     {
         static const auto m = find_db_init(path);
@@ -131,7 +131,7 @@ struct FindRamDb : ReadonlyRamDb
 
 struct PerfRamDb : ReadonlyRamDb
 {
-    std::unordered_map<std::string, CacheItem> perf_db_init(std::string arch_cu);
+    const std::unordered_map<std::string, std::string>& perf_db_init(std::string arch_cu);
     PerfRamDb(std::string path, std::string _arch, std::size_t _num_cu)
         : ReadonlyRamDb(":memory:" + path, _arch, _num_cu)
     {

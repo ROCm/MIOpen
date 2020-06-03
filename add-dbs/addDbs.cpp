@@ -134,26 +134,29 @@ int main(int argc, char* argv[])
             rc = sqlite3_exec(
                 ptr_sql, query.c_str(), find_callback, static_cast<void*>(&configs), nullptr);
             assert(rc == SQLITE_OK);
-            if(arch_idx == 0)
-                ss << "if(arch_cu == \"" << arch << "-" << num_cu << "\") \n\treturn {\n";
-            else
-                ss << "else if(arch_cu == \"" << arch << "-" << num_cu << "\")\n\treturn {\n";
+            if(arch_idx != 0)
+                ss << " else ";
+            
+            // ss << "if(arch_cu == \"" << arch << "-" << num_cu << "\") \n {\n static const std::unordered_map<std::string, CacheItem> data \n\t {\n";
+            ss << "if(arch_cu == \"" << arch << "-" << num_cu << "\") \n {\n static const std::unordered_map<std::string, std::string> data \n\t {\n";
             // handle the joining comma
-            ss << "\t\t { \"" << configs[0]["key"] << "\", { " << 0 << ", \"" << configs[0]["res"]
-               << "\"}}" << std::endl;
+            // ss << "\t\t { \"" << configs[0]["key"] << "\", { " << 0 << ", \"" << configs[0]["res"]
+            //    << "\"}}" << std::endl;
+            ss << "\t\t { \"" << configs[0]["key"] << "\", \"" << configs[0]["res"] << "\"}" << std::endl;
             for(auto idx = 1; idx < configs.size(); idx++)
             {
                 auto config = configs[idx];
                 if(!config["res"].empty())
-                    ss << "\t\t,{ \"" << config["key"] << "\", { " << idx << ", \"" << config["res"]
-                       << "\"}}" << std::endl;
-                if(idx > 100)
-                    break;
+                    // ss << "\t\t,{ \"" << config["key"] << "\", { " << idx << ", \"" << config["res"]
+                    //    << "\"}}" << std::endl;
+                    ss << "\t\t,{ \"" << config["key"] << "\", \"" << config["res"] << "\"}" << std::endl;
+                // if(idx > 30000)
+                //     break;
             }
-            ss << "};" << std::endl;
+            ss << "};\n return data; \n}" << std::endl;
         }
         // default case for invalid/unknown arch-cu pair
-        ss << "else return {};" << std::endl;
+        ss << "else {\n static const std::unordered_map<std::string, std::string> data \n\t {\n}; \n return data; \n}" << std::endl;
     }
     return 0;
 }
