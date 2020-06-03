@@ -141,17 +141,17 @@ extern "C" miopenStatus_t miopenCTCLoss(miopenHandle_t handle,
         std::stringstream ss;
         // clang-format off
         ss << " ctc "
-           << " -a " << algo 
-           << " -b " << miopen::deref(ctcLossDesc).blank_label_id 
-           << " -c " << miopen::deref(probsDesc).GetLengths()[2] - 1 
-           << " -m " << miopen::deref(ctcLossDesc).apply_softmax_layer 
+           << " -a " << algo
+           << " -b " << miopen::deref(ctcLossDesc).blank_label_id
+           << " -c " << miopen::deref(probsDesc).GetLengths()[2] - 1
+           << " -m " << miopen::deref(ctcLossDesc).apply_softmax_layer
            << " -n " << miopen::deref(probsDesc).GetLengths()[1];
         // clang-format on
         auto merge_vec = [&](const int* lens) {
             auto batch_sz = miopen::deref(probsDesc).GetLengths()[1];
             std::vector<std::string> inputs(batch_sz);
-            for(auto idx    = 0; idx < batch_sz; ++idx)
-                inputs[idx] = std::to_string(lens[idx]);
+            for(std::size_t idx = 0; idx < batch_sz; ++idx)
+                inputs[idx]     = std::to_string(lens[idx]);
             return inputs;
         };
         if(labelLengths != nullptr)

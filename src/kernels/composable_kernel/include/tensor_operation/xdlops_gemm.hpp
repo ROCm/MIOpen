@@ -5,25 +5,30 @@
 #include "ConstantMatrixDescriptor.hpp"
 #include "math.hpp"
 
+#define WORKAROUND_SWDEV_229564 1
+
 namespace ck {
 
 enum struct mfma_instr
 {
+    // fp32
     mfma_f32_32x32x1xf32 = 0,
-    mfma_f32_32x32x2xf32,
-    mfma_f32_16x16x4xf32,
     mfma_f32_16x16x1xf32,
     mfma_f32_4x4x1xf32,
+    mfma_f32_32x32x2xf32, // k reduction
+    mfma_f32_16x16x4xf32, // k reduction
+    // fp16
     mfma_f32_32x32x4f16,
-    mfma_f32_32x32x8f16,
-    mfma_f32_16x16x16f16,
     mfma_f32_16x16x4f16,
     mfma_f32_4x4x4f16,
+    mfma_f32_32x32x8f16,  // k reduction
+    mfma_f32_16x16x16f16, // k reduction
+    // bfp16
     mfma_f32_32x32x2bf16,
-    mfma_f32_32x32x4bf16,
-    mfma_f32_16x16x8bf16,
     mfma_f32_16x16x2bf16,
     mfma_f32_4x4x2bf16,
+    mfma_f32_32x32x4bf16, // k reduction
+    mfma_f32_16x16x8bf16, // k reduction
 };
 
 template <mfma_instr instr>
@@ -45,18 +50,18 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x1xf32>
     static constexpr index_t k               = 1;
     static constexpr index_t cycles          = 64;
 
-    template <index_t MPerWave, index_t NPerWave, class FloatA, class FloatB, class FloatC>
+    template <index_t MPerWave, index_t NPerWave>
     __device__ void
-    run(Number<MPerWave>, Number<NPerWave>, const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    run(Number<MPerWave>, Number<NPerWave>, const float* a, const float* b, float* reg_c) const
     {
         static_assert((MPerWave == 64 && NPerWave == 64) || (MPerWave == 32 && NPerWave == 64) ||
                           (MPerWave == 64 && NPerWave == 32),
                       "unsupported xdlops gemm");
 
-        const FloatA reg_a = *a;
-        const FloatB reg_b = *b;
+        const auto reg_a = *a;
+        const auto reg_b = *b;
 
-        float32_t* reg_c_ = reinterpret_cast<float32_t*>(reg_c);
+        auto reg_c_ = reinterpret_cast<float32_t*>(reg_c);
         gcnasm_mfma_f32_32x32x1f32<MPerWave, NPerWave>(reg_a, reg_b, reg_c_);
     }
 };
@@ -77,16 +82,16 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x2xf32>
     static constexpr index_t k               = 2;
     static constexpr index_t cycles          = 64;
 
-    template <index_t MPerWave, index_t NPerWave, class FloatA, class FloatB, class FloatC>
+    template <index_t MPerWave, index_t NPerWave>
     __device__ void
-    run(Number<MPerWave>, Number<NPerWave>, const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    run(Number<MPerWave>, Number<NPerWave>, const float* a, const float* b, float* reg_c) const
     {
         static_assert((MPerWave == 32 && NPerWave == 32), "unsupported xdlops gemm");
 
-        const FloatA reg_a = *a;
-        const FloatB reg_b = *b;
+        const auto reg_a = *a;
+        const auto reg_b = *b;
 
-        float16_t* reg_c_ = reinterpret_cast<float16_t*>(reg_c);
+        auto reg_c_ = reinterpret_cast<float16_t*>(reg_c);
         gcnasm_mfma_f32_32x32x2f32(reg_a, reg_b, reg_c_);
     }
 };
@@ -107,16 +112,16 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x4xf32>
     static constexpr index_t k               = 4;
     static constexpr index_t cycles          = 32;
 
-    template <index_t MPerWave, index_t NPerWave, class FloatA, class FloatB, class FloatC>
+    template <index_t MPerWave, index_t NPerWave>
     __device__ void
-    run(Number<MPerWave>, Number<NPerWave>, const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    run(Number<MPerWave>, Number<NPerWave>, const float* a, const float* b, float* reg_c) const
     {
         static_assert((MPerWave == 16 && NPerWave == 16), "unsupported xdlops gemm");
 
-        const FloatA reg_a = *a;
-        const FloatB reg_b = *b;
+        const auto reg_a = *a;
+        const auto reg_b = *b;
 
-        float4_t* reg_c_ = reinterpret_cast<float4_t*>(reg_c);
+        auto reg_c_ = reinterpret_cast<float4_t*>(reg_c);
         gcnasm_mfma_f32_16x16x4f32(reg_a, reg_b, reg_c_);
     }
 };
@@ -137,17 +142,17 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x1xf32>
     static constexpr index_t k               = 1;
     static constexpr index_t cycles          = 32;
 
-    template <index_t MPerWave, index_t NPerWave, class FloatA, class FloatB, class FloatC>
+    template <index_t MPerWave, index_t NPerWave>
     __device__ void
-    run(Number<MPerWave>, Number<NPerWave>, const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    run(Number<MPerWave>, Number<NPerWave>, const float* a, const float* b, float* reg_c) const
     {
         static_assert((MPerWave == 16 && NPerWave == 64) || (MPerWave == 64 && NPerWave == 16),
                       "unsupported xdlops gemm");
 
-        const FloatA reg_a = *a;
-        const FloatB reg_b = *b;
+        const auto reg_a = *a;
+        const auto reg_b = *b;
+        auto reg_c_      = reinterpret_cast<float16_t*>(reg_c);
 
-        float16_t* reg_c_ = reinterpret_cast<float16_t*>(reg_c);
         gcnasm_mfma_f32_16x16x1f32<MPerWave, NPerWave>(reg_a, reg_b, reg_c_);
     }
 };
@@ -169,16 +174,18 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x1xf32>
     static constexpr index_t k               = 1;
     static constexpr index_t cycles          = 8;
 
-    template <index_t MPerWave, index_t NPerWave, class FloatA, class FloatB, class FloatC>
+    template <index_t MPerWave, index_t NPerWave>
     __device__ void
-    run(Number<MPerWave>, Number<NPerWave>, const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    run(Number<MPerWave>, Number<NPerWave>, const float* a, const float* b, float* reg_c) const
     {
         static_assert((MPerWave == 4 || MPerWave == 8) && NPerWave == 64,
                       "unsupported xdlops gemm");
 
-        float4_t* reg_c_ = reinterpret_cast<float4_t*>(reg_c);
+        const auto reg_a = *a;
+        const auto reg_b = *b;
+        auto reg_c_      = reinterpret_cast<float4_t*>(reg_c);
 
-        gcnasm_mfma_f32_4x4x1f32<MPerWave, NPerWave>(a, b, reg_c_);
+        gcnasm_mfma_f32_4x4x1f32<MPerWave, NPerWave>(reg_a, reg_b, reg_c_);
     }
 };
 
@@ -198,18 +205,18 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x4f16>
     static constexpr index_t k               = 4;
     static constexpr index_t cycles          = 64;
 
-    template <index_t MPerWave, index_t NPerWave, class FloatA, class FloatB, class FloatC>
+    template <index_t MPerWave, index_t NPerWave>
     __device__ void
-    run(Number<MPerWave>, Number<NPerWave>, const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    run(Number<MPerWave>, Number<NPerWave>, const half_t* a, const half_t* b, float* reg_c) const
     {
         static_assert((MPerWave == 64 && NPerWave == 64) || (MPerWave == 32 && NPerWave == 64) ||
                           (MPerWave == 64 && NPerWave == 32),
                       "unsupported xdlops gemm");
 
-        const half4_t reg_a = *(reinterpret_cast<const half4_t*>(a));
-        const half4_t reg_b = *(reinterpret_cast<const half4_t*>(b));
+        const auto reg_a = *(reinterpret_cast<const half4_t*>(a));
+        const auto reg_b = *(reinterpret_cast<const half4_t*>(b));
+        auto reg_c_      = reinterpret_cast<float32_t*>(reg_c);
 
-        float32_t* reg_c_ = reinterpret_cast<float32_t*>(reg_c);
         gcnasm_mfma_f32_32x32x4f16<MPerWave, NPerWave>(reg_a, reg_b, reg_c_);
     }
 };
@@ -230,16 +237,16 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x8f16>
     static constexpr index_t k               = 8;
     static constexpr index_t cycles          = 64;
 
-    template <index_t MPerWave, index_t NPerWave, class FloatA, class FloatB, class FloatC>
+    template <index_t MPerWave, index_t NPerWave>
     __device__ void
-    run(Number<MPerWave>, Number<NPerWave>, const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    run(Number<MPerWave>, Number<NPerWave>, const half_t* a, const half_t* b, float* reg_c) const
     {
         static_assert((MPerWave == 32 && NPerWave == 32), "unsupported xdlops gemm");
 
-        const half4_t reg_a = *(reinterpret_cast<const half4_t*>(a));
-        const half4_t reg_b = *(reinterpret_cast<const half4_t*>(b));
+        const auto reg_a = *(reinterpret_cast<const half4_t*>(a));
+        const auto reg_b = *(reinterpret_cast<const half4_t*>(b));
+        auto reg_c_      = reinterpret_cast<float16_t*>(reg_c);
 
-        float16_t* reg_c_ = reinterpret_cast<float16_t*>(reg_c);
         gcnasm_mfma_f32_32x32x8f16(reg_a, reg_b, reg_c_);
     }
 };
@@ -260,16 +267,16 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x16f16>
     static constexpr index_t k               = 16;
     static constexpr index_t cycles          = 32;
 
-    template <index_t MPerWave, index_t NPerWave, class FloatA, class FloatB, class FloatC>
+    template <index_t MPerWave, index_t NPerWave>
     __device__ void
-    run(Number<MPerWave>, Number<NPerWave>, const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    run(Number<MPerWave>, Number<NPerWave>, const half_t* a, const half_t* b, float* reg_c) const
     {
         static_assert((MPerWave == 16 && NPerWave == 16), "unsupported xdlops gemm");
 
-        const half4_t reg_a = *(reinterpret_cast<const half4_t*>(a));
-        const half4_t reg_b = *(reinterpret_cast<const half4_t*>(b));
+        const auto reg_a = *(reinterpret_cast<const half4_t*>(a));
+        const auto reg_b = *(reinterpret_cast<const half4_t*>(b));
+        auto reg_c_      = reinterpret_cast<float4_t*>(reg_c);
 
-        float4_t* reg_c_ = reinterpret_cast<float4_t*>(reg_c);
         gcnasm_mfma_f32_16x16x16f16(reg_a, reg_b, reg_c_);
     }
 };
@@ -290,17 +297,17 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x4f16>
     static constexpr index_t k               = 4;
     static constexpr index_t cycles          = 32;
 
-    template <index_t MPerWave, index_t NPerWave, class FloatA, class FloatB, class FloatC>
+    template <index_t MPerWave, index_t NPerWave>
     __device__ void
-    run(Number<MPerWave>, Number<NPerWave>, const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    run(Number<MPerWave>, Number<NPerWave>, const half_t* a, const half_t* b, float* reg_c) const
     {
         static_assert((MPerWave == 16 && NPerWave == 64) || (MPerWave == 64 && NPerWave == 16),
                       "unsupported xdlops gemm");
 
-        const half4_t reg_a = *(reinterpret_cast<const half4_t*>(a));
-        const half4_t reg_b = *(reinterpret_cast<const half4_t*>(b));
+        const auto reg_a = *(reinterpret_cast<const half4_t*>(a));
+        const auto reg_b = *(reinterpret_cast<const half4_t*>(b));
+        auto reg_c_      = reinterpret_cast<float16_t*>(reg_c);
 
-        float16_t* reg_c_ = reinterpret_cast<float16_t*>(reg_c);
         gcnasm_mfma_f32_16x16x4f16<MPerWave, NPerWave>(reg_a, reg_b, reg_c_);
     }
 };
@@ -321,18 +328,18 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x4f16>
     static constexpr index_t k               = 4;
     static constexpr index_t cycles          = 8;
 
-    template <index_t MPerWave, index_t NPerWave, class FloatA, class FloatB, class FloatC>
+    template <index_t MPerWave, index_t NPerWave>
     __device__ void
-    run(Number<MPerWave>, Number<NPerWave>, const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    run(Number<MPerWave>, Number<NPerWave>, const half_t* a, const half_t* b, float* reg_c) const
     {
         static_assert((MPerWave == 4 || MPerWave == 8) && NPerWave == 64,
                       "unsupported xdlops gemm");
 
-        const half4_t* a_ = reinterpret_cast<const half4_t*>(a);
-        const half4_t* b_ = reinterpret_cast<const half4_t*>(b);
-        float4_t* reg_c_  = reinterpret_cast<float4_t*>(reg_c);
+        const auto reg_a = *(reinterpret_cast<const half4_t*>(a));
+        const auto reg_b = *(reinterpret_cast<const half4_t*>(b));
+        auto reg_c_      = reinterpret_cast<float4_t*>(reg_c);
 
-        gcnasm_mfma_f32_4x4x4f16<MPerWave, NPerWave>(a_, b_, reg_c_);
+        gcnasm_mfma_f32_4x4x4f16<MPerWave, NPerWave>(reg_a, reg_b, reg_c_);
     }
 };
 
@@ -352,18 +359,18 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x2bf16>
     static constexpr index_t k               = 2;
     static constexpr index_t cycles          = 64;
 
-    template <index_t MPerWave, index_t NPerWave, class FloatA, class FloatB, class FloatC>
+    template <index_t MPerWave, index_t NPerWave>
     __device__ void
-    run(Number<MPerWave>, Number<NPerWave>, const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    run(Number<MPerWave>, Number<NPerWave>, const ushort* a, const ushort* b, float* reg_c) const
     {
         static_assert((MPerWave == 64 && NPerWave == 64) || (MPerWave == 32 && NPerWave == 64) ||
                           (MPerWave == 64 && NPerWave == 32),
                       "unsupported xdlops gemm");
 
-        const ushort2_t reg_a = *(reinterpret_cast<const ushort2_t*>(a));
-        const ushort2_t reg_b = *(reinterpret_cast<const ushort2_t*>(b));
+        const auto reg_a = *(reinterpret_cast<const ushort2_t*>(a));
+        const auto reg_b = *(reinterpret_cast<const ushort2_t*>(b));
+        auto reg_c_      = reinterpret_cast<float32_t*>(reg_c);
 
-        float32_t* reg_c_ = reinterpret_cast<float32_t*>(reg_c);
         gcnasm_mfma_f32_32x32x2bf16<MPerWave, NPerWave>(reg_a, reg_b, reg_c_);
     }
 };
@@ -384,16 +391,16 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x4bf16>
     static constexpr index_t k               = 4;
     static constexpr index_t cycles          = 64;
 
-    template <index_t MPerWave, index_t NPerWave, class FloatA, class FloatB, class FloatC>
+    template <index_t MPerWave, index_t NPerWave>
     __device__ void
-    run(Number<MPerWave>, Number<NPerWave>, const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    run(Number<MPerWave>, Number<NPerWave>, const ushort* a, const ushort* b, float* reg_c) const
     {
         static_assert((MPerWave == 32 && NPerWave == 32), "unsupported xdlops gemm");
 
-        const ushort2_t reg_a = *(reinterpret_cast<const ushort2_t*>(a));
-        const ushort2_t reg_b = *(reinterpret_cast<const ushort2_t*>(b));
+        const auto reg_a = *(reinterpret_cast<const ushort2_t*>(a));
+        const auto reg_b = *(reinterpret_cast<const ushort2_t*>(b));
+        auto reg_c_      = reinterpret_cast<float16_t*>(reg_c);
 
-        float16_t* reg_c_ = reinterpret_cast<float16_t*>(reg_c);
         gcnasm_mfma_f32_32x32x4bf16(reg_a, reg_b, reg_c_);
     }
 };
@@ -414,16 +421,16 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x8bf16>
     static constexpr index_t k               = 8;
     static constexpr index_t cycles          = 32;
 
-    template <index_t MPerWave, index_t NPerWave, class FloatA, class FloatB, class FloatC>
+    template <index_t MPerWave, index_t NPerWave>
     __device__ void
-    run(Number<MPerWave>, Number<NPerWave>, const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    run(Number<MPerWave>, Number<NPerWave>, const ushort* a, const ushort* b, float* reg_c) const
     {
         static_assert((MPerWave == 16 && NPerWave == 16), "unsupported xdlops gemm");
 
-        const ushort2_t reg_a = *(reinterpret_cast<const ushort2_t*>(a));
-        const ushort2_t reg_b = *(reinterpret_cast<const ushort2_t*>(b));
+        const auto reg_a = *(reinterpret_cast<const ushort2_t*>(a));
+        const auto reg_b = *(reinterpret_cast<const ushort2_t*>(b));
+        auto reg_c_      = reinterpret_cast<float4_t*>(reg_c);
 
-        float4_t* reg_c_ = reinterpret_cast<float4_t*>(reg_c);
         gcnasm_mfma_f32_16x16x8bf16(reg_a, reg_b, reg_c_);
     }
 };
@@ -444,17 +451,17 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x2bf16>
     static constexpr index_t k               = 2;
     static constexpr index_t cycles          = 32;
 
-    template <index_t MPerWave, index_t NPerWave, class FloatA, class FloatB, class FloatC>
+    template <index_t MPerWave, index_t NPerWave>
     __device__ void
-    run(Number<MPerWave>, Number<NPerWave>, const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    run(Number<MPerWave>, Number<NPerWave>, const ushort* a, const ushort* b, float* reg_c) const
     {
         static_assert((MPerWave == 16 && NPerWave == 64) || (MPerWave == 64 && NPerWave == 16),
                       "unsupported xdlops gemm");
 
-        const ushort2_t reg_a = *(reinterpret_cast<const ushort2_t*>(a));
-        const ushort2_t reg_b = *(reinterpret_cast<const ushort2_t*>(b));
+        const auto reg_a = *(reinterpret_cast<const ushort2_t*>(a));
+        const auto reg_b = *(reinterpret_cast<const ushort2_t*>(b));
+        auto reg_c_      = reinterpret_cast<float16_t*>(reg_c);
 
-        float16_t* reg_c_ = reinterpret_cast<float16_t*>(reg_c);
         gcnasm_mfma_f32_16x16x2bf16<MPerWave, NPerWave>(reg_a, reg_b, reg_c_);
     }
 };
@@ -475,17 +482,18 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x2bf16>
     static constexpr index_t k               = 2;
     static constexpr index_t cycles          = 8;
 
-    template <index_t MPerWave, index_t NPerWave, class FloatA, class FloatB, class FloatC>
+    template <index_t MPerWave, index_t NPerWave>
     __device__ void
-    run(Number<MPerWave>, Number<NPerWave>, const FloatA* a, const FloatB* b, FloatC* reg_c) const
+    run(Number<MPerWave>, Number<NPerWave>, const ushort* a, const ushort* b, float* reg_c) const
     {
         static_assert((MPerWave == 4 || MPerWave == 8) && NPerWave == 64,
                       "unsupported xdlops gemm");
 
-        const ushort2_t* a_ = reinterpret_cast<const ushort2_t*>(a);
-        const ushort2_t* b_ = reinterpret_cast<const ushort2_t*>(b);
-        float4_t* reg_c_    = reinterpret_cast<float4_t*>(reg_c);
-        gcnasm_mfma_f32_4x4x2bf16<MPerWave, NPerWave>(a_, b_, reg_c_);
+        const auto reg_a = *(reinterpret_cast<const ushort2_t*>(a));
+        const auto reg_b = *(reinterpret_cast<const ushort2_t*>(b));
+        auto reg_c_      = reinterpret_cast<float4_t*>(reg_c);
+
+        gcnasm_mfma_f32_4x4x2bf16<MPerWave, NPerWave>(reg_a, reg_b, reg_c_);
     }
 };
 
@@ -610,55 +618,55 @@ struct XdlopsGemm_t
     }
 
     template <>
-    __device__ static constexpr auto GetMFMAInfo<half, 64, 64>()
+    __device__ static constexpr auto GetMFMAInfo<half_t, 64, 64>()
     {
         return mfma_info<mfma_instr::mfma_f32_32x32x4f16>{};
     }
 
     template <>
-    __device__ static constexpr auto GetMFMAInfo<half, 64, 32>()
+    __device__ static constexpr auto GetMFMAInfo<half_t, 64, 32>()
     {
         return mfma_info<mfma_instr::mfma_f32_32x32x4f16>{};
     }
 
     template <>
-    __device__ static constexpr auto GetMFMAInfo<half, 32, 64>()
+    __device__ static constexpr auto GetMFMAInfo<half_t, 32, 64>()
     {
         return mfma_info<mfma_instr::mfma_f32_32x32x4f16>{};
     }
 
     template <>
-    __device__ static constexpr auto GetMFMAInfo<half, 32, 32>()
+    __device__ static constexpr auto GetMFMAInfo<half_t, 32, 32>()
     {
         return mfma_info<mfma_instr::mfma_f32_32x32x8f16>{};
     }
 
     template <>
-    __device__ static constexpr auto GetMFMAInfo<half, 16, 16>()
+    __device__ static constexpr auto GetMFMAInfo<half_t, 16, 16>()
     {
         return mfma_info<mfma_instr::mfma_f32_16x16x16f16>{};
     }
 
     template <>
-    __device__ static constexpr auto GetMFMAInfo<half, 16, 64>()
+    __device__ static constexpr auto GetMFMAInfo<half_t, 16, 64>()
     {
         return mfma_info<mfma_instr::mfma_f32_16x16x4f16>{};
     }
 
     template <>
-    __device__ static constexpr auto GetMFMAInfo<half, 64, 16>()
+    __device__ static constexpr auto GetMFMAInfo<half_t, 64, 16>()
     {
         return mfma_info<mfma_instr::mfma_f32_16x16x4f16>{};
     }
 
     template <>
-    __device__ static constexpr auto GetMFMAInfo<half, 4, 64>()
+    __device__ static constexpr auto GetMFMAInfo<half_t, 4, 64>()
     {
         return mfma_info<mfma_instr::mfma_f32_4x4x4f16>{};
     }
 
     template <>
-    __device__ static constexpr auto GetMFMAInfo<half, 8, 64>()
+    __device__ static constexpr auto GetMFMAInfo<half_t, 8, 64>()
     {
         return mfma_info<mfma_instr::mfma_f32_4x4x4f16>{};
     }
@@ -819,6 +827,9 @@ struct XdlopsGemm_t
 
         static_assert(GemmDataPerReadA == 1 && GemmDataPerReadB == 1, "GemmDataPerReadA/B != 1");
 
+        static_assert(is_same<FloatA, FloatB>::value, "FloatA != FloatB");
+        static_assert(is_same<FloatC, float>::value, "FloatC != float");
+
 #if CK_USE_AMD_XDLOPS_EMULATE
         XdlopsEmulate<M, N, K>(p_a_wave, p_b_wave, p_c_thread);
 #else
@@ -826,25 +837,64 @@ struct XdlopsGemm_t
 
         static_if<!IsKReduction()>{}([&](auto) {
 
+            const index_t laneId = get_thread_local_1d_id() % mfma_type.wave_size;
+
+            FloatA a[K];
+            FloatB b[K];
+
+            // load into registers
             for(index_t k = 0; k < K; ++k)
             {
-                const index_t laneId = get_thread_local_1d_id() % mfma_type.wave_size;
-                const FloatA* a      = &p_a_wave[k * M + laneId];
-                const FloatB* b      = &p_b_wave[k * N + laneId];
-                mfma_type.run(Number<MPerWave>{}, Number<NPerWave>{}, a, b, p_c_thread);
+                a[k] = p_a_wave[k * M + laneId];
+                b[k] = p_b_wave[k * N + laneId];
+            }
+
+            // get pointer of registers
+            auto pa = reinterpret_cast<const data_type*>(&a);
+            auto pb = reinterpret_cast<const data_type*>(&b);
+
+#if WORKAROUND_SWDEV_229564
+#pragma unroll
+#endif
+            for(index_t k = 0; k < K; ++k)
+            {
+                constexpr index_t nxdlops = sizeof(FloatA) / (mfma_type.k * sizeof(data_type));
+
+                for(index_t i = 0; i < nxdlops; ++i, pa += mfma_type.k, pb += mfma_type.k)
+                    mfma_type.run(Number<MPerWave>{}, Number<NPerWave>{}, pa, pb, p_c_thread);
             }
 
         }).Else([&](auto) {
 
-            // reduction along k
+            const index_t laneId = get_thread_local_1d_id() % mfma_type.wave_size;
+
+            FloatA a[K];
+            FloatB b[K];
+
+            const index_t blk_id = laneId / mfma_type.num_threads_blk;
+            const index_t blk_td = laneId % mfma_type.num_threads_blk;
+
+            // load into registers
             for(index_t k = 0; k < K; k += mfma_type.num_input_blks)
             {
-                const index_t laneId = get_thread_local_1d_id() % mfma_type.wave_size;
-                const index_t blk_id = laneId / mfma_type.num_threads_blk;
-                const index_t blk_td = laneId % mfma_type.num_threads_blk;
-                const FloatA* a      = &p_a_wave[(k + blk_id) * M + blk_td];
-                const FloatB* b      = &p_b_wave[(k + blk_id) * N + blk_td];
-                mfma_type.run(Number<MPerWave>{}, Number<NPerWave>{}, a, b, p_c_thread);
+                a[k] = p_a_wave[(k + blk_id) * M + blk_td];
+                b[k] = p_b_wave[(k + blk_id) * N + blk_td];
+            }
+
+            // get pointer of registers
+            auto pa = reinterpret_cast<const data_type*>(&a);
+            auto pb = reinterpret_cast<const data_type*>(&b);
+
+            constexpr index_t nxdlops =
+                (sizeof(FloatA) * mfma_type.num_input_blks) / (mfma_type.k * sizeof(data_type));
+
+#if WORKAROUND_SWDEV_229564
+#pragma unroll
+#endif
+            for(index_t k = 0; k < K; k += mfma_type.num_input_blks)
+            {
+                for(index_t i = 0; i < nxdlops; ++i, pa += mfma_type.k, pb += mfma_type.k)
+                    mfma_type.run(Number<MPerWave>{}, Number<NPerWave>{}, pa, pb, p_c_thread);
             }
 
         });

@@ -34,7 +34,8 @@
 namespace miopen {
 namespace conv {
 
-InvokerFactory MakeGcnAsm1x1UFwdInvokerFactory(int N, int C, int H, int W, int K, int n_groups);
+InvokerFactory MakeGcnAsm1x1UUSInvokerFactory(
+    int N, int C, int K, int n_groups, int H, int W, std::size_t workspce_sz);
 
 } // namespace conv
 } // namespace miopen

@@ -236,7 +236,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     {
         if(pool_dim == 4)
         {
-            mlo_construct_pooling2D construct_params(1); // forward
+            mlo_construct_pooling2D construct_params(conv::Direction::Forward);
             construct_params.setStream(&handle);
             construct_params.setTopDescFromMLDesc(yDesc);
             construct_params.setBotDescFromMLDesc(xDesc);
@@ -530,7 +530,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     {
         if(pool_dim == 4)
         {
-            mlo_construct_pooling2D construct_params(0); // backward
+            mlo_construct_pooling2D construct_params(conv::Direction::BackwardData);
             construct_params.setStream(&handle);
             construct_params.setTopDfDescFromMLDesc(dyDesc);
             construct_params.setTopDescFromMLDesc(yDesc);

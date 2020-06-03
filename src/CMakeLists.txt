@@ -119,10 +119,13 @@ set( MIOpen_Source
     kernel_build_params.cpp
     find_db.cpp
     conv_algo_name.cpp
+    conv/problem_description.cpp
     dropout.cpp
     dropout_api.cpp
     readonlyramdb.cpp
+    execution_context.cpp
     kern_db.cpp
+    bz2.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -170,11 +173,15 @@ set( MIOpen_Source
     include/miopen/dropout.hpp
     include/miopen/readonlyramdb.hpp
     include/miopen/rnn_util.hpp
+    include/miopen/bz2.hpp
     md_graph.cpp
     mdg_expr.cpp
-    conv/invokers/gcn_asm_1x1u_fwd.cpp
-    conv/invokers/gcn_asm_1x1u_ss_fwd.cpp
-    conv/invokers/gen_x_w_y_pad_fwd.cpp
+    conv/invokers/gcn_asm_1x1u.cpp
+    conv/invokers/gcn_asm_1x1u_ss.cpp
+    conv/invokers/gcn_asm_1x1u_us.cpp
+    conv/invokers/gen_x_w_y_pad.cpp
+    conv/invokers/ocl_wrw_rdc.cpp
+    conv/invokers/impl_gemm.cpp
     invoker_cache.cpp
     tensor.cpp
     tensor_api.cpp
@@ -212,6 +219,7 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_bwd_data_v1r1.cpp
     solver/conv_hip_implicit_gemm_bwd_data_v4r1.cpp
     solver/conv_hip_implicit_gemm_bwd_data_v1r1_xdlops.cpp
+    solver/conv_hip_implicit_gemm_v4r4_gen_xdlops_fwd_fp32.cpp
     )
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
@@ -501,7 +509,8 @@ target_include_directories(MIOpen PUBLIC
 )
 
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
-
+target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
+target_link_libraries(MIOpen PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES})
 generate_export_header(MIOpen
     EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
 )
