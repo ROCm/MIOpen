@@ -78,7 +78,7 @@ InvokerFactory MakeImplGemmDynamicDataInvokerFactory(const ConvolutionContext& c
     if(ctx.direction.IsForward())
     {
         return [ctx](const std::vector<Kernel>& kernels) {
-            return [=](Handle& handle, const boost::any& primitive_parameters) {
+            return [=](const Handle& handle, const boost::any& primitive_parameters) {
                 const auto data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_parameters);
                 const auto& tensors = data_ctx.tensors;
                 auto kernel         = handle.Run(kernels[0]);
