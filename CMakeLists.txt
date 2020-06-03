@@ -64,6 +64,8 @@ endif()
 find_package(BZip2)
 option( BUILD_DEV "Build for development only" OFF)
 
+set(MIOPEN_DISABLE_USERDB Off CACHE BOOL "Disable user database access")
+
 # Strip symbols for release
 if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
