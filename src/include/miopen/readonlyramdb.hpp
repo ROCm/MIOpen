@@ -45,6 +45,10 @@ struct ReadonlyRamDb
 {
     public:
     ReadonlyRamDb(std::string path) : db_path(path) {}
+    ReadonlyRamDb(std::string path, std::string _arch, std::size_t _num_cu)
+        : db_path(path), arch(_arch), num_cu(_num_cu)
+    {
+    }
 
     static ReadonlyRamDb& GetCached(const std::string& path,
                                     bool warn_if_unreadable,
@@ -95,6 +99,8 @@ struct ReadonlyRamDb
 
     std::string db_path;
     std::unordered_map<std::string, CacheItem> cache;
+    std::string arch;
+    std::size_t num_cu;
 
     ReadonlyRamDb(const ReadonlyRamDb&) = default;
     ReadonlyRamDb(ReadonlyRamDb&&)      = default;
@@ -125,19 +131,20 @@ struct FindRamDb : ReadonlyRamDb
 
 struct PerfRamDb : ReadonlyRamDb
 {
-    std::unordered_map<std::string, CacheItem> perf_db_init(std::string /*path*/);
-    PerfRamDb(std::string path) : ReadonlyRamDb(":memory:" + path)
+    std::unordered_map<std::string, CacheItem> perf_db_init(std::string arch_cu);
+    PerfRamDb(std::string path, std::string _arch, std::size_t _num_cu)
+        : ReadonlyRamDb(":memory:" + path, _arch, _num_cu)
     {
-        static const auto m = perf_db_init(path);
+        static const auto m = perf_db_init(arch + "-" + std::to_string(num_cu));
         cache               = m;
     }
 
     static PerfRamDb& GetCached(const std::string& path,
                                 bool /*warn_if_unreadable*/,
-                                const std::string& /*arch*/,
-                                const std::size_t /*num_cu*/)
+                                const std::string& arch,
+                                const std::size_t num_cu)
     {
-        static auto inst = new PerfRamDb{path};
+        static auto inst = new PerfRamDb{path, arch, num_cu};
         return *inst;
     }
 };

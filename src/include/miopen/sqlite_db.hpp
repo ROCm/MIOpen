@@ -104,8 +104,11 @@ struct SQLiteSerializable
         std::vector<std::string> clauses;
         Derived::Visit(static_cast<const Derived&>(*this),
                        [&](const std::string& value, const std::string& name) {
-                           clauses.push_back("(" + name + " = ? )");
-                           values.push_back(value);
+                           if(name != "key")
+                           {
+                               clauses.push_back("(" + name + " = ? )");
+                               values.push_back(value);
+                           }
                        });
         Derived::Visit(static_cast<const Derived&>(*this),
                        [&](const int value, const std::string name) {
@@ -373,42 +376,6 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
                  bool is_system,
                  const std::string& arch_,
                  std::size_t num_cu_);
-    template <typename T>
-    std::string DumpAll(T& prob_desc)
-    {
-        std::ignore = prob_desc;
-        std::stringstream ss;
-        T p;
-        auto str_fds = p.StrFieldNames();
-        // auto len_str = str_fds.size();
-        auto int_fds = p.IntFieldNames();
-        // auto int_len = int_fds.size();
-        str_fds.insert(str_fds.end(), int_fds.begin(), int_fds.end());
-        std::string query = "SELECT " + miopen::JoinStrings(str_fds, ",") +
-                            ",vals FROM  config INNER JOIN perf_db ON config.id = perf_db.config "
-                            "WHERE arch = 'gfx906' and num_cu = 64";
-
-        auto stmt = SQLite::Statement{sql, query};
-        // auto col_names = stmt.ColumnNames();
-        // auto cnt = col_names.size()
-        auto line_cnt = 0;
-        std::unordered_map<std::string, std::string> kv;
-        for(auto& it : str_fds)
-            kv[it] = "";
-        kv["vals"] = "";
-        auto cnt   = kv.size();
-        while(stmt.Step(sql) == SQLITE_ROW)
-        {
-            for(auto idx = 0; idx < cnt; idx++)
-            {
-                kv[str_fds[idx]] = stmt.ColumnText(idx);
-            }
-            T::Factory(p, kv);
-            p.Serialize(ss);
-            ++line_cnt;
-        }
-        return ss.str();
-    }
 
     template <class T>
     inline void InsertConfig(const T& prob_desc)
@@ -463,7 +430,9 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
             "AND (num_cu = '" + std::to_string(num_cu) + "');";
         // clang-format on
         auto stmt = SQLite::Statement{sql, select_query, values};
-        DbRecord rec;
+        std::stringstream ss;
+        problem_config.Serialize(ss);
+        DbRecord rec(ss.str());
         while(true)
         {
             auto rc = stmt.Step(sql);
@@ -518,6 +487,15 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
     inline boost::optional<DbRecord>
     UpdateUnsafe(const T& problem_config, const std::string& id, const V& values)
     {
+        std::stringstream ss;
+        values.Serialize(ss);
+        return UpdateUnsafe(problem_config, id, ss.str());
+    }
+
+    template <class T>
+    inline boost::optional<DbRecord>
+    UpdateUnsafe(const T& problem_config, const std::string& id, const std::string& params)
+    {
         if(dbInvalid)
             return boost::none;
         // UPSERT the value
@@ -536,8 +514,6 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
 
         // UPSERT perf values
         {
-            std::ostringstream params;
-            values.Serialize(params);
             std::string clause;
             std::vector<std::string> vals;
             std::tie(clause, vals) = problem_config.WhereClause();
@@ -551,7 +527,7 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
                 "WHERE ( " + clause + " ) ) , ? , ? , ? , ?);";
             // clang-format on
             vals.push_back(id);
-            vals.push_back(params.str());
+            vals.push_back(params);
             vals.push_back(arch);
             vals.push_back(std::to_string(num_cu));
             auto stmt = SQLite::Statement{sql, query, vals};
@@ -563,8 +539,10 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
                 return boost::none;
             }
         }
-        DbRecord record;
-        record.SetValues(id, values);
+        std::stringstream ss;
+        problem_config.Serialize(ss);
+        DbRecord record(ss.str());
+        record.SetValues(id, params);
         return record;
     }
 

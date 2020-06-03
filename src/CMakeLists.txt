@@ -443,14 +443,17 @@ if( MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
 endif()
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
-    list(APPEND MIOpen_Source ${PROJECT_BINARY_DIR}/include/miopen_kernels.h ${PROJECT_BINARY_DIR}/include/perf_db_init.h)
+    list(APPEND MIOpen_Source ${PROJECT_BINARY_DIR}/include/miopen_kernels.h)
+    if(MIOPEN_LINK_DB)
+    list(APPEND MIOpen_Source ${PROJECT_BINARY_DIR}/include/perf_db_init.h)
     add_custom_command(
         OUTPUT ${PROJECT_BINARY_DIR}/include/perf_db_init.h
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        DEPENDS addDbs src/kernels/miopen.db
-        COMMAND ${WINE_CMD} $<TARGET_FILE:addDbs> --sqlite --output ${PROJECT_BINARY_DIR}/include/perf_db_init.h src/kernels/miopen.db
+        DEPENDS addDbs kernels/miopen.db
+        COMMAND ${WINE_CMD} $<TARGET_FILE:addDbs> --arch gfx906-60 --sqlite --output ${PROJECT_BINARY_DIR}/include/perf_db_init.h /root/miopen.db
         COMMENT "Inlining PerfDb"
         )
+    endif()
     add_custom_command(
         OUTPUT ${PROJECT_BINARY_DIR}/include/miopen_kernels.h
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -658,4 +661,3 @@ install(FILES
  DESTINATION ${DATA_INSTALL_DIR}/db)
 
 rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})
-add_subdirectory(addDbs)

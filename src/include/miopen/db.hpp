@@ -28,6 +28,7 @@
 
 #include <miopen/db_record.hpp>
 #include <miopen/rank.hpp>
+#include <miopen/problem_description.hpp>
 
 #include <boost/core/explicit_operator_bool.hpp>
 #include <boost/none.hpp>

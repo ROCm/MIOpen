@@ -305,8 +305,6 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
             }
         }
         MIOPEN_LOG_T("Database created successfully");
-        ProblemDescription p;
-        DumpAll(p);
     }
     // Check fields for the tables
     if(!dbInvalid)
