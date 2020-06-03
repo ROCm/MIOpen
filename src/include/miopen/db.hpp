@@ -178,14 +178,16 @@ class MultiFileDb
                 const std::string& user_path,
                 const std::string& arch  = "",
                 const std::size_t num_cu = 0)
-        : _installed(GetDbInstance<TInstalled>(installed_path, true, arch, num_cu))
 #if !MIOPEN_DISABLE_USERDB
-          ,
+        : _installed(GetDbInstance<TInstalled>(installed_path, true, arch, num_cu)),
           _user(GetDbInstance<TUser>(user_path, false, arch, num_cu))
 #endif
     {
 #if MIOPEN_DISABLE_USERDB
         (void)(user_path);
+        (void)(installed_path);
+        (void)(arch);
+        (void)(num_cu);
 #endif
     }
 
@@ -193,11 +195,9 @@ class MultiFileDb
     auto FindRecord(const U&... args)
     {
 #if !MIOPEN_DISABLE_USERDB
-        auto users = _user.FindRecord(args...);
-#endif
+        auto users     = _user.FindRecord(args...);
         auto installed = _installed.FindRecord(args...);
 
-#if !MIOPEN_DISABLE_USERDB
         if(users && installed)
         {
             users->Merge(installed.value());
@@ -206,9 +206,12 @@ class MultiFileDb
 
         if(users)
             return users;
-#endif
 
         return installed;
+#else
+        sink{args...};
+        return boost::optional<DbRecord>{};
+#endif
     }
 
     template <bool merge = merge_records, std::enable_if_t<!merge>* = nullptr, typename... U>
@@ -218,7 +221,8 @@ class MultiFileDb
         auto users = _user.FindRecord(args...);
         return users ? users : _installed.FindRecord(args...);
 #else
-        return _installed.FindRecord(args...);
+        sink{args...};
+        return boost::optional<DbRecord>{};
 #endif
     }
 
@@ -272,8 +276,11 @@ class MultiFileDb
 #if !MIOPEN_DISABLE_USERDB
         if(_user.Load(args...))
             return true;
-#endif
         return _installed.Load(args...);
+#else
+        sink{args...};
+        return false;
+#endif
     }
 
     template <typename... U>
@@ -317,8 +324,8 @@ class MultiFileDb
         return GetDbInstance<TDb>(rank<1>{}, path, warn_if_unreadable, arch, num_cu);
     }
 
-    decltype(MultiFileDb::GetDbInstance<TInstalled>("", true, "", 0)) _installed;
 #if !MIOPEN_DISABLE_USERDB
+    decltype(MultiFileDb::GetDbInstance<TInstalled>("", true, "", 0)) _installed;
     decltype(MultiFileDb::GetDbInstance<TUser>("", false, "", 0)) _user;
 #endif
 };
