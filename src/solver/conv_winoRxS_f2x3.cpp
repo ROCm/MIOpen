@@ -331,7 +331,7 @@ inline void FillVarsFromConfig(int& H,
 }
 
 template <typename B, typename T, typename TW>
-int ConvBinWinogradRxSf2x3::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvBinWinogradRxSf2x3::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                   B bot_ocl_buf,
                                                   T top_ocl_buf,
                                                   TW wei_ocl_buf,
@@ -675,7 +675,7 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
               GetTypeSize(params.weights_data_type));
 
     result.invoker_factory = [=](std::vector<Kernel> kernels) {
-        return [=](Handle& handle, const boost::any& primitive_params) {
+        return [=](const Handle& handle, const boost::any& primitive_params) {
             const auto k        = handle.Run(kernels[0]);
             const auto data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_params);
             const auto tensors  = data_ctx.tensors;

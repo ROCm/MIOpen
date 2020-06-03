@@ -61,7 +61,19 @@ if(NOT DEFINED ENV{CXX} AND NOT DEFINED CMAKE_CXX_COMPILER AND NOT DEFINED CMAKE
     if(HCC)
         set(ENV{CXX} ${HCC})
     else()
-        message(FATAL_ERROR "Cannot find hcc")
+	message(STATUS "Cannot find hcc")
+	find_program(CLANGXX clang++
+	    PATHS
+	        /opt/rocm/llvm
+		/opt/rocm
+	    PATH_SUFFIXES
+	        bin
+	)
+	if(CLANGXX)
+	    set(ENV{CXX} ${CLANGXX})
+	else()
+            message(FATAL_ERROR "Cannot find clang++")
+	endif()
     endif()
 endif()
 
