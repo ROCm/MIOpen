@@ -1,5 +1,5 @@
-#ifndef CK_GRIDWISE_CONVOLUTION_IMPLICIT_GEMM_V4R4_FP16_BFP16_GNCHW_GKCYX_GNKHW_LDS_DOUBLE_BUFFER_HPP
-#define CK_GRIDWISE_CONVOLUTION_IMPLICIT_GEMM_V4R4_FP16_BFP16_GNCHW_GKCYX_GNKHW_LDS_DOUBLE_BUFFER_HPP
+#ifndef CK_GRIDWISE_CONVOLUTION_IMPLICIT_GEMM_V4R4_FP16_BFP16_FWD_GNCHW_GKCYX_GNKHW_LDS_DOUBLE_BUFFER_HPP
+#define CK_GRIDWISE_CONVOLUTION_IMPLICIT_GEMM_V4R4_FP16_BFP16_FWD_GNCHW_GKCYX_GNKHW_LDS_DOUBLE_BUFFER_HPP
 
 #include "common_header.hpp"
 #include "tensor_descriptor.hpp"
@@ -10,104 +10,6 @@
 #include "implicitgemm_params.hpp"
 
 namespace ck {
-
-template <ImplicitGemmDirection conv_dir, index_t GemmKPACK>
-struct make_vectorized_WeiDesc_Xdlops;
-
-template <index_t GemmKPACK>
-struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::ForwardData, GemmKPACK>
-{
-    template <typename WeiDesc>
-    __device__ constexpr auto get(WeiDesc&)
-    {
-        constexpr auto I0 = Number<0>{};
-        constexpr auto I1 = Number<1>{};
-        constexpr auto I2 = Number<2>{};
-        constexpr auto I3 = Number<3>{};
-        constexpr auto I4 = Number<4>{};
-
-        constexpr auto wei_g_k_c_y_x_global_desc = WeiDesc{};
-
-        constexpr index_t G = wei_g_k_c_y_x_global_desc.GetLength(I0);
-        constexpr index_t K = wei_g_k_c_y_x_global_desc.GetLength(I1);
-        constexpr index_t C = wei_g_k_c_y_x_global_desc.GetLength(I2);
-        constexpr index_t Y = wei_g_k_c_y_x_global_desc.GetLength(I3);
-        constexpr index_t X = wei_g_k_c_y_x_global_desc.GetLength(I4);
-
-        static_assert(C % GemmKPACK == 0, "C needs to be multiple of vectorized GemmKPACK");
-        constexpr index_t nonVectorizedC = C / GemmKPACK;
-
-        constexpr auto wei_g_k_epack_c_y_x_global_desc = transform_tensor_descriptor(
-            wei_g_k_c_y_x_global_desc,
-            make_tuple(PassThrough<G>{},
-                       PassThrough<K>{},
-                       UnMerge<Sequence<nonVectorizedC, GemmKPACK>>{},
-                       PassThrough<Y>{},
-                       PassThrough<X>{}),
-            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}, Sequence<4>{}),
-            make_tuple(
-                Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}, Sequence<4>{}, Sequence<5>{}));
-
-        constexpr auto wei_g_e_k_epack_global_desc = transform_tensor_descriptor(
-            wei_g_k_epack_c_y_x_global_desc,
-            make_tuple(PassThrough<G>{},
-                       Merge<Sequence<nonVectorizedC, Y, X>>{},
-                       PassThrough<K>{},
-                       PassThrough<GemmKPACK>{}),
-            make_tuple(Sequence<0>{}, Sequence<2, 4, 5>{}, Sequence<1>{}, Sequence<3>{}),
-            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
-
-        return wei_g_e_k_epack_global_desc;
-    }
-};
-
-template <index_t GemmKPACK>
-struct make_vectorized_WeiDesc_Xdlops<ImplicitGemmDirection::BackwardWeight, GemmKPACK>
-{
-    template <typename WeiDesc>
-    __device__ constexpr auto get(WeiDesc&)
-    {
-
-        constexpr auto I0 = Number<0>{};
-        constexpr auto I1 = Number<1>{};
-        constexpr auto I2 = Number<2>{};
-        constexpr auto I3 = Number<3>{};
-        constexpr auto I4 = Number<4>{};
-
-        constexpr auto wei_g_k_c_y_x_global_desc = WeiDesc{};
-
-        constexpr index_t G = wei_g_k_c_y_x_global_desc.GetLength(I0);
-        constexpr index_t K = wei_g_k_c_y_x_global_desc.GetLength(I1);
-        constexpr index_t C = wei_g_k_c_y_x_global_desc.GetLength(I2);
-        constexpr index_t Y = wei_g_k_c_y_x_global_desc.GetLength(I3);
-        constexpr index_t X = wei_g_k_c_y_x_global_desc.GetLength(I4);
-
-        static_assert(C % GemmKPACK == 0, "C needs to be multiple of vectorized GemmKPACK");
-        constexpr index_t nonVectorizedC = C / GemmKPACK;
-
-        constexpr auto wei_g_k_epack_c_y_x_global_desc = transform_tensor_descriptor(
-            wei_g_k_c_y_x_global_desc,
-            make_tuple(PassThrough<G>{},
-                       PassThrough<K>{},
-                       UnMerge<Sequence<nonVectorizedC, GemmKPACK>>{},
-                       PassThrough<Y>{},
-                       PassThrough<X>{}),
-            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}, Sequence<4>{}),
-            make_tuple(
-                Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}, Sequence<4>{}, Sequence<5>{}));
-
-        constexpr auto wei_g_e_k_epack_global_desc = transform_tensor_descriptor(
-            wei_g_k_epack_c_y_x_global_desc,
-            make_tuple(PassThrough<G>{},
-                       Merge<Sequence<nonVectorizedC, Y, X>>{},
-                       PassThrough<K>{},
-                       PassThrough<GemmKPACK>{}),
-            make_tuple(Sequence<0>{}, Sequence<2, 4, 5>{}, Sequence<1>{}, Sequence<3>{}),
-            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
-
-        return wei_g_e_k_epack_global_desc;
-    }
-};
 
 // B = merge(N, Ho, Wo)
 template <index_t GridSize,
@@ -147,7 +49,7 @@ template <index_t GridSize,
           index_t GemmBBlockCopyDstDataPerWrite_GemmKPACK,
           ImplicitGemmDirection conv_dir>
 struct
-    GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_gnchw_gkcyx_gnkhw_lds_double_buffer
+    GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_fp16_bfp16_fwd_gnchw_gkcyx_gnkhw_lds_double_buffer
 {
     __device__ void Run(const ABFloat* const __restrict__ p_in_global,
                         const ABFloat* const __restrict__ p_wei_global,
@@ -218,7 +120,7 @@ struct
             in_g_n_c_hip_wip_global_desc,
             make_tuple(PassThrough<G>{},
                        PassThrough<N>{},
-                       UnMerge<Sequence<nonVectorizedC, GemmKPACK>>{},
+                       UnMerge<Sequence<GemmKPACK, nonVectorizedC>>{},
                        Embed<Hip, Sequence<Y, Ho>, Sequence<ConvDilationH, ConvStrideH, 0>>{},
                        Embed<Wip, Sequence<X, Wo>, Sequence<ConvDilationW, ConvStrideW, 0>>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}, Sequence<4>{}),
@@ -234,7 +136,7 @@ struct
                        Merge<Sequence<nonVectorizedC, Y, X>>{},
                        Merge<Sequence<N, Ho, Wo>>{},
                        PassThrough<GemmKPACK>{}),
-            make_tuple(Sequence<0>{}, Sequence<2, 4, 6>{}, Sequence<1, 5, 7>{}, Sequence<3>{}),
+            make_tuple(Sequence<0>{}, Sequence<3, 4, 6>{}, Sequence<1, 5, 7>{}, Sequence<2>{}),
             make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
 
         constexpr auto in_gemmg_gemmk0_gemmk1_gemmn_gemmkpack_global_desc =
@@ -258,8 +160,25 @@ struct
 
         // weight tensor
         //   global mem
+        //
+        constexpr auto wei_g_k_epack_c_y_x_global_desc = transform_tensor_descriptor(
+            unfold_tensor_descriptor(wei_g_k_c_y_x_global_desc, I3, I4),
+            make_tuple(PassThrough<G>{},
+                       PassThrough<K>{},
+                       UnMerge<Sequence<GemmKPACK, nonVectorizedC>>{},
+                       PassThrough<Y * X>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2, 3>{}, Sequence<4>{}));
+
         constexpr auto wei_gemmg_gemmk_gemmm_gemmkpack_global_desc_tmp =
-            make_vectorized_WeiDesc_Xdlops<conv_dir, GemmKPACK>{}.get(wei_g_k_c_y_x_global_desc);
+            transform_tensor_descriptor(
+                wei_g_k_epack_c_y_x_global_desc,
+                make_tuple(PassThrough<G>{},
+                           Merge<Sequence<nonVectorizedC, Y * X>>{},
+                           PassThrough<K>{},
+                           PassThrough<GemmKPACK>{}),
+                make_tuple(Sequence<0>{}, Sequence<3, 4>{}, Sequence<1>{}, Sequence<2>{}),
+                make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
 
         constexpr auto wei_gemmg_gemmk0_gemmk1_gemmm_gemmkpack_global_desc =
             transform_tensor_descriptor(
@@ -337,7 +256,8 @@ struct
                 2,
                 GemmBBlockCopySrcDataPerRead_GemmN,
                 GemmBBlockCopyDstDataPerWrite_GemmKPACK,
-                CGlobalMemoryDataOperation>{};
+                CGlobalMemoryDataOperation,
+                MBlock1NBlock0>{};
 
         gridwise_batched_gemm.Run(p_wei_global, p_in_global, p_out_global);
     }

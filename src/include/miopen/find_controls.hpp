@@ -34,10 +34,15 @@ namespace miopen {
 
 namespace debug {
 
-/// Disable observation of FIND_ENFORCE env.vars for debugging/testing purposes.
+/// Disable MIOPEN_FIND_ENFORCE. Intended for debugging/testing purposes.
 /// Currently used during warm-up phase in MIOpenDriver.
 /// WARNING: This switch is not intended for use in multi-threaded applications.
 extern bool FindEnforceDisable;
+
+/// Disable MIOPEN_FIND_MODE. Intended for debugging/testing purposes.
+/// Currently used during warm-up phase in MIOpenDriver.
+/// WARNING: This switch is not intended for use in multi-threaded applications.
+extern bool FindModeDisable;
 
 } // namespace debug
 
@@ -112,6 +117,29 @@ class FindEnforce
 };
 
 solver::Id GetEnvFindOnlySolver();
+
+class FindMode
+{
+    public:
+    enum class Values
+    {
+        Begin_ = 1, // 0 is returned for non-numeric env.vars.
+        Normal = Begin_,
+        Fast,
+        Hybrid,
+        End_,
+        Default_ = Normal,
+    };
+
+    private:
+    Values value;
+
+    public:
+    FindMode();
+    bool IsFast() const { return value == Values::Fast && !debug::FindModeDisable; }
+    bool IsHybrid() const { return value == Values::Hybrid && !debug::FindModeDisable; }
+    friend std::ostream& operator<<(std::ostream&, const FindMode&);
+};
 
 } // namespace miopen
 

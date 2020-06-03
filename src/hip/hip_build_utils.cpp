@@ -34,16 +34,26 @@
 #include <string>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_ENFORCE_COV3)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_VERBOSE)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_DUMP)
+
+#define WORKAROUND_ISSUE_2514 1
 
 namespace miopen {
 
-namespace {
-
-inline bool IsHccCompiler()
+bool IsHccCompiler()
 {
     static const auto isHcc = EndsWith(MIOPEN_HIP_COMPILER, "hcc");
     return isHcc;
 }
+
+bool IsClangXXCompiler()
+{
+    static const auto isClangXX = EndsWith(MIOPEN_HIP_COMPILER, "clang++");
+    return isClangXX;
+}
+
+namespace {
 
 inline bool ProduceCoV3()
 {
@@ -92,32 +102,68 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     }
     src += "\nint main() {}\n";
     WriteFile(src, tmp_dir->path / filename);
+
+    auto env = std::string("");
     if(IsHccCompiler())
     {
         params += " -amdgpu-target=" + dev_name;
+        params += " " + GetCoV3Option(ProduceCoV3());
     }
-    else
+    else if(IsClangXXCompiler())
     {
-        params += " --amdgpu-target=" + dev_name;
+        if(params.find("-std=") == std::string::npos)
+            params += " --std=c++11";
         params += " --cuda-gpu-arch=" + dev_name;
-        params += " --cuda-device-only -c";
+        params += " --cuda-device-only";
+        params += " -c";
+        params += " -O3 ";
     }
-    params += " " + GetCoV3Option(ProduceCoV3());
 
     // params += " -Wno-unused-command-line-argument -c -fno-gpu-rdc -I. ";
     params += " -Wno-unused-command-line-argument -I. ";
     params += MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
+    if(IsHccCompiler())
+    {
+        env += std::string("KMOPTLLC=\"-mattr=+enable-ds128 -amdgpu-enable-global-sgpr-addr");
+        if(miopen::HipGetHccVersion() >= external_tool_version_t{2, 8, 0})
+            env += " --amdgpu-spill-vgpr-to-agpr=0";
+        env += '\"';
+    }
+    else if(IsClangXXCompiler())
+    {
+        params += " -mllvm -amdgpu-enable-global-sgpr-addr";
+        params += " -mllvm --amdgpu-spill-vgpr-to-agpr=0";
+    }
+
+#if MIOPEN_BUILD_DEV
+    if(miopen::IsEnabled(MIOPEN_DEBUG_HIP_VERBOSE{}))
+    {
+        params += " -v";
+    }
+
+    if(miopen::IsEnabled(MIOPEN_DEBUG_HIP_DUMP{}))
+    {
+        if(IsHccCompiler())
+        {
+            env += " KMDUMPISA=1";
+            env += " KMDUMPLLVM=1";
+        }
+        else if(IsClangXXCompiler())
+        {
+            params += " -save-temps";
+        }
+    }
+#endif
+
     params += " ";
     auto bin_file = tmp_dir->path / (filename + ".o");
+
     // compile
-    auto env = std::string("KMOPTLLC=\"-mattr=+enable-ds128 -amdgpu-enable-global-sgpr-addr");
-    if(miopen::HipGetHccVersion() >= external_tool_version_t{2, 8, 0})
-        env += " --amdgpu-spill-vgpr-to-agpr=0";
-    env += '\"';
     tmp_dir->Execute(env + std::string(" ") + MIOPEN_HIP_COMPILER,
                      params + filename + " -o " + bin_file.string());
     if(!boost::filesystem::exists(bin_file))
         MIOPEN_THROW(filename + " failed to compile");
+#ifdef EXTRACTKERNEL_BIN
     if(IsHccCompiler())
     {
         // call extract kernel
@@ -135,6 +181,32 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
         return hsaco->path();
     }
     else
+#endif
+#ifdef MIOPEN_OFFLOADBUNDLER_BIN
+        // clang-format off
+    if(IsClangXXCompiler())
+    {
+        // clang-format on
+
+        // call clang-offload-bundler
+        tmp_dir->Execute(MIOPEN_OFFLOADBUNDLER_BIN,
+                         "--type=o --targets=hip-amdgcn-amd-amdhsa-" + dev_name + " --inputs=" +
+                             bin_file.string() + " --outputs=" + bin_file.string() +
+                             ".hsaco --unbundle");
+
+        auto hsaco =
+            std::find_if(boost::filesystem::directory_iterator{tmp_dir->path},
+                         {},
+                         [](auto entry) { return (entry.path().extension() == ".hsaco"); });
+
+        if(hsaco == boost::filesystem::directory_iterator{})
+        {
+            MIOPEN_LOG_E("failed to find *.hsaco in " << hsaco->path().string());
+        }
+        return hsaco->path();
+    }
+    else
+#endif
     {
         return bin_file;
     }
@@ -168,6 +240,11 @@ static external_tool_version_t HipGetHccVersionImpl()
         if(miopen::exec::Run(path + " --version", nullptr, &out) != 0)
             break;
 
+#if WORKAROUND_ISSUE_2514
+        // If compiler is not hcc and mandatory prefix is not found,
+        // then assume hip-clang 3.2.0.
+        bool mandatory_prefix_found = false;
+#endif
         std::string line;
         while(!out.eof())
         {
@@ -177,6 +254,9 @@ static external_tool_version_t HipGetHccVersionImpl()
             if(begin == std::string::npos)
                 continue;
 
+#if WORKAROUND_ISSUE_2514
+            mandatory_prefix_found = true;
+#endif
             begin += mandatory_prefix.size();
             int v3, v2, v1 = v2 = v3 = -1;
             char c2, c1 = c2 = 'X';
@@ -194,6 +274,15 @@ static external_tool_version_t HipGetHccVersionImpl()
             }
             break;
         }
+#if WORKAROUND_ISSUE_2514
+        if(!mandatory_prefix_found && !IsHccCompiler())
+        {
+            MIOPEN_LOG_NQI2("Assuming 3.2.0 (hip-clang?)");
+            hcc_version.major = 3;
+            hcc_version.minor = 2;
+            hcc_version.patch = 0;
+        }
+#endif
     } while(false);
     MIOPEN_LOG_NQI("HCC base: " << hcc_version.major << '.' << hcc_version.minor << '.'
                                 << hcc_version.patch);
