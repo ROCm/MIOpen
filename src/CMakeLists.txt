@@ -176,6 +176,7 @@ set( MIOpen_Source
     include/miopen/readonlyramdb.hpp
     include/miopen/rnn_util.hpp
     include/miopen/bz2.hpp
+    include/miopen/comgr.hpp
     include/miopen/reducetensor.hpp
     include/miopen/reduce_common.hpp
     md_graph.cpp
@@ -488,6 +489,10 @@ if(MIOPEN_USE_SCGEMM)
 
 endif()
 
+if(MIOPEN_USE_COMGR)
+    list(APPEND MIOpen_Source comgr.cpp)
+endif()
+
 # build library
 add_library( MIOpen
     ${MIOpen_Source}
@@ -548,6 +553,11 @@ if(miopengemm_FOUND)
     list(APPEND PACKAGE_DEPENDS PACKAGE miopengemm)
     target_internal_library(MIOpen miopengemm)
     list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE miopengemm)
+endif()
+
+if(MIOPEN_USE_COMGR)
+    list(APPEND PACKAGE_DEPENDS PACKAGE amd_comgr)
+    target_internal_library(MIOpen amd_comgr)
 endif()
 
 if(rocblas_FOUND)
