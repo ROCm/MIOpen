@@ -143,11 +143,6 @@ struct
         constexpr index_t ConvDilationH = ConvDilations{}[0];
         constexpr index_t ConvDilationW = ConvDilations{}[1];
 
-        static_assert((Wo == 1 || (ConvStrideW == 1 || GemmBBlockCopySrcDataPerRead_GemmN == 1)) &&
-                          (X == 1 || ConvDilationW % GemmBBlockCopySrcDataPerRead_GemmN == 0),
-                      "wrong! aligment requirement for vectorized global load of input tensor will "
-                      "be violated");
-
         constexpr auto in_n_c_hip_wip_global_desc = transform_tensor_descriptor(
             in_n_c_hi_wi_global_desc,
             make_tuple(
@@ -262,7 +257,9 @@ struct
                 GemmBBlockCopySrcDataPerRead_GemmN,
                 GemmBBlockCopyDstDataPerWrite_GemmKPACK,
                 CGlobalMemoryDataOperation,
-                WorkgroupSchdOrder>{};
+                WorkgroupSchdOrder,
+                1,
+                ConvStrideW>{};
 
         gridwise_gemm.Run(p_wei_global, p_in_global, p_out_global);
     }

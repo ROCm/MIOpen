@@ -446,8 +446,6 @@ static inline bool IsValidXdlopsGemm(const int GemmMPerBlock,
     const auto WaveSize  = 64;
     const auto BlockSize = GemmNPerBlock * GemmMPerBlock / (GemmMPerWave * GemmNPerWave) * WaveSize;
 
-    // fail with blockSize >= 512
-    /// \todo fix the issue with blockSize >= 512
     if(BlockSize < 64 || BlockSize > 256)
         return false;
 
@@ -558,7 +556,7 @@ static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
 }
 
 template <typename BotBufType, typename TopBufType, typename WeiBufType>
-static inline int RunAndMeasureSolutionBase(miopen::Handle& profile_h,
+static inline int RunAndMeasureSolutionBase(const miopen::Handle& profile_h,
                                             BotBufType bot_buf,
                                             TopBufType top_buf,
                                             WeiBufType wei_buf,
