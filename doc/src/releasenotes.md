@@ -1,7 +1,7 @@
 
 ## MIOpen Release notes
 
-### 05/06/2020 [ 2.4.0 ]
+### 06/02/2020 [ 2.4.0 ]
 
 - This release contains new implementations of 3D convolutions using implicitGEMM, general performance improvements for convolutions, bug fixes, better versioning in directories, integration with the new rocclr, and dropout support in RNNs.
 
