@@ -38,7 +38,7 @@ Currently both the backends cannot be installed on the same system simultaneousl
 MIOpen provides an optional pre-compiled kernels package to reduce the startup latency. To install the kernels package for your GPU architecture, use the following command:
 
 ```
-apt-get install miopen-kernels-<arch>-<num cu>
+apt-get install miopenkernels-<arch>-<num cu>
 ```
 
 Where `<arch>` is the GPU architecture ( for example, `gfx900`, `gfx906` ) and `<num cu>` is the number of CUs available in the GPU (for example 56 or 64 etc). 
