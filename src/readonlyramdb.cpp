@@ -38,29 +38,29 @@ std::unordered_map<std::string, std::string> FindRamDb::find_db_init(std::string
 {
     // use the path to switch between arches
     return {{"3-32-32-3x3-32-30-30-100-0x0-1x1-1x1-0-NCHW-FP32-F",
-              "miopenConvolutionFwdAlgoDirect:ConvOclDirectFwd,0.07792,0,"
-              "miopenConvolutionFwdAlgoDirect,<unused>;miopenConvolutionFwdAlgoGEMM:gemm,2.736,"
-              "97200,rocBlas,<unused>;miopenConvolutionFwdAlgoWinograd:ConvBinWinogradRxSf2x3,0."
-              "07104,0,miopenConvolutionFwdAlgoWinograd,<unused>"},
+             "miopenConvolutionFwdAlgoDirect:ConvOclDirectFwd,0.07792,0,"
+             "miopenConvolutionFwdAlgoDirect,<unused>;miopenConvolutionFwdAlgoGEMM:gemm,2.736,"
+             "97200,rocBlas,<unused>;miopenConvolutionFwdAlgoWinograd:ConvBinWinogradRxSf2x3,0."
+             "07104,0,miopenConvolutionFwdAlgoWinograd,<unused>"},
             {"32-30-30-3x3-3-32-32-100-0x0-1x1-1x1-0-NCHW-FP32-B",
-              "miopenConvolutionBwdDataAlgoGEMM:gemm,3.904,97200,rocBlas,<unused>;"
-              "miopenConvolutionBwdDataAlgoWinograd:ConvBinWinogradRxS,0.13632,0,"
-              "miopenConvolutionBwdDataAlgoWinograd,<unused>;miopenConvolutionBwdDataAlgoDirect:"
-              "ConvOclDirectFwd,0.12496,0,miopenConvolutionBwdDataAlgoDirect,<unused>"},
+             "miopenConvolutionBwdDataAlgoGEMM:gemm,3.904,97200,rocBlas,<unused>;"
+             "miopenConvolutionBwdDataAlgoWinograd:ConvBinWinogradRxS,0.13632,0,"
+             "miopenConvolutionBwdDataAlgoWinograd,<unused>;miopenConvolutionBwdDataAlgoDirect:"
+             "ConvOclDirectFwd,0.12496,0,miopenConvolutionBwdDataAlgoDirect,<unused>"},
             {"32-30-30-3x3-3-32-32-100-0x0-1x1-1x1-0-NCHW-FP32-W",
-              "miopenConvolutionBwdWeightsAlgoWinograd:ConvWinograd3x3MultipassWrW<3-6>,0.31824,"
-              "22424576,miopenConvolutionBwdWeightsAlgoWinograd,"
-              "32x30x30x3x3x3x32x32x100xNCHWxFP32x0x0x1x1x1x1x1x0;"
-              "miopenConvolutionBwdWeightsAlgoGEMM:gemm,13.712,97200,rocBlas,<unused>;"
-              "miopenConvolutionBwdWeightsAlgoDirect:ConvOclBwdWrW53,0.0856,345600,"
-              "miopenConvolutionBwdWeightsAlgoDirect,<unused>"},
+             "miopenConvolutionBwdWeightsAlgoWinograd:ConvWinograd3x3MultipassWrW<3-6>,0.31824,"
+             "22424576,miopenConvolutionBwdWeightsAlgoWinograd,"
+             "32x30x30x3x3x3x32x32x100xNCHWxFP32x0x0x1x1x1x1x1x0;"
+             "miopenConvolutionBwdWeightsAlgoGEMM:gemm,13.712,97200,rocBlas,<unused>;"
+             "miopenConvolutionBwdWeightsAlgoDirect:ConvOclBwdWrW53,0.0856,345600,"
+             "miopenConvolutionBwdWeightsAlgoDirect,<unused>"},
             {"key0", "value0"},
             {"key1", "value1"}};
 }
 
 const std::unordered_map<std::string, std::string>& PerfRamDb::perf_db_init(std::string arch_cu)
 {
-  #include "perf_db_init.h"
+#include "perf_db_init.h"
 #if 0
     if(arch_cu == "gfx906-60")
     {
