@@ -379,14 +379,15 @@ inline static bool NextTwoPower(int& v)
     return false;
 }
 
-inline static bool NextFlag(bool& flag)
+template <bool L, bool H>
+inline static bool NextFlag(bool& v)
 {
-    if(flag)
+    if(v == H)
     {
-        flag = false;
+        v = L;
         return true;
     }
-    flag = true;
+    v = H;
     return false;
 }
 
@@ -414,6 +415,7 @@ inline static uint32_t GetReadWriteVectorSize(const int v)
     return v % 4 == 0 ? 4 : (v % 2 == 0 ? 2 : 1);
 }
 
+///\todo remove
 inline static uint32_t GetEPackLength(const ConvolutionContext& ctx, bool isXdlopsInvoked)
 {
     // Based on data type, Es are packed
@@ -433,6 +435,7 @@ inline static uint32_t GetEPackLength(const ConvolutionContext& ctx, bool isXdlo
     return EPACK;
 }
 
+///\todo remove
 static inline bool IsValidXdlopsGemm(const int GemmMPerBlock,
                                      const int GemmNPerBlock,
                                      const int GemmKPackedPerBlock, // packed
@@ -467,6 +470,43 @@ static inline bool IsValidXdlopsGemm(const int GemmMPerBlock,
     return (GemmMPerBlock % GemmMPerWave) == 0 && (GemmNPerBlock % GemmNPerWave) == 0;
 }
 
+static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
+                                              const int GemmMPerBlock,
+                                              const int GemmNPerBlock,
+                                              const int GemmKPerBlock,
+                                              const int GemmMPerWave,
+                                              const int GemmNPerWave,
+                                              const int GemmKPack)
+{
+    // unsupported xdlops-gemm
+    if(ctx.IsFp16() && GemmKPack % 4 != 0)
+        return false;
+    if(ctx.IsBfp16() && GemmKPack % 2 != 0)
+        return false;
+
+    if(GemmMPerWave == 16 && GemmNPerWave == 32)
+        return false;
+    if(GemmMPerWave == 32 && GemmNPerWave == 16)
+        return false;
+    if(GemmMPerWave == 8 && GemmNPerWave != 64)
+        return false;
+    if(GemmMPerWave == 4 && GemmNPerWave != 64)
+        return false;
+    if(GemmMPerWave == 32 && GemmNPerWave == 32 && GemmKPerBlock % 2 != 0)
+        return false;
+    if(GemmMPerWave == 16 && GemmNPerWave == 16 && GemmKPerBlock % 4 != 0)
+        return false;
+
+    const auto WaveSize = 64;
+    const auto BlockSize =
+        (GemmNPerBlock * GemmMPerBlock) / (GemmMPerWave * GemmNPerWave) * WaveSize;
+
+    if(BlockSize < 64 || BlockSize > 256)
+        return false;
+
+    return (GemmMPerBlock % GemmMPerWave) == 0 && (GemmNPerBlock % GemmNPerWave) == 0;
+}
+
 static inline bool
 IsValidGridGemmXdlops(const std::size_t GemmM, const std::size_t GemmN, const std::size_t GemmK)
 {
@@ -480,6 +520,7 @@ IsValidGridGemmXdlops(const std::size_t GemmM, const std::size_t GemmN, const st
            (GemmK * GemmN) % WaveSize == 0 && GemmN % 16 == 0 && GemmM % 4 == 0 && GemmK % 4 == 0;
 }
 
+///\todo remove
 static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
 {
     if(!IsXdlopsSupport(ctx))
@@ -531,6 +572,7 @@ static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
     return IsValidGridGemmXdlops(GemmM, GemmN, GemmK);
 }
 
+///\todo remove
 template <class PerformanceImplicitGemm_t>
 inline static auto GetPerformanceConfigBase(const ConvolutionContext& ctx)
 {
@@ -540,6 +582,7 @@ inline static auto GetPerformanceConfigBase(const ConvolutionContext& ctx)
     return pp;
 }
 
+///\todo remove
 static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
                                             const int BPerBlock,
                                             const int KPerBlock,

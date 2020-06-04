@@ -982,13 +982,13 @@ struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlop
 struct PerformanceImplicitGemmForwardV4R4Xdlops
     : Serializable<PerformanceImplicitGemmForwardV4R4Xdlops>
 {
-    int GemmMPerBlock; // 2^n[32..128]
-    int GemmNPerBlock; // 2^n[32..128]
-    int GemmKPerBlock; // 2^n[4..16]
+    int GemmMPerBlock;
+    int GemmNPerBlock;
+    int GemmKPerBlock;
     int GemmMPerWave;
     int GemmNPerWave;
-    int GemmG;     // 2*n[1..64]
-    int GemmKPack; // 2*n[1..8]
+    int GemmG;
+    int GemmKPack;
     bool GemmAThreadCopyMoreGemmK;
     bool GemmBThreadCopyMoreGemmKPack;
 
@@ -1030,6 +1030,9 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     bool operator==(const PerformanceImplicitGemmForwardV4R4Xdlops& other) const;
     std::string ToString() const;
 
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsWorkAroundedPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsFastPerformanceConfig(const ConvolutionContext& ctx) const;
     std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx) const;
     std::tuple<int, bool> CalculateBlockSize() const;
     std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
