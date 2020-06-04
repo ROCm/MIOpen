@@ -36,10 +36,10 @@
 
 namespace miopen {
 
-struct ReadonlyRamDb
+class ReadonlyRamDb
 {
     public:
-    ReadonlyRamDb(std::string path) : db_path(path) {}
+    ReadonlyRamDb(std::string path) : db_path(path), arch(""), num_cu(0) {}
     ReadonlyRamDb(std::string path, std::string _arch, std::size_t _num_cu)
         : db_path(path), arch(_arch), num_cu(_num_cu)
     {
@@ -117,10 +117,10 @@ struct FindRamDb : ReadonlyRamDb
     // Override GetCached, since FindRamDb does not have state or init overhead
     static FindRamDb& GetCached(const std::string& path,
                                 bool /*warn_if_unreadble*/,
-                                const std::string& arch,
-                                const std::size_t num_cu)
+                                const std::string& _arch,
+                                const std::size_t _num_cu)
     {
-        static auto inst = new FindRamDb{path, arch, num_cu};
+        static auto inst = new FindRamDb{path, _arch, _num_cu};
         return *inst;
     }
 };
@@ -137,10 +137,10 @@ struct PerfRamDb : ReadonlyRamDb
 
     static PerfRamDb& GetCached(const std::string& path,
                                 bool /*warn_if_unreadable*/,
-                                const std::string& arch,
-                                const std::size_t num_cu)
+                                const std::string& _arch,
+                                const std::size_t _num_cu)
     {
-        static auto inst = new PerfRamDb{path, arch, num_cu};
+        static auto inst = new PerfRamDb{path, _arch, _num_cu};
         return *inst;
     }
 };

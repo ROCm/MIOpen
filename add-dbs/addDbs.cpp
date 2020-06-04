@@ -126,6 +126,11 @@ int main(int argc, char* argv[])
             exit(-1);
         }
         std::ofstream ss(output_file.string(), std::ios::out);
+        if(!ss.good())
+        {
+            std::cerr << "Unable to open output file: " << output_file.string() << std::endl;
+            exit(-1);
+        }
         for(auto arch_idx = 0; arch_idx < arches.size(); arch_idx++)
         {
             auto kinder = arches[arch_idx];
@@ -176,6 +181,11 @@ int main(int argc, char* argv[])
 
         auto line = std::string{};
         std::ofstream ss(output_file.string(), std::ios::out);
+        if(!ss.good())
+        {
+            std::cerr << "Unable to open output file: " << output_file.string() << std::endl;
+            exit(-1);
+        }
         for(auto arch_idx = 0; arch_idx < arches.size(); arch_idx++)
         {
             auto kinder = arches[arch_idx];
