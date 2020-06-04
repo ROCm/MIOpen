@@ -25,8 +25,8 @@
  *******************************************************************************/
 .include "Conv_Winograd_v21_1_0_metadata.inc"
 
-KERNEL_PROLOG gfx9_fp16_dot2_edc_stride2
+KERNEL_PROLOG gfx9_fp16_pk_stride2
 
-.include "Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride2.inc"
+.include "Conv_Winograd_v21_1_0_gfx9_fp16_pk_stride2.inc"
 
-KERNEL_EPILOG gfx9_fp16_dot2_edc_stride2
+KERNEL_EPILOG gfx9_fp16_pk_stride2
