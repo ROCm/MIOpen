@@ -33,7 +33,7 @@
 #include <miopen/env.hpp>
 #include <miopen/perf_field.hpp>
 #include <miopen/readonlyramdb.hpp>
-
+#include <miopen/handle.hpp>
 #include <boost/optional.hpp>
 
 #include <functional>
@@ -43,7 +43,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DISABLE_FIND_DB)
 
 namespace miopen {
 
-struct Handle;
 struct NetworkConfig;
 
 template <class TDb>
@@ -88,9 +87,10 @@ class FindDbRecord_t
                                                : GetUserPath(handle)),
           installed_path(testing_find_db_path_override() ? *testing_find_db_path_override()
                                                          : GetInstalledPath(handle)),
-          db(boost::make_optional<DbTimer<TDb>>(testing_find_db_enabled &&
-                                                    !IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}),
-                                                DbTimer<TDb>{installed_path, path, "", 0}))
+          db(boost::make_optional<DbTimer<TDb>>(
+              testing_find_db_enabled && !IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}),
+              DbTimer<TDb>{
+                  installed_path, path, handle.GetDeviceName(), handle.GetMaxComputeUnits()}))
     {
         if(!db.is_initialized())
             return;
@@ -106,9 +106,9 @@ class FindDbRecord_t
 #if MIOPEN_DISABLE_USERDB
           db(boost::optional<DbTimer<TDb>>{})
 #else
-          db(boost::make_optional<DbTimer<TDb>>(testing_find_db_enabled &&
-                                                    !IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}),
-                                                DbTimer<TDb>{path, false, "", 0}))
+          db(boost::make_optional<DbTimer<TDb>>(
+              testing_find_db_enabled && !IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}),
+              DbTimer<TDb>{path, false, handle.GetDeviceName(), handle.GetMaxComputeUnits()}))
 #endif
     {
         if(!db.is_initialized())

@@ -2,7 +2,7 @@
 # 
 # MIT License
 # 
-# Copyright (c) 2017 Advanced Micro Devices, Inc.
+# Copyright (c) 2020 Advanced Micro Devices, Inc.
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -27,10 +27,6 @@
 set(ADD_KERNELS_SOURCE addDbs.cpp)
 add_executable(addDbs EXCLUDE_FROM_ALL ${ADD_KERNELS_SOURCE})
 target_link_libraries(addDbs Boost::filesystem ${SQLITE3_STATIC_LDFLAGS})
-# target_include_directories(addDbs PUBLIC ../src/include ../include ${CMAKE_BINARY_DIR}/include )
 target_include_directories(addDbs PUBLIC ${SQLITE3_STATIC_INCLUDE_DIRS})
-#     target_include_directories(MIOpen SYSTEM INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_INCLUDE_DIRS}>)
 target_compile_options(addDbs PUBLIC ${SQLITE3_STATIC_CFLAGS})
-#     target_compile_options(MIOpen INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_CFLAGS}>)
-#     target_link_libraries(MIOpen INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_LDFLAGS}>)
 clang_tidy_check(addDbs)

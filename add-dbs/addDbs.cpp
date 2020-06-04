@@ -75,7 +75,7 @@ std::vector<std::string> split(const std::string& s, char delim)
 int main(int argc, char* argv[])
 {
     bool is_sqlite = false;
-    boost::filesystem::path input_file;
+    std::vector<boost::filesystem::path> input_files;
     boost::filesystem::path output_file;
     std::string arch_cu;
 
@@ -92,18 +92,18 @@ int main(int argc, char* argv[])
         else if(cur_arg == "--arch")
             arch_cu = std::string(argv[++idx]);
         else
-            input_file = boost::filesystem::path(argv[idx]);
+            input_files.push_back(boost::filesystem::path(argv[idx]));
         ++idx;
     }
-    auto lst_arches = split(arch_cu, ';');
+    auto lst_arches = split(arch_cu, ':');
     std::vector<std::pair<std::string, std::string>> arches;
     for(auto& arch_cu : lst_arches)
     {
-        auto toks = split(arch_cu, '-');
+        auto toks = split(arch_cu, '_');
         if(toks.size() != 2)
         {
             std::cerr << "Invalid arch/cu pair " << arch_cu << std::endl;
-            std::cerr << "Expected format:  [arc]-[num_cu] " << std::endl;
+            std::cerr << "Expected format:  [arch]_[num_cu] " << std::endl;
             exit(-1);
         }
         auto arch   = toks[0];
@@ -112,6 +112,12 @@ int main(int argc, char* argv[])
     }
     if(is_sqlite)
     {
+        if(input_files.size() > 1)
+        {
+            std::cerr << "SQLite DBs require only one input file" << std::endl;
+            exit(-1);
+        }
+        auto input_file  = input_files[0];
         sqlite3* ptr_sql = nullptr;
         auto rc = sqlite3_open_v2(input_file.c_str(), &ptr_sql, SQLITE_OPEN_READONLY, nullptr);
         if(rc != SQLITE_OK)
@@ -139,7 +145,7 @@ int main(int argc, char* argv[])
 
             // ss << "if(arch_cu == \"" << arch << "-" << num_cu << "\") \n {\n static const
             // std::unordered_map<std::string, CacheItem> data \n\t {\n";
-            ss << "if(arch_cu == \"" << arch << "-" << num_cu << "\") \n {\n static const "
+            ss << "if(arch_cu == \"" << arch << "_" << num_cu << "\") \n {\n static const "
                                                                  "std::unordered_map<std::string, "
                                                                  "std::string> data \n\t {\n";
             // handle the joining comma
@@ -157,12 +163,69 @@ int main(int argc, char* argv[])
                     //    << "\"}}" << std::endl;
                     ss << "\t\t,{ \"" << config["key"] << "\", \"" << config["res"] << "\"}"
                        << std::endl;
-                // if(idx > 30000)
-                //     break;
             }
             ss << "};\n return data; \n}" << std::endl;
         }
         // default case for invalid/unknown arch-cu pair
+        ss << "else {\n static const std::unordered_map<std::string, std::string> data \n\t {\n}; "
+              "\n return data; \n}"
+           << std::endl;
+    }
+    else // plaintext
+    {
+
+        auto line = std::string{};
+        std::ofstream ss(output_file.string(), std::ios::out);
+        for(auto arch_idx = 0; arch_idx < arches.size(); arch_idx++)
+        {
+            auto kinder = arches[arch_idx];
+            auto arch   = kinder.first;
+            auto num_cu = kinder.second;
+
+            boost::filesystem::path input_file;
+            for(auto& tmp : input_files)
+            {
+                std::string str_file = boost::filesystem::basename(tmp);
+                if(str_file.find(arch + "_" + num_cu) != std::string::npos)
+                {
+                    input_file = tmp;
+                    break;
+                }
+            }
+            auto file = std::ifstream{input_file.string()};
+            if(!file)
+            {
+                std::cerr << "Unable to open input file: " << input_file.string() << std::endl;
+                exit(-1);
+            }
+            if(arch_idx != 0)
+                ss << " else ";
+
+            ss << "if(arch_cu == \"" << arch << "_" << num_cu << "\") \n {\n static const "
+                                                                 "std::unordered_map<std::string, "
+                                                                 "std::string> data \n\t {\n";
+            auto line_cnt = 0;
+            while(std::getline(file, line))
+            {
+                if(line.empty())
+                    continue;
+
+                const auto key_size = line.find('=');
+                const bool is_key   = (key_size != std::string::npos && key_size != 0);
+                if(!is_key)
+                {
+                    std::cerr << "Ill formed key: " << line << std::endl;
+                    continue;
+                }
+                const auto key      = line.substr(0, key_size);
+                const auto contents = line.substr(key_size + 1);
+                if(line_cnt != 0)
+                    ss << ",";
+                ss << "\t\t{ \"" << key << "\", \"" << contents << "\"}" << std::endl;
+                line_cnt++;
+            }
+            ss << "};\n return data; \n}" << std::endl;
+        }
         ss << "else {\n static const std::unordered_map<std::string, std::string> data \n\t {\n}; "
               "\n return data; \n}"
            << std::endl;

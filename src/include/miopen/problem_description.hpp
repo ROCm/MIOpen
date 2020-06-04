@@ -111,7 +111,6 @@ struct ProblemDescription
     int group_counts                   = 0;
 
     static std::string table_name() { return "config"; }
-    // TODO: fix repition
     template <class Self>
     static void Visit(Self&& self, std::function<void(int, std::string)> f)
     {

@@ -157,9 +157,9 @@ class StaticContainer
     }
 };
 #if MIOPEN_LINK_DB && MIOPEN_ENABLE_SQLITE
-using PerformanceDb = DbTimer<MultiFileDb<FindRamDb, SQLitePerfDb, true>>;
+using PerformanceDb = DbTimer<MultiFileDb<PerfRamDb, SQLitePerfDb, true>>;
 #elif MIOPEN_LINK_DB
-using PerformanceDb = DbTimer<MultiFileDb<FindRamDb, PlainTextDb, true>>;
+using PerformanceDb = DbTimer<MultiFileDb<PerfRamDb, PlainTextDb, true>>;
 #elif MIOPEN_ENABLE_SQLITE
 using PerformanceDb = DbTimer<MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>>;
 #else

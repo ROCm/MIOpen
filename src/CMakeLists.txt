@@ -445,14 +445,26 @@ endif()
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     list(APPEND MIOpen_Source ${PROJECT_BINARY_DIR}/include/miopen_kernels.h)
-    if(MIOPEN_LINK_DB)
-    list(APPEND MIOpen_Source ${PROJECT_BINARY_DIR}/include/perf_db_init.h)
+    if(MIOPEN_LINK_DB  STREQUAL "") 
+        message(INFO "NOT linking DBs")
+    else()
+        list(APPEND MIOpen_Source perframdb.cpp findramdb.cpp ${PROJECT_BINARY_DIR}/include/perf_db_init.h ${PROJECT_BINARY_DIR}/include/find_db_init.h)
     add_custom_command(
         OUTPUT ${PROJECT_BINARY_DIR}/include/perf_db_init.h
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         DEPENDS addDbs kernels/miopen.db
-        COMMAND ${WINE_CMD} $<TARGET_FILE:addDbs> --arch gfx906-60 --sqlite --output ${PROJECT_BINARY_DIR}/include/perf_db_init.h /root/miopen.db
+        COMMAND ${WINE_CMD} $<TARGET_FILE:addDbs> --arch ${MIOPEN_LINK_DB} --sqlite --output ${PROJECT_BINARY_DIR}/include/perf_db_init.h kernels/miopen.db
         COMMENT "Inlining PerfDb"
+        )
+
+    file(GLOB_RECURSE FIND_DB "kernels/*.${MIOPEN_BACKEND}.fdb.txt")
+    message(WARNING ${FIND_DB})
+    add_custom_command(
+        OUTPUT ${PROJECT_BINARY_DIR}/include/find_db_init.h
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        DEPENDS addDbs ${FIND_DB}
+        COMMAND ${WINE_CMD} $<TARGET_FILE:addDbs> --arch ${MIOPEN_LINK_DB} --plaintext --output ${PROJECT_BINARY_DIR}/include/find_db_init.h ${FIND_DB}
+        COMMENT "Inlining FindDb"
         )
     endif()
     add_custom_command(
@@ -653,6 +665,9 @@ rocm_export_targets(
 
 
 
+if(MIOPEN_LINK_DB  STREQUAL "") 
+    message(INFO "NOT installing DBs")
+else()
 # Install db files
 install(FILES
     kernels/miopen.db
@@ -669,5 +684,5 @@ install(FILES
     kernels/gfx906_64.OpenCL.fdb.txt
     kernels/gfx906_60.OpenCL.fdb.txt
  DESTINATION ${DATA_INSTALL_DIR}/db)
-
+endif()
 rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})

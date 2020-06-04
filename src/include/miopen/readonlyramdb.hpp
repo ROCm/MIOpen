@@ -35,11 +35,6 @@
 #include <sstream>
 
 namespace miopen {
-struct CacheItem
-{
-    int line;
-    std::string content;
-};
 
 struct ReadonlyRamDb
 {
@@ -112,19 +107,20 @@ struct ReadonlyRamDb
 
 struct FindRamDb : ReadonlyRamDb
 {
-    std::unordered_map<std::string, std::string> find_db_init(std::string /*path*/);
-    FindRamDb(std::string path) : ReadonlyRamDb(":memory: " + path)
+    const std::unordered_map<std::string, std::string>& find_db_init(std::string arch_cu);
+    FindRamDb(std::string path, std::string _arch, std::size_t _num_cu)
+        : ReadonlyRamDb(":memory:" + path, _arch, _num_cu)
     {
-        static const auto m = find_db_init(path);
+        static const auto m = find_db_init(arch + "_" + std::to_string(num_cu));
         cache               = m;
     }
     // Override GetCached, since FindRamDb does not have state or init overhead
     static FindRamDb& GetCached(const std::string& path,
                                 bool /*warn_if_unreadble*/,
-                                const std::string& /*arch*/,
-                                const std::size_t /*num_cu*/)
+                                const std::string& arch,
+                                const std::size_t num_cu)
     {
-        static auto inst = new FindRamDb{path};
+        static auto inst = new FindRamDb{path, arch, num_cu};
         return *inst;
     }
 };
@@ -135,7 +131,7 @@ struct PerfRamDb : ReadonlyRamDb
     PerfRamDb(std::string path, std::string _arch, std::size_t _num_cu)
         : ReadonlyRamDb(":memory:" + path, _arch, _num_cu)
     {
-        static const auto m = perf_db_init(arch + "-" + std::to_string(num_cu));
+        static const auto m = perf_db_init(arch + "_" + std::to_string(num_cu));
         cache               = m;
     }
 

@@ -56,32 +56,6 @@ const auto MIOPEN_SQL_BUSY_TIMEOUT_MS = 60000;
 template <class Derived>
 struct SQLiteSerializable
 {
-    static void Factory(Derived& d, std::unordered_map<std::string, std::string> kv)
-    {
-        Derived::Visit2(d, [&](std::string& value, const std::string& name) { value = kv[name]; });
-        Derived::Visit2(d,
-                        [&](int& value, const std::string& name) { value = std::stoi(kv[name]); });
-    }
-    std::vector<std::string> StrFieldNames()
-    {
-        std::vector<std::string> names;
-        Derived::Visit(static_cast<const Derived&>(*this),
-                       [&](const std::string& value, const std::string& name) {
-                           std::ignore = value;
-                           names.push_back(name);
-                       });
-        return names;
-    }
-    std::vector<std::string> IntFieldNames()
-    {
-        std::vector<std::string> names;
-        Derived::Visit(static_cast<const Derived&>(*this),
-                       [&](const int value, const std::string name) {
-                           std::ignore = value;
-                           names.push_back(name);
-                       });
-        return names;
-    }
     std::vector<std::string> FieldNames()
     {
         std::vector<std::string> names;
@@ -371,7 +345,7 @@ Derived& SQLiteBase<Derived>::GetCached(const std::string& path,
 class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
 {
     public:
-    static constexpr char const* MIOPEN_PERFDB_SCHEMA_VER = "1.0.0";
+    static constexpr char const* MIOPEN_PERFDB_SCHEMA_VER = "1.1.0";
     SQLitePerfDb(const std::string& filename_,
                  bool is_system,
                  const std::string& arch_,
