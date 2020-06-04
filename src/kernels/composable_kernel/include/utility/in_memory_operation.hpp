@@ -2,7 +2,10 @@
 #define CK_IN_MEMORY_OPERATION_AMD_HPP
 
 #include "float_type.hpp"
+
+#if CK_USE_AMD_BUFFER_ADDRESSING
 #include "amd_buffer_addressing.hpp"
+#endif
 
 namespace ck {
 
@@ -50,6 +53,7 @@ struct SetData
             *reinterpret_cast<const vector_t*>(&p_src[src_offset]);
     }
 
+#if CK_USE_AMD_BUFFER_ADDRESSING
     // buffer_load requires:
     //   1) p_src must be in global memory space, d_dst must be vgpr
     //   2) p_src to be a block-invariant pointer.
@@ -76,6 +80,7 @@ struct SetData
     {
         amd_buffer_store<T, DataPerAccess>(&(p_src[src_offset]), p_dst, dst_offset, 0);
     }
+#endif
 };
 
 template <typename T, index_t DataPerAccess>
@@ -91,6 +96,7 @@ struct AtomicAddData
                         *reinterpret_cast<const vector_t*>(&p_src[src_offset]));
     }
 
+#if CK_USE_AMD_BUFFER_ADDRESSING
     // buffer_atomic_add requires:
     //   1) p_src must be in vgpr space, d_dst must be global memory
     //   2) p_dst to be a block-invariant pointer.
@@ -103,6 +109,7 @@ struct AtomicAddData
     {
         amd_buffer_atomic_add<T, DataPerAccess>(&(p_src[src_offset]), p_dst, dst_offset, 0);
     }
+#endif
 };
 
 template <typename T,

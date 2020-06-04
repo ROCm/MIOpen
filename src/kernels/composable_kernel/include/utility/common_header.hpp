@@ -16,19 +16,14 @@
 #include "functional3.hpp"
 #include "functional4.hpp"
 #include "in_memory_operation.hpp"
+#include "synchronize.hpp"
 
 #if CK_USE_AMD_INLINE_ASM
 #include "amd_inline_asm.hpp"
 #endif
 
-#if CK_USE_AMD_BUFFER_ADDRESSING
-#include "amd_buffer_addressing.hpp"
-#endif
-
 #if CK_USE_AMD_XDLOPS
 #include "amd_xdlops.hpp"
 #endif
-
-#include "synchronize.hpp"
 
 #endif
