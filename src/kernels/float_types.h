@@ -35,14 +35,14 @@
 #define EIGHT 8
 
 #if MIOPEN_USE_FP16 == 1
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef HIP_PLATFORM_HCC
 #define FLOAT _Float16
 #define FLOAT_ACCUM float
 #else
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
 #define _FLOAT_ACCUM float
-#endif                 // __HIP_PLATFORM_HCC__
+#endif                 // HIP_PLATFORM_HCC
 #define SIZEOF_FLOAT 2 /* sizeof is unavailable for preprocessor */
 #ifndef HALF_MAX
 #define MAX_VAL 65504 /* max value */
@@ -52,13 +52,13 @@
 #endif // MIOPEN_USE_FP16
 
 #if MIOPEN_USE_FP32 == 1
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef HIP_PLATFORM_HCC
 #define FLOAT float
 #define FLOAT_ACCUM float
 #else
 #define _FLOAT float
 #define _FLOAT_ACCUM float
-#endif                 // __HIP_PLATFORM_HCC__
+#endif                 // HIP_PLATFORM_HCC
 #define SIZEOF_FLOAT 4 /* sizeof is unavailable for preprocessor */
 #ifndef FLT_MAX
 #define MAX_VAL 3.402823466e+38F /* max value */
@@ -68,7 +68,7 @@
 #endif // MIOPEN_USE_FP32
 
 #if MIOPEN_USE_BFP16 == 1
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef HIP_PLATFORM_HCC
 #define FLOAT ushort
 #define FLOAT_ACCUM float
 #else
@@ -80,7 +80,7 @@
 #endif                 // MIOPEN_USE_BFP16
 
 #if MIOPEN_USE_FP16 == 1
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef HIP_PLATFORM_HCC
 #define CVT_FLOAT2ACCUM(x) (static_cast<FLOAT_ACCUM>(x))
 #define CVT_ACCUM2FLOAT(x) (static_cast<FLOAT>(x))
 #else
@@ -90,7 +90,7 @@
 #endif // MIOPEN_USE_FP16
 
 #if MIOPEN_USE_FP32 == 1
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef HIP_PLATFORM_HCC
 #define CVT_FLOAT2ACCUM(x) (static_cast<FLOAT_ACCUM>(x))
 #define CVT_ACCUM2FLOAT(x) (static_cast<FLOAT>(x))
 #else
@@ -104,7 +104,7 @@
 #define CVT_ACCUM2FLOAT(x) float_to_bfloat16(x)
 #endif
 
-#ifndef __HIP_PLATFORM_HCC__
+#ifndef HIP_PLATFORM_HCC
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
 #endif
 
