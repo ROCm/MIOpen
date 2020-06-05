@@ -346,16 +346,20 @@ static void EvaluateInvokers(Handle& handle,
         {
             if(invoke_ctx.workSpace == nullptr)
             {
-                MIOPEN_LOG_I("Warning: skipping solver <"
-                             << sol.solver_id << "> due to no workspace provided ("
-                             << sol.workspce_sz << " required)");
+                MIOPEN_LOG_I("Warning: skipping solver <" << sol.solver_id
+                                                          << "> due to no workspace provided ("
+                                                          << sol.workspce_sz
+                                                          << " required)");
                 continue;
             }
-            if (invoke_ctx.workSpaceSize < sol.workspce_sz)
+            if(invoke_ctx.workSpaceSize < sol.workspce_sz)
             {
-                MIOPEN_LOG_I("Warning: skipping solver <"
-                             << sol.solver_id << "> due to insufficient workspace ("
-                             << invoke_ctx.workSpaceSize << " < " << sol.workspce_sz << ")");
+                MIOPEN_LOG_I("Warning: skipping solver <" << sol.solver_id
+                                                          << "> due to insufficient workspace ("
+                                                          << invoke_ctx.workSpaceSize
+                                                          << " < "
+                                                          << sol.workspce_sz
+                                                          << ")");
                 continue;
             }
         }
