@@ -1033,7 +1033,6 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx) const;
     bool IsWorkAroundedPerformanceConfig(const ConvolutionContext& ctx) const;
     bool IsFastPerformanceConfig(const ConvolutionContext& ctx) const;
-    std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx) const;
     std::tuple<int, bool> CalculateBlockSize() const;
     std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
     std::tuple<int, int, int, int, int, bool>
