@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,8 @@
 #include <miopen/generic_search.hpp>
 #include "implicitgemm_util.hpp"
 
-#define WORKAROUND_LARGE_WAVEWISE_GEMM_FOR_PAD_FAILURE 1
+// workaround for GPU seg-fault, due to compiler regression after ROCm2.9
+#define WORKAROUND_SWDEV_234958 1
 
 namespace miopen {
 namespace solver {
@@ -590,22 +591,28 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValidPerformanceConfig(
 bool PerformanceImplicitGemmForwardV4R4Xdlops::IsWorkAroundedPerformanceConfig(
     const ConvolutionContext& ctx) const
 {
-#if WORKAROUND_LARGE_WAVEWISE_GEMM_FOR_PAD_FAILURE
+    const auto y             = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+    const auto x             = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+    const auto ho            = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+    const auto wo            = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+    const auto conv_stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
+    const auto conv_stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
+    const auto conv_dilation_h =
+        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
+    const auto conv_dilation_w =
+        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
     const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
     const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
     const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
     const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
-    if((in_left_pad_h > 0 || in_right_pad_w > 0 || in_left_pad_w > 0 || in_right_pad_h > 0))
+#if WORKAROUND_SWDEV_234958
+    if(ho == 14 && wo == 14 && y == 3 && x == 3 && in_left_pad_h == 1 && in_left_pad_w == 1 &&
+       in_right_pad_h == 1 && in_right_pad_w == 1 && conv_stride_h == 1 && conv_stride_w == 1 &&
+       conv_dilation_h == 1 && conv_dilation_w == 1)
     {
-        if((GemmMPerBlock * GemmNPerBlock == 128 * 128 &&
-            GemmMPerWave * GemmNPerWave >= 128 * 64) ||
-           (GemmMPerBlock * GemmNPerBlock == 256 * 128 &&
-            GemmMPerWave * GemmNPerWave >= 128 * 64) ||
-           (GemmMPerBlock * GemmNPerBlock == 256 * 256 && GemmMPerWave * GemmNPerWave >= 128 * 128))
-        {
+        if(GemmMPerBlock == 64 && GemmNPerBlock == 256 && GemmMPerWave == 64 && GemmNPerWave == 64)
             return true;
-        }
     }
 #endif
 
@@ -633,18 +640,6 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastPerformanceConfig(
         int grid_size_max_blockwise_gemm =
             std::max((gemm_m * gemm_n) / (gcd(256, gemm_m) * gcd(128, gemm_n)),
                      (gemm_m * gemm_n) / (gcd(128, gemm_m) * gcd(256, gemm_n)));
-
-#if WORKAROUND_LARGE_WAVEWISE_GEMM_FOR_PAD_FAILURE
-        const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
-        const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
-        const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
-        const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
-
-        if((in_left_pad_h > 0 || in_right_pad_w > 0 || in_left_pad_w > 0 || in_right_pad_h > 0))
-        {
-            grid_size_max_blockwise_gemm = (gemm_m * gemm_n) / (128 * 128);
-        }
-#endif
 
         const float ratio = grid_size / float(grid_size_max_blockwise_gemm);
 
@@ -800,7 +795,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
     ConvSolution result;
     KernelInfo construction_parameters;
 
-    assert(IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)));
+    assert(config.IsValidPerformanceConfig(ctx) && (!config.IsWorkAroundedPerformanceConfig(ctx)));
 
     construction_parameters.kernel_file =
         "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw.cpp";
@@ -931,6 +926,13 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext
         return false;
 
     if(ctx.group_counts > 1)
+        return false;
+
+    // current index range cannot cover buffer larger than 2GB
+    const std::size_t max_index_range = std::size_t(2) * 1024 * 1204 * 1024;
+
+    if(ctx.bot_sz > max_index_range || ctx.weights_sz > max_index_range ||
+       ctx.top_sz > max_index_range)
         return false;
 
     int gemm_m       = 0;
