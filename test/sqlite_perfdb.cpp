@@ -150,6 +150,7 @@ struct ProblemData : SQLiteSerializable<ProblemData>
     {
         ProblemDescription::Visit(self.prob, f);
     }
+    void Serialize(std::ostream& stream) const { prob.Serialize(stream); }
 };
 
 struct SolverData

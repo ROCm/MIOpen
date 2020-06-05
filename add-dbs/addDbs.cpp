@@ -92,23 +92,23 @@ int main(int argc, char* argv[])
         else if(cur_arg == "--arch")
             arch_cu = std::string(argv[++idx]);
         else
-            input_files.push_back(boost::filesystem::path(argv[idx]));
+            input_files.emplace_back(boost::filesystem::path(argv[idx]));
         ++idx;
     }
     auto lst_arches = split(arch_cu, ':');
     std::vector<std::pair<std::string, std::string>> arches;
-    for(auto& arch_cu : lst_arches)
+    for(auto& ac : lst_arches)
     {
-        auto toks = split(arch_cu, '_');
+        auto toks = split(ac, '_');
         if(toks.size() != 2)
         {
-            std::cerr << "Invalid arch/cu pair " << arch_cu << std::endl;
+            std::cerr << "Invalid arch/cu pair " << ac << std::endl;
             std::cerr << "Expected format:  [arch]_[num_cu] " << std::endl;
             exit(-1);
         }
         auto arch   = toks[0];
         auto num_cu = toks[1];
-        arches.push_back({arch, num_cu});
+        arches.emplace_back(arch, num_cu);
     }
     if(is_sqlite)
     {
@@ -134,17 +134,24 @@ int main(int argc, char* argv[])
         for(auto arch_idx = 0; arch_idx < arches.size(); arch_idx++)
         {
             auto kinder = arches[arch_idx];
-            // std::stringstream ss;
-            auto arch         = kinder.first;
-            auto num_cu       = kinder.second;
-            std::string query = "select key, group_concat(solver || ':' || params, ';') as res "
-                                "from config inner join perf_db on config.id = perf_db.config "
-                                "where arch = '" +
-                                arch + "' and num_cu = " + num_cu + " group by key";
+            auto arch   = kinder.first;
+            auto num_cu = kinder.second;
+            std::stringstream query_ss;
+            query_ss << "select key, group_concat(solver || ':' || params, ';') as res "
+                        "from config inner join perf_db on config.id = perf_db.config "
+                        "where arch = '"
+                     << arch << "' and num_cu = " << num_cu << " group by key";
             result_type configs;
-            rc = sqlite3_exec(
-                ptr_sql, query.c_str(), find_callback, static_cast<void*>(&configs), nullptr);
-            assert(rc == SQLITE_OK);
+            rc = sqlite3_exec(ptr_sql,
+                              query_ss.str().c_str(),
+                              find_callback,
+                              static_cast<void*>(&configs),
+                              nullptr);
+            if(rc != SQLITE_OK)
+            {
+                std::cerr << "Unable to execute query: " << query_ss.str() << std::endl;
+                exit(-1);
+            }
             if(arch_idx != 0)
                 ss << " else ";
 
@@ -159,11 +166,11 @@ int main(int argc, char* argv[])
             //    << "\"}}" << std::endl;
             ss << "\t\t { \"" << configs[0]["key"] << "\", \"" << configs[0]["res"] << "\"}"
                << std::endl;
-            for(auto idx = 1; idx < configs.size(); idx++)
+            for(auto cfg_idx = 1; cfg_idx < configs.size(); cfg_idx++)
             {
-                auto config = configs[idx];
+                auto config = configs[cfg_idx];
                 if(!config["res"].empty())
-                    // ss << "\t\t,{ \"" << config["key"] << "\", { " << idx << ", \"" <<
+                    // ss << "\t\t,{ \"" << config["key"] << "\", { " << cfg_idx << ", \"" <<
                     // config["res"]
                     //    << "\"}}" << std::endl;
                     ss << "\t\t,{ \"" << config["key"] << "\", \"" << config["res"] << "\"}"
@@ -196,7 +203,9 @@ int main(int argc, char* argv[])
             for(auto& tmp : input_files)
             {
                 std::string str_file = boost::filesystem::basename(tmp);
-                if(str_file.find(arch + "_" + num_cu) != std::string::npos)
+                std::stringstream tmp_ss;
+                tmp_ss << arch << "_" << num_cu;
+                if(str_file.find(tmp_ss.str()) != std::string::npos)
                 {
                     input_file = tmp;
                     break;
