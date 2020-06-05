@@ -255,24 +255,6 @@ std::string PerformanceImplicitGemmForwardV4R4Xdlops::ToString() const
     return ss.str();
 }
 
-std::tuple<int, int, int>
-PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmSize(const ConvolutionContext& ctx) const
-{
-    const auto n  = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const auto k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    const auto c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-    const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-
-    const auto gemm_m       = k;
-    const auto gemm_n       = n * ho * wo;
-    const auto gemm_k_total = c * y * x;
-
-    return std::make_tuple(gemm_m, gemm_n, gemm_k_total);
-}
-
 std::tuple<int, bool> PerformanceImplicitGemmForwardV4R4Xdlops::CalculateBlockSize() const
 {
     int block_size = 0;
@@ -303,7 +285,8 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGridSize(const ConvolutionCon
         int gemm_m = 0;
         int gemm_n = 0;
 
-        std::tie(gemm_m, gemm_n, std::ignore) = CalculateGemmSize(ctx);
+        std::tie(gemm_m, gemm_n, std::ignore) =
+            ConvHipImplicitGemmForwardV4R4Xdlops::CalculateGemmSize(ctx);
 
         if(!(gemm_m % GemmMPerBlock == 0 && gemm_n % GemmNPerBlock == 0))
             MIOPEN_THROW("invalid performance parameter");
@@ -640,7 +623,8 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastPerformanceConfig(
         int gemm_m = 0;
         int gemm_n = 0;
 
-        std::tie(gemm_m, gemm_n, std::ignore) = CalculateGemmSize(ctx);
+        std::tie(gemm_m, gemm_n, std::ignore) =
+            ConvHipImplicitGemmForwardV4R4Xdlops::CalculateGemmSize(ctx);
 
         // this is grid size under current blockwise-GEMM
         const int grid_size = (gemm_m * gemm_n) / (GemmMPerBlock * GemmNPerBlock);
@@ -706,7 +690,8 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastPerformanceConfig(
         int gemm_m = 0;
         int gemm_n = 0;
 
-        std::tie(gemm_m, gemm_n, std::ignore) = CalculateGemmSize(ctx);
+        std::tie(gemm_m, gemm_n, std::ignore) =
+            ConvHipImplicitGemmForwardV4R4Xdlops::CalculateGemmSize(ctx);
 
         if(GemmMPerBlock > 2 * GemmNPerBlock)
         {
@@ -781,6 +766,24 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastPerformanceConfig(
     }
 
     return true;
+}
+
+std::tuple<int, int, int>
+ConvHipImplicitGemmForwardV4R4Xdlops::CalculateGemmSize(const ConvolutionContext& ctx)
+{
+    const auto n  = ConvolutionContextInterpreter::GetBatchN(ctx);
+    const auto k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
+    const auto c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
+    const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+    const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+    const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+    const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+
+    const auto gemm_m       = k;
+    const auto gemm_n       = n * ho * wo;
+    const auto gemm_k_total = c * y * x;
+
+    return std::make_tuple(gemm_m, gemm_n, gemm_k_total);
 }
 
 PerformanceImplicitGemmForwardV4R4Xdlops
@@ -915,6 +918,9 @@ int ConvHipImplicitGemmForwardV4R4Xdlops::RunAndMeasureSolution(miopen::Handle& 
 
 bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(!IsXdlopsSupport(ctx))
+        return false;
+
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 
@@ -927,7 +933,13 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext
     if(ctx.group_counts > 1)
         return false;
 
-    return IsApplicableXdlops(ctx);
+    int gemm_m       = 0;
+    int gemm_n       = 0;
+    int gemm_k_total = 0;
+
+    std::tie(gemm_m, gemm_n, gemm_k_total) = CalculateGemmSize(ctx);
+
+    return IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k_total);
 }
 
 bool ConvHipImplicitGemmForwardV4R4Xdlops::IsValidPerformanceConfig(
