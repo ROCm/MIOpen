@@ -292,7 +292,7 @@ pipeline {
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd)
                     }
                 }
-
+                /*
                 stage('Hip release Link DBs') {
                     agent{label rocmnode("gfx906")} 
                     environment{
@@ -302,6 +302,7 @@ pipeline {
                         buildJob('hcc', '-DMIOPEN_LINK_DB=gfx906_60:gfx906_64', image+'-link-db')
                     }
                 }
+                */
 
                 stage('gfx908 Hip debug') {
                     agent{ label rocmnode("gfx908") }
