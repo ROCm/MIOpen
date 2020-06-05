@@ -617,7 +617,7 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
     {
         kernel_postfix += "_fp16";
         const auto name = params.GetStream().GetDeviceName();
-        if(StartsWith(name, "gfx906"))
+        if(StartsWith(name, "gfx906") || StartsWith(name, "gfx908"))
             kernel_postfix += "_dot2_edc";
         else
             kernel_postfix += "_pk";
