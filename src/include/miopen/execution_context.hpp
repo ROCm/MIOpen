@@ -28,9 +28,7 @@
 
 #include <miopen/db_path.hpp>
 #include <miopen/handle.hpp>
-#if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
-#endif
 
 #include <boost/filesystem.hpp>
 
