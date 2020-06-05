@@ -942,7 +942,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     }
 
     if(perf_db.empty())
-        MIOPEN_THROW("Fwd Convolution cannot be executed due to incorrect params");
+        MIOPEN_THROW("Forward Convolution cannot be executed due to incorrect params");
 
     std::sort(begin(perf_db), end(perf_db));
 
@@ -2629,7 +2629,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     }
 
     if(perf_db.empty())
-        MIOPEN_THROW(miopenStatusUnknownError, "Backward Data Algo cannot be executed");
+        MIOPEN_THROW(miopenStatusUnknownError,
+                     "Backward Data Convolution cannot be executed due to incorrect params");
 
     std::sort(begin(perf_db), end(perf_db));
 
@@ -4070,7 +4071,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     }
 
     if(perf_db.empty())
-        MIOPEN_THROW("Bwd Weights Convolution cannot be executed due to incorrect params");
+        MIOPEN_THROW("Backward Weights Convolution cannot be executed due to incorrect params");
 
     std::sort(begin(perf_db), end(perf_db));
 
