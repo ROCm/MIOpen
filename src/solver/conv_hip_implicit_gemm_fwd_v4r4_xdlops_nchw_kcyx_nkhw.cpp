@@ -31,7 +31,7 @@
 #include "implicitgemm_util.hpp"
 
 // workaround for GPU seg-fault, due to compiler regression after ROCm2.9
-#define WORKAROUND_SWDEV_234958 1
+#define WORKAROUND_SWDEV_239555 1
 
 namespace miopen {
 namespace solver {
@@ -606,7 +606,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsWorkAroundedPerformanceConfig(
     const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
     const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
-#if WORKAROUND_SWDEV_234958
+#if WORKAROUND_SWDEV_239555
     if(ho == 14 && wo == 14 && y == 3 && x == 3 && in_left_pad_h == 1 && in_left_pad_w == 1 &&
        in_right_pad_h == 1 && in_right_pad_w == 1 && conv_stride_h == 1 && conv_stride_w == 1 &&
        conv_dilation_h == 1 && conv_dilation_w == 1)
