@@ -174,6 +174,7 @@ set( MIOpen_Source
     include/miopen/readonlyramdb.hpp
     include/miopen/rnn_util.hpp
     include/miopen/bz2.hpp
+    include/miopen/comgr.hpp
     md_graph.cpp
     mdg_expr.cpp
     conv/invokers/gcn_asm_1x1u.cpp
@@ -212,6 +213,7 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_v4.cpp
     solver/conv_hip_implicit_gemm_v4r1.cpp
     solver/conv_hip_implicit_gemm_v4r4.cpp
+    solver/conv_hip_implicit_gemm_wrw_weights_v4r4.cpp
     solver/conv_hip_implicit_gemm_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops_wrw_fp32.cpp
@@ -220,6 +222,7 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_bwd_data_v1r1.cpp
     solver/conv_hip_implicit_gemm_bwd_data_v4r1.cpp
     solver/conv_hip_implicit_gemm_bwd_data_v1r1_xdlops.cpp
+    solver/conv_hip_implicit_gemm_bwd_data_v4r1_xdlops.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops_fwd_fp32.cpp
     )
 
@@ -482,6 +485,10 @@ if(MIOPEN_USE_SCGEMM)
 
 endif()
 
+if(MIOPEN_USE_COMGR)
+    list(APPEND MIOpen_Source comgr.cpp)
+endif()
+
 # build library
 add_library( MIOpen
     ${MIOpen_Source}
@@ -542,6 +549,11 @@ if(miopengemm_FOUND)
     list(APPEND PACKAGE_DEPENDS PACKAGE miopengemm)
     target_internal_library(MIOpen miopengemm)
     list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE miopengemm)
+endif()
+
+if(MIOPEN_USE_COMGR)
+    list(APPEND PACKAGE_DEPENDS PACKAGE amd_comgr)
+    target_internal_library(MIOpen amd_comgr)
 endif()
 
 if(rocblas_FOUND)
@@ -623,7 +635,7 @@ rocm_export_targets(
   PREFIX ${MIOPEN_INSTALL_DIR}
   DEPENDS
     ${PACKAGE_DEPENDS}
-  PACKAGE_STATIC_DEPENDS
+  STATIC_DEPENDS
     ${PACKAGE_STATIC_DEPENDS}
 )
 
