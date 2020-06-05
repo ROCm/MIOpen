@@ -149,7 +149,6 @@ pipeline {
     }
     stages{
         // Run all static analysis tests
-        /*
         stage("Static checks"){
             parallel{
                 stage('Clang Tidy') {
@@ -191,13 +190,10 @@ pipeline {
                 }
             }
         }
-        */
         
         // Run quick fp32 tests
         stage("Fast full precision"){
             parallel{
-                /*
-
                stage('Clang Debug') {
                     agent{ label rocmnode("vega") }
                     steps{
@@ -232,14 +228,14 @@ pipeline {
                         buildJob('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', "", image, "")
                     }
                 }
-*/
+
                 /*stage('gfx908 GCC Debug') {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         buildJob('g++-5', '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', "", image, "")
                     }
                 }*/
-/*
+
                 stage('Hip Release') {
                     agent{ label rocmnode("vega") }
                     steps{
@@ -296,7 +292,6 @@ pipeline {
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd)
                     }
                 }
-                */
                 stage('Hip release Link DBs') {
                     agent{label rocmnode("vega20")} 
                     steps{
