@@ -37,24 +37,6 @@ namespace miopen {
 const std::unordered_map<std::string, std::string>& PerfRamDb::perf_db_init(std::string arch_cu)
 {
 #include "perf_db_init.h"
-#if 0
-    if(arch_cu == "gfx906-60")
-    {
-        static const std::unordered_map<std::string, std::string> data
-        {{"3-64-32-1x1-32-64-32-100-0x0-1x1-1x1-0-NCHW-FP32-F",
-              "ConvBinWinogradRxSf2x3:60;ConvOclDirectFwd1x1:1,64,1,1,0,2,4,4,0;ConvAsm1x1U:1,8,"
-              "1,64,3,1,1,1"},
-            {"3-32-32-1x1-32-32-32-100-0x0-1x1-1x1-0-NCHW-FP32-F",
-              "ConvBinWinogradRxSf2x3:58;ConvOclDirectFwd1x1:1,64,1,1,0,2,4,4,0;ConvAsm1x1U:1,8,"
-              "1,64,3,1,1,1"}};
-        return data;
-    }
-    else
-    {
-        static const std::unordered_map<std::string, std::string> data{};
-        return data;
-    }
-#endif
 }
 
 } // namespace miopen

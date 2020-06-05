@@ -24,6 +24,8 @@
 *
 *******************************************************************************/
 #pragma once
+#include <miopen/config.h>
+#if MIOPEN_ENABLE_SQLITE
 
 #include <miopen/db_record.hpp>
 #include <miopen/manage_ptr.hpp>
@@ -56,7 +58,7 @@ const auto MIOPEN_SQL_BUSY_TIMEOUT_MS = 60000;
 template <class Derived>
 struct SQLiteSerializable
 {
-    std::vector<std::string> FieldNames()
+    std::vector<std::string> FieldNames() const
     {
         std::vector<std::string> names;
         Derived::Visit(static_cast<const Derived&>(*this),
@@ -576,3 +578,4 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
     }
 };
 } // namespace miopen
+#endif

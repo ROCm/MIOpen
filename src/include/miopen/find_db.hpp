@@ -48,7 +48,7 @@ struct NetworkConfig;
 template <class TDb>
 class FindDbRecord_t;
 
-#if MIOPEN_LINK_DB
+#if MIOPEN_EMBED_DB
 using SystemFindDb = FindRamDb;
 #elif MIOPEN_DEBUG_FIND_DB_CACHING
 using SystemFindDb = ReadonlyRamDb;

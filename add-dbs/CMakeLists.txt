@@ -24,9 +24,9 @@
 # 
 ################################################################################
 
-set(ADD_KERNELS_SOURCE addDbs.cpp)
-add_executable(addDbs EXCLUDE_FROM_ALL ${ADD_KERNELS_SOURCE})
-target_link_libraries(addDbs Boost::filesystem ${SQLITE3_STATIC_LDFLAGS})
-target_include_directories(addDbs SYSTEM PUBLIC ${SQLITE3_STATIC_INCLUDE_DIRS})
-target_compile_options(addDbs PUBLIC ${SQLITE3_STATIC_CFLAGS})
-clang_tidy_check(addDbs)
+set(ADD_KERNELS_SOURCE embed.cpp)
+add_executable(embed EXCLUDE_FROM_ALL ${ADD_KERNELS_SOURCE})
+target_link_libraries(embed Boost::filesystem ${SQLITE3_STATIC_LDFLAGS})
+target_include_directories(embed SYSTEM PUBLIC ${SQLITE3_STATIC_INCLUDE_DIRS})
+target_compile_options(embed PUBLIC ${SQLITE3_STATIC_CFLAGS})
+clang_tidy_check(embed)

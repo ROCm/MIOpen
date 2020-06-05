@@ -69,7 +69,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <miopen/db.hpp>
 #endif
 
-#if MIOPEN_LINK_DB
+#if MIOPEN_EMBED_DB
 #include <miopen/readonlyramdb.hpp>
 #endif
 
@@ -156,10 +156,8 @@ class StaticContainer
         return data;
     }
 };
-#if MIOPEN_LINK_DB && MIOPEN_ENABLE_SQLITE
+#if MIOPEN_EMBED_DB && MIOPEN_ENABLE_SQLITE
 using PerformanceDb = DbTimer<MultiFileDb<PerfRamDb, SQLitePerfDb, true>>;
-#elif MIOPEN_LINK_DB
-using PerformanceDb = DbTimer<MultiFileDb<PerfRamDb, PlainTextDb, true>>;
 #elif MIOPEN_ENABLE_SQLITE
 using PerformanceDb = DbTimer<MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>>;
 #else

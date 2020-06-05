@@ -120,8 +120,8 @@ struct FindRamDb : ReadonlyRamDb
                                 const std::string& _arch,
                                 const std::size_t _num_cu)
     {
-        static auto inst = new FindRamDb{path, _arch, _num_cu};
-        return *inst;
+        static auto inst = FindRamDb{path, _arch, _num_cu};
+        return inst;
     }
 };
 
