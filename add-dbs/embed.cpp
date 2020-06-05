@@ -155,24 +155,16 @@ int main(int argc, char* argv[])
             if(arch_idx != 0)
                 ss << " else ";
 
-            // ss << "if(arch_cu == \"" << arch << "-" << num_cu << "\") \n {\n static const
-            // std::unordered_map<std::string, CacheItem> data \n\t {\n";
             ss << "if(arch_cu == \"" << arch << "_" << num_cu << "\") \n {\n static const "
                                                                  "std::unordered_map<std::string, "
                                                                  "std::string> data \n\t {\n";
             // handle the joining comma
-            // ss << "\t\t { \"" << configs[0]["key"] << "\", { " << 0 << ", \"" <<
-            // configs[0]["res"]
-            //    << "\"}}" << std::endl;
             ss << "\t\t { \"" << configs[0]["key"] << "\", \"" << configs[0]["res"] << "\"}"
                << std::endl;
             for(auto cfg_idx = 1; cfg_idx < configs.size(); cfg_idx++)
             {
                 auto config = configs[cfg_idx];
                 if(!config["res"].empty())
-                    // ss << "\t\t,{ \"" << config["key"] << "\", { " << cfg_idx << ", \"" <<
-                    // config["res"]
-                    //    << "\"}}" << std::endl;
                     ss << "\t\t,{ \"" << config["key"] << "\", \"" << config["res"] << "\"}"
                        << std::endl;
             }
