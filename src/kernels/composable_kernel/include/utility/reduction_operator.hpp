@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef _CK_REDUCTION_OPERATOR_HPP_
-#define _CK_REDUCTION_OPERATOR_HPP_ 1
+#ifndef CK_REDUCTION_OPERATOR_HPP
+#define CK_REDUCTION_OPERATOR_HPP
 
 #include <limits>
 #include "reduction_common.hpp"
@@ -36,54 +36,61 @@ namespace reduce {
 template <class T>
 struct Add
 {
-    using dataType                = T;
-    static constexpr auto zeroVal = static_cast<T>(0.0);
+    using dataType = T;
+
+    __device__ static T getZeroVal() { return type_convert<T>{}(0.0f); };
 
     __device__ constexpr T operator()(T a, T b) const { return a + b; }
+
     static constexpr bool indexable = false;
 };
 
 template <class T>
 struct Mul
 {
-    using dataType                = T;
-    static constexpr auto zeroVal = static_cast<T>(1.0);
+    using dataType = T;
+
+    __device__ static T getZeroVal() { return type_convert<T>{}(1.0f); };
 
     __device__ constexpr T operator()(T a, T b) const { return a * b; }
+
     static constexpr bool indexable = false;
 };
 
 template <class T>
 struct Max
 {
-    using dataType                = T;
-    static constexpr auto zeroVal = std::numeric_limits<T>::min();
+    using dataType = T;
 
-    __host__ __device__ constexpr T operator()(T a, T b) const { return a >= b ? a : b; }
+    __device__ static T getZeroVal() { return std::numeric_limits<T>::min(); };
+
+    __device__ constexpr T operator()(T a, T b) const { return a >= b ? a : b; }
+
     static constexpr bool indexable = true;
 };
-
-/*
-template <class T>
-struct Amax
-{
-    using dataType = T;
-    static constexpr auto zeroVal = static_cast<T>(0.0);
-
-    __device__ constexpr T operator()(T a, T b) const {
-        return std::abs<T>(a) >= std::abs<T>(b) ? std::abs<T>(a) : std::abs<T>(b) ;
-    }
-};
-*/
 
 template <class T>
 struct Min
 {
-    using dataType                = T;
-    static constexpr auto zeroVal = std::numeric_limits<T>::max();
+    using dataType = T;
+
+    __device__ static T getZeroVal() { return std::numeric_limits<T>::max(); };
 
     __device__ constexpr T operator()(T a, T b) const { return a <= b ? a : b; }
+
     static constexpr bool indexable = true;
+};
+
+template <>
+__device__ half Max<half>::getZeroVal()
+{
+    return type_convert<half>{}(std::numeric_limits<float>::min());
+};
+
+template <>
+__device__ half Min<half>::getZeroVal()
+{
+    return type_convert<half>{}(std::numeric_limits<float>::max());
 };
 
 }; // end of namespace reduce
@@ -97,7 +104,8 @@ struct reduce_binary_operator<T, CK_REDUCE_TENSOR_ADD>
     using opType   = reduce::Add<T>;
     using dataType = T;
 
-    static constexpr auto zeroVal   = reduce::Add<T>::zeroVal;
+    __device__ static T getZeroVal() { return reduce::Add<T>::getZeroVal(); };
+
     static constexpr bool indexable = reduce::Add<T>::indexable;
 };
 
@@ -107,7 +115,8 @@ struct reduce_binary_operator<T, CK_REDUCE_TENSOR_MUL>
     using opType   = reduce::Mul<T>;
     using dataType = T;
 
-    static constexpr auto zeroVal   = reduce::Mul<T>::zeroVal;
+    __device__ static T getZeroVal() { return reduce::Mul<T>::getZeroVal(); };
+
     static constexpr bool indexable = reduce::Mul<T>::indexable;
 };
 
@@ -117,7 +126,8 @@ struct reduce_binary_operator<T, CK_REDUCE_TENSOR_MIN>
     using opType   = reduce::Min<T>;
     using dataType = T;
 
-    static constexpr auto zeroVal   = reduce::Min<T>::zeroVal;
+    __device__ static T getZeroVal() { return reduce::Min<T>::getZeroVal(); };
+
     static constexpr bool indexable = reduce::Min<T>::indexable;
 };
 
@@ -127,7 +137,8 @@ struct reduce_binary_operator<T, CK_REDUCE_TENSOR_MAX>
     using opType   = reduce::Max<T>;
     using dataType = T;
 
-    static constexpr auto zeroVal   = reduce::Max<T>::zeroVal;
+    __device__ static T getZeroVal() { return reduce::Max<T>::getZeroVal(); };
+
     static constexpr bool indexable = reduce::Max<T>::indexable;
 };
 

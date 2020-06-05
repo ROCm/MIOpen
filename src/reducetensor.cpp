@@ -40,6 +40,8 @@
 
 namespace miopen {
 
+using namespace reduce;
+
 namespace detail {
 
 struct get_tunable_reduction_kernel_constants
@@ -537,9 +539,9 @@ void ReduceTensorDescriptor::ReduceTensor(Handle& handle,
         auto betaVal  = *as_float(beta);
         handle.AddKernel(
             algo_name, network_config, program_name, kernel_name1, vld_1, vgd_1, param)(
-            alphaVal,
+            type_convert<float>{}(alphaVal),
             A,
-            betaVal,
+            type_convert<float>{}(betaVal),
             C,
             static_cast<void*>(ws_buf1_global),
             static_cast<void*>(ws_buf2_global),
@@ -564,9 +566,9 @@ void ReduceTensorDescriptor::ReduceTensor(Handle& handle,
             auto betaVal  = *as_float(beta);
             handle.AddKernel(
                 algo_name, network_config, program_name, kernel_name2, vld_2, vgd_2, param)(
-                alphaVal,
+                type_convert<float>{}(alphaVal),
                 A,
-                betaVal,
+                type_convert<float>{}(betaVal),
                 C,
                 static_cast<void*>(ws_buf1_global),
                 static_cast<void*>(ws_buf2_global),

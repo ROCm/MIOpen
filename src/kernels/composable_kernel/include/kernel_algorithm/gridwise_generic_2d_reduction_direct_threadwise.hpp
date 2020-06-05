@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef _CK_GRIDWISE_GENERIC_2D_REDUCTION_DIRECT_THREADWISE_HPP_
-#define _CK_GRIDWISE_GENERIC_2D_REDUCTION_DIRECT_THREADWISE_HPP_
+#ifndef CK_GRIDWISE_GENERIC_2D_REDUCTION_DIRECT_THREADWISE_HPP
+#define CK_GRIDWISE_GENERIC_2D_REDUCTION_DIRECT_THREADWISE_HPP
 
 #include "float_type.hpp"
 #include "reduction_operator.hpp"
@@ -35,7 +35,7 @@
 
 namespace ck {
 
-template <index_t BlockSize,
+template <int BlockSize,
           typename srcDataType,
           typename dstDataType,
           typename src2dDesc,
@@ -45,14 +45,13 @@ template <index_t BlockSize,
           ckNanPropagation_t nanPropaOpt,
           ckReduceTensorIndices_t reduceIndicesOpt,
           int callId,
-          index_t GredThreadBufferLength>
+          int GredThreadBufferLength>
 struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
 {
     static constexpr bool indexable = reduce_binary_operator<compType, op>::indexable;
     static constexpr bool need_indices =
         indexable && (reduceIndicesOpt != CK_REDUCE_TENSOR_NO_INDICES);
-    static constexpr bool firstCall   = (callId == 0) ? true : false;
-    static constexpr compType zeroVal = reduce_binary_operator<compType, op>::zeroVal;
+    static constexpr bool firstCall = (callId == 0) ? true : false;
 
     static constexpr auto toReduceLength = src2dDesc::GetLength(Number<1>{});
 
@@ -60,36 +59,36 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
 
     __device__ void Run(srcDataType alpha,
                         const srcDataType* const __restrict__ p_src_global,
-                        srcDataType beta,
+                        dstDataType beta,
                         dstDataType* const __restrict__ p_dst_global,
                         int* const __restrict__ ws_indices_global,
                         int* const __restrict__ indices_global)
     {
         static_if<need_indices>{}([&](auto) {
-            static_if<firstCall>{}(
-                [&](auto) { RunImpl2(alpha, p_src_global, beta, p_dst_global, indices_global); })
-                .Else([&](auto) {
-                    RunImpl3(
-                        alpha, p_src_global, beta, p_dst_global, ws_indices_global, indices_global);
-                });
-        })
-            .Else([&](auto) { RunImpl1(alpha, p_src_global, beta, p_dst_global); });
+            static_if<firstCall>{}([&](auto) {
+                RunImpl2(alpha, p_src_global, beta, p_dst_global, indices_global);
+            }).Else([&](auto) {
+                RunImpl3(
+                    alpha, p_src_global, beta, p_dst_global, ws_indices_global, indices_global);
+            });
+        }).Else([&](auto) { RunImpl1(alpha, p_src_global, beta, p_dst_global); });
     };
 
     __device__ static void RunImpl1(srcDataType alpha,
                                     const srcDataType* const __restrict__ p_src_global,
-                                    srcDataType beta,
+                                    dstDataType beta,
                                     dstDataType* const __restrict__ p_dst_global)
     {
         compType p_in_thread_buffer[GredThreadBufferLength];
 
+        auto zeroVal       = opReduce::getZeroVal();
         compType accuValue = zeroVal;
 
         using ThreadBufferLengths = Sequence<1, GredThreadBufferLength>;
         constexpr auto ThreadBufferDesc =
             make_native_tensor_descriptor_packed(ThreadBufferLengths{});
 
-        index_t thread_global_1d_id = get_block_1d_id() * BlockSize + get_thread_local_1d_id();
+        int thread_global_1d_id = get_block_1d_id() * BlockSize + get_thread_local_1d_id();
 
         auto threadwise_src_load =
             ThreadwiseGenericTensorSliceCopy_v4r2<src2dDesc,
@@ -106,7 +105,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
         using threadwise_reduce =
             thread_reduce<compType, GredThreadBufferLength, opReduce, nanPropaOpt>;
 
-        for(index_t reducedLength = 0; reducedLength < toReduceLength;
+        for(int reducedLength = 0; reducedLength < toReduceLength;
             reducedLength += GredThreadBufferLength)
         {
             // zero the data on the Thread Buffer
@@ -128,7 +127,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
         if(alpha != type_convert<srcDataType>{}(1.0f))
             accuValue *= type_convert<compType>{}(alpha);
 
-        if(beta != type_convert<srcDataType>{}(0.0f))
+        if(beta != type_convert<dstDataType>{}(0.0f))
         {
             auto threadwise_dst_load =
                 ThreadwiseGenericTensorSliceCopy_v4r2<dst1dDesc,
@@ -147,8 +146,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
             threadwise_dst_load.Run(
                 p_dst_global, &priorDstValue, type_convert<dstDataType>{}(zeroVal));
 
-            accuValue +=
-                type_convert<compType>{}(priorDstValue * type_convert<dstDataType>{}(beta));
+            accuValue += type_convert<compType>{}(priorDstValue * beta);
         };
 
         auto threadwise_dst_store =
@@ -169,12 +167,13 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
 
     __device__ static void RunImpl2(srcDataType alpha,
                                     const srcDataType* const __restrict__ p_src_global,
-                                    srcDataType beta,
+                                    dstDataType beta,
                                     dstDataType* const __restrict__ p_dst_global,
                                     int* const __restrict__ indices_global)
     {
         compType p_in_thread_buffer[GredThreadBufferLength];
 
+        auto zeroVal       = opReduce::getZeroVal();
         compType accuValue = zeroVal;
         int accuIndex      = 0;
 
@@ -182,7 +181,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
         constexpr auto ThreadBufferDesc =
             make_native_tensor_descriptor_packed(ThreadBufferLengths{});
 
-        index_t thread_global_1d_id = get_block_1d_id() * BlockSize + get_thread_local_1d_id();
+        int thread_global_1d_id = get_block_1d_id() * BlockSize + get_thread_local_1d_id();
 
         auto threadwise_src_load =
             ThreadwiseGenericTensorSliceCopy_v4r2<src2dDesc,
@@ -224,7 +223,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
         if(alpha != type_convert<srcDataType>{}(1.0f))
             accuValue *= type_convert<compType>{}(alpha);
 
-        if(beta != type_convert<srcDataType>{}(0.0f))
+        if(beta != type_convert<dstDataType>{}(0.0f))
         {
             auto threadwise_dst_load =
                 ThreadwiseGenericTensorSliceCopy_v4r2<dst1dDesc,
@@ -243,8 +242,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
             threadwise_dst_load.Run(
                 p_dst_global, &priorDstValue, type_convert<dstDataType>{}(zeroVal));
 
-            accuValue +=
-                type_convert<compType>{}(priorDstValue * type_convert<dstDataType>{}(beta));
+            accuValue += type_convert<compType>{}(priorDstValue * beta);
         };
 
         auto threadwise_dst_store =
@@ -265,7 +263,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
 
     __device__ static void RunImpl3(srcDataType alpha,
                                     const srcDataType* const __restrict__ p_src_global,
-                                    srcDataType beta,
+                                    dstDataType beta,
                                     dstDataType* const __restrict__ p_dst_global,
                                     int* const __restrict__ ws_indices_global,
                                     int* const __restrict__ indices_global)
@@ -274,6 +272,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
         int thread_indices_buffer[GredThreadBufferLength]; // for store the indices from previous
                                                            // reduction
 
+        auto zeroVal       = opReduce::getZeroVal();
         compType accuValue = zeroVal;
         int accuIndex      = 0;
 
@@ -281,7 +280,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
         constexpr auto ThreadBufferDesc =
             make_native_tensor_descriptor_packed(ThreadBufferLengths{});
 
-        index_t thread_global_1d_id = get_block_1d_id() * BlockSize + get_thread_local_1d_id();
+        int thread_global_1d_id = get_block_1d_id() * BlockSize + get_thread_local_1d_id();
 
         auto threadwise_src_load =
             ThreadwiseGenericTensorSliceCopy_v4r2<src2dDesc,
@@ -322,7 +321,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
         if(alpha != type_convert<srcDataType>{}(1.0f))
             accuValue *= type_convert<compType>{}(alpha);
 
-        if(beta != type_convert<srcDataType>{}(0.0f))
+        if(beta != type_convert<dstDataType>{}(0.0f))
         {
             auto threadwise_dst_load =
                 ThreadwiseGenericTensorSliceCopy_v4r2<dst1dDesc,
@@ -341,8 +340,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
             threadwise_dst_load.Run(
                 p_dst_global, &priorDstValue, type_convert<dstDataType>{}(zeroVal));
 
-            accuValue +=
-                type_convert<compType>{}(priorDstValue * type_convert<dstDataType>{}(beta));
+            accuValue += type_convert<compType>{}(priorDstValue * beta);
         };
 
         auto threadwise_dst_store =

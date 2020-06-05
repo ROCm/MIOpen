@@ -29,13 +29,13 @@ constexpr ckNanPropagation_t nanPropaOpt = static_cast<ckNanPropagation_t>(CK_PA
 constexpr ckReduceTensorIndices_t reduceIndicesOpt =
     static_cast<ckReduceTensorIndices_t>(CK_PARAM_REDUCE_INDICES);
 
-constexpr index_t GredThreadBufferLength       = CK_PARAM_THREAD_BUFFER_LENGTH;        // tunable
-constexpr index_t GredAccessesPerThreadInBlock = CK_PARAM_ACCESSES_PER_THREAD_INBLOCK; // tunable
-constexpr index_t GredAccessesPerThreadInWarp  = CK_PARAM_ACCESSES_PER_THREAD_INWARP;  // tunable
+constexpr int GredThreadBufferLength       = CK_PARAM_THREAD_BUFFER_LENGTH;        // tunable
+constexpr int GredAccessesPerThreadInBlock = CK_PARAM_ACCESSES_PER_THREAD_INBLOCK; // tunable
+constexpr int GredAccessesPerThreadInWarp  = CK_PARAM_ACCESSES_PER_THREAD_INWARP;  // tunable
 
-extern "C" __global__ void gridwise_generic_reduce_1(srcDataType alpha,
+extern "C" __global__ void gridwise_generic_reduce_1(float alpha,
                                                      const void* p_src_global,
-                                                     srcDataType beta,
+                                                     float beta,
                                                      void* p_dst_global,
                                                      void* ws_buf1_global,
                                                      void* ws_buf2_global,
@@ -68,20 +68,18 @@ extern "C" __global__ void gridwise_generic_reduce_1(srcDataType alpha,
                                                                 GredAccessesPerThreadInBlock,
                                                                 GredAccessesPerThreadInWarp>{};
 
-    gridwise_reduce.Run(
-        alpha,
-        const_cast<const srcDataType* const __restrict__>(
-            static_cast<const srcDataType*>(p_src_global)),
-        beta,
-        const_cast<dstDataType* const __restrict__>(static_cast<dstDataType*>(p_dst_global)),
-        const_cast<void* const __restrict__>(ws_buf1_global),
-        const_cast<void* const __restrict__>(ws_buf2_global),
-        const_cast<void* const __restrict__>(indices_global));
+    gridwise_reduce.Run(alpha,
+                        const_cast<const void* const __restrict__>(p_src_global),
+                        beta,
+                        const_cast<void* const __restrict__>(p_dst_global),
+                        const_cast<void* const __restrict__>(ws_buf1_global),
+                        const_cast<void* const __restrict__>(ws_buf2_global),
+                        const_cast<void* const __restrict__>(indices_global));
 };
 
-extern "C" __global__ void gridwise_generic_reduce_2(srcDataType alpha,
+extern "C" __global__ void gridwise_generic_reduce_2(int alpha,
                                                      const void* p_src_global,
-                                                     srcDataType beta,
+                                                     int beta,
                                                      void* p_dst_global,
                                                      void* ws_buf1_global,
                                                      void* ws_buf2_global,
@@ -114,13 +112,11 @@ extern "C" __global__ void gridwise_generic_reduce_2(srcDataType alpha,
                                                                 GredAccessesPerThreadInBlock,
                                                                 GredAccessesPerThreadInWarp>{};
 
-    gridwise_reduce.Run_2(
-        alpha,
-        const_cast<const srcDataType* const __restrict__>(
-            static_cast<const srcDataType*>(p_src_global)),
-        beta,
-        const_cast<dstDataType* const __restrict__>(static_cast<dstDataType*>(p_dst_global)),
-        const_cast<void* const __restrict__>(ws_buf1_global),
-        const_cast<void* const __restrict__>(ws_buf2_global),
-        const_cast<void* const __restrict__>(indices_global));
+    gridwise_reduce.Run_2(alpha,
+                          const_cast<const void* const __restrict__>(p_src_global),
+                          beta,
+                          const_cast<void* const __restrict__>(p_dst_global),
+                          const_cast<void* const __restrict__>(ws_buf1_global),
+                          const_cast<void* const __restrict__>(ws_buf2_global),
+                          const_cast<void* const __restrict__>(indices_global));
 };

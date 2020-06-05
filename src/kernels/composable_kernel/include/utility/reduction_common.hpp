@@ -23,17 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef _CK_REDUCTION_COMMON_HPP_
-#define _CK_REDUCTION_COMMON_HPP_ 1
+#ifndef CK_REDUCTION_COMMON_HPP
+#define CK_REDUCTION_COMMON_HPP
 
-#include <half.hpp>
-
-using float16 = half_float::half;
+#include "config.hpp"
 
 // this enumerate should be synchronized with include/miopen/reduce_common.hpp
 namespace ck {
-typedef enum
-{
+typedef enum {
     CK_Reduce_DirectThreadWise = 1,
     CK_Reduce_DirectWarpWise   = 2,
     CK_Reduce_BlockWise        = 3,
@@ -41,8 +38,7 @@ typedef enum
 } ckReductionMethod_t; // end of namespace ck
 
 // this enumerate should be synchronized with include/miopen.h
-typedef enum
-{
+typedef enum {
     CK_REDUCE_TENSOR_ADD = 0,
     CK_REDUCE_TENSOR_MUL = 1,
     CK_REDUCE_TENSOR_MIN = 2,
@@ -54,23 +50,17 @@ typedef enum
     // CK_REDUCE_TENSOR_MUL_NO_ZEROS = 8,
 } ckReduceTensorOp_t;
 
-// this enumerate should be synchronized with include/miopen.h
-typedef enum
-{
+typedef enum {
     CK_NOT_PROPAGATE_NAN = 0,
     CK_PROPAGATE_NAN     = 1,
 } ckNanPropagation_t;
 
-// this enumerate should be synchronized with include/miopen.h
-typedef enum
-{
+typedef enum {
     CK_REDUCE_TENSOR_NO_INDICES        = 0,
     CK_REDUCE_TENSOR_FLATTENED_INDICES = 1,
 } ckReduceTensorIndices_t;
 
-// this enumerate should be synchronized with include/miopen.h
-typedef enum
-{
+typedef enum {
     CK_32BIT_INDICES = 0,
     CK_64BIT_INDICES = 1,
     CK_16BIT_INDICES = 2,
@@ -78,8 +68,7 @@ typedef enum
 } ckIndicesType_t;
 
 // this enumerate should be synchronized with include/miopen.h
-typedef enum
-{
+typedef enum {
     ckHalf     = 0,
     ckFloat    = 1,
     ckInt32    = 2,
@@ -95,7 +84,13 @@ struct get_type_from_type_enum;
 template <>
 struct get_type_from_type_enum<ckHalf>
 {
-    using type = float16;
+    using type = half;
+};
+
+template <>
+struct get_type_from_type_enum<ckBFloat16>
+{
+    using type = ushort;
 };
 
 template <>
@@ -117,4 +112,5 @@ struct get_type_from_type_enum<ckInt32>
 };
 
 }; // end of namespace ck
+
 #endif

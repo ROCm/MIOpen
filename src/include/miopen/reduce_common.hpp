@@ -26,6 +26,8 @@
 #ifndef GURAD_REDUCE_COMMON_HPP_
 #define GURAD_REDUCE_COMMON_HPP_ 1
 
+namespace reduce {
+
 typedef enum
 {
     Reduce_DirectThreadWise = 1,
@@ -33,5 +35,32 @@ typedef enum
     Reduce_BlockWise        = 3,
     Reduce_MultiBlock       = 4
 } ReductionMethod_t;
+
+// data type conversion
+template <typename T>
+struct type_convert
+{
+    template <typename X>
+    T operator()(X x) const
+    {
+        return static_cast<T>(x);
+    }
+};
+
+template <>
+template <>
+float type_convert<float>::operator()<half_float::half>(half_float::half x) const
+{
+    return half_float::half_cast<float>(x);
+};
+
+template <>
+template <>
+half_float::half type_convert<half_float::half>::operator()<float>(float x) const
+{
+    return half_float::half_cast<half_float::half>(x);
+};
+
+}; // end of namespace reduce
 
 #endif

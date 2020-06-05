@@ -46,7 +46,7 @@ __device__ void set_data(const T* p_src, index_t src_offset, T* p_dst, index_t d
     using vector_t = typename vector_type<T, DataPerAccess>::MemoryType;
 
 #if CK_USE_AMD_BUFFER_ADDRESSING
-    static_if<std::is_same<T, int>::value>{}([&](auto) {
+    static_if<!std::is_same<T, float>::value>{}([&](auto) {
         // TODO: use vector_type or AMD intrinsic copying for integer type
         // for (index_t i=0; i < DataPerAccess; i++)
         //     p_dst[dst_offset+i] = p_src[src_offset+i];

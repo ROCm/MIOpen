@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef _CK_GRIDWISE_GENERIC_2D_REDUCTION_MULTIBLOCK_HPP_
-#define _CK_GRIDWISE_GENERIC_2D_REDUCTION_MULTIBLOCK_HPP_
+#ifndef CK_GRIDWISE_GENERIC_2D_REDUCTION_MULTIBLOCK_HPP
+#define CK_GRIDWISE_GENERIC_2D_REDUCTION_MULTIBLOCK_HPP
 
 #include "float_type.hpp"
 #include "reduction_operator.hpp"
@@ -36,7 +36,7 @@
 
 namespace ck {
 
-template <index_t BlockSize,
+template <int BlockSize,
           typename srcDataType,
           typename dstDataType, // not used together with the beta input
           typename src2dDesc,
@@ -45,31 +45,30 @@ template <index_t BlockSize,
           ckReduceTensorOp_t op,
           ckNanPropagation_t nanPropaOpt,
           ckReduceTensorIndices_t reduceIndicesOpt,
-          index_t blkGroupSize, // The number of blocks for doing each reduction
-          index_t GredAccessesPerThreadInBlock>
+          int blkGroupSize, // The number of blocks for doing each reduction
+          int GredAccessesPerThreadInBlock>
 struct Gridwise_generic_reduction_xy_to_x_multiblock
 {
     static constexpr bool indexable = reduce_binary_operator<compType, op>::indexable;
     static constexpr bool need_indices =
         indexable && (reduceIndicesOpt != CK_REDUCE_TENSOR_NO_INDICES);
 
-    static constexpr compType zeroVal = reduce_binary_operator<compType, op>::zeroVal;
-    using opReduce                    = typename reduce_binary_operator<compType, op>::opType;
+    using opReduce = typename reduce_binary_operator<compType, op>::opType;
 
     __device__ void Run(srcDataType alpha,
                         const srcDataType* const __restrict__ p_src_global,
-                        srcDataType beta,
+                        dstDataType beta,
                         srcDataType* const __restrict__ workspace_global,
                         int* const __restrict__ ws_indices_global)
     {
-        static_if<need_indices>{}(
-            [&](auto) { RunImpl2(alpha, p_src_global, beta, workspace_global, ws_indices_global); })
-            .Else([&](auto) { RunImpl1(alpha, p_src_global, beta, workspace_global); });
+        static_if<need_indices>{}([&](auto) {
+            RunImpl2(alpha, p_src_global, beta, workspace_global, ws_indices_global);
+        }).Else([&](auto) { RunImpl1(alpha, p_src_global, beta, workspace_global); });
     };
 
     __device__ static void RunImpl1(srcDataType alpha,
                                     const srcDataType* const __restrict__ p_src_global,
-                                    srcDataType beta,
+                                    dstDataType beta,
                                     srcDataType* const __restrict__ workspace_global)
     {
         constexpr int BlockBufferSize = BlockSize * GredAccessesPerThreadInBlock;
@@ -78,14 +77,15 @@ struct Gridwise_generic_reduction_xy_to_x_multiblock
         __shared__ compType p_in_block_buffer[BlockBufferSize];
 
         // VGPR, only useful for thread 0
+        auto zeroVal       = opReduce::getZeroVal();
         compType accuValue = zeroVal;
 
-        const index_t thread_local_id = get_thread_local_1d_id();
-        const index_t block_global_id = get_block_1d_id();
-        const index_t blkgroup_id     = block_global_id / blkGroupSize;
-        const index_t block_local_id  = block_global_id % blkGroupSize;
+        const int thread_local_id = get_thread_local_1d_id();
+        const int block_global_id = get_block_1d_id();
+        const int blkgroup_id     = block_global_id / blkGroupSize;
+        const int block_local_id  = block_global_id % blkGroupSize;
 
-        const index_t reduceSizePerBlock =
+        const int reduceSizePerBlock =
             (((src2dDesc::GetLengths()[1] + blkGroupSize - 1) / blkGroupSize + BlockBufferSize -
               1) /
              BlockBufferSize) *
@@ -117,20 +117,20 @@ struct Gridwise_generic_reduction_xy_to_x_multiblock
                                                InMemoryDataOperation::Set>(
                 {blkgroup_id, block_local_id * reduceSizePerBlock}, {0, 0});
 
-        constexpr auto block_buff_mtx_desc = make_ConstantMatrixDescriptor_packed(
-            Number<GredAccessesPerThreadInBlock>{}, Number<BlockSize>{});
+        constexpr auto block_buff_2d_desc = make_native_tensor_descriptor_packed(
+            Sequence<GredAccessesPerThreadInBlock, BlockSize>{});
 
-        using blockwise_reduce = BlockwiseReduction_2d_block_buffer<decltype(block_buff_mtx_desc),
+        using blockwise_reduce = BlockwiseReduction_2d_block_buffer<decltype(block_buff_2d_desc),
                                                                     compType,
                                                                     true,
                                                                     opReduce,
                                                                     nanPropaOpt>;
 
-        const index_t toReduceBlocks = (reduceSizePerBlock + BlockSize - 1) / BlockSize;
+        const int toReduceBlocks = (reduceSizePerBlock + BlockSize - 1) / BlockSize;
 
         // static_assert( toReduceBlocks == 4, "Invalid toReduceBlocks!");
 
-        for(index_t reducedBlocks = 0; reducedBlocks < toReduceBlocks;
+        for(int reducedBlocks = 0; reducedBlocks < toReduceBlocks;
             reducedBlocks += GredAccessesPerThreadInBlock)
         {
             blockwise_reduce::set_buffer_value(p_in_block_buffer, zeroVal);
@@ -140,9 +140,9 @@ struct Gridwise_generic_reduction_xy_to_x_multiblock
                 p_src_global, p_in_block_buffer, type_convert<srcDataType>{}(zeroVal));
             __syncthreads();
 
-            index_t BlocksInOneOp = (reducedBlocks < toReduceBlocks - GredAccessesPerThreadInBlock)
-                                        ? GredAccessesPerThreadInBlock
-                                        : toReduceBlocks - reducedBlocks;
+            int BlocksInOneOp = (reducedBlocks < toReduceBlocks - GredAccessesPerThreadInBlock)
+                                    ? GredAccessesPerThreadInBlock
+                                    : toReduceBlocks - reducedBlocks;
             blockwise_reduce::reduce(p_in_block_buffer, BlocksInOneOp, accuValue);
 
             constexpr auto True = integral_constant<bool, true>{};
@@ -177,7 +177,7 @@ struct Gridwise_generic_reduction_xy_to_x_multiblock
 
     __device__ static void RunImpl2(srcDataType alpha,
                                     const srcDataType* const __restrict__ p_src_global,
-                                    srcDataType beta,
+                                    dstDataType beta,
                                     srcDataType* const __restrict__ workspace_global,
                                     int* const __restrict__ ws_indices_global)
     {
@@ -188,15 +188,16 @@ struct Gridwise_generic_reduction_xy_to_x_multiblock
         __shared__ int block_indices_buffer[BlockBufferSize];
 
         // VGPR, only useful for thread 0
+        auto zeroVal       = opReduce::getZeroVal();
         compType accuValue = zeroVal;
         int accuIndex      = 0;
 
-        const index_t thread_local_id = get_thread_local_1d_id();
-        const index_t block_global_id = get_block_1d_id();
-        const index_t blkgroup_id     = block_global_id / blkGroupSize;
-        const index_t block_local_id  = block_global_id % blkGroupSize;
+        const int thread_local_id = get_thread_local_1d_id();
+        const int block_global_id = get_block_1d_id();
+        const int blkgroup_id     = block_global_id / blkGroupSize;
+        const int block_local_id  = block_global_id % blkGroupSize;
 
-        const index_t reduceSizePerBlock =
+        const int reduceSizePerBlock =
             (((src2dDesc::GetLengths()[1] + blkGroupSize - 1) / blkGroupSize + BlockBufferSize -
               1) /
              BlockBufferSize) *
@@ -228,22 +229,22 @@ struct Gridwise_generic_reduction_xy_to_x_multiblock
                                                InMemoryDataOperation::Set>(
                 {blkgroup_id, block_local_id * reduceSizePerBlock}, {0, 0});
 
-        constexpr auto block_buff_mtx_desc = make_ConstantMatrixDescriptor_packed(
-            Number<GredAccessesPerThreadInBlock>{}, Number<BlockSize>{});
+        constexpr auto block_buff_2d_desc = make_native_tensor_descriptor_packed(
+            Sequence<GredAccessesPerThreadInBlock, BlockSize>{});
 
-        using blockwise_reduce = BlockwiseReduction_2d_block_buffer<decltype(block_buff_mtx_desc),
+        using blockwise_reduce = BlockwiseReduction_2d_block_buffer<decltype(block_buff_2d_desc),
                                                                     compType,
                                                                     true,
                                                                     opReduce,
                                                                     nanPropaOpt>;
 
-        const index_t toReduceBlocks = (reduceSizePerBlock + BlockSize - 1) / BlockSize;
+        const int toReduceBlocks = (reduceSizePerBlock + BlockSize - 1) / BlockSize;
 
         blockwise_reduce::set_buffer_value(p_in_block_buffer, zeroVal);
 
         int indexOffset = block_local_id * reduceSizePerBlock;
 
-        for(index_t reducedBlocks = 0; reducedBlocks < toReduceBlocks;
+        for(int reducedBlocks = 0; reducedBlocks < toReduceBlocks;
             reducedBlocks += GredAccessesPerThreadInBlock)
         {
             blockwise_reduce::init_buffer_indices(block_indices_buffer, indexOffset);
@@ -253,9 +254,9 @@ struct Gridwise_generic_reduction_xy_to_x_multiblock
                 p_src_global, p_in_block_buffer, type_convert<srcDataType>{}(zeroVal));
             __syncthreads();
 
-            index_t BlocksInOneOp = (reducedBlocks < toReduceBlocks - GredAccessesPerThreadInBlock)
-                                        ? GredAccessesPerThreadInBlock
-                                        : toReduceBlocks - reducedBlocks;
+            int BlocksInOneOp = (reducedBlocks < toReduceBlocks - GredAccessesPerThreadInBlock)
+                                    ? GredAccessesPerThreadInBlock
+                                    : toReduceBlocks - reducedBlocks;
 
             blockwise_reduce::reduce2(
                 p_in_block_buffer, block_indices_buffer, BlocksInOneOp, accuValue, accuIndex);

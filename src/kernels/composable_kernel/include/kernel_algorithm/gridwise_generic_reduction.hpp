@@ -23,9 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef _CK_GRIDWISE_GENERIC_REDUCTION_HPP_
-#define _CK_GRIDWISE_GENERIC_REDUCTION_HPP_
+#ifndef CK_GRIDWISE_GENERIC_REDUCTION_HPP
+#define CK_GRIDWISE_GENERIC_REDUCTION_HPP
 
+#include "float_type.hpp"
 #include "reduction_common.hpp"
 #include "reduction_operator.hpp"
 #include "reduction_kernel_simple_configurator.hpp"
@@ -39,8 +40,8 @@
 
 namespace ck {
 
-template <index_t BlkGroupSize,
-          index_t BlockSize,
+template <int BlkGroupSize,
+          int BlockSize,
           typename srcDataType,  // the type with which the data of the source tensor are stored
           typename dstDataType,  // the type with which the data of the destintion tensor are stored
           typename compType,     // the type used by the reduce binary operator
@@ -55,9 +56,9 @@ template <index_t BlkGroupSize,
           int reduceImpl_I,  // the enumerate value representing the ReductionMethod
           int nanPropaOpt_I, // the enumerate value representing the NanPropagation Option
           int reduceIndicesOpt_I, // the enumerate value representing the Reduce Indices Option
-          index_t GredThreadBufferLength,
-          index_t GredAccessesPerThreadInBlock,
-          index_t GredAccessesPerThreadInWarp>
+          int GredThreadBufferLength,
+          int GredAccessesPerThreadInBlock,
+          int GredAccessesPerThreadInWarp>
 struct Gridwise_generic_reduction
 {
     static constexpr auto reduceImpl = static_cast<ckReductionMethod_t>(reduceImpl_I);
@@ -80,7 +81,7 @@ struct Gridwise_generic_reduction
                                    dst1dDesc,
                                    srcDataType alpha,
                                    const srcDataType* const __restrict__ p_src_global,
-                                   srcDataType beta,
+                                   dstDataType beta,
                                    dstDataType* const __restrict__ p_dst_global,
                                    srcDataType* const __restrict__ ws_buf1_global,
                                    int* const __restrict__ ws_buf2_global,
@@ -116,7 +117,7 @@ struct Gridwise_generic_reduction
                                    dst1dDesc,
                                    srcDataType alpha,
                                    const srcDataType* const __restrict__ p_src_global,
-                                   srcDataType beta,
+                                   dstDataType beta,
                                    dstDataType* const __restrict__ p_dst_global,
                                    srcDataType* const __restrict__ ws_buf1_global,
                                    int* const __restrict__ ws_buf2_global,
@@ -153,7 +154,7 @@ struct Gridwise_generic_reduction
                                    dst1dDesc,
                                    srcDataType alpha,
                                    const srcDataType* const __restrict__ p_src_global,
-                                   srcDataType beta,
+                                   dstDataType beta,
                                    dstDataType* const __restrict__ p_dst_global,
                                    srcDataType* const __restrict__ ws_buf1_global,
                                    int* const __restrict__ ws_buf2_global,
@@ -172,6 +173,7 @@ struct Gridwise_generic_reduction
                 callId,
                 GredAccessesPerThreadInBlock>; // the callId indicates the first or second-time
                                                // reduction
+
             gridwise_reduce{}.Run(alpha,
                                   p_src_global,
                                   beta,
@@ -190,7 +192,7 @@ struct Gridwise_generic_reduction
                                    dst1dDesc,
                                    srcDataType alpha,
                                    const srcDataType* const __restrict__ p_src_global,
-                                   srcDataType beta,
+                                   dstDataType beta,
                                    dstDataType* const __restrict__ p_dst_global,
                                    srcDataType* const __restrict__ ws_buf1_global,
                                    int* const __restrict__ ws_buf2_global,
@@ -209,6 +211,7 @@ struct Gridwise_generic_reduction
                 BlkGroupSize,
                 GredAccessesPerThreadInBlock>; // MultiBlock case is not used by second-time
                                                // reduction
+
             gridwise_reduce{}.Run(alpha,
                                   p_src_global,
                                   beta,
@@ -218,13 +221,13 @@ struct Gridwise_generic_reduction
         };
     };
 
-    __device__ void Run(srcDataType alpha,
-                        const srcDataType* const __restrict__ p_src_global,
-                        srcDataType beta,
-                        dstDataType* const __restrict__ p_dst_global,
-                        void* const __restrict__ ws_buf1_global,
-                        void* const __restrict__ ws_buf2_global,
-                        void* const __restrict__ indices_global) const
+    __device__ static void Run(float alpha,
+                               const void* const __restrict__ p_src_global,
+                               float beta,
+                               void* const __restrict__ p_dst_global,
+                               void* const __restrict__ ws_buf1_global,
+                               void* const __restrict__ ws_buf2_global,
+                               void* const __restrict__ indices_global)
     {
         using srcLengths = decltype(srcDesc::GetLengths());
         using dstLengths = decltype(dstDesc::GetLengths());
@@ -234,9 +237,8 @@ struct Gridwise_generic_reduction
                           specDims::Size() == srcLengths::Size(),
                       "Wrong invariant and/or toReduce dimensions!");
 
-        static_assert(toReduceDims::Size() >= 1,
-                      "Wrong specification of source mode, We should at least to have one "
-                      "dimension to be reduced !!");
+        static_assert(toReduceDims::Size() >= 1, "Wrong specification of source mode, We should at "
+                                                 "least to have one dimension to be reduced !!");
 
         // The number of invariant dimensions can be zero if all dimension are to be reduced
         static_assert(
@@ -279,57 +281,59 @@ struct Gridwise_generic_reduction
 
             gridwise_2d_reduce{}.Run(two_dim_srcDesc,
                                      one_dim_dstDesc,
-                                     alpha,
-                                     p_src_global,
-                                     beta,
-                                     p_dst_global,
+                                     type_convert<srcDataType>{}(alpha),
+                                     const_cast<const srcDataType* const __restrict__>(
+                                         static_cast<const srcDataType*>(p_src_global)),
+                                     type_convert<dstDataType>{}(beta),
+                                     const_cast<dstDataType* const __restrict__>(
+                                         static_cast<dstDataType*>(p_dst_global)),
                                      static_cast<srcDataType* const __restrict__>(ws_buf1_global),
                                      static_cast<int* const __restrict__>(ws_buf2_global),
                                      static_cast<int* const __restrict__>(indices_global));
-        })
-            .Else([&](auto) { // All dimensions are to be reduced
-                constexpr auto one_dim_srcDesc = transform_tensor_descriptor(
-                    srcDesc{},
-                    make_1d_merge_transform_tuple(srcLengths{}),
-                    make_tuple(typename arithmetic_sequence_gen<0, srcLengths::Size(), 1>::type{}),
-                    make_tuple(Sequence<0>{}));
+        }).Else([&](auto) { // All dimensions are to be reduced
+            constexpr auto one_dim_srcDesc = transform_tensor_descriptor(
+                srcDesc{},
+                make_1d_merge_transform_tuple(srcLengths{}),
+                make_tuple(typename arithmetic_sequence_gen<0, srcLengths::Size(), 1>::type{}),
+                make_tuple(Sequence<0>{}));
 
-                constexpr auto dim_length = one_dim_srcDesc.GetLengths()[0];
+            constexpr auto dim_length = one_dim_srcDesc.GetLengths()[0];
 
-                constexpr auto two_dim_srcDesc =
-                    transform_tensor_descriptor(one_dim_srcDesc,
-                                                make_tuple(UnMerge<Sequence<1, dim_length>>{}),
-                                                make_tuple(Sequence<0>{}),
-                                                make_tuple(Sequence<0, 1>{}));
+            constexpr auto two_dim_srcDesc =
+                transform_tensor_descriptor(one_dim_srcDesc,
+                                            make_tuple(UnMerge<Sequence<1, dim_length>>{}),
+                                            make_tuple(Sequence<0>{}),
+                                            make_tuple(Sequence<0, 1>{}));
 
-                constexpr auto one_dim_dstDesc = transform_tensor_descriptor(
-                    dstDesc{},
-                    make_1d_merge_transform_tuple(dstLengths{}),
-                    make_tuple(typename arithmetic_sequence_gen<0, dstLengths::Size(), 1>::type{}),
-                    make_tuple(Sequence<0>{}));
+            constexpr auto one_dim_dstDesc = transform_tensor_descriptor(
+                dstDesc{},
+                make_1d_merge_transform_tuple(dstLengths{}),
+                make_tuple(typename arithmetic_sequence_gen<0, dstLengths::Size(), 1>::type{}),
+                make_tuple(Sequence<0>{}));
 
-                using gridwise_2d_reduce = Gridwise_generic_2d_reduction_wrapper<reduceImpl, 0>;
+            using gridwise_2d_reduce = Gridwise_generic_2d_reduction_wrapper<reduceImpl, 0>;
 
-                gridwise_2d_reduce{}.Run(
-                    two_dim_srcDesc,
-                    one_dim_dstDesc,
-                    alpha,
-                    p_src_global,
-                    beta,
-                    p_dst_global,
-                    static_cast<srcDataType* const __restrict__>(ws_buf1_global),
-                    static_cast<int* const __restrict__>(ws_buf2_global),
-                    static_cast<int* const __restrict__>(indices_global));
-            });
+            gridwise_2d_reduce{}.Run(two_dim_srcDesc,
+                                     one_dim_dstDesc,
+                                     type_convert<srcDataType>{}(alpha),
+                                     const_cast<const srcDataType* const __restrict__>(
+                                         static_cast<const srcDataType*>(p_src_global)),
+                                     type_convert<dstDataType>{}(beta),
+                                     const_cast<dstDataType* const __restrict__>(
+                                         static_cast<dstDataType*>(p_dst_global)),
+                                     static_cast<srcDataType* const __restrict__>(ws_buf1_global),
+                                     static_cast<int* const __restrict__>(ws_buf2_global),
+                                     static_cast<int* const __restrict__>(indices_global));
+        });
     };
 
-    __device__ void Run_2(srcDataType alpha,
-                          const srcDataType* const __restrict__ p_src_global,
-                          srcDataType beta,
-                          dstDataType* const __restrict__ p_dst_global,
-                          void* const __restrict__ ws_buf1_global,
-                          void* const __restrict__ ws_buf2_global,
-                          void* const __restrict__ indices_global) const
+    __device__ static void Run_2(float alpha,
+                                 const void* const __restrict__ p_src_global,
+                                 float beta,
+                                 void* const __restrict__ p_dst_global,
+                                 void* const __restrict__ ws_buf1_global,
+                                 void* const __restrict__ ws_buf2_global,
+                                 void* const __restrict__ indices_global)
     {
         using dstLengths = decltype(dstDesc::GetLengths());
 
@@ -354,16 +358,16 @@ struct Gridwise_generic_reduction
             gridwise_2d_reduce{}.Run(
                 workspace_2d_desc,
                 one_dim_dstDesc,
-                alpha,
+                type_convert<srcDataType>{}(alpha),
                 const_cast<const srcDataType* const __restrict__>(
                     static_cast<srcDataType*>(ws_buf1_global)),
-                beta,
-                p_dst_global,
+                type_convert<dstDataType>{}(beta),
+                const_cast<dstDataType* const __restrict__>(
+                    static_cast<dstDataType*>(p_dst_global)),
                 const_cast<dstDataType* const __restrict__>(static_cast<dstDataType*>(nullptr)),
                 static_cast<int* const __restrict__>(ws_buf2_global),
                 static_cast<int* const __restrict__>(indices_global));
-        })
-            .Else([&](auto) {});
+        }).Else([&](auto) {});
     };
 };
 
