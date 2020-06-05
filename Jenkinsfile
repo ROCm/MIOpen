@@ -293,6 +293,16 @@ pipeline {
                     }
                 }
 
+                stage('Hip release Link DBs') {
+                    agent{label rocmnode("gfx906")} 
+                    environment{
+                        env.MIOPEN_FIND_MODE=Hybrid
+                    }
+                    steps{
+                        buildJob??('hcc', '-DMIOPEN_LINK_DB=gfx906_60:gfx906_64', image+'-link-db')
+                    }
+                }
+
                 stage('gfx908 Hip debug') {
                     agent{ label rocmnode("gfx908") }
                     steps{
