@@ -295,7 +295,7 @@ pipeline {
                 stage('Hip release Link DBs') {
                     agent{label rocmnode("vega20")} 
                     steps{
-                        buildJob('hcc', '-DMIOPEN_LINK_DB=gfx906_60:gfx906_64', '', image+'-link-db', "/opt/rocm", "", "-e MIOPEN_FIND_MODE=Hybrid")
+                        buildJob('hcc', '-DMIOPEN_LINK_DB=gfx906_60', '', image+'-link-db', "/opt/rocm", "", "-e MIOPEN_FIND_MODE=Hybrid")
                     }
                 }
 
