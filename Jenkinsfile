@@ -57,7 +57,7 @@ def cmake_build(compiler, flags, env4make, prefixpath){
     }
 }
 
-def buildJob(compiler, flags, env4make, image, prefixpath="/opt/rocm", cmd = ""){
+def buildJob(compiler, flags, env4make, image, prefixpath="/opt/rocm", cmd = "", auxDockerOpts = ""){
 
         env.HSA_ENABLE_SDMA=0 
         checkout scm
@@ -70,7 +70,7 @@ def buildJob(compiler, flags, env4make, image, prefixpath="/opt/rocm", cmd = "")
         def retimage
         try {
             retimage = docker.build("${image}", dockerArgs + '.')
-            withDockerContainer(image: image, args: dockerOpts) {
+            withDockerContainer(image: image, args: "${dockerOpts} ${auxDockerOpts}"){
                 timeout(time: 5, unit: 'MINUTES')
                 {
                     sh 'PATH="/opt/rocm/opencl/bin/x86_64/:$PATH" clinfo'
@@ -149,6 +149,7 @@ pipeline {
     }
     stages{
         // Run all static analysis tests
+        /*
         stage("Static checks"){
             parallel{
                 stage('Clang Tidy') {
@@ -190,10 +191,13 @@ pipeline {
                 }
             }
         }
+        */
         
         // Run quick fp32 tests
         stage("Fast full precision"){
             parallel{
+                /*
+
                stage('Clang Debug') {
                     agent{ label rocmnode("vega") }
                     steps{
@@ -228,14 +232,14 @@ pipeline {
                         buildJob('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', "", image, "")
                     }
                 }
-
+*/
                 /*stage('gfx908 GCC Debug') {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         buildJob('g++-5', '-DMIOPEN_TEST_GFX908=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug', "", image, "")
                     }
                 }*/
-
+/*
                 stage('Hip Release') {
                     agent{ label rocmnode("vega") }
                     steps{
@@ -292,17 +296,13 @@ pipeline {
                         buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd)
                     }
                 }
-                /*
+                */
                 stage('Hip release Link DBs') {
-                    agent{label rocmnode("gfx906")} 
-                    environment{
-                        env.MIOPEN_FIND_MODE="Hybrid"
-                    }
+                    agent{label rocmnode("vega20")} 
                     steps{
-                        buildJob('hcc', '-DMIOPEN_LINK_DB=gfx906_60:gfx906_64', image+'-link-db')
+                        buildJob('hcc', '-DMIOPEN_LINK_DB=gfx906_60:gfx906_64', '', image+'-link-db', "/opt/rocm", "", "-e MIOPEN_FIND_MODE=Hybrid")
                     }
                 }
-                */
 
                 stage('gfx908 Hip debug') {
                     agent{ label rocmnode("gfx908") }
