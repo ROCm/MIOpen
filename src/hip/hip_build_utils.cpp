@@ -30,14 +30,13 @@
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
 #include <boost/optional.hpp>
+#include <hip/hip_version.h>
 #include <sstream>
 #include <string>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_ENFORCE_COV3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_VERBOSE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_DUMP)
-
-#define WORKAROUND_ISSUE_2514 1
 
 namespace miopen {
 
@@ -227,66 +226,58 @@ void bin_file_to_str(const boost::filesystem::path& file, std::string& buf)
 
 static external_tool_version_t HipCompilerVersionImpl()
 {
-    external_tool_version_t hcc_version;
-    const std::string path(MIOPEN_HIP_COMPILER);
-    const std::string mandatory_prefix("(based on HCC ");
-    do
+    external_tool_version_t version;
+    if(IsHccCompiler())
     {
-        if(path.empty() || !std::ifstream(path).good())
-            break;
-
-        std::stringstream out;
-        MIOPEN_LOG_NQI2("Running: " << '\'' << path << " --version" << '\'');
-        if(miopen::exec::Run(path + " --version", nullptr, &out) != 0)
-            break;
-
-#if WORKAROUND_ISSUE_2514
-        // If compiler is not hcc and mandatory prefix is not found,
-        // then assume hip-clang 3.2.0.
-        bool mandatory_prefix_found = false;
-#endif
-        std::string line;
-        while(!out.eof())
+        const std::string path(MIOPEN_HIP_COMPILER);
+        const std::string mandatory_prefix("(based on HCC ");
+        do
         {
-            std::getline(out, line);
-            MIOPEN_LOG_NQI2(line);
-            auto begin = line.find(mandatory_prefix);
-            if(begin == std::string::npos)
-                continue;
+            if(path.empty() || !std::ifstream(path).good())
+                break;
 
-#if WORKAROUND_ISSUE_2514
-            mandatory_prefix_found = true;
-#endif
-            begin += mandatory_prefix.size();
-            int v3, v2, v1 = v2 = v3 = -1;
-            char c2, c1 = c2 = 'X';
-            std::istringstream iss(line.substr(begin));
-            iss >> v1 >> c1 >> v2 >> c2 >> v3;
-            if(!iss.fail() && v1 >= 0)
+            std::stringstream out;
+            MIOPEN_LOG_NQI2("Running: " << '\'' << path << " --version" << '\'');
+            if(miopen::exec::Run(path + " --version", nullptr, &out) != 0)
+                break;
+
+            std::string line;
+            while(!out.eof())
             {
-                hcc_version.major = v1;
-                if(c1 == '.' && v2 >= 0)
+                std::getline(out, line);
+                MIOPEN_LOG_NQI2(line);
+                auto begin = line.find(mandatory_prefix);
+                if(begin == std::string::npos)
+                    continue;
+
+                begin += mandatory_prefix.size();
+                int v3, v2, v1 = v2 = v3 = -1;
+                char c2, c1 = c2 = 'X';
+                std::istringstream iss(line.substr(begin));
+                iss >> v1 >> c1 >> v2 >> c2 >> v3;
+                if(!iss.fail() && v1 >= 0)
                 {
-                    hcc_version.minor = v2;
-                    if(c2 == '.' && v3 >= 0)
-                        hcc_version.patch = v3;
+                    version.major = v1;
+                    if(c1 == '.' && v2 >= 0)
+                    {
+                        version.minor = v2;
+                        if(c2 == '.' && v3 >= 0)
+                            version.patch = v3;
+                    }
                 }
+                break;
             }
-            break;
-        }
-#if WORKAROUND_ISSUE_2514
-        if(!mandatory_prefix_found && !IsHccCompiler())
-        {
-            MIOPEN_LOG_NQI2("Assuming 3.2.0 (hip-clang?)");
-            hcc_version.major = 3;
-            hcc_version.minor = 2;
-            hcc_version.patch = 0;
-        }
-#endif
-    } while(false);
-    MIOPEN_LOG_NQI("HCC base: " << hcc_version.major << '.' << hcc_version.minor << '.'
-                                << hcc_version.patch);
-    return hcc_version;
+        } while(false);
+    }
+    else
+    {
+        MIOPEN_LOG_NQI2("Read version information from hip_version.h");
+        version.major = HIP_VERSION_MAJOR;
+        version.minor = HIP_VERSION_MINOR;
+        version.patch = HIP_VERSION_PATCH;
+    }
+    MIOPEN_LOG_NQI(version.major << '.' << version.minor << '.' << version.patch);
+    return version;
 }
 
 external_tool_version_t HipCompilerVersion()
