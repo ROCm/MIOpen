@@ -77,9 +77,9 @@ extern "C" __global__ void gridwise_generic_reduce_1(float alpha,
                         const_cast<void* const __restrict__>(indices_global));
 };
 
-extern "C" __global__ void gridwise_generic_reduce_2(int alpha,
+extern "C" __global__ void gridwise_generic_reduce_2(float alpha,
                                                      const void* p_src_global,
-                                                     int beta,
+                                                     float beta,
                                                      void* p_dst_global,
                                                      void* ws_buf1_global,
                                                      void* ws_buf2_global,
