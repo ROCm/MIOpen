@@ -29,7 +29,6 @@
 #include "../test/verify.hpp"
 #include "InputFlags.hpp"
 #include "driver.hpp"
-#include "mloNormHost.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include <algorithm>
@@ -140,7 +139,7 @@ int ReduceDriver<Tgpu, Tref>::GetandSetData()
         assert(toReduceDims[i] < inLengths.size());
 
     // set the lengths of the dimensions to be reduced to 1 to represent the output Tensor
-    for(int i = 0; i < toReduceDims.size(); i++)
+    for(int i                       = 0; i < toReduceDims.size(); i++)
         outLengths[toReduceDims[i]] = 1;
 
     SetTensorNd(inputTensor, inLengths, data_type);
@@ -173,7 +172,7 @@ int ReduceDriver<Tgpu, Tref>::AddCmdLineArgs()
                          'O',
                          "0,2",
                          "Reduction Operation Type (check the enum miopenReduceTensorOp_t in "
-                         "miopen.h) (Default=0(Add)",
+                         "miopen.h) (Default=0 to represent Add of two values)",
                          "int");
     inflags.AddInputFlag("CompType",
                          'C',
@@ -185,13 +184,13 @@ int ReduceDriver<Tgpu, Tref>::AddCmdLineArgs()
                          'N',
                          "0",
                          "Nan number propagation mode (check the miopenNanPropagation_t in "
-                         "miopen.h) (Default=0(No Nan propagation)",
+                         "miopen.h) (Default=0 to indicate no Nan propagation)",
                          "int");
     inflags.AddInputFlag("IndicesUsed",
                          'I',
                          "0,1",
-                         "If indices of the reduced values are outputed when Min/Max operation "
-                         "used (Default=0(No indices used)",
+                         "whether indices of the reduced values are outputed when Min/Max "
+                         "operation is used (Default=0 to indicate no indices outputed)",
                          "int");
 
     inflags.AddInputFlag("alpha", 'A', "1.0", "Scale factor for input tensor", "double");
@@ -417,8 +416,9 @@ int ReduceDriver<Tgpu, Tref>::VerifyForward()
 
     hostReduction.Run(alpha, in.data(), beta, outhost.data(), outhost_indices.data());
 
-    auto error           = miopen::rms_range(outhost, out);
-    const Tref tolerance = 1.5e-4; // 1e-6;
+    auto error = miopen::rms_range(outhost, out);
+    const Tref tolerance =
+        std::is_same<Tgpu, float16>::value ? static_cast<Tref>(2e-3) : static_cast<Tref>(1.5e-4);
     if(error > tolerance)
     {
         std::cout << "ReduceTensor() Failed: " << error << "\n";

@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_REDUCETENSOR_HPP_
-#define GUARD_MIOPEN_REDUCETENSOR_HPP_ 1
+#ifndef GUARD_MIOPEN_REDUCETENSOR_HPP
+#define GUARD_MIOPEN_REDUCETENSOR_HPP
 
 #include <miopen/common.hpp>
 #include <miopen/kernel.hpp>

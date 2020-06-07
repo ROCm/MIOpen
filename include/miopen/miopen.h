@@ -93,8 +93,7 @@ MIOPEN_DECLARE_OBJECT(miopenHandle);
 /*! @enum miopenStatus_t
  * Error codes that are returned by all MIOpen API calls.
  */
-typedef enum
-{
+typedef enum {
     miopenStatusSuccess        = 0, /*!< No errors */
     miopenStatusNotInitialized = 1, /*!< Data not initialized. */
     miopenStatusInvalidValue   = 2, /*!< Incorrect variable value. */
@@ -324,8 +323,7 @@ MIOPEN_DECLARE_OBJECT(miopenReduceTensorDescriptor);
  * @enum miopenDataType_t
  * MIOpen floating point datatypes. Both 32-bit and 16-bit floats are supported in MIOpen.
  */
-typedef enum
-{
+typedef enum {
     miopenHalf  = 0, /*!< 16-bit floating point (Fully supported) */
     miopenFloat = 1, /*!< 32-bit floating point (Fully supported) */
     miopenInt32 = 2, /*!< 32-bit int point (Partially supported) */
@@ -340,8 +338,7 @@ typedef enum
  * @enum miopenIndexType_t
  * MIOpen index datatypes.
  */
-typedef enum
-{
+typedef enum {
     miopenIndexUint8  = 0, /*!<  8-bit unsigned */
     miopenIndexUint16 = 1, /*!< 16-bit unsigned */
     miopenIndexUint32 = 2, /*!< 32-bit unsigned */
@@ -352,8 +349,7 @@ typedef enum
  * @enum miopenTensorOp_t
  * Element-wise tensor operation modes
  */
-typedef enum
-{
+typedef enum {
     miopenTensorOpAdd = 0, /*!< Add tensors element-wise */
     miopenTensorOpMul = 1, /*!< Multiply two tensors element-wise */
     miopenTensorOpMin = 2, /*!< Minimum of tensor element pairs */
@@ -364,8 +360,7 @@ typedef enum
  *  @enum miopenConvolutionMode_t
  * Convolution mode selection for convolution layer preference.
  */
-typedef enum
-{
+typedef enum {
     miopenConvolution = 0, /*!< Cross-Correlation convolution */
     miopenTranspose   = 1, /*!< Transpose convolutions -- deconvolution */
     miopenGroupConv   = 2, /*!< Deprecated Group convolution legacy, ToBe Removed */
@@ -376,8 +371,7 @@ typedef enum
  *  @enum miopenPaddingMode_t
  * Padding mode selection for convolution/Pooling layer preference
  */
-typedef enum
-{
+typedef enum {
     miopenPaddingDefault = 0, /*!< MIOPEN Default Padding */
     miopenPaddingSame    = 1, /*!< Tensorflow SAME Padding */
     miopenPaddingValid   = 2, /*!< Tensorflow VALID Padding */
@@ -387,8 +381,7 @@ typedef enum
  * @enum miopenPoolingMode_t
  * Pooling layer mode
  */
-typedef enum
-{
+typedef enum {
     miopenPoolingMax              = 0, /*!< Maximum pooling */
     miopenPoolingAverage          = 1, /*!< Average pooling */
     miopenPoolingAverageInclusive = 2, /*!< Inclusive Average pooling */
@@ -398,8 +391,7 @@ typedef enum
  * @enum miopenLRNMode_t
  * Local Response Normalization layer mode
  */
-typedef enum
-{
+typedef enum {
     miopenLRNWithinChannel = 0, /*!< Channel independent */
     miopenLRNCrossChannel  = 1, /*!< Cross Channel */
 } miopenLRNMode_t;
@@ -408,8 +400,7 @@ typedef enum
  * @enum miopenBatchNormMode_t
  * Batch Normalization layer mode
  */
-typedef enum
-{
+typedef enum {
     miopenBNPerActivation = 0, /*!< Element-wise normalization for fully connected layer */
     miopenBNSpatial       = 1, /*!< Mini-batch spatial normalization for convolutional layers */
 } miopenBatchNormMode_t;
@@ -418,8 +409,7 @@ typedef enum
  * @enum miopenActivationMode_t
  * Activation layer modes
  */
-typedef enum
-{
+typedef enum {
     miopenActivationPASTHRU  = 0, /*!< No activation, pass through the data */
     miopenActivationLOGISTIC = 1, /*!< Sigmoid function: \f$1 / (1 + e^{-x})\f$ */
     miopenActivationTANH     = 2, /*!< Tanh activation \f$ \beta * tanh( \alpha * x) \f$ */
@@ -440,8 +430,7 @@ typedef enum
  * @enum miopenSoftmaxAlgorithm_t
  * Softmax implementation algorithms
  */
-typedef enum
-{
+typedef enum {
     MIOPEN_SOFTMAX_FAST     = 0, /*!< straightforward softmax */
     MIOPEN_SOFTMAX_ACCURATE = 1, /*!< scaled softmax by maximum value in input domain */
     MIOPEN_SOFTMAX_LOG      = 2, /*!< log softmax */
@@ -451,8 +440,7 @@ typedef enum
  * @enum miopenSoftmaxMode_t
  * Softmax modes
  */
-typedef enum
-{
+typedef enum {
     MIOPEN_SOFTMAX_MODE_INSTANCE = 0, /*!< compute per image (N) across C, H, W */
     MIOPEN_SOFTMAX_MODE_CHANNEL =
         1, /*!< compute per spatial location (H, W) per image (N) across C */
@@ -462,8 +450,7 @@ typedef enum
  * @enum miopenReduceTensorOp_t
  * Tensor Reduction operation types
  */
-typedef enum
-{
+typedef enum {
     MIOPEN_REDUCE_TENSOR_ADD = 0, /*!< the operation is adding the values of the reduced elements */
     MIOPEN_REDUCE_TENSOR_MUL =
         1, /*!< the operation is multiplying the values of the reduced elements */
@@ -487,8 +474,7 @@ typedef enum
  * @enum miopenReduceTensorOp_t
  * Nan numbers propagation modes
  */
-typedef enum
-{
+typedef enum {
     MIOPEN_NOT_PROPAGATE_NAN = 0, /*!< does not propagate Nan number */
     MIOPEN_PROPAGATE_NAN     = 1, /*!< propagate the Nan number by the Reduction operation */
 } miopenNanPropagation_t;
@@ -497,8 +483,7 @@ typedef enum
  * @enum miopenReduceTensorIndices_t
  * Reduction Indices computation modes
  */
-typedef enum
-{
+typedef enum {
     MIOPEN_REDUCE_TENSOR_NO_INDICES        = 0, /*!< Does not compuate indices */
     MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES = 1, /*!< Compute the relative, flatted indices */
 } miopenReduceTensorIndices_t;
@@ -507,8 +492,7 @@ typedef enum
  * @enum miopenIndicesType_t
  * Reduction Indices types
  */
-typedef enum
-{
+typedef enum {
     MIOPEN_32BIT_INDICES = 0, /*!< unsigned integer indices */
     MIOPEN_64BIT_INDICES = 1, /*!< unsigned long indices */
     MIOPEN_16BIT_INDICES = 2, /*!< unsigned short indices */
@@ -919,8 +903,7 @@ miopenDestroyConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc);
  * Convolutional algorithm mode for forward propagation. MIOpen use cross-correlation for its
  * convolution implementation.
  */
-typedef enum
-{
+typedef enum {
     miopenConvolutionFwdAlgoGEMM         = 0, /*!< GEMM variant */
     miopenConvolutionFwdAlgoDirect       = 1, /*!< Direct convolutions */
     miopenConvolutionFwdAlgoFFT          = 2, /*!< Fast Fourier Transform indirect convolutions */
@@ -932,8 +915,7 @@ typedef enum
 /*! @enum miopenConvBwdWeightsAlgorithm_t
  * Convolutional algorithm mode for back propagation on weights.
  */
-typedef enum
-{
+typedef enum {
     miopenConvolutionBwdWeightsAlgoGEMM         = 0, /*!< GEMM variant */
     miopenConvolutionBwdWeightsAlgoDirect       = 1, /*!< Direct convolution algorithm */
     miopenConvolutionBwdWeightsAlgoWinograd     = 3, /*!< Winograd convolutions */
@@ -943,8 +925,7 @@ typedef enum
 /*! @enum miopenConvBwdDataAlgorithm_t
  * Convolutional algorithm mode for back propagation on data.
  */
-typedef enum
-{
+typedef enum {
     miopenConvolutionBwdDataAlgoGEMM     = 0, /*!< GEMM variant */
     miopenConvolutionBwdDataAlgoDirect   = 1, /*!< Direct convolutions */
     miopenConvolutionBwdDataAlgoFFT      = 2, /*!< Fast Fourier Transform indirect convolutions */
@@ -957,8 +938,7 @@ typedef enum
 /*! @enum miopenConvAlgorithm_t
  * Top-level convolutional algorithm mode
  */
-typedef enum
-{
+typedef enum {
     miopenConvolutionAlgoGEMM         = 0, /*!< GEMM variant */
     miopenConvolutionAlgoDirect       = 1, /*!< Direct convolutions */
     miopenConvolutionAlgoFFT          = 2, /*!< Fast Fourier Transform indirect convolutions */
@@ -2657,8 +2637,7 @@ MIOPEN_DECLARE_OBJECT(miopenOperatorArgs);
 /*! @enum miopenFusionDirection_t
  * @brief Kernel fusion direction in the network
  */
-typedef enum
-{
+typedef enum {
     miopenVerticalFusion   = 0, /*!< fuses layers vertically, current the only supported mode */
     miopenHorizontalFusion = 1, /*!< fuses layers horizontally, this is unimplemented */
 } miopenFusionDirection_t;
@@ -3048,8 +3027,7 @@ miopenExecuteFusionPlan(const miopenHandle_t handle,
 /*!  @enum miopenRNNMode_t
  * RNN mode selection for rnn layer preference
  */
-typedef enum
-{
+typedef enum {
     miopenRNNRELU = 0, /*!< RNN with ReLU activation */
     miopenRNNTANH = 1, /*!< RNN with tanh activation */
     miopenLSTM    = 2, /*!< LSTM */
@@ -3059,8 +3037,7 @@ typedef enum
 /*! @enum miopenRNNInputMode_t
  * Recurrent Neural Network layer initial input mode
  */
-typedef enum
-{
+typedef enum {
     miopenRNNlinear = 0, /*!< Matrix multiplication at the input of the first layer */
     miopenRNNskip   = 1, /*!< No operation is performed at the input of the first layer. */
 } miopenRNNInputMode_t;
@@ -3068,8 +3045,7 @@ typedef enum
 /*! @enum miopenRNNAlgo_t
  * Recurrent Neural Network algorithm mode
  */
-typedef enum
-{
+typedef enum {
     miopenRNNdefault = 0, /*!< Use dedicated gate-operation kernel for LSTM and fundamental
                              algorithm for vanilla RNN & GRU */
     miopenRNNfundamental =
@@ -3079,8 +3055,7 @@ typedef enum
 /*! @enum miopenRNNDirectionMode_t
  * Recurrent Neural Network bi-directional behavior
  */
-typedef enum
-{
+typedef enum {
     miopenRNNunidirection = 0, /*!< Forward in time only. */
     miopenRNNbidirection  = 1, /*!< Forward and backwards in time. */
 } miopenRNNDirectionMode_t;
@@ -3088,8 +3063,7 @@ typedef enum
 /*! @enum miopenRNNBiasMode_t
  * Recurrent Neural Network add on bias
  */
-typedef enum
-{
+typedef enum {
     miopenRNNNoBias   = 0, /*!< No Biases will be applied to GEMM operations */
     miopenRNNwithBias = 1, /*!< Biases will be applied to GEMM operations */
 } miopenRNNBiasMode_t;
@@ -3097,8 +3071,7 @@ typedef enum
 /*! @enum miopenRNNGEMMalgoMode_t
  * Recurrent Neural Network add on bias
  */
-typedef enum
-{
+typedef enum {
     miopenRNNAlgoGEMM = 0,
 } miopenRNNGEMMalgoMode_t;
 
@@ -4122,8 +4095,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardInference(miopenHandle_t handle,
 /*! @enum miopenCTCLossAlgo_t
  * Algorithms available to execute the CTC loss operation
  */
-typedef enum
-{
+typedef enum {
     MIOPEN_CTC_LOSS_ALGO_DETERMINISTIC = 0, /*!< Results are guaranteed to be reproducible */
 } miopenCTCLossAlgo_t;
 
@@ -4242,8 +4214,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCTCLoss(miopenHandle_t handle,
 /*!  @enum miopenRNGType_t
  * random number generator type
  */
-typedef enum
-{
+typedef enum {
     MIOPEN_RNG_PSEUDO_XORWOW = 0, /*!< XORWOW pseudorandom generator */
 } miopenRNGType_t;
 

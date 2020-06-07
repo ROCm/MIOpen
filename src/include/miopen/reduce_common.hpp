@@ -23,13 +23,16 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GURAD_REDUCE_COMMON_HPP_
-#define GURAD_REDUCE_COMMON_HPP_ 1
+#ifndef GUARD_MIOPEN_REDUCE_COMMON_HPP
+#define GUARD_MIOPEN_REDUCE_COMMON_HPP
+
+#include <half.hpp>
+#include <limits>
+#include <cmath>
 
 namespace reduce {
 
-typedef enum
-{
+typedef enum {
     Reduce_DirectThreadWise = 1,
     Reduce_DirectWarpWise   = 2,
     Reduce_BlockWise        = 3,
@@ -60,6 +63,112 @@ half_float::half type_convert<half_float::half>::operator()<float>(float x) cons
 {
     return half_float::half_cast<half_float::half>(x);
 };
+
+template <typename compType>
+std::function<compType(compType, compType)> ReduceOpFn(miopenReduceTensorOp_t op_)
+{
+    switch(op_)
+    {
+    case MIOPEN_REDUCE_TENSOR_ADD: return ([&](compType a_, compType b_) { return a_ + b_; });
+
+    case MIOPEN_REDUCE_TENSOR_MUL: return ([&](compType a_, compType b_) { return a_ * b_; });
+
+    case MIOPEN_REDUCE_TENSOR_MIN:
+        return ([&](compType a_, compType b_) {
+            return (a_ > b_) ? b_ : a_;
+        }); // a is selected when they are equal
+
+    case MIOPEN_REDUCE_TENSOR_MAX:
+        return ([&](compType a_, compType b_) {
+            return (a_ < b_) ? b_ : a_;
+        }); // a is selected when they are equal
+    }
+};
+
+template <typename compType>
+compType ReduceOpZeroVal(miopenReduceTensorOp_t op_)
+{
+    switch(op_)
+    {
+    case MIOPEN_REDUCE_TENSOR_ADD: return (type_convert<compType>{}(0.0));
+
+    case MIOPEN_REDUCE_TENSOR_MUL: return (type_convert<compType>{}(1.0));
+
+    case MIOPEN_REDUCE_TENSOR_MIN: return (std::numeric_limits<compType>::max());
+
+    case MIOPEN_REDUCE_TENSOR_MAX: return (std::numeric_limits<compType>::min());
+    }
+};
+
+template <>
+half_float::half ReduceOpZeroVal<half_float::half>(miopenReduceTensorOp_t op_)
+{
+    switch(op_)
+    {
+    case MIOPEN_REDUCE_TENSOR_ADD: return (type_convert<half_float::half>{}(0.0));
+
+    case MIOPEN_REDUCE_TENSOR_MUL: return (type_convert<half_float::half>{}(1.0));
+
+    case MIOPEN_REDUCE_TENSOR_MIN:
+        return (type_convert<half_float::half>{}(std::numeric_limits<float>::max()));
+
+    case MIOPEN_REDUCE_TENSOR_MAX:
+        return (type_convert<half_float::half>{}(std::numeric_limits<float>::min()));
+    }
+};
+
+template <typename T>
+bool IsNan(T x)
+{
+    // C++ isnan() is used for float and double
+    return (std::isnan(x));
+};
+
+template <>
+bool IsNan<half_float::half>(half_float::half x)
+{
+    return (half_float::isnan(x));
+};
+
+#define binop_with_nan_check(nanOpt, opReduce, accuVal, currVal) \
+    {                                                            \
+        if(nanOpt == MIOPEN_NOT_PROPAGATE_NAN)                   \
+            accuVal = opReduce(accuVal, currVal);                \
+        else                                                     \
+        {                                                        \
+            if(IsNan(currVal))                                   \
+                accuVal = currVal;                               \
+            else                                                 \
+                accuVal = opReduce(accuVal, currVal);            \
+        };                                                       \
+    }
+
+#define binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex) \
+    {                                                                                   \
+        if(nanOpt == MIOPEN_NOT_PROPAGATE_NAN)                                          \
+        {                                                                               \
+            auto accuVal_new = opReduce(accuVal, currVal);                              \
+            if(!miopen::float_equal(accuVal, accuVal_new))                              \
+            {                                                                           \
+                accuIndex = currIndex;                                                  \
+                accuVal   = accuVal_new;                                                \
+            };                                                                          \
+        }                                                                               \
+        else                                                                            \
+        {                                                                               \
+            decltype(accuVal) accuVal_new;                                              \
+            if(IsNan(currVal))                                                          \
+                accuVal_new = currVal;                                                  \
+            else                                                                        \
+                accuVal_new = opReduce(accuVal, currVal);                               \
+                                                                                        \
+            if(!miopen::float_equal(accuVal, accuVal_new))                              \
+            {                                                                           \
+                accuIndex = currIndex;                                                  \
+                accuVal   = accuVal_new;                                                \
+            };                                                                          \
+        };                                                                              \
+    }
 
 }; // end of namespace reduce
 

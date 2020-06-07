@@ -9,10 +9,13 @@
 #include <cmath>
 
 #include <miopen/float_equal.hpp>
+#include <miopen/reduce_common.hpp>
 
 #include "tensor_driver.hpp"
 
-static void
+using float16 = half_float::half;
+
+static inline void
 get_all_indexes(const std::vector<int>& dimLengths, int dim, std::vector<std::vector<int>>& indexes)
 {
     if(dim < dimLengths.size())
@@ -50,7 +53,8 @@ get_all_indexes(const std::vector<int>& dimLengths, int dim, std::vector<std::ve
     };
 };
 
-static int get_offset_from_index(const std::vector<int>& strides, const std::vector<int>& index)
+static inline int get_offset_from_index(const std::vector<int>& strides,
+                                        const std::vector<int>& index)
 {
     int offset = 0;
 
@@ -61,7 +65,7 @@ static int get_offset_from_index(const std::vector<int>& strides, const std::vec
     return (offset);
 };
 
-static int get_flatten_offset(const std::vector<int>& lengths, const std::vector<int>& index)
+static inline int get_flatten_offset(const std::vector<int>& lengths, const std::vector<int>& index)
 {
     int offset = 0;
 
@@ -82,82 +86,6 @@ static int get_flatten_offset(const std::vector<int>& lengths, const std::vector
 
     return (offset);
 };
-
-template <typename compType>
-static std::function<compType(compType, compType)> ReduceOpFn(miopenReduceTensorOp_t op_)
-{
-    switch(op_)
-    {
-    case MIOPEN_REDUCE_TENSOR_ADD: return ([&](compType a_, compType b_) { return a_ + b_; });
-
-    case MIOPEN_REDUCE_TENSOR_MUL: return ([&](compType a_, compType b_) { return a_ * b_; });
-
-    case MIOPEN_REDUCE_TENSOR_MIN:
-        return ([&](compType a_, compType b_) {
-            return (a_ > b_) ? b_ : a_;
-        }); // a is selected when they are equal
-
-    case MIOPEN_REDUCE_TENSOR_MAX:
-        return ([&](compType a_, compType b_) {
-            return (a_ < b_) ? b_ : a_;
-        }); // a is selected when they are equal
-    }
-};
-
-template <typename compType>
-static compType ReduceOpZeroVal(miopenReduceTensorOp_t op_)
-{
-    switch(op_)
-    {
-    case MIOPEN_REDUCE_TENSOR_ADD: return (static_cast<compType>(0.0));
-
-    case MIOPEN_REDUCE_TENSOR_MUL: return (static_cast<compType>(1.0));
-
-    case MIOPEN_REDUCE_TENSOR_MIN: return (std::numeric_limits<compType>::max());
-
-    case MIOPEN_REDUCE_TENSOR_MAX: return (std::numeric_limits<compType>::min());
-    }
-};
-
-#define binop_with_nan_check(nanOpt, opReduce, accuVal, currVal) \
-    {                                                            \
-        if(nanOpt == MIOPEN_NOT_PROPAGATE_NAN)                   \
-            accuVal = opReduce(accuVal, currVal);                \
-        else                                                     \
-        {                                                        \
-            if(::isnan(currVal))                                 \
-                accuVal = currVal;                               \
-            else                                                 \
-                accuVal = opReduce(accuVal, currVal);            \
-        };                                                       \
-    }
-
-#define binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex) \
-    {                                                                                   \
-        if(nanOpt == MIOPEN_NOT_PROPAGATE_NAN)                                          \
-        {                                                                               \
-            auto accuVal_new = opReduce(accuVal, currVal);                              \
-            if(!miopen::float_equal(accuVal, accuVal_new))                              \
-            {                                                                           \
-                accuIndex = currIndex;                                                  \
-                accuVal   = accuVal_new;                                                \
-            };                                                                          \
-        }                                                                               \
-        else                                                                            \
-        {                                                                               \
-            decltype(accuVal) accuVal_new;                                              \
-            if(::isnan(currVal))                                                        \
-                accuVal_new = currVal;                                                  \
-            else                                                                        \
-                accuVal_new = opReduce(accuVal, currVal);                               \
-                                                                                        \
-            if(!miopen::float_equal(accuVal, accuVal_new))                              \
-            {                                                                           \
-                accuIndex = currIndex;                                                  \
-                accuVal   = accuVal_new;                                                \
-            };                                                                          \
-        };                                                                              \
-    }
 
 template <typename Tgpu, typename Tref>
 class miopenReductionHost
@@ -238,6 +166,8 @@ class miopenReductionHost
     template <typename compType>
     void RunImpl(Tgpu alpha, const Tgpu* in_data, Tgpu beta, Tref* out_data, int* indices)
     {
+        using namespace reduce;
+
         auto opReduce = ReduceOpFn<compType>(this->reduceOp);
         bool need_indices =
             (indicesOpt == MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES) &&
@@ -307,16 +237,16 @@ class miopenReductionHost
                 dst_index.resize(this->inLengths.size());
 
                 // generate the srd index
-                for(int k = 0; k < dst_index.size(); k++)
+                for(int k        = 0; k < dst_index.size(); k++)
                     dst_index[k] = 0;
 
-                for(int k = 0; k < invariantDims.size(); k++)
+                for(int k                       = 0; k < invariantDims.size(); k++)
                     dst_index[invariantDims[k]] = index_1[k];
 
                 int dst_offset = get_offset_from_index(this->outStrides, dst_index);
 
                 // generate the part of src index belonging to invariant dims
-                for(int k = 0; k < invariantDims.size(); k++)
+                for(int k                       = 0; k < invariantDims.size(); k++)
                     src_index[invariantDims[k]] = index_1[k];
 
                 compType accuVal = ReduceOpZeroVal<compType>(this->reduceOp);
@@ -328,7 +258,7 @@ class miopenReductionHost
                     auto& index_2 = indexes_2[i2];
 
                     // generate the part of src index belonging to toReduce dims
-                    for(int k = 0; k < toReduceDims.size(); k++)
+                    for(int k                      = 0; k < toReduceDims.size(); k++)
                         src_index[toReduceDims[k]] = index_2[k];
 
                     auto src_offset = get_offset_from_index(this->inStrides, src_index);

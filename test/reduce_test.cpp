@@ -39,7 +39,7 @@
 #include <limits>
 #include <iostream>
 
-#include <half.hpp>
+#include <miopen/reduce_common.hpp>
 
 using float16 = half_float::half;
 
@@ -120,78 +120,6 @@ static std::size_t get_flatten_offset(const std::vector<std::size_t>& lengths,
     return (offset);
 };
 
-template <typename compType>
-static std::function<compType(compType, compType)> ReduceOpFn(miopenReduceTensorOp_t op_)
-{
-    switch(op_)
-    {
-    case MIOPEN_REDUCE_TENSOR_ADD: return ([&](compType a_, compType b_) { return a_ + b_; });
-
-    case MIOPEN_REDUCE_TENSOR_MUL: return ([&](compType a_, compType b_) { return a_ * b_; });
-
-    case MIOPEN_REDUCE_TENSOR_MIN:
-        return ([&](compType a_, compType b_) { return (a_ > b_) ? b_ : a_; });
-
-    case MIOPEN_REDUCE_TENSOR_MAX:
-        return ([&](compType a_, compType b_) { return (a_ > b_) ? a_ : b_; });
-    }
-};
-
-template <typename compType>
-static compType ReduceOpZeroVal(miopenReduceTensorOp_t op_)
-{
-    switch(op_)
-    {
-    case MIOPEN_REDUCE_TENSOR_ADD: return (static_cast<compType>(0.0));
-
-    case MIOPEN_REDUCE_TENSOR_MUL: return (static_cast<compType>(1.0));
-
-    case MIOPEN_REDUCE_TENSOR_MIN: return (std::numeric_limits<compType>::max());
-
-    case MIOPEN_REDUCE_TENSOR_MAX: return (std::numeric_limits<compType>::min());
-    }
-};
-
-#define binop_with_nan_check(nanOpt, opReduce, accuVal, currVal) \
-    {                                                            \
-        if(nanOpt == MIOPEN_NOT_PROPAGATE_NAN)                   \
-            accuVal = opReduce(accuVal, currVal);                \
-        else                                                     \
-        {                                                        \
-            if(::isnan(currVal))                                 \
-                accuVal = currVal;                               \
-            else                                                 \
-                accuVal = opReduce(accuVal, currVal);            \
-        };                                                       \
-    }
-
-#define binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex) \
-    {                                                                                   \
-        if(nanOpt == MIOPEN_NOT_PROPAGATE_NAN)                                          \
-        {                                                                               \
-            auto accuVal_new = opReduce(accuVal, currVal);                              \
-            if(!miopen::float_equal(accuVal, accuVal_new))                              \
-            {                                                                           \
-                accuIndex = currIndex;                                                  \
-                accuVal   = accuVal_new;                                                \
-            };                                                                          \
-        }                                                                               \
-        else                                                                            \
-        {                                                                               \
-            decltype(accuVal) accuVal_new;                                              \
-            if(::isnan(currVal))                                                        \
-                accuVal_new = currVal;                                                  \
-            else                                                                        \
-                accuVal_new = opReduce(accuVal, currVal);                               \
-                                                                                        \
-            if(!miopen::float_equal(accuVal, accuVal_new))                              \
-            {                                                                           \
-                accuIndex = currIndex;                                                  \
-                accuVal   = accuVal_new;                                                \
-            };                                                                          \
-        };                                                                              \
-    }
-
 template <class T>
 struct verify_reduce
 {
@@ -256,7 +184,7 @@ struct verify_reduce
             if(std::is_same<T, double>::value || std::is_same<T, float>::value)
                 return (cpuImpl<T>());
             else
-                return (cpuImpl<float16>());
+                return (cpuImpl<float>());
         };
 
         return (tensor<T>{});
@@ -265,6 +193,8 @@ struct verify_reduce
     template <typename compType>
     tensor<T> cpuImpl() const
     {
+        using namespace reduce;
+
         auto inLengths  = input.desc.GetLengths();
         auto outLengths = output.desc.GetLengths();
         auto inStrides  = input.desc.GetStrides();
@@ -360,16 +290,16 @@ struct verify_reduce
                 src_index.resize(inLengths.size());
                 dst_index.resize(inLengths.size());
 
-                for(int k = 0; k < dst_index.size(); k++)
+                for(int k        = 0; k < dst_index.size(); k++)
                     dst_index[k] = 0;
 
-                for(int k = 0; k < invariantDims.size(); k++)
+                for(int k                       = 0; k < invariantDims.size(); k++)
                     dst_index[invariantDims[k]] = index_1[k];
 
                 int dst_offset = get_offset_from_index(outStrides, dst_index);
 
                 // generate the part of the index belonging to the invariant dims
-                for(int k = 0; k < invariantDims.size(); k++)
+                for(int k                       = 0; k < invariantDims.size(); k++)
                     src_index[invariantDims[k]] = index_1[k];
 
                 compType accuVal = ReduceOpZeroVal<compType>(reduceOp);
@@ -381,7 +311,7 @@ struct verify_reduce
                     auto& index_2 = indexes_2[i2];
 
                     // generate the part of the index belonging to the toReduce dims
-                    for(int k = 0; k < toReduceDims.size(); k++)
+                    for(int k                      = 0; k < toReduceDims.size(); k++)
                         src_index[toReduceDims[k]] = index_2[k];
 
                     auto src_offset = get_offset_from_index(inStrides, src_index);
@@ -537,7 +467,7 @@ struct reduce_driver : test_driver
             assert(toReduceDims[i] < outLengths.size());
 
         // set the lengths of the dimensions to be reduced to 1 to represent the output Tensor
-        for(int i = 0; i < toReduceDims.size(); i++)
+        for(int i                       = 0; i < toReduceDims.size(); i++)
             outLengths[toReduceDims[i]] = static_cast<std::size_t>(1);
 
         unsigned long max_value =
