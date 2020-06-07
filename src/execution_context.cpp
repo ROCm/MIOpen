@@ -164,7 +164,7 @@ static rocm_meta_version AmdRocmMetadataVersionDetect(const miopen::ExecutionCon
         }
 #else
         (void)context;
-        if(miopen::HipGetHccVersion() >=
+        if(miopen::HipCompilerVersion() >=
            miopen::external_tool_version_t{2, 10, 19392}) // ROCm 2.10 RC 1341
             rmv = rocm_meta_version::AMDHSA_COv2_COv3;
         else

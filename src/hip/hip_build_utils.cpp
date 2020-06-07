@@ -47,7 +47,7 @@ bool IsHccCompiler()
     return isHcc;
 }
 
-bool IsClangXXCompiler()
+bool IsHipClangCompiler()
 {
     static const auto isClangXX = EndsWith(MIOPEN_HIP_COMPILER, "clang++");
     return isClangXX;
@@ -63,7 +63,7 @@ inline bool ProduceCoV3()
     if(IsDisabled(MIOPEN_DEBUG_HIP_ENFORCE_COV3{}))
         return false;
     // Otherwise, let's enable CO v3 for HIP kernels since ROCm 3.0.
-    return (HipGetHccVersion() >= external_tool_version_t{3, 0, -1});
+    return (HipCompilerVersion() >= external_tool_version_t{3, 0, -1});
 }
 
 /// Returns option for enabling/disabling CO v3 generation for the compiler
@@ -109,7 +109,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
         params += " -amdgpu-target=" + dev_name;
         params += " " + GetCoV3Option(ProduceCoV3());
     }
-    else if(IsClangXXCompiler())
+    else if(IsHipClangCompiler())
     {
         if(params.find("-std=") == std::string::npos)
             params += " --std=c++11";
@@ -125,11 +125,11 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     if(IsHccCompiler())
     {
         env += std::string("KMOPTLLC=\"-mattr=+enable-ds128 -amdgpu-enable-global-sgpr-addr");
-        if(miopen::HipGetHccVersion() >= external_tool_version_t{2, 8, 0})
+        if(miopen::HipCompilerVersion() >= external_tool_version_t{2, 8, 0})
             env += " --amdgpu-spill-vgpr-to-agpr=0";
         env += '\"';
     }
-    else if(IsClangXXCompiler())
+    else if(IsHipClangCompiler())
     {
         params += " -mllvm -amdgpu-enable-global-sgpr-addr";
         params += " -mllvm --amdgpu-spill-vgpr-to-agpr=0";
@@ -148,7 +148,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
             env += " KMDUMPISA=1";
             env += " KMDUMPLLVM=1";
         }
-        else if(IsClangXXCompiler())
+        else if(IsHipClangCompiler())
         {
             params += " -save-temps";
         }
@@ -184,7 +184,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
 #endif
 #ifdef MIOPEN_OFFLOADBUNDLER_BIN
         // clang-format off
-    if(IsClangXXCompiler())
+    if(IsHipClangCompiler())
     {
         // clang-format on
 
@@ -225,7 +225,7 @@ void bin_file_to_str(const boost::filesystem::path& file, std::string& buf)
     buf = bin_file_strm.str();
 }
 
-static external_tool_version_t HipGetHccVersionImpl()
+static external_tool_version_t HipCompilerVersionImpl()
 {
     external_tool_version_t hcc_version;
     const std::string path(MIOPEN_HIP_COMPILER);
@@ -289,9 +289,9 @@ static external_tool_version_t HipGetHccVersionImpl()
     return hcc_version;
 }
 
-external_tool_version_t HipGetHccVersion()
+external_tool_version_t HipCompilerVersion()
 {
-    static auto once = HipGetHccVersionImpl();
+    static auto once = HipCompilerVersionImpl();
     return once;
 }
 
