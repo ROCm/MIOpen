@@ -153,6 +153,8 @@ static rocm_meta_version AmdRocmMetadataVersionDetect(const miopen::ExecutionCon
         if(num_begin != std::string::npos)
         {
             const int num = std::stoi(platform_version.substr(num_begin + 1));
+            if(num >= 3137) // ROCm 3.5 RC
+                rmv = rocm_meta_version::AMDHSA_COv3;
             if(num >= 3029) // ROCm 2.10 RC 1341
                 rmv = rocm_meta_version::AMDHSA_COv2_COv3;
             else
@@ -165,7 +167,10 @@ static rocm_meta_version AmdRocmMetadataVersionDetect(const miopen::ExecutionCon
 #else
         (void)context;
         if(miopen::HipCompilerVersion() >=
-           miopen::external_tool_version_t{2, 10, 19392}) // ROCm 2.10 RC 1341
+           miopen::external_tool_version_t{3, 5, 0}) // ROCm 3.5 RC and up
+            rmv = rocm_meta_version::AMDHSA_COv3;
+        else if(miopen::HipCompilerVersion() >=
+                miopen::external_tool_version_t{2, 10, 19392}) // ROCm 2.10 RC 1341
             rmv = rocm_meta_version::AMDHSA_COv2_COv3;
         else
             rmv = rocm_meta_version::Default;
