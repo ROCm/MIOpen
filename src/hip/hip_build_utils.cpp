@@ -296,6 +296,23 @@ external_tool_version_t HipGetHccVersion()
     return once;
 }
 
+bool external_tool_version_t::operator>(const external_tool_version_t& rhs) const
+{
+    if(major > rhs.major)
+        return true;
+    else if(major == rhs.major)
+    {
+        if(minor > rhs.minor)
+            return true;
+        else if(minor == rhs.minor)
+            return (patch > rhs.patch);
+        else
+            return false;
+    }
+    else
+        return false;
+}
+
 bool external_tool_version_t::operator>=(const external_tool_version_t& rhs) const
 {
     if(major > rhs.major)

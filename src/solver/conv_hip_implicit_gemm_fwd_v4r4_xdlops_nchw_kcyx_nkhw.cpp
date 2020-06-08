@@ -28,13 +28,18 @@
 #include <miopen/solver.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
+#include <miopen/hip_build_utils.hpp>
 #include "implicitgemm_util.hpp"
-
-// workaround for GPU seg-fault, due to compiler regression after ROCm2.9
-#define WORKAROUND_SWDEV_239555 1
 
 namespace miopen {
 namespace solver {
+
+// workaround for GPU seg-fault, due to compiler bug in ROCm version after 2.9.19392
+static bool workaround_swdev_239555()
+{
+    return (IsHccCompiler() && miopen::HipGetHccVersion() > external_tool_version_t{2, 9, 19392}) ||
+           IsClangXXCompiler();
+}
 
 PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops(bool spare)
 {
@@ -591,30 +596,22 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValidPerformanceConfig(
 bool PerformanceImplicitGemmForwardV4R4Xdlops::IsWorkAroundedPerformanceConfig(
     const ConvolutionContext& ctx) const
 {
-    const auto y             = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const auto x             = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-    const auto ho            = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const auto wo            = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const auto conv_stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
-    const auto conv_stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-    const auto conv_dilation_h =
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
-    const auto conv_dilation_w =
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
+    const auto y              = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+    const auto x              = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
     const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
     const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
     const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
     const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
-#if WORKAROUND_SWDEV_239555
-    if(ho == 14 && wo == 14 && y == 3 && x == 3 && in_left_pad_h == 1 && in_left_pad_w == 1 &&
-       in_right_pad_h == 1 && in_right_pad_w == 1 && conv_stride_h == 1 && conv_stride_w == 1 &&
-       conv_dilation_h == 1 && conv_dilation_w == 1)
+    if(workaround_swdev_239555())
     {
-        if(GemmMPerBlock == 64 && GemmNPerBlock == 256 && GemmMPerWave == 64 && GemmNPerWave == 64)
-            return true;
+        if(ctx.IsFp16())
+        {
+            if((y > 1 || x > 1) &&
+               (in_left_pad_h > 0 || in_left_pad_w > 0 || in_right_pad_h > 0 && in_right_pad_w > 0))
+                return true;
+        }
     }
-#endif
 
     return false;
 }
@@ -929,12 +926,35 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext
         return false;
 
     // current index range cannot cover buffer larger than 2GB
-    const std::size_t max_index_range = std::size_t(2) * 1024 * 1204 * 1024;
+    {
+        const std::size_t max_index_range = std::size_t(2) * 1024 * 1204 * 1024;
 
-    if(ctx.bot_sz > max_index_range || ctx.weights_sz > max_index_range ||
-       ctx.top_sz > max_index_range)
-        return false;
+        if(ctx.bot_sz > max_index_range || ctx.weights_sz > max_index_range ||
+           ctx.top_sz > max_index_range)
+            return false;
+    }
 
+    // workaround for compiler bug SWDEV_239555
+    {
+        const auto y              = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+        const auto x              = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+        const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
+        const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
+        const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
+        const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
+
+        if(workaround_swdev_239555())
+        {
+            if(ctx.IsFp16())
+            {
+                if((y > 1 || x > 1) && (in_left_pad_h > 0 || in_left_pad_w > 0 ||
+                                        in_right_pad_h > 0 && in_right_pad_w > 0))
+                    return false;
+            }
+        }
+    }
+
+    // gemm size
     int gemm_m       = 0;
     int gemm_n       = 0;
     int gemm_k_total = 0;
