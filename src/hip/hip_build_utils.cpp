@@ -24,13 +24,13 @@
 *
 *******************************************************************************/
 
+#include <miopen/config.h>
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/exec_utils.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
 #include <boost/optional.hpp>
-#include <hip/hip_version.h>
 #include <sstream>
 #include <string>
 
@@ -271,10 +271,25 @@ static external_tool_version_t HipCompilerVersionImpl()
     }
     else
     {
-        MIOPEN_LOG_NQI2("Read version information from hip_version.h");
-        version.major = HIP_VERSION_MAJOR;
-        version.minor = HIP_VERSION_MINOR;
-        version.patch = HIP_VERSION_PATCH;
+#ifdef HIP_PACKAGE_VERSION_MAJOR
+        MIOPEN_LOG_NQI2("Read version information from HIP package...");
+        version.major = HIP_PACKAGE_VERSION_MAJOR;
+#ifdef HIP_PACKAGE_VERSION_MINOR
+        version.minor = HIP_PACKAGE_VERSION_MINOR;
+#else
+        version.minor = 0;
+#endif
+#ifdef HIP_PACKAGE_VERSION_PATCH
+        version.patch = HIP_PACKAGE_VERSION_PATCH;
+#else
+        version.patch = 0;
+#endif
+#else // HIP_PACKAGE_VERSION_MAJOR is not defined. CMake failed to find HIP package.
+        MIOPEN_LOG_NQI2("...assuming 3.2.0 (hip-clang RC)");
+        version.major = 3;
+        version.minor = 2;
+        version.patch = 0;
+#endif
     }
     MIOPEN_LOG_NQI(version.major << '.' << version.minor << '.' << version.patch);
     return version;
