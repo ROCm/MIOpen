@@ -155,7 +155,7 @@ static rocm_meta_version AmdRocmMetadataVersionDetect(const miopen::ExecutionCon
             const int num = std::stoi(platform_version.substr(num_begin + 1));
             if(num >= 3137) // ROCm 3.5 RC
                 rmv = rocm_meta_version::AMDHSA_COv3;
-            if(num >= 3029) // ROCm 2.10 RC 1341
+            else if(num >= 3029) // ROCm 2.10 RC 1341
                 rmv = rocm_meta_version::AMDHSA_COv2_COv3;
             else
                 rmv = rocm_meta_version::AMDHSA_COv2;
