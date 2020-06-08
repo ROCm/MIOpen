@@ -40,6 +40,7 @@
 #cmakedefine01 MIOPEN_USE_SCGEMM
 #cmakedefine01 MIOPEN_USE_COMGR
 #cmakedefine01 MIOPEN_HCC_ENABLE_COV3
+#cmakedefine01 MIOPEN_DISABLE_USERDB
 
 // Truncation rounding or (default) rounding to nearest even (RNE) is enabled.
 // This switch controls two related but different aspects of MIOpen behavior:
