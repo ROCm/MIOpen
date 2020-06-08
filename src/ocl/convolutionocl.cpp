@@ -749,7 +749,6 @@ static void DirConvFindCore(Handle& handle,
     // Implicit GEMM algo
     if(!use_winograd_only)
     {
-        ConvolutionContext params(xDesc, wDesc, yDesc, conv, conv::Direction::Forward, 0);
         ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
         bufs.SetFwd(x, w, y);
         const auto all = conv.FindDataImplicitGemmSolutions(
@@ -2362,8 +2361,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             // Implicit GEMM algo
             if(!use_winograd_only)
             {
-                ConvolutionContext params(
-                    dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData, 0);
                 ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
                 bufs.SetBwd(dx, w, dy);
                 const auto all = this->FindDataImplicitGemmSolutions(
