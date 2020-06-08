@@ -224,14 +224,6 @@ bool PerformanceImplicitGemmV4R1Dynamic::IsValid(const ConvolutionContext& ctx) 
     if((ctx.IsFp16() || ctx.IsBfp16()) && GemmNPerThreadSubC != GemmMPerThreadSubC)
         return false;
 
-    // fp16/bfp16: vector read of length 8 or greater is not supported
-    // as vector_type<vector<half,4>, 2> is not working. So, restrict epack*gemmreada <= 4
-    // and epack*gemmreadb <= 4
-    // if((ctx.IsFp16()  || ctx.IsBfp16()) && ((GetEPackLength(ctx, false)*GemmNPerThreadSubC > 4)
-    // ||
-    //   (GetEPackLength(ctx, false)*GemmMPerThreadSubC > 4)))
-    //  return false;
-
     // sanity check
     if((KPerBlock % (GemmMPerThreadSubC * GemmMLevel0Cluster * GemmMLevel1Cluster)) != 0)
         return false;
@@ -295,8 +287,6 @@ void PerformanceImplicitGemmV4R1Dynamic::EuristicInit(const ConvolutionContext& 
     }
 
     Copy(*it);
-    // std::string kernel_name = GetKernelNameImplicitGemmV4R1Dynamic(*it);
-    // MIOPEN_LOG_I(kernel_name << " : " << ToString());
 }
 
 bool PerformanceImplicitGemmV4R1Dynamic::IsValidValue() const
@@ -419,7 +409,6 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ConvolutionContext& c
     if(!ctx.Is2d())
         return false;
 
-    // if(!ctx.IsFp32() && !ctx.IsFp16() && !ctx.IsBfp16())
     if(!ctx.IsFp32())
         return false;
 
@@ -432,23 +421,6 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ConvolutionContext& c
     auto tunables = GetImplicitGemmV4R1DynamicTunables();
     return !std::none_of(
         tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx); });
-    /*
-        std::size_t n         = ctx.batch_sz;
-        std::size_t k         = ctx.n_outputs / ctx.group_counts;
-        std::size_t c         = ctx.n_inputs / ctx.group_counts;
-        std::size_t y         = ctx.kernel_size_h;
-        std::size_t x         = ctx.kernel_size_w;
-        std::size_t ho        = ctx.out_height;
-        std::size_t wo        = ctx.out_width;
-        std::size_t eMultiple = (ctx.IsFp16() || ctx.IsBfp16()) ? 16 : 8;
-
-        // batch is divided by epack to pack 2/4 fp16/bfp16
-        // if(c % GetEPackLength(ctx, false) != 0)
-        //    return false;
-
-        return n % 8 == 0 && (n * ho * wo) % 32 == 0 && (n * ho * wo * k) % 1024 == 0 &&
-               (c * y * x) % eMultiple == 0 && k % 16 == 0;
-    */
 }
 
 bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ConvolutionContext& ctx) const
@@ -463,7 +435,6 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ConvolutionContex
     if(!ctx.Is2d())
         return false;
 
-    // if(!ctx.IsFp32() && !ctx.IsFp16() && !ctx.IsBfp16())
     if(!ctx.IsFp32())
         return false;
 
