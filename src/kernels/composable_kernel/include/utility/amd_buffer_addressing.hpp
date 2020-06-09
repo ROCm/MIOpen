@@ -8,7 +8,7 @@ namespace ck {
 // For 128bit SGPRs in buffer_load and buffer_store instructions
 // https://rocm-documentation.readthedocs.io/en/latest/GCN_ISA_Manuals/testdocbook.html#vector-memory-buffer-instructions
 template <typename T>
-union BufferLoadStoreDwordConfig
+union BufferAddressConfig
 {
     int32x4_t data;
     T* address[2];
@@ -174,7 +174,7 @@ __device__ float amd_buffer_load<float, 1>(const float* p_src_block,
                                            index_t src_thread_data_offset,
                                            index_t src_const_data_offset)
 {
-    BufferLoadStoreDwordConfig<float> src_block_config;
+    BufferAddressConfig<float> src_block_config;
 
     // fill in byte 0 - 1
     src_block_config.address[0] = const_cast<float*>(p_src_block);
@@ -195,7 +195,7 @@ __device__ float2_t amd_buffer_load<float, 2>(const float* p_src_block,
                                               index_t src_thread_data_offset,
                                               index_t src_const_data_offset)
 {
-    BufferLoadStoreDwordConfig<float> src_block_config;
+    BufferAddressConfig<float> src_block_config;
 
     // fill in byte 0 - 1
     src_block_config.address[0] = const_cast<float*>(p_src_block);
@@ -216,7 +216,7 @@ __device__ float4_t amd_buffer_load<float, 4>(const float* p_src_block,
                                               index_t src_thread_data_offset,
                                               index_t src_const_data_offset)
 {
-    BufferLoadStoreDwordConfig<float> src_block_config;
+    BufferAddressConfig<float> src_block_config;
 
     // fill in byte 0 - 1
     src_block_config.address[0] = const_cast<float*>(p_src_block);
@@ -237,7 +237,7 @@ __device__ half_t amd_buffer_load<half_t, 1>(const half_t* p_src_block,
                                              index_t src_thread_data_offset,
                                              index_t src_const_data_offset)
 {
-    BufferLoadStoreDwordConfig<half_t> src_block_config;
+    BufferAddressConfig<half_t> src_block_config;
 
     // fill in byte 0 - 1
     src_block_config.address[0] = const_cast<half_t*>(p_src_block);
@@ -246,7 +246,7 @@ __device__ half_t amd_buffer_load<half_t, 1>(const half_t* p_src_block,
     // fill in byte 3
     src_block_config.range[3] = 0x00027000;
 
-#if !CK_WORKAROUND_BUFFER_LOAD_STORE_F16_INTRINSIC_BUG
+#if !CK_WORKAROUND_SWDEV_231101
     index_t src_thread_addr_offset = src_thread_data_offset * sizeof(half_t);
     index_t src_const_addr_offset  = src_const_data_offset * sizeof(half_t);
 
@@ -262,7 +262,7 @@ __device__ half2_t amd_buffer_load<half_t, 2>(const half_t* p_src_block,
                                               index_t src_thread_data_offset,
                                               index_t src_const_data_offset)
 {
-    BufferLoadStoreDwordConfig<half_t> src_block_config;
+    BufferAddressConfig<half_t> src_block_config;
 
     // fill in byte 0 - 1
     src_block_config.address[0] = const_cast<half_t*>(p_src_block);
@@ -274,7 +274,7 @@ __device__ half2_t amd_buffer_load<half_t, 2>(const half_t* p_src_block,
     index_t src_thread_addr_offset = src_thread_data_offset * sizeof(half_t);
     index_t src_const_addr_offset  = src_const_data_offset * sizeof(half_t);
 
-#if !CK_WORKAROUND_BUFFER_LOAD_STORE_F16_INTRINSIC_BUG
+#if !CK_WORKAROUND_SWDEV_231101
     return __llvm_amdgcn_buffer_load_f16x2(
         src_block_config.data, 0, src_thread_addr_offset + src_const_addr_offset, false, false);
 #else
@@ -290,7 +290,7 @@ __device__ half4_t amd_buffer_load<half_t, 4>(const half_t* p_src_block,
                                               index_t src_thread_data_offset,
                                               index_t src_const_data_offset)
 {
-    BufferLoadStoreDwordConfig<half_t> src_block_config;
+    BufferAddressConfig<half_t> src_block_config;
 
     // fill in byte 0 - 1
     src_block_config.address[0] = const_cast<half_t*>(p_src_block);
@@ -302,7 +302,7 @@ __device__ half4_t amd_buffer_load<half_t, 4>(const half_t* p_src_block,
     index_t src_thread_addr_offset = src_thread_data_offset * sizeof(half_t);
     index_t src_const_addr_offset  = src_const_data_offset * sizeof(half_t);
 
-#if !CK_WORKAROUND_BUFFER_LOAD_STORE_F16_INTRINSIC_BUG
+#if !CK_WORKAROUND_SWDEV_231101
     return __llvm_amdgcn_buffer_load_f16x4(
         src_block_config.data, 0, src_thread_addr_offset + src_const_addr_offset, false, false);
 #else
@@ -318,7 +318,7 @@ __device__ half8_t amd_buffer_load<half_t, 8>(const half_t* p_src_block,
                                               index_t src_thread_data_offset,
                                               index_t src_const_data_offset)
 {
-    BufferLoadStoreDwordConfig<half_t> src_block_config;
+    BufferAddressConfig<half_t> src_block_config;
 
     // fill in byte 0 - 1
     src_block_config.address[0] = const_cast<half_t*>(p_src_block);
@@ -330,7 +330,7 @@ __device__ half8_t amd_buffer_load<half_t, 8>(const half_t* p_src_block,
     index_t src_thread_addr_offset = src_thread_data_offset * sizeof(half_t);
     index_t src_const_addr_offset  = src_const_data_offset * sizeof(half_t);
 
-#if !CK_WORKAROUND_BUFFER_LOAD_STORE_F16_INTRINSIC_BUG
+#if !CK_WORKAROUND_SWDEV_231101
     static_assert(false, "wrong! not supported");
 #else
     float4_t dst_out_tmp = __llvm_amdgcn_buffer_load_f32x4(
@@ -345,7 +345,7 @@ __device__ ushort amd_buffer_load<ushort, 1>(const ushort* p_src_block,
                                              index_t src_thread_data_offset,
                                              index_t src_const_data_offset)
 {
-    BufferLoadStoreDwordConfig<ushort> src_block_config;
+    BufferAddressConfig<ushort> src_block_config;
 
     // fill in byte 0 - 1
     src_block_config.address[0] = const_cast<ushort*>(p_src_block);
@@ -354,7 +354,7 @@ __device__ ushort amd_buffer_load<ushort, 1>(const ushort* p_src_block,
     // fill in byte 3
     src_block_config.range[3] = 0x00027000;
 
-#if !CK_WORKAROUND_BUFFER_LOAD_STORE_F16_INTRINSIC_BUG
+#if !CK_WORKAROUND_SWDEV_231101
     index_t src_thread_addr_offset = src_thread_data_offset * sizeof(ushort);
     index_t src_const_addr_offset  = src_const_data_offset * sizeof(ushort);
 
@@ -370,7 +370,7 @@ __device__ ushort2_t amd_buffer_load<ushort, 2>(const ushort* p_src_block,
                                                 index_t src_thread_data_offset,
                                                 index_t src_const_data_offset)
 {
-    BufferLoadStoreDwordConfig<ushort> src_block_config;
+    BufferAddressConfig<ushort> src_block_config;
 
     // fill in byte 0 - 1
     src_block_config.address[0] = const_cast<ushort*>(p_src_block);
@@ -382,7 +382,7 @@ __device__ ushort2_t amd_buffer_load<ushort, 2>(const ushort* p_src_block,
     index_t src_thread_addr_offset = src_thread_data_offset * sizeof(ushort);
     index_t src_const_addr_offset  = src_const_data_offset * sizeof(ushort);
 
-#if !CK_WORKAROUND_BUFFER_LOAD_STORE_F16_INTRINSIC_BUG
+#if !CK_WORKAROUND_SWDEV_231101
     return __llvm_amdgcn_buffer_load_bf16x2(
         src_block_config.data, 0, src_thread_addr_offset + src_const_addr_offset, false, false);
 #else
@@ -398,7 +398,7 @@ __device__ ushort4_t amd_buffer_load<ushort, 4>(const ushort* p_src_block,
                                                 index_t src_thread_data_offset,
                                                 index_t src_const_data_offset)
 {
-    BufferLoadStoreDwordConfig<ushort> src_block_config;
+    BufferAddressConfig<ushort> src_block_config;
 
     // fill in byte 0 - 1
     src_block_config.address[0] = const_cast<ushort*>(p_src_block);
@@ -410,7 +410,7 @@ __device__ ushort4_t amd_buffer_load<ushort, 4>(const ushort* p_src_block,
     index_t src_thread_addr_offset = src_thread_data_offset * sizeof(ushort);
     index_t src_const_addr_offset  = src_const_data_offset * sizeof(ushort);
 
-#if !CK_WORKAROUND_BUFFER_LOAD_STORE_F16_INTRINSIC_BUG
+#if !CK_WORKAROUND_SWDEV_231101
     return __llvm_amdgcn_buffer_load_bf16x4(
         src_block_config.data, 0, src_thread_addr_offset + src_const_addr_offset, false, false);
 #else
@@ -426,7 +426,7 @@ __device__ ushort8_t amd_buffer_load<ushort, 8>(const ushort* p_src_block,
                                                 index_t src_thread_data_offset,
                                                 index_t src_const_data_offset)
 {
-    BufferLoadStoreDwordConfig<ushort> src_block_config;
+    BufferAddressConfig<ushort> src_block_config;
 
     // fill in byte 0 - 1
     src_block_config.address[0] = const_cast<ushort*>(p_src_block);
@@ -438,7 +438,7 @@ __device__ ushort8_t amd_buffer_load<ushort, 8>(const ushort* p_src_block,
     index_t src_thread_addr_offset = src_thread_data_offset * sizeof(ushort);
     index_t src_const_addr_offset  = src_const_data_offset * sizeof(ushort);
 
-#if !CK_WORKAROUND_BUFFER_LOAD_STORE_F16_INTRINSIC_BUG
+#if !CK_WORKAROUND_SWDEV_231101
     static_assert(false, "wrong! not implemented");
 #else
     float4_t dst_out_tmp = __llvm_amdgcn_buffer_load_f32x4(
@@ -454,7 +454,7 @@ __device__ void amd_buffer_store<float, 1>(const float* p_src,
                                            index_t dst_thread_data_offset,
                                            index_t dst_const_data_offset)
 {
-    BufferLoadStoreDwordConfig<float> dst_block_config;
+    BufferAddressConfig<float> dst_block_config;
 
     // fill in byte 0 - 1
     dst_block_config.address[0] = p_dst_block;
@@ -480,7 +480,7 @@ __device__ void amd_buffer_store<float, 2>(const float* p_src,
                                            index_t dst_thread_data_offset,
                                            index_t dst_const_data_offset)
 {
-    BufferLoadStoreDwordConfig<float> dst_block_config;
+    BufferAddressConfig<float> dst_block_config;
 
     // fill in byte 0 - 1
     dst_block_config.address[0] = p_dst_block;
@@ -506,7 +506,7 @@ __device__ void amd_buffer_store<float, 4>(const float* p_src,
                                            index_t dst_thread_data_offset,
                                            index_t dst_const_data_offset)
 {
-    BufferLoadStoreDwordConfig<float> dst_block_config;
+    BufferAddressConfig<float> dst_block_config;
 
     // fill in byte 0 - 1
     dst_block_config.address[0] = p_dst_block;
@@ -532,7 +532,7 @@ __device__ void amd_buffer_store<half_t, 1>(const half_t* p_src,
                                             index_t dst_thread_data_offset,
                                             index_t dst_const_data_offset)
 {
-    BufferLoadStoreDwordConfig<half_t> dst_block_config;
+    BufferAddressConfig<half_t> dst_block_config;
 
     // fill in byte 0 - 1
     dst_block_config.address[0] = p_dst_block;
@@ -541,7 +541,7 @@ __device__ void amd_buffer_store<half_t, 1>(const half_t* p_src,
     // fill in byte 3
     dst_block_config.range[3] = 0x00027000;
 
-#if !CK_WORKAROUND_BUFFER_LOAD_STORE_F16_INTRINSIC_BUG
+#if !CK_WORKAROUND_SWDEV_231101
     index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(half_t);
     index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(half_t);
 
@@ -562,7 +562,7 @@ __device__ void amd_buffer_store<half_t, 2>(const half_t* p_src,
                                             index_t dst_thread_data_offset,
                                             index_t dst_const_data_offset)
 {
-    BufferLoadStoreDwordConfig<half_t> dst_block_config;
+    BufferAddressConfig<half_t> dst_block_config;
 
     // fill in byte 0 - 1
     dst_block_config.address[0] = p_dst_block;
@@ -574,7 +574,7 @@ __device__ void amd_buffer_store<half_t, 2>(const half_t* p_src,
     index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(half_t);
     index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(half_t);
 
-#if !CK_WORKAROUND_BUFFER_LOAD_STORE_F16_INTRINSIC_BUG
+#if !CK_WORKAROUND_SWDEV_231101
     __llvm_amdgcn_buffer_store_f16x2(*reinterpret_cast<const half2_t*>(p_src),
                                      dst_block_config.data,
                                      0,
@@ -602,7 +602,7 @@ __device__ void amd_buffer_store<half_t, 4>(const half_t* p_src,
     index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(half_t);
     index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(half_t);
 
-    BufferLoadStoreDwordConfig<half_t> dst_block_config;
+    BufferAddressConfig<half_t> dst_block_config;
 
     // fill in byte 0 - 1
     dst_block_config.address[0] = p_dst_block;
@@ -611,7 +611,7 @@ __device__ void amd_buffer_store<half_t, 4>(const half_t* p_src,
     // fill in byte 3
     dst_block_config.range[3] = 0x00027000;
 
-#if !CK_WORKAROUND_BUFFER_LOAD_STORE_F16_INTRINSIC_BUG
+#if !CK_WORKAROUND_SWDEV_231101
     __llvm_amdgcn_buffer_store_f16x4(*reinterpret_cast<const half4_t*>(p_src),
                                      dst_block_config.data,
                                      0,
@@ -636,7 +636,7 @@ __device__ void amd_buffer_store<ushort, 1>(const ushort* p_src,
                                             index_t dst_thread_data_offset,
                                             index_t dst_const_data_offset)
 {
-    BufferLoadStoreDwordConfig<ushort> dst_block_config;
+    BufferAddressConfig<ushort> dst_block_config;
 
     // fill in byte 0 - 1
     dst_block_config.address[0] = p_dst_block;
@@ -645,7 +645,7 @@ __device__ void amd_buffer_store<ushort, 1>(const ushort* p_src,
     // fill in byte 3
     dst_block_config.range[3] = 0x00027000;
 
-#if !CK_WORKAROUND_BUFFER_LOAD_STORE_F16_INTRINSIC_BUG
+#if !CK_WORKAROUND_SWDEV_231101
     index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(ushort);
     index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(ushort);
 
@@ -666,7 +666,7 @@ __device__ void amd_buffer_store<ushort, 2>(const ushort* p_src,
                                             index_t dst_thread_data_offset,
                                             index_t dst_const_data_offset)
 {
-    BufferLoadStoreDwordConfig<ushort> dst_block_config;
+    BufferAddressConfig<ushort> dst_block_config;
 
     // fill in byte 0 - 1
     dst_block_config.address[0] = p_dst_block;
@@ -678,7 +678,7 @@ __device__ void amd_buffer_store<ushort, 2>(const ushort* p_src,
     index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(ushort);
     index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(ushort);
 
-#if !CK_WORKAROUND_BUFFER_LOAD_STORE_F16_INTRINSIC_BUG
+#if !CK_WORKAROUND_SWDEV_231101
     __llvm_amdgcn_buffer_store_bf16x2(*p_src,
                                       dst_block_config.data,
                                       0,
@@ -703,7 +703,7 @@ __device__ void amd_buffer_store<ushort, 4>(const ushort* p_src,
                                             index_t dst_thread_data_offset,
                                             index_t dst_const_data_offset)
 {
-    BufferLoadStoreDwordConfig<ushort> dst_block_config;
+    BufferAddressConfig<ushort> dst_block_config;
 
     // fill in byte 0 - 1
     dst_block_config.address[0] = p_dst_block;
@@ -715,7 +715,7 @@ __device__ void amd_buffer_store<ushort, 4>(const ushort* p_src,
     index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(ushort);
     index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(ushort);
 
-#if !CK_WORKAROUND_BUFFER_LOAD_STORE_F16_INTRINSIC_BUG
+#if !CK_WORKAROUND_SWDEV_231101
     __llvm_amdgcn_buffer_store_bf16x4(*p_src,
                                       dst_block_config.data,
                                       0,
@@ -740,7 +740,7 @@ __device__ void amd_buffer_atomic_add<float, 1>(const float* p_src,
                                                 index_t dst_thread_data_offset,
                                                 index_t dst_const_data_offset)
 {
-    BufferLoadStoreDwordConfig<float> dst_block_config;
+    BufferAddressConfig<float> dst_block_config;
 
     // fill in byte 0 - 1
     dst_block_config.address[0] = p_dst_block;

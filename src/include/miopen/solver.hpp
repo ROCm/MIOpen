@@ -992,22 +992,9 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     bool GemmAThreadCopyMoreGemmK;
     bool GemmBThreadCopyMoreGemmKPack;
 
-    bool use_spare_set;
-
-    PerformanceImplicitGemmForwardV4R4Xdlops(int, int, int, int, int, int, int, bool, bool, bool);
-
-    PerformanceImplicitGemmForwardV4R4Xdlops(
-        int a, int b, int c, int d, int e, int f, int g, bool h, bool i)
-        : PerformanceImplicitGemmForwardV4R4Xdlops(a, b, c, d, e, f, g, h, i, false)
-    {
-    }
-
-    PerformanceImplicitGemmForwardV4R4Xdlops()
-        : PerformanceImplicitGemmForwardV4R4Xdlops(-1, -1, -1, -1, -1, -1, -1, false, false, false)
-    {
-    }
-
-    PerformanceImplicitGemmForwardV4R4Xdlops(bool spare);
+    PerformanceImplicitGemmForwardV4R4Xdlops(int, int, int, int, int, int, int, bool, bool);
+    PerformanceImplicitGemmForwardV4R4Xdlops();
+    PerformanceImplicitGemmForwardV4R4Xdlops(bool) : PerformanceImplicitGemmForwardV4R4Xdlops() {}
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
@@ -1030,9 +1017,9 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     bool operator==(const PerformanceImplicitGemmForwardV4R4Xdlops& other) const;
     std::string ToString() const;
 
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx) const;
-    bool IsWorkAroundedPerformanceConfig(const ConvolutionContext& ctx) const;
-    bool IsFastPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidForKernelAlgorithm(const ConvolutionContext& ctx) const;
+    bool IsExcludedDueToCompilerBug(const ConvolutionContext& ctx) const;
+    bool IsFastToBeUsedForTuning(const ConvolutionContext& ctx) const;
     std::tuple<int, bool> CalculateBlockSize() const;
     std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
     std::tuple<int, int, int, int, int, bool>

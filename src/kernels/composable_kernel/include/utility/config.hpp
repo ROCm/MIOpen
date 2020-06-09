@@ -65,10 +65,14 @@
 #endif
 
 // workaround: put all workaround here
-// workaround for buffer load/store fp16/bfp16 intrinsic bug
-#define CK_WORKAROUND_BUFFER_LOAD_STORE_F16_INTRINSIC_BUG 1
-// workaround for unnecessary VGPA <--> AGRP data movement when using mfma intrinsic
+// workaround for unnecessary VGPA <--> AGRP data movement when using mfma LLVM intrinsic
+#ifndef CK_WORKAROUND_SWDEV_229564
 #define CK_WORKAROUND_SWDEV_229564 1
+#endif
+// workaround for buffer load/store fp16/bfp16 intrinsic bug
+#ifndef CK_WORKAROUND_SWDEV_231101
+#define CK_WORKAROUND_SWDEV_231101 1
+#endif
 
 namespace ck {
 

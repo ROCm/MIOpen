@@ -1,5 +1,5 @@
-#ifndef CK_SYNCHRONIZE_AMD_HPP
-#define CK_SYNCHRONIZE_AMD_HPP
+#ifndef CK_SYNCHRONIZATION_AMD_HPP
+#define CK_SYNCHRONIZATION_AMD_HPP
 
 #include "config.hpp"
 

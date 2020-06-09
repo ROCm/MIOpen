@@ -41,24 +41,10 @@ static bool workaround_swdev_239555()
            IsClangXXCompiler();
 }
 
-PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops(bool spare)
+PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops()
+    : PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops(
+          32, 32, 1, 16, 16, 1, 1, false, false)
 {
-    // always search full space, no matter if use_spare_set or not
-    GemmMPerBlock = 32;
-    GemmNPerBlock = 32;
-    GemmKPerBlock = 1;
-
-    GemmMPerWave = 16;
-    GemmNPerWave = 16;
-
-    GemmG = 1;
-
-    GemmKPack = 1;
-
-    GemmAThreadCopyMoreGemmK     = false;
-    GemmBThreadCopyMoreGemmKPack = false;
-
-    use_spare_set = spare;
 }
 
 PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops(
@@ -70,8 +56,7 @@ PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlo
     int GemmG_,
     int GemmKPack_,
     bool GemmAThreadCopyMoreGemmK_,
-    bool GemmBThreadCopyMoreGemmKPack_,
-    bool use_spare_set_)
+    bool GemmBThreadCopyMoreGemmKPack_)
     : GemmMPerBlock(GemmMPerBlock_),
       GemmNPerBlock(GemmNPerBlock_),
       GemmKPerBlock(GemmKPerBlock_),
@@ -80,8 +65,7 @@ PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlo
       GemmG(GemmG_),
       GemmKPack(GemmKPack_),
       GemmAThreadCopyMoreGemmK(GemmAThreadCopyMoreGemmK_),
-      GemmBThreadCopyMoreGemmKPack(GemmBThreadCopyMoreGemmKPack_),
-      use_spare_set(use_spare_set_)
+      GemmBThreadCopyMoreGemmKPack(GemmBThreadCopyMoreGemmKPack_)
 {
 }
 
@@ -97,8 +81,7 @@ operator==(const PerformanceImplicitGemmForwardV4R4Xdlops& other) const
         && GemmG == other.GemmG
         && GemmKPack == other.GemmKPack 
         && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
-        && GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack
-        && use_spare_set == other.use_spare_set;
+        && GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack;
     // clang-format on
 }
 
@@ -138,105 +121,105 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
     if(ctx.IsFp32())
     {
         tmp = {128, 128, 4, 64, 64, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {128, 128, 8, 64, 64, 1, 2, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {128, 64, 4, 64, 64, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {128, 64, 8, 64, 64, 1, 2, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 128, 4, 64, 64, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 128, 8, 64, 64, 1, 2, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 64, 4, 64, 64, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 64, 8, 64, 64, 1, 2, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 64, 2, 64, 64, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 64, 2, 64, 64, 1, 2, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 32, 4, 32, 64, 1, 2, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 32, 4, 32, 64, 1, 2, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {32, 64, 4, 64, 32, 1, 2, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {32, 32, 4, 32, 32, 1, 2, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 16, 4, 16, 64, 1, 2, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {16, 64, 4, 64, 16, 1, 2, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {16, 16, 4, 16, 16, 1, 2, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 4, 16, 4, 64, 1, 2, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 8, 8, 8, 64, 1, 2, false, true};
     }
     else if(ctx.IsFp16())
     {
         tmp = {256, 128, 4, 64, 128, 1, 8, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {256, 128, 4, 128, 64, 1, 8, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {128, 256, 4, 64, 128, 1, 8, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {256, 128, 4, 128, 64, 1, 8, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {128, 128, 4, 64, 64, 1, 8, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {128, 128, 8, 64, 64, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 32, 4, 32, 64, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 32, 4, 32, 64, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {32, 64, 4, 64, 32, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {32, 32, 4, 32, 32, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 16, 4, 16, 64, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {16, 64, 4, 64, 16, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {16, 16, 4, 16, 16, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 4, 16, 4, 64, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 8, 8, 8, 64, 1, 4, false, true};
     }
     else if(ctx.IsBfp16())
     {
         tmp = {256, 128, 4, 64, 128, 1, 8, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {256, 128, 4, 128, 64, 1, 8, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {128, 256, 4, 64, 128, 1, 8, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {256, 128, 4, 128, 64, 1, 8, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {128, 128, 4, 64, 64, 1, 8, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {128, 128, 8, 64, 64, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 32, 4, 32, 64, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 32, 4, 32, 64, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {32, 64, 4, 64, 32, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {32, 32, 4, 32, 32, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 16, 4, 16, 64, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {16, 64, 4, 64, 16, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {16, 16, 4, 16, 16, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 4, 16, 4, 64, 1, 4, false, true};
-        if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+        if(!tmp.IsValidForKernelAlgorithm(ctx))
             tmp = {64, 8, 8, 8, 64, 1, 4, false, true};
     }
     else
@@ -245,7 +228,7 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
         assert(false);
     }
 
-    if(!tmp.IsValidPerformanceConfig(ctx) && (!IsWorkAroundedPerformanceConfig(ctx)))
+    if(!tmp.IsValidForKernelAlgorithm(ctx))
     {
         MIOPEN_LOG_E("All attempts failed");
         assert(false);
@@ -520,8 +503,7 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmForwardV4R4Xdlops::Calculat
 // false
 bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValid(const ConvolutionContext& ctx) const
 {
-    return IsValidValue() && IsValidPerformanceConfig(ctx) &&
-           (!IsWorkAroundedPerformanceConfig(ctx)) && IsFastPerformanceConfig(ctx);
+    return IsValidValue() && IsValidForKernelAlgorithm(ctx) && IsFastToBeUsedForTuning(ctx);
 }
 
 // Should only used by tuning for quick pruning
@@ -540,10 +522,12 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValidValue() const
 
 // Used by anywhere else expect by tuning
 // Only return false if a performance config will violate requirements given by kernel algorithm
-// Workaround for compiler bug should be put in IsWorkAroundedPerformanceConfig()
-bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValidPerformanceConfig(
+bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValidForKernelAlgorithm(
     const ConvolutionContext& ctx) const
 {
+    if(IsExcludedDueToCompilerBug(ctx))
+        return false;
+
     if(!IsValidBlockwiseGemmXdlops(
            ctx, GemmMPerBlock, GemmNPerBlock, GemmKPerBlock, GemmMPerWave, GemmNPerWave, GemmKPack))
         return false;
@@ -593,7 +577,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValidPerformanceConfig(
 }
 
 // Return true, if performance config should be workaround, due to compiler bugs
-bool PerformanceImplicitGemmForwardV4R4Xdlops::IsWorkAroundedPerformanceConfig(
+bool PerformanceImplicitGemmForwardV4R4Xdlops::IsExcludedDueToCompilerBug(
     const ConvolutionContext& ctx) const
 {
     const auto y              = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
@@ -608,7 +592,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsWorkAroundedPerformanceConfig(
         if(ctx.IsFp16())
         {
             if((y > 1 || x > 1) &&
-               (in_left_pad_h > 0 || in_left_pad_w > 0 || in_right_pad_h > 0 && in_right_pad_w > 0))
+               (in_left_pad_h > 0 || in_left_pad_w > 0 || in_right_pad_h > 0 || in_right_pad_w > 0))
                 return true;
         }
     }
@@ -619,7 +603,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsWorkAroundedPerformanceConfig(
 // Return false if a performance config is known to be sub-optimal, comparing to other performance
 // config inside tuning range
 // Should only used for tuning
-bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastPerformanceConfig(
+bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
     const ConvolutionContext& ctx) const
 {
     // don't need too many blocks
@@ -792,7 +776,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
     ConvSolution result;
     KernelInfo construction_parameters;
 
-    assert(config.IsValidPerformanceConfig(ctx) && (!config.IsWorkAroundedPerformanceConfig(ctx)));
+    assert(config.IsValidForKernelAlgorithm(ctx));
 
     construction_parameters.kernel_file =
         "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw.cpp";
@@ -883,6 +867,8 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
         std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") + (miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM{}) ? '0' : '1') +
+        std::string(" -DCK_WORKAROUND_SWDEV_229564=") + std::to_string(WORKAROUND_SWDEV_229564) +
+        std::string(" -DCK_WORKAROUND_SWDEV_231101=") + std::to_string(WORKAROUND_SWDEV_231101) +
         ctx.general_compile_options;
     // clang-format on
 
@@ -925,7 +911,7 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext
     if(ctx.group_counts > 1)
         return false;
 
-    // current index range cannot cover buffer larger than 2GB
+    // current index use int32_t, and can only cover buffer of 2GB
     {
         const std::size_t max_index_range = std::size_t(2) * 1024 * 1204 * 1024;
 
@@ -948,7 +934,7 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext
             if(ctx.IsFp16())
             {
                 if((y > 1 || x > 1) && (in_left_pad_h > 0 || in_left_pad_w > 0 ||
-                                        in_right_pad_h > 0 && in_right_pad_w > 0))
+                                        in_right_pad_h > 0 || in_right_pad_w > 0))
                     return false;
             }
         }
@@ -967,7 +953,7 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext
 bool ConvHipImplicitGemmForwardV4R4Xdlops::IsValidPerformanceConfig(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmForwardV4R4Xdlops& c) const
 {
-    return c.IsValidPerformanceConfig(ctx) && (!c.IsWorkAroundedPerformanceConfig(ctx));
+    return c.IsValidForKernelAlgorithm(ctx);
 }
 
 PerformanceImplicitGemmForwardV4R4Xdlops

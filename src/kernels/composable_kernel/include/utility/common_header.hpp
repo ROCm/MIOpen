@@ -16,7 +16,7 @@
 #include "functional3.hpp"
 #include "functional4.hpp"
 #include "in_memory_operation.hpp"
-#include "synchronize.hpp"
+#include "synchronization.hpp"
 
 #if CK_USE_AMD_INLINE_ASM
 #include "amd_inline_asm.hpp"
