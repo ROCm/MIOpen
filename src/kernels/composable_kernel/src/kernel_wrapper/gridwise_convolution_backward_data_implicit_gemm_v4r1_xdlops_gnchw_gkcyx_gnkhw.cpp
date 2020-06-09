@@ -219,7 +219,7 @@ extern "C" __global__
             GemmBBlockCopySrcDataPerRead_GemmN,
             GemmBBlockCopyDstDataPerWrite_GemmKPACK>{};
 
-    // these decide which GEMM will be called
+    // this decides which GEMM will be called
     constexpr index_t GemmId = CK_PARAM_GEMM_ID;
 
     gridwise_conv_bwd_data.template Run<GemmId>(p_in_global, p_wei_global, p_out_global);

@@ -119,7 +119,7 @@ extern "C" __global__
     constexpr index_t GemmABlockCopyDstDataPerWrite_GemmKPACK =
         CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK;
 
-    // A matrix
+    // B matrix
     using GemmBBlockCopyThreadSliceLengths_GemmK_GemmN_GemmKPACK =
         Sequence<GemmBBlockCopyThreadSliceLengths_GemmK,
                  GemmBBlockCopyThreadSliceLengths_GemmN,
