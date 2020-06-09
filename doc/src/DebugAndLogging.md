@@ -150,11 +150,11 @@ More information on logging with rocBlas can be found [here](https://github.com/
 
 MIOpen provides the environmental variable `MIOPEN_CHECK_NUMERICS` to allow users to debug potential numerical abnormalities. Setting this variable will scan all inputs and outputs of each kernel called and attempt to detect infinities (infs), not-a-number (NaN), or all zeros. The environment variable has several settings that will help with debugging:
 
-`MIOPEN_CHECK_NUMERICS=0x01`: Fully informative, prints results from all checks to console
-`MIOPEN_CHECK_NUMERICS=0x02`: Warning information, prints results only if abnormality detected
-`MIOPEN_CHECK_NUMERICS=0x04`: Throw error on detection, MIOpen execute MIOPEN_THROW on abnormal result
-`MIOPEN_CHECK_NUMERICS=0x08`: Abort on abnormal result, this will allow users to drop into a debugging session
-`MIOPEN_CHECK_NUMERICS=0x10`: Print stats, this will compute and print mean/absmean/min/max (note, this is much slower)
+* `MIOPEN_CHECK_NUMERICS=0x01`: Fully informative, prints results from all checks to console
+* `MIOPEN_CHECK_NUMERICS=0x02`: Warning information, prints results only if abnormality detected
+* `MIOPEN_CHECK_NUMERICS=0x04`: Throw error on detection, MIOpen execute MIOPEN_THROW on abnormal result
+* `MIOPEN_CHECK_NUMERICS=0x08`: Abort on abnormal result, this will allow users to drop into a debugging session
+* `MIOPEN_CHECK_NUMERICS=0x10`: Print stats, this will compute and print mean/absmean/min/max (note, this is much slower)
 
 
 ## Controlling Parallel Compilation
