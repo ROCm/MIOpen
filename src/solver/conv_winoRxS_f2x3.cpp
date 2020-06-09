@@ -497,7 +497,7 @@ bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) cons
     const auto name = params.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx9")))
         return false;
-    else if(params.IsFp16() && !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908")))
+    if(params.IsFp16() && !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908")))
         return false;
 
     // clang-format off
