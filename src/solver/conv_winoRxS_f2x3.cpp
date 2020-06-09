@@ -30,6 +30,10 @@
 #include <miopen/sequences.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/generic_search.hpp>
+#include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/conv/compiled_in_parameters.hpp>
+
+#include <boost/any.hpp>
 
 #include <tuple>
 
@@ -327,7 +331,7 @@ inline void FillVarsFromConfig(int& H,
 }
 
 template <typename B, typename T, typename TW>
-int ConvBinWinogradRxSf2x3::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvBinWinogradRxSf2x3::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                   B bot_ocl_buf,
                                                   T top_ocl_buf,
                                                   TW wei_ocl_buf,
@@ -541,6 +545,7 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                                     const PerformanceConfigConvBinWinogradRxSf2x3& config,
                                     const bool disableConfigOverrideFromEnv) const
 {
+    const auto n_groups = config.n_groups;
     static bool IsWarned;
     if(!IsWarned)
     {
@@ -614,6 +619,119 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
     }
 
     result.construction_params.push_back(kernel);
+
+    const bool is_forward     = params.direction.IsForward();
+    constexpr int F_REVERSE_R = 1 << 0;
+    constexpr int F_REVERSE_S = 1 << 1;
+    constexpr int F_FLIP_K_C  = 1 << 2;
+    // These are not used yet. Nevertheless let's keep as a shader documentation.
+    // constexpr int F_FLIP_DATA_N_C = 1 << 3; // Unsupported in f3x2.
+    // constexpr int F_FLIP_OUT_N_K = 1 << 4; // Unsupported in f3x2.
+    // constexpr int L_F_ADDR_INDIRECT  = 1 << 6;
+    // constexpr int L_F_BIAS  = 1 << 7;
+    // constexpr int L_F_LEAKY_RELU  = 1 << 8;
+    constexpr int L_F_NKC_STRIDES   = 1 << 9;
+    constexpr int L_F_GROUP_STRIDES = 1 << 10;
+    int reserved                    = 0;
+    int* reserved_ptr               = nullptr;
+    int ignore;
+
+    int N, C, H, W, K, out_H, out_W, R, S, pad_H, pad_W;
+    GetCompiledInParameters(
+        params, &N, &C, &H, &W, &K, &ignore, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
+    const auto group_cnt = params.group_counts;
+    C                    = C / group_cnt;
+    K                    = K / group_cnt;
+    int flags            = is_forward ? 0 : F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
+    flags |= L_F_NKC_STRIDES + L_F_GROUP_STRIDES;
+
+    // cppcheck-suppress unreadVariable
+    BuffInfo d_buf(GetGroupConvLayout(GetMemLayout_t(params.in_layout), true),
+                   N,
+                   C,
+                   H,
+                   W,
+                   1,
+                   group_cnt,
+                   GetTypeSize(params.in_data_type)),
+        // cppcheck-suppress unreadVariable
+        o_buf(GetGroupConvLayout(GetMemLayout_t(params.out_layout), true),
+              N,
+              K,
+              out_H,
+              out_W,
+              1,
+              group_cnt,
+              GetTypeSize(params.out_data_type)),
+        // cppcheck-suppress unreadVariable
+        f_buf(GetGroupConvLayout(
+                  is_forward ? (MemLayout_t::NCHW) : GetSwappedNCLayout(MemLayout_t::NCHW), false),
+              K,
+              C,
+              R,
+              S,
+              1,
+              group_cnt,
+              GetTypeSize(params.weights_data_type));
+
+    result.invoker_factory = [=](std::vector<Kernel> kernels) {
+        return [=](const Handle& handle, const boost::any& primitive_params) {
+            const auto k        = handle.Run(kernels[0]);
+            const auto data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_params);
+            const auto tensors  = data_ctx.tensors;
+
+            // clang-format off
+            MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
+                << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
+                << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
+                << " d_buf.byte_stride.nk=" << d_buf.byte_stride.nk << " d_buf.byte_stride.c=" << d_buf.byte_stride.c
+                << " d_buf.byte_stride.h=" << d_buf.byte_stride.h << " d_buf.byte_stride.w=" << d_buf.byte_stride.w
+                << " f_buf.byte_stride.nk=" << f_buf.byte_stride.nk << " f_buf.byte_stride.c=" << f_buf.byte_stride.c
+                << " f_buf.byte_stride.h=" << f_buf.byte_stride.h << " f_buf.byte_stride.w=" << f_buf.byte_stride.w
+                << " o_buf.byte_stride.nk=" << o_buf.byte_stride.nk << " o_buf.byte_stride.c=" << o_buf.byte_stride.c
+                << " o_buf.byte_stride.h="  << o_buf.byte_stride.h <<  " o_buf.byte_stride.w=" << o_buf.byte_stride.w
+                << " d_buf.byte_stride.g=" << d_buf.byte_stride.g  << " o_buf.byte_stride.g="  << o_buf.byte_stride.g
+                << " f_buf.byte_stride.g=" << f_buf.byte_stride.g); // clang-format on
+
+            k(N,
+              C,
+              H,
+              W,
+              K,
+              n_groups,
+              flags,
+              reserved,
+              tensors.in,
+              tensors.w,
+              tensors.out,
+              reserved_ptr, // Unused return_addr.
+              R,
+              S,
+              pad_H, // Like Fwd wino.
+              pad_W,
+              out_H,
+              out_W,
+              reserved_ptr, // Unused bias_addr.
+              reserved,     // Unused relu_alpha.
+              d_buf.byte_stride.nk,
+              d_buf.byte_stride.c,
+              d_buf.byte_stride.h,
+              d_buf.byte_stride.w,
+              f_buf.byte_stride.nk,
+              f_buf.byte_stride.c,
+              f_buf.byte_stride.h,
+              f_buf.byte_stride.w,
+              o_buf.byte_stride.nk,
+              o_buf.byte_stride.c,
+              o_buf.byte_stride.h,
+              o_buf.byte_stride.w,
+              group_cnt,
+              d_buf.byte_stride.g,
+              f_buf.byte_stride.g,
+              o_buf.byte_stride.g);
+        };
+    };
+
     return result;
 }
 

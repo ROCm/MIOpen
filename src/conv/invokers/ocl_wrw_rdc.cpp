@@ -42,7 +42,7 @@ InvokerFactory MakeOclWrWRdcInvokerFactory(bool twoKernels, size_t workspaceSize
     if(twoKernels)
     {
         return [workspaceSize](const std::vector<Kernel>& kernels) {
-            return [=](Handle& handle, const boost::any& primitive_params) {
+            return [=](const Handle& handle, const boost::any& primitive_params) {
                 const auto main_kernel   = handle.Run(kernels[0]);
                 const auto rdc_kernel    = handle.Run(kernels[1]);
                 const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
@@ -73,7 +73,7 @@ InvokerFactory MakeOclWrWRdcInvokerFactory(bool twoKernels, size_t workspaceSize
     else
     {
         return [](const std::vector<Kernel>& kernels) {
-            return [=](Handle& handle, const boost::any& primitive_params) {
+            return [=](const Handle& handle, const boost::any& primitive_params) {
                 const auto main_kernel   = handle.Run(kernels[0]);
                 const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
                 const auto& tensors      = invoke_params.tensors;

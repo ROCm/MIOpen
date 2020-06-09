@@ -52,38 +52,63 @@ inline void SquashPairedTensor(const std::vector<T> x_len,
                                std::vector<T>& out_len,
                                std::vector<T>& out_str)
 {
+    if(!std::equal(x_len.begin(), x_len.end(), y_len.begin()))
+    {
+        MIOPEN_THROW("Input/Output tensor lengths do not match");
+    }
 
-    auto itr_xl = x_len.end() - 1;
-    auto itr_yl = y_len.end() - 1;
-    auto itr_xs = x_str.end() - 1;
-    auto itr_ys = y_str.end() - 1;
+    *(in_len.end() - 1)  = *(x_len.end() - 1);
+    *(in_str.end() - 1)  = *(x_str.end() - 1);
+    *(out_len.end() - 1) = *(y_len.end() - 1);
+    *(out_str.end() - 1) = *(y_str.end() - 1);
+
+    auto itr_xl = x_len.end() - 2;
+    auto itr_yl = y_len.end() - 2;
+    auto itr_xs = x_str.end() - 2;
+    auto itr_ys = y_str.end() - 2;
 
     auto itr_il = in_len.end() - 1;
     auto itr_ol = out_len.end() - 1;
-    auto itr_is = in_str.end() - 1;
-    auto itr_os = out_str.end() - 1;
+    auto itr_is = in_str.end() - 2;
+    auto itr_os = out_str.end() - 2;
 
-    while((*(itr_xs - 1) == *itr_xl * *(itr_xs--) && *(itr_ys - 1) == *itr_yl * *(itr_ys--) &&
-           itr_xl > x_len.begin()) ||
-          itr_xl == x_len.begin())
+    while(*itr_xs == *(itr_xl + 1) * *(itr_xs + 1) && *itr_ys == *(itr_yl + 1) * *(itr_ys + 1) &&
+          itr_xl >= x_len.begin())
     {
         *itr_il *= *(itr_xl--);
         *itr_ol *= *(itr_yl--);
+        itr_xs--;
+        itr_ys--;
     }
 
-    while(itr_xl >= x_len.begin() && itr_il >= in_len.begin())
-        *(itr_il--) = *(itr_xl--);
+    if(itr_xl < x_len.begin() && itr_is >= in_str.begin())
+    {
+        *(itr_is--) = *itr_il;
+        *(itr_os--) = *itr_ol;
+    }
+    else if(itr_xl >= x_len.begin())
+    {
+        itr_il--;
+        itr_ol--;
 
-    while(itr_yl >= y_len.begin() && itr_ol >= out_len.begin())
-        *(itr_ol--) = *(itr_yl--);
+        while(itr_xl >= x_len.begin() && itr_il >= in_len.begin())
+        {
+            *(itr_il--) = *(itr_xl--);
+            *(itr_is--) = *(itr_xs--);
+        }
 
-    itr_il = in_len.end() - 1;
-    while((itr_is--) != in_str.begin())
-        *itr_is = *(itr_is + 1) * *(itr_il--);
+        while(itr_yl >= y_len.begin() && itr_ol >= out_len.begin())
+        {
+            *(itr_ol--) = *(itr_yl--);
+            *(itr_os--) = *(itr_ys--);
+        }
+    }
 
-    itr_ol = out_len.end() - 1;
-    while((itr_os--) != out_str.begin())
-        *itr_os = *(itr_os + 1) * *(itr_ol--);
+    while(itr_is >= in_str.begin())
+        *(itr_is--) = *(itr_is + 1) * *(itr_is + 1 - in_str.begin() + in_len.begin());
+
+    while(itr_os >= out_str.begin())
+        *(itr_os--) = *(itr_os + 1) * *(itr_os + 1 - out_str.begin() + out_len.begin());
 
     if(!std::equal(in_len.begin(), in_len.end(), out_len.begin()))
     {
@@ -141,7 +166,7 @@ void DropoutDescriptor::InitPRNGState(Handle& handle,
     }
 }
 
-void DropoutDescriptor::DropoutForward(Handle& handle,
+void DropoutDescriptor::DropoutForward(const Handle& handle,
                                        const TensorDescriptor& noise_shape,
                                        const TensorDescriptor& xDesc,
                                        ConstData_t x,
@@ -184,7 +209,7 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
         MIOPEN_THROW("Input/Output datatype does not match");
     }
 
-    if(dropout < 0.0 || dropout >= 1.0)
+    if(dropout < 0.0 || dropout > 1.0)
     {
         MIOPEN_THROW("Invalid dropout rate");
     }
@@ -266,10 +291,12 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
+    float amp_scale = float_equal(dropout, 1.0) ? 0 : 1 / (1 - dropout);
     if(!kernels.empty())
     {
         kernels.front()(pstates,
                         dropout,
+                        amp_scale,
                         int(in_len[1]),
                         int(in_len[2]),
                         int(in_len[3]),
@@ -318,6 +345,7 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
         handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
             pstates,
             dropout,
+            amp_scale,
             int(in_len[1]),
             int(in_len[2]),
             int(in_len[3]),
@@ -347,7 +375,7 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
     }
 }
 
-void DropoutDescriptor::DropoutBackward(Handle& handle,
+void DropoutDescriptor::DropoutBackward(const Handle& handle,
                                         const TensorDescriptor& noise_shape,
                                         const TensorDescriptor& dyDesc,
                                         ConstData_t dy,
@@ -390,7 +418,7 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
         MIOPEN_THROW("Input/Output datatype does not match");
     }
 
-    if(dropout < 0.0 || dropout >= 1.0)
+    if(dropout < 0.0 || dropout > 1.0)
     {
         MIOPEN_THROW("Invalid dropout rate");
     }
@@ -474,10 +502,12 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
+    float amp_scale = float_equal(dropout, 1.0) ? 0 : 1 / (1 - dropout);
     if(!kernels.empty())
     {
         kernels.front()(pstates,
                         dropout,
+                        amp_scale,
                         int(in_len[1]),
                         int(in_len[2]),
                         int(in_len[3]),
@@ -528,6 +558,7 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
         handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
             pstates,
             dropout,
+            amp_scale,
             int(in_len[1]),
             int(in_len[2]),
             int(in_len[3]),

@@ -1417,9 +1417,19 @@ struct PerfDbDriver : test_driver
 
         TempFile temp_file{"miopen.tests.perfdb"};
 
-        DbTests<PlainTextDb>(temp_file);
-        DbTests<RamDb>(temp_file);
-        MultiFileDbTests(temp_file);
+#endif
+        DbMultiThreadedReadTest().Run();
+        DbMultiProcessReadTest().Run();
+        DbMultiThreadedTest().Run();
+        DbMultiProcessTest().Run();
+#if !MIOPEN_DISABLE_USERDB
+        DbMultiFileReadTest<true>().Run();
+        DbMultiFileReadTest<false>().Run();
+        DbMultiFileWriteTest().Run();
+        DbMultiFileOperationsTest().Run();
+        DbMultiFileMultiThreadedReadTest().Run();
+        DbMultiFileMultiThreadedTest().Run();
+#endif
     }
 
     private:

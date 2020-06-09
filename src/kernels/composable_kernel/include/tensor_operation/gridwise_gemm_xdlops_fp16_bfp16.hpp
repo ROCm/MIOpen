@@ -11,6 +11,39 @@
 
 namespace ck {
 
+template <index_t Gi,
+          index_t MBlockWork,
+          index_t NBlockWork,
+          WorkgroupScheduleOrder WorkgroupSchdOrder>
+struct make_batch_block_work_sequence;
+
+template <index_t Gi, index_t MBlockWork, index_t NBlockWork>
+struct make_batch_block_work_sequence<Gi, MBlockWork, NBlockWork, MBlock1NBlock0>
+{
+    __device__ constexpr auto get() { return Sequence<Gi, MBlockWork, NBlockWork>{}; }
+};
+
+template <index_t Gi, index_t MBlockWork, index_t NBlockWork>
+struct make_batch_block_work_sequence<Gi, MBlockWork, NBlockWork, NBlock1MBlock0>
+{
+    __device__ constexpr auto get() { return Sequence<Gi, NBlockWork, MBlockWork>{}; }
+};
+
+template <index_t MBlockWork, index_t NBlockWork, WorkgroupScheduleOrder WorkgroupSchdOrder>
+struct make_block_work_sequence;
+
+template <index_t MBlockWork, index_t NBlockWork>
+struct make_block_work_sequence<MBlockWork, NBlockWork, MBlock1NBlock0>
+{
+    __device__ constexpr auto get() { return Sequence<MBlockWork, NBlockWork>{}; }
+};
+
+template <index_t MBlockWork, index_t NBlockWork>
+struct make_block_work_sequence<MBlockWork, NBlockWork, NBlock1MBlock0>
+{
+    __device__ constexpr auto get() { return Sequence<NBlockWork, MBlockWork>{}; }
+};
+
 template <index_t GridSize,
           index_t BlockSize,
           class ABFloat,
@@ -42,7 +75,10 @@ template <index_t GridSize,
           index_t BBlockCopySrcVectorReadDim,
           index_t BBlockCopySrcDataPerRead,
           index_t BBlockCopyDstDataPerWrite_KPACK,
-          InMemoryDataOperation OutputMemOp>
+          InMemoryDataOperation OutputMemOp,
+          WorkgroupScheduleOrder WorkgroupSchdOrder,
+          index_t ABlockCopySrcDataStride = 1,
+          index_t BBlockCopySrcDataStride = 1>
 struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
 {
     __device__ void Run(const ABFloat* const __restrict__ p_a_global,
@@ -70,13 +106,18 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
         constexpr index_t MWaves = MPerBlock / MPerWave;
         constexpr index_t NWaves = NPerBlock / NPerWave;
 
-        constexpr auto block_work_desc =
-            make_cluster_descriptor(Sequence<MBlockWork, NBlockWork>{});
+        constexpr auto block_work_sequence =
+            make_block_work_sequence<MBlockWork, NBlockWork, WorkgroupSchdOrder>{}.get();
+        constexpr auto block_work_desc = make_cluster_descriptor(block_work_sequence);
 
         const auto block_work_id = block_work_desc.CalculateClusterIndex(get_block_1d_id());
 
-        const index_t k_block_data_on_global = block_work_id[0] * MPerBlock;
-        const index_t b_block_data_on_global = block_work_id[1] * NPerBlock;
+        const index_t k_block_data_on_global = (WorkgroupSchdOrder == MBlock1NBlock0)
+                                                   ? (block_work_id[0] * MPerBlock)
+                                                   : (block_work_id[1] * MPerBlock);
+        const index_t b_block_data_on_global = (WorkgroupSchdOrder == MBlock1NBlock0)
+                                                   ? (block_work_id[1] * NPerBlock)
+                                                   : (block_work_id[0] * NPerBlock);
 
         //   LDS mem
         constexpr index_t max_align = math::lcm(BBlockCopyDstDataPerWrite_KPACK,
@@ -106,7 +147,8 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
             AddressSpace::Generic,
             AddressSpace::Vgpr,
             AddressSpace::Lds,
-            InMemoryDataOperation::Set>({0, k_block_data_on_global, 0}, {0, 0, 0});
+            InMemoryDataOperation::Set,
+            ABlockCopySrcDataStride>({0, k_block_data_on_global, 0}, {0, 0, 0});
 
         constexpr auto b_k_n_kpack_block_desc = make_native_tensor_descriptor_aligned(
             Sequence<KPerBlock, NPerBlock, KPACK>{}, Number<max_align>{});
@@ -129,7 +171,8 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
             AddressSpace::Generic,
             AddressSpace::Vgpr,
             AddressSpace::Lds,
-            InMemoryDataOperation::Set>({0, b_block_data_on_global, 0}, {0, 0, 0});
+            InMemoryDataOperation::Set,
+            BBlockCopySrcDataStride>({0, b_block_data_on_global, 0}, {0, 0, 0});
 
         // GEMM definition
         // c_mtx += transpose(a_mtx) * b_mtx
@@ -213,11 +256,11 @@ struct GridwiseGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
                 b_blockwise_copy.RunLoadThreadBuffer(p_b_global, p_b_thread_buffer);
 
                 // LDS double buffer: GEMM on current data
-                // Vectorize the pointer to match with how half/bfloat16 datatypes are
-                // processed in gemm operation. Half type packs 4 half values while
+                // Vectorize the pointer to match with how fp16/bfloat16 datatypes are
+                // processed in gemm operation. fp16 type packs 4 fp16 values while
                 // bfloat16 packs 2 bfloat16 values. Since gemm's matrix A and B
                 // 2D indexes are computed with vectorized value in mind (e.g. float, half2, half4),
-                // we recast datatype from a single half to 4 packed half/2 packed bfloat16
+                // we recast datatype from a single fp16 to 4 packed fp16/2 packed bfloat16
                 // respectively.
                 const typename vector_type<ABFloat, KPACK>::MemoryType* p_a_block_vec =
                     reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
@@ -380,7 +423,10 @@ template <index_t GridSize,
           index_t BBlockCopySrcVectorReadDim,
           index_t BBlockCopySrcDataPerRead,
           index_t BBlockCopyDstDataPerWrite_KPACK,
-          InMemoryDataOperation OutputMemOp>
+          InMemoryDataOperation OutputMemOp,
+          WorkgroupScheduleOrder WorkgroupSchdOrder,
+          index_t ABlockCopySrcDataStride = 1,
+          index_t BBlockCopySrcDataStride = 1>
 struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
 {
     __device__ void Run(const ABFloat* const __restrict__ p_a_global,
@@ -412,14 +458,19 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
         constexpr index_t MWaves = MPerBlock / MPerWave;
         constexpr index_t NWaves = NPerBlock / NPerWave;
 
-        constexpr auto block_work_desc =
-            make_cluster_descriptor(Sequence<Gi, MBlockWork, NBlockWork>{});
+        constexpr auto block_work_sequence =
+            make_batch_block_work_sequence<Gi, MBlockWork, NBlockWork, WorkgroupSchdOrder>{}.get();
+        constexpr auto block_work_desc = make_cluster_descriptor(block_work_sequence);
 
         const auto block_work_id = block_work_desc.CalculateClusterIndex(get_block_1d_id());
 
         const index_t group_id               = block_work_id[0];
-        const index_t m_block_data_on_global = block_work_id[1] * MPerBlock;
-        const index_t n_block_data_on_global = block_work_id[2] * NPerBlock;
+        const index_t m_block_data_on_global = (WorkgroupSchdOrder == MBlock1NBlock0)
+                                                   ? (block_work_id[1] * MPerBlock)
+                                                   : (block_work_id[2] * MPerBlock);
+        const index_t n_block_data_on_global = (WorkgroupSchdOrder == MBlock1NBlock0)
+                                                   ? (block_work_id[2] * NPerBlock)
+                                                   : (block_work_id[1] * NPerBlock);
 
         //   LDS mem
         constexpr index_t max_align = math::lcm(BBlockCopyDstDataPerWrite_KPACK,
@@ -449,7 +500,8 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
             AddressSpace::Generic,
             AddressSpace::Vgpr,
             AddressSpace::Lds,
-            InMemoryDataOperation::Set>({group_id, 0, m_block_data_on_global, 0}, {0, 0, 0, 0});
+            InMemoryDataOperation::Set,
+            ABlockCopySrcDataStride>({group_id, 0, m_block_data_on_global, 0}, {0, 0, 0, 0});
 
         constexpr auto b_g_k_n_kpack_block_desc = make_native_tensor_descriptor_aligned(
             Sequence<1, KPerBlock, NPerBlock, KPACK>{}, Number<max_align>{});
@@ -472,7 +524,8 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
             AddressSpace::Generic,
             AddressSpace::Vgpr,
             AddressSpace::Lds,
-            InMemoryDataOperation::Set>({group_id, 0, n_block_data_on_global, 0}, {0, 0, 0, 0});
+            InMemoryDataOperation::Set,
+            BBlockCopySrcDataStride>({group_id, 0, n_block_data_on_global, 0}, {0, 0, 0, 0});
 
         // GEMM definition
         // c_mtx += transpose(a_mtx) * b_mtx
@@ -556,11 +609,11 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlopsFp16Bfp16_v1
                 b_blockwise_copy.RunLoadThreadBuffer(p_b_global, p_b_thread_buffer);
 
                 // LDS double buffer: GEMM on current data
-                // Vectorize the pointer to match with how half/bfloat16 datatypes are
-                // processed in gemm operation. Half type packs 4 half values while
+                // Vectorize the pointer to match with how fp16/bfloat16 datatypes are
+                // processed in gemm operation. fp16 type packs 4 fp16 values while
                 // bfloat16 packs 2 bfloat16 values. Since gemm's matrix A and B
                 // 2D indexes are computed with vectorized value in mind (e.g. float, half2, half4),
-                // we recast datatype from a single half to 4 packed half/2 packed bfloat16
+                // we recast datatype from a single fp16 to 4 packed fp16/2 packed bfloat16
                 // respectively.
                 const typename vector_type<ABFloat, KPACK>::MemoryType* p_a_block_vec =
                     reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(

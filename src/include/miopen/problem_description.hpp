@@ -111,35 +111,49 @@ struct ProblemDescription
     int group_counts                   = 0;
 
     static std::string table_name() { return "config"; }
-    template <class Self, class F>
-    static void Visit(Self&& self, F f)
+
+    template <class Self>
+    static void Visit(Self&& self, std::function<void(int, std::string)> f)
     {
         if(!self.direction.IsKnown())
             MIOPEN_THROW("!direction.IsKnown()");
-        f(std::to_string(self.n_inputs), "in_channels");
-        f(std::to_string(self.in_height), "in_h");
-        f(std::to_string(self.in_width), "in_w");
-        f(std::to_string(self.kernel_size_h), "filter_h");
-        f(std::to_string(self.kernel_size_w), "filter_w");
-        f(std::to_string(self.n_outputs), "out_channels");
-        f(std::to_string(self.batch_sz), "batchsize");
-        f(std::to_string(self.pad_h), "pad_h");
-        f(std::to_string(self.pad_w), "pad_w");
-        f(std::to_string(self.kernel_stride_h), "conv_stride_1");
-        f(std::to_string(self.kernel_stride_w), "conv_stride_0");
-        f(std::to_string(self.kernel_dilation_h), "dilation_h");
-        f(std::to_string(self.kernel_dilation_w), "dilation_w");
-        f(std::to_string(self.bias), "bias");
-        f("'" + self.in_layout + "'", "layout");
-        std::string data_type =
-            EncodeDataTypesForKey(self.in_data_type, self.weights_data_type, self.out_data_type);
-        f("'" + data_type + "'", "data_type");
-        std::string dir =
-            self.direction.IsForward() ? "F" : self.direction.IsBackwardData() ? "B" : "W";
-        f("'" + dir + "'", "direction");
-        f(std::to_string(self.group_counts), "group_count");
+        // The column names match the driver command line argument names
+        f(self.spatial_dims, "spatial_dim");
+        f(self.n_inputs, "in_channels");
+        f(self.in_height, "in_h");
+        f(self.in_width, "in_w");
+        f(self.in_depth, "in_d");
+        f(self.kernel_size_h, "fil_h");
+        f(self.kernel_size_w, "fil_w");
+        f(self.kernel_size_d, "fil_d");
+        f(self.n_outputs, "out_channels");
+        f(self.batch_sz, "batchsize");
+        f(self.pad_h, "pad_h");
+        f(self.pad_w, "pad_w");
+        f(self.pad_d, "pad_d");
+        f(self.kernel_stride_h, "conv_stride_h");
+        f(self.kernel_stride_w, "conv_stride_w");
+        f(self.kernel_stride_d, "conv_stride_d");
+        f(self.kernel_dilation_h, "dilation_h");
+        f(self.kernel_dilation_w, "dilation_w");
+        f(self.kernel_dilation_d, "dilation_d");
+        f(self.bias, "bias");
+        f(self.group_counts, "group_count");
     }
 
+    template <class Self>
+    static void Visit(Self&& self, std::function<void(std::string, std::string)> f)
+    {
+        if(!self.direction.IsKnown())
+            MIOPEN_THROW("!direction.IsKnown()");
+        f(self.in_layout, "layout");
+        std::string data_type =
+            EncodeDataTypesForKey(self.in_data_type, self.weights_data_type, self.out_data_type);
+        f(data_type, "data_type");
+        std::string dir =
+            self.direction.IsForward() ? "F" : self.direction.IsBackwardData() ? "B" : "W";
+        f(dir, "direction");
+    }
     struct Direction
     {
         public:
@@ -160,7 +174,11 @@ struct ProblemDescription
     int GetBackwardPadW() const { return kernel_size_w - pad_w - 1; }
     int GetBackwardPadH() const { return kernel_size_h - pad_h - 1; }
 
+    bool IsAsymmetricPadH() const { return conv_problem.IsAsymmetricPadH(); }
+    bool IsAsymmetricPadW() const { return conv_problem.IsAsymmetricPadW(); }
+
     bool Is2d() const { return spatial_dims == 2; }
+    bool Is3d() const { return spatial_dims == 3; }
 
     bool IsFp32() const
     {
