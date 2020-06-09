@@ -40,73 +40,6 @@
 namespace miopen {
 namespace solver {
 
-bool ConvHipImplicitGemmV4_1x1::IsApplicable(const ConvolutionContext& ctx) const
-{
-#if WORKAROUND_SWDEV_229277_227616_229195
-    if(!IsHccCompiler())
-        return false;
-#endif
-
-    if(!ctx.Is2d())
-        return false;
-
-    return ctx.IsFp32() && ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.group_counts == 1 &&
-           ctx.batch_sz % 8 == 0 &&
-           (ctx.batch_sz * KernelOutputHeightHo(ctx) * KernelOutputWidthWo(ctx)) % 64 == 0 &&
-           ctx.n_outputs % 16 == 0 && ctx.kernel_size_h == 1 && ctx.kernel_size_w == 1 &&
-           ctx.n_inputs % 8 == 0 && ctx.kernel_dilation_h == 1 && ctx.kernel_dilation_w == 1;
-}
-
-bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
-{
-#if WORKAROUND_SWDEV_229277_227616_229195
-    if(!IsHccCompiler())
-        return false;
-#endif
-
-    if(!ctx.direction.IsForward())
-        return false;
-
-    if(!ctx.Is2d())
-        return false;
-
-    if(!ctx.IsFp32() && !ctx.IsFp16() && !ctx.IsBfp16())
-        return false;
-
-    if(ctx.group_counts != 1)
-        return false;
-
-#if WORKAROUND_ISSUE_2174_2222_2224_2243
-    if(miopen::HipGetHccVersion() >= external_tool_version_t{2, 6, 0})
-    {
-        if(!(ctx.kernel_dilation_h == 1 && ctx.kernel_dilation_w == 1))
-            return false;
-    }
-#endif
-
-    // channels is divided by epack to pack 2/4 fp16/bfp16
-    if(ctx.n_inputs % GetEPackLength(ctx, false) != 0)
-        return false;
-
-    // For fp16, when E=c*x*y % 32 == 0, 4 channels are accumulated through dot4 (2 * dot2)
-    // operation
-    // For bfp16/fp16, when E=c*x*y % 16 == 0, 2 channels are accumulated through dot2 operation
-    // For fp32, when E=c*x*y % 8 == 0, no dot2 operation exist.
-    const int MultipleOf = (ctx.IsFp16() || ctx.IsBfp16()) ? 16 : 8;
-    if((ctx.n_inputs * ctx.kernel_size_h * ctx.kernel_size_w) % MultipleOf != 0)
-        return false;
-
-    // padding support required for out_of_bound configs
-    bool no_out_of_bound = (ctx.in_width >= ((ctx.kernel_size_w - 1) * ctx.kernel_dilation_w + 1) +
-                                                (ctx.out_width - 1) * ctx.kernel_stride_w) &&
-                           (ctx.in_height >= ((ctx.kernel_size_h - 1) * ctx.kernel_dilation_h + 1) +
-                                                 (ctx.out_height - 1) * ctx.kernel_stride_h);
-
-    return ctx.pad_h == 0 && ctx.pad_w == 0 && ctx.batch_sz % 8 == 0 &&
-           (ctx.batch_sz * ctx.out_height * ctx.out_width) % 64 == 0 && ctx.n_outputs % 16 == 0 &&
-           no_out_of_bound;
-}
-
 bool ConvHipImplicitGemmV4WrW::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(!ctx.direction.IsBackwardWrW())
@@ -147,39 +80,13 @@ bool ConvHipImplicitGemmV4WrW::IsApplicable(const ConvolutionContext& ctx) const
 }
 
 PerformanceImplicitGemm
-ConvHipImplicitGemmV4Fwd::GetPerformanceConfig(const ConvolutionContext& ctx) const
-{
-    return GetPerformanceConfigBase<PerformanceImplicitGemm>(ctx);
-}
-
-PerformanceImplicitGemm
 ConvHipImplicitGemmV4WrW::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemm>(ctx);
 }
 
-PerformanceImplicitGemm
-ConvHipImplicitGemmV4_1x1::GetPerformanceConfig(const ConvolutionContext& ctx) const
-{
-    return GetPerformanceConfigBase<PerformanceImplicitGemm>(ctx);
-}
-
-bool ConvHipImplicitGemmV4Fwd::IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                                        const PerformanceImplicitGemm& c) const
-{
-    MIOPEN_LOG_I("");
-    return c.IsValidValue() && c.IsValid(ctx);
-}
-
 bool ConvHipImplicitGemmV4WrW::IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                                         const PerformanceImplicitGemm& c) const
-{
-    MIOPEN_LOG_I("");
-    return c.IsValidValue() && c.IsValid(ctx);
-}
-
-bool ConvHipImplicitGemmV4_1x1::IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                                         const PerformanceImplicitGemm& c) const
 {
     MIOPEN_LOG_I("");
     return c.IsValidValue() && c.IsValid(ctx);
@@ -366,18 +273,6 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     return result;
 }
 
-ConvSolution ConvHipImplicitGemmV4Fwd::GetSolution(const ConvolutionContext& ctx,
-                                                   const PerformanceImplicitGemm& config,
-                                                   const bool) const
-{
-    return GetSolutionBase(ctx,
-                           config,
-                           ImplicitGemmV4,
-                           KernelBatchN(ctx),
-                           KernelOutputChannelK(ctx),
-                           KernelOutputHeightHo(ctx),
-                           KernelOutputWidthWo(ctx));
-}
 ConvSolution ConvHipImplicitGemmV4WrW::GetSolution(const ConvolutionContext& ctx,
                                                    const PerformanceImplicitGemm& config,
                                                    const bool) const
@@ -389,35 +284,6 @@ ConvSolution ConvHipImplicitGemmV4WrW::GetSolution(const ConvolutionContext& ctx
                            KernelOutputChannelK(ctx),
                            KernelOutputHeightHo(ctx),
                            KernelOutputWidthWo(ctx));
-}
-
-ConvSolution ConvHipImplicitGemmV4_1x1::GetSolution(const ConvolutionContext& ctx,
-                                                    const PerformanceImplicitGemm& config,
-                                                    const bool) const
-{
-    return GetSolutionBase(ctx,
-                           config,
-                           ImplicitGemmV4_1x1,
-                           KernelBatchN(ctx),
-                           KernelOutputChannelK(ctx),
-                           KernelOutputHeightHo(ctx),
-                           KernelOutputWidthWo(ctx));
-}
-
-int ConvHipImplicitGemmV4Fwd::RunAndMeasureSolution(const miopen::Handle& profile_h,
-                                                    ConstData_t bot_buf,
-                                                    Data_t top_buf,
-                                                    ConstData_t wei_buf,
-                                                    ConstData_t bias_buf,
-                                                    const ConvolutionContext& ctx,
-                                                    const ConvSolution& solution,
-                                                    float& elapsed_time) const
-{
-    assert(bias_buf == nullptr);
-    (void)bias_buf;
-
-    return RunAndMeasureSolutionBase(
-        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
 int ConvHipImplicitGemmV4WrW::RunAndMeasureSolution(const miopen::Handle& profile_h,
@@ -435,33 +301,9 @@ int ConvHipImplicitGemmV4WrW::RunAndMeasureSolution(const miopen::Handle& profil
         profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
-int ConvHipImplicitGemmV4_1x1::RunAndMeasureSolution(const miopen::Handle& profile_h,
-                                                     ConstData_t bot_buf,
-                                                     Data_t top_buf,
-                                                     ConstData_t wei_buf,
-                                                     ConstData_t bias_buf,
-                                                     const ConvolutionContext& ctx,
-                                                     const ConvSolution& solution,
-                                                     float& elapsed_time) const
-{
-    assert(bias_buf == nullptr);
-    (void)bias_buf;
-    return RunAndMeasureSolutionBase(
-        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
-}
-
-PerformanceImplicitGemm ConvHipImplicitGemmV4Fwd::Search(const ConvolutionContext& context) const
-{
-    return GenericSearchFwd(*this, context);
-}
 PerformanceImplicitGemm ConvHipImplicitGemmV4WrW::Search(const ConvolutionContext& context) const
 {
     return GenericSearchWrW(*this, context);
-}
-
-PerformanceImplicitGemm ConvHipImplicitGemmV4_1x1::Search(const ConvolutionContext& context) const
-{
-    return GenericSearchFwd(*this, context);
 }
 
 } // namespace solver
