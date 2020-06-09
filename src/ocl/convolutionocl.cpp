@@ -72,7 +72,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_SCGEMM)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DISABLE_FALLBACK)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)
 
 #if MIOPEN_USE_GEMM
 #ifdef CPPCHECK
@@ -1614,7 +1614,7 @@ std::size_t ConvolutionDescriptor::GetFwdSolutionCountFallback(const TensorDescr
     ValidateGroupCount(xDesc, wDesc, *this);
 
     if(IsGemmApplicableFwd(wDesc, xDesc, yDesc) &&
-       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DISABLE_FALLBACK{}))
+       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
         MIOPEN_LOG_I("Fallback path, GEMM");
         return 1;
@@ -1642,7 +1642,7 @@ std::size_t ConvolutionDescriptor::GetBwdSolutionCountFallback(const TensorDescr
     ValidateGroupCount(dxDesc, wDesc, *this); // See comment in Forward method.
 
     if(IsGemmApplicableBwd(dyDesc, wDesc, dxDesc) &&
-       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DISABLE_FALLBACK{}))
+       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
         MIOPEN_LOG_I("Fallback path, GEMM");
         return 1;
@@ -1722,7 +1722,7 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionCountFallback(const TensorDescr
     ValidateGroupCount(xDesc, dwDesc, *this); // See comment in Forward method.
 
     if(IsGemmApplicableWrw(xDesc, dyDesc, dwDesc) &&
-       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DISABLE_FALLBACK{}))
+       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
         MIOPEN_LOG_I("Fallback path, GEMM");
         return 1;
@@ -1865,7 +1865,7 @@ void ConvolutionDescriptor::GetForwardSolutionsFallback(Handle& handle,
     auto i = std::size_t{0};
 
     if(IsGemmApplicableFwd(wDesc, xDesc, yDesc) &&
-       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DISABLE_FALLBACK{}))
+       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
         MIOPEN_LOG_I("Fallback path, GEMM");
         if(i < maxSolutionCount)
@@ -1896,7 +1896,7 @@ void ConvolutionDescriptor::GetBwdSolutionsFallback(Handle& /*handle*/,
     auto i = std::size_t{0};
 
     if(IsGemmApplicableBwd(dyDesc, wDesc, dxDesc) &&
-       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DISABLE_FALLBACK{}))
+       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
         MIOPEN_LOG_I("Fallback path, GEMM");
         if(i < maxSolutionCount)
@@ -1926,7 +1926,7 @@ void ConvolutionDescriptor::GetWrwSolutionsFallback(Handle& /*handle*/,
     auto i = std::size_t{0};
 
     if(IsGemmApplicableWrw(dyDesc, xDesc, dwDesc) &&
-       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DISABLE_FALLBACK{}))
+       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
         MIOPEN_LOG_I("Fallback path, GEMM");
         if(i < maxSolutionCount)
