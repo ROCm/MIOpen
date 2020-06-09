@@ -1,7 +1,21 @@
 
 ## MIOpen Release notes
 
-### 05/06/2020 [ 2.4.0 ]
+
+### 06/30/2020 [ 2.5.0 ]
+
+- This release contains convolution performance improvements, various minor fixes and documentation updates.
+
+- Added a script to detect and install appropriate precompiled kernels
+- Added 3D convolution backwards weights implicit GEMM implementation 
+- Improve performance of convolution implicit GEMM algorithm
+- Improved database coverage for batch size 1
+- Improved logging and error reporting
+- Improved documentation for debugging with numeric checks
+- Fixed issue with potential infinities and NaNs appearing during low precision training on CNNs
+
+
+### 06/02/2020 [ 2.4.0 ]
 
 - This release contains new implementations of 3D convolutions using implicitGEMM, general performance improvements for convolutions, bug fixes, better versioning in directories, integration with the new rocclr, and dropout support in RNNs.
 
