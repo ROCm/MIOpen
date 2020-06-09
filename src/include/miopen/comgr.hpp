@@ -23,6 +23,26 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "Conv_Winograd_v20_5_23_M_stride2_prologue.inc"
-.include "Conv_Winograd_v20_5_23_M_stride2.inc"
-.include "Conv_Winograd_v20_5_23_M_stride2_epilogue.inc"
+#ifndef GUARD_COMGR_HPP
+#define GUARD_COMGR_HPP
+
+#include <miopen/config.h>
+#if MIOPEN_USE_COMGR
+
+#include <string>
+#include <vector>
+
+namespace miopen {
+namespace comgr {
+
+void BuildOcl(const std::string& name,
+              const std::string& text,
+              const std::string& options,
+              const std::string& device,
+              std::vector<char>& binary);
+
+} // namespace comgr
+} // namespace miopen
+
+#endif // MIOPEN_USE_COMGR
+#endif // GUARD_COMGR_HPP
