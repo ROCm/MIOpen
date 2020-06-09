@@ -38,6 +38,8 @@ option(MIOPEN_TEST_CONV Off)
 option(MIOPEN_TEST_DEEPBENCH Off)
 option(MIOPEN_TEST_DRIVER_ITER_MODE Off)
 
+#Run the test suite to a depth limit
+set(MIOPEN_TEST_LIMIT "0" CACHE STRING "")
 set(MIOPEN_TEST_FLAGS "" CACHE STRING "")
 set(MIOPEN_TEST_GDB On CACHE BOOL "")
 
@@ -126,6 +128,11 @@ function(add_test_executable TEST_NAME)
     else()
         set(TEST_COMMAND ${TEST_NAME} ${MIOPEN_TEST_FLOAT_ARG} ${MIOPEN_TEST_FLAGS_ARGS})
     endif()
+
+    if(MIOPEN_TEST_LIMIT GREATER 0)
+        set(TEST_COMMAND ${TEST_COMMAND} --limit ${MIOPEN_TEST_LIMIT})
+    endif()
+
     add_test_command(${TEST_NAME} ${TEST_COMMAND})
     add_dependencies(tests ${TEST_NAME})
     add_dependencies(check ${TEST_NAME})
