@@ -23,41 +23,22 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-s_endpgm
-.Lfunc_end0:
-   .size miopenSp3AsmConv_group_20_5_23_M_stride1, .Lfunc_end0 - miopenSp3AsmConv_group_20_5_23_M_stride1
 
-   workgroup_size_x = 512
-.amdgcn.next_free_sgpr = 101
-.amdgcn.next_free_vgpr = 128
+.macro PROLOG_KERNEL_DESCRIPTOR kernel_name
+.text
+.globl \kernel_name
+.p2align 8
+.type \kernel_name,@function
+\kernel_name:
+.endm
 
-.rodata
-.p2align 6
-.amdhsa_kernel  miopenSp3AsmConv_group_20_5_23_M_stride1
-    .amdhsa_group_segment_fixed_size 65536
-    .amdhsa_user_sgpr_private_segment_buffer 1
-    .amdhsa_user_sgpr_dispatch_ptr 1
-    .amdhsa_user_sgpr_kernarg_segment_ptr 1
-    .amdhsa_system_sgpr_workgroup_id_x 1
-    .amdhsa_system_sgpr_workgroup_id_y 0
-    .amdhsa_system_sgpr_workgroup_id_z 0
-    .amdhsa_system_vgpr_workitem_id 0
-    .amdhsa_next_free_vgpr .amdgcn.next_free_vgpr
-    .amdhsa_next_free_sgpr .amdgcn.next_free_sgpr
-    .amdhsa_reserve_vcc 1
-    .amdhsa_reserve_xnack_mask 1
-    .amdhsa_reserve_flat_scratch 0
-    .amdhsa_ieee_mode 0
-    .amdhsa_dx10_clamp 0
-.end_amdhsa_kernel
-
-.macro METADATA sc,wc,wg_x
+.macro METADATA sc,wc,wg_x, kernel_name
 .amdgpu_metadata
 ---
 amdhsa.version: [ 1, 0 ]
 amdhsa.kernels:
-  - .name:  miopenSp3AsmConv_group_20_5_23_M_stride1
-    .symbol:  miopenSp3AsmConv_group_20_5_23_M_stride1.kd
+  - .name: \kernel_name
+    .symbol: \kernel_name\().kd
     .language: "OpenCL C"
     .language_version: [ 1, 2 ]
     .sgpr_count: \sc
@@ -117,9 +98,43 @@ amdhsa.kernels:
 .endm // METADATA
 
 .altmacro
-.macro METADATA_WRAPPER sc,wc,wg_x
-    METADATA %\sc, %\wc, %\wg_x
+.macro METADATA_WRAPPER sc,wc,wg_x, kernel_name
+    METADATA %\sc, %\wc, %\wg_x, \kernel_name
 .endm
+
+.macro kernel_end kernel_name
+s_endpgm
+.Lfunc_end0:
+   .size \kernel_name, .Lfunc_end0 - \kernel_name
+.endm
+
+.macro EPILOG_KERNEL_DESCRIPTOR kernel_name
+
+kernel_end \kernel_name
+
+workgroup_size_x = 512
+.amdgcn.next_free_sgpr = 101
+.amdgcn.next_free_vgpr = 128
+
+.rodata
+.p2align 6
+.amdhsa_kernel \kernel_name
+    .amdhsa_group_segment_fixed_size 65536
+    .amdhsa_user_sgpr_private_segment_buffer 1
+    .amdhsa_user_sgpr_dispatch_ptr 1
+    .amdhsa_user_sgpr_kernarg_segment_ptr 1
+    .amdhsa_system_sgpr_workgroup_id_x 1
+    .amdhsa_system_sgpr_workgroup_id_y 0
+    .amdhsa_system_sgpr_workgroup_id_z 0
+    .amdhsa_system_vgpr_workitem_id 0
+    .amdhsa_next_free_vgpr .amdgcn.next_free_vgpr
+    .amdhsa_next_free_sgpr .amdgcn.next_free_sgpr
+    .amdhsa_reserve_vcc 1
+    .amdhsa_reserve_xnack_mask 1
+    .amdhsa_reserve_flat_scratch 0
+    .amdhsa_ieee_mode 0
+    .amdhsa_dx10_clamp 0
+.end_amdhsa_kernel
 
 .ifnotdef workgroup_size_x
     .error "workgroup_size_x must be defined"
@@ -128,5 +143,15 @@ amdhsa.kernels:
 
 total_sgpr_count = .amdgcn.next_free_sgpr + 4 // vcc, xnack
 
-METADATA_WRAPPER total_sgpr_count,.amdgcn.next_free_vgpr,workgroup_size_x
+METADATA_WRAPPER total_sgpr_count,.amdgcn.next_free_vgpr,workgroup_size_x, <\kernel_name>
+
+.endm
+
+.macro KERNEL_PROLOG kernel_name_postfix
+	PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_v21_1_0_\kernel_name_postfix
+.endm
+
+.macro KERNEL_EPILOG kernel_name_postfix
+	EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_v21_1_0_\kernel_name_postfix
+.endm
 

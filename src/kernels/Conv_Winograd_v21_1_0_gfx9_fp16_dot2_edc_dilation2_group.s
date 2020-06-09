@@ -23,12 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+.include "Conv_Winograd_v21_1_0_metadata.inc"
 
-.text
-.globl miopenSp3AsmConv_group_20_5_23_M_stride1
-.p2align 8
-.type miopenSp3AsmConv_group_20_5_23_M_stride1,@function
+KERNEL_PROLOG gfx9_fp16_dot2_edc_dilation2_group
 
+.include "Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_dilation2_group.inc"
 
-miopenSp3AsmConv_group_20_5_23_M_stride1:
-
+KERNEL_EPILOG gfx9_fp16_dot2_edc_dilation2_group
