@@ -190,10 +190,47 @@ int mlo_construct_pooling2D::mloConstructBwd()
     _grp_tile0 = 8;
     _grp_tile1 = 8;
 
-    //_out_pix_tile0 = _kernel_stride0;
-    //_out_pix_tile1 = _kernel_stride1;
-    _out_pix_tile0 = (_search_params.out_width < _grp_tile0 * 2) ? 1 : 2;
-    _out_pix_tile1 = (_search_params.out_height < _grp_tile1 * 2) ? 1 : 2;
+    _out_pix_tile0 = 1;
+    _out_pix_tile1 = 1;
+
+    if(_pooling_method == MLO_POOLING_OP_MAX)
+    {
+        _grp_tile0 =
+            _search_params.in_width <= 8
+                ? 8
+                : (_search_params.in_width <= 16
+                       ? 4
+                       : (_search_params.in_width <= 24
+                              ? 8
+                              : (_search_params.in_width <= 32
+                                     ? 32
+                                     : (_search_params.in_width <= 64
+                                            ? 8
+                                            : (_search_params.in_width <= 96
+                                                   ? 16
+                                                   : (_search_params.in_width <= 128 ? 16
+                                                                                     : 32))))));
+        _grp_tile1 =
+            _search_params.in_width <= 8
+                ? 8
+                : (_search_params.in_width <= 16
+                       ? 16
+                       : (_search_params.in_width <= 24
+                              ? 8
+                              : (_search_params.in_width <= 32
+                                     ? 4
+                                     : (_search_params.in_width <= 64
+                                            ? 8
+                                            : (_search_params.in_width <= 96
+                                                   ? 4
+                                                   : (_search_params.in_width <= 128 ? 16 : 4))))));
+
+        _out_pix_tile0 = _search_params.in_width > 8 && _search_params.in_width <= 24 ? 4 : 1;
+        _out_pix_tile1 =
+            _search_params.in_width <= 24
+                ? 1
+                : (_search_params.in_width > 64 && _search_params.in_width <= 96 ? 4 : 8);
+    }
 
     _comp_options = std::string(" -DMLO_POOLING_OP_ID=") +
                     std::to_string(static_cast<long long>(_pooling_method)) +
