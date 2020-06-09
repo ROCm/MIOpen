@@ -16,7 +16,7 @@ struct TmpDir
     TmpDir(TmpDir const&) = delete;
     TmpDir& operator=(TmpDir const&) = delete;
 
-    void Execute(std::string exe, std::string args);
+    void Execute(std::string exe, std::string args) const;
 
     ~TmpDir();
 };

@@ -40,6 +40,8 @@ endif()
 
 project ( MIOpen C CXX )
 
+option( BUILD_SHARED_LIBS "Build as a shared library" ON )
+
 enable_testing()
 
 find_package(ROCM REQUIRED PATHS /opt/rocm)
@@ -53,7 +55,7 @@ include(CheckCXXCompilerFlag)
 
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
 # Use SQLITE for compiled kernels, when turned off this will use raw files
-set(MIOPEN_ENABLE_SQLITE_KERN_CACHE On CACHE BOOL "")
+set(MIOPEN_ENABLE_SQLITE_KERN_CACHE Off CACHE BOOL "")
 if(MIOPEN_ENABLE_SQLITE)
     # MIOpen now depends on SQLite as well
     find_package(PkgConfig)
@@ -61,6 +63,8 @@ if(MIOPEN_ENABLE_SQLITE)
 endif()
 find_package(BZip2)
 option( BUILD_DEV "Build for development only" OFF)
+
+set(MIOPEN_DISABLE_USERDB Off CACHE BOOL "Disable user database access")
 
 # Strip symbols for release
 if(NOT WIN32 AND NOT APPLE)
@@ -105,6 +109,8 @@ list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/h
 option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
 
+option(MIOPEN_USE_COMGR "When possible, use comgr to build kernels instead of offline tools" Off)
+
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
@@ -136,6 +142,11 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
 
     # scgemm not support opencl backend yet.
     set(MIOPEN_USE_SCGEMM OFF)
+
+    # TODO (priority_low) Use to build HIP and ASM kernels.
+    if(MIOPEN_USE_COMGR)
+        message(FATAL_ERROR "comgr cannot be used with OpenCL backend")
+    endif()
 endif()
 
 
@@ -246,11 +257,11 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
         ${MIOPEN_AMDGCN_ASSEMBLER_PATH}
         /opt/rocm
         /opt/rocm/llvm
-	/opt/rocm/hcc
+        /opt/rocm/hcc
         ${CMAKE_INSTALL_PREFIX}
         ${CMAKE_INSTALL_PREFIX}/llvm
-	${CMAKE_INSTALL_PREFIX}/hcc
-    PATH_SUFFIXES 
+        ${CMAKE_INSTALL_PREFIX}/hcc
+    PATH_SUFFIXES
         /opencl/bin/x86_64
         /bin
     NO_DEFAULT_PATH
@@ -272,14 +283,17 @@ else()
     set(MIOPEN_USE_MIOPENGEMM 0)
 endif()
 
+if(MIOPEN_USE_COMGR)
+    find_package(amd_comgr REQUIRED CONFIG)
+    message(STATUS "Build with comgr ${amd_comgr_VERSION}")
+endif()
+
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
 set(BOOST_COMPONENTS filesystem)
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
 find_path(HALF_INCLUDE_DIR half.hpp)
-
-option( BUILD_SHARED_LIBS "Build as a shared library" ON )
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 
@@ -382,6 +396,7 @@ enable_clang_tidy(
         -llvm-include-order
         -misc-misplaced-const
         -misc-non-private-member-variables-in-classes
+        -modernize-avoid-bind
         -modernize-avoid-c-arrays
         -modernize-pass-by-value
         -modernize-use-auto
@@ -461,3 +476,4 @@ add_subdirectory(src)
 add_subdirectory(driver)
 add_subdirectory(test)
 add_subdirectory(speedtests)
+add_subdirectory(utils)

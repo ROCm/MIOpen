@@ -109,7 +109,7 @@ size_t GetKernelLocalWorkDim(const KernelInvoke& kernel, int dim)
 #endif
 }
 
-static inline void AddKernels(Handle& handle,
+static inline void AddKernels(const Handle& handle,
                               const std::string& algorithm_name,
                               const std::string& network_config,
                               const miopen::solver::ConvSolution& s,
@@ -342,15 +342,26 @@ static void EvaluateInvokers(Handle& handle,
 
     for(const auto& sol : solutions)
     {
-        if(sol.workspce_sz > 0 &&
-           (invoke_ctx.workSpace == nullptr || invoke_ctx.workSpaceSize < sol.workspce_sz))
+        if(sol.workspce_sz > 0)
         {
-            MIOPEN_LOG_I("Skipping solver <" << sol.solver_id << "> due to insufficient workspace ("
-                                             << invoke_ctx.workSpaceSize
-                                             << " < "
-                                             << sol.workspce_sz
-                                             << ")");
-            continue;
+            if(invoke_ctx.workSpace == nullptr)
+            {
+                MIOPEN_LOG_I("Warning: skipping solver <" << sol.solver_id
+                                                          << "> due to no workspace provided ("
+                                                          << sol.workspce_sz
+                                                          << " required)");
+                continue;
+            }
+            if(invoke_ctx.workSpaceSize < sol.workspce_sz)
+            {
+                MIOPEN_LOG_I("Warning: skipping solver <" << sol.solver_id
+                                                          << "> due to insufficient workspace ("
+                                                          << invoke_ctx.workSpaceSize
+                                                          << " < "
+                                                          << sol.workspce_sz
+                                                          << ")");
+                continue;
+            }
         }
 
         if(!sol.invoker_factory)
@@ -942,7 +953,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     }
 
     if(perf_db.empty())
-        MIOPEN_THROW("Fwd Convolution cannot be executed due to incorrect params");
+        MIOPEN_THROW("Forward Convolution cannot be executed due to incorrect params");
 
     std::sort(begin(perf_db), end(perf_db));
 
@@ -998,7 +1009,7 @@ void ValidateAlphaBeta(const void* alpha, const void* beta)
     }
 }
 
-static void ConvForwardCheckNumerics(Handle& handle,
+static void ConvForwardCheckNumerics(const Handle& handle,
                                      const ConvFwdTensors& tensors,
                                      std::function<void()>&& worker)
 {
@@ -1517,7 +1528,7 @@ void ConvolutionDescriptor::ConvFwdGemm(Handle& handle,
 #endif
 }
 
-void ConvolutionDescriptor::ConvFwdFFT(Handle& handle,
+void ConvolutionDescriptor::ConvFwdFFT(const Handle& handle,
                                        const ConvFwdTensors& tensors,
                                        Data_t workSpace,
                                        std::size_t workSpaceSize,
@@ -2048,7 +2059,7 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handl
 }
 
 // Todo: remove when all immediate mode calls will support invokers
-static std::vector<KernelInvoke> CompileSolver(Handle& handle,
+static std::vector<KernelInvoke> CompileSolver(const Handle& handle,
                                                ConvolutionContext& ctx,
                                                solver::Id solver_id,
                                                const FindDbKCacheKey& key)
@@ -2077,8 +2088,7 @@ static Invoker PrepareInvoker(Handle& handle,
     const auto solver = solver_id.GetSolver();
     auto db           = GetDb(ctx);
     auto solution     = solver.FindSolution(ctx, db);
-    const auto invoker =
-        handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
+    auto invoker = handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
 
     handle.RegisterInvoker(invoker, config, solver_id, AlgorithmName(solver_id.GetAlgo(dir)));
     return invoker;
@@ -2630,7 +2640,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     }
 
     if(perf_db.empty())
-        MIOPEN_THROW(miopenStatusUnknownError, "Backward Data Algo cannot be executed");
+        MIOPEN_THROW(miopenStatusUnknownError,
+                     "Backward Data Convolution cannot be executed due to incorrect params");
 
     std::sort(begin(perf_db), end(perf_db));
 
@@ -2650,7 +2661,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                           << ", "
                                           << perf_db[0].time);
 }
-static void ConvBwdCheckNumerics(Handle& handle,
+static void ConvBwdCheckNumerics(const Handle& handle,
                                  const ConvBwdTensors& tensors,
                                  const void* beta,
                                  std::function<void()>&& worker)
@@ -3026,7 +3037,7 @@ void ConvolutionDescriptor::ConvBwdGemm(Handle& handle,
 #endif
 }
 
-void ConvolutionDescriptor::ConvBwdFFT(Handle& handle,
+void ConvolutionDescriptor::ConvBwdFFT(const Handle& handle,
                                        const ConvBwdTensors& tensors,
                                        Data_t workSpace,
                                        size_t workSpaceSize,
@@ -4071,7 +4082,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     }
 
     if(perf_db.empty())
-        MIOPEN_THROW("Bwd Weights Convolution cannot be executed due to incorrect params");
+        MIOPEN_THROW("Backward Weights Convolution cannot be executed due to incorrect params");
 
     std::sort(begin(perf_db), end(perf_db));
 
@@ -4091,7 +4102,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                            << perf_db[0].time);
 }
 
-static void ConvWrwCheckNumerics(Handle& handle,
+static void ConvWrwCheckNumerics(const Handle& handle,
                                  const ConvWrwTensors& tensors,
                                  const void* beta,
                                  std::function<void()>&& worker)
@@ -4841,7 +4852,7 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
     });
 }
 
-void ConvolutionBackwardBias(Handle& handle,
+void ConvolutionBackwardBias(const Handle& handle,
                              const void* alpha,
                              const TensorDescriptor& dyDesc,
                              ConstData_t dy,

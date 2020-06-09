@@ -443,9 +443,9 @@ bool PerformanceImplicitGemmBwdDataV1R1::IsValidValue() const
 {
     // clang-format off
     return IsTwoPower<64, 256>(BlockSize) &&
-           IsTwoPower<32, 128>(GemmMPerBlock) && 
+           IsTwoPower<32, 128>(GemmMPerBlock) &&
            IsTwoPower<32, 128>(GemmNPerBlock) &&
-           IsTwoPower<4, 16>(GemmKPerBlock) && 
+           IsTwoPower<4, 16>(GemmKPerBlock) &&
            IsTwoPower<2, 4>(GemmMPerThread) &&
            IsTwoPower<2, 4>(GemmNPerThread);
     // clang-format on
@@ -680,7 +680,7 @@ ConvHipImplicitGemmBwdDataV1R1::Search(const ConvolutionContext& ctx) const
         return GenericSearchBwd(*this, ctx);
 }
 
-int ConvHipImplicitGemmBwdDataV1R1::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmBwdDataV1R1::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                           ConstData_t bot_buf,
                                                           Data_t top_buf,
                                                           ConstData_t wei_buf,
@@ -806,7 +806,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
     result.workspce_sz = GetWorkspaceSize(ctx);
 
     // clang-format off
-    construction_parameters.comp_options = 
+    construction_parameters.comp_options =
         std::string(" -std=c++14 ") +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ConvolutionContextInterpreter::GetBatchN(ctx)) +
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ConvolutionContextInterpreter::GetOutputChannelK(ctx)) +
