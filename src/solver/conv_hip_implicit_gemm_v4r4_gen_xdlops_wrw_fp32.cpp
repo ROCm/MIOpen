@@ -116,6 +116,7 @@ PerformanceImplicitGemmV4R4GenXdlopsWrWFp32::CalculateGemmBBlockCopyPerformanceP
 
         const auto hi = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
         const auto wi = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
+        const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
         // calculate vector length on gemmn dimension
         const auto conv_stride_h =
             ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
@@ -133,6 +134,10 @@ PerformanceImplicitGemmV4R4GenXdlopsWrWFp32::CalculateGemmBBlockCopyPerformanceP
         {
             // \todo there are more configs that can go through this if branch
             SrcDataPerRead_GemmK = gcd(SrcDataPerRead_GemmK, hi * wi);
+        }
+        else if(in_left_pad_w == 0 && in_right_pad_w == 0)
+        {
+            SrcDataPerRead_GemmK = gcd(SrcDataPerRead_GemmK, wo);
         }
         else if(conv_stride_w == 1)
         {
@@ -532,7 +537,6 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::GetSolution(
         std::string(" -DCK_USE_AMD_XDLOPS=") + (IsXdlopsSupport(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + (miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
-        std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
 
@@ -558,6 +562,14 @@ int ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::RunAndMeasureSolution(const miopen:
 
 bool ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::IsApplicable(const ConvolutionContext& ctx) const
 {
+/// \todo Fix and remove this workaround.
+/// There are random failures with certain configs,
+/// see https://github.com/ROCmSoftwarePlatform/MIOpen/pull/228
+/// We can't trust this solver until the reason is found and fixed.
+#if 1
+    (void)ctx;
+    return false;
+#else
     if(!(ctx.IsFp32()))
         return false;
 
@@ -583,6 +595,7 @@ bool ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::IsApplicable(const ConvolutionCont
     const std::size_t GemmK = n * ho * wo;
 
     return IsValidGridGemmXdlops(GemmM, GemmN, GemmK) && IsXdlopsSupport(ctx);
+#endif
 }
 
 bool ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::IsValidPerformanceConfig(

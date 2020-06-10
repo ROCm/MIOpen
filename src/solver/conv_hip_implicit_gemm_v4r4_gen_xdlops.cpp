@@ -408,8 +408,7 @@ bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext&
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 
-    // covered by ConvHipImplicitGemmV4R4GenXdlopsWrWFp32
-    if(ctx.IsFp32() && ctx.group_counts == 1)
+    if(ConvHipImplicitGemmV4R4GenXdlopsWrWFp32{}.IsApplicable(ctx))
         return false;
 
     if(!ctx.direction.IsBackwardWrW())
