@@ -987,12 +987,11 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     int GemmKPerBlock;
     int GemmMPerWave;
     int GemmNPerWave;
-    int GemmG;
     int GemmKPack;
     bool GemmAThreadCopyMoreGemmK;
     bool GemmBThreadCopyMoreGemmKPack;
 
-    PerformanceImplicitGemmForwardV4R4Xdlops(int, int, int, int, int, int, int, bool, bool);
+    PerformanceImplicitGemmForwardV4R4Xdlops(int, int, int, int, int, int, bool, bool);
     PerformanceImplicitGemmForwardV4R4Xdlops();
     PerformanceImplicitGemmForwardV4R4Xdlops(bool) : PerformanceImplicitGemmForwardV4R4Xdlops() {}
 
@@ -1004,7 +1003,6 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
         f(self.GemmKPerBlock, "GemmKPerBlock");
         f(self.GemmMPerWave, "GemmMPerWave");
         f(self.GemmNPerWave, "GemmNPerWave");
-        f(self.GemmG, "GemmG");
         f(self.GemmKPack, "GemmKPack");
         f(self.GemmAThreadCopyMoreGemmK, "GemmAThreadCopyMoreGemmK");
         f(self.GemmBThreadCopyMoreGemmKPack, "GemmBThreadCopyMoreGemmKPack");
@@ -1115,7 +1113,7 @@ struct ConvHipImplicitGemmV4R4GenFwdXdlops : SolverBase<ConvolutionContext>
 
 struct ConvHipImplicitGemmForwardV4R4Xdlops : SolverBase<ConvolutionContext>
 {
-    static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
+    static std::tuple<int, int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
     PerformanceImplicitGemmForwardV4R4Xdlops
     GetPerformanceConfig(const ConvolutionContext& ctx) const;
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
