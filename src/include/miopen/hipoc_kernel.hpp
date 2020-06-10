@@ -201,7 +201,7 @@ struct HIPOCKernel
     }
 
     HIPOCKernelInvoke Invoke(hipStream_t stream,
-                             std::function<void(hipEvent_t, hipEvent_t)> callback = nullptr);
+                             std::function<void(hipEvent_t, hipEvent_t)> callback = nullptr) const;
 };
 
 } // namespace miopen

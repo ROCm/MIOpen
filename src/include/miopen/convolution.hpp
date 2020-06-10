@@ -154,7 +154,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               std::size_t workSpaceSize,
                               bool exhaustiveSearch) const;
 
-    int FindFwdFFTKernel(Handle& handle,
+    int FindFwdFFTKernel(const Handle& handle,
                          const TensorDescriptor& xDesc,
                          const TensorDescriptor& wDesc,
                          const TensorDescriptor& yDesc,
@@ -162,7 +162,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                          std::vector<KernelInvoke>& kernels,
                          const NetworkConfig& kcache_key) const;
 
-    float ExecuteFwdFFTKernel(Handle& handle,
+    float ExecuteFwdFFTKernel(const Handle& handle,
                               const TensorDescriptor& xDesc,
                               ConstData_t x,
                               const TensorDescriptor& wDesc,
@@ -174,7 +174,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               const NetworkConfig& kcache_key,
                               bool timed = false) const;
 
-    int FindBwdFFTKernel(Handle& handle,
+    int FindBwdFFTKernel(const Handle& handle,
                          const TensorDescriptor& dyDesc,
                          const TensorDescriptor& wDesc,
                          const TensorDescriptor& dxDesc,
@@ -182,7 +182,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                          std::vector<KernelInvoke>& kernels,
                          const NetworkConfig& kcache_key) const;
 
-    float ExecuteBwdFFTKernel(Handle& handle,
+    float ExecuteBwdFFTKernel(const Handle& handle,
                               const TensorDescriptor& dyDesc,
                               ConstData_t dy,
                               const TensorDescriptor& wDesc,
@@ -443,7 +443,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                      const ConvFwdTensors& tensors,
                      Data_t workSpace,
                      std::size_t workSpaceSize) const;
-    void ConvFwdFFT(Handle& handle,
+    void ConvFwdFFT(const Handle& handle,
                     const ConvFwdTensors& tensors,
                     Data_t workSpace,
                     std::size_t workSpaceSize,
@@ -454,7 +454,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                      Data_t workSpace,
                      std::size_t workSpaceSize) const;
 
-    void ConvBwdFFT(Handle& handle,
+    void ConvBwdFFT(const Handle& handle,
                     const ConvBwdTensors& tensors,
                     Data_t workSpace,
                     size_t workSpaceSize,
@@ -548,7 +548,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                                     solver::Id solver_id) const;
 };
 
-void ConvolutionBackwardBias(Handle& handle,
+void ConvolutionBackwardBias(const Handle& handle,
                              const void* alpha,
                              const TensorDescriptor& dyDesc,
                              ConstData_t dy,
