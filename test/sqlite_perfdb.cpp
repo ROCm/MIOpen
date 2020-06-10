@@ -1251,12 +1251,14 @@ struct PerfDbDriver : test_driver
         DbMultiThreadedReadTest().Run();
         DbMultiProcessReadTest().Run();
         DbMultiProcessTest().Run();
+#if !MIOPEN_DISABLE_USERDB
         DbMultiFileReadTest<true>().Run();
         DbMultiFileReadTest<false>().Run();
         DbMultiFileWriteTest().Run();
         DbMultiFileOperationsTest().Run();
         DbMultiFileMultiThreadedReadTest().Run();
         DbMultiFileMultiThreadedTest().Run();
+#endif
     }
 
     private:

@@ -64,6 +64,8 @@ endif()
 find_package(BZip2)
 option( BUILD_DEV "Build for development only" OFF)
 
+set(MIOPEN_DISABLE_USERDB Off CACHE BOOL "Disable user database access")
+
 # Strip symbols for release
 if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
@@ -150,6 +152,7 @@ endif()
 
 # HIP is always required
 find_package(hip REQUIRED PATHS /opt/rocm)
+message(STATUS "Build with HIP ${hip_VERSION}")
 target_flags(HIP_COMPILER_FLAGS hip::device)
 # Remove cuda arch flags
 string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
