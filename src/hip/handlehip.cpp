@@ -51,6 +51,7 @@
 #include <thread>
 
 #define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30 MIOPEN_USE_COMGR
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
 namespace miopen {
 
@@ -505,6 +506,10 @@ std::size_t Handle::GetMaxMemoryAllocSize()
 
 std::string Handle::GetDeviceName() const
 {
+    const auto arch = miopen::EnvvarValue("MIOPEN_DEVICE_ARCH");
+    if(arch){
+        return std::to_string(arch);
+    }
     hipDeviceProp_t props{};
     hipGetDeviceProperties(&props, this->impl->device);
     std::string n("gfx" + std::to_string(props.gcnArch));
