@@ -50,10 +50,10 @@ struct external_tool_version_t
     bool operator>=(const external_tool_version_t& rhs) const;
 };
 
-external_tool_version_t HipGetHccVersion();
+external_tool_version_t HipCompilerVersion();
 
 bool IsHccCompiler();
-bool IsClangXXCompiler();
+bool IsHipClangCompiler();
 
 } // namespace miopen
 
