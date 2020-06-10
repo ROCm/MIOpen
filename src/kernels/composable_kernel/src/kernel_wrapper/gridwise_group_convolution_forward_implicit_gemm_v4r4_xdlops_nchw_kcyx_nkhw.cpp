@@ -1,9 +1,9 @@
 #include "common_header.hpp"
-#include "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw.hpp"
+#include "gridwise_group_convolution_forward_implicit_gemm_v4r4_xdlops_gnchw_gkcyx_gnkhw.hpp"
 #include "float_types.h"
 
 extern "C" __global__
-    __launch_bounds__(CK_PARAM_DEPENDENT_BLOCK_SIZE, 2) void gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw(
+    __launch_bounds__(CK_PARAM_DEPENDENT_BLOCK_SIZE, 2) void gridwise_group_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw(
         const FLOAT* const __restrict__ p_in_global,
         const FLOAT* const __restrict__ p_wei_global,
         FLOAT* const __restrict__ p_out_global)
@@ -11,6 +11,7 @@ extern "C" __global__
     using namespace ck;
 
     // read params: problem description
+    constexpr index_t G  = CK_PARAM_PROBLEM_G;
     constexpr index_t N  = CK_PARAM_PROBLEM_N;
     constexpr index_t K  = CK_PARAM_PROBLEM_K;
     constexpr index_t C  = CK_PARAM_PROBLEM_C;
@@ -33,9 +34,17 @@ extern "C" __global__
     constexpr index_t InRightPadH = CK_PARAM_PROBLEM_IN_RIGHT_PAD_H;
     constexpr index_t InRightPadW = CK_PARAM_PROBLEM_IN_RIGHT_PAD_W;
 
-    constexpr auto in_nchw_desc  = make_native_tensor_descriptor_packed(Sequence<N, C, Hi, Wi>{});
-    constexpr auto wei_kcyx_desc = make_native_tensor_descriptor_packed(Sequence<K, C, Y, X>{});
-    constexpr auto out_nkhw_desc = make_native_tensor_descriptor_packed(Sequence<N, K, Ho, Wo>{});
+    constexpr auto CPerGroup = C / G;
+    constexpr auto KPerGroup = K / G;
+
+    constexpr auto in_gnchw_desc =
+        make_native_tensor_descriptor(Sequence<G, N, CPerGroup, Hi, Wi>{},
+                                      Sequence<CPerGroup * Hi * Wi, C * Hi * Wi, Hi * Wi, Wi, 1>{});
+    constexpr auto wei_gkcyx_desc =
+        make_native_tensor_descriptor_packed(Sequence<G, KPerGroup, CPerGroup, Y, X>{});
+    constexpr auto out_gnkhw_desc =
+        make_native_tensor_descriptor(Sequence<G, N, KPerGroup, Ho, Wo>{},
+                                      Sequence<KPerGroup * Ho * Wo, K * Ho * Wo, Ho * Wo, Wo, 1>{});
 
     using ConvStrides   = Sequence<ConvStrideH, ConvStrideW>;
     using ConvDilations = Sequence<ConvDilationH, ConvDilationW>;
@@ -47,9 +56,8 @@ extern "C" __global__
     constexpr index_t GemmMPerBlock = CK_PARAM_TUNABLE_GEMM_M_PER_BLOCK;
     constexpr index_t GemmNPerBlock = CK_PARAM_TUNABLE_GEMM_N_PER_BLOCK;
     constexpr index_t GemmKPerBlock = CK_PARAM_TUNABLE_GEMM_K_PER_BLOCK;
-    constexpr auto GemmMPerWave     = CK_PARAM_TUNABLE_GEMM_M_PER_WAVE;
-    constexpr auto GemmNPerWave     = CK_PARAM_TUNABLE_GEMM_N_PER_WAVE;
-    constexpr index_t GemmG         = CK_PARAM_TUNABLE_GEMM_G;
+    constexpr index_t GemmMPerWave  = CK_PARAM_TUNABLE_GEMM_M_PER_WAVE;
+    constexpr index_t GemmNPerWave  = CK_PARAM_TUNABLE_GEMM_N_PER_WAVE;
     constexpr index_t GemmKPack     = CK_PARAM_TUNABLE_GEMM_KPACK;
 
     // read params: dependent parameters
@@ -72,12 +80,12 @@ extern "C" __global__
         GemmKPack / GemmABlockCopyClusterLengths_GemmKPack;
 
     using GemmABlockCopyClusterLengths_GemmG_GemmK_GemmM_GemmKPack =
-        Sequence<GemmG,
+        Sequence<1,
                  GemmABlockCopyClusterLengths_GemmK,
                  GemmABlockCopyClusterLengths_GemmM,
                  GemmABlockCopyClusterLengths_GemmKPack>;
     using GemmABlockCopySubLengths_GemmG_GemmK_GemmM_GemmKPack =
-        Sequence<GemmG,
+        Sequence<1,
                  GemmABlockCopyThreadSliceLengths_GemmK,
                  GemmABlockCopyThreadSliceLengths_GemmM,
                  GemmABlockCopyThreadSliceLengths_GemmKPack>;
@@ -109,12 +117,12 @@ extern "C" __global__
         GemmKPack / GemmBBlockCopyClusterLengths_GemmKPack;
 
     using GemmBBlockCopyClusterLengths_GemmG_GemmK_GemmN_GemmKPack =
-        Sequence<GemmG,
+        Sequence<1,
                  GemmBBlockCopyClusterLengths_GemmK,
                  GemmBBlockCopyClusterLengths_GemmN,
                  GemmBBlockCopyClusterLengths_GemmKPack>;
     using GemmBBlockCopySubLengths_GemmG_GemmK_GemmN_GemmKPack =
-        Sequence<GemmG,
+        Sequence<1,
                  GemmBBlockCopyThreadSliceLengths_GemmK,
                  GemmBBlockCopyThreadSliceLengths_GemmN,
                  GemmBBlockCopyThreadSliceLengths_GemmKPack>;
@@ -134,15 +142,15 @@ extern "C" __global__
     constexpr auto wkgrp_schd_order = NBlock1MBlock0;
 
     constexpr auto gridwise_conv =
-        GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw<
+        GridwiseGroupConvolutionForwardImplicitGemm_v4r4_xdlops_gnchw_gkcyx_gnkhw<
             GridSize,
             BlockSize,
             FLOAT,       // Input data type
             FLOAT_ACCUM, // Acc data type
             FLOAT,       // Ouput data type
-            decltype(in_nchw_desc),
-            decltype(wei_kcyx_desc),
-            decltype(out_nkhw_desc),
+            decltype(in_gnchw_desc),
+            decltype(wei_gkcyx_desc),
+            decltype(out_gnkhw_desc),
             ConvStrides,
             ConvDilations,
             InLeftPads,
@@ -152,7 +160,6 @@ extern "C" __global__
             GemmKPerBlock,
             GemmMPerWave,
             GemmNPerWave,
-            GemmG,
             GemmKPack,
             GemmABlockCopySubLengths_GemmG_GemmK_GemmM_GemmKPack,
             GemmABlockCopyClusterLengths_GemmG_GemmK_GemmM_GemmKPack,
