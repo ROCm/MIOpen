@@ -148,15 +148,15 @@ void SaveBinary(const std::string& hsaco,
                 const std::string& args,
                 bool is_kernel_str)
 {
+    if(miopen::IsCacheDisabled())
+        return;
+
     auto db = GetDb(device, num_cu);
 
     std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
     KernelConfig cfg{filename, args, hsaco};
     MIOPEN_LOG_I2("Saving binary for: " << name << " ;args: " << args);
-    if(miopen::IsCacheDisabled())
-        db.RemoveRecord(cfg);
-    else
-        db.StoreRecord(cfg);
+    db.StoreRecord(cfg);
 }
 #else
 boost::filesystem::path LoadBinary(const std::string& device,
