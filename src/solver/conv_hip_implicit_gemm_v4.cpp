@@ -77,7 +77,7 @@ bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
         return false;
 
 #if WORKAROUND_ISSUE_2174_2222_2224_2243
-    if(miopen::HipGetHccVersion() >= external_tool_version_t{2, 6, 0})
+    if(miopen::HipCompilerVersion() >= external_tool_version_t{2, 6, 0})
     {
         if(!(ctx.kernel_dilation_h == 1 && ctx.kernel_dilation_w == 1))
             return false;
@@ -122,7 +122,7 @@ bool ConvHipImplicitGemmV4WrW::IsApplicable(const ConvolutionContext& ctx) const
         return false;
 
 #if WORKAROUND_ISSUE_2174_2222_2224_2243
-    if(miopen::HipGetHccVersion() >= external_tool_version_t{2, 6, 0})
+    if(miopen::HipCompilerVersion() >= external_tool_version_t{2, 6, 0})
     {
         if(!(ctx.kernel_stride_w == 1 && ctx.kernel_stride_h == 1))
             return false;
