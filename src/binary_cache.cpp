@@ -73,7 +73,6 @@ static boost::filesystem::path ComputeUserCachePath()
 #endif
 }
 
-#if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
 boost::filesystem::path GetCachePath(bool is_system)
 {
     static const boost::filesystem::path user_path = ComputeUserCachePath();
@@ -83,7 +82,6 @@ boost::filesystem::path GetCachePath(bool is_system)
     else
         return user_path;
 }
-#endif // !MIOPEN_ENABLE_SQLITE_KERN_CACHE
 
 static bool IsCacheDisabled()
 {
@@ -109,7 +107,6 @@ KDb GetDb(const std::string& device, size_t num_cu)
     return {sys_path.string(), user_path.string(), device, num_cu};
 }
 
-#if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
 boost::filesystem::path GetCacheFile(const std::string& device,
                                      const std::string& name,
                                      const std::string& args,
@@ -118,7 +115,6 @@ boost::filesystem::path GetCacheFile(const std::string& device,
     std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
     return GetCachePath(false) / miopen::md5(device + ":" + args) / filename;
 }
-#endif
 
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
 std::string LoadBinary(const std::string& device,
