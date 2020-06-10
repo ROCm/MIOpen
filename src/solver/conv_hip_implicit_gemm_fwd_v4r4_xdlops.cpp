@@ -116,105 +116,105 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
     if(ctx.IsFp32())
     {
         tmp = {128, 128, 4, 64, 64, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {128, 128, 8, 64, 64, 2, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {128, 64, 4, 64, 64, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {128, 64, 8, 64, 64, 2, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 128, 4, 64, 64, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 128, 8, 64, 64, 2, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 64, 4, 64, 64, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 64, 8, 64, 64, 2, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 64, 2, 64, 64, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 64, 2, 64, 64, 2, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 32, 4, 32, 64, 2, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 32, 4, 32, 64, 2, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {32, 64, 4, 64, 32, 2, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {32, 32, 4, 32, 32, 2, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 16, 4, 16, 64, 2, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {16, 64, 4, 64, 16, 2, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {16, 16, 4, 16, 16, 2, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 4, 16, 4, 64, 2, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 8, 8, 8, 64, 2, false, true};
     }
     else if(ctx.IsFp16())
     {
         tmp = {256, 128, 4, 64, 128, 8, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {256, 128, 4, 128, 64, 8, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {128, 256, 4, 64, 128, 8, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {256, 128, 4, 128, 64, 8, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {128, 128, 4, 64, 64, 8, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {128, 128, 8, 64, 64, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 32, 4, 32, 64, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 32, 4, 32, 64, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {32, 64, 4, 64, 32, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {32, 32, 4, 32, 32, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 16, 4, 16, 64, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {16, 64, 4, 64, 16, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {16, 16, 4, 16, 16, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 4, 16, 4, 64, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 8, 8, 8, 64, 4, false, true};
     }
     else if(ctx.IsBfp16())
     {
         tmp = {256, 128, 4, 64, 128, 8, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {256, 128, 4, 128, 64, 8, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {128, 256, 4, 64, 128, 8, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {256, 128, 4, 128, 64, 8, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {128, 128, 4, 64, 64, 8, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {128, 128, 8, 64, 64, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 32, 4, 32, 64, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 32, 4, 32, 64, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {32, 64, 4, 64, 32, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {32, 32, 4, 32, 32, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 16, 4, 16, 64, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {16, 64, 4, 64, 16, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {16, 16, 4, 16, 16, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 4, 16, 4, 64, 4, false, true};
-        if(!tmp.IsValidForKernelAlgorithm(ctx))
+        if(!tmp.IsReallyValid(ctx))
             tmp = {64, 8, 8, 8, 64, 4, false, true};
     }
     else
@@ -223,7 +223,7 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
         assert(false);
     }
 
-    if(!tmp.IsValidForKernelAlgorithm(ctx))
+    if(!tmp.IsReallyValid(ctx))
     {
         MIOPEN_LOG_E("All attempts failed");
         assert(false);
@@ -493,16 +493,7 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmForwardV4R4Xdlops::Calculat
     return std::make_tuple(lds_size, true);
 }
 
-// Return false, if you don't want to this to be included in tuning range used by generic search
-// Should only be used for tuning
-// A performance config may still be valid w.r.t algorithm correctness, even when IsValid() return
-// false
-bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValid(const ConvolutionContext& ctx) const
-{
-    return IsValidValue() && IsValidForKernelAlgorithm(ctx) && IsFastToBeUsedForTuning(ctx);
-}
-
-// Should only used by tuning for quick pruning
+// Used by IsReallyValid()
 bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValidValue() const
 {
     // clang-format off
@@ -515,11 +506,40 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValidValue() const
     // clang-format on
 }
 
-// Used by anywhere else expect by tuning
-// Only return false if a performance config will violate requirements given by kernel algorithm
-bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValidForKernelAlgorithm(
+// Used by IsReallyValid()
+// Return true, if performance config should be excluded, due to compiler bugs
+bool PerformanceImplicitGemmForwardV4R4Xdlops::IsExcludedDueToCompilerBug(
     const ConvolutionContext& ctx) const
 {
+    const auto y              = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+    const auto x              = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+    const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
+    const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
+    const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
+    const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
+
+    if(workaround_swdev_239555())
+    {
+        if(ctx.IsFp16())
+        {
+            if((y > 1 || x > 1) &&
+               (in_left_pad_h > 0 || in_left_pad_w > 0 || in_right_pad_h > 0 || in_right_pad_w > 0))
+                return true;
+        }
+    }
+
+    return false;
+}
+
+// Used by EuristicInit() and GenericSearch
+// Only return false if a performance config will violate requirements given by kernel algorithm
+bool PerformanceImplicitGemmForwardV4R4Xdlops::IsReallyValid(
+    const ConvolutionContext& ctx) const
+{
+    if(!IsValidValue())
+        return false;
+
+    // excluded due to compiler bug
     if(IsExcludedDueToCompilerBug(ctx))
         return false;
 
@@ -573,33 +593,9 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValidForKernelAlgorithm(
     return (valid and lds_size <= get_lds_max_number_of_byte());
 }
 
-// Return true, if performance config should be workaround, due to compiler bugs
-bool PerformanceImplicitGemmForwardV4R4Xdlops::IsExcludedDueToCompilerBug(
-    const ConvolutionContext& ctx) const
-{
-    const auto y              = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const auto x              = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-    const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
-    const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
-    const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
-    const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
-
-    if(workaround_swdev_239555())
-    {
-        if(ctx.IsFp16())
-        {
-            if((y > 1 || x > 1) &&
-               (in_left_pad_h > 0 || in_left_pad_w > 0 || in_right_pad_h > 0 || in_right_pad_w > 0))
-                return true;
-        }
-    }
-
-    return false;
-}
-
+// Used by GenericSearch, not used by EuristicInit
 // Return false if a performance config is known to be sub-optimal, comparing to other performance
 // config inside tuning range
-// Should only used for tuning
 bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
     const ConvolutionContext& ctx) const
 {
@@ -741,6 +737,22 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
     return true;
 }
 
+// Used by GenericSearch, not used by EuristicInit
+// Return false, if you don't want to this to be included in tuning range used by generic search
+// A performance config may still be valid w.r.t algorithm correctness, even when IsValid() return
+// false
+bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValid(const ConvolutionContext& ctx) const
+{
+    return IsReallyValid(ctx) && IsFastToBeUsedForTuning(ctx);
+}
+
+// Used by GenericSearch, not used by EuristicInit
+bool ConvHipImplicitGemmForwardV4R4Xdlops::IsValidPerformanceConfig(
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmForwardV4R4Xdlops& c) const
+{
+    return c.IsValid(ctx);
+}
+
 std::tuple<int, int, int, int>
 ConvHipImplicitGemmForwardV4R4Xdlops::CalculateGemmSize(const ConvolutionContext& ctx)
 {
@@ -778,7 +790,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
     ConvSolution result;
     KernelInfo construction_parameters;
 
-    assert(config.IsValidForKernelAlgorithm(ctx));
+    assert(config.IsReallyValid(ctx));
 
     construction_parameters.kernel_file =
         "gridwise_group_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw.cpp";
@@ -948,12 +960,6 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext
     std::tie(gemm_g, gemm_m, gemm_n, gemm_k_total) = CalculateGemmSize(ctx);
 
     return IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k_total);
-}
-
-bool ConvHipImplicitGemmForwardV4R4Xdlops::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx, const PerformanceImplicitGemmForwardV4R4Xdlops& c) const
-{
-    return c.IsValidForKernelAlgorithm(ctx);
 }
 
 PerformanceImplicitGemmForwardV4R4Xdlops
