@@ -65,7 +65,7 @@ inline bool ProduceCoV3()
     // Otherwise, let's assume that OpenCL kernels shall be compiled to
     // CO v3 format by default since ROCm 3.0. The simplest way to find out
     // this right now is checking the HIP compiler version string.
-    return (HipGetHccVersion() >= external_tool_version_t{3, 0, -1});
+    return (HipCompilerVersion() >= external_tool_version_t{3, 0, -1});
 }
 
 /// Returns option for enabling/disabling CO v3 generation for the compiler
