@@ -3811,8 +3811,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                             // clang-format off
                         int N, C, H, W, K, n_groups, out_H, out_W, R, S;
                             // clang-format on
-                            if(kernels[0].GetName().rfind("miopenSp3AsmConv_group_20_5_23_M", 0) ==
-                               0)
+                            if(kernels[0].GetName().rfind("miopenSp3AsmConv_v21_1_0", 0) == 0)
                             {
                                 GetCompiledInParameters(ctx,
                                                         &C,
@@ -4518,7 +4517,7 @@ void ConvolutionDescriptor::BackwardWeightsWinograd(Handle& handle,
 
         int N, C, H, W, K, n_groups, out_H, out_W, R, S, unused;
 
-        if(kernels[0].GetName().rfind("miopenSp3AsmConv_group_20_5_23_M", 0) == 0)
+        if(kernels[0].GetName().rfind("miopenSp3AsmConv_v21_1_0", 0) == 0)
         {
             GetCompiledInParameters(
                 ctx, &C, &K, &R, &S, &N, &n_groups, &H, &W, &out_H, &out_W, &unused, &unused);
