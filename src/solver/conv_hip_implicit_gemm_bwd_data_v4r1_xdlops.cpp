@@ -401,7 +401,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue()
                 break;
             if(!NextTwoPower<8, 32>(GemmKPerBlock))
                 break;
-            if(!NextTwoPower<1, 4>(GemmKPACKSize)) 
+            if(!NextTwoPower<1, 4>(GemmKPACKSize))
                 break;
         }
         else
@@ -412,7 +412,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue()
                 break;
             if(!NextTwoPower<4, 32>(GemmKPerBlock))
                 break;
-            if(!NextTwoPower<1, 4>(GemmKPACKSize)) 
+            if(!NextTwoPower<1, 4>(GemmKPACKSize))
                 break;
             if(!NextTwoPower<4, 64>(GemmMPerWave))
                 break;
@@ -428,7 +428,8 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue()
 void PerformanceImplicitGemmBwdDataV4R1Xdlops::EuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmBwdDataV4R1Xdlops tmp;
-    if(ctx.IsFp32()){
+    if(ctx.IsFp32())
+    {
         tmp = {128, 128, 8, 1, 64, 64, use_spare_set};
         if(!tmp.IsValid(ctx))
             tmp = {64, 32, 4, 1, 32, 64, use_spare_set};
@@ -447,7 +448,8 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::EuristicInit(const ConvolutionCon
         if(!tmp.IsValid(ctx))
             tmp = {64, 8, 8, 1, 8, 64, use_spare_set};
     }
-    else if(ctx.IsBfp16()){
+    else if(ctx.IsBfp16())
+    {
         tmp = {128, 128, 8, 2, 64, 64, use_spare_set};
         if(!tmp.IsValid(ctx))
             tmp = {64, 32, 4, 2, 32, 64, use_spare_set};
@@ -466,7 +468,8 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::EuristicInit(const ConvolutionCon
         if(!tmp.IsValid(ctx))
             tmp = {64, 8, 8, 2, 8, 64, use_spare_set};
     }
-    else if(ctx.IsFp16()){
+    else if(ctx.IsFp16())
+    {
         tmp = {128, 128, 8, 4, 64, 64, use_spare_set};
         if(!tmp.IsValid(ctx))
             tmp = {64, 32, 4, 4, 32, 64, use_spare_set};
