@@ -785,7 +785,7 @@ PerformanceImplicitGemmBwdDataV4R1
 ConvHipImplicitGemmBwdDataV4R1::Search(const ConvolutionContext& context,
                                        const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearchFwd(*this, context);
+    return GenericSearch(*this, context, invoke_ctx);
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV4R1::GetSolution(

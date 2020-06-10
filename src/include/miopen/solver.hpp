@@ -1220,15 +1220,8 @@ struct ConvAsmImplicitGemmV4R1DynamicFwd : SolverBase<ConvolutionContext>
                              const PerformanceImplicitGemmV4R1Dynamic& config,
                              bool disableConfigOverrideFromEnv = false) const;
 
-    PerformanceImplicitGemmV4R1Dynamic Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
+    PerformanceImplicitGemmV4R1Dynamic Search(const ConvolutionContext&,
+                                              const AnyInvokeParams& invoke_ctx) const;
 };
 
 struct ConvAsmImplicitGemmV4R1DynamicFwd_1x1 : SolverBase<ConvolutionContext>
@@ -1242,15 +1235,8 @@ struct ConvAsmImplicitGemmV4R1DynamicFwd_1x1 : SolverBase<ConvolutionContext>
                              const PerformanceImplicitGemmV4R1Dynamic& config,
                              bool disableConfigOverrideFromEnv = false) const;
 
-    PerformanceImplicitGemmV4R1Dynamic Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
+    PerformanceImplicitGemmV4R1Dynamic Search(const ConvolutionContext&,
+                                              const AnyInvokeParams& invoke_ctx) const;
 };
 
 /// Holds common member functions for the Solvers which share the same

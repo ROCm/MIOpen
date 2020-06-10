@@ -112,49 +112,6 @@ GetImplicitGemmV4R1DynamicGridSize(const ConvolutionContext& ctx,
     return (b / b_per_block) * (k / k_per_block); // NOLINT
 }
 
-// Remove This function when invoker is fully re-factored
-template <typename BotBufType, typename TopBufType, typename WeiBufType>
-static inline int RunAndMeasureSolutionDynamicBase(miopen::Handle& profile_h,
-                                                   BotBufType bot_buf,
-                                                   TopBufType top_buf,
-                                                   WeiBufType wei_buf,
-                                                   const ConvolutionContext& ctx,
-                                                   const ConvSolution& solution,
-                                                   float& elapsed_time)
-{
-
-#ifdef NDEBUG
-    try
-#endif
-    {
-        elapsed_time = float(0);
-        std::vector<KernelInvoke> kernels;
-
-        for(auto& k_info : solution.construction_params)
-        {
-            auto kernel = profile_h.AddKernel("",
-                                              "",
-                                              k_info.kernel_file,
-                                              k_info.kernel_name,
-                                              k_info.l_wk,
-                                              k_info.g_wk,
-                                              k_info.comp_options);
-            kernels.push_back(kernel);
-        }
-        float time =
-            conv::CallImplicitGemmDynamic(profile_h, ctx, bot_buf, top_buf, wei_buf, kernels);
-        elapsed_time += time;
-    }
-#ifdef NDEBUG
-    catch(miopen::Exception& ex)
-    {
-        MIOPEN_LOG_WE(ex.what());
-        return -1;
-    }
-#endif
-    return 0;
-}
-
 bool PerformanceImplicitGemmV4R1Dynamic::
 operator==(const PerformanceImplicitGemmV4R1Dynamic& other) const
 {
@@ -478,48 +435,18 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsValidPerformanceConfig(
     return c.IsValidValue() && c.IsValid(ctx);
 }
 
-int ConvAsmImplicitGemmV4R1DynamicFwd::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                                             ConstData_t bot_buf,
-                                                             Data_t top_buf,
-                                                             ConstData_t wei_buf,
-                                                             ConstData_t bias_buf,
-                                                             const ConvolutionContext& ctx,
-                                                             const ConvSolution& solution,
-                                                             float& elapsed_time) const
+PerformanceImplicitGemmV4R1Dynamic
+ConvAsmImplicitGemmV4R1DynamicFwd::Search(const ConvolutionContext& context,
+                                          const AnyInvokeParams& invoke_ctx) const
 {
-    assert(bias_buf == nullptr);
-    (void)bias_buf;
-
-    return RunAndMeasureSolutionDynamicBase(
-        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
-}
-
-int ConvAsmImplicitGemmV4R1DynamicFwd_1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                                                 ConstData_t bot_buf,
-                                                                 Data_t top_buf,
-                                                                 ConstData_t wei_buf,
-                                                                 ConstData_t bias_buf,
-                                                                 const ConvolutionContext& ctx,
-                                                                 const ConvSolution& solution,
-                                                                 float& elapsed_time) const
-{
-    assert(bias_buf == nullptr);
-    (void)bias_buf;
-
-    return RunAndMeasureSolutionDynamicBase(
-        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
+    return GenericSearch(*this, context, invoke_ctx);
 }
 
 PerformanceImplicitGemmV4R1Dynamic
-ConvAsmImplicitGemmV4R1DynamicFwd::Search(const ConvolutionContext& context) const
+ConvAsmImplicitGemmV4R1DynamicFwd_1x1::Search(const ConvolutionContext& context,
+                                              const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearchFwd(*this, context);
-}
-
-PerformanceImplicitGemmV4R1Dynamic
-ConvAsmImplicitGemmV4R1DynamicFwd_1x1::Search(const ConvolutionContext& context) const
-{
-    return GenericSearchFwd(*this, context);
+    return GenericSearch(*this, context, invoke_ctx);
 }
 
 static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
