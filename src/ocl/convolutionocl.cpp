@@ -346,15 +346,26 @@ static void EvaluateInvokers(Handle& handle,
 
     for(const auto& sol : solutions)
     {
-        if(sol.workspce_sz > 0 &&
-           (invoke_ctx.workSpace == nullptr || invoke_ctx.workSpaceSize < sol.workspce_sz))
+        if(sol.workspce_sz > 0)
         {
-            MIOPEN_LOG_I("Skipping solver <" << sol.solver_id << "> due to insufficient workspace ("
-                                             << invoke_ctx.workSpaceSize
-                                             << " < "
-                                             << sol.workspce_sz
-                                             << ")");
-            continue;
+            if(invoke_ctx.workSpace == nullptr)
+            {
+                MIOPEN_LOG_I("Warning: skipping solver <" << sol.solver_id
+                                                          << "> due to no workspace provided ("
+                                                          << sol.workspce_sz
+                                                          << " required)");
+                continue;
+            }
+            if(invoke_ctx.workSpaceSize < sol.workspce_sz)
+            {
+                MIOPEN_LOG_I("Warning: skipping solver <" << sol.solver_id
+                                                          << "> due to insufficient workspace ("
+                                                          << invoke_ctx.workSpaceSize
+                                                          << " < "
+                                                          << sol.workspce_sz
+                                                          << ")");
+                continue;
+            }
         }
 
         if(!sol.invoker_factory)
@@ -945,7 +956,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     }
 
     if(perf_db.empty())
-        MIOPEN_THROW("Fwd Convolution cannot be executed due to incorrect params");
+        MIOPEN_THROW("Forward Convolution cannot be executed due to incorrect params");
 
     std::sort(begin(perf_db), end(perf_db));
 
@@ -2633,7 +2644,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     }
 
     if(perf_db.empty())
-        MIOPEN_THROW(miopenStatusUnknownError, "Backward Data Algo cannot be executed");
+        MIOPEN_THROW(miopenStatusUnknownError,
+                     "Backward Data Convolution cannot be executed due to incorrect params");
 
     std::sort(begin(perf_db), end(perf_db));
 
@@ -3803,8 +3815,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                             // clang-format off
                         int N, C, H, W, K, n_groups, out_H, out_W, R, S;
                             // clang-format on
-                            if(kernels[0].GetName().rfind("miopenSp3AsmConv_group_20_5_23_M", 0) ==
-                               0)
+                            if(kernels[0].GetName().rfind("miopenSp3AsmConv_v21_1_0", 0) == 0)
                             {
                                 GetCompiledInParameters(ctx,
                                                         &C,
@@ -4074,7 +4085,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     }
 
     if(perf_db.empty())
-        MIOPEN_THROW("Bwd Weights Convolution cannot be executed due to incorrect params");
+        MIOPEN_THROW("Backward Weights Convolution cannot be executed due to incorrect params");
 
     std::sort(begin(perf_db), end(perf_db));
 
@@ -4510,7 +4521,7 @@ void ConvolutionDescriptor::BackwardWeightsWinograd(Handle& handle,
 
         int N, C, H, W, K, n_groups, out_H, out_W, R, S, unused;
 
-        if(kernels[0].GetName().rfind("miopenSp3AsmConv_group_20_5_23_M", 0) == 0)
+        if(kernels[0].GetName().rfind("miopenSp3AsmConv_v21_1_0", 0) == 0)
         {
             GetCompiledInParameters(
                 ctx, &C, &K, &R, &S, &N, &n_groups, &H, &W, &out_H, &out_W, &unused, &unused);
