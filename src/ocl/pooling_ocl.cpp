@@ -262,7 +262,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     {
         if(pool_dim == 4)
         {
-            std::string parms              = construct_params.getCompilerOptions(); // kernel
+            const std::string& parms       = construct_params.getCompilerOptions(); // kernel
             std::string program_name       = construct_params.getKernelFile();      // CL kernel
             std::string kernel_name        = construct_params.getKernelName();      // kernel name
             const std::vector<size_t>& vld = construct_params.getLocalWkSize();
@@ -605,8 +605,8 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
             const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
             std::string program_name       = construct_params.getKernelFile(); // CL kernel
             std::string kernel_name        = construct_params.getKernelName(); // kernel name
-            std::string parms = construct_params.getCompilerOptions();         // kernel parameters
-            auto k            = handle.AddKernel(
+            const std::string& parms = construct_params.getCompilerOptions();  // kernel parameters
+            auto k                   = handle.AddKernel(
                 algo_name, network_config, program_name, kernel_name, vld, vgd, parms);
 
             if(mode == miopenPoolingMax)
