@@ -37,9 +37,7 @@
 
 // Value of one enables experimental write-through feature of RamDb.
 // It provides some performance gain in case of multi-threaded cache write operations.
-// The feature is not fully tested and any performance gain possible on db write operations are low
-// due to they happen on find stage.
-#define MIOPEN_DB_CACHE_WRITE_THROUGH 0
+#define MIOPEN_DB_CACHE_WRITE_THROUGH 1
 
 namespace miopen {
 
