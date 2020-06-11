@@ -154,9 +154,6 @@ struct Gridwise_generic_reduction
                 make_tuple(Sequence<0>{}, Sequence<1>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}));
 
-            static_assert(copySliceLen == 128, "Invalid copySliceLen!");
-            static_assert(toReduceLen == 90, "Invalid toReduceLen!");
-
             using src2dDesc_touse =
                 typename std::conditional<need_padding, decltype(src2dDesc_2), src2dDesc>::type;
 
