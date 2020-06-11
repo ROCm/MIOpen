@@ -26,6 +26,7 @@
 #pragma once
 
 #include <miopen/db_record.hpp>
+#include <miopen/db.hpp>
 #include <miopen/manage_ptr.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/stringutils.hpp>
@@ -206,6 +207,9 @@ class SQLiteBase
                std::size_t num_cu_)
         : filename(filename_), arch(arch_), num_cu(num_cu_)
     {
+        if(DisableDbFileIO)
+            return;
+
         MIOPEN_LOG_I2("Initializing " << (is_system ? "system" : "user") << " database file "
                                       << filename);
 
@@ -280,36 +284,48 @@ class SQLiteBase
     template <typename... U>
     inline auto FindRecord(U&... args)
     {
+        if(DisableDbFileIO)
+            return {};
         return reinterpret_cast<Derived*>(this)->FindRecordUnsafe(args...);
     }
 
     template <typename... U>
     inline auto RemoveRecord(U&... args)
     {
+        if(DisableDbFileIO)
+            return true;
         return reinterpret_cast<Derived*>(this)->RemoveRecordUnsafe(args...);
     }
 
     template <typename... U>
     inline auto StoreRecord(U&... args)
     {
+        if(DisableDbFileIO)
+            return true;
         return reinterpret_cast<Derived*>(this)->StoreRecordUnsafe(args...);
     }
 
     template <typename... U>
     inline auto Remove(const U&... args)
     {
+        if(DisableDbFileIO)
+            return true;
         return reinterpret_cast<Derived*>(this)->RemoveUnsafe(args...);
     }
 
     template <typename... U>
     inline auto Update(const U&... args)
     {
+        if(DisableDbFileIO)
+            return true;
         return reinterpret_cast<Derived*>(this)->UpdateUnsafe(args...);
     }
 
     template <typename... U>
     inline auto Load(U&&... args)
     {
+        if(DisableDbFileIO)
+            return {};
         return reinterpret_cast<Derived*>(this)->LoadUnsafe(args...);
     }
 

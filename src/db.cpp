@@ -64,7 +64,7 @@ PlainTextDb::PlainTextDb(const std::string& filename_, bool is_system)
       lock_file(LockFile::Get(LockFilePath(filename_).c_str())),
       warning_if_unreadable(is_system)
 {
-    if(!is_system)
+    if(!is_system && !DisableDbFileIO)
     {
         auto file            = boost::filesystem::path(filename_);
         const auto directory = file.remove_filename();
@@ -93,6 +93,8 @@ using shared_lock    = std::shared_lock<LockFile>;
 
 boost::optional<DbRecord> PlainTextDb::FindRecord(const std::string& key)
 {
+    if(DisableDbFileIO)
+        return {};
     const auto lock = shared_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
     return FindRecordUnsafe(key, nullptr);
@@ -100,6 +102,8 @@ boost::optional<DbRecord> PlainTextDb::FindRecord(const std::string& key)
 
 bool PlainTextDb::StoreRecord(const DbRecord& record)
 {
+    if(DisableDbFileIO)
+        return true;
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
     return StoreRecordUnsafe(record);
@@ -107,6 +111,8 @@ bool PlainTextDb::StoreRecord(const DbRecord& record)
 
 bool PlainTextDb::UpdateRecord(DbRecord& record)
 {
+    if(DisableDbFileIO)
+        return true;
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
     return UpdateRecordUnsafe(record);
@@ -114,6 +120,8 @@ bool PlainTextDb::UpdateRecord(DbRecord& record)
 
 bool PlainTextDb::RemoveRecord(const std::string& key)
 {
+    if(DisableDbFileIO)
+        return true;
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
     return RemoveRecordUnsafe(key);
@@ -121,6 +129,8 @@ bool PlainTextDb::RemoveRecord(const std::string& key)
 
 bool PlainTextDb::Remove(const std::string& key, const std::string& id)
 {
+    if(DisableDbFileIO)
+        return true;
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
     auto record = FindRecordUnsafe(key, nullptr);
