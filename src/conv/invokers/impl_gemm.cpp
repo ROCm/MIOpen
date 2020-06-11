@@ -24,6 +24,9 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
     }
     else
     {
+        if(ctx.direction.IsBackwardWrW())
+            MIOPEN_THROW("MakeImplGemmDataInvokerFactory shouldn't be used for WrW invokers.");
+
         const auto& conv       = ctx.conv_problem.GetConv();
         const auto& lowp_quant = conv.lowp_quant;
 
