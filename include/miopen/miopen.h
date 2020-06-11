@@ -383,7 +383,9 @@ typedef enum {
 
 /*! @ingroup pooling
  * @enum miopenPoolingWorkspaceIndexMode_t
- * Pooling layer workspace index mode.
+ * Pooling layer workspace index mode. miopenPoolingWorkspaceIndexMask mode records indices
+ * indicating the max values' positions in the filter/mask. miopenPoolingWorkspaceIndexImage mode
+ * records indices indicating the max values' positions in the image.
 */
 typedef enum {
     miopenPoolingWorkspaceIndexMask  = 0, /*!< Use mask indices, 2D pooling only */
