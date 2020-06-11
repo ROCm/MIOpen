@@ -111,8 +111,8 @@ struct FindRamDb : ReadonlyRamDb
     FindRamDb(std::string path, std::string _arch, std::size_t _num_cu)
         : ReadonlyRamDb(":memory:" + path, _arch, _num_cu)
     {
-        static const auto m = find_db_init(arch + "_" + std::to_string(num_cu));
-        cache               = m;
+        const auto& m = find_db_init(arch + "_" + std::to_string(num_cu));
+        cache         = std::move(m);
     }
     // Override GetCached, since FindRamDb does not have state or init overhead
     static FindRamDb& GetCached(const std::string& path,
@@ -131,8 +131,8 @@ struct PerfRamDb : ReadonlyRamDb
     PerfRamDb(std::string path, std::string _arch, std::size_t _num_cu)
         : ReadonlyRamDb(":memory:" + path, _arch, _num_cu)
     {
-        static const auto m = perf_db_init(arch + "_" + std::to_string(num_cu));
-        cache               = m;
+        const auto& m = perf_db_init(arch + "_" + std::to_string(num_cu));
+        cache         = std::move(m);
     }
 
     static PerfRamDb& GetCached(const std::string& path,

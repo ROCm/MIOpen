@@ -663,7 +663,7 @@ rocm_export_targets(
 
 
 if(MIOPEN_EMBED_DB  STREQUAL "") 
-    message(INFO "NOT installing DBs")
+    message(STATUS "NOT installing DBs")
 else()
 # Install db files
 install(FILES
