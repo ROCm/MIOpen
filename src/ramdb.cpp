@@ -107,7 +107,7 @@ RamDb& RamDb::GetCached(const std::string& path, bool warn_if_unreadable)
         return instance;
     }
 
-    saved                    = true;
+    saved = true;
     if(!DisableDbFileIO)
     {
         const auto prefetch_lock = exclusive_lock(instance.GetLockFile(), GetLockTimeout());
@@ -231,7 +231,6 @@ bool RamDb::Remove(const std::string& key, const std::string& id)
             return false;
         UpdateDbModificationTime(GetFileName());
     }
-
 
 #if MIOPEN_DB_CACHE_WRITE_THROUGH
     if(is_valid)
