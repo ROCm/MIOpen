@@ -106,6 +106,10 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         }
         // clang-format on
     }
+    else
+    {
+        MIOPEN_THROW("invalid value of 'kernel'");
+    }
 
     std::size_t ABlockCopySubLengths_GemmK = GemmKPerBlock / config.WeiBlockCopyClusterLengths_E;
     std::size_t ABlockCopySubLengths_GemmM = GemmMPerBlock / config.WeiBlockCopyClusterLengths_K;
@@ -393,13 +397,12 @@ bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext&
 {
     if(!(ctx.IsFp16() || ctx.IsBfp16()))
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.direction.IsForward())
         return false;
-
     if(!ctx.Is2d())
         return false;
-
     return IsApplicableXdlops(ctx);
 }
 
@@ -407,14 +410,14 @@ bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext&
 {
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
-
-    if(ConvHipImplicitGemmV4R4GenXdlopsWrWFp32{}.IsApplicable(ctx))
+    if(!ctx.use_hip_kernels)
         return false;
-
     if(!ctx.direction.IsBackwardWrW())
         return false;
-
     if(!ctx.Is2d())
+        return false;
+
+    if(ConvHipImplicitGemmV4R4GenXdlopsWrWFp32{}.IsApplicable(ctx))
         return false;
 
     return IsApplicableXdlops(ctx);

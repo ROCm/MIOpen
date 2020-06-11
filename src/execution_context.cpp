@@ -39,6 +39,7 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_KERNELS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER)
@@ -205,6 +206,7 @@ void miopen::ExecutionContext::DetectRocm()
     // Detect assembly kernels
     use_binaries            = false;
     use_asm_kernels         = false;
+    use_hip_kernels         = !miopen::IsDisabled(MIOPEN_DEBUG_HIP_KERNELS{});
     use_opencl_convolutions = !miopen::IsDisabled(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS{});
     rmv                     = rocm_meta_version::Default;
     if(IsAmdRocmOpencl(*this))
