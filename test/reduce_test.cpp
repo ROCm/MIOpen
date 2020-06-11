@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -121,7 +121,7 @@ static std::size_t get_flatten_offset(const std::vector<std::size_t>& lengths,
 };
 
 template <class T>
-struct verify_reduce
+struct verify_reduce_with_indices
 {
     miopen::ReduceTensorDescriptor reduce;
     tensor<T> input;
@@ -137,13 +137,13 @@ struct verify_reduce
     miopenReduceTensorIndices_t indicesOpt;
     miopenIndicesType_t indicesType;
 
-    verify_reduce(miopen::ReduceTensorDescriptor& reduce_,
-                  const tensor<T>& input_,
-                  tensor<T>& output_,
-                  tensor<T>& workspace_,
-                  tensor<int>& indices_,
-                  T alpha_,
-                  T beta_)
+    verify_reduce_with_indices(miopen::ReduceTensorDescriptor& reduce_,
+                               const tensor<T>& input_,
+                               tensor<T>& output_,
+                               tensor<T>& workspace_,
+                               tensor<int>& indices_,
+                               T alpha_,
+                               T beta_)
     {
         reduce    = reduce_;
         input     = input_;
@@ -158,19 +158,9 @@ struct verify_reduce
         nanOpt      = reduce.reduceTensorNanOpt_;
         indicesOpt  = reduce.reduceTensorIndices_;
         indicesType = reduce.reduceTensorIndicesType_;
-
-        bool need_indices =
-            (indicesOpt == MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES) &&
-            (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX);
-
-        if(need_indices)
-        {
-            alpha = static_cast<T>(1.0f);
-            beta  = static_cast<T>(0.0f);
-        };
     }
 
-    tensor<T> cpu()
+    std::tuple<tensor<T>, tensor<int>> cpu() const
     {
         if(compTypeVal == miopenFloat)
         {
@@ -187,13 +177,16 @@ struct verify_reduce
                 return (cpuImpl<float>());
         };
 
-        return (tensor<T>{});
+        return (std::make_tuple(tensor<T>{}, tensor<int>{}));
     };
 
     template <typename compType>
-    tensor<T> cpuImpl() const
+    std::tuple<tensor<T>, tensor<int>> cpuImpl() const
     {
         using namespace reduce;
+        using reduce::float_equal_one;
+        using reduce::float_equal_zero;
+        using reduce::type_convert;
 
         auto inLengths  = input.desc.GetLengths();
         auto outLengths = output.desc.GetLengths();
@@ -225,9 +218,6 @@ struct verify_reduce
         bool reduceAllDims = invariantDims.empty() ? true : false;
 
         auto opReduce = ReduceOpFn<compType>(reduceOp);
-        bool need_indices =
-            (indicesOpt == MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES) &&
-            (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX);
 
         if(reduceAllDims)
         {
@@ -247,21 +237,16 @@ struct verify_reduce
 
                 auto currVal = static_cast<compType>(input.data[src_offset]);
 
-                if(need_indices)
-                {
-                    int currIndex = get_flatten_offset(inLengths, src_index);
-                    binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
-                }
-                else
-                    binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
+                int currIndex = get_flatten_offset(inLengths, src_index);
+                binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
             };
 
             // scale the accumulated value
-            if(!miopen::float_equal(alpha, static_cast<T>(1.0)))
+            if(!float_equal_one{}(alpha))
                 accuVal = accuVal * static_cast<compType>(alpha);
 
             // scale the prior dst value and add it to the accumulated value
-            if(!miopen::float_equal(beta, static_cast<T>(0.0)))
+            if(!float_equal_zero{}(beta))
             {
                 auto priorDstValue = static_cast<T>(res.data[0]);
 
@@ -269,9 +254,8 @@ struct verify_reduce
             };
 
             // store the reduced value to dst location
-            res.data[0] = static_cast<T>(accuVal);
-            if(need_indices)
-                res_indices.data[0] = accuIndex;
+            res.data[0]         = static_cast<T>(accuVal);
+            res_indices.data[0] = accuIndex;
         }
         else
         {
@@ -318,33 +302,281 @@ struct verify_reduce
 
                     auto currVal = static_cast<compType>(input.data[src_offset]);
 
-                    if(need_indices)
-                    {
-                        auto currIndex = get_flatten_offset(toReduceLengths, index_2);
-                        binop_with_nan_check2(
-                            nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
-                    }
-                    else
-                        binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
+                    auto currIndex = get_flatten_offset(toReduceLengths, index_2);
+                    binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
+                };
 
-                    // scale the accumulated value
-                    if(!miopen::float_equal(alpha, static_cast<T>(1.0)))
-                        accuVal = accuVal * static_cast<compType>(alpha);
+                // scale the accumulated value
+                if(!float_equal_one{}(alpha))
+                    accuVal = accuVal * static_cast<compType>(alpha);
 
-                    // scale the prior dst value and add it to the accumulated value
-                    if(!miopen::float_equal(beta, static_cast<T>(0.0)))
-                    {
-                        auto priorDstValue = static_cast<T>(res.data[dst_offset]);
+                // scale the prior dst value and add it to the accumulated value
+                if(!float_equal_zero{}(beta))
+                {
+                    auto priorDstValue = static_cast<T>(res.data[dst_offset]);
 
-                        accuVal += static_cast<compType>(priorDstValue * static_cast<T>(beta));
-                    };
+                    accuVal += static_cast<compType>(priorDstValue * static_cast<T>(beta));
                 };
 
                 // store the reduced value to dst location
-                res.data[dst_offset] = static_cast<T>(accuVal);
-                if(need_indices)
-                    res_indices.data[dst_offset] = accuIndex; // store the index
-            };                                                // end of if
+                res.data[dst_offset]         = static_cast<T>(accuVal);
+                res_indices.data[dst_offset] = accuIndex; // store the index
+            };
+        };
+
+        return (std::make_tuple(res, res_indices));
+    }
+
+    std::tuple<tensor<T>, tensor<int>> gpu() const
+    {
+        auto&& handle   = get_handle();
+        auto input_dev  = handle.Write(input.data);
+        auto output_dev = handle.Write(output.data);
+
+        // replicate
+        auto res         = output;
+        auto res_indices = indices;
+
+        auto indices_dev = handle.Write(indices.data);
+
+        std::size_t ws_sizeInBytes      = workspace.desc.GetElementSize() * sizeof(T);
+        std::size_t indices_sizeInBytes = indices.desc.GetElementSize() * sizeof(int);
+
+        if(ws_sizeInBytes > 0)
+        {
+            auto workspace_dev = handle.Write(workspace.data);
+
+            reduce.ReduceTensor(get_handle(),
+                                indices_dev.get(),
+                                indices_sizeInBytes,
+                                workspace_dev.get(),
+                                ws_sizeInBytes,
+                                static_cast<const void*>(&alpha),
+                                input.desc,
+                                input_dev.get(),
+                                static_cast<const void*>(&beta),
+                                output.desc,
+                                output_dev.get());
+        }
+        else
+        {
+            reduce.ReduceTensor(get_handle(),
+                                indices_dev.get(),
+                                indices_sizeInBytes,
+                                nullptr,
+                                0,
+                                static_cast<const void*>(&alpha),
+                                input.desc,
+                                input_dev.get(),
+                                static_cast<const void*>(&beta),
+                                output.desc,
+                                output_dev.get());
+        };
+
+        res.data    = handle.Read<T>(output_dev, res.data.size());
+        res_indices = handle.Read<int>(indices_dev, res_indices.data.size());
+
+        return (std::make_tuple(res, res_indices));
+    }
+
+    void fail(int) const
+    {
+        std::cout << "verify_reduce_with_indices" << std::endl;
+        std::cout << "Input Tensor"
+                  << " " << input.desc.ToString() << std::endl;
+    }
+};
+
+template <class T>
+struct verify_reduce_no_indices
+{
+    miopen::ReduceTensorDescriptor reduce;
+    tensor<T> input;
+    tensor<T> output;
+    tensor<T> workspace;
+    T alpha;
+    T beta;
+
+    miopenReduceTensorOp_t reduceOp;
+    miopenDataType_t compTypeVal;
+    miopenNanPropagation_t nanOpt;
+    miopenReduceTensorIndices_t indicesOpt;
+    miopenIndicesType_t indicesType;
+
+    verify_reduce_no_indices(miopen::ReduceTensorDescriptor& reduce_,
+                             const tensor<T>& input_,
+                             tensor<T>& output_,
+                             tensor<T>& workspace_,
+                             T alpha_,
+                             T beta_)
+    {
+        reduce    = reduce_;
+        input     = input_;
+        output    = output_;
+        workspace = workspace_;
+        alpha     = alpha_;
+        beta      = beta_;
+
+        reduceOp    = reduce.reduceTensorOp_;
+        compTypeVal = reduce.reduceTensorCompType_;
+        nanOpt      = reduce.reduceTensorNanOpt_;
+    }
+
+    tensor<T> cpu()
+    {
+        if(compTypeVal == miopenFloat)
+        {
+            if(std::is_same<T, double>::value)
+                return (cpuImpl<double>());
+            else
+                return (cpuImpl<float>());
+        }
+        else if(compTypeVal == miopenHalf)
+        {
+            if(std::is_same<T, double>::value || std::is_same<T, float>::value)
+                return (cpuImpl<T>());
+            else
+                return (cpuImpl<float>());
+        };
+
+        return (tensor<T>{});
+    };
+
+    template <typename compType>
+    tensor<T> cpuImpl() const
+    {
+        using namespace reduce;
+        using reduce::float_equal_one;
+        using reduce::float_equal_zero;
+        using reduce::type_convert;
+
+        auto inLengths  = input.desc.GetLengths();
+        auto outLengths = output.desc.GetLengths();
+        auto inStrides  = input.desc.GetStrides();
+        auto outStrides = output.desc.GetStrides();
+
+        // replicate
+        auto res = output;
+
+        std::vector<std::size_t> invariantLengths;
+        std::vector<std::size_t> toReduceLengths;
+
+        std::vector<int> invariantDims;
+        std::vector<int> toReduceDims;
+
+        for(int i = 0; i < inLengths.size(); i++)
+            if(inLengths[i] == outLengths[i])
+                invariantDims.push_back(i);
+            else
+                toReduceDims.push_back(i);
+
+        for(int i = 0; i < invariantDims.size(); i++)
+            invariantLengths.push_back(inLengths[invariantDims[i]]);
+
+        for(int i = 0; i < toReduceDims.size(); i++)
+            toReduceLengths.push_back(inLengths[toReduceDims[i]]);
+
+        bool reduceAllDims = invariantDims.empty() ? true : false;
+
+        auto opReduce = ReduceOpFn<compType>(reduceOp);
+
+        if(reduceAllDims)
+        {
+            std::vector<std::vector<std::size_t>> indexes_1;
+
+            get_all_indexes(inLengths, 0, indexes_1);
+
+            compType accuVal = ReduceOpZeroVal<compType>(reduceOp);
+
+            // go through indexes of the invariant dimensions
+            for(std::size_t i1 = 0; i1 < indexes_1.size(); i1++)
+            {
+                std::vector<std::size_t>& src_index = indexes_1[i1];
+
+                auto src_offset = get_offset_from_index(inStrides, src_index);
+
+                auto currVal = type_convert<compType>{}(input.data[src_offset]);
+
+                binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
+            };
+
+            // scale the accumulated value
+            if(!float_equal_one{}(alpha))
+                accuVal = accuVal * type_convert<compType>{}(alpha);
+
+            // scale the prior dst value and add it to the accumulated value
+            if(!float_equal_one{}(beta))
+            {
+                auto priorDstValue = type_convert<T>{}(res.data[0]);
+
+                accuVal += type_convert<compType>{}(priorDstValue * type_convert<T>{}(beta));
+            };
+
+            // store the reduced value to dst location
+            res.data[0] = type_convert<T>{}(accuVal);
+        }
+        else
+        {
+            std::vector<std::vector<std::size_t>> indexes_1, indexes_2;
+
+            get_all_indexes(invariantLengths, 0, indexes_1);
+            get_all_indexes(toReduceLengths, 0, indexes_2);
+
+            // go through indexes of the invariant dimensions
+            for(std::size_t i1 = 0; i1 < indexes_1.size(); i1++)
+            {
+                auto& index_1 = indexes_1[i1];
+                std::vector<std::size_t> src_index;
+                std::vector<std::size_t> dst_index;
+
+                src_index.resize(inLengths.size());
+                dst_index.resize(inLengths.size());
+
+                for(int k        = 0; k < dst_index.size(); k++)
+                    dst_index[k] = 0;
+
+                for(int k                       = 0; k < invariantDims.size(); k++)
+                    dst_index[invariantDims[k]] = index_1[k];
+
+                int dst_offset = get_offset_from_index(outStrides, dst_index);
+
+                // generate the part of the index belonging to the invariant dims
+                for(int k                       = 0; k < invariantDims.size(); k++)
+                    src_index[invariantDims[k]] = index_1[k];
+
+                compType accuVal = ReduceOpZeroVal<compType>(reduceOp);
+
+                // go through indexes of the toReduce dimensions
+                for(std::size_t i2 = 0; i2 < indexes_2.size(); i2++)
+                {
+                    auto& index_2 = indexes_2[i2];
+
+                    // generate the part of the index belonging to the toReduce dims
+                    for(int k                      = 0; k < toReduceDims.size(); k++)
+                        src_index[toReduceDims[k]] = index_2[k];
+
+                    auto src_offset = get_offset_from_index(inStrides, src_index);
+
+                    auto currVal = type_convert<compType>{}(input.data[src_offset]);
+
+                    binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
+                };
+
+                // scale the accumulated value
+                if(!float_equal_one{}(alpha))
+                    accuVal = accuVal * type_convert<compType>{}(alpha);
+
+                // scale the prior dst value and add it to the accumulated value
+                if(!float_equal_zero{}(beta))
+                {
+                    auto priorDstValue = type_convert<T>{}(res.data[dst_offset]);
+
+                    accuVal += type_convert<compType>{}(priorDstValue * type_convert<T>{}(beta));
+                };
+
+                // store the reduced value to dst location
+                res.data[dst_offset] = type_convert<T>{}(accuVal);
+            };
         };
 
         return (res);
@@ -359,23 +591,39 @@ struct verify_reduce
         // replicate
         auto res = output;
 
-        auto workspace_dev = handle.Write(workspace.data);
-        auto indices_dev   = handle.Write(indices.data);
+        std::size_t ws_sizeInBytes = workspace.desc.GetElementSize() * sizeof(T);
 
-        std::size_t ws_sizeInBytes      = workspace.desc.GetElementSize() * sizeof(T);
-        std::size_t indices_sizeInBytes = indices.desc.GetElementSize() * sizeof(int);
+        if(ws_sizeInBytes > 0)
+        {
+            auto workspace_dev = handle.Write(workspace.data);
 
-        reduce.ReduceTensor(get_handle(),
-                            indices_dev.get(),
-                            indices_sizeInBytes,
-                            workspace_dev.get(),
-                            ws_sizeInBytes,
-                            static_cast<const void*>(&alpha),
-                            input.desc,
-                            input_dev.get(),
-                            static_cast<const void*>(&beta),
-                            output.desc,
-                            output_dev.get());
+            reduce.ReduceTensor(get_handle(),
+                                nullptr,
+                                0,
+                                workspace_dev.get(),
+                                ws_sizeInBytes,
+                                static_cast<const void*>(&alpha),
+                                input.desc,
+                                input_dev.get(),
+                                static_cast<const void*>(&beta),
+                                output.desc,
+                                output_dev.get());
+        }
+        else
+        {
+            reduce.ReduceTensor(get_handle(),
+                                nullptr,
+                                0,
+                                nullptr,
+                                0,
+                                static_cast<const void*>(&alpha),
+                                input.desc,
+                                input_dev.get(),
+                                static_cast<const void*>(&beta),
+                                output.desc,
+                                output_dev.get());
+        };
+
         res.data = handle.Read<T>(output_dev, res.data.size());
 
         return (res);
@@ -383,7 +631,7 @@ struct verify_reduce
 
     void fail(int) const
     {
-        std::cout << "verify_reduce" << std::endl;
+        std::cout << "verify_reduce_no_indices" << std::endl;
         std::cout << "Input Tensor"
                   << " " << input.desc.ToString() << std::endl;
     }
@@ -402,6 +650,7 @@ struct reduce_driver : test_driver
     std::vector<int>
         toReduceDims; // the indexes of the dimensions to be reduced in the input tensor
 
+    std::vector<float> scales;
     float alpha;
     float beta;
 
@@ -444,8 +693,7 @@ struct reduce_driver : test_driver
         add(nanOpt, "N", generate_data({0, 1}));
         add(indicesOpt, "I", generate_data({0, 1}));
 
-        add(alpha, "alpha", generate_data({1.0f}));
-        add(beta, "beta", generate_data({0.0f}));
+        add(scales, "scales", generate_data({{1.0f, 0.0f}, {0.5f, 0.5f}}));
 
         auto&& handle = get_handle();
         handle.EnableProfiling();
@@ -453,12 +701,17 @@ struct reduce_driver : test_driver
 
     void run()
     {
+        using reduce::type_convert;
+
         miopen::ReduceTensorDescriptor reduceDesc(
             static_cast<miopenReduceTensorOp_t>(reduceOp),
             static_cast<miopenDataType_t>(compTypeVal),
             static_cast<miopenNanPropagation_t>(nanOpt),
             static_cast<miopenReduceTensorIndices_t>(indicesOpt),
             indicesType);
+
+        alpha = scales[0];
+        beta  = scales[1];
 
         auto outLengths = this->inLengths;
 
@@ -483,20 +736,32 @@ struct reduce_driver : test_driver
             reduceDesc.GetIndicesSize(get_handle(), inputTensor.desc, outputTensor.desc) /
             sizeof(int);
 
-        std::vector<std::size_t> wsLengths      = {static_cast<std::size_t>(workspace_size), 1};
-        std::vector<std::size_t> indicesLengths = {static_cast<std::size_t>(indices_size), 1};
-
+        std::vector<std::size_t> wsLengths = {static_cast<std::size_t>(workspace_size), 1};
         auto workspaceTensor = tensor<T>{wsLengths}.generate(tensor_elem_gen_integer{max_value});
-        auto indicesTensor =
-            tensor<int>{indicesLengths}.generate(tensor_elem_gen_integer{max_value});
 
-        verify(verify_reduce<T>(reduceDesc,
-                                inputTensor,
-                                outputTensor,
-                                workspaceTensor,
-                                indicesTensor,
-                                static_cast<T>(alpha),
-                                static_cast<T>(beta)));
+        if(indices_size > 0)
+        {
+            std::vector<std::size_t> indicesLengths = {static_cast<std::size_t>(indices_size), 1};
+            auto indicesTensor =
+                tensor<int>{indicesLengths}.generate(tensor_elem_gen_integer{max_value});
+
+            verify(verify_reduce_with_indices<T>(reduceDesc,
+                                                 inputTensor,
+                                                 outputTensor,
+                                                 workspaceTensor,
+                                                 indicesTensor,
+                                                 type_convert<T>{}(1.0),
+                                                 type_convert<T>{}(0.0)));
+        }
+        else
+        {
+            verify(verify_reduce_no_indices<T>(reduceDesc,
+                                               inputTensor,
+                                               outputTensor,
+                                               workspaceTensor,
+                                               type_convert<T>{}(alpha),
+                                               type_convert<T>{}(beta)));
+        };
     };
 };
 

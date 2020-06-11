@@ -384,7 +384,8 @@ void ReduceTensorDescriptor::ReduceTensor(Handle& handle,
 
         byteOffset = ((byteOffset + sizeof(int) - 1) / sizeof(int)) * sizeof(int);
 
-        ws_buf2_global = static_cast<void*>(static_cast<char*>(workspace) + byteOffset);
+        ws_buf2_global =
+            static_cast<void*>(static_cast<char*>(static_cast<void*>(workspace)) + byteOffset);
     };
 
     // invariantLength and toReduceLength are used to determine the kernel configuration
@@ -537,6 +538,7 @@ void ReduceTensorDescriptor::ReduceTensor(Handle& handle,
     visit_float(srcDataType, [&](auto as_float) {
         auto alphaVal = *as_float(alpha);
         auto betaVal  = *as_float(beta);
+
         handle.AddKernel(
             algo_name, network_config, program_name, kernel_name1, vld_1, vgd_1, param)(
             type_convert<float>{}(alphaVal),
