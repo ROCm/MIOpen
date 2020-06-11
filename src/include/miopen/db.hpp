@@ -52,6 +52,12 @@ struct RecordPositions
 
 class LockFile;
 
+#if MIOPEN_DISABLE_USERDB
+constexpr bool DisableDbFileIO = true;
+#else
+constexpr bool DisableDbFileIO = false;
+#endif
+
 /// No instance of this class should be used from several threads at the same time.
 class PlainTextDb
 {

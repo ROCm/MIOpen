@@ -108,9 +108,12 @@ RamDb& RamDb::GetCached(const std::string& path, bool warn_if_unreadable)
     }
 
     saved                    = true;
-    const auto prefetch_lock = exclusive_lock(instance.GetLockFile(), GetLockTimeout());
-    MIOPEN_VALIDATE_LOCK(prefetch_lock);
-    instance.Prefetch();
+    if(!DisableDbFileIO)
+    {
+        const auto prefetch_lock = exclusive_lock(instance.GetLockFile(), GetLockTimeout());
+        MIOPEN_VALIDATE_LOCK(prefetch_lock);
+        instance.Prefetch();
+    }
     return instance;
 }
 
@@ -136,10 +139,13 @@ bool RamDb::StoreRecord(const DbRecord& record)
     const auto lock = exclusive_lock(GetLockFile(), GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
 
-    if(!StoreRecordUnsafe(record))
-        return false;
+    if(!DisableDbFileIO)
+    {
+        if(!StoreRecordUnsafe(record))
+            return false;
+        UpdateDbModificationTime(GetFileName());
+    }
 
-    UpdateDbModificationTime(GetFileName());
 #if MIOPEN_DB_CACHE_WRITE_THROUGH
     UpdateCacheEntryUnsafe(record);
 #else
@@ -156,10 +162,13 @@ bool RamDb::UpdateRecord(DbRecord& record)
     const auto lock = exclusive_lock(GetLockFile(), GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
 
-    if(!UpdateRecordUnsafe(record))
-        return false;
+    if(!DisableDbFileIO)
+    {
+        if(!UpdateRecordUnsafe(record))
+            return false;
+        UpdateDbModificationTime(GetFileName());
+    }
 
-    UpdateDbModificationTime(GetFileName());
 #if MIOPEN_DB_CACHE_WRITE_THROUGH
     UpdateCacheEntryUnsafe(record);
 #else
@@ -178,10 +187,13 @@ bool RamDb::RemoveRecord(const std::string& key)
 #if MIOPEN_DB_CACHE_WRITE_THROUGH
     const auto is_valid = ValidateUnsafe();
 #endif
-    if(!RemoveRecordUnsafe(key))
-        return false;
 
-    UpdateDbModificationTime(GetFileName());
+    if(!DisableDbFileIO)
+    {
+        if(!RemoveRecordUnsafe(key))
+            return false;
+        UpdateDbModificationTime(GetFileName());
+    }
 
 #if MIOPEN_DB_CACHE_WRITE_THROUGH
     if(is_valid)
@@ -207,11 +219,19 @@ bool RamDb::Remove(const std::string& key, const std::string& id)
 #if MIOPEN_DB_CACHE_WRITE_THROUGH
     const auto is_valid = ValidateUnsafe();
 #endif
+
     auto record = FindRecordUnsafe(key);
-    if(!record || !record->EraseValues(id) || !StoreRecordUnsafe(*record))
+
+    if(!record || !record->EraseValues(id))
         return false;
 
-    UpdateDbModificationTime(GetFileName());
+    if(!DisableDbFileIO)
+    {
+        if(!StoreRecordUnsafe(*record))
+            return false;
+        UpdateDbModificationTime(GetFileName());
+    }
+
 
 #if MIOPEN_DB_CACHE_WRITE_THROUGH
     if(is_valid)
@@ -261,10 +281,10 @@ boost::optional<miopen::DbRecord> RamDb::FindRecordUnsafe(const std::string& pro
 }
 
 template <class TFunc>
-static auto Measure(const std::string& funcName, TFunc&& func)
+static void Measure(const std::string& funcName, TFunc&& func)
 {
     if(!miopen::IsLogging(LoggingLevel::Info))
-        return func();
+        func();
 
     const auto start = std::chrono::high_resolution_clock::now();
     func();
@@ -274,6 +294,8 @@ static auto Measure(const std::string& funcName, TFunc&& func)
 
 bool RamDb::ValidateUnsafe()
 {
+    if(DisableDbFileIO)
+        return true;
     if(!boost::filesystem::exists(GetFileName()))
         return cache.empty();
     const auto file_mod_time     = GetDbModificationTime(GetFileName());
@@ -287,6 +309,9 @@ bool RamDb::ValidateUnsafe()
 
 void RamDb::Prefetch()
 {
+    if(DisableDbFileIO)
+        MIOPEN_THROW("Prefetch should never happen with disabled File IO");
+
     Measure("Prefetch", [this]() {
         auto file = std::ifstream{GetFileName()};
 
@@ -333,7 +358,9 @@ void RamDb::Prefetch()
 void RamDb::UpdateCacheEntryUnsafe(const DbRecord& record)
 {
     const auto is_valid = ValidateUnsafe();
-    UpdateDbModificationTime(GetFileName());
+
+    if(!DisableDbFileIO)
+        UpdateDbModificationTime(GetFileName());
 
     if(is_valid)
     {
