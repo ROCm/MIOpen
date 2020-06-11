@@ -636,8 +636,6 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
         return false;
     if(!ctx.use_hip_kernels)
         return false;
-    if(!ctx.direction.IsBackwardData())
-        return false;
     if(!ctx.Is2d() && !ctx.Is3d())
         return false;
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))

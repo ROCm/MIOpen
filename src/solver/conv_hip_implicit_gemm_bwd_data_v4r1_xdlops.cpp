@@ -289,7 +289,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValid(const ConvolutionContext&
         {
             if(!((GemmK / GemmKPACKSize) % (GemmKPerBlock * GemmKBlocks) == 0))
                 return false;
-    }
+        }
     }
     // heuristic to reduce search space
     {
@@ -431,27 +431,27 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::EuristicInit(const ConvolutionCon
     if(ctx.IsFp32())
     {
         tmp = {128, 128, 8, 1, 64, 64, use_spare_set};
-    if(!tmp.IsValid(ctx))
+        if(!tmp.IsValid(ctx))
             tmp = {64, 32, 4, 1, 32, 64, use_spare_set};
-    if(!tmp.IsValid(ctx))
+        if(!tmp.IsValid(ctx))
             tmp = {32, 64, 4, 1, 64, 32, use_spare_set};
-    if(!tmp.IsValid(ctx))
+        if(!tmp.IsValid(ctx))
             tmp = {32, 32, 4, 1, 32, 32, use_spare_set};
-    if(!tmp.IsValid(ctx))
+        if(!tmp.IsValid(ctx))
             tmp = {64, 16, 4, 1, 16, 64, use_spare_set};
-    if(!tmp.IsValid(ctx))
+        if(!tmp.IsValid(ctx))
             tmp = {16, 64, 4, 1, 64, 16, use_spare_set};
-    if(!tmp.IsValid(ctx))
+        if(!tmp.IsValid(ctx))
             tmp = {16, 16, 4, 1, 16, 16, use_spare_set};
-    if(!tmp.IsValid(ctx))
+        if(!tmp.IsValid(ctx))
             tmp = {64, 4, 16, 1, 4, 64, use_spare_set};
-    if(!tmp.IsValid(ctx))
+        if(!tmp.IsValid(ctx))
             tmp = {64, 8, 8, 1, 8, 64, use_spare_set};
     }
     else if(ctx.IsBfp16())
     {
         tmp = {128, 128, 8, 2, 64, 64, use_spare_set};
-    if(!tmp.IsValid(ctx))
+        if(!tmp.IsValid(ctx))
             tmp = {64, 32, 4, 2, 32, 64, use_spare_set};
         if(!tmp.IsValid(ctx))
             tmp = {32, 64, 4, 2, 64, 32, use_spare_set};
@@ -736,8 +736,8 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
                 construction_parameters.kernel_file = "gridwise_convolution_backward_data_implicit_"
                                                       "gemm_v4r1_xdlops_nchw_kcyx_nkhw.cpp";
 
-            construction_parameters.kernel_name =
-                "gridwise_convolution_backward_data_implicit_gemm_v4r1_xdlops_nchw_kcyx_nkhw";
+                construction_parameters.kernel_name =
+                    "gridwise_convolution_backward_data_implicit_gemm_v4r1_xdlops_nchw_kcyx_nkhw";
             }
 
             // TODO: add fp16 calculation by GetWorkspaceSize(ctx);
