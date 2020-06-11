@@ -41,6 +41,11 @@ static bool workaround_swdev_239555()
            IsClangXXCompiler();
 }
 
+// LLVM xdlops instrinsic will do unnecessey VGRP <--> AGPR movement, and result in
+// register spill, for bfloat16 datatyp, if doing blockwise GEMM larger
+// than 128x128, or wavewise-GEMM large than 64x64
+static bool workaround_swdev_xxxxxx() { return true; }
+
 PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops()
     : PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops(
           32, 32, 1, 16, 16, 1, false, false)
@@ -153,39 +158,7 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
         if(!tmp.IsReallyValid(ctx))
             tmp = {64, 8, 8, 8, 64, 2, false, true};
     }
-    else if(ctx.IsFp16())
-    {
-        tmp = {256, 128, 4, 64, 128, 8, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {256, 128, 4, 128, 64, 8, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {128, 256, 4, 64, 128, 8, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {256, 128, 4, 128, 64, 8, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {128, 128, 4, 64, 64, 8, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {128, 128, 8, 64, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 32, 4, 32, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 32, 4, 32, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {32, 64, 4, 64, 32, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {32, 32, 4, 32, 32, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 16, 4, 16, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {16, 64, 4, 64, 16, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {16, 16, 4, 16, 16, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 4, 16, 4, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 8, 8, 8, 64, 4, false, true};
-    }
-    else if(ctx.IsBfp16())
+    else if(ctx.IsFp16() or ctx.IsBfp16())
     {
         tmp = {256, 128, 4, 64, 128, 8, false, true};
         if(!tmp.IsReallyValid(ctx))
@@ -533,8 +506,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsExcludedDueToCompilerBug(
 
 // Used by EuristicInit() and GenericSearch
 // Only return false if a performance config will violate requirements given by kernel algorithm
-bool PerformanceImplicitGemmForwardV4R4Xdlops::IsReallyValid(
-    const ConvolutionContext& ctx) const
+bool PerformanceImplicitGemmForwardV4R4Xdlops::IsReallyValid(const ConvolutionContext& ctx) const
 {
     if(!IsValidValue())
         return false;
@@ -612,8 +584,10 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
 
         // this is the grid size under the biggest blockwise-GEMM (256x128 or 128x256)
         int grid_size_max_blockwise_gemm =
-            std::max((gemm_m * gemm_n) / (gcd(256, gemm_m) * gcd(128, gemm_n)),
-                     (gemm_m * gemm_n) / (gcd(128, gemm_m) * gcd(256, gemm_n)));
+            workaround_swdev_xxxxxx()
+                ? (gemm_m * gemm_n) / (gcd(128, gemm_m) * gcd(128, gemm_n))
+                : std::max((gemm_m * gemm_n) / (gcd(256, gemm_m) * gcd(128, gemm_n)),
+                           (gemm_m * gemm_n) / (gcd(128, gemm_m) * gcd(256, gemm_n)));
 
         const float ratio = grid_size / float(grid_size_max_blockwise_gemm);
 
