@@ -282,10 +282,10 @@ class SQLiteBase
         return AllFound;
     }
     template <typename... U>
-    inline auto FindRecord(U&... args)
+    inline boost::optional<DbRecord> FindRecord(U&... args)
     {
         if(DisableDbFileIO)
-            return {};
+            return boost::none;
         return reinterpret_cast<Derived*>(this)->FindRecordUnsafe(args...);
     }
 
@@ -314,18 +314,18 @@ class SQLiteBase
     }
 
     template <typename... U>
-    inline auto Update(const U&... args)
+    inline boost::optional<DbRecord> Update(const U&... args)
     {
         if(DisableDbFileIO)
-            return true;
+            return boost::none;
         return reinterpret_cast<Derived*>(this)->UpdateUnsafe(args...);
     }
 
     template <typename... U>
-    inline auto Load(U&&... args)
+    inline bool Load(U&&... args)
     {
         if(DisableDbFileIO)
-            return {};
+            return false;
         return reinterpret_cast<Derived*>(this)->LoadUnsafe(args...);
     }
 
