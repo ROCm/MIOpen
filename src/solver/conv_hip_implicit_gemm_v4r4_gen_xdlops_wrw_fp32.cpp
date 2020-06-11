@@ -31,6 +31,7 @@
 #include <miopen/implicitgemm_params.hpp>
 #include <miopen/env.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/tensor_ops.hpp>
 
 #include "implicitgemm_util.hpp"
 
@@ -549,7 +550,23 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::GetSolution(
         return [=](const Handle& handle, const boost::any& primitve_params) {
             const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitve_params);
             const auto& tensors      = invoke_params.tensors;
+            float zero               = 0.f;
+            auto elapsed             = 0.f;
+
+            if(tensors.dwDesc.GetType() != miopenHalf && tensors.dwDesc.GetType() != miopenBFloat16)
+            {
+                SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+            }
+
             handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
+            if(handle.IsProfilingEnabled())
+            {
+                elapsed += handle.GetKernelTime();
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
+            }
         };
     };
 
