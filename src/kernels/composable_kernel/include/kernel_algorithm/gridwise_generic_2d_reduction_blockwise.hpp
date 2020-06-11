@@ -115,10 +115,7 @@ struct Gridwise_generic_reduction_xy_to_x_blockwise
                                                AddressSpace::Lds,
                                                InMemoryDataOperation::Set>({block_global_1d_id, 0},
                                                                            {0, 0});
-        /*
-                constexpr auto block_buff_mtx_desc = make_ConstantMatrixDescriptor_packed(
-                    Number<GredAccessesPerThreadInBlock>{}, Number<BlockSize>{});
-        */
+
         constexpr auto block_buff_2d_desc = make_native_tensor_descriptor_packed(
             Sequence<GredAccessesPerThreadInBlock, BlockSize>{});
 
@@ -136,14 +133,8 @@ struct Gridwise_generic_reduction_xy_to_x_blockwise
             blockwise_reduce::set_buffer_value(p_in_block_buffer, zeroVal);
 
             // load block data from global to LDS, no use of double buffers (to be improved)
-            // blockwise_src_load.Run(p_src_global, p_in_block_buffer,
-            // type_convert<srcDataType>{}(zeroVal));
-
-            compType p_thread_buffer[blockwise_src_load.GetThreadBufferSize()];
-
-            blockwise_src_load.RunLoadThreadBuffer(
-                p_src_global, p_thread_buffer, type_convert<srcDataType>{}(zeroVal));
-            blockwise_src_load.RunStoreThreadBuffer(p_thread_buffer, p_in_block_buffer, zeroVal);
+            blockwise_src_load.Run(
+                p_src_global, p_in_block_buffer, type_convert<srcDataType>{}(zeroVal));
 
             __syncthreads();
 

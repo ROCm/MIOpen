@@ -128,8 +128,6 @@ struct Gridwise_generic_reduction_xy_to_x_multiblock
 
         const int toReduceBlocks = (reduceSizePerBlock + BlockSize - 1) / BlockSize;
 
-        // static_assert( toReduceBlocks == 4, "Invalid toReduceBlocks!");
-
         for(int reducedBlocks = 0; reducedBlocks < toReduceBlocks;
             reducedBlocks += GredAccessesPerThreadInBlock)
         {

@@ -87,11 +87,28 @@ struct Gridwise_generic_reduction
                                    int* const __restrict__ ws_buf2_global,
                                    int* const __restrict__ indices_global)
         {
+            constexpr auto invariantLen = src2dDesc::GetLengths()[0];
+            constexpr auto toReduceLen  = src2dDesc::GetLengths()[1];
+            constexpr auto copySliceLen = GredThreadBufferLength;
+            constexpr bool need_padding = (toReduceLen % copySliceLen > 0) ? true : false;
+            constexpr auto rPad =
+                ((toReduceLen + copySliceLen - 1) / copySliceLen) * copySliceLen - toReduceLen;
+
+            constexpr auto src2dDesc_2 = transform_tensor_descriptor(
+                src2dDesc{},
+                make_tuple(PassThrough<invariantLen>{},
+                           Pad<Sequence<toReduceLen>, Sequence<0>, Sequence<rPad>>{}),
+                make_tuple(Sequence<0>{}, Sequence<1>{}),
+                make_tuple(Sequence<0>{}, Sequence<1>{}));
+
+            using src2dDesc_touse =
+                typename std::conditional<need_padding, decltype(src2dDesc_2), src2dDesc>::type;
+
             using gridwise_reduce = Gridwise_generic_reduction_xy_to_x_direct_threadwise<
                 BlockSize,
                 srcDataType,
                 dstDataType,
-                src2dDesc,
+                src2dDesc_touse,
                 dst1dDesc,
                 compType,
                 op,
@@ -123,11 +140,31 @@ struct Gridwise_generic_reduction
                                    int* const __restrict__ ws_buf2_global,
                                    int* const __restrict__ indices_global)
         {
+            constexpr auto invariantLen = src2dDesc::GetLengths()[0];
+            constexpr auto toReduceLen  = src2dDesc::GetLengths()[1];
+            constexpr auto copySliceLen = warpSize * GredAccessesPerThreadInWarp;
+            constexpr bool need_padding = (toReduceLen % copySliceLen > 0) ? true : false;
+            constexpr auto rPad =
+                ((toReduceLen + copySliceLen - 1) / copySliceLen) * copySliceLen - toReduceLen;
+
+            constexpr auto src2dDesc_2 = transform_tensor_descriptor(
+                src2dDesc{},
+                make_tuple(PassThrough<invariantLen>{},
+                           Pad<Sequence<toReduceLen>, Sequence<0>, Sequence<rPad>>{}),
+                make_tuple(Sequence<0>{}, Sequence<1>{}),
+                make_tuple(Sequence<0>{}, Sequence<1>{}));
+
+            static_assert(copySliceLen == 128, "Invalid copySliceLen!");
+            static_assert(toReduceLen == 90, "Invalid toReduceLen!");
+
+            using src2dDesc_touse =
+                typename std::conditional<need_padding, decltype(src2dDesc_2), src2dDesc>::type;
+
             using gridwise_reduce = Gridwise_generic_reduction_xy_to_x_direct_warpwise<
                 BlockSize,
                 srcDataType,
                 dstDataType,
-                src2dDesc,
+                src2dDesc_touse,
                 dst1dDesc,
                 compType,
                 op,
@@ -160,11 +197,28 @@ struct Gridwise_generic_reduction
                                    int* const __restrict__ ws_buf2_global,
                                    int* const __restrict__ indices_global)
         {
+            constexpr auto invariantLen = src2dDesc::GetLengths()[0];
+            constexpr auto toReduceLen  = src2dDesc::GetLengths()[1];
+            constexpr auto copySliceLen = BlockSize * GredAccessesPerThreadInBlock;
+            constexpr bool need_padding = (toReduceLen % copySliceLen > 0) ? true : false;
+            constexpr auto rPad =
+                ((toReduceLen + copySliceLen - 1) / copySliceLen) * copySliceLen - toReduceLen;
+
+            constexpr auto src2dDesc_2 = transform_tensor_descriptor(
+                src2dDesc{},
+                make_tuple(PassThrough<invariantLen>{},
+                           Pad<Sequence<toReduceLen>, Sequence<0>, Sequence<rPad>>{}),
+                make_tuple(Sequence<0>{}, Sequence<1>{}),
+                make_tuple(Sequence<0>{}, Sequence<1>{}));
+
+            using src2dDesc_touse =
+                typename std::conditional<need_padding, decltype(src2dDesc_2), src2dDesc>::type;
+
             using gridwise_reduce = Gridwise_generic_reduction_xy_to_x_blockwise<
                 BlockSize,
                 srcDataType,
                 dstDataType,
-                src2dDesc,
+                src2dDesc_touse,
                 dst1dDesc,
                 compType,
                 op,
@@ -198,11 +252,29 @@ struct Gridwise_generic_reduction
                                    int* const __restrict__ ws_buf2_global,
                                    int* const __restrict__ indices_global)
         {
+            constexpr auto invariantLen = src2dDesc::GetLengths()[0];
+            constexpr auto toReduceLen  = src2dDesc::GetLengths()[1];
+            constexpr auto copySliceLen = BlockSize * GredAccessesPerThreadInBlock;
+            const int reduceSizePerBlock =
+                (((toReduceLen + BlkGroupSize - 1) / BlkGroupSize + copySliceLen - 1) /
+                 copySliceLen) *
+                copySliceLen;
+            constexpr bool need_padding =
+                (toReduceLen < reduceSizePerBlock * BlkGroupSize) ? true : false;
+            constexpr auto rPad = reduceSizePerBlock * BlkGroupSize - toReduceLen;
+
+            constexpr auto src2dDesc_2 = transform_tensor_descriptor(
+                src2dDesc{},
+                make_tuple(PassThrough<invariantLen>{},
+                           Pad<Sequence<toReduceLen>, Sequence<0>, Sequence<rPad>>{}),
+                make_tuple(Sequence<0>{}, Sequence<1>{}),
+                make_tuple(Sequence<0>{}, Sequence<1>{}));
+
             using gridwise_reduce = Gridwise_generic_reduction_xy_to_x_multiblock<
                 BlockSize,
                 srcDataType,
                 dstDataType,
-                src2dDesc,
+                typename std::conditional<need_padding, decltype(src2dDesc_2), src2dDesc>::type,
                 dst1dDesc,
                 compType,
                 op,
@@ -237,8 +309,9 @@ struct Gridwise_generic_reduction
                           specDims::Size() == srcLengths::Size(),
                       "Wrong invariant and/or toReduce dimensions!");
 
-        static_assert(toReduceDims::Size() >= 1, "Wrong specification of source mode, We should at "
-                                                 "least to have one dimension to be reduced !!");
+        static_assert(toReduceDims::Size() >= 1,
+                      "Wrong specification of source mode, We should at "
+                      "least to have one dimension to be reduced !!");
 
         // The number of invariant dimensions can be zero if all dimension are to be reduced
         static_assert(
