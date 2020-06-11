@@ -83,6 +83,8 @@ std::function<compType(compType, compType)> ReduceOpFn(miopenReduceTensorOp_t op
             return (a_ < b_) ? b_ : a_;
         }); // a is selected when they are equal
     }
+
+    return (std::function<compType(compType, compType)>{});
 };
 
 template <typename compType>
@@ -98,6 +100,8 @@ compType ReduceOpZeroVal(miopenReduceTensorOp_t op_)
 
     case MIOPEN_REDUCE_TENSOR_MAX: return (std::numeric_limits<compType>::min());
     }
+
+    return (type_convert<compType>{}(0.0));
 };
 
 template <>
@@ -115,6 +119,8 @@ half_float::half ReduceOpZeroVal<half_float::half>(miopenReduceTensorOp_t op_)
     case MIOPEN_REDUCE_TENSOR_MAX:
         return (type_convert<half_float::half>{}(std::numeric_limits<float>::min()));
     }
+
+    return (type_convert<half_float::half>{}(0.0));
 };
 
 template <typename T>
@@ -128,6 +134,67 @@ template <>
 bool IsNan<half_float::half>(half_float::half x)
 {
     return (half_float::isnan(x));
+};
+
+template <typename T>
+bool IsFinite(T x)
+{
+    // C++ isfinite() is used for float and double
+    return (std::isfinite(x));
+};
+
+template <>
+bool IsFinite<half_float::half>(half_float::half x)
+{
+    return (half_float::isfinite(x));
+};
+
+struct float_equal_one
+{
+    template <class T>
+    static bool apply(T x)
+    {
+        return std::isfinite(x) and
+               std::nextafter(x, std::numeric_limits<T>::lowest()) <= static_cast<T>(1.0) and
+               std::nextafter(x, std::numeric_limits<T>::max()) >= static_cast<T>(1.0);
+    }
+
+    template <class T>
+    bool operator()(T x)
+    {
+        return (float_equal_one::apply(x));
+    };
+};
+
+struct float_equal_zero
+{
+    template <class T>
+    static bool apply(T x)
+    {
+        return std::isfinite(x) and
+               std::nextafter(x, std::numeric_limits<T>::lowest()) <= static_cast<T>(0.0) and
+               std::nextafter(x, std::numeric_limits<T>::max()) >= static_cast<T>(0.0);
+    }
+
+    template <class T>
+    bool operator()(T x)
+    {
+        return (float_equal_zero::apply(x));
+    };
+};
+
+template <>
+bool float_equal_one::apply<half_float::half>(half_float::half x)
+{
+    return half_float::isfinite(x) and x <= type_convert<half_float::half>{}(1.0) and
+           x >= type_convert<half_float::half>{}(1.0);
+};
+
+template <>
+bool float_equal_zero::apply<half_float::half>(half_float::half x)
+{
+    return half_float::isfinite(x) and x <= type_convert<half_float::half>{}(0.0) and
+           x >= type_convert<half_float::half>{}(0.0);
 };
 
 #define binop_with_nan_check(nanOpt, opReduce, accuVal, currVal) \

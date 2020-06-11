@@ -1,3 +1,28 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 #ifndef GUARD_MIOPEN_REDUCTION_HOST_HPP_
 #define GUARD_MIOPEN_REDUCTION_HOST_HPP_
 
@@ -167,6 +192,9 @@ class miopenReductionHost
     void RunImpl(Tgpu alpha, const Tgpu* in_data, Tgpu beta, Tref* out_data, int* indices)
     {
         using namespace reduce;
+        using reduce::float_equal_one;
+        using reduce::float_equal_zero;
+        using reduce::type_convert;
 
         auto opReduce = ReduceOpFn<compType>(this->reduceOp);
         bool need_indices =
@@ -189,7 +217,7 @@ class miopenReductionHost
 
                 auto src_offset = get_offset_from_index(this->inStrides, src_index);
 
-                auto currVal = static_cast<compType>(in_data[src_offset]);
+                auto currVal = type_convert<compType>{}(in_data[src_offset]);
 
                 if(need_indices)
                 {
@@ -201,19 +229,19 @@ class miopenReductionHost
             };
 
             // scale the accumulated value
-            if(!miopen::float_equal(alpha, static_cast<Tgpu>(1.0)))
-                accuVal = accuVal * static_cast<compType>(alpha);
+            if(!float_equal_one{}(alpha))
+                accuVal = accuVal * type_convert<compType>{}(alpha);
 
             // scale the prior dst value and add it to the accumulated value
-            if(!miopen::float_equal(beta, static_cast<Tgpu>(0.0)))
+            if(!float_equal_zero{}(beta))
             {
-                auto priorDstValue = static_cast<Tref>(out_data[0]);
+                auto priorDstValue = type_convert<Tref>{}(out_data[0]);
 
-                accuVal += static_cast<compType>(priorDstValue * static_cast<Tref>(beta));
+                accuVal += type_convert<compType>{}(priorDstValue * type_convert<Tref>{}(beta));
             };
 
             // store the reduced value to dst location
-            out_data[0] = static_cast<Tref>(accuVal);
+            out_data[0] = type_convert<Tref>{}(accuVal);
             if(need_indices)
                 indices[0] = accuIndex;
         }
@@ -263,7 +291,7 @@ class miopenReductionHost
 
                     auto src_offset = get_offset_from_index(this->inStrides, src_index);
 
-                    auto currVal = static_cast<compType>(in_data[src_offset]);
+                    auto currVal = type_convert<compType>{}(in_data[src_offset]);
 
                     if(need_indices)
                     {
@@ -273,22 +301,22 @@ class miopenReductionHost
                     }
                     else
                         binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
+                };
 
-                    // scale the accumulated value
-                    if(!miopen::float_equal(alpha, static_cast<Tgpu>(1.0)))
-                        accuVal = accuVal * static_cast<compType>(alpha);
+                // scale the accumulated value
+                if(!float_equal_one{}(alpha))
+                    accuVal = accuVal * type_convert<compType>{}(alpha);
 
-                    // scale the prior dst value and add it to the accumulated value
-                    if(!miopen::float_equal(beta, static_cast<Tgpu>(0.0)))
-                    {
-                        auto priorDstValue = static_cast<Tref>(out_data[dst_offset]);
+                // scale the prior dst value and add it to the accumulated value
+                if(!float_equal_zero{}(beta))
+                {
+                    auto priorDstValue = type_convert<Tref>{}(out_data[dst_offset]);
 
-                        accuVal += static_cast<compType>(priorDstValue * static_cast<Tref>(beta));
-                    };
+                    accuVal += type_convert<compType>{}(priorDstValue * type_convert<Tref>{}(beta));
                 };
 
                 // store the reduced value to dst location
-                out_data[dst_offset] = static_cast<Tref>(accuVal);
+                out_data[dst_offset] = type_convert<Tref>{}(accuVal);
                 if(need_indices)
                     indices[dst_offset] = accuIndex;
             };

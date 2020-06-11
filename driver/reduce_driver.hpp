@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -285,6 +285,7 @@ int ReduceDriver<Tgpu, Tref>::SetReduceTensorDescriptorFromCmdLineArgs()
 template <typename Tgpu, typename Tref>
 int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
+    using reduce::type_convert;
 
     size_t in_sz  = GetTensorSize(inputTensor);
     size_t out_sz = GetTensorSize(outputTensor);
@@ -309,15 +310,15 @@ int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     ws_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sz, sizeof(Tgpu)));
     indices_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, indices_sz, sizeof(int)));
 
-    in              = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-    out             = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    outhost         = std::vector<Tref>(out_sz, static_cast<Tref>(0));
+    in              = std::vector<Tgpu>(in_sz, type_convert<Tgpu>{}(0.3f));
+    out             = std::vector<Tgpu>(out_sz, type_convert<Tgpu>{}(0.2f));
+    outhost         = std::vector<Tref>(out_sz, type_convert<Tref>{}(0.2f));
     out_indices     = std::vector<int>(indices_sz, static_cast<int>(0));
     outhost_indices = std::vector<int>(indices_sz, static_cast<int>(0));
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        in[i] = RAN_GEN<Tgpu>(type_convert<Tgpu>{}(0.0f), type_convert<Tgpu>{}(1.0f));
     }
 
 #if MIOPEN_BACKEND_OPENCL
@@ -341,6 +342,12 @@ int ReduceDriver<Tgpu, Tref>::RunForwardGPU()
     auto alpha = static_cast<Tgpu>(inflags.GetValueDouble("alpha"));
     auto beta  = static_cast<Tgpu>(inflags.GetValueDouble("beta"));
 
+    if(indices_sizeInBytes > 0)
+    {
+        alpha = static_cast<Tgpu>(1.0f);
+        beta  = static_cast<Tgpu>(0.0f);
+    };
+
     miopenReduceTensor(GetHandle(),
                        reduceDesc,
                        indices_dev->GetMem(), // indices
@@ -353,6 +360,11 @@ int ReduceDriver<Tgpu, Tref>::RunForwardGPU()
                        &beta,
                        outputTensor,
                        out_dev->GetMem());
+
+    // for verifying correctness
+    out_dev->FromGPU(GetStream(), out.data());
+    indices_dev->FromGPU(GetStream(), out_indices.data());
+
     Timer t;
     START_TIME
 
@@ -384,9 +396,6 @@ int ReduceDriver<Tgpu, Tref>::RunForwardGPU()
         printf("GPU Kernel Time Forward LRN Elapsed: %f ms\n", time);
     }
 
-    out_dev->FromGPU(GetStream(), out.data());
-    indices_dev->FromGPU(GetStream(), out_indices.data());
-
     return miopenStatusSuccess;
 }
 
@@ -413,6 +422,12 @@ int ReduceDriver<Tgpu, Tref>::VerifyForward()
 
     auto alpha = static_cast<Tgpu>(this->inflags.GetValueDouble("alpha"));
     auto beta  = static_cast<Tgpu>(this->inflags.GetValueDouble("beta"));
+
+    if(indices_sizeInBytes > 0)
+    {
+        alpha = static_cast<Tgpu>(1.0f);
+        beta  = static_cast<Tgpu>(0.0f);
+    };
 
     hostReduction.Run(alpha, in.data(), beta, outhost.data(), outhost_indices.data());
 
