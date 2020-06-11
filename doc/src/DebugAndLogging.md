@@ -146,6 +146,17 @@ To disable using rocBlas entirely, set the configuration flag `-DMIOPEN_USE_ROCB
 More information on logging with rocBlas can be found [here](https://github.com/ROCmSoftwarePlatform/rocBLAS/wiki/5.Logging).
 
 
+## Numerical Checking
+
+MIOpen provides the environmental variable `MIOPEN_CHECK_NUMERICS` to allow users to debug potential numerical abnormalities. Setting this variable will scan all inputs and outputs of each kernel called and attempt to detect infinities (infs), not-a-number (NaN), or all zeros. The environment variable has several settings that will help with debugging:
+
+* `MIOPEN_CHECK_NUMERICS=0x01`: Fully informative, prints results from all checks to console
+* `MIOPEN_CHECK_NUMERICS=0x02`: Warning information, prints results only if abnormality detected
+* `MIOPEN_CHECK_NUMERICS=0x04`: Throw error on detection, MIOpen execute MIOPEN_THROW on abnormal result
+* `MIOPEN_CHECK_NUMERICS=0x08`: Abort on abnormal result, this will allow users to drop into a debugging session
+* `MIOPEN_CHECK_NUMERICS=0x10`: Print stats, this will compute and print mean/absmean/min/max (note, this is much slower)
+
+
 ## Controlling Parallel Compilation
 
 MIOpen's Convolution Find() calls will compile and benchmark a set of `solvers` contained in `miopenConvAlgoPerf_t` this is done in parallel per `miopenConvAlgorithm_t`. Parallelism per algorithm is set to 20 threads. Typically there are far fewer threads spawned due to the limited number of kernels under any given algorithm. The level of parallelism can be controlled using the environment variable `MIOPEN_COMPILE_PARALLEL_LEVEL`. 
