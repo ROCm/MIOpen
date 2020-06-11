@@ -201,12 +201,20 @@ static bool IsAmdRocmOpencl(miopen::ExecutionContext& context)
     return ret_bool;
 }
 
+static bool IsHipKernelsEnabled()
+{
+#if MIOPEN_USE_HIP_KERNELS
+    return !miopen::IsDisabled(MIOPEN_DEBUG_HIP_KERNELS{});
+#else
+    return miopen::IsEnabled(MIOPEN_DEBUG_HIP_KERNELS{});
+#endif
+}
+
 void miopen::ExecutionContext::DetectRocm()
 {
-    // Detect assembly kernels
     use_binaries            = false;
     use_asm_kernels         = false;
-    use_hip_kernels         = !miopen::IsDisabled(MIOPEN_DEBUG_HIP_KERNELS{});
+    use_hip_kernels         = IsHipKernelsEnabled();
     use_opencl_convolutions = !miopen::IsDisabled(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS{});
     rmv                     = rocm_meta_version::Default;
     if(IsAmdRocmOpencl(*this))
