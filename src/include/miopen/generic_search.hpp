@@ -31,6 +31,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/invoke_params.hpp>
+#include <miopen/env.hpp>
 
 #include <vector>
 #include <cstdlib>
@@ -359,6 +360,27 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
     HeartBeat<PerformanceConfig> heartbeat;
     heartbeat.Start();
 
+    const auto compile_and_run = miopen::EnvvarValue("MIOPEN_COMPILE_AND_RUN");
+    if(compile_and_run==0){
+        for(const auto& current_config : all_configs)
+        {
+            ConvSolution current_solution = s.GetSolution(context, current_config, true);
+            std::vector<KernelInfo> kernels;
+            for(auto&& kernel : current_solution.construction_params)
+            {
+                if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
+                    continue;
+                kernels.push_back(kernel);
+            }
+            // Precompile the kernels in parallel, but dont add them to the cache
+            std::vector<Program> programs = PrecompileKernels(profile_h, kernels);
+
+        best_config = current_config;
+        }
+
+        return best_config;
+    }
+
     for(const auto& current_config : all_configs)
     {
         float elapsed_time = 0.0f;
@@ -468,6 +490,7 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
             ret != 0, elapsed_time, n_current, best_time, n_failed, n_runs_total, current_config);
         ++n_current;
     }
+    if(compile_and_run!=0){
 
     MIOPEN_LOG_W("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"
                           << n_best
@@ -485,7 +508,7 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
     const auto default_time = profile_h.GetKernelTime();
     const auto score        = (best_time > 0.0f) ? default_time / best_time : 0.0f;
     MIOPEN_LOG_W("...Score: " << score << " (default time " << default_time << ')');
-
+    }
     return best_config;
 }
 
