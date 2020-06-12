@@ -497,6 +497,8 @@ bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) cons
     const auto name = params.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx9")))
         return false;
+    if(params.IsFp16() && !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908")))
+        return false;
 
     // clang-format off
     if (! ( (params.kernel_stride_w == 1 || params.kernel_stride_w == 2)
@@ -615,12 +617,7 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
         kernel_postfix += "_fp32";
     else
     {
-        kernel_postfix += "_fp16";
-        const auto name = params.GetStream().GetDeviceName();
-        if(StartsWith(name, "gfx906") || StartsWith(name, "gfx908"))
-            kernel_postfix += "_dot2_edc";
-        else
-            kernel_postfix += "_pk";
+        kernel_postfix += "_fp16_dot2_edc";
     }
     if(params.kernel_stride_w == 1)
     {
