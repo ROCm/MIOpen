@@ -134,7 +134,7 @@ class miopenReductionHost
         this->invariantDims = invariantDims_;
         this->toReduceDims  = toReduceDims_;
 
-        assert(this->inLengths.size() == this->outLengths);
+        assert(this->inLengths.size() == this->outLengths.size());
         assert(!this->toReduceDims.empty());
 
         for(int i = 0; i < this->invariantDims.size(); i++)

@@ -41,8 +41,6 @@
 
 #include <miopen/reduce_common.hpp>
 
-using float16 = half_float::half;
-
 static void get_all_indexes(const std::vector<std::size_t>& dimLengths,
                             int dim,
                             std::vector<std::vector<std::size_t>>& indexes)
@@ -53,7 +51,7 @@ static void get_all_indexes(const std::vector<std::size_t>& dimLengths,
 
         if(dim == 0)
         {
-            assert(indxes.size() == 0);
+            assert(indexes.size() == 0);
             assert(dimLengths[dim] > 0);
             for(std::size_t i = 0; i < dimLengths[dim]; i++)
             {
@@ -431,7 +429,7 @@ struct verify_reduce_no_indices
             else
                 return (cpuImpl<float>());
         }
-        else if(compTypeVal == miopenHalf)
+        else if(compTypeVal == miopenHalf || compTypeVal == miopenBFloat16)
         {
             if(std::is_same<T, double>::value || std::is_same<T, float>::value)
                 return (cpuImpl<T>());
@@ -657,29 +655,17 @@ struct reduce_driver : test_driver
     std::vector<std::vector<std::size_t>> get_tensor_lengths()
     {
         return {
-            {64, 3, 120, 120},
-            {12, 3, 80, 8},
-            {128, 4, 200, 200},
-            {801, 4, 20, 20},
-            {4, 4, 60, 300},
+            {64, 3, 280, 81},
         };
     }
 
     std::vector<std::vector<int>> get_toreduce_dims()
     {
         return {
-            {0},
-            {1},
-            {2},
-            {3},
-            {0, 1},
-            {1, 2},
-            {0, 3},
-            {1, 3},
-            {0, 2, 3},
-            {1, 2, 3},
-            {0, 1, 2},
+            {0}, {1}, {2}, {3}, 
+            {0, 1}, {1, 2}, {0, 3}, {1, 3}, {0, 2}, {2, 3}, 
             {0, 1, 3},
+            {1, 2, 3},
             {0, 1, 2, 3},
         };
     }
@@ -690,8 +676,8 @@ struct reduce_driver : test_driver
         add(toReduceDims, "R", generate_data(get_toreduce_dims()));
         add(reduceOp, "ReduceOp", generate_data({0, 2}));
         add(compTypeVal, "CompType", generate_data({1}));
-        add(nanOpt, "N", generate_data({0, 1}));
-        add(indicesOpt, "I", generate_data({0, 1}));
+        add(nanOpt, "N", generate_data({0}));
+        add(indicesOpt, "I", generate_data({0}));
 
         add(scales, "scales", generate_data({{1.0f, 0.0f}, {0.5f, 0.5f}}));
 
@@ -717,7 +703,7 @@ struct reduce_driver : test_driver
 
         assert(toReduceDims.size() <= outLengths.size());
         for(int i = 0; i < toReduceDims.size(); i++)
-            assert(toReduceDims[i] < outLengths.size());
+            assert(toReduceDims[i] < inLengths.size());
 
         // set the lengths of the dimensions to be reduced to 1 to represent the output Tensor
         for(int i                       = 0; i < toReduceDims.size(); i++)
@@ -729,21 +715,18 @@ struct reduce_driver : test_driver
         auto inputTensor  = tensor<T>{this->inLengths}.generate(tensor_elem_gen_integer{max_value});
         auto outputTensor = tensor<T>{outLengths}.generate(tensor_elem_gen_integer{max_value});
 
-        auto workspace_size =
-            reduceDesc.GetWorkSpaceSize(get_handle(), inputTensor.desc, outputTensor.desc) /
-            sizeof(T);
-        auto indices_size =
-            reduceDesc.GetIndicesSize(get_handle(), inputTensor.desc, outputTensor.desc) /
-            sizeof(int);
+        auto indices_size = reduceDesc.GetIndicesSize(get_handle(), inputTensor.desc, outputTensor.desc) / sizeof(int);
 
+        auto ws_sizeInBytes = reduceDesc.GetWorkSpaceSize(get_handle(), inputTensor.desc, outputTensor.desc); 
+        auto workspace_size = (indices_size == 0 ) ? ws_sizeInBytes / sizeof(T) : (ws_sizeInBytes+sizeof(T)-1)/sizeof(T);  
+		                  
         std::vector<std::size_t> wsLengths = {static_cast<std::size_t>(workspace_size), 1};
         auto workspaceTensor = tensor<T>{wsLengths}.generate(tensor_elem_gen_integer{max_value});
 
         if(indices_size > 0)
         {
             std::vector<std::size_t> indicesLengths = {static_cast<std::size_t>(indices_size), 1};
-            auto indicesTensor =
-                tensor<int>{indicesLengths}.generate(tensor_elem_gen_integer{max_value});
+            auto indicesTensor = tensor<int>{indicesLengths}.generate(tensor_elem_gen_integer{max_value});
 
             verify(verify_reduce_with_indices<T>(reduceDesc,
                                                  inputTensor,

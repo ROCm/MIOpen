@@ -36,7 +36,9 @@
 #include <float.h>
 #include <memory>
 #include <miopen/miopen.h>
+#include <miopen/reduce_common.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/bfloat16.hpp>
 #include <numeric>
 #include <vector>
 #include <string>
@@ -108,6 +110,7 @@ class ReduceDriver : public Driver
     std::vector<int> out_indices;
     std::vector<int> outhost_indices;
 
+    bool need_indices; 
     std::size_t ws_sizeInBytes;
     std::size_t indices_sizeInBytes;
 
@@ -278,6 +281,10 @@ int ReduceDriver<Tgpu, Tref>::SetReduceTensorDescriptorFromCmdLineArgs()
         static_cast<miopenReduceTensorIndices_t>(inflags.GetValueInt("IndicesUsed"));
     miopenIndicesType_t indicesType = MIOPEN_32BIT_INDICES;
 
+    // no other place is better to place this line of codes 
+    this->need_indices =  (indicesOpt == MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES) &&
+            (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX);
+
     return (miopenSetReduceTensorDescriptor(
         reduceDesc, reduceOp, compType, nanOpt, indicesOpt, indicesType));
 }
@@ -295,7 +302,7 @@ int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     miopenGetReductionIndicesSize(
         GetHandle(), reduceDesc, inputTensor, outputTensor, &this->indices_sizeInBytes);
 
-    size_t ws_sz      = this->ws_sizeInBytes / sizeof(Tgpu);
+    size_t ws_sz      = (!this->need_indices) ?  this->ws_sizeInBytes / sizeof(Tgpu) : this->ws_sizeInBytes/(sizeof(Tgpu)+sizeof(int)); 
     size_t indices_sz = this->indices_sizeInBytes / sizeof(int);
 
 #if MIOPEN_BACKEND_OPENCL
@@ -307,8 +314,17 @@ int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 #endif
     in_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
     out_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-    ws_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sz, sizeof(Tgpu)));
+    ws_dev      =  this->need_indices ?  std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sz*2, std::max<int>(sizeof(Tgpu),sizeof(int)))) :
+                                         std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sz, sizeof(int)));  
+
     indices_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, indices_sz, sizeof(int)));
+
+    std::cout << "Workspace size in bytes : " << this->ws_sizeInBytes << std::endl; 
+    std::cout << "Workspace data size : " << ws_sz << std::endl; 
+    std::cout << "Indices data size : " << indices_sz << std::endl; 
+    std::cout << "Workspace memory size " << ws_dev->GetSize() << std::endl; 
+    std::cout << "Indices memory size " << indices_dev->GetSize() << std::endl; 
+
 
     in              = std::vector<Tgpu>(in_sz, type_convert<Tgpu>{}(0.3f));
     out             = std::vector<Tgpu>(out_sz, type_convert<Tgpu>{}(0.2f));
@@ -338,22 +354,23 @@ int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref>
 int ReduceDriver<Tgpu, Tref>::RunForwardGPU()
 {
+    auto alpha = reduce::type_convert<Tgpu>{}(static_cast<float>(this->inflags.GetValueDouble("alpha")));
+    auto beta  = reduce::type_convert<Tgpu>{}(static_cast<float>(this->inflags.GetValueDouble("beta")));
 
-    auto alpha = static_cast<Tgpu>(inflags.GetValueDouble("alpha"));
-    auto beta  = static_cast<Tgpu>(inflags.GetValueDouble("beta"));
-
-    if(indices_sizeInBytes > 0)
+    if (this->need_indices)
     {
-        alpha = static_cast<Tgpu>(1.0f);
-        beta  = static_cast<Tgpu>(0.0f);
+        alpha = reduce::type_convert<Tgpu>{}(1.0f);
+        beta  = reduce::type_convert<Tgpu>{}(0.0f);
     };
+
+    bool output_accumulate = ! ( reduce::float_equal_one{}(alpha) && reduce::float_equal_zero{}(beta) );  
 
     miopenReduceTensor(GetHandle(),
                        reduceDesc,
-                       indices_dev->GetMem(), // indices
-                       indices_sizeInBytes,   // indices size in bytes
-                       ws_dev->GetMem(),      // workspace
-                       ws_sizeInBytes,        // workspace size in bytes
+                       this->need_indices ? indices_dev->GetMem() : nullptr, // indices
+                       this->need_indices ? indices_sizeInBytes : 0,         // indices size in bytes
+                       ws_sizeInBytes > 0 ?  ws_dev->GetMem() : nullptr,     // workspace
+                       ws_sizeInBytes,                                       // workspace size in bytes
                        &alpha,
                        inputTensor,
                        in_dev->GetMem(),
@@ -361,9 +378,11 @@ int ReduceDriver<Tgpu, Tref>::RunForwardGPU()
                        outputTensor,
                        out_dev->GetMem());
 
-    // for verifying correctness
-    out_dev->FromGPU(GetStream(), out.data());
-    indices_dev->FromGPU(GetStream(), out_indices.data());
+    // must get the output here, since the host-based method only run once 
+    if ( output_accumulate ) {
+         out_dev->FromGPU(GetStream(), out.data());
+         indices_dev->FromGPU(GetStream(), out_indices.data());
+    }; 
 
     Timer t;
     START_TIME
@@ -372,10 +391,10 @@ int ReduceDriver<Tgpu, Tref>::RunForwardGPU()
     {
         miopenReduceTensor(GetHandle(),
                            reduceDesc,
-                           indices_dev->GetMem(), // indices
-                           indices_sizeInBytes,   // indices size in bytes
-                           ws_dev->GetMem(),      // workspace
-                           ws_sizeInBytes,        // workspace size in bytes
+                           this->need_indices ? indices_dev->GetMem() : nullptr, // indices
+                           this->need_indices ? indices_sizeInBytes : 0,         // indices size in bytes
+                           ws_sizeInBytes > 0 ?  ws_dev->GetMem() : nullptr,     // workspace
+                           ws_sizeInBytes,                                       // workspace size in bytes
                            &alpha,
                            inputTensor,
                            in_dev->GetMem(),
@@ -383,6 +402,12 @@ int ReduceDriver<Tgpu, Tref>::RunForwardGPU()
                            outputTensor,
                            out_dev->GetMem());
     }
+
+    // for verifying correctness
+    if ( ! output_accumulate ) {
+        out_dev->FromGPU(GetStream(), out.data());
+        indices_dev->FromGPU(GetStream(), out_indices.data());
+    }; 
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -420,13 +445,13 @@ int ReduceDriver<Tgpu, Tref>::VerifyForward()
                                                   this->dimsInvariant,
                                                   this->dimsToReduce);
 
-    auto alpha = static_cast<Tgpu>(this->inflags.GetValueDouble("alpha"));
-    auto beta  = static_cast<Tgpu>(this->inflags.GetValueDouble("beta"));
+    auto alpha = reduce::type_convert<Tgpu>{}(static_cast<float>(this->inflags.GetValueDouble("alpha")));
+    auto beta  = reduce::type_convert<Tgpu>{}(static_cast<float>(this->inflags.GetValueDouble("beta")));
 
     if(indices_sizeInBytes > 0)
     {
-        alpha = static_cast<Tgpu>(1.0f);
-        beta  = static_cast<Tgpu>(0.0f);
+        alpha = reduce::type_convert<Tgpu>{}(1.0f);
+        beta  = reduce::type_convert<Tgpu>{}(0.0f);
     };
 
     hostReduction.Run(alpha, in.data(), beta, outhost.data(), outhost_indices.data());
