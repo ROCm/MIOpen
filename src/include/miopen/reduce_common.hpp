@@ -29,6 +29,7 @@
 #include <half.hpp>
 #include <limits>
 #include <cmath>
+#include "bfloat16.hpp"
 
 namespace reduce {
 
@@ -62,6 +63,20 @@ template <>
 half_float::half type_convert<half_float::half>::operator()<float>(float x) const
 {
     return half_float::half_cast<half_float::half>(x);
+};
+
+template <>
+template <>
+float type_convert<float>::operator()<bfloat16>(bfloat16 x) const
+{
+    return float(x);
+};
+
+template <>
+template <>
+bfloat16 type_convert<bfloat16>::operator()<float>(float x) const
+{
+    return bfloat16(x);
 };
 
 template <typename compType>
