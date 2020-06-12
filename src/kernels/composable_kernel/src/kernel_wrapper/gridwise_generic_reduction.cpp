@@ -38,7 +38,7 @@ extern "C" __global__ void gridwise_generic_reduce_1(float alpha,
                                                      float beta,
                                                      void* p_dst_global,
                                                      void* ws_buf1_global,
-                                                     void* ws_buf2_global,
+                                                     long ws_buf2_bytes_offset,
                                                      void* indices_global)
 {
     static_assert(srcLengths::Size() > 0 && srcLengths::Size() == srcStrides::Size(),
@@ -73,7 +73,7 @@ extern "C" __global__ void gridwise_generic_reduce_1(float alpha,
                         beta,
                         const_cast<void* const __restrict__>(p_dst_global),
                         const_cast<void* const __restrict__>(ws_buf1_global),
-                        const_cast<void* const __restrict__>(ws_buf2_global),
+                        ws_buf2_bytes_offset,
                         const_cast<void* const __restrict__>(indices_global));
 };
 
@@ -82,7 +82,7 @@ extern "C" __global__ void gridwise_generic_reduce_2(float alpha,
                                                      float beta,
                                                      void* p_dst_global,
                                                      void* ws_buf1_global,
-                                                     void* ws_buf2_global,
+                                                     long ws_buf2_bytes_offset,
                                                      void* indices_global)
 {
     static_assert(srcLengths::Size() > 0 && srcLengths::Size() == srcStrides::Size(),
@@ -117,6 +117,6 @@ extern "C" __global__ void gridwise_generic_reduce_2(float alpha,
                           beta,
                           const_cast<void* const __restrict__>(p_dst_global),
                           const_cast<void* const __restrict__>(ws_buf1_global),
-                          const_cast<void* const __restrict__>(ws_buf2_global),
+                          ws_buf2_bytes_offset,
                           const_cast<void* const __restrict__>(indices_global));
 };

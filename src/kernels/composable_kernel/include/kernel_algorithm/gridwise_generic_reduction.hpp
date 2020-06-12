@@ -295,7 +295,7 @@ struct Gridwise_generic_reduction
                                float beta,
                                void* const __restrict__ p_dst_global,
                                void* const __restrict__ ws_buf1_global,
-                               void* const __restrict__ ws_buf2_global,
+                               long ws_buf2_bytes_offset,
                                void* const __restrict__ indices_global)
     {
         using srcLengths = decltype(srcDesc::GetLengths());
@@ -316,6 +316,11 @@ struct Gridwise_generic_reduction
             "If all source dimensions are reduced, the dest should have only one dimension !!");
 
         constexpr bool reduceAllDims = (invariantDims::Size() == 0) ? true : false;
+
+        void* const ws_buf2_global =
+            ws_buf2_bytes_offset > 0
+                ? static_cast<void*>(static_cast<char*>(ws_buf1_global) + ws_buf2_bytes_offset)
+                : nullptr;
 
         static_if<!reduceAllDims>{}([&](auto) { // not all dimensions are to be reduced
             using toReduceDimLengths  = decltype(srcLengths::Extract(toReduceDims{}));
@@ -402,7 +407,7 @@ struct Gridwise_generic_reduction
                                  float beta,
                                  void* const __restrict__ p_dst_global,
                                  void* const __restrict__ ws_buf1_global,
-                                 void* const __restrict__ ws_buf2_global,
+                                 long ws_buf2_bytes_offset,
                                  void* const __restrict__ indices_global)
     {
         using dstLengths = decltype(dstDesc::GetLengths());
@@ -417,6 +422,11 @@ struct Gridwise_generic_reduction
 
         constexpr auto workspace_2d_desc =
             make_native_tensor_descriptor_packed(Sequence<invariantLength, toReduceLength>{});
+
+        void* const ws_buf2_global =
+            ws_buf2_bytes_offset > 0
+                ? static_cast<void*>(static_cast<char*>(ws_buf1_global) + ws_buf2_bytes_offset)
+                : nullptr;
 
         static_if<is_method_multiblock>{}([&](auto) {
             constexpr ckReductionMethod_t reduceImpl2 =

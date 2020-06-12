@@ -67,7 +67,7 @@ struct get_tunable_reduction_kernel_constants
         case Reduce_DirectWarpWise:
             GredThreadBufferLength       = 0;
             GredAccessesPerThreadInBlock = 0;
-            GredAccessesPerThreadInWarp  = 1;
+            GredAccessesPerThreadInWarp  = 2;
             break;
         case Reduce_MultiBlock:
             GredThreadBufferLength =
@@ -75,7 +75,7 @@ struct get_tunable_reduction_kernel_constants
             GredAccessesPerThreadInBlock =
                 2; // needed since the second-time reduction could be BlockWise
             GredAccessesPerThreadInWarp =
-                1; // needed since the second-time reduction could be DirectWarpWise
+                2; // needed since the second-time reduction could be DirectWarpWise
             break;
         };
     };
@@ -287,7 +287,7 @@ std::size_t ReduceTensorDescriptor::GetWorkSpaceSize(Handle& handle,
 
     std::size_t wsSizeInBytes =
         !need_indices ? workspace_size * detail::GetDataTypeSize(inDesc.GetType())
-                      : workspace_size * (detail::GetDataTypeSize(inDesc.GetType()) + sizeof(int));
+                      : workspace_size * (detail::GetDataTypeSize(inDesc.GetType()) + sizeof(int)) + 64 + sizeof(int);
 
     return (wsSizeInBytes);
 };
@@ -373,19 +373,17 @@ void ReduceTensorDescriptor::ReduceTensor(Handle& handle,
     if(ws_sizeInBytes > workspaceSizeInBytes)
         MIOPEN_THROW("The workspace size allocated is not enough!");
 
-    void* ws_buf1_global = static_cast<void*>(workspace);
-    void* ws_buf2_global = nullptr;
+    // void* ws_buf1_global = static_cast<void*>(workspace);
+    Data_t ws_buf1_global = workspace;
+    long ws_buf2_bytes_offset = 0;
 
-    if(need_indices && static_cast<void*>(workspace) != nullptr)
+    if(need_indices && workspace != nullptr)
     {
-        std::size_t byteOffset =
-            (workspaceSizeInBytes / (detail::GetDataTypeSize(aDesc.GetType()) + sizeof(int))) *
-            detail::GetDataTypeSize(aDesc.GetType());
+        std::size_t aTypeSize = detail::GetDataTypeSize(aDesc.GetType());     
 
-        byteOffset = ((byteOffset + sizeof(int) - 1) / sizeof(int)) * sizeof(int);
+        long byteOffset = (workspaceSizeInBytes / (aTypeSize + sizeof(int))) * aTypeSize; 
 
-        ws_buf2_global =
-            static_cast<void*>(static_cast<char*>(static_cast<void*>(workspace)) + byteOffset);
+        ws_buf2_bytes_offset = ((byteOffset + 63) / 64) * 64; 
     };
 
     // invariantLength and toReduceLength are used to determine the kernel configuration
@@ -536,18 +534,20 @@ void ReduceTensorDescriptor::ReduceTensor(Handle& handle,
         static_cast<size_t>(gridSize * blockSize), size_t{1}, size_t{1}};
 
     visit_float(srcDataType, [&](auto as_float) {
-        auto alphaVal = *as_float(alpha);
-        auto betaVal  = *as_float(beta);
+        float alphaVal = type_convert<float>{}( *as_float(alpha) );
+        float betaVal  = type_convert<float>{}( *as_float(beta) );
+
+        std::cout << "alpha = " << alphaVal << " beta = " << betaVal << std::endl; 
 
         handle.AddKernel(
             algo_name, network_config, program_name, kernel_name1, vld_1, vgd_1, param)(
-            type_convert<float>{}(alphaVal),
+            alphaVal,
             A,
-            type_convert<float>{}(betaVal),
+            betaVal,
             C,
-            static_cast<void*>(ws_buf1_global),
-            static_cast<void*>(ws_buf2_global),
-            static_cast<void*>(indices));
+            ws_buf1_global,
+            ws_buf2_bytes_offset,
+            indices);
     });
 
     if(useTwoCalls)
@@ -564,17 +564,18 @@ void ReduceTensorDescriptor::ReduceTensor(Handle& handle,
         std::string kernel_name2 = "gridwise_generic_reduce_2";
 
         visit_float(srcDataType, [&](auto as_float) {
-            auto alphaVal = *as_float(alpha);
-            auto betaVal  = *as_float(beta);
+            float alphaVal = type_convert<float>{}( *as_float(alpha) );
+            float betaVal  = type_convert<float>{}( *as_float(beta) );
+
             handle.AddKernel(
                 algo_name, network_config, program_name, kernel_name2, vld_2, vgd_2, param)(
-                type_convert<float>{}(alphaVal),
+                alphaVal,
                 A,
-                type_convert<float>{}(betaVal),
+                betaVal,
                 C,
-                static_cast<void*>(ws_buf1_global),
-                static_cast<void*>(ws_buf2_global),
-                static_cast<void*>(indices));
+                ws_buf1_global,
+                ws_buf2_bytes_offset,
+                indices);
         });
     };
 };
