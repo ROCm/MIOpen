@@ -304,6 +304,42 @@ pipeline {
                     }
                 }
 
+                stage('Hip Normal Find Mode Release') {
+                    agent{ label rocmnode("vega") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            rm -rf build
+                            mkdir build
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On .. 
+                            make -j test_conv2d
+                            MIOPEN_FIND_MODE=1 CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache
+                        """
+                    }
+                    steps{
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd)
+                    }
+                }
+
+                stage('Hip Fast Find Mode Release') {
+                    agent{ label rocmnode("vega") }
+                    environment{
+                        cmd = """
+                            ulimit -c unlimited
+                            rm -rf build
+                            mkdir build
+                            cd build
+                            CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_GPU_SYNC=On .. 
+                            make -j test_conv2d
+                            MIOPEN_FIND_MODE=2 CTEST_PARALLEL_LEVEL=4 MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM=0 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache
+                        """
+                    }
+                    steps{
+                        buildHipClangJob('/opt/rocm/llvm/bin/clang++', '', "",  image+'-hip-clang', "/usr/local", cmd)
+                    }
+                }
+
                 stage('Hip Release on /usr/local') {
                     agent{ label rocmnode("vega") }
                     steps{
@@ -474,18 +510,4 @@ pipeline {
             parallel {
                 stage('GCC OpenCL Release package') {
                     agent{ label rocmnode("rocmtest") }
-                    steps{
-                        buildJob('g++-5', '-DCMAKE_BUILD_TYPE=release', "", image, "")
-                    }
-                }
-                stage("HCC HIP Release package"){
-                    agent{ label rocmnode("rocmtest") }
-                    steps{
-                        buildJob('hcc', '-DCMAKE_BUILD_TYPE=release', "", image + "rocm")
-                    }
-                }
-            }
-        }
-    }    
-}
-
+                
