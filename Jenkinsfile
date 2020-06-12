@@ -346,7 +346,6 @@ pipeline {
                         buildJob('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', "", image, "")
                     }
                 }
-
             }
         }
 
@@ -505,9 +504,23 @@ pipeline {
         }
 
 
-        // Run package building
+       // Run package building
         stage("Packages"){
             parallel {
                 stage('GCC OpenCL Release package') {
                     agent{ label rocmnode("rocmtest") }
-                
+                    steps{
+                        buildJob('g++-5', '-DCMAKE_BUILD_TYPE=release', "", image, "")
+                    }
+                }
+                stage("HCC HIP Release package"){
+                    agent{ label rocmnode("rocmtest") }
+                    steps{
+                        buildJob('hcc', '-DCMAKE_BUILD_TYPE=release', "", image + "rocm")
+                    }
+                }
+            }
+        }
+    }    
+}
+
