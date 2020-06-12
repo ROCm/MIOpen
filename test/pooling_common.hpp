@@ -47,9 +47,13 @@
 #include "verify.hpp"
 #include "cpu_conv.hpp"
 
-static int num_uint16_case = 0;
-static int num_uint32_case = 0;
-static int num_uint64_case = 0;
+#define TEST_PADDING_MODE 0
+
+static int num_uint16_case        = 0;
+static int num_uint32_case        = 0;
+static int num_uint32_case_imgidx = 0;
+static int num_uint64_case        = 0;
+static int num_uint64_case_imgidx = 0;
 
 template <class T>
 tensor<T> get_output_tensor(const miopen::PoolingDescriptor& filter, const tensor<T>& input)
@@ -453,8 +457,11 @@ struct pooling_driver : test_driver
     std::vector<int> strides;
     std::string index_type;
     std::string mode;
+#if TEST_PADDING_MODE == 1
     std::string pmode;
+#endif
     int verify_indices{};
+    int wsidx{};
     std::unordered_map<std::string, miopenIndexType_t> index_type_lookup = {
         {miopen::ToUpper("miopenIndexUint8"), miopenIndexUint8},
         {miopen::ToUpper("miopenIndexUint16"), miopenIndexUint16},
@@ -469,13 +476,13 @@ struct pooling_driver : test_driver
         {"AVERAGEINCLUSIVE", miopenPoolingAverageInclusive},
         {"MIOPENPOOLINGAVERAGEINCLUSIVE", miopenPoolingAverageInclusive},
     };
-
+#if TEST_PADDING_MODE == 1
     std::unordered_map<std::string, miopenPaddingMode_t> pmode_lookup = {
         {"DEFAULT", miopenPaddingDefault},
         {"SAME", miopenPaddingSame},
         {"VALID", miopenPaddingValid},
     };
-
+#endif
     pooling_driver()
     {
         add(index_type,
@@ -488,7 +495,9 @@ struct pooling_driver : test_driver
             "mode",
             generate_data(
                 {"miopenPoolingMax", "miopenPoolingAverage", "miopenPoolingAverageInclusive"}));
+#if TEST_PADDING_MODE == 1
         add(pmode, "pmode", generate_data({"default", "same", "valid"}));
+#endif
         add(verify_indices, "verify_indices", generate_data({0}));
     }
 
@@ -507,7 +516,7 @@ struct pooling_driver : test_driver
                out.first,
                filter,
                indices,
-               input.desc.GetSize() == 4 ? false : true,
+               wsidx == 0 ? false : true,
                static_cast<bool>(this->verify_indices));
     }
 
@@ -521,7 +530,7 @@ struct pooling_driver : test_driver
         case miopenIndexUint8:
         {
             // index size too small for 3D image
-            if(spt_dim == 3)
+            if(spt_dim == 3 || (spt_dim == 2 && wsidx == 1))
             {
                 return;
             }
@@ -530,7 +539,7 @@ struct pooling_driver : test_driver
         case miopenIndexUint16:
         {
             // index size too small for 3D image
-            if(spt_dim == 3)
+            if(spt_dim == 3 || (spt_dim == 2 && wsidx == 1))
             {
                 return;
             }
@@ -547,25 +556,41 @@ struct pooling_driver : test_driver
         case miopenIndexUint32:
         {
             // test_pooling_test --all only test 5 uint32 cases
-            if(num_uint32_case > 5)
+            if(wsidx == 0)
             {
-                return;
+                if(num_uint32_case > 5 || spt_dim == 3)
+                    return;
+
+                ++num_uint32_case;
             }
+            else
+            {
+                if(num_uint32_case_imgidx > 5)
+                    return;
+
+                ++num_uint32_case_imgidx;
+            }
+
             idx_sz = sizeof(uint32_t);
-            ++num_uint32_case;
             break;
         }
         case miopenIndexUint64:
         {
-            if(spt_dim == 2)
+            if(wsidx == 0)
             {
-                // test_pooling_test --all only test 5 uint64 cases
-                if(num_uint64_case > 5)
-                {
+                if(num_uint64_case > 5 || spt_dim == 3)
                     return;
-                }
+
                 ++num_uint64_case;
             }
+            else
+            {
+                if(num_uint64_case_imgidx > 5 && spt_dim == 2)
+                    return;
+
+                ++num_uint64_case_imgidx;
+            }
+
             idx_sz = sizeof(uint64_t);
             break;
         }
@@ -578,13 +603,20 @@ struct pooling_driver : test_driver
             return;
         }
 
-        filter = miopen::PoolingDescriptor{mode_lookup.at(miopen::ToUpper(mode)),
-                                           pmode_lookup.at(miopen::ToUpper(pmode)),
-                                           lens,
-                                           strides,
-                                           pads};
+        filter = miopen::PoolingDescriptor
+        {
+            mode_lookup.at(miopen::ToUpper(mode)),
+#if TEST_PADDING_MODE == 1
+                pmode_lookup.at(miopen::ToUpper(pmode))
+#else
+                miopenPaddingDefault
+#endif
+                    ,
+                lens, strides, pads
+        };
 
         filter.SetIndexType(idx_typ);
+        filter.SetWorkspaceIndexMode(miopenPoolingWorkspaceIndexMode_t(wsidx));
 
         for(int i = 0; i < spt_dim; i++)
             if(lens[i] >= (input_desc.GetLengths()[i + 2] + 2 * pads[i]))
@@ -609,6 +641,7 @@ struct pooling_driver : test_driver
         std::vector<int> in_dim(input_desc.GetLengths().begin() + 2, input_desc.GetLengths().end());
         std::vector<int> out_dim(spt_dim);
         std::vector<int> ker_dim(filter.GetLengths().begin(), filter.GetLengths().end());
+#if TEST_PADDING_MODE == 1
         if(filter.pmode == miopenPaddingSame)
         {
             if(std::any_of(filter.GetStrides().begin(), filter.GetStrides().end(), [](int i) {
@@ -646,7 +679,7 @@ struct pooling_driver : test_driver
             if(std::any_of(out_dim.begin(), out_dim.end(), [](int i) { return i <= 0; }))
                 return;
         }
-
+#endif
         std::vector<int> check_dim(spt_dim);
         for(int i = 0; i < spt_dim; i++)
         {

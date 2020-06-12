@@ -53,10 +53,8 @@ inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
         {
             ss << " -d 3";
         }
-        if(tensor_dim == 4)
-        {
-            ss << " -M 1"; // currently use mask index for all 2D pooling
-        }
+        ss << " -M "
+           << std::to_string(static_cast<int>(miopen::deref(poolDesc).GetWorkspaceIndexMode()));
         ss << " -n " << miopen::deref(tensorDesc).GetLengths()[0] // clang-format off
            << " -c " << miopen::deref(tensorDesc).GetLengths()[1];
         if(tensor_dim == 5)
@@ -118,6 +116,23 @@ extern "C" miopenStatus_t miopenGetPoolingIndexType(miopenPoolingDescriptor_t po
 {
     MIOPEN_LOG_FUNCTION(poolDesc, index_type);
     return miopen::try_([&] { *index_type = miopen::deref(poolDesc).GetIndexType(); });
+}
+
+extern "C" miopenStatus_t
+miopenSetPoolingWorkSpaceIndexMode(miopenPoolingDescriptor_t poolDesc,
+                                   miopenPoolingWorkspaceIndexMode_t workspace_index)
+{
+    MIOPEN_LOG_FUNCTION(poolDesc, workspace_index);
+    return miopen::try_([&] { miopen::deref(poolDesc).SetWorkspaceIndexMode(workspace_index); });
+}
+
+extern "C" miopenStatus_t
+miopenGetPoolingWorkSpaceIndexMode(miopenPoolingDescriptor_t poolDesc,
+                                   miopenPoolingWorkspaceIndexMode_t* workspace_index)
+{
+    MIOPEN_LOG_FUNCTION(poolDesc, workspace_index);
+    return miopen::try_(
+        [&] { *workspace_index = miopen::deref(poolDesc).GetWorkspaceIndexMode(); });
 }
 
 extern "C" miopenStatus_t miopenSet2dPoolingDescriptor(miopenPoolingDescriptor_t poolDesc,
