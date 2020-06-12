@@ -26,6 +26,10 @@
 
 #include "pooling_functions.h"
 
+#ifndef USE_IMG_INDEX
+#define USE_IMG_INDEX 1
+#endif
+
 #ifndef MLO_POOLING_INDEX_MAX
 #error "MLO_POOLING_INDEX_MAX not defined"
 #endif
@@ -260,17 +264,17 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df, __global _FLOAT* bot_df, __globa
         int b_y = bt_y + k;
 
         // top most top y that can be influenced by this bot y
-        int tt_y = (b_y + MLO_POOLING_PAD1 - MLO_POOLING_KERNEL_SZ1 + MLO_POOLING_STRIDE1) /
-                   MLO_POOLING_STRIDE1;
-        tt_y = max(0, tt_y);
+        int tt_y1 = (b_y + MLO_POOLING_PAD1 - MLO_POOLING_KERNEL_SZ1 + MLO_POOLING_STRIDE1) /
+                    MLO_POOLING_STRIDE1;
+        int tt_y = max(0, tt_y1);
 
         for(int l = 0; l < MLO_POOLBWD_N_HORIZ_OUT_PIX; l++)
         {
             int b_x = bt_x + l;
             // left most top x that can be influenced by this bot x
-            int lt_x = (b_x + MLO_POOLING_PAD0 - MLO_POOLING_KERNEL_SZ0 + MLO_POOLING_STRIDE0) /
-                       MLO_POOLING_STRIDE0;
-            lt_x = max(0, lt_x);
+            int lt_x1 = (b_x + MLO_POOLING_PAD0 - MLO_POOLING_KERNEL_SZ0 + MLO_POOLING_STRIDE0) /
+                        MLO_POOLING_STRIDE0;
+            int lt_x = max(0, lt_x1);
 
             // find and sum up all tops that have been influenced by particular bot
             res[k][l] = 0;
@@ -289,10 +293,13 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df, __global _FLOAT* bot_df, __globa
                 {
                     int lcl_th = th - top_y;
                     int lcl_tw = tw - top_x;
-
+#if USE_IMG_INDEX == 1
+                    int img_idx = b_x + b_y * MLO_POOLBWD_BOT_HEIGHT;
+#else
                     int filter_x   = b_x - tw * MLO_POOLING_STRIDE0 + MLO_POOLING_PAD0;
                     int filter_y   = b_y - th * MLO_POOLING_STRIDE1 + MLO_POOLING_PAD1;
                     int filter_idx = filter_x + filter_y * MLO_POOLING_KERNEL_SZ0;
+#endif
 
                     // note, that b_idx == b_y * MLO_POOLBWD_BOT_WIDTH + b_x
                     // computing b_idx instead of using (b_y * MLO_POOLBWD_BOT_WIDTH + b_x) saves
@@ -301,8 +308,14 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df, __global _FLOAT* bot_df, __globa
                                    (lcl_tw < MLO_POOLBWD_LCL_DATA_WIDTH);
                     int lcl_idx = visible ? (lcl_th * MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw) : 0;
 
-                    bool match = visible && (filter_idx == lcl_mask[lcl_idx]) && (filter_x >= 0) &&
-                                 (filter_y >= 0);
+                    bool match = visible &&
+#if USE_IMG_INDEX == 1
+                                 (img_idx == lcl_mask[lcl_idx])
+#else
+                                 (filter_idx == lcl_mask[lcl_idx]) && (filter_x >= 0) &&
+                                 (filter_y >= 0)
+#endif
+                        ;
 
                     //_FLOAT add_val = lcl_top_df[lcl_idx] * match;
                     //_FLOAT add_val = match ? lcl_top_df[lcl_idx] : (_FLOAT)0;
