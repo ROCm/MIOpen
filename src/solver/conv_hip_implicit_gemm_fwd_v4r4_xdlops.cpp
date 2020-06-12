@@ -34,17 +34,23 @@
 namespace miopen {
 namespace solver {
 
-// workaround for GPU seg-fault, due to compiler bug in ROCm version after 2.9.19392
-static bool workaround_swdev_239555()
+// workaround for GPU memory access fault, due to compiler bug
+static bool workaround_swdev_239555(const ConvolutionContext& ctx)
 {
-    return (IsHccCompiler() && miopen::HipGetHccVersion() > external_tool_version_t{2, 9, 19392}) ||
-           IsClangXXCompiler();
-}
+    if(ctx.IsFp16() || ctx.IsBfp16())
+    {
+        const auto y              = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+        const auto x              = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+        const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
+        const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
+        const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
+        const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
-// LLVM xdlops instrinsic will do unnecessey VGRP <--> AGPR movement, and result in
-// register spill, for bfloat16 datatyp, if doing blockwise GEMM larger
-// than 128x128, or wavewise-GEMM large than 64x64
-static bool workaround_swdev_xxxxxx() { return true; }
+        if((y > 1 || x > 1) &&
+           (in_left_pad_h > 0 || in_left_pad_w > 0 || in_right_pad_h > 0 || in_right_pad_w > 0))
+            return false;
+    }
+}
 
 PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops()
     : PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops(
@@ -479,40 +485,11 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValidValue() const
     // clang-format on
 }
 
-// Used by IsReallyValid()
-// Return true, if performance config should be excluded, due to compiler bugs
-bool PerformanceImplicitGemmForwardV4R4Xdlops::IsExcludedDueToCompilerBug(
-    const ConvolutionContext& ctx) const
-{
-    const auto y              = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const auto x              = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-    const auto in_left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
-    const auto in_left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
-    const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
-    const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
-
-    if(workaround_swdev_239555())
-    {
-        if(ctx.IsFp16())
-        {
-            if((y > 1 || x > 1) &&
-               (in_left_pad_h > 0 || in_left_pad_w > 0 || in_right_pad_h > 0 || in_right_pad_w > 0))
-                return true;
-        }
-    }
-
-    return false;
-}
-
 // Used by EuristicInit() and GenericSearch
 // Only return false if a performance config will violate requirements given by kernel algorithm
 bool PerformanceImplicitGemmForwardV4R4Xdlops::IsReallyValid(const ConvolutionContext& ctx) const
 {
     if(!IsValidValue())
-        return false;
-
-    // excluded due to compiler bug
-    if(IsExcludedDueToCompilerBug(ctx))
         return false;
 
     if(!IsValidBlockwiseGemmXdlops(
@@ -579,15 +556,20 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
         std::tie(std::ignore, gemm_m, gemm_n, std::ignore) =
             ConvHipImplicitGemmForwardV4R4Xdlops::CalculateGemmSize(ctx);
 
-        // this is grid size under current blockwise-GEMM
+        // this is grid size using current blockwise-GEMM
         const int grid_size = (gemm_m * gemm_n) / (GemmMPerBlock * GemmNPerBlock);
 
-        // this is the grid size under the biggest blockwise-GEMM (256x128 or 128x256)
-        int grid_size_max_blockwise_gemm =
-            workaround_swdev_xxxxxx()
-                ? (gemm_m * gemm_n) / (gcd(128, gemm_m) * gcd(128, gemm_n))
-                : std::max((gemm_m * gemm_n) / (gcd(256, gemm_m) * gcd(128, gemm_n)),
-                           (gemm_m * gemm_n) / (gcd(128, gemm_m) * gcd(256, gemm_n)));
+        // this the the biggest blockwise-GEMM you can do
+        int max_blockwise_gemm_size =
+#if WORKAROUND_SWDEV_240356
+            gcd(128, gemm_m) * gcd(128, gemm_n);
+#else
+            std::max(gcd(256, gemm_m) * gcd(128, gemm_n), gcd(128, gemm_m) * gcd(256, gemm_n));
+#endif
+
+        // this is the grid size using the biggest blockwise-GEMM
+        auto grid_size_max_blockwise_gemm =
+            (std::size_t(gemm_m) * gemm_n) / max_blockwise_gemm_size;
 
         const float ratio = grid_size / float(grid_size_max_blockwise_gemm);
 
@@ -896,34 +878,11 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext
     if(!ctx.Is2d())
         return false;
 
-    // current index use int32_t, and can only cover buffer of 2GB
-    {
-        const std::size_t max_index_range = std::size_t(2) * 1024 * 1204 * 1024;
+    if(!IsIndexRangeLargeEnough(ctx))
+        return false;
 
-        if(ctx.bot_sz > max_index_range || ctx.weights_sz > max_index_range ||
-           ctx.top_sz > max_index_range)
-            return false;
-    }
-
-    // workaround for compiler bug SWDEV_239555
-    if(workaround_swdev_239555())
-    {
-        if(ctx.IsFp16())
-        {
-            const auto y             = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-            const auto x             = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-            const auto in_left_pad_h = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
-            const auto in_left_pad_w = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
-            const auto in_right_pad_h =
-                ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
-            const auto in_right_pad_w =
-                ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
-
-            if((y > 1 || x > 1) &&
-               (in_left_pad_h > 0 || in_left_pad_w > 0 || in_right_pad_h > 0 || in_right_pad_w > 0))
-                return false;
-        }
-    }
+    if(workaround_swdev_239555(ctx))
+        return false;
 
     // gemm size
     int gemm_g       = -1;

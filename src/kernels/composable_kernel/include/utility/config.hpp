@@ -45,7 +45,7 @@
 
 // block synchronization only s_wait lgkmcnt(0), not vmcnt(0)
 #ifndef CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM
-#define CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM 0
+#define CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM 1
 #endif
 
 // experimental implementation

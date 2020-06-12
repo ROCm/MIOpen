@@ -1019,7 +1019,6 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     bool IsReallyValid(const ConvolutionContext& ctx) const;
-    bool IsExcludedDueToCompilerBug(const ConvolutionContext& ctx) const;
     bool IsFastToBeUsedForTuning(const ConvolutionContext& ctx) const;
 
     std::tuple<int, bool> CalculateBlockSize() const;

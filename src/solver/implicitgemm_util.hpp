@@ -18,6 +18,10 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SY
 #define WORKAROUND_SWDEV_229564 1
 // workaround for buffer load/store fp16/bfp16 intrinsic bug
 #define WORKAROUND_SWDEV_231101 1
+// LLVM xdlops instrinsic will do unnecessey VGRP <--> AGPR movement, and result in
+// register spill, for bfloat16 datatype, when doing blockwise GEMM larger
+// than 128x128 or wavewise-GEMM large than 64x64
+#define WORKAROUND_SWDEV_240356 1
 
 namespace miopen {
 
@@ -414,6 +418,7 @@ static inline bool IsXdlopsSupport(const ConvolutionContext& c)
 #endif
 }
 
+///\todo remove
 inline static uint32_t GetReadWriteVectorSize(const int v)
 {
     return v % 4 == 0 ? 4 : (v % 2 == 0 ? 2 : 1);
@@ -472,6 +477,15 @@ static inline bool IsValidXdlopsGemm(const int GemmMPerBlock,
         return false;
 
     return (GemmMPerBlock % GemmMPerWave) == 0 && (GemmNPerBlock % GemmNPerWave) == 0;
+}
+
+static inline bool IsIndexRangeLargeEnough(const ConvolutionContext& ctx)
+{
+    // composable kernel use int32_t for memory offset, which covers 2GB of memory maximum
+    const std::size_t max_index_range = std::size_t(2) * 1024 * 1024 * 1024;
+
+    return ctx.bot_sz < max_index_range && ctx.weights_sz < max_index_range &&
+           ctx.top_sz < max_index_range;
 }
 
 static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
