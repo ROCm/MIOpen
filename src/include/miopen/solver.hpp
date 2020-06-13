@@ -731,20 +731,22 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
     int GemmMPerBlock; // 2^n[32..128]
     int GemmKPerBlock; // 2^n[4..16]
 
+    int GemmKPACKSize; // 2^[1..4]
+
     int GemmMPerWave;
     int GemmNPerWave;
 
     bool use_spare_set;
 
-    PerformanceImplicitGemmBwdDataV4R1Xdlops(int, int, int, int, int, bool);
+    PerformanceImplicitGemmBwdDataV4R1Xdlops(int, int, int, int, int, int, bool);
 
     PerformanceImplicitGemmBwdDataV4R1Xdlops()
-        : PerformanceImplicitGemmBwdDataV4R1Xdlops(-1, -1, -1, -1, -1, false)
+        : PerformanceImplicitGemmBwdDataV4R1Xdlops(-1, -1, -1, -1, -1, -1, false)
     {
     }
 
-    PerformanceImplicitGemmBwdDataV4R1Xdlops(int a, int b, int c, int d, int e)
-        : PerformanceImplicitGemmBwdDataV4R1Xdlops(a, b, c, d, e, false)
+    PerformanceImplicitGemmBwdDataV4R1Xdlops(int a, int b, int c, int d, int e, int f)
+        : PerformanceImplicitGemmBwdDataV4R1Xdlops(a, b, c, d, e, f, false)
     {
     }
 
@@ -758,6 +760,7 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
         f(self.GemmNPerBlock, "GemmNPerBlock");
         f(self.GemmMPerBlock, "GemmMPerBlock");
         f(self.GemmKPerBlock, "GemmKPerBlock");
+        f(self.GemmKPACKSize, "GemmKPACKSize");
         f(self.GemmMPerWave, "GemmMPerWave");
         f(self.GemmNPerWave, "GemmNPerWave");
     }
