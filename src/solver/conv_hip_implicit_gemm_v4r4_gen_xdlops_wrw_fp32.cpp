@@ -572,13 +572,12 @@ bool ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::IsApplicable(const ConvolutionCont
 #else
     if(!(ctx.IsFp32()))
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.direction.IsBackwardWrW())
         return false;
-
     if(!ctx.Is2d())
         return false;
-
     if(ctx.group_counts > 1)
         return false;
 
