@@ -38,6 +38,12 @@ struct HIPOCProgramImpl;
 struct HIPOCProgram
 {
     HIPOCProgram();
+    /// This ctor builds the program from source, initializes module.
+    /// Also either CO pathname (typically if offline tools were used)
+    /// or binary blob (if comgr was used to build the program)
+    /// is initialized. GetModule(), GetCodeObjectPathname(),
+    /// GetCodeObjectBlob() return appropriate data after this ctor.
+    /// Other ctors only guarantee to initialize module.
     HIPOCProgram(const std::string& program_name,
                  std::string params,
                  bool is_kernel_str,
@@ -47,7 +53,13 @@ struct HIPOCProgram
     HIPOCProgram(const std::string& program_name, const std::string& hsaco);
     std::shared_ptr<const HIPOCProgramImpl> impl;
     hipModule_t GetModule() const;
-    boost::filesystem::path GetBinary() const;
+    /// \return Pathname of CO file, if it resides on the filesystem.
+    boost::filesystem::path GetCodeObjectPathname() const;
+    /// \return Copy of in-memory CO blob.
+    std::string GetCodeObjectBlob() const;
+    /// \return True if CO blob resides in-memory.
+    /// False if CO resides on filesystem.
+    bool IsCodeObjectInMemory() const;
 };
 } // namespace miopen
 
