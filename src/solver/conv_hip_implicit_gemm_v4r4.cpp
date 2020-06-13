@@ -585,13 +585,12 @@ bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ConvolutionContext& ctx) con
 {
     if(!ctx.direction.IsForward())
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.Is2d() && !ctx.Is3d())
         return false;
-
     if(!ctx.IsFp32())
         return false;
-
     if(ctx.group_counts != 1)
         return false;
 

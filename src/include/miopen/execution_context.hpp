@@ -65,6 +65,7 @@ struct ExecutionContext
     bool do_search               = false;
     bool save_srch_req           = false;
     bool use_asm_kernels         = false;
+    bool use_hip_kernels         = true;
     bool use_opencl_convolutions = true;
     bool use_binaries            = true;
     rocm_meta_version rmv        = rocm_meta_version::Default;
