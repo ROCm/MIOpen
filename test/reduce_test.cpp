@@ -448,7 +448,7 @@ struct verify_reduce_with_indices
 
     void fail(int) const
     {
-        std::cout << "verify_reduce_with_indices" << std::endl;
+        std::cout << "verify_reduce_with_indices failed" << std::endl;
         std::cout << "Input Tensor"
                   << " " << input.desc.ToString() << std::endl;
     }
@@ -698,7 +698,7 @@ struct verify_reduce_no_indices
 
     void fail(int) const
     {
-        std::cout << "verify_reduce_no_indices" << std::endl;
+        std::cout << "verify_reduce_no_indices failed" << std::endl;
         std::cout << "Input Tensor"
                   << " " << input.desc.ToString() << std::endl;
     }
@@ -789,8 +789,15 @@ struct reduce_driver : test_driver
         unsigned long max_value =
             miopen_type<T>{} == miopenHalf ? 5 : miopen_type<T>{} == miopenInt8 ? 127 : 17;
 
-        auto inputTensor  = tensor<T>{this->inLengths}.generate(tensor_elem_gen_integer{max_value});
-        auto outputTensor = tensor<T>{outLengths}.generate(tensor_elem_gen_integer{max_value});
+        auto gen_value = [&](auto... is) {
+            return (tensor_elem_gen_integer{max_value}(is...) *
+                    tensor_elem_gen_checkboard_sign{}(is...));
+        };
+
+        auto inputTensor  = tensor<T>{this->inLengths}.generate(gen_value);
+        auto outputTensor = tensor<T>{outLengths};
+
+        std::fill(outputTensor.begin(), outputTensor.end(), type_convert<T>{}(0.0f));
 
         auto indices_size =
             reduceDesc.GetIndicesSize(get_handle(), inputTensor.desc, outputTensor.desc) /
@@ -802,13 +809,16 @@ struct reduce_driver : test_driver
                                                   : (ws_sizeInBytes + sizeof(T) - 1) / sizeof(T);
 
         std::vector<std::size_t> wsLengths = {static_cast<std::size_t>(workspace_size), 1};
-        auto workspaceTensor = tensor<T>{wsLengths}.generate(tensor_elem_gen_integer{max_value});
+        auto workspaceTensor               = tensor<T>{wsLengths};
+
+        std::fill(workspaceTensor.begin(), workspaceTensor.end(), type_convert<T>{}(0.0f));
 
         if(indices_size > 0)
         {
             std::vector<std::size_t> indicesLengths = {static_cast<std::size_t>(indices_size), 1};
-            auto indicesTensor =
-                tensor<int>{indicesLengths}.generate(tensor_elem_gen_integer{max_value});
+            auto indicesTensor                      = tensor<int>{indicesLengths};
+
+            std::fill(indicesTensor.begin(), indicesTensor.end(), 0);
 
             verify(verify_reduce_with_indices<T, true>(reduceDesc,
                                                        inputTensor,
