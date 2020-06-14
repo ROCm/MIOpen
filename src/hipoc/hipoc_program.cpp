@@ -189,6 +189,10 @@ struct HIPOCProgramImpl
         }
         if(miopen::EndsWith(filename, ".cpp"))
         {
+#if MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27
+            static std::mutex mutex;
+            std::lock_guard<std::mutex> lock(mutex);
+#endif
             comgr::BuildHip(filename, src, params, device, binary);
         }
         else
