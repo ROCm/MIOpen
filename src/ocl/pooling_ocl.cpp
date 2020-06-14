@@ -190,6 +190,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
         construct_params.setBotDescFromMLDesc(xDesc);
         construct_params.setPoolingDescr(pooling_method,
                                          GetIndexType(),
+                                         GetWorkspaceIndexMode(),
                                          lens[0],
                                          lens[1],
                                          pads[0],
