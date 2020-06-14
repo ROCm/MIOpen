@@ -188,31 +188,19 @@ struct HIPOCProgramImpl
             binary.resize(sz);
             std::memcpy(&binary[0], src.c_str(), sz);
         }
-        else if(miopen::EndsWith(filename, ".cpp"))
-        {
-#if MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27
-            static std::mutex mutex;
-            std::lock_guard<std::mutex> lock(mutex);
-#endif
-            comgr::BuildHip(filename, src, params, device, binary);
-        }
-        else if(miopen::EndsWith(filename, ".s"))
-        {
-#if MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27
-            static std::mutex mutex;
-            std::lock_guard<std::mutex> lock(mutex);
-#endif
-            comgr::BuildAsm(filename, src, params, device, binary);
-        }
         else
         {
 #if MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27
             static std::mutex mutex;
             std::lock_guard<std::mutex> lock(mutex);
 #endif
-            comgr::BuildOcl(filename, src, params, device, binary);
+            if(miopen::EndsWith(filename, ".cpp"))
+                comgr::BuildHip(filename, src, params, device, binary);
+            else if(miopen::EndsWith(filename, ".s"))
+                comgr::BuildAsm(filename, src, params, device, binary);
+            else
+                comgr::BuildOcl(filename, src, params, device, binary);
         }
-
         if(binary.empty())
             MIOPEN_THROW("Code object build failed. Source: " + filename);
     }
