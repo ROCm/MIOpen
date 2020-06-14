@@ -183,10 +183,9 @@ struct HIPOCProgramImpl
         (void)filename;
         return false;
 #else
-        if(miopen::EndsWith(filename, ".so") || miopen::EndsWith(filename, ".s"))
-        {
+        if(miopen::EndsWith(filename, ".so"))
             return false;
-        }
+
         if(miopen::EndsWith(filename, ".cpp"))
         {
 #if MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27
@@ -194,6 +193,14 @@ struct HIPOCProgramImpl
             std::lock_guard<std::mutex> lock(mutex);
 #endif
             comgr::BuildHip(filename, src, params, device, binary);
+        }
+        else if(miopen::EndsWith(filename, ".s"))
+        {
+#if MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27
+            static std::mutex mutex;
+            std::lock_guard<std::mutex> lock(mutex);
+#endif
+            comgr::BuildAsm(filename, src, params, device, binary);
         }
         else
         {

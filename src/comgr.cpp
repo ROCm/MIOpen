@@ -706,5 +706,78 @@ void BuildOcl(const std::string& name,
     }
 }
 
+void BuildAsm(const std::string& name,
+              const std::string& text,
+              const std::string& options,
+              const std::string& device,
+              std::vector<char>& binary)
+{
+    PrintVersion();
+    try
+    {
+#if 0 // FIXME
+        const Dataset inputs;
+        inputs.AddData(name, text, AMD_COMGR_DATA_KIND_SOURCE);
+        const ActionInfo action;
+        action.SetLanguage(AMD_COMGR_LANGUAGE_OPENCL_2_0);
+        SetIsaName(action, device);
+        action.SetLogging(true);
+
+        auto optCompile = miopen::SplitSpaceSeparated(options);
+        compiler::lc::RemoveOclOptionsUnwanted(optCompile);
+        compiler::lc::AddOcl20CompilerOptions(optCompile);
+        action.SetOptionList(optCompile);
+
+        const Dataset addedPch;
+        action.Do(AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS, inputs, addedPch);
+        const Dataset compiledBc;
+        action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC, addedPch, compiledBc);
+
+        OptionList optLink;
+        optLink.push_back("wavefrontsize64");
+        for(const auto& opt : optCompile)
+        {
+            if(opt == "-cl-fp32-correctly-rounded-divide-sqrt")
+                optLink.push_back("correctly_rounded_sqrt");
+            else if(opt == "-cl-denorms-are-zero")
+                optLink.push_back("daz_opt");
+            else if(opt == "-cl-finite-math-only" || opt == "cl-fast-relaxed-math")
+                optLink.push_back("finite_only");
+            else if(opt == "-cl-unsafe-math-optimizations" || opt == "-cl-fast-relaxed-math")
+                optLink.push_back("unsafe_math");
+            else
+            {
+            } // nop
+        }
+        action.SetOptionList(optLink);
+        const Dataset addedDevLibs;
+        action.Do(AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES, compiledBc, addedDevLibs);
+        const Dataset linkedBc;
+        action.Do(AMD_COMGR_ACTION_LINK_BC_TO_BC, addedDevLibs, linkedBc);
+
+        action.SetOptionList(optCompile);
+        const Dataset relocatable;
+        action.Do(AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE, linkedBc, relocatable);
+
+        action.SetOptionList(OptionList());
+#endif
+        const Dataset exe;
+        // action.Do(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE, relocatable, exe);
+
+        constexpr auto INTENTIONALY_UNKNOWN = static_cast<amd_comgr_status_t>(0xffff);
+        if(exe.GetDataCount(AMD_COMGR_DATA_KIND_EXECUTABLE) < 1)
+            throw ComgrError{INTENTIONALY_UNKNOWN, "Executable binary not found"};
+        // Assume that the first exec data contains the binary we need.
+        const auto data = exe.GetData(AMD_COMGR_DATA_KIND_EXECUTABLE, 0);
+        data.GetBytes(binary);
+    }
+    catch(ComgrError& ex)
+    {
+        MIOPEN_LOG_E("comgr status = " << GetStatusText(ex.status));
+        if(!ex.text.empty())
+            MIOPEN_LOG_W(ex.text);
+    }
+}
+
 } // namespace comgr
 } // namespace miopen
