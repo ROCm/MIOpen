@@ -54,6 +54,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_COV3)
 
 namespace miopen {
 
+#if !MIOPEN_USE_COMGR
 namespace {
 
 inline bool ProduceCoV3()
@@ -82,6 +83,7 @@ inline const std::string& GetCoV3Option(const bool enable)
         return opt_disable;
 }
 } // namespace
+#endif
 
 static hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
 {
@@ -145,6 +147,7 @@ struct HIPOCProgramImpl
     boost::optional<TmpDir> dir;
     std::vector<char> binary;
 
+#if !MIOPEN_USE_COMGR
     void
     BuildCodeObjectInFile(std::string& params, const std::string& src, const std::string& filename)
     {
@@ -174,16 +177,11 @@ struct HIPOCProgramImpl
             MIOPEN_THROW("Cant find file: " + hsaco_file.string());
     }
 
-    bool BuildCodeObjectInMemory(const std::string& params,
+#else // MIOPEN_USE_COMGR
+    void BuildCodeObjectInMemory(const std::string& params,
                                  const std::string& src,
                                  const std::string& filename)
     {
-#if !MIOPEN_USE_COMGR
-        (void)params;
-        (void)src;
-        (void)filename;
-        return false;
-#else
         if(miopen::EndsWith(filename, ".so"))
         {
             std::size_t sz = src.length();
@@ -217,9 +215,8 @@ struct HIPOCProgramImpl
 
         if(binary.empty())
             MIOPEN_THROW("Code object build failed. Source: " + filename);
-        return true;
-#endif
     }
+#endif // MIOPEN_USE_COMGR
 
     void BuildCodeObject(std::string params, bool is_kernel_str, const std::string& kernel_src)
     {
@@ -244,10 +241,11 @@ struct HIPOCProgramImpl
             params += " -Wno-everything";
 #endif
         }
-
-        if(BuildCodeObjectInMemory(params, src, filename))
-            return;
+#if MIOPEN_USE_COMGR /// \todo Refactor when functionality stabilize.
+        BuildCodeObjectInMemory(params, src, filename);
+#else
         BuildCodeObjectInFile(params, src, filename);
+#endif
     }
 };
 
