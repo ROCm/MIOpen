@@ -183,10 +183,13 @@ struct HIPOCProgramImpl
         (void)filename;
         return false;
 #else
-        if(miopen::EndsWith(filename, ".so") || miopen::EndsWith(filename, ".s") ||
-           miopen::EndsWith(filename, ".cpp"))
+        if(miopen::EndsWith(filename, ".so") || miopen::EndsWith(filename, ".s"))
         {
             return false;
+        }
+        if(miopen::EndsWith(filename, ".cpp"))
+        {
+            comgr::BuildHip(filename, src, params, device, binary);
         }
         else
         {
