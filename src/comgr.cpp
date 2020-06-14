@@ -94,6 +94,18 @@ namespace compiler {
 namespace lc {
 #define OCL_EARLY_INLINE 1
 
+namespace gcnasm {
+
+static void RemoveOptionsUnwanted(OptionList& list)
+{
+    list.erase(remove_if(list.begin(),
+                         list.end(),
+                         [&](const auto& option) { return StartsWith(option, "-mcpu="); }),
+               list.end());
+}
+
+} // namespace gcnasm
+
 static void AddOcl20CompilerOptions(OptionList& list)
 {
     list.push_back("-cl-kernel-arg-info");
@@ -715,54 +727,22 @@ void BuildAsm(const std::string& name,
     PrintVersion();
     try
     {
-#if 0 // FIXME
         const Dataset inputs;
         inputs.AddData(name, text, AMD_COMGR_DATA_KIND_SOURCE);
+
         const ActionInfo action;
-        action.SetLanguage(AMD_COMGR_LANGUAGE_OPENCL_2_0);
         SetIsaName(action, device);
         action.SetLogging(true);
+        auto optAsm = miopen::SplitSpaceSeparated(options);
+        compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
+        action.SetOptionList(optAsm);
 
-        auto optCompile = miopen::SplitSpaceSeparated(options);
-        compiler::lc::RemoveOclOptionsUnwanted(optCompile);
-        compiler::lc::AddOcl20CompilerOptions(optCompile);
-        action.SetOptionList(optCompile);
-
-        const Dataset addedPch;
-        action.Do(AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS, inputs, addedPch);
-        const Dataset compiledBc;
-        action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC, addedPch, compiledBc);
-
-        OptionList optLink;
-        optLink.push_back("wavefrontsize64");
-        for(const auto& opt : optCompile)
-        {
-            if(opt == "-cl-fp32-correctly-rounded-divide-sqrt")
-                optLink.push_back("correctly_rounded_sqrt");
-            else if(opt == "-cl-denorms-are-zero")
-                optLink.push_back("daz_opt");
-            else if(opt == "-cl-finite-math-only" || opt == "cl-fast-relaxed-math")
-                optLink.push_back("finite_only");
-            else if(opt == "-cl-unsafe-math-optimizations" || opt == "-cl-fast-relaxed-math")
-                optLink.push_back("unsafe_math");
-            else
-            {
-            } // nop
-        }
-        action.SetOptionList(optLink);
-        const Dataset addedDevLibs;
-        action.Do(AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES, compiledBc, addedDevLibs);
-        const Dataset linkedBc;
-        action.Do(AMD_COMGR_ACTION_LINK_BC_TO_BC, addedDevLibs, linkedBc);
-
-        action.SetOptionList(optCompile);
         const Dataset relocatable;
-        action.Do(AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE, linkedBc, relocatable);
+        action.Do(AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE, inputs, relocatable);
 
         action.SetOptionList(OptionList());
-#endif
         const Dataset exe;
-        // action.Do(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE, relocatable, exe);
+        action.Do(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE, relocatable, exe);
 
         constexpr auto INTENTIONALY_UNKNOWN = static_cast<amd_comgr_status_t>(0xffff);
         if(exe.GetDataCount(AMD_COMGR_DATA_KIND_EXECUTABLE) < 1)
