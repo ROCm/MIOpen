@@ -38,6 +38,7 @@
 #include <miopen/comgr.hpp>
 #include <boost/optional.hpp>
 
+#include <cstring>
 #include <mutex>
 #include <sstream>
 
@@ -184,9 +185,12 @@ struct HIPOCProgramImpl
         return false;
 #else
         if(miopen::EndsWith(filename, ".so"))
-            return false;
-
-        if(miopen::EndsWith(filename, ".cpp"))
+        {
+            std::size_t sz = src.length();
+            binary.resize(sz);
+            std::memcpy(&binary[0], src.c_str(), sz);
+        }
+        else if(miopen::EndsWith(filename, ".cpp"))
         {
 #if MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27
             static std::mutex mutex;
