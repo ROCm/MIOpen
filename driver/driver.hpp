@@ -150,7 +150,8 @@ std::string ParseBaseArg(int argc, char* argv[])
        arg != "softmax" && arg != "softmaxfp16" && arg != "bnorm" && arg != "bnormfp16" &&
        arg != "rnn" && arg != "rnnfp16" && arg != "gemm" /*&& arg != "gemmfp16"*/ && arg != "ctc" &&
        arg != "dropout" && arg != "dropoutfp16" && arg != "tensorop" && arg != "tensoropfp16" &&
-       arg != "reduce" && arg != "reducefp16" && arg != "--version")
+       arg != "reduce" && arg != "reducefp16" && 
+       arg != "--version")
     {
         printf("Invalid Base Input Argument\n");
         Usage();
