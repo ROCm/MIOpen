@@ -126,11 +126,20 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     //   "index_max" means ghost, and thus should not be reached
     if(mode == miopenPoolingMax && save_index)
     {
-        if((pool_dim == 4 &&
+        if((workspaceIndexMode == miopenPoolingWorkspaceIndexMask &&
             !(index_max >= std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<int>()))) ||
-           (pool_dim == 5 && !(index_max >= xDesc.GetElementSize())))
+           (workspaceIndexMode == miopenPoolingWorkspaceIndexImage &&
+            !(index_max >= std::accumulate(xDesc.GetLengths().begin() + 2,
+                                           xDesc.GetLengths().end(),
+                                           1,
+                                           std::multiplies<int>()))))
         {
             MIOPEN_THROW("Index range not enough for max pooling bwd");
+        }
+
+        if(workspaceIndexMode == miopenPoolingWorkspaceIndexMask && pool_dim == 5)
+        {
+            MIOPEN_THROW("3D pooling doesn't support workspace index mask mode");
         }
 
         if(workSpace == nullptr)
@@ -179,7 +188,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
             get_vect_config(xDesc.GetStrides()) + "_yd" + get_vect_config(yDesc.GetLengths()) +
             "_ys" + get_vect_config(yDesc.GetStrides()) + "_ker" + get_vect_config(lens) + "_str" +
             get_vect_config(strides) + "_pad" + get_vect_config(pads) + "_it" +
-            std::to_string(GetIndexType());
+            std::to_string(GetIndexType()) + "_wsidx" + std::to_string(GetWorkspaceIndexMode());
     }
     else
     {
@@ -242,6 +251,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
             construct_params.setBotDescFromMLDesc(xDesc);
             construct_params.setPoolingDescr(pooling_method,
                                              GetIndexType(),
+                                             GetWorkspaceIndexMode(),
                                              lens[0],
                                              lens[1],
                                              pads[0],
@@ -379,11 +389,21 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     // for kernel implementation max pooling backward pass,
     //   "index_max" means ghost, and thus should not be reached
     if(mode == miopenPoolingMax &&
-       ((pool_dim == 4 &&
+       ((workspaceIndexMode == miopenPoolingWorkspaceIndexMask &&
          !(index_max >= std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<int>()))) ||
-        (pool_dim == 5 && !(index_max >= xDesc.GetElementSize()))))
+        (workspaceIndexMode == miopenPoolingWorkspaceIndexImage &&
+         !(index_max >= std::accumulate(xDesc.GetLengths().begin() + 2,
+                                        xDesc.GetLengths().end(),
+                                        1,
+                                        std::multiplies<int>())))))
     {
         MIOPEN_THROW("Index range not enough for max pooling bwd");
+    }
+
+    if(mode == miopenPoolingMax && workspaceIndexMode == miopenPoolingWorkspaceIndexMask &&
+       pool_dim == 5)
+    {
+        MIOPEN_THROW("3D pooling doesn't support workspace index mask mode");
     }
 
     if(mode == miopenPoolingMax && workSpace == nullptr)
@@ -438,7 +458,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
             "_dyd" + get_vect_config(dyDesc.GetLengths()) + "_dys" +
             get_vect_config(dyDesc.GetStrides()) + "_ker" + get_vect_config(lens) + "_str" +
             get_vect_config(strides) + "_pad" + get_vect_config(pads) + "_it" +
-            std::to_string(GetIndexType());
+            std::to_string(GetIndexType()) + "_wsidx" + std::to_string(GetWorkspaceIndexMode());
     }
     else
     {
@@ -538,6 +558,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
             construct_params.setBotDescFromMLDesc(xDesc);
             construct_params.setPoolingDescr(pooling_method,
                                              GetIndexType(),
+                                             GetWorkspaceIndexMode(),
                                              lens[0],
                                              lens[1],
                                              pads[0],
