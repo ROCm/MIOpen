@@ -168,7 +168,7 @@ mloPoolingG(const __global _FLOAT* bot,
                         res[k][l] = bot_val;
                         mask_private[k][l] =
 #if USE_IMG_INDEX == 1
-                            (hstart1 + j) * MLO_POOLING_BOT_WIDTH + (wstart1 + i)
+                            (hstart1 + j) * mlo_bot_width + (wstart1 + i)
 #else
                             i + MLO_POOLING_KERNEL_SZ0 * j
 #endif
