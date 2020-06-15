@@ -717,7 +717,10 @@ ConvHipImplicitGemmForwardV4R4Xdlops::CalculateGemmSize(const ConvolutionContext
 PerformanceImplicitGemmForwardV4R4Xdlops
 ConvHipImplicitGemmForwardV4R4Xdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
-    return GetPerformanceConfigBase<PerformanceImplicitGemmForwardV4R4Xdlops>(ctx);
+    PerformanceImplicitGemmForwardV4R4Xdlops config;
+    config.EuristicInit(ctx);
+    MIOPEN_LOG_I(config.ToString());
+    return config;
 }
 
 ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
