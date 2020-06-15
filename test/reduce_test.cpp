@@ -183,11 +183,9 @@ struct verify_reduce_with_indices
         {
             const auto dimLengths = output.desc.GetLengths();
 
-            assert(dimLengths.size() > 0);
-
             auto result_dataFloat = make_tensor<float>(dimLengths);
 
-            tensor<T>& result_dataT = std::get<0>(results);
+            auto& result_dataT = std::get<0>(results);
 
             for(size_t i                 = 0; i < result_dataT.data.size(); i++)
                 result_dataFloat.data[i] = type_convert<float>{}(result_dataT.data[i]);
@@ -198,11 +196,9 @@ struct verify_reduce_with_indices
         {
             const auto dimLengths = indices.desc.GetLengths();
 
-            assert(dimLengths.size() > 0);
-
             auto result_indicesFloat = make_tensor<float>(dimLengths);
 
-            tensor<int>& result_indices = std::get<1>(results);
+            auto& result_indices = std::get<1>(results);
 
             for(size_t i                    = 0; i < result_indices.data.size(); i++)
                 result_indicesFloat.data[i] = static_cast<float>(result_indices.data[i]);
@@ -440,8 +436,8 @@ struct verify_reduce_with_indices
                                 output_dev.get());
         };
 
-        res.data    = handle.Read<T>(output_dev, res.data.size());
-        res_indices = handle.Read<int>(indices_dev, res_indices.data.size());
+        res.data         = handle.Read<T>(output_dev, res.data.size());
+        res_indices.data = handle.Read<int>(indices_dev, res_indices.data.size());
 
         return (std::make_tuple(res, res_indices));
     }
@@ -818,7 +814,9 @@ struct reduce_driver : test_driver
             std::vector<std::size_t> indicesLengths = {static_cast<std::size_t>(indices_size), 1};
             auto indicesTensor                      = tensor<int>{indicesLengths};
 
-            std::fill(indicesTensor.begin(), indicesTensor.end(), 0);
+            std::cout << "Indices data size : " << indicesTensor.data.size() << std::endl;
+
+            std::fill(indicesTensor.begin(), indicesTensor.end(), 1);
 
             verify(verify_reduce_with_indices<T, true>(reduceDesc,
                                                        inputTensor,
