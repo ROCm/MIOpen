@@ -590,36 +590,28 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(const ConvolutionContext
 
 bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
-    bool is_applicable = true;
-
     if(!ctx.direction.IsBackwardData())
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.Is2d())
         return false;
-
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
-
     if(!IsApplicableXdlops(ctx))
         return false;
 
-    int gemm_m = 0;
-    int gemm_n = 0;
-
+    bool is_applicable = true;
+    int gemm_m         = 0;
+    int gemm_n         = 0;
     std::tie(gemm_m, gemm_n, std::ignore) = CalculateGemmSize(ctx, 0);
-
     is_applicable = is_applicable && gemm_m % 32 == 0 && gemm_n % 32 == 0;
-
     for(int gemm_id = 0; gemm_id < CalculateNumberOfGemm(ctx); ++gemm_id)
     {
         int gemm_k = 0;
-
         std::tie(std::ignore, std::ignore, gemm_k) = CalculateGemmSize(ctx, gemm_id);
-
         is_applicable = is_applicable && gemm_k % 4 == 0;
     }
-
     return is_applicable;
 }
 
@@ -836,7 +828,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
                     std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") + std::to_string(GemmABlockCopyDstDataPerWrite_GemmKPACK) +
                     std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") + std::to_string(GemmBBlockCopyDstDataPerWrite_GemmKPACK);
             }
-        
+
             result.construction_params.push_back(construction_parameters);
 
         }
