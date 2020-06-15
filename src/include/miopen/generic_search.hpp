@@ -375,10 +375,10 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
             // Precompile the kernels in parallel, but dont add them to the cache
             std::vector<Program> programs = PrecompileKernels(profile_h, kernels);
 
-        best_config = current_config;
+        //best_config = current_config;
         }
-
-        return best_config;
+        MIOPEN_THROW("Search failed");
+        //return best_config;
     }
 
     for(const auto& current_config : all_configs)
