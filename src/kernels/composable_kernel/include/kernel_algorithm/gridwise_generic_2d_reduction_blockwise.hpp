@@ -400,7 +400,7 @@ struct Gridwise_generic_reduction_xy_to_x_blockwise
                                     ? GredAccessesPerThreadInBlock
                                     : toReduceBlocks - reducedBlocks;
 
-            blockwise_reduce::reduce3(
+            blockwise_reduce::reduce2(
                 p_in_block_buffer, block_indices_buffer, BlocksInOneOp, accuValue, accuIndex);
 
             constexpr auto True = integral_constant<bool, true>{};

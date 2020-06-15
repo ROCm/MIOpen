@@ -750,7 +750,7 @@ struct reduce_driver : test_driver
         add(reduceOp, "ReduceOp", generate_data({0, 2}));
         add(compTypeVal, "CompType", generate_data({1}));
         add(nanOpt, "N", generate_data({0}));
-        add(indicesOpt, "I", generate_data({0}));
+        add(indicesOpt, "I", generate_data({0, 1}));
 
         add(scales, "scales", generate_data({{1.0f, 0.0f}, {0.5f, 0.5f}}));
 
@@ -813,8 +813,6 @@ struct reduce_driver : test_driver
         {
             std::vector<std::size_t> indicesLengths = {static_cast<std::size_t>(indices_size), 1};
             auto indicesTensor                      = tensor<int>{indicesLengths};
-
-            std::cout << "Indices data size : " << indicesTensor.data.size() << std::endl;
 
             std::fill(indicesTensor.begin(), indicesTensor.end(), 1);
 
