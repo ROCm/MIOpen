@@ -166,13 +166,13 @@ int main(int argc, char* argv[])
     {
         drv = new TensorOpDriver<float16, float>();
     }
-    else if(base_arg == "reduce") 
+    else if(base_arg == "reduce")
     {
-        drv = new ReduceDriver<float, float>(); 	
+        drv = new ReduceDriver<float, float>();
     }
     else if(base_arg == "reducefp16")
     {
-	drv = new ReduceDriver<float16, float>(); 
+        drv = new ReduceDriver<float16, float>();
     }
     else
     {
