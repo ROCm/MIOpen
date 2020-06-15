@@ -1,4 +1,4 @@
-# MIOpenDriver
+#MIOpenDriver
 
 The `MIOpenDriver` enables the user to test the functionality of any particular 
 layer in MIOpen in both the forward and backward direction. MIOpen is shipped with `MIOpenDriver` and its install directory is `miopen/bin` located in the install directory path.
@@ -89,6 +89,3 @@ MIOpenDriver example usages:
 `./bin/MIOpenDriver *base_arg* -?` **OR**  `./bin/MIOpenDriver *base_arg* -h (--help)`
 
 Note: By default the CPU verification is turned on. Verification can be disabled using `-V 0`.
-
-
-
