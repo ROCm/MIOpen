@@ -346,6 +346,7 @@ pipeline {
                         buildJob('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release', "", image, "")
                     }
                 }
+
             }
         }
 
