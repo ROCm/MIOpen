@@ -795,23 +795,23 @@ struct reduce_driver : test_driver
 
         std::fill(outputTensor.begin(), outputTensor.end(), type_convert<T>{}(0.0f));
 
-        auto indices_size =
+        auto indices_nelem =
             reduceDesc.GetIndicesSize(get_handle(), inputTensor.desc, outputTensor.desc) /
             sizeof(int);
 
         auto ws_sizeInBytes =
             reduceDesc.GetWorkSpaceSize(get_handle(), inputTensor.desc, outputTensor.desc);
-        auto workspace_size = (indices_size == 0) ? ws_sizeInBytes / sizeof(T)
-                                                  : (ws_sizeInBytes + sizeof(T) - 1) / sizeof(T);
+        auto workspace_nelem = (indices_nelem == 0) ? ws_sizeInBytes / sizeof(T)
+                                                    : (ws_sizeInBytes + sizeof(T) - 1) / sizeof(T);
 
-        std::vector<std::size_t> wsLengths = {static_cast<std::size_t>(workspace_size), 1};
+        std::vector<std::size_t> wsLengths = {static_cast<std::size_t>(workspace_nelem), 1};
         auto workspaceTensor               = tensor<T>{wsLengths};
 
         std::fill(workspaceTensor.begin(), workspaceTensor.end(), type_convert<T>{}(0.0f));
 
-        if(indices_size > 0)
+        if(indices_nelem > 0)
         {
-            std::vector<std::size_t> indicesLengths = {static_cast<std::size_t>(indices_size), 1};
+            std::vector<std::size_t> indicesLengths = {static_cast<std::size_t>(indices_nelem), 1};
             auto indicesTensor                      = tensor<int>{indicesLengths};
 
             std::fill(indicesTensor.begin(), indicesTensor.end(), 1);

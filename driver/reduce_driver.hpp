@@ -295,17 +295,17 @@ int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
     using reduce::type_convert;
 
-    size_t in_sz  = GetTensorSize(inputTensor);
-    size_t out_sz = GetTensorSize(outputTensor);
+    size_t in_nelem  = GetTensorSize(inputTensor);
+    size_t out_nelem = GetTensorSize(outputTensor);
 
     miopenGetReductionWorkSpaceSize(
         GetHandle(), reduceDesc, inputTensor, outputTensor, &this->ws_sizeInBytes);
     miopenGetReductionIndicesSize(
         GetHandle(), reduceDesc, inputTensor, outputTensor, &this->indices_sizeInBytes);
 
-    size_t ws_sz = (!this->need_indices) ? this->ws_sizeInBytes / sizeof(Tgpu)
-                                         : this->ws_sizeInBytes / (sizeof(Tgpu) + sizeof(int));
-    size_t indices_sz = this->indices_sizeInBytes / sizeof(int);
+    size_t ws_nelem = (!this->need_indices) ? this->ws_sizeInBytes / sizeof(Tgpu)
+                                            : this->ws_sizeInBytes / (sizeof(Tgpu) + sizeof(int));
+    size_t indices_nelem = this->indices_sizeInBytes / sizeof(int);
 
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
@@ -314,27 +314,21 @@ int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 #elif MIOPEN_BACKEND_HIP
     uint32_t ctx = 0;
 #endif
-    in_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-    out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+    in_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_nelem, sizeof(Tgpu)));
+    out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_nelem, sizeof(Tgpu)));
     ws_dev  = this->need_indices ? std::unique_ptr<GPUMem>(new GPUMem(
-                                      ctx, ws_sz * 2, std::max<int>(sizeof(Tgpu), sizeof(int))))
-                                : std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sz, sizeof(int)));
+                                      ctx, ws_nelem * 2, std::max<int>(sizeof(Tgpu), sizeof(int))))
+                                : std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_nelem, sizeof(int)));
 
-    indices_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, indices_sz, sizeof(int)));
+    indices_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, indices_nelem, sizeof(int)));
 
-    std::cout << "Workspace size in bytes : " << this->ws_sizeInBytes << std::endl;
-    std::cout << "Workspace data size : " << ws_sz << std::endl;
-    std::cout << "Indices data size : " << indices_sz << std::endl;
-    std::cout << "Workspace memory size " << ws_dev->GetSize() << std::endl;
-    std::cout << "Indices memory size " << indices_dev->GetSize() << std::endl;
+    in              = std::vector<Tgpu>(in_nelem, type_convert<Tgpu>{}(0.3f));
+    out             = std::vector<Tgpu>(out_nelem, type_convert<Tgpu>{}(0.2f));
+    outhost         = std::vector<Tref>(out_nelem, type_convert<Tref>{}(0.2f));
+    out_indices     = std::vector<int>(indices_nelem, static_cast<int>(0));
+    outhost_indices = std::vector<int>(indices_nelem, static_cast<int>(0));
 
-    in              = std::vector<Tgpu>(in_sz, type_convert<Tgpu>{}(0.3f));
-    out             = std::vector<Tgpu>(out_sz, type_convert<Tgpu>{}(0.2f));
-    outhost         = std::vector<Tref>(out_sz, type_convert<Tref>{}(0.2f));
-    out_indices     = std::vector<int>(indices_sz, static_cast<int>(0));
-    outhost_indices = std::vector<int>(indices_sz, static_cast<int>(0));
-
-    for(int i = 0; i < in_sz; i++)
+    for(int i = 0; i < in_nelem; i++)
     {
         in[i] = RAN_GEN<Tgpu>(type_convert<Tgpu>{}(0.0f), type_convert<Tgpu>{}(1.0f));
     }
