@@ -48,15 +48,12 @@ class LockFile;
 class RamDb : protected PlainTextDb
 {
     public:
-    RamDb(std::string path,
-          bool warn_if_unreadable_,
-          const std::string& /*arch*/,
-          std::size_t /*num_cu*/)
-        : RamDb(path, warn_if_unreadable_)
+    RamDb(std::string path, bool is_system, const std::string& /*arch*/, std::size_t /*num_cu*/)
+        : RamDb(path, is_system)
     {
     }
 
-    RamDb(std::string path, bool warn_if_unreadable_ = true);
+    RamDb(std::string path, bool is_system = true);
 
     RamDb(const RamDb&) = delete;
     RamDb(RamDb&&)      = delete;

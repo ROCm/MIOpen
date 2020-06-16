@@ -245,7 +245,7 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_,
                            const std::size_t num_cu_)
     : SQLiteBase(filename_, is_system, arch_, num_cu_)
 {
-    if(DisableDbFileIO)
+    if(DisableUserDbFileIO && !is_system)
         return;
 
     if(dbInvalid)

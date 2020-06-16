@@ -202,12 +202,12 @@ class SQLiteBase
     protected:
     public:
     SQLiteBase(const std::string& filename_,
-               bool is_system,
+               bool is_system_,
                const std::string& arch_,
                std::size_t num_cu_)
-        : filename(filename_), arch(arch_), num_cu(num_cu_)
+        : filename(filename_), arch(arch_), num_cu(num_cu_), is_system(is_system_)
     {
-        if(DisableDbFileIO)
+        if(!is_system && DisableUserDbFileIO)
             return;
 
         MIOPEN_LOG_I2("Initializing " << (is_system ? "system" : "user") << " database file "
@@ -284,7 +284,7 @@ class SQLiteBase
     template <typename... U>
     inline boost::optional<DbRecord> FindRecord(U&... args)
     {
-        if(DisableDbFileIO)
+        if(!is_system && DisableUserDbFileIO)
             return boost::none;
         return reinterpret_cast<Derived*>(this)->FindRecordUnsafe(args...);
     }
@@ -292,7 +292,7 @@ class SQLiteBase
     template <typename... U>
     inline auto RemoveRecord(U&... args)
     {
-        if(DisableDbFileIO)
+        if(!is_system && DisableUserDbFileIO)
             return true;
         return reinterpret_cast<Derived*>(this)->RemoveRecordUnsafe(args...);
     }
@@ -300,7 +300,7 @@ class SQLiteBase
     template <typename... U>
     inline auto StoreRecord(U&... args)
     {
-        if(DisableDbFileIO)
+        if(!is_system && DisableUserDbFileIO)
             return true;
         return reinterpret_cast<Derived*>(this)->StoreRecordUnsafe(args...);
     }
@@ -308,7 +308,7 @@ class SQLiteBase
     template <typename... U>
     inline auto Remove(const U&... args)
     {
-        if(DisableDbFileIO)
+        if(!is_system && DisableUserDbFileIO)
             return true;
         return reinterpret_cast<Derived*>(this)->RemoveUnsafe(args...);
     }
@@ -316,7 +316,7 @@ class SQLiteBase
     template <typename... U>
     inline boost::optional<DbRecord> Update(const U&... args)
     {
-        if(DisableDbFileIO)
+        if(!is_system && DisableUserDbFileIO)
             return boost::none;
         return reinterpret_cast<Derived*>(this)->UpdateUnsafe(args...);
     }
@@ -324,7 +324,7 @@ class SQLiteBase
     template <typename... U>
     inline bool Load(U&&... args)
     {
-        if(DisableDbFileIO)
+        if(!is_system && DisableUserDbFileIO)
             return false;
         return reinterpret_cast<Derived*>(this)->LoadUnsafe(args...);
     }
@@ -334,6 +334,7 @@ class SQLiteBase
     size_t num_cu;
     bool dbInvalid;
     SQLite sql;
+    bool is_system;
 };
 
 template <typename Derived>

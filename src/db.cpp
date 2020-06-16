@@ -57,6 +57,9 @@ PlainTextDb::PlainTextDb(const std::string& filename_,
                          const std::size_t /*num_cu*/)
     : PlainTextDb(filename_, is_system)
 {
+    if(is_system)
+        MIOPEN_THROW("PlainTextDb class is not supported as system database. Use the ReadOnlyRamDb "
+                     "class instead.");
 }
 
 PlainTextDb::PlainTextDb(const std::string& filename_, bool is_system)
@@ -64,7 +67,7 @@ PlainTextDb::PlainTextDb(const std::string& filename_, bool is_system)
       lock_file(LockFile::Get(LockFilePath(filename_).c_str())),
       warning_if_unreadable(is_system)
 {
-    if(!is_system && !DisableDbFileIO)
+    if(!is_system && !DisableUserDbFileIO)
     {
         auto file            = boost::filesystem::path(filename_);
         const auto directory = file.remove_filename();
@@ -93,7 +96,7 @@ using shared_lock    = std::shared_lock<LockFile>;
 
 boost::optional<DbRecord> PlainTextDb::FindRecord(const std::string& key)
 {
-    if(DisableDbFileIO)
+    if(DisableUserDbFileIO)
         return {};
     const auto lock = shared_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
@@ -102,7 +105,7 @@ boost::optional<DbRecord> PlainTextDb::FindRecord(const std::string& key)
 
 bool PlainTextDb::StoreRecord(const DbRecord& record)
 {
-    if(DisableDbFileIO)
+    if(DisableUserDbFileIO)
         return true;
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
@@ -111,7 +114,7 @@ bool PlainTextDb::StoreRecord(const DbRecord& record)
 
 bool PlainTextDb::UpdateRecord(DbRecord& record)
 {
-    if(DisableDbFileIO)
+    if(DisableUserDbFileIO)
         return true;
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
@@ -120,7 +123,7 @@ bool PlainTextDb::UpdateRecord(DbRecord& record)
 
 bool PlainTextDb::RemoveRecord(const std::string& key)
 {
-    if(DisableDbFileIO)
+    if(DisableUserDbFileIO)
         return true;
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
@@ -129,7 +132,7 @@ bool PlainTextDb::RemoveRecord(const std::string& key)
 
 bool PlainTextDb::Remove(const std::string& key, const std::string& id)
 {
-    if(DisableDbFileIO)
+    if(DisableUserDbFileIO)
         return true;
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
