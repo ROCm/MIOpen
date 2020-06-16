@@ -29,6 +29,9 @@
 #include <half.hpp>
 #include <limits>
 #include <cmath>
+#include <miopen/miopen.h>
+#include <miopen/float_equal.hpp>
+
 #include "bfloat16.hpp"
 
 namespace reduce {
@@ -121,7 +124,7 @@ static inline compType ReduceOpZeroVal(miopenReduceTensorOp_t op_)
 };
 
 template <>
-half_float::half ReduceOpZeroVal<half_float::half>(miopenReduceTensorOp_t op_)
+inline half_float::half ReduceOpZeroVal<half_float::half>(miopenReduceTensorOp_t op_)
 {
     switch(op_)
     {
@@ -213,45 +216,43 @@ inline bool float_equal_zero::apply<half_float::half>(half_float::half x)
            x >= type_convert<half_float::half>{}(0.0);
 };
 
-#define binop_with_nan_check(nanOpt, opReduce, accuVal, currVal) \
-    {                                                            \
-        if(nanOpt == MIOPEN_NOT_PROPAGATE_NAN)                   \
-            accuVal = opReduce(accuVal, currVal);                \
-        else                                                     \
-        {                                                        \
-            if(reduce::IsNan(currVal))                           \
-                accuVal = currVal;                               \
-            else                                                 \
-                accuVal = opReduce(accuVal, currVal);            \
-        };                                                       \
-    }
+template <typename compType>
+static inline void binop_with_nan_check(miopenNanPropagation_t nanOpt, std::function<compType(compType, compType)> opReduce, compType& accuVal, compType currVal)
+{
+    if(nanOpt == MIOPEN_NOT_PROPAGATE_NAN)                   
+       accuVal = opReduce(accuVal, currVal);                
+    else                                                     
+    {                                                        
+        if(reduce::IsNan(currVal))                           
+           accuVal = currVal;                               
+        else                                                 
+           accuVal = opReduce(accuVal, currVal);            
+    };                                                       
+}; 
 
-#define binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex) \
-    {                                                                                   \
-        if(nanOpt == MIOPEN_NOT_PROPAGATE_NAN)                                          \
-        {                                                                               \
-            auto accuVal_new = opReduce(accuVal, currVal);                              \
-            if(!miopen::float_equal(accuVal, accuVal_new))                              \
-            {                                                                           \
-                accuIndex = currIndex;                                                  \
-                accuVal   = accuVal_new;                                                \
-            };                                                                          \
-        }                                                                               \
-        else                                                                            \
-        {                                                                               \
-            decltype(accuVal) accuVal_new;                                              \
-            if(reduce::IsNan(currVal))                                                  \
-                accuVal_new = currVal;                                                  \
-            else                                                                        \
-                accuVal_new = opReduce(accuVal, currVal);                               \
-                                                                                        \
-            if(!miopen::float_equal(accuVal, accuVal_new))                              \
-            {                                                                           \
-                accuIndex = currIndex;                                                  \
-                accuVal   = accuVal_new;                                                \
-            };                                                                          \
-        };                                                                              \
-    }
+template <typename compType>
+static inline void binop_with_nan_check2(miopenNanPropagation_t nanOpt, std::function<compType(compType, compType)> opReduce, compType& accuVal, compType currVal, int& accuIndex, int currIndex)
+{
+    if(nanOpt == MIOPEN_NOT_PROPAGATE_NAN)                                       
+    {                                                                               
+       auto accuVal_new = opReduce(accuVal, currVal);                              
+       if(!miopen::float_equal(accuVal, accuVal_new))                              
+       {                                                                          
+           accuIndex = currIndex;                                                 
+           accuVal   = accuVal_new;                                              
+       };                                                                       
+    }                                                                          
+    else                                                                      
+    {                                                                        
+       compType accuVal_new = reduce::IsNan(currVal)? currVal : opReduce(accuVal, currVal);                     
+                                                                       
+       if(!miopen::float_equal(accuVal, accuVal_new))                 
+       {                                                             
+          accuIndex = currIndex;                                    
+          accuVal   = accuVal_new;                                 
+       };                                                         
+    };                                                         
+}; 
 
 }; // end of namespace reduce
 
