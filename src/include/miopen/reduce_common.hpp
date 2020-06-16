@@ -33,13 +33,12 @@
 
 namespace reduce {
 
-enum ReductionMethod_t
-{
+typedef enum {
     Reduce_DirectThreadWise = 1,
     Reduce_DirectWarpWise   = 2,
     Reduce_BlockWise        = 3,
     Reduce_MultiBlock       = 4
-};
+} ReductionMethod_t;
 
 // data type conversion
 template <typename T>
@@ -54,34 +53,34 @@ struct type_convert
 
 template <>
 template <>
-inline float type_convert<float>::operator()<half_float::half>(half_float::half x) const
+float type_convert<float>::operator()<half_float::half>(half_float::half x) const
 {
     return half_float::half_cast<float>(x);
 };
 
 template <>
 template <>
-inline half_float::half type_convert<half_float::half>::operator()<float>(float x) const
+half_float::half type_convert<half_float::half>::operator()<float>(float x) const
 {
     return half_float::half_cast<half_float::half>(x);
 };
 
 template <>
 template <>
-inline float type_convert<float>::operator()<bfloat16>(bfloat16 x) const
+float type_convert<float>::operator()<bfloat16>(bfloat16 x) const
 {
     return float(x);
 };
 
 template <>
 template <>
-inline bfloat16 type_convert<bfloat16>::operator()<float>(float x) const
+bfloat16 type_convert<bfloat16>::operator()<float>(float x) const
 {
     return bfloat16(x);
 };
 
 template <typename compType>
-static inline std::function<compType(compType, compType)> ReduceOpFn(miopenReduceTensorOp_t op_)
+std::function<compType(compType, compType)> ReduceOpFn(miopenReduceTensorOp_t op_)
 {
     switch(op_)
     {
@@ -104,7 +103,7 @@ static inline std::function<compType(compType, compType)> ReduceOpFn(miopenReduc
 };
 
 template <typename compType>
-static inline compType ReduceOpZeroVal(miopenReduceTensorOp_t op_)
+compType ReduceOpZeroVal(miopenReduceTensorOp_t op_)
 {
     switch(op_)
     {
@@ -121,7 +120,7 @@ static inline compType ReduceOpZeroVal(miopenReduceTensorOp_t op_)
 };
 
 template <>
-inline half_float::half ReduceOpZeroVal<half_float::half>(miopenReduceTensorOp_t op_)
+half_float::half ReduceOpZeroVal<half_float::half>(miopenReduceTensorOp_t op_)
 {
     switch(op_)
     {
@@ -140,27 +139,27 @@ inline half_float::half ReduceOpZeroVal<half_float::half>(miopenReduceTensorOp_t
 };
 
 template <typename T>
-static inline bool IsNan(T x)
+bool IsNan(T x)
 {
     // C++ isnan() is used for float and double
     return (std::isnan(x));
 };
 
 template <>
-inline bool IsNan<half_float::half>(half_float::half x)
+bool IsNan<half_float::half>(half_float::half x)
 {
     return (half_float::isnan(x));
 };
 
 template <typename T>
-static inline bool IsFinite(T x)
+bool IsFinite(T x)
 {
     // C++ isfinite() is used for float and double
     return (std::isfinite(x));
 };
 
 template <>
-inline bool IsFinite<half_float::half>(half_float::half x)
+bool IsFinite<half_float::half>(half_float::half x)
 {
     return (half_float::isfinite(x));
 };
@@ -200,14 +199,14 @@ struct float_equal_zero
 };
 
 template <>
-inline bool float_equal_one::apply<half_float::half>(half_float::half x)
+bool float_equal_one::apply<half_float::half>(half_float::half x)
 {
     return half_float::isfinite(x) and x <= type_convert<half_float::half>{}(1.0) and
            x >= type_convert<half_float::half>{}(1.0);
 };
 
 template <>
-inline bool float_equal_zero::apply<half_float::half>(half_float::half x)
+bool float_equal_zero::apply<half_float::half>(half_float::half x)
 {
     return half_float::isfinite(x) and x <= type_convert<half_float::half>{}(0.0) and
            x >= type_convert<half_float::half>{}(0.0);
@@ -215,11 +214,11 @@ inline bool float_equal_zero::apply<half_float::half>(half_float::half x)
 
 #define binop_with_nan_check(nanOpt, opReduce, accuVal, currVal) \
     {                                                            \
-        if((nanOpt) == MIOPEN_NOT_PROPAGATE_NAN)                 \
+        if(nanOpt == MIOPEN_NOT_PROPAGATE_NAN)                   \
             accuVal = opReduce(accuVal, currVal);                \
         else                                                     \
         {                                                        \
-            if(reduce::IsNan(currVal))                           \
+            if(IsNan(currVal))                                   \
                 accuVal = currVal;                               \
             else                                                 \
                 accuVal = opReduce(accuVal, currVal);            \
@@ -228,7 +227,7 @@ inline bool float_equal_zero::apply<half_float::half>(half_float::half x)
 
 #define binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex) \
     {                                                                                   \
-        if((nanOpt) == MIOPEN_NOT_PROPAGATE_NAN)                                        \
+        if(nanOpt == MIOPEN_NOT_PROPAGATE_NAN)                                          \
         {                                                                               \
             auto accuVal_new = opReduce(accuVal, currVal);                              \
             if(!miopen::float_equal(accuVal, accuVal_new))                              \
@@ -240,7 +239,7 @@ inline bool float_equal_zero::apply<half_float::half>(half_float::half x)
         else                                                                            \
         {                                                                               \
             decltype(accuVal) accuVal_new;                                              \
-            if(reduce::IsNan(currVal))                                                  \
+            if(IsNan(currVal))                                                          \
                 accuVal_new = currVal;                                                  \
             else                                                                        \
                 accuVal_new = opReduce(accuVal, currVal);                               \

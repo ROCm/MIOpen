@@ -63,9 +63,11 @@ static void get_all_indexes(const std::vector<std::size_t>& dimLengths,
         else
         {
             // go through all the current indexes
-            for(auto index : indexes)
+            for(std::size_t k = 0; k < indexes.size(); k++)
                 for(std::size_t i = 0; i < dimLengths[dim]; i++)
                 {
+                    std::vector<std::size_t> index = indexes[k];
+
                     index.push_back(i);
 
                     updated_indexes.push_back(index);
@@ -171,8 +173,8 @@ struct verify_reduce_with_indices
         }
         else if(compTypeVal == miopenHalf)
         {
-            if(std::is_same<T, double>::value)
-                results = cpuImpl<double>();
+            if(std::is_same<T, double>::value || std::is_same<T, float>::value)
+                results = cpuImpl<T>();
             else
                 results = cpuImpl<float>();
         };
@@ -244,8 +246,7 @@ struct verify_reduce_with_indices
     template <typename compType>
     std::tuple<tensor<T>, tensor<int>> cpuImpl() const
     {
-        using reduce::ReduceOpFn;
-        using reduce::ReduceOpZeroVal;
+        using namespace reduce;
         using reduce::float_equal_one;
         using reduce::float_equal_zero;
         using reduce::type_convert;
@@ -271,13 +272,13 @@ struct verify_reduce_with_indices
             else
                 toReduceDims.push_back(i);
 
-        for(auto dim : invariantDims)
-            invariantLengths.push_back(inLengths[dim]);
+        for(int i = 0; i < invariantDims.size(); i++)
+            invariantLengths.push_back(inLengths[invariantDims[i]]);
 
-        for(auto dim : toReduceDims)
-            toReduceLengths.push_back(inLengths[dim]);
+        for(int i = 0; i < toReduceDims.size(); i++)
+            toReduceLengths.push_back(inLengths[toReduceDims[i]]);
 
-        bool reduceAllDims = invariantDims.empty();
+        bool reduceAllDims = invariantDims.empty() ? true : false;
 
         auto opReduce = ReduceOpFn<compType>(reduceOp);
 
@@ -291,8 +292,10 @@ struct verify_reduce_with_indices
             int accuIndex    = 0;
 
             // go through indexes of the invariant dimensions
-            for(auto src_index : indexes_1)
+            for(std::size_t i1 = 0; i1 < indexes_1.size(); i1++)
             {
+                std::vector<std::size_t>& src_index = indexes_1[i1];
+
                 auto src_offset = get_offset_from_index(inStrides, src_index);
 
                 auto currVal = type_convert<compType>{}(input.data[src_offset]);
@@ -325,8 +328,9 @@ struct verify_reduce_with_indices
             get_all_indexes(toReduceLengths, 0, indexes_2);
 
             // go through indexes of the invariant dimensions
-            for(auto index_1 : indexes_1)
+            for(std::size_t i1 = 0; i1 < indexes_1.size(); i1++)
             {
+                auto& index_1 = indexes_1[i1];
                 std::vector<std::size_t> src_index;
                 std::vector<std::size_t> dst_index;
 
@@ -349,8 +353,10 @@ struct verify_reduce_with_indices
                 int accuIndex    = 0;
 
                 // go through indexes of the toReduce dimensions
-                for(auto index_2 : indexes_2)
+                for(std::size_t i2 = 0; i2 < indexes_2.size(); i2++)
                 {
+                    auto& index_2 = indexes_2[i2];
+
                     // generate the part of the index belonging to the toReduce dims
                     for(int k                      = 0; k < toReduceDims.size(); k++)
                         src_index[toReduceDims[k]] = index_2[k];
@@ -457,6 +463,8 @@ struct verify_reduce_no_indices
     miopenReduceTensorOp_t reduceOp;
     miopenDataType_t compTypeVal;
     miopenNanPropagation_t nanOpt;
+    miopenReduceTensorIndices_t indicesOpt;
+    miopenIndicesType_t indicesType;
 
     verify_reduce_no_indices(miopen::ReduceTensorDescriptor& reduce_,
                              const tensor<T>& input_,
@@ -488,8 +496,8 @@ struct verify_reduce_no_indices
         }
         else if(compTypeVal == miopenHalf || compTypeVal == miopenBFloat16)
         {
-            if(std::is_same<T, double>::value)
-                return (cpuImpl<double>());
+            if(std::is_same<T, double>::value || std::is_same<T, float>::value)
+                return (cpuImpl<T>());
             else
                 return (cpuImpl<float>());
         };
@@ -500,8 +508,7 @@ struct verify_reduce_no_indices
     template <typename compType>
     tensor<T> cpuImpl() const
     {
-        using reduce::ReduceOpFn;
-        using reduce::ReduceOpZeroVal;
+        using namespace reduce;
         using reduce::float_equal_one;
         using reduce::float_equal_zero;
         using reduce::type_convert;
@@ -526,11 +533,11 @@ struct verify_reduce_no_indices
             else
                 toReduceDims.push_back(i);
 
-        for(auto dim : invariantDims)
-            invariantLengths.push_back(inLengths[dim]);
+        for(int i = 0; i < invariantDims.size(); i++)
+            invariantLengths.push_back(inLengths[invariantDims[i]]);
 
-        for(auto dim : toReduceDims)
-            toReduceLengths.push_back(inLengths[dim]);
+        for(int i = 0; i < toReduceDims.size(); i++)
+            toReduceLengths.push_back(inLengths[toReduceDims[i]]);
 
         bool reduceAllDims = invariantDims.empty() ? true : false;
 
