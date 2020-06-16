@@ -190,13 +190,13 @@ class miopenReductionHost
     template <typename compType>
     void RunImpl(Tgpu alpha, const Tgpu* in_data, Tgpu beta, Tref* out_data, int* indices)
     {
-        using reduce::ReduceOpFn; 
+        using reduce::ReduceOpFn;
         using reduce::ReduceOpZeroVal;
         using reduce::float_equal_one;
         using reduce::float_equal_zero;
         using reduce::type_convert;
-        using reduce::binop_with_nan_check; 
-        using reduce::binop_with_nan_check2; 
+        using reduce::binop_with_nan_check;
+        using reduce::binop_with_nan_check2;
 
         auto opReduce = ReduceOpFn<compType>(this->reduceOp);
         bool need_indices =

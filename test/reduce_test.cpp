@@ -248,8 +248,8 @@ struct verify_reduce_with_indices
         using reduce::float_equal_one;
         using reduce::float_equal_zero;
         using reduce::type_convert;
-        using reduce::binop_with_nan_check; 
-        using reduce::binop_with_nan_check2; 
+        using reduce::binop_with_nan_check;
+        using reduce::binop_with_nan_check2;
 
         auto inLengths  = input.desc.GetLengths();
         auto outLengths = output.desc.GetLengths();
@@ -506,8 +506,8 @@ struct verify_reduce_no_indices
         using reduce::float_equal_one;
         using reduce::float_equal_zero;
         using reduce::type_convert;
-        using reduce::binop_with_nan_check; 
-        using reduce::binop_with_nan_check2; 
+        using reduce::binop_with_nan_check;
+        using reduce::binop_with_nan_check2;
 
         auto inLengths  = input.desc.GetLengths();
         auto outLengths = output.desc.GetLengths();

@@ -40,7 +40,13 @@
 
 namespace miopen {
 
-using namespace reduce;
+using reduce::ReductionMethod_t;
+using reduce::Reduce_DirectThreadWise;
+using reduce::Reduce_DirectWarpWise;
+using reduce::Reduce_BlockWise;
+using reduce::Reduce_MultiBlock;
+
+using reduce::type_convert;
 
 namespace detail {
 
@@ -100,10 +106,10 @@ struct ReductionKernelConfigurator
     int warpSize_;
     int numWarpsPerBlock;
 
-    int GredDirectThreadWiseUpperReductionLen;
-    int GredDirectWarpWiseUpperReductionLen;
-    int GredBlockWiseUpperReductionLen;
-    int GredUpperNumBlocksPerReduction;
+    std::size_t GredDirectThreadWiseUpperReductionLen;
+    std::size_t GredDirectWarpWiseUpperReductionLen;
+    std::size_t GredBlockWiseUpperReductionLen;
+    std::size_t GredUpperNumBlocksPerReduction;
 
     std::size_t getGridSize(std::size_t invariantLength, std::size_t toReduceLength) const
     {
@@ -131,8 +137,9 @@ struct ReductionKernelConfigurator
                 return (invariantLength);
             else
             { // let multiple blocks to do each reduction
-                int expBlocksPerReduction = (toReduceLength + GredBlockWiseUpperReductionLen - 1) /
-                                            GredBlockWiseUpperReductionLen;
+                std::size_t expBlocksPerReduction =
+                    (toReduceLength + GredBlockWiseUpperReductionLen - 1) /
+                    GredBlockWiseUpperReductionLen;
 
                 if(expBlocksPerReduction > GredUpperNumBlocksPerReduction)
                     return (invariantLength * GredUpperNumBlocksPerReduction);
@@ -193,17 +200,6 @@ struct ReductionKernelConfigurator
             return ((invariantLength + numWarpsPerBlock - 1) / numWarpsPerBlock);
         else
             return (invariantLength); // let one block to do each reduction
-    };
-
-    ReductionMethod_t getReductionMethod_2(std::size_t invariantLength,
-                                           std::size_t toReduceLength) const
-    {
-        if(toReduceLength < warpSize_ / 4) // let one thread to do each reduction
-            return (Reduce_DirectThreadWise);
-        else if(toReduceLength < blockSize_) // let one warp to do each reduction
-            return (Reduce_DirectWarpWise);
-        else
-            return (Reduce_BlockWise);
     };
 };
 
@@ -369,10 +365,14 @@ void ReduceTensorDescriptor::ReduceTensor(Handle& handle,
                          "to the length of the corresponding dimension of the input tensor.");
     };
 
-    std::size_t ws_sizeInBytes = this->GetWorkSpaceSize(handle, aDesc, cDesc);
+    std::size_t ws_sizeInBytes      = this->GetWorkSpaceSize(handle, aDesc, cDesc);
+    std::size_t indices_sizeInBytes = this->GetIndicesSize(handle, aDesc, cDesc);
 
     if(ws_sizeInBytes > workspaceSizeInBytes)
         MIOPEN_THROW("The workspace size allocated is not enough!");
+
+    if(indices_sizeInBytes > indicesSizeInBytes)
+        MIOPEN_THROW("The indices size allocated is not enough!");
 
     // void* ws_buf1_global = static_cast<void*>(workspace);
     Data_t ws_buf1_global     = workspace;
@@ -382,7 +382,8 @@ void ReduceTensorDescriptor::ReduceTensor(Handle& handle,
     {
         std::size_t aTypeSize = detail::GetDataTypeSize(aDesc.GetType());
 
-        long byteOffset = (workspaceSizeInBytes / (aTypeSize + sizeof(int))) * aTypeSize;
+        long byteOffset =
+            static_cast<long>((workspaceSizeInBytes / (aTypeSize + sizeof(int))) * aTypeSize);
 
         ws_buf2_bytes_offset = ((byteOffset + 63) / 64) * 64;
     };
@@ -420,11 +421,11 @@ void ReduceTensorDescriptor::ReduceTensor(Handle& handle,
 
     ReductionMethod_t reduceImpl = configurator.getReductionMethod(invariantLength, toReduceLength);
     int gridSize                 = configurator.getGridSize(invariantLength, toReduceLength);
-    int blkGroupSize = (reduceImpl == Reduce_MultiBlock) ? (gridSize / invariantLength) : 0;
+    int blkGroupSize = (reduceImpl == Reduce_MultiBlock) ? (gridSize / (int)invariantLength) : 0;
 
-    bool useTwoCalls = (reduceImpl == Reduce_MultiBlock) ? true : false;
+    bool useTwoCalls = (reduceImpl == Reduce_MultiBlock);
 
-    bool reduceAllDims = invariantDims.empty() ? true : false;
+    bool reduceAllDims = invariantDims.empty();
 
     detail::get_tunable_reduction_kernel_constants get_constants(reduceImpl);
 
@@ -520,11 +521,11 @@ void ReduceTensorDescriptor::ReduceTensor(Handle& handle,
 
     network_config = "reduce_T" + std::to_string(srcDataType) + std::to_string(dstDataType) +
                      std::to_string(compType) + "IN";
-    for(int i = 0; i < inDescLengths.size(); i++)
-        network_config += std::to_string(inDescLengths[i]) + "_";
+    for(auto dimLen : inDescLengths)
+        network_config += std::to_string(dimLen) + "_";
     network_config += "OUT";
-    for(int i = 0; i < outDescLengths.size(); i++)
-        network_config += std::to_string(outDescLengths[i]) + "_";
+    for(auto dimLen : outDescLengths)
+        network_config += std::to_string(dimLen) + "_";
     network_config += "BSIZE_" + std::to_string(blockSize);
 
     // kernel for the first call
@@ -567,6 +568,15 @@ void ReduceTensorDescriptor::ReduceTensor(Handle& handle,
     };
 };
 
-std::ostream& operator<<(std::ostream& stream, const ReduceTensorDescriptor& c) { return stream; }
+std::ostream& operator<<(std::ostream& stream, const ReduceTensorDescriptor& desc)
+{
+    stream << "ReduceTensor Descriptor : " << std::endl;
+    stream << "Reduction Operation Type : " << desc.reduceTensorOp_ << std::endl;
+    stream << "Reduction CompType : " << desc.reduceTensorCompType_ << std::endl;
+    stream << "NanPropagation Option : " << desc.reduceTensorNanOpt_ << std::endl;
+    stream << "Indices Option : " << desc.reduceTensorIndices_ << std::endl;
+
+    return (stream);
+};
 
 } // end of namespace miopen
