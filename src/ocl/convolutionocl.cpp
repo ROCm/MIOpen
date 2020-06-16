@@ -72,6 +72,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_SCGEMM)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)
 
 #if MIOPEN_USE_GEMM
 #ifdef CPPCHECK
@@ -342,15 +343,26 @@ static void EvaluateInvokers(Handle& handle,
 
     for(const auto& sol : solutions)
     {
-        if(sol.workspce_sz > 0 &&
-           (invoke_ctx.workSpace == nullptr || invoke_ctx.workSpaceSize < sol.workspce_sz))
+        if(sol.workspce_sz > 0)
         {
-            MIOPEN_LOG_I("Skipping solver <" << sol.solver_id << "> due to insufficient workspace ("
-                                             << invoke_ctx.workSpaceSize
-                                             << " < "
-                                             << sol.workspce_sz
-                                             << ")");
-            continue;
+            if(invoke_ctx.workSpace == nullptr)
+            {
+                MIOPEN_LOG_I("Warning: skipping solver <" << sol.solver_id
+                                                          << "> due to no workspace provided ("
+                                                          << sol.workspce_sz
+                                                          << " required)");
+                continue;
+            }
+            if(invoke_ctx.workSpaceSize < sol.workspce_sz)
+            {
+                MIOPEN_LOG_I("Warning: skipping solver <" << sol.solver_id
+                                                          << "> due to insufficient workspace ("
+                                                          << invoke_ctx.workSpaceSize
+                                                          << " < "
+                                                          << sol.workspce_sz
+                                                          << ")");
+                continue;
+            }
         }
 
         if(!sol.invoker_factory)
@@ -942,7 +954,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     }
 
     if(perf_db.empty())
-        MIOPEN_THROW("Fwd Convolution cannot be executed due to incorrect params");
+        MIOPEN_THROW("Forward Convolution cannot be executed due to incorrect params");
 
     std::sort(begin(perf_db), end(perf_db));
 
@@ -1601,7 +1613,8 @@ std::size_t ConvolutionDescriptor::GetFwdSolutionCountFallback(const TensorDescr
     // Regular (find-db) path have been verified during Find().
     ValidateGroupCount(xDesc, wDesc, *this);
 
-    if(IsGemmApplicableFwd(wDesc, xDesc, yDesc))
+    if(IsGemmApplicableFwd(wDesc, xDesc, yDesc) &&
+       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
         MIOPEN_LOG_I("Fallback path, GEMM");
         return 1;
@@ -1628,7 +1641,8 @@ std::size_t ConvolutionDescriptor::GetBwdSolutionCountFallback(const TensorDescr
 {
     ValidateGroupCount(dxDesc, wDesc, *this); // See comment in Forward method.
 
-    if(IsGemmApplicableBwd(dyDesc, wDesc, dxDesc))
+    if(IsGemmApplicableBwd(dyDesc, wDesc, dxDesc) &&
+       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
         MIOPEN_LOG_I("Fallback path, GEMM");
         return 1;
@@ -1707,7 +1721,8 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionCountFallback(const TensorDescr
 {
     ValidateGroupCount(xDesc, dwDesc, *this); // See comment in Forward method.
 
-    if(IsGemmApplicableWrw(xDesc, dyDesc, dwDesc))
+    if(IsGemmApplicableWrw(xDesc, dyDesc, dwDesc) &&
+       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
         MIOPEN_LOG_I("Fallback path, GEMM");
         return 1;
@@ -1849,7 +1864,8 @@ void ConvolutionDescriptor::GetForwardSolutionsFallback(Handle& handle,
     ValidateGroupCount(xDesc, wDesc, *this);
     auto i = std::size_t{0};
 
-    if(IsGemmApplicableFwd(wDesc, xDesc, yDesc))
+    if(IsGemmApplicableFwd(wDesc, xDesc, yDesc) &&
+       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
         MIOPEN_LOG_I("Fallback path, GEMM");
         if(i < maxSolutionCount)
@@ -1879,7 +1895,8 @@ void ConvolutionDescriptor::GetBwdSolutionsFallback(Handle& /*handle*/,
     ValidateGroupCount(dxDesc, wDesc, *this);
     auto i = std::size_t{0};
 
-    if(IsGemmApplicableBwd(dyDesc, wDesc, dxDesc))
+    if(IsGemmApplicableBwd(dyDesc, wDesc, dxDesc) &&
+       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
         MIOPEN_LOG_I("Fallback path, GEMM");
         if(i < maxSolutionCount)
@@ -1908,7 +1925,8 @@ void ConvolutionDescriptor::GetWrwSolutionsFallback(Handle& /*handle*/,
     ValidateGroupCount(xDesc, dwDesc, *this);
     auto i = std::size_t{0};
 
-    if(IsGemmApplicableWrw(dyDesc, xDesc, dwDesc))
+    if(IsGemmApplicableWrw(dyDesc, xDesc, dwDesc) &&
+       !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
         MIOPEN_LOG_I("Fallback path, GEMM");
         if(i < maxSolutionCount)
@@ -2629,7 +2647,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     }
 
     if(perf_db.empty())
-        MIOPEN_THROW(miopenStatusUnknownError, "Backward Data Algo cannot be executed");
+        MIOPEN_THROW(miopenStatusUnknownError,
+                     "Backward Data Convolution cannot be executed due to incorrect params");
 
     std::sort(begin(perf_db), end(perf_db));
 
@@ -3799,8 +3818,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                             // clang-format off
                         int N, C, H, W, K, n_groups, out_H, out_W, R, S;
                             // clang-format on
-                            if(kernels[0].GetName().rfind("miopenSp3AsmConv_group_20_5_23_M", 0) ==
-                               0)
+                            if(kernels[0].GetName().rfind("miopenSp3AsmConv_v21_1_0", 0) == 0)
                             {
                                 GetCompiledInParameters(ctx,
                                                         &C,
@@ -4070,7 +4088,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     }
 
     if(perf_db.empty())
-        MIOPEN_THROW("Bwd Weights Convolution cannot be executed due to incorrect params");
+        MIOPEN_THROW("Backward Weights Convolution cannot be executed due to incorrect params");
 
     std::sort(begin(perf_db), end(perf_db));
 
@@ -4506,7 +4524,7 @@ void ConvolutionDescriptor::BackwardWeightsWinograd(Handle& handle,
 
         int N, C, H, W, K, n_groups, out_H, out_W, R, S, unused;
 
-        if(kernels[0].GetName().rfind("miopenSp3AsmConv_group_20_5_23_M", 0) == 0)
+        if(kernels[0].GetName().rfind("miopenSp3AsmConv_v21_1_0", 0) == 0)
         {
             GetCompiledInParameters(
                 ctx, &C, &K, &R, &S, &N, &n_groups, &H, &W, &out_H, &out_W, &unused, &unused);

@@ -106,6 +106,10 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         }
         // clang-format on
     }
+    else
+    {
+        MIOPEN_THROW("invalid value of 'kernel'");
+    }
 
     std::size_t ABlockCopySubLengths_GemmK = GemmKPerBlock / config.WeiBlockCopyClusterLengths_E;
     std::size_t ABlockCopySubLengths_GemmM = GemmMPerBlock / config.WeiBlockCopyClusterLengths_K;
@@ -121,7 +125,6 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     const int C              = KernelInputChannelC(ctx);
     const auto hi            = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
     const auto wi            = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
-    const auto wo_           = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
     const auto conv_stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
     const auto conv_stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
     const auto conv_dilation_w =
@@ -136,10 +139,6 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     {
         // \todo there are more configs that can go through this if branch
         BBlockCopySrcDataPerRead_GemmN = gcd(BBlockCopySrcDataPerRead_GemmN, hi * wi);
-    }
-    else if(in_left_pad_w == 0 && in_right_pad_w == 0)
-    {
-        BBlockCopySrcDataPerRead_GemmN = gcd(BBlockCopySrcDataPerRead_GemmN, wo_);
     }
     else if(conv_stride_w == 1)
     {
@@ -398,13 +397,12 @@ bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext&
 {
     if(!(ctx.IsFp16() || ctx.IsBfp16()))
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.direction.IsForward())
         return false;
-
     if(!ctx.Is2d())
         return false;
-
     return IsApplicableXdlops(ctx);
 }
 
@@ -412,14 +410,14 @@ bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext&
 {
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
-
-    if(ConvHipImplicitGemmV4R4GenXdlopsWrWFp32{}.IsApplicable(ctx))
+    if(!ctx.use_hip_kernels)
         return false;
-
     if(!ctx.direction.IsBackwardWrW())
         return false;
-
     if(!ctx.Is2d())
+        return false;
+
+    if(ConvHipImplicitGemmV4R4GenXdlopsWrWFp32{}.IsApplicable(ctx))
         return false;
 
     return IsApplicableXdlops(ctx);

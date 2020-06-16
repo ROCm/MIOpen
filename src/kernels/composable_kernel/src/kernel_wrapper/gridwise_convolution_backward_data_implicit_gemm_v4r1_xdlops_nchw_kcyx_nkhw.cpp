@@ -1,5 +1,6 @@
 #include "common_header.hpp"
 #include "gridwise_convolution_backward_data_implicit_gemm_v4r1_xdlops_nchw_kcyx_nkhw.hpp"
+#include "gridwise_convolution_backward_data_implicit_gemm_v4r1_xdlops_fp16_bfp16_nchw_kcyx_nkhw.hpp"
 #include "float_types.h"
 
 extern "C" __global__
@@ -63,17 +64,8 @@ extern "C" __global__
     constexpr index_t GemmABlockCopyThreadSliceLengths_GemmM =
         GemmMPerBlock / GemmABlockCopyClusterLengths_GemmM;
 
-    using GemmABlockCopyThreadSliceLengths_GemmK_GemmM =
-        Sequence<GemmABlockCopyThreadSliceLengths_GemmK, GemmABlockCopyThreadSliceLengths_GemmM>;
-
-    using GemmABlockCopyThreadClusterLengths_GemmK_GemmM =
-        Sequence<GemmABlockCopyClusterLengths_GemmK, GemmABlockCopyClusterLengths_GemmM>;
-
     constexpr index_t GemmABlockCopySrcDataPerRead_GemmM =
         CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_M;
-
-    constexpr index_t GemmABlockCopyDstDataPerWrite_GemmM =
-        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_M;
 
     // B matrix
     constexpr index_t GemmBBlockCopyClusterLengths_GemmK =
@@ -88,17 +80,60 @@ extern "C" __global__
     constexpr index_t GemmBBlockCopyThreadSliceLengths_GemmN =
         GemmNPerBlock / GemmBBlockCopyClusterLengths_GemmN;
 
+    constexpr index_t GemmBBlockCopySrcDataPerRead_GemmN =
+        CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N;
+
+#if MIOPEN_USE_FP32
+    // A matrix
+    using GemmABlockCopyThreadSliceLengths_GemmK_GemmM =
+        Sequence<GemmABlockCopyThreadSliceLengths_GemmK, GemmABlockCopyThreadSliceLengths_GemmM>;
+
+    using GemmABlockCopyThreadClusterLengths_GemmK_GemmM =
+        Sequence<GemmABlockCopyClusterLengths_GemmK, GemmABlockCopyClusterLengths_GemmM>;
+
+    constexpr index_t GemmABlockCopyDstDataPerWrite_GemmM =
+        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_M;
+
+    // B matrix
     using GemmBBlockCopyThreadSliceLengths_GemmK_GemmN =
         Sequence<GemmBBlockCopyThreadSliceLengths_GemmK, GemmBBlockCopyThreadSliceLengths_GemmN>;
 
     using GemmBBlockCopyThreadClusterLengths_GemmK_GemmN =
         Sequence<GemmBBlockCopyClusterLengths_GemmK, GemmBBlockCopyClusterLengths_GemmN>;
 
-    constexpr index_t GemmBBlockCopySrcDataPerRead_GemmN =
-        CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N;
-
     constexpr index_t GemmBBlockCopyDstDataPerWrite_GemmN =
         CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N;
+
+#elif MIOPEN_USE_FP16 || MIOPEN_USE_BFP16
+    constexpr index_t GemmKPACK = CK_PARAM_KPACK_LENGTH;
+
+    // A matrix
+    using GemmABlockCopyThreadSliceLengths_GemmK_GemmM_GemmKPACK =
+        Sequence<GemmABlockCopyThreadSliceLengths_GemmK,
+                 GemmABlockCopyThreadSliceLengths_GemmM,
+                 GemmKPACK>;
+
+    using GemmABlockCopyThreadClusterLengths_GemmK_GemmM_GemmKPACK =
+        Sequence<GemmABlockCopyClusterLengths_GemmK, GemmABlockCopyClusterLengths_GemmM, 1>;
+
+    constexpr index_t GemmABlockCopyDstDataPerWrite_GemmKPACK =
+        CK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK;
+
+    // B matrix
+    using GemmBBlockCopyThreadSliceLengths_GemmK_GemmN_GemmKPACK =
+        Sequence<GemmBBlockCopyThreadSliceLengths_GemmK,
+                 GemmBBlockCopyThreadSliceLengths_GemmN,
+                 GemmKPACK>;
+
+    using GemmBBlockCopyThreadClusterLengths_GemmK_GemmN_GemmKPACK =
+        Sequence<GemmBBlockCopyClusterLengths_GemmK, GemmBBlockCopyClusterLengths_GemmN, 1>;
+
+    constexpr index_t GemmBBlockCopyDstDataPerWrite_GemmKPACK =
+        CK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK;
+
+#else
+    static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
+#endif
 
     // C matrix
     constexpr auto GemmMPerWave = CK_PARAM_GEMM_M_PER_WAVE;
@@ -107,6 +142,7 @@ extern "C" __global__
     constexpr index_t GemmThreadGemmDataPerReadM = 1;
     constexpr index_t GemmThreadGemmDataPerReadN = 1;
 
+#if MIOPEN_USE_FP32
     constexpr auto gridwise_conv_bwd_data =
         GridwiseConvolutionBackwardDataImplicitGemm_v4r1_xdlops_nchw_kcyx_nkhw<
             GridSize,
@@ -140,4 +176,43 @@ extern "C" __global__
     constexpr index_t GemmId = CK_PARAM_GEMM_ID;
 
     gridwise_conv_bwd_data.template Run<GemmId>(p_in_global, p_wei_global, p_out_global);
+#elif MIOPEN_USE_FP16 || MIOPEN_USE_BFP16
+    constexpr auto gridwise_conv_bwd_data =
+        GridwiseConvolutionBackwardDataImplicitGemm_v4r1_xdlops_fp16_bfp16_nchw_kcyx_nkhw<
+            GridSize,
+            BlockSize,
+            FLOAT,
+            FLOAT_ACCUM,
+            decltype(in_nchw_desc),
+            decltype(wei_kcyx_desc),
+            decltype(out_nkhw_desc),
+            ConvStrides,
+            ConvDilations,
+            InLeftPads,
+            InRightPads,
+            GemmMPerBlock,
+            GemmNPerBlock,
+            GemmKPerBlock,
+            GemmKPACK,
+            GemmMPerWave,
+            GemmNPerWave,
+            GemmThreadGemmDataPerReadM,
+            GemmThreadGemmDataPerReadN,
+            GemmABlockCopyThreadSliceLengths_GemmK_GemmM_GemmKPACK,
+            GemmABlockCopyThreadClusterLengths_GemmK_GemmM_GemmKPACK,
+            GemmABlockCopySrcDataPerRead_GemmM,
+            GemmABlockCopyDstDataPerWrite_GemmKPACK,
+            GemmBBlockCopyThreadSliceLengths_GemmK_GemmN_GemmKPACK,
+            GemmBBlockCopyThreadClusterLengths_GemmK_GemmN_GemmKPACK,
+            GemmBBlockCopySrcDataPerRead_GemmN,
+            GemmBBlockCopyDstDataPerWrite_GemmKPACK>{};
+
+    // these decide which GEMM will be called
+    constexpr index_t GemmId = CK_PARAM_GEMM_ID;
+
+    gridwise_conv_bwd_data.template Run<GemmId>(p_in_global, p_wei_global, p_out_global);
+
+#else
+    static_assert(false, "wrong! Only fp32, fp16 and bfp16 are supported.");
+#endif
 }
