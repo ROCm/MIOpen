@@ -144,9 +144,9 @@ class bfloat16 : boost::totally_ordered<bfloat16, boost::arithmetic<bfloat16>>
     }
     bool operator==(bfloat16 rhs) const { return std::equal_to<float>()(*this, rhs); }
 
-    //bool isinf() { return !(~this->data_ & 0x7f80) && !(this->data_ & 0x7f); }
-    //bool isnan() { return !(~this->data_ & 0x7f80) && +(this->data_ & 0x7f); }
-    //bool iszero() { return !(this->data_ & 0x7fff); }
+    // bool isinf() { return !(~this->data_ & 0x7f80) && !(this->data_ & 0x7f); }
+    // bool isnan() { return !(~this->data_ & 0x7f80) && +(this->data_ & 0x7f); }
+    // bool iszero() { return !(this->data_ & 0x7fff); }
 
     static constexpr bfloat16 generate(uint16_t val) { return bfloat16{val, true}; }
 
@@ -172,10 +172,10 @@ class numeric_limits<bfloat16>
     static constexpr bfloat16 denorm_min() noexcept { return bfloat16::generate(0); }
 };
 
-//static inline bool isinf(bfloat16 a) { return a.isinf(); };
+// static inline bool isinf(bfloat16 a) { return a.isinf(); };
 
-//static inline bool isnan(bfloat16 a) { return a.isnan(); }
-//static inline bool iszero(bfloat16 a) { return a.iszero(); }
+// static inline bool isnan(bfloat16 a) { return a.isnan(); }
+// static inline bool iszero(bfloat16 a) { return a.iszero(); }
 
 } // namespace std
 #endif
