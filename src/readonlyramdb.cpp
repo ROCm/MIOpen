@@ -41,21 +41,23 @@ ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path,
     static std::mutex mutex;
     static const std::lock_guard<std::mutex> lock{mutex};
 
-    static bool saved      = false;
-    static auto saved_path = path;
-    static ReadonlyRamDb instance{path};
+    static auto instances = std::map<std::string, ReadonlyRamDb*>{};
+    const auto it         = instances.find(path);
 
-    if(saved)
-    {
-        if(saved_path != path)
-            MIOPEN_LOG(LoggingLevel::Fatal, "Trying to use db cache with two different GPUs");
+    if(it != instances.end())
+        return *it->second;
 
-        return instance;
-    }
-
-    saved = true;
-    instance.Prefetch(warn_if_unreadable);
-    return instance;
+    // The ReadonlyRamDb objects allocated here by "new" shall be alive during
+    // the calling app lifetime. Size of each is very small, and there couldn't
+    // be many of them (max number is number of _different_ GPU board installed
+    // in the user's system, which is _one_ for now). Therefore the total
+    // footprint in heap is very small. That is why we can omit deletion of
+    // these objects thus avoiding bothering with MP/MT syncronization.
+    // These will be destroyed altogether with heap.
+    auto instance = new ReadonlyRamDb{path};
+    instances.emplace(path, instance);
+    instance->Prefetch(warn_if_unreadable);
+    return *instance;
 }
 
 template <class TFunc>
