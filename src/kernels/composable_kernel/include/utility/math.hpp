@@ -107,6 +107,8 @@ __host__ __device__ constexpr T min(T x, Ts... xs)
 template <typename T>
 __host__ __device__ constexpr T gcd(T x, T y)
 {
+    assert(!(x == 0 && y == 0));
+
     if(x == y || x == 0)
     {
         return y;
