@@ -104,7 +104,7 @@ miopenGetReductionIndicesSize(miopenHandle_t handle,
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) =
             miopen::deref(reduceTensorDesc)
-                .GetIndicesSize(miopen::deref(handle), miopen::deref(aDesc), miopen::deref(cDesc));
+                .GetIndicesSize(miopen::deref(aDesc), miopen::deref(cDesc));
     });
 };
 

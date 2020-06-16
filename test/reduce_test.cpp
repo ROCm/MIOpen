@@ -792,8 +792,7 @@ struct reduce_driver : test_driver
         std::fill(outputTensor.begin(), outputTensor.end(), type_convert<T>{}(0.0f));
 
         auto indices_nelem =
-            reduceDesc.GetIndicesSize(get_handle(), inputTensor.desc, outputTensor.desc) /
-            sizeof(int);
+            reduceDesc.GetIndicesSize(inputTensor.desc, outputTensor.desc) / sizeof(int);
 
         auto ws_sizeInBytes =
             reduceDesc.GetWorkSpaceSize(get_handle(), inputTensor.desc, outputTensor.desc);

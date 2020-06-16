@@ -291,8 +291,7 @@ std::size_t ReduceTensorDescriptor::GetWorkSpaceSize(Handle& handle,
 
 // return the size of the reduction indices in bytes, so that the indices buffer can be prepared by
 // the user
-std::size_t ReduceTensorDescriptor::GetIndicesSize(Handle& handle,
-                                                   const TensorDescriptor& inDesc,
+std::size_t ReduceTensorDescriptor::GetIndicesSize(const TensorDescriptor& inDesc,
                                                    const TensorDescriptor& outDesc) const
 {
     const auto& inDescLengths  = inDesc.GetLengths();
@@ -366,7 +365,7 @@ void ReduceTensorDescriptor::ReduceTensor(Handle& handle,
     };
 
     std::size_t ws_sizeInBytes      = this->GetWorkSpaceSize(handle, aDesc, cDesc);
-    std::size_t indices_sizeInBytes = this->GetIndicesSize(handle, aDesc, cDesc);
+    std::size_t indices_sizeInBytes = this->GetIndicesSize(aDesc, cDesc);
 
     if(ws_sizeInBytes > workspaceSizeInBytes)
         MIOPEN_THROW("The workspace size allocated is not enough!");
@@ -420,8 +419,9 @@ void ReduceTensorDescriptor::ReduceTensor(Handle& handle,
     detail::ReductionKernelConfigurator configurator(blockSize, handle.GetWavefrontWidth());
 
     ReductionMethod_t reduceImpl = configurator.getReductionMethod(invariantLength, toReduceLength);
-    int gridSize                 = configurator.getGridSize(invariantLength, toReduceLength);
-    int blkGroupSize = (reduceImpl == Reduce_MultiBlock) ? (gridSize / (int)invariantLength) : 0;
+    auto gridSize                = configurator.getGridSize(invariantLength, toReduceLength);
+    int blkGroupSize =
+        (reduceImpl == Reduce_MultiBlock) ? static_cast<int>(gridSize / invariantLength) : 0;
 
     bool useTwoCalls = (reduceImpl == Reduce_MultiBlock);
 
