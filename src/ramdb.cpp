@@ -95,7 +95,7 @@ RamDb::RamDb(std::string path, bool is_system) : PlainTextDb(path, is_system)
 RamDb& RamDb::GetCached(const std::string& path, bool warn_if_unreadable)
 {
     static std::mutex mutex;
-    static const std::lock_guard<std::mutex> lock{mutex};
+    const std::lock_guard<std::mutex> lock{mutex};
 
     static bool saved      = false;
     static auto saved_path = path;
