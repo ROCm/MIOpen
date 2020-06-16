@@ -33,6 +33,8 @@ namespace solver {
 template <typename T>
 T gcd(T x, T y)
 {
+    assert(!(x == 0 && y == 0));
+
     if(x == y || x == 0)
     {
         return y;
