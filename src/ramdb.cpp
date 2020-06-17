@@ -92,7 +92,7 @@ RamDb::RamDb(std::string path, bool is_system) : PlainTextDb(path, is_system)
 {
 }
 
-RamDb& RamDb::GetCached(const std::string& path, bool warn_if_unreadable)
+RamDb& RamDb::GetCached(const std::string& path, bool is_system)
 {
     static std::mutex mutex;
     const std::lock_guard<std::mutex> lock{mutex};
@@ -110,7 +110,7 @@ RamDb& RamDb::GetCached(const std::string& path, bool warn_if_unreadable)
     // footprint in heap is very small. That is why we can omit deletion of
     // these objects thus avoiding bothering with MP/MT syncronization.
     // These will be destroyed altogether with heap.
-    auto instance = new RamDb{path};
+    auto instance = new RamDb{path, is_system};
     instances.emplace(path, instance);
     if(!DisableUserDbFileIO)
     {

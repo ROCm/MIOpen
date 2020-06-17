@@ -53,7 +53,7 @@ class RamDb : protected PlainTextDb
     {
     }
 
-    RamDb(std::string path, bool is_system = true);
+    RamDb(std::string path, bool is_system);
 
     RamDb(const RamDb&) = delete;
     RamDb(RamDb&&)      = delete;
@@ -61,14 +61,14 @@ class RamDb : protected PlainTextDb
     RamDb& operator=(RamDb&&) = delete;
 
     static std::string GetTimeFilePath(const std::string& path);
-    static RamDb& GetCached(const std::string& path, bool warn_if_unreadable);
+    static RamDb& GetCached(const std::string& path, bool is_system);
 
     static RamDb& GetCached(const std::string& path,
-                            bool warn_if_unreadable,
+                            bool is_system,
                             const std::string& /*arch*/,
                             std::size_t /*num_cu*/)
     {
-        return GetCached(path, warn_if_unreadable);
+        return GetCached(path, is_system);
     }
 
     boost::optional<DbRecord> FindRecord(const std::string& problem);

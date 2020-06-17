@@ -173,21 +173,21 @@ class PlainTextDb
 };
 
 template <class TDb, class TRet = decltype(TDb::GetCached("", true))>
-TRet GetDbInstance(rank<1>, const std::string& path, bool warn_if_unreadable)
+TRet GetDbInstance(rank<1>, const std::string& path, bool is_system)
 {
-    return TDb::GetCached(path, warn_if_unreadable);
+    return TDb::GetCached(path, is_system);
 };
 
 template <class TDb>
-TDb GetDbInstance(rank<0>, const std::string& path, bool warn_if_unreadable)
+TDb GetDbInstance(rank<0>, const std::string& path, bool is_system)
 {
-    return {path, warn_if_unreadable};
+    return {path, is_system};
 };
 
 template <class TDb, class TRet = decltype(GetDbInstance<TDb>(rank<1>{}, {}, {}))>
-TRet GetDbInstance(const std::string& path, bool warn_if_unreadable = true)
+TRet GetDbInstance(const std::string& path, bool is_system = true)
 {
-    return GetDbInstance<TDb>(rank<1>{}, path, warn_if_unreadable);
+    return GetDbInstance<TDb>(rank<1>{}, path, is_system);
 }
 
 template <class TInstalled, class TUser, bool merge_records>
@@ -270,30 +270,30 @@ class MultiFileDb
     template <class TDb, class TRet = decltype(TDb::GetCached("", true, "", 0))>
     static TRet GetDbInstance(rank<1>,
                               const std::string& path,
-                              bool warn_if_unreadable,
+                              bool is_system,
                               const std::string& arch,
                               std::size_t num_cu)
     {
-        return TDb::GetCached(path, warn_if_unreadable, arch, num_cu);
+        return TDb::GetCached(path, is_system, arch, num_cu);
     };
 
     template <class TDb>
     static TDb GetDbInstance(rank<0>,
                              const std::string& path,
-                             bool warn_if_unreadable,
+                             bool is_system,
                              const std::string& arch,
                              std::size_t num_cu)
     {
-        return {path, warn_if_unreadable, arch, num_cu};
+        return {path, is_system, arch, num_cu};
     };
 
     template <class TDb, class TRet = decltype(GetDbInstance<TDb>(rank<1>{}, {}, {}, {}, {}))>
     static TRet GetDbInstance(const std::string& path,
-                              bool warn_if_unreadable,
+                              bool is_system,
                               const std::string& arch,
                               const std::size_t num_cu)
     {
-        return GetDbInstance<TDb>(rank<1>{}, path, warn_if_unreadable, arch, num_cu);
+        return GetDbInstance<TDb>(rank<1>{}, path, is_system, arch, num_cu);
     }
 
     decltype(MultiFileDb::GetDbInstance<TInstalled>("", true, "", 0)) _installed;

@@ -93,7 +93,7 @@ class KernDb : public SQLiteBase<KernDb>
            std::size_t num_cu);
     // This constructor is only intended for testing
     KernDb(const std::string& filename_,
-           bool _is_system,
+           bool is_system_,
            const std::string& _arch,
            std::size_t _num_cu,
            std::function<std::string(std::string, bool*)> _compress_fn,
