@@ -1,4 +1,7 @@
-#include "common_header.hpp"
+#include "config.hpp"
+#include "number.hpp"
+#include "sequence.hpp"
+#include "tensor_descriptor_helper.hpp"
 #include "reduction_common.hpp"
 #include "gridwise_generic_reduction.hpp"
 
@@ -11,8 +14,8 @@ using dstDataType =
 using compType =
     typename get_type_from_type_enum<static_cast<ckDataType_t>(CK_PARAM_REDUCE_COMPTYPE)>::type;
 
-constexpr index_t blockSize = CK_PARAM_BLOCKSIZE; // tunable
-constexpr index_t blkGroupSize =
+constexpr int blockSize = CK_PARAM_BLOCKSIZE; // tunable
+constexpr int blkGroupSize =
     CK_PARAM_BLKGROUPSIZE; // determined by the problem and the selected BlockSize
 
 using srcLengths = Sequence<CK_PARAM_SRC_DESC_LENGTHS>;

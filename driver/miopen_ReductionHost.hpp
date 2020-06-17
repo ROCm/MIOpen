@@ -58,14 +58,14 @@ get_all_indexes(const std::vector<int>& dimLengths, int dim, std::vector<std::ve
         else
         {
             // go through all the current indexes
-            for(int k = 0; k < indexes.size(); k++)
+            for(const auto& index : indexes)
                 for(int i = 0; i < dimLengths[dim]; i++)
                 {
-                    std::vector<int> index = indexes[k];
+                    auto index_new = index; // explicit copying
 
-                    index.push_back(i);
+                    index_new.push_back(i);
 
-                    updated_indexes.push_back(index);
+                    updated_indexes.push_back(index_new);
                 };
         };
 
@@ -136,13 +136,13 @@ class miopenReductionHost
         assert(this->inLengths.size() == this->outLengths.size());
         assert(!this->toReduceDims.empty());
 
-        for(int i = 0; i < this->invariantDims.size(); i++)
-            this->invariantLengths.push_back(this->inLengths[this->invariantDims[i]]);
+        for(const auto dim : this->invariantDims)
+            this->invariantLengths.push_back(this->inLengths[dim]);
 
-        for(int i = 0; i < this->toReduceDims.size(); i++)
-            toReduceLengths.push_back(this->inLengths[this->toReduceDims[i]]);
+        for(const auto dim : this->toReduceDims)
+            toReduceLengths.push_back(this->inLengths[dim]);
 
-        this->reduceAllDims = this->invariantDims.empty() ? true : false;
+        this->reduceAllDims = this->invariantDims.empty();
     };
 
     ~miopenReductionHost(){};
@@ -213,10 +213,8 @@ class miopenReductionHost
             int accuIndex = 0;
 
             // go through indexes of the invariant dimensions
-            for(int i1 = 0; i1 < indexes_1.size(); i1++)
+            for(const auto& src_index : indexes_1)
             {
-                std::vector<int>& src_index = indexes_1[i1];
-
                 auto src_offset = get_offset_from_index(this->inStrides, src_index);
 
                 auto currVal = type_convert<compType>{}(in_data[src_offset]);
@@ -257,18 +255,16 @@ class miopenReductionHost
                 this->toReduceLengths, 0, indexes_2); // generate the toReduce indexes space
 
             // go through indexes of the invariant dimensions
-            for(int i1 = 0; i1 < indexes_1.size(); i1++)
+            for(const auto& index_1 : indexes_1)
             {
-                auto& index_1 = indexes_1[i1];
                 std::vector<int> src_index;
                 std::vector<int> dst_index;
 
                 src_index.resize(this->inLengths.size());
                 dst_index.resize(this->inLengths.size());
 
-                // generate the srd index
-                for(int k        = 0; k < dst_index.size(); k++)
-                    dst_index[k] = 0;
+                // initialize the src index
+                std::fill(dst_index.begin(), dst_index.end(), 0);
 
                 for(int k                       = 0; k < invariantDims.size(); k++)
                     dst_index[invariantDims[k]] = index_1[k];
@@ -283,10 +279,8 @@ class miopenReductionHost
                 int accuIndex    = 0;
 
                 // go through indexes of the toReduce dimensions
-                for(int i2 = 0; i2 < indexes_2.size(); i2++)
+                for(const auto& index_2 : indexes_2)
                 {
-                    auto& index_2 = indexes_2[i2];
-
                     // generate the part of src index belonging to toReduce dims
                     for(int k                      = 0; k < toReduceDims.size(); k++)
                         src_index[toReduceDims[k]] = index_2[k];

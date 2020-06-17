@@ -119,15 +119,15 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
 
             constexpr auto True = integral_constant<bool, true>{};
             threadwise_src_load.MoveSrcSliceWindow(Sequence<0, GredThreadBufferLength>{}, True);
-        };
+        }
 
         using ReducedDataLengths       = Sequence<1>;
         constexpr auto ReducedDataDesc = make_native_tensor_descriptor_packed(ReducedDataLengths{});
 
-        if(alpha != type_convert<srcDataType>{}(1.0f))
+        if(!float_equal_one{}(alpha))
             accuValue *= type_convert<compType>{}(alpha);
 
-        if(beta != type_convert<dstDataType>{}(0.0f))
+        if(!float_equal_zero{}(beta))
         {
             auto threadwise_dst_load =
                 ThreadwiseGenericTensorSliceCopy_v4r2<dst1dDesc,
@@ -147,7 +147,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
                 p_dst_global, &priorDstValue, type_convert<dstDataType>{}(zeroVal));
 
             accuValue += type_convert<compType>{}(priorDstValue * beta);
-        };
+        }
 
         auto threadwise_dst_store =
             ThreadwiseGenericTensorSliceCopy_v4r2<decltype(ReducedDataDesc),
@@ -215,15 +215,15 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
 
             constexpr auto True = integral_constant<bool, true>{};
             threadwise_src_load.MoveSrcSliceWindow(Sequence<0, GredThreadBufferLength>{}, True);
-        };
+        }
 
         using ReducedDataLengths       = Sequence<1>;
         constexpr auto ReducedDataDesc = make_native_tensor_descriptor_packed(ReducedDataLengths{});
 
-        if(alpha != type_convert<srcDataType>{}(1.0f))
+        if(!float_equal_one{}(alpha))
             accuValue *= type_convert<compType>{}(alpha);
 
-        if(beta != type_convert<dstDataType>{}(0.0f))
+        if(!float_equal_zero{}(beta))
         {
             auto threadwise_dst_load =
                 ThreadwiseGenericTensorSliceCopy_v4r2<dst1dDesc,
@@ -243,7 +243,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
                 p_dst_global, &priorDstValue, type_convert<dstDataType>{}(zeroVal));
 
             accuValue += type_convert<compType>{}(priorDstValue * beta);
-        };
+        }
 
         auto threadwise_dst_store =
             ThreadwiseGenericTensorSliceCopy_v4r2<decltype(ReducedDataDesc),
@@ -313,15 +313,15 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
 
             constexpr auto True = integral_constant<bool, true>{};
             threadwise_src_load.MoveSrcSliceWindow(Sequence<0, GredThreadBufferLength>{}, True);
-        };
+        }
 
         using ReducedDataLengths       = Sequence<1>;
         constexpr auto ReducedDataDesc = make_native_tensor_descriptor_packed(ReducedDataLengths{});
 
-        if(alpha != type_convert<srcDataType>{}(1.0f))
+        if(!float_equal_one{}(alpha))
             accuValue *= type_convert<compType>{}(alpha);
 
-        if(beta != type_convert<dstDataType>{}(0.0f))
+        if(!float_equal_zero{}(beta))
         {
             auto threadwise_dst_load =
                 ThreadwiseGenericTensorSliceCopy_v4r2<dst1dDesc,
@@ -341,7 +341,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_threadwise
                 p_dst_global, &priorDstValue, type_convert<dstDataType>{}(zeroVal));
 
             accuValue += type_convert<compType>{}(priorDstValue * beta);
-        };
+        }
 
         auto threadwise_dst_store =
             ThreadwiseGenericTensorSliceCopy_v4r2<decltype(ReducedDataDesc),

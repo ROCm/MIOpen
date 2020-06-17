@@ -87,6 +87,8 @@ struct Gridwise_generic_reduction
                                    int* const __restrict__ ws_buf2_global,
                                    int* const __restrict__ indices_global)
         {
+            (void)ws_buf1_global; // unused
+
             constexpr auto invariantLen = src2dDesc::GetLengths()[0];
             constexpr auto toReduceLen  = src2dDesc::GetLengths()[1];
             constexpr auto copySliceLen = GredThreadBufferLength;
@@ -140,6 +142,8 @@ struct Gridwise_generic_reduction
                                    int* const __restrict__ ws_buf2_global,
                                    int* const __restrict__ indices_global)
         {
+            (void)ws_buf1_global; // unused
+
             constexpr auto invariantLen = src2dDesc::GetLengths()[0];
             constexpr auto toReduceLen  = src2dDesc::GetLengths()[1];
             constexpr auto copySliceLen = warpSize * GredAccessesPerThreadInWarp;
@@ -194,6 +198,8 @@ struct Gridwise_generic_reduction
                                    int* const __restrict__ ws_buf2_global,
                                    int* const __restrict__ indices_global)
         {
+            (void)ws_buf1_global; // unused
+
             constexpr auto invariantLen = src2dDesc::GetLengths()[0];
             constexpr auto toReduceLen  = src2dDesc::GetLengths()[1];
             constexpr auto copySliceLen = BlockSize * GredAccessesPerThreadInBlock;
@@ -249,6 +255,9 @@ struct Gridwise_generic_reduction
                                    int* const __restrict__ ws_buf2_global,
                                    int* const __restrict__ indices_global)
         {
+            (void)p_dst_global;   // unused
+            (void)indices_global; // unused
+
             constexpr auto invariantLen = src2dDesc::GetLengths()[0];
             constexpr auto toReduceLen  = src2dDesc::GetLengths()[1];
             constexpr auto copySliceLen = BlockSize * GredAccessesPerThreadInBlock;
@@ -410,6 +419,8 @@ struct Gridwise_generic_reduction
                                  long ws_buf2_bytes_offset,
                                  void* const __restrict__ indices_global)
     {
+        (void)p_src_global; // unused
+
         using dstLengths = decltype(dstDesc::GetLengths());
 
         constexpr auto one_dim_dstDesc = transform_tensor_descriptor(

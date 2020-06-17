@@ -1,5 +1,5 @@
-#ifndef _CK_TUPLE_EXT_HPP_
-#define _CK_TUPLE_EXT_HPP_
+#ifndef CK_TUPLE_EXT_HPP_
+#define CK_TUPLE_EXT_HPP_
 
 #include "sequence.hpp"
 #include "tuple.hpp"
@@ -20,13 +20,13 @@ __host__ __device__ constexpr auto make_dimensions_tuple(Sequence<Ids...>)
 };
 
 template <typename Seq1, typename Seq2>
-__host__ __device__ constexpr auto make_2d_merge_transform_tuple(Seq1 X1, Seq2 X2)
+__host__ __device__ constexpr auto make_2d_merge_transform_tuple(Seq1, Seq2)
 {
     return make_tuple(Merge<Seq1>{}, Merge<Seq2>{});
 };
 
 template <typename Seq>
-__host__ __device__ constexpr auto make_1d_merge_transform_tuple(Seq X)
+__host__ __device__ constexpr auto make_1d_merge_transform_tuple(Seq)
 {
     return make_tuple(Merge<Seq>{});
 };

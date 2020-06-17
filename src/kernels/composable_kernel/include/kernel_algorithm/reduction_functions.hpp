@@ -64,11 +64,11 @@ struct binop_with_nan_check<CK_NOT_PROPAGATE_NAN, opReduce, compType>
     {
         auto accuVal_new = opReduce{}(accuVal, currVal);
 
-        if(accuVal != accuVal_new)
+        if(!float_equal{}(accuVal, accuVal_new))
         {
             accuIndex = currIndex;
             accuVal   = accuVal_new;
-        };
+        }
     };
 };
 
@@ -94,11 +94,11 @@ struct binop_with_nan_check<CK_PROPAGATE_NAN, opReduce, compType>
         else
             accuVal_new = opReduce{}(accuVal, currVal);
 
-        if(accuVal != accuVal_new)
+        if(!float_equal{}(accuVal, accuVal_new))
         {
             accuIndex = currIndex;
             accuVal   = accuVal_new;
-        };
+        }
     };
 };
 }; // namespace detail
@@ -115,7 +115,7 @@ struct thread_reduce
         {
             compType currVal = type_convert<compType>{}(p_thread_buffer[i]);
             binop::calculate(accuData, currVal);
-        };
+        }
     };
 
     // This operator is used by Direct_ThreadWise reduction method at first-time reduction
@@ -127,7 +127,7 @@ struct thread_reduce
             compType currVal = type_convert<compType>{}(p_thread_buffer[i]);
             int currIndex    = i + indexStart;
             binop::calculate(accuData, currVal, accuIndex, currIndex);
-        };
+        }
     };
 
     // This operator is used by Direct_ThreadWise reduction method at second-time reduction
@@ -141,7 +141,7 @@ struct thread_reduce
             compType currVal = type_convert<compType>{}(p_thread_buffer[i]);
             int currIndex    = thread_indices_buffer[i];
             binop::calculate(accuData, currVal, accuIndex, currIndex);
-        };
+        }
     };
 
     __device__ static void set_buffer_value(DataType* p_thread_buffer, DataType value)
@@ -177,7 +177,7 @@ struct warp_reduce
         {
             compType currVal = type_convert<compType>{}(p_thread_buffer[i]);
             binop::calculate(lAccuData, currVal);
-        };
+        }
 
         // synchronize among all threads in this warp
         __all(1);
@@ -187,7 +187,7 @@ struct warp_reduce
             compType tmpVal = __shfl_down(lAccuData, stride, warpSize);
             binop::calculate(lAccuData, tmpVal);
             __all(1);
-        };
+        }
 
         binop::calculate(accuData, lAccuData);
     };
@@ -200,7 +200,7 @@ struct warp_reduce
         {
             compType currVal = type_convert<compType>{}(p_thread_buffer[i]);
             binop::calculate(lAccuData, currVal);
-        };
+        }
 
         __syncthreads();
 
@@ -226,10 +226,10 @@ struct warp_reduce
                 binop::calculate(currVal1, currVal2);
 
                 myBuffer[thread_inwarp_id] = currVal1;
-            };
+            }
 
             __syncthreads();
-        };
+        }
         if(thread_inwarp_id == 0)
             binop::calculate(accuData, myBuffer[0]);
     };
@@ -256,7 +256,7 @@ struct warp_reduce
             compType currVal = type_convert<compType>{}(p_thread_buffer[i]);
             int currIndex    = thread_inwarp_id * ThreadBufferLen + i + indexStart;
             binop::calculate(lAccuData, currVal, lAccuIndex, currIndex);
-        };
+        }
 
         // synchronize among all threads in this warp
         __all(1);
@@ -268,7 +268,7 @@ struct warp_reduce
 
             binop::calculate(lAccuData, tmpVal, lAccuIndex, tmpIndex);
             __all(1);
-        };
+        }
 
         if(thread_inwarp_id == 0)
             binop::calculate(accuData, lAccuData, accuIndex, lAccuIndex);
@@ -290,7 +290,7 @@ struct warp_reduce
             compType currVal = type_convert<compType>{}(p_thread_buffer[i]);
             int currIndex    = thread_inwarp_id * ThreadBufferLen + i + indexStart;
             binop::calculate(lAccuData, currVal, lAccuIndex, currIndex);
-        };
+        }
 
         __shared__ compType shuffle_data_buffer[BlockSize];
         __shared__ int shuffle_indices_buffer[BlockSize];
@@ -316,9 +316,9 @@ struct warp_reduce
 
                 myDataBuffer[thread_inwarp_id]    = currVal1;
                 myIndicesBuffer[thread_inwarp_id] = currIndex1;
-            };
+            }
             __syncthreads();
-        };
+        }
 
         if(thread_inwarp_id == 0)
             binop::calculate(accuData, myDataBuffer[0], accuIndex, myIndicesBuffer[0]);
@@ -341,16 +341,15 @@ struct warp_reduce
                                         compType& accuData,
                                         int& accuIndex)
     {
-        compType lAccuData   = opReduce::getZeroVal();
-        int lAccuIndex       = 0;
-        int thread_inwarp_id = get_thread_local_1d_id() % warpSize;
+        compType lAccuData = opReduce::getZeroVal();
+        int lAccuIndex     = 0;
 
         for(int i = 0; i < ThreadBufferLen; i++)
         {
             compType currVal   = type_convert<compType>{}(p_thread_buffer[i]);
             compType currIndex = thread_indices_buffer[i];
             binop::calculate(lAccuData, currVal, lAccuIndex, currIndex);
-        };
+        }
 
         // synchronize among all threads in this warp
         __all(1);
@@ -362,7 +361,7 @@ struct warp_reduce
 
             binop::calculate(lAccuData, tmpVal, lAccuIndex, tmpIndex);
             __all(1);
-        };
+        }
 
         binop::calculate(accuData, lAccuData, accuIndex, lAccuIndex);
     };
@@ -383,7 +382,7 @@ struct warp_reduce
             compType currVal   = type_convert<compType>{}(p_thread_buffer[i]);
             compType currIndex = thread_indices_buffer[i];
             binop::calculate(lAccuData, currVal, lAccuIndex, currIndex);
-        };
+        }
 
         __shared__ compType shuffle_data_buffer[BlockSize];
         __shared__ int shuffle_indices_buffer[BlockSize];
@@ -409,9 +408,9 @@ struct warp_reduce
 
                 myDataBuffer[thread_inwarp_id]    = currVal1;
                 myIndicesBuffer[thread_inwarp_id] = currIndex1;
-            };
+            }
             __syncthreads();
-        };
+        }
 
         if(thread_inwarp_id == 0)
             binop::calculate(accuData, myDataBuffer[0], accuIndex, myIndicesBuffer[0]);
@@ -453,7 +452,7 @@ struct BlockwiseReduction_2d_block_buffer
             compType opData = type_convert<compType>{}(p_block_buffer[offset]);
 
             binop::calculate(lAccuData, opData);
-        };
+        }
 
         offset = blockIsOneRow ? buffer2dDesc::CalculateOffset({0, thread_local_id})
                                : buffer2dDesc::CalculateOffset({thread_local_id, 0});
@@ -477,17 +476,17 @@ struct BlockwiseReduction_2d_block_buffer
                 compType opData2 = type_convert<compType>{}(p_block_buffer[offset2]);
                 binop::calculate(opData1, opData2);
                 p_block_buffer[offset1] = type_convert<DataType>{}(opData1);
-            };
+            }
 
             __syncthreads();
-        };
+        }
 
         if(thread_local_id == 0)
         {
             compType tmpVal = type_convert<compType>{}(p_block_buffer[0]);
 
             binop::calculate(accuData, tmpVal);
-        };
+        }
     };
 
     __device__ static void reduce2(DataType* p_block_buffer,
@@ -519,10 +518,10 @@ struct BlockwiseReduction_2d_block_buffer
                         binop::calculate(currVal1, currVal2, currIndex1, currIndex2);
                         p_block_buffer[offset1]       = type_convert<DataType>{}(currVal1);
                         block_indices_buffer[offset1] = currIndex1;
-                    };
-                };
+                    }
+                }
                 __syncthreads();
-            };
+            }
 
             if(thread_local_id == 0)
             {
@@ -534,10 +533,10 @@ struct BlockwiseReduction_2d_block_buffer
                     int tmpIndex    = block_indices_buffer[offset];
 
                     binop::calculate(lAccuData, tmpVal, lAccuIndex, tmpIndex);
-                };
+                }
 
                 binop::calculate(accuData, lAccuData, accuIndex, lAccuIndex);
-            };
+            }
         }).Else([&](auto) {
             int offset;
 
@@ -548,7 +547,7 @@ struct BlockwiseReduction_2d_block_buffer
                 int currIndex    = block_indices_buffer[offset];
 
                 binop::calculate(lAccuData, currVal, lAccuIndex, currIndex);
-            };
+            }
 
             offset = buffer2dDesc::CalculateOffset({thread_local_id, 0});
 
@@ -572,10 +571,10 @@ struct BlockwiseReduction_2d_block_buffer
                     binop::calculate(currVal1, currVal2, currIndex1, currIndex2);
                     p_block_buffer[offset1]       = type_convert<DataType>{}(currVal1);
                     block_indices_buffer[offset1] = currIndex1;
-                };
+                }
 
                 __syncthreads();
-            };
+            }
 
             if(thread_local_id == 0)
             {
@@ -583,7 +582,7 @@ struct BlockwiseReduction_2d_block_buffer
                 int tmpIndex    = block_indices_buffer[0];
 
                 binop::calculate(accuData, tmpVal, accuIndex, tmpIndex);
-            };
+            }
         });
     };
 
@@ -599,7 +598,7 @@ struct BlockwiseReduction_2d_block_buffer
             p_block_buffer[offset] = value;
 
             __syncthreads();
-        };
+        }
     };
 
     __device__ static void init_buffer_indices(int* block_indices_buffer, int indexStart)
@@ -614,7 +613,7 @@ struct BlockwiseReduction_2d_block_buffer
             block_indices_buffer[offset] = offset + indexStart;
 
             __syncthreads();
-        };
+        }
     };
 };
 

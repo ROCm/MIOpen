@@ -127,7 +127,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_warpwise
             constexpr auto True = integral_constant<bool, true>{};
             threadwise_src_load.MoveSrcSliceWindow(
                 Sequence<0, warpSize * GredAccessesPerThreadInWarp>{}, True);
-        };
+        }
 
         using ReducedDataLengths       = Sequence<1>;
         constexpr auto ReducedDataDesc = make_native_tensor_descriptor_packed(ReducedDataLengths{});
@@ -136,10 +136,10 @@ struct Gridwise_generic_reduction_xy_to_x_direct_warpwise
         // representing the Warp
         if(thread_inwarp_id == 0)
         {
-            if(alpha != type_convert<srcDataType>{}(1.0f))
+            if(!float_equal_one{}(alpha))
                 accuValue *= type_convert<compType>{}(alpha);
 
-            if(beta != type_convert<dstDataType>{}(0.0f))
+            if(!float_equal_zero{}(beta))
             {
                 auto threadwise_dst_load =
                     ThreadwiseGenericTensorSliceCopy_v4r2<dst1dDesc,
@@ -159,7 +159,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_warpwise
                     p_dst_global, &priorDstValue, type_convert<dstDataType>{}(zeroVal));
 
                 accuValue += type_convert<compType>{}(priorDstValue * beta);
-            };
+            }
 
             auto threadwise_dst_store =
                 ThreadwiseGenericTensorSliceCopy_v4r2<decltype(ReducedDataDesc),
@@ -175,7 +175,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_warpwise
                     {0}, {warp_global_1d_id});
 
             threadwise_dst_store.Run(&accuValue, p_dst_global, zeroVal);
-        };
+        }
     };
 
     __device__ static void RunImpl2(srcDataType alpha,
@@ -231,7 +231,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_warpwise
             constexpr auto True = integral_constant<bool, true>{};
             threadwise_src_load.MoveSrcSliceWindow(
                 Sequence<0, warpSize * GredAccessesPerThreadInWarp>{}, True);
-        };
+        }
 
         using ReducedDataLengths       = Sequence<1>;
         constexpr auto ReducedDataDesc = make_native_tensor_descriptor_packed(ReducedDataLengths{});
@@ -240,10 +240,10 @@ struct Gridwise_generic_reduction_xy_to_x_direct_warpwise
         // representing the Warp
         if(thread_inwarp_id == 0)
         {
-            if(alpha != type_convert<srcDataType>{}(1.0f))
+            if(!float_equal_one{}(alpha))
                 accuValue *= type_convert<compType>{}(alpha);
 
-            if(beta != type_convert<dstDataType>{}(0.0f))
+            if(!float_equal_zero{}(beta))
             {
                 auto threadwise_dst_load =
                     ThreadwiseGenericTensorSliceCopy_v4r2<dst1dDesc,
@@ -263,7 +263,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_warpwise
                     p_dst_global, &priorDstValue, type_convert<dstDataType>{}(zeroVal));
 
                 accuValue += type_convert<compType>{}(priorDstValue * beta);
-            };
+            }
 
             auto threadwise_dst_store =
                 ThreadwiseGenericTensorSliceCopy_v4r2<decltype(ReducedDataDesc),
@@ -280,7 +280,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_warpwise
 
             threadwise_dst_store.Run(&accuValue, p_dst_global, zeroVal);
             threadwise_dst_store.Run(&accuIndex, indices_global, 0);
-        };
+        }
     };
 
     __device__ static void RunImpl3(srcDataType alpha,
@@ -340,7 +340,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_warpwise
             constexpr auto True = integral_constant<bool, true>{};
             threadwise_src_load.MoveSrcSliceWindow(
                 Sequence<0, warpSize * GredAccessesPerThreadInWarp>{}, True);
-        };
+        }
 
         using ReducedDataLengths       = Sequence<1>;
         constexpr auto ReducedDataDesc = make_native_tensor_descriptor_packed(ReducedDataLengths{});
@@ -349,10 +349,10 @@ struct Gridwise_generic_reduction_xy_to_x_direct_warpwise
         // representing the Warp
         if(thread_inwarp_id == 0)
         {
-            if(alpha != type_convert<srcDataType>{}(1.0f))
+            if(!float_equal_one{}(alpha))
                 accuValue *= type_convert<compType>{}(alpha);
 
-            if(beta != type_convert<dstDataType>{}(0.0f))
+            if(!float_equal_zero{}(beta))
             {
                 auto threadwise_dst_load =
                     ThreadwiseGenericTensorSliceCopy_v4r2<dst1dDesc,
@@ -372,7 +372,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_warpwise
                     p_dst_global, &priorDstValue, type_convert<dstDataType>{}(zeroVal));
 
                 accuValue += type_convert<compType>{}(priorDstValue * beta);
-            };
+            }
 
             auto threadwise_dst_store =
                 ThreadwiseGenericTensorSliceCopy_v4r2<decltype(ReducedDataDesc),
@@ -389,7 +389,7 @@ struct Gridwise_generic_reduction_xy_to_x_direct_warpwise
 
             threadwise_dst_store.Run(&accuValue, p_dst_global, zeroVal);
             threadwise_dst_store.Run(&accuIndex, indices_global, 0);
-        };
+        }
     };
 };
 

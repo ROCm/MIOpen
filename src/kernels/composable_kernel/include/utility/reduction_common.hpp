@@ -111,6 +111,51 @@ struct get_type_from_type_enum<ckInt32>
     using type = int;
 };
 
+struct float_equal
+{
+    template <class T>
+    static bool apply(T x, T y)
+    {
+        return x <= y and x >= y;
+    }
+
+    template <class T>
+    bool operator()(T x, T y)
+    {
+        return (float_equal::apply(x, y));
+    };
+};
+
+struct float_equal_one
+{
+    template <class T>
+    static bool apply(T x)
+    {
+        return x <= type_convert<T>{}(1.0f) and x >= type_convert<T>{}(1.0f);
+    }
+
+    template <class T>
+    bool operator()(T x)
+    {
+        return (float_equal_one::apply(x));
+    };
+};
+
+struct float_equal_zero
+{
+    template <class T>
+    static bool apply(T x)
+    {
+        return x <= type_convert<T>{}(0.0f) and x >= type_convert<T>{}(0.0f);
+    }
+
+    template <class T>
+    bool operator()(T x)
+    {
+        return (float_equal_zero::apply(x));
+    };
+};
+
 }; // end of namespace ck
 
 #endif

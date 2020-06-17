@@ -1,7 +1,6 @@
-#ifndef _REDUCTION_KERNEL_SIMPLE_CONFIGURATOR_HPP_
-#define _REDUCTION_KERNEL_SIMPLE_CONFIGURATOR_HPP_ 1
+#ifndef REDUCTION_KERNEL_SIMPLE_CONFIGURATOR_HPP_
+#define REDUCTION_KERNEL_SIMPLE_CONFIGURATOR_HPP_ 1
 
-#include "config.hpp"
 #include "number.hpp"
 #include "reduction_common.hpp"
 

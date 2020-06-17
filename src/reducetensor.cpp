@@ -515,6 +515,9 @@ void ReduceTensorDescriptor::ReduceTensor(Handle& handle,
 
     param += " -DCK_PARAM_REDUCE_IMPL=" + std::to_string(static_cast<int>(reduceImpl));
 
+    // to remove the warning from clang-tidy checking
+    param += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=0 ";
+
     std::string program_name = "gridwise_generic_reduction.cpp";
     std::string algo_name    = "generic_reduce_tensor";
     std::string network_config;

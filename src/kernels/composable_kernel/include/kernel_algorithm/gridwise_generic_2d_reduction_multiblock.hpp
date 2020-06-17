@@ -71,6 +71,9 @@ struct Gridwise_generic_reduction_xy_to_x_multiblock
                                     dstDataType beta,
                                     srcDataType* const __restrict__ workspace_global)
     {
+        (void)alpha; // unused
+        (void)beta;  // unused
+
         constexpr int BlockBufferSize = BlockSize * GredAccessesPerThreadInBlock;
 
         // LDS
@@ -145,7 +148,7 @@ struct Gridwise_generic_reduction_xy_to_x_multiblock
 
             constexpr auto True = integral_constant<bool, true>{};
             blockwise_src_load.MoveSrcSliceWindow(Sequence<0, BlockBufferSize>{}, True);
-        };
+        }
 
         using ReducedDataLengths       = Sequence<1>;
         constexpr auto ReducedDataDesc = make_native_tensor_descriptor_packed(ReducedDataLengths{});
@@ -170,7 +173,7 @@ struct Gridwise_generic_reduction_xy_to_x_multiblock
                                                       InMemoryDataOperation::Set>(
                     {0}, {block_global_id});
             threadwise_workspace_store.Run(&accuValue, workspace_global, zeroVal);
-        };
+        }
     };
 
     __device__ static void RunImpl2(srcDataType alpha,
@@ -179,6 +182,9 @@ struct Gridwise_generic_reduction_xy_to_x_multiblock
                                     srcDataType* const __restrict__ workspace_global,
                                     int* const __restrict__ ws_indices_global)
     {
+        (void)alpha; // unused
+        (void)beta;  // unused
+
         constexpr int BlockBufferSize = BlockSize * GredAccessesPerThreadInBlock;
 
         // LDS
@@ -265,7 +271,7 @@ struct Gridwise_generic_reduction_xy_to_x_multiblock
 
             constexpr auto True = integral_constant<bool, true>{};
             blockwise_src_load.MoveSrcSliceWindow(Sequence<0, BlockBufferSize>{}, True);
-        };
+        }
 
         using ReducedDataLengths       = Sequence<1>;
         constexpr auto ReducedDataDesc = make_native_tensor_descriptor_packed(ReducedDataLengths{});
@@ -291,7 +297,7 @@ struct Gridwise_generic_reduction_xy_to_x_multiblock
                     {0}, {block_global_id});
             threadwise_workspace_store.Run(&accuValue, workspace_global, zeroVal);
             threadwise_workspace_store.Run(&accuIndex, ws_indices_global, 0);
-        };
+        }
     };
 };
 
