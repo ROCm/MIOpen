@@ -58,11 +58,6 @@ std::string inline GetDeviceNameFromMap(const std::string& name)
     };
 
     std::string n(name);
-    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
-    if(arch != nullptr && strlen(arch) > 0)
-    {
-        return arch;
-    }
     const char* const p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_ENFORCE_DEVICE{});
     if(p_asciz != nullptr && strlen(p_asciz) > 0)
     {

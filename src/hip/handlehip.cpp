@@ -505,9 +505,10 @@ std::size_t Handle::GetMaxMemoryAllocSize()
 
 std::string Handle::GetDeviceName() const
 {
-    const auto arch = miopen::EnvvarValue("MIOPEN_DEVICE_ARCH");
-    if(arch){
-        return std::to_string(arch);
+    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    if(arch != nullptr && strlen(arch) > 0)
+    {
+        return arch;
     }
     hipDeviceProp_t props{};
     hipGetDeviceProperties(&props, this->impl->device);

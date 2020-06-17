@@ -372,13 +372,11 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
                     continue;
                 kernels.push_back(kernel);
             }
-            // Precompile the kernels in parallel, but dont add them to the cache
+
             std::vector<Program> programs = PrecompileKernels(profile_h, kernels);
 
-        //best_config = current_config;
         }
-        MIOPEN_THROW("Search failed");
-        //return best_config;
+        MIOPEN_THROW("Search escaped, compiling only");
     }
 
     for(const auto& current_config : all_configs)
@@ -490,7 +488,6 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
             ret != 0, elapsed_time, n_current, best_time, n_failed, n_runs_total, current_config);
         ++n_current;
     }
-    if(compile_and_run!=0){
 
     MIOPEN_LOG_W("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"
                           << n_best
@@ -508,7 +505,6 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
     const auto default_time = profile_h.GetKernelTime();
     const auto score        = (best_time > 0.0f) ? default_time / best_time : 0.0f;
     MIOPEN_LOG_W("...Score: " << score << " (default time " << default_time << ')');
-    }
     return best_config;
 }
 

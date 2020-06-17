@@ -28,9 +28,11 @@
 #include <miopen/errors.hpp>
 #include <miopen/hipoc_kernel.hpp>
 #include <miopen/handle_lock.hpp>
+#include <miopen/device_name.hpp>
 #include <thread>
 #include <hip/hip_ext.h>
 #include <hip/hip_runtime.h>
+
 
 namespace miopen {
 
@@ -56,7 +58,11 @@ void HIPOCKernelInvoke::run(void* args, std::size_t size) const
         stop  = make_hip_event();
     }
 
-    // std::cerr << "Launch kernel: " << name << std::endl;
+    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    if(arch != nullptr && strlen(arch) > 0)
+    {
+        MIOPEN_THROW("Escaping launching kernel");
+    }
 
     MIOPEN_HANDLE_LOCK
 

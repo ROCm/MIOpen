@@ -72,6 +72,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_SCGEMM)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
 #if MIOPEN_USE_GEMM
 #ifdef CPPCHECK
@@ -340,6 +341,12 @@ static void EvaluateInvokers(Handle& handle,
                              const InvokeParams& invoke_ctx,
                              DbRecord& record)
 {
+
+    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    if(arch != nullptr && strlen(arch) > 0)
+    {
+        return;
+    }
     miopen::solver::ConvSolution selected{miopenStatusUnknownError};
     float best = std::numeric_limits<float>::max();
     Invoker best_invoker;

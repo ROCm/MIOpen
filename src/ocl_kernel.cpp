@@ -61,6 +61,12 @@ void OCLKernelInvoke::run() const
 
     MIOPEN_HANDLE_LOCK
 
+    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    if(arch != nullptr && strlen(arch) > 0)
+    {
+        MIOPEN_THROW("Escaping launching kernel");
+    }
+
     cl_event ev;
     /* way to run OCL group larger than 256
      * hack to ensure local_size == 0, just checking that the 1st dim is 0

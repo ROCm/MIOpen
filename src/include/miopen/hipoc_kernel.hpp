@@ -180,6 +180,10 @@ struct HIPOCKernel
 
     HIPOCKernel() {}
     HIPOCKernel(HIPOCProgram p,
+                const std::string kernel_name)
+        : program(p), name(kernel_name)
+    {}
+    HIPOCKernel(HIPOCProgram p,
                 const std::string kernel_name,
                 std::vector<size_t> local_dims,
                 std::vector<size_t> global_dims)
