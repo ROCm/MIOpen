@@ -51,6 +51,7 @@
 #include <thread>
 
 #define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30 MIOPEN_USE_COMGR
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_CU)
 
 namespace miopen {
 
@@ -461,6 +462,11 @@ std::size_t Handle::GetGlobalMemorySize() const
 std::size_t Handle::GetMaxComputeUnits() const
 {
     int result;
+    const char* const num_cu = miopen::GetStringEnv(MIOPEN_DEVICE_CU{});
+    if(num_cu != nullptr && strlen(num_cu) > 0)
+    {
+        return boost::lexical_cast<std::size_t>(num_cu);
+    }
     auto status =
         hipDeviceGetAttribute(&result, hipDeviceAttributeMultiprocessorCount, this->impl->device);
     if(status != hipSuccess)
