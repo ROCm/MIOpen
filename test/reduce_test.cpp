@@ -62,12 +62,13 @@ static void get_all_indexes(const std::vector<std::size_t>& dimLengths,
         else
         {
             // go through all the current indexes
-            for(auto index : indexes)
+            for(const auto& index : indexes)
                 for(std::size_t i = 0; i < dimLengths[dim]; i++)
                 {
-                    index.push_back(i);
+                    auto index_new = index;
+                    index_new.push_back(i);
 
-                    updated_indexes.push_back(index);
+                    updated_indexes.push_back(index_new);
                 };
         };
 
