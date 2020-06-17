@@ -294,7 +294,7 @@ struct verify_reduce_with_indices
             int accuIndex    = 0;
 
             // go through indexes of the invariant dimensions
-            for(auto& src_index : indexes_1)
+            for(const auto& src_index : indexes_1)
             {
                 auto src_offset = get_offset_from_index(inStrides, src_index);
 
@@ -328,7 +328,7 @@ struct verify_reduce_with_indices
             get_all_indexes(toReduceLengths, 0, indexes_2);
 
             // go through indexes of the invariant dimensions
-            for(auto& index_1 : indexes_1)
+            for(const auto& index_1 : indexes_1)
             {
                 std::vector<std::size_t> src_index;
                 std::vector<std::size_t> dst_index;
@@ -351,7 +351,7 @@ struct verify_reduce_with_indices
                 int accuIndex    = 0;
 
                 // go through indexes of the toReduce dimensions
-                for(auto& index_2 : indexes_2)
+                for(const auto& index_2 : indexes_2)
                 {
                     // generate the part of the index belonging to the toReduce dims
                     for(int k                      = 0; k < toReduceDims.size(); k++)
@@ -551,7 +551,7 @@ struct verify_reduce_no_indices
             compType accuVal = ReduceOpZeroVal<compType>(reduceOp);
 
             // go through indexes of the invariant dimensions
-            for(auto src_index : indexes_1)
+            for(const auto& src_index : indexes_1)
             {
                 auto src_offset = get_offset_from_index(inStrides, src_index);
 
@@ -583,7 +583,7 @@ struct verify_reduce_no_indices
             get_all_indexes(toReduceLengths, 0, indexes_2);
 
             // go through indexes of the invariant dimensions
-            for(auto index_1 : indexes_1)
+            for(const auto& index_1 : indexes_1)
             {
                 std::vector<std::size_t> src_index;
                 std::vector<std::size_t> dst_index;
@@ -591,8 +591,7 @@ struct verify_reduce_no_indices
                 src_index.resize(inLengths.size());
                 dst_index.resize(inLengths.size());
 
-                for(int k        = 0; k < dst_index.size(); k++)
-                    dst_index[k] = 0;
+                std::fill(dst_index.begin(), dst_index.end(), 0);
 
                 for(int k                       = 0; k < invariantDims.size(); k++)
                     dst_index[invariantDims[k]] = index_1[k];
@@ -606,7 +605,7 @@ struct verify_reduce_no_indices
                 compType accuVal = ReduceOpZeroVal<compType>(reduceOp);
 
                 // go through indexes of the toReduce dimensions
-                for(auto index_2 : indexes_2)
+                for(const auto& index_2 : indexes_2)
                 {
                     // generate the part of the index belonging to the toReduce dims
                     for(int k                      = 0; k < toReduceDims.size(); k++)
@@ -697,10 +696,10 @@ struct verify_reduce_no_indices
 template <class T>
 struct reduce_driver : test_driver
 {
-    int reduceOp;    //  miopenReduceTensorOp_t reduceOp;
-    int compTypeVal; //  miopenDataType_t compTypeVal;
-    int nanOpt;      //  miopenNanPropagation_t nanOpt;
-    int indicesOpt;  //  miopenReduceTensorIndices_t indicesOpt;
+    int reduceOp                    = 0; //  miopenReduceTensorOp_t reduceOp;
+    int compTypeVal                 = 1; //  miopenDataType_t compTypeVal;
+    int nanOpt                      = 0; //  miopenNanPropagation_t nanOpt;
+    int indicesOpt                  = 0; //  miopenReduceTensorIndices_t indicesOpt;
     miopenIndicesType_t indicesType = MIOPEN_32BIT_INDICES;
 
     std::vector<std::size_t> inLengths; // the lengths of the input tensor's dimensions
@@ -708,8 +707,8 @@ struct reduce_driver : test_driver
         toReduceDims; // the indexes of the dimensions to be reduced in the input tensor
 
     std::vector<float> scales;
-    float alpha;
-    float beta;
+    float alpha = 1.0f;
+    float beta  = 0.0f;
 
     std::vector<std::vector<std::size_t>> get_tensor_lengths()
     {
