@@ -88,9 +88,7 @@ static std::chrono::seconds GetLockTimeout() { return std::chrono::seconds{60}; 
 
 using exclusive_lock = std::unique_lock<LockFile>;
 
-RamDb::RamDb(std::string path, bool is_system) : PlainTextDb(path, is_system)
-{
-}
+RamDb::RamDb(std::string path, bool is_system) : PlainTextDb(path, is_system) {}
 
 RamDb& RamDb::GetCached(const std::string& path, bool is_system)
 {
