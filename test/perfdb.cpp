@@ -31,7 +31,7 @@
 #include <miopen/db_record.hpp>
 #include <miopen/lock_file.hpp>
 #include <miopen/ramdb.hpp>
-#include <miopen/ReadonlyRamDb.hpp>
+#include <miopen/readonlyramdb.hpp>
 #include <miopen/temp_file.hpp>
 
 #include <boost/filesystem/operations.hpp>
