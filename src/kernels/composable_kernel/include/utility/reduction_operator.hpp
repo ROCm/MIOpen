@@ -40,7 +40,7 @@ struct Add
 
     __device__ static T getZeroVal() { return type_convert<T>{}(0.0f); };
 
-    __device__ constexpr void operator()(T& a, T b) const { a = a + b; }
+    __device__ inline constexpr void operator()(T& a, T b) const { a = a + b; }
 
     static constexpr bool indexable = false;
 };
@@ -52,7 +52,7 @@ struct Mul
 
     __device__ static T getZeroVal() { return type_convert<T>{}(1.0f); };
 
-    __device__ constexpr void operator()(T& a, T b) const { a = a * b; }
+    __device__ inline constexpr void operator()(T& a, T b) const { a = a * b; }
 
     static constexpr bool indexable = false;
 };
@@ -64,13 +64,13 @@ struct Max
 
     __device__ static T getZeroVal() { return std::numeric_limits<T>::min(); };
 
-    __device__ constexpr void operator()(T& a, T b) const
+    __device__ inline constexpr void operator()(T& a, T b) const
     {
         if(a < b)
             a = b;
     }
 
-    __device__ constexpr void operator()(T& a, T b, bool& changed) const
+    __device__ inline constexpr void operator()(T& a, T b, bool& changed) const
     {
         if(a < b)
         {
@@ -91,13 +91,13 @@ struct Min
 
     __device__ static T getZeroVal() { return std::numeric_limits<T>::max(); };
 
-    __device__ constexpr void operator()(T& a, T b) const
+    __device__ inline constexpr void operator()(T& a, T b) const
     {
         if(a > b)
             a = b;
     }
 
-    __device__ constexpr void operator()(T& a, T b, bool& changed) const
+    __device__ inline constexpr void operator()(T& a, T b, bool& changed) const
     {
         if(a > b)
         {
