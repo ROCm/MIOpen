@@ -31,6 +31,7 @@
 #include <miopen/db_record.hpp>
 #include <miopen/lock_file.hpp>
 #include <miopen/ramdb.hpp>
+#include <miopen/ReadonlyRamDb.hpp>
 #include <miopen/temp_file.hpp>
 
 #include <boost/filesystem/operations.hpp>
@@ -1139,7 +1140,7 @@ class DbMultiFileReadTest : public DbMultiFileTest
             {id1(), value1()}, {id0(), value2()},
         }};
 
-        MultiFileDb<PlainTextDb, PlainTextDb, merge_records> db(temp_file, user_db_path);
+        MultiFileDb<ReadonlyRamDb, RamDb, merge_records> db(temp_file, user_db_path);
         if(merge_records)
             ValidateSingleEntry(key(), merged_data, db);
         else
@@ -1153,14 +1154,14 @@ class DbMultiFileReadTest : public DbMultiFileTest
     void ReadUser() const
     {
         RawWrite(user_db_path, key(), single_item_data());
-        MultiFileDb<PlainTextDb, PlainTextDb, merge_records> db(temp_file, user_db_path);
+        MultiFileDb<ReadonlyRamDb, RamDb, merge_records> db(temp_file, user_db_path);
         ValidateSingleEntry(key(), single_item_data(), db);
     }
 
     void ReadInstalled() const
     {
         RawWrite(temp_file, key(), single_item_data());
-        MultiFileDb<PlainTextDb, PlainTextDb, merge_records> db(temp_file, user_db_path);
+        MultiFileDb<ReadonlyRamDb, RamDb, merge_records> db(temp_file, user_db_path);
         ValidateSingleEntry(key(), single_item_data(), db);
     }
 
@@ -1185,7 +1186,7 @@ class DbMultiFileWriteTest : public DbMultiFileTest
         EXPECT(record.SetValues(id1(), value1()));
 
         {
-            MultiFileDb<PlainTextDb, PlainTextDb, true> db(temp_file, user_db_path);
+            MultiFileDb<ReadonlyRamDb, RamDb, true> db(temp_file, user_db_path);
 
             EXPECT(db.StoreRecord(record));
         }
@@ -1194,7 +1195,7 @@ class DbMultiFileWriteTest : public DbMultiFileTest
         EXPECT(!std::getline(std::ifstream(temp_file), read).good());
         EXPECT(std::getline(std::ifstream(user_db_path), read).good());
 
-        auto db = MultiFileDb<PlainTextDb, PlainTextDb, true>{temp_file, user_db_path};
+        auto db = MultiFileDb<ReadonlyRamDb, RamDb, true>{temp_file, user_db_path};
         ValidateSingleEntry(key(), common_data(), db);
     }
 };
@@ -1232,7 +1233,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Update test...");
 
         {
-            MultiFileDb<PlainTextDb, PlainTextDb, true> db(temp_file, user_db_path);
+            MultiFileDb<ReadonlyRamDb, RamDb, true> db(temp_file, user_db_path);
             EXPECT(db.Update(key(), id1(), value1()));
         }
 
@@ -1254,7 +1255,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Load test...");
 
-        MultiFileDb<PlainTextDb, PlainTextDb, true> db(temp_file, user_db_path);
+        MultiFileDb<ReadonlyRamDb, RamDb, true> db(temp_file, user_db_path);
         ValidateData(db, value1());
     }
 
@@ -1262,7 +1263,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Remove test...");
 
-        MultiFileDb<PlainTextDb, PlainTextDb, true> db(temp_file, user_db_path);
+        MultiFileDb<ReadonlyRamDb, RamDb, true> db(temp_file, user_db_path);
         EXPECT(!db.Remove(key(), id0()));
         EXPECT(db.Remove(key(), id1()));
 
@@ -1273,7 +1274,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Remove record test...");
 
-        MultiFileDb<PlainTextDb, PlainTextDb, true> db(temp_file, user_db_path);
+        MultiFileDb<ReadonlyRamDb, RamDb, true> db(temp_file, user_db_path);
         EXPECT(db.Update(key(), id1(), value1()));
         EXPECT(db.RemoveRecord(key()));
 
@@ -1307,7 +1308,7 @@ class DbMultiFileMultiThreadedReadTest : public DbMultiFileTest
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
         const std::string p = temp_file;
         const auto& up      = user_db_path;
-        const auto c = [&p, up]() { return MultiFileDb<PlainTextDb, PlainTextDb, true>(p, up); };
+        const auto c        = [&p, up]() { return MultiFileDb<ReadonlyRamDb, RamDb, true>(p, up); };
         ResetDb();
         DBMultiThreadedTestWork::FillForReading(c);
 
@@ -1353,7 +1354,7 @@ class DbMultiFileMultiThreadedTest : public DbMultiFileTest
         threads.reserve(DBMultiThreadedTestWork::threads_count);
         const std::string p = temp_file;
         const auto up       = user_db_path;
-        const auto c = [&p, &up]() { return MultiFileDb<PlainTextDb, PlainTextDb, true>(p, up); };
+        const auto c = [&p, &up]() { return MultiFileDb<ReadonlyRamDb, RamDb, true>(p, up); };
 
         {
             std::unique_lock<std::mutex> lock(mutex);
@@ -1419,10 +1420,7 @@ struct PerfDbDriver : test_driver
 
         DbTests<RamDb>(temp_file);
         DbTests<PlainTextDb>(temp_file);
-
-#if !MIOPEN_DISABLE_USERDB
         MultiFileDbTests(temp_file);
-#endif
     }
 
     private:
@@ -1453,9 +1451,12 @@ struct PerfDbDriver : test_driver
 
     void MultiFileDbTests(TempFile& temp_file) const
     {
-        DbMultiFileReadTest<true>{temp_file}.Run();
-        DbMultiFileReadTest<false>{temp_file}.Run();
-        DbMultiFileWriteTest{temp_file}.Run();
+        if(!DisableUserDbFileIO)
+        {
+            DbMultiFileReadTest<true>{temp_file}.Run();
+            DbMultiFileReadTest<false>{temp_file}.Run();
+            DbMultiFileWriteTest{temp_file}.Run();
+        }
         DbMultiFileOperationsTest{temp_file}.Run();
         DbMultiFileMultiThreadedReadTest{temp_file}.Run();
         DbMultiFileMultiThreadedTest{temp_file}.Run();
