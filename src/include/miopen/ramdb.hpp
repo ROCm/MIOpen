@@ -53,7 +53,7 @@ class RamDb : protected PlainTextDb
     {
     }
 
-    RamDb(std::string path, bool is_system = true);
+    RamDb(std::string path, bool is_system = false);
 
     RamDb(const RamDb&) = delete;
     RamDb(RamDb&&)      = delete;
