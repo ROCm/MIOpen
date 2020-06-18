@@ -312,7 +312,7 @@ struct verify_reduce_with_indices
             // scale the prior dst value and add it to the accumulated value
             if(!float_equal_zero{}(beta))
             {
-                auto priorDstValue = type_convert<T>{}(res.data[0]);
+                auto priorDstValue = type_convert<T>{}(output.data[0]);
 
                 accuVal += type_convert<compType>{}(priorDstValue * type_convert<T>{}(beta));
             };
@@ -373,7 +373,7 @@ struct verify_reduce_with_indices
                 // scale the prior dst value and add it to the accumulated value
                 if(!float_equal_zero{}(beta))
                 {
-                    auto priorDstValue = type_convert<T>{}(res.data[dst_offset]);
+                    auto priorDstValue = type_convert<T>{}(output.data[dst_offset]);
 
                     accuVal += type_convert<compType>{}(priorDstValue * type_convert<T>{}(beta));
                 };
@@ -461,10 +461,10 @@ struct verify_reduce_no_indices
     miopenDataType_t compTypeVal;
     miopenNanPropagation_t nanOpt;
 
-    verify_reduce_no_indices(miopen::ReduceTensorDescriptor& reduce_,
+    verify_reduce_no_indices(const miopen::ReduceTensorDescriptor& reduce_,
                              const tensor<T>& input_,
-                             tensor<T>& output_,
-                             tensor<T>& workspace_,
+                             const tensor<T>& output_,
+                             const tensor<T>& workspace_,
                              T alpha_,
                              T beta_)
     {
@@ -568,7 +568,7 @@ struct verify_reduce_no_indices
             // scale the prior dst value and add it to the accumulated value
             if(!float_equal_one{}(beta))
             {
-                auto priorDstValue = type_convert<T>{}(res.data[0]);
+                auto priorDstValue = type_convert<T>{}(output.data[0]);
 
                 accuVal += type_convert<compType>{}(priorDstValue * type_convert<T>{}(beta));
             };
@@ -626,7 +626,7 @@ struct verify_reduce_no_indices
                 // scale the prior dst value and add it to the accumulated value
                 if(!float_equal_zero{}(beta))
                 {
-                    auto priorDstValue = type_convert<T>{}(res.data[dst_offset]);
+                    auto priorDstValue = type_convert<T>{}(output.data[dst_offset]);
 
                     accuVal += type_convert<compType>{}(priorDstValue * type_convert<T>{}(beta));
                 };

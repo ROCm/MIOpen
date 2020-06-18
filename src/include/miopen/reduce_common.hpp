@@ -231,6 +231,8 @@ static inline void binop_with_nan_check(miopenNanPropagation_t nanOpt,
         else
             accuVal = opReduce(accuVal, currVal);
     };
+
+    (void)accuVal;
 };
 
 template <typename compType>
@@ -260,6 +262,8 @@ static inline void binop_with_nan_check2(miopenNanPropagation_t nanOpt,
             accuVal   = accuVal_new;
         };
     };
+
+    (void)accuVal;
 };
 
 }; // end of namespace reduce
