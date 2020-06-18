@@ -36,6 +36,7 @@ const std::map<std::string, std::string>& kernel_includes()
     static const std::map<std::string, std::string> data{${INIT_KERNELS}};
     return data;
 }
+
 std::string GetKernelInc(std::string key)
 {
     auto it = kernel_includes().find(key);
@@ -44,6 +45,7 @@ std::string GetKernelInc(std::string key)
 
     return it->second;
 }
+
 std::vector<std::string> GetKernelIncList()
 {
     std::vector<std::string> keys;
@@ -54,4 +56,17 @@ std::vector<std::string> GetKernelIncList()
                    [](decltype(m)::value_type const& pair) { return pair.first; });
     return keys;
 }
+
+std::vector<std::string> GetHipKernelIncList()
+{
+    auto keys = GetKernelIncList();
+    keys.erase(std::remove_if(keys.begin(),
+                              keys.end(),
+                              [&](const auto& key) {
+                                  return !(EndsWith(key, ".hpp") || EndsWith(key, ".h"));
+                              }),
+               keys.end());
+    return keys;
+}
+
 } // namespace miopen
