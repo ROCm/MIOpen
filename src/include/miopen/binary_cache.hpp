@@ -28,16 +28,11 @@
 #define GUARD_MLOPEN_BINARY_CACHE_HPP
 
 #include <miopen/config.h>
-
-#if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
 #include <boost/filesystem/path.hpp>
-#endif
-
 #include <string>
 
 namespace miopen {
 
-#if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
 boost::filesystem::path GetCacheFile(const std::string& device,
                                      const std::string& name,
                                      const std::string& args,
@@ -45,6 +40,7 @@ boost::filesystem::path GetCacheFile(const std::string& device,
 
 boost::filesystem::path GetCachePath(bool is_system);
 
+#if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
 boost::filesystem::path LoadBinary(const std::string& device,
                                    std::size_t num_cu,
                                    const std::string& name,
