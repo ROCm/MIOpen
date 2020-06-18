@@ -373,7 +373,7 @@ class DbFindTest : public DbTest
         sol.Serialize(ss);
         db_inst.sql.Exec(
             // clang-formagt off
-            "INSERT INTO perf_db(config, solver, params, arch, num_cu) "
+            "INSERT OR IGNORE INTO perf_db(config, solver, params, arch, num_cu) "
             "VALUES( " +
             id + ", '" + id0() + "', '" + ss.str() + "', 'gfx906', 64);");
         // clang-fromat on
