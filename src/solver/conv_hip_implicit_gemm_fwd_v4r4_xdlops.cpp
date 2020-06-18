@@ -79,7 +79,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue()
 {
     do
     {
-        // write performance parameters in reverse order, in order for tuning to iterate over the
+        // list performance parameters in reverse order, in order for tuning to iterate over the
         // range in normal order
         if(!NextFlag<false, true>(GemmBThreadCopyMoreGemmKPack))
             break;
@@ -106,84 +106,122 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue()
 void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmForwardV4R4Xdlops tmp;
-    if(ctx.IsFp32())
+
+    // loop over certain ranges of tuning parameter
+    auto get_euristic_config = [&](auto is_valid_func) {
+        if(ctx.IsFp32())
+        {
+            tmp = {256, 256, 8, 128, 128, 4, false, true};
+
+            bool all_visited = false;
+            do
+            {
+                do
+                {
+                    // list in reverse order of importance,
+                    // and favor large GEMM
+                    if(!PreviousTwoPower<1, 8>(tmp.GemmKPerBlock))
+                        break;
+                    if(!PreviousTwoPower<1, 4>(tmp.GemmKPack))
+                        break;
+                    if(!PreviousTwoPower<8, 128>(tmp.GemmNPerWave))
+                        break;
+                    if(!PreviousTwoPower<8, 128>(tmp.GemmMPerWave))
+                        break;
+                    if(!PreviousTwoPower<8, 256>(tmp.GemmNPerBlock))
+                        break;
+                    if(!PreviousTwoPower<8, 256>(tmp.GemmMPerBlock))
+                        break;
+
+                    all_visited = true;
+                } while(false);
+
+                if(is_valid_func(tmp, ctx))
+                    break;
+            } while(!all_visited);
+        }
+        else if(ctx.IsFp16())
+        {
+            tmp = {256, 256, 8, 128, 128, 8, false, true};
+
+            bool all_visited = false;
+            do
+            {
+                do
+                {
+                    // list in reverse order of importance,
+                    // and favor large GEMM
+                    if(!PreviousTwoPower<1, 8>(tmp.GemmKPerBlock))
+                        break;
+                    if(!PreviousTwoPower<4, 8>(tmp.GemmKPack))
+                        break;
+                    if(!PreviousTwoPower<8, 128>(tmp.GemmNPerWave))
+                        break;
+                    if(!PreviousTwoPower<8, 128>(tmp.GemmMPerWave))
+                        break;
+                    if(!PreviousTwoPower<8, 256>(tmp.GemmNPerBlock))
+                        break;
+                    if(!PreviousTwoPower<8, 256>(tmp.GemmMPerBlock))
+                        break;
+
+                    all_visited = true;
+                } while(false);
+
+                if(is_valid_func(tmp, ctx))
+                    break;
+            } while(!all_visited);
+        }
+        else if(ctx.IsBfp16())
+        {
+            tmp = {256, 256, 8, 128, 128, 8, false, true};
+
+            bool all_visited = false;
+            do
+            {
+                do
+                {
+                    // list in reverse order of importance,
+                    // and favor large GEMM
+                    if(!PreviousTwoPower<1, 8>(tmp.GemmKPerBlock))
+                        break;
+                    if(!PreviousTwoPower<2, 8>(tmp.GemmKPack))
+                        break;
+                    if(!PreviousTwoPower<8, 128>(tmp.GemmNPerWave))
+                        break;
+                    if(!PreviousTwoPower<8, 128>(tmp.GemmMPerWave))
+                        break;
+                    if(!PreviousTwoPower<8, 256>(tmp.GemmNPerBlock))
+                        break;
+                    if(!PreviousTwoPower<8, 256>(tmp.GemmMPerBlock))
+                        break;
+
+                    all_visited = true;
+                } while(false);
+
+                if(is_valid_func(tmp, ctx))
+                    break;
+            } while(!all_visited);
+        }
+        else
+        {
+            MIOPEN_LOG_E("Only fp32, fp16, and bfp16 are supported");
+            assert(false);
+        }
+    };
+
+    // first round: really valid and fast
+    get_euristic_config([](auto config, auto conv_context) {
+        return config.IsReallyValid(conv_context) && config.IsFastToBeUsedForTuning(conv_context);
+    });
+
+    // second round: really valid
+    if(!tmp.IsReallyValid(ctx))
     {
-        tmp = {128, 128, 4, 64, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {128, 128, 8, 64, 64, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {128, 64, 4, 64, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {128, 64, 8, 64, 64, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 128, 4, 64, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 128, 8, 64, 64, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 64, 4, 64, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 64, 8, 64, 64, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 64, 2, 64, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 64, 2, 64, 64, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 32, 4, 32, 64, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 32, 4, 32, 64, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {32, 64, 4, 64, 32, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {32, 32, 4, 32, 32, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 16, 4, 16, 64, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {16, 64, 4, 64, 16, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {16, 16, 4, 16, 16, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 4, 16, 4, 64, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 8, 8, 8, 64, 2, false, true};
-    }
-    else if(ctx.IsFp16() or ctx.IsBfp16())
-    {
-        tmp = {256, 128, 4, 64, 128, 8, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {256, 128, 4, 128, 64, 8, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {128, 256, 4, 64, 128, 8, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {256, 128, 4, 128, 64, 8, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {128, 128, 4, 64, 64, 8, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {128, 128, 8, 64, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 32, 4, 32, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 32, 4, 32, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {32, 64, 4, 64, 32, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {32, 32, 4, 32, 32, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 16, 4, 16, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {16, 64, 4, 64, 16, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {16, 16, 4, 16, 16, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 4, 16, 4, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 8, 8, 8, 64, 4, false, true};
-    }
-    else
-    {
-        MIOPEN_LOG_E("Only fp32, fp16, and bfp16 are supported");
-        assert(false);
+        get_euristic_config(
+            [](auto config, auto conv_context) { return config.IsReallyValid(conv_context); });
     }
 
+    // final check
     if(!tmp.IsReallyValid(ctx))
     {
         MIOPEN_LOG_E("All attempts failed");
@@ -312,6 +350,10 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmABlockCopyPerformancePara
         ClusterLengths_GemmK     = GemmKPerBlock / data_per_thread_copy_gemmk;
         ClusterLengths_GemmM     = GemmMPerBlock / data_per_thread_copy_gemmm;
         ClusterLengths_GemmKPack = GemmKPack / data_per_thread_copy_gemmkpack;
+
+        // all thread will copy
+        if(block_size != ClusterLengths_GemmK * ClusterLengths_GemmM * ClusterLengths_GemmKPack)
+            MIOPEN_THROW("invalid performance parameter");
     }
     catch(...)
     {
@@ -371,7 +413,7 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
         const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
         const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
-        // \todo this logic need to be more aggresive
+        // TODO this logic need to be more aggresive
         if(y == 1 && x == 1 && conv_stride_h == 1 && conv_stride_w == 1 && in_left_pad_h == 0 &&
            in_left_pad_w == 0 && in_right_pad_h == 0 && in_right_pad_w == 0)
         {
@@ -428,6 +470,10 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
         ClusterLengths_GemmK     = GemmKPerBlock / data_per_thread_copy_gemmk;
         ClusterLengths_GemmN     = GemmNPerBlock / data_per_thread_copy_gemmn;
         ClusterLengths_GemmKPack = GemmKPack / data_per_thread_copy_gemmkpack;
+
+        // all thread will copy
+        if(block_size != ClusterLengths_GemmK * ClusterLengths_GemmN * ClusterLengths_GemmKPack)
+            MIOPEN_THROW("invalid performance parameter");
     }
     catch(...)
     {
@@ -530,6 +576,20 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsReallyValid(const ConvolutionCo
 bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
     const ConvolutionContext& ctx) const
 {
+    // somehow, 128x128 wave-wise GEMM tend to spill register
+    // TODO revisit this when 128x128 wave-wise GEMM become efficient
+    {
+        if(GemmMPerWave * GemmNPerWave > 64 * 128)
+            return false;
+    }
+
+#if WORKAROUND_SWDEV_240356
+    {
+        if(ctx.IsBfp16() && GemmMPerWave * GemmNPerWave > 64 * 64)
+            return false;
+    }
+#endif
+
     // don't need too many blocks
     {
         int gemm_m = 0;
@@ -883,14 +943,24 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext
 #endif
 
     // gemm size
-    int gemm_g       = -1;
-    int gemm_m       = -1;
-    int gemm_n       = -1;
-    int gemm_k_total = -1;
+    {
+        int gemm_g       = -1;
+        int gemm_m       = -1;
+        int gemm_n       = -1;
+        int gemm_k_total = -1;
 
-    std::tie(gemm_g, gemm_m, gemm_n, gemm_k_total) = CalculateGemmSize(ctx);
+        std::tie(gemm_g, gemm_m, gemm_n, gemm_k_total) = CalculateGemmSize(ctx);
 
-    return IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k_total);
+        if(!IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k_total))
+            return false;
+    }
+
+    // this particular EuristicInit is so comprehensive, that if it cannot predict a valid
+    // performance config, the problem is probably not applicable
+    PerformanceImplicitGemmForwardV4R4Xdlops config;
+    config.EuristicInit(ctx);
+
+    return config.IsReallyValid(ctx);
 }
 
 PerformanceImplicitGemmForwardV4R4Xdlops

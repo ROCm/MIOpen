@@ -18,11 +18,10 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SY
 #define WORKAROUND_SWDEV_229564 1
 // workaround for buffer load/store fp16/bfp16 intrinsic bug
 #define WORKAROUND_SWDEV_231101 1
-// workaround for GPU memory access fault, due to compiler bug
+// workaround compiler bug: GPU memory access fault when there is padding in fp16/bfp16 case
 #define WORKAROUND_SWDEV_239555 1
 // LLVM xdlops instrinsic will do unnecessey VGRP <--> AGPR movement, and result in
-// register spill, for bfloat16 datatype, when doing blockwise GEMM larger
-// than 128x128 or wavewise-GEMM large than 64x64
+// register spill, for bfloat16 datatype, when doing wave-wise GEMM larger than 64x64
 #define WORKAROUND_SWDEV_240356 1
 
 namespace miopen {
@@ -388,6 +387,21 @@ inline static bool NextTwoPower(int& v)
         return true;
     }
     v *= 2;
+    return false;
+}
+
+template <int L, int H>
+inline static bool PreviousTwoPower(int& v)
+{
+    static_assert((((L - 1) & L) == 0), "L is not power of 2");
+    static_assert((((H - 1) & H) == 0), "H is not power of 2");
+    assert((IsTwoPower<L, H>(v)));
+    if(v == L)
+    {
+        v = H;
+        return true;
+    }
+    v /= 2;
     return false;
 }
 
