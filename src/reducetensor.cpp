@@ -251,7 +251,7 @@ ReduceTensorDescriptor::ReduceTensorDescriptor(miopenReduceTensorOp_t reduceTens
 
 // return the size of the workspace in bytes, so that the workspace buffer can be prepared by the
 // user
-std::size_t ReduceTensorDescriptor::GetWorkSpaceSize(Handle& handle,
+std::size_t ReduceTensorDescriptor::GetWorkSpaceSize(const Handle& handle,
                                                      const TensorDescriptor& inDesc,
                                                      const TensorDescriptor& outDesc) const
 {
@@ -319,7 +319,7 @@ std::size_t ReduceTensorDescriptor::GetIndicesSize(const TensorDescriptor& inDes
     return (outDesc.GetElementSize() * sizeof(int));
 };
 
-void ReduceTensorDescriptor::ReduceTensor(Handle& handle,
+void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                                           Data_t indices,
                                           size_t indicesSizeInBytes,
                                           Data_t workspace,

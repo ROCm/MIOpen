@@ -56,12 +56,12 @@ struct ReduceTensorDescriptor : miopenReduceTensorDescriptor
     miopenReduceTensorIndices_t reduceTensorIndices_;
     miopenIndicesType_t reduceTensorIndicesType_;
 
-    std::size_t GetWorkSpaceSize(Handle& handle,
+    std::size_t GetWorkSpaceSize(const Handle& handle,
                                  const TensorDescriptor& inDesc,
                                  const TensorDescriptor& outDesc) const;
     std::size_t GetIndicesSize(const TensorDescriptor& inDesc,
                                const TensorDescriptor& outDesc) const;
-    void ReduceTensor(Handle& handle,
+    void ReduceTensor(const Handle& handle,
                       Data_t indices,
                       size_t indicesSizeInBytes,
                       Data_t workspace,

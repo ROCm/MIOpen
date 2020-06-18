@@ -234,11 +234,7 @@ class miopenReductionHost
 
             // scale the prior dst value and add it to the accumulated value
             if(!float_equal_zero{}(beta))
-            {
-                auto priorDstValue = type_convert<Tref>{}(out_data[0]);
-
-                accuVal += type_convert<compType>{}(priorDstValue * type_convert<Tref>{}(beta));
-            };
+                accuVal += type_convert<compType>{}(out_data[0] * type_convert<Tref>{}(beta));
 
             // store the reduced value to dst location
             out_data[0] = type_convert<Tref>{}(accuVal);
@@ -305,11 +301,8 @@ class miopenReductionHost
 
                 // scale the prior dst value and add it to the accumulated value
                 if(!float_equal_zero{}(beta))
-                {
-                    auto priorDstValue = type_convert<Tref>{}(out_data[dst_offset]);
-
-                    accuVal += type_convert<compType>{}(priorDstValue * type_convert<Tref>{}(beta));
-                };
+                    accuVal +=
+                        type_convert<compType>{}(out_data[dst_offset] * type_convert<Tref>{}(beta));
 
                 // store the reduced value to dst location
                 out_data[dst_offset] = type_convert<Tref>{}(accuVal);

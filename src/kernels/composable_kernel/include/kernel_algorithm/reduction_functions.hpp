@@ -53,7 +53,7 @@ struct binop_with_nan_check;
 template <typename opReduce, typename compType>
 struct binop_with_nan_check<CK_NOT_PROPAGATE_NAN, opReduce, compType>
 {
-    __device__ static void calculate(compType& accuVal, compType& currVal)
+    __device__ static void calculate(compType& accuVal, compType currVal)
     {
         accuVal = opReduce{}(accuVal, currVal);
     };
@@ -75,7 +75,7 @@ struct binop_with_nan_check<CK_NOT_PROPAGATE_NAN, opReduce, compType>
 template <typename opReduce, typename compType>
 struct binop_with_nan_check<CK_PROPAGATE_NAN, opReduce, compType>
 {
-    __device__ static void calculate(compType& accuVal, compType& currVal)
+    __device__ static void calculate(compType& accuVal, compType currVal)
     {
         if(IsNan(currVal))
             accuVal = currVal;
