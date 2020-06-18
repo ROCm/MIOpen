@@ -53,16 +53,16 @@ struct binop_with_nan_check;
 template <typename opReduce, typename compType>
 struct binop_with_nan_check<CK_NOT_PROPAGATE_NAN, opReduce, compType>
 {
-    __device__ static void calculate(compType& accuVal, compType currVal)
+    __device__ static inline void calculate(compType& accuVal, compType currVal)
     {
         opReduce{}(accuVal, currVal);
     };
 
     // this method can only be called when the opReduce is indexable
-    __device__ static void
+    __device__ static inline void
     calculate(compType& accuVal, compType currVal, int& accuIndex, int currIndex)
     {
-        bool changed = false;
+        bool changed;
 
         opReduce{}(accuVal, currVal, changed);
 
@@ -74,7 +74,7 @@ struct binop_with_nan_check<CK_NOT_PROPAGATE_NAN, opReduce, compType>
 template <typename opReduce, typename compType>
 struct binop_with_nan_check<CK_PROPAGATE_NAN, opReduce, compType>
 {
-    __device__ static void calculate(compType& accuVal, compType currVal)
+    __device__ static inline void calculate(compType& accuVal, compType currVal)
     {
         if(IsNan(currVal))
             accuVal = currVal;
@@ -83,7 +83,7 @@ struct binop_with_nan_check<CK_PROPAGATE_NAN, opReduce, compType>
     };
 
     // this method can only be called when the opReduce is indexable
-    __device__ static void
+    __device__ static inline void
     calculate(compType& accuVal, compType currVal, int& accuIndex, int currIndex)
     {
         if(IsNan(currVal))
@@ -93,7 +93,7 @@ struct binop_with_nan_check<CK_PROPAGATE_NAN, opReduce, compType>
         }
         else
         {
-            bool changed = false;
+            bool changed;
 
             opReduce{}(accuVal, currVal, changed);
 
