@@ -728,10 +728,6 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
     const PerformanceImplicitGemmForwardV4R4Xdlops& config,
     bool) const
 {
-#if 0
-    const auto config = PerformanceImplicitGemmForwardV4R4Xdlops{256, 128, 4, 64, 128, 8, 0, 1};
-#endif
-
     ConvSolution result;
     KernelInfo construction_parameters;
 
