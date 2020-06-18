@@ -190,7 +190,21 @@ class miopenReductionHost
     template <typename compType>
     void RunImpl(Tgpu alpha, const Tgpu* in_data, Tgpu beta, Tref* out_data, int* indices)
     {
-        using reduce::ReduceOpFn;
+        bool need_indices =
+            (indicesOpt == MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES) &&
+            (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX);
+
+        if(need_indices)
+            RunImpl_with_indices<compType>(alpha, in_data, beta, out_data, indices);
+        else
+            RunImpl_no_indices<compType>(alpha, in_data, beta, out_data);
+    };
+
+    template <typename compType>
+    void
+    RunImpl_with_indices(Tgpu alpha, const Tgpu* in_data, Tgpu beta, Tref* out_data, int* indices)
+    {
+        using reduce::ReduceOpFn2;
         using reduce::ReduceOpZeroVal;
         using reduce::float_equal_one;
         using reduce::float_equal_zero;
@@ -198,10 +212,7 @@ class miopenReductionHost
         using reduce::binop_with_nan_check;
         using reduce::binop_with_nan_check2;
 
-        auto opReduce = ReduceOpFn<compType>(this->reduceOp);
-        bool need_indices =
-            (indicesOpt == MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES) &&
-            (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX);
+        auto opReduce = ReduceOpFn2<compType>(this->reduceOp);
 
         if(reduceAllDims)
         {
@@ -219,18 +230,13 @@ class miopenReductionHost
 
                 auto currVal = type_convert<compType>{}(in_data[src_offset]);
 
-                if(need_indices)
-                {
-                    auto currIndex = get_flatten_offset(inLengths, src_index);
-                    binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
-                }
-                else
-                    binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
+                auto currIndex = get_flatten_offset(inLengths, src_index);
+                binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
             };
 
             // scale the accumulated value
             if(!float_equal_one{}(alpha))
-                accuVal = accuVal * type_convert<compType>{}(alpha);
+                accuVal *= type_convert<compType>{}(alpha);
 
             // scale the prior dst value and add it to the accumulated value
             if(!float_equal_zero{}(beta))
@@ -238,8 +244,7 @@ class miopenReductionHost
 
             // store the reduced value to dst location
             out_data[0] = type_convert<Tref>{}(accuVal);
-            if(need_indices)
-                indices[0] = accuIndex;
+            indices[0]  = accuIndex;
         }
         else
         {
@@ -285,19 +290,13 @@ class miopenReductionHost
 
                     auto currVal = type_convert<compType>{}(in_data[src_offset]);
 
-                    if(need_indices)
-                    {
-                        auto currIndex = get_flatten_offset(toReduceLengths, index_2);
-                        binop_with_nan_check2(
-                            nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
-                    }
-                    else
-                        binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
+                    auto currIndex = get_flatten_offset(toReduceLengths, index_2);
+                    binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
                 };
 
                 // scale the accumulated value
                 if(!float_equal_one{}(alpha))
-                    accuVal = accuVal * type_convert<compType>{}(alpha);
+                    accuVal *= type_convert<compType>{}(alpha);
 
                 // scale the prior dst value and add it to the accumulated value
                 if(!float_equal_zero{}(beta))
@@ -306,11 +305,113 @@ class miopenReductionHost
 
                 // store the reduced value to dst location
                 out_data[dst_offset] = type_convert<Tref>{}(accuVal);
-                if(need_indices)
-                    indices[dst_offset] = accuIndex;
+                indices[dst_offset]  = accuIndex;
             };
         };
-    }; // end of RunImpl()
+    }; // end of RunImpl_with_indices()
+
+    template <typename compType>
+    void RunImpl_no_indices(Tgpu alpha, const Tgpu* in_data, Tgpu beta, Tref* out_data)
+    {
+        using reduce::ReduceOpFn;
+        using reduce::ReduceOpZeroVal;
+        using reduce::float_equal_one;
+        using reduce::float_equal_zero;
+        using reduce::type_convert;
+        using reduce::binop_with_nan_check;
+        using reduce::binop_with_nan_check2;
+
+        auto opReduce = ReduceOpFn<compType>(this->reduceOp);
+
+        if(reduceAllDims)
+        {
+            std::vector<std::vector<int>> indexes_1;
+
+            get_all_indexes(inLengths, 0, indexes_1); // generate the input indexes space
+
+            auto accuVal = ReduceOpZeroVal<compType>(this->reduceOp);
+
+            // go through indexes of the invariant dimensions
+            for(const auto& src_index : indexes_1)
+            {
+                auto src_offset = get_offset_from_index(this->inStrides, src_index);
+
+                auto currVal = type_convert<compType>{}(in_data[src_offset]);
+
+                binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
+            };
+
+            // scale the accumulated value
+            if(!float_equal_one{}(alpha))
+                accuVal *= type_convert<compType>{}(alpha);
+
+            // scale the prior dst value and add it to the accumulated value
+            if(!float_equal_zero{}(beta))
+                accuVal += type_convert<compType>{}(out_data[0] * type_convert<Tref>{}(beta));
+
+            // store the reduced value to dst location
+            out_data[0] = type_convert<Tref>{}(accuVal);
+        }
+        else
+        {
+            std::vector<std::vector<int>> indexes_1, indexes_2;
+
+            get_all_indexes(
+                this->invariantLengths, 0, indexes_1); // generate the invariant indexes space
+            get_all_indexes(
+                this->toReduceLengths, 0, indexes_2); // generate the toReduce indexes space
+
+            // go through indexes of the invariant dimensions
+            for(const auto& index_1 : indexes_1)
+            {
+                std::vector<int> src_index;
+                std::vector<int> dst_index;
+
+                src_index.resize(this->inLengths.size());
+                dst_index.resize(this->inLengths.size());
+
+                // initialize the src index
+                std::fill(dst_index.begin(), dst_index.end(), 0);
+
+                for(int k                       = 0; k < invariantDims.size(); k++)
+                    dst_index[invariantDims[k]] = index_1[k];
+
+                int dst_offset = get_offset_from_index(this->outStrides, dst_index);
+
+                // generate the part of src index belonging to invariant dims
+                for(int k                       = 0; k < invariantDims.size(); k++)
+                    src_index[invariantDims[k]] = index_1[k];
+
+                compType accuVal = ReduceOpZeroVal<compType>(this->reduceOp);
+
+                // go through indexes of the toReduce dimensions
+                for(const auto& index_2 : indexes_2)
+                {
+                    // generate the part of src index belonging to toReduce dims
+                    for(int k                      = 0; k < toReduceDims.size(); k++)
+                        src_index[toReduceDims[k]] = index_2[k];
+
+                    auto src_offset = get_offset_from_index(this->inStrides, src_index);
+
+                    auto currVal = type_convert<compType>{}(in_data[src_offset]);
+
+                    binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
+                };
+
+                // scale the accumulated value
+                if(!float_equal_one{}(alpha))
+                    accuVal *= type_convert<compType>{}(alpha);
+
+                // scale the prior dst value and add it to the accumulated value
+                if(!float_equal_zero{}(beta))
+                    accuVal +=
+                        type_convert<compType>{}(out_data[dst_offset] * type_convert<Tref>{}(beta));
+
+                // store the reduced value to dst location
+                out_data[dst_offset] = type_convert<Tref>{}(accuVal);
+            };
+        };
+    }; // end of RunImpl_no_indices()
 };
 
 #endif

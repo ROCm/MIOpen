@@ -84,26 +84,63 @@ inline bfloat16 type_convert<bfloat16>::operator()<float>(float x) const
 };
 
 template <typename compType>
-static inline std::function<compType(compType, compType)> ReduceOpFn(miopenReduceTensorOp_t op_)
+static inline std::function<void(compType&, compType)> ReduceOpFn(miopenReduceTensorOp_t op_)
 {
     switch(op_)
     {
-    case MIOPEN_REDUCE_TENSOR_ADD: return ([&](compType a_, compType b_) { return a_ + b_; });
+    case MIOPEN_REDUCE_TENSOR_ADD: return ([&](compType& a_, compType b_) { a_ = a_ + b_; });
 
-    case MIOPEN_REDUCE_TENSOR_MUL: return ([&](compType a_, compType b_) { return a_ * b_; });
+    case MIOPEN_REDUCE_TENSOR_MUL: return ([&](compType& a_, compType b_) { a_ = a_ * b_; });
 
     case MIOPEN_REDUCE_TENSOR_MIN:
-        return ([&](compType a_, compType b_) {
-            return (a_ > b_) ? b_ : a_;
-        }); // a is selected when they are equal
+        return ([&](compType& a_, compType b_) {
+            if(a_ > b_)
+                a_ = b_;
+        });
 
     case MIOPEN_REDUCE_TENSOR_MAX:
-        return ([&](compType a_, compType b_) {
-            return (a_ < b_) ? b_ : a_;
-        }); // a is selected when they are equal
+        return ([&](compType& a_, compType b_) {
+            if(a_ < b_)
+                a_ = b_;
+        });
     }
 
-    return (std::function<compType(compType, compType)>{});
+    return (std::function<void(compType&, compType)>{});
+};
+
+template <typename compType>
+static inline std::function<void(compType&, compType, bool& changed)>
+ReduceOpFn2(miopenReduceTensorOp_t op_)
+{
+    switch(op_)
+    {
+    case MIOPEN_REDUCE_TENSOR_MIN:
+        return ([&](compType& a_, compType b_, bool& changed) {
+            if(a_ > b_)
+            {
+                a_      = b_;
+                changed = true;
+            }
+            else
+                changed = false;
+        });
+
+    case MIOPEN_REDUCE_TENSOR_MAX:
+        return ([&](compType& a_, compType b_, bool& changed) {
+            if(a_ < b_)
+            {
+                a_      = b_;
+                changed = true;
+            }
+            else
+                changed = false;
+        });
+
+    case MIOPEN_REDUCE_TENSOR_ADD:
+    case MIOPEN_REDUCE_TENSOR_MUL: return (std::function<void(compType&, compType, bool&)>{});
+    };
+
+    return (std::function<void(compType&, compType, bool&)>{});
 };
 
 template <typename compType>
@@ -218,26 +255,24 @@ inline bool float_equal_zero::apply<half_float::half>(half_float::half x)
 
 template <typename compType>
 static inline void binop_with_nan_check(miopenNanPropagation_t nanOpt,
-                                        std::function<compType(compType, compType)> opReduce,
+                                        std::function<void(compType&, compType)> opReduce,
                                         compType& accuVal,
                                         compType currVal)
 {
     if(nanOpt == MIOPEN_NOT_PROPAGATE_NAN)
-        accuVal = opReduce(accuVal, currVal);
+        opReduce(accuVal, currVal);
     else
     {
         if(reduce::IsNan(currVal))
             accuVal = currVal;
         else
-            accuVal = opReduce(accuVal, currVal);
+            opReduce(accuVal, currVal);
     };
-
-    (void)accuVal;
 };
 
 template <typename compType>
 static inline void binop_with_nan_check2(miopenNanPropagation_t nanOpt,
-                                         std::function<compType(compType, compType)> opReduce,
+                                         std::function<void(compType&, compType, bool&)> opReduce,
                                          compType& accuVal,
                                          compType currVal,
                                          int& accuIndex,
@@ -245,25 +280,30 @@ static inline void binop_with_nan_check2(miopenNanPropagation_t nanOpt,
 {
     if(nanOpt == MIOPEN_NOT_PROPAGATE_NAN)
     {
-        auto accuVal_new = opReduce(accuVal, currVal);
-        if(!miopen::float_equal(accuVal, accuVal_new))
-        {
+        bool changed;
+
+        opReduce(accuVal, currVal, changed);
+
+        if(changed)
             accuIndex = currIndex;
-            accuVal   = accuVal_new;
-        };
     }
     else
     {
-        compType accuVal_new = reduce::IsNan(currVal) ? currVal : opReduce(accuVal, currVal);
-
-        if(!miopen::float_equal(accuVal, accuVal_new))
+        if(reduce::IsNan(currVal))
         {
+            accuVal   = currVal;
             accuIndex = currIndex;
-            accuVal   = accuVal_new;
+        }
+        else
+        {
+            bool changed;
+
+            opReduce(accuVal, currVal, changed);
+
+            if(changed)
+                accuIndex = currIndex;
         };
     };
-
-    (void)accuVal;
 };
 
 }; // end of namespace reduce

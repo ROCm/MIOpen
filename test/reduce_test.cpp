@@ -244,7 +244,7 @@ struct verify_reduce_with_indices
     template <typename compType>
     std::tuple<tensor<T>, tensor<int>> cpuImpl() const
     {
-        using reduce::ReduceOpFn;
+        using reduce::ReduceOpFn2;
         using reduce::ReduceOpZeroVal;
         using reduce::float_equal_one;
         using reduce::float_equal_zero;
@@ -283,7 +283,7 @@ struct verify_reduce_with_indices
 
         bool reduceAllDims = invariantDims.empty();
 
-        auto opReduce = ReduceOpFn<compType>(reduceOp);
+        auto opReduce = ReduceOpFn2<compType>(reduceOp);
 
         if(reduceAllDims)
         {
@@ -307,7 +307,7 @@ struct verify_reduce_with_indices
 
             // scale the accumulated value
             if(!float_equal_one{}(alpha))
-                accuVal = accuVal * type_convert<compType>{}(alpha);
+                accuVal *= type_convert<compType>{}(alpha);
 
             // scale the prior dst value and add it to the accumulated value
             if(!float_equal_zero{}(beta))
@@ -366,7 +366,7 @@ struct verify_reduce_with_indices
 
                 // scale the accumulated value
                 if(!float_equal_one{}(alpha))
-                    accuVal = accuVal * type_convert<compType>{}(alpha);
+                    accuVal *= type_convert<compType>{}(alpha);
 
                 // scale the prior dst value and add it to the accumulated value
                 if(!float_equal_zero{}(beta))
@@ -557,7 +557,7 @@ struct verify_reduce_no_indices
 
             // scale the accumulated value
             if(!float_equal_one{}(alpha))
-                accuVal = accuVal * type_convert<compType>{}(alpha);
+                accuVal *= type_convert<compType>{}(alpha);
 
             // scale the prior dst value and add it to the accumulated value
             if(!float_equal_one{}(beta))
@@ -611,7 +611,7 @@ struct verify_reduce_no_indices
 
                 // scale the accumulated value
                 if(!float_equal_one{}(alpha))
-                    accuVal = accuVal * type_convert<compType>{}(alpha);
+                    accuVal *= type_convert<compType>{}(alpha);
 
                 // scale the prior dst value and add it to the accumulated value
                 if(!float_equal_zero{}(beta))

@@ -55,20 +55,19 @@ struct binop_with_nan_check<CK_NOT_PROPAGATE_NAN, opReduce, compType>
 {
     __device__ static void calculate(compType& accuVal, compType currVal)
     {
-        accuVal = opReduce{}(accuVal, currVal);
+        opReduce{}(accuVal, currVal);
     };
 
     // this method can only be called when the opReduce is indexable
     __device__ static void
     calculate(compType& accuVal, compType currVal, int& accuIndex, int currIndex)
     {
-        auto accuVal_new = opReduce{}(accuVal, currVal);
+        bool changed;
 
-        if(!float_equal{}(accuVal, accuVal_new))
-        {
+        opReduce{}(accuVal, currVal, changed);
+
+        if(changed)
             accuIndex = currIndex;
-            accuVal   = accuVal_new;
-        }
     };
 };
 
@@ -80,24 +79,26 @@ struct binop_with_nan_check<CK_PROPAGATE_NAN, opReduce, compType>
         if(IsNan(currVal))
             accuVal = currVal;
         else
-            accuVal = opReduce{}(accuVal, currVal);
+            opReduce{}(accuVal, currVal);
     };
 
     // this method can only be called when the opReduce is indexable
     __device__ static void
     calculate(compType& accuVal, compType currVal, int& accuIndex, int currIndex)
     {
-        compType accuVal_new;
-
         if(IsNan(currVal))
-            accuVal_new = currVal;
-        else
-            accuVal_new = opReduce{}(accuVal, currVal);
-
-        if(!float_equal{}(accuVal, accuVal_new))
         {
+            accuVal   = currVal;
             accuIndex = currIndex;
-            accuVal   = accuVal_new;
+        }
+        else
+        {
+            bool changed;
+
+            opReduce{}(accuVal, currVal, changed);
+
+            if(changed)
+                accuIndex = currIndex;
         }
     };
 };
