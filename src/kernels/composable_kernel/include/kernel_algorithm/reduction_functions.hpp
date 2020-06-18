@@ -62,7 +62,7 @@ struct binop_with_nan_check<CK_NOT_PROPAGATE_NAN, opReduce, compType>
     __device__ static inline void
     calculate(compType& accuVal, compType currVal, int& accuIndex, int currIndex)
     {
-        bool changed;
+        bool changed = false;
 
         opReduce{}(accuVal, currVal, changed);
 
@@ -93,7 +93,7 @@ struct binop_with_nan_check<CK_PROPAGATE_NAN, opReduce, compType>
         }
         else
         {
-            bool changed;
+            bool changed = false;
 
             opReduce{}(accuVal, currVal, changed);
 
