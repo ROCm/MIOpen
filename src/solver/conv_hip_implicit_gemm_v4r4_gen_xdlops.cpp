@@ -341,8 +341,8 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     {
         const auto lowp_quant  = ctx.conv_problem.GetConv().lowp_quant;
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle, const boost::any& primitve_params) {
-                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitve_params);
+            return [=](const Handle& handle, const boost::any& primitive_params) {
+                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
                 const auto& tensors      = invoke_params.tensors;
                 float zero               = 0.f;
                 TensorDescriptor workSpaceDesc(
@@ -377,8 +377,8 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     else
     {
         result.invoker_factory = [](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle, const boost::any& primitve_params) {
-                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitve_params);
+            return [=](const Handle& handle, const boost::any& primitive_params) {
+                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
                 const auto& tensors      = invoke_params.tensors;
                 float zero               = 0.f;
                 auto elapsed             = 0.f;
