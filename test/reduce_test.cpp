@@ -133,11 +133,11 @@ struct verify_reduce_with_indices
     miopenReduceTensorIndices_t indicesOpt;
     miopenIndicesType_t indicesType;
 
-    verify_reduce_with_indices(miopen::ReduceTensorDescriptor& reduce_,
+    verify_reduce_with_indices(const miopen::ReduceTensorDescriptor& reduce_,
                                const tensor<T>& input_,
-                               tensor<T>& output_,
-                               tensor<T>& workspace_,
-                               tensor<int>& indices_,
+                               const tensor<T>& output_,
+                               const tensor<T>& workspace_,
+                               const tensor<int>& indices_,
                                T alpha_,
                                T beta_)
     {
