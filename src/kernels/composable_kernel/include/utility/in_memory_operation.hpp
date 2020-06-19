@@ -46,27 +46,35 @@ __device__ void set_data(const T* p_src, index_t src_offset, T* p_dst, index_t d
     using vector_t = typename vector_type<T, DataPerAccess>::MemoryType;
 
 #if CK_USE_AMD_BUFFER_ADDRESSING
-    // TODO: use static_if::ElseIf, instead of nested static_if
-    static_if<SrcAddressSpace == AddressSpace::Global &&
-              DstAddressSpace == AddressSpace::Vgpr>{}([&](auto) {
-        // buffer_load requires:
-        //   1) p_src must be in global memory space, d_dst must be vgpr
-        //   2) p_src to be a block-invariant pointer.
-        // It is user's responsibility to make sure that is true.
+    static_if<!std::is_same<T, float>::value>{}([&](auto) {
+        // TODO: use vector_type or AMD intrinsic copying for integer type
+        // for (index_t i=0; i < DataPerAccess; i++)
+        //     p_dst[dst_offset+i] = p_src[src_offset+i];
         *reinterpret_cast<vector_t*>(&p_dst[dst_offset]) =
-            amd_intrinsic_buffer_load<T, DataPerAccess>(p_src, src_offset, 0);
+            *reinterpret_cast<const vector_t*>(&p_src[src_offset]);
     }).Else([&](auto) {
-        static_if<SrcAddressSpace == AddressSpace::Vgpr &&
-                  DstAddressSpace == AddressSpace::Global>{}([&](auto) {
-            // buffer_store requires:
-            //   1) p_src must be in vgpr space, d_dst must be global memory
-            //   2) p_dst to be a block-invariant pointer.
+        // TODO: use static_if::ElseIf, instead of nested static_if
+        static_if<SrcAddressSpace == AddressSpace::Global &&
+                  DstAddressSpace == AddressSpace::Vgpr>{}([&](auto) {
+            // buffer_load requires:
+            //   1) p_src must be in global memory space, d_dst must be vgpr
+            //   2) p_src to be a block-invariant pointer.
             // It is user's responsibility to make sure that is true.
-            amd_intrinsic_buffer_store<T, DataPerAccess>(
-                &(p_src[src_offset]), p_dst, dst_offset, 0);
-        }).Else([&](auto) {
             *reinterpret_cast<vector_t*>(&p_dst[dst_offset]) =
-                *reinterpret_cast<const vector_t*>(&p_src[src_offset]);
+                amd_intrinsic_buffer_load<T, DataPerAccess>(p_src, src_offset, 0);
+        }).Else([&](auto) {
+            static_if<SrcAddressSpace == AddressSpace::Vgpr &&
+                      DstAddressSpace == AddressSpace::Global>{}([&](auto) {
+                // buffer_store requires:
+                //   1) p_src must be in vgpr space, d_dst must be global memory
+                //   2) p_dst to be a block-invariant pointer.
+                // It is user's responsibility to make sure that is true.
+                amd_intrinsic_buffer_store<T, DataPerAccess>(
+                    &(p_src[src_offset]), p_dst, dst_offset, 0);
+            }).Else([&](auto) {
+                *reinterpret_cast<vector_t*>(&p_dst[dst_offset]) =
+                    *reinterpret_cast<const vector_t*>(&p_src[src_offset]);
+            });
         });
     });
 #else
