@@ -169,6 +169,7 @@ class DbRecord
     bool SetValues(const std::string& id, const std::string& values);
     bool GetValues(const std::string& id, std::string& values) const;
 
+    public:
     DbRecord(const std::string& key_) : key(key_) {}
 
     bool ParseContents(const std::string& contents)
@@ -177,7 +178,6 @@ class DbRecord
         return ParseContents(ss);
     }
 
-    public:
     DbRecord() : key(""){};
     /// T shall provide a db KEY by means of the "void Serialize(std::ostream&) const" member
     /// function.
@@ -242,6 +242,8 @@ class DbRecord
     friend class PlainTextDb;
     friend class SQLitePerfDb;
     friend class ReadonlyRamDb;
+    friend struct FindRamDb;
+    friend struct PerfRamDb;
 };
 
 } // namespace miopen

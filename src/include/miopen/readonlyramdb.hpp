@@ -36,6 +36,34 @@
 
 namespace miopen {
 
+static boost::optional<DbRecord>
+FindRecordBase(const std::string& problem,
+               const std::string& db_path,
+               const std::unordered_map<std::string, std::string>& cache)
+{
+    const auto it = cache.find(problem);
+
+    if(it == cache.end())
+        return boost::none;
+
+    auto record = DbRecord{problem};
+
+    if(!record.ParseContents(it->second))
+    {
+        MIOPEN_LOG_E("Error parsing payload under the key: " << problem << " form file " << db_path
+                                                             << "#"
+                                                             << it->second);
+        MIOPEN_LOG_E("Contents: " << it->second);
+        return boost::none;
+    }
+    else
+    {
+        MIOPEN_LOG_I2("Looking for key " << problem << " in file " << db_path);
+    }
+
+    return record;
+}
+
 class ReadonlyRamDb
 {
     public:
@@ -52,28 +80,7 @@ class ReadonlyRamDb
 
     boost::optional<DbRecord> FindRecord(const std::string& problem) const
     {
-        const auto it = cache.find(problem);
-
-        if(it == cache.end())
-            return boost::none;
-
-        auto record = DbRecord{problem};
-
-        if(!record.ParseContents(it->second))
-        {
-            MIOPEN_LOG_E("Error parsing payload under the key: " << problem << " form file "
-                                                                 << db_path
-                                                                 << "#"
-                                                                 << it->second);
-            MIOPEN_LOG_E("Contents: " << it->second);
-            return boost::none;
-        }
-        else
-        {
-            MIOPEN_LOG_I2("Looking for key " << problem << " in file " << db_path);
-        }
-
-        return record;
+        return FindRecordBase(problem, db_path, cache);
     }
 
     template <class TProblem>
@@ -105,43 +112,85 @@ class ReadonlyRamDb
     void Prefetch(const std::string& path, bool warn_if_unreadable);
 };
 
-struct FindRamDb : ReadonlyRamDb
+struct FindRamDb
 {
+    const std::unordered_map<std::string, std::string>& cache;
+    std::string arch;
+    std::size_t num_cu;
     const std::unordered_map<std::string, std::string>& find_db_init(std::string arch_cu);
-    FindRamDb(std::string path, std::string _arch, std::size_t _num_cu)
-        : ReadonlyRamDb(":memory:" + path, _arch, _num_cu)
+    FindRamDb(std::string _arch, std::size_t _num_cu)
+        : cache(find_db_init(_arch + "_" + std::to_string(_num_cu))), arch(_arch), num_cu(_num_cu)
     {
-        const auto& m = find_db_init(arch + "_" + std::to_string(num_cu));
-        cache         = std::move(m);
     }
     // Override GetCached, since FindRamDb does not have state or init overhead
-    static FindRamDb& GetCached(const std::string& path,
+    static FindRamDb& GetCached(const std::string& /*path*/,
                                 bool /*warn_if_unreadble*/,
                                 const std::string& _arch,
                                 const std::size_t _num_cu)
     {
-        static auto inst = FindRamDb{path, _arch, _num_cu};
+        static auto inst = FindRamDb{_arch, _num_cu};
         return inst;
+    }
+    boost::optional<DbRecord> FindRecord(const std::string& problem) const
+    {
+        return FindRecordBase(problem, ":memory:", cache);
+    }
+
+    template <class TProblem>
+    boost::optional<DbRecord> FindRecord(const TProblem& problem) const
+    {
+        const auto key = DbRecord::Serialize(problem);
+        return FindRecord(key);
+    }
+
+    template <class TProblem, class TValue>
+    bool Load(const TProblem& problem, const std::string& id, TValue& value) const
+    {
+        const auto record = FindRecord(problem);
+        if(!record)
+            return false;
+        return record->GetValues(id, value);
     }
 };
 
-struct PerfRamDb : ReadonlyRamDb
+struct PerfRamDb
 {
+    const std::unordered_map<std::string, std::string>& cache;
+    std::string arch;
+    std::size_t num_cu;
     const std::unordered_map<std::string, std::string>& perf_db_init(std::string arch_cu);
-    PerfRamDb(std::string path, std::string _arch, std::size_t _num_cu)
-        : ReadonlyRamDb(":memory:" + path, _arch, _num_cu)
+    PerfRamDb(std::string _arch, std::size_t _num_cu)
+        : cache(perf_db_init(_arch + "_" + std::to_string(_num_cu))), arch(_arch), num_cu(_num_cu)
     {
-        const auto& m = perf_db_init(arch + "_" + std::to_string(num_cu));
-        cache         = std::move(m);
     }
 
-    static PerfRamDb& GetCached(const std::string& path,
+    static PerfRamDb& GetCached(const std::string& /*path*/,
                                 bool /*warn_if_unreadable*/,
                                 const std::string& _arch,
                                 const std::size_t _num_cu)
     {
-        static auto inst = new PerfRamDb{path, _arch, _num_cu};
+        static auto inst = new PerfRamDb{_arch, _num_cu};
         return *inst;
+    }
+    boost::optional<DbRecord> FindRecord(const std::string& problem) const
+    {
+        return FindRecordBase(problem, ":memory:", cache);
+    }
+
+    template <class TProblem>
+    boost::optional<DbRecord> FindRecord(const TProblem& problem) const
+    {
+        const auto key = DbRecord::Serialize(problem);
+        return FindRecord(key);
+    }
+
+    template <class TProblem, class TValue>
+    bool Load(const TProblem& problem, const std::string& id, TValue& value) const
+    {
+        const auto record = FindRecord(problem);
+        if(!record)
+            return false;
+        return record->GetValues(id, value);
     }
 };
 
