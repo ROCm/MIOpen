@@ -36,7 +36,7 @@ namespace solver {
 
 PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops()
     : PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops(
-          32, 32, 1, 16, 16, 1, false, false)
+          4, 4, 1, 4, 4, 1, false, false)
 {
 }
 
@@ -87,15 +87,15 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue()
             break;
         if(!NextTwoPower<1, 8>(GemmKPack))
             break;
-        if(!NextTwoPower<16, 128>(GemmNPerWave))
+        if(!NextTwoPower<4, 128>(GemmNPerWave))
             break;
-        if(!NextTwoPower<16, 128>(GemmMPerWave))
+        if(!NextTwoPower<4, 128>(GemmMPerWave))
             break;
         if(!NextTwoPower<1, 8>(GemmKPerBlock))
             break;
-        if(!NextTwoPower<32, 256>(GemmNPerBlock))
+        if(!NextTwoPower<4, 256>(GemmNPerBlock))
             break;
-        if(!NextTwoPower<32, 256>(GemmMPerBlock))
+        if(!NextTwoPower<4, 256>(GemmMPerBlock))
             break;
         return false;
     } while(false);
@@ -124,13 +124,13 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
                         break;
                     if(!PreviousTwoPower<1, 4>(tmp.GemmKPack))
                         break;
-                    if(!PreviousTwoPower<8, 128>(tmp.GemmNPerWave))
+                    if(!PreviousTwoPower<4, 128>(tmp.GemmNPerWave))
                         break;
-                    if(!PreviousTwoPower<8, 128>(tmp.GemmMPerWave))
+                    if(!PreviousTwoPower<4, 128>(tmp.GemmMPerWave))
                         break;
-                    if(!PreviousTwoPower<8, 256>(tmp.GemmNPerBlock))
+                    if(!PreviousTwoPower<4, 256>(tmp.GemmNPerBlock))
                         break;
-                    if(!PreviousTwoPower<8, 256>(tmp.GemmMPerBlock))
+                    if(!PreviousTwoPower<4, 256>(tmp.GemmMPerBlock))
                         break;
 
                     all_visited = true;
@@ -155,13 +155,13 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
                         break;
                     if(!PreviousTwoPower<4, 8>(tmp.GemmKPack))
                         break;
-                    if(!PreviousTwoPower<8, 128>(tmp.GemmNPerWave))
+                    if(!PreviousTwoPower<4, 128>(tmp.GemmNPerWave))
                         break;
-                    if(!PreviousTwoPower<8, 128>(tmp.GemmMPerWave))
+                    if(!PreviousTwoPower<4, 128>(tmp.GemmMPerWave))
                         break;
-                    if(!PreviousTwoPower<8, 256>(tmp.GemmNPerBlock))
+                    if(!PreviousTwoPower<4, 256>(tmp.GemmNPerBlock))
                         break;
-                    if(!PreviousTwoPower<8, 256>(tmp.GemmMPerBlock))
+                    if(!PreviousTwoPower<4, 256>(tmp.GemmMPerBlock))
                         break;
 
                     all_visited = true;
@@ -186,13 +186,13 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
                         break;
                     if(!PreviousTwoPower<2, 8>(tmp.GemmKPack))
                         break;
-                    if(!PreviousTwoPower<8, 128>(tmp.GemmNPerWave))
+                    if(!PreviousTwoPower<4, 128>(tmp.GemmNPerWave))
                         break;
-                    if(!PreviousTwoPower<8, 128>(tmp.GemmMPerWave))
+                    if(!PreviousTwoPower<4, 128>(tmp.GemmMPerWave))
                         break;
-                    if(!PreviousTwoPower<8, 256>(tmp.GemmNPerBlock))
+                    if(!PreviousTwoPower<4, 256>(tmp.GemmNPerBlock))
                         break;
-                    if(!PreviousTwoPower<8, 256>(tmp.GemmMPerBlock))
+                    if(!PreviousTwoPower<4, 256>(tmp.GemmMPerBlock))
                         break;
 
                     all_visited = true;
@@ -310,17 +310,16 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmABlockCopyPerformancePara
         if(!valid)
             MIOPEN_THROW("invalid performance parameter");
 
-        if(!((GemmKPerBlock * GemmMPerBlock * GemmKPack) % block_size == 0))
-            MIOPEN_THROW("invalid performance parameter");
-
-        // GemmKPack is src vector read dimension
+        // GemmKPack is src vector read dimension, bounded by GemmKPack
         SrcDataPerRead_GemmKPack = gcd(SrcDataPerRead_GemmKPack, GemmKPack);
 
         // calculate threadwise copy size
-        const auto data_per_thread_copy = (GemmKPerBlock * GemmMPerBlock * GemmKPack) / block_size;
+        auto data_per_thread_copy =
+            std::max(1, (GemmKPerBlock * GemmMPerBlock * GemmKPack) / block_size);
 
-        // SrcDataPerRead bounded by size of threadwise copy
-        SrcDataPerRead_GemmKPack = gcd(SrcDataPerRead_GemmKPack, data_per_thread_copy);
+        // make sure a thread can do a full vector load, at the cost that some threads
+        // may not do threadwise copy at all
+        data_per_thread_copy = lcm(data_per_thread_copy, SrcDataPerRead_GemmKPack);
 
         const auto data_per_thread_copy_gemmkpack = SrcDataPerRead_GemmKPack;
         const auto tmp = data_per_thread_copy / data_per_thread_copy_gemmkpack;
@@ -351,8 +350,9 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmABlockCopyPerformancePara
         ClusterLengths_GemmM     = GemmMPerBlock / data_per_thread_copy_gemmm;
         ClusterLengths_GemmKPack = GemmKPack / data_per_thread_copy_gemmkpack;
 
-        // all thread will copy
-        if(block_size != ClusterLengths_GemmK * ClusterLengths_GemmM * ClusterLengths_GemmKPack)
+        // blockwise-copy support that block_size is larger than thread cluster size, which means
+        // some threads may not do threadwise copy
+        if(block_size < ClusterLengths_GemmK * ClusterLengths_GemmM * ClusterLengths_GemmKPack)
             MIOPEN_THROW("invalid performance parameter");
     }
     catch(...)
@@ -393,9 +393,6 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
         if(!valid)
             MIOPEN_THROW("invalid performance parameter");
 
-        if(!((GemmKPerBlock * GemmNPerBlock * GemmKPack) % block_size == 0))
-            MIOPEN_THROW("invalid performance parameter");
-
         // GemmN is src vector read dimension
         // calculate vector length on gemmn dimension based on global tensor layout
         const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
@@ -413,6 +410,7 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
         const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
         const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
+        // GemmN is src vector read dimension, bounded by input tensor global memory layout
         // TODO this logic need to be more aggresive
         if(y == 1 && x == 1 && conv_stride_h == 1 && conv_stride_w == 1 && in_left_pad_h == 0 &&
            in_left_pad_w == 0 && in_right_pad_h == 0 && in_right_pad_w == 0)
@@ -433,14 +431,16 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
             SrcDataPerRead_GemmN = 1;
         }
 
-        // calculate threadwise copy size
-        const auto data_per_thread_copy = (GemmKPerBlock * GemmNPerBlock * GemmKPack) / block_size;
-
-        // SrcDataPerRead_GemmN bounded by size of threadwise copy
-        SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, data_per_thread_copy);
-
-        // SrcDataPerRead also bounded by GemmKPack;
+        // SrcDataPerRead_GemmN also bounded by GemmNPerBlock
         SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, GemmNPerBlock);
+
+        // calculate threadwise copy size
+        auto data_per_thread_copy =
+            std::max(1, (GemmKPerBlock * GemmNPerBlock * GemmKPack) / block_size);
+
+        // make sure a thread can do a full vector load, at the cost that some threads
+        // may not do threadwise copy at all
+        data_per_thread_copy = lcm(data_per_thread_copy, SrcDataPerRead_GemmN);
 
         const auto data_per_thread_copy_gemmn = SrcDataPerRead_GemmN;
         const auto tmp                        = data_per_thread_copy / data_per_thread_copy_gemmn;
@@ -471,8 +471,9 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
         ClusterLengths_GemmN     = GemmNPerBlock / data_per_thread_copy_gemmn;
         ClusterLengths_GemmKPack = GemmKPack / data_per_thread_copy_gemmkpack;
 
-        // all thread will copy
-        if(block_size != ClusterLengths_GemmK * ClusterLengths_GemmN * ClusterLengths_GemmKPack)
+        // blockwise-copy support that block_size is larger than thread cluster size, which means
+        // some threads may not do threadwise copy
+        if(block_size < ClusterLengths_GemmK * ClusterLengths_GemmN * ClusterLengths_GemmKPack)
             MIOPEN_THROW("invalid performance parameter");
     }
     catch(...)
@@ -504,11 +505,11 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmForwardV4R4Xdlops::Calculat
 bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValidValue() const
 {
     // clang-format off
-    return IsTwoPower<32, 256>(GemmMPerBlock) 
-        && IsTwoPower<32, 256>(GemmNPerBlock) 
+    return IsTwoPower<4, 256>(GemmMPerBlock)
+        && IsTwoPower<4, 256>(GemmNPerBlock)
         && IsTwoPower<1, 8>(GemmKPerBlock)
-        && IsTwoPower<16, 128>(GemmMPerWave)
-        && IsTwoPower<16, 128>(GemmNPerWave)
+        && IsTwoPower<4, 128>(GemmMPerWave)
+        && IsTwoPower<4, 128>(GemmNPerWave)
         && IsTwoPower<1, 8>(GemmKPack);
     // clang-format on
 }
