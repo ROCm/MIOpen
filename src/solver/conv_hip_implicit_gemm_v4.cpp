@@ -35,11 +35,12 @@
 
 #include "implicitgemm_util.hpp"
 
-#define WORKAROUND_ISSUE_2174_2222_2224_2243 1
+// #define WORKAROUND_ISSUE_2174_2222_2224_2243 1
 
 namespace miopen {
 namespace solver {
 
+#if 0
 bool ConvHipImplicitGemmV4WrW::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(!ctx.direction.IsBackwardWrW())
@@ -150,14 +151,6 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
 
         construction_parameters.kernel_name =
             "gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_lds_double_buffer";
-    }
-    else if(kernel == ImplicitGemmV4_1x1)
-    {
-        construction_parameters.kernel_file =
-            "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer.cpp";
-
-        construction_parameters.kernel_name =
-            "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer";
     }
     else
     {
@@ -311,6 +304,7 @@ PerformanceImplicitGemm ConvHipImplicitGemmV4WrW::Search(const ConvolutionContex
 {
     return GenericSearchWrW(*this, context);
 }
+#endif
 
 } // namespace solver
 } // namespace miopen

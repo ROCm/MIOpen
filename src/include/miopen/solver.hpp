@@ -960,6 +960,7 @@ struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlop
     std::string ToString() const;
 };
 
+#if 0
 struct ConvHipImplicitGemmV4R4FwdXdlops : SolverBase<ConvolutionContext>
 {
     PerformanceImplicitGemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
@@ -1022,6 +1023,7 @@ struct ConvHipImplicitGemmV4R4WrWXdlops : SolverBase<ConvolutionContext>
                               const ConvSolution& solution,
                               float& elapsed_time) const;
 };
+#endif
 
 struct ConvHipImplicitGemmV4R4GenFwdXdlops : SolverBase<ConvolutionContext>
 {
@@ -1155,6 +1157,7 @@ struct ConvHipImplicitGemmV4R1WrW : SolverBase<ConvolutionContext>
                               float& elapsed_time) const;
 };
 
+#if 0
 struct ConvHipImplicitGemmV4WrW : SolverBase<ConvolutionContext>
 {
     PerformanceImplicitGemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
@@ -1175,6 +1178,7 @@ struct ConvHipImplicitGemmV4WrW : SolverBase<ConvolutionContext>
                               const ConvSolution& solution,
                               float& elapsed_time) const;
 };
+#endif
 
 struct ConvHipImplicitGemmBwdDataV1R1 : SolverBase<ConvolutionContext>
 {

@@ -42,6 +42,7 @@ namespace solver {
 /// \todo enable vector load after fix it
 #define WORKAROUND_FAILED_VECTOR_LOAD 1
 
+#if 0
 PerformanceImplicitGemmXdlops
 ConvHipImplicitGemmV4R4FwdXdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
 {
@@ -395,6 +396,7 @@ ConvHipImplicitGemmV4R4WrWXdlops::Search(const ConvolutionContext& ctx) const
 {
     return GenericSearchWrW(*this, ctx);
 }
+#endif
 
 } // namespace solver
 } // namespace miopen
