@@ -53,18 +53,18 @@ struct binop_with_nan_check;
 template <typename opReduce, typename compType>
 struct binop_with_nan_check<CK_NOT_PROPAGATE_NAN, opReduce, compType>
 {
-    __device__ static inline void calculate(compType& accuVal, compType currVal)
+    __device__ static inline void calculate(const compType& accuVal, compType currVal)
     {
-        opReduce{}(accuVal, currVal);
+        opReduce{}(const_cast<compType&>(accuVal), currVal);
     };
 
     // this method can only be called when the opReduce is indexable
     __device__ static inline void
-    calculate(compType& accuVal, compType currVal, int& accuIndex, int currIndex)
+    calculate(const compType& accuVal, compType currVal, int& accuIndex, int currIndex)
     {
         bool changed = false;
 
-        opReduce{}(accuVal, currVal, changed);
+        opReduce{}(const_cast<compType&>(accuVal), currVal, changed);
 
         if(changed)
             accuIndex = currIndex;
