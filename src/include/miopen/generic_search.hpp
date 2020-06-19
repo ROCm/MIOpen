@@ -47,6 +47,8 @@
 namespace miopen {
 namespace solver {
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_COMPILE_AND_RUN)
+
 /// This STL-like container together with corresponding iterator provide access
 /// to a set of all available performance configs for the given problem config.
 ///
@@ -360,8 +362,13 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
     HeartBeat<PerformanceConfig> heartbeat;
     heartbeat.Start();
 
-    const auto compile_and_run = miopen::EnvvarValue("MIOPEN_COMPILE_AND_RUN");
-    if(compile_and_run==0){
+    const char* const c_and_r = miopen::GetStringEnv(MIOPEN_COMPILE_AND_RUN{});
+    std::string compile_and_run;
+    if(c_and_r != nullptr && strlen(c_and_r) > 0){
+        compile_and_run = c_and_r;
+    }
+
+    if(compile_and_run=="0"){
         for(const auto& current_config : all_configs)
         {
             ConvSolution current_solution = s.GetSolution(context, current_config, true);
