@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "Conv_Winograd_v20_5_23_M_dilation2_prologue.inc"
-.include "Conv_Winograd_v20_5_23_M_dilation2.inc"
-.include "Conv_Winograd_v20_5_23_M_dilation2_epilogue.inc"
+.include "Conv_Winograd_v21_1_0_metadata.inc"
+
+KERNEL_PROLOG gfx9_fp16_dot2_edc_stride1_group
+
+.include "Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride1_group.inc"
+
+KERNEL_EPILOG gfx9_fp16_dot2_edc_stride1_group

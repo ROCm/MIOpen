@@ -48,6 +48,9 @@ bool ConvHipImplicitGemmV4WrW::IsApplicable(const ConvolutionContext& ctx) const
     if(!ctx.Is2d())
         return false;
 
+    if(!ctx.use_hip_kernels)
+        return false;
+
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 
@@ -55,7 +58,7 @@ bool ConvHipImplicitGemmV4WrW::IsApplicable(const ConvolutionContext& ctx) const
         return false;
 
 #if WORKAROUND_ISSUE_2174_2222_2224_2243
-    if(miopen::HipGetHccVersion() >= external_tool_version_t{2, 6, 0})
+    if(miopen::HipCompilerVersion() >= external_tool_version_t{2, 6, 0})
     {
         if(!(ctx.kernel_stride_w == 1 && ctx.kernel_stride_h == 1))
             return false;
@@ -148,14 +151,17 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         construction_parameters.kernel_name =
             "gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_lds_double_buffer";
     }
-
-    if(kernel == ImplicitGemmV4_1x1)
+    else if(kernel == ImplicitGemmV4_1x1)
     {
         construction_parameters.kernel_file =
             "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer.cpp";
 
         construction_parameters.kernel_name =
             "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer";
+    }
+    else
+    {
+        MIOPEN_THROW("invalid value of 'kernel'");
     }
 
     std::size_t WeiBlockCopySubLengths_E = EPerBlock / config.WeiBlockCopyClusterLengths_E;

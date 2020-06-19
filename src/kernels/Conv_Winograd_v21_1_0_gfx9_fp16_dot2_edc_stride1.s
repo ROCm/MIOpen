@@ -23,6 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "Conv_Winograd_v20_5_23_M_stride2_prologue.inc"
-.include "Conv_Winograd_v20_5_23_M_stride2.inc"
-.include "Conv_Winograd_v20_5_23_M_stride2_epilogue.inc"
+.include "Conv_Winograd_v21_1_0_metadata.inc"
+
+KERNEL_PROLOG gfx9_fp16_dot2_edc_stride1
+
+.include "Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride1.inc"
+
+KERNEL_EPILOG gfx9_fp16_dot2_edc_stride1

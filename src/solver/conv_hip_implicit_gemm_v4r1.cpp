@@ -41,10 +41,10 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx) con
 {
     if(!ctx.direction.IsForward())
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.Is2d())
         return false;
-
     if(!ctx.IsFp32() && !ctx.IsFp16() && !ctx.IsBfp16())
         return false;
 
@@ -69,10 +69,10 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) con
 {
     if(!ctx.direction.IsBackwardWrW())
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.Is2d())
         return false;
-
     if(!ctx.IsFp32() && !ctx.IsFp16() && !ctx.IsBfp16())
         return false;
 
