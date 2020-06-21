@@ -197,11 +197,11 @@ struct HIPOCKernel
         if(hipSuccess != status)
             MIOPEN_THROW_HIP_STATUS(status,
                                     "Failed to get function: " + kernel_module + " from " +
-                                        program.GetBinary().string());
+                                        program.GetCodeObjectPathname().string());
     }
 
     HIPOCKernelInvoke Invoke(hipStream_t stream,
-                             std::function<void(hipEvent_t, hipEvent_t)> callback = nullptr);
+                             std::function<void(hipEvent_t, hipEvent_t)> callback = nullptr) const;
 };
 
 } // namespace miopen

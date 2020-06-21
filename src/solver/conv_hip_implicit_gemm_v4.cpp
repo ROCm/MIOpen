@@ -46,7 +46,8 @@ bool ConvHipImplicitGemmV4_1x1::IsApplicable(const ConvolutionContext& ctx) cons
     if(!IsHccCompiler())
         return false;
 #endif
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.Is2d())
         return false;
 
@@ -67,6 +68,9 @@ bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
     if(!ctx.direction.IsForward())
         return false;
 
+    if(!ctx.use_hip_kernels)
+        return false;
+
     if(!ctx.Is2d())
         return false;
 
@@ -77,7 +81,7 @@ bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
         return false;
 
 #if WORKAROUND_ISSUE_2174_2222_2224_2243
-    if(miopen::HipGetHccVersion() >= external_tool_version_t{2, 6, 0})
+    if(miopen::HipCompilerVersion() >= external_tool_version_t{2, 6, 0})
     {
         if(!(ctx.kernel_dilation_h == 1 && ctx.kernel_dilation_w == 1))
             return false;
@@ -115,6 +119,9 @@ bool ConvHipImplicitGemmV4WrW::IsApplicable(const ConvolutionContext& ctx) const
     if(!ctx.Is2d())
         return false;
 
+    if(!ctx.use_hip_kernels)
+        return false;
+
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 
@@ -122,7 +129,7 @@ bool ConvHipImplicitGemmV4WrW::IsApplicable(const ConvolutionContext& ctx) const
         return false;
 
 #if WORKAROUND_ISSUE_2174_2222_2224_2243
-    if(miopen::HipGetHccVersion() >= external_tool_version_t{2, 6, 0})
+    if(miopen::HipCompilerVersion() >= external_tool_version_t{2, 6, 0})
     {
         if(!(ctx.kernel_stride_w == 1 && ctx.kernel_stride_h == 1))
             return false;
@@ -241,14 +248,17 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         construction_parameters.kernel_name =
             "gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_lds_double_buffer";
     }
-
-    if(kernel == ImplicitGemmV4_1x1)
+    else if(kernel == ImplicitGemmV4_1x1)
     {
         construction_parameters.kernel_file =
             "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer.cpp";
 
         construction_parameters.kernel_name =
             "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer";
+    }
+    else
+    {
+        MIOPEN_THROW("invalid value of 'kernel'");
     }
 
     std::size_t WeiBlockCopySubLengths_E = EPerBlock / config.WeiBlockCopyClusterLengths_E;
@@ -404,7 +414,7 @@ ConvSolution ConvHipImplicitGemmV4_1x1::GetSolution(const ConvolutionContext& ct
                            KernelOutputWidthWo(ctx));
 }
 
-int ConvHipImplicitGemmV4Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmV4Fwd::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                     ConstData_t bot_buf,
                                                     Data_t top_buf,
                                                     ConstData_t wei_buf,
@@ -420,7 +430,7 @@ int ConvHipImplicitGemmV4Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
         profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
-int ConvHipImplicitGemmV4WrW::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmV4WrW::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                     ConstData_t bot_buf,
                                                     ConstData_t top_buf,
                                                     Data_t wei_buf,
@@ -435,7 +445,7 @@ int ConvHipImplicitGemmV4WrW::RunAndMeasureSolution(miopen::Handle& profile_h,
         profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
-int ConvHipImplicitGemmV4_1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmV4_1x1::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                      ConstData_t bot_buf,
                                                      Data_t top_buf,
                                                      ConstData_t wei_buf,

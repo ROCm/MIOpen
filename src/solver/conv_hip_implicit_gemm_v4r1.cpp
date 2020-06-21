@@ -41,10 +41,10 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx) con
 {
     if(!ctx.direction.IsForward())
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.Is2d())
         return false;
-
     if(!ctx.IsFp32() && !ctx.IsFp16() && !ctx.IsBfp16())
         return false;
 
@@ -69,10 +69,10 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) con
 {
     if(!ctx.direction.IsBackwardWrW())
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.Is2d())
         return false;
-
     if(!ctx.IsFp32() && !ctx.IsFp16() && !ctx.IsBfp16())
         return false;
 
@@ -132,7 +132,7 @@ bool ConvHipImplicitGemmV4R1WrW::IsValidPerformanceConfig(
     return c.IsValidValue() && c.IsValid(ctx);
 }
 
-int ConvHipImplicitGemmV4R1Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmV4R1Fwd::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                       ConstData_t bot_buf,
                                                       Data_t top_buf,
                                                       ConstData_t wei_buf,
@@ -148,7 +148,7 @@ int ConvHipImplicitGemmV4R1Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
         profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
-int ConvHipImplicitGemmV4R1WrW::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmV4R1WrW::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                       ConstData_t bot_buf,
                                                       ConstData_t top_buf,
                                                       Data_t wei_buf,

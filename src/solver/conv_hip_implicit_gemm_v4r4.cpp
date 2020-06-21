@@ -412,9 +412,9 @@ bool PerformanceImplicitGemmV4R4Fwd::IsValidValue() const
 {
     // clang-format off
     return IsTwoPower<64, 256>(BlockSize) &&
-           IsTwoPower<32, 128>(GemmMPerBlock) && 
+           IsTwoPower<32, 128>(GemmMPerBlock) &&
            IsTwoPower<32, 128>(GemmNPerBlock) &&
-           IsTwoPower<4, 16>(GemmKPerBlock) && 
+           IsTwoPower<4, 16>(GemmKPerBlock) &&
            IsTwoPower<2, 4>(GemmMPerThread) &&
            IsTwoPower<2, 4>(GemmNPerThread);
     // clang-format on
@@ -585,13 +585,12 @@ bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ConvolutionContext& ctx) con
 {
     if(!ctx.direction.IsForward())
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.Is2d() && !ctx.Is3d())
         return false;
-
     if(!ctx.IsFp32())
         return false;
-
     if(ctx.group_counts != 1)
         return false;
 
@@ -622,7 +621,7 @@ ConvHipImplicitGemmV4R4Fwd::Search(const ConvolutionContext& context) const
     return GenericSearchFwd(*this, context);
 }
 
-int ConvHipImplicitGemmV4R4Fwd::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmV4R4Fwd::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                       ConstData_t bot_buf,
                                                       Data_t top_buf,
                                                       ConstData_t wei_buf,
@@ -713,7 +712,7 @@ ConvSolution ConvHipImplicitGemmV4R4Fwd::GetSolution(const ConvolutionContext& c
         config.CalculateGemmCThreadCopyPerformanceParameters(ctx);
 
     // clang-format off
-    construction_parameters.comp_options = 
+    construction_parameters.comp_options =
         std::string(" -std=c++14 ") +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ConvolutionContextInterpreter::GetBatchN(ctx)) +
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ConvolutionContextInterpreter::GetOutputChannelK(ctx)) +

@@ -233,7 +233,7 @@ class SQLiteBase
                     boost::filesystem::permissions(directory, boost::filesystem::all_all);
             }
         }
-        sql = std::move(SQLite{filename_, is_system});
+        sql = SQLite{filename_, is_system};
         if(!sql.Valid())
         {
             dbInvalid = true;
@@ -327,16 +327,16 @@ Derived& SQLiteBase<Derived>::GetCached(const std::string& path,
                                         const size_t num_cu)
 {
     static std::mutex mutex;
-    static const std::lock_guard<std::mutex> lock{mutex};
+    std::lock_guard<std::mutex> lock{mutex};
 
-    static auto instances = std::map<std::string, Derived*>{};
+    static auto instances = std::map<std::string, Derived>{};
     const auto it         = instances.find(path);
 
     if(it != instances.end())
-        return *(it->second);
+        return it->second;
 
-    instances.emplace(path, new Derived{path, is_system, arch, num_cu}); // NOLINT
-    return *(instances.at(path));
+    instances.emplace(path, Derived{path, is_system, arch, num_cu});
+    return instances.at(path);
 }
 
 class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
@@ -393,7 +393,7 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
         auto select_query =
             "SELECT solver, params "
             "FROM perf_db "
-            "INNER JOIN " + problem_config.table_name() + " " 
+            "INNER JOIN " + problem_config.table_name() + " "
             "ON perf_db.config = " + problem_config.table_name() +".id "
             "WHERE "
             "( " + clause + " )"
@@ -431,7 +431,7 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
         std::vector<std::string> values;
         std::tie(clause, values) = problem_config.WhereClause();
         // clang-format off
-        auto query = 
+        auto query =
             "DELETE FROM perf_db "
             "WHERE config IN ("
             "SELECT id FROM config WHERE ( "
@@ -526,7 +526,7 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
         std::vector<std::string> values;
         std::tie(clause, values) = problem_config.WhereClause();
         // clang-format off
-        auto query = 
+        auto query =
             "DELETE FROM perf_db "
             "WHERE config IN ("
             "SELECT id FROM config WHERE ( "

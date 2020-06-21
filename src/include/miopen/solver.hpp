@@ -121,7 +121,7 @@ struct SolverBase
     ///                          const PerformanceConfig& config) const;
 
     /// Temporary solver-specific method until we have generic means for running solutions.
-    /// int RunAndMeasureSolution(miopen::Handle& profile_h,
+    /// int RunAndMeasureSolution(const miopen::Handle& profile_h,
     ///                          Data_t bot_ocl_buf,
     ///                          Data_t top_ocl_buf,
     ///                          Data_t wei_ocl_buf,
@@ -168,7 +168,7 @@ struct ConvAsm3x3U : SolverBase<ConvolutionContext>
                              const PerformanceConfigConvAsm3x3U& config,
                              bool disableConfigOverrideFromEnv = false) const;
     template <typename B, typename T>
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               B bot_ocl_buf,
                               T top_ocl_buf,
                               ConstData_t wei_ocl_buf,
@@ -244,7 +244,7 @@ struct ConvAsm1x1U : SolverBase<ConvolutionContext>
                              const PerformanceConfigConvAsm1x1U& config,
                              bool disableConfigOverrideFromEnv = false) const;
     template <typename B, typename T>
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               B bot_ocl_buf,
                               T top_ocl_buf,
                               ConstData_t wei_ocl_buf,
@@ -269,7 +269,7 @@ struct ConvBiasActivAsm1x1U : ConvAsm1x1U
 {
     PerformanceConfigConvBiasActivAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const;
     template <typename B, typename T>
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               B bot_ocl_buf,
                               T top_ocl_buf,
                               ConstData_t wei_ocl_buf,
@@ -352,7 +352,7 @@ struct ConvAsm1x1UV2 : SolverBase<ConvolutionContext>
                              const PerformanceConfigConvAsm1x1UV2& config,
                              bool disableConfigOverrideFromEnv = false) const;
     template <typename B, typename T>
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               B bot_ocl_buf,
                               T top_ocl_buf,
                               ConstData_t wei_ocl_buf,
@@ -554,6 +554,62 @@ struct PerformanceImplicitGemmV4R4Fwd : Serializable<PerformanceImplicitGemmV4R4
     std::string ToString() const;
 };
 
+struct PerformanceImplicitGemmV4R4WrW : Serializable<PerformanceImplicitGemmV4R4WrW>
+{
+    int BlockSize;
+
+    int GemmMPerBlock;
+    int GemmNPerBlock;
+    int GemmKPerBlock;
+
+    int GemmMPerThread;
+    int GemmNPerThread;
+
+    bool use_spare_set;
+
+    PerformanceImplicitGemmV4R4WrW(int, int, int, int, int, int, bool);
+
+    PerformanceImplicitGemmV4R4WrW(int a, int b, int c, int d, int e, int f)
+        : PerformanceImplicitGemmV4R4WrW(a, b, c, d, e, f, false)
+    {
+    }
+
+    PerformanceImplicitGemmV4R4WrW() : PerformanceImplicitGemmV4R4WrW(-1, -1, -1, -1, -1, -1, false)
+    {
+    }
+
+    PerformanceImplicitGemmV4R4WrW(bool spare);
+
+    bool operator==(const PerformanceImplicitGemmV4R4WrW& other) const;
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.BlockSize, "BlockSize");
+        f(self.GemmMPerBlock, "GemmMPerBlock");
+        f(self.GemmNPerBlock, "GemmNPerBlock");
+        f(self.GemmKPerBlock, "GemmKPerBlock");
+        f(self.GemmMPerThread, "GemmMPerThread");
+        f(self.GemmNPerThread, "GemmNPerThread");
+    }
+
+    std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, bool>
+    CalculateBlockGemmPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, bool>
+    CalculateGemmABlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, bool>
+    CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<int, bool>
+    CalculateGemmCThreadCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext& ctx) const;
+    void EuristicInit(const ConvolutionContext& ctx);
+    bool SetNextValue();
+    std::string ToString() const;
+};
+
 struct PerformanceImplicitGemmBwdDataV1R1 : Serializable<PerformanceImplicitGemmBwdDataV1R1>
 {
     int BlockSize;
@@ -668,6 +724,60 @@ struct PerformanceImplicitGemmBwdDataV4R1 : Serializable<PerformanceImplicitGemm
     std::string ToString() const;
 };
 
+struct PerformanceImplicitGemmBwdDataV4R1Xdlops
+    : Serializable<PerformanceImplicitGemmBwdDataV4R1Xdlops>
+{
+    int GemmNPerBlock; // 2^n[8..16]
+    int GemmMPerBlock; // 2^n[32..128]
+    int GemmKPerBlock; // 2^n[4..16]
+
+    int GemmKPACKSize; // 2^[1..4]
+
+    int GemmMPerWave;
+    int GemmNPerWave;
+
+    bool use_spare_set;
+
+    PerformanceImplicitGemmBwdDataV4R1Xdlops(int, int, int, int, int, int, bool);
+
+    PerformanceImplicitGemmBwdDataV4R1Xdlops()
+        : PerformanceImplicitGemmBwdDataV4R1Xdlops(-1, -1, -1, -1, -1, -1, false)
+    {
+    }
+
+    PerformanceImplicitGemmBwdDataV4R1Xdlops(int a, int b, int c, int d, int e, int f)
+        : PerformanceImplicitGemmBwdDataV4R1Xdlops(a, b, c, d, e, f, false)
+    {
+    }
+
+    PerformanceImplicitGemmBwdDataV4R1Xdlops(bool spare);
+
+    bool operator==(const PerformanceImplicitGemmBwdDataV4R1Xdlops& other) const;
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.GemmNPerBlock, "GemmNPerBlock");
+        f(self.GemmMPerBlock, "GemmMPerBlock");
+        f(self.GemmKPerBlock, "GemmKPerBlock");
+        f(self.GemmKPACKSize, "GemmKPACKSize");
+        f(self.GemmMPerWave, "GemmMPerWave");
+        f(self.GemmNPerWave, "GemmNPerWave");
+    }
+
+    std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
+    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, bool>
+    CalculateGemmABlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, bool>
+    CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext& ctx) const;
+    void EuristicInit(const ConvolutionContext& ctx);
+    bool SetNextValue();
+    std::string ToString() const;
+};
+
 struct ConvHipImplicitGemmV4R1Fwd : SolverBase<ConvolutionContext>
 {
     PerformanceImplicitGemmV4R1 GetPerformanceConfig(const ConvolutionContext& ctx) const;
@@ -680,7 +790,7 @@ struct ConvHipImplicitGemmV4R1Fwd : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 
     PerformanceImplicitGemmV4R1 Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               Data_t top_buf,
                               ConstData_t wei_buf,
@@ -698,7 +808,7 @@ struct ConvHipImplicitGemmV4R4Fwd : SolverBase<ConvolutionContext>
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const PerformanceImplicitGemmV4R4Fwd& config) const;
     PerformanceImplicitGemmV4R4Fwd Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               Data_t top_buf,
                               ConstData_t wei_buf,
@@ -722,7 +832,7 @@ struct ConvHipImplicitGemmV4Fwd : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 
     PerformanceImplicitGemm Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               Data_t top_buf,
                               ConstData_t wei_buf,
@@ -789,7 +899,7 @@ struct ConvHipImplicitGemmV4R4GenXdlopsFwdFp32 : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 
     PerformanceImplicitGemmV4R4GenXdlopsFwdFp32 Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               Data_t top_buf,
                               ConstData_t wei_buf,
@@ -797,6 +907,27 @@ struct ConvHipImplicitGemmV4R4GenXdlopsFwdFp32 : SolverBase<ConvolutionContext>
                               const ConvolutionContext& ctx,
                               const ConvSolution& solution,
                               float& elapsed_time) const;
+};
+
+struct ConvHipImplicitGemmV4R4WrW : SolverBase<ConvolutionContext>
+{
+    static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    PerformanceImplicitGemmV4R4WrW GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceImplicitGemmV4R4WrW& config) const;
+    PerformanceImplicitGemmV4R4WrW Search(const ConvolutionContext&) const;
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
+                              ConstData_t bot_buf,
+                              ConstData_t top_buf,
+                              Data_t wei_buf,
+                              ConstData_t bias_buf,
+                              const ConvolutionContext& ctx,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceImplicitGemmV4R4WrW& config,
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlops>
@@ -862,7 +993,7 @@ struct ConvHipImplicitGemmV4R4FwdXdlops : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 
     PerformanceImplicitGemmXdlops Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               Data_t top_buf,
                               ConstData_t wei_buf,
@@ -883,7 +1014,7 @@ struct ConvHipImplicitGemmV4R4Xdlops_1x1 : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 
     PerformanceImplicitGemmXdlops Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               Data_t top_buf,
                               ConstData_t wei_buf,
@@ -904,7 +1035,7 @@ struct ConvHipImplicitGemmV4R4WrWXdlops : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 
     PerformanceImplicitGemmXdlops Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               ConstData_t top_buf,
                               Data_t wei_buf,
@@ -925,7 +1056,7 @@ struct ConvHipImplicitGemmV4R4GenFwdXdlops : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 
     PerformanceImplicitGemmXdlops Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               Data_t top_buf,
                               ConstData_t wei_buf,
@@ -994,7 +1125,7 @@ struct ConvHipImplicitGemmV4R4GenXdlopsWrWFp32 : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 
     PerformanceImplicitGemmV4R4GenXdlopsWrWFp32 Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               ConstData_t top_buf,
                               Data_t wei_buf,
@@ -1016,7 +1147,7 @@ struct ConvHipImplicitGemmV4R4GenWrWXdlops : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 
     PerformanceImplicitGemmXdlops Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               ConstData_t top_buf,
                               Data_t wei_buf,
@@ -1037,7 +1168,7 @@ struct ConvHipImplicitGemmV4_1x1 : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 
     PerformanceImplicitGemm Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               Data_t top_buf,
                               ConstData_t wei_buf,
@@ -1058,7 +1189,7 @@ struct ConvHipImplicitGemmV4R1WrW : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 
     PerformanceImplicitGemmV4R1 Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               ConstData_t top_buf,
                               Data_t wei_buf,
@@ -1079,7 +1210,7 @@ struct ConvHipImplicitGemmV4WrW : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 
     PerformanceImplicitGemm Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               ConstData_t top_buf,
                               Data_t wei_buf,
@@ -1097,7 +1228,7 @@ struct ConvHipImplicitGemmBwdDataV1R1 : SolverBase<ConvolutionContext>
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const PerformanceImplicitGemmBwdDataV1R1& config) const;
     PerformanceImplicitGemmBwdDataV1R1 Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               Data_t top_buf,
                               ConstData_t wei_buf,
@@ -1120,7 +1251,7 @@ struct ConvHipImplicitGemmBwdDataV4R1 : SolverBase<ConvolutionContext>
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const PerformanceImplicitGemmBwdDataV4R1& config) const;
     PerformanceImplicitGemmBwdDataV4R1 Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               Data_t top_buf,
                               ConstData_t wei_buf,
@@ -1131,6 +1262,29 @@ struct ConvHipImplicitGemmBwdDataV4R1 : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmBwdDataV4R1& config,
                              bool disableConfigOverrideFromEnv = false) const;
+};
+
+struct ConvHipImplicitGemmBwdDataV4R1Xdlops : SolverBase<ConvolutionContext>
+{
+    static int CalculateNumberOfGemm(const ConvolutionContext& ctx);
+    static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx, int gemm_id);
+    PerformanceImplicitGemmBwdDataV4R1Xdlops
+    GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceImplicitGemmBwdDataV4R1Xdlops& c) const;
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceImplicitGemmBwdDataV4R1Xdlops& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+    PerformanceImplicitGemmBwdDataV4R1Xdlops Search(const ConvolutionContext&) const;
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
+                              ConstData_t bot_buf,
+                              Data_t top_buf,
+                              ConstData_t wei_buf,
+                              ConstData_t bias_buf,
+                              const ConvolutionContext& ctx,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
 };
 
 struct ConvHipImplicitGemmBwdDataV1R1Xdlops : SolverBase<ConvolutionContext>
@@ -1144,6 +1298,117 @@ struct ConvHipImplicitGemmBwdDataV1R1Xdlops : SolverBase<ConvolutionContext>
                              const PerformanceImplicitGemmXdlops& config,
                              bool disableConfigOverrideFromEnv = false) const;
     PerformanceImplicitGemmXdlops Search(const ConvolutionContext&) const;
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
+                              ConstData_t bot_buf,
+                              Data_t top_buf,
+                              ConstData_t wei_buf,
+                              ConstData_t bias_buf,
+                              const ConvolutionContext& ctx,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
+};
+
+struct PerformanceImplicitGemmV4R1Dynamic : Serializable<PerformanceImplicitGemmV4R1Dynamic>
+{
+    int BPerBlock;
+    int KPerBlock;
+    int EPerBlock;
+
+    int GemmNRepeat;
+
+    int GemmMPerThreadSubC;
+    int GemmNPerThreadSubC;
+
+    int GemmMLevel0Cluster;
+    int GemmNLevel0Cluster;
+    int GemmMLevel1Cluster;
+    int GemmNLevel1Cluster;
+
+    int InBlockCopyClusterLengths_E;
+    int InBlockCopyClusterLengths_N1;
+    int InBlockCopyClusterLengths_B;
+    int InBlockCopyClusterLengths_N2;
+
+    int WeiBlockCopyClusterLengths_E;
+    int WeiBlockCopyClusterLengths_K;
+
+    int PreGeneratedKernelIndex;
+
+    PerformanceImplicitGemmV4R1Dynamic(
+        int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int);
+
+    PerformanceImplicitGemmV4R1Dynamic(bool);
+
+    PerformanceImplicitGemmV4R1Dynamic()
+        : PerformanceImplicitGemmV4R1Dynamic(
+              -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+    {
+    }
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.BPerBlock, "BPerBlock");
+        f(self.KPerBlock, "KPerBlock");
+        f(self.EPerBlock, "EPerBlock");
+        f(self.GemmNRepeat, "GemmNRepeat");
+        f(self.GemmMPerThreadSubC, "GemmMPerThreadSubC");
+        f(self.GemmNPerThreadSubC, "GemmNPerThreadSubC");
+        f(self.GemmMLevel0Cluster, "GemmMLevel0Cluster");
+        f(self.GemmNLevel0Cluster, "GemmNLevel0Cluster");
+        f(self.GemmMLevel1Cluster, "GemmMLevel1Cluster");
+        f(self.GemmNLevel1Cluster, "GemmNLevel1Cluster");
+        f(self.InBlockCopyClusterLengths_E, "InBlockCopyClusterLengths_E");
+        f(self.InBlockCopyClusterLengths_N1, "InBlockCopyClusterLengths_N1");
+        f(self.InBlockCopyClusterLengths_B, "InBlockCopyClusterLengths_B");
+        f(self.InBlockCopyClusterLengths_N2, "InBlockCopyClusterLengths_N2");
+        f(self.WeiBlockCopyClusterLengths_E, "WeiBlockCopyClusterLengths_E");
+        f(self.WeiBlockCopyClusterLengths_K, "WeiBlockCopyClusterLengths_K");
+    }
+
+    void EuristicInit(const ConvolutionContext& config);
+    bool IsValidValue() const;
+    bool SetNextValue();
+    bool IsValid(const ConvolutionContext& ctx) const;
+    bool operator==(const PerformanceImplicitGemmV4R1Dynamic& other) const;
+    std::string ToString() const;
+    void Copy(const PerformanceImplicitGemmV4R1Dynamic& other);
+};
+
+struct ConvAsmImplicitGemmV4R1DynamicFwd : SolverBase<ConvolutionContext>
+{
+    PerformanceImplicitGemmV4R1Dynamic GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceImplicitGemmV4R1Dynamic& c) const;
+
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceImplicitGemmV4R1Dynamic& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+
+    PerformanceImplicitGemmV4R1Dynamic Search(const ConvolutionContext&) const;
+    int RunAndMeasureSolution(miopen::Handle& profile_h,
+                              ConstData_t bot_buf,
+                              Data_t top_buf,
+                              ConstData_t wei_buf,
+                              ConstData_t bias_buf,
+                              const ConvolutionContext& ctx,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
+};
+
+struct ConvAsmImplicitGemmV4R1DynamicFwd_1x1 : SolverBase<ConvolutionContext>
+{
+    PerformanceImplicitGemmV4R1Dynamic GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceImplicitGemmV4R1Dynamic& c) const;
+
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceImplicitGemmV4R1Dynamic& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+
+    PerformanceImplicitGemmV4R1Dynamic Search(const ConvolutionContext&) const;
     int RunAndMeasureSolution(miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               Data_t top_buf,
@@ -1254,7 +1519,7 @@ struct ConvBinWinogradRxSf2x3 : SolverBase<ConvolutionContext>
     }
 
     template <typename B, typename T, typename TW>
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               B bot_ocl_buf,
                               T top_ocl_buf,
                               TW wei_ocl_buf,
@@ -1373,7 +1638,7 @@ struct ConvAsmBwdWrW3x3 : SolverBase<ConvolutionContext>
                              const PerformanceConfigAsmDirect3x3WrW& config,
                              bool disableConfigOverrideFromEnv = false) const;
     template <typename B, typename T>
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               B bot_ocl_buf,
                               T top_ocl_buf,
                               Data_t wei_ocl_buf,
@@ -1485,7 +1750,7 @@ struct ConvAsmBwdWrW1x1 : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsmBwdWrW1x1& config,
                              bool disableConfigOverrideFromEnv = false) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_ocl_buf,
                               ConstData_t top_ocl_buf,
                               Data_t wei_ocl_buf,
@@ -1569,7 +1834,7 @@ struct ConvOclBwdWrW2 : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config,
                              bool disableConfigOverrideFromEnv = false) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_ocl_buf,
                               ConstData_t top_ocl_buf,
                               Data_t wei_ocl_buf,
@@ -1583,7 +1848,7 @@ struct ConvOclBwdWrW2 : SolverBase<ConvolutionContext>
 
     private:
     template <typename Tgpu>
-    int RunAndMeasureSolutionImpl(miopen::Handle& profile_h,
+    int RunAndMeasureSolutionImpl(const miopen::Handle& profile_h,
                                   ConstData_t bot_ocl_buf,
                                   ConstData_t top_ocl_buf,
                                   Data_t wei_ocl_buf,
@@ -1665,7 +1930,7 @@ struct ConvSCGemmFGemm : SolverBase<ConvolutionContext>
                              const PerformanceConfigSCGemmFwd<SCGemmOpFGemm>& config,
                              bool disableConfigOverrideFromEnv = false) const;
     template <typename B, typename TopT>
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               B bot_ocl_buf,
                               TopT top_ocl_buf,
                               ConstData_t wei_ocl_buf,

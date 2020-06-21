@@ -373,7 +373,7 @@ class DbFindTest : public DbTest
         sol.Serialize(ss);
         db_inst.sql.Exec(
             // clang-formagt off
-            "INSERT INTO perf_db(config, solver, params, arch, num_cu) "
+            "INSERT OR IGNORE INTO perf_db(config, solver, params, arch, num_cu) "
             "VALUES( " +
             id + ", '" + id0() + "', '" + ss.str() + "', 'gfx906', 64);");
         // clang-fromat on
@@ -708,8 +708,8 @@ class DBMultiThreadedTestWork
 };
 
 unsigned int DBMultiThreadedTestWork::threads_count    = 16;
-unsigned int DBMultiThreadedTestWork::common_part_size = 32;
-unsigned int DBMultiThreadedTestWork::unique_part_size = 32;
+unsigned int DBMultiThreadedTestWork::common_part_size = 16;
+unsigned int DBMultiThreadedTestWork::unique_part_size = 16;
 
 class DbMultiThreadedTest : public DbTest
 {
@@ -1234,14 +1234,10 @@ struct PerfDbDriver : test_driver
 
         if(full_set)
         {
-            tests::full_set() = true;
-#if MIOPEN_BACKEND_HIP
-            DBMultiThreadedTestWork::threads_count = 20;
-#else
-            DBMultiThreadedTestWork::threads_count = 64;
-#endif
-            DBMultiThreadedTestWork::common_part_size = 64;
-            DBMultiThreadedTestWork::unique_part_size = 64;
+            tests::full_set()                         = true;
+            DBMultiThreadedTestWork::threads_count    = 16;
+            DBMultiThreadedTestWork::common_part_size = 32;
+            DBMultiThreadedTestWork::unique_part_size = 32;
         }
         if(mt_child_id >= 0)
         {
@@ -1255,12 +1251,14 @@ struct PerfDbDriver : test_driver
         DbMultiThreadedReadTest().Run();
         DbMultiProcessReadTest().Run();
         DbMultiProcessTest().Run();
+#if !MIOPEN_DISABLE_USERDB
         DbMultiFileReadTest<true>().Run();
         DbMultiFileReadTest<false>().Run();
         DbMultiFileWriteTest().Run();
         DbMultiFileOperationsTest().Run();
         DbMultiFileMultiThreadedReadTest().Run();
         DbMultiFileMultiThreadedTest().Run();
+#endif
     }
 
     private:

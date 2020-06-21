@@ -92,7 +92,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             construction_parameters.kernel_file =
                 "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer.cpp";
 
-            construction_parameters.kernel_name = 
+            construction_parameters.kernel_name =
 		"gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_double_buffer";
         }
         else
@@ -101,10 +101,14 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
             construction_parameters.kernel_file =
                 "gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer.cpp";
 
-            construction_parameters.kernel_name = 
+            construction_parameters.kernel_name =
 		"gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer";
         }
         // clang-format on
+    }
+    else
+    {
+        MIOPEN_THROW("invalid value of 'kernel'");
     }
 
     std::size_t ABlockCopySubLengths_GemmK = GemmKPerBlock / config.WeiBlockCopyClusterLengths_E;
@@ -136,10 +140,10 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         // \todo there are more configs that can go through this if branch
         BBlockCopySrcDataPerRead_GemmN = gcd(BBlockCopySrcDataPerRead_GemmN, hi * wi);
     }
-    else if(conv_stride_w == 1)
+    else if(conv_stride_w == 1 && conv_dilation_w == 1)
     {
         BBlockCopySrcDataPerRead_GemmN =
-            gcd(BBlockCopySrcDataPerRead_GemmN, in_left_pad_w, wi, in_right_pad_w, conv_dilation_w);
+            gcd(BBlockCopySrcDataPerRead_GemmN, in_left_pad_w, wi, in_right_pad_w);
     }
     else
     {
@@ -357,7 +361,7 @@ ConvSolution ConvHipImplicitGemmV4R4GenWrWXdlops::GetSolution(
     return result;
 }
 
-int ConvHipImplicitGemmV4R4GenFwdXdlops::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmV4R4GenFwdXdlops::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                                ConstData_t bot_buf,
                                                                Data_t top_buf,
                                                                ConstData_t wei_buf,
@@ -373,7 +377,7 @@ int ConvHipImplicitGemmV4R4GenFwdXdlops::RunAndMeasureSolution(miopen::Handle& p
         profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
 }
 
-int ConvHipImplicitGemmV4R4GenWrWXdlops::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmV4R4GenWrWXdlops::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                                ConstData_t bot_buf,
                                                                ConstData_t top_buf,
                                                                Data_t wei_buf,
@@ -393,13 +397,12 @@ bool ConvHipImplicitGemmV4R4GenFwdXdlops::IsApplicable(const ConvolutionContext&
 {
     if(!(ctx.IsFp16() || ctx.IsBfp16()))
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.direction.IsForward())
         return false;
-
     if(!ctx.Is2d())
         return false;
-
     return IsApplicableXdlops(ctx);
 }
 
@@ -407,15 +410,14 @@ bool ConvHipImplicitGemmV4R4GenWrWXdlops::IsApplicable(const ConvolutionContext&
 {
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
-
-    // covered by ConvHipImplicitGemmV4R4GenXdlopsWrWFp32
-    if(ctx.IsFp32() && ctx.group_counts == 1)
+    if(!ctx.use_hip_kernels)
         return false;
-
     if(!ctx.direction.IsBackwardWrW())
         return false;
-
     if(!ctx.Is2d())
+        return false;
+
+    if(ConvHipImplicitGemmV4R4GenXdlopsWrWFp32{}.IsApplicable(ctx))
         return false;
 
     return IsApplicableXdlops(ctx);

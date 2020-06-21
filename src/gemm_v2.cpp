@@ -247,7 +247,7 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
     return gemm_backend_enforced;
 }
 
-miopenStatus_t CallGemmTimeMeasure(Handle& handle,
+miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
                                    GemmDescriptor gemm_desc,
                                    ConstData_t A,
                                    int a_offset,
@@ -438,7 +438,7 @@ miopenStatus_t CallGemmMIOpenTensile(Handle& handle,
 }
 #endif
 
-miopenStatus_t CallGemm(Handle& handle,
+miopenStatus_t CallGemm(const Handle& handle,
                         GemmDescriptor gemm_desc,
                         ConstData_t A,
                         int a_offset,
@@ -749,7 +749,7 @@ miopenStatus_t CallGemm(Handle& handle,
     return miopenStatusUnknownError;
 }
 
-miopenStatus_t CallGemmStridedBatched(Handle& handle,
+miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                       GemmDescriptor gemm_desc,
                                       ConstData_t A,
                                       int a_offset,
@@ -1017,7 +1017,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
     return miopenStatusUnknownError;
 }
 
-miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
+miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                                                 GemmDescriptor gemm_desc,
                                                 ConstData_t A,
                                                 int a_offset,
