@@ -1,9 +1,9 @@
 #include "common_header.hpp"
-#include "gridwise_group_convolution_forward_implicit_gemm_v4r4_xdlops_gnchw_gkcyx_gnkhw.hpp"
+#include "gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw.hpp"
 #include "float_types.h"
 
 extern "C" __global__
-    __launch_bounds__(CK_PARAM_DEPENDENT_BLOCK_SIZE) void gridwise_group_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw(
+    __launch_bounds__(CK_PARAM_DEPENDENT_BLOCK_SIZE) void gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw(
         const FLOAT* const __restrict__ p_in_global,
         const FLOAT* const __restrict__ p_wei_global,
         FLOAT* const __restrict__ p_out_global)
@@ -35,16 +35,13 @@ extern "C" __global__
     constexpr index_t InRightPadW = CK_PARAM_PROBLEM_IN_RIGHT_PAD_W;
 
     constexpr auto CPerGroup = C / G;
-    constexpr auto KPerGroup = K / G;
 
-    constexpr auto in_gnchw_desc =
-        make_native_tensor_descriptor(Sequence<G, N, CPerGroup, Hi, Wi>{},
-                                      Sequence<CPerGroup * Hi * Wi, C * Hi * Wi, Hi * Wi, Wi, 1>{});
-    constexpr auto wei_gkcyx_desc =
-        make_native_tensor_descriptor_packed(Sequence<G, KPerGroup, CPerGroup, Y, X>{});
-    constexpr auto out_gnkhw_desc =
-        make_native_tensor_descriptor(Sequence<G, N, KPerGroup, Ho, Wo>{},
-                                      Sequence<KPerGroup * Ho * Wo, K * Ho * Wo, Ho * Wo, Wo, 1>{});
+    constexpr auto in_n_c_hi_wi_desc =
+        make_native_tensor_descriptor_packed(Sequence<N, C, Hi, Wi>{});
+    constexpr auto wei_k_cpergroup_y_x_desc =
+        make_native_tensor_descriptor_packed(Sequence<K, CPerGroup, Y, X>{});
+    constexpr auto out_n_k_ho_wo_desc =
+        make_native_tensor_descriptor_packed(Sequence<N, K, Ho, Wo>{});
 
     using ConvStrides   = Sequence<ConvStrideH, ConvStrideW>;
     using ConvDilations = Sequence<ConvDilationH, ConvDilationW>;
@@ -142,15 +139,16 @@ extern "C" __global__
     constexpr auto wkgrp_schd_order = NBlock1MBlock0;
 
     constexpr auto gridwise_conv =
-        GridwiseGroupConvolutionForwardImplicitGemm_v4r4_xdlops_gnchw_gkcyx_gnkhw<
+        GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw<
             GridSize,
             BlockSize,
             FLOAT,       // Input data type
             FLOAT_ACCUM, // Acc data type
             FLOAT,       // Ouput data type
-            decltype(in_gnchw_desc),
-            decltype(wei_gkcyx_desc),
-            decltype(out_gnkhw_desc),
+            decltype(in_n_c_hi_wi_desc),
+            decltype(wei_k_cpergroup_y_x_desc),
+            decltype(out_n_k_ho_wo_desc),
+            G,
             ConvStrides,
             ConvDilations,
             InLeftPads,
