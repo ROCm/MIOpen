@@ -718,6 +718,9 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
     {
         if(ctx.IsFp32())
         {
+            if(GemmKPack > 4)
+                return false;
+
             if(GemmKPerBlock * GemmKPack < 8)
                 return false;
         }
@@ -889,7 +892,6 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
     // clang-format on
 
     result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
-
     result.construction_params.push_back(construction_parameters);
     return result;
 }
