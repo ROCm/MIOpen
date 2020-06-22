@@ -136,7 +136,7 @@ extern "C" __global__
         CK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK;
 
     // gridwise GEMM
-    constexpr auto wkgrp_schd_order = MBlock1NBlock0;
+    constexpr auto wkgrp_schd_order = NBlock1MBlock0;
 
     constexpr auto gridwise_conv =
         GridwiseConvolutionForwardImplicitGemm_v4r4_xdlops_nchw_kcyx_nkhw<
