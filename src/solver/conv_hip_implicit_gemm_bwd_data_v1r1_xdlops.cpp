@@ -57,13 +57,12 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext
 {
     if(!ctx.direction.IsBackwardData())
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.Is2d())
         return false;
-
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
-
     return IsApplicableXdlops(ctx);
 }
 
