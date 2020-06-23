@@ -701,12 +701,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
             if(a_data_per_thread_copy > 16 || b_data_per_thread_copy > 16)
                 return false;
         }
-        else if(ctx.IsFp16())
-        {
-            if(a_data_per_thread_copy > 32 || b_data_per_thread_copy > 32)
-                return false;
-        }
-        else if(ctx.IsBfp16())
+        else if(ctx.IsFp16() || ctx.IsBfp16())
         {
             if(a_data_per_thread_copy > 32 || b_data_per_thread_copy > 32)
                 return false;
@@ -724,12 +719,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
             if(GemmKPerBlock * GemmKPack < 8)
                 return false;
         }
-        else if(ctx.IsFp16())
-        {
-            if(GemmKPerBlock * GemmKPack < 16)
-                return false;
-        }
-        else if(ctx.IsBfp16())
+        else if(ctx.IsFp16() || ctx.IsBfp16())
         {
             if(GemmKPerBlock * GemmKPack < 16)
                 return false;
