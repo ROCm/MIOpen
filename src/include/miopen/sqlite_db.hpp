@@ -282,7 +282,7 @@ class SQLiteBase
         return AllFound;
     }
     template <typename... U>
-    inline boost::optional<DbRecord> FindRecord(U&... args)
+    inline auto FindRecord(U&... args)
     {
         if(!is_system && DisableUserDbFileIO)
             return boost::none;
@@ -314,7 +314,7 @@ class SQLiteBase
     }
 
     template <typename... U>
-    inline boost::optional<DbRecord> Update(const U&... args)
+    inline auto Update(const U&... args)
     {
         if(!is_system && DisableUserDbFileIO)
             return boost::none;
