@@ -283,6 +283,7 @@ class SQLiteBase
     }
     template <typename... U>
     inline auto FindRecord(U&... args)
+        -> decltype(std::declval<Derived>().FindRecordUnsafe(args...))
     {
         if(!is_system && DisableUserDbFileIO)
             return {};
@@ -314,7 +315,7 @@ class SQLiteBase
     }
 
     template <typename... U>
-    inline auto Update(const U&... args)
+    inline auto Update(const U&... args) -> decltype(std::declval<Derived>().UpdateUnsafe(args...))
     {
         if(!is_system && DisableUserDbFileIO)
             return {};
