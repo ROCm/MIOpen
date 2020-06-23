@@ -38,7 +38,18 @@
 #cmakedefine01 MIOPEN_ENABLE_SQLITE_KERN_CACHE
 #cmakedefine01 MIOPEN_DEBUG_FIND_DB_CACHING
 #cmakedefine01 MIOPEN_USE_SCGEMM
+#cmakedefine01 MIOPEN_USE_COMGR
+#cmakedefine01 MIOPEN_USE_HIP_KERNELS
 #cmakedefine01 MIOPEN_HCC_ENABLE_COV3
+#cmakedefine01 MIOPEN_DISABLE_USERDB
+
+// "_PACKAGE_" to avoid name contentions: the macros like
+// HIP_VERSION_MAJOR are defined in hip_version.h.
+// clang-format off
+#define HIP_PACKAGE_VERSION_MAJOR @hip_VERSION_MAJOR@
+#define HIP_PACKAGE_VERSION_MINOR @hip_VERSION_MINOR@
+#define HIP_PACKAGE_VERSION_PATCH @hip_VERSION_PATCH@
+// clang-format on
 
 // Truncation rounding or (default) rounding to nearest even (RNE) is enabled.
 // This switch controls two related but different aspects of MIOpen behavior:

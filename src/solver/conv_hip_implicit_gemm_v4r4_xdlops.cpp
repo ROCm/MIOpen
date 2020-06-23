@@ -317,10 +317,10 @@ bool ConvHipImplicitGemmV4R4FwdXdlops::IsApplicable(const ConvolutionContext& ct
 {
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.direction.IsForward())
         return false;
-
     if(!ctx.Is2d())
         return false;
 
@@ -336,6 +336,9 @@ bool ConvHipImplicitGemmV4R4FwdXdlops::IsApplicable(const ConvolutionContext& ct
 
 bool ConvHipImplicitGemmV4R4Xdlops_1x1::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(!ctx.use_hip_kernels)
+        return false;
+
     return IsApplicableXdlops(ctx) && ctx.Is2d() && ctx.IsFp32() && ctx.pad_h == 0 &&
            ctx.pad_w == 0 && ctx.group_counts == 1 && ctx.kernel_size_h == 1 &&
            ctx.kernel_size_w == 1;
@@ -345,10 +348,10 @@ bool ConvHipImplicitGemmV4R4WrWXdlops::IsApplicable(const ConvolutionContext& ct
 {
     if(!ctx.direction.IsBackwardWrW())
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.Is2d())
         return false;
-
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 

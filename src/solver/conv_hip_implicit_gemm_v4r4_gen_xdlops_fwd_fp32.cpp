@@ -531,7 +531,6 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::GetSolution(
         std::string(" -DCK_USE_AMD_XDLOPS=") + (IsXdlopsSupport(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + (miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
-        std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
 
@@ -560,10 +559,10 @@ bool ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::IsApplicable(const ConvolutionCont
 {
     if(!(ctx.IsFp32()))
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.direction.IsForward())
         return false;
-
     if(!ctx.Is2d())
         return false;
 

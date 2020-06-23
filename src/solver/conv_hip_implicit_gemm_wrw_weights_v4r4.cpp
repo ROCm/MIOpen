@@ -586,15 +586,14 @@ ConvHipImplicitGemmV4R4WrW::CalculateGemmSize(const ConvolutionContext& ctx)
 
 bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ConvolutionContext& ctx) const
 {
-    if(ctx.direction.IsForward())
+    if(ctx.direction.IsForward() || ctx.direction.IsBackwardData())
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.Is2d() && !ctx.Is3d())
         return false;
-
     if(!ctx.IsFp32())
         return false;
-
     if(ctx.group_counts != 1)
         return false;
 

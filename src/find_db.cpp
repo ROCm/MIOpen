@@ -54,7 +54,12 @@ std::string FindDbRecord_t<TDb>::GetInstalledPath(Handle& handle)
 template <class TDb>
 std::string FindDbRecord_t<TDb>::GetUserPath(Handle& handle)
 {
+#if !MIOPEN_DISABLE_USERDB
     return GetUserDbPath() + "/" + handle.GetDbBasename() + "." + GetUserDbSuffix() + ".ufdb.txt";
+#else
+    (void)(handle);
+    return "";
+#endif
 }
 
 bool CheckInvokerSupport(const std::string& algo)
