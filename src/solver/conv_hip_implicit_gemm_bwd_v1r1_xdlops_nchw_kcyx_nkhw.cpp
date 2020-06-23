@@ -257,8 +257,8 @@ PerformanceImplicitGemmBwdV1R1Xdlops::CalculateGemmABlockCopyPerformanceParamete
     int ClusterLengths_GemmK     = -1;
     int ClusterLengths_GemmM     = -1;
     int ClusterLengths_GemmKPack = -1;
-    int SrcDataPerRead_GemmM = ctx.IsFp32() ? amd_buffer_load_max_length<float>()
-                                                : amd_buffer_load_max_length<half_float::half>();
+    int SrcDataPerRead_GemmM     = ctx.IsFp32() ? amd_buffer_load_max_length<float>()
+                                            : amd_buffer_load_max_length<half_float::half>();
     int DstDataPerWrite_GemmKPack = ctx.IsFp32() ? amd_lds_write_max_length<float>()
                                                  : amd_lds_write_max_length<half_float::half>();
 
@@ -286,14 +286,14 @@ PerformanceImplicitGemmBwdV1R1Xdlops::CalculateGemmABlockCopyPerformanceParamete
         SrcDataPerRead_GemmM = gcd(SrcDataPerRead_GemmM, data_per_thread_copy);
 
         const auto data_per_thread_copy_gemmm = SrcDataPerRead_GemmM;
-        const auto tmp = data_per_thread_copy / data_per_thread_copy_gemmm;
+        const auto tmp                        = data_per_thread_copy / data_per_thread_copy_gemmm;
 
-        int data_per_thread_copy_gemmk = 0;
+        int data_per_thread_copy_gemmk     = 0;
         int data_per_thread_copy_gemmkpack = 0;
 
         if(GemmAThreadCopyMoreGemmK)
         {
-            data_per_thread_copy_gemmk = gcd(GemmKPerBlock, tmp);
+            data_per_thread_copy_gemmk     = gcd(GemmKPerBlock, tmp);
             data_per_thread_copy_gemmkpack = tmp / data_per_thread_copy_gemmk;
         }
         else
@@ -716,9 +716,8 @@ static inline bool IsValidXdlopsGemm_v2(const ConvolutionContext& ctx,
     return (GemmMPerBlock % GemmMPerWave) == 0 && (GemmNPerBlock % GemmNPerWave) == 0;
 }
 
-
-std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdV1R1Xdlops::CalculateLdsNumberOfByte(
-    const ConvolutionContext& ctx) const
+std::tuple<std::size_t, bool>
+PerformanceImplicitGemmBwdV1R1Xdlops::CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const
 {
     const auto a_block_space = GemmKPerBlock * GemmMPerBlock * GemmKPack;
     const auto b_block_space = GemmKPerBlock * GemmNPerBlock * GemmKPack;
@@ -834,9 +833,9 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
     KernelInfo construction_parameters;
 
     construction_parameters.kernel_file =
-         "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw.cpp";
+        "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw.cpp";
     construction_parameters.kernel_name =
-         "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw";
+        "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw";
 
     result.workspce_sz = GetWorkspaceSize(ctx);
 
