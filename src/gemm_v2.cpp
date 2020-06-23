@@ -163,7 +163,7 @@ inline void ProfilingRecordStart(const Handle& handle, HipEventPtr& start, HipEv
     hipEventRecord(start.get(), handle.GetStream());
 }
 
-inline void ProfilingRecordStop(Handle& handle, HipEventPtr& start, HipEventPtr& stop)
+inline void ProfilingRecordStop(const Handle& handle, HipEventPtr& start, HipEventPtr& stop)
 {
     hipEventRecord(stop.get(), handle.GetStream());
     hipEventSynchronize(stop.get());
@@ -357,7 +357,7 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
 }
 
 #if MIOPEN_USE_MIOPENTENSILE
-miopenStatus_t CallGemmMIOpenTensile(Handle& handle,
+miopenStatus_t CallGemmMIOpenTensile(const Handle& handle,
                                      GemmDescriptor gemm_desc,
                                      ConstData_t A,
                                      int a_offset,
