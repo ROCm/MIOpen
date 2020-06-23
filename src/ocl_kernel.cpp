@@ -23,11 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/oclkernel.hpp>
+#include <miopen/env.hpp>
 #include <miopen/handle_lock.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/oclkernel.hpp>
 
 namespace miopen {
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
 #ifndef NDEBUG
 static std::string DimToFormattedString(const size_t* dims, size_t count)
