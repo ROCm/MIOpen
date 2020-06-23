@@ -285,7 +285,7 @@ class SQLiteBase
     inline auto FindRecord(U&... args)
     {
         if(!is_system && DisableUserDbFileIO)
-            return boost::none;
+            return {};
         return reinterpret_cast<Derived*>(this)->FindRecordUnsafe(args...);
     }
 
@@ -317,7 +317,7 @@ class SQLiteBase
     inline auto Update(const U&... args)
     {
         if(!is_system && DisableUserDbFileIO)
-            return boost::none;
+            return {};
         return reinterpret_cast<Derived*>(this)->UpdateUnsafe(args...);
     }
 
