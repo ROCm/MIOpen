@@ -109,6 +109,8 @@ list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/h
 option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
 
+set(MIOPEN_EMBED_DB "" CACHE STRING "Colon separated list of of architecture CU pairs to embed on-disk DBs in the binary. Example gfx906_60:gfx900_56")
+
 option(MIOPEN_USE_COMGR "When possible, use comgr to build kernels instead of offline tools" Off)
 option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
 
@@ -467,6 +469,7 @@ enable_cppcheck(
         MIOPEN_USE_MIOPENGEMM=1
         __linux__=1
 )
+
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)

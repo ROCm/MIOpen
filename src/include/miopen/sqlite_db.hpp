@@ -52,6 +52,7 @@ class path;
 
 namespace miopen {
 
+constexpr bool InMemDb                = MIOPEN_EMBED_DB;
 const auto MIOPEN_SQL_BUSY_TIMEOUT_MS = 60000;
 template <class Derived>
 struct SQLiteSerializable
@@ -182,7 +183,7 @@ class SQLite
 
     using result_type = std::vector<std::unordered_map<std::string, std::string>>;
     SQLite();
-    SQLite(const std::string& filename_, bool is_system);
+    SQLite(const std::string& filename_, bool is_system, bool _in_mem = false);
     ~SQLite();
     SQLite(SQLite&&) noexcept;
     SQLite& operator=(SQLite&&) noexcept;
@@ -233,7 +234,7 @@ class SQLiteBase
                     boost::filesystem::permissions(directory, boost::filesystem::all_all);
             }
         }
-        sql = SQLite{filename_, is_system};
+        sql = SQLite{filename_, is_system, InMemDb};
         if(!sql.Valid())
         {
             dbInvalid = true;

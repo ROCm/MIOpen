@@ -31,6 +31,9 @@
 #include <miopen/md5.hpp>
 #include <miopen/problem_description.hpp>
 
+#if MIOPEN_EMBED_DB
+#include <miopen_data.hpp>
+#endif
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
@@ -48,6 +51,14 @@
 #include <shared_mutex>
 #include <string>
 
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+extern "C" {
+int sqlite3_memvfs_init(sqlite3* db, char** pzErrMsg, const sqlite3_api_routines* pApi);
+}
 namespace miopen {
 
 class SQLite::impl
@@ -62,15 +73,125 @@ class SQLite::impl
     };
 
     public:
-    impl(const std::string& filename_, bool is_system)
+    impl(const std::string& filename_, bool is_system, bool _in_mem = false)
     {
         sqlite3* ptr_tmp;
         int rc = 0;
-        if(is_system)
-            rc = sqlite3_open_v2(filename_.c_str(), &ptr_tmp, SQLITE_OPEN_READONLY, nullptr);
+        if(_in_mem)
+        {
+            sqlite3_auto_extension(reinterpret_cast<void (*)(void)>(sqlite3_memvfs_init));
+            // Open an in-memory database to use as a handle for loading the memvfs extension
+            if(sqlite3_open(":memory:", &ptr_tmp) != SQLITE_OK)
+            {
+                MIOPEN_THROW(miopenStatusInternalError,
+                             "open :memory: " + std::string(sqlite3_errmsg(ptr_tmp)));
+            }
+            sqlite3_enable_load_extension(ptr_tmp, 1);
+            sqlite3_close(ptr_tmp);
+            if(is_system)
+            {
+
+                boost::filesystem::path filepath(filename_);
+                const auto& it_p = miopen_data().find(filepath.filename().string() + ".o");
+                if(it_p == miopen_data().end())
+                    MIOPEN_THROW(miopenStatusInternalError,
+                                 "Unknown database: " + filename_ + " in internal file cache");
+                const auto& p    = it_p->second;
+                ptrdiff_t ptr_sz = p.second - p.first;
+                char* memuri     = sqlite3_mprintf("file:ignoredFilename?ptr=0x%p&sz=%lld",
+                                               p.first,
+                                               static_cast<long long>(ptr_sz));
+                if(sqlite3_open_v2(
+                       memuri, &ptr_tmp, SQLITE_OPEN_READWRITE | SQLITE_OPEN_URI, nullptr) !=
+                   SQLITE_OK)
+                {
+                    MIOPEN_THROW(miopenStatusInternalError,
+                                 "open memvfs: " + std::string(sqlite3_errmsg(ptr_tmp)));
+                }
+                sqlite3_free(memuri);
+            }
+            else
+            {
+                // load the file in memory
+                int fd = open(filename_.c_str(), O_RDONLY);
+                if(fd < 0)
+                {
+                    perror("open");
+                    MIOPEN_THROW(miopenStatusInternalError);
+                }
+                struct stat s;
+                if(fstat(fd, &s) < 0)
+                {
+                    perror("fstat");
+                    MIOPEN_THROW(miopenStatusInternalError);
+                }
+                // take the address
+                void* memdb = sqlite3_malloc64(s.st_size);
+                if(read(fd, memdb, s.st_size) != s.st_size)
+                {
+                    perror("read");
+                    MIOPEN_THROW(miopenStatusInternalError);
+                }
+                close(fd);
+                // pass the pointer
+                char* memuri = sqlite3_mprintf("file:ignoredFilename?ptr=0x%p&sz=%lld",
+                                               memdb,
+                                               static_cast<long long>(s.st_size));
+                if(sqlite3_open_v2(
+                       memuri, &ptr_tmp, SQLITE_OPEN_READWRITE | SQLITE_OPEN_URI, nullptr) !=
+                   SQLITE_OK)
+                {
+                    MIOPEN_THROW(miopenStatusInternalError,
+                                 "open memvfs: " + std::string(sqlite3_errmsg(ptr_tmp)));
+                }
+                sqlite3_free(memuri);
+            }
+            // set journal mode to memory
+            {
+                sqlite3_stmt* stmt;
+                if(sqlite3_prepare_v2(ptr_tmp, "PRAGMA journal_mode=memory;", -1, &stmt, nullptr) !=
+                   SQLITE_OK)
+                {
+                    fprintf(stderr, "prepare: %s\n", sqlite3_errmsg(ptr_tmp));
+                    sqlite3_close(ptr_tmp);
+                    MIOPEN_THROW(miopenStatusInternalError);
+                }
+                for(rc = sqlite3_step(stmt); rc == SQLITE_ROW; rc = sqlite3_step(stmt))
+                {
+                    // printf("%d\n", sqlite3_column_int(stmt, 0));
+                }
+                if(rc == SQLITE_DONE)
+                    rc = 0;
+
+                sqlite3_finalize(stmt);
+            }
+#if 0
+            // Try querying the database to show it works.
+            sqlite3_stmt *stmt;
+            if (sqlite3_prepare_v2(ptr_tmp, "SELECT count(*) FROM sqlite_master", -1, &stmt, nullptr) !=
+                    SQLITE_OK) {
+                fprintf(stderr, "prepare: %s\n", sqlite3_errmsg(ptr_tmp));
+                MIOPEN_THROW(miopenStatusInternalError);
+            }
+
+            for (int x_rc = sqlite3_step(stmt); x_rc == SQLITE_ROW; x_rc = sqlite3_step(stmt)) {
+                printf("%d\n", sqlite3_column_int(stmt, 0));
+            }
+            sqlite3_finalize(stmt);
+#endif
+        }
         else
-            rc = sqlite3_open_v2(
-                filename_.c_str(), &ptr_tmp, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
+        {
+            if(is_system)
+                rc = sqlite3_open_v2(filename_.c_str(), &ptr_tmp, SQLITE_OPEN_READONLY, nullptr);
+            else
+            {
+                rc = sqlite3_open_v2(filename_.c_str(),
+                                     &ptr_tmp,
+                                     SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE,
+                                     nullptr);
+            }
+        }
         ptrDb = sqlite3_ptr{ptr_tmp};
         sqlite3_busy_timeout(ptrDb.get(), MIOPEN_SQL_BUSY_TIMEOUT_MS);
         isValid = (rc == 0);
@@ -179,8 +300,8 @@ class SQLite::Statement::impl
     sqlite3_stmt_ptr ptrStmt = nullptr;
 };
 
-SQLite::SQLite(const std::string& filename_, bool is_system)
-    : pImpl{std::make_unique<impl>(filename_, is_system)}
+SQLite::SQLite(const std::string& filename_, bool is_system, bool _in_mem)
+    : pImpl{std::make_unique<impl>(filename_, is_system, _in_mem)}
 {
 }
 

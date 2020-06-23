@@ -126,6 +126,7 @@ set( MIOpen_Source
     execution_context.cpp
     kern_db.cpp
     bz2.cpp
+    sqlite/memvfs.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -227,7 +228,7 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_bwd_data_v4r1_xdlops.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops_fwd_fp32.cpp
     )
-
+set_source_files_properties(sqlite/memvfs.cpp PROPERTIES COMPILE_FLAGS -Wno-everything)
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
 if(MIOPEN_ENABLE_SQLITE)
     list(APPEND MIOpen_Source sqlite_db.cpp include/miopen/sqlite_db.hpp )
@@ -656,11 +657,7 @@ rocm_export_targets(
     ${PACKAGE_STATIC_DEPENDS}
 )
 
-
-
-# Install db files
-install(FILES
-    kernels/miopen.db
+set(DB_FILES
     kernels/gfx803_36.HIP.fdb.txt
     kernels/gfx803_64.HIP.fdb.txt
     kernels/gfx900_64.HIP.fdb.txt
@@ -673,6 +670,23 @@ install(FILES
     kernels/gfx900_56.OpenCL.fdb.txt
     kernels/gfx906_64.OpenCL.fdb.txt
     kernels/gfx906_60.OpenCL.fdb.txt
+    )
+
+if(NOT MIOPEN_EMBED_DB STREQUAL "")
+    include(embed)
+
+    set(CODE_OBJECTS)
+    list(APPEND CODE_OBJECTS "kernels/miopen.db")
+    add_embed_library(miopen_data ${CODE_OBJECTS})
+    target_link_libraries(MIOpen PRIVATE miopen_data)
+else()
+    list(APPEND DB_FILES kernels/miopen.db)
+endif()
+
+
+# Install db files
+install(FILES
+        ${DB_FILES}
  DESTINATION ${DATA_INSTALL_DIR}/db)
 
 rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})
