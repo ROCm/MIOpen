@@ -32,6 +32,8 @@
 
 #include <cstddef>
 
+#define WORKAROUND_ISSUE_309 1
+
 namespace miopen {
 namespace solver {
 
@@ -638,7 +640,11 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
         return false;
     if(!ctx.Is2d() && !ctx.Is3d())
         return false;
+#if WORKAROUND_ISSUE_309
+    if(!(ctx.IsFp32() || ctx.IsFp16()))
+#else
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
+#endif
         return false;
     if(ctx.group_counts != 1)
         return false;
