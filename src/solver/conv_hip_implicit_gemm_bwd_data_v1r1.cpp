@@ -26,6 +26,7 @@
 #include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/hip_build_utils.hpp>
 #include <miopen/generic_search.hpp>
 
 #include "implicitgemm_util.hpp"
@@ -640,14 +641,15 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
         return false;
     if(!ctx.Is2d() && !ctx.Is3d())
         return false;
-#if WORKAROUND_ISSUE_309
-    if(!(ctx.IsFp32() || ctx.IsFp16()))
-#else
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
-#endif
         return false;
     if(ctx.group_counts != 1)
         return false;
+#if WORKAROUND_ISSUE_309
+    if(miopen::HipCompilerVersion() >= external_tool_version_t{3, 5, 0})
+        if(ctx.IsBfp16())
+            return false;
+#endif
 
     const auto k = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
     if(k % GetEPackLength(ctx, false) != 0)
