@@ -30,6 +30,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/md5.hpp>
 #include <miopen/problem_description.hpp>
+#include <miopen/load_file.hpp>
 
 #if MIOPEN_EMBED_DB
 #include <miopen_data.hpp>
@@ -69,15 +70,20 @@ class SQLite::impl
         {
             std::string filename_(sqlite3_db_filename(ptr, "main"));
             SQLite::Retry([&]() { return sqlite3_close(ptr); }, filename_);
+            // TODO: Sync the file back to disk, unless disk I/O is disabled
+            // Get the page_count: pragma page_count;
+            // Get the page_size:  pragma page_size;
+            // Buffer size is page_count * page_size
         }
     };
 
     public:
-    impl(const std::string& filename_, bool is_system, bool _in_mem = false)
+    impl(const std::string& filename_, bool is_system, const bool _in_mem = false)
     {
+        boost::filesystem::path filepath(filename_);
         sqlite3* ptr_tmp;
         int rc = 0;
-        if(_in_mem)
+        if(InMemDb)
         {
             sqlite3_auto_extension(reinterpret_cast<void (*)(void)>(sqlite3_memvfs_init));
             // Open an in-memory database to use as a handle for loading the memvfs extension
@@ -91,11 +97,15 @@ class SQLite::impl
             if(is_system)
             {
 
-                boost::filesystem::path filepath(filename_);
                 const auto& it_p = miopen_data().find(filepath.filename().string() + ".o");
                 if(it_p == miopen_data().end())
+                {
+                    // Try to load it from the disk system
+                    // Also make a config point if Disk I/O is disabled
                     MIOPEN_THROW(miopenStatusInternalError,
-                                 "Unknown database: " + filename_ + " in internal file cache");
+                                 "Unknown database: " + filepath.string() +
+                                     " in internal file cache");
+                }
                 const auto& p    = it_p->second;
                 ptrdiff_t ptr_sz = p.second - p.first;
                 char* memuri     = sqlite3_mprintf("file:ignoredFilename?ptr=0x%p&sz=%lld",
@@ -112,31 +122,28 @@ class SQLite::impl
             }
             else
             {
-                // load the file in memory
-                int fd = open(filename_.c_str(), O_RDONLY);
-                if(fd < 0)
+                char* memuri = nullptr;
+                if(boost::filesystem::exists(filepath))
                 {
-                    perror("open");
-                    MIOPEN_THROW(miopenStatusInternalError);
+
+                    std::string file_buf = LoadFile(filepath);
+                    auto sz              = file_buf.size();
+                    // take the address
+                    void* memdb = sqlite3_malloc64(sz);
+                    // copy file_buf to memdb
+                    file_buf.copy(static_cast<char*>(memdb), sz);
+                    // pass the pointer
+                    memuri = sqlite3_mprintf(
+                        "file:ignoredFilename?ptr=0x%p&sz=%lld&maxsz=%lld&freeonclose=1",
+                        memdb,
+                        static_cast<long long>(sz),
+                        static_cast<long long>(sz));
                 }
-                struct stat s;
-                if(fstat(fd, &s) < 0)
+                else
                 {
-                    perror("fstat");
-                    MIOPEN_THROW(miopenStatusInternalError);
+                    memuri = sqlite3_mprintf(":memory:");
+                    std::cout << "CREATING PURE MEMORY DB" << std::endl;
                 }
-                // take the address
-                void* memdb = sqlite3_malloc64(s.st_size);
-                if(read(fd, memdb, s.st_size) != s.st_size)
-                {
-                    perror("read");
-                    MIOPEN_THROW(miopenStatusInternalError);
-                }
-                close(fd);
-                // pass the pointer
-                char* memuri = sqlite3_mprintf("file:ignoredFilename?ptr=0x%p&sz=%lld",
-                                               memdb,
-                                               static_cast<long long>(s.st_size));
                 if(sqlite3_open_v2(
                        memuri, &ptr_tmp, SQLITE_OPEN_READWRITE | SQLITE_OPEN_URI, nullptr) !=
                    SQLITE_OK)
@@ -146,10 +153,10 @@ class SQLite::impl
                 }
                 sqlite3_free(memuri);
             }
-            // set journal mode to memory
+            // set journal mode to off
             {
                 sqlite3_stmt* stmt;
-                if(sqlite3_prepare_v2(ptr_tmp, "PRAGMA journal_mode=memory;", -1, &stmt, nullptr) !=
+                if(sqlite3_prepare_v2(ptr_tmp, "PRAGMA journal_mode=off;", -1, &stmt, nullptr) !=
                    SQLITE_OK)
                 {
                     fprintf(stderr, "prepare: %s\n", sqlite3_errmsg(ptr_tmp));
@@ -165,20 +172,6 @@ class SQLite::impl
 
                 sqlite3_finalize(stmt);
             }
-#if 0
-            // Try querying the database to show it works.
-            sqlite3_stmt *stmt;
-            if (sqlite3_prepare_v2(ptr_tmp, "SELECT count(*) FROM sqlite_master", -1, &stmt, nullptr) !=
-                    SQLITE_OK) {
-                fprintf(stderr, "prepare: %s\n", sqlite3_errmsg(ptr_tmp));
-                MIOPEN_THROW(miopenStatusInternalError);
-            }
-
-            for (int x_rc = sqlite3_step(stmt); x_rc == SQLITE_ROW; x_rc = sqlite3_step(stmt)) {
-                printf("%d\n", sqlite3_column_int(stmt, 0));
-            }
-            sqlite3_finalize(stmt);
-#endif
         }
         else
         {
@@ -246,13 +239,22 @@ int SQLite::Retry(std::function<int()> f, std::string filename)
         MIOPEN_THROW("Timeout while waiting for Database: " + filename);
     }
     else
+    {
         return rc;
+    }
 }
 
 int SQLite::Retry(std::function<int()> f) const
 {
     std::string filename(sqlite3_db_filename(pImpl->ptrDb.get(), "main"));
-    return SQLite::Retry(f, filename);
+    int rc = SQLite::Retry(f, filename);
+
+    SQLite::result_type res;
+    sqlite3_exec(
+        pImpl->ptrDb.get(), "PRAGMA page_count;", find_callback, static_cast<void*>(&res), nullptr);
+    auto cnt = res[0][std::string("page_count")];
+    MIOPEN_LOG_I2("Filename: " + filename + "Page count: " + cnt);
+    return rc;
 }
 
 int SQLite::Changes() const { return sqlite3_changes(pImpl->ptrDb.get()); }

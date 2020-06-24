@@ -207,7 +207,9 @@ class SQLiteBase
                std::size_t num_cu_)
         : filename(filename_), arch(arch_), num_cu(num_cu_)
     {
-        MIOPEN_LOG_I2("Initializing " << (is_system ? "system" : "user") << " database file "
+        MIOPEN_LOG_I2("Initializing " << (InMemDb ? "In Memory " : "")
+                                      << (is_system ? "system" : "user")
+                                      << " database file "
                                       << filename);
 
         if(filename.empty())
