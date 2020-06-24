@@ -469,6 +469,7 @@ pipeline {
         }
 
         stage("Full tests III"){
+            parallel{
                 stage('Half Hip Clang Release All') {
                     agent{ label rocmnode("vega20") }
                     environment{
