@@ -2837,6 +2837,7 @@ std::string ConvDriver<Tgpu, Tref>::GetVerificationCacheFileName(
         case Direction::WrW: return "conv_bwd_wei";
         case Direction::BwdBias: return "bias_bwd_dat";
         }
+        return "<error in get_basename_string>"; // For gcc.
     };
 
     auto get_datatype_string = [](auto type) {
