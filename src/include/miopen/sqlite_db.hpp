@@ -152,9 +152,10 @@ struct SQLiteSerializable
 
 class SQLite
 {
+    template <bool InMemDb>
     class impl;
     // do we need propagate const
-    std::unique_ptr<impl> pImpl;
+    std::unique_ptr<impl<InMemDb>> pImpl;
 
     public:
     class Statement
@@ -183,7 +184,7 @@ class SQLite
 
     using result_type = std::vector<std::unordered_map<std::string, std::string>>;
     SQLite();
-    SQLite(const std::string& filename_, bool is_system, bool _in_mem = false);
+    SQLite(const std::string& filename_, bool is_system);
     ~SQLite();
     SQLite(SQLite&&) noexcept;
     SQLite& operator=(SQLite&&) noexcept;
@@ -236,7 +237,7 @@ class SQLiteBase
                     boost::filesystem::permissions(directory, boost::filesystem::all_all);
             }
         }
-        sql = SQLite{filename_, is_system, InMemDb};
+        sql = SQLite{filename_, is_system};
         if(!sql.Valid())
         {
             dbInvalid = true;
