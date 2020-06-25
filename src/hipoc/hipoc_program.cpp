@@ -38,6 +38,7 @@
 #include <miopen/comgr.hpp>
 #include <boost/optional.hpp>
 
+#include <cstring>
 #include <mutex>
 #include <sstream>
 
@@ -53,6 +54,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_COV3)
 
 namespace miopen {
 
+#if !MIOPEN_USE_COMGR
 namespace {
 
 inline bool ProduceCoV3()
@@ -81,6 +83,7 @@ inline const std::string& GetCoV3Option(const bool enable)
         return opt_disable;
 }
 } // namespace
+#endif
 
 static hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
 {
@@ -144,6 +147,7 @@ struct HIPOCProgramImpl
     boost::optional<TmpDir> dir;
     std::vector<char> binary;
 
+#if !MIOPEN_USE_COMGR
     void
     BuildCodeObjectInFile(std::string& params, const std::string& src, const std::string& filename)
     {
@@ -173,27 +177,16 @@ struct HIPOCProgramImpl
             MIOPEN_THROW("Cant find file: " + hsaco_file.string());
     }
 
-    bool BuildCodeObjectInMemory(const std::string& params,
+#else // MIOPEN_USE_COMGR
+    void BuildCodeObjectInMemory(const std::string& params,
                                  const std::string& src,
                                  const std::string& filename)
     {
-#if !MIOPEN_USE_COMGR
-        (void)params;
-        (void)src;
-        (void)filename;
-        return false;
-#else
-        if(miopen::EndsWith(filename, ".so") || miopen::EndsWith(filename, ".s"))
+        if(miopen::EndsWith(filename, ".so"))
         {
-            return false;
-        }
-        if(miopen::EndsWith(filename, ".cpp"))
-        {
-#if MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27
-            static std::mutex mutex;
-            std::lock_guard<std::mutex> lock(mutex);
-#endif
-            comgr::BuildHip(filename, src, params, device, binary);
+            std::size_t sz = src.length();
+            binary.resize(sz);
+            std::memcpy(&binary[0], src.c_str(), sz);
         }
         else
         {
@@ -201,14 +194,17 @@ struct HIPOCProgramImpl
             static std::mutex mutex;
             std::lock_guard<std::mutex> lock(mutex);
 #endif
-            comgr::BuildOcl(filename, src, params, device, binary);
+            if(miopen::EndsWith(filename, ".cpp"))
+                comgr::BuildHip(filename, src, params, device, binary);
+            else if(miopen::EndsWith(filename, ".s"))
+                comgr::BuildAsm(filename, src, params, device, binary);
+            else
+                comgr::BuildOcl(filename, src, params, device, binary);
         }
-
         if(binary.empty())
             MIOPEN_THROW("Code object build failed. Source: " + filename);
-        return true;
-#endif
     }
+#endif // MIOPEN_USE_COMGR
 
     void BuildCodeObject(std::string params, bool is_kernel_str, const std::string& kernel_src)
     {
@@ -233,10 +229,11 @@ struct HIPOCProgramImpl
             params += " -Wno-everything";
 #endif
         }
-
-        if(BuildCodeObjectInMemory(params, src, filename))
-            return;
+#if MIOPEN_USE_COMGR /// \todo Refactor when functionality stabilize.
+        BuildCodeObjectInMemory(params, src, filename);
+#else
         BuildCodeObjectInFile(params, src, filename);
+#endif
     }
 };
 
