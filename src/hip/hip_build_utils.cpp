@@ -118,7 +118,6 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
         params += " -O3 ";
     }
 
-    // params += " -Wno-unused-command-line-argument -c -fno-gpu-rdc -I. ";
     params += " -Wno-unused-command-line-argument -I. ";
     params += MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
     if(IsHccCompiler())
@@ -144,11 +143,13 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     {
         if(IsHccCompiler())
         {
+            params += " -gline-tables-only";
             env += " KMDUMPISA=1";
             env += " KMDUMPLLVM=1";
         }
         else if(IsHipClangCompiler())
         {
+            params += " -gline-tables-only";
             params += " -save-temps";
         }
     }
@@ -299,6 +300,23 @@ external_tool_version_t HipCompilerVersion()
 {
     static auto once = HipCompilerVersionImpl();
     return once;
+}
+
+bool external_tool_version_t::operator>(const external_tool_version_t& rhs) const
+{
+    if(major > rhs.major)
+        return true;
+    else if(major == rhs.major)
+    {
+        if(minor > rhs.minor)
+            return true;
+        else if(minor == rhs.minor)
+            return (patch > rhs.patch);
+        else
+            return false;
+    }
+    else
+        return false;
 }
 
 bool external_tool_version_t::operator>=(const external_tool_version_t& rhs) const
