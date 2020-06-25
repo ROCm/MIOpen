@@ -94,6 +94,18 @@ namespace compiler {
 namespace lc {
 #define OCL_EARLY_INLINE 1
 
+namespace gcnasm {
+
+static void RemoveOptionsUnwanted(OptionList& list)
+{
+    list.erase(remove_if(list.begin(),
+                         list.end(),
+                         [&](const auto& option) { return StartsWith(option, "-mcpu="); }),
+               list.end());
+}
+
+} // namespace gcnasm
+
 static void AddOcl20CompilerOptions(OptionList& list)
 {
     list.push_back("-cl-kernel-arg-info");
@@ -686,6 +698,47 @@ void BuildOcl(const std::string& name,
         action.SetOptionList(optCompile);
         const Dataset relocatable;
         action.Do(AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE, linkedBc, relocatable);
+
+        action.SetOptionList(OptionList());
+        const Dataset exe;
+        action.Do(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE, relocatable, exe);
+
+        constexpr auto INTENTIONALY_UNKNOWN = static_cast<amd_comgr_status_t>(0xffff);
+        if(exe.GetDataCount(AMD_COMGR_DATA_KIND_EXECUTABLE) < 1)
+            throw ComgrError{INTENTIONALY_UNKNOWN, "Executable binary not found"};
+        // Assume that the first exec data contains the binary we need.
+        const auto data = exe.GetData(AMD_COMGR_DATA_KIND_EXECUTABLE, 0);
+        data.GetBytes(binary);
+    }
+    catch(ComgrError& ex)
+    {
+        MIOPEN_LOG_E("comgr status = " << GetStatusText(ex.status));
+        if(!ex.text.empty())
+            MIOPEN_LOG_W(ex.text);
+    }
+}
+
+void BuildAsm(const std::string& name,
+              const std::string& text,
+              const std::string& options,
+              const std::string& device,
+              std::vector<char>& binary)
+{
+    PrintVersion();
+    try
+    {
+        const Dataset inputs;
+        inputs.AddData(name, text, AMD_COMGR_DATA_KIND_SOURCE);
+
+        const ActionInfo action;
+        SetIsaName(action, device);
+        action.SetLogging(true);
+        auto optAsm = miopen::SplitSpaceSeparated(options);
+        compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
+        action.SetOptionList(optAsm);
+
+        const Dataset relocatable;
+        action.Do(AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE, inputs, relocatable);
 
         action.SetOptionList(OptionList());
         const Dataset exe;
