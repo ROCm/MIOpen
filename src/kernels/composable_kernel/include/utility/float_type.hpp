@@ -291,6 +291,34 @@ struct inner_product_with_conversion
 {
     static constexpr auto convert = type_convert<T>();
 
+    __device__ T operator()(float4_t a, float4_t b) const
+    {
+        const float* p_a_float = reinterpret_cast<const float*>(&a);
+        const float* p_b_float = reinterpret_cast<const float*>(&b);
+
+        T acc = 0;
+        for(index_t v = 0; v < 4; ++v)
+        {
+            acc += convert(p_a_float[v]) * convert(p_b_float[v]);
+        }
+
+        return acc;
+    }
+
+    __device__ T operator()(float2_t a, float2_t b) const
+    {
+        const float* p_a_float = reinterpret_cast<const float*>(&a);
+        const float* p_b_float = reinterpret_cast<const float*>(&b);
+
+        T acc = 0;
+        for(index_t v = 0; v < 2; ++v)
+        {
+            acc += convert(p_a_float[v]) * convert(p_b_float[v]);
+        }
+
+        return acc;
+    }
+
     __device__ T operator()(float a, float b) const { return convert(a) * convert(b); }
 
     __device__ T operator()(half2_t a, half2_t b) const
@@ -320,6 +348,19 @@ struct inner_product_with_conversion
         return acc;
     }
 
+    __device__ T operator()(half8_t a, half8_t b) const
+    {
+        const half_t* p_a_half = reinterpret_cast<const half_t*>(&a);
+        const half_t* p_b_half = reinterpret_cast<const half_t*>(&b);
+
+        T acc = 0;
+        for(index_t v = 0; v < 8; ++v)
+        {
+            acc += convert(p_a_half[v]) * convert(p_b_half[v]);
+        }
+        return acc;
+    }
+
     __device__ T operator()(ushort2_t a, ushort2_t b) const
     {
         const ushort* p_a_bfloat16 = reinterpret_cast<const ushort*>(&a);
@@ -341,6 +382,19 @@ struct inner_product_with_conversion
 
         T acc = 0;
         for(index_t v = 0; v < 4; ++v)
+        {
+            acc += convert(p_a_bfloat16[v]) * convert(p_b_bfloat16[v]);
+        }
+        return acc;
+    }
+
+    __device__ T operator()(ushort8_t a, ushort8_t b) const
+    {
+        const ushort* p_a_bfloat16 = reinterpret_cast<const ushort*>(&a);
+        const ushort* p_b_bfloat16 = reinterpret_cast<const ushort*>(&b);
+
+        T acc = 0;
+        for(index_t v = 0; v < 8; ++v)
         {
             acc += convert(p_a_bfloat16[v]) * convert(p_b_bfloat16[v]);
         }
