@@ -26,11 +26,14 @@
 #include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/hip_build_utils.hpp>
 #include <miopen/generic_search.hpp>
 
 #include "implicitgemm_util.hpp"
 
 #include <cstddef>
+
+#define WORKAROUND_ISSUE_309 1
 
 namespace miopen {
 namespace solver {
@@ -642,6 +645,11 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
         return false;
     if(ctx.group_counts != 1)
         return false;
+#if WORKAROUND_ISSUE_309
+    if(miopen::HipCompilerVersion() >= external_tool_version_t{3, 5, 0})
+        if(ctx.IsBfp16())
+            return false;
+#endif
 
     const auto k = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
     if(k % GetEPackLength(ctx, false) != 0)
