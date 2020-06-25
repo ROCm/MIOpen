@@ -38,6 +38,19 @@
 #include <tuple> // std::ignore
 #include <vector>
 
+
+#ifndef MIOPEN_AMD_COMGR_VERSION_MAJOR
+#define MIOPEN_AMD_COMGR_VERSION_MAJOR 0
+#endif
+#ifndef MIOPEN_AMD_COMGR_VERSION_MINOR
+#define MIOPEN_AMD_COMGR_VERSION_MINOR 0
+#endif
+#ifndef MIOPEN_AMD_COMGR_VERSION_PATCH
+#define MIOPEN_AMD_COMGR_VERSION_PATCH 0
+#endif
+
+#define COMGR_VERSION ((MIOPEN_AMD_COMGR_VERSION_MAJOR * 1000 + MIOPEN_AMD_COMGR_VERSION_MINOR) * 1000 + MIOPEN_AMD_COMGR_VERSION_PATCH)
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_CALLS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_OPTIONS)
 
@@ -261,6 +274,26 @@ static std::string to_string(const amd_comgr_data_kind_t val)
 static std::string to_string(const amd_comgr_action_kind_t val)
 {
     std::ostringstream oss;
+#if COMGR_VERSION >= 1007000
+    MIOPEN_LOG_ENUM(oss,
+                    val,
+                    AMD_COMGR_ACTION_SOURCE_TO_PREPROCESSOR,
+                    AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS,
+                    AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC,
+                    AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES,
+                    AMD_COMGR_ACTION_LINK_BC_TO_BC,
+                    AMD_COMGR_ACTION_OPTIMIZE_BC_TO_BC,
+                    AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE,
+                    AMD_COMGR_ACTION_CODEGEN_BC_TO_ASSEMBLY,
+                    AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_RELOCATABLE,
+                    AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE,
+                    AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE,
+                    AMD_COMGR_ACTION_DISASSEMBLE_RELOCATABLE_TO_SOURCE,
+                    AMD_COMGR_ACTION_DISASSEMBLE_EXECUTABLE_TO_SOURCE,
+                    AMD_COMGR_ACTION_DISASSEMBLE_BYTES_TO_SOURCE,
+                    AMD_COMGR_ACTION_COMPILE_SOURCE_TO_FATBIN,
+                    AMD_COMGR_ACTION_COMPILE_SOURCE_WITH_DEVICE_LIBS_TO_BC);
+#else
     MIOPEN_LOG_ENUM(oss,
                     val,
                     AMD_COMGR_ACTION_SOURCE_TO_PREPROCESSOR,
@@ -278,6 +311,7 @@ static std::string to_string(const amd_comgr_action_kind_t val)
                     AMD_COMGR_ACTION_DISASSEMBLE_EXECUTABLE_TO_SOURCE,
                     AMD_COMGR_ACTION_DISASSEMBLE_BYTES_TO_SOURCE,
                     AMD_COMGR_ACTION_COMPILE_SOURCE_TO_FATBIN);
+#endif
     return oss.str();
 }
 
@@ -670,6 +704,10 @@ void BuildOcl(const std::string& name,
 
         const Dataset addedPch;
         action.Do(AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS, inputs, addedPch);
+#if COMGR_VERSION >= 1007000
+        const Dataset linkedBc;
+        action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_WITH_DEVICE_LIBS_TO_BC, addedPch, linkedBc);
+#else
         const Dataset compiledBc;
         action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC, addedPch, compiledBc);
 
@@ -694,6 +732,7 @@ void BuildOcl(const std::string& name,
         action.Do(AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES, compiledBc, addedDevLibs);
         const Dataset linkedBc;
         action.Do(AMD_COMGR_ACTION_LINK_BC_TO_BC, addedDevLibs, linkedBc);
+#endif
 
         action.SetOptionList(optCompile);
         const Dataset relocatable;
