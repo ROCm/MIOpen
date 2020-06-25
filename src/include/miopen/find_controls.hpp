@@ -128,7 +128,7 @@ class FindMode
         Fast,
         Hybrid,
         End_,
-        Default_ = Normal,
+        Default_ = Hybrid,
     };
 
     private:
