@@ -1235,7 +1235,7 @@ struct PerfDbDriver : test_driver
         if(full_set)
         {
             tests::full_set()                         = true;
-            DBMultiThreadedTestWork::threads_count    = 128;
+            DBMultiThreadedTestWork::threads_count    = 32;
             DBMultiThreadedTestWork::common_part_size = 128;
             DBMultiThreadedTestWork::unique_part_size = 128;
         }
