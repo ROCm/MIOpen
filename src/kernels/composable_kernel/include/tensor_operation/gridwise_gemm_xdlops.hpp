@@ -295,8 +295,8 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
 
             using CThreadCopySliceLengths = Sequence<M0, 1, M2, 1>;
 
-            constexpr index_t BlkSize = CLayout.GetBlkSize();
-            constexpr index_t NumBlks = CLayout.GetNumBlks();
+            constexpr index_t BlkSize = blockwise_gemm.GetBlkSize();
+            constexpr index_t NumBlks = blockwise_gemm.GetNumBlks();
 
             for(index_t i = 0; i < NumBlks; ++i)
             {
