@@ -55,7 +55,7 @@ include(CheckCXXCompilerFlag)
 
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
 # Use SQLITE for compiled kernels, when turned off this will use raw files
-set(MIOPEN_ENABLE_SQLITE_KERN_CACHE Off CACHE BOOL "")
+set(MIOPEN_ENABLE_SQLITE_KERN_CACHE On CACHE BOOL "")
 if(MIOPEN_ENABLE_SQLITE)
     # MIOpen now depends on SQLite as well
     find_package(PkgConfig)
@@ -76,7 +76,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.5.0)
+rocm_setup_version(VERSION 2.6.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -114,6 +114,7 @@ option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
 
 option(MIOPEN_USE_COMGR "When possible, use comgr to build kernels instead of offline tools" Off)
+option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
 
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )

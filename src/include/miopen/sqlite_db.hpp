@@ -331,16 +331,16 @@ Derived& SQLiteBase<Derived>::GetCached(const std::string& path,
                                         const size_t num_cu)
 {
     static std::mutex mutex;
-    static const std::lock_guard<std::mutex> lock{mutex};
+    std::lock_guard<std::mutex> lock{mutex};
 
-    static auto instances = std::map<std::string, Derived*>{};
+    static auto instances = std::map<std::string, Derived>{};
     const auto it         = instances.find(path);
 
     if(it != instances.end())
-        return *(it->second);
+        return it->second;
 
-    instances.emplace(path, new Derived{path, is_system, arch, num_cu}); // NOLINT
-    return *(instances.at(path));
+    instances.emplace(path, Derived{path, is_system, arch, num_cu});
+    return instances.at(path);
 }
 
 class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>

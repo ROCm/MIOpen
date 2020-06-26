@@ -215,6 +215,7 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_wrw_weights_v4r4.cpp
     solver/conv_hip_implicit_gemm_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops.cpp
+    solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops_wrw_fp32.cpp
     solver/conv_hip_implicit_gemm_xdlops_common.cpp
     solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
@@ -272,18 +273,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_dilation2.inc
         kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride1.inc
         kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride2.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_pk_dilation2.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_pk_stride1.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_pk_stride2.inc
         kernels/Conv_Winograd_v21_1_0_gfx9_fp32_dilation2.inc
         kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride1.inc
         kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride2.inc
         kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_dilation2_group.inc
         kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride1_group.inc
         kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride2_group.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_pk_dilation2_group.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_pk_stride1_group.inc
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_pk_stride2_group.inc
         kernels/Conv_Winograd_v21_1_0_gfx9_fp32_dilation2_group.inc
         kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride1_group.inc
         kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride2_group.inc
@@ -382,18 +377,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_dilation2.s
         kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride1.s
         kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride2.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_pk_dilation2.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_pk_stride1.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_pk_stride2.s
         kernels/Conv_Winograd_v21_1_0_gfx9_fp32_dilation2.s
         kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride1.s
         kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride2.s
         kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_dilation2_group.s
         kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride1_group.s
         kernels/Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_stride2_group.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_pk_dilation2_group.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_pk_stride1_group.s
-        kernels/Conv_Winograd_v21_1_0_gfx9_fp16_pk_stride2_group.s
         kernels/Conv_Winograd_v21_1_0_gfx9_fp32_dilation2_group.s
         kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride1_group.s
         kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride2_group.s
