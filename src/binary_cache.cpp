@@ -111,7 +111,6 @@ KDb GetDb(const std::string& device, size_t num_cu)
 }
 #endif
 
-
 #if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
 boost::filesystem::path GetCacheFile(const std::string& device,
                                      const std::string& name,
