@@ -1030,8 +1030,7 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
 };
 
-struct PerformanceImplicitGemmBwdV1R1Xdlops
-    : Serializable<PerformanceImplicitGemmBwdV1R1Xdlops>
+struct PerformanceImplicitGemmBwdV1R1Xdlops : Serializable<PerformanceImplicitGemmBwdV1R1Xdlops>
 {
     int GemmMPerBlock;
     int GemmNPerBlock;
@@ -1175,7 +1174,7 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 
     PerformanceImplicitGemmForwardV4R4Xdlops Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
+    int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               Data_t top_buf,
                               ConstData_t wei_buf,

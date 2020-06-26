@@ -96,7 +96,7 @@ struct AtomicAddData
                         *reinterpret_cast<const vector_t*>(&p_src[src_offset]));
     }
 
-#if CK_USE_AMD_BUFFER_ADDRESSING
+#if CK_USE_AMD_BUFFER_ADDRESSING && CK_USE_AMD_BUFFER_ATOMIC_ADD
     // buffer_atomic_add requires:
     //   1) p_src must be in vgpr space, d_dst must be global memory
     //   2) p_dst to be a block-invariant pointer.
@@ -125,7 +125,9 @@ __device__ void transfer_data(const T* p_src, index_t src_offset, T* p_dst, inde
                       DstInMemOp == InMemoryDataOperation::AtomicAdd,
                   "wrong! InMemoryDataOperation not supported!");
 
-    static_if<(SrcDataStride == 1 && DstDataStride == 1)>{}([&](auto) {
+    // keep it simple, don't use static_if here, otherwise compiler will do weird things
+    if(SrcDataStride == 1 && DstDataStride == 1)
+    {
         // TODO: use static_if::ElseIf
         static_if<DstInMemOp == InMemoryDataOperation::Set>{}([&](auto) {
             SetData<T, DataPerAccess>{}.template Run<SrcAddressSpace, DstAddressSpace>(
@@ -136,7 +138,9 @@ __device__ void transfer_data(const T* p_src, index_t src_offset, T* p_dst, inde
             AtomicAddData<T, DataPerAccess>{}.template Run<SrcAddressSpace, DstAddressSpace>(
                 p_src, src_offset, p_dst, dst_offset);
         });
-    }).Else([&](auto) {
+    }
+    else
+    {
         for(index_t i = 0; i < DataPerAccess; i++)
         {
             // TODO: use static_if::ElseIf
@@ -150,7 +154,7 @@ __device__ void transfer_data(const T* p_src, index_t src_offset, T* p_dst, inde
                     p_src, src_offset + i * SrcDataStride, p_dst, dst_offset + i * DstDataStride);
             });
         }
-    });
+    }
 }
 
 } // namespace ck
