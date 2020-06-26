@@ -51,11 +51,6 @@
 #include <shared_mutex>
 #include <string>
 
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-
 extern "C" {
 int sqlite3_memvfs_init(sqlite3* db, char** pzErrMsg, const sqlite3_api_routines* pApi);
 }
