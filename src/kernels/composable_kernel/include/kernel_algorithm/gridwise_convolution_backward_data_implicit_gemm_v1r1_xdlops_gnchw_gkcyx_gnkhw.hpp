@@ -166,7 +166,7 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_gnchw_gkcyx_gnkhw
             GemmNPerWave,
             GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM_GemmKPACK,
             GemmABlockCopyThreadClusterLengths_GemmG_GemmK_GemmM_GemmKPACK,
-            Sequence<0, 2, 1, 3>, 
+            Sequence<0, 2, 1, 3>,
             Sequence<0, 2, 1, 3>,
             Sequence<0, 1, 2, 3>,
             2,

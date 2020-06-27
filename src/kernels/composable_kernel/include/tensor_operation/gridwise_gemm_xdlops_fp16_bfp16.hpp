@@ -583,53 +583,53 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v2
             k_block_data_begin += KPerBlock)
         {
 
-                ABFloat p_a_thread_buffer[a_blockwise_copy.GetThreadBufferSize()];
-                ABFloat p_b_thread_buffer[b_blockwise_copy.GetThreadBufferSize()];
+            ABFloat p_a_thread_buffer[a_blockwise_copy.GetThreadBufferSize()];
+            ABFloat p_b_thread_buffer[b_blockwise_copy.GetThreadBufferSize()];
 
-                a_blockwise_copy.MoveSrcSliceWindow(blockwise_a_copy_src_step{}, True);
-                b_blockwise_copy.MoveSrcSliceWindow(blockwise_b_copy_src_step{}, True);
+            a_blockwise_copy.MoveSrcSliceWindow(blockwise_a_copy_src_step{}, True);
+            b_blockwise_copy.MoveSrcSliceWindow(blockwise_b_copy_src_step{}, True);
 
-                // load next data from device mem
-                a_blockwise_copy.RunLoadThreadBuffer(p_a_global, p_a_thread_buffer);
-                b_blockwise_copy.RunLoadThreadBuffer(p_b_global, p_b_thread_buffer);
+            // load next data from device mem
+            a_blockwise_copy.RunLoadThreadBuffer(p_a_global, p_a_thread_buffer);
+            b_blockwise_copy.RunLoadThreadBuffer(p_b_global, p_b_thread_buffer);
 
-                block_sync_lds();
+            block_sync_lds();
 
-                // GEMM on current data
-                // Vectorize the pointer to match with how fp16/bfloat16 datatypes are
-                // processed in gemm operation. fp16 type packs 4 fp16 values while
-                // bfloat16 packs 2 bfloat16 values. Since gemm's matrix A and B
-                // 2D indexes are computed with vectorized value in mind (e.g. float, half2, half4),
-                // we recast datatype from a single fp16 to 4 packed fp16/2 packed bfloat16
-                // respectively.
-                const typename vector_type<ABFloat, KPACK>::MemoryType* p_a_block_vec =
-                    reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
-                        p_a_block);
-                const typename vector_type<ABFloat, KPACK>::MemoryType* p_b_block_vec =
-                    reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
-                        p_b_block);
-                blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
+            // GEMM on current data
+            // Vectorize the pointer to match with how fp16/bfloat16 datatypes are
+            // processed in gemm operation. fp16 type packs 4 fp16 values while
+            // bfloat16 packs 2 bfloat16 values. Since gemm's matrix A and B
+            // 2D indexes are computed with vectorized value in mind (e.g. float, half2, half4),
+            // we recast datatype from a single fp16 to 4 packed fp16/2 packed bfloat16
+            // respectively.
+            const typename vector_type<ABFloat, KPACK>::MemoryType* p_a_block_vec =
+                reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
+                    p_a_block);
+            const typename vector_type<ABFloat, KPACK>::MemoryType* p_b_block_vec =
+                reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
+                    p_b_block);
+            blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
 
-                block_sync_lds();
+            block_sync_lds();
 
-                // store data to LDS
-                a_blockwise_copy.RunStoreThreadBuffer(p_a_thread_buffer, p_a_block);
-                b_blockwise_copy.RunStoreThreadBuffer(p_b_thread_buffer, p_b_block);
+            // store data to LDS
+            a_blockwise_copy.RunStoreThreadBuffer(p_a_thread_buffer, p_a_block);
+            b_blockwise_copy.RunStoreThreadBuffer(p_b_thread_buffer, p_b_block);
         }
 
-           // tail
-           {
-                block_sync_lds();
+        // tail
+        {
+            block_sync_lds();
 
-                // GEMM on last data
-                const typename vector_type<ABFloat, KPACK>::MemoryType* p_a_block_vec =
-                    reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
-                        p_a_block);
-                const typename vector_type<ABFloat, KPACK>::MemoryType* p_b_block_vec =
-                    reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
-                        p_b_block);
-                blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
-            }
+            // GEMM on last data
+            const typename vector_type<ABFloat, KPACK>::MemoryType* p_a_block_vec =
+                reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
+                    p_a_block);
+            const typename vector_type<ABFloat, KPACK>::MemoryType* p_b_block_vec =
+                reinterpret_cast<const typename vector_type<ABFloat, KPACK>::MemoryType*>(
+                    p_b_block);
+            blockwise_gemm.Run(p_a_block_vec, p_b_block_vec, p_c_thread);
+        }
 
         // load data from xldop_acc_regs
         blockwise_gemm.XdlopsMatrixCRead(p_c_thread);
@@ -668,21 +668,21 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v2
                 const index_t b_thread_data_on_global =
                     b_block_data_on_global + c_thread_mtx_on_block.col;
 
-                ThreadwiseGenericTensorSliceCopy_v4r2<
-                    decltype(out_k0_k1_k2_b_thread_desc),
-                    decltype(out_k0_k1_k2_b_global_desc),
-                    OutThreadCopySliceLengths,
-                    arithmetic_sequence_gen<0, 4, 1>::type,
-                    3,
-                    1,
-                    1,
-                    AddressSpace::Vgpr,
-                    AddressSpace::Global,
-                    OutputMemOp>({0, 0, 0, 0},
-                                 {k_thread_data_on_global / (K2 * K1),
-                                  k_thread_data_on_global % (K2 * K1) / K2,
-                                  k_thread_data_on_global % K2,
-                                  b_thread_data_on_global})
+                ThreadwiseGenericTensorSliceCopy_v4r2<decltype(out_k0_k1_k2_b_thread_desc),
+                                                      decltype(out_k0_k1_k2_b_global_desc),
+                                                      OutThreadCopySliceLengths,
+                                                      arithmetic_sequence_gen<0, 4, 1>::type,
+                                                      3,
+                                                      1,
+                                                      1,
+                                                      AddressSpace::Vgpr,
+                                                      AddressSpace::Global,
+                                                      OutputMemOp>(
+                    {0, 0, 0, 0},
+                    {k_thread_data_on_global / (K2 * K1),
+                     k_thread_data_on_global % (K2 * K1) / K2,
+                     k_thread_data_on_global % K2,
+                     b_thread_data_on_global})
                     .Run(p_c_thread + i * BlkSize, p_c_global);
             }
         }
