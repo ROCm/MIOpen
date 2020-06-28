@@ -37,7 +37,7 @@ namespace solver {
 
 PerformanceImplicitGemmBwdV1R1Xdlops::PerformanceImplicitGemmBwdV1R1Xdlops()
     : PerformanceImplicitGemmBwdV1R1Xdlops::PerformanceImplicitGemmBwdV1R1Xdlops(
-          32, 32, 1, 16, 16, 1, false, false)
+          4, 4, 1, 4, 4, 1, false, false)
 {
 }
 
@@ -80,7 +80,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::SetNextValue()
 {
     do
     {
-        // write performance parameters in reverse order, in order for tuning to iterate over the
+        // list performance parameters in reverse order, in order for tuning to iterate over the
         // range in normal order
         if(!NextFlag<false, true>(GemmBThreadCopyMoreGemmKPack))
             break;
@@ -88,15 +88,15 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::SetNextValue()
             break;
         if(!NextTwoPower<1, 8>(GemmKPack))
             break;
-        if(!NextTwoPower<16, 128>(GemmNPerWave))
+        if(!NextTwoPower<4, 128>(GemmNPerWave))
             break;
-        if(!NextTwoPower<16, 128>(GemmMPerWave))
+        if(!NextTwoPower<4, 128>(GemmMPerWave))
             break;
         if(!NextTwoPower<1, 8>(GemmKPerBlock))
             break;
-        if(!NextTwoPower<32, 256>(GemmNPerBlock))
+        if(!NextTwoPower<4, 256>(GemmNPerBlock))
             break;
-        if(!NextTwoPower<32, 256>(GemmMPerBlock))
+        if(!NextTwoPower<4, 256>(GemmMPerBlock))
             break;
         return false;
     } while(false);
@@ -107,84 +107,121 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::SetNextValue()
 void PerformanceImplicitGemmBwdV1R1Xdlops::EuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmBwdV1R1Xdlops tmp;
-    if(ctx.IsFp32())
+    // loop over certain ranges of tuning parameter
+    auto get_euristic_config = [&](auto is_valid_func) {
+        if(ctx.IsFp32())
+        {
+            tmp = {256, 256, 8, 128, 128, 4, false, true};
+
+            bool all_visited = false;
+            do
+            {
+                do
+                {
+                    // list in reverse order of importance,
+                    // and favor large GEMM
+                    if(!PreviousTwoPower<1, 8>(tmp.GemmKPerBlock))
+                        break;
+                    if(!PreviousTwoPower<1, 4>(tmp.GemmKPack))
+                        break;
+                    if(!PreviousTwoPower<4, 128>(tmp.GemmNPerWave))
+                        break;
+                    if(!PreviousTwoPower<4, 128>(tmp.GemmMPerWave))
+                        break;
+                    if(!PreviousTwoPower<4, 256>(tmp.GemmNPerBlock))
+                        break;
+                    if(!PreviousTwoPower<4, 256>(tmp.GemmMPerBlock))
+                        break;
+
+                    all_visited = true;
+                } while(false);
+
+                if(is_valid_func(tmp, ctx))
+                    break;
+            } while(!all_visited);
+        }
+        else if(ctx.IsFp16())
+        {
+            tmp = {256, 256, 8, 128, 128, 8, false, true};
+
+            bool all_visited = false;
+            do
+            {
+                do
+                {
+                    // list in reverse order of importance,
+                    // and favor large GEMM
+                    if(!PreviousTwoPower<1, 8>(tmp.GemmKPerBlock))
+                        break;
+                    if(!PreviousTwoPower<4, 8>(tmp.GemmKPack))
+                        break;
+                    if(!PreviousTwoPower<4, 128>(tmp.GemmNPerWave))
+                        break;
+                    if(!PreviousTwoPower<4, 128>(tmp.GemmMPerWave))
+                        break;
+                    if(!PreviousTwoPower<4, 256>(tmp.GemmNPerBlock))
+                        break;
+                    if(!PreviousTwoPower<4, 256>(tmp.GemmMPerBlock))
+                        break;
+
+                    all_visited = true;
+                } while(false);
+
+                if(is_valid_func(tmp, ctx))
+                    break;
+            } while(!all_visited);
+        }
+        else if(ctx.IsBfp16())
+        {
+            tmp = {256, 256, 8, 128, 128, 8, false, true};
+
+            bool all_visited = false;
+            do
+            {
+                do
+                {
+                    // list in reverse order of importance,
+                    // and favor large GEMM
+                    if(!PreviousTwoPower<1, 8>(tmp.GemmKPerBlock))
+                        break;
+                    if(!PreviousTwoPower<2, 8>(tmp.GemmKPack))
+                        break;
+                    if(!PreviousTwoPower<4, 128>(tmp.GemmNPerWave))
+                        break;
+                    if(!PreviousTwoPower<4, 128>(tmp.GemmMPerWave))
+                        break;
+                    if(!PreviousTwoPower<4, 256>(tmp.GemmNPerBlock))
+                        break;
+                    if(!PreviousTwoPower<4, 256>(tmp.GemmMPerBlock))
+                        break;
+
+                    all_visited = true;
+                } while(false);
+
+                if(is_valid_func(tmp, ctx))
+                    break;
+            } while(!all_visited);
+        }
+        else
+        {
+            MIOPEN_LOG_E("Only fp32, fp16, and bfp16 are supported");
+            assert(false);
+        }
+    };
+
+    // first round: really valid and fast
+    get_euristic_config([](auto config, auto conv_context) {
+        return config.IsReallyValid(conv_context) && config.IsFastToBeUsedForTuning(conv_context);
+    });
+
+    // second round: really valid
+    if(!tmp.IsReallyValid(ctx))
     {
-        tmp = {128, 128, 4, 64, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {128, 128, 8, 64, 64, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {128, 64, 4, 64, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {128, 64, 8, 64, 64, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 128, 4, 64, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 128, 8, 64, 64, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 64, 4, 64, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 64, 8, 64, 64, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 64, 2, 64, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 64, 2, 64, 64, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 32, 4, 32, 64, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 32, 4, 32, 64, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {32, 64, 4, 64, 32, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {32, 32, 4, 32, 32, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 16, 4, 16, 64, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {16, 64, 4, 64, 16, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {16, 16, 4, 16, 16, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 4, 16, 4, 64, 2, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 8, 8, 8, 64, 2, false, true};
-    }
-    else if(ctx.IsFp16() or ctx.IsBfp16())
-    {
-        tmp = {256, 128, 4, 64, 128, 8, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {256, 128, 4, 128, 64, 8, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {128, 256, 4, 64, 128, 8, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {256, 128, 4, 128, 64, 8, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {128, 128, 4, 64, 64, 8, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {128, 128, 8, 64, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 32, 4, 32, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 32, 4, 32, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {32, 64, 4, 64, 32, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {32, 32, 4, 32, 32, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 16, 4, 16, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {16, 64, 4, 64, 16, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {16, 16, 4, 16, 16, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 4, 16, 4, 64, 4, false, true};
-        if(!tmp.IsReallyValid(ctx))
-            tmp = {64, 8, 8, 8, 64, 4, false, true};
-    }
-    else
-    {
-        MIOPEN_LOG_E("Only fp32, fp16, and bfp16 are supported");
-        assert(false);
+        get_euristic_config(
+            [](auto config, auto conv_context) { return config.IsReallyValid(conv_context); });
     }
 
+    // final check
     if(!tmp.IsReallyValid(ctx))
     {
         MIOPEN_LOG_E("All attempts failed");
@@ -280,7 +317,8 @@ PerformanceImplicitGemmBwdV1R1Xdlops::CalculateGemmABlockCopyPerformanceParamete
         SrcDataPerRead_GemmM = gcd(SrcDataPerRead_GemmM, GemmMPerBlock);
 
         // calculate threadwise copy size
-        const auto data_per_thread_copy = (GemmKPerBlock * GemmMPerBlock * GemmKPack) / block_size;
+        const auto data_per_thread_copy =
+            std::max(1, (GemmKPerBlock * GemmMPerBlock * GemmKPack) / block_size);
 
         // SrcDataPerRead bounded by size of threadwise copy
         SrcDataPerRead_GemmM = gcd(SrcDataPerRead_GemmM, data_per_thread_copy);
@@ -288,8 +326,8 @@ PerformanceImplicitGemmBwdV1R1Xdlops::CalculateGemmABlockCopyPerformanceParamete
         const auto data_per_thread_copy_gemmm = SrcDataPerRead_GemmM;
         const auto tmp                        = data_per_thread_copy / data_per_thread_copy_gemmm;
 
-        int data_per_thread_copy_gemmk     = 0;
-        int data_per_thread_copy_gemmkpack = 0;
+        int data_per_thread_copy_gemmk     = -1;
+        int data_per_thread_copy_gemmkpack = -1;
 
         if(GemmAThreadCopyMoreGemmK)
         {
@@ -355,15 +393,15 @@ PerformanceImplicitGemmBwdV1R1Xdlops::CalculateGemmBBlockCopyPerformanceParamete
         if(!((GemmKPerBlock * GemmNPerBlock * GemmKPack) % block_size == 0))
             MIOPEN_THROW("invalid performance parameter");
 
+        // calculate threadwise copy size
+        const auto data_per_thread_copy =
+            std::max(1, (GemmKPerBlock * GemmNPerBlock * GemmKPack) / block_size);
+
         // GemmN is src vector read dimension
         // calculate vector length on gemmn dimension based on global tensor layout
-        const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-        const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-
+        const auto ho        = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+        const auto wo        = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
         SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, ho * wo);
-
-        // calculate threadwise copy size
-        const auto data_per_thread_copy = (GemmKPerBlock * GemmNPerBlock * GemmKPack) / block_size;
 
         // SrcDataPerRead_GemmN bounded by size of threadwise copy
         SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, data_per_thread_copy);
@@ -417,11 +455,11 @@ PerformanceImplicitGemmBwdV1R1Xdlops::CalculateGemmBBlockCopyPerformanceParamete
 bool PerformanceImplicitGemmBwdV1R1Xdlops::IsValidValue() const
 {
     // clang-format off
-    return IsTwoPower<32, 256>(GemmMPerBlock) 
-        && IsTwoPower<32, 256>(GemmNPerBlock) 
+    return IsTwoPower<4, 256>(GemmMPerBlock)
+        && IsTwoPower<4, 256>(GemmNPerBlock)
         && IsTwoPower<1, 8>(GemmKPerBlock)
-        && IsTwoPower<16, 128>(GemmMPerWave)
-        && IsTwoPower<16, 128>(GemmNPerWave)
+        && IsTwoPower<4, 128>(GemmMPerWave)
+        && IsTwoPower<4, 128>(GemmNPerWave)
         && IsTwoPower<1, 8>(GemmKPack);
     // clang-format on
 }
@@ -489,13 +527,27 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsReallyValid(const ConvolutionContex
 bool PerformanceImplicitGemmBwdV1R1Xdlops::IsFastToBeUsedForTuning(
     const ConvolutionContext& ctx) const
 {
+    // somehow, 128x128 wave-wise GEMM tend to spill register
+    // TODO revisit this when 128x128 wave-wise GEMM become efficient
+    {
+        if(GemmMPerWave * GemmNPerWave > 64 * 128)
+            return false;
+    }
+
+#if WORKAROUND_SWDEV_240356
+    {
+        if(ctx.IsBfp16() && GemmMPerWave * GemmNPerWave > 64 * 64)
+            return false;
+    }
+#endif
+
     // don't need too many blocks
     {
         int gemm_m = 0;
         int gemm_n = 0;
 
         std::tie(std::ignore, gemm_m, gemm_n, std::ignore) =
-            ConvHipImplicitGemmBwdDataV1R1Xdlops::CalculateGemmSize(ctx);
+            ConvHipImplicitGemmForwardV4R4Xdlops::CalculateGemmSize(ctx);
 
         // this is grid size using current blockwise-GEMM
         const int grid_size = (gemm_m * gemm_n) / (GemmMPerBlock * GemmNPerBlock);
@@ -557,7 +609,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsFastToBeUsedForTuning(
         int gemm_n = 0;
 
         std::tie(std::ignore, gemm_m, gemm_n, std::ignore) =
-            ConvHipImplicitGemmBwdDataV1R1Xdlops::CalculateGemmSize(ctx);
+            ConvHipImplicitGemmForwardV4R4Xdlops::CalculateGemmSize(ctx);
 
         if(GemmMPerBlock > 2 * GemmNPerBlock)
         {
@@ -599,12 +651,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsFastToBeUsedForTuning(
             if(a_data_per_thread_copy > 16 || b_data_per_thread_copy > 16)
                 return false;
         }
-        else if(ctx.IsFp16())
-        {
-            if(a_data_per_thread_copy > 32 || b_data_per_thread_copy > 32)
-                return false;
-        }
-        else if(ctx.IsBfp16())
+        else if(ctx.IsFp16() || ctx.IsBfp16())
         {
             if(a_data_per_thread_copy > 32 || b_data_per_thread_copy > 32)
                 return false;
@@ -616,15 +663,13 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsFastToBeUsedForTuning(
     {
         if(ctx.IsFp32())
         {
+            if(GemmKPack > 4)
+                return false;
+
             if(GemmKPerBlock * GemmKPack < 8)
                 return false;
         }
-        else if(ctx.IsFp16())
-        {
-            if(GemmKPerBlock * GemmKPack < 16)
-                return false;
-        }
-        else if(ctx.IsBfp16())
+        else if(ctx.IsFp16() || ctx.IsBfp16())
         {
             if(GemmKPerBlock * GemmKPack < 16)
                 return false;
@@ -923,6 +968,8 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
         std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_ADD=") + (support_amd_buffer_atomic_add(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
         std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") + (miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM{}) ? '0' : '1') +
+        std::string(" -DCK_WORKAROUND_SWDEV_229564=") + std::to_string(WORKAROUND_SWDEV_229564) +
+        std::string(" -DCK_WORKAROUND_SWDEV_231101=") + std::to_string(WORKAROUND_SWDEV_231101) +
         ctx.general_compile_options;
 
     result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
