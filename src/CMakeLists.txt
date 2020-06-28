@@ -213,6 +213,7 @@ set( MIOpen_Source
     solver/conv_ocl_dir2Dfwd1x1.cpp
     solver/conv_hip_implicit_gemm_v4.cpp
     solver/conv_hip_implicit_gemm_v4r1.cpp
+    solver/conv_hip_implicit_gemm_v4r1_wrw.cpp
     solver/conv_hip_implicit_gemm_v4r4.cpp
     solver/conv_hip_implicit_gemm_wrw_weights_v4r4.cpp
     solver/conv_hip_implicit_gemm_v4r4_xdlops.cpp
