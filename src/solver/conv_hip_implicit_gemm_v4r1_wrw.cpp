@@ -252,9 +252,7 @@ void PerformanceImplicitGemmV4R1Wrw::EuristicInit(const ConvolutionContext& ctx)
     PerformanceImplicitGemmV4R1Wrw tmp;
     if(ctx.IsFp32())
     {
-        std::cout << "euristic init fp32 " << std::endl;
-        tmp = {16, 128, 8, 1, 2, 4, 4, 4, 4, 4, 4, 16, 1, 16, 1, 4, 64, use_spare_set};
-        std::cout << "euristic init fp32 " << tmp.IsValid(ctx) << std::endl;
+        tmp = {16, 128, 8, 1, 2, 4, 4, 4, 4, 4, 4, 8, 2, 16, 1, 2, 128, use_spare_set};
         if(!tmp.IsValid(ctx))
             tmp = {8, 128, 8, 1, 2, 4, 4, 4, 4, 4, 2, 8, 1, 8, 2, 2, 64, use_spare_set};
         if(!tmp.IsValid(ctx))
@@ -328,8 +326,8 @@ PerformanceImplicitGemmV4R1Wrw::PerformanceImplicitGemmV4R1Wrw(int BPerBlock_,
                                                  int GemmMLevel1Cluster_,
                                                  int GemmNLevel1Cluster_,
                                                  int InBlockCopyClusterLengths_E_,
-                                                 int InBlockCopyClusterLengths_B_,
                                                  int InBlockCopyClusterLengths_N1_,
+                                                 int InBlockCopyClusterLengths_B_,
                                                  int InBlockCopyClusterLengths_N2_,
                                                  int WeiBlockCopyClusterLengths_E_,
                                                  int WeiBlockCopyClusterLengths_K_,
@@ -346,8 +344,8 @@ PerformanceImplicitGemmV4R1Wrw::PerformanceImplicitGemmV4R1Wrw(int BPerBlock_,
       GemmMLevel1Cluster(GemmMLevel1Cluster_),
       GemmNLevel1Cluster(GemmNLevel1Cluster_),
       InBlockCopyClusterLengths_E(InBlockCopyClusterLengths_E_),
-      InBlockCopyClusterLengths_B(InBlockCopyClusterLengths_B_),
       InBlockCopyClusterLengths_N1(InBlockCopyClusterLengths_N1_),
+      InBlockCopyClusterLengths_B(InBlockCopyClusterLengths_B_),
       InBlockCopyClusterLengths_N2(InBlockCopyClusterLengths_N2_),
       WeiBlockCopyClusterLengths_E(WeiBlockCopyClusterLengths_E_),
       WeiBlockCopyClusterLengths_K(WeiBlockCopyClusterLengths_K_),

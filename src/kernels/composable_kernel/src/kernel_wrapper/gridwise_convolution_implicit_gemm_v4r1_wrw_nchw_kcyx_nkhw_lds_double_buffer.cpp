@@ -112,7 +112,7 @@ extern "C" __global__
 
     constexpr index_t GemmDataPerReadA = GemmMPerThreadSubC;
     constexpr index_t GemmDataPerReadB = GemmNPerThreadSubC;
-
+#if 0
     using InBlockCopySubLengths_G_E_N1_B_N2 = Sequence<1,
                                                        InBlockCopySubLengths_E,
                                                        InBlockCopySubLengths_N1,
@@ -127,10 +127,27 @@ extern "C" __global__
     using InBlockCopyThreadClusterArrangeOrder = Sequence<0, 1, 2, 4, 3>; // [E, N1, N2, B]
     using InBlockCopySrcAccessOrder            = Sequence<0, 1, 3, 2, 4>; // [E, B, N1, N2]
     using InBlockCopyDstAccessOrder            = Sequence<0, 1, 2, 3, 4>; // [E, N1, B, N2]
+#else
+    using InBlockCopySubLengths_G_E_N1_B_N2 = Sequence<
+                                                       InBlockCopySubLengths_E,
+                                                       InBlockCopySubLengths_N1,
+                                                       InBlockCopySubLengths_B,
+                                                       InBlockCopySubLengths_N2>;
+    using InBlockCopyClusterLengths_G_E_N1_B_N2 = Sequence<
+                                                           InBlockCopyClusterLengths_E,
+                                                           InBlockCopyClusterLengths_N1,
+                                                           InBlockCopyClusterLengths_B,
+                                                           InBlockCopyClusterLengths_N2>;
+
+    using InBlockCopyThreadClusterArrangeOrder = Sequence<0, 1, 3, 2>; // [E, N1, N2, B]
+    using InBlockCopySrcAccessOrder            = Sequence<0, 2, 1, 3>; // [E, B, N1, N2]
+    using InBlockCopyDstAccessOrder            = Sequence<0, 1, 2, 3>; // [E, N1, B, N2]
+#endif
 
     constexpr index_t InBlockCopySrcDataPerRead_B   = CK_PARAM_IN_BLOCK_COPY_SRC_DATA_PER_READ_B;
     constexpr index_t InBlockCopyDstDataPerWrite_N2 = CK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_N2;
 
+#if 0
     using WeiBlockCopySubLengths_G_E_K = Sequence<1, WeiBlockCopySubLengths_E, WeiBlockCopySubLengths_K>;
     using WeiBlockCopyClusterLengths_G_E_K =
         Sequence<1, WeiBlockCopyClusterLengths_E, WeiBlockCopyClusterLengths_K>;
@@ -138,6 +155,15 @@ extern "C" __global__
     using WeiBlockCopyThreadClusterArrangeOrder = Sequence<0, 2, 1>; // [K, E]
     using WeiBlockCopySrcAccessOrder            = Sequence<0, 2, 1>; // [K, E]
     using WeiBlockCopyDstAccessOrder            = Sequence<0, 1, 2>; // [E, K]
+#else
+    using WeiBlockCopySubLengths_G_E_K = Sequence<WeiBlockCopySubLengths_E, WeiBlockCopySubLengths_K>;
+    using WeiBlockCopyClusterLengths_G_E_K =
+        Sequence<WeiBlockCopyClusterLengths_E, WeiBlockCopyClusterLengths_K>;
+
+    using WeiBlockCopyThreadClusterArrangeOrder = Sequence<1, 0>; // [K, E]
+    using WeiBlockCopySrcAccessOrder            = Sequence<1, 0>; // [K, E]
+    using WeiBlockCopyDstAccessOrder            = Sequence<0, 1>; // [E, K]
+#endif
 
     constexpr index_t WeiBlockCopySrcDataPerRead_E  = CK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E;
     constexpr index_t WeiBlockCopyDstDataPerWrite_K = CK_PARAM_WEI_BLOCK_COPY_DST_DATA_PER_WRITE_K;

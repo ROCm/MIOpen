@@ -498,7 +498,7 @@ struct PerformanceImplicitGemmV4R1 : public PerformanceImplicitGemm
     bool IsValid(const ConvolutionContext& ctx) const;
 };
 
-struct PerformanceImplicitGemmV4R1Wrw : public PerformanceImplicitGemm
+struct PerformanceImplicitGemmV4R1Wrw : Serializable<PerformanceImplicitGemmV4R1Wrw>
 {
     int BPerBlock; // 2^n[8..16]
     int KPerBlock; // 2^n[32..128]
@@ -517,8 +517,8 @@ struct PerformanceImplicitGemmV4R1Wrw : public PerformanceImplicitGemm
     int GemmNLevel1Cluster; // 2^n[1..4]
 
     int InBlockCopyClusterLengths_E;  // 2^n[4..16]
-    int InBlockCopyClusterLengths_B;  // 2^n[8..16]
-    int InBlockCopyClusterLengths_N1; // 2^n[1..2]
+    int InBlockCopyClusterLengths_N1;  // 2^n[8..16]
+    int InBlockCopyClusterLengths_B; // 2^n[1..2]
     int InBlockCopyClusterLengths_N2; // 2^n[1..4]
 
     int WeiBlockCopyClusterLengths_E; // 2^n[1..4]
