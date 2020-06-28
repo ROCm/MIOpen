@@ -114,13 +114,13 @@ struct get_type_from_type_enum<ckInt32>
 struct float_equal
 {
     template <class T>
-    static bool apply(T x, T y)
+    __device__ static inline bool apply(T x, T y)
     {
         return x <= y and x >= y;
     }
 
     template <class T>
-    bool operator()(T x, T y)
+    __device__ inline bool operator()(T x, T y)
     {
         return (float_equal::apply(x, y));
     };
@@ -129,13 +129,13 @@ struct float_equal
 struct float_equal_one
 {
     template <class T>
-    static bool apply(T x)
+    __device__ static inline bool apply(T x)
     {
         return x <= type_convert<T>{}(1.0f) and x >= type_convert<T>{}(1.0f);
     }
 
     template <class T>
-    bool operator()(T x)
+    __device__ inline bool operator()(T x)
     {
         return (float_equal_one::apply(x));
     };
@@ -144,13 +144,13 @@ struct float_equal_one
 struct float_equal_zero
 {
     template <class T>
-    static bool apply(T x)
+    __device__ static inline bool apply(T x)
     {
         return x <= type_convert<T>{}(0.0f) and x >= type_convert<T>{}(0.0f);
     }
 
     template <class T>
-    bool operator()(T x)
+    __device__ inline bool operator()(T x)
     {
         return (float_equal_zero::apply(x));
     };
