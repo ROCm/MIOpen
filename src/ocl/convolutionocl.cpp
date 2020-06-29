@@ -904,7 +904,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
     std::vector<PerfField> perf_db;
 
-    const miopen::FindMode fm;
+    const miopen::FindMode fm(ctx);
     /// \section ffind_special_cases
     /// Fast Find mode: Let's allow known fast-to-build special cases
     /// (this is only Winograd 3x3 so far) to override switching to Immediate mode.
@@ -2323,7 +2323,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
     std::vector<PerfField> perf_db;
 
-    const miopen::FindMode fm;
+    const miopen::FindMode fm(problem);
     /// \ref ffind_special_cases
     bool use_immediate_solution = false;
     miopenConvSolution_t imm_sol;
@@ -3566,7 +3566,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
 
     std::vector<PerfField> perf_db;
-    const miopen::FindMode fm;
+    const miopen::FindMode fm(problem);
     bool use_immediate_solution = false;
     miopenConvSolution_t imm_sol;
     if(fm.IsFast() || fm.IsHybrid())
