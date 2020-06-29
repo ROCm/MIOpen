@@ -207,15 +207,12 @@ class DbTest
         return data;
     }
 
-    static void ResetDbFile(const std::string& path)
+    static void ResetDbFile(TempFile& tmp_file)
     {
-        (void)std::ofstream(path);
-        const auto time_file_path = RamDb::GetTimeFilePath(path);
-        auto time_file            = std::ofstream(time_file_path);
-        time_file << std::numeric_limits<long long>::max() << std::endl;
+        tmp_file = std::move(TempFile{tmp_file.Name()});
     }
 
-    void ResetDb() const { ResetDbFile(temp_file); }
+    void ResetDb() { ResetDbFile(temp_file); }
 
     static const TestData& key()
     {
@@ -1086,14 +1083,14 @@ class DbMultiProcessReadTest : public DbTest
 class DbMultiFileTest : public DbTest
 {
     protected:
-    DbMultiFileTest(TempFile& temp_file_) : DbTest(temp_file_) { ResetDbFile(user_db_path); }
+    DbMultiFileTest(TempFile& temp_file_) : DbTest(temp_file_) {}
 
-    const std::string user_db_path = temp_file.Path() + ".user";
+    std::string user_db_path = temp_file.Path() + ".user";
 
-    void ResetDb() const
+    void ResetDb()
     {
         DbTest::ResetDb();
-        ResetDbFile(user_db_path);
+        user_db_path = temp_file.Path() + ".user";
     }
 };
 
@@ -1103,7 +1100,7 @@ class DbMultiFileReadTest : public DbMultiFileTest
     public:
     DbMultiFileReadTest(TempFile& temp_file_) : DbMultiFileTest(temp_file_) {}
 
-    void Run() const
+    void Run()
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default,
                           "Test",
@@ -1297,7 +1294,7 @@ class DbMultiFileMultiThreadedReadTest : public DbMultiFileTest
     public:
     DbMultiFileMultiThreadedReadTest(TempFile& temp_file_) : DbMultiFileTest(temp_file_) {}
 
-    void Run() const
+    void Run()
     {
         MIOPEN_LOG_CUSTOM(
             LoggingLevel::Default, "Test", "Testing db for multifile multithreaded read access...");

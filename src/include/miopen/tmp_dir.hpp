@@ -16,6 +16,9 @@ struct TmpDir
     TmpDir(TmpDir const&) = delete;
     TmpDir& operator=(TmpDir const&) = delete;
 
+    TmpDir(TmpDir&& other) { (*this) = std::move(other); }
+    TmpDir& operator=(TmpDir&& other);
+
     void Execute(std::string exe, std::string args) const;
 
     ~TmpDir();
