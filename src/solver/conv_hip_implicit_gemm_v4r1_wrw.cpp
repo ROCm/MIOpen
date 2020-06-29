@@ -252,7 +252,7 @@ void PerformanceImplicitGemmV4R1Wrw::EuristicInit(const ConvolutionContext& ctx)
     PerformanceImplicitGemmV4R1Wrw tmp;
     if(ctx.IsFp32())
     {
-        tmp = {16, 128, 8, 1, 2, 4, 4, 4, 4, 4, 4, 8, 2, 16, 1, 2, 128, use_spare_set};
+        tmp = {16, 128, 8, 16, 2, 4, 4, 4, 4, 4, 4, 8, 2, 16, 1, 2, 128, use_spare_set};
         if(!tmp.IsValid(ctx))
             tmp = {8, 128, 8, 1, 2, 4, 4, 4, 4, 4, 2, 8, 1, 8, 2, 2, 64, use_spare_set};
         if(!tmp.IsValid(ctx))
@@ -486,7 +486,7 @@ ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& c
                                          config.GemmMLevel1Cluster * config.GemmNLevel1Cluster;
 
     const auto& block_size = ThreadPerLevel1Cluster;
-    const auto& grid_size  = (b / b_per_block) * (k / k_per_block);
+    const auto& grid_size  = (b / b_per_block) * (k / k_per_block) * e_blocks;
 
     const auto& lkl_wk0 = block_size;
     const auto& lkl_wk1 = 1;

@@ -112,7 +112,7 @@ extern "C" __global__
 
     constexpr index_t GemmDataPerReadA = GemmMPerThreadSubC;
     constexpr index_t GemmDataPerReadB = GemmNPerThreadSubC;
-#if 0
+#if 1
     using InBlockCopySubLengths_G_E_N1_B_N2 = Sequence<1,
                                                        InBlockCopySubLengths_E,
                                                        InBlockCopySubLengths_N1,
@@ -147,7 +147,7 @@ extern "C" __global__
     constexpr index_t InBlockCopySrcDataPerRead_B   = CK_PARAM_IN_BLOCK_COPY_SRC_DATA_PER_READ_B;
     constexpr index_t InBlockCopyDstDataPerWrite_N2 = CK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_N2;
 
-#if 0
+#if 1
     using WeiBlockCopySubLengths_G_E_K = Sequence<1, WeiBlockCopySubLengths_E, WeiBlockCopySubLengths_K>;
     using WeiBlockCopyClusterLengths_G_E_K =
         Sequence<1, WeiBlockCopyClusterLengths_E, WeiBlockCopyClusterLengths_K>;
