@@ -27,6 +27,7 @@
 cmake_policy(SET CMP0057 NEW)
 
 include (GenerateExportHeader)
+add_subdirectory(sqlite)
 
 # Truncation rounding or (default) rounding to nearest even (RNE) is enabled.
 # This switch controls two related but different aspects of MIOpen behavior
@@ -126,7 +127,7 @@ set( MIOpen_Source
     execution_context.cpp
     kern_db.cpp
     bz2.cpp
-    sqlite/memvfs.cpp
+    #     sqlite/memvfs.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -228,7 +229,7 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_bwd_data_v4r1_xdlops.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops_fwd_fp32.cpp
     )
-set_source_files_properties(sqlite/memvfs.cpp PROPERTIES COMPILE_FLAGS -Wno-everything)
+# set_source_files_properties(sqlite/memvfs.cpp PROPERTIES COMPILE_FLAGS -Wno-everything)
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
 if(MIOPEN_ENABLE_SQLITE)
     list(APPEND MIOpen_Source sqlite_db.cpp include/miopen/sqlite_db.hpp )
@@ -510,6 +511,7 @@ endif()
 # build library
 add_library( MIOpen
     ${MIOpen_Source}
+    $<TARGET_OBJECTS:sqlite_memvfs>
     )
 
 rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
