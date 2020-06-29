@@ -51,6 +51,12 @@
 #define HIP_PACKAGE_VERSION_PATCH @hip_VERSION_PATCH@
 // clang-format on
 
+// clang-format off
+#define MIOPEN_AMD_COMGR_VERSION_MAJOR @amd_comgr_VERSION_MAJOR@
+#define MIOPEN_AMD_COMGR_VERSION_MINOR @amd_comgr_VERSION_MINOR@
+#define MIOPEN_AMD_COMGR_VERSION_PATCH @amd_comgr_VERSION_PATCH@
+// clang-format on
+
 // Truncation rounding or (default) rounding to nearest even (RNE) is enabled.
 // This switch controls two related but different aspects of MIOpen behavior:
 // 1.  How host code performs conversions of float to bfloat16, important only
