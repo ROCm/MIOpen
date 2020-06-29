@@ -79,6 +79,8 @@ class SQLite::impl
     sqlite3_ptr ptrDb = nullptr;
     bool isValid;
 };
+
+#if MIOPEN_EMBED_DB
 template <>
 SQLite::impl<true>::impl(const std::string& filename_, bool is_system)
 {
@@ -149,6 +151,7 @@ SQLite::impl<true>::impl(const std::string& filename_, bool is_system)
     sqlite3_busy_timeout(ptrDb.get(), MIOPEN_SQL_BUSY_TIMEOUT_MS);
     isValid = (rc == 0);
 }
+#endif
 
 template <>
 SQLite::impl<false>::impl(const std::string& filename_, bool is_system)
