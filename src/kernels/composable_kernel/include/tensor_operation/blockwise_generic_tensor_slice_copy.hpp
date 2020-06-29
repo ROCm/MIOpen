@@ -15,6 +15,8 @@ namespace ck {
 // The dimension access order can be different for src and dst.
 // Will do valid mapping check on src data: Read 0 if src data has a invalid mapping
 // Will do valid mapping check on dst data: No write if dst data has a invalid mapping
+// BlockSize can be equal or larger than ThreadCluster size, which means some threads may not do
+// threadwise copy
 template <index_t BlockSize,
           typename BlockSrcDesc,
           typename BlockDstDesc,
@@ -54,23 +56,23 @@ struct BlockwiseGenericTensorSliceCopy_v4
             is_same<BlockSliceLengths, decltype(ThreadSliceLengths{} * ThreadClusterLengths{})>{},
             "wrong! threads should be mapped to cover entire slicing window");
 
-        // map threads to cluster
-        constexpr auto thread_cluster_desc =
-            make_cluster_descriptor(ThreadClusterLengths{}, ThreadClusterArrangeOrder{});
+        static_assert(BlockSize >= mThreadClusterDesc.GetElementSize(),
+                      "wrong! BlockSize too small");
 
-        static_assert(BlockSize == thread_cluster_desc.GetElementSize(),
-                      "wrong! BlockSize not consistent with ThreadClusterLengths");
+        if(BlockSize == mThreadClusterDesc.GetElementSize() or
+           get_thread_local_1d_id() < mThreadClusterDesc.GetElementSize())
+        {
+            const auto thread_cluster_id =
+                mThreadClusterDesc.CalculateClusterIndex(get_thread_local_1d_id());
 
-        const auto thread_cluster_id =
-            thread_cluster_desc.CalculateClusterIndex(get_thread_local_1d_id());
+            const auto thread_data_id_begin = thread_cluster_id * ThreadSliceLengths{};
 
-        const auto thread_data_id_begin = thread_cluster_id * ThreadSliceLengths{};
+            mThreadwiseLoad.SetSrcSliceOrigin(src_block_slice_origin + thread_data_id_begin);
+            mThreadwiseLoad.SetDstSliceOrigin(make_zero_array<index_t, nDim>());
 
-        mThreadwiseLoad.SetSrcSliceOrigin(src_block_slice_origin + thread_data_id_begin);
-        mThreadwiseLoad.SetDstSliceOrigin(make_zero_array<index_t, nDim>());
-
-        mThreadwiseStore.SetSrcSliceOrigin(make_zero_array<index_t, nDim>());
-        mThreadwiseStore.SetDstSliceOrigin(dst_block_slice_origin + thread_data_id_begin);
+            mThreadwiseStore.SetSrcSliceOrigin(make_zero_array<index_t, nDim>());
+            mThreadwiseStore.SetDstSliceOrigin(dst_block_slice_origin + thread_data_id_begin);
+        }
     }
 
     __device__ static constexpr index_t GetThreadBufferSize()
@@ -85,14 +87,18 @@ struct BlockwiseGenericTensorSliceCopy_v4
         constexpr bool has_optimized_address_calculation =
             decltype(mThreadwiseStore)::HasWorkingOptimizedAddressCalculation();
 
-        // TODO: threadwise copy is still being tweaked
-        if(has_optimized_address_calculation)
+        if(BlockSize == mThreadClusterDesc.GetElementSize() or
+           get_thread_local_1d_id() < mThreadClusterDesc.GetElementSize())
         {
-            mThreadwiseLoad.Run_optimized_src_address_calculation(p_block_src, p_thread_buffer);
-        }
-        else
-        {
-            mThreadwiseLoad.Run(p_block_src, p_thread_buffer);
+            // TODO: threadwise copy is still being tweaked
+            if(has_optimized_address_calculation)
+            {
+                mThreadwiseLoad.Run_optimized_src_address_calculation(p_block_src, p_thread_buffer);
+            }
+            else
+            {
+                mThreadwiseLoad.Run(p_block_src, p_thread_buffer);
+            }
         }
     }
 
@@ -103,14 +109,19 @@ struct BlockwiseGenericTensorSliceCopy_v4
         constexpr bool has_optimized_address_calculation =
             decltype(mThreadwiseStore)::HasWorkingOptimizedAddressCalculation();
 
-        // TODO: threadwise copy is still being tweaked
-        if(has_optimized_address_calculation)
+        if(BlockSize == mThreadClusterDesc.GetElementSize() or
+           get_thread_local_1d_id() < mThreadClusterDesc.GetElementSize())
         {
-            mThreadwiseStore.Run_optimized_dst_address_calculation(p_thread_buffer, p_block_dst);
-        }
-        else
-        {
-            mThreadwiseStore.Run(p_thread_buffer, p_block_dst);
+            // TODO: threadwise copy is still being tweaked
+            if(has_optimized_address_calculation)
+            {
+                mThreadwiseStore.Run_optimized_dst_address_calculation(p_thread_buffer,
+                                                                       p_block_dst);
+            }
+            else
+            {
+                mThreadwiseStore.Run(p_thread_buffer, p_block_dst);
+            }
         }
     }
 
@@ -125,10 +136,14 @@ struct BlockwiseGenericTensorSliceCopy_v4
 
         BlockSrcData p_thread_buffer[GetThreadBufferSize()];
 
-        RunLoadThreadBuffer(p_block_src, p_thread_buffer);
+        if(BlockSize == mThreadClusterDesc.GetElementSize() or
+           get_thread_local_1d_id() < mThreadClusterDesc.GetElementSize())
+        {
+            RunLoadThreadBuffer(p_block_src, p_thread_buffer);
 
-        // if there is type conversion, it's done during store
-        RunStoreThreadBuffer(p_thread_buffer, p_block_dst);
+            // if there is type conversion, it's done during store
+            RunStoreThreadBuffer(p_thread_buffer, p_block_dst);
+        }
     }
 
     template <typename T, bool PositiveDirection>
@@ -136,7 +151,11 @@ struct BlockwiseGenericTensorSliceCopy_v4
     MoveSrcSliceWindow(const T& step_sizes,
                        integral_constant<bool, PositiveDirection> positive_direction)
     {
-        mThreadwiseLoad.MoveSrcSliceWindow(step_sizes, positive_direction);
+        if(BlockSize == mThreadClusterDesc.GetElementSize() or
+           get_thread_local_1d_id() < mThreadClusterDesc.GetElementSize())
+        {
+            mThreadwiseLoad.MoveSrcSliceWindow(step_sizes, positive_direction);
+        }
     }
 
     template <typename T, bool PositiveDirection>
@@ -144,7 +163,11 @@ struct BlockwiseGenericTensorSliceCopy_v4
     MoveDstSliceWindow(const T& step_sizes,
                        integral_constant<bool, PositiveDirection> positive_direction)
     {
-        mThreadwiseStore.MoveDstSliceWindow(step_sizes, positive_direction);
+        if(BlockSize == mThreadClusterDesc.GetElementSize() or
+           get_thread_local_1d_id() < mThreadClusterDesc.GetElementSize())
+        {
+            mThreadwiseStore.MoveDstSliceWindow(step_sizes, positive_direction);
+        }
     }
 
     private:
@@ -175,6 +198,9 @@ struct BlockwiseGenericTensorSliceCopy_v4
                                                                   DstInMemOp,
                                                                   1,
                                                                   DstDataStride>;
+
+    static constexpr auto mThreadClusterDesc =
+        make_cluster_descriptor(ThreadClusterLengths{}, ThreadClusterArrangeOrder{});
 
     ThreadwiseLoad mThreadwiseLoad;
     ThreadwiseStore mThreadwiseStore;
