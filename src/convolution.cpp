@@ -431,7 +431,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     }
 
     /// \ref ffind_special_cases
-    const miopen::FindMode fm;
+    const miopen::FindMode fm(ctx);
     while(fm.IsFast() || fm.IsHybrid())
     {
         /// \section ffind_gwss_why_not_0
@@ -539,7 +539,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
     }
 
     /// \ref ffind_special_cases
-    const miopen::FindMode fm;
+    const miopen::FindMode fm(ctx);
     while(fm.IsFast() || fm.IsHybrid())
     {
         /// \ref ffind_gwss_why_not_0
@@ -867,7 +867,8 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
                                                        const TensorDescriptor& dwDesc) const
 {
     MIOPEN_LOG_I("");
-    const miopen::FindMode fm;
+    auto ctx = ConvolutionContext(xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights);
+    const miopen::FindMode fm(ctx);
     while(fm.IsFast() || fm.IsHybrid())
     {
         /// \ref ffind_gwss_why_not_0
@@ -880,7 +881,6 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
         return sol.workspace_size;
     }
 
-    auto ctx = ConvolutionContext(xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights);
     ctx.SetStream(&handle);
     ctx.DetectRocm();
     ctx.SetupFloats();
