@@ -27,6 +27,7 @@
 #include "miopen/solver.hpp"
 #include "miopen/handle.hpp"
 #include <miopen/generic_search.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 #include "implicitgemm_util.hpp"
 
 namespace miopen {
@@ -774,6 +775,15 @@ ConvSolution ConvHipImplicitGemmV4R4WrW::GetSolution(const ConvolutionContext& c
     // clang-format on
 
     result.construction_params.push_back(construction_parameters);
+
+    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle, const boost::any& primitive_params) {
+            const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+            const auto& tensors      = invoke_params.tensors;
+            handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
+        };
+    };
+
     return result;
 }
 
