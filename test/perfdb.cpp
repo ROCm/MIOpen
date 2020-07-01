@@ -1277,12 +1277,12 @@ struct PerfDbDriver : test_driver
             tests::full_set() = true;
 
 #if MIOPEN_BACKEND_HIP
-            DBMultiThreadedTestWork::threads_count = 20;
+            DBMultiThreadedTestWork::threads_count = 32;
 #else
-            DBMultiThreadedTestWork::threads_count = 64;
+            DBMultiThreadedTestWork::threads_count = 32;
 #endif
-            DBMultiThreadedTestWork::common_part_size = 64;
-            DBMultiThreadedTestWork::unique_part_size = 64;
+            DBMultiThreadedTestWork::common_part_size = 128;
+            DBMultiThreadedTestWork::unique_part_size = 128;
         }
 
         if(mt_child_id >= 0)
@@ -1304,13 +1304,14 @@ struct PerfDbDriver : test_driver
         DbMultiProcessReadTest().Run();
         DbMultiThreadedTest().Run();
         DbMultiProcessTest().Run();
-
+#if !MIOPEN_DISABLE_USERDB
         DbMultiFileReadTest<true>().Run();
         DbMultiFileReadTest<false>().Run();
         DbMultiFileWriteTest().Run();
         DbMultiFileOperationsTest().Run();
         DbMultiFileMultiThreadedReadTest().Run();
         DbMultiFileMultiThreadedTest().Run();
+#endif
     }
 
     private:

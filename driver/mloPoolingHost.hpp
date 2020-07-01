@@ -110,7 +110,7 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                                        size_t* mask_ptr,
                                        Index* mask_gpu,
                                        _Tcheck allowedEps,
-                                       int index_position = 0)
+                                       int index_position = 1)
 {
 
     bool match = true;
@@ -177,7 +177,7 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                                             res       = static_cast<_Tcheck>(bot_ptr[bot_index]);
                                             res_index = bot_index;
                                             res_index_gpu =
-                                                index_position == 0
+                                                index_position == 1
                                                     ? (d * bot_height * bot_width + h * bot_width +
                                                        w)
                                                     : ((d - k * pool_stride_d + pad_d) *

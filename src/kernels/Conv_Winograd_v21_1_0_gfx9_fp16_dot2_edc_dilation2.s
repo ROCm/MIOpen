@@ -23,18 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+.include "Conv_Winograd_v21_1_0_metadata.inc"
 
+KERNEL_PROLOG gfx9_fp16_dot2_edc_dilation2
 
-.text
-.globl miopenSp3AsmConv_group_20_5_23_M_dilation2
-.p2align 8
-.type miopenSp3AsmConv_group_20_5_23_M_dilation2,@function
+.include "Conv_Winograd_v21_1_0_gfx9_fp16_dot2_edc_dilation2.inc"
 
-
-//#if HOST_N_WAVES == 8
-//    def_max_workitem_vgpr_count = 128
-//#elif HOST_N_WAVES == 4
-//    def_max_workitem_vgpr_count = 256
-//#endif
-
-miopenSp3AsmConv_group_20_5_23_M_dilation2:
+KERNEL_EPILOG gfx9_fp16_dot2_edc_dilation2

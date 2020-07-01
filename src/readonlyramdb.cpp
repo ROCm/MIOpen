@@ -39,7 +39,7 @@ ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path,
                                         const std::size_t /*num_cu*/)
 {
     static std::mutex mutex;
-    static const std::lock_guard<std::mutex> lock{mutex};
+    const std::lock_guard<std::mutex> lock{mutex};
 
     static auto instances = std::map<std::string, ReadonlyRamDb*>{};
     const auto it         = instances.find(path);
