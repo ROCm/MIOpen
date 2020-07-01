@@ -324,6 +324,9 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmABlockCopyPerformancePara
         const auto data_per_thread_copy_gemmkpack = SrcDataPerRead_GemmKPack;
         const auto tmp = data_per_thread_copy / data_per_thread_copy_gemmkpack;
 
+        if(tmp == 0)
+            MIOPEN_THROW("invalid performance parameter");
+
         int data_per_thread_copy_gemmk = -1;
         int data_per_thread_copy_gemmm = -1;
 

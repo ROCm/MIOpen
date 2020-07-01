@@ -514,23 +514,50 @@ static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
                                               const int GemmNPerWave,
                                               const int GemmKPack)
 {
-    // unsupported xdlops-gemm
+    // check k
     if(ctx.IsFp16() && GemmKPack % 4 != 0)
         return false;
     if(ctx.IsBfp16() && GemmKPack % 2 != 0)
         return false;
 
-    if(GemmMPerWave == 16 && GemmNPerWave == 32)
-        return false;
-    if(GemmMPerWave == 32 && GemmNPerWave == 16)
-        return false;
-    if(GemmMPerWave == 8 && GemmNPerWave != 64)
-        return false;
-    if(GemmMPerWave == 4 && GemmNPerWave != 64)
-        return false;
     if(GemmMPerWave == 32 && GemmNPerWave == 32 && GemmKPerBlock % 2 != 0)
         return false;
     if(GemmMPerWave == 16 && GemmNPerWave == 16 && GemmKPerBlock % 4 != 0)
+        return false;
+
+    // check M and N
+    std::vector<std::tuple<int, int>> validWaveGemmSize = {std::make_tuple(64, 64),
+                                                           std::make_tuple(64, 32),
+                                                           std::make_tuple(64, 16),
+                                                           std::make_tuple(32, 64),
+                                                           std::make_tuple(32, 32),
+                                                           std::make_tuple(16, 64),
+                                                           std::make_tuple(16, 16),
+                                                           std::make_tuple(8, 64),
+                                                           std::make_tuple(4, 64)};
+
+    // xdlops repeat only supported by llvm intrinsic
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}))
+    {
+        validWaveGemmSize.emplace_back(std::make_tuple(128, 128));
+        validWaveGemmSize.emplace_back(std::make_tuple(128, 64));
+        validWaveGemmSize.emplace_back(std::make_tuple(64, 128));
+    }
+
+    bool IsValidWaveGemm = false;
+
+    for(auto& it : validWaveGemmSize)
+    {
+        int validGemmMPerWave, validGemmNPerWave;
+        std::tie(validGemmMPerWave, validGemmNPerWave) = it;
+        if(validGemmMPerWave == GemmMPerWave && validGemmNPerWave == GemmNPerWave)
+        {
+            IsValidWaveGemm = true;
+            break;
+        }
+    }
+
+    if(!IsValidWaveGemm)
         return false;
 
     const auto WaveSize = 64;
