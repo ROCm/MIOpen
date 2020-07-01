@@ -70,7 +70,8 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
     }
 
     template <typename SrcData, typename DstData>
-    __device__ void Run(const SrcData* p_src, DstData* p_dst) const
+    __device__ void
+    Run(const SrcData* p_src, DstData* p_dst, SrcData zeroVal = static_cast<SrcData>(0.0)) const
     {
         constexpr auto vector_access_dim = Number<SrcDstVectorReadWriteDim>{};
 
@@ -96,7 +97,7 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
             // zero out buffer
             for(index_t i = 0; i < long_vector_size; ++i)
             {
-                p_src_long_vector[i] = 0;
+                p_src_long_vector[i] = zeroVal;
             }
 
             // load data from src to the long-vector buffer
@@ -174,8 +175,8 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
     // This version is optimized for address calculation of src tensor
     // TODO: this function is not compiled to expected ISA
     template <typename SrcData, typename DstData>
-    __device__ void Run_optimized_src_address_calculation(const SrcData* p_src,
-                                                          DstData* p_dst) const
+    __device__ void Run_optimized_src_address_calculation(
+        const SrcData* p_src, DstData* p_dst, SrcData zeroVal = static_cast<SrcData>(0.0)) const
     {
         constexpr auto vector_access_dim = Number<SrcDstVectorReadWriteDim>{};
 
@@ -231,7 +232,7 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                 // zero out buffer
                 for(index_t i = 0; i < long_vector_size; ++i)
                 {
-                    p_src_long_vector[i] = 0;
+                    p_src_long_vector[i] = zeroVal;
                 }
 
                 // Loop over SrcDstVectorReadWriteDim, and load data from src to the
@@ -322,8 +323,8 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
     // This version is optimized for address calculation of dst tensor
     // TODO: this function is not compiled to expected ISA
     template <typename SrcData, typename DstData>
-    __device__ void Run_optimized_dst_address_calculation(const SrcData* p_src,
-                                                          DstData* p_dst) const
+    __device__ void Run_optimized_dst_address_calculation(
+        const SrcData* p_src, DstData* p_dst, SrcData zeroVal = static_cast<SrcData>(0.0)) const
     {
         constexpr auto vector_access_dim = Number<SrcDstVectorReadWriteDim>{};
 
@@ -379,7 +380,7 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
                 // zero out buffer
                 for(index_t i = 0; i < long_vector_size; ++i)
                 {
-                    p_src_long_vector[i] = 0;
+                    p_src_long_vector[i] = zeroVal;
                 }
 
                 // Loop over SrcDstVectorReadWriteDim, and load data from src to the

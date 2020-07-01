@@ -286,6 +286,20 @@ __device__ ushort type_convert<ushort>::operator()<float>(float x) const
     return float_to_bfloat16(x);
 }
 
+template <>
+template <>
+__device__ float type_convert<float>::operator()<half>(half x) const
+{
+    return __half2float(x);
+};
+
+template <>
+template <>
+__device__ half type_convert<half>::operator()<float>(float x) const
+{
+    return __float2half(x);
+};
+
 template <typename T>
 struct inner_product_with_conversion
 {
