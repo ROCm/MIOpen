@@ -126,6 +126,7 @@ set( MIOpen_Source
     execution_context.cpp
     kern_db.cpp
     bz2.cpp
+    reducetensor.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -175,6 +176,8 @@ set( MIOpen_Source
     include/miopen/rnn_util.hpp
     include/miopen/bz2.hpp
     include/miopen/comgr.hpp
+    include/miopen/reducetensor.hpp
+    include/miopen/reduce_common.hpp
     md_graph.cpp
     mdg_expr.cpp
     conv/invokers/gcn_asm_1x1u.cpp
