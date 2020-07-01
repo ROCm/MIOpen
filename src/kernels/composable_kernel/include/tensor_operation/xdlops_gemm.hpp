@@ -547,12 +547,24 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x2bf16>
 };
 
 template <class data_type,
-          index_t MPerXdlops,
-          index_t NPerXdlops,
+          index_t GemmMPerWave,
+          index_t GemmNPerWave,
           index_t GemmDataPerReadA,
           index_t GemmDataPerReadB>
 struct XdlopsGemm_t
 {
+    static constexpr index_t WaveSize = 64;
+
+    static constexpr index_t MRepeats = (GemmMPerWave > 64) ? (GemmMPerWave / 64) : 1;
+    static constexpr index_t NRepeats = (GemmNPerWave > 64) ? (GemmNPerWave / 64) : 1;
+
+    static constexpr index_t MPerXdlops = (GemmMPerWave > 64) ? 64 : GemmMPerWave;
+    static constexpr index_t NPerXdlops = (GemmNPerWave > 64) ? 64 : GemmNPerWave;
+
+    __device__ constexpr auto GetMRepeats() const { return MRepeats; }
+
+    __device__ constexpr auto GetNRepeats() const { return NRepeats; }
+
     struct MatrixIndex
     {
         index_t row;
@@ -571,7 +583,7 @@ struct XdlopsGemm_t
         __device__ static constexpr index_t GetNumBlks()
         {
             constexpr auto mfma_type = GetMFMAInfo();
-            return MPerXdlops * NPerXdlops / (mfma_type.m * mfma_type.n);
+            return (GemmMPerWave * GemmNPerWave) / (mfma_type.m * mfma_type.n);
         }
     };
 
@@ -600,6 +612,8 @@ struct XdlopsGemm_t
 
         static_assert(mfma_type.k % mfma_type.k_base == 0, "k and k_base is inconsistent!");
     }
+
+    __device__ static constexpr index_t GetRegSize() { return MPerXdlops * NPerXdlops / WaveSize; }
 
     __device__ static constexpr bool IsABroadcast() { return NPerXdlops >= MPerXdlops; }
 
@@ -892,8 +906,8 @@ struct XdlopsGemm_t
 
         const index_t laneId = get_thread_local_1d_id() % mfma_type.wave_size;
 
-        FloatA a[K];
-        FloatB b[K];
+        FloatA a[K * MRepeats];
+        FloatB b[K * NRepeats];
 
         static_assert(sizeof(FloatA) % (sizeof(data_type) * mfma_type.k_base) == 0,
                       "wrong! FloatA is consistent with mfma");
@@ -903,30 +917,42 @@ struct XdlopsGemm_t
         static_assert(!IsKReduction() || K % mfma_type.num_input_blks == 0,
                       "K cannot divided by mfma_type.num_input_blks!");
 
+        static_assert(!IsKReduction() || (MRepeats == 1 && NRepeats == 1),
+                      "KReduction does not support xdlops repeats");
+
         static_if<!IsKReduction()>{}([&](auto) {
 
-            // load into registers
-            for(index_t k = 0; k < K; ++k)
+            for(index_t k_i = 0; k_i < K; ++k_i)
             {
-                a[k] = p_a_wave[k * M + laneId];
-                b[k] = p_b_wave[k * N + laneId];
+                for(index_t m_i      = 0; m_i < MRepeats; ++m_i)
+                    a[k_i + m_i * K] = p_a_wave[k_i * M + laneId + MPerXdlops * m_i];
+
+                for(index_t n_i      = 0; n_i < NRepeats; ++n_i)
+                    b[k_i + n_i * K] = p_b_wave[k_i * N + laneId + NPerXdlops * n_i];
             }
 
-            // get pointer of registers
-            auto pa = reinterpret_cast<const data_type*>(&a);
-            auto pb = reinterpret_cast<const data_type*>(&b);
+            for(index_t m_i = 0; m_i < MRepeats; ++m_i)
+            {
+
+                for(index_t n_i = 0; n_i < NRepeats; ++n_i)
+                {
+                    // get pointer of registers
+                    auto pa = reinterpret_cast<const data_type*>(&a);
+                    auto pb = reinterpret_cast<const data_type*>(&b);
 
 #if CK_WORKAROUND_SWDEV_229564
 #pragma unroll
 #endif
-            for(index_t k = 0; k < K; ++k)
-            {
-                for(index_t i = 0; i < nxdlops; ++i)
-                    mfma_type.run(Number<MPerXdlops>{},
-                                  Number<NPerXdlops>{},
-                                  &pa[(k * nxdlops + i) * mfma_type.k_base],
-                                  &pb[(k * nxdlops + i) * mfma_type.k_base],
-                                  p_c_thread);
+                    for(index_t k_i = 0; k_i < K; ++k_i)
+                    {
+                        for(index_t i = 0; i < nxdlops; ++i)
+                            mfma_type.run(Number<MPerXdlops>{},
+                                          Number<NPerXdlops>{},
+                                          &pa[(m_i * K + k_i * nxdlops + i) * mfma_type.k_base],
+                                          &pb[(n_i * K + k_i * nxdlops + i) * mfma_type.k_base],
+                                          p_c_thread + (NRepeats * m_i + n_i) * GetRegSize());
+                    }
+                }
             }
 
         }).Else([&](auto) {
@@ -964,22 +990,28 @@ struct XdlopsGemm_t
 
     __device__ static MatrixIndex GetBeginOfThreadBlk(index_t i)
     {
+        const index_t xdlops_i = i / GetOutputLayout().GetNumBlks();
+        const index_t j        = i % GetOutputLayout().GetNumBlks();
+
+        const index_t m_i = xdlops_i / NRepeats;
+        const index_t n_i = xdlops_i % NRepeats;
+
         constexpr auto mfma_type = GetMFMAInfo();
 
         const index_t laneId = get_thread_local_1d_id() % mfma_type.wave_size;
         const index_t blk_id = laneId / mfma_type.num_threads_blk;
         const index_t blk_td = laneId % mfma_type.num_threads_blk;
 
-        index_t col_blk = i % mfma_type.num_output_blks;
-        index_t row_blk = i / mfma_type.num_output_blks;
+        index_t col_blk = j % mfma_type.num_output_blks;
+        index_t row_blk = j / mfma_type.num_output_blks;
         index_t col     = col_blk * mfma_type.n + blk_td;
         index_t row     = row_blk * mfma_type.m + blk_id * mfma_type.group_size;
 
         static_if<!IsABroadcast()>{}([&](auto) {
-            col_blk = i / mfma_type.num_output_blks;
-            row_blk = i % mfma_type.num_output_blks;
-            col     = col_blk * mfma_type.n + blk_td;
-            row     = row_blk * mfma_type.m + blk_id * mfma_type.group_size;
+            col_blk = j / mfma_type.num_output_blks;
+            row_blk = j % mfma_type.num_output_blks;
+            col     = col_blk * mfma_type.n + blk_td + n_i * NPerXdlops;
+            row     = row_blk * mfma_type.m + blk_id * mfma_type.group_size + m_i * MPerXdlops;
         });
 
         return MatrixIndex{row, col};
@@ -997,21 +1029,22 @@ struct XdlopsGemm_t
         return OutputLayout<M1, M0, N1, N0>{};
     }
 
-    template <index_t Size>
-    __device__ void SetZeroXdlopsRegs(Number<Size>) const
+    __device__ void SetZeroXdlopsRegs() const
     {
 #if !CK_USE_AMD_XDLOPS_EMULATE
-        gcnasm_accvgpr_zero<Size>();
+        constexpr auto reg_size = GetRegSize();
+        gcnasm_accvgpr_zero<reg_size>();
 #endif
     }
 
-    template <index_t Size, class FloatC>
-    __device__ void ReadXdlopsRegs(Number<Size>, FloatC* const __restrict__ p_c_thread) const
+    template <class FloatC>
+    __device__ void ReadXdlopsRegs(FloatC* const __restrict__ p_c_thread) const
     {
 #if !CK_USE_AMD_XDLOPS_EMULATE
         constexpr auto mfma_type = GetMFMAInfo();
+        constexpr auto reg_size  = GetRegSize();
         gcnasm_nop<mfma_type.cycles>();
-        gcnasm_accvgpr_read<Size>(p_c_thread);
+        gcnasm_accvgpr_read<reg_size>(p_c_thread);
 #else
         (void)p_c_thread;
 #endif
