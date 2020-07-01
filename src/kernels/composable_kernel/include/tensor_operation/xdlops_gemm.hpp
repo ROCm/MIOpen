@@ -53,16 +53,11 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x1xf32>
     __device__ void
     run(Number<MPerXdlops>, Number<NPerXdlops>, const float* a, const float* b, float* reg_c) const
     {
-        static_assert((MPerXdlops == 64 && NPerXdlops == 64) ||
-                          (MPerXdlops == 32 && NPerXdlops == 64) ||
-                          (MPerXdlops == 64 && NPerXdlops == 32),
-                      "unsupported xdlops gemm");
+        const auto p_a = a;
+        const auto p_b = b;
+        auto p_c       = reinterpret_cast<float32_t*>(reg_c);
 
-        const auto reg_a = *a;
-        const auto reg_b = *b;
-
-        auto reg_c_ = reinterpret_cast<float32_t*>(reg_c);
-        gcnasm_mfma_f32_32x32x1f32<MPerXdlops, NPerXdlops>(reg_a, reg_b, reg_c_);
+        gcnasm_mfma_f32_32x32x1f32<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
     }
 };
 
@@ -87,13 +82,11 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x2xf32>
     __device__ void
     run(Number<MPerXdlops>, Number<NPerXdlops>, const float* a, const float* b, float* reg_c) const
     {
-        static_assert((MPerXdlops == 32 && NPerXdlops == 32), "unsupported xdlops gemm");
+        const auto p_a = a;
+        const auto p_b = b;
+        auto p_c       = reinterpret_cast<float16_t*>(reg_c);
 
-        const auto reg_a = *a;
-        const auto reg_b = *b;
-
-        auto reg_c_ = reinterpret_cast<float16_t*>(reg_c);
-        gcnasm_mfma_f32_32x32x2f32(reg_a, reg_b, reg_c_);
+        gcnasm_mfma_f32_32x32x2f32(p_a, p_b, p_c);
     }
 };
 
@@ -118,13 +111,11 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x4xf32>
     __device__ void
     run(Number<MPerXdlops>, Number<NPerXdlops>, const float* a, const float* b, float* reg_c) const
     {
-        static_assert((MPerXdlops == 16 && NPerXdlops == 16), "unsupported xdlops gemm");
+        const auto p_a = a;
+        const auto p_b = b;
+        auto p_c       = reinterpret_cast<float4_t*>(reg_c);
 
-        const auto reg_a = *a;
-        const auto reg_b = *b;
-
-        auto reg_c_ = reinterpret_cast<float4_t*>(reg_c);
-        gcnasm_mfma_f32_16x16x4f32(reg_a, reg_b, reg_c_);
+        gcnasm_mfma_f32_16x16x4f32(p_a, p_b, p_c);
     }
 };
 
@@ -149,15 +140,11 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x1xf32>
     __device__ void
     run(Number<MPerXdlops>, Number<NPerXdlops>, const float* a, const float* b, float* reg_c) const
     {
-        static_assert((MPerXdlops == 16 && NPerXdlops == 64) ||
-                          (MPerXdlops == 64 && NPerXdlops == 16),
-                      "unsupported xdlops gemm");
+        const auto p_a = a;
+        const auto p_b = b;
+        auto p_c       = reinterpret_cast<float16_t*>(reg_c);
 
-        const auto reg_a = *a;
-        const auto reg_b = *b;
-        auto reg_c_      = reinterpret_cast<float16_t*>(reg_c);
-
-        gcnasm_mfma_f32_16x16x1f32<MPerXdlops, NPerXdlops>(reg_a, reg_b, reg_c_);
+        gcnasm_mfma_f32_16x16x1f32<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
     }
 };
 
@@ -186,11 +173,11 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x1xf32>
         static_assert((MPerXdlops == 4 || MPerXdlops == 8) && NPerXdlops == 64,
                       "unsupported xdlops gemm");
 
-        const auto reg_a = *a;
-        const auto reg_b = *b;
-        auto reg_c_      = reinterpret_cast<float4_t*>(reg_c);
+        const auto p_a = a;
+        const auto p_b = b;
+        auto p_c       = reinterpret_cast<float4_t*>(reg_c);
 
-        gcnasm_mfma_f32_4x4x1f32<MPerXdlops, NPerXdlops>(reg_a, reg_b, reg_c_);
+        gcnasm_mfma_f32_4x4x1f32<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
     }
 };
 
@@ -218,16 +205,11 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x4f16>
                         const half_t* b,
                         float* reg_c) const
     {
-        static_assert((MPerXdlops == 64 && NPerXdlops == 64) ||
-                          (MPerXdlops == 32 && NPerXdlops == 64) ||
-                          (MPerXdlops == 64 && NPerXdlops == 32),
-                      "unsupported xdlops gemm");
+        const auto p_a = reinterpret_cast<const half4_t*>(a);
+        const auto p_b = reinterpret_cast<const half4_t*>(b);
+        auto p_c       = reinterpret_cast<float32_t*>(reg_c);
 
-        const auto reg_a = *(reinterpret_cast<const half4_t*>(a));
-        const auto reg_b = *(reinterpret_cast<const half4_t*>(b));
-        auto reg_c_      = reinterpret_cast<float32_t*>(reg_c);
-
-        gcnasm_mfma_f32_32x32x4f16<MPerXdlops, NPerXdlops>(reg_a, reg_b, reg_c_);
+        gcnasm_mfma_f32_32x32x4f16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
     }
 };
 
@@ -255,13 +237,11 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x8f16>
                         const half_t* b,
                         float* reg_c) const
     {
-        static_assert((MPerXdlops == 32 && NPerXdlops == 32), "unsupported xdlops gemm");
+        const auto p_a = reinterpret_cast<const half4_t*>(a);
+        const auto p_b = reinterpret_cast<const half4_t*>(b);
+        auto p_c       = reinterpret_cast<float16_t*>(reg_c);
 
-        const auto reg_a = *(reinterpret_cast<const half4_t*>(a));
-        const auto reg_b = *(reinterpret_cast<const half4_t*>(b));
-        auto reg_c_      = reinterpret_cast<float16_t*>(reg_c);
-
-        gcnasm_mfma_f32_32x32x8f16(reg_a, reg_b, reg_c_);
+        gcnasm_mfma_f32_32x32x8f16(p_a, p_b, p_c);
     }
 };
 
@@ -289,13 +269,11 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x16f16>
                         const half_t* b,
                         float* reg_c) const
     {
-        static_assert((MPerXdlops == 16 && NPerXdlops == 16), "unsupported xdlops gemm");
+        const auto p_a = reinterpret_cast<const half4_t*>(a);
+        const auto p_b = reinterpret_cast<const half4_t*>(b);
+        auto p_c       = reinterpret_cast<float4_t*>(reg_c);
 
-        const auto reg_a = *(reinterpret_cast<const half4_t*>(a));
-        const auto reg_b = *(reinterpret_cast<const half4_t*>(b));
-        auto reg_c_      = reinterpret_cast<float4_t*>(reg_c);
-
-        gcnasm_mfma_f32_16x16x16f16(reg_a, reg_b, reg_c_);
+        gcnasm_mfma_f32_16x16x16f16(p_a, p_b, p_c);
     }
 };
 
@@ -323,15 +301,11 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x4f16>
                         const half_t* b,
                         float* reg_c) const
     {
-        static_assert((MPerXdlops == 16 && NPerXdlops == 64) ||
-                          (MPerXdlops == 64 && NPerXdlops == 16),
-                      "unsupported xdlops gemm");
+        const auto p_a = reinterpret_cast<const half4_t*>(a);
+        const auto p_b = reinterpret_cast<const half4_t*>(b);
+        auto p_c       = reinterpret_cast<float16_t*>(reg_c);
 
-        const auto reg_a = *(reinterpret_cast<const half4_t*>(a));
-        const auto reg_b = *(reinterpret_cast<const half4_t*>(b));
-        auto reg_c_      = reinterpret_cast<float16_t*>(reg_c);
-
-        gcnasm_mfma_f32_16x16x4f16<MPerXdlops, NPerXdlops>(reg_a, reg_b, reg_c_);
+        gcnasm_mfma_f32_16x16x4f16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
     }
 };
 
@@ -359,14 +333,11 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x4f16>
                         const half_t* b,
                         float* reg_c) const
     {
-        static_assert((MPerXdlops == 4 || MPerXdlops == 8) && NPerXdlops == 64,
-                      "unsupported xdlops gemm");
+        const auto p_a = reinterpret_cast<const half4_t*>(a);
+        const auto p_b = reinterpret_cast<const half4_t*>(b);
+        auto p_c       = reinterpret_cast<float4_t*>(reg_c);
 
-        const auto reg_a = *(reinterpret_cast<const half4_t*>(a));
-        const auto reg_b = *(reinterpret_cast<const half4_t*>(b));
-        auto reg_c_      = reinterpret_cast<float4_t*>(reg_c);
-
-        gcnasm_mfma_f32_4x4x4f16<MPerXdlops, NPerXdlops>(reg_a, reg_b, reg_c_);
+        gcnasm_mfma_f32_4x4x4f16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
     }
 };
 
@@ -394,16 +365,11 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x2bf16>
                         const ushort* b,
                         float* reg_c) const
     {
-        static_assert((MPerXdlops == 64 && NPerXdlops == 64) ||
-                          (MPerXdlops == 32 && NPerXdlops == 64) ||
-                          (MPerXdlops == 64 && NPerXdlops == 32),
-                      "unsupported xdlops gemm");
+        const auto p_a = reinterpret_cast<const ushort2_t*>(a);
+        const auto p_b = reinterpret_cast<const ushort2_t*>(b);
+        auto p_c       = reinterpret_cast<float32_t*>(reg_c);
 
-        const auto reg_a = *(reinterpret_cast<const ushort2_t*>(a));
-        const auto reg_b = *(reinterpret_cast<const ushort2_t*>(b));
-        auto reg_c_      = reinterpret_cast<float32_t*>(reg_c);
-
-        gcnasm_mfma_f32_32x32x2bf16<MPerXdlops, NPerXdlops>(reg_a, reg_b, reg_c_);
+        gcnasm_mfma_f32_32x32x2bf16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
     }
 };
 
@@ -431,13 +397,11 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x4bf16>
                         const ushort* b,
                         float* reg_c) const
     {
-        static_assert((MPerXdlops == 32 && NPerXdlops == 32), "unsupported xdlops gemm");
+        const auto p_a = reinterpret_cast<const ushort2_t*>(a);
+        const auto p_b = reinterpret_cast<const ushort2_t*>(b);
+        auto p_c       = reinterpret_cast<float16_t*>(reg_c);
 
-        const auto reg_a = *(reinterpret_cast<const ushort2_t*>(a));
-        const auto reg_b = *(reinterpret_cast<const ushort2_t*>(b));
-        auto reg_c_      = reinterpret_cast<float16_t*>(reg_c);
-
-        gcnasm_mfma_f32_32x32x4bf16(reg_a, reg_b, reg_c_);
+        gcnasm_mfma_f32_32x32x4bf16(p_a, p_b, p_c);
     }
 };
 
@@ -465,13 +429,11 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x8bf16>
                         const ushort* b,
                         float* reg_c) const
     {
-        static_assert((MPerXdlops == 16 && NPerXdlops == 16), "unsupported xdlops gemm");
+        const auto p_a = reinterpret_cast<const ushort2_t*>(a);
+        const auto p_b = reinterpret_cast<const ushort2_t*>(b);
+        auto p_c       = reinterpret_cast<float4_t*>(reg_c);
 
-        const auto reg_a = *(reinterpret_cast<const ushort2_t*>(a));
-        const auto reg_b = *(reinterpret_cast<const ushort2_t*>(b));
-        auto reg_c_      = reinterpret_cast<float4_t*>(reg_c);
-
-        gcnasm_mfma_f32_16x16x8bf16(reg_a, reg_b, reg_c_);
+        gcnasm_mfma_f32_16x16x8bf16(p_a, p_b, p_c);
     }
 };
 
@@ -499,15 +461,11 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x2bf16>
                         const ushort* b,
                         float* reg_c) const
     {
-        static_assert((MPerXdlops == 16 && NPerXdlops == 64) ||
-                          (MPerXdlops == 64 && NPerXdlops == 16),
-                      "unsupported xdlops gemm");
+        const auto p_a = reinterpret_cast<const ushort2_t*>(a);
+        const auto p_b = reinterpret_cast<const ushort2_t*>(b);
+        auto p_c       = reinterpret_cast<float16_t*>(reg_c);
 
-        const auto reg_a = *(reinterpret_cast<const ushort2_t*>(a));
-        const auto reg_b = *(reinterpret_cast<const ushort2_t*>(b));
-        auto reg_c_      = reinterpret_cast<float16_t*>(reg_c);
-
-        gcnasm_mfma_f32_16x16x2bf16<MPerXdlops, NPerXdlops>(reg_a, reg_b, reg_c_);
+        gcnasm_mfma_f32_16x16x2bf16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
     }
 };
 
@@ -535,14 +493,11 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x2bf16>
                         const ushort* b,
                         float* reg_c) const
     {
-        static_assert((MPerXdlops == 4 || MPerXdlops == 8) && NPerXdlops == 64,
-                      "unsupported xdlops gemm");
+        const auto p_a = reinterpret_cast<const ushort2_t*>(a);
+        const auto p_b = reinterpret_cast<const ushort2_t*>(b);
+        auto p_c       = reinterpret_cast<float4_t*>(reg_c);
 
-        const auto reg_a = *(reinterpret_cast<const ushort2_t*>(a));
-        const auto reg_b = *(reinterpret_cast<const ushort2_t*>(b));
-        auto reg_c_      = reinterpret_cast<float4_t*>(reg_c);
-
-        gcnasm_mfma_f32_4x4x2bf16<MPerXdlops, NPerXdlops>(reg_a, reg_b, reg_c_);
+        gcnasm_mfma_f32_4x4x2bf16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
     }
 };
 
@@ -922,14 +877,13 @@ struct XdlopsGemm_t
 
         static_if<!IsKReduction()>{}([&](auto) {
 
-            for(index_t k_i = 0; k_i < K; ++k_i)
-            {
-                for(index_t m_i      = 0; m_i < MRepeats; ++m_i)
+            for(index_t m_i = 0; m_i < MRepeats; ++m_i)
+                for(index_t k_i      = 0; k_i < K; ++k_i)
                     a[k_i + m_i * K] = p_a_wave[k_i * M + laneId + MPerXdlops * m_i];
 
-                for(index_t n_i      = 0; n_i < NRepeats; ++n_i)
+            for(index_t n_i = 0; n_i < NRepeats; ++n_i)
+                for(index_t k_i      = 0; k_i < K; ++k_i)
                     b[k_i + n_i * K] = p_b_wave[k_i * N + laneId + NPerXdlops * n_i];
-            }
 
             for(index_t m_i = 0; m_i < MRepeats; ++m_i)
             {
@@ -948,8 +902,8 @@ struct XdlopsGemm_t
                         for(index_t i = 0; i < nxdlops; ++i)
                             mfma_type.run(Number<MPerXdlops>{},
                                           Number<NPerXdlops>{},
-                                          &pa[(m_i * K + k_i * nxdlops + i) * mfma_type.k_base],
-                                          &pb[(n_i * K + k_i * nxdlops + i) * mfma_type.k_base],
+                                          &pa[((m_i * K + k_i) * nxdlops + i) * mfma_type.k_base],
+                                          &pb[((n_i * K + k_i) * nxdlops + i) * mfma_type.k_base],
                                           p_c_thread + (NRepeats * m_i + n_i) * GetRegSize());
                     }
                 }
@@ -961,10 +915,10 @@ struct XdlopsGemm_t
             const index_t blk_td = laneId % mfma_type.num_threads_blk;
 
             // load into registers
-            for(index_t k = 0; k < K; k += mfma_type.num_input_blks)
+            for(index_t k_i = 0; k_i < K; k_i += mfma_type.num_input_blks)
             {
-                a[k] = p_a_wave[(k + blk_id) * M + blk_td];
-                b[k] = p_b_wave[(k + blk_id) * N + blk_td];
+                a[k_i] = p_a_wave[(k_i + blk_id) * M + blk_td];
+                b[k_i] = p_b_wave[(k_i + blk_id) * N + blk_td];
             }
 
             // get pointer of registers
@@ -974,13 +928,13 @@ struct XdlopsGemm_t
 #if CK_WORKAROUND_SWDEV_229564
 #pragma unroll
 #endif
-            for(index_t k = 0; k < K; k += mfma_type.num_input_blks)
+            for(index_t k_i = 0; k_i < K; k_i += mfma_type.num_input_blks)
             {
                 for(index_t i = 0; i < nxdlops; ++i)
                     mfma_type.run(Number<MPerXdlops>{},
                                   Number<NPerXdlops>{},
-                                  &pa[(k * nxdlops + i) * mfma_type.k_base],
-                                  &pb[(k * nxdlops + i) * mfma_type.k_base],
+                                  &pa[(k_i * nxdlops + i) * mfma_type.k_base],
+                                  &pb[(k_i * nxdlops + i) * mfma_type.k_base],
                                   p_c_thread);
             }
 
