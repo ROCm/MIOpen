@@ -4,6 +4,7 @@
 #include "common_header.hpp"
 #include "ConstantMatrixDescriptor.hpp"
 #include "xdlops_gemm.hpp"
+#include "xdlops_gemm_inline_asm.hpp"
 #include "threadwise_gemm.hpp"
 
 namespace ck {
@@ -27,8 +28,13 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         index_t col;
     };
 
+#if CK_USE_AMD_XDLOPS_INLINE_ASM
+    static constexpr auto XdlopsGemm =
+        XdlopsGemmAsm_t<Float, GemmMPerWave, GemmNPerWave, GemmDataPerReadA, GemmDataPerReadB>{};
+#else
     static constexpr auto XdlopsGemm =
         XdlopsGemm_t<Float, GemmMPerWave, GemmNPerWave, GemmDataPerReadA, GemmDataPerReadB>{};
+#endif
 
     index_t mMyWaveOffsetA;
     index_t mMyWaveOffsetB;

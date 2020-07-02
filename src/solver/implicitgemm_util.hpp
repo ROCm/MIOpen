@@ -537,7 +537,7 @@ static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
                                                            std::make_tuple(4, 64)};
 
     // xdlops repeat only supported by llvm intrinsic
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}))
+    // if(!miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}))
     {
         validWaveGemmSize.emplace_back(std::make_tuple(128, 128));
         validWaveGemmSize.emplace_back(std::make_tuple(128, 64));

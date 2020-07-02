@@ -56,7 +56,7 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x1xf32>
         const auto p_b = b;
         auto p_c       = reinterpret_cast<float32_t*>(reg_c);
 
-        gcnasm_mfma_f32_32x32x1f32<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
+        intrin_mfma_f32_32x32x1f32<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
     }
 };
 
@@ -84,7 +84,7 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x2xf32>
         const auto p_b = b;
         auto p_c       = reinterpret_cast<float16_t*>(reg_c);
 
-        gcnasm_mfma_f32_32x32x2f32(p_a, p_b, p_c);
+        intrin_mfma_f32_32x32x2f32(p_a, p_b, p_c);
     }
 };
 
@@ -112,7 +112,7 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x4xf32>
         const auto p_b = b;
         auto p_c       = reinterpret_cast<float4_t*>(reg_c);
 
-        gcnasm_mfma_f32_16x16x4f32(p_a, p_b, p_c);
+        intrin_mfma_f32_16x16x4f32(p_a, p_b, p_c);
     }
 };
 
@@ -140,7 +140,7 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x1xf32>
         const auto p_b = b;
         auto p_c       = reinterpret_cast<float16_t*>(reg_c);
 
-        gcnasm_mfma_f32_16x16x1f32<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
+        intrin_mfma_f32_16x16x1f32<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
     }
 };
 
@@ -172,7 +172,7 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x1xf32>
         const auto p_b = b;
         auto p_c       = reinterpret_cast<float4_t*>(reg_c);
 
-        gcnasm_mfma_f32_4x4x1f32<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
+        intrin_mfma_f32_4x4x1f32<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
     }
 };
 
@@ -200,7 +200,7 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x4f16>
         const auto p_b = reinterpret_cast<const half4_t*>(b);
         auto p_c       = reinterpret_cast<float32_t*>(reg_c);
 
-        gcnasm_mfma_f32_32x32x4f16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
+        intrin_mfma_f32_32x32x4f16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
     }
 };
 
@@ -228,7 +228,7 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x8f16>
         const auto p_b = reinterpret_cast<const half4_t*>(b);
         auto p_c       = reinterpret_cast<float16_t*>(reg_c);
 
-        gcnasm_mfma_f32_32x32x8f16(p_a, p_b, p_c);
+        intrin_mfma_f32_32x32x8f16(p_a, p_b, p_c);
     }
 };
 
@@ -256,7 +256,7 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x16f16>
         const auto p_b = reinterpret_cast<const half4_t*>(b);
         auto p_c       = reinterpret_cast<float4_t*>(reg_c);
 
-        gcnasm_mfma_f32_16x16x16f16(p_a, p_b, p_c);
+        intrin_mfma_f32_16x16x16f16(p_a, p_b, p_c);
     }
 };
 
@@ -284,7 +284,7 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x4f16>
         const auto p_b = reinterpret_cast<const half4_t*>(b);
         auto p_c       = reinterpret_cast<float16_t*>(reg_c);
 
-        gcnasm_mfma_f32_16x16x4f16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
+        intrin_mfma_f32_16x16x4f16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
     }
 };
 
@@ -312,7 +312,7 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x4f16>
         const auto p_b = reinterpret_cast<const half4_t*>(b);
         auto p_c       = reinterpret_cast<float4_t*>(reg_c);
 
-        gcnasm_mfma_f32_4x4x4f16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
+        intrin_mfma_f32_4x4x4f16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
     }
 };
 
@@ -340,7 +340,7 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x2bf16>
         const auto p_b = reinterpret_cast<const ushort2_t*>(b);
         auto p_c       = reinterpret_cast<float32_t*>(reg_c);
 
-        gcnasm_mfma_f32_32x32x2bf16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
+        intrin_mfma_f32_32x32x2bf16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
     }
 };
 
@@ -368,7 +368,7 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x4bf16>
         const auto p_b = reinterpret_cast<const ushort2_t*>(b);
         auto p_c       = reinterpret_cast<float16_t*>(reg_c);
 
-        gcnasm_mfma_f32_32x32x4bf16(p_a, p_b, p_c);
+        intrin_mfma_f32_32x32x4bf16(p_a, p_b, p_c);
     }
 };
 
@@ -396,7 +396,7 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x8bf16>
         const auto p_b = reinterpret_cast<const ushort2_t*>(b);
         auto p_c       = reinterpret_cast<float4_t*>(reg_c);
 
-        gcnasm_mfma_f32_16x16x8bf16(p_a, p_b, p_c);
+        intrin_mfma_f32_16x16x8bf16(p_a, p_b, p_c);
     }
 };
 
@@ -424,7 +424,7 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x2bf16>
         const auto p_b = reinterpret_cast<const ushort2_t*>(b);
         auto p_c       = reinterpret_cast<float16_t*>(reg_c);
 
-        gcnasm_mfma_f32_16x16x2bf16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
+        intrin_mfma_f32_16x16x2bf16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
     }
 };
 
@@ -452,7 +452,7 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x2bf16>
         const auto p_b = reinterpret_cast<const ushort2_t*>(b);
         auto p_c       = reinterpret_cast<float4_t*>(reg_c);
 
-        gcnasm_mfma_f32_4x4x2bf16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
+        intrin_mfma_f32_4x4x2bf16<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
     }
 };
 
