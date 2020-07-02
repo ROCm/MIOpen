@@ -4,9 +4,7 @@
 #include "float_type.hpp"
 
 namespace ck {
-
 // clang-format off
-
 #define REPEATx4(f, off) f(off) f(off + 1) f(off + 2) f(off + 3)
 
 #define REPEATx16(f, off) \
@@ -249,9 +247,8 @@ struct gcnasm_mfma_f32_32x32x1f32;
 template <index_t AStride, index_t BStride>
 struct gcnasm_mfma_f32_32x32x1f32<128, 128, AStride, BStride>
 {
-    __device__ void run(const float* reg_a, const float* reg_b, float32_t* reg_c)
+    __device__ void run(const float* reg_a, const float* reg_b)
     {
-        (void)reg_c;
         MFMA_F32_32x32x1F32(0,  reg_a[0],       reg_b[0], 1, 0, 0)
         MFMA_F32_32x32x1F32(32, reg_a[0],       reg_b[0], 1, 1, 0)
         MFMA_F32_32x32x1F32(64, reg_a[AStride], reg_b[0], 1, 0, 0)
@@ -267,9 +264,8 @@ struct gcnasm_mfma_f32_32x32x1f32<128, 128, AStride, BStride>
 template <index_t AStride, index_t BStride>
 struct gcnasm_mfma_f32_32x32x1f32<128, 64, AStride, BStride>
 {
-    __device__ void run(const float* reg_a, const float* reg_b, float32_t* reg_c)
+    __device__ void run(const float* reg_a, const float* reg_b)
     {
-        (void)reg_c;
         MFMA_F32_32x32x1F32(0,  reg_a[0], reg_b[0], 1, 0, 0)
         MFMA_F32_32x32x1F32(32, reg_a[0], reg_b[0], 1, 1, 0)
         MFMA_F32_32x32x1F32(64, reg_a[AStride], reg_b[0], 1, 0, 0)
@@ -280,9 +276,8 @@ struct gcnasm_mfma_f32_32x32x1f32<128, 64, AStride, BStride>
 template <index_t AStride, index_t BStride>
 struct gcnasm_mfma_f32_32x32x1f32<64, 128, AStride, BStride>
 {
-    __device__ void run(const float* reg_a, const float* reg_b, float32_t* reg_c)
+    __device__ void run(const float* reg_a, const float* reg_b)
     {
-        (void)reg_c;
         MFMA_F32_32x32x1F32(0,  reg_a[0], reg_b[0], 1, 0, 0)
         MFMA_F32_32x32x1F32(32, reg_a[0], reg_b[0], 1, 1, 0)
         MFMA_F32_32x32x1F32(64, reg_a[0], reg_b[BStride], 1, 0, 0)
@@ -293,9 +288,8 @@ struct gcnasm_mfma_f32_32x32x1f32<64, 128, AStride, BStride>
 template <index_t AStride, index_t BStride>
 struct gcnasm_mfma_f32_32x32x1f32<64, 64, AStride, BStride>
 {
-    __device__ void run(const float* reg_a, const float* reg_b, float32_t* reg_c)
+    __device__ void run(const float* reg_a, const float* reg_b)
     {
-        (void)reg_c;
         MFMA_F32_32x32x1F32(0, reg_a[0], reg_b[0], 1, 0, 0)
         MFMA_F32_32x32x1F32(32, reg_a[0], reg_b[0], 1, 1, 0)
     }
@@ -304,9 +298,8 @@ struct gcnasm_mfma_f32_32x32x1f32<64, 64, AStride, BStride>
 template <index_t AStride, index_t BStride>
 struct gcnasm_mfma_f32_32x32x1f32<32, 64, AStride, BStride>
 {
-    __device__ void run(const float* reg_a, const float* reg_b, float32_t* reg_c)
+    __device__ void run(const float* reg_a, const float* reg_b)
     {
-        (void)reg_c;
         MFMA_F32_32x32x1F32(0, reg_a[0], reg_b[0], 1, 0, 0)
     }
 };
@@ -314,56 +307,49 @@ struct gcnasm_mfma_f32_32x32x1f32<32, 64, AStride, BStride>
 template <index_t AStride, index_t BStride>
 struct gcnasm_mfma_f32_32x32x1f32<64, 32, AStride, BStride>
 {
-    __device__ void run(const float* reg_a, const float* reg_b, float32_t* reg_c)
+    __device__ void run(const float* reg_a, const float* reg_b)
     {
-        (void)reg_c;
         MFMA_F32_32x32x1F32(0, reg_a[0], reg_b[0], 0, 0, 1)
     }
 };
 
-__device__ void gcnasm_mfma_f32_32x32x2f32(const float* reg_a, const float* reg_b, float16_t* reg_c)
+__device__ void gcnasm_mfma_f32_32x32x2f32(const float* reg_a, const float* reg_b)
 {
-    (void)reg_c;
     MFMA_F32_32x32x2F32(0, reg_a[0], reg_b[0], 0, 0, 0)
 }
 
-__device__ void gcnasm_mfma_f32_16x16x4f32(const float* reg_a, const float* reg_b, float4_t* reg_c)
+__device__ void gcnasm_mfma_f32_16x16x4f32(const float* reg_a, const float* reg_b)
 {
-    (void)reg_c;
     MFMA_F32_16x16x4F32(0, reg_a[0], reg_b[0], 0, 0, 0)
 }
 
 template <index_t MPerWave, index_t NPerWave>
-__device__ void gcnasm_mfma_f32_16x16x1f32(const float* reg_a, const float* reg_b, float16_t* reg_c);
+__device__ void gcnasm_mfma_f32_16x16x1f32(const float* reg_a, const float* reg_b);
 
 template <>
-__device__ void gcnasm_mfma_f32_16x16x1f32<16, 64>(const float* reg_a, const float* reg_b, float16_t* reg_c)
+__device__ void gcnasm_mfma_f32_16x16x1f32<16, 64>(const float* reg_a, const float* reg_b)
 {
-    (void)reg_c;
     MFMA_F32_16x16x1F32(0, reg_a[0], reg_b[0], 2, 0, 0)
 }
 
 template <>
-__device__ void gcnasm_mfma_f32_16x16x1f32<64, 16>(const float* reg_a, const float* reg_b, float16_t* reg_c)
+__device__ void gcnasm_mfma_f32_16x16x1f32<64, 16>(const float* reg_a, const float* reg_b)
 {
-    (void)reg_c;
     MFMA_F32_16x16x1F32(0, reg_a[0], reg_b[0], 0, 0, 4)
 }
 
 template <index_t MPerWave, index_t NPerWave>
-__device__ void gcnasm_mfma_f32_4x4x1f32(const float* reg_a, const float* reg_b, float4_t* reg_c);
+__device__ void gcnasm_mfma_f32_4x4x1f32(const float* reg_a, const float* reg_b);
 
 template <>
-__device__ void gcnasm_mfma_f32_4x4x1f32<4, 64>(const float* reg_a, const float* reg_b, float4_t* reg_c)
+__device__ void gcnasm_mfma_f32_4x4x1f32<4, 64>(const float* reg_a, const float* reg_b)
 {
-    (void)reg_c;
     MFMA_F32_4x4x1F32(0, reg_a[0], reg_b[0], 4, 0, 0)
 }
 
 template <>
-__device__ void gcnasm_mfma_f32_4x4x1f32<8, 64>(const float* reg_a, const float* reg_b, float4_t* reg_c)
+__device__ void gcnasm_mfma_f32_4x4x1f32<8, 64>(const float* reg_a, const float* reg_b)
 {
-    (void)reg_c;
     MFMA_F32_4x4x1F32(0, reg_a[0], reg_b[0], 4, 0, 0)
     MFMA_F32_4x4x1F32(4, reg_a[0], reg_b[0], 4, 1, 0)
 }
@@ -374,9 +360,8 @@ struct gcnasm_mfma_f32_32x32x4f16;
 template <index_t AStride, index_t BStride>
 struct gcnasm_mfma_f32_32x32x4f16<128, 128, AStride, BStride>
 {
-    __device__ void run(const half4_t* reg_a, const half4_t* reg_b, float32_t* reg_c)
+    __device__ void run(const half4_t* reg_a, const half4_t* reg_b)
     {
-        (void)reg_c;
         MFMA_F32_32x32x4F16(0,  reg_a[0],       reg_b[0], 1, 0, 0)
         MFMA_F32_32x32x4F16(32, reg_a[0],       reg_b[0], 1, 1, 0)
         MFMA_F32_32x32x4F16(64, reg_a[AStride], reg_b[0], 1, 0, 0)
@@ -392,9 +377,8 @@ struct gcnasm_mfma_f32_32x32x4f16<128, 128, AStride, BStride>
 template <index_t AStride, index_t BStride>
 struct gcnasm_mfma_f32_32x32x4f16<128, 64, AStride, BStride>
 {
-    __device__ void run(const half4_t* reg_a, const half4_t* reg_b, float32_t* reg_c)
+    __device__ void run(const half4_t* reg_a, const half4_t* reg_b)
     {
-        (void)reg_c;
         MFMA_F32_32x32x4F16(0,  reg_a[0],       reg_b[0], 1, 0, 0)
         MFMA_F32_32x32x4F16(32, reg_a[0],       reg_b[0], 1, 1, 0)
         MFMA_F32_32x32x4F16(64, reg_a[AStride], reg_b[0], 1, 0, 0)
@@ -405,9 +389,8 @@ struct gcnasm_mfma_f32_32x32x4f16<128, 64, AStride, BStride>
 template <index_t AStride, index_t BStride>
 struct gcnasm_mfma_f32_32x32x4f16<64, 128, AStride, BStride>
 {
-    __device__ void run(const half4_t* reg_a, const half4_t* reg_b, float32_t* reg_c)
+    __device__ void run(const half4_t* reg_a, const half4_t* reg_b)
     {
-        (void)reg_c;
         MFMA_F32_32x32x4F16(0,  reg_a[0], reg_b[0], 1, 0, 0)
         MFMA_F32_32x32x4F16(32, reg_a[0], reg_b[0], 1, 1, 0)
         MFMA_F32_32x32x4F16(64, reg_a[0], reg_b[BStride], 1, 0, 0)
@@ -418,9 +401,8 @@ struct gcnasm_mfma_f32_32x32x4f16<64, 128, AStride, BStride>
 template <index_t AStride, index_t BStride>
 struct gcnasm_mfma_f32_32x32x4f16<64, 64, AStride, BStride>
 {
-    __device__ void run(const half4_t* reg_a, const half4_t* reg_b, float32_t* reg_c)
+    __device__ void run(const half4_t* reg_a, const half4_t* reg_b)
     {
-        (void)reg_c;
         MFMA_F32_32x32x4F16(0, reg_a[0], reg_b[0], 1, 0, 0)
         MFMA_F32_32x32x4F16(32, reg_a[0], reg_b[0], 1, 1, 0)
     }
@@ -429,9 +411,8 @@ struct gcnasm_mfma_f32_32x32x4f16<64, 64, AStride, BStride>
 template <index_t AStride, index_t BStride>
 struct gcnasm_mfma_f32_32x32x4f16<32, 64, AStride, BStride>
 {
-    __device__ void run(const half4_t* reg_a, const half4_t* reg_b, float32_t* reg_c)
+    __device__ void run(const half4_t* reg_a, const half4_t* reg_b)
     {
-        (void)reg_c;
         MFMA_F32_32x32x4F16(0, reg_a[0], reg_b[0], 1, 0, 0)
     }
 };
@@ -439,57 +420,50 @@ struct gcnasm_mfma_f32_32x32x4f16<32, 64, AStride, BStride>
 template <index_t AStride, index_t BStride>
 struct gcnasm_mfma_f32_32x32x4f16<64, 32, AStride, BStride>
 {
-    __device__ void run(const half4_t* reg_a, const half4_t* reg_b, float32_t* reg_c)
+    __device__ void run(const half4_t* reg_a, const half4_t* reg_b)
     {
-        (void)reg_c;
         MFMA_F32_32x32x4F16(0, reg_a[0], reg_b[0], 0, 0, 1)
     }
 };
 
-__device__ void gcnasm_mfma_f32_32x32x8f16(const half4_t* reg_a, const half4_t* reg_b, float16_t* reg_c)
+__device__ void gcnasm_mfma_f32_32x32x8f16(const half4_t* reg_a, const half4_t* reg_b)
 {
-    (void)reg_c;
     MFMA_F32_32x32x8F16(0, reg_a[0], reg_b[0], 0, 0, 0)
 }
 
-__device__ void gcnasm_mfma_f32_16x16x16f16(const half4_t* reg_a, const half4_t* reg_b, float4_t* reg_c)
+__device__ void gcnasm_mfma_f32_16x16x16f16(const half4_t* reg_a, const half4_t* reg_b)
 {
-    (void)reg_c;
     MFMA_F32_16x16x16F16(0, reg_a[0], reg_b[0], 0, 0, 0)
 }
 
 template <index_t MPerWave, index_t NPerWave>
-__device__ void gcnasm_mfma_f32_16x16x4f16(const half4_t* reg_a, const half4_t* reg_b, float16_t* reg_c);
+__device__ void gcnasm_mfma_f32_16x16x4f16(const half4_t* reg_a, const half4_t* reg_b);
 
 template <>
-__device__ void gcnasm_mfma_f32_16x16x4f16<16, 64>(const half4_t* reg_a, const half4_t* reg_b, float16_t* reg_c)
+__device__ void gcnasm_mfma_f32_16x16x4f16<16, 64>(const half4_t* reg_a, const half4_t* reg_b)
 {
-    (void)reg_c;
     MFMA_F32_16x16x4F16(0, reg_a[0], reg_b[0], 2, 0, 0)
 }
 
 template <>
-__device__ void gcnasm_mfma_f32_16x16x4f16<64, 16>(const half4_t* reg_a, const half4_t* reg_b, float16_t* reg_c)
+__device__ void gcnasm_mfma_f32_16x16x4f16<64, 16>(const half4_t* reg_a, const half4_t* reg_b)
 
 {
-    (void)reg_c;
     MFMA_F32_16x16x4F16(0, reg_a[0], reg_b[0], 0, 0, 4)
 }
 
 template <index_t MPerWave, index_t NPerWave>
-__device__ void gcnasm_mfma_f32_4x4x4f16(const half4_t* reg_a, const half4_t* reg_b, float4_t* reg_c);
+__device__ void gcnasm_mfma_f32_4x4x4f16(const half4_t* reg_a, const half4_t* reg_b);
 
 template <>
-__device__ void gcnasm_mfma_f32_4x4x4f16<4, 64>(const half4_t* reg_a, const half4_t* reg_b, float4_t* reg_c)
+__device__ void gcnasm_mfma_f32_4x4x4f16<4, 64>(const half4_t* reg_a, const half4_t* reg_b)
 {
-    (void)reg_c;
     MFMA_F32_4x4x4F16(0, reg_a[0], reg_b[0], 4, 0, 0)
 }
 
 template <>
-__device__ void gcnasm_mfma_f32_4x4x4f16<8, 64>(const half4_t* reg_a, const half4_t* reg_b, float4_t* reg_c)
+__device__ void gcnasm_mfma_f32_4x4x4f16<8, 64>(const half4_t* reg_a, const half4_t* reg_b)
 {
-    (void)reg_c;
     MFMA_F32_4x4x4F16(0, reg_a[0], reg_b[0], 4, 0, 0)
     MFMA_F32_4x4x4F16(4, reg_a[0], reg_b[0], 4, 1, 0)
 }
@@ -500,9 +474,8 @@ struct gcnasm_mfma_f32_32x32x2bf16;
 template <index_t AStride, index_t BStride>
 struct gcnasm_mfma_f32_32x32x2bf16<128, 128, AStride, BStride>
 {
-    __device__ void run(const ushort2_t* reg_a, const ushort2_t* reg_b, float32_t* reg_c)
+    __device__ void run(const ushort2_t* reg_a, const ushort2_t* reg_b)
     {
-        (void)reg_c;
         MFMA_F32_32x32x2BF16(0,  reg_a[0],       reg_b[0], 1, 0, 0)
         MFMA_F32_32x32x2BF16(32, reg_a[0],       reg_b[0], 1, 1, 0)
         MFMA_F32_32x32x2BF16(64, reg_a[AStride], reg_b[0], 1, 0, 0)
@@ -518,9 +491,8 @@ struct gcnasm_mfma_f32_32x32x2bf16<128, 128, AStride, BStride>
 template <index_t AStride, index_t BStride>
 struct gcnasm_mfma_f32_32x32x2bf16<128, 64, AStride, BStride>
 {
-    __device__ void run(const ushort2_t* reg_a, const ushort2_t* reg_b, float32_t* reg_c)
+    __device__ void run(const ushort2_t* reg_a, const ushort2_t* reg_b)
     {
-        (void)reg_c;
         MFMA_F32_32x32x2BF16(0,  reg_a[0],       reg_b[0], 1, 0, 0)
         MFMA_F32_32x32x2BF16(32, reg_a[0],       reg_b[0], 1, 1, 0)
         MFMA_F32_32x32x2BF16(64, reg_a[AStride], reg_b[0], 1, 0, 0)
@@ -531,9 +503,8 @@ struct gcnasm_mfma_f32_32x32x2bf16<128, 64, AStride, BStride>
 template <index_t AStride, index_t BStride>
 struct gcnasm_mfma_f32_32x32x2bf16<64, 128, AStride, BStride>
 {
-    __device__ void run(const ushort2_t* reg_a, const ushort2_t* reg_b, float32_t* reg_c)
+    __device__ void run(const ushort2_t* reg_a, const ushort2_t* reg_b)
     {
-        (void)reg_c;
         MFMA_F32_32x32x2BF16(0,  reg_a[0], reg_b[0], 1, 0, 0)
         MFMA_F32_32x32x2BF16(32, reg_a[0], reg_b[0], 1, 1, 0)
         MFMA_F32_32x32x2BF16(64, reg_a[0], reg_b[BStride], 1, 0, 0)
@@ -544,9 +515,8 @@ struct gcnasm_mfma_f32_32x32x2bf16<64, 128, AStride, BStride>
 template <index_t AStride, index_t BStride>
 struct gcnasm_mfma_f32_32x32x2bf16<64, 64, AStride, BStride>
 {
-    __device__ void run(const ushort2_t* reg_a, const ushort2_t* reg_b, float32_t* reg_c)
+    __device__ void run(const ushort2_t* reg_a, const ushort2_t* reg_b)
     {
-        (void)reg_c;
         MFMA_F32_32x32x2BF16(0, reg_a[0], reg_b[0], 1, 0, 0)
         MFMA_F32_32x32x2BF16(32, reg_a[0], reg_b[0], 1, 1, 0)
     }
@@ -555,9 +525,8 @@ struct gcnasm_mfma_f32_32x32x2bf16<64, 64, AStride, BStride>
 template <index_t AStride, index_t BStride>
 struct gcnasm_mfma_f32_32x32x2bf16<32, 64, AStride, BStride>
 {
-    __device__ void run(const ushort2_t* reg_a, const ushort2_t* reg_b, float32_t* reg_c)
+    __device__ void run(const ushort2_t* reg_a, const ushort2_t* reg_b)
     {
-        (void)reg_c;
         MFMA_F32_32x32x2BF16(0, reg_a[0], reg_b[0], 1, 0, 0)
     }
 };
@@ -565,60 +534,52 @@ struct gcnasm_mfma_f32_32x32x2bf16<32, 64, AStride, BStride>
 template <index_t AStride, index_t BStride>
 struct gcnasm_mfma_f32_32x32x2bf16<64, 32, AStride, BStride>
 {
-    __device__ void run(const ushort2_t* reg_a, const ushort2_t* reg_b, float32_t* reg_c)
+    __device__ void run(const ushort2_t* reg_a, const ushort2_t* reg_b)
     {
-        (void)reg_c;
         MFMA_F32_32x32x2BF16(0, reg_a[0], reg_b[0], 0, 0, 1)
     }
 };
 
-__device__ void gcnasm_mfma_f32_32x32x4bf16(const ushort2_t* reg_a, const ushort2_t* reg_b, float16_t* reg_c)
+__device__ void gcnasm_mfma_f32_32x32x4bf16(const ushort2_t* reg_a, const ushort2_t* reg_b)
 {
-    (void)reg_c;
     MFMA_F32_32x32x4BF16(0, reg_a[0], reg_b[0], 0, 0, 0)
 }
 
-__device__ void gcnasm_mfma_f32_16x16x8bf16(const ushort2_t* reg_a, const ushort2_t* reg_b, float4_t* reg_c)
+__device__ void gcnasm_mfma_f32_16x16x8bf16(const ushort2_t* reg_a, const ushort2_t* reg_b)
 {
-    (void)reg_c;
     MFMA_F32_16x16x8BF16(0, reg_a[0], reg_b[0], 0, 0, 0)
 }
 
 template <index_t MPerWave, index_t NPerWave>
-__device__ void gcnasm_mfma_f32_16x16x2bf16(const ushort2_t* reg_a, const ushort2_t* reg_b, float16_t* reg_c);
+__device__ void gcnasm_mfma_f32_16x16x2bf16(const ushort2_t* reg_a, const ushort2_t* reg_b);
 
 template <>
-__device__ void gcnasm_mfma_f32_16x16x2bf16<16, 64>(const ushort2_t* reg_a, const ushort2_t* reg_b, float16_t* reg_c)
+__device__ void gcnasm_mfma_f32_16x16x2bf16<16, 64>(const ushort2_t* reg_a, const ushort2_t* reg_b)
 {
-    (void)reg_c;
     MFMA_F32_16x16x2BF16(0, reg_a[0], reg_b[0], 2, 0, 0)
 }
 
 template <>
-__device__ void gcnasm_mfma_f32_16x16x2bf16<64, 16>(const ushort2_t* reg_a, const ushort2_t* reg_b, float16_t* reg_c)
+__device__ void gcnasm_mfma_f32_16x16x2bf16<64, 16>(const ushort2_t* reg_a, const ushort2_t* reg_b)
 {
-    (void)reg_c;
     MFMA_F32_16x16x2BF16(0, reg_a[0], reg_b[0], 0, 0, 4)
 }
 
 template <index_t MPerWave, index_t NPerWave>
-__device__ void gcnasm_mfma_f32_4x4x2bf16(const ushort2_t* reg_a, const ushort2_t* reg_b, float4_t* reg_c);
+__device__ void gcnasm_mfma_f32_4x4x2bf16(const ushort2_t* reg_a, const ushort2_t* reg_b);
 
 template <>
-__device__ void gcnasm_mfma_f32_4x4x2bf16<4, 64>(const ushort2_t* reg_a, const ushort2_t* reg_b, float4_t* reg_c)
+__device__ void gcnasm_mfma_f32_4x4x2bf16<4, 64>(const ushort2_t* reg_a, const ushort2_t* reg_b)
 {
-    (void)reg_c;
     MFMA_F32_4x4x2BF16(0, reg_a[0], reg_b[0], 4, 0, 0)
 }
 
 template <>
-__device__ void gcnasm_mfma_f32_4x4x2bf16<8, 64>(const ushort2_t* reg_a, const ushort2_t* reg_b, float4_t* reg_c)
+__device__ void gcnasm_mfma_f32_4x4x2bf16<8, 64>(const ushort2_t* reg_a, const ushort2_t* reg_b)
 {
-    (void)reg_c;
     MFMA_F32_4x4x2BF16(0, reg_a[0], reg_b[0], 4, 0, 0)
     MFMA_F32_4x4x2BF16(4, reg_a[0], reg_b[0], 4, 1, 0)
 }
-
 // clang-format on
 }
 #endif
