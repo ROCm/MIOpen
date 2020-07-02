@@ -492,10 +492,15 @@ struct XdlopsGemm_t
 
         __device__ static constexpr index_t GetNumBlks()
         {
-            constexpr auto mfma_type = GetMFMAInfo();
-            return (GemmMPerWave * GemmNPerWave) / (mfma_type.m * mfma_type.n);
+            return GetNumBlksPerXdlops() * MRepeats * NRepeats;
         }
     };
+
+    __device__ static constexpr index_t GetNumBlksPerXdlops()
+    {
+        constexpr auto mfma_type = GetMFMAInfo();
+        return (MPerXdlops * NPerXdlops) / (mfma_type.m * mfma_type.n);
+    }
 
     __device__ constexpr XdlopsGemm_t()
     {
@@ -523,7 +528,10 @@ struct XdlopsGemm_t
         static_assert(mfma_type.k % mfma_type.k_base == 0, "k and k_base is inconsistent!");
     }
 
-    __device__ static constexpr index_t GetRegSize() { return MPerXdlops * NPerXdlops / WaveSize; }
+    __device__ static constexpr index_t GetRegSizePerXdlops()
+    {
+        return MPerXdlops * NPerXdlops / WaveSize;
+    }
 
     __device__ static constexpr bool IsABroadcast() { return NPerXdlops >= MPerXdlops; }
 
@@ -754,7 +762,7 @@ struct XdlopsGemm_t
                                         k * N + n * mfma_type.num_threads_blk + NPerXdlops * n_i;
                                     index_t c_off = n * mfma_type.num_regs_blk +
                                                     b * mfma_type.num_regs_xdlops +
-                                                    (NRepeats * m_i + n_i) * GetRegSize();
+                                                    (NRepeats * m_i + n_i) * GetRegSizePerXdlops();
 
                                     for(index_t m = 0; m < mfma_type.num_regs_blk; ++m)
                                     {
@@ -851,17 +859,15 @@ struct XdlopsGemm_t
                 for(index_t k_i      = 0; k_i < K; ++k_i)
                     b[k_i + n_i * K] = p_b_wave[k_i * N + laneId + NPerXdlops * n_i];
 
-            // constexpr index_t AStride = K * nxdlops;
-            // constexpr index_t BStride = K * nxdlops;
+            // get pointer of registers
+            auto pa = reinterpret_cast<const data_type*>(&a);
+            auto pb = reinterpret_cast<const data_type*>(&b);
 
             for(index_t m_i = 0; m_i < MRepeats; ++m_i)
             {
 
                 for(index_t n_i = 0; n_i < NRepeats; ++n_i)
                 {
-                    // get pointer of registers
-                    auto pa = reinterpret_cast<const data_type*>(&a);
-                    auto pb = reinterpret_cast<const data_type*>(&b);
 
 #if CK_WORKAROUND_SWDEV_229564
 #pragma unroll
@@ -874,7 +880,7 @@ struct XdlopsGemm_t
                                     m_i * K * nxdlops * mfma_type.k_base],
                                 &pb[(k_i * nxdlops + i) * mfma_type.k_base +
                                     n_i * K * nxdlops * mfma_type.k_base],
-                                p_c_thread + (NRepeats * m_i + n_i) * GetRegSize());
+                                p_c_thread + (NRepeats * m_i + n_i) * GetRegSizePerXdlops());
                     }
                 }
             }
@@ -913,8 +919,8 @@ struct XdlopsGemm_t
 
     __device__ static MatrixIndex GetBeginOfThreadBlk(index_t i)
     {
-        const index_t xdlops_i = i / GetOutputLayout().GetNumBlks();
-        const index_t j        = i % GetOutputLayout().GetNumBlks();
+        const index_t xdlops_i = i / GetNumBlksPerXdlops();
+        const index_t j        = i % GetNumBlksPerXdlops();
 
         const index_t m_i = xdlops_i / NRepeats;
         const index_t n_i = xdlops_i % NRepeats;
@@ -927,8 +933,8 @@ struct XdlopsGemm_t
 
         index_t col_blk = j % mfma_type.num_output_blks;
         index_t row_blk = j / mfma_type.num_output_blks;
-        index_t col     = col_blk * mfma_type.n + blk_td;
-        index_t row     = row_blk * mfma_type.m + blk_id * mfma_type.group_size;
+        index_t col     = col_blk * mfma_type.n + blk_td + n_i * NPerXdlops;
+        index_t row     = row_blk * mfma_type.m + blk_id * mfma_type.group_size + m_i * MPerXdlops;
 
         static_if<!IsABroadcast()>{}([&](auto) {
             col_blk = j / mfma_type.num_output_blks;

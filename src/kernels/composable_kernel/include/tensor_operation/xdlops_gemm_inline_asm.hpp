@@ -470,10 +470,15 @@ struct XdlopsGemmAsm_t
 
         __device__ static constexpr index_t GetNumBlks()
         {
-            constexpr auto mfma_type = GetMFMAInfo();
-            return (GemmMPerWave * GemmNPerWave) / (mfma_type.m * mfma_type.n);
+            return GetNumBlksPerXdlops() * MRepeats * NRepeats;
         }
     };
+
+    __device__ static constexpr index_t GetNumBlksPerXdlops()
+    {
+        constexpr auto mfma_type = GetMFMAInfo();
+        return (MPerXdlops * NPerXdlops) / (mfma_type.m * mfma_type.n);
+    }
 
     __device__ constexpr XdlopsGemmAsm_t()
     {
@@ -504,9 +509,9 @@ struct XdlopsGemmAsm_t
         static_assert(mfma_type.k % mfma_type.k_base == 0, "k and k_base is inconsistent!");
     }
 
-    __device__ static constexpr index_t GetRegSize()
+    __device__ static constexpr index_t GetRegSizePerXdlops()
     {
-        return (MPerXdlops * NPerXdlops) / WaveSize;
+        return MPerXdlops * NPerXdlops / WaveSize;
     }
 
     __device__ static constexpr bool IsABroadcast() { return NPerXdlops >= MPerXdlops; }
@@ -779,8 +784,8 @@ struct XdlopsGemmAsm_t
 
     __device__ static MatrixIndex GetBeginOfThreadBlk(index_t i)
     {
-        const index_t xdlops_i = i / GetOutputLayout().GetNumBlks();
-        const index_t j        = i % GetOutputLayout().GetNumBlks();
+        const index_t xdlops_i = i / GetNumBlksPerXdlops();
+        const index_t j        = i % GetNumBlksPerXdlops();
 
         const index_t m_i = xdlops_i / NRepeats;
         const index_t n_i = xdlops_i % NRepeats;
@@ -793,8 +798,8 @@ struct XdlopsGemmAsm_t
 
         index_t col_blk = j % mfma_type.num_output_blks;
         index_t row_blk = j / mfma_type.num_output_blks;
-        index_t col     = col_blk * mfma_type.n + blk_td;
-        index_t row     = row_blk * mfma_type.m + blk_id * mfma_type.group_size;
+        index_t col     = col_blk * mfma_type.n + blk_td + n_i * NPerXdlops;
+        index_t row     = row_blk * mfma_type.m + blk_id * mfma_type.group_size + m_i * MPerXdlops;
 
         static_if<!IsABroadcast()>{}([&](auto) {
             col_blk = j / mfma_type.num_output_blks;
@@ -820,7 +825,7 @@ struct XdlopsGemmAsm_t
 
     __device__ void SetZeroXdlopsRegs() const
     {
-        constexpr auto reg_size = GetRegSize() * MRepeats * NRepeats;
+        constexpr auto reg_size = GetRegSizePerXdlops() * MRepeats * NRepeats;
         gcnasm_accvgpr_zero<reg_size>();
     }
 
@@ -828,7 +833,7 @@ struct XdlopsGemmAsm_t
     __device__ void ReadXdlopsRegs(FloatC* const __restrict__ p_c_thread) const
     {
         constexpr auto mfma_type = GetMFMAInfo();
-        constexpr auto reg_size  = GetRegSize() * MRepeats * NRepeats;
+        constexpr auto reg_size  = GetRegSizePerXdlops() * MRepeats * NRepeats;
         gcnasm_nop<mfma_type.cycles>();
         gcnasm_accvgpr_read<reg_size>(p_c_thread);
     }
