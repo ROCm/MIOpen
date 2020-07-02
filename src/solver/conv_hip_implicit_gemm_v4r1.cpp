@@ -27,6 +27,7 @@
 #include <miopen/solver.hpp>
 
 #include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 
@@ -293,8 +294,9 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
             std::to_string(WeiBlockCopyDstDataPerWrite_EPack);
     }
 
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
     result.construction_params.push_back(construction_parameters);
+    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
+
     return result;
 }
 
