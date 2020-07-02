@@ -165,9 +165,6 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x1xf32>
     template <index_t MPerXdlops, index_t NPerXdlops>
     __device__ void run(const float* a, const float* b, float* reg_c) const
     {
-        static_assert((MPerXdlops == 4 || MPerXdlops == 8) && NPerXdlops == 64,
-                      "unsupported xdlops gemm");
-
         const auto p_a = a;
         const auto p_b = b;
         auto p_c       = reinterpret_cast<float4_t*>(reg_c);
