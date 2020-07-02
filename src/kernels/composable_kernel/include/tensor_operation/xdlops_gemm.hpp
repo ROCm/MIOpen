@@ -737,27 +737,38 @@ struct XdlopsGemm_t
 
         }).Else([&](auto) {
             static_if<IsABroadcast()>{}([&](auto) {
-                // ABroadcast
-                for(index_t k = 0; k < K; ++k)
-                {
-                    for(index_t b = 0; b < MPerXdlops / mfma_type.m; ++b)
-                    {
-                        for(index_t n = 0; n < mfma_type.num_input_blks; ++n)
-                        {
-                            index_t a_off = k * M + b * mfma_type.m;
-                            index_t b_off = k * N + n * mfma_type.num_threads_blk;
-                            index_t c_off =
-                                n * mfma_type.num_regs_blk + b * mfma_type.num_regs_xdlops;
 
-                            for(index_t m = 0; m < mfma_type.num_regs_blk; ++m)
+                for(index_t m_i = 0; m_i < MRepeats; ++m_i)
+                {
+                    for(index_t n_i = 0; n_i < NRepeats; ++n_i)
+                    {
+                        // ABroadcast
+                        for(index_t k = 0; k < K; ++k)
+                        {
+                            for(index_t b = 0; b < MPerXdlops / mfma_type.m; ++b)
                             {
-                                index_t aindex =
-                                    m % mfma_type.group_size + blk_id * mfma_type.group_size +
-                                    m / mfma_type.group_size *
-                                        (mfma_type.group_size * mfma_type.num_input_blks);
-                                index_t bindex = blk_td;
-                                p_c_thread[m + c_off] += inner_product_with_conversion<FloatC>{}(
-                                    p_a_wave[aindex + a_off], p_b_wave[bindex + b_off]);
+                                for(index_t n = 0; n < mfma_type.num_input_blks; ++n)
+                                {
+                                    index_t a_off = k * M + b * mfma_type.m + MPerXdlops * m_i;
+                                    index_t b_off =
+                                        k * N + n * mfma_type.num_threads_blk + NPerXdlops * n_i;
+                                    index_t c_off = n * mfma_type.num_regs_blk +
+                                                    b * mfma_type.num_regs_xdlops +
+                                                    (NRepeats * m_i + n_i) * GetRegSize();
+
+                                    for(index_t m = 0; m < mfma_type.num_regs_blk; ++m)
+                                    {
+                                        index_t aindex =
+                                            m % mfma_type.group_size +
+                                            blk_id * mfma_type.group_size +
+                                            m / mfma_type.group_size *
+                                                (mfma_type.group_size * mfma_type.num_input_blks);
+                                        index_t bindex = blk_td;
+                                        p_c_thread[m + c_off] +=
+                                            inner_product_with_conversion<FloatC>{}(
+                                                p_a_wave[aindex + a_off], p_b_wave[bindex + b_off]);
+                                    }
+                                }
                             }
                         }
                     }
