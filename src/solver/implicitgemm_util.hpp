@@ -526,7 +526,9 @@ static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
         return false;
 
     // check M and N
-    std::vector<std::tuple<int, int>> validWaveGemmSize = {std::make_tuple(64, 64),
+    std::vector<std::tuple<int, int>> validWaveGemmSize = {std::make_tuple(128, 64),
+                                                           std::make_tuple(64, 128),
+                                                           std::make_tuple(64, 64),
                                                            std::make_tuple(64, 32),
                                                            std::make_tuple(64, 16),
                                                            std::make_tuple(32, 64),
@@ -535,14 +537,6 @@ static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
                                                            std::make_tuple(16, 16),
                                                            std::make_tuple(8, 64),
                                                            std::make_tuple(4, 64)};
-
-    // xdlops repeat only supported by llvm intrinsic
-    // if(!miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}))
-    {
-        validWaveGemmSize.emplace_back(std::make_tuple(128, 128));
-        validWaveGemmSize.emplace_back(std::make_tuple(128, 64));
-        validWaveGemmSize.emplace_back(std::make_tuple(64, 128));
-    }
 
     bool IsValidWaveGemm = false;
 
