@@ -724,43 +724,6 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::GetPerformanceConfig(const ConvolutionCont
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdV1R1Xdlops>(ctx);
 }
 
-static inline bool IsValidXdlopsGemm_v2(const ConvolutionContext& ctx,
-                                        const int GemmMPerBlock,
-                                        const int GemmNPerBlock,
-                                        const int GemmMPerWave,
-                                        const int GemmNPerWave,
-                                        const int GemmKPack)
-{
-    if(ctx.IsFp16() && (GemmKPack % 4 != 0 || GemmKPack % 8 != 0))
-        return false;
-
-    if(ctx.IsBfp16() && (GemmKPack % 2 != 0 || GemmKPack % 4 != 0))
-        return false;
-
-    // unsupported xdlops-gemm
-    if(GemmMPerWave == 16 && GemmNPerWave == 32)
-        return false;
-    if(GemmMPerWave == 32 && GemmNPerWave == 16)
-        return false;
-    if(GemmMPerWave == 8 && GemmNPerWave != 64)
-        return false;
-    if(GemmMPerWave == 4 && GemmNPerWave != 64)
-        return false;
-    if(GemmMPerWave == 32 && GemmNPerWave == 32 && GemmKPack % 2 != 0)
-        return false;
-    if(GemmMPerWave == 16 && GemmNPerWave == 16 && GemmKPack % 4 != 0)
-        return false;
-
-    const auto WaveSize = 64;
-    const auto BlockSize =
-        (GemmNPerBlock * GemmMPerBlock) / (GemmMPerWave * GemmNPerWave) * WaveSize;
-
-    if(BlockSize < 64 || BlockSize > 256)
-        return false;
-
-    return (GemmMPerBlock % GemmMPerWave) == 0 && (GemmNPerBlock % GemmNPerWave) == 0;
-}
-
 std::tuple<std::size_t, bool>
 PerformanceImplicitGemmBwdV1R1Xdlops::CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const
 {
