@@ -252,7 +252,7 @@ void PerformanceImplicitGemmV4R1Wrw::EuristicInit(const ConvolutionContext& ctx)
     PerformanceImplicitGemmV4R1Wrw tmp;
     if(ctx.IsFp32())
     {
-        tmp = {16, 128, 8, 16, 2, 4, 4, 4, 4, 4, 4, 8, 2, 16, 1, 2, 128, use_spare_set};
+        tmp = {16, 128, 8, 2, 2, 4, 4, 4, 4, 4, 4, 8, 2, 16, 1, 2, 128, use_spare_set};
         if(!tmp.IsValid(ctx))
             tmp = {8, 128, 8, 1, 2, 4, 4, 4, 4, 4, 2, 8, 1, 8, 2, 2, 64, use_spare_set};
         if(!tmp.IsValid(ctx))

@@ -91,6 +91,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
 {
 #ifdef __linux__
     // write out the include files
+#if 1
     auto inc_list = GetKernelIncList();
     auto inc_path = tmp_dir->path;
     boost::filesystem::create_directories(inc_path);
@@ -210,6 +211,67 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     {
         return bin_file;
     }
+#else
+    auto inc_list = GetKernelIncList();
+    auto inc_path = tmp_dir->path;
+    boost::filesystem::create_directories(inc_path);
+    for(auto inc_file : inc_list)
+    {
+        auto inc_src = GetKernelInc(inc_file);
+        WriteFile(inc_src, inc_path / inc_file);
+    }
+    src += "\nint main() {}\n";
+    WriteFile(src, tmp_dir->path / filename);
+
+    int n = params.find("-mcpu=");
+    auto subparams = params.substr(0, n);
+
+    subparams += " ";
+    auto bin_file = tmp_dir->path / (filename + ".o");
+
+    auto input_file = tmp_dir->path / filename;
+
+    std::cout << dev_name << std::endl;
+
+    // compile
+    tmp_dir->Execute("sh /dockerx/MIOpen_task/igemm_code_gen/miopen_dynamic_igemm/src/kernels/composable_kernel/script/miopen_gridwise_gemm_builder.sh",
+                     input_file.string() + " " +
+                     bin_file.string() + "  " +
+                     dev_name + " " +
+                     tmp_dir->path.string() + "  " + 
+                     subparams);
+    if(!boost::filesystem::exists(bin_file))
+        MIOPEN_THROW(filename + " failed to compile");
+
+#ifdef MIOPEN_OFFLOADBUNDLER_BIN
+        // clang-format off
+    if(IsHipClangCompiler())
+    {
+        // clang-format on
+
+        // call clang-offload-bundler
+        tmp_dir->Execute(MIOPEN_OFFLOADBUNDLER_BIN,
+                         "--type=o --targets=hip-amdgcn-amd-amdhsa-" + dev_name + " --inputs=" +
+                             bin_file.string() + " --outputs=" + bin_file.string() +
+                             ".hsaco --unbundle");
+
+        auto hsaco =
+            std::find_if(boost::filesystem::directory_iterator{tmp_dir->path},
+                         {},
+                         [](auto entry) { return (entry.path().extension() == ".hsaco"); });
+
+        if(hsaco == boost::filesystem::directory_iterator{})
+        {
+            MIOPEN_LOG_E("failed to find *.hsaco in " << hsaco->path().string());
+        }
+        return hsaco->path();
+    }
+    else
+#endif
+    {
+        return bin_file;
+    }
+#endif
 #else
     (void)filename;
     (void)params;
