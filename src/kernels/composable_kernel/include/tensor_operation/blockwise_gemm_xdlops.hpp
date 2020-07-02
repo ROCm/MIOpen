@@ -61,9 +61,6 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         static_assert(BlockSize == GemmMWaves * GemmNWaves * WaveSize,
                       "BlockSize != GemmMWaves * GemmNWaves * WaveSize\n");
 
-        static_assert((MRepeats == 1 && NRepeats == 1) || CK_USE_AMD_XDLOPS_INLINE_ASM == 0,
-                      "do not support xdlops repeat with inline asm");
-
         const index_t waveId   = get_thread_local_1d_id() / WaveSize;
         const index_t waveId_m = waveId / GemmNWaves;
         const index_t waveId_n = waveId % GemmNWaves;
