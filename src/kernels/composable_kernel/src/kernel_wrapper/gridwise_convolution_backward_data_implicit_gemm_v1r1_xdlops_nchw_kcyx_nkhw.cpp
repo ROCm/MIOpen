@@ -140,7 +140,7 @@ extern "C" __global__
     // GEMM
     // \todo there are more combinations of Y, ConvDilationH and ConvStrideH that don't need
     // atomic, find out all of them
-    constexpr bool not_need_atomic = (ConvStrideH >= ConvDilationH * (Y - 1) + 1) and
+    constexpr bool not_need_atomic = (ConvStrideH >= ConvDilationH * (Y - 1) + 1) &&
                                      (ConvStrideW >= ConvDilationW * (X - 1) + 1);
 
     constexpr auto wkgrp_schd_order =
@@ -150,8 +150,7 @@ extern "C" __global__
         MBlock1NBlock0;
 #endif // MIOPEN_USE_FP16
 
-    if(not_need_atomic)
-    {
+    static_if<not_need_atomic == true>{}([&](auto) {
         constexpr auto gridwise_conv_bwd_data =
             GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_gnchw_gkcyx_gnkhw<
                 GridSize,
@@ -182,9 +181,8 @@ extern "C" __global__
                 GemmBBlockCopyDstDataPerWrite_GemmKPACK,
                 wkgrp_schd_order>{};
         gridwise_conv_bwd_data.Run(p_in_global, p_wei_global, p_out_global);
-    }
-    else
-    {
+
+    }).Else([&](auto) {
         constexpr auto gridwise_conv_bwd_data =
             GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_gnchw_gkcyx_gnkhw<
                 GridSize,
@@ -216,5 +214,5 @@ extern "C" __global__
                 wkgrp_schd_order>{};
         gridwise_conv_bwd_data.Run(
             reinterpret_cast<FLOAT_ACCUM*>(p_in_global), p_wei_global, p_out_global);
-    }
+    });
 }
