@@ -47,27 +47,60 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw"))
                 // clang-format on
                 {
-                    float zero = 0.f;
-                    TensorDescriptor workspaceDesc(
-                        miopenFloat, tensors.outDesc.GetLengths(), tensors.outDesc.GetStrides());
-                    SetTensor(handle, workspaceDesc, workSpace, &zero);
-                    if(handle.IsProfilingEnabled())
-                        elapsed += handle.GetKernelTime();
+                    const auto y           = tensors.wDesc.GetLengths()[2];
+                    const auto x           = tensors.wDesc.GetLengths()[3];
+                    const auto stride_h    = conv.GetConvStrides()[0];
+                    const auto stride_w    = conv.GetConvStrides()[1];
+                    const auto dialation_h = conv.GetConvDilations()[0];
+                    const auto dialation_w = conv.GetConvDilations()[1];
 
-                    kernel(tensors.in, tensors.w, workSpace);
-                    if(handle.IsProfilingEnabled())
-                        elapsed += handle.GetKernelTime();
+                    if((stride_h >= dialation_h * (y - 1) + 1) &&
+                       (stride_w >= dialation_w * (x - 1) + 1))
+                    {
+                        // If padding exits at any side, needs to initialize with 0s.
+                        if(!miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }))
+                        {
+                            float zero = 0.f;
+                            SetTensor(handle, tensors.outDesc, tensors.out, &zero);
+                            if(handle.IsProfilingEnabled())
+                                elapsed += handle.GetKernelTime();
 
-                    CastTensor(handle,
-                               &lowp_quant,
-                               workspaceDesc,
-                               workSpace,
-                               tensors.outDesc,
-                               tensors.out,
-                               0,
-                               0);
-                    if(handle.IsProfilingEnabled())
-                        elapsed += handle.GetKernelTime();
+                            kernel(tensors.in, tensors.w, tensors.out);
+                            if(handle.IsProfilingEnabled())
+                                elapsed += handle.GetKernelTime();
+                        }
+                        else
+                        {
+                            kernel(tensors.in, tensors.w, tensors.out);
+                            if(handle.IsProfilingEnabled())
+                                elapsed += handle.GetKernelTime();
+                        }
+                    }
+                    else
+                    {
+                        float zero = 0.f;
+                        TensorDescriptor workspaceDesc(miopenFloat,
+                                                       tensors.outDesc.GetLengths(),
+                                                       tensors.outDesc.GetStrides());
+                        SetTensor(handle, workspaceDesc, workSpace, &zero);
+                        if(handle.IsProfilingEnabled())
+                            elapsed += handle.GetKernelTime();
+
+                        kernel(tensors.in, tensors.w, workSpace);
+                        if(handle.IsProfilingEnabled())
+                            elapsed += handle.GetKernelTime();
+
+                        CastTensor(handle,
+                                   &lowp_quant,
+                                   workspaceDesc,
+                                   workSpace,
+                                   tensors.outDesc,
+                                   tensors.out,
+                                   0,
+                                   0);
+                        if(handle.IsProfilingEnabled())
+                            elapsed += handle.GetKernelTime();
+                    }
                 }
                 // clang-format off
                 else if((kernel.GetName() == "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer") ||

@@ -137,34 +137,84 @@ extern "C" __global__
     constexpr index_t GemmBBlockCopyDstDataPerWrite_GemmKPACK =
         CK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK;
 
-    constexpr auto gridwise_conv_bwd_data =
-        GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_gnchw_gkcyx_gnkhw<
-            GridSize,
-            BlockSize,
-            FLOAT,
-            FLOAT_ACCUM,
-            decltype(in_gnchw_desc),
-            decltype(wei_gkcyx_desc),
-            decltype(out_gnkhw_desc),
-            ConvStrides,
-            ConvDilations,
-            InLeftPads,
-            InRightPads,
-            GemmMPerBlock,
-            GemmNPerBlock,
-            GemmKPerBlock,
-            GemmKPACK,
-            GemmMPerWave,
-            GemmNPerWave,
-            GemmABlockCopySubLengths_GemmG_GemmK_GemmM_GemmKPACK,
-            GemmABlockCopyClusterLengths_GemmG_GemmK_GemmM_GemmKPACK,
-            GemmABlockCopySrcDataPerRead_GemmM,
-            GemmABlockCopyDstDataPerWrite_GemmKPACK,
-            GemmBBlockCopySubLengths_GemmG_GemmK_GemmN_GemmKPACK,
-            GemmBBlockCopyClusterLengths_GemmG_GemmK_GemmN_GemmKPACK,
-            GemmBBlockCopySrcDataPerRead_GemmN,
-            GemmBBlockCopyDstDataPerWrite_GemmKPACK>{};
+    // GEMM
+    // \todo there are more combinations of Y, ConvDilationH and ConvStrideH that don't need
+    // atomic, find out all of them
+    constexpr bool not_need_atomic = (ConvStrideH >= ConvDilationH * (Y - 1) + 1) and
+                                     (ConvStrideW >= ConvDilationW * (X - 1) + 1);
 
-    gridwise_conv_bwd_data.Run(
-        reinterpret_cast<FLOAT_ACCUM*>(p_in_global), p_wei_global, p_out_global);
+    constexpr auto wkgrp_schd_order =
+#if MIOPEN_USE_FP16 || MIOPEN_USE_BFP16
+        NBlock1MBlock0;
+#else
+        MBlock1NBlock0;
+#endif // MIOPEN_USE_FP16
+
+    if(not_need_atomic)
+    {
+        constexpr auto gridwise_conv_bwd_data =
+            GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_gnchw_gkcyx_gnkhw<
+                GridSize,
+                BlockSize,
+                FLOAT,
+                FLOAT_ACCUM,
+                FLOAT,
+                decltype(in_gnchw_desc),
+                decltype(wei_gkcyx_desc),
+                decltype(out_gnkhw_desc),
+                ConvStrides,
+                ConvDilations,
+                InLeftPads,
+                InRightPads,
+                GemmMPerBlock,
+                GemmNPerBlock,
+                GemmKPerBlock,
+                GemmKPACK,
+                GemmMPerWave,
+                GemmNPerWave,
+                GemmABlockCopySubLengths_GemmG_GemmK_GemmM_GemmKPACK,
+                GemmABlockCopyClusterLengths_GemmG_GemmK_GemmM_GemmKPACK,
+                GemmABlockCopySrcDataPerRead_GemmM,
+                GemmABlockCopyDstDataPerWrite_GemmKPACK,
+                GemmBBlockCopySubLengths_GemmG_GemmK_GemmN_GemmKPACK,
+                GemmBBlockCopyClusterLengths_GemmG_GemmK_GemmN_GemmKPACK,
+                GemmBBlockCopySrcDataPerRead_GemmN,
+                GemmBBlockCopyDstDataPerWrite_GemmKPACK,
+                wkgrp_schd_order>{};
+        gridwise_conv_bwd_data.Run(p_in_global, p_wei_global, p_out_global);
+    }
+    else
+    {
+        constexpr auto gridwise_conv_bwd_data =
+            GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_gnchw_gkcyx_gnkhw<
+                GridSize,
+                BlockSize,
+                FLOAT,
+                FLOAT_ACCUM,
+                FLOAT_ACCUM,
+                decltype(in_gnchw_desc),
+                decltype(wei_gkcyx_desc),
+                decltype(out_gnkhw_desc),
+                ConvStrides,
+                ConvDilations,
+                InLeftPads,
+                InRightPads,
+                GemmMPerBlock,
+                GemmNPerBlock,
+                GemmKPerBlock,
+                GemmKPACK,
+                GemmMPerWave,
+                GemmNPerWave,
+                GemmABlockCopySubLengths_GemmG_GemmK_GemmM_GemmKPACK,
+                GemmABlockCopyClusterLengths_GemmG_GemmK_GemmM_GemmKPACK,
+                GemmABlockCopySrcDataPerRead_GemmM,
+                GemmABlockCopyDstDataPerWrite_GemmKPACK,
+                GemmBBlockCopySubLengths_GemmG_GemmK_GemmN_GemmKPACK,
+                GemmBBlockCopyClusterLengths_GemmG_GemmK_GemmN_GemmKPACK,
+                GemmBBlockCopySrcDataPerRead_GemmN,
+                GemmBBlockCopyDstDataPerWrite_GemmKPACK,
+                wkgrp_schd_order>{};
+        gridwise_conv_bwd_data.Run(
+            reinterpret_cast<FLOAT_ACCUM*>(p_in_global), p_wei_global, p_out_global);
+    }
 }

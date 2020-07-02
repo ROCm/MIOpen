@@ -779,15 +779,31 @@ size_t ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionC
         return 0;
     else
     {
-        // In case of fp16/bfp16, because there is no atomic add ISA,
-        // reduction via atomic add ISA is done via fp32. As a result,
-        // workspace is computed with miopenFloat data type.
-        // Later, a separate kernel is invoked that casts from fp32 to fp16/bfp16
-        std::size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
-        std::size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-        std::size_t hi = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
-        std::size_t wi = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
-        return n * c * hi * wi * miopen::GetTypeSize(miopenFloat);
+        const auto y        = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+        const auto x        = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+        const auto stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
+        const auto stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
+        const auto dialation_h =
+            ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
+        const auto dialation_w =
+            ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
+
+        if((stride_h >= dialation_h * (y - 1) + 1) && (stride_w >= dialation_w * (x - 1) + 1))
+        {
+            return 0;
+        }
+        else
+        {
+            // In case of fp16/bfp16, because there is no atomic add ISA,
+            // reduction via atomic add ISA is done via fp32. As a result,
+            // workspace is computed with miopenFloat data type.
+            // Later, a separate kernel is invoked that casts from fp32 to fp16/bfp16
+            std::size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
+            std::size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
+            std::size_t hi = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
+            std::size_t wi = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
+            return n * c * hi * wi * miopen::GetTypeSize(miopenFloat);
+        }
     }
 }
 
@@ -866,9 +882,25 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::Search(const ConvolutionContext& ctx) cons
 {
     // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
     if(ctx.IsFp16() || ctx.IsBfp16())
-        return GenericSearchBwd(*this, ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
+    {
+        const auto y        = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+        const auto x        = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+        const auto stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
+        const auto stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
+        const auto dialation_h =
+            ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
+        const auto dialation_w =
+            ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
+
+        if((stride_h >= dialation_h * (y - 1) + 1) && (stride_w >= dialation_w * (x - 1) + 1))
+            return GenericSearchBwd(*this, ctx);
+        else
+            return GenericSearchBwd(*this, ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
+    }
     else
+    {
         return GenericSearchBwd(*this, ctx);
+    }
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(

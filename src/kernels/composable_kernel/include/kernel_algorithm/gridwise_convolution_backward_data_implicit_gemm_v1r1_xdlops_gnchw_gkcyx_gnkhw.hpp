@@ -13,8 +13,9 @@ namespace ck {
 // GemmK = K
 template <index_t GridSize,
           index_t BlockSize,
-          typename Float,
+          typename ABFloat,
           typename AccFloat,
+          typename CFloat,
           typename InGlobalDesc,
           typename WeiGlobalDesc,
           typename OutGlobalDesc,
@@ -35,12 +36,13 @@ template <index_t GridSize,
           typename GemmBBlockCopyThreadSliceLengths_GemmG_GemmK_GemmN_GemmKPACK,
           typename GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_GemmN_GemmKPACK,
           index_t GemmBBlockCopySrcDataPerRead_GemmN,
-          index_t GemmBBlockCopyDstDataPerWrite_GemmKPACK>
+          index_t GemmBBlockCopyDstDataPerWrite_GemmKPACK,
+          WorkgroupScheduleOrder WorkgroupSchdOrder>
 struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_gnchw_gkcyx_gnkhw
 {
-    __device__ void Run(AccFloat* __restrict__ p_in_global,
-                        const Float* __restrict__ p_wei_global,
-                        const Float* __restrict__ p_out_global) const
+    __device__ void Run(CFloat* __restrict__ p_in_global,
+                        const ABFloat* __restrict__ p_wei_global,
+                        const ABFloat* __restrict__ p_out_global) const
     {
         constexpr auto I2 = Number<2>{};
         constexpr auto I3 = Number<3>{};
@@ -152,9 +154,9 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_gnchw_gkcyx_gnkhw
         constexpr auto gridwise_gemm = GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2<
             GridSize,
             BlockSize,
-            Float,    // Input data type = fp16 (fp16) or ushort (bfp16)
+            ABFloat,  // Input data type = fp16 (fp16) or ushort (bfp16)
             AccFloat, // Acc data type = float
-            AccFloat, // Output data type = float  (not fp16/ushort as this kernel uses atomic
+            CFloat,   // Output data type = float  (not fp16/ushort as this kernel uses atomic
                       // add.  No ISA for fp16/ushort atomic add)
             decltype(wei_gemmg_gemmk_gemmm_gemmkpack_global_desc),
             decltype(out_gemmg_gemmk_gemmn_gemmkpack_global_desc),
@@ -181,7 +183,7 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_gnchw_gkcyx_gnkhw
             GemmBBlockCopySrcDataPerRead_GemmN,
             GemmBBlockCopyDstDataPerWrite_GemmKPACK,
             in_memory_op,
-            MBlock1NBlock0>{};
+            WorkgroupSchdOrder>{};
 
         gridwise_gemm.Run(p_wei_global, p_out_global, p_in_global);
     }
