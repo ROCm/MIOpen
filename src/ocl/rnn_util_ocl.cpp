@@ -62,11 +62,20 @@ void LSTMForwardHiddenStateUpdate(const Handle& handle,
 
     size_t max_active_threads = handle.GetMaxComputeUnits() * handle.GetWavefrontWidth() * 32;
 
+    size_t total_work = max_batch * hy_h;
+
+    size_t RD_BLCK = (total_work >= 4 * max_active_threads && hy_h % 4 == 0)
+                         ? 4
+                         : ((total_work >= 2 * max_active_threads && hy_h % 2 == 0) ? 2 : 1);
+
+    size_t total_item   = std::max(size_t(total_work / RD_BLCK), size_t(1));
+    size_t item_per_grp = total_item <= 64 ? 64 : total_item <= 128 ? 128 : 256;
+    size_t glb_sz       = total_item < max_active_threads ? total_item : max_active_threads;
+
     std::string network_config =
         "lstmfwdhid-" + std::string(rnn_data_type == miopenHalf ? "fp16-" : "fp32-") +
-        std::to_string(max_active_threads) + "x" + std::to_string(static_cast<int>(is_inference)) +
-        "x" + std::to_string(max_batch) + "x" + std::to_string(hy_h) + "x" +
-        std::to_string(hy_stride);
+        std::to_string(static_cast<int>(is_inference)) + "x" + std::to_string(RD_BLCK) + "x" +
+        std::to_string(item_per_grp) + "x" + std::to_string(glb_sz);
 
     bool use_cx = cx != nullptr;
 
@@ -77,6 +86,8 @@ void LSTMForwardHiddenStateUpdate(const Handle& handle,
         auto kernel = kernels.front();
         kernel(cx,
                reserve_space,
+               static_cast<int>(hy_h),
+               static_cast<int>(hy_stride),
                static_cast<long long>(cx_offset),
                static_cast<long long>(i_offset),
                static_cast<long long>(f_offset),
@@ -96,24 +107,11 @@ void LSTMForwardHiddenStateUpdate(const Handle& handle,
     {
         std::string params = " -DLSTM_FWD_HID=1";
 
-        size_t total_work = max_batch * hy_h;
-
-        size_t RD_BLCK = (total_work >= 4 * max_active_threads && hy_h % 4 == 0)
-                             ? 4
-                             : ((total_work >= 2 * max_active_threads && hy_h % 2 == 0) ? 2 : 1);
         const std::string data_type = GetDataType(rnn_data_type);
         const std::string READ_TYPE =
             (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
 
-        size_t total_item   = std::max(size_t(total_work / RD_BLCK), size_t(1));
-        size_t item_per_grp = total_item <= 64 ? 64 : total_item <= 128 ? 128 : 256;
-        size_t glb_sz       = total_item < max_active_threads ? total_item : max_active_threads;
-
         params += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
-
-        params += " -DHY_H=" + std::to_string(hy_h) + " -DHY_STRIDE=" + std::to_string(hy_stride) +
-                  " -DWEI_LEN=" + std::to_string(wei_len) + " -DWEI_STRIDE=" +
-                  std::to_string(wei_stride);
 
         if(rnn_data_type == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
@@ -129,6 +127,8 @@ void LSTMForwardHiddenStateUpdate(const Handle& handle,
         handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
             cx,
             reserve_space,
+            static_cast<int>(hy_h),
+            static_cast<int>(hy_stride),
             static_cast<long long>(cx_offset),
             static_cast<long long>(i_offset),
             static_cast<long long>(f_offset),
@@ -144,6 +144,9 @@ void LSTMForwardHiddenStateUpdate(const Handle& handle,
             cur_batch,
             use_batch);
     }
+
+    (void)wei_len;
+    (void)wei_stride;
 }
 
 void LSTMBackwardHiddenStateUpdate(const Handle& handle,
@@ -185,10 +188,19 @@ void LSTMBackwardHiddenStateUpdate(const Handle& handle,
 
     size_t max_active_threads = handle.GetMaxComputeUnits() * handle.GetWavefrontWidth() * 32;
 
+    size_t total_work = max_batch * hy_h;
+
+    size_t RD_BLCK = (total_work >= 4 * max_active_threads && hy_h % 4 == 0)
+                         ? 4
+                         : ((total_work >= 2 * max_active_threads && hy_h % 2 == 0) ? 2 : 1);
+
+    size_t total_item   = std::max(size_t(total_work / RD_BLCK), size_t(1));
+    size_t item_per_grp = total_item <= 64 ? 64 : total_item <= 128 ? 128 : 256;
+    size_t glb_sz       = total_item < max_active_threads ? total_item : max_active_threads;
+
     std::string network_config =
         "lstmbwdhid-" + std::string(rnn_data_type == miopenHalf ? "fp16-" : "fp32-") +
-        std::to_string(max_active_threads) + "x" + std::to_string(max_batch) + "x" +
-        std::to_string(hy_h) + "x" + std::to_string(hy_stride);
+        std::to_string(RD_BLCK) + "x" + std::to_string(item_per_grp) + "x" + std::to_string(glb_sz);
 
     bool use_cx  = cx != nullptr;
     bool use_dcy = dcy != nullptr;
@@ -202,6 +214,8 @@ void LSTMBackwardHiddenStateUpdate(const Handle& handle,
                dcy,
                reserve_space,
                work_space,
+               static_cast<int>(hy_h),
+               static_cast<int>(hy_stride),
                static_cast<long long>(cx_offset),
                static_cast<long long>(dcy_offset),
                static_cast<long long>(i_offset),
@@ -231,24 +245,11 @@ void LSTMBackwardHiddenStateUpdate(const Handle& handle,
     {
         std::string params = " -DLSTM_BWD_HID=1";
 
-        size_t total_work = max_batch * hy_h;
-
-        size_t RD_BLCK = (total_work >= 4 * max_active_threads && hy_h % 4 == 0)
-                             ? 4
-                             : ((total_work >= 2 * max_active_threads && hy_h % 2 == 0) ? 2 : 1);
         const std::string data_type = GetDataType(rnn_data_type);
         const std::string READ_TYPE =
             (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
 
-        size_t total_item   = std::max(size_t(total_work / RD_BLCK), size_t(1));
-        size_t item_per_grp = total_item <= 64 ? 64 : total_item <= 128 ? 128 : 256;
-        size_t glb_sz       = total_item < max_active_threads ? total_item : max_active_threads;
-
         params += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
-
-        params += " -DHY_H=" + std::to_string(hy_h) + " -DHY_STRIDE=" + std::to_string(hy_stride) +
-                  " -DWEI_LEN=" + std::to_string(wei_len) + " -DWEI_STRIDE=" +
-                  std::to_string(wei_stride);
 
         if(rnn_data_type == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
@@ -263,6 +264,8 @@ void LSTMBackwardHiddenStateUpdate(const Handle& handle,
             dcy,
             reserve_space,
             work_space,
+            static_cast<int>(hy_h),
+            static_cast<int>(hy_stride),
             static_cast<long long>(cx_offset),
             static_cast<long long>(dcy_offset),
             static_cast<long long>(i_offset),
@@ -288,5 +291,8 @@ void LSTMBackwardHiddenStateUpdate(const Handle& handle,
             use_batch,
             use_batch2);
     }
+
+    (void)wei_len;
+    (void)wei_stride;
 }
 } // namespace miopen
