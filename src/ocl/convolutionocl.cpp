@@ -2362,10 +2362,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     if(gemm_status == miopenStatusSuccess)
                         record.SetValues("miopenConvolutionBwdDataAlgoGEMM",
                                          FindDbData{
-                                             "gemm",
-                                             time_gemm,
-                                             0,
-                                             kcache_key,
+                                             "gemm", time_gemm, 0, kcache_key,
                                          });
                 }
                 // if not 1x1
