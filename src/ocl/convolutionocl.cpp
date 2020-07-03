@@ -2214,6 +2214,226 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     }
                 }
             }
+
+#if MIOPEN_USE_GEMM
+            if(!use_winograd_only && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) &&
+               !(IsAnyBufferBF16(dxDesc, dyDesc, wDesc) && !IsUseRocBlas))
+            { // GEMM based
+                ValidateGroupCount(dxDesc, wDesc, *this);
+
+                const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
+
+                std::size_t in_n, in_c;
+                std::tie(in_n, in_c) = tie_pick<0, 1>()(dxDesc.GetLengths());
+
+                std::size_t wei_k = wDesc.GetLengths()[0];
+
+                std::size_t spatial_dim = GetSpatialDimension();
+
+                auto in_spatial  = boost::adaptors::slice(dxDesc.GetLengths(), 2, 2 + spatial_dim);
+                auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+                auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + spatial_dim);
+
+                // 1x1 does not require col2im
+                if(GetSpatialDimension() == 2 &&
+                   miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+                   miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
+                   miopen::all_of(GetConvStrides(), [](auto v) { return v == 2; }) &&
+                   workSpace != nullptr &&
+                   workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc))
+                {
+                    if(group_count > 1)
+                    {
+                        MIOPEN_LOG_FUNCTION("groupconv, 1x1 u2xv2");
+                    }
+                    else
+                    {
+                        MIOPEN_LOG_FUNCTION("convolution, 1x1 u2xv2");
+                    }
+                    float time_gemm = 0;
+
+                    // Initialization required for upsampling in bwd direction
+                    float zero = 0.f;
+                    SetTensor(handle, dxDesc, dx, &zero);
+                    time_gemm = handle.GetKernelTime();
+
+                    // dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
+                    transpose_NCHW2CNHW(handle,
+                                        in_n,
+                                        wei_k,
+                                        out_spatial[0],
+                                        out_spatial[1],
+                                        out_spatial[0],
+                                        out_spatial[1],
+                                        dy,
+                                        workSpace,
+                                        0,
+                                        0,
+                                        1,
+                                        1,
+                                        dyDesc.GetType());
+                    time_gemm += handle.GetKernelTime();
+
+                    GemmDescriptor gemm_desc =
+                        group_count > 1
+                            ? CreateGemmDescriptorGroupConvCNHWBwdData(
+                                  wDesc, dyDesc, dxDesc, group_count)
+                            : CreateGemmDescriptorConvCNHWBwdData(wDesc, dyDesc, dxDesc);
+
+                    auto kcache_key = FindDbKCacheKey{};
+
+                    miopenStatus_t gemm_status =
+                        CallGemmTimeMeasure(handle,
+                                            gemm_desc,
+                                            w,
+                                            0,
+                                            workSpace,
+                                            0,
+                                            workSpace,
+                                            dyDesc.GetElementSize(),
+                                            &kcache_key,
+                                            time_precision,
+                                            group_count > 1 ? callGemmStridedBatched : callGemm);
+
+                    time_gemm += handle.GetKernelTime();
+
+                    transpose_CNHW2NCHW(handle,
+                                        in_n,
+                                        in_c,
+                                        out_spatial[0],
+                                        out_spatial[1],
+                                        in_spatial[0],
+                                        in_spatial[1],
+                                        workSpace,
+                                        dx,
+                                        dyDesc.GetElementSize(),
+                                        0,
+                                        GetConvStrides()[0],
+                                        GetConvStrides()[1],
+                                        dyDesc.GetType());
+                    time_gemm += handle.GetKernelTime();
+
+                    if(gemm_status == miopenStatusSuccess)
+                        record.SetValues(
+                            "miopenConvolutionBwdDataAlgoGEMM",
+                            FindDbData{"gemm",
+                                       time_gemm,
+                                       BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc),
+                                       kcache_key});
+                }
+                // 1x1_stride=1 convolutions use GEMM and zero workspace
+                else if(miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
+                        miopen::all_of(GetConvPads(), [](auto v) { return v == 0; }) &&
+                        miopen::all_of(GetConvStrides(), [](auto v) { return v == 1; }))
+                {
+                    if(group_count > 1)
+                    {
+                        MIOPEN_LOG_FUNCTION("groupconv, 1x1");
+                    }
+                    else
+                    {
+                        MIOPEN_LOG_FUNCTION("convolution, 1x1");
+                    }
+                    // dx = transpose(w) * dy
+                    GemmDescriptor gemm_desc =
+                        group_count > 1 ? CreateGemmDescriptorGroupConvBwdData(
+                                              wDesc, dyDesc, dxDesc, group_count)
+                                        : CreateGemmStridedBatchedDescriptorConv1x1BwdData(
+                                              wDesc, dyDesc, dxDesc);
+
+                    auto kcache_key = FindDbKCacheKey{};
+
+                    miopenStatus_t gemm_status = CallGemmTimeMeasure(handle,
+                                                                     gemm_desc,
+                                                                     w,
+                                                                     0,
+                                                                     dy,
+                                                                     0,
+                                                                     dx,
+                                                                     0,
+                                                                     &kcache_key,
+                                                                     time_precision,
+                                                                     callGemmStridedBatched);
+
+                    float time_gemm = handle.GetKernelTime();
+                    if(group_count > 1)
+                        time_gemm *= in_n;
+
+                    if(gemm_status == miopenStatusSuccess)
+                        record.SetValues("miopenConvolutionBwdDataAlgoGEMM",
+                                         FindDbData{
+                                             "gemm",
+                                             time_gemm,
+                                             0,
+                                             kcache_key,
+                                         });
+                }
+                // if not 1x1
+                else if(workSpace != nullptr &&
+                        workSpaceSize >= (BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc)))
+                {
+                    if(group_count > 1)
+                    {
+                        MIOPEN_LOG_FUNCTION("groupconv, non 1x1");
+                    }
+                    else
+                    {
+                        MIOPEN_LOG_FUNCTION("convolution, non 1x1");
+                    }
+                    float time_col2im = 0;
+                    int in_offset     = 0;
+
+                    // dx = transpose(w) * dy
+                    GemmDescriptor gemm_desc =
+                        group_count > 1 ? CreateGemmDescriptorGroupConvBwdData(
+                                              wDesc, dyDesc, dxDesc, group_count)
+                                        : CreateGemmDescriptorConvBwdData(wDesc, dyDesc, dxDesc);
+
+                    auto kcache_key = FindDbKCacheKey{};
+
+                    miopenStatus_t gemm_status = CallGemmTimeMeasure(
+                        handle,
+                        gemm_desc,
+                        w,
+                        0,
+                        dy,
+                        0,
+                        workSpace,
+                        0,
+                        &kcache_key,
+                        time_precision,
+                        group_count > 1 ? callGemmStridedBatched : callGemm,
+                        group_count > 1 ? GemmBackend_t::rocblas : GemmBackend_t::miopengemm);
+
+                    float time_gemm = in_n * handle.GetKernelTime();
+                    time_col2im     = Col2ImGPU(handle,
+                                            GetSpatialDimension(),
+                                            workSpace,
+                                            out_spatial,
+                                            wei_spatial,
+                                            GetConvPads(),
+                                            GetConvStrides(),
+                                            GetConvDilations(),
+                                            in_c,
+                                            in_spatial,
+                                            dx,
+                                            in_offset,
+                                            dyDesc.GetType());
+
+                    time_gemm += in_n * time_col2im;
+
+                    if(gemm_status == miopenStatusSuccess)
+                        record.SetValues(
+                            "miopenConvolutionBwdDataAlgoGEMM",
+                            FindDbData{
+                                "gemm",
+                                time_gemm,
+                                BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc) * group_count,
+                                kcache_key,
+                            });
+                }
+            }
+#endif
         });
     }
 
