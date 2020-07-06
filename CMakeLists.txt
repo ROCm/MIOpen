@@ -65,7 +65,7 @@ find_package(BZip2)
 option( BUILD_DEV "Build for development only" OFF)
 
 set(MIOPEN_DISABLE_USERDB Off CACHE BOOL "Disable user database access")
-set(MIOPEN_DISABLE_SYSDB Off CACHE BOOL "Didable sys database access")
+set(MIOPEN_DISABLE_SYSDB Off CACHE BOOL "Disable sys database access")
 
 # Strip symbols for release
 if(NOT WIN32 AND NOT APPLE)
