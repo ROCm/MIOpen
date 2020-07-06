@@ -445,6 +445,7 @@ enable_cppcheck(
         unusedStructMember
         # Ignore initializer lists in the tests
         useInitializationList:*test/*.cpp
+        *:*src/sqlite/*.cpp
         *:*.cl
         *:*src/kernels/*.h
         knownConditionTrueFalse:*src/kernels/composable_kernel/*/*
