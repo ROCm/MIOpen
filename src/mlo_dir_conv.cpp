@@ -132,13 +132,9 @@ static auto GetImplicitGemmSolvers()
 {
     return miopen::solver::SolverContainer<miopen::solver::ConvHipImplicitGemmForwardV4R4Xdlops,
                                            miopen::solver::ConvHipImplicitGemmV4R4GenXdlopsFwdFp32,
-                                           miopen::solver::ConvHipImplicitGemmV4R4Xdlops_1x1,
                                            miopen::solver::ConvHipImplicitGemmV4R4GenFwdXdlops,
-                                           miopen::solver::ConvHipImplicitGemmV4R4FwdXdlops,
                                            miopen::solver::ConvHipImplicitGemmBwdDataV1R1Xdlops,
                                            miopen::solver::ConvHipImplicitGemmBwdDataV4R1Xdlops,
-                                           miopen::solver::ConvHipImplicitGemmV4_1x1,
-                                           miopen::solver::ConvHipImplicitGemmV4Fwd,
                                            miopen::solver::ConvHipImplicitGemmV4R1Fwd,
                                            miopen::solver::ConvHipImplicitGemmV4R4Fwd,
                                            miopen::solver::ConvHipImplicitGemmBwdDataV1R1,
@@ -160,8 +156,6 @@ static auto GetImplicitGemmWrWSolvers()
 {
     return miopen::solver::SolverContainer<miopen::solver::ConvHipImplicitGemmV4R4GenXdlopsWrWFp32,
                                            miopen::solver::ConvHipImplicitGemmV4R4GenWrWXdlops,
-                                           miopen::solver::ConvHipImplicitGemmV4R4WrWXdlops,
-                                           miopen::solver::ConvHipImplicitGemmV4WrW,
                                            miopen::solver::ConvHipImplicitGemmV4R1WrW,
                                            miopen::solver::ConvHipImplicitGemmV4R4WrW>{};
 }
