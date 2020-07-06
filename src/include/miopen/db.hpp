@@ -178,9 +178,12 @@ class MultiFileDb
                 const std::string& user_path,
                 const std::string& arch  = "",
                 const std::size_t num_cu = 0)
+#if MIOPEN_DISABLE_USERDB || MIOPEN_DISABLE_SYSDB
+        :
+#endif
 #if !MIOPEN_DISABLE_USERDB
-        : _installed(GetDbInstance<TInstalled>(installed_path, true, arch, num_cu)),
-          _user(GetDbInstance<TUser>(user_path, false, arch, num_cu))
+          : _installed(GetDbInstance<TInstalled>(installed_path, true, arch, num_cu)),
+            _user(GetDbInstance<TUser>(user_path, false, arch, num_cu))
 #endif
     {
 #if MIOPEN_DISABLE_USERDB

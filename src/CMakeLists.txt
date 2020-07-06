@@ -660,7 +660,7 @@ rocm_export_targets(
 
 
 # Install db files
-if(NOT MIOPEN_DISABLE_USERDB)
+if(NOT MIOPEN_DISABLE_SYSDB)
 install(FILES
     kernels/miopen.db
     kernels/gfx803_36.HIP.fdb.txt
