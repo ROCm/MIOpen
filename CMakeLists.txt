@@ -64,7 +64,6 @@ endif()
 find_package(BZip2)
 option( BUILD_DEV "Build for development only" OFF)
 
-#set(MIOPEN_DISABLE_USERDB Off CACHE BOOL "Disable user database access")
 
 # Strip symbols for release
 if(NOT WIN32 AND NOT APPLE)
@@ -82,7 +81,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         message(FATAL_ERROR "MIOpen requires at least gcc 5.3")
     endif()
 endif()
-
 
 
 
