@@ -31,9 +31,9 @@ add_library(
 )
 
 set_source_files_properties(memvfs.cpp PROPERTIES COMPILE_FLAGS -Wno-everything)
-set_target_properties(
-    sqlite_memvfs
-    PROPERTIES
-         CXX_CLANG_TIDY ""
-)
+# set_target_properties(
+#     sqlite_memvfs
+#     PROPERTIES
+#          CXX_CLANG_TIDY ""
+# )
 set_property(TARGET sqlite_memvfs PROPERTY POSITION_INDEPENDENT_CODE ON)
