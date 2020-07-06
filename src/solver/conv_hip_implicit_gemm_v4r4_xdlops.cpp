@@ -27,11 +27,13 @@
 #include <miopen/solver.hpp>
 
 #include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/implicitgemm_params.hpp>
 #include <miopen/env.hpp>
+#include <miopen/tensor_ops.hpp>
 
 #include "implicitgemm_util.hpp"
 
@@ -209,10 +211,21 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         ctx.general_compile_options;
     // clang-format on
 
+    result.construction_params.push_back(construction_parameters);
+
     if(ctx.direction.IsForward() || ctx.direction.IsBackwardData())
         result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
+    else
+    {
+        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle, const boost::any& primitive_params) {
+                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+                const auto& tensors      = invoke_params.tensors;
+                handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
+            };
+        };
+    }
 
-    result.construction_params.push_back(construction_parameters);
     return result;
 }
 
@@ -304,10 +317,10 @@ bool ConvHipImplicitGemmV4R4FwdXdlops::IsApplicable(const ConvolutionContext& ct
 {
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.direction.IsForward())
         return false;
-
     if(!ctx.Is2d())
         return false;
 
@@ -323,6 +336,9 @@ bool ConvHipImplicitGemmV4R4FwdXdlops::IsApplicable(const ConvolutionContext& ct
 
 bool ConvHipImplicitGemmV4R4Xdlops_1x1::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(!ctx.use_hip_kernels)
+        return false;
+
     return IsApplicableXdlops(ctx) && ctx.Is2d() && ctx.IsFp32() && ctx.pad_h == 0 &&
            ctx.pad_w == 0 && ctx.group_counts == 1 && ctx.kernel_size_h == 1 &&
            ctx.kernel_size_w == 1;
@@ -332,10 +348,10 @@ bool ConvHipImplicitGemmV4R4WrWXdlops::IsApplicable(const ConvolutionContext& ct
 {
     if(!ctx.direction.IsBackwardWrW())
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.Is2d())
         return false;
-
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 

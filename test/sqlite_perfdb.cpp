@@ -373,7 +373,7 @@ class DbFindTest : public DbTest
         sol.Serialize(ss);
         db_inst.sql.Exec(
             // clang-formagt off
-            "INSERT INTO perf_db(config, solver, params, arch, num_cu) "
+            "INSERT OR IGNORE INTO perf_db(config, solver, params, arch, num_cu) "
             "VALUES( " +
             id + ", '" + id0() + "', '" + ss.str() + "', 'gfx906', 64);");
         // clang-fromat on
@@ -1235,9 +1235,9 @@ struct PerfDbDriver : test_driver
         if(full_set)
         {
             tests::full_set()                         = true;
-            DBMultiThreadedTestWork::threads_count    = 16;
-            DBMultiThreadedTestWork::common_part_size = 32;
-            DBMultiThreadedTestWork::unique_part_size = 32;
+            DBMultiThreadedTestWork::threads_count    = 32;
+            DBMultiThreadedTestWork::common_part_size = 128;
+            DBMultiThreadedTestWork::unique_part_size = 128;
         }
         if(mt_child_id >= 0)
         {

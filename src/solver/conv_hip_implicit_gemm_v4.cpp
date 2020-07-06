@@ -25,8 +25,8 @@
  *******************************************************************************/
 
 #include <miopen/solver.hpp>
-
 #include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/stringutils.hpp>
@@ -46,7 +46,8 @@ bool ConvHipImplicitGemmV4_1x1::IsApplicable(const ConvolutionContext& ctx) cons
     if(!IsHccCompiler())
         return false;
 #endif
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.Is2d())
         return false;
 
@@ -67,6 +68,9 @@ bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
     if(!ctx.direction.IsForward())
         return false;
 
+    if(!ctx.use_hip_kernels)
+        return false;
+
     if(!ctx.Is2d())
         return false;
 
@@ -77,7 +81,7 @@ bool ConvHipImplicitGemmV4Fwd::IsApplicable(const ConvolutionContext& ctx) const
         return false;
 
 #if WORKAROUND_ISSUE_2174_2222_2224_2243
-    if(miopen::HipGetHccVersion() >= external_tool_version_t{2, 6, 0})
+    if(miopen::HipCompilerVersion() >= external_tool_version_t{2, 6, 0})
     {
         if(!(ctx.kernel_dilation_h == 1 && ctx.kernel_dilation_w == 1))
             return false;
@@ -115,6 +119,9 @@ bool ConvHipImplicitGemmV4WrW::IsApplicable(const ConvolutionContext& ctx) const
     if(!ctx.Is2d())
         return false;
 
+    if(!ctx.use_hip_kernels)
+        return false;
+
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
 
@@ -122,7 +129,7 @@ bool ConvHipImplicitGemmV4WrW::IsApplicable(const ConvolutionContext& ctx) const
         return false;
 
 #if WORKAROUND_ISSUE_2174_2222_2224_2243
-    if(miopen::HipGetHccVersion() >= external_tool_version_t{2, 6, 0})
+    if(miopen::HipCompilerVersion() >= external_tool_version_t{2, 6, 0})
     {
         if(!(ctx.kernel_stride_w == 1 && ctx.kernel_stride_h == 1))
             return false;
@@ -241,14 +248,17 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         construction_parameters.kernel_name =
             "gridwise_convolution_implicit_gemm_v4_nchw_kcyx_nkhw_lds_double_buffer";
     }
-
-    if(kernel == ImplicitGemmV4_1x1)
+    else if(kernel == ImplicitGemmV4_1x1)
     {
         construction_parameters.kernel_file =
             "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer.cpp";
 
         construction_parameters.kernel_name =
             "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer";
+    }
+    else
+    {
+        MIOPEN_THROW("invalid value of 'kernel'");
     }
 
     std::size_t WeiBlockCopySubLengths_E = EPerBlock / config.WeiBlockCopyClusterLengths_E;
@@ -359,10 +369,21 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         ctx.general_compile_options;
     // clang-format on
 
+    result.construction_params.push_back(construction_parameters);
+
     if(ctx.direction.IsForward() || ctx.direction.IsBackwardData())
         result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
+    else
+    {
+        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle, const boost::any& primitive_params) {
+                const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+                const auto& tensors      = invoke_params.tensors;
+                handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
+            };
+        };
+    }
 
-    result.construction_params.push_back(construction_parameters);
     return result;
 }
 
