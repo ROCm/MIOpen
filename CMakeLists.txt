@@ -64,7 +64,7 @@ endif()
 find_package(BZip2)
 option( BUILD_DEV "Build for development only" OFF)
 
-set(MIOPEN_DISABLE_USERDB Off CACHE BOOL "Disable user database access")
+#set(MIOPEN_DISABLE_USERDB Off CACHE BOOL "Disable user database access")
 
 # Strip symbols for release
 if(NOT WIN32 AND NOT APPLE)
@@ -83,6 +83,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     endif()
 endif()
 
+
+
+
+
 ############################################################
 # require C++14
 add_compile_options(-std=c++14)
@@ -90,7 +94,7 @@ add_compile_options(-std=c++14)
 ############################################################
 # OPTION - MIOpen Backend
 # - OpenCL
-# - HCC
+# - HIP
 check_cxx_compiler_flag("--cuda-host-only -x hip" HAS_HIP)
 if(CMAKE_CXX_COMPILER MATCHES ".*hcc" OR CMAKE_CXX_COMPILER MATCHES ".*hipcc" OR HAS_HIP)
     set(MIOPEN_DEFAULT_BACKEND "HIP")
@@ -109,8 +113,23 @@ list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/h
 option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
 
-option(MIOPEN_USE_COMGR "When possible, use comgr to build kernels instead of offline tools" Off)
+
+# Embedded Build Configuration
+option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
+option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_EMBED_BUILD})
+option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
 option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
+
+# Workaround for comgr 
+if(MIOPEN_USE_COMGR)
+    set(MIOPEN_USE_HIP_KERNELS 0)
+endif()
+
+# Static build
+if(MIOPEN_EMBED_BUILD)
+    set(BUILD_SHARED_LIBS 0)
+endif()
+
 
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )

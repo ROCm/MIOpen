@@ -42,6 +42,7 @@
 #cmakedefine01 MIOPEN_USE_HIP_KERNELS
 #cmakedefine01 MIOPEN_HCC_ENABLE_COV3
 #cmakedefine01 MIOPEN_DISABLE_USERDB
+#cmakedefine01 MIOPEN_EMBED_BUILD
 
 // "_PACKAGE_" to avoid name contentions: the macros like
 // HIP_VERSION_MAJOR are defined in hip_version.h.
@@ -72,6 +73,7 @@
 #cmakedefine EXTRACTKERNEL_BIN "@EXTRACTKERNEL_BIN@"
 #cmakedefine MIOPEN_OFFLOADBUNDLER_BIN "@MIOPEN_OFFLOADBUNDLER_BIN@"
 #cmakedefine MIOPEN_CACHE_DIR "@MIOPEN_CACHE_DIR@"
+#cmakedefine MIOPEN_EMBED_BUILD "@MIOPEN_EMBED_BUILD@"
 
 #define MIOPEN_USE_GEMM (MIOPEN_USE_MIOPENGEMM || MIOPEN_USE_ROCBLAS)
 
