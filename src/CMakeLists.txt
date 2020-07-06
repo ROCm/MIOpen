@@ -211,11 +211,9 @@ set( MIOpen_Source
     solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
-    solver/conv_hip_implicit_gemm_v4.cpp
     solver/conv_hip_implicit_gemm_v4r1.cpp
     solver/conv_hip_implicit_gemm_v4r4.cpp
     solver/conv_hip_implicit_gemm_wrw_weights_v4r4.cpp
-    solver/conv_hip_implicit_gemm_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops_wrw_fp32.cpp

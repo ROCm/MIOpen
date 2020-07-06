@@ -819,28 +819,6 @@ struct ConvHipImplicitGemmV4R4Fwd : SolverBase<ConvolutionContext>
                              const PerformanceImplicitGemmV4R4Fwd& config,
                              bool disableConfigOverrideFromEnv = false) const;
 };
-
-struct ConvHipImplicitGemmV4Fwd : SolverBase<ConvolutionContext>
-{
-    PerformanceImplicitGemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemm& c) const;
-    bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemm& config,
-                             bool disableConfigOverrideFromEnv = false) const;
-
-    PerformanceImplicitGemm Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(const miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
-};
-
 struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
     : Serializable<PerformanceImplicitGemmV4R4GenXdlopsFwdFp32>
 {
@@ -1029,69 +1007,6 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
 };
 
-struct ConvHipImplicitGemmV4R4FwdXdlops : SolverBase<ConvolutionContext>
-{
-    PerformanceImplicitGemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmXdlops& c) const;
-    bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmXdlops& config,
-                             bool disableConfigOverrideFromEnv = false) const;
-
-    PerformanceImplicitGemmXdlops Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(const miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
-};
-
-struct ConvHipImplicitGemmV4R4Xdlops_1x1 : SolverBase<ConvolutionContext>
-{
-    PerformanceImplicitGemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmXdlops& c) const;
-    bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmXdlops& config,
-                             bool disableConfigOverrideFromEnv = false) const;
-
-    PerformanceImplicitGemmXdlops Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(const miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
-};
-
-struct ConvHipImplicitGemmV4R4WrWXdlops : SolverBase<ConvolutionContext>
-{
-    PerformanceImplicitGemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmXdlops& c) const;
-    bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmXdlops& config,
-                             bool disableConfigOverrideFromEnv = false) const;
-
-    PerformanceImplicitGemmXdlops Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(const miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              ConstData_t top_buf,
-                              Data_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
-};
-
 struct ConvHipImplicitGemmV4R4GenFwdXdlops : SolverBase<ConvolutionContext>
 {
     PerformanceImplicitGemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
@@ -1226,28 +1141,6 @@ struct ConvHipImplicitGemmV4R4GenWrWXdlops : SolverBase<ConvolutionContext>
                               const ConvSolution& solution,
                               float& elapsed_time) const;
 };
-
-struct ConvHipImplicitGemmV4_1x1 : SolverBase<ConvolutionContext>
-{
-    PerformanceImplicitGemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemm& c) const;
-    bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemm& config,
-                             bool disableConfigOverrideFromEnv = false) const;
-
-    PerformanceImplicitGemm Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(const miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
-};
-
 struct ConvHipImplicitGemmV4R1WrW : SolverBase<ConvolutionContext>
 {
     PerformanceImplicitGemmV4R1 GetPerformanceConfig(const ConvolutionContext& ctx) const;
@@ -1259,27 +1152,6 @@ struct ConvHipImplicitGemmV4R1WrW : SolverBase<ConvolutionContext>
                              bool disableConfigOverrideFromEnv = false) const;
 
     PerformanceImplicitGemmV4R1 Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(const miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              ConstData_t top_buf,
-                              Data_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
-};
-
-struct ConvHipImplicitGemmV4WrW : SolverBase<ConvolutionContext>
-{
-    PerformanceImplicitGemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemm& c) const;
-    bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemm& config,
-                             bool disableConfigOverrideFromEnv = false) const;
-
-    PerformanceImplicitGemm Search(const ConvolutionContext&) const;
     int RunAndMeasureSolution(const miopen::Handle& profile_h,
                               ConstData_t bot_buf,
                               ConstData_t top_buf,
