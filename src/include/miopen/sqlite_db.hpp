@@ -240,8 +240,13 @@ class SQLiteBase
             if(!is_system)
                 MIOPEN_THROW(miopenStatusInternalError, "Cannot open database file:" + filename_);
             else
+#if MIOPEN_DISABLE_SYSDB
+                MIOPEN_LOG_I2("Unable to read system database file:" + filename_ +
+                              " Performance may degrade");
+#else
                 MIOPEN_LOG_W("Unable to read system database file:" + filename_ +
                              " Performance may degrade");
+#endif
         }
         else
         {
