@@ -116,17 +116,16 @@ set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header inter
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
 option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_EMBED_BUILD})
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
-option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
 
-# Workaround for comgr 
-if(MIOPEN_USE_COMGR)
-    set(MIOPEN_USE_HIP_KERNELS 0)
-endif()
-
-# Static build
+# MIOPEN_USE_HIP_KERNELS is a Workaround for COMgr issues
 if(MIOPEN_EMBED_BUILD)
-    set(BUILD_SHARED_LIBS 0)
+    option(BUILD_SHARED_LIBS "Build as a shared library" Off)
+    option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." Off)
+else()
+    option(BUILD_SHARED_LIBS "Build as a shared library" On)
+    option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
 endif()
+
 
 
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
