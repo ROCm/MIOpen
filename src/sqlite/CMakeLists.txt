@@ -29,8 +29,13 @@ add_library(
     OBJECT
         memvfs.cpp
 )
-
-set_source_files_properties(memvfs.cpp PROPERTIES COMPILE_FLAGS -Wno-everything)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+# using Clang
+set_source_files_properties(memvfs.cpp PROPERTIES COMPILE_FLAGS "-Wno-everything ")
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+# using GCC
+set_source_files_properties(memvfs.cpp PROPERTIES COMPILE_FLAGS "-w ")
+endif()
 # set_target_properties(
 #     sqlite_memvfs
 #     PROPERTIES
