@@ -209,11 +209,9 @@ set( MIOpen_Source
     solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
-    solver/conv_hip_implicit_gemm_v4.cpp
     solver/conv_hip_implicit_gemm_v4r1.cpp
     solver/conv_hip_implicit_gemm_v4r4.cpp
     solver/conv_hip_implicit_gemm_wrw_weights_v4r4.cpp
-    solver/conv_hip_implicit_gemm_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops_wrw_fp32.cpp
@@ -393,13 +391,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/xform_data.s
         kernels/xform_filter.s)
 
-    if(MIOPEN_USE_SCGEMM)
-        list(APPEND MIOPEN_KERNELS
-            kernels/scgemm_v0_5_0_gfx906.so
-            kernels/SCGemmUtils.cl
-        )
-    endif()
-
     add_kernels("${MIOPEN_KERNELS}")
     add_kernel_includes("${MIOPEN_KERNEL_INCLUDES}")
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
@@ -485,24 +476,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         )
 
     add_dependencies(tidy miopen_tidy_inlining)
-endif()
-
-if(MIOPEN_USE_SCGEMM)
-    list(APPEND MIOpen_Source
-        scgemm/scgemm.cpp
-        include/miopen/scgemm/scgemm.hpp
-        include/miopen/scgemm/tensorshape.hpp
-        include/miopen/scgemm/conv.hpp
-        include/miopen/scgemm/gemm.hpp
-        include/miopen/scgemm/scgemm_op.hpp
-        scgemm/tensorshape.cpp
-        scgemm/conv.cpp
-        scgemm/gemm.cpp
-        include/miopen/scgemm_utils.hpp
-        scgemm_utils.cpp
-        solver/conv_scgemm_fwd.cpp
-    )
-
 endif()
 
 if(MIOPEN_USE_COMGR)
