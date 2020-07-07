@@ -36,6 +36,7 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 # using GCC
 set_source_files_properties(memvfs.cpp PROPERTIES COMPILE_FLAGS "-w ")
 endif()
+target_include_directories(sqlite_memvfs SYSTEM PRIVATE ${SQLITE3_STATIC_INCLUDE_DIRS})
 # set_target_properties(
 #     sqlite_memvfs
 #     PROPERTIES
