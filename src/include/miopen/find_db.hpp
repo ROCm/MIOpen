@@ -87,13 +87,9 @@ class FindDbRecord_t
                                                : GetUserPath(handle)),
           installed_path(testing_find_db_path_override() ? *testing_find_db_path_override()
                                                          : GetInstalledPath(handle)),
-#if MIOPEN_DISABLE_USERDB
-          db(boost::optional<DbTimer<TDb>>{})
-#else
           db(boost::make_optional<DbTimer<TDb>>(testing_find_db_enabled &&
                                                     !IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}),
                                                 DbTimer<TDb>{installed_path, path, "", 0}))
-#endif
     {
         if(!db.is_initialized())
             return;
