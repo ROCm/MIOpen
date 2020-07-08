@@ -66,60 +66,6 @@ typedef enum {
     CK_8BIT_INDICES  = 3,
 } ckIndicesType_t;
 
-template <char tid>
-struct get_type_from_type_id
-{
-    using type = float;
-};
-
-template <>
-struct get_type_from_type_id<'H'>
-{
-    using type = half;
-};
-
-template <>
-struct get_type_from_type_id<'F'>
-{
-    using type = float;
-};
-
-template <>
-struct get_type_from_type_id<'D'>
-{
-    using type = double;
-};
-
-template <int persistentID>
-struct get_reduce_op // any other ID
-{
-    static constexpr ckReduceTensorOp_t op = CK_REDUCE_TENSOR_ADD;
-};
-
-template <>
-struct get_reduce_op<656868> // 'A' * 10000 + 'D' * 100 + 'D'
-{
-    static constexpr ckReduceTensorOp_t op = CK_REDUCE_TENSOR_ADD;
-};
-
-template <>
-struct get_reduce_op<778576> // 'M' * 10000 + 'U' * 100 + 'L'
-{
-    static constexpr ckReduceTensorOp_t op = CK_REDUCE_TENSOR_MUL;
-};
-
-template <>
-struct get_reduce_op<777378> // 'M' * 10000 + 'I' * 100 + 'N'
-{
-    static constexpr ckReduceTensorOp_t op = CK_REDUCE_TENSOR_MIN;
-};
-
-template <>
-struct get_reduce_op<776588> // 'M' * 10000 + 'A' * 100 + 'X'
-{
-    static constexpr ckReduceTensorOp_t op = CK_REDUCE_TENSOR_MAX;
-};
-
 struct float_equal
 {
     template <class T>
