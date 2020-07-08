@@ -262,23 +262,63 @@ void BatchNormForwardTraining(Handle& handle,
                 std::string program_name;
                 std::string parms;
 
+                int rd_blk = 1;
+                int grprd;
+                int mio_bn_REM4;
+                int mio_bn_LESS4;
+                int mio_bn_CHUNK4;
+                int mio_bn_REMOUT4;
+                int mio_bn_LESSOUT4;
+                int mio_bn_REM;
+                int mio_bn_LESS;
+                int mio_bn_CHUNK;
+                int mio_bn_REMOUT;
+                int mio_bn_LESSOUT;
+                int mio_max_read = 2;
+                if(in_cstride >= 4096)
+                {
+                    mio_max_read = 3;
+                }
+                grprd           = (xlocalsize * rd_blk * 4);
+                mio_bn_REM4     = (in_nhw - ((in_nhw / grprd) * grprd));
+                mio_bn_LESS4    = (in_nhw - mio_bn_REM4);
+                mio_bn_CHUNK4   = (mio_max_read * grprd);
+                mio_bn_REMOUT4  = (in_nhw - ((in_nhw / mio_bn_CHUNK4) * mio_bn_CHUNK4));
+                mio_bn_LESSOUT4 = (in_nhw - mio_bn_REMOUT4);
+                mio_bn_REM      = (in_nhw - ((in_nhw / xlocalsize) * xlocalsize));
+                mio_bn_LESS     = (in_nhw - mio_bn_REM);
+                mio_bn_CHUNK    = (mio_max_read * xlocalsize);
+                mio_bn_REMOUT   = (in_nhw - ((in_nhw / mio_bn_CHUNK) * mio_bn_CHUNK));
+                mio_bn_LESSOUT  = (in_nhw - mio_bn_REMOUT);
+
                 kernel_name  = "MIOpenBatchNormFwdTrainSpatial";
                 program_name = "MIOpenBatchNormFwdTrainSpatial.cl";
 
-                parms = " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
-                        " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
-                        " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
-                        " -DMIO_SAVE_MEAN_VARIANCE=" +
-                        std::to_string(static_cast<int>(resultsave)) + " -DMIO_RUNNING_RESULT=" +
-                        std::to_string(static_cast<int>(resultrunning)) + " -DMIO_BN_N=" +
-                        std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) + " -DMIO_BN_HW=" +
-                        std::to_string(in_cstride) + " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
-                        " -DMIO_BN_CHW=" + std::to_string(in_nstride) + " -DMIO_BN_NCHW=" +
-                        std::to_string(in_nchw) + " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
-                        " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) + " -DMIO_BN_VARIANT=" +
-                        std::to_string(variant) + " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
-                        " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" +
-                        std::to_string(zlocalsize);
+                parms =
+                    " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
+                    " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                    " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
+                    " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(static_cast<int>(resultsave)) +
+                    " -DMIO_RUNNING_RESULT=" + std::to_string(static_cast<int>(resultrunning)) +
+                    " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
+                    " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
+                    std::to_string(in_nhw) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
+                    " -DMIO_BN_NCHW=" + std::to_string(in_nchw) + " -DMIO_BN_LDS_SIZE=" +
+                    std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
+                    " -DMIO_BN_VARIANT=" + std::to_string(variant) + " -DMIO_BN_GRP0=" +
+                    std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
+                    " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) + " -DMIO_MAX_READ=" +
+                    std::to_string(mio_max_read) + " -DRD_BLK=" + std::to_string(rd_blk) +
+                    " -DGRPRD=" + std::to_string(grprd) + " -DMIO_BN_REM4=" +
+                    std::to_string(mio_bn_REM4) + " -DMIO_BN_LESS4=" +
+                    std::to_string(mio_bn_LESS4) + " -DMIO_BN_CHUNK4=" +
+                    std::to_string(mio_bn_CHUNK4) + " -DMIO_BN_REMOUT4=" +
+                    std::to_string(mio_bn_REMOUT4) + " -DMIO_BN_LESSOUT4=" +
+                    std::to_string(mio_bn_LESSOUT4) + " -DMIO_BN_REM=" +
+                    std::to_string(mio_bn_REM) + " -DMIO_BN_LESS=" + std::to_string(mio_bn_LESS) +
+                    " -DMIO_BN_CHUNK=" + std::to_string(mio_bn_CHUNK) + " -DMIO_BN_REMOUT=" +
+                    std::to_string(mio_bn_REMOUT) + " -DMIO_BN_LESSOUT=" +
+                    std::to_string(mio_bn_LESSOUT);
 
                 MIOPEN_LOG_I2(kernel_name << ":: " << algo_name);
                 MIOPEN_LOG_I2("..." << parms);
@@ -397,6 +437,35 @@ void BatchNormForwardTraining(Handle& handle,
                 std::string program_name;
                 std::string parms;
 
+                int rd_blk = 1;
+                int grprd;
+                int mio_bn_REM4;
+                int mio_bn_LESS4;
+                int mio_bn_CHUNK4;
+                int mio_bn_REMOUT4;
+                int mio_bn_LESSOUT4;
+                int mio_bn_REM;
+                int mio_bn_LESS;
+                int mio_bn_CHUNK;
+                int mio_bn_REMOUT;
+                int mio_bn_LESSOUT;
+                int mio_max_read = 2;
+                if(in_cstride >= 4096)
+                {
+                    mio_max_read = 3;
+                }
+                grprd           = (xlocalsize * rd_blk * 4);
+                mio_bn_REM4     = (in_nhw - ((in_nhw / grprd) * grprd));
+                mio_bn_LESS4    = (in_nhw - mio_bn_REM4);
+                mio_bn_CHUNK4   = (mio_max_read * grprd);
+                mio_bn_REMOUT4  = (in_nhw - ((in_nhw / mio_bn_CHUNK4) * mio_bn_CHUNK4));
+                mio_bn_LESSOUT4 = (in_nhw - mio_bn_REMOUT4);
+                mio_bn_REM      = (in_nhw - ((in_nhw / xlocalsize) * xlocalsize));
+                mio_bn_LESS     = (in_nhw - mio_bn_REM);
+                mio_bn_CHUNK    = (mio_max_read * xlocalsize);
+                mio_bn_REMOUT   = (in_nhw - ((in_nhw / mio_bn_CHUNK) * mio_bn_CHUNK));
+                mio_bn_LESSOUT  = (in_nhw - mio_bn_REMOUT);
+
                 kernel_name  = "MIOpenBatchNormFwdTrainSpatial";
                 program_name = "MIOpenBatchNormFwdTrainSpatial.cl";
                 parms =
@@ -413,7 +482,18 @@ void BatchNormForwardTraining(Handle& handle,
                     " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" +
                     std::to_string(ldsgcn) + " -DMIO_BN_VARIANT=" + std::to_string(variant) +
                     " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
-                    std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+                    std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
+                    " -DMIO_MAX_READ=" + std::to_string(mio_max_read) + " -DRD_BLK=" +
+                    std::to_string(rd_blk) + " -DGRPRD=" + std::to_string(grprd) +
+                    " -DMIO_BN_REM4=" + std::to_string(mio_bn_REM4) + " -DMIO_BN_LESS4=" +
+                    std::to_string(mio_bn_LESS4) + " -DMIO_BN_CHUNK4=" +
+                    std::to_string(mio_bn_CHUNK4) + " -DMIO_BN_REMOUT4=" +
+                    std::to_string(mio_bn_REMOUT4) + " -DMIO_BN_LESSOUT4=" +
+                    std::to_string(mio_bn_LESSOUT4) + " -DMIO_BN_REM=" +
+                    std::to_string(mio_bn_REM) + " -DMIO_BN_LESS=" + std::to_string(mio_bn_LESS) +
+                    " -DMIO_BN_CHUNK=" + std::to_string(mio_bn_CHUNK) + " -DMIO_BN_REMOUT=" +
+                    std::to_string(mio_bn_REMOUT) + " -DMIO_BN_LESSOUT=" +
+                    std::to_string(mio_bn_LESSOUT);
 
                 MIOPEN_LOG_I2(kernel_name << ":: " << parms);
 

@@ -176,26 +176,6 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
 #elif(MIO_BN_VARIANT == 1)
 
-//===========
-
-#if(MIO_BN_HW >= 4096)
-#define MIO_MAX_READ 3
-#else
-#define MIO_MAX_READ 2
-#endif
-#define RD_BLK 1
-#define GRPRD (MIO_BN_GRP0 * RD_BLK * 4)
-#define MIO_BN_REM4 (MIO_BN_NHW - ((MIO_BN_NHW / GRPRD) * GRPRD))
-#define MIO_BN_LESS4 (MIO_BN_NHW - MIO_BN_REM4)
-#define MIO_BN_CHUNK4 (MIO_MAX_READ * GRPRD)
-#define MIO_BN_REMOUT4 (MIO_BN_NHW - ((MIO_BN_NHW / MIO_BN_CHUNK4) * MIO_BN_CHUNK4))
-#define MIO_BN_LESSOUT4 (MIO_BN_NHW - MIO_BN_REMOUT4)
-#define MIO_BN_REM (MIO_BN_NHW - ((MIO_BN_NHW / MIO_BN_GRP0) * MIO_BN_GRP0))
-#define MIO_BN_LESS (MIO_BN_NHW - MIO_BN_REM)
-#define MIO_BN_CHUNK (MIO_MAX_READ * MIO_BN_GRP0)
-#define MIO_BN_REMOUT (MIO_BN_NHW - ((MIO_BN_NHW / MIO_BN_CHUNK) * MIO_BN_CHUNK))
-#define MIO_BN_LESSOUT (MIO_BN_NHW - MIO_BN_REMOUT)
-
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT* __restrict out,
@@ -337,7 +317,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
             (_FLOAT)mad(pvscale, ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance, pvbias);
     } // end for
 #else
-    _FLOAT_PREC xhat[MIO_MAX_READ];
+    _FLOAT_PREC xhat[3];
     __attribute__((opencl_unroll_hint(2))) for(unsigned int k = (MIO_MAX_READ * lid);
                                                k < MIO_BN_LESSOUT;
                                                k += MIO_BN_CHUNK)
