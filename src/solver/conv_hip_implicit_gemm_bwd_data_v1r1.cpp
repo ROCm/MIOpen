@@ -70,8 +70,8 @@ PerformanceImplicitGemmBwdDataV1R1::PerformanceImplicitGemmBwdDataV1R1(bool spar
     use_spare_set = spare;
 }
 
-bool PerformanceImplicitGemmBwdDataV1R1::
-operator==(const PerformanceImplicitGemmBwdDataV1R1& other) const
+bool PerformanceImplicitGemmBwdDataV1R1::operator==(
+    const PerformanceImplicitGemmBwdDataV1R1& other) const
 {
     // clang-format off
     return BlockSize == other.BlockSize
@@ -502,7 +502,7 @@ bool PerformanceImplicitGemmBwdDataV1R1::IsValid(const ConvolutionContext& ctx) 
         return false;
 
     // check LDS allocation
-    std::size_t lds_size = 0;
+    std::size_t lds_size      = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= get_lds_max_number_of_byte());
@@ -639,7 +639,7 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
         return false;
     if(!ctx.use_hip_kernels)
         return false;
-    if(!ctx.Is2d() && !ctx.Is3d())
+    if(!ctx.Is2d() && !(ctx.Is3d() && ctx.IsFp32()))
         return false;
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
