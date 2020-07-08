@@ -24,15 +24,17 @@
  *
  *******************************************************************************/
 
+#include <cstddef>
 #include <miopen/solver.hpp>
-
 #include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
-
 #include "implicitgemm_util.hpp"
-
-#include <cstddef>
+#include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/stringutils.hpp>
+#include <miopen/implicitgemm_params.hpp>
+#include <miopen/env.hpp>
+#include <miopen/tensor_ops.hpp>
 
 namespace miopen {
 namespace solver {
@@ -628,6 +630,29 @@ ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& c
     }
 
     result.construction_params.push_back(construction_parameters);
+    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle, const boost::any& primitive_params) {
+            const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+            const auto& tensors      = invoke_params.tensors;
+            float zero               = 0.f;
+            auto elapsed             = 0.f;
+
+            if(tensors.dwDesc.GetType() != miopenHalf && tensors.dwDesc.GetType() != miopenBFloat16)
+            {
+                SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+            }
+
+            handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
+            if(handle.IsProfilingEnabled())
+            {
+                elapsed += handle.GetKernelTime();
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
+            }
+        };
+    };
     return result;
 }
 
