@@ -71,11 +71,13 @@ void LSTMForwardHiddenStateUpdate(const Handle& handle,
     size_t total_item   = std::max(size_t(total_work / RD_BLCK), size_t(1));
     size_t item_per_grp = total_item <= 64 ? 64 : total_item <= 128 ? 128 : 256;
     size_t glb_sz       = total_item < max_active_threads ? total_item : max_active_threads;
+    size_t wg_sz        = (glb_sz + item_per_grp - 1) / item_per_grp;
+    glb_sz              = wg_sz * item_per_grp;
 
     std::string network_config =
         "lstmfwdhid-" + std::string(rnn_data_type == miopenHalf ? "fp16-" : "fp32-") +
         std::to_string(static_cast<int>(is_inference)) + "x" + std::to_string(RD_BLCK) + "x" +
-        std::to_string(item_per_grp) + "x" + std::to_string(glb_sz);
+        std::to_string(item_per_grp) + "x" + std::to_string(wg_sz);
 
     bool use_cx = cx != nullptr;
 
@@ -197,10 +199,12 @@ void LSTMBackwardHiddenStateUpdate(const Handle& handle,
     size_t total_item   = std::max(size_t(total_work / RD_BLCK), size_t(1));
     size_t item_per_grp = total_item <= 64 ? 64 : total_item <= 128 ? 128 : 256;
     size_t glb_sz       = total_item < max_active_threads ? total_item : max_active_threads;
+    size_t wg_sz        = (glb_sz + item_per_grp - 1) / item_per_grp;
+    glb_sz              = wg_sz * item_per_grp;
 
     std::string network_config =
         "lstmbwdhid-" + std::string(rnn_data_type == miopenHalf ? "fp16-" : "fp32-") +
-        std::to_string(RD_BLCK) + "x" + std::to_string(item_per_grp) + "x" + std::to_string(glb_sz);
+        std::to_string(RD_BLCK) + "x" + std::to_string(item_per_grp) + "x" + std::to_string(wg_sz);
 
     bool use_cx  = cx != nullptr;
     bool use_dcy = dcy != nullptr;
