@@ -40,8 +40,6 @@ endif()
 
 project ( MIOpen C CXX )
 
-option( BUILD_SHARED_LIBS "Build as a shared library" ON )
-
 enable_testing()
 
 find_package(ROCM REQUIRED PATHS /opt/rocm)
@@ -119,8 +117,10 @@ option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD
 
 # MIOPEN_USE_HIP_KERNELS is a Workaround for COMgr issues
 if(MIOPEN_EMBED_BUILD)
+    option(BUILD_SHARED_LIBS "Build as a shared library" Off)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." Off)
 else()
+    option(BUILD_SHARED_LIBS "Build as a shared library" ON)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
 endif()
 
@@ -152,6 +152,9 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
             message(FATAL_ERROR "hip compiler not found")
         endif()
     endif()
+
+    # scgemm not support opencl backend yet.
+    set(MIOPEN_USE_SCGEMM OFF)
 
     # TODO (priority_low) Use to build HIP and ASM kernels.
     if(MIOPEN_USE_COMGR)
@@ -220,9 +223,17 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     else()
         message(STATUS "Build without rocblas")
     endif()
+
+    # scgemm
+    set(MIOPEN_USE_SCGEMM OFF CACHE BOOL "")
+    if(MIOPEN_USE_SCGEMM)
+        message(STATUS "Build with scgemm")
+    else()
+        message(STATUS "Build without scgemm")
+    endif()
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
-
+	
 # look for and register clang-offload-bundler
 if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+$")
     find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
