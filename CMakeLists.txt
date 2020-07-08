@@ -153,9 +153,6 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
         endif()
     endif()
 
-    # scgemm not support opencl backend yet.
-    set(MIOPEN_USE_SCGEMM OFF)
-
     # TODO (priority_low) Use to build HIP and ASM kernels.
     if(MIOPEN_USE_COMGR)
         message(FATAL_ERROR "comgr cannot be used with OpenCL backend")
@@ -223,17 +220,9 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     else()
         message(STATUS "Build without rocblas")
     endif()
-
-    # scgemm
-    set(MIOPEN_USE_SCGEMM OFF CACHE BOOL "")
-    if(MIOPEN_USE_SCGEMM)
-        message(STATUS "Build with scgemm")
-    else()
-        message(STATUS "Build without scgemm")
-    endif()
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
-	
+
 # look for and register clang-offload-bundler
 if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+$")
     find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
