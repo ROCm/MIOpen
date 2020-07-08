@@ -119,20 +119,16 @@ option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD
 
 # MIOPEN_USE_HIP_KERNELS is a Workaround for COMgr issues
 if(MIOPEN_EMBED_BUILD)
-    option(BUILD_SHARED_LIBS "Build as a shared library" Off)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." Off)
 else()
-    option(BUILD_SHARED_LIBS "Build as a shared library" On)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
 endif()
-
 
 
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
     OpenCL HIP HIPOC )
-
 
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
