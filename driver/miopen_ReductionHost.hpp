@@ -33,7 +33,7 @@
 #include <cassert>
 #include <cmath>
 
-#include <miopen/reduce_common.hpp>
+#include "../test/cpu_reduce_util.hpp"
 
 #include "tensor_driver.hpp"
 
