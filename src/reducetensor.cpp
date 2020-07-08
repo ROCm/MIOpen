@@ -40,12 +40,14 @@
 
 namespace miopen {
 
-using reduce::ReductionMethod_t;
-using reduce::Reduce_DirectThreadWise;
-using reduce::Reduce_DirectWarpWise;
-using reduce::Reduce_BlockWise;
-using reduce::Reduce_MultiBlock;
-
+enum ReductionMethod_t
+{
+    Reduce_DirectThreadWise = 1,
+    Reduce_DirectWarpWise   = 2,
+    Reduce_BlockWise        = 3,
+    Reduce_MultiBlock       = 4
+};
+	
 using reduce::type_convert;
 
 namespace detail {
