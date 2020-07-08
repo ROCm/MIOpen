@@ -91,7 +91,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
 {
 #ifdef __linux__
     // write out the include files
-#if 1
+#if 0
     auto inc_list = GetKernelIncList();
     auto inc_path = tmp_dir->path;
     boost::filesystem::create_directories(inc_path);
