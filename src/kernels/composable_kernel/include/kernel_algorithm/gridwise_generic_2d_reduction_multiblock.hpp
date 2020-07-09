@@ -88,7 +88,7 @@ struct GridwiseReduction_xy_to_x_multiblock
         const index_t blkgroup_id     = block_global_id / blkGroupSize;
         const index_t block_local_id  = block_global_id % blkGroupSize;
 
-        const index_t reduceSizePerBlock =
+        constexpr index_t reduceSizePerBlock =
             (((src2dDesc::GetLengths()[1] + blkGroupSize - 1) / blkGroupSize + BlockBufferSize -
               1) /
              BlockBufferSize) *
@@ -129,7 +129,7 @@ struct GridwiseReduction_xy_to_x_multiblock
                                                                     opReduce,
                                                                     nanPropaOpt>;
 
-        const index_t toReduceBlocks = (reduceSizePerBlock + BlockSize - 1) / BlockSize;
+        constexpr index_t toReduceBlocks = (reduceSizePerBlock + BlockSize - 1) / BlockSize;
 
         for(index_t reducedBlocks = 0; reducedBlocks < toReduceBlocks;
             reducedBlocks += GredAccessesPerThreadInBlock)
@@ -201,7 +201,7 @@ struct GridwiseReduction_xy_to_x_multiblock
         const index_t blkgroup_id     = block_global_id / blkGroupSize;
         const index_t block_local_id  = block_global_id % blkGroupSize;
 
-        const index_t reduceSizePerBlock =
+        constexpr index_t reduceSizePerBlock =
             (((src2dDesc::GetLengths()[1] + blkGroupSize - 1) / blkGroupSize + BlockBufferSize -
               1) /
              BlockBufferSize) *
@@ -242,7 +242,7 @@ struct GridwiseReduction_xy_to_x_multiblock
                                                                     opReduce,
                                                                     nanPropaOpt>;
 
-        const index_t toReduceBlocks = (reduceSizePerBlock + BlockSize - 1) / BlockSize;
+        constexpr index_t toReduceBlocks = (reduceSizePerBlock + BlockSize - 1) / BlockSize;
 
         blockwise_reduce::set_buffer_value(p_in_block_buffer, zeroVal);
 

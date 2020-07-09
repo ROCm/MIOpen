@@ -125,7 +125,7 @@ struct GridwiseReduction_xy_to_x_blockwise
                                                                     opReduce,
                                                                     nanPropaOpt>;
 
-        const index_t toReduceBlocks = (src2dDesc::GetLengths()[1] + BlockSize - 1) / BlockSize;
+        constexpr index_t toReduceBlocks = (src2dDesc::GetLengths()[1] + BlockSize - 1) / BlockSize;
 
         for(index_t reducedBlocks = 0; reducedBlocks < toReduceBlocks;
             reducedBlocks += GredAccessesPerThreadInBlock)
@@ -248,7 +248,7 @@ struct GridwiseReduction_xy_to_x_blockwise
                                                                     opReduce,
                                                                     nanPropaOpt>;
 
-        const index_t toReduceBlocks = (src2dDesc::GetLengths()[1] + BlockSize - 1) / BlockSize;
+        constexpr index_t toReduceBlocks = (src2dDesc::GetLengths()[1] + BlockSize - 1) / BlockSize;
 
         int indexOffset = 0;
 
@@ -382,7 +382,7 @@ struct GridwiseReduction_xy_to_x_blockwise
                                                                     opReduce,
                                                                     nanPropaOpt>;
 
-        const index_t toReduceBlocks = (src2dDesc::GetLengths()[1] + BlockSize - 1) / BlockSize;
+        constexpr index_t toReduceBlocks = (src2dDesc::GetLengths()[1] + BlockSize - 1) / BlockSize;
 
         for(index_t reducedBlocks = 0; reducedBlocks < toReduceBlocks;
             reducedBlocks += GredAccessesPerThreadInBlock)
