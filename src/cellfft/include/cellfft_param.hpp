@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-//clang-foramt off
+// clang-foramt off
 #ifndef MIOPEN_CELLFFT_PARAM_H
 #define MIOPEN_CELLFFT_PARAM_H
 
@@ -83,4 +83,4 @@ void   build_cellfft_params_grad( cellfft_param_t&, const ConvolutionContext& );
 } //namespace miopen
 
 #endif
-//clang-foramt on
+// clang-foramt on
