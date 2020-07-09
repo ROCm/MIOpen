@@ -23,6 +23,7 @@
 * SOFTWARE.
 *
 *******************************************************************************/
+
 // clang-format off
 #include <miopen/conv/invokers/cellfft.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
