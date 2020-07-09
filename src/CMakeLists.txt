@@ -450,6 +450,24 @@ if( MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
         )
 endif()
 
+list(APPEND MIOPEN_KERNELS
+    kernels/cellfft_gfx900.hsaco
+    kernels/cellfft_gfx906.hsaco
+)
+
+list(APPEND MIOpen_Source
+    cellfft/include/cellfft_get_kernel.hpp
+    cellfft/include/cellfft_op.hpp
+    cellfft/include/cellfft_param.hpp
+    cellfft/source/cellfft_get_kernel.cpp
+    cellfft/source/cellfft_op.cpp
+    cellfft/source/cellfft_param.cpp
+    include/miopen/conv/invokers/cellfft.hpp
+    conv/invokers/cellfft.cpp
+    solver/conv_cellfft.cpp
+)
+
+
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     list(APPEND MIOpen_Source ${PROJECT_BINARY_DIR}/include/miopen_kernels.h)
     add_custom_command(
