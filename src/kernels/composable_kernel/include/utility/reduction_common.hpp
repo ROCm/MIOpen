@@ -31,10 +31,10 @@
 // this enumerate should be synchronized with include/miopen/reduce_common.hpp
 namespace ck {
 typedef enum {
-    CK_Reduce_DirectThreadWise = 1,
-    CK_Reduce_DirectWarpWise   = 2,
-    CK_Reduce_BlockWise        = 3,
-    CK_Reduce_MultiBlock       = 4
+    Reduce_DirectThreadWise = 1,
+    Reduce_DirectWarpWise   = 2,
+    Reduce_BlockWise        = 3,
+    Reduce_MultiBlock       = 4
 } ckReductionMethod_t; // end of namespace ck
 
 typedef enum {

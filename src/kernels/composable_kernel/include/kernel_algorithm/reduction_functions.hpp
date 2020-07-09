@@ -105,12 +105,12 @@ struct binop_with_nan_check<CK_PROPAGATE_NAN, opReduce, compType>
 }; // namespace detail
 
 template <typename DataType, int ThreadBufferLen, typename opReduce, ckNanPropagation_t nanPropaOpt>
-struct thread_reduce
+struct ThreadReduce
 {
     using compType = typename opReduce::dataType;
     using binop    = detail::binop_with_nan_check<nanPropaOpt, opReduce, compType>;
 
-    __device__ static void reduce(const DataType* p_thread_buffer, compType& accuData)
+    __device__ static void Reduce(const DataType* p_thread_buffer, compType& accuData)
     {
         for(int i = 0; i < ThreadBufferLen; i++)
         {
@@ -121,7 +121,7 @@ struct thread_reduce
 
     // This operator is used by Direct_ThreadWise reduction method at first-time reduction
     __device__ static void
-    reduce2(const DataType* p_thread_buffer, compType& accuData, int& accuIndex, int indexStart)
+    Reduce2(const DataType* p_thread_buffer, compType& accuData, int& accuIndex, int indexStart)
     {
         for(int i = 0; i < ThreadBufferLen; i++)
         {
@@ -132,7 +132,7 @@ struct thread_reduce
     };
 
     // This operator is used by Direct_ThreadWise reduction method at second-time reduction
-    __device__ static void reduce3(const DataType* p_thread_buffer,
+    __device__ static void Reduce3(const DataType* p_thread_buffer,
                                    const int* thread_indices_buffer,
                                    compType& accuData,
                                    int& accuIndex)
@@ -157,22 +157,22 @@ template <typename DataType,
           int ThreadBufferLen,
           typename opReduce,
           ckNanPropagation_t nanPropaOpt>
-struct warp_reduce
+struct WarpReduce
 {
     using compType = typename opReduce::dataType;
     using binop    = detail::binop_with_nan_check<nanPropaOpt, opReduce, compType>;
     constexpr static bool have_builtin_shuffle = std::is_same<compType, float>::value;
 
-    __device__ static void reduce(const DataType* p_thread_buffer, compType& accuData)
+    __device__ static void Reduce(const DataType* p_thread_buffer, compType& accuData)
     {
         static_if<have_builtin_shuffle>{}([&](auto) {
-            reduceImpl1(p_thread_buffer, accuData);
-        }).Else([&](auto) { reduceImpl2(p_thread_buffer, accuData); });
+            ReduceImpl1(p_thread_buffer, accuData);
+        }).Else([&](auto) { ReduceImpl2(p_thread_buffer, accuData); });
     };
 
-    __device__ static void reduceImpl1(const DataType* p_thread_buffer, compType& accuData)
+    __device__ static void ReduceImpl1(const DataType* p_thread_buffer, compType& accuData)
     {
-        compType lAccuData = opReduce::getZeroVal();
+        compType lAccuData = opReduce::GetZeroVal();
 
         for(int i = 0; i < ThreadBufferLen; i++)
         {
@@ -193,9 +193,9 @@ struct warp_reduce
         binop::calculate(accuData, lAccuData);
     };
 
-    __device__ static void reduceImpl2(const DataType* p_thread_buffer, compType& accuData)
+    __device__ static void ReduceImpl2(const DataType* p_thread_buffer, compType& accuData)
     {
-        compType lAccuData = opReduce::getZeroVal();
+        compType lAccuData = opReduce::GetZeroVal();
 
         for(int i = 0; i < ThreadBufferLen; i++)
         {
@@ -236,19 +236,19 @@ struct warp_reduce
     };
 
     __device__ static void
-    reduce2(const DataType* p_thread_buffer, compType& accuData, int& accuIndex, int indexStart)
+    Reduce2(const DataType* p_thread_buffer, compType& accuData, int& accuIndex, int indexStart)
     {
         static_if<have_builtin_shuffle>{}([&](auto) {
-            reduce2Impl1(p_thread_buffer, accuData, accuIndex, indexStart);
-        }).Else([&](auto) { reduce2Impl2(p_thread_buffer, accuData, accuIndex, indexStart); });
+            Reduce2Impl1(p_thread_buffer, accuData, accuIndex, indexStart);
+        }).Else([&](auto) { Reduce2Impl2(p_thread_buffer, accuData, accuIndex, indexStart); });
     };
 
-    __device__ static void reduce2Impl1(const DataType* p_thread_buffer,
+    __device__ static void Reduce2Impl1(const DataType* p_thread_buffer,
                                         compType& accuData,
                                         int& accuIndex,
                                         int indexStart)
     {
-        compType lAccuData   = opReduce::getZeroVal();
+        compType lAccuData   = opReduce::GetZeroVal();
         int lAccuIndex       = 0;
         int thread_inwarp_id = get_thread_local_1d_id() % warpSize;
 
@@ -275,12 +275,12 @@ struct warp_reduce
             binop::calculate(accuData, lAccuData, accuIndex, lAccuIndex);
     };
 
-    __device__ static void reduce2Impl2(const DataType* p_thread_buffer,
+    __device__ static void Reduce2Impl2(const DataType* p_thread_buffer,
                                         compType& accuData,
                                         int& accuIndex,
                                         int indexStart)
     {
-        compType lAccuData   = opReduce::getZeroVal();
+        compType lAccuData   = opReduce::GetZeroVal();
         int lAccuIndex       = 0;
         int thread_id        = get_thread_local_1d_id();
         int warpId           = thread_id / warpSize;
@@ -325,24 +325,24 @@ struct warp_reduce
             binop::calculate(accuData, myDataBuffer[0], accuIndex, myIndicesBuffer[0]);
     };
 
-    __device__ static void reduce3(const DataType* p_thread_buffer,
+    __device__ static void Reduce3(const DataType* p_thread_buffer,
                                    const int* thread_indices_buffer,
                                    compType& accuData,
                                    int& accuIndex)
     {
         static_if<have_builtin_shuffle>{}([&](auto) {
-            reduce3Impl1(p_thread_buffer, thread_indices_buffer, accuData, accuIndex);
+            Reduce3Impl1(p_thread_buffer, thread_indices_buffer, accuData, accuIndex);
         }).Else([&](auto) {
-            reduce3Impl2(p_thread_buffer, thread_indices_buffer, accuData, accuIndex);
+            Reduce3Impl2(p_thread_buffer, thread_indices_buffer, accuData, accuIndex);
         });
     };
 
-    __device__ static void reduce3Impl1(const DataType* p_thread_buffer,
+    __device__ static void Reduce3Impl1(const DataType* p_thread_buffer,
                                         const int* thread_indices_buffer,
                                         compType& accuData,
                                         int& accuIndex)
     {
-        compType lAccuData = opReduce::getZeroVal();
+        compType lAccuData = opReduce::GetZeroVal();
         int lAccuIndex     = 0;
 
         for(int i = 0; i < ThreadBufferLen; i++)
@@ -367,12 +367,12 @@ struct warp_reduce
         binop::calculate(accuData, lAccuData, accuIndex, lAccuIndex);
     };
 
-    __device__ static void reduce3Impl2(const DataType* p_thread_buffer,
+    __device__ static void Reduce3Impl2(const DataType* p_thread_buffer,
                                         const int* thread_indices_buffer,
                                         compType& accuData,
                                         int& accuIndex)
     {
-        compType lAccuData   = opReduce::getZeroVal();
+        compType lAccuData   = opReduce::GetZeroVal();
         int lAccuIndex       = 0;
         int thread_id        = get_thread_local_1d_id();
         int warpId           = thread_id / warpSize;
@@ -440,10 +440,10 @@ struct BlockwiseReduction_2d_block_buffer
         blockIsOneRow ? buffer2dDesc::GetLengths()[0] : buffer2dDesc::GetLengths()[1];
     using binop = detail::binop_with_nan_check<nanPropaOpt, opReduce, compType>;
 
-    __device__ static void reduce(DataType* p_block_buffer, int toReduceBlocks, compType& accuData)
+    __device__ static void Reduce(DataType* p_block_buffer, int toReduceBlocks, compType& accuData)
     {
         const int thread_local_id = get_thread_local_1d_id();
-        compType lAccuData        = opReduce::getZeroVal();
+        compType lAccuData        = opReduce::GetZeroVal();
 
         int offset;
         for(int otherDimInd = 0; otherDimInd < toReduceBlocks; otherDimInd++)
@@ -490,14 +490,14 @@ struct BlockwiseReduction_2d_block_buffer
         }
     };
 
-    __device__ static void reduce2(DataType* p_block_buffer,
+    __device__ static void Reduce2(DataType* p_block_buffer,
                                    int* block_indices_buffer,
                                    int toReduceBlocks,
                                    compType& accuData,
                                    int& accuIndex)
     {
         const int thread_local_id = get_thread_local_1d_id();
-        compType lAccuData        = opReduce::getZeroVal();
+        compType lAccuData        = opReduce::GetZeroVal();
         int lAccuIndex            = 0;
 
         static_if<blockIsOneRow>{}([&](auto) {

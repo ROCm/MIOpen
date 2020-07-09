@@ -9,12 +9,12 @@ namespace ck {
 // The simple configurator does not consider the "Reduce_MultiBlock" method, since it is usually
 // called to do the second reduction after the first calling of a "Reduce_MultiBlock" reduction.
 template <int BlockSize, int warpSize>
-struct reduce_kernel_simple_configurator
+struct ReduceKernelSimpleConfigurator
 {
     static constexpr int numWarpsPerBlock = BlockSize / warpSize;
 
     template <index_t invariantLength, index_t toReduceLength>
-    __device__ static constexpr int getGridSize(Number<invariantLength>, Number<toReduceLength>)
+    __device__ static constexpr int GetGridSize(Number<invariantLength>, Number<toReduceLength>)
     {
         if(toReduceLength < warpSize / 4) // let one thread to do each reduction
             return ((invariantLength + BlockSize - 1) / BlockSize);
@@ -25,15 +25,15 @@ struct reduce_kernel_simple_configurator
     };
 
     template <index_t invariantLength, index_t toReduceLength>
-    __device__ static constexpr ckReductionMethod_t getReductionMethod(Number<invariantLength>,
+    __device__ static constexpr ckReductionMethod_t GetReductionMethod(Number<invariantLength>,
                                                                        Number<toReduceLength>)
     {
         if(toReduceLength < warpSize / 4) // let one thread to do each reduction
-            return (CK_Reduce_DirectThreadWise);
+            return (Reduce_DirectThreadWise);
         else if(toReduceLength < BlockSize) // let one warp to do each reduction
-            return (CK_Reduce_DirectWarpWise);
+            return (Reduce_DirectWarpWise);
         else
-            return (CK_Reduce_BlockWise);
+            return (Reduce_BlockWise);
     };
 };
 

@@ -59,22 +59,21 @@ template <int BlkGroupSize,
           int GredThreadBufferLength,
           int GredAccessesPerThreadInBlock,
           int GredAccessesPerThreadInWarp>
-struct Gridwise_generic_reduction
+struct GridwiseReduction
 {
-    static constexpr auto reduceImpl = static_cast<ckReductionMethod_t>(reduceImpl_I);
-    static constexpr bool is_method_multiblock =
-        (reduceImpl == CK_Reduce_MultiBlock) ? true : false;
-    static constexpr auto op          = static_cast<ckReduceTensorOp_t>(op_I);
-    static constexpr auto nanPropaOpt = static_cast<ckNanPropagation_t>(nanPropaOpt_I);
+    static constexpr auto reduceImpl           = static_cast<ckReductionMethod_t>(reduceImpl_I);
+    static constexpr bool is_method_multiblock = (reduceImpl == Reduce_MultiBlock) ? true : false;
+    static constexpr auto op                   = static_cast<ckReduceTensorOp_t>(op_I);
+    static constexpr auto nanPropaOpt          = static_cast<ckNanPropagation_t>(nanPropaOpt_I);
     static constexpr auto reduceIndicesOpt =
         static_cast<ckReduceTensorIndices_t>(reduceIndicesOpt_I);
 
     template <ckReductionMethod_t impl, int callId>
-    struct Gridwise_generic_2d_reduction_wrapper;
+    struct GridwiseReduction_2d_wrapper;
 
     // wrapper for switching to the Reduce_DirectThreadWise method
     template <int callId>
-    struct Gridwise_generic_2d_reduction_wrapper<CK_Reduce_DirectThreadWise, callId>
+    struct GridwiseReduction_2d_wrapper<Reduce_DirectThreadWise, callId>
     {
         template <typename src2dDesc, typename dst1dDesc>
         __device__ static void Run(src2dDesc,
@@ -106,7 +105,7 @@ struct Gridwise_generic_reduction
             using src2dDesc_touse =
                 typename std::conditional<need_padding, decltype(src2dDesc_2), src2dDesc>::type;
 
-            using gridwise_reduce = Gridwise_generic_reduction_xy_to_x_direct_threadwise<
+            using gridwise_reduce = GridwiseReduction_xy_to_x_direct_threadwise<
                 BlockSize,
                 srcDataType,
                 dstDataType,
@@ -129,7 +128,7 @@ struct Gridwise_generic_reduction
 
     // wrapper for switching to the Reduce_DirectWarpdWise method
     template <int callId>
-    struct Gridwise_generic_2d_reduction_wrapper<CK_Reduce_DirectWarpWise, callId>
+    struct GridwiseReduction_2d_wrapper<Reduce_DirectWarpWise, callId>
     {
         template <typename src2dDesc, typename dst1dDesc>
         __device__ static void Run(src2dDesc,
@@ -161,7 +160,7 @@ struct Gridwise_generic_reduction
             using src2dDesc_touse =
                 typename std::conditional<need_padding, decltype(src2dDesc_2), src2dDesc>::type;
 
-            using gridwise_reduce = Gridwise_generic_reduction_xy_to_x_direct_warpwise<
+            using gridwise_reduce = GridwiseReduction_xy_to_x_direct_warpwise<
                 BlockSize,
                 srcDataType,
                 dstDataType,
@@ -185,7 +184,7 @@ struct Gridwise_generic_reduction
 
     // wrapper for switching to the Reduce_BlockWise method
     template <int callId>
-    struct Gridwise_generic_2d_reduction_wrapper<CK_Reduce_BlockWise, callId>
+    struct GridwiseReduction_2d_wrapper<Reduce_BlockWise, callId>
     {
         template <typename src2dDesc, typename dst1dDesc>
         __device__ static void Run(src2dDesc,
@@ -217,7 +216,7 @@ struct Gridwise_generic_reduction
             using src2dDesc_touse =
                 typename std::conditional<need_padding, decltype(src2dDesc_2), src2dDesc>::type;
 
-            using gridwise_reduce = Gridwise_generic_reduction_xy_to_x_blockwise<
+            using gridwise_reduce = GridwiseReduction_xy_to_x_blockwise<
                 BlockSize,
                 srcDataType,
                 dstDataType,
@@ -242,7 +241,7 @@ struct Gridwise_generic_reduction
 
     // wrapper for switching to the Reduce_MultiBlock method
     template <int callId>
-    struct Gridwise_generic_2d_reduction_wrapper<CK_Reduce_MultiBlock, callId>
+    struct GridwiseReduction_2d_wrapper<Reduce_MultiBlock, callId>
     {
         template <typename src2dDesc, typename dst1dDesc>
         __device__ static void Run(src2dDesc,
@@ -276,7 +275,7 @@ struct Gridwise_generic_reduction
                 make_tuple(Sequence<0>{}, Sequence<1>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}));
 
-            using gridwise_reduce = Gridwise_generic_reduction_xy_to_x_multiblock<
+            using gridwise_reduce = GridwiseReduction_xy_to_x_multiblock<
                 BlockSize,
                 srcDataType,
                 dstDataType,
@@ -361,7 +360,7 @@ struct Gridwise_generic_reduction
                 make_tuple(typename arithmetic_sequence_gen<0, dstLengths::Size(), 1>::type{}),
                 make_tuple(Sequence<0>{}));
 
-            using gridwise_2d_reduce = Gridwise_generic_2d_reduction_wrapper<reduceImpl, 0>;
+            using gridwise_2d_reduce = GridwiseReduction_2d_wrapper<reduceImpl, 0>;
 
             gridwise_2d_reduce{}.Run(two_dim_srcDesc,
                                      one_dim_dstDesc,
@@ -395,7 +394,7 @@ struct Gridwise_generic_reduction
                 make_tuple(typename arithmetic_sequence_gen<0, dstLengths::Size(), 1>::type{}),
                 make_tuple(Sequence<0>{}));
 
-            using gridwise_2d_reduce = Gridwise_generic_2d_reduction_wrapper<reduceImpl, 0>;
+            using gridwise_2d_reduce = GridwiseReduction_2d_wrapper<reduceImpl, 0>;
 
             gridwise_2d_reduce{}.Run(two_dim_srcDesc,
                                      one_dim_dstDesc,
@@ -441,10 +440,10 @@ struct Gridwise_generic_reduction
 
         static_if<is_method_multiblock>{}([&](auto) {
             constexpr ckReductionMethod_t reduceImpl2 =
-                reduce_kernel_simple_configurator<BlockSize, warpSize>::getReductionMethod(
+                ReduceKernelSimpleConfigurator<BlockSize, warpSize>::GetReductionMethod(
                     Number<invariantLength>{}, Number<toReduceLength>{});
 
-            using gridwise_2d_reduce = Gridwise_generic_2d_reduction_wrapper<reduceImpl2, 1>;
+            using gridwise_2d_reduce = GridwiseReduction_2d_wrapper<reduceImpl2, 1>;
 
             gridwise_2d_reduce{}.Run(
                 workspace_2d_desc,

@@ -47,7 +47,7 @@ template <int BlockSize,
           ckReduceTensorIndices_t reduceIndicesOpt,
           int callId,
           int GredAccessesPerThreadInBlock>
-struct Gridwise_generic_reduction_xy_to_x_blockwise
+struct GridwiseReduction_xy_to_x_blockwise
 {
     static constexpr bool indexable = reduce_binary_operator<compType, op>::indexable;
     static constexpr bool need_indices =
@@ -84,7 +84,7 @@ struct Gridwise_generic_reduction_xy_to_x_blockwise
         __shared__ compType p_in_block_buffer[BlockBufferSize];
 
         // VGPR, only useful for thread 0
-        auto zeroVal       = opReduce::getZeroVal();
+        auto zeroVal       = opReduce::GetZeroVal();
         compType accuValue = zeroVal;
 
         const int thread_local_id    = get_thread_local_1d_id();
@@ -141,7 +141,7 @@ struct Gridwise_generic_reduction_xy_to_x_blockwise
             int BlocksInOneOp = (reducedBlocks < toReduceBlocks - GredAccessesPerThreadInBlock)
                                     ? GredAccessesPerThreadInBlock
                                     : toReduceBlocks - reducedBlocks;
-            blockwise_reduce::reduce(p_in_block_buffer, BlocksInOneOp, accuValue);
+            blockwise_reduce::Reduce(p_in_block_buffer, BlocksInOneOp, accuValue);
 
             constexpr auto True = integral_constant<bool, true>{};
             blockwise_src_load.MoveSrcSliceWindow(Sequence<0, BlockBufferSize>{}, True);
@@ -206,7 +206,7 @@ struct Gridwise_generic_reduction_xy_to_x_blockwise
         __shared__ int block_indices_buffer[BlockBufferSize];
 
         // VGPR, only useful for thread 0
-        auto zeroVal       = opReduce::getZeroVal();
+        auto zeroVal       = opReduce::GetZeroVal();
         compType accuValue = zeroVal;
         int accuIndex      = 0;
 
@@ -270,7 +270,7 @@ struct Gridwise_generic_reduction_xy_to_x_blockwise
                                     ? GredAccessesPerThreadInBlock
                                     : toReduceBlocks - reducedBlocks;
 
-            blockwise_reduce::reduce2(
+            blockwise_reduce::Reduce2(
                 p_in_block_buffer, block_indices_buffer, BlocksInOneOp, accuValue, accuIndex);
 
             indexOffset += BlockBufferSize;
@@ -340,7 +340,7 @@ struct Gridwise_generic_reduction_xy_to_x_blockwise
         __shared__ int block_indices_buffer[BlockBufferSize];
 
         // VGPR, only useful for thread 0
-        auto zeroVal       = opReduce::getZeroVal();
+        auto zeroVal       = opReduce::GetZeroVal();
         compType accuValue = zeroVal;
         int accuIndex      = 0;
 
@@ -400,7 +400,7 @@ struct Gridwise_generic_reduction_xy_to_x_blockwise
                                     ? GredAccessesPerThreadInBlock
                                     : toReduceBlocks - reducedBlocks;
 
-            blockwise_reduce::reduce2(
+            blockwise_reduce::Reduce2(
                 p_in_block_buffer, block_indices_buffer, BlocksInOneOp, accuValue, accuIndex);
 
             constexpr auto True = integral_constant<bool, true>{};
