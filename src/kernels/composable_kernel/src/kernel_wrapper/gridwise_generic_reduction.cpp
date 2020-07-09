@@ -31,7 +31,7 @@ struct get_type_from_type_id<'D'>
     using type = double;
 };
 
-template <int persistentID>
+template <index_t persistentID>
 struct get_reduce_op // any other ID
 {
     static constexpr ckReduceTensorOp_t op = CK_REDUCE_TENSOR_ADD;
@@ -65,8 +65,8 @@ using srcDataType = typename get_type_from_type_id<static_cast<char>(CK_PARAM_SR
 using dstDataType = typename get_type_from_type_id<static_cast<char>(CK_PARAM_DST_DATATYPE)>::type;
 using compType = typename get_type_from_type_id<static_cast<char>(CK_PARAM_REDUCE_COMPTYPE)>::type;
 
-constexpr int blockSize = CK_PARAM_BLOCKSIZE; // tunable
-constexpr int blkGroupSize =
+constexpr index_t blockSize = CK_PARAM_BLOCKSIZE; // tunable
+constexpr index_t blkGroupSize =
     CK_PARAM_BLKGROUPSIZE; // determined by the problem and the selected BlockSize
 
 using srcLengths = Sequence<CK_PARAM_SRC_DESC_LENGTHS>;
@@ -84,9 +84,9 @@ constexpr ckNanPropagation_t nanPropaOpt =
 constexpr ckReduceTensorIndices_t reduceIndicesOpt =
     CK_PARAM_REDUCE_INDICES == 0 ? CK_REDUCE_TENSOR_NO_INDICES : CK_REDUCE_TENSOR_FLATTENED_INDICES;
 
-constexpr int GredThreadBufferLength       = CK_PARAM_THREAD_BUFFER_LENGTH;        // tunable
-constexpr int GredAccessesPerThreadInBlock = CK_PARAM_ACCESSES_PER_THREAD_INBLOCK; // tunable
-constexpr int GredAccessesPerThreadInWarp  = CK_PARAM_ACCESSES_PER_THREAD_INWARP;  // tunable
+constexpr index_t GredThreadBufferLength       = CK_PARAM_THREAD_BUFFER_LENGTH;        // tunable
+constexpr index_t GredAccessesPerThreadInBlock = CK_PARAM_ACCESSES_PER_THREAD_INBLOCK; // tunable
+constexpr index_t GredAccessesPerThreadInWarp  = CK_PARAM_ACCESSES_PER_THREAD_INWARP;  // tunable
 
 extern "C" __global__ void gridwise_generic_reduce_1(float alpha,
                                                      const void* p_src_global,
@@ -115,10 +115,10 @@ extern "C" __global__ void gridwise_generic_reduce_1(float alpha,
                                                        toReduceDims,
                                                        invariantDims,
                                                        decltype(dstDesc),
-                                                       static_cast<int>(op),
-                                                       static_cast<int>(reduceImpl),
-                                                       static_cast<int>(nanPropaOpt),
-                                                       static_cast<int>(reduceIndicesOpt),
+                                                       static_cast<index_t>(op),
+                                                       static_cast<index_t>(reduceImpl),
+                                                       static_cast<index_t>(nanPropaOpt),
+                                                       static_cast<index_t>(reduceIndicesOpt),
                                                        GredThreadBufferLength,
                                                        GredAccessesPerThreadInBlock,
                                                        GredAccessesPerThreadInWarp>{};
@@ -159,10 +159,10 @@ extern "C" __global__ void gridwise_generic_reduce_2(float alpha,
                                                        toReduceDims,
                                                        invariantDims,
                                                        decltype(dstDesc),
-                                                       static_cast<int>(op),
-                                                       static_cast<int>(reduceImpl),
-                                                       static_cast<int>(nanPropaOpt),
-                                                       static_cast<int>(reduceIndicesOpt),
+                                                       static_cast<index_t>(op),
+                                                       static_cast<index_t>(reduceImpl),
+                                                       static_cast<index_t>(nanPropaOpt),
+                                                       static_cast<index_t>(reduceIndicesOpt),
                                                        GredThreadBufferLength,
                                                        GredAccessesPerThreadInBlock,
                                                        GredAccessesPerThreadInWarp>{};

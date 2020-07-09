@@ -104,7 +104,10 @@ struct binop_with_nan_check<CK_PROPAGATE_NAN, opReduce, compType>
 };
 }; // namespace detail
 
-template <typename DataType, int ThreadBufferLen, typename opReduce, ckNanPropagation_t nanPropaOpt>
+template <typename DataType,
+          index_t ThreadBufferLen,
+          typename opReduce,
+          ckNanPropagation_t nanPropaOpt>
 struct ThreadReduce
 {
     using compType = typename opReduce::dataType;
@@ -112,7 +115,7 @@ struct ThreadReduce
 
     __device__ static void Reduce(const DataType* p_thread_buffer, compType& accuData)
     {
-        for(int i = 0; i < ThreadBufferLen; i++)
+        for(index_t i = 0; i < ThreadBufferLen; i++)
         {
             compType currVal = type_convert<compType>{}(p_thread_buffer[i]);
             binop::calculate(accuData, currVal);
@@ -123,7 +126,7 @@ struct ThreadReduce
     __device__ static void
     Reduce2(const DataType* p_thread_buffer, compType& accuData, int& accuIndex, int indexStart)
     {
-        for(int i = 0; i < ThreadBufferLen; i++)
+        for(index_t i = 0; i < ThreadBufferLen; i++)
         {
             compType currVal = type_convert<compType>{}(p_thread_buffer[i]);
             int currIndex    = i + indexStart;
@@ -137,7 +140,7 @@ struct ThreadReduce
                                    compType& accuData,
                                    int& accuIndex)
     {
-        for(int i = 0; i < ThreadBufferLen; i++)
+        for(index_t i = 0; i < ThreadBufferLen; i++)
         {
             compType currVal = type_convert<compType>{}(p_thread_buffer[i]);
             int currIndex    = thread_indices_buffer[i];
@@ -147,14 +150,14 @@ struct ThreadReduce
 
     __device__ static void set_buffer_value(DataType* p_thread_buffer, DataType value)
     {
-        for(int i              = 0; i < ThreadBufferLen; i++)
+        for(index_t i          = 0; i < ThreadBufferLen; i++)
             p_thread_buffer[i] = value;
     };
 };
 
 template <typename DataType,
-          int BlockSize,
-          int ThreadBufferLen,
+          index_t BlockSize,
+          index_t ThreadBufferLen,
           typename opReduce,
           ckNanPropagation_t nanPropaOpt>
 struct WarpReduce
@@ -174,7 +177,7 @@ struct WarpReduce
     {
         compType lAccuData = opReduce::GetZeroVal();
 
-        for(int i = 0; i < ThreadBufferLen; i++)
+        for(index_t i = 0; i < ThreadBufferLen; i++)
         {
             compType currVal = type_convert<compType>{}(p_thread_buffer[i]);
             binop::calculate(lAccuData, currVal);
@@ -183,7 +186,7 @@ struct WarpReduce
         // synchronize among all threads in this warp
         __all(1);
 
-        for(int stride = warpSize / 2; stride > 0; stride /= 2)
+        for(index_t stride = warpSize / 2; stride > 0; stride /= 2)
         {
             compType tmpVal = __shfl_down(lAccuData, stride, warpSize);
             binop::calculate(lAccuData, tmpVal);
@@ -197,7 +200,7 @@ struct WarpReduce
     {
         compType lAccuData = opReduce::GetZeroVal();
 
-        for(int i = 0; i < ThreadBufferLen; i++)
+        for(index_t i = 0; i < ThreadBufferLen; i++)
         {
             compType currVal = type_convert<compType>{}(p_thread_buffer[i]);
             binop::calculate(lAccuData, currVal);
@@ -205,9 +208,9 @@ struct WarpReduce
 
         __syncthreads();
 
-        int thread_id        = get_thread_local_1d_id();
-        int warpId           = thread_id / warpSize;
-        int thread_inwarp_id = thread_id % warpSize;
+        index_t thread_id        = get_thread_local_1d_id();
+        index_t warpId           = thread_id / warpSize;
+        index_t thread_inwarp_id = thread_id % warpSize;
 
         __shared__ compType shuffle_buffer[BlockSize];
 
@@ -217,7 +220,7 @@ struct WarpReduce
 
         __syncthreads();
 
-        for(int stride = warpSize / 2; stride > 0; stride /= 2)
+        for(index_t stride = warpSize / 2; stride > 0; stride /= 2)
         {
             if(thread_inwarp_id < warpSize)
             {
@@ -248,11 +251,11 @@ struct WarpReduce
                                         int& accuIndex,
                                         int indexStart)
     {
-        compType lAccuData   = opReduce::GetZeroVal();
-        int lAccuIndex       = 0;
-        int thread_inwarp_id = get_thread_local_1d_id() % warpSize;
+        compType lAccuData       = opReduce::GetZeroVal();
+        int lAccuIndex           = 0;
+        index_t thread_inwarp_id = get_thread_local_1d_id() % warpSize;
 
-        for(int i = 0; i < ThreadBufferLen; i++)
+        for(index_t i = 0; i < ThreadBufferLen; i++)
         {
             compType currVal = type_convert<compType>{}(p_thread_buffer[i]);
             int currIndex    = thread_inwarp_id * ThreadBufferLen + i + indexStart;
@@ -262,7 +265,7 @@ struct WarpReduce
         // synchronize among all threads in this warp
         __all(1);
 
-        for(int stride = 1; stride < warpSize; stride *= 2)
+        for(index_t stride = 1; stride < warpSize; stride *= 2)
         {
             compType tmpVal = __shfl_down(lAccuData, stride, warpSize);
             int tmpIndex    = __shfl_down(lAccuIndex, stride, warpSize);
@@ -280,13 +283,13 @@ struct WarpReduce
                                         int& accuIndex,
                                         int indexStart)
     {
-        compType lAccuData   = opReduce::GetZeroVal();
-        int lAccuIndex       = 0;
-        int thread_id        = get_thread_local_1d_id();
-        int warpId           = thread_id / warpSize;
-        int thread_inwarp_id = thread_id % warpSize;
+        compType lAccuData       = opReduce::GetZeroVal();
+        int lAccuIndex           = 0;
+        index_t thread_id        = get_thread_local_1d_id();
+        index_t warpId           = thread_id / warpSize;
+        index_t thread_inwarp_id = thread_id % warpSize;
 
-        for(int i = 0; i < ThreadBufferLen; i++)
+        for(index_t i = 0; i < ThreadBufferLen; i++)
         {
             compType currVal = type_convert<compType>{}(p_thread_buffer[i]);
             int currIndex    = thread_inwarp_id * ThreadBufferLen + i + indexStart;
@@ -304,7 +307,7 @@ struct WarpReduce
 
         __syncthreads();
 
-        for(int stride = 1; stride < warpSize; stride *= 2)
+        for(index_t stride = 1; stride < warpSize; stride *= 2)
         {
             if(thread_inwarp_id < warpSize)
             {
@@ -345,7 +348,7 @@ struct WarpReduce
         compType lAccuData = opReduce::GetZeroVal();
         int lAccuIndex     = 0;
 
-        for(int i = 0; i < ThreadBufferLen; i++)
+        for(index_t i = 0; i < ThreadBufferLen; i++)
         {
             compType currVal   = type_convert<compType>{}(p_thread_buffer[i]);
             compType currIndex = thread_indices_buffer[i];
@@ -355,7 +358,7 @@ struct WarpReduce
         // synchronize among all threads in this warp
         __all(1);
 
-        for(int stride = 1; stride < warpSize; stride *= 2)
+        for(index_t stride = 1; stride < warpSize; stride *= 2)
         {
             compType tmpVal = __shfl_down(lAccuData, stride, warpSize);
             int tmpIndex    = __shfl_down(lAccuIndex, stride, warpSize);
@@ -372,13 +375,13 @@ struct WarpReduce
                                         compType& accuData,
                                         int& accuIndex)
     {
-        compType lAccuData   = opReduce::GetZeroVal();
-        int lAccuIndex       = 0;
-        int thread_id        = get_thread_local_1d_id();
-        int warpId           = thread_id / warpSize;
-        int thread_inwarp_id = thread_id % warpSize;
+        compType lAccuData       = opReduce::GetZeroVal();
+        int lAccuIndex           = 0;
+        index_t thread_id        = get_thread_local_1d_id();
+        index_t warpId           = thread_id / warpSize;
+        index_t thread_inwarp_id = thread_id % warpSize;
 
-        for(int i = 0; i < ThreadBufferLen; i++)
+        for(index_t i = 0; i < ThreadBufferLen; i++)
         {
             compType currVal   = type_convert<compType>{}(p_thread_buffer[i]);
             compType currIndex = thread_indices_buffer[i];
@@ -396,7 +399,7 @@ struct WarpReduce
 
         __syncthreads();
 
-        for(int stride = 1; stride < warpSize; stride *= 2)
+        for(index_t stride = 1; stride < warpSize; stride *= 2)
         {
             if(thread_inwarp_id < warpSize)
             {
@@ -419,7 +422,7 @@ struct WarpReduce
 
     __device__ static void set_buffer_value(DataType* p_thread_buffer, DataType value)
     {
-        for(int i              = 0; i < ThreadBufferLen; i++)
+        for(index_t i          = 0; i < ThreadBufferLen; i++)
             p_thread_buffer[i] = value;
 
         __all(1);
@@ -434,19 +437,20 @@ template <typename buffer2dDesc,
 struct BlockwiseReduction_2d_block_buffer
 {
     using compType = typename opReduce::dataType;
-    constexpr static int BlockSize =
+    constexpr static index_t BlockSize =
         blockIsOneRow ? buffer2dDesc::GetLengths()[1] : buffer2dDesc::GetLengths()[0];
-    constexpr static int NumBlocks =
+    constexpr static index_t NumBlocks =
         blockIsOneRow ? buffer2dDesc::GetLengths()[0] : buffer2dDesc::GetLengths()[1];
     using binop = detail::binop_with_nan_check<nanPropaOpt, opReduce, compType>;
 
-    __device__ static void Reduce(DataType* p_block_buffer, int toReduceBlocks, compType& accuData)
+    __device__ static void
+    Reduce(DataType* p_block_buffer, index_t toReduceBlocks, compType& accuData)
     {
-        const int thread_local_id = get_thread_local_1d_id();
-        compType lAccuData        = opReduce::GetZeroVal();
+        const index_t thread_local_id = get_thread_local_1d_id();
+        compType lAccuData            = opReduce::GetZeroVal();
 
-        int offset;
-        for(int otherDimInd = 0; otherDimInd < toReduceBlocks; otherDimInd++)
+        index_t offset;
+        for(index_t otherDimInd = 0; otherDimInd < toReduceBlocks; otherDimInd++)
         {
             offset = blockIsOneRow ? buffer2dDesc::CalculateOffset({otherDimInd, thread_local_id})
                                    : buffer2dDesc::CalculateOffset({thread_local_id, otherDimInd});
@@ -462,15 +466,16 @@ struct BlockwiseReduction_2d_block_buffer
 
         __syncthreads();
 
-        for(int indOffset = BlockSize / 2; indOffset > 0; indOffset /= 2)
+        for(index_t indOffset = BlockSize / 2; indOffset > 0; indOffset /= 2)
         {
             if(thread_local_id < indOffset)
             {
-                int offset1 = blockIsOneRow ? buffer2dDesc::CalculateOffset({0, thread_local_id})
-                                            : buffer2dDesc::CalculateOffset({thread_local_id, 0});
+                index_t offset1 = blockIsOneRow
+                                      ? buffer2dDesc::CalculateOffset({0, thread_local_id})
+                                      : buffer2dDesc::CalculateOffset({thread_local_id, 0});
 
-                int offset2 = blockIsOneRow
-                                  ? buffer2dDesc::CalculateOffset({0, thread_local_id + indOffset})
+                index_t offset2 =
+                    blockIsOneRow ? buffer2dDesc::CalculateOffset({0, thread_local_id + indOffset})
                                   : buffer2dDesc::CalculateOffset({thread_local_id + indOffset, 0});
 
                 compType opData1 = type_convert<compType>{}(p_block_buffer[offset1]);
@@ -492,23 +497,24 @@ struct BlockwiseReduction_2d_block_buffer
 
     __device__ static void Reduce2(DataType* p_block_buffer,
                                    int* block_indices_buffer,
-                                   int toReduceBlocks,
+                                   index_t toReduceBlocks,
                                    compType& accuData,
                                    int& accuIndex)
     {
-        const int thread_local_id = get_thread_local_1d_id();
-        compType lAccuData        = opReduce::GetZeroVal();
-        int lAccuIndex            = 0;
+        const index_t thread_local_id = get_thread_local_1d_id();
+        compType lAccuData            = opReduce::GetZeroVal();
+        int lAccuIndex                = 0;
 
         static_if<blockIsOneRow>{}([&](auto) {
-            for(int otherDimInd = 0; otherDimInd < toReduceBlocks; otherDimInd++)
+            for(index_t otherDimInd = 0; otherDimInd < toReduceBlocks; otherDimInd++)
             {
-                for(int indOffset = 1; indOffset < BlockSize; indOffset *= 2)
+                for(index_t indOffset = 1; indOffset < BlockSize; indOffset *= 2)
                 {
                     if(thread_local_id % (indOffset * 2) == 0)
                     {
-                        int offset1 = buffer2dDesc::CalculateOffset({otherDimInd, thread_local_id});
-                        int offset2 = buffer2dDesc::CalculateOffset(
+                        index_t offset1 =
+                            buffer2dDesc::CalculateOffset({otherDimInd, thread_local_id});
+                        index_t offset2 = buffer2dDesc::CalculateOffset(
                             {otherDimInd, thread_local_id + indOffset});
 
                         compType currVal1 = type_convert<compType>{}(p_block_buffer[offset1]);
@@ -526,9 +532,9 @@ struct BlockwiseReduction_2d_block_buffer
 
             if(thread_local_id == 0)
             {
-                for(int otherDimInd = 0; otherDimInd < toReduceBlocks; otherDimInd++)
+                for(index_t otherDimInd = 0; otherDimInd < toReduceBlocks; otherDimInd++)
                 {
-                    int offset = buffer2dDesc::CalculateOffset({otherDimInd, 0});
+                    index_t offset = buffer2dDesc::CalculateOffset({otherDimInd, 0});
 
                     compType tmpVal = type_convert<compType>{}(p_block_buffer[offset]);
                     int tmpIndex    = block_indices_buffer[offset];
@@ -539,9 +545,9 @@ struct BlockwiseReduction_2d_block_buffer
                 binop::calculate(accuData, lAccuData, accuIndex, lAccuIndex);
             }
         }).Else([&](auto) {
-            int offset;
+            index_t offset;
 
-            for(int otherDimInd = 0; otherDimInd < toReduceBlocks; otherDimInd++)
+            for(index_t otherDimInd = 0; otherDimInd < toReduceBlocks; otherDimInd++)
             {
                 offset           = buffer2dDesc::CalculateOffset({thread_local_id, otherDimInd});
                 compType currVal = type_convert<compType>{}(p_block_buffer[offset]);
@@ -557,12 +563,13 @@ struct BlockwiseReduction_2d_block_buffer
 
             __syncthreads();
 
-            for(int indOffset = 1; indOffset < BlockSize; indOffset *= 2)
+            for(index_t indOffset = 1; indOffset < BlockSize; indOffset *= 2)
             {
                 if(thread_local_id % (indOffset * 2) == 0)
                 {
-                    int offset1 = buffer2dDesc::CalculateOffset({thread_local_id, 0});
-                    int offset2 = buffer2dDesc::CalculateOffset({thread_local_id + indOffset, 0});
+                    index_t offset1 = buffer2dDesc::CalculateOffset({thread_local_id, 0});
+                    index_t offset2 =
+                        buffer2dDesc::CalculateOffset({thread_local_id + indOffset, 0});
 
                     compType currVal1 = type_convert<compType>{}(p_block_buffer[offset1]);
                     compType currVal2 = type_convert<compType>{}(p_block_buffer[offset2]);
@@ -589,12 +596,13 @@ struct BlockwiseReduction_2d_block_buffer
 
     __device__ static void set_buffer_value(DataType* p_block_buffer, DataType value)
     {
-        int thread_id = get_thread_local_1d_id();
+        index_t thread_id = get_thread_local_1d_id();
 
-        for(int otherDimInd = 0; otherDimInd < NumBlocks; otherDimInd++)
+        for(index_t otherDimInd = 0; otherDimInd < NumBlocks; otherDimInd++)
         {
-            int offset = blockIsOneRow ? buffer2dDesc::CalculateOffset({otherDimInd, thread_id})
-                                       : buffer2dDesc::CalculateOffset({thread_id, otherDimInd});
+            index_t offset = blockIsOneRow
+                                 ? buffer2dDesc::CalculateOffset({otherDimInd, thread_id})
+                                 : buffer2dDesc::CalculateOffset({thread_id, otherDimInd});
 
             p_block_buffer[offset] = value;
 
@@ -604,12 +612,13 @@ struct BlockwiseReduction_2d_block_buffer
 
     __device__ static void init_buffer_indices(int* block_indices_buffer, int indexStart)
     {
-        int thread_id = get_thread_local_1d_id();
+        index_t thread_id = get_thread_local_1d_id();
 
-        for(int otherDimInd = 0; otherDimInd < NumBlocks; otherDimInd++)
+        for(index_t otherDimInd = 0; otherDimInd < NumBlocks; otherDimInd++)
         {
-            int offset = blockIsOneRow ? buffer2dDesc::CalculateOffset({otherDimInd, thread_id})
-                                       : buffer2dDesc::CalculateOffset({thread_id, otherDimInd});
+            index_t offset = blockIsOneRow
+                                 ? buffer2dDesc::CalculateOffset({otherDimInd, thread_id})
+                                 : buffer2dDesc::CalculateOffset({thread_id, otherDimInd});
 
             block_indices_buffer[offset] = offset + indexStart;
 

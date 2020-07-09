@@ -35,7 +35,7 @@
 
 namespace ck {
 
-template <int BlockSize,
+template <index_t BlockSize,
           typename srcDataType,
           typename dstDataType,
           typename src2dDesc,
@@ -44,8 +44,8 @@ template <int BlockSize,
           ckReduceTensorOp_t op,
           ckNanPropagation_t nanPropaOpt,
           ckReduceTensorIndices_t reduceIndicesOpt,
-          int callId,
-          int GredThreadBufferLength>
+          index_t callId,
+          index_t GredThreadBufferLength>
 struct GridwiseReduction_xy_to_x_direct_threadwise
 {
     static constexpr bool indexable = reduce_binary_operator<compType, op>::indexable;
@@ -88,7 +88,7 @@ struct GridwiseReduction_xy_to_x_direct_threadwise
         constexpr auto ThreadBufferDesc =
             make_native_tensor_descriptor_packed(ThreadBufferLengths{});
 
-        int thread_global_1d_id = get_block_1d_id() * BlockSize + get_thread_local_1d_id();
+        index_t thread_global_1d_id = get_block_1d_id() * BlockSize + get_thread_local_1d_id();
 
         auto threadwise_src_load =
             ThreadwiseGenericTensorSliceCopy_v4r2<src2dDesc,
@@ -105,7 +105,7 @@ struct GridwiseReduction_xy_to_x_direct_threadwise
         using threadwise_reduce =
             ThreadReduce<compType, GredThreadBufferLength, opReduce, nanPropaOpt>;
 
-        for(int reducedLength = 0; reducedLength < toReduceLength;
+        for(index_t reducedLength = 0; reducedLength < toReduceLength;
             reducedLength += GredThreadBufferLength)
         {
             // zero the data on the Thread Buffer
@@ -181,7 +181,7 @@ struct GridwiseReduction_xy_to_x_direct_threadwise
         constexpr auto ThreadBufferDesc =
             make_native_tensor_descriptor_packed(ThreadBufferLengths{});
 
-        int thread_global_1d_id = get_block_1d_id() * BlockSize + get_thread_local_1d_id();
+        index_t thread_global_1d_id = get_block_1d_id() * BlockSize + get_thread_local_1d_id();
 
         auto threadwise_src_load =
             ThreadwiseGenericTensorSliceCopy_v4r2<src2dDesc,
@@ -198,8 +198,8 @@ struct GridwiseReduction_xy_to_x_direct_threadwise
         using threadwise_reduce =
             ThreadReduce<compType, GredThreadBufferLength, opReduce, nanPropaOpt>;
 
-        int indexStart = 0;
-        for(int reducedLength = 0; reducedLength < toReduceLength;
+        index_t indexStart = 0;
+        for(index_t reducedLength = 0; reducedLength < toReduceLength;
             reducedLength += GredThreadBufferLength)
         {
             // zero the data on the Thread Buffer
@@ -280,7 +280,7 @@ struct GridwiseReduction_xy_to_x_direct_threadwise
         constexpr auto ThreadBufferDesc =
             make_native_tensor_descriptor_packed(ThreadBufferLengths{});
 
-        int thread_global_1d_id = get_block_1d_id() * BlockSize + get_thread_local_1d_id();
+        index_t thread_global_1d_id = get_block_1d_id() * BlockSize + get_thread_local_1d_id();
 
         auto threadwise_src_load =
             ThreadwiseGenericTensorSliceCopy_v4r2<src2dDesc,
@@ -297,7 +297,7 @@ struct GridwiseReduction_xy_to_x_direct_threadwise
         using threadwise_reduce =
             ThreadReduce<compType, GredThreadBufferLength, opReduce, nanPropaOpt>;
 
-        for(int reducedLength = 0; reducedLength < toReduceLength;
+        for(index_t reducedLength = 0; reducedLength < toReduceLength;
             reducedLength += GredThreadBufferLength)
         {
             // zero the data on the Thread Buffer

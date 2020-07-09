@@ -40,8 +40,8 @@
 
 namespace ck {
 
-template <int BlkGroupSize,
-          int BlockSize,
+template <index_t BlkGroupSize,
+          index_t BlockSize,
           typename srcDataType,  // the type with which the data of the source tensor are stored
           typename dstDataType,  // the type with which the data of the destintion tensor are stored
           typename compType,     // the type used by the reduce binary operator
@@ -50,15 +50,15 @@ template <int BlkGroupSize,
                                  // in the source tensor descriptor
           typename invariantDims, // the Sequence<...> consists of the indexes of invariant
                                   // dimensions in the source tensor descriptor (can be empty)
-          typename dstDesc,  // the descriptor representing the destination tensor where the reduced
-                             // tensor data are saved/added
-          int op_I,          // the enumerate value representing the operation used in Reduction
-          int reduceImpl_I,  // the enumerate value representing the ReductionMethod
-          int nanPropaOpt_I, // the enumerate value representing the NanPropagation Option
-          int reduceIndicesOpt_I, // the enumerate value representing the Reduce Indices Option
-          int GredThreadBufferLength,
-          int GredAccessesPerThreadInBlock,
-          int GredAccessesPerThreadInWarp>
+          typename dstDesc, // the descriptor representing the destination tensor where the reduced
+                            // tensor data are saved/added
+          index_t op_I,     // the enumerate value representing the operation used in Reduction
+          index_t reduceImpl_I,       // the enumerate value representing the ReductionMethod
+          index_t nanPropaOpt_I,      // the enumerate value representing the NanPropagation Option
+          index_t reduceIndicesOpt_I, // the enumerate value representing the Reduce Indices Option
+          index_t GredThreadBufferLength,
+          index_t GredAccessesPerThreadInBlock,
+          index_t GredAccessesPerThreadInWarp>
 struct GridwiseReduction
 {
     static constexpr auto reduceImpl           = static_cast<ckReductionMethod_t>(reduceImpl_I);
@@ -68,11 +68,11 @@ struct GridwiseReduction
     static constexpr auto reduceIndicesOpt =
         static_cast<ckReduceTensorIndices_t>(reduceIndicesOpt_I);
 
-    template <ckReductionMethod_t impl, int callId>
+    template <ckReductionMethod_t impl, index_t callId>
     struct GridwiseReduction_2d_wrapper;
 
     // wrapper for switching to the Reduce_DirectThreadWise method
-    template <int callId>
+    template <index_t callId>
     struct GridwiseReduction_2d_wrapper<Reduce_DirectThreadWise, callId>
     {
         template <typename src2dDesc, typename dst1dDesc>
@@ -127,7 +127,7 @@ struct GridwiseReduction
     };
 
     // wrapper for switching to the Reduce_DirectWarpdWise method
-    template <int callId>
+    template <index_t callId>
     struct GridwiseReduction_2d_wrapper<Reduce_DirectWarpWise, callId>
     {
         template <typename src2dDesc, typename dst1dDesc>
@@ -183,7 +183,7 @@ struct GridwiseReduction
     };
 
     // wrapper for switching to the Reduce_BlockWise method
-    template <int callId>
+    template <index_t callId>
     struct GridwiseReduction_2d_wrapper<Reduce_BlockWise, callId>
     {
         template <typename src2dDesc, typename dst1dDesc>
@@ -240,7 +240,7 @@ struct GridwiseReduction
     };
 
     // wrapper for switching to the Reduce_MultiBlock method
-    template <int callId>
+    template <index_t callId>
     struct GridwiseReduction_2d_wrapper<Reduce_MultiBlock, callId>
     {
         template <typename src2dDesc, typename dst1dDesc>
@@ -260,7 +260,7 @@ struct GridwiseReduction
             constexpr auto invariantLen = src2dDesc::GetLengths()[0];
             constexpr auto toReduceLen  = src2dDesc::GetLengths()[1];
             constexpr auto copySliceLen = BlockSize * GredAccessesPerThreadInBlock;
-            const int reduceSizePerBlock =
+            const index_t reduceSizePerBlock =
                 (((toReduceLen + BlkGroupSize - 1) / BlkGroupSize + copySliceLen - 1) /
                  copySliceLen) *
                 copySliceLen;
