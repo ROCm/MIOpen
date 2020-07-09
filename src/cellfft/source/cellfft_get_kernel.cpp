@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-//clang-format off
+// clang-format off
 #include <miopen/kernel_info.hpp>
 #include "../include/cellfft_get_kernel.hpp"
 
@@ -477,4 +477,4 @@ solver::KernelInfo get_kernel_c2r_grad( const cellfft_param_t& p, const std::str
 
 } //namespace cellfft
 } //namespace miopen
-//clang-format on
+// clang-format on
