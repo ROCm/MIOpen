@@ -24,6 +24,9 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
     }
     else
     {
+        if(ctx.direction.IsBackwardWrW())
+            MIOPEN_THROW("MakeImplGemmDataInvokerFactory shouldn't be used for WrW invokers.");
+
         const auto& conv       = ctx.conv_problem.GetConv();
         const auto& lowp_quant = conv.lowp_quant;
 
@@ -101,30 +104,6 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                         if(handle.IsProfilingEnabled())
                             elapsed += handle.GetKernelTime();
                     }
-                }
-                // clang-format off
-                else if((kernel.GetName() == "gridwise_convolution_implicit_gemm_v4_nchw_kc1x1_nkhw_lds_double_buffer") ||
-                        (kernel.GetName() == "gridwise_convolution_implicit_gemm_v4r4_xdlops_nchw_kc1x1_nkhw_lds_double_buffer"))
-                // clang-format on
-                {
-                    bool hasStride =
-                        (tensors.inDesc.GetLengths()[2] != tensors.outDesc.GetLengths()[2]) ||
-                        (tensors.inDesc.GetLengths()[3] != tensors.outDesc.GetLengths()[3]);
-                    /// \todo set zero within implicitGEMM kernel
-                    if(hasStride)
-                    {
-                        MIOPEN_LOG_I2("hasStride, call SetTensor with zero");
-                        float zero = 0.f;
-                        SetTensor(handle, tensors.outDesc, tensors.out, &zero);
-
-                        if(handle.IsProfilingEnabled())
-                            elapsed += handle.GetKernelTime();
-                    }
-
-                    kernel(tensors.in, tensors.w, tensors.out);
-
-                    if(handle.IsProfilingEnabled())
-                        elapsed += handle.GetKernelTime();
                 }
                 // clang-format off
                 else if(kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw" ||

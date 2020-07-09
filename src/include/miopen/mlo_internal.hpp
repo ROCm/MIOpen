@@ -245,9 +245,6 @@ FindImplicitGemmWrWAllSolutions(const miopen::ConvolutionContext& ctx);
 std::vector<miopen::solver::ConvSolution>
 FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx);
 
-std::vector<miopen::solver::ConvSolution>
-FindAllFwdSCGemmSolutions(const miopen::ConvolutionContext& ctx);
-
 struct mlo_construct_base
 {
     mlo_construct_base(miopen::conv::Direction dir, bool do_bias = false) : _search_params(dir)
