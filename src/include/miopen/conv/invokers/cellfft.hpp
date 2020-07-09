@@ -23,8 +23,7 @@
 * SOFTWARE.
 *
 *******************************************************************************/
-
-//clang-format off
+// clang-format off
 #ifndef MIOPEN_CELLFFT_H
 #define MIOPEN_CELLFFT_H
 
@@ -38,6 +37,6 @@ namespace conv
 InvokerFactory MakeCellfftInvokerFactory( const cellfft::cellfft_param_t&, float );
 } // namespace conv
 } // namespace miopen
-//clang-format on
+// clang-format on
 
 #endif
