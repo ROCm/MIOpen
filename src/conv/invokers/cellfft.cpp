@@ -23,7 +23,7 @@
 * SOFTWARE.
 *
 *******************************************************************************/
-//clang-format off
+// clang-format off
 #include <miopen/conv/invokers/cellfft.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/errors.hpp>
@@ -192,4 +192,4 @@ InvokerFactory MakeCellfftInvokerFactory( const cellfft::cellfft_param_t& conv_p
 }
 } // namespace conv
 } // namespace miopen
-//clang-format on
+// clang-format on
