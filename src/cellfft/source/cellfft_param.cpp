@@ -24,7 +24,8 @@
  *
  *******************************************************************************/
 
-//clang-format off
+// clang-format off
+
 #include "../include/cellfft_param.hpp"
 
 #define PSIZE(n,m) (((n)+(m))&(~(m)))
@@ -278,4 +279,4 @@ void build_cellfft_params_grad( cellfft_param_t& p, const ConvolutionContext& ct
 }
 } //namespace cellfft
 } //namespace miopen
-//clang-format on
+// clang-format on
