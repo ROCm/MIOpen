@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-//clang-format off
+// clang-format off
 
 #ifndef MIOPEN_CELLFFT_OP_H
 #define MIOPEN_CELLFFT_OP_H
@@ -50,6 +50,6 @@ void lk_fft2d_c2r_grad_perm( const Handle&, const Kernel&, const cellfft_param_t
 void lk_fft2d_c2r_grad_perm_s( const Handle&, const Kernel&, const cellfft_param_t&, void*, void* );
 } //namespace cellfft
 } //namespace miopen
-//clang-format on
+// clang-format on
 
 #endif
