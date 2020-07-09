@@ -547,7 +547,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsFastToBeUsedForTuning(
         int gemm_n = 0;
 
         std::tie(std::ignore, gemm_m, gemm_n, std::ignore) =
-            ConvHipImplicitGemmForwardV4R4Xdlops::CalculateGemmSize(ctx);
+            ConvHipImplicitGemmBwdDataV1R1Xdlops::CalculateGemmSize(ctx);
 
         // this is grid size using current blockwise-GEMM
         const int grid_size = (gemm_m * gemm_n) / (GemmMPerBlock * GemmNPerBlock);
@@ -711,9 +711,9 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::CalculateGemmSize(const ConvolutionContext
     const auto c_per_group = c / g;
 
     const auto gemm_g       = g;
-    const auto gemm_m       = k_per_group;
+    const auto gemm_m       = c_per_group * y * x;
     const auto gemm_n       = n * ho * wo;
-    const auto gemm_k_total = c_per_group * y * x;
+    const auto gemm_k_total = k_per_group;
 
     return std::make_tuple(gemm_g, gemm_m, gemm_n, gemm_k_total);
 }
@@ -753,6 +753,7 @@ size_t ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionC
 
         if((stride_h >= dialation_h * (y - 1) + 1) && (stride_w >= dialation_w * (x - 1) + 1))
         {
+            MIOPEN_LOG_I("No workspace needed.");
             return 0;
         }
         else
@@ -765,6 +766,7 @@ size_t ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionC
             std::size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
             std::size_t hi = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
             std::size_t wi = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
+            MIOPEN_LOG_I("Workspace needed.");
             return n * c * hi * wi * miopen::GetTypeSize(miopenFloat);
         }
     }
