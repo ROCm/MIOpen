@@ -63,8 +63,8 @@ static void get_solution_cellfft( miopen::solver::ConvSolution& solution, const 
     }
 }
 
-namespace miopen{
-namespace solver{
+namespace miopen {
+namespace solver {
 bool ConvCellfft::IsApplicable( const ConvolutionContext& ctx ) const
 {
     const auto name=ctx.GetStream().GetDeviceName();
@@ -96,6 +96,6 @@ ConvSolution ConvCellfft::GetSolution( const ConvolutionContext& ctx ) const
     solution.invoker_factory=conv::MakeCellfftInvokerFactory( params, 1.f );
     return solution;
 }
-} //namespace solver
-} //namespace miopen
+} // namespace solver
+} // namespace miopen
 // clang-format on
