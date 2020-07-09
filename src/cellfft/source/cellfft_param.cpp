@@ -87,8 +87,6 @@ size_t get_auxbuf_size( const ConvolutionContext& ctx )
     uint32_t fny  =ctx.kernel_size_h;
     uint32_t pad_u=ctx.pad_w;
     uint32_t pad_v=ctx.pad_h;
-    if((pad_u>=fnx)||(pad_u>=fnx)||(pad_v>=fny)||(pad_v>=fny))
-        return 0;
     if(!ctx.direction.IsForward()){
         pad_u=fnx-pad_u-1;
         pad_v=fny-pad_v-1;
@@ -102,8 +100,6 @@ size_t get_auxbuf_size( const ConvolutionContext& ctx )
     uint32_t tile_y=cell-fny+1;
     uint32_t grid_x=(pnx+tile_x-fnx)/tile_x;
     uint32_t grid_y=(pny+tile_y-fny)/tile_y;
-    if(((grid_x|grid_y)>0xffff)||((fnx|fny)>=cell))
-        return 0;
     uint32_t m=bs*grid_x*grid_y;
     uint32_t n=onc;
     uint32_t k=inc;
@@ -141,8 +137,6 @@ size_t get_auxbuf_size_grad( const ConvolutionContext& ctx )
     uint32_t tile_y=cell-cny+1;
     uint32_t grid_x=(pnx+tile_x-cnx)/tile_x;
     uint32_t grid_y=(pny+tile_y-cny)/tile_y;
-    if(((grid_x|grid_y)>0xffff)||((cnx|cny)>=cell))
-        return 0;
     uint32_t k=bs*grid_x*grid_y;
     uint32_t ek=PSIZE(k,7);
     uint32_t lda=PSIZE(pnc,31)>>5;
