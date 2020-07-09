@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 // clang-format off
 #include <miopen/solver.hpp>
 #include <miopen/env.hpp>
@@ -62,10 +63,8 @@ static void get_solution_cellfft( miopen::solver::ConvSolution& solution, const 
     }
 }
 
-namespace miopen
-{
-namespace solver
-{
+namespace miopen{
+namespace solver{
 bool ConvCellfft::IsApplicable( const ConvolutionContext& ctx ) const
 {
     const auto name=ctx.GetStream().GetDeviceName();
