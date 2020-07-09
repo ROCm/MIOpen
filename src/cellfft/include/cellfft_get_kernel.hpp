@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-//clang-format off
+// clang-format off
 #ifndef MIOPEN_CELLFFT_GET_KERNEL_H
 #define MIOPEN_CELLFFT_GET_KERNEL_H
 
@@ -47,4 +47,4 @@ solver::KernelInfo get_kernel_c2r_grad( const cellfft_param_t&, const std::strin
 }
 }
 #endif
-//clang-format on
+// clang-format on
