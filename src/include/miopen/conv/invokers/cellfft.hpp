@@ -23,6 +23,7 @@
 * SOFTWARE.
 *
 *******************************************************************************/
+
 // clang-format off
 #ifndef MIOPEN_CELLFFT_H
 #define MIOPEN_CELLFFT_H
