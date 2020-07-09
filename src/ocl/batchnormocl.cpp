@@ -262,19 +262,19 @@ void BatchNormForwardTraining(Handle& handle,
                 std::string program_name;
                 std::string parms;
 
-                int rd_blk = 1;
-                int grprd;
-                int mio_bn_REM4;
-                int mio_bn_LESS4;
-                int mio_bn_CHUNK4;
-                int mio_bn_REMOUT4;
-                int mio_bn_LESSOUT4;
-                int mio_bn_REM;
-                int mio_bn_LESS;
-                int mio_bn_CHUNK;
-                int mio_bn_REMOUT;
-                int mio_bn_LESSOUT;
-                int mio_max_read = 2;
+                unsigned int rd_blk = 1;
+                unsigned int grprd;
+                unsigned int mio_bn_REM4;
+                unsigned int mio_bn_LESS4;
+                unsigned int mio_bn_CHUNK4;
+                unsigned int mio_bn_REMOUT4;
+                unsigned int mio_bn_LESSOUT4;
+                unsigned int mio_bn_REM;
+                unsigned int mio_bn_LESS;
+                unsigned int mio_bn_CHUNK;
+                unsigned int mio_bn_REMOUT;
+                unsigned int mio_bn_LESSOUT;
+                unsigned int mio_max_read = 2;
                 if(in_cstride >= 4096)
                 {
                     mio_max_read = 3;
@@ -437,19 +437,19 @@ void BatchNormForwardTraining(Handle& handle,
                 std::string program_name;
                 std::string parms;
 
-                int rd_blk = 1;
-                int grprd;
-                int mio_bn_REM4;
-                int mio_bn_LESS4;
-                int mio_bn_CHUNK4;
-                int mio_bn_REMOUT4;
-                int mio_bn_LESSOUT4;
-                int mio_bn_REM;
-                int mio_bn_LESS;
-                int mio_bn_CHUNK;
-                int mio_bn_REMOUT;
-                int mio_bn_LESSOUT;
-                int mio_max_read = 2;
+                unsigned int rd_blk = 1;
+                unsigned int grprd;
+                unsigned int mio_bn_REM4;
+                unsigned int mio_bn_LESS4;
+                unsigned int mio_bn_CHUNK4;
+                unsigned int mio_bn_REMOUT4;
+                unsigned int mio_bn_LESSOUT4;
+                unsigned int mio_bn_REM;
+                unsigned int mio_bn_LESS;
+                unsigned int mio_bn_CHUNK;
+                unsigned int mio_bn_REMOUT;
+                unsigned int mio_bn_LESSOUT;
+                unsigned int mio_max_read = 2;
                 if(in_cstride >= 4096)
                 {
                     mio_max_read = 3;
