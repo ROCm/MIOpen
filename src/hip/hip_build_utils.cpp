@@ -91,7 +91,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
 {
 #ifdef __linux__
     // write out the include files
-#if 1
+#if 0
     auto inc_list = GetKernelIncList();
     auto inc_path = tmp_dir->path;
     boost::filesystem::create_directories(inc_path);
@@ -234,7 +234,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     std::cout << dev_name << std::endl;
 
     // compile
-    tmp_dir->Execute("sh /dockerx/MIOpen_task/igemm_code_gen/miopen_dynamic_igemm/src/kernels/composable_kernel/script/miopen_gridwise_gemm_builder.sh",
+    tmp_dir->Execute("sh /dockerx/MIOpen/miopen_igemm_compile_time/src/kernels/composable_kernel/script/miopen_gridwise_gemm_builder.sh",
                      input_file.string() + " " +
                      bin_file.string() + "  " +
                      dev_name + " " +
