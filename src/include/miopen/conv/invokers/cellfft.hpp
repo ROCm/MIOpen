@@ -30,13 +30,11 @@
 #include <miopen/invoker.hpp>
 #include "../../../../cellfft/include/cellfft_param.hpp"
 
-namespace miopen
-{
-namespace conv
-{
+namespace miopen{
+namespace conv{
 InvokerFactory MakeCellfftInvokerFactory( const cellfft::cellfft_param_t&, float );
 } // namespace conv
 } // namespace miopen
+#endif
 // clang-format on
 
-#endif
