@@ -96,6 +96,6 @@ ConvSolution ConvCellfft::GetSolution( const ConvolutionContext& ctx ) const
     solution.invoker_factory=conv::MakeCellfftInvokerFactory( params, 1.f );
     return solution;
 }
-} //namespace cellfft
+} //namespace solver
 } //namespace miopen
 // clang-format on
