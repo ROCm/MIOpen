@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-//clang-format off
+// clang-format off
 #include <miopen/solver.hpp>
 #include <miopen/env.hpp>
 #include <miopen/kernel_build_params.hpp>
@@ -100,4 +99,4 @@ ConvSolution ConvCellfft::GetSolution( const ConvolutionContext& ctx ) const
 }
 } //namespace cellfft
 } //namespace miopen
-//clang-format on
+// clang-format on
