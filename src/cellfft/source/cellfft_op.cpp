@@ -23,7 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-//clang-format off
+
+// clang-format off
 #include "../include/cellfft_op.hpp"
 
 namespace miopen
@@ -91,4 +92,4 @@ void lk_fft2d_c2r_grad_perm_s( const Handle& handle, const Kernel& kern, const c
 }
 } //namespace cellfft
 } //namespace miopen
-//clang-format on
+// clang-format on
