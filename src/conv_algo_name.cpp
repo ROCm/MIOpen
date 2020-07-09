@@ -183,8 +183,14 @@ static_assert(miopenConvolutionAlgoImplicitGEMM ==
                   static_cast<miopenConvAlgorithm_t>(miopenConvolutionBwdWeightsAlgoImplicitGEMM),
               "");
     
-static_assert(miopenConvolutionAlgoCellfft == static_cast<miopenConvAlgorithm_t>(miopenConvolutionFwdAlgoCellfft), "");
-static_assert(miopenConvolutionAlgoCellfft == static_cast<miopenConvAlgorithm_t>(miopenConvolutionBwdDataAlgoCellfft), "");
-static_assert(miopenConvolutionAlgoCellfft == static_cast<miopenConvAlgorithm_t>(miopenConvolutionBwdWeightsAlgoCellfft), "");
+static_assert(miopenConvolutionAlgoCellfft ==
+                  static_cast<miopenConvAlgorithm_t>(miopenConvolutionFwdAlgoCellfft),
+              "");
+static_assert(miopenConvolutionAlgoCellfft ==
+                  static_cast<miopenConvAlgorithm_t>(miopenConvolutionBwdDataAlgoCellfft),
+              "");
+static_assert(miopenConvolutionAlgoCellfft ==
+                  static_cast<miopenConvAlgorithm_t>(miopenConvolutionBwdWeightsAlgoCellfft),
+              "");
 
 } // namespace miopen
