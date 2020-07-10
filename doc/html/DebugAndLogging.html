@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                2.4.0
+                2.5.0
               </div>
             
           
@@ -85,6 +85,7 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
@@ -164,6 +165,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#rocblas-logging-and-behavior">rocBlas Logging and Behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#numerical-checking">Numerical Checking</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#controlling-parallel-compilation">Controlling Parallel Compilation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#experimental-controls">Experimental controls</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#code-object-co-version-selection-experimental">Code Object (CO) version selection (EXPERIMENTAL)</a></li>
@@ -648,6 +650,17 @@ both MIOpenGEMM and rocBlas depending on the input configuration:</p>
 <p>To disable using rocBlas entirely, set the configuration flag <code class="docutils literal"><span class="pre">-DMIOPEN_USE_ROCBLAS=Off</span></code> during MIOpen configuration.</p>
 <p>More information on logging with rocBlas can be found <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/rocBLAS/wiki/5.Logging">here</a>.</p>
 </div>
+<div class="section" id="numerical-checking">
+<span id="numerical-checking"></span><h2>Numerical Checking<a class="headerlink" href="#numerical-checking" title="Permalink to this headline">¶</a></h2>
+<p>MIOpen provides the environmental variable <code class="docutils literal"><span class="pre">MIOPEN_CHECK_NUMERICS</span></code> to allow users to debug potential numerical abnormalities. Setting this variable will scan all inputs and outputs of each kernel called and attempt to detect infinities (infs), not-a-number (NaN), or all zeros. The environment variable has several settings that will help with debugging:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">MIOPEN_CHECK_NUMERICS=0x01</span></code>: Fully informative, prints results from all checks to console</li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_CHECK_NUMERICS=0x02</span></code>: Warning information, prints results only if abnormality detected</li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_CHECK_NUMERICS=0x04</span></code>: Throw error on detection, MIOpen execute MIOPEN_THROW on abnormal result</li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_CHECK_NUMERICS=0x08</span></code>: Abort on abnormal result, this will allow users to drop into a debugging session</li>
+<li><code class="docutils literal"><span class="pre">MIOPEN_CHECK_NUMERICS=0x10</span></code>: Print stats, this will compute and print mean/absmean/min/max (note, this is much slower)</li>
+</ul>
+</div>
 <div class="section" id="controlling-parallel-compilation">
 <span id="controlling-parallel-compilation"></span><h2>Controlling Parallel Compilation<a class="headerlink" href="#controlling-parallel-compilation" title="Permalink to this headline">¶</a></h2>
 <p>MIOpen's Convolution Find() calls will compile and benchmark a set of <code class="docutils literal"><span class="pre">solvers</span></code> contained in <code class="docutils literal"><span class="pre">miopenConvAlgoPerf_t</span></code> this is done in parallel per <code class="docutils literal"><span class="pre">miopenConvAlgorithm_t</span></code>. Parallelism per algorithm is set to 20 threads. Typically there are far fewer threads spawned due to the limited number of kernels under any given algorithm. The level of parallelism can be controlled using the environment variable <code class="docutils literal"><span class="pre">MIOPEN_COMPILE_PARALLEL_LEVEL</span></code>.</p>
@@ -760,7 +773,7 @@ both MIOpenGEMM and rocBlas depending on the input configuration:</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.4.0',
+            VERSION:'2.5.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

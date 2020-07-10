@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                2.4.0
+                2.5.0
               </div>
             
           
@@ -85,6 +85,7 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
@@ -164,6 +165,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#rocblas-logging-and-behavior">rocBlas Logging and Behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#numerical-checking">Numerical Checking</a></li>
 <li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#controlling-parallel-compilation">Controlling Parallel Compilation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="DebugAndLogging.html#experimental-controls">Experimental controls</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="DebugAndLogging.html#code-object-co-version-selection-experimental">Code Object (CO) version selection (EXPERIMENTAL)</a></li>
@@ -520,12 +522,18 @@ The latest released documentation can be read online <a class="reference externa
 </div>
 <div class="section" id="installing-miopen-kernels-package">
 <span id="installing-miopen-kernels-package"></span><h2>Installing MIOpen kernels package<a class="headerlink" href="#installing-miopen-kernels-package" title="Permalink to this headline">¶</a></h2>
-<p>MIOpen provides an optional pre-compiled kernels package to reduce the startup latency. To install the kernels package for your GPU architecture, use the following command:</p>
+<p>MIOpen provides an optional pre-compiled kernels package to reduce the startup latency. These precompiled kernels comprise a select set of popular input configurations and will expand in future release to contain additional coverage.</p>
+<p>To install the kernels package for your GPU architecture, use the following command:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">apt</span><span class="o">-</span><span class="n">get</span> <span class="n">install</span> <span class="n">miopenkernels</span><span class="o">-&lt;</span><span class="n">arch</span><span class="o">&gt;-&lt;</span><span class="n">num</span> <span class="n">cu</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <p>Where <code class="docutils literal"><span class="pre">&lt;arch&gt;</span></code> is the GPU architecture ( for example, <code class="docutils literal"><span class="pre">gfx900</span></code>, <code class="docutils literal"><span class="pre">gfx906</span></code> ) and <code class="docutils literal"><span class="pre">&lt;num</span> <span class="pre">cu&gt;</span></code> is the number of CUs available in the GPU (for example 56 or 64 etc).</p>
 <p>Not installing these packages would not impact the functioning of MIOpen, since MIOpen will compile these kernels on the target machine once the kernel is run. However, the compilation step may significantly increase the startup time for different operations.</p>
+<p>The script <code class="docutils literal"><span class="pre">utils/install_precompiled_kernels.sh</span></code> provided as part of MIOpen automates the above process, it queries the user machine for the GPU architecture and then installs the appropriate package. It may be invoked as:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">utils</span><span class="o">/</span><span class="n">install_precompiled_kernels</span><span class="o">.</span><span class="n">sh</span>
+</pre></div>
+</div>
+<p>The above script depends on the <strong>rocminfo</strong> package to query the GPU architecture.</p>
 </div>
 <div class="section" id="installing-the-dependencies">
 <span id="installing-the-dependencies"></span><h2>Installing the dependencies<a class="headerlink" href="#installing-the-dependencies" title="Permalink to this headline">¶</a></h2>
@@ -771,7 +779,7 @@ The latest released documentation can be read online <a class="reference externa
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.4.0',
+            VERSION:'2.5.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
