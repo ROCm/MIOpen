@@ -920,7 +920,6 @@ typedef enum {
     miopenConvolutionFwdAlgoFFT          = 2, /*!< Fast Fourier Transform indirect convolutions */
     miopenConvolutionFwdAlgoWinograd     = 3, /*!< Winograd indirect convolutions */
     miopenConvolutionFwdAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions, fp32 only */
-    miopenConvolutionFwdAlgoStaticCompiledGEMM = 6, /*!< Static Compiled GEMM convolutions */
 } miopenConvFwdAlgorithm_t;
 
 /*! @enum miopenConvBwdWeightsAlgorithm_t
@@ -955,7 +954,6 @@ typedef enum {
     miopenConvolutionAlgoFFT          = 2, /*!< Fast Fourier Transform indirect convolutions */
     miopenConvolutionAlgoWinograd     = 3, /*!< Winograd indirect convolutions */
     miopenConvolutionAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions, fp32 only */
-    miopenConvolutionAlgoStaticCompiledGEMM = 6, /*!< Static Compiled GEMM convolutions */
 } miopenConvAlgorithm_t;
 
 /*! @brief Perf struct for forward, backward filter, or backward data algorithms
