@@ -2,7 +2,7 @@
 ## MIOpen Release notes
 
 
-### 06/30/2020 [ 2.5.0 ]
+### 07/10/2020 [ 2.5.0 ]
 
 - This release contains convolution performance improvements, various minor fixes and documentation updates.
 
