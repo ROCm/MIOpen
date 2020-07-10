@@ -95,10 +95,10 @@ static void fft2d_c2r_grad( const miopen::Handle& handle, const miopen::Kernel& 
     if((p.cnx==p.cny)&&((p.cnx==3)||(p.cnx==5)||(p.cnx==7))){
         miopen::cellfft::lk_fft2d_c2r_grad_perm_s( handle, kern, p, dst, src );
     } else
-    if((p.cnx==1)&&((p.cny&0x1)&&(p.cny>1)&&(p.cny<=9))){
+    if((p.cnx==1)&&((p.cny&0x1)!=0&&(p.cny>1)&&(p.cny<=9))){
         miopen::cellfft::lk_fft2d_c2r_grad_perm_s( handle, kern, p, dst, src );
     } else
-    if((p.cny==1)&&((p.cnx&0x1)&&(p.cnx>1)&&(p.cnx<=9))){
+    if((p.cny==1)&&((p.cnx&0x1)!=0&&(p.cnx>1)&&(p.cnx<=9))){
         miopen::cellfft::lk_fft2d_c2r_grad_perm_s( handle, kern, p, dst, src );
     } else {
         miopen::cellfft::lk_fft2d_c2r_grad_perm( handle, kern, p, dst, src );
