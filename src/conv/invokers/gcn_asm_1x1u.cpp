@@ -31,8 +31,6 @@
 #include <miopen/kernel.hpp>
 #include <miopen/tensor.hpp>
 
-#include <boost/any.hpp>
-
 namespace miopen {
 namespace conv {
 
@@ -44,8 +42,8 @@ InvokerFactory MakeGcnAsm1x1UInvokerFactory(int N, int C, int H, int W, int K, i
 
         const auto kernel = kernels[0];
 
-        return [=](const Handle& handle, const boost::any& primitive_parameters) {
-            auto params         = boost::any_cast<DataInvokeParams>(primitive_parameters);
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            const auto& params  = primitive_parameters.CastTo<DataInvokeParams>();
             const auto& tensors = params.tensors;
             int unused          = 0;
             int* return_addr    = nullptr;

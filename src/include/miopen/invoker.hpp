@@ -28,16 +28,15 @@
 
 #include <miopen/kernel.hpp>
 
-#include <boost/any.hpp>
-
 #include <functional>
 #include <vector>
 
 namespace miopen {
 
 struct Handle;
+struct AnyInvokeParams;
 
-using Invoker        = std::function<void(const Handle&, const boost::any& primitive_parameters)>;
+using Invoker = std::function<void(const Handle&, const AnyInvokeParams& primitive_parameters)>;
 using InvokerFactory = std::function<Invoker(const std::vector<Kernel>&)>;
 
 } // namespace miopen

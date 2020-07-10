@@ -32,7 +32,6 @@
 #include <miopen/env.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
-#include <miopen/generic_search.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/solver.hpp>
 #if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)

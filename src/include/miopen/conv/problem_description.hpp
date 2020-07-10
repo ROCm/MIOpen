@@ -32,6 +32,8 @@
 #include <miopen/sqlite_db.hpp>
 #include <miopen/tensor.hpp>
 
+#include <boost/any.hpp>
+
 namespace miopen {
 
 std::string
