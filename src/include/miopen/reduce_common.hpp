@@ -31,41 +31,32 @@
 
 namespace reduce {
 
-// data type conversion
-template <typename T>
-struct type_convert
+template <typename Tdst, typename Tsrc>
+static inline Tdst convert_type(Tsrc x)
 {
-    template <typename X>
-    T operator()(X x) const
-    {
-        return static_cast<T>(x);
-    }
-};
+    return static_cast<Tdst>(x);
+}
 
 template <>
-template <>
-inline float type_convert<float>::operator()<half_float::half>(half_float::half x) const
+inline float convert_type<float>(half_float::half x)
 {
     return half_float::half_cast<float>(x);
 };
 
 template <>
-template <>
-inline half_float::half type_convert<half_float::half>::operator()<float>(float x) const
+inline half_float::half convert_type<half_float::half>(float x)
 {
     return half_float::half_cast<half_float::half>(x);
 };
 
 template <>
-template <>
-inline float type_convert<float>::operator()<bfloat16>(bfloat16 x) const
+inline float convert_type<float>(bfloat16 x)
 {
     return float(x);
 };
 
 template <>
-template <>
-inline bfloat16 type_convert<bfloat16>::operator()<float>(float x) const
+inline bfloat16 convert_type<bfloat16>(float x)
 {
     return bfloat16(x);
 };

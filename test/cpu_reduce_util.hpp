@@ -101,16 +101,16 @@ static inline compType ReduceOpZeroVal(miopenReduceTensorOp_t op_)
 {
     switch(op_)
     {
-    case MIOPEN_REDUCE_TENSOR_ADD: return (type_convert<compType>{}(0.0));
+    case MIOPEN_REDUCE_TENSOR_ADD: return (convert_type<compType>(0.0f));
 
-    case MIOPEN_REDUCE_TENSOR_MUL: return (type_convert<compType>{}(1.0));
+    case MIOPEN_REDUCE_TENSOR_MUL: return (convert_type<compType>(1.0f));
 
     case MIOPEN_REDUCE_TENSOR_MIN: return (std::numeric_limits<compType>::max());
 
     case MIOPEN_REDUCE_TENSOR_MAX: return (std::numeric_limits<compType>::min());
     }
 
-    return (type_convert<compType>{}(0.0));
+    return (convert_type<compType>(0.0f));
 };
 
 template <>
@@ -118,18 +118,18 @@ inline half_float::half ReduceOpZeroVal<half_float::half>(miopenReduceTensorOp_t
 {
     switch(op_)
     {
-    case MIOPEN_REDUCE_TENSOR_ADD: return (type_convert<half_float::half>{}(0.0));
+    case MIOPEN_REDUCE_TENSOR_ADD: return (convert_type<half_float::half>(0.0f));
 
-    case MIOPEN_REDUCE_TENSOR_MUL: return (type_convert<half_float::half>{}(1.0));
+    case MIOPEN_REDUCE_TENSOR_MUL: return (convert_type<half_float::half>(1.0f));
 
     case MIOPEN_REDUCE_TENSOR_MIN:
-        return (type_convert<half_float::half>{}(std::numeric_limits<float>::max()));
+        return (convert_type<half_float::half>(std::numeric_limits<float>::max()));
 
     case MIOPEN_REDUCE_TENSOR_MAX:
-        return (type_convert<half_float::half>{}(std::numeric_limits<float>::min()));
+        return (convert_type<half_float::half>(std::numeric_limits<float>::min()));
     }
 
-    return (type_convert<half_float::half>{}(0.0));
+    return (convert_type<half_float::half>(0.0f));
 };
 
 template <typename T>
@@ -158,52 +158,56 @@ inline bool IsFinite<half_float::half>(half_float::half x)
     return (half_float::isfinite(x));
 };
 
-struct float_equal_one
+template <typename T>
+static inline bool float_equal_one(T x)
 {
-    template <class T>
-    static bool apply(T x)
-    {
-        return std::isfinite(x) and
-               std::nextafter(x, std::numeric_limits<T>::lowest()) <= static_cast<T>(1.0) and
-               std::nextafter(x, std::numeric_limits<T>::max()) >= static_cast<T>(1.0);
-    }
-
-    template <class T>
-    bool operator()(T x)
-    {
-        return (float_equal_one::apply(x));
-    };
-};
-
-struct float_equal_zero
-{
-    template <class T>
-    static bool apply(T x)
-    {
-        return std::isfinite(x) and
-               std::nextafter(x, std::numeric_limits<T>::lowest()) <= static_cast<T>(0.0) and
-               std::nextafter(x, std::numeric_limits<T>::max()) >= static_cast<T>(0.0);
-    }
-
-    template <class T>
-    bool operator()(T x)
-    {
-        return (float_equal_zero::apply(x));
-    };
+    (void)x;
+    static_assert(static_cast<T>(0), "float_equal_one() is not implemented for this data type");
 };
 
 template <>
-inline bool float_equal_one::apply<half_float::half>(half_float::half x)
+inline bool float_equal_one<float>(float x)
 {
-    return half_float::isfinite(x) and x <= type_convert<half_float::half>{}(1.0) and
-           x >= type_convert<half_float::half>{}(1.0);
+    return std::isfinite(x) and x <= 1.0f and x >= 1.0f;
 };
 
 template <>
-inline bool float_equal_zero::apply<half_float::half>(half_float::half x)
+inline bool float_equal_one<double>(double x)
 {
-    return half_float::isfinite(x) and x <= type_convert<half_float::half>{}(0.0) and
-           x >= type_convert<half_float::half>{}(0.0);
+    return std::isfinite(x) and x <= 1.0 and x >= 1.0;
+};
+
+template <>
+inline bool float_equal_one<half_float::half>(half_float::half x)
+{
+    return half_float::isfinite(x) and x <= convert_type<half_float::half>(1.0f) and
+           x >= convert_type<half_float::half>(1.0f);
+};
+
+template <typename T>
+static inline bool float_equal_zero(T x)
+{
+    (void)x;
+    static_assert(static_cast<T>(0), "float_equal_zero() is not implemented for this data type");
+};
+
+template <>
+inline bool float_equal_zero<float>(float x)
+{
+    return std::isfinite(x) and x <= 0.0f and x >= 0.0f;
+};
+
+template <>
+inline bool float_equal_zero<double>(double x)
+{
+    return std::isfinite(x) and x <= 0.0 and x >= 0.0;
+};
+
+template <>
+inline bool float_equal_zero<half_float::half>(half_float::half x)
+{
+    return half_float::isfinite(x) and x <= convert_type<half_float::half>(0.0f) and
+           x >= convert_type<half_float::half>(0.0f);
 };
 
 template <typename compType>

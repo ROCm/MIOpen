@@ -158,7 +158,7 @@ struct verify_reduce_with_indices
 
     tensor<float> cpu() const
     {
-        using reduce::type_convert;
+        using reduce::convert_type;
 
         std::tuple<tensor<T>, tensor<int>> results;
 
@@ -186,7 +186,7 @@ struct verify_reduce_with_indices
             auto& result_dataT = std::get<0>(results);
 
             for(size_t i                 = 0; i < result_dataT.data.size(); i++)
-                result_dataFloat.data[i] = type_convert<float>{}(result_dataT.data[i]);
+                result_dataFloat.data[i] = convert_type<float>(result_dataT.data[i]);
 
             return (result_dataFloat);
         }
@@ -207,7 +207,7 @@ struct verify_reduce_with_indices
 
     tensor<float> gpu() const
     {
-        using reduce::type_convert;
+        using reduce::convert_type;
 
         std::tuple<tensor<T>, tensor<int>> results;
 
@@ -222,7 +222,7 @@ struct verify_reduce_with_indices
             tensor<T>& result_dataT = std::get<0>(results);
 
             for(size_t i                 = 0; i < result_dataT.data.size(); i++)
-                result_dataFloat.data[i] = type_convert<float>{}(result_dataT.data[i]);
+                result_dataFloat.data[i] = convert_type<float>(result_dataT.data[i]);
 
             return (result_dataFloat);
         }
@@ -248,7 +248,7 @@ struct verify_reduce_with_indices
         using reduce::ReduceOpZeroVal;
         using reduce::float_equal_one;
         using reduce::float_equal_zero;
-        using reduce::type_convert;
+        using reduce::convert_type;
         using reduce::binop_with_nan_check;
         using reduce::binop_with_nan_check2;
 
@@ -299,24 +299,24 @@ struct verify_reduce_with_indices
             {
                 auto src_offset = get_offset_from_index(inStrides, src_index);
 
-                auto currVal = type_convert<compType>{}(input.data[src_offset]);
+                auto currVal = convert_type<compType>(input.data[src_offset]);
 
                 int currIndex = get_flatten_offset(inLengths, src_index);
                 binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
             };
 
             // scale the accumulated value
-            if(!float_equal_one{}(alpha))
-                accuVal *= type_convert<compType>{}(alpha);
+            if(!float_equal_one(alpha))
+                accuVal *= convert_type<compType>(alpha);
 
             // scale the prior dst value and add it to the accumulated value
-            if(!float_equal_zero{}(beta))
+            if(!float_equal_zero(beta))
             {
-                accuVal += type_convert<compType>{}(output.data[0] * beta);
+                accuVal += convert_type<compType>(output.data[0] * beta);
             };
 
             // store the reduced value to dst location
-            res.data[0]         = type_convert<T>{}(accuVal);
+            res.data[0]         = convert_type<T>(accuVal);
             res_indices.data[0] = accuIndex;
         }
         else
@@ -358,22 +358,22 @@ struct verify_reduce_with_indices
 
                     auto src_offset = get_offset_from_index(inStrides, src_index);
 
-                    auto currVal = type_convert<compType>{}(input.data[src_offset]);
+                    auto currVal = convert_type<compType>(input.data[src_offset]);
 
                     auto currIndex = get_flatten_offset(toReduceLengths, index_2);
                     binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
                 };
 
                 // scale the accumulated value
-                if(!float_equal_one{}(alpha))
-                    accuVal *= type_convert<compType>{}(alpha);
+                if(!float_equal_one(alpha))
+                    accuVal *= convert_type<compType>(alpha);
 
                 // scale the prior dst value and add it to the accumulated value
-                if(!float_equal_zero{}(beta))
-                    accuVal += type_convert<compType>{}(output.data[dst_offset] * beta);
+                if(!float_equal_zero(beta))
+                    accuVal += convert_type<compType>(output.data[dst_offset] * beta);
 
                 // store the reduced value to dst location
-                res.data[dst_offset]         = type_convert<T>{}(accuVal);
+                res.data[dst_offset]         = convert_type<T>(accuVal);
                 res_indices.data[dst_offset] = accuIndex; // store the index
             };
         };
@@ -501,7 +501,7 @@ struct verify_reduce_no_indices
         using reduce::ReduceOpZeroVal;
         using reduce::float_equal_one;
         using reduce::float_equal_zero;
-        using reduce::type_convert;
+        using reduce::convert_type;
         using reduce::binop_with_nan_check;
         using reduce::binop_with_nan_check2;
 
@@ -550,21 +550,21 @@ struct verify_reduce_no_indices
             {
                 auto src_offset = get_offset_from_index(inStrides, src_index);
 
-                auto currVal = type_convert<compType>{}(input.data[src_offset]);
+                auto currVal = convert_type<compType>(input.data[src_offset]);
 
                 binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
             };
 
             // scale the accumulated value
-            if(!float_equal_one{}(alpha))
-                accuVal *= type_convert<compType>{}(alpha);
+            if(!float_equal_one(alpha))
+                accuVal *= convert_type<compType>(alpha);
 
             // scale the prior dst value and add it to the accumulated value
-            if(!float_equal_one{}(beta))
-                accuVal += type_convert<compType>{}(output.data[0] * beta);
+            if(!float_equal_one(beta))
+                accuVal += convert_type<compType>(output.data[0] * beta);
 
             // store the reduced value to dst location
-            res.data[0] = type_convert<T>{}(accuVal);
+            res.data[0] = convert_type<T>(accuVal);
         }
         else
         {
@@ -604,21 +604,21 @@ struct verify_reduce_no_indices
 
                     auto src_offset = get_offset_from_index(inStrides, src_index);
 
-                    auto currVal = type_convert<compType>{}(input.data[src_offset]);
+                    auto currVal = convert_type<compType>(input.data[src_offset]);
 
                     binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
                 };
 
                 // scale the accumulated value
-                if(!float_equal_one{}(alpha))
-                    accuVal *= type_convert<compType>{}(alpha);
+                if(!float_equal_one(alpha))
+                    accuVal *= convert_type<compType>(alpha);
 
                 // scale the prior dst value and add it to the accumulated value
-                if(!float_equal_zero{}(beta))
-                    accuVal += type_convert<compType>{}(output.data[dst_offset] * beta);
+                if(!float_equal_zero(beta))
+                    accuVal += convert_type<compType>(output.data[dst_offset] * beta);
 
                 // store the reduced value to dst location
-                res.data[dst_offset] = type_convert<T>{}(accuVal);
+                res.data[dst_offset] = convert_type<T>(accuVal);
             };
         };
 
@@ -740,7 +740,7 @@ struct reduce_driver : test_driver
 
     void run()
     {
-        using reduce::type_convert;
+        using reduce::convert_type;
 
         miopen::ReduceTensorDescriptor reduceDesc(
             static_cast<miopenReduceTensorOp_t>(reduceOp),
@@ -773,7 +773,7 @@ struct reduce_driver : test_driver
         auto inputTensor  = tensor<T>{this->inLengths}.generate(gen_value);
         auto outputTensor = tensor<T>{outLengths};
 
-        std::fill(outputTensor.begin(), outputTensor.end(), type_convert<T>{}(0.0f));
+        std::fill(outputTensor.begin(), outputTensor.end(), convert_type<T>(0.0f));
 
         auto indices_nelem =
             reduceDesc.GetIndicesSize(inputTensor.desc, outputTensor.desc) / sizeof(int);
@@ -786,7 +786,7 @@ struct reduce_driver : test_driver
         std::vector<std::size_t> wsLengths = {static_cast<std::size_t>(workspace_nelem), 1};
         auto workspaceTensor               = tensor<T>{wsLengths};
 
-        std::fill(workspaceTensor.begin(), workspaceTensor.end(), type_convert<T>{}(0.0f));
+        std::fill(workspaceTensor.begin(), workspaceTensor.end(), convert_type<T>(0.0f));
 
         if(indices_nelem > 0)
         {
@@ -800,16 +800,16 @@ struct reduce_driver : test_driver
                                                        outputTensor,
                                                        workspaceTensor,
                                                        indicesTensor,
-                                                       type_convert<T>{}(1.0),
-                                                       type_convert<T>{}(0.0)));
+                                                       convert_type<T>(1.0),
+                                                       convert_type<T>(0.0)));
 
             verify_equals(verify_reduce_with_indices<T, false>(reduceDesc,
                                                                inputTensor,
                                                                outputTensor,
                                                                workspaceTensor,
                                                                indicesTensor,
-                                                               type_convert<T>{}(1.0),
-                                                               type_convert<T>{}(0.0)));
+                                                               convert_type<T>(1.0),
+                                                               convert_type<T>(0.0)));
         }
         else
         {
@@ -817,8 +817,8 @@ struct reduce_driver : test_driver
                                                inputTensor,
                                                outputTensor,
                                                workspaceTensor,
-                                               type_convert<T>{}(alpha),
-                                               type_convert<T>{}(beta)));
+                                               convert_type<T>(alpha),
+                                               convert_type<T>(beta)));
         };
     };
 };
