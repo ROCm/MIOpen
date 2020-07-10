@@ -38,7 +38,7 @@
 #include <limits>
 #include <iostream>
 
-#include "cpu_reduce_util.hpp" 
+#include "cpu_reduce_util.hpp"
 
 static void get_all_indexes(const std::vector<std::size_t>& dimLengths,
                             int dim,
