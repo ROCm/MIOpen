@@ -84,7 +84,7 @@ size_t ConvCellfft::GetWorkspaceSize( const ConvolutionContext& ctx ) const
 ConvSolution ConvCellfft::GetSolution( const ConvolutionContext& ctx ) const
 {
     ConvSolution solution;
-    cellfft::cellfft_param_t params;
+    cellfft::cellfft_param_t params{};
     const std::string file_name="cellfft_"+ctx.GetStream().GetDeviceName()+".hsaco";
     if(!ctx.direction.IsBackwardWrW()){
         cellfft::build_cellfft_params( params, ctx );
