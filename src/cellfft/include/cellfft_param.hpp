@@ -30,57 +30,56 @@
 
 #include <miopen/conv/context.hpp>
 
-namespace miopen
+namespace miopen {
+namespace cellfft {
+struct magic_t
 {
-namespace cellfft
-{
-struct magic_t{
     uint32_t m;
     uint32_t s;
 };
 struct cellfft_param_t
 {
-    magic_t  xmag  ;
-    magic_t  ymag  ;
+    magic_t xmag;
+    magic_t ymag;
     uint32_t grid_x;
     uint32_t grid_y;
     uint32_t tile_x;
     uint32_t tile_y;
-    uint32_t m     ;
-    uint32_t n     ;
-    uint32_t k     ;
-    uint32_t lda   ;
-    uint32_t ldb   ;
-    uint32_t abks  ;
-    uint32_t bbks  ;
-    uint32_t cbks  ;
-    uint32_t aldx  ;
-    uint32_t aldy  ;
-    uint32_t bldx  ;
-    uint32_t bldy  ;
-    uint32_t cldx  ;
-    uint32_t cldy  ;
-    uint32_t anx   ;
-    uint32_t any   ;
-    uint32_t bnx   ;
-    uint32_t bny   ;
-    uint32_t cnx   ;
-    uint32_t cny   ;
-    uint32_t pad_l ;
-    uint32_t pad_r ;
-    uint32_t pad_t ;
-    uint32_t pad_b ;
+    uint32_t m;
+    uint32_t n;
+    uint32_t k;
+    uint32_t lda;
+    uint32_t ldb;
+    uint32_t abks;
+    uint32_t bbks;
+    uint32_t cbks;
+    uint32_t aldx;
+    uint32_t aldy;
+    uint32_t bldx;
+    uint32_t bldy;
+    uint32_t cldx;
+    uint32_t cldy;
+    uint32_t anx;
+    uint32_t any;
+    uint32_t bnx;
+    uint32_t bny;
+    uint32_t cnx;
+    uint32_t cny;
+    uint32_t pad_l;
+    uint32_t pad_r;
+    uint32_t pad_t;
+    uint32_t pad_b;
     uint32_t nbanks;
-    uint32_t id    ;
-    uint32_t dir   ;
+    uint32_t id;
+    uint32_t dir;
 };
-size_t get_auxbuf_size( const ConvolutionContext& );
-size_t get_auxbuf_size_grad( const ConvolutionContext& );
-size_t get_auxbuf_size( const cellfft_param_t& );
-void   build_cellfft_params( cellfft_param_t&, const ConvolutionContext& );
-void   build_cellfft_params_grad( cellfft_param_t&, const ConvolutionContext& );
-} //namespace cellfft
-} //namespace miopen
+size_t get_auxbuf_size(const ConvolutionContext&);
+size_t get_auxbuf_size_grad(const ConvolutionContext&);
+size_t get_auxbuf_size(const cellfft_param_t&);
+void build_cellfft_params(cellfft_param_t&, const ConvolutionContext&);
+void build_cellfft_params_grad(cellfft_param_t&, const ConvolutionContext&);
+} // namespace cellfft
+} // namespace miopen
 
 #endif
 // clang-foramt on
