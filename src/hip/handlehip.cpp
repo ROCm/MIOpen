@@ -54,7 +54,16 @@
 #include <chrono>
 #include <thread>
 
+#define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30 MIOPEN_USE_COMGR
+
 namespace miopen {
+
+#if MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30
+namespace {
+void toCallHipInit() __attribute__((constructor(1000)));
+void toCallHipInit() { hipInit(0); }
+} // namespace
+#endif
 
 // Get current context
 // We leak resources for now as there is no hipCtxRetain API
