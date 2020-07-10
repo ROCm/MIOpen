@@ -16,8 +16,9 @@ template <index_t BlockSize,
           index_t GemmNPerWave,
           index_t GemmMWaves,
           index_t GemmNWaves,
-          index_t GemmDataPerReadA,
-          index_t GemmDataPerReadB>
+          index_t GemmDataPerReadA, // \todo unused parameter, remove
+          index_t GemmDataPerReadB  // \todo unused parameter, remove
+          >
 struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
 {
     struct MatrixIndex
@@ -26,8 +27,14 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         index_t col;
     };
 
+    static constexpr index_t MRepeats = (GemmMPerWave > 64) ? (GemmMPerWave / 64) : 1;
+    static constexpr index_t NRepeats = (GemmNPerWave > 64) ? (GemmNPerWave / 64) : 1;
+
+    static constexpr index_t MPerXdlops = (GemmMPerWave > 64) ? 64 : GemmMPerWave;
+    static constexpr index_t NPerXdlops = (GemmNPerWave > 64) ? 64 : GemmNPerWave;
+
     static constexpr auto XdlopsGemm =
-        XdlopsGemm_t<Float, GemmMPerWave, GemmNPerWave, GemmDataPerReadA, GemmDataPerReadB>{};
+        XdlopsGemm_t<Float, MPerXdlops, NPerXdlops, GemmDataPerReadA, GemmDataPerReadB>{};
 
     index_t mMyWaveOffsetA;
     index_t mMyWaveOffsetB;
@@ -35,6 +42,20 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
     static constexpr index_t WaveSize = 64;
 
     __device__ constexpr auto GetOutputLayout() const { return XdlopsGemm.GetOutputLayout(); }
+
+    __device__ constexpr auto GetMRepeats() const { return MRepeats; }
+
+    __device__ constexpr auto GetNRepeats() const { return NRepeats; }
+
+    __device__ constexpr auto GetNumBlks() const
+    {
+        return XdlopsGemm.GetOutputLayout().GetNumBlks() * MRepeats * NRepeats;
+    }
+
+    __device__ constexpr auto GetBlkSize() const
+    {
+        return XdlopsGemm.GetOutputLayout().GetBlkSize();
+    }
 
     __device__ BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops()
     {
@@ -49,6 +70,9 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
 
         static_assert(BlockSize == GemmMWaves * GemmNWaves * WaveSize,
                       "BlockSize != GemmMWaves * GemmNWaves * WaveSize\n");
+
+        static_assert((MRepeats == 1 && NRepeats == 1) || CK_USE_AMD_XDLOPS_INLINE_ASM == 0,
+                      "do not support xdlops repeat with inline asm");
 
         const index_t waveId   = get_thread_local_1d_id() / WaveSize;
         const index_t waveId_m = waveId / GemmNWaves;
@@ -68,8 +92,17 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         constexpr index_t N = BlockMatrixB::NCol();
         constexpr index_t K = BlockMatrixA::NRow();
 
-        XdlopsGemm.template Run<M, N, K>(
-            &p_a_block[mMyWaveOffsetA], &p_b_block[mMyWaveOffsetB], p_c_thread);
+        constexpr auto reg_size_xdlops = MPerXdlops * NPerXdlops / WaveSize;
+
+        for(index_t m = 0; m < MRepeats; m++)
+        {
+            for(index_t n = 0; n < NRepeats; n++)
+            {
+                XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * m],
+                                                 &p_b_block[mMyWaveOffsetB + NPerXdlops * n],
+                                                 p_c_thread + (NRepeats * m + n) * reg_size_xdlops);
+            }
+        }
     }
 
     __device__ static MatrixIndex GetBeginOfThreadMatrixC(index_t i)
@@ -77,32 +110,40 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
 
         const index_t waveId = get_thread_local_1d_id() / WaveSize;
 
-        const auto thread_mtx_on_blk = XdlopsGemm.GetBeginOfThreadBlk(i);
+        const index_t xdlops_i = i / XdlopsGemm.GetOutputLayout().GetNumBlks();
+        const index_t j        = i % XdlopsGemm.GetOutputLayout().GetNumBlks();
 
-        const index_t col = waveId % GemmNWaves * GemmNPerWave + thread_mtx_on_blk.col;
+        const index_t m = xdlops_i / NRepeats;
+        const index_t n = xdlops_i % NRepeats;
 
-        const index_t row = waveId / GemmNWaves * GemmMPerWave + thread_mtx_on_blk.row;
+        const auto thread_mtx_on_blk = XdlopsGemm.GetBeginOfThreadBlk(j);
+
+        const index_t col =
+            (waveId % GemmNWaves) * GemmNPerWave + n * NPerXdlops + thread_mtx_on_blk.col;
+
+        const index_t row =
+            (waveId / GemmNWaves) * GemmMPerWave + m * MPerXdlops + thread_mtx_on_blk.row;
 
         return MatrixIndex{row, col};
     }
 
     __device__ constexpr auto GetThreadMatrixCDescriptor() const
     {
-        const index_t reg_size = GemmMPerWave * GemmNPerWave / WaveSize;
-        return make_ConstantMatrixDescriptor_packed(Number<reg_size>{}, Number<1>{});
+        const index_t total_reg_size = GemmMPerWave * GemmNPerWave / WaveSize;
+        return make_ConstantMatrixDescriptor_packed(Number<total_reg_size>{}, Number<1>{});
     }
 
     __device__ void XdlopsMatrixCSetZero() const
     {
-        constexpr auto thread_mtx_size = GemmMPerWave * GemmNPerWave / WaveSize;
-        XdlopsGemm.SetZeroXdlopsRegs(Number<thread_mtx_size>{});
+        constexpr auto reg_size_xdlops = MPerXdlops * NPerXdlops / WaveSize;
+        XdlopsGemm.SetZeroXdlopsRegs(Number<reg_size_xdlops>{});
     }
 
     template <class FloatC>
     __device__ void XdlopsMatrixCRead(FloatC* __restrict__ p_c_thread) const
     {
-        constexpr auto thread_mtx_size = GemmMPerWave * GemmNPerWave / WaveSize;
-        XdlopsGemm.ReadXdlopsRegs(Number<thread_mtx_size>{}, p_c_thread);
+        constexpr auto reg_size_xdlops = MPerXdlops * NPerXdlops / WaveSize;
+        XdlopsGemm.ReadXdlopsRegs(Number<reg_size_xdlops>{}, p_c_thread);
     }
 };
 

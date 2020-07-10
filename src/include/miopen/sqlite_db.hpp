@@ -25,6 +25,10 @@
 *******************************************************************************/
 #pragma once
 
+#include <miopen/config.h>
+
+#if MIOPEN_ENABLE_SQLITE
+
 #include <miopen/db_record.hpp>
 #include <miopen/manage_ptr.hpp>
 #include <miopen/errors.hpp>
@@ -566,3 +570,4 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
     }
 };
 } // namespace miopen
+#endif
