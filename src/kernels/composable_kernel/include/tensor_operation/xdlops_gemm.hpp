@@ -930,15 +930,14 @@ struct XdlopsGemm_t
 
         index_t col_blk = j % mfma_type.num_output_blks;
         index_t row_blk = j / mfma_type.num_output_blks;
-        index_t col     = col_blk * mfma_type.n + blk_td + n_i * NPerXdlops;
-        index_t row     = row_blk * mfma_type.m + blk_id * mfma_type.group_size + m_i * MPerXdlops;
 
         static_if<!IsABroadcast()>{}([&](auto) {
             col_blk = j / mfma_type.num_output_blks;
             row_blk = j % mfma_type.num_output_blks;
-            col     = col_blk * mfma_type.n + blk_td + n_i * NPerXdlops;
-            row     = row_blk * mfma_type.m + blk_id * mfma_type.group_size + m_i * MPerXdlops;
         });
+
+        index_t col = col_blk * mfma_type.n + blk_td + n_i * NPerXdlops;
+        index_t row = row_blk * mfma_type.m + blk_id * mfma_type.group_size + m_i * MPerXdlops;
 
         return MatrixIndex{row, col};
     }
