@@ -208,7 +208,7 @@ class miopenReductionHost
         using reduce::ReduceOpZeroVal;
         using reduce::float_equal_one;
         using reduce::float_equal_zero;
-        using reduce::type_convert;
+        using reduce::convert_type;
         using reduce::binop_with_nan_check;
         using reduce::binop_with_nan_check2;
 
@@ -228,22 +228,22 @@ class miopenReductionHost
             {
                 auto src_offset = get_offset_from_index(this->inStrides, src_index);
 
-                auto currVal = type_convert<compType>{}(in_data[src_offset]);
+                auto currVal = convert_type<compType>(in_data[src_offset]);
 
                 auto currIndex = get_flatten_offset(inLengths, src_index);
                 binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
             };
 
             // scale the accumulated value
-            if(!float_equal_one{}(alpha))
-                accuVal *= type_convert<compType>{}(alpha);
+            if(!float_equal_one(alpha))
+                accuVal *= convert_type<compType>(alpha);
 
             // scale the prior dst value and add it to the accumulated value
-            if(!float_equal_zero{}(beta))
-                accuVal += type_convert<compType>{}(out_data[0] * type_convert<Tref>{}(beta));
+            if(!float_equal_zero(beta))
+                accuVal += convert_type<compType>(out_data[0] * convert_type<Tref>(beta));
 
             // store the reduced value to dst location
-            out_data[0] = type_convert<Tref>{}(accuVal);
+            out_data[0] = convert_type<Tref>(accuVal);
             indices[0]  = accuIndex;
         }
         else
@@ -288,23 +288,23 @@ class miopenReductionHost
 
                     auto src_offset = get_offset_from_index(this->inStrides, src_index);
 
-                    auto currVal = type_convert<compType>{}(in_data[src_offset]);
+                    auto currVal = convert_type<compType>(in_data[src_offset]);
 
                     auto currIndex = get_flatten_offset(toReduceLengths, index_2);
                     binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
                 };
 
                 // scale the accumulated value
-                if(!float_equal_one{}(alpha))
-                    accuVal *= type_convert<compType>{}(alpha);
+                if(!float_equal_one(alpha))
+                    accuVal *= convert_type<compType>(alpha);
 
                 // scale the prior dst value and add it to the accumulated value
-                if(!float_equal_zero{}(beta))
+                if(!float_equal_zero(beta))
                     accuVal +=
-                        type_convert<compType>{}(out_data[dst_offset] * type_convert<Tref>{}(beta));
+                        convert_type<compType>(out_data[dst_offset] * convert_type<Tref>(beta));
 
                 // store the reduced value to dst location
-                out_data[dst_offset] = type_convert<Tref>{}(accuVal);
+                out_data[dst_offset] = convert_type<Tref>(accuVal);
                 indices[dst_offset]  = accuIndex;
             };
         };
@@ -317,7 +317,7 @@ class miopenReductionHost
         using reduce::ReduceOpZeroVal;
         using reduce::float_equal_one;
         using reduce::float_equal_zero;
-        using reduce::type_convert;
+        using reduce::convert_type;
         using reduce::binop_with_nan_check;
         using reduce::binop_with_nan_check2;
 
@@ -336,21 +336,21 @@ class miopenReductionHost
             {
                 auto src_offset = get_offset_from_index(this->inStrides, src_index);
 
-                auto currVal = type_convert<compType>{}(in_data[src_offset]);
+                auto currVal = convert_type<compType>(in_data[src_offset]);
 
                 binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
             };
 
             // scale the accumulated value
-            if(!float_equal_one{}(alpha))
-                accuVal *= type_convert<compType>{}(alpha);
+            if(!float_equal_one(alpha))
+                accuVal *= convert_type<compType>(alpha);
 
             // scale the prior dst value and add it to the accumulated value
-            if(!float_equal_zero{}(beta))
-                accuVal += type_convert<compType>{}(out_data[0] * type_convert<Tref>{}(beta));
+            if(!float_equal_zero(beta))
+                accuVal += convert_type<compType>(out_data[0] * convert_type<Tref>(beta));
 
             // store the reduced value to dst location
-            out_data[0] = type_convert<Tref>{}(accuVal);
+            out_data[0] = convert_type<Tref>(accuVal);
         }
         else
         {
@@ -393,22 +393,22 @@ class miopenReductionHost
 
                     auto src_offset = get_offset_from_index(this->inStrides, src_index);
 
-                    auto currVal = type_convert<compType>{}(in_data[src_offset]);
+                    auto currVal = convert_type<compType>(in_data[src_offset]);
 
                     binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
                 };
 
                 // scale the accumulated value
-                if(!float_equal_one{}(alpha))
-                    accuVal *= type_convert<compType>{}(alpha);
+                if(!float_equal_one(alpha))
+                    accuVal *= convert_type<compType>(alpha);
 
                 // scale the prior dst value and add it to the accumulated value
-                if(!float_equal_zero{}(beta))
+                if(!float_equal_zero(beta))
                     accuVal +=
-                        type_convert<compType>{}(out_data[dst_offset] * type_convert<Tref>{}(beta));
+                        convert_type<compType>(out_data[dst_offset] * convert_type<Tref>(beta));
 
                 // store the reduced value to dst location
-                out_data[dst_offset] = type_convert<Tref>{}(accuVal);
+                out_data[dst_offset] = convert_type<Tref>(accuVal);
             };
         };
     }; // end of RunImpl_no_indices()

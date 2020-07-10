@@ -293,7 +293,7 @@ int ReduceDriver<Tgpu, Tref>::SetReduceTensorDescriptorFromCmdLineArgs()
 template <typename Tgpu, typename Tref>
 int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
-    using reduce::type_convert;
+    using reduce::convert_type;
 
     size_t in_nelem  = GetTensorSize(inputTensor);
     size_t out_nelem = GetTensorSize(outputTensor);
@@ -322,15 +322,15 @@ int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     indices_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, indices_nelem, sizeof(int)));
 
-    in              = std::vector<Tgpu>(in_nelem, type_convert<Tgpu>{}(0.3f));
-    out             = std::vector<Tgpu>(out_nelem, type_convert<Tgpu>{}(0.2f));
-    outhost         = std::vector<Tref>(out_nelem, type_convert<Tref>{}(0.2f));
+    in              = std::vector<Tgpu>(in_nelem, convert_type<Tgpu>(0.3f));
+    out             = std::vector<Tgpu>(out_nelem, convert_type<Tgpu>(0.2f));
+    outhost         = std::vector<Tref>(out_nelem, convert_type<Tref>(0.2f));
     out_indices     = std::vector<int>(indices_nelem, static_cast<int>(0));
     outhost_indices = std::vector<int>(indices_nelem, static_cast<int>(0));
 
     for(int i = 0; i < in_nelem; i++)
     {
-        in[i] = RAN_GEN<Tgpu>(type_convert<Tgpu>{}(0.0f), type_convert<Tgpu>{}(1.0f));
+        in[i] = RAN_GEN<Tgpu>(convert_type<Tgpu>(0.0f), convert_type<Tgpu>(1.0f));
     }
 
 #if MIOPEN_BACKEND_OPENCL
@@ -351,18 +351,17 @@ template <typename Tgpu, typename Tref>
 int ReduceDriver<Tgpu, Tref>::RunForwardGPU()
 {
     auto alpha =
-        reduce::type_convert<Tgpu>{}(static_cast<float>(this->inflags.GetValueDouble("alpha")));
+        reduce::convert_type<Tgpu>(static_cast<float>(this->inflags.GetValueDouble("alpha")));
     auto beta =
-        reduce::type_convert<Tgpu>{}(static_cast<float>(this->inflags.GetValueDouble("beta")));
+        reduce::convert_type<Tgpu>(static_cast<float>(this->inflags.GetValueDouble("beta")));
 
     if(this->need_indices)
     {
-        alpha = reduce::type_convert<Tgpu>{}(1.0f);
-        beta  = reduce::type_convert<Tgpu>{}(0.0f);
+        alpha = reduce::convert_type<Tgpu>(1.0f);
+        beta  = reduce::convert_type<Tgpu>(0.0f);
     };
 
-    bool output_accumulate =
-        !(reduce::float_equal_one{}(alpha) && reduce::float_equal_zero{}(beta));
+    bool output_accumulate = !(reduce::float_equal_one(alpha) && reduce::float_equal_zero(beta));
 
     miopenReduceTensor(GetHandle(),
                        reduceDesc,
@@ -447,14 +446,14 @@ int ReduceDriver<Tgpu, Tref>::VerifyForward()
                                                   this->dimsToReduce);
 
     auto alpha =
-        reduce::type_convert<Tgpu>{}(static_cast<float>(this->inflags.GetValueDouble("alpha")));
+        reduce::convert_type<Tgpu>(static_cast<float>(this->inflags.GetValueDouble("alpha")));
     auto beta =
-        reduce::type_convert<Tgpu>{}(static_cast<float>(this->inflags.GetValueDouble("beta")));
+        reduce::convert_type<Tgpu>(static_cast<float>(this->inflags.GetValueDouble("beta")));
 
     if(indices_sizeInBytes > 0)
     {
-        alpha = reduce::type_convert<Tgpu>{}(1.0f);
-        beta  = reduce::type_convert<Tgpu>{}(0.0f);
+        alpha = reduce::convert_type<Tgpu>(1.0f);
+        beta  = reduce::convert_type<Tgpu>(0.0f);
     };
 
     hostReduction.Run(alpha, in.data(), beta, outhost.data(), outhost_indices.data());
