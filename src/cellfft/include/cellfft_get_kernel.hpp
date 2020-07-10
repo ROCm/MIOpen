@@ -31,10 +31,8 @@
 #include <miopen/kernel_info.hpp>
 #include "cellfft_param.hpp"
 
-namespace miopen
-{
-namespace cellfft
-{
+namespace miopen {
+namespace cellfft {
 solver::KernelInfo get_kernel_cgemm( const cellfft_param_t&, const std::string& );
 solver::KernelInfo get_kernel_r2c_a( const cellfft_param_t&, const std::string&, uint32_t );
 solver::KernelInfo get_kernel_r2c_b( const cellfft_param_t&, const std::string& );
@@ -44,7 +42,7 @@ solver::KernelInfo get_kernel_r2c_xgrad_b( const cellfft_param_t&, const std::st
 solver::KernelInfo get_kernel_c2r( const cellfft_param_t&, const std::string&, uint32_t );
 solver::KernelInfo get_kernel_c2r_grid( const cellfft_param_t&, const std::string&, uint32_t );
 solver::KernelInfo get_kernel_c2r_grad( const cellfft_param_t&, const std::string& );
-}
-}
+} // namespace cellfft
+} // namespace miopen
 #endif
 // clang-format on
