@@ -30,6 +30,8 @@
 #include <miopen/handle.hpp>
 #include <miopen/sqlite_db.hpp>
 
+#include <boost/filesystem.hpp>
+
 #include <string>
 
 class rocm_meta_version

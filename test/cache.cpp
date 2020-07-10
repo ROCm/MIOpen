@@ -31,6 +31,7 @@
 #include <miopen/md5.hpp>
 #include "test.hpp"
 
+#if MIOPEN_ENABLE_SQLITE
 std::string random_string(size_t length)
 {
     auto randchar = []() -> char {
@@ -129,6 +130,7 @@ void check_kern_db()
         CHECK(err_db.RemoveRecordUnsafe(cfg0));
     }
 }
+#endif
 
 void check_cache_file()
 {
@@ -147,8 +149,9 @@ int main()
 {
     check_cache_file();
     check_cache_str();
-
+#if MIOPEN_ENABLE_SQLITE
     check_bz2_compress();
     check_bz2_decompress();
     check_kern_db();
+#endif
 }
