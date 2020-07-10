@@ -121,7 +121,6 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     const int C              = KernelInputChannelC(ctx);
     const auto hi            = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
     const auto wi            = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
-    const auto wo_           = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
     const auto conv_stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
     const auto conv_stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
     const auto conv_dilation_w =
@@ -137,14 +136,10 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
         // \todo there are more configs that can go through this if branch
         BBlockCopySrcDataPerRead_GemmN = gcd(BBlockCopySrcDataPerRead_GemmN, hi * wi);
     }
-    else if(in_left_pad_w == 0 && in_right_pad_w == 0)
-    {
-        BBlockCopySrcDataPerRead_GemmN = gcd(BBlockCopySrcDataPerRead_GemmN, wo_);
-    }
-    else if(conv_stride_w == 1)
+    else if(conv_stride_w == 1 && conv_dilation_w == 1)
     {
         BBlockCopySrcDataPerRead_GemmN =
-            gcd(BBlockCopySrcDataPerRead_GemmN, in_left_pad_w, wi, in_right_pad_w, conv_dilation_w);
+            gcd(BBlockCopySrcDataPerRead_GemmN, in_left_pad_w, wi, in_right_pad_w);
     }
     else
     {
