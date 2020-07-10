@@ -344,10 +344,8 @@ static uint32_t choose_cgemm_id( uint32_t m, uint32_t n )
     return (((0x12>>((ni&3)<<1))&0x3)+((mi&1)==0?0:3));
 }
 
-namespace miopen
-{
-namespace cellfft
-{
+namespace miopen {
+namespace cellfft {
 solver::KernelInfo get_kernel_cgemm( const cellfft_param_t& p, const std::string& file_name )
 {
     static const uint32_t blk[]={64,64,128,64,128,256};
@@ -474,7 +472,6 @@ solver::KernelInfo get_kernel_c2r_grad( const cellfft_param_t& p, const std::str
     const std::vector<size_t> block{bdx,1,1};
     return solver::KernelInfo{ "", block, grid, file_name, g_knames[kid] };
 }
-
-} //namespace cellfft
-} //namespace miopen
+} // namespace cellfft
+} // namespace miopen
 // clang-format on
