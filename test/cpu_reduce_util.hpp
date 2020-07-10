@@ -163,6 +163,7 @@ static inline bool float_equal_one(T x)
 {
     (void)x;
     static_assert(static_cast<T>(0), "float_equal_one() is not implemented for this data type");
+    return false;
 };
 
 template <>
@@ -189,6 +190,7 @@ static inline bool float_equal_zero(T x)
 {
     (void)x;
     static_assert(static_cast<T>(0), "float_equal_zero() is not implemented for this data type");
+    return false;
 };
 
 template <>
