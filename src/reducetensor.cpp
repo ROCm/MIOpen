@@ -47,7 +47,7 @@ enum ReductionMethod_t
     Reduce_BlockWise        = 3,
     Reduce_MultiBlock       = 4
 };
-	
+
 using reduce::type_convert;
 
 namespace detail {
