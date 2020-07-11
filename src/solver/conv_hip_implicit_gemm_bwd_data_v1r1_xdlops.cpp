@@ -55,6 +55,8 @@ size_t ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionC
 
 bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
     if(!ctx.direction.IsBackwardData())
         return false;
     if(!ctx.use_hip_kernels)

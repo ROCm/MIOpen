@@ -223,10 +223,15 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
         return {};
 
-    const auto dir    = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
-    auto ctx          = ConvolutionContext{xDesc, wDesc, yDesc, *this, dir};
-    ctx.do_search     = exhaustiveSearch;
-    ctx.save_srch_req = true;
+    const auto dir = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
+    auto ctx       = ConvolutionContext{xDesc, wDesc, yDesc, *this, dir};
+
+    const ProblemDescription problem(xDesc, wDesc, yDesc, *this, conv::Direction::BackwardData);
+    const miopen::FindMode fm(problem);
+    ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
+        fm.IsOptimizedHybrid();
+    ctx.do_search               = exhaustiveSearch;
+    ctx.save_srch_req           = true;
     ctx.general_compile_options = "";
     ctx.SetStream(&handle);
     ctx.SetBufs(bufs);
@@ -789,6 +794,9 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     }
     else
     {
+        ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
+            fm.IsOptimizedHybrid();
+        MIOPEN_LOG_I("IsOptimizedHybrid fallback");
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
             DirConvFindCore(handle,
                             xDesc,
@@ -2138,7 +2146,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     {
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
             const auto network_config = problem.BuildConfKey();
-            const auto invoke_ctx     = conv::DataInvokeParams{
+            auto invoke_ctx           = conv::DataInvokeParams{
                 {dyDesc, dy, wDesc, w, dxDesc, dx}, workSpace, workSpaceSize};
 
             // Winograd algo
@@ -3511,6 +3519,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             bufs.SetWrW(x, dw, dy);
             auto ctx =
                 ConvolutionContext{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
+            ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
+                fm.IsOptimizedHybrid();
             ctx.do_search = exhaustiveSearch;
             ctx.SetStream(&handle);
             ctx.SetBufs(bufs);

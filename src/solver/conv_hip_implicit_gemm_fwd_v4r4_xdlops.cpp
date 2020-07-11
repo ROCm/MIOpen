@@ -907,6 +907,11 @@ int ConvHipImplicitGemmForwardV4R4Xdlops::RunAndMeasureSolution(const miopen::Ha
 
 bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+    MIOPEN_LOG_I("skip_solutions = "
+                 << ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage);
+    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
+
     if(!IsXdlopsSupport(ctx))
         return false;
 

@@ -128,6 +128,7 @@ class FindMode
         Normal = Begin_,
         Fast,
         Hybrid,
+        OptimizedHybrid,
         End_,
         Default_ = Hybrid,
     };
@@ -139,7 +140,15 @@ class FindMode
     FindMode(const ConvolutionContext& ctx);
 
     bool IsFast() const { return value == Values::Fast && !debug::FindModeDisable; }
-    bool IsHybrid() const { return value == Values::Hybrid && !debug::FindModeDisable; }
+    bool IsHybrid() const
+    {
+        return (value == Values::Hybrid || value == Values::OptimizedHybrid) &&
+               !debug::FindModeDisable;
+    }
+    bool IsOptimizedHybrid() const
+    {
+        return value == Values::OptimizedHybrid && !debug::FindModeDisable;
+    }
     friend std::ostream& operator<<(std::ostream&, const FindMode&);
 };
 
