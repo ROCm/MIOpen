@@ -44,7 +44,6 @@
 #cmakedefine01 BUILD_SHARED_LIBS
 #cmakedefine01 MIOPEN_DISABLE_SYSDB
 
-
 // "_PACKAGE_" to avoid name contentions: the macros like
 // HIP_VERSION_MAJOR are defined in hip_version.h.
 // clang-format off
