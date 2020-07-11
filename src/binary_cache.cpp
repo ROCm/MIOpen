@@ -65,7 +65,7 @@ static boost::filesystem::path ComputeUserCachePath()
         std::to_string(MIOPEN_VERSION_PATCH) + "." + MIOPEN_STRINGIZE(MIOPEN_VERSION_TWEAK);
 
     auto p = boost::filesystem::path{miopen::ExpandUser(cache_dir)} / version;
-    if(!boost::filesystem::exists(p))
+    if(!boost::filesystem::exists(p) && !MIOPEN_DISABLE_USERDB)
         boost::filesystem::create_directories(p);
     return p;
 #else
