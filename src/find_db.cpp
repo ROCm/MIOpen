@@ -47,8 +47,13 @@ boost::optional<std::string>& testing_find_db_path_override()
 template <class TDb>
 std::string FindDbRecord_t<TDb>::GetInstalledPath(Handle& handle)
 {
+#if !MIOPEN_DISABLE_SYSDB
     return GetSystemDbPath() + "/" + handle.GetDbBasename() + "." + GetSystemFindDbSuffix() +
            ".fdb.txt";
+#else
+    (void)(handle);
+    return "";
+#endif
 }
 
 template <class TDb>
