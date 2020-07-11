@@ -2146,7 +2146,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     {
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
             const auto network_config = problem.BuildConfKey();
-            auto invoke_ctx           = conv::DataInvokeParams{
+            const auto invoke_ctx     = conv::DataInvokeParams{
                 {dyDesc, dy, wDesc, w, dxDesc, dx}, workSpace, workSpaceSize};
 
             // Winograd algo
