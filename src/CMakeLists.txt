@@ -635,6 +635,7 @@ rocm_export_targets(
 
 
 # Install db files
+if(NOT MIOPEN_DISABLE_SYSDB)
 install(FILES
     kernels/miopen.db
     kernels/gfx803_36.HIP.fdb.txt
@@ -650,5 +651,5 @@ install(FILES
     kernels/gfx906_64.OpenCL.fdb.txt
     kernels/gfx906_60.OpenCL.fdb.txt
  DESTINATION ${DATA_INSTALL_DIR}/db)
-
+endif()
 rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})

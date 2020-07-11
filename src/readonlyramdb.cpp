@@ -79,7 +79,9 @@ void ReadonlyRamDb::Prefetch(const std::string& path, bool warn_if_unreadable)
 
         if(!file)
         {
-            const auto log_level = warn_if_unreadable ? LoggingLevel::Warning : LoggingLevel::Info;
+            const auto log_level = (warn_if_unreadable && !MIOPEN_DISABLE_SYSDB)
+                                       ? LoggingLevel::Warning
+                                       : LoggingLevel::Info;
             MIOPEN_LOG(log_level, "File is unreadable: " << path);
             return;
         }
