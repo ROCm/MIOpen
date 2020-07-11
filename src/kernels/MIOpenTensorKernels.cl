@@ -70,14 +70,8 @@ MIOPEN_TYPE miopenMin(MIOPEN_TYPE a, MIOPEN_TYPE b) { return ((a < b) ? a : b); 
 
 __kernel void OpTensorFwdBias(global MIOPEN_TYPE* a,
                               global MIOPEN_TYPE* b,
-#if INCR_WG == 0
-                              UNUSED
-#endif
                               const int b_c,
                               global MIOPEN_TYPE* c,
-#if INCR_WG == 1
-                              UNUSED
-#endif
                               const int c_n,
                               const int c_nstride,
                               const int c_cstride,
@@ -88,7 +82,8 @@ __kernel void OpTensorFwdBias(global MIOPEN_TYPE* a,
                               const long Aoffset,
                               const long Boffset,
                               const long Coffset,
-                              const int num_wg)
+                              const int num_wg,
+                              const int incr_wg)
 {
     global MIOPEN_TYPE* a_off = a + Aoffset;
     global MIOPEN_TYPE* b_off = b + Boffset;
@@ -103,34 +98,20 @@ __kernel void OpTensorFwdBias(global MIOPEN_TYPE* a,
 
         int lid = get_local_id(0);
 
-#if INCR_WG == 1
-        int o_n             = gid / b_c;
-        int o_c             = gid % b_c;
+        int o_c             = incr_wg == 1 ? (gid % b_c) : gid;
         MIOPEN_TYPE operand = b_off[o_c] * alpha1;
 
+        // each workgroup computes N*H*W for each C (bias-term)
+        // number of workgroups = c_c (b_c)
         while(lid < work_per_wg)
         {
-            int index    = o_n * c_nstride + o_c * c_cstride + lid;
-            c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
-            lid += get_local_size(0);
-        }
-
-// each workgroup computes N*H*W for each C (bias-term)
-// number of workgroups = c_c (b_c)
-#elif INCR_WG == 0
-        MIOPEN_TYPE operand = b_off[gid] * alpha1;
-        int work_off        = work_per_wg / c_n;
-
-        while(lid < work_per_wg)
-        {
-            int o_hw     = lid % work_off;
-            int o_n      = lid / work_off;
-            int index    = o_n * c_nstride + gid * c_cstride + o_hw;
+            int o_hw     = incr_wg == 0 ? (lid % (work_per_wg / c_n)) : lid;
+            int o_n      = incr_wg == 0 ? (lid / (work_per_wg / c_n)) : (gid / b_c);
+            int index    = o_n * c_nstride + o_c * c_cstride + o_hw;
             c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
 
             lid += get_local_size(0);
         }
-#endif // INCR_WG
     }
 }
 
@@ -143,15 +124,9 @@ __kernel void OpTensorFwdBiasGeneric(global MIOPEN_TYPE* a,
                                      const int a_cstride,
                                      const int a_hstride,
                                      global MIOPEN_TYPE* b,
-#if INCR_WG == 0
-                                     UNUSED
-#endif
                                      const int b_c,
                                      const int b_cstride,
                                      global MIOPEN_TYPE* c,
-#if INCR_WG == 1
-                                     UNUSED
-#endif
                                      const int c_n,
                                      const int c_w,
                                      const int c_nstride,
@@ -164,7 +139,8 @@ __kernel void OpTensorFwdBiasGeneric(global MIOPEN_TYPE* a,
                                      const long Aoffset,
                                      const long Boffset,
                                      const long Coffset,
-                                     const int num_wg)
+                                     const int num_wg,
+                                     const int incr_wg)
 {
     int gid = get_group_id(0);
 
@@ -178,44 +154,23 @@ __kernel void OpTensorFwdBiasGeneric(global MIOPEN_TYPE* a,
     {
         int lid = get_local_id(0);
 
-#if INCR_WG == 1
-
-        int o_c = gid % b_c;
-        int o_n = gid / b_c;
-
-        int bindex          = o_c * b_cstride;
-        MIOPEN_TYPE operand = b_off[bindex] * alpha1;
+        // each workgroup computes N*H*W for each C (bias-term)
+        // number of workgroups = c_c (b_c)
+        int o_c             = (incr_wg == 1) ? (gid % b_c) : gid;
+        MIOPEN_TYPE operand = b_off[o_c * b_cstride] * alpha1;
 
         while(lid < work_per_wg)
         {
-            int o_h    = lid / c_w;
-            int o_w    = lid % c_w;
+            int o_n    = (incr_wg == 1) ? (gid / b_c) : (lid % c_n);
+            int o_h    = (incr_wg == 1) ? (lid / c_w) : ((lid / c_n) / c_w);
+            int o_w    = (incr_wg == 1) ? (lid % c_w) : ((lid / c_n) % c_w);
             int aindex = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
             int cindex = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
             c_off[cindex] =
                 MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
-            lid += get_local_size(0);
-        }
-
-// each workgroup computes N*H*W for each C (bias-term)
-// number of workgroups = c_c (b_c)
-#elif INCR_WG == 0
-        MIOPEN_TYPE operand = b_off[gid * b_cstride] * alpha1;
-        // int work_off        = work_per_wg / c_n;
-
-        while(lid < work_per_wg)
-        {
-            int o_n    = lid % c_n;
-            int o_h    = (lid / c_n) / c_w;
-            int o_w    = (lid / c_n) % c_w;
-            int aindex = o_n * a_nstride + gid * a_cstride + o_h * a_hstride + o_w;
-            int cindex = o_n * c_nstride + gid * c_cstride + o_h * c_hstride + o_w;
-            c_off[cindex] =
-                MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
 
             lid += get_local_size(0);
         }
-#endif // INCR_WG
     }
 }
 

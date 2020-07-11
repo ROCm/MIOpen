@@ -562,8 +562,6 @@ void OpTensor4d(const Handle& handle,
 
         if(fwd_conv_bias != 0)
         {
-            network_config += std::to_string(incr_wg);
-
             if(packed_tensor)
             {
                 auto&& kernels = handle.GetKernels("OpTensorFwdBias", network_config);
@@ -585,7 +583,8 @@ void OpTensor4d(const Handle& handle,
                            long(Aoffset),
                            long(Boffset),
                            long(Coffset),
-                           int(num_wg_orig));
+                           int(num_wg_orig),
+                           int(incr_wg));
 
                     return;
                 }
@@ -618,7 +617,8 @@ void OpTensor4d(const Handle& handle,
                            long(Aoffset),
                            long(Boffset),
                            long(Coffset),
-                           int(num_wg_orig));
+                           int(num_wg_orig),
+                           int(incr_wg));
                     return;
                 }
             }
@@ -763,8 +763,6 @@ void OpTensor4d(const Handle& handle,
 
         if(fwd_conv_bias != 0)
         {
-            parms += " -DINCR_WG=" + std::to_string(incr_wg);
-
             if(packed_tensor)
             {
                 parms += " -DUSE_FWD_BIAS";
@@ -789,7 +787,8 @@ void OpTensor4d(const Handle& handle,
                                         long(Aoffset),
                                         long(Boffset),
                                         long(Coffset),
-                                        int(num_wg_orig));
+                                        int(num_wg_orig),
+                                        int(incr_wg));
             }
             else
             {
@@ -820,7 +819,8 @@ void OpTensor4d(const Handle& handle,
                                         long(Aoffset),
                                         long(Boffset),
                                         long(Coffset),
-                                        int(num_wg_orig));
+                                        int(num_wg_orig),
+                                        int(incr_wg));
             }
         }
         // precede leading_ones for bitmap = 1,1,1,1
