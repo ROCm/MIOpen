@@ -3395,7 +3395,7 @@ inline void EvaluateWinograd3x3MultipassWrW(Handle& handle,
              // and GEMM
         {
             const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
-            int m = N, n = K, k = wino_in.wino_c;
+            int m = N, n = K, k = wino_in.buff_info.size.c;
             int lda = k, ldb = k, ldc = n;
             int batch_count       = wino_xform_h * wino_xform_w;
             long long int strideA = m * k * 1LL, strideB = k * n * 1LL, strideC = m * n * 1LL;

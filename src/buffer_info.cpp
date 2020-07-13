@@ -75,13 +75,14 @@ MemLayout_t GetGroupConvLayout(MemLayout_t layout, bool IsDataBuffer)
 }
 
 BuffInfo::BuffInfo(
-    MemLayout_t layout, int nk, int c, int h, int w, int vec_c, int _g, int data_len_t)
+    MemLayout_t layout, int nk, int c, int h, int w, int vec_c, int _g, int _data_len_t)
 {
     if(!(vec_c != 0))
         MIOPEN_THROW(std::string("Internal error in BuffInfo: (vec_c != 0) "));
 
+    data_len_t = _data_len_t;
     const size_t c_hi  = (c + vec_c - 1) / vec_c;
-    const size_t count = nk * c_hi * h * w * vec_c;
+    const size_t count = nk * c_hi * h * w * _g * vec_c;
     total_byte_size    = count * data_len_t;
     size.nk            = nk;
     size.g             = _g;
@@ -89,84 +90,41 @@ BuffInfo::BuffInfo(
     size.h             = h;
     size.w             = w;
 
+    using namespace LayoutConstructor;
     switch(layout)
     {
     case MemLayout_t::NCHW:
-        stride.w  = 1;
-        stride.h  = w;
-        stride.c  = w * h;
-        stride.nk = w * h * c_hi;
+        FillLayoutStride<LPart_t::W, LPart_t::H, LPart_t::C, LPart_t::N>(this);
         break;
     case MemLayout_t::CNHW:
-        stride.w  = 1;
-        stride.h  = w;
-        stride.nk = w * h;
-        stride.c  = w * h * nk;
+        FillLayoutStride<LPart_t::W, LPart_t::H, LPart_t::N, LPart_t::C>(this);
         break;
     case MemLayout_t::CHWN:
-        stride.nk = 1;
-        stride.w  = nk;
-        stride.h  = w * nk;
-        stride.c  = w * h * nk;
+        FillLayoutStride<LPart_t::N, LPart_t::W, LPart_t::H, LPart_t::C>(this);
         break;
     case MemLayout_t::NHWC:
-        stride.c  = 1;
-        stride.w  = c_hi;
-        stride.h  = c_hi * w;
-        stride.nk = c_hi * w * h;
+        FillLayoutStride<LPart_t::C, LPart_t::W, LPart_t::H, LPart_t::N>(this);
         break;
     case MemLayout_t::HWCN:
-        stride.nk = 1;
-        stride.c  = nk;
-        stride.w  = nk * c_hi;
-        stride.h  = nk * c_hi * w;
+        FillLayoutStride<LPart_t::N, LPart_t::C, LPart_t::W, LPart_t::H>(this);
         break;
     case MemLayout_t::HWNC:
-        stride.c  = 1;
-        stride.nk = c_hi;
-        stride.w  = c_hi * nk;
-        stride.h  = c_hi * nk * w;
+        FillLayoutStride<LPart_t::C, LPart_t::N, LPart_t::W, LPart_t::H>(this);
         break;
     case MemLayout_t::NGCHW:
-        stride.w  = 1;
-        stride.h  = w;
-        stride.c  = w * h;
-        stride.g  = w * h * c_hi;
-        stride.nk = w * h * c_hi * _g;
+        FillLayoutStride<LPart_t::W, LPart_t::H, LPart_t::C, LPart_t::G, LPart_t::N>(this);
         break;
     case MemLayout_t::GNCHW:
-        stride.w  = 1;
-        stride.h  = w;
-        stride.c  = w * h;
-        stride.nk = w * h * c_hi;
-        stride.g  = w * h * c_hi * nk;
+        FillLayoutStride<LPart_t::W, LPart_t::H, LPart_t::C, LPart_t::N, LPart_t::G>(this);
         break;
     case MemLayout_t::CGNHW:
-        stride.w  = 1;
-        stride.h  = w;
-        stride.nk = w * h;
-        stride.g  = w * h * nk;
-        stride.c  = w * h * nk * _g;
+        FillLayoutStride<LPart_t::W, LPart_t::H, LPart_t::N, LPart_t::G, LPart_t::C>(this);
         break;
     case MemLayout_t::GCNHW:
-        stride.w  = 1;
-        stride.h  = w;
-        stride.nk = w * h;
-        stride.c  = w * h * nk;
-        stride.g  = w * h * nk * c_hi;
+        FillLayoutStride<LPart_t::W, LPart_t::H, LPart_t::N, LPart_t::C, LPart_t::G>(this);
         break;
     default: MIOPEN_THROW(std::string("Internal error in BuffInfo(): Unknown MemLayout_t ")); break;
     }
-    stride.nk *= vec_c;
-    stride.g *= vec_c;
-    stride.c *= vec_c;
-    stride.h *= vec_c;
-    stride.w *= vec_c;
-    byte_stride.nk = stride.nk * data_len_t;
-    byte_stride.g  = stride.g * data_len_t;
-    byte_stride.c  = stride.c * data_len_t;
-    byte_stride.h  = stride.h * data_len_t;
-    byte_stride.w  = stride.w * data_len_t;
 }
 
 } // namespace miopen

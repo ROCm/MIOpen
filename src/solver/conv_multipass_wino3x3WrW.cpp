@@ -116,7 +116,7 @@ struct InTransform
                 && params.Is2d()
                 && H < u16limit
                 && W < u16limit
-                && wino_info.wino_c < (1<<30)
+                && wino_info.buff_info.size.c < (1<<30)
                 && N < u16limit
                 && chw_step < u16limit
                 && params.pad_h <= 3
@@ -221,7 +221,7 @@ struct FilterTransform
                 && params.Is2d()
                 && H < u16limit
                 && W < u16limit
-                && wino_info.wino_c < (1<<30)
+                && wino_info.buff_info.size.c < (1<<30)
                 && K < u16limit
                 && chw_step < u16limit
                 && params.pad_h <= 3
