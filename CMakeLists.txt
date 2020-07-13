@@ -113,6 +113,7 @@ list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/h
 option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
 
+
 # Embedded Build Configuration
 set(MIOPEN_EMBED_DB "" CACHE STRING "Colon separated list of of architecture CU pairs to embed on-disk DBs in the binary. Example gfx906_60:gfx900_56")
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
@@ -127,6 +128,7 @@ else()
     option(BUILD_SHARED_LIBS "Build as a shared library" ON)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
 endif()
+
 
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )

@@ -64,7 +64,7 @@ function(embed_file OUTPUT_FILE OUTPUT_SYMBOL FILE)
         set(${OUTPUT_SYMBOL} ${SYMBOL} PARENT_SCOPE)
         add_custom_command(
             OUTPUT "${FILE}.o"
-            COMMAND ${EMBED_LD} -r -o "${REL_FILE}.o" -z noexecstack --format=binary "${REL_FILE}" 
+            COMMAND ${EMBED_LD} -r -o "${CMAKE_CURRENT_BINARY_DIR}/${REL_FILE}.o" -z noexecstack --format=binary "${REL_FILE}" 
             COMMAND ${EMBED_OBJCOPY} --rename-section .data=.rodata,alloc,load,readonly,data,contents "${REL_FILE}.o"
             WORKING_DIRECTORY ${WORKING_DIRECTORY}
             DEPENDS ${FILE}

@@ -225,7 +225,7 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_bwd_data_v4r1_xdlops.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops_fwd_fp32.cpp
     )
-# set_source_files_properties(sqlite/memvfs.cpp PROPERTIES COMPILE_FLAGS -Wno-everything)
+
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
 if(MIOPEN_ENABLE_SQLITE)
     list(APPEND MIOpen_Source sqlite_db.cpp include/miopen/sqlite_db.hpp )
