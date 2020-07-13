@@ -161,13 +161,13 @@ struct ProblemDescription
     std::size_t GetInStrideD() const { return GetD5(GetSpatialDims(), in.GetStrides()); }
     std::size_t GetInStrideH() const { return GetH5(GetSpatialDims(), in.GetStrides()); }
     std::size_t GetInStrideW() const { return GetW5(GetSpatialDims(), in.GetStrides()); }
-    std::string GetInLayout() const { return "NCHW"; }
+    std::string GetInLayout() const { return in.GetLayout(); }
     std::size_t GetInElementSize() const { return GetTypeSize(GetInDataType()); }
 
     std::size_t GetInSize() const
     {
         // clang-format off
-        return (GetInLayout() == "NCHW")
+        return (GetInLayout() == "nchw")
             ? GetInBatchSize() * GetInChannels() * GetInDepth() * GetInHeight() * GetInWidth() * GetInElementSize()
             : GetInBatchSize() * GetInBatchStride() * GetInChannelStride() * GetInStrideH() * GetInStrideW() * GetInElementSize(); // Todo: GetInStrideD() ?
         // clang-format on
@@ -185,13 +185,13 @@ struct ProblemDescription
     std::size_t GetOutStrideD() const { return GetD5(GetSpatialDims(), out.GetStrides()); }
     std::size_t GetOutStrideH() const { return GetH5(GetSpatialDims(), out.GetStrides()); }
     std::size_t GetOutStrideW() const { return GetW5(GetSpatialDims(), out.GetStrides()); }
-    std::string GetOutLayout() const { return "NCHW"; }
+    std::string GetOutLayout() const { return out.GetLayout(); }
     std::size_t GetOutElementSize() const { return GetTypeSize(GetOutDataType()); }
 
     std::size_t GetOutSize() const
     {
         // clang-format off
-        return (GetOutLayout() == "NCHW")
+        return (GetOutLayout() == "nkhw")
             ? GetOutBatchSize() * GetOutChannels() * GetOutDepth() * GetOutHeight() * GetOutWidth() * GetOutElementSize()
             : GetOutBatchSize() * GetOutBatchStride() * GetOutChannelStride() * GetOutStrideH() * GetOutStrideW() * GetOutElementSize(); // Todo: GetOutStrideD() ?
         // clang-format on
@@ -208,7 +208,7 @@ struct ProblemDescription
     // }
     // std::size_t GetWeightsStrideW() const { return GetW5(GetSpatialDims(), weights.GetStrides());
     // }
-    std::string GetWeightsLayout() const { return ""; }
+    std::string GetWeightsLayout() const { return weights.GetLayout(); }
     std::size_t GetWeightsElementSize() const { return GetTypeSize(GetWeightsDataType()); }
 
     std::size_t GetWeightsSize() const

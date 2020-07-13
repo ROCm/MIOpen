@@ -538,6 +538,9 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor
 MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptor(
     miopenTensorDescriptor_t tensorDesc, miopenDataType_t dataType, int n, int c, int h, int w);
 
+MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptorLayout(miopenTensorDescriptor_t tensorDesc,
+                                                               const char* layout);
+
 /*! @brief Get the details of the tensor descriptor
  *
  * Interface to query the 4-D tensor shape.

@@ -68,6 +68,8 @@ void ProblemDescription::BuildConfKey(std::string& conf_key) const
     ss << 'x' << PrintDHW('x', GetSpatialDims(), GetOutDepth(), GetOutHeight(), GetOutWidth());
     ss << 'x' << GetInBatchSize();
     ss << 'x' << GetInLayout();
+    ss << 'x' << GetWeightsLayout();
+    ss << 'x' << GetOutLayout();
     ss << 'x' << EncodeDataTypesForKey(GetInDataType(), GetWeightsDataType(), GetOutDataType());
     ss << 'x' << PrintDHW('x', GetSpatialDims(), GetPadD(), GetPadH(), GetPadW());
     ss << 'x'
@@ -102,6 +104,8 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     stream << sep << PrintDHW('x', GetSpatialDims(), GetDilationD(), GetDilationH(), GetDilationW());
     stream << sep << GetBias();
     stream << sep << GetInLayout();
+    stream << sep << GetWeightsLayout();
+    stream << sep << GetOutLayout();
     stream << sep << EncodeDataTypesForKey(GetInDataType(), GetWeightsDataType(), GetOutDataType());
 
     switch(GetDirection())

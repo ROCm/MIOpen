@@ -173,6 +173,10 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     std::string ToString() const;
 
+    void SetLayout(const std::string& l) { this->layout = l; }
+
+    std::string GetLayout() const { return this->layout; }
+
     friend std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t);
 
     private:
@@ -182,6 +186,8 @@ struct TensorDescriptor : miopenTensorDescriptor
     bool packed;
 
     miopenDataType_t type = miopenFloat;
+
+    std::string layout;
 };
 
 } // namespace miopen
