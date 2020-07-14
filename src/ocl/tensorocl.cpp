@@ -670,7 +670,8 @@ void OpTensor4d(const Handle& handle,
                            long(Aoffset),
                            long(Boffset),
                            long(Coffset),
-                           int(num_wg_orig));
+                           int(num_wg_orig),
+                           bitmap);
 
                     return;
                 }
@@ -704,7 +705,8 @@ void OpTensor4d(const Handle& handle,
                            long(Aoffset),
                            long(Boffset),
                            long(Coffset),
-                           int(num_wg_orig));
+                           int(num_wg_orig),
+                           bitmap);
                     return;
                 }
             }
@@ -886,7 +888,8 @@ void OpTensor4d(const Handle& handle,
                                         long(Aoffset),
                                         long(Boffset),
                                         long(Coffset),
-                                        int(num_wg_orig));
+                                        int(num_wg_orig),
+                                        bitmap);
             }
             else
             {
@@ -921,7 +924,8 @@ void OpTensor4d(const Handle& handle,
                                         long(Aoffset),
                                         long(Boffset),
                                         long(Coffset),
-                                        int(num_wg_orig));
+                                        int(num_wg_orig),
+                                        bitmap);
             }
         }
         else

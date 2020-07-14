@@ -182,26 +182,11 @@ __kernel void OpTensorFwdBiasGeneric(global MIOPEN_TYPE* a,
 __kernel void OpTensorLeadingOnes(global MIOPEN_TYPE* a,
                                   global MIOPEN_TYPE* b,
                                   global MIOPEN_TYPE* c,
-#if FIRST_NOT_ONE == 0
-                                  UNUSED
-#endif
                                   const int c_c,
-#if FIRST_NOT_ONE <= 1
-                                  UNUSED
-#endif
                                   const int c_h,
-#if FIRST_NOT_ONE <= 1
-                                  UNUSED
-#endif
                                   const int c_w,
                                   const int c_nstride,
-#if FIRST_NOT_ONE == 0
-                                  UNUSED
-#endif
                                   const int c_cstride,
-#if FIRST_NOT_ONE == 3
-                                  UNUSED
-#endif
                                   const int work_per_wg,
                                   const MIOPEN_TYPE alpha0,
                                   const MIOPEN_TYPE alpha1,
@@ -209,7 +194,8 @@ __kernel void OpTensorLeadingOnes(global MIOPEN_TYPE* a,
                                   const long Aoffset,
                                   const long Boffset,
                                   const long Coffset,
-                                  const int num_wg)
+                                  const int num_wg,
+                                  const unsigned int bitmap)
 {
 
     /* Special case for leading ones where the total no. of threads is the
@@ -220,83 +206,33 @@ __kernel void OpTensorLeadingOnes(global MIOPEN_TYPE* a,
     global MIOPEN_TYPE* b_off = b + Boffset;
     global MIOPEN_TYPE* c_off = c + Coffset;
 
-#if FIRST_NOT_ONE == 3 // bitmap = 1,1,1,1
-
-    int tid = get_global_id(0);
-    // num_wg: the number of workgroups should be launched
-    // MAX_NUM_WG: the maximum number of workgroups actually launched
-    for(; tid < num_wg; tid += MAX_NUM_WG)
-    {
-
-        MIOPEN_TYPE operand = b_off[tid] * alpha1;
-
-        int o_w = tid % c_w;
-        int o_h = (tid / c_w) % c_h;
-        int o_c = (tid / (c_w * c_h)) % c_c;
-        int o_n = tid / (c_w * c_h * c_c);
-
-        int index    = o_n * c_nstride + o_c * c_cstride + o_h * c_w + o_w;
-        c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
-    }
-#elif FIRST_NOT_ONE == 2 // bitmap = 1,1,1,0
-    int gid = get_group_id(0);
+    int gid = (bitmap == 15) ? get_global_id(0) : get_group_id(0);
     // num_wg: the number of workgroups should be launched
     // MAX_NUM_WG: the maximum number of workgroups actually launched
     for(; gid < num_wg; gid += MAX_NUM_WG)
     {
 
-        int lid             = get_local_id(0);
+        int lid             = (bitmap == 15) ? 0 : get_local_id(0);
+        int lcl_sz          = (bitmap == 15) ? work_per_wg : get_local_size(0);
         MIOPEN_TYPE operand = b_off[gid] * alpha1;
 
-        int o_h = gid % c_h;
-        int o_c = (gid / c_h) % c_c;
-        int o_n = gid / (c_c * c_h);
+        int o_w = (bitmap & (1 << 0)) ? (gid % c_w) : 0;
+        int o_h = (bitmap & (1 << 1)) ? ((gid / ((bitmap & (1 << 0)) ? c_w : 1)) % c_h) : 0;
+        int o_c =
+            (bitmap & (1 << 2))
+                ? ((gid / (((bitmap & (1 << 0)) ? c_w : 1) * ((bitmap & (1 << 1)) ? c_h : 1))) %
+                   c_c)
+                : 0;
+        int o_n = gid / (((bitmap & (1 << 0)) ? c_w : 1) * ((bitmap & (1 << 1)) ? c_h : 1) *
+                         ((bitmap & (1 << 2)) ? c_c : 1));
 
         while(lid < work_per_wg)
         {
-            int index    = o_n * c_nstride + o_c * c_cstride + o_h * c_w + lid;
+            int index    = o_n * c_nstride + o_c * c_cstride + o_h * c_w + o_w + lid;
             c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
-            lid += get_local_size(0);
+            lid += lcl_sz;
         }
     }
-#elif FIRST_NOT_ONE == 1 // bitmap = 1,1,0,0
-    int gid = get_group_id(0);
-    // num_wg: the number of workgroups should be launched
-    // MAX_NUM_WG: the maximum number of workgroups actually launched
-    for(; gid < num_wg; gid += MAX_NUM_WG)
-    {
-
-        int lid             = get_local_id(0);
-        MIOPEN_TYPE operand = b_off[gid] * alpha1;
-
-        int o_c = gid % c_c;
-        int o_n = gid / c_c;
-
-        while(lid < work_per_wg)
-        {
-            int index    = o_n * c_nstride + o_c * c_cstride + lid;
-            c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
-            lid += get_local_size(0);
-        }
-    }
-
-#elif FIRST_NOT_ONE == 0 // bitmap = 1,0,0,0
-    int gid = get_group_id(0);
-    // num_wg: the number of workgroups should be launched
-    // MAX_NUM_WG: the maximum number of workgroups actually launched
-    for(; gid < num_wg; gid += MAX_NUM_WG)
-    {
-        int lid             = get_local_id(0);
-        MIOPEN_TYPE operand = b_off[gid] * alpha1;
-
-        while(lid < work_per_wg)
-        {
-            int index    = gid * c_nstride + lid;
-            c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
-            lid += get_local_size(0);
-        }
-    }
-#endif
 }
 
 #endif
@@ -310,23 +246,11 @@ __kernel void OpTensorLeadingOnesGeneric(global MIOPEN_TYPE* a,
                                          const int a_hstride,
                                          global MIOPEN_TYPE* b,
                                          const int b_nstride,
-#if FIRST_NOT_ONE == 0
-                                         UNUSED
-#endif
                                          const int b_cstride,
-#if FIRST_NOT_ONE <= 1
-                                         UNUSED
-#endif
                                          const int b_hstride,
                                          global MIOPEN_TYPE* c,
                                          const int c_c,
-#if FIRST_NOT_ONE == 1
-                                         UNUSED
-#endif
                                          const int c_h,
-#if FIRST_NOT_ONE == 0 || FIRST_NOT_ONE == 2
-                                         UNUSED
-#endif
                                          const int c_w,
                                          const int c_nstride,
                                          const int c_cstride,
@@ -334,14 +258,12 @@ __kernel void OpTensorLeadingOnesGeneric(global MIOPEN_TYPE* a,
                                          const MIOPEN_TYPE alpha0,
                                          const MIOPEN_TYPE alpha1,
                                          const MIOPEN_TYPE beta,
-#if FIRST_NOT_ONE == 3
-                                         UNUSED
-#endif
                                          const int work_per_wg,
                                          const long Aoffset,
                                          const long Boffset,
                                          const long Coffset,
-                                         const int num_wg)
+                                         const int num_wg,
+                                         const unsigned int bitmap)
 {
 
     /* Special case for leading ones where the total no. of threads is the
@@ -350,102 +272,46 @@ __kernel void OpTensorLeadingOnesGeneric(global MIOPEN_TYPE* a,
     global MIOPEN_TYPE* a_off = a + Aoffset;
     global MIOPEN_TYPE* b_off = b + Boffset;
     global MIOPEN_TYPE* c_off = c + Coffset;
-#if FIRST_NOT_ONE == 3 // bitmap = 1,1,1,1
-    int tid = get_global_id(0);
-    // MIOPEN_TYPE operand = b[tid];
 
-    // num_wg: the number of workgroups should be launched
-    // MAX_NUM_WG: the maximum number of workgroups actually launched
-    for(; tid < num_wg; tid += MAX_NUM_WG)
-    {
-
-        int o_w = tid % c_w;
-        int o_h = (tid / c_w) % c_h;
-        int o_c = (tid / (c_w * c_h)) % c_c;
-        int o_n = tid / (c_w * c_h * c_c);
-
-        int aindex = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
-        int bindex = o_n * b_nstride + o_c * b_cstride + o_h * b_hstride + o_w;
-        int cindex = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
-        c_off[cindex] =
-            MIOPEN_TENSOR_OP(alpha0 * a_off[aindex], alpha1 * b_off[bindex]) + beta * c_off[cindex];
-    }
-
-#elif FIRST_NOT_ONE == 2 // bitmap = 1,1,1,0
-    int gid = get_group_id(0);
+    int gid = (bitmap == 15) ? get_global_id(0) : get_group_id(0);
 
     // num_wg: the number of workgroups should be launched
     // MAX_NUM_WG: the maximum number of workgroups actually launched
     for(; gid < num_wg; gid += MAX_NUM_WG)
     {
-        int lid = get_local_id(0);
-        int o_h = gid % c_h;
-        int o_c = (gid / c_h) % c_c;
-        int o_n = gid / (c_c * c_h);
+        int lid    = (bitmap == 15) ? 0 : get_local_id(0);
+        int lcl_sz = (bitmap == 15) ? work_per_wg : get_local_size(0);
 
-        int bindex          = o_n * b_nstride + o_c * b_cstride + o_h * b_hstride;
+        int o_w = (bitmap & (1 << 0)) ? (gid % c_w) : 0;
+        int o_h = (bitmap & (1 << 1)) ? ((gid / ((bitmap & (1 << 0)) ? c_w : 1)) % c_h) : 0;
+        int o_c =
+            (bitmap & (1 << 2))
+                ? ((gid / (((bitmap & (1 << 0)) ? c_w : 1) * ((bitmap & (1 << 1)) ? c_h : 1))) %
+                   c_c)
+                : 0;
+        int o_n = gid / (((bitmap & (1 << 0)) ? c_w : 1) * ((bitmap & (1 << 1)) ? c_h : 1) *
+                         ((bitmap & (1 << 2)) ? c_c : 1));
+
+        int bindex          = o_n * b_nstride + o_c * b_cstride + o_h * b_hstride + o_w;
         MIOPEN_TYPE operand = b_off[bindex] * alpha1;
 
         while(lid < work_per_wg)
         {
-            int aindex = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + lid;
-            int cindex = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + lid;
-            c_off[cindex] =
-                MIOPEN_TENSOR_OP(alpha0 * a_off[aindex], operand) + beta * c_off[cindex];
-
-            lid += get_local_size(0);
-        }
-    }
-#elif FIRST_NOT_ONE == 1 // bitmap = 1,1,0,0
-    int gid = get_group_id(0);
-
-    // num_wg: the number of workgroups should be launched
-    // MAX_NUM_WG: the maximum number of workgroups actually launched
-    for(; gid < num_wg; gid += MAX_NUM_WG)
-    {
-        int lid = get_local_id(0);
-        int o_c = gid % c_c;
-        int o_n = gid / c_c;
-
-        int bindex          = o_n * b_nstride + o_c * b_cstride;
-        MIOPEN_TYPE operand = b_off[bindex] * alpha1;
-
-        while(lid < work_per_wg)
-        {
-            int o_h    = lid / c_w;
-            int o_w    = lid % c_w;
+            o_c = (bitmap & (1 << 2)) ? o_c : (lid % c_c);
+            o_h = (bitmap & (1 << 1)) ? o_h
+                                      : ((bitmap & (1 << 2)) ? (lid / c_w) : ((lid / c_c) % c_h));
+            o_w = (bitmap & (1 << 0))
+                      ? o_w
+                      : ((bitmap & (1 << 1)) ? lid : ((bitmap & (1 << 2)) ? (lid % c_w)
+                                                                          : ((lid / c_c) / c_h)));
             int aindex = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
             int cindex = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
             c_off[cindex] =
                 MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
-            lid += get_local_size(0);
+
+            lid += lcl_sz;
         }
     }
-
-#elif FIRST_NOT_ONE == 0 // bitmap = 1,0,0,0
-    int gid = get_group_id(0);
-
-    // num_wg: the number of workgroups should be launched
-    // MAX_NUM_WG: the maximum number of workgroups actually launched
-    for(; gid < num_wg; gid += MAX_NUM_WG)
-    {
-        int lid             = get_local_id(0);
-        MIOPEN_TYPE operand = b_off[gid * b_nstride] * alpha1;
-
-        while(lid < work_per_wg)
-        {
-            int o_c    = lid % c_c;
-            int o_h    = (lid / c_c) % c_h;
-            int o_w    = (lid / c_c) / c_h;
-            int aindex = gid * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
-            int cindex = gid * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
-            c_off[cindex] =
-                MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
-
-            lid += get_local_size(0);
-        }
-    }
-#endif
 }
 
 #endif
