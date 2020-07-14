@@ -847,12 +847,8 @@ int main(int argc, const char* argv[])
 
     bool test_half = false;
 
-    for(auto&& arg : as)
-        if(arg == "--half")
-        {
-            test_half = true;
-            break;
-        };
+    test_half =
+        std::any_of(as.begin(), as.end(), [](std::string& elem) { return (elem == "--half"); });
 
     if(test_half)
         test_drive<reduce_driver<half_float::half>>(argc, argv);
