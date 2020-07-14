@@ -177,6 +177,16 @@ void OpTensor3d(const Handle& handle,
     network_config = std::to_string(bTensorDesc.GetType()) + std::to_string(aTensorDesc.GetType()) +
                      std::to_string(tensorOp);
 
+    // for naive tensor ops
+    size_t RD_BLCK              = (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
+    const std::string data_type = GetDataType(bTensorDesc.GetType());
+    const std::string READ_TYPE = (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
+
+    size_t total_work = std::max(size_t(clens[2] / RD_BLCK), size_t(1));
+    size_t grp_sz     = (total_work + local_threads - 1) / local_threads;
+    grp_sz            = std::min(size_t(max_num_wg), grp_sz);
+    size_t gld_sz     = local_threads * grp_sz;
+
     visit_float(bTensorDesc.GetType(), [&](auto as_float) {
 
         auto miopen_alpha0 = as_float(*(static_cast<const float*>(alpha0)));
@@ -217,11 +227,8 @@ void OpTensor3d(const Handle& handle,
         }
         else if(blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2])
         {
-            network_config += std::to_string(clens[2]) + "x" + std::to_string(clens[1]) + "x" +
-                              std::to_string(float_equal(miopen_alpha0, 0.0)) + "x" +
-                              std::to_string(float_equal(miopen_alpha1, 0.0)) + "x" +
-                              std::to_string(float_equal(miopen_beta, 0.0)) + "x" +
-                              std::to_string(max_num_wg);
+            network_config += std::to_string(RD_BLCK) + "x" + std::to_string(local_threads) + "x" +
+                              std::to_string(grp_sz);
 
             auto&& kernels = handle.GetKernels("Op2dTensorSquash", network_config);
 
@@ -239,7 +246,11 @@ void OpTensor3d(const Handle& handle,
                        miopen_beta,
                        long(Aoffset),
                        long(Boffset),
-                       long(Coffset));
+                       long(Coffset),
+                       long(total_work),
+                       int(!float_equal(miopen_alpha0, 0.0)),
+                       int(!float_equal(miopen_alpha1, 0.0)),
+                       int(!float_equal(miopen_beta, 0.0)));
 
                 return;
             }
@@ -304,12 +315,6 @@ void OpTensor3d(const Handle& handle,
         {
             parms += " -DUSE_2D_TENSOR_LITE";
 
-            // for naive tensor ops
-            size_t RD_BLCK              = (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
-            const std::string data_type = GetDataType(bTensorDesc.GetType());
-            const std::string READ_TYPE =
-                (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
-
             size_t MAP_RD = std::max(size_t(clens[2] / RD_BLCK), size_t(1));
             parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" +
                      std::to_string(MAP_RD) + " -DREAD_TYPE=" + READ_TYPE;
@@ -349,35 +354,9 @@ void OpTensor3d(const Handle& handle,
         else if(blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2])
         {
             parms += " -DUSE_2D_TENSOR_SQUASH";
+            parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
 
-            // for naive tensor ops
-            size_t RD_BLCK              = (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
-            const std::string data_type = GetDataType(bTensorDesc.GetType());
-            const std::string READ_TYPE =
-                (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
-
-            size_t MAP_RD = std::max(size_t(clens[2] / RD_BLCK), size_t(1));
-            parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" +
-                     std::to_string(MAP_RD) + " -DREAD_TYPE=" + READ_TYPE;
-
-            if(!float_equal(miopen_alpha0, 0.0))
-            {
-                parms += " -DALPHA0";
-            }
-
-            if(!float_equal(miopen_alpha1, 0.0))
-            {
-                parms += " -DALPHA1";
-            }
-
-            if(!float_equal(miopen_beta, 0.0))
-            {
-                parms += " -DBETA";
-            }
-
-            parms += " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
-            size_t total_work = std::min(max_num_wg * local_threads, MAP_RD);
-            const std::vector<size_t> vgd1{total_work, 1, 1};
+            const std::vector<size_t> vgd1{gld_sz, 1, 1};
 
             handle.AddKernel("Op2dTensorSquash",
                              network_config,
@@ -395,7 +374,11 @@ void OpTensor3d(const Handle& handle,
                                     miopen_beta,
                                     long(Aoffset),
                                     long(Boffset),
-                                    long(Coffset));
+                                    long(Coffset),
+                                    long(total_work),
+                                    int(!float_equal(miopen_alpha0, 0.0)),
+                                    int(!float_equal(miopen_alpha1, 0.0)),
+                                    int(!float_equal(miopen_beta, 0.0)));
         }
         else
         {

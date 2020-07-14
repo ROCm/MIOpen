@@ -609,81 +609,71 @@ __kernel void Op2dTensorLite(const global MIOPEN_TYPE* a,
 #endif
 
 #ifdef USE_2D_TENSOR_SQUASH
-__kernel void Op2dTensorSquash(
-#ifndef ALPHA0
-    UNUSED
-#endif
-    const global MIOPEN_TYPE* a,
-#ifndef ALPHA1
-    UNUSED
-#endif
-    const global MIOPEN_TYPE* b,
-    const int b_c,
-    const int b_nstride,
-    global MIOPEN_TYPE* c,
-#ifndef ALPHA0
-    UNUSED
-#endif
-    const MIOPEN_TYPE alpha0,
-    const MIOPEN_TYPE alpha1,
-#ifndef BETA
-    UNUSED
-#endif
-    const MIOPEN_TYPE beta,
-#ifndef ALPHA0
-    UNUSED
-#endif
-    const long Aoffset,
-#ifndef ALPHA1
-    UNUSED
-#endif
-    const long Boffset,
-    const long Coffset)
+__kernel void Op2dTensorSquash(const global MIOPEN_TYPE* a,
+                               const global MIOPEN_TYPE* b,
+                               const int b_c,
+                               const int b_nstride,
+                               global MIOPEN_TYPE* c,
+                               const MIOPEN_TYPE alpha0,
+                               const MIOPEN_TYPE alpha1,
+                               const MIOPEN_TYPE beta,
+                               const long Aoffset,
+                               const long Boffset,
+                               const long Coffset,
+                               const long total_work,
+                               const int use_apl0,
+                               const int use_apl1,
+                               const int use_bet)
 {
     MIOPEN_TYPE a_dat[RD_BLCK];
     MIOPEN_TYPE b_dat[RD_BLCK];
     MIOPEN_TYPE c_dat[RD_BLCK];
 
-    for(int gid = get_global_id(0); gid < MAP_RD; gid += get_global_size(0))
+    for(int i = 0; i < RD_BLCK; ++i)
     {
-#ifdef ALPHA0
-        int a_index          = gid * RD_BLCK;
-        *((READ_TYPE*)a_dat) = *((const global READ_TYPE*)(a + Aoffset + a_index));
-        for(int i = 0; i < RD_BLCK; ++i)
-        {
-            a_dat[i] *= alpha0;
-        }
-#else
+        b_dat[i] = (MIOPEN_TYPE)0;
+    }
+
+    for(int gid = get_global_id(0); gid < total_work; gid += get_global_size(0))
+    {
         for(int i = 0; i < RD_BLCK; ++i)
         {
             a_dat[i] = (MIOPEN_TYPE)0;
-        }
-#endif
-        int c_index = gid * RD_BLCK;
-#ifdef BETA
-        *((READ_TYPE*)c_dat) = *((const global READ_TYPE*)(c + Coffset + c_index));
-        for(int i = 0; i < RD_BLCK; ++i)
-        {
-            c_dat[i] *= beta;
-        }
-#else
-        for(int i = 0; i < RD_BLCK; ++i)
-        {
             c_dat[i] = (MIOPEN_TYPE)0;
         }
-#endif
+
+        int io_index = gid * RD_BLCK;
+        if(use_apl0 == 1)
+        {
+            *((READ_TYPE*)a_dat) = *((const global READ_TYPE*)(a + Aoffset + io_index));
+            for(int i = 0; i < RD_BLCK; ++i)
+            {
+                a_dat[i] *= alpha0;
+            }
+        }
+
+        if(use_bet == 1)
+        {
+            *((READ_TYPE*)c_dat) = *((const global READ_TYPE*)(c + Coffset + io_index));
+            for(int i = 0; i < RD_BLCK; ++i)
+            {
+                c_dat[i] *= beta;
+            }
+        }
+
         for(int bid = 0; bid < b_c; bid++)
         {
-#ifdef ALPHA1
-            int b_index          = bid * b_nstride + gid * RD_BLCK;
-            *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + Boffset + b_index));
-#endif
+            if(use_apl1 == 1)
+            {
+                int b_index          = bid * b_nstride + gid * RD_BLCK;
+                *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + Boffset + b_index));
+            }
             for(int i = 0; i < RD_BLCK; ++i)
             {
                 c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat[i] * alpha1);
             }
         }
-        *((global READ_TYPE*)(c + Coffset + c_index)) = *((READ_TYPE*)c_dat);
+        *((global READ_TYPE*)(c + Coffset + io_index)) = *((READ_TYPE*)c_dat);
     }
 }
 #endif
