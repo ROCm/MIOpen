@@ -26,7 +26,7 @@
 #ifndef CK_REDUCTION_COMMON_HPP
 #define CK_REDUCTION_COMMON_HPP
 
-#include "config.hpp"
+#include "float_type.hpp"
 
 // this enumerate should be synchronized with include/miopen/reduce_common.hpp
 namespace ck {

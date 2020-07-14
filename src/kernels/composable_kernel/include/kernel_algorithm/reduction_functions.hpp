@@ -26,7 +26,7 @@
 #ifndef CK_REDUCTION_FUNCTIONS_HPP
 #define CK_REDUCTION_FUNCTIONS_HPP
 
-#include <config.hpp>
+#include <float_type.hpp>
 
 #include "reduction_common.hpp"
 #include "reduction_operator.hpp"
@@ -37,14 +37,8 @@ namespace detail {
 template <typename T>
 __device__ bool IsNan(T x)
 {
-    // for float and double, use the builtin hip kernel functions
+    // for half_t, float and double, use the builtin hip/hcc/clang kernel functions
     return (isnan(x));
-};
-
-template <>
-__device__ bool IsNan<half>(half x)
-{
-    return (__hisnan(x));
 };
 
 template <ckNanPropagation_t nanPropaOpt, typename opReduce, typename compType>

@@ -16,7 +16,7 @@ struct get_type_from_type_id
 template <>
 struct get_type_from_type_id<'H'>
 {
-    using type = half;
+    using type = half_t;
 };
 
 template <>

@@ -112,15 +112,15 @@ struct Min
 };
 
 template <>
-__device__ half Max<half>::GetZeroVal()
+__device__ half_t Max<half_t>::GetZeroVal()
 {
-    return type_convert<half>{}(std::numeric_limits<float>::min());
+    return type_convert<half_t>{}(std::numeric_limits<float>::min());
 };
 
 template <>
-__device__ half Min<half>::GetZeroVal()
+__device__ half_t Min<half_t>::GetZeroVal()
 {
-    return type_convert<half>{}(std::numeric_limits<float>::max());
+    return type_convert<half_t>{}(std::numeric_limits<float>::max());
 };
 
 }; // end of namespace reduce
