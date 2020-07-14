@@ -93,6 +93,8 @@ ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context,
     if(!invoke_ctx)
         MIOPEN_THROW(
             "If we have valid buffer(s) then we shall stop allocating additional buffers.");
+#else
+    std::ignore = invoke_ctx;
 #endif
 
     auto& handle        = cba_context.GetStream();
