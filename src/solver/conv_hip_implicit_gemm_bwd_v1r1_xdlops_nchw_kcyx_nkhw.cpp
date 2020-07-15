@@ -658,24 +658,6 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsFastToBeUsedForTuning(
         }
     }
 
-    // GemmKPerBlock*GemmKPack should not be too small, otherwise read performance of A matrix would
-    // be bad
-    {
-        if(ctx.IsFp32())
-        {
-            if(GemmKPack > 4)
-                return false;
-
-            if(GemmKPerBlock * GemmKPack < 8)
-                return false;
-        }
-        else if(ctx.IsFp16() || ctx.IsBfp16())
-        {
-            if(GemmKPerBlock * GemmKPack < 16)
-                return false;
-        }
-    }
-
     return true;
 }
 
@@ -736,7 +718,7 @@ PerformanceImplicitGemmBwdV1R1Xdlops::CalculateLdsNumberOfByte(const Convolution
     return std::make_tuple(lds_size, true);
 }
 
-size_t ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
+std::size_t ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
     if(ctx.IsFp32())
         return 0;
