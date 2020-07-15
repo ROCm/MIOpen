@@ -55,10 +55,12 @@ std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
 std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<KernelInfo>& kernels)
 {
     std::vector<Program> programs(kernels.size());
-    par_for(kernels.size(), max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)}, [&](auto i) {
-        const KernelInfo& k = kernels[i];
-        programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
-    });
+    par_for(kernels.size(),
+            max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
+            [&](auto i) {
+                const KernelInfo& k = kernels[i];
+                programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
+            });
     return programs;
 }
 
