@@ -185,7 +185,13 @@ void OpTensor3d(const Handle& handle,
     size_t total_work = std::max(size_t(clens[2] / RD_BLCK), size_t(1));
     size_t grp_sz     = (total_work + local_threads - 1) / local_threads;
     grp_sz            = std::min(size_t(max_num_wg), grp_sz);
-    size_t gld_sz     = local_threads * grp_sz;
+    size_t glb_sz     = local_threads * grp_sz;
+
+    size_t local_threads2 = 64;
+    size_t total_work2    = clens[1];
+    size_t grp_sz2        = (total_work2 + local_threads2 - 1) / local_threads2;
+    grp_sz2               = std::min(size_t(max_num_wg / grp_sz), grp_sz2);
+    size_t glb_sz2        = local_threads2 * grp_sz2;
 
     visit_float(bTensorDesc.GetType(), [&](auto as_float) {
 
@@ -197,10 +203,9 @@ void OpTensor3d(const Handle& handle,
            (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2])
         {
 
-            network_config += std::to_string(clens[2]) + std::to_string(clens[1]) +
-                              std::to_string(float_equal(miopen_beta, 0.0)) +
-                              std::to_string(static_cast<int>(blens[1] == 1)) +
-                              std::to_string(max_num_wg);
+            network_config += std::to_string(RD_BLCK) + "x" + std::to_string(local_threads) + "x" +
+                              std::to_string(grp_sz) + std::to_string(local_threads2) +
+                              std::to_string(grp_sz2);
 
             auto&& kernels = handle.GetKernels("Op2dTensorLite", network_config);
 
@@ -220,7 +225,10 @@ void OpTensor3d(const Handle& handle,
                        long(Aoffset),
                        long(Boffset),
                        long(Coffset),
-                       int(clens[1]));
+                       long(total_work),
+                       long(total_work2),
+                       int(!float_equal(miopen_beta, 0.0)),
+                       int(blens[1] == 1));
 
                 return;
             }
@@ -314,26 +322,9 @@ void OpTensor3d(const Handle& handle,
            (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2])
         {
             parms += " -DUSE_2D_TENSOR_LITE";
+            parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
 
-            size_t MAP_RD = std::max(size_t(clens[2] / RD_BLCK), size_t(1));
-            parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" +
-                     std::to_string(MAP_RD) + " -DREAD_TYPE=" + READ_TYPE;
-
-            if(!float_equal(miopen_beta, 0.0))
-            {
-                parms += " -DBETA";
-            }
-
-            if(blens[1] == 1)
-            {
-                parms += " -DBIAS";
-            }
-
-            num_wg = clens[1];
-            num_wg = num_wg > max_num_wg ? max_num_wg : num_wg;
-            parms += " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
-
-            const std::vector<size_t> vgd1{MAP_RD, static_cast<size_t>(num_wg), 1};
+            const std::vector<size_t> vgd1{glb_sz, glb_sz2, 1};
 
             handle.AddKernel(
                 "Op2dTensorLite", network_config, program_name, "Op2dTensorLite", vld, vgd1, parms)(
@@ -349,14 +340,17 @@ void OpTensor3d(const Handle& handle,
                 long(Aoffset),
                 long(Boffset),
                 long(Coffset),
-                int(clens[1]));
+                long(total_work),
+                long(total_work2),
+                int(!float_equal(miopen_beta, 0.0)),
+                int(blens[1] == 1));
         }
         else if(blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2])
         {
             parms += " -DUSE_2D_TENSOR_SQUASH";
             parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
 
-            const std::vector<size_t> vgd1{gld_sz, 1, 1};
+            const std::vector<size_t> vgd1{glb_sz, 1, 1};
 
             handle.AddKernel("Op2dTensorSquash",
                              network_config,
@@ -533,9 +527,23 @@ void OpTensor4d(const Handle& handle,
     printf("equal_tensor: %d\n", bTensorDesc.GetElementSize() == cTensorDesc.GetElementSize());
 #endif
 
-    network_config += std::to_string(bTensorDesc.GetType()) +
-                      std::to_string(aTensorDesc.GetType()) + std::to_string(tensorOp) +
-                      std::to_string(global_threads) + std::to_string(local_threads);
+    // for naive tensor ops
+    const std::string data_type = GetDataType(bTensorDesc.GetType());
+
+    size_t TENS_LEN             = cTensorDesc.GetElementSize();
+    size_t RD_BLCK              = (TENS_LEN % 4 == 0) ? 4 : (TENS_LEN % 2 == 0) ? 2 : 1;
+    const std::string READ_TYPE = (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
+
+    size_t total_work = std::max(size_t(TENS_LEN / RD_BLCK), size_t(1));
+    size_t grp_sz     = (total_work + local_threads - 1) / local_threads;
+    grp_sz            = std::min(size_t(max_num_wg), grp_sz);
+    size_t glb_sz     = local_threads * grp_sz;
+
+    network_config +=
+        std::to_string(bTensorDesc.GetType()) + std::to_string(aTensorDesc.GetType()) +
+        std::to_string(tensorOp) +
+        ((fwd_conv_bias == 0 && packed_equal_tensor) ? "" : std::to_string(global_threads)) +
+        std::to_string(local_threads);
 
     visit_float(bTensorDesc.GetType(), [&](auto as_float) {
 
@@ -609,8 +617,7 @@ void OpTensor4d(const Handle& handle,
         // precede leading_ones for bitmap = 1,1,1,1
         else if(packed_equal_tensor)
         {
-            network_config += std::to_string(bTensorDesc.GetElementSize()) +
-                              std::to_string(float_equal(miopen_beta, 0.0));
+            network_config += "x" + std::to_string(grp_sz) + "x" + std::to_string(RD_BLCK);
             auto&& kernels = handle.GetKernels("Op4dTensorLite", network_config);
             if(!kernels.empty())
             {
@@ -623,13 +630,14 @@ void OpTensor4d(const Handle& handle,
                        miopen_beta,
                        long(Aoffset),
                        long(Boffset),
-                       long(Coffset));
+                       long(Coffset),
+                       long(total_work),
+                       int(!float_equal(miopen_beta, 0.0)));
                 return;
             }
         }
         else if(leading_ones)
         {
-            network_config += std::to_string(d - 1);
             if(packed_tensor)
             {
 
@@ -812,25 +820,9 @@ void OpTensor4d(const Handle& handle,
         else if(packed_equal_tensor)
         {
             parms += " -DUSE_4D_TENSOR_LITE";
-            // for naive tensor ops
-            const std::string data_type = GetDataType(bTensorDesc.GetType());
+            parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
 
-            size_t TENS_LEN = cTensorDesc.GetElementSize();
-            size_t RD_BLCK  = (TENS_LEN % 4 == 0) ? 4 : (TENS_LEN % 2 == 0) ? 2 : 1;
-            size_t MAP_RD   = std::max(size_t(TENS_LEN / RD_BLCK), size_t(1));
-
-            const std::string READ_TYPE =
-                (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
-
-            parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" +
-                     std::to_string(MAP_RD) + " -DREAD_TYPE=" + READ_TYPE;
-
-            if(!float_equal(miopen_beta, 0.0))
-            {
-                parms += " -DBETA";
-            }
-
-            const std::vector<size_t> vgd1{TENS_LEN / RD_BLCK, 1, 1};
+            const std::vector<size_t> vgd1{glb_sz, 1, 1};
 
             handle.AddKernel(
                 "Op4dTensorLite", network_config, program_name, "Op4dTensorLite", vld, vgd1, parms)(
@@ -842,11 +834,12 @@ void OpTensor4d(const Handle& handle,
                 miopen_beta,
                 long(Aoffset),
                 long(Boffset),
-                long(Coffset));
+                long(Coffset),
+                long(total_work),
+                int(!float_equal(miopen_beta, 0.0)));
         }
         else if(leading_ones)
         {
-            parms += " -DFIRST_NOT_ONE=" + std::to_string(d - 1);
             if(packed_tensor)
             {
                 parms += " -DUSE_LEADING_ONES";
