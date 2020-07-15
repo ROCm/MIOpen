@@ -26,6 +26,10 @@
 #ifndef GUARD_MIOPEN_KERN_DB_HPP_
 #define GUARD_MIOPEN_KERN_DB_HPP_
 
+#include <miopen/config.h>
+
+#if MIOPEN_ENABLE_SQLITE
+
 #include <miopen/sqlite_db.hpp>
 #include <miopen/bz2.hpp>
 #include <miopen/md5.hpp>
@@ -184,5 +188,5 @@ class KernDb : public SQLiteBase<KernDb>
     }
 };
 } // namespace miopen
-
+#endif
 #endif // GUARD_MIOPEN_KERN_DB_HPP_
