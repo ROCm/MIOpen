@@ -249,9 +249,9 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::IsValid(const ConvolutionConte
     // heuristic to reduce search space
     {
         // use largest XdlopsGemm
-        if(GemmMPerBlock >= 64 && GemmMPerWave != 64)
+        if(GemmMPerBlock >= 64 && GemmMPerWave < 64)
             return false;
-        if(GemmNPerBlock >= 64 && GemmNPerWave != 64)
+        if(GemmNPerBlock >= 64 && GemmNPerWave < 64)
             return false;
         if((GemmMPerBlock == 32 || GemmMPerBlock == 16) && GemmMPerWave != GemmMPerBlock)
             return false;
@@ -335,8 +335,8 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::IsValidValue() const
         IsTwoPower<4,128>(GemmMPerBlock)
         && IsTwoPower<16,128>(GemmNPerBlock)
         && IsTwoPower<4,16>(GemmKPerBlock)
-        && IsTwoPower<4,64>(GemmMPerWave)
-        && IsTwoPower<16,64>(GemmNPerWave);
+        && IsTwoPower<4,128>(GemmMPerWave)
+        && IsTwoPower<16,128>(GemmNPerWave);
     // clang-format on
 }
 
@@ -350,9 +350,9 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::SetNextValue()
             break;
         if(!NextTwoPower<4, 16>(GemmKPerBlock))
             break;
-        if(!NextTwoPower<4, 64>(GemmMPerWave))
+        if(!NextTwoPower<4, 128>(GemmMPerWave))
             break;
-        if(!NextTwoPower<16, 64>(GemmNPerWave))
+        if(!NextTwoPower<16, 128>(GemmNPerWave))
             break;
         return false;
     } while(false);
@@ -531,7 +531,6 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::GetSolution(
         std::string(" -DCK_USE_AMD_XDLOPS=") + (IsXdlopsSupport(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + (miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
-        std::string(" -D__HIP_PLATFORM_HCC__=1") +
         ctx.general_compile_options;
     // clang-format on
 
@@ -560,10 +559,10 @@ bool ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::IsApplicable(const ConvolutionCont
 {
     if(!(ctx.IsFp32()))
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.direction.IsForward())
         return false;
-
     if(!ctx.Is2d())
         return false;
 

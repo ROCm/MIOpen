@@ -39,7 +39,7 @@ ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path,
                                         const std::size_t /*num_cu*/)
 {
     static std::mutex mutex;
-    static const std::lock_guard<std::mutex> lock{mutex};
+    const std::lock_guard<std::mutex> lock{mutex};
 
     static auto instances = std::map<std::string, ReadonlyRamDb*>{};
     const auto it         = instances.find(path);
@@ -79,7 +79,9 @@ void ReadonlyRamDb::Prefetch(const std::string& path, bool warn_if_unreadable)
 
         if(!file)
         {
-            const auto log_level = warn_if_unreadable ? LoggingLevel::Warning : LoggingLevel::Info;
+            const auto log_level = (warn_if_unreadable && !MIOPEN_DISABLE_SYSDB)
+                                       ? LoggingLevel::Warning
+                                       : LoggingLevel::Info;
             MIOPEN_LOG(log_level, "File is unreadable: " << path);
             return;
         }

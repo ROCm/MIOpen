@@ -25,6 +25,10 @@
 *******************************************************************************/
 #pragma once
 
+#include <miopen/config.h>
+
+#if MIOPEN_ENABLE_SQLITE
+
 #include <miopen/db_record.hpp>
 #include <miopen/manage_ptr.hpp>
 #include <miopen/errors.hpp>
@@ -240,8 +244,13 @@ class SQLiteBase
             if(!is_system)
                 MIOPEN_THROW(miopenStatusInternalError, "Cannot open database file:" + filename_);
             else
-                MIOPEN_LOG_W("Unable to read system database file:" + filename_ +
-                             " Performance may degrade");
+            {
+                const auto log_level =
+                    (!MIOPEN_DISABLE_SYSDB) ? LoggingLevel::Warning : LoggingLevel::Info;
+                MIOPEN_LOG(log_level,
+                           "Unable to read system database file:" + filename_ +
+                               " Performance may degrade");
+            }
         }
         else
         {
@@ -327,16 +336,16 @@ Derived& SQLiteBase<Derived>::GetCached(const std::string& path,
                                         const size_t num_cu)
 {
     static std::mutex mutex;
-    static const std::lock_guard<std::mutex> lock{mutex};
+    std::lock_guard<std::mutex> lock{mutex};
 
-    static auto instances = std::map<std::string, Derived*>{};
+    static auto instances = std::map<std::string, Derived>{};
     const auto it         = instances.find(path);
 
     if(it != instances.end())
-        return *(it->second);
+        return it->second;
 
-    instances.emplace(path, new Derived{path, is_system, arch, num_cu}); // NOLINT
-    return *(instances.at(path));
+    instances.emplace(path, Derived{path, is_system, arch, num_cu});
+    return instances.at(path);
 }
 
 class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
@@ -562,3 +571,4 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
     }
 };
 } // namespace miopen
+#endif
