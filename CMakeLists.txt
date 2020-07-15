@@ -40,8 +40,6 @@ endif()
 
 project ( MIOpen C CXX )
 
-option( BUILD_SHARED_LIBS "Build as a shared library" ON )
-
 enable_testing()
 
 find_package(ROCM REQUIRED PATHS /opt/rocm)
@@ -62,9 +60,12 @@ if(MIOPEN_ENABLE_SQLITE)
     pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 endif()
 find_package(BZip2)
+if(MIOPEN_ENABLE_SQLITE_KERN_CACHE AND NOT MIOPEN_ENABLE_SQLITE)
+    message(FATAL_ERROR "MIOPEN_ENABLE_SQLITE_KERN_CACHE requires MIOPEN_ENABLE_SQLITE")
+endif()
+
 option( BUILD_DEV "Build for development only" OFF)
 
-set(MIOPEN_DISABLE_USERDB Off CACHE BOOL "Disable user database access")
 
 # Strip symbols for release
 if(NOT WIN32 AND NOT APPLE)
@@ -83,6 +84,9 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     endif()
 endif()
 
+
+
+
 ############################################################
 # require C++14
 add_compile_options(-std=c++14)
@@ -90,7 +94,7 @@ add_compile_options(-std=c++14)
 ############################################################
 # OPTION - MIOpen Backend
 # - OpenCL
-# - HCC
+# - HIP
 check_cxx_compiler_flag("--cuda-host-only -x hip" HAS_HIP)
 if(CMAKE_CXX_COMPILER MATCHES ".*hcc" OR CMAKE_CXX_COMPILER MATCHES ".*hipcc" OR HAS_HIP)
     set(MIOPEN_DEFAULT_BACKEND "HIP")
@@ -109,14 +113,27 @@ list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/h
 option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
 
-option(MIOPEN_USE_COMGR "When possible, use comgr to build kernels instead of offline tools" Off)
-option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
+
+# Embedded Build Configuration
+option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
+option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_EMBED_BUILD})
+option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
+option(MIOPEN_DISABLE_SYSDB  "Disable sys database access" ${MIOPEN_EMBED_BUILD})
+
+# MIOPEN_USE_HIP_KERNELS is a Workaround for COMgr issues
+if(MIOPEN_EMBED_BUILD)
+    option(BUILD_SHARED_LIBS "Build as a shared library" Off)
+    option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." Off)
+else()
+    option(BUILD_SHARED_LIBS "Build as a shared library" ON)
+    option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
+endif()
+
 
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
     OpenCL HIP HIPOC )
-
 
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
@@ -210,7 +227,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     endif()
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
-
+	
 # look for and register clang-offload-bundler
 if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+$")
     find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler

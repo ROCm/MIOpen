@@ -25,6 +25,10 @@
 *******************************************************************************/
 #pragma once
 
+#include <miopen/config.h>
+
+#if MIOPEN_ENABLE_SQLITE
+
 #include <miopen/db_record.hpp>
 #include <miopen/manage_ptr.hpp>
 #include <miopen/errors.hpp>
@@ -240,8 +244,13 @@ class SQLiteBase
             if(!is_system)
                 MIOPEN_THROW(miopenStatusInternalError, "Cannot open database file:" + filename_);
             else
-                MIOPEN_LOG_W("Unable to read system database file:" + filename_ +
-                             " Performance may degrade");
+            {
+                const auto log_level =
+                    (!MIOPEN_DISABLE_SYSDB) ? LoggingLevel::Warning : LoggingLevel::Info;
+                MIOPEN_LOG(log_level,
+                           "Unable to read system database file:" + filename_ +
+                               " Performance may degrade");
+            }
         }
         else
         {
@@ -562,3 +571,4 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
     }
 };
 } // namespace miopen
+#endif
