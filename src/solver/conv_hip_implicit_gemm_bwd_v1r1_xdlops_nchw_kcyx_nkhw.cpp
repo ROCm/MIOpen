@@ -718,7 +718,8 @@ PerformanceImplicitGemmBwdV1R1Xdlops::CalculateLdsNumberOfByte(const Convolution
     return std::make_tuple(lds_size, true);
 }
 
-std::size_t ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
+std::size_t 
+ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
     if(ctx.IsFp32())
         return 0;
