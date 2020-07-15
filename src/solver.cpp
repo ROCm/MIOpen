@@ -55,12 +55,10 @@ std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
 std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<KernelInfo>& kernels)
 {
     std::vector<Program> programs(kernels.size());
-    par_for(kernels.size(),
-            max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
-            [&](auto i) {
-                const KernelInfo& k = kernels[i];
-                programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
-            });
+    par_for(kernels.size(), max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)}, [&](auto i) {
+        const KernelInfo& k = kernels[i];
+        programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
+    });
     return programs;
 }
 
@@ -80,8 +78,20 @@ void PrecompileSolutions(const Handle& h, const std::vector<ConvSolution>& sols)
         }
     }
 
+#if MIOPEN_BUILD_DEV
+    auto compileStart = std::chrono::steady_clock::now();
+#endif
+
     // Precompile the kernels in parallel, but dont add them to the cache
     std::vector<Program> programs = PrecompileKernels(h, kernels);
+
+#if MIOPEN_BUILD_DEV
+    auto compileEnd = std::chrono::steady_clock::now();
+    auto timems = std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(compileEnd -
+                                                                                       compileStart)
+                      .count();
+    MIOPEN_LOG_I2("ConvSolution Compile Time: " << timems << " ms");
+#endif
 
     // Add programs to the cache
     for(std::size_t i = 0; i < programs.size(); i++)

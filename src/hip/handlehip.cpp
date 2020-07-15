@@ -371,8 +371,20 @@ Program Handle::LoadProgram(const std::string& program_name,
         this->GetDeviceName(), this->GetMaxComputeUnits(), program_name, params, is_kernel_str);
     if(hsaco.empty())
     {
+
+#if MIOPEN_BUILD_DEV
+        auto compileStart = std::chrono::steady_clock::now();
+#endif
         auto p =
             HIPOCProgram{program_name, params, is_kernel_str, this->GetDeviceName(), kernel_src};
+
+#if MIOPEN_BUILD_DEV
+        auto compileEnd = std::chrono::steady_clock::now();
+        auto timems     = std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(
+                          compileEnd - compileStart)
+                          .count();
+        MIOPEN_LOG_I2("Kernel " << program_name << " Compile Time: " << timems << " ms");
+#endif
 
 // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
