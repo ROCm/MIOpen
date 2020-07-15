@@ -112,9 +112,15 @@
 ; update v_out_flag for output
 .macro .v_out_set_flag v_out_flag, v_out_iho, v_out_iwo, s_ho, s_wo, s_tmp2
     ;   flag: 0<= * <wo
+    ;v_cmp_le_i32 vcc, 0, v[\v_out_iho]
+    ;v_cmp_gt_i32 s[\s_tmp2:\s_tmp2+1], s[\s_ho], v[\v_out_iho]
+    ;s_and_b64 vcc, vcc, s[\s_tmp2:\s_tmp2+1]
     v_cmp_gt_u32 vcc, s[\s_ho], v[\v_out_iho]
     v_cndmask_b32 v[\v_out_flag], 0, 1, vcc
     ;   flag: 0<= * <wo
+    ;v_cmp_le_i32 vcc, 0, v[\v_out_iwo]
+    ;v_cmp_gt_i32 s[\s_tmp2:\s_tmp2+1], s[\s_wo], v[\v_out_iwo]
+    ;s_and_b64 vcc, vcc, s[\s_tmp2:\s_tmp2+1]
     v_cmp_gt_u32 vcc, s[\s_wo], v[\v_out_iwo]
     v_cndmask_b32 v[\v_out_flag], 0, v[\v_out_flag], vcc
 .endm
@@ -122,9 +128,15 @@
 ; update v_in_flag
 .macro .v_in_set_flag v_in_flag, v_in_ihi, v_in_iwi, s_hi, s_wi, s_tmp2
     ;   flag: 0<= * <wi
+    ;v_cmp_le_i32 vcc, 0, v[\v_in_ihi]
+    ;v_cmp_gt_i32 s[\s_tmp2:\s_tmp2+1], s[\s_hi], v[\v_in_ihi]
+    ;s_and_b64 vcc, vcc, s[\s_tmp2:\s_tmp2+1]
     v_cmp_gt_u32 vcc, s[\s_hi], v[\v_in_ihi]
     v_cndmask_b32 v[\v_in_flag], 0, 1, vcc
     ;   flag: 0<= * <wi
+    ;v_cmp_le_i32 vcc, 0, v[\v_in_iwi]
+    ;v_cmp_gt_i32 s[\s_tmp2:\s_tmp2+1], s[\s_wi], v[\v_in_iwi]
+    ;s_and_b64 vcc, vcc, s[\s_tmp2:\s_tmp2+1]
     v_cmp_gt_u32 vcc, s[\s_wi], v[\v_in_iwi]
     v_cndmask_b32 v[\v_in_flag], 0, v[\v_in_flag], vcc
 .endm
@@ -296,6 +308,12 @@
     s_mov_b64 exec, -1
 
     ; dslice_h,dslice_y -> hip,  dslice_w,dslicw_x -> wip
+    ;s_mul_i32 s[\s_tmp2], s[\s_dtile_iy], s[\s_dilation_h]
+    ;v_mul_lo_u32 v[\v_tmp2], s[\s_stride_h], v[\v_in_dslice_h]
+    ;v_add_u32 v[\v_tmp2], s[\s_tmp2], v[\v_tmp2]
+    ;s_mul_i32 s[\s_tmp2+1], s[\s_dtile_ix], s[\s_dilation_w]
+    ;v_mul_lo_u32 v[\v_tmp2+1], s[\s_stride_w], v[\v_in_dslice_w]
+    ;v_add_u32 v[\v_tmp2+1], s[\s_tmp2+1], v[\v_tmp2+1]
     v_mad_u32_u24 v[\v_tmp2], s[\s_stride_h], v[\v_in_dslice_h], v[\v_dtile_iy_x_dilation_h]
     v_mad_u32_u24 v[\v_tmp2+1], s[\s_stride_w], v[\v_in_dslice_w], v[\v_dtile_ix_x_dilation_w]
     ; v_tmp2: hip, v_tmp2+1: wip
@@ -323,6 +341,12 @@
     v_add_u32 v[\v_in_in], s[\s_move_slice_in_in], v[\v_in_in]
 
     ; dslice_h,dslice_y -> hip,  dslice_w,dslicw_x -> wip
+    ; s_mul_i32 s[\s_tmp2], s[\s_dtile_iy], s[\s_dilation_h]
+    ; v_mul_lo_u32 v[\v_tmp2], s[\s_stride_h], v[\v_in_dslice_h]
+    ; v_add_u32 v[\v_tmp2], s[\s_tmp2], v[\v_tmp2]
+    ; s_mul_i32 s[\s_tmp2+1], s[\s_dtile_ix], s[\s_dilation_w]
+    ; v_mul_lo_u32 v[\v_tmp2+1], s[\s_stride_w], v[\v_in_dslice_w]
+    ; v_add_u32 v[\v_tmp2+1], s[\s_tmp2+1], v[\v_tmp2+1]
     v_mad_u32_u24 v[\v_tmp2], s[\s_stride_h], v[\v_in_dslice_h], v[\v_dtile_iy_x_dilation_h]
     v_mad_u32_u24 v[\v_tmp2+1], s[\s_stride_w], v[\v_in_dslice_w], v[\v_dtile_ix_x_dilation_w]
     ; v_tmp2: hip, v_tmp2+1: wip
