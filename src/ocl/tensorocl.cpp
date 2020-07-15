@@ -174,8 +174,8 @@ void OpTensor3d(const Handle& handle,
 
     std::string network_config{};
 
-    network_config = std::to_string(bTensorDesc.GetType()) + std::to_string(aTensorDesc.GetType()) +
-                     std::to_string(tensorOp);
+    network_config = std::to_string(bTensorDesc.GetType()) + "-" +
+                     std::to_string(aTensorDesc.GetType()) + "-" + std::to_string(tensorOp) + "-";
 
     // for naive tensor ops
     size_t RD_BLCK              = (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
@@ -266,8 +266,8 @@ void OpTensor3d(const Handle& handle,
         else
         {
 
-            network_config +=
-                std::to_string(max_num_wg) + std::to_string(local_threads) + std::to_string(num_wg);
+            network_config += std::to_string(max_num_wg) + "-" + std::to_string(local_threads) +
+                              "x" + std::to_string(num_wg);
 
             auto&& kernels = handle.GetKernels("Op3dTensorGeneric", network_config);
 
@@ -496,10 +496,6 @@ void OpTensor4d(const Handle& handle,
         local_threads = 64;
     }
 
-    std::string network_config{};
-
-    network_config += GetDataType(bTensorDesc.GetType()) + std::to_string(max_num_wg);
-
     std::string program_name = "MIOpenTensorKernels.cl";
 
     const std::vector<size_t> vld{local_threads, 1, 1};
@@ -539,10 +535,11 @@ void OpTensor4d(const Handle& handle,
     grp_sz            = std::min(size_t(max_num_wg), grp_sz);
     size_t glb_sz     = local_threads * grp_sz;
 
+    std::string network_config{};
     network_config +=
-        std::to_string(bTensorDesc.GetType()) + std::to_string(aTensorDesc.GetType()) +
-        std::to_string(tensorOp) +
-        ((fwd_conv_bias == 0 && packed_equal_tensor) ? "" : std::to_string(global_threads)) +
+        std::to_string(bTensorDesc.GetType()) + "-" + std::to_string(aTensorDesc.GetType()) + "-" +
+        std::to_string(tensorOp) + "-" + std::to_string(max_num_wg) + "-" +
+        ((fwd_conv_bias == 0 && packed_equal_tensor) ? "" : std::to_string(global_threads)) + "-" +
         std::to_string(local_threads);
 
     visit_float(bTensorDesc.GetType(), [&](auto as_float) {
@@ -1009,9 +1006,9 @@ void OpTensorOther(const Handle& handle,
     const std::vector<size_t> vgd{global_threads, 1, 1};
 
     std::string network_config{};
-    network_config += std::to_string(bTensorDesc.GetType()) +
-                      std::to_string(aTensorDesc.GetType()) + std::to_string(tensorOp) +
-                      std::to_string(global_threads) + std::to_string(local_threads);
+    network_config += std::to_string(bTensorDesc.GetType()) + "-" +
+                      std::to_string(aTensorDesc.GetType()) + "-" + std::to_string(tensorOp) + "-" +
+                      std::to_string(global_threads) + "-" + std::to_string(local_threads);
 
     visit_float(bTensorDesc.GetType(), [&](auto as_float) {
 
