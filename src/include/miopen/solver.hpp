@@ -42,6 +42,7 @@
 #include <vector>
 #include <ostream>
 #include <algorithm>
+#define CK_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM 1
 
 namespace miopen {
 
@@ -970,8 +971,15 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     int GemmKPack;
     bool GemmAThreadCopyMoreGemmK;
     bool GemmBThreadCopyMoreGemmKPack;
+#if CK_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM    
+    int GemmBThreadDataPerRead_GemmN;
+#endif    
 
+#if CK_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM
+    PerformanceImplicitGemmForwardV4R4Xdlops(int, int, int, int, int, int, bool, bool, int);
+#else
     PerformanceImplicitGemmForwardV4R4Xdlops(int, int, int, int, int, int, bool, bool);
+#endif
     PerformanceImplicitGemmForwardV4R4Xdlops();
     PerformanceImplicitGemmForwardV4R4Xdlops(bool) : PerformanceImplicitGemmForwardV4R4Xdlops() {}
 
@@ -986,6 +994,9 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
         f(self.GemmKPack, "GemmKPack");
         f(self.GemmAThreadCopyMoreGemmK, "GemmAThreadCopyMoreGemmK");
         f(self.GemmBThreadCopyMoreGemmKPack, "GemmBThreadCopyMoreGemmKPack");
+#if CK_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM
+        f(self.GemmBThreadDataPerRead_GemmN, "GemmBThreadDataPerRead_GemmN");
+#endif
     }
 
     bool operator==(const PerformanceImplicitGemmForwardV4R4Xdlops& other) const;
