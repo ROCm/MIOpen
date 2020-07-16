@@ -31,7 +31,7 @@
 #include "reduction_operator.hpp"
 #include "reduction_kernel_simple_configurator.hpp"
 
-#include "tuple_ext.hpp"
+#include "tensor_descriptor_helper.hpp"
 
 #include "gridwise_generic_2d_reduction_direct_threadwise.hpp"
 #include "gridwise_generic_2d_reduction_direct_warpwise.hpp"
