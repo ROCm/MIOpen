@@ -26,6 +26,7 @@
 #include "miopen/solver.hpp"
 #include "miopen/handle.hpp"
 #include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/conv/invokers/impl_gemm_dynamic.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include "implicitgemm_util.hpp"
@@ -38,14 +39,14 @@ GetImplicitGemmWrwV4R1DynamicTunables()
 {
     // clang-format off
     static const std::vector<PerformanceImplicitGemmWrwV4R1Dynamic> tunables = {
-        {  16, 128,  16,   2,   4,   4,   4,   4,   4,   4,  16,   1,  16,   1,   4,  64},
+        {  16, 128,  16,   2,   4,   4,   4,   4,   4,   4,  16,   1,  16,   1,   4,  64, 1},
         //{  16, 128,   8,   2,   4,   4,   4,   4,   4,   4,   8,   2,  16,   1,   2, 128},
         //{   8, 128,   8,   2,   4,   4,   4,   4,   4,   2,   8,   1,   8,   2,   2,  64},
         //{   8,  64,   8,   2,   4,   4,   4,   2,   2,   4,   8,   1,   8,   1,   4,  16},
         //{  16,  32,   4,   2,   4,   4,   1,   4,   4,   4,   4,   1,  16,   1,   4,  16},
         //{  16,  16,   4,   2,   2,   2,   2,   4,   2,   4,   4,   1,  16,   1,   4,  16},
         //{   8,  32,   4,   2,   2,   2,   2,   4,   4,   2,   4,   2,   8,   1,   4,  16},
-        {  16, 128,  16,   2,   4,   4,   4,   4,   4,   4,  16,   1,  16,   1,   16,  16}
+        {  16, 128,  16,   2,   4,   4,   4,   4,   4,   4,  16,   1,  16,   1,   16,  16, 1}
     };
     // clang-format on
     return tunables;
@@ -95,8 +96,8 @@ GetImplicitGemmWrwV4R1DynamicGridSize(const ConvolutionContext& ctx,
 
     const auto& n  = ctx.n_inputs;
     const auto& k  = ctx.n_outputs;
-    const auto& ho = ctx.y;
-    const auto& wo = ctx.x;
+    const auto& ho = ctx.kernel_size_h;
+    const auto& wo = ctx.kernel_size_w;
 
     const auto& b = (static_cast<std::size_t>(n) * ho * wo) / (static_cast<std::size_t>(N1) * N2);
     const auto& b_per_block = config.BPerBlock;
@@ -135,7 +136,7 @@ static inline int RunAndMeasureSolutionDynamicBase(miopen::Handle& profile_h,
             kernels.push_back(kernel);
         }
         float time =
-            conv::CallImplicitGemmWrwDynamic(profile_h, ctx, bot_buf, top_buf, wei_buf, kernels);
+            conv::CallImplicitGemmWrwDynamic(profile_h, ctx, bot_buf, top_buf, wei_buf, 1, kernels);
         elapsed_time += time;
     }
 #ifdef NDEBUG
@@ -389,6 +390,16 @@ PerformanceImplicitGemmWrwV4R1Dynamic::PerformanceImplicitGemmWrwV4R1Dynamic(
 
 size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
+    if (1){
+        int n = ctx.n_inputs;
+        int k = ctx.n_outputs;
+        int ho = ctx.kernel_size_h;
+        int wo = ctx.kernel_size_w;
+
+        return n * k * ho * wo * 32;
+    }
+    else
+        return 0;
     
 }
 
@@ -434,8 +445,8 @@ bool ConvAsmImplicitGemmV4R1DynamicWrw::IsValidPerformanceConfig(
 
 int ConvAsmImplicitGemmV4R1DynamicWrw::RunAndMeasureSolution(miopen::Handle& profile_h,
                                                              ConstData_t bot_buf,
-                                                             Data_t top_buf,
-                                                             ConstData_t wei_buf,
+                                                             ConstData_t top_buf,
+                                                             Data_t wei_buf,
                                                              ConstData_t bias_buf,
                                                              const ConvolutionContext& ctx,
                                                              const ConvSolution& solution,
@@ -452,14 +463,14 @@ PerformanceImplicitGemmWrwV4R1Dynamic
 ConvAsmImplicitGemmV4R1DynamicWrw::Search(const ConvolutionContext& context) const
 {
     // gridwise reduction needs workspace if GemmKGroups > 1
-    if(ctx.IsFp16() || ctx.IsBfp16())
-        return GenericSearchBwd(*this, ctx, SearchTweak::WorkspaceInsteadOfXBuffer);
+    if(1)
+        return GenericSearchWrW(*this, context, SearchTweak::WorkspaceInsteadOfWeightsBuffer);
     else
-        return GenericSearchBwd(*this, ctx);
+        return GenericSearchWrW(*this, context);
 }
 
-static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
-                                           const PerformanceImplicitGemmWrwV4R1Dynamic& config)
+ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmWrwV4R1Dynamic& config, bool) const
 {
     ConvSolution result;
 
@@ -492,15 +503,11 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
 
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
+    result.workspce_sz = GetWorkspaceSize(ctx);
+
     result.invoker_factory = conv::MakeImplGemmDynamicDataInvokerFactory(ctx);
     result.construction_params.push_back(kernel);
     return result;
-}
-
-ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceImplicitGemmWrwV4R1Dynamic& config, bool) const
-{
-    return GetSolutionBase(ctx, config);
 }
 
 

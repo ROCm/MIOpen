@@ -74,12 +74,12 @@ float CallImplicitGemmDynamic(const miopen::Handle& handle,
 }
 
 float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
-                              const ConvolutionContext& ctx,
-                              ConstData_t src,
-                              Data_t dst,
-                              ConstData_t wei,
-                              const int gemmk_groups,
-                              const std::vector<KernelInvoke>& kernels)
+                                 const ConvolutionContext& ctx,
+                                 ConstData_t src,
+                                 ConstData_t dst,
+                                 Data_t wei,
+                                 const int gemmk_groups,
+                                 const std::vector<KernelInvoke>& kernels)
 {
     float elapsed = 0.0f;
 

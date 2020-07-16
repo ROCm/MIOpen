@@ -1531,8 +1531,8 @@ struct ConvAsmImplicitGemmV4R1DynamicWrw : SolverBase<ConvolutionContext>
     PerformanceImplicitGemmWrwV4R1Dynamic Search(const ConvolutionContext&) const;
     int RunAndMeasureSolution(miopen::Handle& profile_h,
                               ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
+                              ConstData_t top_buf,
+                              Data_t wei_buf,
                               ConstData_t bias_buf,
                               const ConvolutionContext& ctx,
                               const ConvSolution& solution,
