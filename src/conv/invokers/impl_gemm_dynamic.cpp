@@ -127,7 +127,8 @@ float CallImplicitGemmDynamic(const miopen::Handle& handle,
             int dslice_h_left   = h_tilda_left;
             int dslice_w_left   = w_tilda_left;
             int __pack0     = 0;
-            // clang-format on
+// clang-format on
+#if 0
             MIOPEN_LOG_I2("hi:" << hi << ", wi:" << wi << ", n:" << n << ", k:" << k << ", c:" << c
                                 << ", ho:"
                                 << ho
@@ -169,8 +170,7 @@ float CallImplicitGemmDynamic(const miopen::Handle& handle,
                                 << h_tilda_slice
                                 << ", w_tilda_slice:"
                                 << w_tilda_slice);
-
-            MIOPEN_LOG_I2("dst:" << dst << ", wei:" << wei << ", src:" << src);
+#endif
 
             std::vector<OpKernelArg> opArgs;
             opArgs.emplace_back(dst);
@@ -284,9 +284,7 @@ InvokerFactory MakeImplGemmDynamicDataInvokerFactory(const ConvolutionContext& c
                                    std::back_inserter(ks),
                                    [&](const Kernel& k) { return handle.Run(k); });
                     float elapsed = 0;
-                    MIOPEN_LOG_I2("in:" << tensors.inDesc);
-                    MIOPEN_LOG_I2("w:" << tensors.wDesc);
-                    MIOPEN_LOG_I2("out:" << tensors.outDesc);
+
                     elapsed = CallImplicitGemmDynamic(
                         handle, ctx, tensors.in, tensors.out, tensors.w, ks);
 

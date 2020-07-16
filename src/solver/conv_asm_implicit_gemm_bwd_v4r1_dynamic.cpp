@@ -81,8 +81,6 @@ static inline bool FindImplicitGemmDynamicKernelBwd(const ConvolutionContext& ct
     int gemm_n = n * h_tilda_slice * w_tilda_slice;
     // int gemm_k; since k dimension is merged, we only check k
 
-    MIOPEN_LOG_I2("gemm_m:" << gemm_m << ",gemm_n:" << gemm_n);
-
     // TODO: this is too simple, need more kernels and more optimal logic to select kernel
     if((gemm_m % 128 == 0) && (gemm_n % 128 == 0) && (k % 16 == 0))
     {
