@@ -60,24 +60,9 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     if((stride_h >= dialation_h * (y - 1) + 1) &&
                        (stride_w >= dialation_w * (x - 1) + 1))
                     {
-                        // If padding exits at any side, needs to initialize with 0s.
-                        if(!miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }))
-                        {
-                            float zero = 0.f;
-                            SetTensor(handle, tensors.outDesc, tensors.out, &zero);
-                            if(handle.IsProfilingEnabled())
-                                elapsed += handle.GetKernelTime();
-
-                            kernel(tensors.in, tensors.w, tensors.out);
-                            if(handle.IsProfilingEnabled())
-                                elapsed += handle.GetKernelTime();
-                        }
-                        else
-                        {
-                            kernel(tensors.in, tensors.w, tensors.out);
-                            if(handle.IsProfilingEnabled())
-                                elapsed += handle.GetKernelTime();
-                        }
+                        kernel(tensors.in, tensors.w, tensors.out);
+                        if(handle.IsProfilingEnabled())
+                           elapsed += handle.GetKernelTime();
                     }
                     else
                     {
