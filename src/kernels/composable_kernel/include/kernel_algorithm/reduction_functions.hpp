@@ -41,11 +41,11 @@ __device__ bool IsNan(T x)
     return (isnan(x));
 };
 
-template <ckNanPropagation_t nanPropaOpt, typename opReduce, typename compType>
+template <NanPropagation_t nanPropaOpt, typename opReduce, typename compType>
 struct binop_with_nan_check;
 
 template <typename opReduce, typename compType>
-struct binop_with_nan_check<CK_NOT_PROPAGATE_NAN, opReduce, compType>
+struct binop_with_nan_check<NanPropagation_t::NOT_PROPAGATE_NAN, opReduce, compType>
 {
     __device__ static inline void calculate(const compType& accuVal, compType currVal)
     {
@@ -66,7 +66,7 @@ struct binop_with_nan_check<CK_NOT_PROPAGATE_NAN, opReduce, compType>
 };
 
 template <typename opReduce, typename compType>
-struct binop_with_nan_check<CK_PROPAGATE_NAN, opReduce, compType>
+struct binop_with_nan_check<NanPropagation_t::PROPAGATE_NAN, opReduce, compType>
 {
     __device__ static inline void calculate(compType& accuVal, compType currVal)
     {
@@ -101,7 +101,7 @@ struct binop_with_nan_check<CK_PROPAGATE_NAN, opReduce, compType>
 template <typename DataType,
           index_t ThreadBufferLen,
           typename opReduce,
-          ckNanPropagation_t nanPropaOpt>
+          NanPropagation_t nanPropaOpt>
 struct ThreadReduce
 {
     using compType = typename opReduce::dataType;
@@ -153,7 +153,7 @@ template <typename DataType,
           index_t BlockSize,
           index_t ThreadBufferLen,
           typename opReduce,
-          ckNanPropagation_t nanPropaOpt>
+          NanPropagation_t nanPropaOpt>
 struct WarpReduce
 {
     using compType = typename opReduce::dataType;
@@ -427,7 +427,7 @@ template <typename buffer2dDesc,
           typename DataType,
           bool blockIsOneRow,
           typename opReduce,
-          ckNanPropagation_t nanPropaOpt>
+          NanPropagation_t nanPropaOpt>
 struct BlockwiseReduction_2d_block_buffer
 {
     using compType = typename opReduce::dataType;

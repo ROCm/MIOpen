@@ -61,19 +61,19 @@ template <index_t BlkGroupSize,
           index_t GredAccessesPerThreadInWarp>
 struct GridwiseReduction
 {
-    static constexpr auto reduceImpl           = static_cast<ckReductionMethod_t>(reduceImpl_I);
-    static constexpr bool is_method_multiblock = (reduceImpl == Reduce_MultiBlock) ? true : false;
-    static constexpr auto op                   = static_cast<ckReduceTensorOp_t>(op_I);
-    static constexpr auto nanPropaOpt          = static_cast<ckNanPropagation_t>(nanPropaOpt_I);
-    static constexpr auto reduceIndicesOpt =
-        static_cast<ckReduceTensorIndices_t>(reduceIndicesOpt_I);
+    static constexpr auto reduceImpl = static_cast<ReductionMethod_t>(reduceImpl_I);
+    static constexpr bool is_method_multiblock =
+        (reduceImpl == ReductionMethod_t::MultiBlock) ? true : false;
+    static constexpr auto op               = static_cast<ReduceTensorOp_t>(op_I);
+    static constexpr auto nanPropaOpt      = static_cast<NanPropagation_t>(nanPropaOpt_I);
+    static constexpr auto reduceIndicesOpt = static_cast<ReduceTensorIndices_t>(reduceIndicesOpt_I);
 
-    template <ckReductionMethod_t impl, index_t callId>
+    template <ReductionMethod_t impl, index_t callId>
     struct GridwiseReduction_2d_wrapper;
 
     // wrapper for switching to the Reduce_DirectThreadWise method
     template <index_t callId>
-    struct GridwiseReduction_2d_wrapper<Reduce_DirectThreadWise, callId>
+    struct GridwiseReduction_2d_wrapper<ReductionMethod_t::DirectThreadWise, callId>
     {
         template <typename src2dDesc, typename dst1dDesc>
         __device__ static void Run(src2dDesc,
@@ -128,7 +128,7 @@ struct GridwiseReduction
 
     // wrapper for switching to the Reduce_DirectWarpdWise method
     template <index_t callId>
-    struct GridwiseReduction_2d_wrapper<Reduce_DirectWarpWise, callId>
+    struct GridwiseReduction_2d_wrapper<ReductionMethod_t::DirectWarpWise, callId>
     {
         template <typename src2dDesc, typename dst1dDesc>
         __device__ static void Run(src2dDesc,
@@ -184,7 +184,7 @@ struct GridwiseReduction
 
     // wrapper for switching to the Reduce_BlockWise method
     template <index_t callId>
-    struct GridwiseReduction_2d_wrapper<Reduce_BlockWise, callId>
+    struct GridwiseReduction_2d_wrapper<ReductionMethod_t::BlockWise, callId>
     {
         template <typename src2dDesc, typename dst1dDesc>
         __device__ static void Run(src2dDesc,
@@ -241,7 +241,7 @@ struct GridwiseReduction
 
     // wrapper for switching to the Reduce_MultiBlock method
     template <index_t callId>
-    struct GridwiseReduction_2d_wrapper<Reduce_MultiBlock, callId>
+    struct GridwiseReduction_2d_wrapper<ReductionMethod_t::MultiBlock, callId>
     {
         template <typename src2dDesc, typename dst1dDesc>
         __device__ static void Run(src2dDesc,
@@ -439,7 +439,7 @@ struct GridwiseReduction
                 : nullptr;
 
         static_if<is_method_multiblock>{}([&](auto) {
-            constexpr ckReductionMethod_t reduceImpl2 =
+            constexpr ReductionMethod_t reduceImpl2 =
                 ReduceKernelSimpleConfigurator<BlockSize, warpSize>::GetReductionMethod(
                     Number<invariantLength>{}, Number<toReduceLength>{});
 

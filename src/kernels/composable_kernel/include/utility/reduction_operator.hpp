@@ -125,11 +125,11 @@ __device__ half_t Min<half_t>::GetZeroVal()
 
 }; // end of namespace reduce
 
-template <typename T, ckReduceTensorOp_t op>
+template <typename T, ReduceTensorOp_t op>
 struct reduce_binary_operator;
 
 template <typename T>
-struct reduce_binary_operator<T, CK_REDUCE_TENSOR_ADD>
+struct reduce_binary_operator<T, ReduceTensorOp_t::ADD>
 {
     using opType   = reduce::Add<T>;
     using dataType = T;
@@ -140,7 +140,7 @@ struct reduce_binary_operator<T, CK_REDUCE_TENSOR_ADD>
 };
 
 template <typename T>
-struct reduce_binary_operator<T, CK_REDUCE_TENSOR_MUL>
+struct reduce_binary_operator<T, ReduceTensorOp_t::MUL>
 {
     using opType   = reduce::Mul<T>;
     using dataType = T;
@@ -151,7 +151,7 @@ struct reduce_binary_operator<T, CK_REDUCE_TENSOR_MUL>
 };
 
 template <typename T>
-struct reduce_binary_operator<T, CK_REDUCE_TENSOR_MIN>
+struct reduce_binary_operator<T, ReduceTensorOp_t::MIN>
 {
     using opType   = reduce::Min<T>;
     using dataType = T;
@@ -162,7 +162,7 @@ struct reduce_binary_operator<T, CK_REDUCE_TENSOR_MIN>
 };
 
 template <typename T>
-struct reduce_binary_operator<T, CK_REDUCE_TENSOR_MAX>
+struct reduce_binary_operator<T, ReduceTensorOp_t::MAX>
 {
     using opType   = reduce::Max<T>;
     using dataType = T;

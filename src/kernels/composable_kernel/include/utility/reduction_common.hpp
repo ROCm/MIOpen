@@ -30,41 +30,46 @@
 
 // this enumerate should be synchronized with include/miopen/reduce_common.hpp
 namespace ck {
-typedef enum {
-    Reduce_DirectThreadWise = 1,
-    Reduce_DirectWarpWise   = 2,
-    Reduce_BlockWise        = 3,
-    Reduce_MultiBlock       = 4
-} ckReductionMethod_t; // end of namespace ck
+enum class ReductionMethod_t
+{
+    DirectThreadWise = 1,
+    DirectWarpWise   = 2,
+    BlockWise        = 3,
+    MultiBlock       = 4
+}; // end of namespace ck
 
-typedef enum {
-    CK_REDUCE_TENSOR_ADD = 0,
-    CK_REDUCE_TENSOR_MUL = 1,
-    CK_REDUCE_TENSOR_MIN = 2,
-    CK_REDUCE_TENSOR_MAX = 3,
-    // CK_REDUCE_TENSOR_AMAX = 4,
-    // CK_REDUCE_TENSOR_AVG =  5,
-    // CK_REDUCE_TENSOR_NORM1 = 6,
-    // CK_REDUCE_TENSOR_NORM2 = 7,
-    // CK_REDUCE_TENSOR_MUL_NO_ZEROS = 8,
-} ckReduceTensorOp_t;
+enum class ReduceTensorOp_t
+{
+    ADD = 0,
+    MUL = 1,
+    MIN = 2,
+    MAX = 3,
+    // AMAX = 4,
+    // AVG =  5,
+    // NORM1 = 6,
+    // NORM2 = 7,
+    // MUL_NO_ZEROS = 8,
+};
 
-typedef enum {
-    CK_NOT_PROPAGATE_NAN = 0,
-    CK_PROPAGATE_NAN     = 1,
-} ckNanPropagation_t;
+enum class NanPropagation_t
+{
+    NOT_PROPAGATE_NAN = 0,
+    PROPAGATE_NAN     = 1,
+};
 
-typedef enum {
-    CK_REDUCE_TENSOR_NO_INDICES        = 0,
-    CK_REDUCE_TENSOR_FLATTENED_INDICES = 1,
-} ckReduceTensorIndices_t;
+enum class ReduceTensorIndices_t
+{
+    NO_INDICES        = 0,
+    FLATTENED_INDICES = 1,
+};
 
-typedef enum {
-    CK_32BIT_INDICES = 0,
-    CK_64BIT_INDICES = 1,
-    CK_16BIT_INDICES = 2,
-    CK_8BIT_INDICES  = 3,
-} ckIndicesType_t;
+enum class IndicesType_t
+{
+    INDICES_32BIT = 0,
+    INDICES_64BIT = 1,
+    INDICES_16BIT = 2,
+    INDICES_8BIT  = 3,
+};
 
 struct float_equal
 {

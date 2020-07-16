@@ -42,16 +42,16 @@ template <index_t BlockSize,
           typename src2dDesc,
           typename dst1dDesc,
           typename compType,
-          ckReduceTensorOp_t op,
-          ckNanPropagation_t nanPropaOpt,
-          ckReduceTensorIndices_t reduceIndicesOpt,
+          ReduceTensorOp_t op,
+          NanPropagation_t nanPropaOpt,
+          ReduceTensorIndices_t reduceIndicesOpt,
           index_t blkGroupSize, // The number of blocks for doing each reduction
           index_t GredAccessesPerThreadInBlock>
 struct GridwiseReduction_xy_to_x_multiblock
 {
     static constexpr bool indexable = reduce_binary_operator<compType, op>::indexable;
     static constexpr bool need_indices =
-        indexable && (reduceIndicesOpt != CK_REDUCE_TENSOR_NO_INDICES);
+        indexable && (reduceIndicesOpt != ReduceTensorIndices_t::NO_INDICES);
 
     using opReduce = typename reduce_binary_operator<compType, op>::opType;
 

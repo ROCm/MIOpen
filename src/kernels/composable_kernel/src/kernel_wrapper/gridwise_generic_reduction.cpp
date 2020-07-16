@@ -34,31 +34,31 @@ struct get_type_from_type_id<'D'>
 template <index_t persistentID>
 struct get_reduce_op // any other ID
 {
-    static constexpr ckReduceTensorOp_t op = CK_REDUCE_TENSOR_ADD;
+    static constexpr ReduceTensorOp_t op = ReduceTensorOp_t::ADD;
 };
 
 template <>
 struct get_reduce_op<656868> // 'A' * 10000 + 'D' * 100 + 'D'
 {
-    static constexpr ckReduceTensorOp_t op = CK_REDUCE_TENSOR_ADD;
+    static constexpr ReduceTensorOp_t op = ReduceTensorOp_t::ADD;
 };
 
 template <>
 struct get_reduce_op<778576> // 'M' * 10000 + 'U' * 100 + 'L'
 {
-    static constexpr ckReduceTensorOp_t op = CK_REDUCE_TENSOR_MUL;
+    static constexpr ReduceTensorOp_t op = ReduceTensorOp_t::MUL;
 };
 
 template <>
 struct get_reduce_op<777378> // 'M' * 10000 + 'I' * 100 + 'N'
 {
-    static constexpr ckReduceTensorOp_t op = CK_REDUCE_TENSOR_MIN;
+    static constexpr ReduceTensorOp_t op = ReduceTensorOp_t::MIN;
 };
 
 template <>
 struct get_reduce_op<776588> // 'M' * 10000 + 'A' * 100 + 'X'
 {
-    static constexpr ckReduceTensorOp_t op = CK_REDUCE_TENSOR_MAX;
+    static constexpr ReduceTensorOp_t op = ReduceTensorOp_t::MAX;
 };
 
 using srcDataType = typename get_type_from_type_id<static_cast<char>(CK_PARAM_SRC_DATATYPE)>::type;
@@ -77,12 +77,14 @@ using dstStrides = Sequence<CK_PARAM_DST_DESC_STRIDES>;
 using toReduceDims  = Sequence<CK_PARAM_TOREDUCE_DIMS>;
 using invariantDims = Sequence<CK_PARAM_INVARIANT_DIMS>;
 
-constexpr ckReduceTensorOp_t op          = get_reduce_op<CK_PARAM_REDUCE_OP>::op;
-constexpr ckReductionMethod_t reduceImpl = static_cast<ckReductionMethod_t>(CK_PARAM_REDUCE_IMPL);
-constexpr ckNanPropagation_t nanPropaOpt =
-    CK_PARAM_NAN_PROPAGATE == 0 ? CK_NOT_PROPAGATE_NAN : CK_PROPAGATE_NAN;
-constexpr ckReduceTensorIndices_t reduceIndicesOpt =
-    CK_PARAM_REDUCE_INDICES == 0 ? CK_REDUCE_TENSOR_NO_INDICES : CK_REDUCE_TENSOR_FLATTENED_INDICES;
+constexpr ReduceTensorOp_t op          = get_reduce_op<CK_PARAM_REDUCE_OP>::op;
+constexpr ReductionMethod_t reduceImpl = static_cast<ReductionMethod_t>(CK_PARAM_REDUCE_IMPL);
+constexpr NanPropagation_t nanPropaOpt = CK_PARAM_NAN_PROPAGATE == 0
+                                             ? NanPropagation_t::NOT_PROPAGATE_NAN
+                                             : NanPropagation_t::PROPAGATE_NAN;
+constexpr ReduceTensorIndices_t reduceIndicesOpt = CK_PARAM_REDUCE_INDICES == 0
+                                                       ? ReduceTensorIndices_t::NO_INDICES
+                                                       : ReduceTensorIndices_t::FLATTENED_INDICES;
 
 constexpr index_t GredThreadBufferLength       = CK_PARAM_THREAD_BUFFER_LENGTH;        // tunable
 constexpr index_t GredAccessesPerThreadInBlock = CK_PARAM_ACCESSES_PER_THREAD_INBLOCK; // tunable
