@@ -169,7 +169,12 @@ MIOpen provides a set of Find modes which are used to accelerate the Find calls.
 - `HYBRID`, or `3`: Hybrid Find: Checks the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html) for an entry. If there is a Find-Db hit, use that entry. If there is a miss, use the existing Find machinery. Slower start-up times than Fast Find, but no GPU performance drop.
 - `OPTIMIZED_HYBRID`, or `4`, or unset `MIOPEN_FIND_MODE`: Optimized hybrid Find: Checks the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html) for an entry. If there is a Find-Db hit, use that entry. If there is a miss, use the existing Find machinery with skipping slow-compiling kernels. Faster start-up times than Hybrid Find, may have GPU performance drop.
 
- As of MIOpen 2.4, the default mode is set to `OPTIMIZED_HYBRID` mode as default. To run the full `NORMAL` Find mode, set the environment as:
+ As of MIOpen 2.6, the default mode is set to `OPTIMIZED_HYBRID` mode as default. To run the full `NORMAL` Find mode, set the environment as:
  ```
  export MIOPEN_FIND_MODE=NORMAL
  ```
+ Or,
+ ```
+  export MIOPEN_FIND_MODE=1
+ ```
+ 
