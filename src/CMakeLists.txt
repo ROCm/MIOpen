@@ -662,8 +662,9 @@ endif()
 
 
 # Install db files
-install(FILES
-        ${DB_FILES}
- DESTINATION ${DATA_INSTALL_DIR}/db)
-
+if(NOT MIOPEN_DISABLE_SYSDB)
+  install(FILES
+          ${DB_FILES}
+   DESTINATION ${DATA_INSTALL_DIR}/db)
+endif()
 rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})
