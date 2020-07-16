@@ -33,339 +33,83 @@
 namespace miopen {
 namespace solver {
 
-static inline const std::vector<PerformanceImplicitGemmBwdDataV4R1Dynamic>&
-GetImplicitGemmV4R1DynamicTunables()
-{
+static inline bool FindImplicitGemmDynamicKernelBwd(const ConvolutionContext& ctx, std::string & kernel_name, int & block_size, int & grid_size){
+    // TODO: add more dynamic kernel to expand support range, and update this function
     // clang-format off
-    static const std::vector<PerformanceImplicitGemmBwdDataV4R1Dynamic> tunables = {
-        {  16, 128,  16,   2,   4,   4,   4,   4,   4,   4,  16,   1,  16,   1,   4,  64},
-    };
+    // refer to ConvolutionContextInterpreter, in bwd most dimension is reversed
+    int hi          = ctx.out_height;
+    int wi          = ctx.out_width;
+    int n           = ctx.batch_sz;
+    int k           = ctx.n_inputs;
+    int c           = ctx.n_outputs;
+    int ho          = ctx.in_height;
+    int wo          = ctx.in_width;
+    int stride_h    = ctx.in_height > 1 ? ctx.kernel_stride_h : 1;
+    int stride_w    = ctx.in_width > 1 ? ctx.kernel_stride_w : 1;
+    int dilation_h  = ctx.kernel_size_h > 1? ctx.kernel_dilation_h : 1;
+    int dilation_w  = ctx.kernel_size_w > 1? ctx.kernel_dilation_w : 1;
+    int pad_h       = ctx.pad_h;
+    int pad_w       = ctx.pad_w;
+    int y           = ctx.kernel_size_h;
+    int x           = ctx.kernel_size_w;
+
+    int gcd_stride_dilation_h = conv::igemm_dynamic::gcd(stride_h, dilation_h);
+    int gcd_stride_dilation_w = conv::igemm_dynamic::gcd(stride_w, dilation_w);
+    int y_tilda     = stride_h / gcd_stride_dilation_h;
+    int x_tilda     = stride_w / gcd_stride_dilation_w;
+
+    //int y_dot = (y +  y_tilda - 1) / y_tilda;
+    //int x_dot = (x +  x_tilda - 1) / x_tilda;
+
+    int h_tilda     = ho + (dilation_h * (y - 1) + stride_h - 1) / stride_h;
+    int w_tilda     = wo + (dilation_w * (x - 1) + stride_w - 1) / stride_w;
+
+    int h_tilda_left = conv::igemm_dynamic::max(0, pad_h - dilation_h * (y_tilda - 1)) / stride_h;
+    int w_tilda_left = conv::igemm_dynamic::max(0, pad_w - dilation_w * (x_tilda - 1)) / stride_w;
+
+    int h_tilda_right = conv::igemm_dynamic::min(h_tilda, (pad_h + hi - 1 + stride_h - 1) / stride_h + 1);
+    int w_tilda_right = conv::igemm_dynamic::min(w_tilda, (pad_w + wi - 1 + stride_w - 1) / stride_w + 1);
+
+    int h_tilda_slice = h_tilda_right - h_tilda_left;
+    int w_tilda_slice = w_tilda_right - w_tilda_left;
     // clang-format on
-    return tunables;
-}
+    int gemm_m = c;
+    int gemm_n = n * h_tilda_slice * w_tilda_slice;
+    // int gemm_k; since k dimension is merged, we only check k
 
-using AsmImplicitGemmKernelV4R1Bwd_t = enum {
-    AsmImplicitGemmV4R1     = 0,
-    AsmImplicitGemmV4R1_1x1 = 1,
-};
+    MIOPEN_LOG_I2("gemm_m:" <<gemm_m << ",gemm_n:" << gemm_n);
 
-static inline std::string
-GetKernelNameImplicitGemmV4R1BwdDynamic(const PerformanceImplicitGemmBwdDataV4R1Dynamic& config,
-                                     AsmImplicitGemmKernelV4R1Bwd_t kernel_type)
-{
-    // TODO: add tunable
-    return std::string("igemm_v4r1_bwd_dynamic");
-}
-
-static inline int
-GetImplicitGemmV4R1DynamicBlockSize(const PerformanceImplicitGemmBwdDataV4R1Dynamic& config)
-{
-    return config.GemmMLevel0Cluster * config.GemmNLevel0Cluster * config.GemmMLevel1Cluster *
-           config.GemmNLevel1Cluster;
-}
-
-static inline int
-GetImplicitGemmV4R1DynamicGridSize(const ConvolutionContext& ctx,
-                                   const PerformanceImplicitGemmBwdDataV4R1Dynamic& config)
-{
-    const auto& N1 = config.GemmNRepeat;
-    const auto& N2 = config.GemmNPerThreadSubC;
-
-    const auto& n  = ctx.batch_sz;
-    const auto& k  = ctx.n_outputs;
-    const auto& ho = ctx.out_height;
-    const auto& wo = ctx.out_width;
-
-    const auto& b = (static_cast<std::size_t>(n) * ho * wo) / (static_cast<std::size_t>(N1) * N2);
-    const auto& b_per_block = config.BPerBlock;
-    const auto& k_per_block = config.KPerBlock;
-
-    return (b / b_per_block) * (k / k_per_block); // NOLINT
-}
-
-// Remove This function when invoker is fully re-factored
-template <typename BotBufType, typename TopBufType, typename WeiBufType>
-static inline int RunAndMeasureSolutionDynamicBase(miopen::Handle& profile_h,
-                                                   BotBufType bot_buf,
-                                                   TopBufType top_buf,
-                                                   WeiBufType wei_buf,
-                                                   const ConvolutionContext& ctx,
-                                                   const ConvSolution& solution,
-                                                   float& elapsed_time)
-{
-
-#ifdef NDEBUG
-    try
-#endif
-    {
-        elapsed_time = float(0);
-        std::vector<KernelInvoke> kernels;
-
-        for(auto& k_info : solution.construction_params)
-        {
-            auto kernel = profile_h.AddKernel("",
-                                              "",
-                                              k_info.kernel_file,
-                                              k_info.kernel_name,
-                                              k_info.l_wk,
-                                              k_info.g_wk,
-                                              k_info.comp_options);
-            kernels.push_back(kernel);
+    // TODO: this is too simple, need more kernels and more optimal logic to select kernel
+    if((gemm_m % 128 == 0) && (gemm_n % 128 == 0) && (k % 16 == 0)){
+        if((y == 1) && (x == 1) && (stride_h == 1) && (stride_w == 1) && (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0) && (n % 128 == 0)){
+            grid_size = (gemm_m >> 7) * (gemm_n >> 7);
+            block_size = 256;
+            kernel_name = "igemm_bwd_gtc_bt128x128x16_tt8x8_gm2x4x4_gn2x4x4_ta1x1x1x2x4_16x1x1x16x1_tb1x1x1x2x4x1x1_16x1x1x16x1x1x1";
+            return true;
+        }else{
+            grid_size = (gemm_m >> 7) * (gemm_n >> 7);
+            block_size = 256;
+            kernel_name = "igemm_bwd_gtc";
+            return true;
         }
-        float time =
-            conv::CallImplicitGemmDynamic(profile_h, ctx, bot_buf, top_buf, wei_buf, kernels);
-        elapsed_time += time;
+    }else{
+        if((y == 1) && (x == 1) && (stride_h == 1) && (stride_w == 1) && (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0)){
+            if((gemm_m % 128 == 0) && (gemm_n % 128 == 0) && (k % 8 == 0) && ((ho * wo) % 16 == 0)){
+                grid_size = (gemm_m >> 7) * (gemm_n >> 7);
+                block_size = 256;
+                kernel_name = "igemm_bwd_gtc_bt128x128x8_tt8x8_gm2x4x4_gn2x4x4_ta1x1x1x1x4_8x1x1x32x1_tb1x1x1x1x4x1x1_8x1x1x2x1x1x16";
+                return true;
+            } else if((gemm_m % 64 == 0) && (gemm_n % 64 == 0) && (k % 8 == 0) && (n % 64 == 0)){
+                grid_size = (gemm_m >> 6) * (gemm_n >> 6);
+                block_size = 64;
+                kernel_name = "igemm_bwd_gtc_bt64x64x8_tt8x8_gm2x4x2_gn2x4x2_ta1x2x1x1x4_4x1x1x16x1_tb1x2x1x1x4x1x1_4x1x1x16x1x1x1";
+                return true;
+            }
+        }else{
+            // TODO: add here!
+        }
     }
-#ifdef NDEBUG
-    catch(miopen::Exception& ex)
-    {
-        MIOPEN_LOG_WE(ex.what());
-        return -1;
-    }
-#endif
-    return 0;
-}
-
-bool PerformanceImplicitGemmBwdDataV4R1Dynamic::
-operator==(const PerformanceImplicitGemmBwdDataV4R1Dynamic& other) const
-{
-    // clang-format off
-    return BPerBlock == other.BPerBlock
-        && KPerBlock == other.KPerBlock
-        && EPerBlock == other.EPerBlock
-        && GemmNRepeat == other.GemmNRepeat
-        && GemmMPerThreadSubC == other.GemmMPerThreadSubC
-        && GemmNPerThreadSubC == other.GemmNPerThreadSubC
-        && GemmMLevel0Cluster == other.GemmMLevel0Cluster
-        && GemmNLevel0Cluster == other.GemmNLevel0Cluster
-        && GemmMLevel1Cluster == other.GemmMLevel1Cluster
-        && GemmNLevel1Cluster == other.GemmNLevel1Cluster
-        && InBlockCopyClusterLengths_E == other.InBlockCopyClusterLengths_E
-        && InBlockCopyClusterLengths_B == other.InBlockCopyClusterLengths_B
-        && InBlockCopyClusterLengths_N1 == other.InBlockCopyClusterLengths_N1
-        && InBlockCopyClusterLengths_N2 == other.InBlockCopyClusterLengths_N2
-        && WeiBlockCopyClusterLengths_E == other.WeiBlockCopyClusterLengths_E
-        && WeiBlockCopyClusterLengths_K == other.WeiBlockCopyClusterLengths_K;
-    // clang-format on
-}
-
-bool PerformanceImplicitGemmBwdDataV4R1Dynamic::IsValid(const ConvolutionContext& ctx) const
-{
-    std::size_t N = KernelBatchN(ctx);
-    std::size_t K = KernelOutputChannelK(ctx);
-    std::size_t C = KernelInputChannelC(ctx);
-
-    std::size_t Ho = KernelOutputHeightHo(ctx);
-    std::size_t Wo = KernelOutputWidthWo(ctx);
-
-    std::size_t Y = KernelFilterHeightY(ctx);
-    std::size_t X = KernelFilterWidthX(ctx);
-
-    const int N1 = GemmNRepeat;
-    const int N2 = GemmNPerThreadSubC;
-    if(N % (N1 * N2) != 0)
-        return false; // wrong! cannot divice N evenly among thread
-
-    const auto N0 = N / (N1 * N2);
-
-    const auto B = N0 * Ho * Wo;
-
-    const auto nonVectorizedC = C / GetEPackLength(ctx, false);
-    const auto E              = nonVectorizedC * Y * X;
-
-    if(!(EPerBlock % InBlockCopyClusterLengths_E == 0 &&
-         EPerBlock % WeiBlockCopyClusterLengths_E == 0 &&
-         BPerBlock % InBlockCopyClusterLengths_B == 0 &&
-         KPerBlock % WeiBlockCopyClusterLengths_K == 0 && N1 % InBlockCopyClusterLengths_N1 == 0 &&
-         N2 % InBlockCopyClusterLengths_N2 == 0))
-        return false;
-
-    // divide block work by [K, B]
-    if(!(K % KPerBlock == 0 && B % BPerBlock == 0 && E % EPerBlock == 0))
-        return false; // wrong! cannot divice N evenly among thread
-
-    const auto KBlockWork = K / KPerBlock;
-    if(KBlockWork % ctx.group_counts != 0)
-        return false;
-
-    if((N1 * N2 * BPerBlock) % (GemmNPerThreadSubC * GemmNLevel0Cluster * GemmNLevel1Cluster) != 0)
-        return false;
-
-    // fp16/bfp16: doesn't support asymmetric matrix mul
-    if((ctx.IsFp16() || ctx.IsBfp16()) && GemmNPerThreadSubC != GemmMPerThreadSubC)
-        return false;
-
-    // sanity check
-    if((KPerBlock % (GemmMPerThreadSubC * GemmMLevel0Cluster * GemmMLevel1Cluster)) != 0)
-        return false;
-
-    if(GemmNRepeat !=
-       (N1 * N2 * BPerBlock) / (GemmNPerThreadSubC * GemmNLevel0Cluster * GemmNLevel1Cluster))
-        return false;
-
-    const int ThreadPerLevel1Cluster =
-        GemmMLevel0Cluster * GemmNLevel0Cluster * GemmMLevel1Cluster * GemmNLevel1Cluster;
-
-    const int block_size = ThreadPerLevel1Cluster;
-
-    if(block_size < 64 || block_size > 512)
-        return false;
-
-    if(block_size !=
-       InBlockCopyClusterLengths_E * InBlockCopyClusterLengths_N1 * InBlockCopyClusterLengths_B *
-           InBlockCopyClusterLengths_N2)
-        return false;
-
-    if(block_size != WeiBlockCopyClusterLengths_K * WeiBlockCopyClusterLengths_E)
-        return false;
-
-    const int GemmMRepeat =
-        KPerBlock / (GemmMPerThreadSubC * GemmMLevel0Cluster * GemmMLevel1Cluster);
-
-    if(!(GemmMRepeat == 2 && GemmNRepeat == 2))
-        return false;
-
-    const int InBlockCopySubLengths_E  = EPerBlock / InBlockCopyClusterLengths_E;
-    const int InBlockCopySubLengths_B  = BPerBlock / InBlockCopyClusterLengths_B;
-    const int WeiBlockCopySubLengths_K = KPerBlock / WeiBlockCopyClusterLengths_K;
-
-    const std::size_t lds_size = ComputeLDSRequiredSize(ctx,
-                                                        BPerBlock,
-                                                        KPerBlock,
-                                                        EPerBlock,
-                                                        GemmMPerThreadSubC,
-                                                        GemmNPerThreadSubC,
-                                                        InBlockCopySubLengths_B,
-                                                        WeiBlockCopySubLengths_K,
-                                                        GetEPackLength(ctx, false));
-
-    if(lds_size > 64 * 1024)
-        return false;
-
-    return (InBlockCopySubLengths_E == 1 && InBlockCopySubLengths_B == 1);
-}
-
-void PerformanceImplicitGemmBwdDataV4R1Dynamic::EuristicInit(const ConvolutionContext& config)
-{
-    auto tunables = GetImplicitGemmV4R1DynamicTunables();
-    auto it       = std::find_if(
-        tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(config); });
-
-    if(it == tunables.end())
-    {
-        MIOPEN_LOG_E("All attempts failed");
-        assert(false);
-    }
-
-    Copy(*it);
-}
-
-bool PerformanceImplicitGemmBwdDataV4R1Dynamic::IsValidValue() const
-{
-    // clang-format off
-    return IsTwoPower<8,16>(BPerBlock)
-        && IsTwoPower<16,128>(KPerBlock)
-        && IsTwoPower<4,16>(EPerBlock)
-        && GemmNRepeat == 2
-        && IsTwoPower<2,4>(GemmMPerThreadSubC)
-        && IsTwoPower<2,4>(GemmNPerThreadSubC)
-        && IsTwoPower<1,4>(GemmMLevel0Cluster)
-        && IsTwoPower<1,4>(GemmNLevel0Cluster)
-        && IsTwoPower<1,4>(GemmMLevel1Cluster)
-        && IsTwoPower<1,4>(GemmNLevel1Cluster)
-        && IsTwoPower<4,16>(InBlockCopyClusterLengths_E)
-        && IsTwoPower<8,16>(InBlockCopyClusterLengths_B)
-        && IsTwoPower<1,2>(InBlockCopyClusterLengths_N1)
-        && IsTwoPower<1,4>(InBlockCopyClusterLengths_N2)
-        && IsTwoPower<1,4>(WeiBlockCopyClusterLengths_E)
-        && IsTwoPower<16,128>(WeiBlockCopyClusterLengths_K); // clang-format on
-}
-
-void PerformanceImplicitGemmBwdDataV4R1Dynamic::Copy(const PerformanceImplicitGemmBwdDataV4R1Dynamic& other)
-{
-    BPerBlock                    = other.BPerBlock;
-    KPerBlock                    = other.KPerBlock;
-    EPerBlock                    = other.EPerBlock;
-    GemmNRepeat                  = other.GemmNRepeat;
-    GemmMPerThreadSubC           = other.GemmMPerThreadSubC;
-    GemmNPerThreadSubC           = other.GemmNPerThreadSubC;
-    GemmMLevel0Cluster           = other.GemmMLevel0Cluster;
-    GemmNLevel0Cluster           = other.GemmNLevel0Cluster;
-    GemmMLevel1Cluster           = other.GemmMLevel1Cluster;
-    GemmNLevel1Cluster           = other.GemmNLevel1Cluster;
-    InBlockCopyClusterLengths_E  = other.InBlockCopyClusterLengths_E;
-    InBlockCopyClusterLengths_N1 = other.InBlockCopyClusterLengths_N1;
-    InBlockCopyClusterLengths_B  = other.InBlockCopyClusterLengths_B;
-    InBlockCopyClusterLengths_N2 = other.InBlockCopyClusterLengths_N2;
-    WeiBlockCopyClusterLengths_E = other.WeiBlockCopyClusterLengths_E;
-    WeiBlockCopyClusterLengths_K = other.WeiBlockCopyClusterLengths_K;
-}
-
-bool PerformanceImplicitGemmBwdDataV4R1Dynamic::SetNextValue()
-{
-    do
-    {
-        size_t total_kernels = GetImplicitGemmV4R1DynamicTunables().size();
-        PreGeneratedKernelIndex++;
-        if(PreGeneratedKernelIndex >= total_kernels)
-            return false;
-        Copy(GetImplicitGemmV4R1DynamicTunables()[PreGeneratedKernelIndex]);
-    } while(false);
-
-    return true;
-}
-
-std::string PerformanceImplicitGemmBwdDataV4R1Dynamic::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
-PerformanceImplicitGemmBwdDataV4R1Dynamic::PerformanceImplicitGemmBwdDataV4R1Dynamic(bool)
-    : PerformanceImplicitGemmBwdDataV4R1Dynamic(
-          -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
-{
-    // get the minimal routine
-    Copy(GetImplicitGemmV4R1DynamicTunables()[0]);
-    PreGeneratedKernelIndex = 0;
-}
-
-PerformanceImplicitGemmBwdDataV4R1Dynamic::PerformanceImplicitGemmBwdDataV4R1Dynamic(
-    int BPerBlock_,
-    int KPerBlock_,
-    int EPerBlock_,
-    int GemmNRepeat_,
-    int GemmMPerThreadSubC_,
-    int GemmNPerThreadSubC_,
-    int GemmMLevel0Cluster_,
-    int GemmNLevel0Cluster_,
-    int GemmMLevel1Cluster_,
-    int GemmNLevel1Cluster_,
-    int InBlockCopyClusterLengths_E_,
-    int InBlockCopyClusterLengths_N1_,
-    int InBlockCopyClusterLengths_B_,
-    int InBlockCopyClusterLengths_N2_,
-    int WeiBlockCopyClusterLengths_E_,
-    int WeiBlockCopyClusterLengths_K_)
-    : BPerBlock(BPerBlock_),
-      KPerBlock(KPerBlock_),
-      EPerBlock(EPerBlock_),
-      GemmNRepeat(GemmNRepeat_),
-      GemmMPerThreadSubC(GemmMPerThreadSubC_),
-      GemmNPerThreadSubC(GemmNPerThreadSubC_),
-      GemmMLevel0Cluster(GemmMLevel0Cluster_),
-      GemmNLevel0Cluster(GemmNLevel0Cluster_),
-      GemmMLevel1Cluster(GemmMLevel1Cluster_),
-      GemmNLevel1Cluster(GemmNLevel1Cluster_),
-      InBlockCopyClusterLengths_E(InBlockCopyClusterLengths_E_),
-      InBlockCopyClusterLengths_N1(InBlockCopyClusterLengths_N1_),
-      InBlockCopyClusterLengths_B(InBlockCopyClusterLengths_B_),
-      InBlockCopyClusterLengths_N2(InBlockCopyClusterLengths_N2_),
-      WeiBlockCopyClusterLengths_E(WeiBlockCopyClusterLengths_E_),
-      WeiBlockCopyClusterLengths_K(WeiBlockCopyClusterLengths_K_)
-{
-    PreGeneratedKernelIndex = 0;
+    return false;
 }
 
 bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ConvolutionContext& ctx) const
@@ -374,7 +118,7 @@ bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ConvolutionContext& c
     if(!(StartsWith(device_name, "gfx900") || StartsWith(device_name, "gfx906")))
         return false;
 
-    if(!ctx.direction.IsForward())
+    if(!ctx.direction.IsBackwardData())
         return false;
 
     if(!ctx.Is2d())
@@ -389,68 +133,28 @@ bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ConvolutionContext& c
     if(ctx.group_counts != 1)
         return false;
 
-    auto tunables = GetImplicitGemmV4R1DynamicTunables();
-    return !std::none_of(
-        tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx); });
+    std::string kernel_name;
+    int  block_size;
+    int  grid_size;
+    return FindImplicitGemmDynamicKernelBwd(ctx, kernel_name, block_size, grid_size);
 }
 
-PerformanceImplicitGemmBwdDataV4R1Dynamic
-ConvAsmImplicitGemmV4R1DynamicBwd::GetPerformanceConfig(const ConvolutionContext& ctx) const
-{
-    return GetPerformanceConfigBase<PerformanceImplicitGemmBwdDataV4R1Dynamic>(ctx);
-}
-
-bool ConvAsmImplicitGemmV4R1DynamicBwd::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdDataV4R1Dynamic& c) const
-{
-    MIOPEN_LOG_I("");
-    return c.IsValidValue() && c.IsValid(ctx);
-}
-
-int ConvAsmImplicitGemmV4R1DynamicBwd::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                                             ConstData_t bot_buf,
-                                                             Data_t top_buf,
-                                                             ConstData_t wei_buf,
-                                                             ConstData_t bias_buf,
-                                                             const ConvolutionContext& ctx,
-                                                             const ConvSolution& solution,
-                                                             float& elapsed_time) const
-{
-    assert(bias_buf == nullptr);
-    (void)bias_buf;
-
-    return RunAndMeasureSolutionDynamicBase(
-        profile_h, bot_buf, top_buf, wei_buf, ctx, solution, elapsed_time);
-}
-
-
-PerformanceImplicitGemmBwdDataV4R1Dynamic
-ConvAsmImplicitGemmV4R1DynamicBwd::Search(const ConvolutionContext& context) const
-{
-    return GenericSearchFwd(*this, context);
-}
-
-PerformanceImplicitGemmBwdDataV4R1Dynamic
-ConvAsmImplicitGemmV4R1DynamicFwd_1x1::Search(const ConvolutionContext& context) const
-{
-    return GenericSearchFwd(*this, context);
-}
-
-static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
-                                           const PerformanceImplicitGemmBwdDataV4R1Dynamic& config,
-                                           const AsmImplicitGemmKernelV4R1Bwd_t& kernel_type)
+ConvSolution ConvAsmImplicitGemmV4R1DynamicBwd::GetSolution(
+    const ConvolutionContext& ctx) const
 {
     ConvSolution result;
 
-    std::string kernel_name = GetKernelNameImplicitGemmV4R1Dynamic(config, kernel_type);
-
-    int block_size = GetImplicitGemmV4R1DynamicBlockSize(config);
-    int grid_size  = GetImplicitGemmV4R1DynamicGridSize(ctx, config);
+    std::string kernel_name;
+    int block_size;
+    int grid_size;
+    bool ret = FindImplicitGemmDynamicKernelBwd(ctx, kernel_name, block_size, grid_size);
+    if(!ret)
+        MIOPEN_THROW("should not happen!");
 
     KernelInfo kernel;
     std::ostringstream options;
 
-    kernel.kernel_file = "igemm_v4r1_bwd_dynamic.s";
+    kernel.kernel_file = "igemm_bwd_gtc_dynamic.s";
     kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
     /* Note here, for API like hipHccModuleLaunchKernel(), hipExtModuleLaunchKernel()
@@ -474,12 +178,6 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     result.invoker_factory = conv::MakeImplGemmDynamicDataInvokerFactory(ctx);
     result.construction_params.push_back(kernel);
     return result;
-}
-
-ConvSolution ConvAsmImplicitGemmV4R1DynamicBwd::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdDataV4R1Dynamic& config, bool) const
-{
-    return GetSolutionBase(ctx, config, AsmImplicitGemmV4R1);
 }
 
 } // namespace solver

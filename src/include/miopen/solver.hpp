@@ -1361,84 +1361,10 @@ struct ConvAsmImplicitGemmV4R1DynamicFwd_1x1 : SolverBase<ConvolutionContext>
                               float& elapsed_time) const;
 };
 
-
-struct PerformanceImplicitGemmBwdDataV4R1Dynamic : Serializable<PerformanceImplicitGemmBwdDataV4R1Dynamic>
-{
-    int BlockSize;
-
-    int GemmMPerBlock;
-    int GemmNPerBlock;
-    int GemmKPerBlock;
-
-    int GemmMPerThread;
-    int GemmNPerThread;
-
-    bool use_spare_set;
-
-    PerformanceImplicitGemmBwdDataV4R1Dynamic(int, int, int, int, int, int, bool);
-
-    PerformanceImplicitGemmBwdDataV4R1Dynamic()
-        : PerformanceImplicitGemmBwdDataV4R1Dynamic(-1, -1, -1, -1, -1, -1, false)
-    {
-    }
-
-    PerformanceImplicitGemmBwdDataV4R1Dynamic(int a, int b, int c, int d, int e, int f)
-        : PerformanceImplicitGemmBwdDataV4R1Dynamic(a, b, c, d, e, f, false)
-    {
-    }
-
-    PerformanceImplicitGemmBwdDataV4R1Dynamic(bool spare);
-
-    bool operator==(const PerformanceImplicitGemmBwdDataV4R1Dynamic& other) const;
-
-    template <class Self, class F>
-    static void Visit(Self&& self, F f)
-    {
-        f(self.BlockSize, "BlockSize");
-        f(self.GemmMPerBlock, "GemmMPerBlock");
-        f(self.GemmNPerBlock, "GemmNPerBlock");
-        f(self.GemmKPerBlock, "GemmKPerBlock");
-        f(self.GemmMPerThread, "GemmMPerThread");
-        f(self.GemmNPerThread, "GemmNPerThread");
-    }
-
-    std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
-    std::tuple<int, int, int, int, bool>
-    CalculateBlockGemmPerformanceParameters(const ConvolutionContext& ctx) const;
-    std::tuple<int, int, int, int, bool>
-    CalculateGemmABlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
-    std::tuple<int, int, int, int, bool>
-    CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
-    std::tuple<int, bool>
-    CalculateGemmCThreadCopyPerformanceParameters(const ConvolutionContext& ctx) const;
-    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
-    bool IsValidValue() const;
-    bool IsValid(const ConvolutionContext& ctx) const;
-    void EuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue();
-    std::string ToString() const;
-};
-
 struct ConvAsmImplicitGemmV4R1DynamicBwd : SolverBase<ConvolutionContext>
 {
-    PerformanceImplicitGemmBwdDataV4R1Dynamic GetPerformanceConfig(const ConvolutionContext& ctx) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmBwdDataV4R1Dynamic& c) const;
-
-    bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmBwdDataV4R1Dynamic& config,
-                             bool disableConfigOverrideFromEnv = false) const;
-
-    PerformanceImplicitGemmBwdDataV4R1Dynamic Search(const ConvolutionContext&) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              ConstData_t bot_buf,
-                              Data_t top_buf,
-                              ConstData_t wei_buf,
-                              ConstData_t bias_buf,
-                              const ConvolutionContext& ctx,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
+    bool    IsApplicable( const ConvolutionContext& ) const;
+    ConvSolution GetSolution( const ConvolutionContext& ) const;
 };
 
 /// Holds common member functions for the Solvers which share the same
