@@ -20,7 +20,8 @@ float CallImplicitGemmDynamic(const miopen::Handle& handle,
 
     auto kernel = kernels[0];
     MIOPEN_LOG_I(kernel.GetName());
-    if(ctx.direction.IsForward()){
+    if(ctx.direction.IsForward())
+    {
         bool kernel_is_1x1 = (kernel.GetName().find("igemm_v4r1_1x1_dynamic") == 0);
         // clang-format off
         int hi          = ctx.in_height;
@@ -127,13 +128,49 @@ float CallImplicitGemmDynamic(const miopen::Handle& handle,
             int dslice_w_left   = w_tilda_left;
             int __pack0     = 0;
             // clang-format on
-                MIOPEN_LOG_I2("hi:" <<hi << ", wi:" << wi << ", n:" << n<< ", k:" << k<< ", c:" << c<< ", ho:" << ho<< ", wo:" << wo<< ", stride_h:" << stride_h
-        << ", stride_w:" << stride_w<< ", dilation_h:" << dilation_h<< ", dilation_w:" << dilation_w << ", pad_h:" << pad_h << ", pad_w:" << pad_w
-         << ", y:" << y << ", x:" << x << ", gcd_stride_dilation_h:" << gcd_stride_dilation_h << ", gcd_stride_dilation_w:" <<  gcd_stride_dilation_w
-         << ", y_tilda:" << y_tilda << ", x_tilda:" << x_tilda << ", h_tilda:" << h_tilda << ", w_tilda:" << w_tilda 
-         <<", h_tilda_left:"<<h_tilda_left<<", w_tilda_left:"<< w_tilda_left <<", h_tilda_slice:"<<h_tilda_slice <<", w_tilda_slice:"<<w_tilda_slice  );
+            MIOPEN_LOG_I2("hi:" << hi << ", wi:" << wi << ", n:" << n << ", k:" << k << ", c:" << c
+                                << ", ho:"
+                                << ho
+                                << ", wo:"
+                                << wo
+                                << ", stride_h:"
+                                << stride_h
+                                << ", stride_w:"
+                                << stride_w
+                                << ", dilation_h:"
+                                << dilation_h
+                                << ", dilation_w:"
+                                << dilation_w
+                                << ", pad_h:"
+                                << pad_h
+                                << ", pad_w:"
+                                << pad_w
+                                << ", y:"
+                                << y
+                                << ", x:"
+                                << x
+                                << ", gcd_stride_dilation_h:"
+                                << gcd_stride_dilation_h
+                                << ", gcd_stride_dilation_w:"
+                                << gcd_stride_dilation_w
+                                << ", y_tilda:"
+                                << y_tilda
+                                << ", x_tilda:"
+                                << x_tilda
+                                << ", h_tilda:"
+                                << h_tilda
+                                << ", w_tilda:"
+                                << w_tilda
+                                << ", h_tilda_left:"
+                                << h_tilda_left
+                                << ", w_tilda_left:"
+                                << w_tilda_left
+                                << ", h_tilda_slice:"
+                                << h_tilda_slice
+                                << ", w_tilda_slice:"
+                                << w_tilda_slice);
 
-            MIOPEN_LOG_I2("dst:"<<dst<<", wei:"<<wei<<", src:"<<src);
+            MIOPEN_LOG_I2("dst:" << dst << ", wei:" << wei << ", src:" << src);
 
             std::vector<OpKernelArg> opArgs;
             opArgs.emplace_back(dst);
@@ -172,23 +209,25 @@ float CallImplicitGemmDynamic(const miopen::Handle& handle,
 
             for(int gemm_id = 0; gemm_id < num_of_gemms; gemm_id++)
             {
-                int _dtile_iy = gemm_id / x_tilda;
-                int _dtile_ix = gemm_id % x_tilda;
+                int _dtile_iy    = gemm_id / x_tilda;
+                int _dtile_ix    = gemm_id % x_tilda;
                 int _y_dot_slice = (_dtile_iy + 1) * y_dot <= y ? y_dot : y % y_dot;
                 int _x_dot_slice = (_dtile_ix + 1) * x_dot <= x ? x_dot : x % x_dot;
-                opArgs[18] = OpKernelArg(_dtile_iy);
-                opArgs[19] = OpKernelArg(_dtile_ix);
-                opArgs[26] = OpKernelArg(_y_dot_slice);
-                opArgs[27] = OpKernelArg(_x_dot_slice);
+                opArgs[18]       = OpKernelArg(_dtile_iy);
+                opArgs[19]       = OpKernelArg(_dtile_ix);
+                opArgs[26]       = OpKernelArg(_y_dot_slice);
+                opArgs[27]       = OpKernelArg(_x_dot_slice);
                 kernels[gemm_id](opArgs);
             }
-        }else{
-            MIOPEN_THROW(
-                "Error running dynamic implicit GEMM convolution for bwd, no such kernel");
         }
-    }else if (ctx.direction.IsBackwardWrW()){
-        MIOPEN_THROW(
-            "Error running dynamic implicit GEMM convolution for wrw");
+        else
+        {
+            MIOPEN_THROW("Error running dynamic implicit GEMM convolution for bwd, no such kernel");
+        }
+    }
+    else if(ctx.direction.IsBackwardWrW())
+    {
+        MIOPEN_THROW("Error running dynamic implicit GEMM convolution for wrw");
     }
 
     if(handle.IsProfilingEnabled())
@@ -245,10 +284,10 @@ InvokerFactory MakeImplGemmDynamicDataInvokerFactory(const ConvolutionContext& c
                                    std::back_inserter(ks),
                                    [&](const Kernel& k) { return handle.Run(k); });
                     float elapsed = 0;
-                    MIOPEN_LOG_I2("in:"<<tensors.inDesc);
-                    MIOPEN_LOG_I2("w:"<<tensors.wDesc);
-                    MIOPEN_LOG_I2("out:"<<tensors.outDesc);
-                    elapsed       = CallImplicitGemmDynamic(
+                    MIOPEN_LOG_I2("in:" << tensors.inDesc);
+                    MIOPEN_LOG_I2("w:" << tensors.wDesc);
+                    MIOPEN_LOG_I2("out:" << tensors.outDesc);
+                    elapsed = CallImplicitGemmDynamic(
                         handle, ctx, tensors.in, tensors.out, tensors.w, ks);
 
                     if(handle.IsProfilingEnabled())

@@ -33,7 +33,11 @@
 namespace miopen {
 namespace solver {
 
-static inline bool FindImplicitGemmDynamicKernelBwd(const ConvolutionContext& ctx, std::string & kernel_name, int & block_size, int & grid_size){
+static inline bool FindImplicitGemmDynamicKernelBwd(const ConvolutionContext& ctx,
+                                                    std::string& kernel_name,
+                                                    int& block_size,
+                                                    int& grid_size)
+{
     // TODO: add more dynamic kernel to expand support range, and update this function
     // clang-format off
     // refer to ConvolutionContextInterpreter, in bwd most dimension is reversed
@@ -77,35 +81,52 @@ static inline bool FindImplicitGemmDynamicKernelBwd(const ConvolutionContext& ct
     int gemm_n = n * h_tilda_slice * w_tilda_slice;
     // int gemm_k; since k dimension is merged, we only check k
 
-    MIOPEN_LOG_I2("gemm_m:" <<gemm_m << ",gemm_n:" << gemm_n);
+    MIOPEN_LOG_I2("gemm_m:" << gemm_m << ",gemm_n:" << gemm_n);
 
     // TODO: this is too simple, need more kernels and more optimal logic to select kernel
-    if((gemm_m % 128 == 0) && (gemm_n % 128 == 0) && (k % 16 == 0)){
-        if((y == 1) && (x == 1) && (stride_h == 1) && (stride_w == 1) && (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0) && (n % 128 == 0)){
-            grid_size = (gemm_m >> 7) * (gemm_n >> 7);
-            block_size = 256;
-            kernel_name = "igemm_bwd_gtc_bt128x128x16_tt8x8_gm2x4x4_gn2x4x4_ta1x1x1x2x4_16x1x1x16x1_tb1x1x1x2x4x1x1_16x1x1x16x1x1x1";
+    if((gemm_m % 128 == 0) && (gemm_n % 128 == 0) && (k % 16 == 0))
+    {
+        if((y == 1) && (x == 1) && (stride_h == 1) && (stride_w == 1) && (dilation_h == 1) &&
+           (dilation_w == 1) && (pad_h == 0) && (pad_w == 0) && (n % 128 == 0))
+        {
+            grid_size   = (gemm_m >> 7) * (gemm_n >> 7);
+            block_size  = 256;
+            kernel_name = "igemm_bwd_gtc_bt128x128x16_tt8x8_gm2x4x4_gn2x4x4_ta1x1x1x2x4_"
+                          "16x1x1x16x1_tb1x1x1x2x4x1x1_16x1x1x16x1x1x1";
             return true;
-        }else{
-            grid_size = (gemm_m >> 7) * (gemm_n >> 7);
-            block_size = 256;
+        }
+        else
+        {
+            grid_size   = (gemm_m >> 7) * (gemm_n >> 7);
+            block_size  = 256;
             kernel_name = "igemm_bwd_gtc";
             return true;
         }
-    }else{
-        if((y == 1) && (x == 1) && (stride_h == 1) && (stride_w == 1) && (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0)){
-            if((gemm_m % 128 == 0) && (gemm_n % 128 == 0) && (k % 8 == 0) && ((ho * wo) % 16 == 0)){
-                grid_size = (gemm_m >> 7) * (gemm_n >> 7);
-                block_size = 256;
-                kernel_name = "igemm_bwd_gtc_bt128x128x8_tt8x8_gm2x4x4_gn2x4x4_ta1x1x1x1x4_8x1x1x32x1_tb1x1x1x1x4x1x1_8x1x1x2x1x1x16";
-                return true;
-            } else if((gemm_m % 64 == 0) && (gemm_n % 64 == 0) && (k % 8 == 0) && (n % 64 == 0)){
-                grid_size = (gemm_m >> 6) * (gemm_n >> 6);
-                block_size = 64;
-                kernel_name = "igemm_bwd_gtc_bt64x64x8_tt8x8_gm2x4x2_gn2x4x2_ta1x2x1x1x4_4x1x1x16x1_tb1x2x1x1x4x1x1_4x1x1x16x1x1x1";
+    }
+    else
+    {
+        if((y == 1) && (x == 1) && (stride_h == 1) && (stride_w == 1) && (dilation_h == 1) &&
+           (dilation_w == 1) && (pad_h == 0) && (pad_w == 0))
+        {
+            if((gemm_m % 128 == 0) && (gemm_n % 128 == 0) && (k % 8 == 0) && ((ho * wo) % 16 == 0))
+            {
+                grid_size   = (gemm_m >> 7) * (gemm_n >> 7);
+                block_size  = 256;
+                kernel_name = "igemm_bwd_gtc_bt128x128x8_tt8x8_gm2x4x4_gn2x4x4_ta1x1x1x1x4_"
+                              "8x1x1x32x1_tb1x1x1x1x4x1x1_8x1x1x2x1x1x16";
                 return true;
             }
-        }else{
+            else if((gemm_m % 64 == 0) && (gemm_n % 64 == 0) && (k % 8 == 0) && (n % 64 == 0))
+            {
+                grid_size   = (gemm_m >> 6) * (gemm_n >> 6);
+                block_size  = 64;
+                kernel_name = "igemm_bwd_gtc_bt64x64x8_tt8x8_gm2x4x2_gn2x4x2_ta1x2x1x1x4_"
+                              "4x1x1x16x1_tb1x2x1x1x4x1x1_4x1x1x16x1x1x1";
+                return true;
+            }
+        }
+        else
+        {
             // TODO: add here!
         }
     }
@@ -134,13 +155,12 @@ bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ConvolutionContext& c
         return false;
 
     std::string kernel_name;
-    int  block_size;
-    int  grid_size;
+    int block_size;
+    int grid_size;
     return FindImplicitGemmDynamicKernelBwd(ctx, kernel_name, block_size, grid_size);
 }
 
-ConvSolution ConvAsmImplicitGemmV4R1DynamicBwd::GetSolution(
-    const ConvolutionContext& ctx) const
+ConvSolution ConvAsmImplicitGemmV4R1DynamicBwd::GetSolution(const ConvolutionContext& ctx) const
 {
     ConvSolution result;
 
