@@ -2153,6 +2153,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
                 bufs.SetBwd(dx, w, dy);
                 auto ctx = ConvolutionContext{problem};
+                ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
+                    miopen::FindMode(ctx).IsOptimizedHybrid();
                 ctx.SetBufs(bufs);
                 ctx.SetStream(&handle);
                 ctx.DetectRocm();
