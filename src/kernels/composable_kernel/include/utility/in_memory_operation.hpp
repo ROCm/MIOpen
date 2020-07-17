@@ -86,14 +86,15 @@ struct SetData
 template <index_t DataPerAccess>
 struct SetData<int, DataPerAccess>
 {
-    using vector_t = typename vector_type<int, DataPerAccess>::MemoryType;
-
     // This version is only for compatibility, don't use this version if possible
     template <AddressSpace SrcAddressSpace, AddressSpace DstAddressSpace>
     __device__ void Run(const int* p_src, index_t src_offset, int* p_dst, index_t dst_offset) const
     {
-        *reinterpret_cast<vector_t*>(&p_dst[dst_offset]) =
-            *reinterpret_cast<const vector_t*>(&p_src[src_offset]);
+        SetData<float, DataPerAccess>{}.template Run<SrcAddressSpace, DstAddressSpace>(
+            reinterpret_cast<const float*>(p_src),
+            src_offset,
+            reinterpret_cast<float*>(p_dst),
+            dst_offset);
     }
 };
 
