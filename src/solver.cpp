@@ -65,7 +65,7 @@ std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<Kernel
                 programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
             });
 
-    ct.Log("Kernel");
+    ct.Log("PrecompileKernels");
     return programs;
 }
 

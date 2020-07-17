@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017-2018 Advanced Micro Devices, Inc.
+ * Copyright (c) 2017-2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -372,7 +372,6 @@ Program Handle::LoadProgram(const std::string& program_name,
         this->GetDeviceName(), this->GetMaxComputeUnits(), program_name, params, is_kernel_str);
     if(hsaco.empty())
     {
-
         CompileTimer ct;
         auto p =
             HIPOCProgram{program_name, params, is_kernel_str, this->GetDeviceName(), kernel_src};
