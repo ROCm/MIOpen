@@ -68,7 +68,7 @@ T max(T x, T y)
 {
     return x > y ? x : y;
 }
-}
+} // namespace igemm_dynamic
 
 // Beside used in invoker, currently this function is only called in RunAndMeasure() of dynamic
 // igemm solver
