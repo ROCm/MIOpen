@@ -62,7 +62,7 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     {
                         kernel(tensors.in, tensors.w, tensors.out);
                         if(handle.IsProfilingEnabled())
-                           elapsed += handle.GetKernelTime();
+                            elapsed += handle.GetKernelTime();
                     }
                     else
                     {
