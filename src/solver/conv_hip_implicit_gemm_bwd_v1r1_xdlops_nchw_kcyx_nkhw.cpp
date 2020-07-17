@@ -725,14 +725,12 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext&
         return 0;
     else
     {
-        const auto y        = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-        const auto x        = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-        const auto stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
-        const auto stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-        const auto dilation_h =
-            ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
-        const auto dilation_w =
-            ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
+        const auto y          = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+        const auto x          = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+        const auto stride_h   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
+        const auto stride_w   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
+        const auto dilation_h = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
+        const auto dilation_w = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
 
         if((stride_h >= dilation_h * (y - 1) + 1) && (stride_w >= dilation_w * (x - 1) + 1))
         {
@@ -831,14 +829,12 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::Search(const ConvolutionContext& ctx) cons
     // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
     if(ctx.IsFp16() || ctx.IsBfp16())
     {
-        const auto y        = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-        const auto x        = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-        const auto stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
-        const auto stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-        const auto dilation_h =
-            ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
-        const auto dilation_w =
-            ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
+        const auto y          = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+        const auto x          = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+        const auto stride_h   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
+        const auto stride_w   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
+        const auto dilation_h = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
+        const auto dilation_w = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
 
         if((stride_h >= dilation_h * (y - 1) + 1) && (stride_w >= dilation_w * (x - 1) + 1))
             return GenericSearchBwd(*this, ctx);

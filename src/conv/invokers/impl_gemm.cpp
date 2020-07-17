@@ -50,10 +50,10 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw"))
                 // clang-format on
                 {
-                    const auto y           = tensors.wDesc.GetLengths()[2];
-                    const auto x           = tensors.wDesc.GetLengths()[3];
-                    const auto stride_h    = conv.GetConvStrides()[0];
-                    const auto stride_w    = conv.GetConvStrides()[1];
+                    const auto y          = tensors.wDesc.GetLengths()[2];
+                    const auto x          = tensors.wDesc.GetLengths()[3];
+                    const auto stride_h   = conv.GetConvStrides()[0];
+                    const auto stride_w   = conv.GetConvStrides()[1];
                     const auto dilation_h = conv.GetConvDilations()[0];
                     const auto dilation_w = conv.GetConvDilations()[1];
 
