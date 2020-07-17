@@ -81,9 +81,10 @@ struct BlockwiseGenericTensorSliceCopy_v4
     }
 
     template <typename BlockSrcData, typename ThreadBufferData>
-    __device__ void RunLoadThreadBuffer(const BlockSrcData* p_block_src,
-                                        ThreadBufferData* p_thread_buffer,
-                                        BlockSrcData zeroVal = static_cast<BlockSrcData>(0.0)) const
+    __device__ void RunLoadThreadBuffer(
+        const BlockSrcData* p_block_src,
+        ThreadBufferData* p_thread_buffer,
+        BlockSrcData src_out_of_bound_value = type_convert<BlockSrcData>{}(0.0f)) const
     {
         constexpr bool has_optimized_address_calculation =
             decltype(mThreadwiseStore)::HasWorkingOptimizedAddressCalculation();
@@ -95,20 +96,20 @@ struct BlockwiseGenericTensorSliceCopy_v4
             if(has_optimized_address_calculation)
             {
                 mThreadwiseLoad.Run_optimized_src_address_calculation(
-                    p_block_src, p_thread_buffer, zeroVal);
+                    p_block_src, p_thread_buffer, src_out_of_bound_value);
             }
             else
             {
-                mThreadwiseLoad.Run(p_block_src, p_thread_buffer, zeroVal);
+                mThreadwiseLoad.Run(p_block_src, p_thread_buffer, src_out_of_bound_value);
             }
         }
     }
 
     template <typename ThreadBufferData, typename BlockDstData>
-    __device__ void
-    RunStoreThreadBuffer(const ThreadBufferData* p_thread_buffer,
-                         BlockDstData* p_block_dst,
-                         ThreadBufferData zeroVal = static_cast<ThreadBufferData>(0.0)) const
+    __device__ void RunStoreThreadBuffer(
+        const ThreadBufferData* p_thread_buffer,
+        BlockDstData* p_block_dst,
+        ThreadBufferData src_out_of_bound_value = type_convert<ThreadBufferData>{}(0.0f)) const
     {
         constexpr bool has_optimized_address_calculation =
             decltype(mThreadwiseStore)::HasWorkingOptimizedAddressCalculation();
@@ -120,19 +121,20 @@ struct BlockwiseGenericTensorSliceCopy_v4
             if(has_optimized_address_calculation)
             {
                 mThreadwiseStore.Run_optimized_dst_address_calculation(
-                    p_thread_buffer, p_block_dst, zeroVal);
+                    p_thread_buffer, p_block_dst, src_out_of_bound_value);
             }
             else
             {
-                mThreadwiseStore.Run(p_thread_buffer, p_block_dst, zeroVal);
+                mThreadwiseStore.Run(p_thread_buffer, p_block_dst, src_out_of_bound_value);
             }
         }
     }
 
     template <typename BlockSrcData, typename BlockDstData>
-    __device__ void Run(const BlockSrcData* p_block_src,
-                        BlockDstData* p_block_dst,
-                        BlockSrcData zeroVal = static_cast<BlockSrcData>(0.0)) const
+    __device__ void
+    Run(const BlockSrcData* p_block_src,
+        BlockDstData* p_block_dst,
+        BlockSrcData src_out_of_bound_value = type_convert<BlockSrcData>{}(0.0f)) const
     {
         static_assert(ThreadBufferAddressSpace == AddressSpace::Vgpr,
                       "wrong! This function use vgpr as its thread "
@@ -145,10 +147,10 @@ struct BlockwiseGenericTensorSliceCopy_v4
         if(BlockSize == mThreadClusterDesc.GetElementSize() or
            get_thread_local_1d_id() < mThreadClusterDesc.GetElementSize())
         {
-            RunLoadThreadBuffer(p_block_src, p_thread_buffer, zeroVal);
+            RunLoadThreadBuffer(p_block_src, p_thread_buffer, src_out_of_bound_value);
 
             // if there is type conversion, it's done during store
-            RunStoreThreadBuffer(p_thread_buffer, p_block_dst, zeroVal);
+            RunStoreThreadBuffer(p_thread_buffer, p_block_dst, src_out_of_bound_value);
         }
     }
 
