@@ -729,12 +729,12 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext&
         const auto x        = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
         const auto stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
         const auto stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-        const auto dialation_h =
+        const auto dilation_h =
             ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
-        const auto dialation_w =
+        const auto dilation_w =
             ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
 
-        if((stride_h >= dialation_h * (y - 1) + 1) && (stride_w >= dialation_w * (x - 1) + 1))
+        if((stride_h >= dilation_h * (y - 1) + 1) && (stride_w >= dialation_w * (x - 1) + 1))
         {
             MIOPEN_LOG_I("No workspace needed.");
             return 0;
@@ -835,12 +835,12 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::Search(const ConvolutionContext& ctx) cons
         const auto x        = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
         const auto stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
         const auto stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-        const auto dialation_h =
+        const auto dilation_h =
             ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
-        const auto dialation_w =
+        const auto dilation_w =
             ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
 
-        if((stride_h >= dialation_h * (y - 1) + 1) && (stride_w >= dialation_w * (x - 1) + 1))
+        if((stride_h >= dilation_h * (y - 1) + 1) && (stride_w >= dialation_w * (x - 1) + 1))
             return GenericSearchBwd(*this, ctx);
         else
             return GenericSearchBwd(*this, ctx, SearchTweak::WorkspaceInsteadOfXBuffer);

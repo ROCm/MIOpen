@@ -54,11 +54,11 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     const auto x           = tensors.wDesc.GetLengths()[3];
                     const auto stride_h    = conv.GetConvStrides()[0];
                     const auto stride_w    = conv.GetConvStrides()[1];
-                    const auto dialation_h = conv.GetConvDilations()[0];
-                    const auto dialation_w = conv.GetConvDilations()[1];
+                    const auto dilation_h = conv.GetConvDilations()[0];
+                    const auto dilation_w = conv.GetConvDilations()[1];
 
-                    if((stride_h >= dialation_h * (y - 1) + 1) &&
-                       (stride_w >= dialation_w * (x - 1) + 1))
+                    if((stride_h >= dilation_h * (y - 1) + 1) &&
+                       (stride_w >= dilation_w * (x - 1) + 1))
                     {
                         kernel(tensors.in, tensors.w, tensors.out);
                         if(handle.IsProfilingEnabled())
