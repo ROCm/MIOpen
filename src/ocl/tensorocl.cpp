@@ -182,7 +182,7 @@ void OpTensor3d(const Handle& handle,
     const std::string data_type = GetDataType(bTensorDesc.GetType());
     const std::string READ_TYPE = (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
 
-    size_t total_work = std::max(size_t(clens[2] / RD_BLCK), size_t(1));
+    size_t total_work = std::max(clens[2] / RD_BLCK, size_t(1));
     size_t grp_sz     = (total_work + local_threads - 1) / local_threads;
     grp_sz            = std::min(size_t(max_num_wg), grp_sz);
     size_t glb_sz     = local_threads * grp_sz;
@@ -530,7 +530,7 @@ void OpTensor4d(const Handle& handle,
     size_t RD_BLCK              = (TENS_LEN % 4 == 0) ? 4 : (TENS_LEN % 2 == 0) ? 2 : 1;
     const std::string READ_TYPE = (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
 
-    size_t total_work = std::max(size_t(TENS_LEN / RD_BLCK), size_t(1));
+    size_t total_work = std::max(TENS_LEN / RD_BLCK, size_t(1));
     size_t grp_sz     = (total_work + local_threads - 1) / local_threads;
     grp_sz            = std::min(size_t(max_num_wg), grp_sz);
     size_t glb_sz     = local_threads * grp_sz;

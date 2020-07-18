@@ -206,14 +206,14 @@ __kernel void OpTensorLeadingOnes(global MIOPEN_TYPE* a,
     global MIOPEN_TYPE* b_off = b + Boffset;
     global MIOPEN_TYPE* c_off = c + Coffset;
 
-    int gid = (bitmap == 15) ? get_global_id(0) : get_group_id(0);
+    int gid = (bitmap == 0xF) ? get_global_id(0) : get_group_id(0);
     // num_wg: the number of workgroups should be launched
     // MAX_NUM_WG: the maximum number of workgroups actually launched
     for(; gid < num_wg; gid += MAX_NUM_WG)
     {
 
-        int lid             = (bitmap == 15) ? 0 : get_local_id(0);
-        int lcl_sz          = (bitmap == 15) ? work_per_wg : get_local_size(0);
+        int lid             = (bitmap == 0xF) ? 0 : get_local_id(0);
+        int lcl_sz          = (bitmap == 0xF) ? work_per_wg : get_local_size(0);
         MIOPEN_TYPE operand = b_off[gid] * alpha1;
 
         int o_w = (bitmap & (1 << 0)) ? (gid % c_w) : 0;
@@ -273,14 +273,14 @@ __kernel void OpTensorLeadingOnesGeneric(global MIOPEN_TYPE* a,
     global MIOPEN_TYPE* b_off = b + Boffset;
     global MIOPEN_TYPE* c_off = c + Coffset;
 
-    int gid = (bitmap == 15) ? get_global_id(0) : get_group_id(0);
+    int gid = (bitmap == 0xF) ? get_global_id(0) : get_group_id(0);
 
     // num_wg: the number of workgroups should be launched
     // MAX_NUM_WG: the maximum number of workgroups actually launched
     for(; gid < num_wg; gid += MAX_NUM_WG)
     {
-        int lid    = (bitmap == 15) ? 0 : get_local_id(0);
-        int lcl_sz = (bitmap == 15) ? work_per_wg : get_local_size(0);
+        int lid    = (bitmap == 0xF) ? 0 : get_local_id(0);
+        int lcl_sz = (bitmap == 0xF) ? work_per_wg : get_local_size(0);
 
         int o_w = (bitmap & (1 << 0)) ? (gid % c_w) : 0;
         int o_h = (bitmap & (1 << 1)) ? ((gid / ((bitmap & (1 << 0)) ? c_w : 1)) % c_h) : 0;
