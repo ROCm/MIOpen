@@ -36,11 +36,7 @@ namespace solver {
 
 PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops()
     : PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops(
-#if CK_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM
           4, 4, 1, 4, 4, 1, false, false, 1)
-#else
-          4, 4, 1, 4, 4, 1, false, false)
-#endif
 {
 }
 
@@ -52,12 +48,8 @@ PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlo
     int GemmNPerWave_,
     int GemmKPack_,
     bool GemmAThreadCopyMoreGemmK_,
-#if CK_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM
     bool GemmBThreadCopyMoreGemmKPack_,
     int GemmBThreadDataPerRead_GemmN_)
-#else
-    bool GemmBThreadCopyMoreGemmKPack_)
-#endif
     : GemmMPerBlock(GemmMPerBlock_),
       GemmNPerBlock(GemmNPerBlock_),
       GemmKPerBlock(GemmKPerBlock_),
@@ -65,12 +57,8 @@ PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlo
       GemmNPerWave(GemmNPerWave_),
       GemmKPack(GemmKPack_),
       GemmAThreadCopyMoreGemmK(GemmAThreadCopyMoreGemmK_),
-#if CK_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM
       GemmBThreadCopyMoreGemmKPack(GemmBThreadCopyMoreGemmKPack_),
       GemmBThreadDataPerRead_GemmN(GemmBThreadDataPerRead_GemmN_)
-#else
-      GemmBThreadCopyMoreGemmKPack(GemmBThreadCopyMoreGemmKPack_)
-#endif
 {
 }
 
@@ -85,12 +73,8 @@ operator==(const PerformanceImplicitGemmForwardV4R4Xdlops& other) const
         && GemmNPerWave == other.GemmNPerWave
         && GemmKPack == other.GemmKPack 
         && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
-#if CK_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM
         && GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack
         && GemmBThreadDataPerRead_GemmN  == other.GemmBThreadDataPerRead_GemmN;
-#else
-        && GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack;
-#endif
     // clang-format on
 }
 
@@ -100,10 +84,11 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue()
     {
         // list performance parameters in reverse order, in order for tuning to iterate over the
         // range in normal order
-#if CK_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM
-        if(!NextTwoPower<1, 8>(GemmBThreadDataPerRead_GemmN))
-            break;
-#endif
+        if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
+        {
+            if(!NextTwoPower<1, 8>(GemmBThreadDataPerRead_GemmN))
+                break;
+        }
         if(!NextFlag<false, true>(GemmBThreadCopyMoreGemmKPack))
             break;
         if(!NextFlag<false, false>(GemmAThreadCopyMoreGemmK))
@@ -134,11 +119,7 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
     auto get_euristic_config = [&](auto is_valid_func) {
         if(ctx.IsFp32())
         {
-#if CK_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM
             tmp = {256, 256, 8, 128, 128, 4, false, true, 1};
-#else
-            tmp = {256, 256, 8, 128, 128, 4, false, true};
-#endif
 
             bool all_visited = false;
             do
@@ -169,11 +150,7 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
         }
         else if(ctx.IsFp16())
         {
-#if CK_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM
-            tmp = {256, 256, 8, 128, 128, 8, false, true, 1};
-#else
-            tmp = {256, 256, 8, 128, 128, 8, false, true};
-#endif
+            tmp              = {256, 256, 8, 128, 128, 8, false, true, 1};
             bool all_visited = false;
             do
             {
@@ -203,11 +180,7 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
         }
         else if(ctx.IsBfp16())
         {
-#if CK_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM
             tmp = {256, 256, 8, 128, 128, 8, false, true, 1};
-#else
-            tmp = {256, 256, 8, 128, 128, 8, false, true};
-#endif
 
             bool all_visited = false;
             do
@@ -474,19 +447,27 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
         // calculate threadwise copy size
         auto data_per_thread_copy =
             std::max(1, (GemmKPerBlock * GemmNPerBlock * GemmKPack) / block_size);
-#if CK_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM
-        if(ctx.IsFp16()) {
-            if(SrcDataPerRead_GemmN>=GemmBThreadDataPerRead_GemmN){
-                SrcDataPerRead_GemmN = GemmBThreadDataPerRead_GemmN;
-            }else{
-                MIOPEN_THROW("invalid performance parameter");
+        if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
+        {
+            if(ctx.IsFp16())
+            {
+                if(SrcDataPerRead_GemmN >= GemmBThreadDataPerRead_GemmN)
+                {
+                    SrcDataPerRead_GemmN = GemmBThreadDataPerRead_GemmN;
+                }
+                else
+                {
+                    MIOPEN_THROW("invalid performance parameter");
+                }
             }
-        }else{
-            if(SrcDataPerRead_GemmN!=GemmBThreadDataPerRead_GemmN){
-                MIOPEN_THROW("invalid performance parameter");
+            else
+            {
+                if(SrcDataPerRead_GemmN != GemmBThreadDataPerRead_GemmN)
+                {
+                    MIOPEN_THROW("invalid performance parameter");
+                }
             }
         }
-#endif
         // make sure a thread can do a full vector load, at the cost that some threads
         // may not do threadwise copy at all
         data_per_thread_copy = lcm(data_per_thread_copy, SrcDataPerRead_GemmN);
@@ -510,13 +491,19 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
 
         // vector write into LDS
         DstDataPerWrite_GemmKPack = gcd(DstDataPerWrite_GemmKPack, data_per_thread_copy_gemmkpack);
-#if CK_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM
-        if(ctx.IsFp16()) {
-            if((SrcDataPerRead_GemmN>1)&&((DstDataPerWrite_GemmKPack==1)||(DstDataPerWrite_GemmKPack==2))){
-                MIOPEN_THROW("invalid performance parameter");
+
+        if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
+        {
+            if(ctx.IsFp16())
+            {
+                if((SrcDataPerRead_GemmN > 1) &&
+                   ((DstDataPerWrite_GemmKPack == 1) || (DstDataPerWrite_GemmKPack == 2)))
+                {
+                    MIOPEN_THROW("invalid performance parameter");
+                }
             }
         }
-#endif
+
         if(!(GemmKPerBlock % data_per_thread_copy_gemmk == 0 &&
              GemmNPerBlock % data_per_thread_copy_gemmn == 0 &&
              GemmKPack % data_per_thread_copy_gemmkpack == 0))
