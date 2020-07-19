@@ -62,8 +62,6 @@ static inline bool FindImplicitGemmWrwV4R1DynamicKernel(const ConvolutionContext
                                                         int& block_size,
                                                         int& grid_size)
 {
-    int hi          = ctx.out_height;
-    int wi          = ctx.out_width;
     int n           = ctx.batch_sz;
     int k           = ctx.n_inputs;
     int c           = ctx.n_outputs;
@@ -173,6 +171,9 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionCon
     std::string kernel_name;
     bool ret = FindImplicitGemmWrwV4R1DynamicKernel(ctx, kernel_name, block_size, grid_size);
 
+    if(!ret)
+        MIOPEN_THROW("this kernel should not run with igemm dynamic!");
+
     int GemmKPerBlock = 16;
     int gemmk_groups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
 
@@ -195,8 +196,6 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionCon
 
     kernel.comp_options = options.str();
 
-    std::cout << __LINE__ << " options: " << options.str() << std::endl;
-
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
     result.construction_params.push_back(kernel);
@@ -212,7 +211,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionCon
         int grid_size_redcution = ctx.n_outputs * ctx.n_inputs * 
                                   ctx.kernel_size_h * ctx.kernel_size_w / 
                                   (reduction_per_thread * block_size_reduction);
-        kernel_reduction.g_wk.push_back(grid_size * block_size_reduction);
+        kernel_reduction.g_wk.push_back(grid_size_redcution * block_size_reduction);
         kernel_reduction.g_wk.push_back(1);
         kernel_reduction.g_wk.push_back(1);
         kernel_reduction.l_wk.clear();
