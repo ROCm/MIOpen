@@ -2,7 +2,7 @@
 
 extern "C"
 __global__ __launch_bounds__(256,2)
-void wrw_reduction(float* output, float* input, int out_length, int in_stride, int n_groups)
+void wrw_reduction_hip(float* output, float* input, int out_length, int in_stride, int n_groups)
 {
     float4 vec_in;
     float4 vec_out;

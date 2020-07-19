@@ -1416,13 +1416,13 @@ L_debug_code_seg_1:
     ;s_cmp_lg_u32 s[s_wave_id], 0
     ;s_cbranch_scc1  L_program_end
     ;v_add_co_u32 v34, vcc, 0, v[v_a0+2]
-    v_mov_b32 v[v_tmp], s[s_tmp]
+    v_mov_b32 v[v_tmp], s[s_hi]
 
      v_mov_b32 v[v_tmp+1], 8192
     v_sub_u32 v[v_sst_a_os], v[v_sst_a_os], v[v_tmp+1]
     v_lshrrev_b32 v[v_sst_a_os], 2, v[v_sst_a_os]
 
-    global_store_dword v[v_end:v_end+1], v[v_wei_os], s[s_tmp+12:s_tmp+13]
+    global_store_dword v[v_end:v_end+1], v[v_tmp], s[s_tmp+12:s_tmp+13]
 
     s_waitcnt vmcnt(0)
     s_barrier

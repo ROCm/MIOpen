@@ -1,5 +1,6 @@
 #include <miopen/conv/invokers/impl_gemm_dynamic.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/algorithm.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/tensor_ops.hpp>
@@ -73,12 +74,28 @@ float CallImplicitGemmDynamic(const miopen::Handle& handle,
     return elapsed;
 }
 
+// compute gemmk groups
+static inline int GetImplicitGemmWrwV4R1DynamicGemmkGroups(const ConvolutionContext& ctx,
+                                                           const int& GemmKPerBlock)
+{
+    int c = ctx.batch_sz;
+    int gemmk_groups = 1, tmp_gemmk_groups = 1;
+    for (int i = 0; i < 6; i++){
+        tmp_gemmk_groups = 1 << i;
+        if (0 == (c % (tmp_gemmk_groups * GemmKPerBlock)))
+            gemmk_groups = tmp_gemmk_groups;
+        else
+            break;
+    }
+    return gemmk_groups;
+}
+
 float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
                                  const ConvolutionContext& ctx,
                                  ConstData_t src,
                                  ConstData_t dst,
                                  Data_t wei,
-                                 const int gemmk_groups,
+                                 Data_t wei_workspace,
                                  const std::vector<KernelInvoke>& kernels)
 {
     float elapsed = 0.0f;
@@ -86,27 +103,33 @@ float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
     auto kernel = kernels[0];
     MIOPEN_LOG_I(kernel.GetName());
     // clang-format off
-    int hi             = ctx.in_height;
-    int wi             = ctx.in_width;
-    int n              = ctx.batch_sz;
-    int k              = ctx.n_outputs;
-    int c              = ctx.n_inputs;
-    int ho             = ctx.out_height;
-    int wo             = ctx.out_width;
-    int stride_h       = ctx.kernel_stride_h;
-    int stride_w       = ctx.kernel_stride_w;
-    int dilation_h     = ctx.kernel_dilation_h;
-    int dilation_w     = ctx.kernel_dilation_w;
+    int hi             = ctx.out_height;
+    int wi             = ctx.out_width;
+    int n              = ctx.n_outputs;
+    int k              = ctx.n_inputs;
+    int c              = ctx.batch_sz;
+    int ho             = ctx.kernel_size_h;
+    int wo             = ctx.kernel_size_w;
+    int stride_h       = ctx.kernel_dilation_h;
+    int stride_w       = ctx.kernel_dilation_w;
+    int dilation_h     = ctx.kernel_stride_h;
+    int dilation_w     = ctx.kernel_stride_w;
     int pad_h          = ctx.pad_h;
     int pad_w          = ctx.pad_w;
-    int y              = ctx.kernel_size_h;
-    int x              = ctx.kernel_size_w;
-    int k_gemmk_groups = gemmk_groups;
+    int y              = ctx.in_height;
+    int x              = ctx.in_width;
+    int k_gemmk_groups = 0;
+    int gemmk_groups = 0;
+    int GemmKPerBlock = 16;
+
+    gemmk_groups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
+    k_gemmk_groups = log2f(gemmk_groups);
+
     // clang-format on
     std::vector<OpKernelArg> opArgs;
     opArgs.emplace_back(src);
-    opArgs.emplace_back(wei);
     opArgs.emplace_back(dst);
+    opArgs.emplace_back(wei_workspace);
     opArgs.emplace_back(hi);
     opArgs.emplace_back(wi);
     opArgs.emplace_back(n);
@@ -124,6 +147,24 @@ float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
     opArgs.emplace_back(x);
     opArgs.emplace_back(k_gemmk_groups);
     kernel(opArgs);
+
+    if(handle.IsProfilingEnabled())
+        elapsed += handle.GetKernelTime();
+
+    // reduction section
+    if (k_gemmk_groups > 0){
+        auto kernel_reduction = kernels[1];
+        MIOPEN_LOG_I(kernel_reduction.GetName());
+        std::vector<OpKernelArg> opArgs_reduction;
+        int reduction_per_thread = 8;
+        int in_stride = n * k* ho * wo;
+        opArgs_reduction.emplace_back(wei);
+        opArgs_reduction.emplace_back(wei_workspace);
+        opArgs_reduction.emplace_back(reduction_per_thread);
+        opArgs_reduction.emplace_back(in_stride);
+        opArgs_reduction.emplace_back(gemmk_groups);
+        kernel_reduction(opArgs_reduction);
+    }
 
     if(handle.IsProfilingEnabled())
         elapsed += handle.GetKernelTime();
@@ -160,6 +201,28 @@ InvokerFactory MakeImplGemmDynamicDataInvokerFactory(const ConvolutionContext& c
                 {
                     MIOPEN_THROW(
                         "Error running dynamic implicit GEMM convolution (invalid kernel name?)");
+                }
+            };
+        };
+    }
+    else if (ctx.direction.IsBackwardWrW()){
+        return [ctx](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle, const boost::any& primitive_parameters) {
+                const auto data_ctx = boost::any_cast<conv::WrWInvokeParams>(primitive_parameters);
+                const auto& tensors = data_ctx.tensors;
+
+                std::vector<KernelInvoke> ks;
+                std::transform(kernels.begin(),
+                               kernels.end(),
+                               std::back_inserter(ks),
+                               [&](const Kernel& k) { return handle.Run(k); });
+                float elapsed = 0;
+                elapsed       = CallImplicitGemmWrwDynamic(
+                    handle, ctx, tensors.x, tensors.dy, tensors.dw, data_ctx.workSpace, ks);
+                if(handle.IsProfilingEnabled())
+                {
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(elapsed);
                 }
             };
         };
