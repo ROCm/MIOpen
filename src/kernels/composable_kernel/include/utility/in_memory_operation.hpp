@@ -91,9 +91,9 @@ struct SetData<int, DataPerAccess>
     __device__ void Run(const int* p_src, index_t src_offset, int* p_dst, index_t dst_offset) const
     {
         SetData<float, DataPerAccess>{}.template Run<SrcAddressSpace, DstAddressSpace>(
-            reinterpret_cast<const float*>(p_src),
+            reinterpret_cast<const float*>(reinterpret_cast<const void*>(p_src)),
             src_offset,
-            reinterpret_cast<float*>(p_dst),
+            reinterpret_cast<float*>(reinterpret_cast<void*>(p_dst)),
             dst_offset);
     }
 };
