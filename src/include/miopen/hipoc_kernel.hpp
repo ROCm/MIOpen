@@ -201,7 +201,7 @@ struct HIPOCKernel
         if(hipSuccess != status)
             MIOPEN_THROW_HIP_STATUS(status,
                                     "Failed to get function: " + kernel_module + " from " +
-                                        program.GetBinary().string());
+                                        program.GetCodeObjectPathname().string());
     }
 
     HIPOCKernelInvoke Invoke(hipStream_t stream,

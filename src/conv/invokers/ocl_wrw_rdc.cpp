@@ -42,11 +42,9 @@ InvokerFactory MakeOclWrWRdcInvokerFactory(bool twoKernels, size_t workspaceSize
         return [workspaceSize](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
                 const auto main_kernel    = handle.Run(kernels[0]);
-                const auto rdc_kernel     = handle.Run(kernels[1]);
                 const auto& invoke_params = primitive_params.CastTo<WrWInvokeParams>();
                 const auto& tensors       = invoke_params.tensors;
                 const auto padding_val    = 0.f;
-                auto elapsed              = 0.f;
 
                 if(invoke_params.workSpaceSize < workspaceSize)
                     MIOPEN_THROW("Not enough workspace for invoker");

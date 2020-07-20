@@ -383,7 +383,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 
     const std::string name = params.GetStream().GetDeviceName();
 #if WORKAROUND_SWDEV_234193
-    if(params.IsFp16() && StartsWith(name, "gfx908"))
+    if(params.IsFp16() && (StartsWith(name, "gfx908") || StartsWith(name, "gfx906")))
     {
         if(wino_data_tile == 3 && wino_filter_tile == 4)
             if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4{}))

@@ -204,8 +204,7 @@ Kernel KernelCache::AddKernel(const Handle& h,
     {
         if(!is_kernel_miopengemm_str) // default value
             is_kernel_miopengemm_str = algorithm.find("ImplicitGEMM") == std::string::npos &&
-                                       algorithm.find("GEMM") != std::string::npos &&
-                                       algorithm.find("StaticCompiledGEMM") == std::string::npos;
+                                       algorithm.find("GEMM") != std::string::npos;
 
         if(miopen::IsLogging(miopen::LoggingLevel::Info2))
         {

@@ -255,10 +255,6 @@ std::vector<miopen::solver::ConvSolution>
 FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx,
                          const miopen::AnyInvokeParams& invoke_ctx);
 
-std::vector<miopen::solver::ConvSolution>
-FindAllFwdSCGemmSolutions(const miopen::ConvolutionContext& ctx,
-                          const miopen::AnyInvokeParams& invoke_ctx);
-
 struct mlo_construct_base
 {
     mlo_construct_base(miopen::conv::Direction dir, bool do_bias = false) : _search_params(dir)
@@ -590,21 +586,25 @@ struct mlo_construct_pooling2D : mlo_construct_activ_lrn_pooling_common
     {
         _pooling_method = MLO_POOLING_OP_MAX;
         _index_type     = miopenIndexUint8;
+        _wsp_index      = miopenPoolingWorkspaceIndexMask;
         _NAN_option     = 0;
     }
 
-    inline void setPoolingDescr(int pooling_method           = MLO_POOLING_OP_MAX,
-                                miopenIndexType_t index_type = miopenIndexUint8,
-                                int windowHeight             = 3,
-                                int windowWidth              = 3,
-                                int padding_h                = 0,
-                                int padding_w                = 0,
-                                int stride_h                 = 2,
-                                int stride_w                 = 2,
-                                int NAN_opt                  = 0)
+    inline void
+    setPoolingDescr(int pooling_method                          = MLO_POOLING_OP_MAX,
+                    miopenIndexType_t index_type                = miopenIndexUint8,
+                    miopenPoolingWorkspaceIndexMode_t wsp_index = miopenPoolingWorkspaceIndexMask,
+                    int windowHeight                            = 3,
+                    int windowWidth                             = 3,
+                    int padding_h                               = 0,
+                    int padding_w                               = 0,
+                    int stride_h                                = 2,
+                    int stride_w                                = 2,
+                    int NAN_opt                                 = 0)
     {
         _pooling_method                = pooling_method;
         _index_type                    = index_type;
+        _wsp_index                     = wsp_index;
         _search_params.pad_h           = padding_h;
         _search_params.pad_w           = padding_w;
         _search_params.kernel_size_h   = windowHeight;
@@ -616,6 +616,7 @@ struct mlo_construct_pooling2D : mlo_construct_activ_lrn_pooling_common
 
     inline void getPoolingDescr(int& /*pooling_method*/,
                                 miopenIndexType_t& index_type,
+                                miopenPoolingWorkspaceIndexMode_t& wsp_index,
                                 int& windowHeight,
                                 int& windowWidth,
                                 int& padding_h,
@@ -625,6 +626,7 @@ struct mlo_construct_pooling2D : mlo_construct_activ_lrn_pooling_common
                                 int& NAN_opt) const
     {
         index_type   = _index_type;
+        wsp_index    = _wsp_index;
         padding_h    = _search_params.pad_h;
         padding_w    = _search_params.pad_w;
         windowHeight = _search_params.kernel_size_h;
@@ -640,6 +642,7 @@ struct mlo_construct_pooling2D : mlo_construct_activ_lrn_pooling_common
     protected:
     int _pooling_method;
     miopenIndexType_t _index_type;
+    miopenPoolingWorkspaceIndexMode_t _wsp_index;
     int _NAN_option;
     int mloConstructFwd();
     int mloConstructBwd();

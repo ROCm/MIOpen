@@ -36,7 +36,6 @@
 #include <miopen/type_name.hpp>
 #include <miopen/miopen.h>
 #include <miopen/buffer_info.hpp>
-#include <miopen/scgemm_param.hpp>
 
 #include <memory>
 #include <string>
@@ -694,20 +693,22 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
     int GemmMPerBlock; // 2^n[32..128]
     int GemmKPerBlock; // 2^n[4..16]
 
+    int GemmKPACKSize; // 2^[1..4]
+
     int GemmMPerWave;
     int GemmNPerWave;
 
     bool use_spare_set;
 
-    PerformanceImplicitGemmBwdDataV4R1Xdlops(int, int, int, int, int, bool);
+    PerformanceImplicitGemmBwdDataV4R1Xdlops(int, int, int, int, int, int, bool);
 
     PerformanceImplicitGemmBwdDataV4R1Xdlops()
-        : PerformanceImplicitGemmBwdDataV4R1Xdlops(-1, -1, -1, -1, -1, false)
+        : PerformanceImplicitGemmBwdDataV4R1Xdlops(-1, -1, -1, -1, -1, -1, false)
     {
     }
 
-    PerformanceImplicitGemmBwdDataV4R1Xdlops(int a, int b, int c, int d, int e)
-        : PerformanceImplicitGemmBwdDataV4R1Xdlops(a, b, c, d, e, false)
+    PerformanceImplicitGemmBwdDataV4R1Xdlops(int a, int b, int c, int d, int e, int f)
+        : PerformanceImplicitGemmBwdDataV4R1Xdlops(a, b, c, d, e, f, false)
     {
     }
 
@@ -721,6 +722,7 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
         f(self.GemmNPerBlock, "GemmNPerBlock");
         f(self.GemmMPerBlock, "GemmMPerBlock");
         f(self.GemmKPerBlock, "GemmKPerBlock");
+        f(self.GemmKPACKSize, "GemmKPACKSize");
         f(self.GemmMPerWave, "GemmMPerWave");
         f(self.GemmNPerWave, "GemmNPerWave");
     }
@@ -766,21 +768,6 @@ struct ConvHipImplicitGemmV4R4Fwd : SolverBase<ConvolutionContext>
                              const PerformanceImplicitGemmV4R4Fwd& config,
                              bool disableConfigOverrideFromEnv = false) const;
 };
-
-struct ConvHipImplicitGemmV4Fwd : SolverBase<ConvolutionContext>
-{
-    PerformanceImplicitGemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemm& c) const;
-    bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemm& config,
-                             bool disableConfigOverrideFromEnv = false) const;
-
-    PerformanceImplicitGemm Search(const ConvolutionContext&,
-                                   const AnyInvokeParams& invoke_ctx) const;
-};
-
 struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
     : Serializable<PerformanceImplicitGemmV4R4GenXdlopsFwdFp32>
 {
@@ -907,46 +894,52 @@ struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlop
     std::string ToString() const;
 };
 
-struct ConvHipImplicitGemmV4R4FwdXdlops : SolverBase<ConvolutionContext>
+struct PerformanceImplicitGemmForwardV4R4Xdlops
+    : Serializable<PerformanceImplicitGemmForwardV4R4Xdlops>
 {
-    PerformanceImplicitGemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmXdlops& c) const;
-    bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmXdlops& config,
-                             bool disableConfigOverrideFromEnv = false) const;
+    int GemmMPerBlock;
+    int GemmNPerBlock;
+    int GemmKPerBlock;
+    int GemmMPerWave;
+    int GemmNPerWave;
+    int GemmKPack;
+    bool GemmAThreadCopyMoreGemmK;
+    bool GemmBThreadCopyMoreGemmKPack;
 
-    PerformanceImplicitGemmXdlops Search(const ConvolutionContext&,
-                                         const AnyInvokeParams& invoke_ctx) const;
-};
+    PerformanceImplicitGemmForwardV4R4Xdlops(int, int, int, int, int, int, bool, bool);
+    PerformanceImplicitGemmForwardV4R4Xdlops();
+    PerformanceImplicitGemmForwardV4R4Xdlops(bool) : PerformanceImplicitGemmForwardV4R4Xdlops() {}
 
-struct ConvHipImplicitGemmV4R4Xdlops_1x1 : SolverBase<ConvolutionContext>
-{
-    PerformanceImplicitGemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmXdlops& c) const;
-    bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmXdlops& config,
-                             bool disableConfigOverrideFromEnv = false) const;
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.GemmMPerBlock, "GemmMPerBlock");
+        f(self.GemmNPerBlock, "GemmNPerBlock");
+        f(self.GemmKPerBlock, "GemmKPerBlock");
+        f(self.GemmMPerWave, "GemmMPerWave");
+        f(self.GemmNPerWave, "GemmNPerWave");
+        f(self.GemmKPack, "GemmKPack");
+        f(self.GemmAThreadCopyMoreGemmK, "GemmAThreadCopyMoreGemmK");
+        f(self.GemmBThreadCopyMoreGemmKPack, "GemmBThreadCopyMoreGemmKPack");
+    }
 
-    PerformanceImplicitGemmXdlops Search(const ConvolutionContext&,
-                                         const AnyInvokeParams& invoke_ctx) const;
-};
+    bool operator==(const PerformanceImplicitGemmForwardV4R4Xdlops& other) const;
+    std::string ToString() const;
 
-struct ConvHipImplicitGemmV4R4WrWXdlops : SolverBase<ConvolutionContext>
-{
-    PerformanceImplicitGemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmXdlops& c) const;
-    bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmXdlops& config,
-                             bool disableConfigOverrideFromEnv = false) const;
+    void EuristicInit(const ConvolutionContext& ctx);
+    bool SetNextValue();
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext& ctx) const;
+    bool IsReallyValid(const ConvolutionContext& ctx) const;
+    bool IsFastToBeUsedForTuning(const ConvolutionContext& ctx) const;
 
-    PerformanceImplicitGemmXdlops Search(const ConvolutionContext&,
-                                         const AnyInvokeParams& invoke_ctx) const;
+    std::tuple<int, bool> CalculateBlockSize() const;
+    std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, int, bool>
+    CalculateGemmABlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, int, bool>
+    CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
 };
 
 struct ConvHipImplicitGemmV4R4GenFwdXdlops : SolverBase<ConvolutionContext>
@@ -961,6 +954,22 @@ struct ConvHipImplicitGemmV4R4GenFwdXdlops : SolverBase<ConvolutionContext>
 
     PerformanceImplicitGemmXdlops Search(const ConvolutionContext&,
                                          const AnyInvokeParams& invoke_ctx) const;
+};
+
+struct ConvHipImplicitGemmForwardV4R4Xdlops : SolverBase<ConvolutionContext>
+{
+    static std::tuple<int, int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
+    PerformanceImplicitGemmForwardV4R4Xdlops
+    GetPerformanceConfig(const ConvolutionContext& ctx) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const PerformanceImplicitGemmForwardV4R4Xdlops& c) const;
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceImplicitGemmForwardV4R4Xdlops& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+
+    PerformanceImplicitGemmForwardV4R4Xdlops Search(const ConvolutionContext&,
+                                                    const AnyInvokeParams& invoke_ctx) const;
 };
 
 struct PerformanceImplicitGemmV4R4GenXdlopsWrWFp32
@@ -1039,21 +1048,6 @@ struct ConvHipImplicitGemmV4R4GenWrWXdlops : SolverBase<ConvolutionContext>
     PerformanceImplicitGemmXdlops Search(const ConvolutionContext&,
                                          const AnyInvokeParams& invoke_ctx) const;
 };
-
-struct ConvHipImplicitGemmV4_1x1 : SolverBase<ConvolutionContext>
-{
-    PerformanceImplicitGemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemm& c) const;
-    bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemm& config,
-                             bool disableConfigOverrideFromEnv = false) const;
-
-    PerformanceImplicitGemm Search(const ConvolutionContext&,
-                                   const AnyInvokeParams& invoke_ctx) const;
-};
-
 struct ConvHipImplicitGemmV4R1WrW : SolverBase<ConvolutionContext>
 {
     PerformanceImplicitGemmV4R1 GetPerformanceConfig(const ConvolutionContext& ctx) const;
@@ -1066,20 +1060,6 @@ struct ConvHipImplicitGemmV4R1WrW : SolverBase<ConvolutionContext>
 
     PerformanceImplicitGemmV4R1 Search(const ConvolutionContext&,
                                        const AnyInvokeParams& invoke_ctx) const;
-};
-
-struct ConvHipImplicitGemmV4WrW : SolverBase<ConvolutionContext>
-{
-    PerformanceImplicitGemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemm& c) const;
-    bool IsApplicable(const ConvolutionContext& ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemm& config,
-                             bool disableConfigOverrideFromEnv = false) const;
-
-    PerformanceImplicitGemm Search(const ConvolutionContext&,
-                                   const AnyInvokeParams& invoke_ctx) const;
 };
 
 struct ConvHipImplicitGemmBwdDataV1R1 : SolverBase<ConvolutionContext>
@@ -1674,46 +1654,6 @@ struct ConvOclBwdWrW1x1 : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params) const;
     size_t GetWorkspaceSize(const ConvolutionContext& params) const;
 };
-
-#if MIOPEN_USE_SCGEMM
-template <SCGemmOpType T>
-struct PerformanceConfigSCGemmFwd : Serializable<PerformanceConfigSCGemmFwd<T>>
-{
-    int routine = -1; //[0..6]
-
-    PerformanceConfigSCGemmFwd();
-    PerformanceConfigSCGemmFwd(bool);
-
-    template <class Self, class F>
-    static void Visit(Self&& self, F f)
-    {
-        f(self.routine, "routine");
-    }
-
-    void EuristicInit(const ConvolutionContext& config);
-    bool IsValidValue() const;
-    bool SetNextValue();
-    bool IsValid(const ConvolutionContext& config) const;
-    bool operator==(const PerformanceConfigSCGemmFwd& other) const;
-    std::string ToString() const;
-};
-
-struct ConvSCGemmFGemm : SolverBase<ConvolutionContext>
-{
-    PerformanceConfigSCGemmFwd<SCGemmOpFGemm> GetPerformanceConfig(const ConvolutionContext&) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const PerformanceConfigSCGemmFwd<SCGemmOpFGemm>&) const;
-    PerformanceConfigSCGemmFwd<SCGemmOpFGemm> Search(const ConvolutionContext&,
-                                                     const AnyInvokeParams& invoke_ctx) const;
-    bool IsApplicable(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfigSCGemmFwd<SCGemmOpFGemm>& config,
-                             bool disableConfigOverrideFromEnv = false) const;
-    size_t GetWorkspaceSize(const ConvolutionContext& params) const;
-};
-
-extern template struct PerformanceConfigSCGemmFwd<SCGemmOpFGemm>;
-#endif
 
 /// Partial implementation.
 struct gemm : SolverBase<ConvolutionContext>

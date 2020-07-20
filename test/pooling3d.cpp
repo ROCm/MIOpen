@@ -46,6 +46,7 @@ struct pooling3d_driver : pooling_driver<T>
         this->add(this->lens, "lens", this->generate_data({{2, 2, 2}, {3, 3, 3}}));
         this->add(this->strides, "strides", this->generate_data({{2, 2, 2}, {1, 1, 1}}));
         this->add(this->pads, "pads", this->generate_data({{0, 0, 0}, {1, 1, 1}}));
+        this->add(this->wsidx, "wsidx", this->generate_data({1}));
     }
 };
 

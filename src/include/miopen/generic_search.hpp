@@ -512,6 +512,7 @@ auto GenericSearch(const Solver s, const Context& context, const AnyInvokeParams
     const auto default_time = profile_h.GetKernelTime();
     const auto score        = (best_time > 0.0f) ? default_time / best_time : 0.0f;
     MIOPEN_LOG_W("...Score: " << score << " (default time " << default_time << ')');
+
     return best_config;
 }
 

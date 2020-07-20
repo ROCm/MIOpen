@@ -56,7 +56,8 @@ class SQLite::impl
     {
         void operator()(sqlite3* ptr)
         {
-            std::string filename_(sqlite3_db_filename(ptr, "main"));
+            const auto c_filename = sqlite3_db_filename(ptr, "main");
+            std::string filename_((c_filename == nullptr) ? "" : c_filename);
             SQLite::Retry([&]() { return sqlite3_close(ptr); }, filename_);
         }
     };
