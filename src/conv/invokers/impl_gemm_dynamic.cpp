@@ -124,7 +124,7 @@ float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
     int GemmKPerBlock = 16;
 
     gemmk_groups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
-    k_gemmk_groups = log2f(gemmk_groups);
+    k_gemmk_groups = static_cast<int>(log2f(static_cast<float>(gemmk_groups)));
 
     // clang-format on
     std::vector<OpKernelArg> opArgs;
