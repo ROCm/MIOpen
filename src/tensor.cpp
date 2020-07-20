@@ -171,6 +171,31 @@ std::string TensorDescriptor::ToString() const
     return result.substr(0, result.length() - 2);
 }
 
+void TensorDescriptor::SetLayout(const std::string& l)
+{
+    auto isOfLegal = [](std::string legalChars) {
+        return [&legalChars](const char& x) {
+            std::string addedChars;
+            bool isNotAdded = addedChars.find(x) == std::string::npos;
+            addedChars.push_back(x);
+            return legalChars.find(x) != std::string::npos && isNotAdded;
+        };
+    };
+    bool is4dInputTensor  = std::all_of(l.begin(), l.end(), isOfLegal("NCHW"));
+    bool is4dFilterTensor = std::all_of(l.begin(), l.end(), isOfLegal("KCYX"));
+    bool is4dOutputTensor = std::all_of(l.begin(), l.end(), isOfLegal("NKHW"));
+
+    if((l.size() == 4) && (is4dInputTensor || is4dFilterTensor || is4dOutputTensor))
+    {
+        this->layout = l;
+    }
+    else
+    {
+        MIOPEN_THROW("Invalid Layout. Layout must be 4 character in width, and a combination of "
+                     "NCHW, KCYX or NKHW");
+    }
+}
+
 std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t)
 {
     return LogRange(stream, t.lens, ", ");

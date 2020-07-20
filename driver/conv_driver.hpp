@@ -488,9 +488,9 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
         (data_type == miopenInt8 || data_type == miopenInt8x4) ? miopenFloat : data_type;
     SetTensorNd(outputTensor, out_len, y_type);
 
-    miopenSet4dTensorDescriptorLayout(inputTensor, inflags.GetValueStr("in_layout").c_str());
-    miopenSet4dTensorDescriptorLayout(weightTensor, inflags.GetValueStr("fil_layout").c_str());
-    miopenSet4dTensorDescriptorLayout(outputTensor, inflags.GetValueStr("out_layout").c_str());
+    miopenSetTensorDescriptorLayout(inputTensor, inflags.GetValueStr("in_layout").c_str());
+    miopenSetTensorDescriptorLayout(weightTensor, inflags.GetValueStr("fil_layout").c_str());
+    miopenSetTensorDescriptorLayout(outputTensor, inflags.GetValueStr("out_layout").c_str());
 
     if(inflags.GetValueInt("bias") != 0)
     {
@@ -535,9 +535,9 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("in_layout", 'I', "nchw", "Input Layout (Default=nchw)", "string");
-    inflags.AddInputFlag("out_layout", 'O', "nkhw", "Output Layout (Default=nkhw)", "string");
-    inflags.AddInputFlag("fil_layout", 'f', "kcyx", "Input Layout (Default=kcyx)", "string");
+    inflags.AddInputFlag("in_layout", 'I', "NCHW", "Input Layout (Default=NCHW)", "string");
+    inflags.AddInputFlag("out_layout", 'O', "NKHW", "Output Layout (Default=NKHW)", "string");
+    inflags.AddInputFlag("fil_layout", 'f', "KCYX", "Input Layout (Default=KCYX)", "string");
     inflags.AddInputFlag(
         "spatial_dim", '_', "2", "convolution spatial dimension (Default-2)", "int");
     inflags.AddInputFlag("forw",

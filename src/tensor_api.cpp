@@ -49,8 +49,8 @@ extern "C" miopenStatus_t miopenSet4dTensorDescriptor(
     });
 }
 
-extern "C" miopenStatus_t miopenSet4dTensorDescriptorLayout(miopenTensorDescriptor_t tensorDesc,
-                                                            const char* layout)
+extern "C" miopenStatus_t miopenSetTensorDescriptorLayout(miopenTensorDescriptor_t tensorDesc,
+                                                          const char* layout)
 {
 
     MIOPEN_LOG_FUNCTION(tensorDesc, layout);

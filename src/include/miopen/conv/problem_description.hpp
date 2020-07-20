@@ -167,7 +167,7 @@ struct ProblemDescription
     std::size_t GetInSize() const
     {
         // clang-format off
-        return (GetInLayout() == "nchw")
+        return (GetInLayout() == "NCHW")
             ? GetInBatchSize() * GetInChannels() * GetInDepth() * GetInHeight() * GetInWidth() * GetInElementSize()
             : GetInBatchSize() * GetInBatchStride() * GetInChannelStride() * GetInStrideH() * GetInStrideW() * GetInElementSize(); // Todo: GetInStrideD() ?
         // clang-format on
@@ -191,7 +191,7 @@ struct ProblemDescription
     std::size_t GetOutSize() const
     {
         // clang-format off
-        return (GetOutLayout() == "nkhw")
+        return (GetOutLayout() == "NKHW")
             ? GetOutBatchSize() * GetOutChannels() * GetOutDepth() * GetOutHeight() * GetOutWidth() * GetOutElementSize()
             : GetOutBatchSize() * GetOutBatchStride() * GetOutChannelStride() * GetOutStrideH() * GetOutStrideW() * GetOutElementSize(); // Todo: GetOutStrideD() ?
         // clang-format on

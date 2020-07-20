@@ -35,7 +35,10 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     if(!direction.IsKnown())
         MIOPEN_THROW("!direction.IsKnown()");
     const auto sep = '-';
+    // Problem description with default NCHW-KCYX-NKHW layout
     // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NCHW-FP32-F
+    // Problem description with non-default layout
+    // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NHWC-KCYX-NKHW-FP32-F
     // clang-format off
     stream << n_inputs;
     stream << sep << PrintDHW(sep, spatial_dims, in_depth, in_height, in_width);
@@ -47,7 +50,14 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     stream << sep << PrintDHW('x', spatial_dims, kernel_stride_d, kernel_stride_h, kernel_stride_w);
     stream << sep << PrintDHW('x', spatial_dims, kernel_dilation_d, kernel_dilation_h, kernel_dilation_w);
     stream << sep << bias;
-    stream << sep << in_layout;
+    if (in_layout == "NCHW" && weights_layout == "KCYX" && out_layout == "NKHW")
+    {
+        stream << sep << in_layout;
+    } else {
+        stream << sep << in_layout;
+        stream << sep << weights_layout;
+        stream << sep << out_layout;
+    }
     stream << sep << EncodeDataTypesForKey(in_data_type, weights_data_type, out_data_type);
     stream << sep << (direction.IsForward() ? "F" : direction.IsBackwardData() ? "B" : "W");
     // clang-format on

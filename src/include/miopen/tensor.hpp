@@ -173,8 +173,7 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     std::string ToString() const;
 
-    void SetLayout(const std::string& l) { this->layout = l; }
-
+    void SetLayout(const std::string& l);
     std::string GetLayout() const { return this->layout; }
 
     friend std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t);

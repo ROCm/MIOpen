@@ -77,6 +77,7 @@ void ProblemDescription::BuildConfKey(std::string& conf_key) const
               'x', GetSpatialDims(), GetKernelStrideD(), GetKernelStrideH(), GetKernelStrideW());
     ss << 'x' << PrintDHW('x', GetSpatialDims(), GetDilationD(), GetDilationH(), GetDilationW());
     ss << 'x' << GetGroupCount();
+    ss << 'x' << (GetDirection() == Direction::Forward ? "1" : "0");
 
     switch(GetDirection())
     {
@@ -91,7 +92,10 @@ void ProblemDescription::BuildConfKey(std::string& conf_key) const
 void ProblemDescription::Serialize(std::ostream& stream) const
 {
     const auto sep = '-';
+    // Problem description with default layout
     // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NCHW-FP32-F
+    // Problem description with non-default layout
+    // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NHWC-KCYX-NKHW-FP32-F
     // clang-format off
     stream << GetInChannels();
     stream << sep << PrintDHW(sep, GetSpatialDims(), GetInDepth(), GetInHeight(), GetInWidth());
@@ -103,7 +107,14 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     stream << sep << PrintDHW('x', GetSpatialDims(), GetKernelStrideD(), GetKernelStrideH(), GetKernelStrideW());
     stream << sep << PrintDHW('x', GetSpatialDims(), GetDilationD(), GetDilationH(), GetDilationW());
     stream << sep << GetBias();
-    stream << sep << GetInLayout();
+    if (GetInLayout() == "NCHW" && GetWeightsLayout() == "KCYX" && GetOutLayout() == "NKHW")
+    {
+        stream << sep << GetInLayout();
+    }else {
+        stream << sep << GetInLayout();
+        stream << sep << GetWeightsLayout();
+        stream << sep << GetOutLayout();
+    }
     stream << sep << GetWeightsLayout();
     stream << sep << GetOutLayout();
     stream << sep << EncodeDataTypesForKey(GetInDataType(), GetWeightsDataType(), GetOutDataType());

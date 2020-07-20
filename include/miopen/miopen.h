@@ -538,8 +538,14 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor
 MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptor(
     miopenTensorDescriptor_t tensorDesc, miopenDataType_t dataType, int n, int c, int h, int w);
 
-MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptorLayout(miopenTensorDescriptor_t tensorDesc,
-                                                               const char* layout);
+/*! @brief Set the layout to a tensor descriptor
+ *
+ * API for setting the layout to a tensor descriptor
+ * @param tensorDesc Tensor descriptor type (input)
+ * @param layout     Tensor layout (input)
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptorLayout(miopenTensorDescriptor_t tensorDesc,
+                                                             const char* layout);
 
 /*! @brief Get the details of the tensor descriptor
  *
