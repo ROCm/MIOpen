@@ -42,17 +42,16 @@ namespace solver {
 static inline int GetImplicitGemmWrwV4R1DynamicGemmkGroups(const ConvolutionContext& ctx,
                                                            const int& GemmKPerBlock)
 {
-    int c            = ctx.batch_sz;
+    int gemmk        = ctx.batch_sz * ctx.in_height * ctx.in_width;
     int gemmk_groups = 1, tmp_gemmk_groups = 1;
     for(int i = 0; i < 6; i++)
     {
         tmp_gemmk_groups = 1 << i;
-        if(0 == (c % (tmp_gemmk_groups * GemmKPerBlock)))
+        if(0 == (gemmk % (tmp_gemmk_groups * GemmKPerBlock)))
             gemmk_groups = tmp_gemmk_groups;
         else
             break;
     }
-    // gemmk_groups = 1;
     return gemmk_groups;
 }
 
