@@ -3,7 +3,7 @@
 #include <miopen/algorithm.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/tensor_ops.hpp>
-
+#include <miopen/numeric.hpp>
 #include <boost/any.hpp>
 
 namespace miopen {
@@ -90,8 +90,8 @@ float CallImplicitGemmDynamic(const miopen::Handle& handle,
             int y           = ctx.kernel_size_h;
             int x           = ctx.kernel_size_w;
 
-            int gcd_stride_dilation_h = igemm_dynamic::gcd(stride_h, dilation_h);
-            int gcd_stride_dilation_w = igemm_dynamic::gcd(stride_w, dilation_w);
+            int gcd_stride_dilation_h = gcd(stride_h, dilation_h);
+            int gcd_stride_dilation_w = gcd(stride_w, dilation_w);
             int y_tilda     = stride_h / gcd_stride_dilation_h;
             int x_tilda     = stride_w / gcd_stride_dilation_w;
 
@@ -101,11 +101,11 @@ float CallImplicitGemmDynamic(const miopen::Handle& handle,
             int h_tilda     = ho + (dilation_h * (y - 1) + stride_h - 1) / stride_h;
             int w_tilda     = wo + (dilation_w * (x - 1) + stride_w - 1) / stride_w;
 
-            int h_tilda_left = igemm_dynamic::max(0, pad_h - dilation_h * (y_tilda - 1)) / stride_h;
-            int w_tilda_left = igemm_dynamic::max(0, pad_w - dilation_w * (x_tilda - 1)) / stride_w;
+            int h_tilda_left = std::max(0, pad_h - dilation_h * (y_tilda - 1)) / stride_h;
+            int w_tilda_left = std::max(0, pad_w - dilation_w * (x_tilda - 1)) / stride_w;
 
-            int h_tilda_right = igemm_dynamic::min(h_tilda, (pad_h + hi - 1 + stride_h - 1) / stride_h + 1);
-            int w_tilda_right = igemm_dynamic::min(w_tilda, (pad_w + wi - 1 + stride_w - 1) / stride_w + 1);
+            int h_tilda_right = std::min(h_tilda, (pad_h + hi - 1 + stride_h - 1) / stride_h + 1);
+            int w_tilda_right = std::min(w_tilda, (pad_w + wi - 1 + stride_w - 1) / stride_w + 1);
 
             int h_tilda_slice = h_tilda_right - h_tilda_left;
             int w_tilda_slice = w_tilda_right - w_tilda_left;

@@ -28,6 +28,8 @@
 #include <miopen/conv/invokers/impl_gemm_dynamic.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/gcn_asm_utils.hpp>
+#include <miopen/numeric.hpp>
+#include <algorithm>
 #include "implicitgemm_util.hpp"
 
 namespace miopen {
@@ -57,22 +59,19 @@ static inline bool FindImplicitGemmDynamicKernelBwd(const ConvolutionContext& ct
     int y           = ctx.kernel_size_h;
     int x           = ctx.kernel_size_w;
 
-    int gcd_stride_dilation_h = conv::igemm_dynamic::gcd(stride_h, dilation_h);
-    int gcd_stride_dilation_w = conv::igemm_dynamic::gcd(stride_w, dilation_w);
+    int gcd_stride_dilation_h = gcd(stride_h, dilation_h);
+    int gcd_stride_dilation_w = gcd(stride_w, dilation_w);
     int y_tilda     = stride_h / gcd_stride_dilation_h;
     int x_tilda     = stride_w / gcd_stride_dilation_w;
-
-    //int y_dot = (y +  y_tilda - 1) / y_tilda;
-    //int x_dot = (x +  x_tilda - 1) / x_tilda;
 
     int h_tilda     = ho + (dilation_h * (y - 1) + stride_h - 1) / stride_h;
     int w_tilda     = wo + (dilation_w * (x - 1) + stride_w - 1) / stride_w;
 
-    int h_tilda_left = conv::igemm_dynamic::max(0, pad_h - dilation_h * (y_tilda - 1)) / stride_h;
-    int w_tilda_left = conv::igemm_dynamic::max(0, pad_w - dilation_w * (x_tilda - 1)) / stride_w;
+    int h_tilda_left = std::max(0, pad_h - dilation_h * (y_tilda - 1)) / stride_h;
+    int w_tilda_left = std::max(0, pad_w - dilation_w * (x_tilda - 1)) / stride_w;
 
-    int h_tilda_right = conv::igemm_dynamic::min(h_tilda, (pad_h + hi - 1 + stride_h - 1) / stride_h + 1);
-    int w_tilda_right = conv::igemm_dynamic::min(w_tilda, (pad_w + wi - 1 + stride_w - 1) / stride_w + 1);
+    int h_tilda_right = std::min(h_tilda, (pad_h + hi - 1 + stride_h - 1) / stride_h + 1);
+    int w_tilda_right = std::min(w_tilda, (pad_w + wi - 1 + stride_w - 1) / stride_w + 1);
 
     int h_tilda_slice = h_tilda_right - h_tilda_left;
     int w_tilda_slice = w_tilda_right - w_tilda_left;
@@ -122,10 +121,6 @@ static inline bool FindImplicitGemmDynamicKernelBwd(const ConvolutionContext& ct
                               "4x1x1x16x1_tb1x2x1x1x4x1x1_4x1x1x16x1x1x1";
                 return true;
             }
-        }
-        else
-        {
-            // TODO: add here!
         }
     }
     return false;
@@ -190,8 +185,6 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicBwd::GetSolution(const ConvolutionCon
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
 
     kernel.comp_options = options.str();
-
-    MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
     result.invoker_factory = conv::MakeImplGemmDynamicDataInvokerFactory(ctx);
     result.construction_params.push_back(kernel);

@@ -35,41 +35,6 @@
 namespace miopen {
 namespace conv {
 
-namespace igemm_dynamic {
-template <typename T>
-T gcd(T x, T y)
-{
-    if(x == y || x == 0)
-    {
-        return y;
-    }
-    else if(y == 0)
-    {
-        return x;
-    }
-    else if(x > y)
-    {
-        return gcd(x - y, y);
-    }
-    else
-    {
-        return gcd(x, y - x);
-    }
-}
-
-template <typename T>
-T min(T x, T y)
-{
-    return x < y ? x : y;
-}
-
-template <typename T>
-T max(T x, T y)
-{
-    return x > y ? x : y;
-}
-} // namespace igemm_dynamic
-
 // Beside used in invoker, currently this function is only called in RunAndMeasure() of dynamic
 // igemm solver
 // Remove this in the future when invoker is fully re-factored.
