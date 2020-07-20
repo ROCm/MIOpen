@@ -161,13 +161,6 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionCon
     KernelInfo kernel;
     std::ostringstream options;
 
-    std::cout << "nchiwi: " << ctx.batch_sz << " " << ctx.n_inputs << " " << ctx.in_height << " "
-              << ctx.in_width << " " << std::endl;
-    std::cout << "kcyx: " << ctx.n_outputs << " " << ctx.n_inputs << " " << ctx.kernel_size_h << " "
-              << ctx.kernel_size_w << " " << std::endl;
-    std::cout << "nkhowo: " << ctx.batch_sz << " " << ctx.n_outputs << " " << ctx.out_height << " "
-              << ctx.out_width << " " << std::endl;
-
     int block_size;
     int grid_size;
     std::string kernel_name;
