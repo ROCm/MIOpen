@@ -173,6 +173,7 @@ set( MIOpen_Source
     include/miopen/rnn_util.hpp
     include/miopen/bz2.hpp
     include/miopen/comgr.hpp
+    include/miopen/numeric.hpp
     md_graph.cpp
     mdg_expr.cpp
     conv/invokers/gcn_asm_1x1u.cpp
