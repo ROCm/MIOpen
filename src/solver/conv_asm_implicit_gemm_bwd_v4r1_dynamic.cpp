@@ -186,7 +186,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicBwd::GetSolution(const ConvolutionCon
 
     kernel.comp_options = options.str();
 
-    result.invoker_factory = conv::MakeImplGemmDynamicDataInvokerFactory(ctx);
+    result.invoker_factory = conv::MakeImplGemmDynamicBackwardDataInvokerFactory(ctx);
     result.construction_params.push_back(kernel);
     return result;
 }

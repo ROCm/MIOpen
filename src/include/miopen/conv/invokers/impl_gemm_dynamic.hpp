@@ -35,17 +35,22 @@
 namespace miopen {
 namespace conv {
 
-// Beside used in invoker, currently this function is only called in RunAndMeasure() of dynamic
-// igemm solver
-// Remove this in the future when invoker is fully re-factored.
-float CallImplicitGemmDynamic(const miopen::Handle& handle,
-                              const ConvolutionContext& ctx,
-                              ConstData_t src,
-                              Data_t dst,
-                              ConstData_t wei,
-                              const std::vector<KernelInvoke>& kernels);
+float CallImplGemmDynamicForward(const miopen::Handle& handle,
+                                 const ConvolutionContext& ctx,
+                                 ConstData_t src,
+                                 Data_t dst,
+                                 ConstData_t wei,
+                                 const std::vector<KernelInvoke>& kernels);
 
-InvokerFactory MakeImplGemmDynamicDataInvokerFactory(const ConvolutionContext& ctx);
+float CallImplGemmDynamicBackwardData(const miopen::Handle& handle,
+                                      const ConvolutionContext& ctx,
+                                      ConstData_t src,
+                                      Data_t dst,
+                                      ConstData_t wei,
+                                      const std::vector<KernelInvoke>& kernels);
+
+InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const ConvolutionContext& ctx);
+InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ConvolutionContext& ctx);
 
 } // namespace conv
 } // namespace miopen

@@ -142,7 +142,7 @@ static inline int RunAndMeasureSolutionDynamicBase(miopen::Handle& profile_h,
             kernels.push_back(kernel);
         }
         float time =
-            conv::CallImplicitGemmDynamic(profile_h, ctx, bot_buf, top_buf, wei_buf, kernels);
+            conv::CallImplGemmDynamicForward(profile_h, ctx, bot_buf, top_buf, wei_buf, kernels);
         elapsed_time += time;
     }
 #ifdef NDEBUG
@@ -557,7 +557,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
 
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
-    result.invoker_factory = conv::MakeImplGemmDynamicDataInvokerFactory(ctx);
+    result.invoker_factory = conv::MakeImplGemmDynamicForwardInvokerFactory(ctx);
     result.construction_params.push_back(kernel);
     return result;
 }
