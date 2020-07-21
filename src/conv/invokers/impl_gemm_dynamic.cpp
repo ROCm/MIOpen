@@ -10,7 +10,7 @@ namespace miopen {
 namespace conv {
 
 float CallImplGemmDynamicForward(const miopen::Handle& handle,
-                                 const ConvolutionContext& ctx,
+                                 const ProblemDescription& conv_problem,
                                  ConstData_t src,
                                  Data_t dst,
                                  ConstData_t wei,
@@ -23,21 +23,21 @@ float CallImplGemmDynamicForward(const miopen::Handle& handle,
 
     bool kernel_is_1x1 = (kernel.GetName().find("igemm_v4r1_1x1_dynamic") == 0);
     // clang-format off
-    int hi          = ctx.in_height;
-    int wi          = ctx.in_width;
-    int n           = ctx.batch_sz;
-    int k           = ctx.n_outputs;
-    int c           = ctx.n_inputs;
-    int ho          = ctx.out_height;
-    int wo          = ctx.out_width;
-    int stride_h    = ctx.kernel_stride_h;
-    int stride_w    = ctx.kernel_stride_w;
-    int dilation_h  = ctx.kernel_dilation_h;
-    int dilation_w  = ctx.kernel_dilation_w;
-    int pad_h       = ctx.pad_h;
-    int pad_w       = ctx.pad_w;
-    int y           = ctx.kernel_size_h;
-    int x           = ctx.kernel_size_w;
+    int hi          = conv_problem.GetInHeight();
+    int wi          = conv_problem.GetInWidth();
+    int n           = conv_problem.GetInBatchSize();
+    int k           = conv_problem.GetOutChannels();
+    int c           = conv_problem.GetInChannels();
+    int ho          = conv_problem.GetOutHeight();
+    int wo          = conv_problem.GetOutWidth();
+    int stride_h    = conv_problem.GetKernelStrideH();
+    int stride_w    = conv_problem.GetKernelStrideW();
+    int dilation_h  = conv_problem.GetDilationH();
+    int dilation_w  = conv_problem.GetDilationW();
+    int pad_h       = conv_problem.GetPadH();
+    int pad_w       = conv_problem.GetPadW();
+    int y           = conv_problem.GetWeightsHeight();
+    int x           = conv_problem.GetWeightsWidth();
     int __pack0     = 0;
     // clang-format on
     std::vector<OpKernelArg> opArgs;
@@ -77,7 +77,7 @@ float CallImplGemmDynamicForward(const miopen::Handle& handle,
 
 
 float CallImplGemmDynamicBackwardData(const miopen::Handle& handle,
-                              const ConvolutionContext& ctx,
+                              const ProblemDescription& conv_problem,
                               ConstData_t src,
                               Data_t dst,
                               ConstData_t wei,
@@ -89,21 +89,21 @@ float CallImplGemmDynamicBackwardData(const miopen::Handle& handle,
     MIOPEN_LOG_I(kernel.GetName());
 
     // clang-format off
-    int hi          = ctx.out_height;
-    int wi          = ctx.out_width;
-    int n           = ctx.batch_sz;
-    int k           = ctx.n_inputs;
-    int c           = ctx.n_outputs;
-    int ho          = ctx.in_height;
-    int wo          = ctx.in_width;
-    int stride_h    = ctx.in_height > 1 ? ctx.kernel_stride_h : 1;
-    int stride_w    = ctx.in_width > 1 ? ctx.kernel_stride_w : 1;
-    int dilation_h  = ctx.kernel_size_h > 1? ctx.kernel_dilation_h : 1;
-    int dilation_w  = ctx.kernel_size_w > 1? ctx.kernel_dilation_w : 1;
-    int pad_h       = ctx.pad_h;
-    int pad_w       = ctx.pad_w;
-    int y           = ctx.kernel_size_h;
-    int x           = ctx.kernel_size_w;
+    int hi          = conv_problem.GetOutHeight();
+    int wi          = conv_problem.GetOutWidth();
+    int n           = conv_problem.GetInBatchSize();
+    int k           = conv_problem.GetInChannels();
+    int c           = conv_problem.GetOutChannels();
+    int ho          = conv_problem.GetInHeight();
+    int wo          = conv_problem.GetInWidth();
+    int stride_h    = conv_problem.GetInHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
+    int stride_w    = conv_problem.GetInWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
+    int dilation_h  = conv_problem.GetWeightsHeight() > 1? conv_problem.GetDilationH() : 1;
+    int dilation_w  = conv_problem.GetWeightsWidth() > 1? conv_problem.GetDilationW() : 1;
+    int pad_h       = conv_problem.GetPadH();
+    int pad_w       = conv_problem.GetPadW();
+    int y           = conv_problem.GetWeightsHeight();
+    int x           = conv_problem.GetWeightsWidth();
 
     int gcd_stride_dilation_h = gcd(stride_h, dilation_h);
     int gcd_stride_dilation_w = gcd(stride_w, dilation_w);
@@ -202,7 +202,8 @@ float CallImplGemmDynamicBackwardData(const miopen::Handle& handle,
 
 InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const ConvolutionContext& ctx)
 {
-    return [ctx](const std::vector<Kernel>& kernels) {
+    const auto& conv_problem = ctx.conv_problem;
+    return [conv_problem](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const boost::any& primitive_parameters) {
             const auto data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_parameters);
             const auto& tensors = data_ctx.tensors;
@@ -216,8 +217,8 @@ InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const ConvolutionContext
                                std::back_inserter(ks),
                                [&](const Kernel& k) { return handle.Run(k); });
                 float elapsed = 0;
-                elapsed =
-                    CallImplGemmDynamicForward(handle, ctx, tensors.in, tensors.out, tensors.w, ks);
+                elapsed       = CallImplGemmDynamicForward(
+                    handle, conv_problem, tensors.in, tensors.out, tensors.w, ks);
                 if(handle.IsProfilingEnabled())
                 {
                     handle.ResetKernelTime();
@@ -236,34 +237,27 @@ InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const ConvolutionContext
 
 InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ConvolutionContext& ctx)
 {
-    return [ctx](const std::vector<Kernel>& kernels) {
+    const auto& conv_problem = ctx.conv_problem;
+    return [conv_problem](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const boost::any& primitive_parameters) {
             const auto data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_parameters);
             const auto& tensors = data_ctx.tensors;
             auto kernel         = handle.Run(kernels[0]);
-            if(kernel.GetName().find("igemm_bwd_gtc") == 0)
-            {
-                std::vector<KernelInvoke> ks;
-                std::transform(kernels.begin(),
-                               kernels.end(),
-                               std::back_inserter(ks),
-                               [&](const Kernel& k) { return handle.Run(k); });
-                float elapsed = 0;
 
-                elapsed = CallImplGemmDynamicBackwardData(
-                    handle, ctx, tensors.in, tensors.out, tensors.w, ks);
+            std::vector<KernelInvoke> ks;
+            std::transform(kernels.begin(),
+                           kernels.end(),
+                           std::back_inserter(ks),
+                           [&](const Kernel& k) { return handle.Run(k); });
+            float elapsed = 0;
 
-                if(handle.IsProfilingEnabled())
-                {
-                    handle.ResetKernelTime();
-                    handle.AccumKernelTime(elapsed);
-                }
-            }
-            else
+            elapsed = CallImplGemmDynamicBackwardData(
+                handle, conv_problem, tensors.in, tensors.out, tensors.w, ks);
+
+            if(handle.IsProfilingEnabled())
             {
-                MIOPEN_THROW(
-                    "Error running dynamic implicit GEMM convolution (invalid kernel name " +
-                    kernel.GetName() + ")");
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
             }
         };
     };

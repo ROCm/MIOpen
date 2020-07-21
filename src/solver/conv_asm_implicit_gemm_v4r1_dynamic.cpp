@@ -129,6 +129,7 @@ static inline int RunAndMeasureSolutionDynamicBase(miopen::Handle& profile_h,
     {
         elapsed_time = float(0);
         std::vector<KernelInvoke> kernels;
+        const auto& conv_problem = ctx.conv_problem;
 
         for(auto& k_info : solution.construction_params)
         {
@@ -141,8 +142,8 @@ static inline int RunAndMeasureSolutionDynamicBase(miopen::Handle& profile_h,
                                               k_info.comp_options);
             kernels.push_back(kernel);
         }
-        float time =
-            conv::CallImplGemmDynamicForward(profile_h, ctx, bot_buf, top_buf, wei_buf, kernels);
+        float time = conv::CallImplGemmDynamicForward(
+            profile_h, conv_problem, bot_buf, top_buf, wei_buf, kernels);
         elapsed_time += time;
     }
 #ifdef NDEBUG

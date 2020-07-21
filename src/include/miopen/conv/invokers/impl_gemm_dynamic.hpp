@@ -36,14 +36,14 @@ namespace miopen {
 namespace conv {
 
 float CallImplGemmDynamicForward(const miopen::Handle& handle,
-                                 const ConvolutionContext& ctx,
+                                 const ProblemDescription& conv_problem,
                                  ConstData_t src,
                                  Data_t dst,
                                  ConstData_t wei,
                                  const std::vector<KernelInvoke>& kernels);
 
 float CallImplGemmDynamicBackwardData(const miopen::Handle& handle,
-                                      const ConvolutionContext& ctx,
+                                      const ProblemDescription& conv_problem,
                                       ConstData_t src,
                                       Data_t dst,
                                       ConstData_t wei,
