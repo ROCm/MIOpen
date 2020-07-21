@@ -63,39 +63,86 @@ static inline bool FindImplicitGemmWrwV4R1DynamicKernel(const ConvolutionContext
     int GemmKPerBlock      = 16;
     int GemmKGroups        = 1;
 
-    if(c % (GemmNRepeat * GemmNPerThreadSubC) != 0)
-        return false;
-    if(GemmN % (GemmNRepeat * GemmNPerThreadSubC * GemmN0YXPerBlock) != 0)
-        return false;
-    if(GemmM % GemmMPerBlock != 0)
-        return false;
+    if((GemmM % 128 == 0) && (GemmN % 128 == 0))
+    {
+        GemmNRepeat        = 2;
+        GemmNPerThreadSubC = 4;
+        GemmN0YXPerBlock   = 16;
+        GemmMPerBlock      = 128;
+        GemmKPerBlock      = 16;
 
-    int log2_gemmk_groups = conv::GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
-    GemmKGroups           = 1 << log2_gemmk_groups;
-    if(GemmK % (GemmKGroups * GemmKPerBlock) != 0)
-        return false;
+        if(c % (GemmNRepeat * GemmNPerThreadSubC) != 0)
+            return false;
+        if(GemmN % (GemmNRepeat * GemmNPerThreadSubC * GemmN0YXPerBlock) != 0)
+            return false;
+        if(GemmM % GemmMPerBlock != 0)
+            return false;
 
-    block_size = 256;
-    grid_size  = (GemmM / GemmMPerBlock) *
-                (GemmN / (GemmNRepeat * GemmNPerThreadSubC * GemmN0YXPerBlock)) * GemmKGroups;
+        int log2_gemmk_groups = conv::GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
+        GemmKGroups           = 1 << log2_gemmk_groups;
+        if(GemmK % (GemmKGroups * GemmKPerBlock) != 0)
+            return false;
 
-    if((ho * wo) % 4 == 0)
-        kernel_name = "igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_4x64";
+        block_size = 256;
+        grid_size  = (GemmM / GemmMPerBlock) *
+                    (GemmN / (GemmNRepeat * GemmNPerThreadSubC * GemmN0YXPerBlock)) * GemmKGroups;
+
+        if((ho * wo) % 4 == 0)
+            kernel_name = "igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_4x64";
+        else
+            kernel_name = "igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_16x16";
+
+        return true;
+    }
+    else if((GemmM % 32 == 0) && (GemmN % 32 == 0))
+    {
+        GemmNRepeat        = 2;
+        GemmNPerThreadSubC = 2;
+        GemmN0YXPerBlock   = 8;
+        GemmMPerBlock      = 32;
+        GemmKPerBlock      = 4;
+
+        if(c % (GemmNRepeat * GemmNPerThreadSubC) != 0)
+            return false;
+        if(GemmN % (GemmNRepeat * GemmNPerThreadSubC * GemmN0YXPerBlock) != 0)
+            return false;
+        if(GemmM % GemmMPerBlock != 0)
+            return false;
+
+        int log2_gemmk_groups = conv::GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
+        GemmKGroups           = 1 << log2_gemmk_groups;
+        if(GemmK % (GemmKGroups * GemmKPerBlock) != 0)
+            return false;
+
+        block_size = 64;
+        grid_size  = (GemmM / GemmMPerBlock) *
+                    (GemmN / (GemmNRepeat * GemmNPerThreadSubC * GemmN0YXPerBlock)) * GemmKGroups;
+
+        kernel_name = "igemm_v4r1_dynamic_wrw_32x32x4_4x4_2x2x4x2x4x2_4x2x8x1_4x16";
+
+        return true;
+    }
     else
-        kernel_name = "igemm_v4r1_dynamic_wrw_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_16x16";
-    return true;
+        return false;
 }
 
 size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
-    int k             = ctx.n_inputs;
-    int c             = ctx.n_outputs;
-    int y             = ctx.kernel_size_h;
-    int x             = ctx.kernel_size_w;
-    int ele_size      = 0;
-    int gemmk_groups  = 0;
-    int extra_groups  = 0;
-    int GemmKPerBlock = 16;
+    int k            = ctx.n_inputs;
+    int c            = ctx.n_outputs;
+    int y            = ctx.kernel_size_h;
+    int x            = ctx.kernel_size_w;
+    int ele_size     = 0;
+    int gemmk_groups = 0;
+    int extra_groups = 0;
+    int GemmKPerBlock;
+    int GemmN = c * y * x;
+
+    if((k % 128 == 0) && (GemmN % 128 == 0))
+        GemmKPerBlock = 16;
+    else
+        GemmKPerBlock = 4;
+
     if(ctx.IsFp32())
         ele_size = sizeof(float);
     else

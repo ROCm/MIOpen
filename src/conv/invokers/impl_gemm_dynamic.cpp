@@ -79,11 +79,9 @@ int GetImplicitGemmWrwV4R1DynamicGemmkGroups(const ConvolutionContext& ctx,
 {
     int gemmk        = ctx.batch_sz * ctx.in_height * ctx.in_width;
     int gemmk_groups = 1;
-    int tmp_gemmk_groups;
     for(int i = 0; i < 6; i++)
     {
-        tmp_gemmk_groups = 1 << i;
-        if(0 == (gemmk % (tmp_gemmk_groups * GemmKPerBlock)))
+        if(0 == (gemmk % ((1 << i) * GemmKPerBlock)))
             gemmk_groups = i;
         else
             break;
@@ -103,7 +101,6 @@ float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
     float elapsed = 0.0f;
 
     auto kernel = kernels[0];
-    MIOPEN_LOG_I(kernel.GetName());
     // clang-format off
     int hi             = ctx.out_height;
     int wi             = ctx.out_width;
@@ -121,9 +118,16 @@ float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
     int y              = ctx.in_height;
     int x              = ctx.in_width;
     int gemmk_groups   = 0;
-    int GemmKPerBlock  = 16;
+    int GemmKPerBlock;
+
+    if (kernel.GetName().find(std::string("igemm_v4r1_dynamic_wrw_128x128x16")) != std::string::npos)
+        GemmKPerBlock = 16;
+    else 
+        GemmKPerBlock = 4;
 
     gemmk_groups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
+
+    MIOPEN_LOG_I(kernel.GetName() << " with groups for reduction: " << (1 << gemmk_groups) << " GemmKPerBlock: " << GemmKPerBlock);
 
     // clang-format on
     std::vector<OpKernelArg> opArgs;
