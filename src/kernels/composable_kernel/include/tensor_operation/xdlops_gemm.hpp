@@ -460,11 +460,12 @@ template <mfma_instr instr,
           index_t NRepeats_>
 struct xdlops_info
 {
-    static constexpr auto mfma_type  = mfma_info<instr>{};
-    static constexpr auto MPerXdlops = MPerXdlops_;
-    static constexpr auto NPerXdlops = NPerXdlops_;
-    static constexpr auto MRepeats   = MRepeats_;
-    static constexpr auto NRepeats   = NRepeats_;
+    static constexpr auto mfma_type = mfma_info<instr>{};
+
+    static constexpr index_t MPerXdlops = MPerXdlops_;
+    static constexpr index_t NPerXdlops = NPerXdlops_;
+    static constexpr index_t MRepeats   = MRepeats_;
+    static constexpr index_t NRepeats   = NRepeats_;
 
     __device__ static constexpr bool IsABroadcast() { return NPerXdlops >= MPerXdlops; }
 
@@ -700,18 +701,20 @@ template <class data_type,
           index_t GemmDataPerReadB>
 struct XdlopsGemm_t
 {
-    static constexpr auto MRepeats =
+    static constexpr index_t MRepeats =
         GetXdlopsInfo<data_type, GemmMPerWave, GemmNPerWave>().MRepeats;
-    static constexpr auto NRepeats =
+    static constexpr index_t NRepeats =
         GetXdlopsInfo<data_type, GemmMPerWave, GemmNPerWave>().NRepeats;
-    static constexpr auto MPerXdlops =
+    static constexpr index_t MPerXdlops =
         GetXdlopsInfo<data_type, GemmMPerWave, GemmNPerWave>().MPerXdlops;
-    static constexpr auto NPerXdlops =
+    static constexpr index_t NPerXdlops =
         GetXdlopsInfo<data_type, GemmMPerWave, GemmNPerWave>().NPerXdlops;
-    static constexpr auto IsKReduction =
+
+    static constexpr bool IsKReduction =
         GetXdlopsInfo<data_type, GemmMPerWave, GemmNPerWave>().IsKReduction();
-    static constexpr auto IsABroadcast =
+    static constexpr bool IsABroadcast =
         GetXdlopsInfo<data_type, GemmMPerWave, GemmNPerWave>().IsABroadcast();
+
     static constexpr auto mfma_type =
         GetXdlopsInfo<data_type, GemmMPerWave, GemmNPerWave>().mfma_type;
 
