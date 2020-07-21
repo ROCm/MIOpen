@@ -32,6 +32,7 @@
 #include <miopen/par_for.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/any_solver.hpp>
+#include <miopen/timer.hpp>
 
 #include <boost/range/adaptor/transformed.hpp>
 #include <ostream>
@@ -54,13 +55,18 @@ std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
 
 std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<KernelInfo>& kernels)
 {
+    CompileTimer ct;
     std::vector<Program> programs(kernels.size());
+
+    // clang-format off
     par_for(kernels.size(),
             max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
             [&](auto i) {
                 const KernelInfo& k = kernels[i];
                 programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
             });
+    // clang-format on
+    ct.Log("PrecompileKernels");
     return programs;
 }
 
