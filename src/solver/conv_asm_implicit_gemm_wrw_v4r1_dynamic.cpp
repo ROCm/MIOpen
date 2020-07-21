@@ -46,22 +46,22 @@ static inline bool FindImplicitGemmWrwV4R1DynamicKernel(const ConvolutionContext
                                                         int& block_size,
                                                         int& grid_size)
 {
-    int n                  = ctx.batch_sz;
-    int k                  = ctx.n_inputs;
-    int c                  = ctx.n_outputs;
-    int ho                 = ctx.in_height;
-    int wo                 = ctx.in_width;
-    int y                  = ctx.kernel_size_h;
-    int x                  = ctx.kernel_size_w;
-    int GemmN              = c * y * x;
-    int GemmM              = k;
-    int GemmK              = n * ho * wo;
-    int GemmNRepeat        = 2;
-    int GemmNPerThreadSubC = 4;
-    int GemmN0YXPerBlock   = 16;
-    int GemmMPerBlock      = 128;
-    int GemmKPerBlock      = 16;
-    int GemmKGroups        = 1;
+    int n     = ctx.batch_sz;
+    int k     = ctx.n_inputs;
+    int c     = ctx.n_outputs;
+    int ho    = ctx.in_height;
+    int wo    = ctx.in_width;
+    int y     = ctx.kernel_size_h;
+    int x     = ctx.kernel_size_w;
+    int GemmN = c * y * x;
+    int GemmM = k;
+    int GemmK = n * ho * wo;
+    int GemmNRepeat;
+    int GemmNPerThreadSubC;
+    int GemmN0YXPerBlock;
+    int GemmMPerBlock;
+    int GemmKPerBlock;
+    int GemmKGroups;
 
     if((GemmM % 128 == 0) && (GemmN % 128 == 0))
     {
