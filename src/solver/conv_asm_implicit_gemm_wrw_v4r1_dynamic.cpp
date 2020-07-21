@@ -34,27 +34,10 @@
 namespace miopen {
 namespace solver {
 
-// two possible configs:
+// 3 possible configs:
 //{  16, 128,  16,   2,   4,   4,   4,   4,   4,   4,  16,   1,  16,   1,    4,  64},
-//{  16, 128,  16,   2,   4,   4,   4,   4,   4,   4,  16,   1,  16,   1,   16,  16}
-
-// compute gemmk groups
-static inline int GetImplicitGemmWrwV4R1DynamicGemmkGroups(const ConvolutionContext& ctx,
-                                                           const int& GemmKPerBlock)
-{
-    int gemmk        = ctx.batch_sz * ctx.in_height * ctx.in_width;
-    int gemmk_groups = 1;
-    int tmp_gemmk_groups;
-    for(int i = 0; i < 6; i++)
-    {
-        tmp_gemmk_groups = 1 << i;
-        if(0 == (gemmk % (tmp_gemmk_groups * GemmKPerBlock)))
-            gemmk_groups = tmp_gemmk_groups;
-        else
-            break;
-    }
-    return gemmk_groups;
-}
+//{  16, 128,  16,   2,   4,   4,   4,   4,   4,   4,  16,   1,  16,   1,   16,  16},
+//{   8,  32,   4,   2,   2,   2,   2,   4,   4,   2,   4,   2,   8,   1,    4,  16}
 
 // find wrw dynamic kernel by a simple algo
 // check wether this kernel can be applicable
@@ -87,7 +70,8 @@ static inline bool FindImplicitGemmWrwV4R1DynamicKernel(const ConvolutionContext
     if(GemmM % GemmMPerBlock != 0)
         return false;
 
-    GemmKGroups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
+    int log2_gemmk_groups = conv::GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
+    GemmKGroups           = 1 << log2_gemmk_groups;
     if(GemmK % (GemmKGroups * GemmKPerBlock) != 0)
         return false;
 
@@ -117,12 +101,12 @@ size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ConvolutionCont
     else
         ele_size = 2;
 
-    gemmk_groups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
+    gemmk_groups = conv::GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
 
-    if(gemmk_groups == 1)
+    if(gemmk_groups == 0)
         extra_groups = 0;
     else
-        extra_groups = gemmk_groups;
+        extra_groups = 1 << gemmk_groups;
     return k * c * y * x * ele_size * extra_groups;
 }
 
@@ -170,7 +154,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionCon
         MIOPEN_THROW("this kernel should not run with igemm dynamic!");
 
     int GemmKPerBlock = 16;
-    int gemmk_groups  = GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
+    int gemmk_groups  = conv::GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
 
     kernel.kernel_file = "igemm_v4r1_wrw_dynamic.s";
     kernel.kernel_name = kernel_name;
@@ -195,7 +179,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionCon
 
     result.construction_params.push_back(kernel);
 
-    if(gemmk_groups > 1)
+    if(gemmk_groups > 0)
     {
         KernelInfo kernel_reduction;
         int reduction_per_thread     = 8;

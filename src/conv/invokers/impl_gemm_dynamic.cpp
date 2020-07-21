@@ -74,9 +74,8 @@ float CallImplicitGemmDynamic(const miopen::Handle& handle,
     return elapsed;
 }
 
-// compute gemmk groups
-static inline int GetImplicitGemmWrwV4R1DynamicGemmkGroups(const ConvolutionContext& ctx,
-                                                           const int& GemmKPerBlock)
+int GetImplicitGemmWrwV4R1DynamicGemmkGroups(const ConvolutionContext& ctx,
+                                             const int& GemmKPerBlock)
 {
     int gemmk        = ctx.batch_sz * ctx.in_height * ctx.in_width;
     int gemmk_groups = 1;
@@ -85,10 +84,11 @@ static inline int GetImplicitGemmWrwV4R1DynamicGemmkGroups(const ConvolutionCont
     {
         tmp_gemmk_groups = 1 << i;
         if(0 == (gemmk % (tmp_gemmk_groups * GemmKPerBlock)))
-            gemmk_groups = tmp_gemmk_groups;
+            gemmk_groups = i;
         else
             break;
     }
+    // gemmk_groups = 0;
     return gemmk_groups;
 }
 
@@ -120,18 +120,19 @@ float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
     int pad_w          = ctx.pad_w;
     int y              = ctx.in_height;
     int x              = ctx.in_width;
-    int k_gemmk_groups = 0;
-    int gemmk_groups = 0;
-    int GemmKPerBlock = 16;
+    int gemmk_groups   = 0;
+    int GemmKPerBlock  = 16;
 
     gemmk_groups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
-    k_gemmk_groups = static_cast<int>(log2f(static_cast<float>(gemmk_groups)));
 
     // clang-format on
     std::vector<OpKernelArg> opArgs;
     opArgs.emplace_back(src);
     opArgs.emplace_back(dst);
-    opArgs.emplace_back(wei_workspace);
+    if(gemmk_groups > 0)
+        opArgs.emplace_back(wei_workspace);
+    else
+        opArgs.emplace_back(wei);
     opArgs.emplace_back(hi);
     opArgs.emplace_back(wi);
     opArgs.emplace_back(n);
@@ -147,17 +148,18 @@ float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
     opArgs.emplace_back(pad_w);
     opArgs.emplace_back(y);
     opArgs.emplace_back(x);
-    opArgs.emplace_back(k_gemmk_groups);
+    opArgs.emplace_back(gemmk_groups);
     kernel(opArgs);
 
     if(handle.IsProfilingEnabled())
         elapsed += handle.GetKernelTime();
 
     // reduction section
-    if(k_gemmk_groups > 0)
+    if(gemmk_groups > 0)
     {
         auto kernel_reduction = kernels[1];
-        MIOPEN_LOG_I(kernel_reduction.GetName() << " with groups: " << k_gemmk_groups);
+        int reduction_groups  = 1 << gemmk_groups;
+        MIOPEN_LOG_I(kernel_reduction.GetName() << " with groups: " << reduction_groups);
         std::vector<OpKernelArg> opArgs_reduction;
         int reduction_per_thread = 8;
         int in_stride            = n * k * ho * wo;
@@ -165,12 +167,12 @@ float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
         opArgs_reduction.emplace_back(wei_workspace);
         opArgs_reduction.emplace_back(reduction_per_thread);
         opArgs_reduction.emplace_back(in_stride);
-        opArgs_reduction.emplace_back(gemmk_groups);
+        opArgs_reduction.emplace_back(reduction_groups);
         kernel_reduction(opArgs_reduction);
+        if(handle.IsProfilingEnabled())
+            elapsed += handle.GetKernelTime();
     }
 
-    if(handle.IsProfilingEnabled())
-        elapsed += handle.GetKernelTime();
     return elapsed;
 }
 
