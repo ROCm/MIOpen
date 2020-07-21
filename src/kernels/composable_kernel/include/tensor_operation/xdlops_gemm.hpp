@@ -704,17 +704,14 @@ struct XdlopsGemm_t
         GetXdlopsInfo<data_type, GemmMPerWave, GemmNPerWave>().MRepeats;
     static constexpr auto NRepeats =
         GetXdlopsInfo<data_type, GemmMPerWave, GemmNPerWave>().NRepeats;
-
     static constexpr auto MPerXdlops =
         GetXdlopsInfo<data_type, GemmMPerWave, GemmNPerWave>().MPerXdlops;
     static constexpr auto NPerXdlops =
         GetXdlopsInfo<data_type, GemmMPerWave, GemmNPerWave>().NPerXdlops;
-
     static constexpr auto IsKReduction =
         GetXdlopsInfo<data_type, GemmMPerWave, GemmNPerWave>().IsKReduction();
     static constexpr auto IsABroadcast =
         GetXdlopsInfo<data_type, GemmMPerWave, GemmNPerWave>().IsABroadcast();
-
     static constexpr auto mfma_type =
         GetXdlopsInfo<data_type, GemmMPerWave, GemmNPerWave>().mfma_type;
 
@@ -866,9 +863,6 @@ struct XdlopsGemm_t
                         const FloatB* const __restrict__ p_b_wave,
                         FloatC* const __restrict__ p_c_thread) const
     {
-
-        static_assert(GemmDataPerReadA == 1 && GemmDataPerReadB == 1, "GemmDataPerReadA/B != 1");
-
         static_assert(is_same<FloatA, FloatB>::value, "FloatA != FloatB");
         static_assert(is_same<FloatC, float>::value, "FloatC != float");
 
