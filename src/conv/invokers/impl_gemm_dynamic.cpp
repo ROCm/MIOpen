@@ -257,7 +257,8 @@ InvokerFactory MakeImplGemmDynamicDataInvokerFactory(const ConvolutionContext& c
                 else
                 {
                     MIOPEN_THROW(
-                        "Error running dynamic implicit GEMM convolution (invalid kernel name?)");
+                        "Error running dynamic implicit GEMM convolution (invalid kernel name " +
+                        kernel.GetName() + ")");
                 }
             };
         };
