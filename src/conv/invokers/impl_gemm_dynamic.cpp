@@ -220,6 +220,7 @@ InvokerFactory MakeImplGemmDynamicDataInvokerFactory(const ConvolutionContext& c
             return [=](const Handle& handle, const boost::any& primitive_parameters) {
                 const auto data_ctx = boost::any_cast<conv::WrWInvokeParams>(primitive_parameters);
                 const auto& tensors = data_ctx.tensors;
+                const auto& workSpace = data_ctx.workSpace;
 
                 std::vector<KernelInvoke> ks;
                 std::transform(kernels.begin(),
@@ -228,7 +229,7 @@ InvokerFactory MakeImplGemmDynamicDataInvokerFactory(const ConvolutionContext& c
                                [&](const Kernel& k) { return handle.Run(k); });
                 float elapsed = 0;
                 elapsed       = CallImplicitGemmWrwDynamic(
-                    handle, ctx, tensors.x, tensors.dy, tensors.dw, data_ctx.workSpace, ks);
+                    handle, ctx, tensors.x, tensors.dy, tensors.dw, workSpace, ks);
                 if(handle.IsProfilingEnabled())
                 {
                     handle.ResetKernelTime();
