@@ -43,7 +43,8 @@ static inline int GetImplicitGemmWrwV4R1DynamicGemmkGroups(const ConvolutionCont
                                                            const int& GemmKPerBlock)
 {
     int gemmk        = ctx.batch_sz * ctx.in_height * ctx.in_width;
-    int gemmk_groups = 1, tmp_gemmk_groups = 1;
+    int gemmk_groups = 1;
+    int tmp_gemmk_groups;
     for(int i = 0; i < 6; i++)
     {
         tmp_gemmk_groups = 1 << i;
