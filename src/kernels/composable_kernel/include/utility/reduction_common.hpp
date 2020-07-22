@@ -71,21 +71,6 @@ enum class IndicesType_t
     INDICES_8BIT  = 3,
 };
 
-struct float_equal
-{
-    template <class T>
-    __device__ static inline bool apply(T x, T y)
-    {
-        return x <= y and x >= y;
-    }
-
-    template <class T>
-    __device__ inline bool operator()(T x, T y)
-    {
-        return (float_equal::apply(x, y));
-    };
-};
-
 struct float_equal_one
 {
     template <class T>
