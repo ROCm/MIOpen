@@ -641,7 +641,10 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
         return false;
     if(!ctx.Is2d() && !(ctx.Is3d() && ctx.IsFp32()))
         return false;
-    if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
+
+    // TBD Renable fp16 once the root cause of
+    // fp16 failures, observed in CI, is resolved.
+    if(!(ctx.IsFp32() || ctx.IsBfp16()))
         return false;
     if(ctx.group_counts != 1)
         return false;

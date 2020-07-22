@@ -84,7 +84,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::SetNextValue()
         // range in normal order
         if(!NextFlag<false, true>(GemmBThreadCopyMoreGemmKPack))
             break;
-        if(!NextFlag<false, false>(GemmAThreadCopyMoreGemmK))
+        if(!NextFlag<false, true>(GemmAThreadCopyMoreGemmK))
             break;
         if(!NextTwoPower<1, 8>(GemmKPack))
             break;
@@ -734,7 +734,6 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext&
 
         if((stride_h >= dilation_h * (y - 1) + 1) && (stride_w >= dilation_w * (x - 1) + 1))
         {
-            MIOPEN_LOG_I("No workspace needed.");
             return 0;
         }
         else
@@ -747,7 +746,6 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext&
             std::size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
             std::size_t hi = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
             std::size_t wi = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
-            MIOPEN_LOG_I("Workspace needed.");
             return n * c * hi * wi * miopen::GetTypeSize(miopenFloat);
         }
     }
