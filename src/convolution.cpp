@@ -449,7 +449,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         if(count < 1 || (fm.IsHybrid() && sol.time < 0))
         {
             ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                fm.IsOptimizedHybrid();
+                fm.IsFastHybrid();
             break; // Fall down to Normal Find.
         }
         MIOPEN_LOG_I2(sol.workspace_size);
@@ -542,7 +542,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         if(count < 1 || (fm.IsHybrid() && sol.time < 0))
         {
             ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                fm.IsOptimizedHybrid();
+                fm.IsFastHybrid();
             break; // Fall down to Normal Find.
         }
         MIOPEN_LOG_I2(sol.workspace_size);
@@ -846,7 +846,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
         if(count < 1 || (fm.IsHybrid() && sol.time < 0))
         {
             ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                fm.IsOptimizedHybrid();
+                fm.IsFastHybrid();
             break; // Fall down to Normal Find.
         }
         MIOPEN_LOG_I2(sol.workspace_size);
