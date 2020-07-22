@@ -96,7 +96,7 @@ using index_t = uint32_t;
 using index_t = int32_t;
 #endif
 
-// int32x4_t use by buffer_load and buffer_store llvm intrinsic
+// int32x4_t used by buffer addressing LLVM intrinsic
 typedef int32_t int32x4_t __attribute__((ext_vector_type(4)));
 
 } // namespace ck
