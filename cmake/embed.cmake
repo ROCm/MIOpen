@@ -58,14 +58,16 @@ function(embed_file OUTPUT_FILE OUTPUT_SYMBOL FILE)
     set(${OUTPUT_FILE} "${FILE}.o" PARENT_SCOPE)
     set(WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
     # Glob is used to compute the relative path
+    get_filename_component(OUTPUT_FILE_DIR "${FILE}" DIRECTORY)
+    file(MAKE_DIRECTORY "${WORKING_DIRECTORY}/${OUTPUT_FILE_DIR}")
     file(GLOB FILES RELATIVE ${WORKING_DIRECTORY} ${FILE})
     foreach(REL_FILE ${FILES})
         string(MAKE_C_IDENTIFIER "${REL_FILE}" SYMBOL)
         set(${OUTPUT_SYMBOL} ${SYMBOL} PARENT_SCOPE)
         add_custom_command(
             OUTPUT "${FILE}.o"
-            COMMAND ${EMBED_LD} -r -o "${REL_FILE}.o" -z noexecstack --format=binary "${REL_FILE}" 
-            COMMAND ${EMBED_OBJCOPY} --rename-section .data=.rodata,alloc,load,readonly,data,contents "${REL_FILE}.o"
+            COMMAND ${EMBED_LD} -r -o "${FILE}.o" -z noexecstack --format=binary "${REL_FILE}" 
+            COMMAND ${EMBED_OBJCOPY} --rename-section .data=.rodata,alloc,load,readonly,data,contents "${FILE}.o"
             WORKING_DIRECTORY ${WORKING_DIRECTORY}
             DEPENDS ${FILE}
             VERBATIM
