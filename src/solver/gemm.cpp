@@ -161,7 +161,7 @@ ConvSolution GemmFwd::GetSolution(const ExecutionContext& ctx,
                 : CreateGemmDescriptorConvCNHWFwd(wDesc, xDesc, yDesc);
 
         solution.invoker_factory = [=](const std::vector<Kernel>&) {
-            return [=](Handle& handle, const boost::any& primitive_params) {
+            return [=](const Handle& handle, const boost::any& primitive_params) {
                 float time_gemm        = 0;
                 const auto conv_params = boost::any_cast<conv::DataInvokeParams>(primitive_params);
                 const auto& workSpace  = conv_params.workSpace;
@@ -290,7 +290,7 @@ ConvSolution GemmFwd::GetSolution(const ExecutionContext& ctx,
             const GemmDescriptor gemm_desc = CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
 
             solution.invoker_factory = [=](const std::vector<Kernel>&) {
-                return [=](Handle& handle, const boost::any& primitive_params) {
+                return [=](const Handle& handle, const boost::any& primitive_params) {
                     float time_gemm = 0;
                     const auto conv_params =
                         boost::any_cast<conv::DataInvokeParams>(primitive_params);
@@ -361,7 +361,7 @@ ConvSolution GemmFwd::GetSolution(const ExecutionContext& ctx,
                     : CreateGemmStridedBatchedDescriptorConv1x1Fwd(wDesc, xDesc, yDesc);
 
             solution.invoker_factory = [=](const std::vector<Kernel>&) {
-                return [=](Handle& handle, const boost::any& primitive_params) {
+                return [=](const Handle& handle, const boost::any& primitive_params) {
                     float time_gemm = 0;
                     const auto conv_params =
                         boost::any_cast<conv::DataInvokeParams>(primitive_params);
@@ -435,7 +435,7 @@ ConvSolution GemmFwd::GetSolution(const ExecutionContext& ctx,
                 : CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
 
         solution.invoker_factory = [=](const std::vector<Kernel>&) {
-            return [=](Handle& handle, const boost::any& primitive_params) {
+            return [=](const Handle& handle, const boost::any& primitive_params) {
                 float time_gemm        = 0;
                 const auto conv_params = boost::any_cast<conv::DataInvokeParams>(primitive_params);
                 const auto& workSpace  = conv_params.workSpace;

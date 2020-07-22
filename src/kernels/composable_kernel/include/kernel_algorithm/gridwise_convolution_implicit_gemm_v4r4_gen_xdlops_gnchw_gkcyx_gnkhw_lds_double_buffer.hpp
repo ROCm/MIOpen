@@ -86,7 +86,7 @@ template <index_t GridSize,
           class GemmABlockCopySrcAccessOrder,
           class GemmABlockCopyDstAccessOrder,
           index_t GemmABlockCopySrcDataPerRead_GemmK,
-          index_t GemmABlockCopySrcDataPerRead_GemmM,
+          index_t GemmABlockCopyDstDataPerWrite_GemmM,
           class GemmBBlockCopyThreadSliceLengths_GemmG_GemmK_GemmN,
           class GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_GemmN,
           class GemmBBlockCopyThreadClusterArrangeOrder,
@@ -139,12 +139,6 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_dou
                       "wrong! cannot divide work evenly among block");
 
         constexpr index_t GemmKSub = GemmK / GemmKBlocks;
-
-        // sanity-check for vectorized memory load
-        static_assert((Wo == 1 || (ConvStrideW == 1 || GemmBBlockCopySrcDataPerRead_GemmN == 1)) &&
-                          (X == 1 || ConvDilationW % GemmBBlockCopySrcDataPerRead_GemmN == 0),
-                      "wrong! aligment requirement for vectorized global load of input tensor will "
-                      "be violated");
 
         // input tensor
         //   global mem
@@ -256,7 +250,7 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_dou
             GemmABlockCopyDstAccessOrder,
             1,
             GemmABlockCopySrcDataPerRead_GemmK,
-            GemmABlockCopySrcDataPerRead_GemmM,
+            GemmABlockCopyDstDataPerWrite_GemmM,
             GemmBBlockCopyThreadSliceLengths_GemmG_GemmK_GemmN,
             GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_GemmN,
             GemmBBlockCopyThreadClusterArrangeOrder,
@@ -265,7 +259,9 @@ struct GridwiseConvolutionImplicitGemm_v4r4_gen_xdlops_gnchw_gkcyx_gnkhw_lds_dou
             2,
             GemmBBlockCopySrcDataPerRead_GemmN,
             GemmBBlockCopyDstDataPerWrite_GemmN,
-            CGlobalMemoryDataOperation>{};
+            CGlobalMemoryDataOperation,
+            1,
+            ConvStrideW>{};
         gridwise_gemm.Run(p_wei_global, p_in_global, p_out_global);
     }
 };

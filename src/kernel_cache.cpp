@@ -174,7 +174,7 @@ void KernelCache::AddProgram(Program prog, const std::string& program_name, std:
     program_map[std::make_pair(program_name, params)] = prog;
 }
 
-Kernel KernelCache::AddKernel(Handle& h,
+Kernel KernelCache::AddKernel(const Handle& h,
                               const std::string& algorithm,
                               const std::string& network_config,
                               const std::string& program_name,
@@ -203,8 +203,7 @@ Kernel KernelCache::AddKernel(Handle& h,
     {
         if(!is_kernel_miopengemm_str) // default value
             is_kernel_miopengemm_str = algorithm.find("ImplicitGEMM") == std::string::npos &&
-                                       algorithm.find("GEMM") != std::string::npos &&
-                                       algorithm.find("StaticCompiledGEMM") == std::string::npos;
+                                       algorithm.find("GEMM") != std::string::npos;
 
         if(miopen::IsLogging(miopen::LoggingLevel::Info2))
         {

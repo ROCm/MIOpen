@@ -23,11 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cstddef>
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
+#include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/solver.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
+
 #include "implicitgemm_util.hpp"
+
+#include <cstddef>
 
 namespace miopen {
 namespace solver {
@@ -54,13 +57,12 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext
 {
     if(!ctx.direction.IsBackwardData())
         return false;
-
+    if(!ctx.use_hip_kernels)
+        return false;
     if(!ctx.Is2d())
         return false;
-
     if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
         return false;
-
     return IsApplicableXdlops(ctx);
 }
 
@@ -70,7 +72,7 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::GetPerformanceConfig(const ConvolutionCont
     return GetPerformanceConfigBase<PerformanceImplicitGemmXdlops>(ctx);
 }
 
-int ConvHipImplicitGemmBwdDataV1R1Xdlops::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvHipImplicitGemmBwdDataV1R1Xdlops::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                                                 ConstData_t bot_buf,
                                                                 Data_t top_buf,
                                                                 ConstData_t wei_buf,
@@ -228,7 +230,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
         !ctx.IsFp32() ? GetEPackLength(ctx, true) : 1;
 
     // clang-format off
-    construction_parameters.comp_options = 
+    construction_parameters.comp_options =
         std::string(" -std=c++14 ") +
         std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(n) +
         std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(k) +
@@ -283,6 +285,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
             std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") + std::to_string(GemmBBlockCopyDstDataPerWrite_GemmKPACK);
     }
 
+    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
     result.construction_params.push_back(construction_parameters);
     return result;
 }

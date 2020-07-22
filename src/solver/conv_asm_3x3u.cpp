@@ -175,6 +175,8 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.Is2d())
         return false;
+    if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
+        return false;
     if(!params.rmv.IsV2orV3())
         return false;
     const std::string name = params.GetStream().GetDeviceName();
@@ -281,7 +283,7 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
 }
 
 template <typename B, typename T>
-int ConvAsm3x3U::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvAsm3x3U::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                        B bot_ocl_buf,
                                        T top_ocl_buf,
                                        ConstData_t wei_ocl_buf,

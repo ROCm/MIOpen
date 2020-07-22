@@ -42,12 +42,34 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
     const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
 
     std::size_t GemmM, GemmN, GemmK;
+
+    // EPACKSize = 1 for fp32
+    if(ctx.IsFp32() && EPACKSize != 1)
+        return false;
+
+    // EPACKSize = 4 for fp16
+    if(ctx.IsFp16() && EPACKSize != 4)
+        return false;
+
+    // EPACKSize = 2, 4 for bfp16 fwd non-group
+    if(ctx.direction.IsForward() && ctx.IsBfp16() && ctx.group_counts == 1 && EPACKSize != 4 &&
+       EPACKSize != 2)
+        return false;
+
+    // EPACKSize = 2 for bfp16 fwd group
+    if(ctx.direction.IsForward() && ctx.IsBfp16() && ctx.group_counts > 1 && EPACKSize != 2)
+        return false;
+
+    // EPACKSize = 2 for bfp16 bwd, wrw
+    if(!ctx.direction.IsForward() && ctx.IsBfp16() && EPACKSize != 2)
+        return false;
+
     // forward
     if(ctx.direction.IsForward())
     {
-        if(c % GetEPackLength(ctx, true) != 0)
+        if(c % EPACKSize != 0)
             return false;
-        const auto nonVectorizedC = c / GetEPackLength(ctx, true);
+        const auto nonVectorizedC = c / EPACKSize;
         GemmM                     = k;
         GemmN                     = static_cast<std::size_t>(n) * ho * wo;
         GemmK                     = static_cast<std::size_t>(nonVectorizedC) * y * x;
@@ -55,9 +77,9 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
     // backwardData
     else if(ctx.direction.IsBackwardData())
     {
-        if(k % GetEPackLength(ctx, true) != 0)
+        if(k % EPACKSize != 0)
             return false;
-        const auto nonVectorizedK = k / GetEPackLength(ctx, true);
+        const auto nonVectorizedK = k / EPACKSize;
         GemmM                     = static_cast<std::size_t>(c) * y * x;
         GemmN                     = static_cast<std::size_t>(n) * ho * wo;
         GemmK                     = nonVectorizedK;
@@ -65,9 +87,9 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
     // backwardWeights
     else
     {
-        if(n % GetEPackLength(ctx, true) != 0)
+        if(n % EPACKSize != 0)
             return false;
-        const auto nonVectorizedN = n / GetEPackLength(ctx, true);
+        const auto nonVectorizedN = n / EPACKSize;
         GemmM                     = k;
         GemmN                     = static_cast<std::size_t>(c) * y * x;
         GemmK                     = static_cast<std::size_t>(nonVectorizedN) * ho * wo;
@@ -135,7 +157,7 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
                                                  1,
                                                  GemmBBlockCopyThreadSliceLengths_GemmN,
                                                  GemmABlockCopyThreadSliceLengths_GemmM,
-                                                 true);
+                                                 EPACKSize);
     return lds_size <= 64 * 1024;
 }
 
@@ -145,6 +167,7 @@ PerformanceImplicitGemmXdlops::PerformanceImplicitGemmXdlops(bool spare)
     KPerBlock = spare ? 4 : 64;
     EPerBlock = spare ? 4 : 8;
     EBlocks   = 1;
+    EPACKSize = 1;
 
     GemmMPerWave = spare ? 4 : 64;
     GemmNPerWave = spare ? 16 : 64;
@@ -162,6 +185,7 @@ PerformanceImplicitGemmXdlops::PerformanceImplicitGemmXdlops(int BPerBlock_,
                                                              int KPerBlock_,
                                                              int EPerBlock_,
                                                              int EBlocks_,
+                                                             int EPACKSize_,
                                                              int GemmMPerWave_,
                                                              int GemmNPerWave_,
                                                              int InBlockCopyClusterLengths_E_,
@@ -173,6 +197,7 @@ PerformanceImplicitGemmXdlops::PerformanceImplicitGemmXdlops(int BPerBlock_,
       KPerBlock(KPerBlock_),
       EPerBlock(EPerBlock_),
       EBlocks(EBlocks_),
+      EPACKSize(EPACKSize_),
       GemmMPerWave(GemmMPerWave_),
       GemmNPerWave(GemmNPerWave_),
       InBlockCopyClusterLengths_E(InBlockCopyClusterLengths_E_),
@@ -190,6 +215,7 @@ bool PerformanceImplicitGemmXdlops::operator==(const PerformanceImplicitGemmXdlo
         && KPerBlock == other.KPerBlock
         && EPerBlock == other.EPerBlock
         && EBlocks == other.EBlocks
+        && EPACKSize == other.EPACKSize 
         && GemmMPerWave == other.GemmMPerWave
         && GemmNPerWave == other.GemmNPerWave
         && InBlockCopyClusterLengths_E == other.InBlockCopyClusterLengths_E
@@ -207,6 +233,7 @@ bool PerformanceImplicitGemmXdlops::IsValidValue() const
         && IsTwoPower<4,128>(KPerBlock)
         && IsTwoPower<4,32>(EPerBlock)
         && IsTwoPower<1,64>(EBlocks)
+        && IsTwoPower<1,4>(EPACKSize)
         && IsTwoPower<4,64>(GemmMPerWave)
         && IsTwoPower<16,64>(GemmNPerWave)
         && IsTwoPower<4,16>(InBlockCopyClusterLengths_E)
@@ -225,7 +252,9 @@ bool PerformanceImplicitGemmXdlops::SetNextValue()
                 break;
             if(!NextTwoPower<64, 128>(KPerBlock))
                 break;
-            if(!NextTwoPower<8, 32>(EPerBlock))
+            if(!NextTwoPower<4, 32>(EPerBlock))
+                break;
+            if(!NextTwoPower<1, 4>(EPACKSize))
                 break;
         }
         else
@@ -235,6 +264,8 @@ bool PerformanceImplicitGemmXdlops::SetNextValue()
             if(!NextTwoPower<4, 128>(KPerBlock))
                 break;
             if(!NextTwoPower<4, 32>(EPerBlock))
+                break;
+            if(!NextTwoPower<1, 4>(EPACKSize))
                 break;
             if(!NextTwoPower<4, 64>(GemmMPerWave))
                 break;
@@ -260,25 +291,78 @@ bool PerformanceImplicitGemmXdlops::SetNextValue()
 void PerformanceImplicitGemmXdlops::EuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmXdlops tmp;
-    tmp = {128, 128, 16, 1, 64, 64, 8, 32, 4, 64, use_spare_set};
-    if(!tmp.IsValid(ctx))
-        tmp = {64, 32, 4, 1, 32, 64, 4, 16, 2, 32, use_spare_set};
-    if(!tmp.IsValid(ctx))
-        tmp = {64, 32, 4, 1, 32, 64, 4, 16, 4, 16, use_spare_set};
-    if(!tmp.IsValid(ctx))
-        tmp = {32, 64, 4, 1, 64, 32, 4, 16, 4, 16, use_spare_set};
-    if(!tmp.IsValid(ctx))
-        tmp = {32, 32, 4, 1, 32, 32, 4, 16, 2, 32, use_spare_set};
-    if(!tmp.IsValid(ctx))
-        tmp = {64, 16, 4, 1, 16, 64, 4, 16, 4, 16, use_spare_set};
-    if(!tmp.IsValid(ctx))
-        tmp = {16, 64, 4, 1, 64, 16, 4, 16, 4, 16, use_spare_set};
-    if(!tmp.IsValid(ctx))
-        tmp = {16, 16, 4, 1, 16, 16, 4, 16, 4, 16, use_spare_set};
-    if(!tmp.IsValid(ctx))
-        tmp = {64, 4, 16, 1, 4, 64, 16, 4, 16, 4, use_spare_set};
-    if(!tmp.IsValid(ctx))
-        tmp = {64, 8, 8, 1, 8, 64, 4, 16, 8, 8, use_spare_set};
+    if(ctx.IsFp32())
+    {
+        tmp = {128, 128, 16, 1, 1, 64, 64, 8, 32, 4, 64, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 32, 4, 1, 1, 32, 64, 4, 16, 2, 32, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 32, 4, 1, 1, 32, 64, 4, 16, 4, 16, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {32, 64, 4, 1, 1, 64, 32, 4, 16, 4, 16, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {32, 32, 4, 1, 1, 32, 32, 4, 16, 2, 32, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 16, 4, 1, 1, 16, 64, 4, 16, 4, 16, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {16, 64, 4, 1, 1, 64, 16, 4, 16, 4, 16, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {16, 16, 4, 1, 1, 16, 16, 4, 16, 4, 16, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 4, 16, 1, 1, 4, 64, 16, 4, 16, 4, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 8, 8, 1, 1, 8, 64, 4, 16, 8, 8, use_spare_set};
+    }
+    else if(ctx.IsBfp16())
+    {
+        tmp = {128, 128, 16, 1, 2, 64, 64, 8, 32, 4, 64, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 32, 4, 1, 2, 32, 64, 4, 16, 2, 32, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 32, 4, 1, 2, 32, 64, 4, 16, 4, 16, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {32, 64, 4, 1, 2, 64, 32, 4, 16, 4, 16, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {32, 32, 4, 1, 2, 32, 32, 4, 16, 2, 32, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 16, 4, 1, 2, 16, 64, 4, 16, 4, 16, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {16, 64, 4, 1, 2, 64, 16, 4, 16, 4, 16, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {16, 16, 4, 1, 2, 16, 16, 4, 16, 4, 16, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 4, 16, 1, 2, 4, 64, 16, 4, 16, 4, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 8, 8, 1, 2, 8, 64, 4, 16, 8, 8, use_spare_set};
+    }
+    else if(ctx.IsFp16())
+    {
+        tmp = {128, 128, 16, 1, 4, 64, 64, 8, 32, 4, 64, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 32, 4, 1, 4, 32, 64, 4, 16, 2, 32, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 32, 4, 1, 4, 32, 64, 4, 16, 4, 16, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {32, 64, 4, 1, 4, 64, 32, 4, 16, 4, 16, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {32, 32, 4, 1, 4, 32, 32, 4, 16, 2, 32, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 16, 4, 1, 4, 16, 64, 4, 16, 4, 16, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {16, 64, 4, 1, 4, 64, 16, 4, 16, 4, 16, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {16, 16, 4, 1, 4, 16, 16, 4, 16, 4, 16, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 4, 16, 1, 4, 4, 64, 16, 4, 16, 4, use_spare_set};
+        if(!tmp.IsValid(ctx))
+            tmp = {64, 8, 8, 1, 4, 8, 64, 4, 16, 8, 8, use_spare_set};
+    }
+    else
+    {
+        MIOPEN_LOG_E("Only fp32, fp16, and bfp16 are supported");
+        assert(false);
+    }
+
     if(!tmp.IsValid(ctx))
     {
         MIOPEN_LOG_E("All attempts failed");

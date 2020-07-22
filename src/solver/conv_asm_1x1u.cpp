@@ -381,6 +381,8 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.Is2d())
         return false;
+    if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
+        return false;
     if(!params.rmv.IsV2orV3())
         return false;
     if(!(params.IsFp32() || params.IsFp16()))
@@ -740,7 +742,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 }
 
 template <typename B, typename T>
-int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
+int ConvAsm1x1U::RunAndMeasureSolution(const miopen::Handle& profile_h,
                                        B bot_ocl_buf,
                                        T top_ocl_buf,
                                        ConstData_t wei_ocl_buf,

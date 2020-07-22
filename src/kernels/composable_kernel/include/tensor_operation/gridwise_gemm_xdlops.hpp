@@ -41,7 +41,9 @@ template <index_t GridSize,
           index_t BBlockCopySrcVectorReadDim,
           index_t BBlockCopySrcDataPerRead,
           index_t BBlockCopyDstDataPerWrite_N,
-          InMemoryDataOperation CGlobalMemoryDataOperation>
+          InMemoryDataOperation CGlobalMemoryDataOperation,
+          index_t ABlockCopySrcDataStride = 1,
+          index_t BBlockCopySrcDataStride = 1>
 struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
 {
     __device__ void Run(const Float* const __restrict__ p_a_global,
@@ -108,8 +110,9 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
                                                AddressSpace::Global,
                                                AddressSpace::Vgpr,
                                                AddressSpace::Lds,
-                                               InMemoryDataOperation::Set>(
-                {0, m_block_data_on_global}, {0, 0});
+                                               InMemoryDataOperation::Set,
+                                               ABlockCopySrcDataStride>({0, m_block_data_on_global},
+                                                                        {0, 0});
 
         constexpr auto b_k_n_block_desc = make_native_tensor_descriptor_aligned(
             Sequence<KPerBlock, NPerBlock>{}, Number<max_align>{});
@@ -131,8 +134,9 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
                                                AddressSpace::Global,
                                                AddressSpace::Vgpr,
                                                AddressSpace::Lds,
-                                               InMemoryDataOperation::Set>(
-                {0, n_block_data_on_global}, {0, 0});
+                                               InMemoryDataOperation::Set,
+                                               BBlockCopySrcDataStride>({0, n_block_data_on_global},
+                                                                        {0, 0});
 
         // GEMM definition
         // c_mtx += transpose(a_mtx) * b_mtx
@@ -179,6 +183,9 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
             b_blockwise_copy.Run(p_b_global, p_b_block_double);
         }
 
+        using b_blockwise_copy_src_step = Sequence<KPerBlock, 0>;
+        using a_blockwise_copy_src_step = Sequence<KPerBlock, 0>;
+
         // LDS double buffer: main body
         for(index_t k_block_data_begin = 0; k_block_data_begin + 2 * KPerBlock < K;
             k_block_data_begin += 2 * KPerBlock)
@@ -201,8 +208,8 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
                 Float p_a_thread_buffer[a_blockwise_copy.GetThreadBufferSize()];
                 Float p_b_thread_buffer[b_blockwise_copy.GetThreadBufferSize()];
 
-                a_blockwise_copy.MoveSrcSliceWindow(Sequence<KPerBlock, 0>{}, True);
-                b_blockwise_copy.MoveSrcSliceWindow(Sequence<KPerBlock, 0>{}, True);
+                a_blockwise_copy.MoveSrcSliceWindow(a_blockwise_copy_src_step{}, True);
+                b_blockwise_copy.MoveSrcSliceWindow(b_blockwise_copy_src_step{}, True);
 
                 __syncthreads();
 
@@ -228,8 +235,8 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
                 Float p_a_thread_buffer[a_blockwise_copy.GetThreadBufferSize()];
                 Float p_b_thread_buffer[b_blockwise_copy.GetThreadBufferSize()];
 
-                a_blockwise_copy.MoveSrcSliceWindow(Sequence<KPerBlock, 0>{}, True);
-                b_blockwise_copy.MoveSrcSliceWindow(Sequence<KPerBlock, 0>{}, True);
+                a_blockwise_copy.MoveSrcSliceWindow(a_blockwise_copy_src_step{}, True);
+                b_blockwise_copy.MoveSrcSliceWindow(b_blockwise_copy_src_step{}, True);
 
                 __syncthreads();
 
@@ -288,8 +295,8 @@ struct GridwiseGemmTransposedANormalBNormalCXdlops_v1
 
             using CThreadCopySliceLengths = Sequence<M0, 1, M2, 1>;
 
-            constexpr index_t BlkSize = CLayout.GetBlkSize();
-            constexpr index_t NumBlks = CLayout.GetNumBlks();
+            constexpr index_t BlkSize = blockwise_gemm.GetBlkSize();
+            constexpr index_t NumBlks = blockwise_gemm.GetNumBlks();
 
             for(index_t i = 0; i < NumBlks; ++i)
             {
@@ -354,7 +361,9 @@ template <index_t GridSize,
           index_t BBlockCopySrcVectorReadDim,
           index_t BBlockCopySrcDataPerRead,
           index_t BBlockCopyDstDataPerWrite_N,
-          InMemoryDataOperation CGlobalMemoryDataOperation>
+          InMemoryDataOperation CGlobalMemoryDataOperation,
+          index_t ABlockCopySrcDataStride = 1,
+          index_t BBlockCopySrcDataStride = 1>
 struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v1
 {
     __device__ void Run(const Float* const __restrict__ p_a_global,
@@ -427,7 +436,8 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v1
                                                AddressSpace::Global,
                                                AddressSpace::Vgpr,
                                                AddressSpace::Lds,
-                                               InMemoryDataOperation::Set>(
+                                               InMemoryDataOperation::Set,
+                                               ABlockCopySrcDataStride>(
                 {group_id, 0, m_block_data_on_global}, {0, 0, 0});
 
         constexpr auto b_g_k_n_block_desc = make_native_tensor_descriptor_aligned(
@@ -450,7 +460,8 @@ struct GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v1
                                                AddressSpace::Global,
                                                AddressSpace::Vgpr,
                                                AddressSpace::Lds,
-                                               InMemoryDataOperation::Set>(
+                                               InMemoryDataOperation::Set,
+                                               BBlockCopySrcDataStride>(
                 {group_id, 0, n_block_data_on_global}, {0, 0, 0});
 
         // GEMM definition

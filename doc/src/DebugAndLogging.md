@@ -66,7 +66,8 @@ These variables control the sets (families) of convolution Solutions. For exampl
 
 ### Filtering by build method
 
-* `MIOPEN_DEBUG_GCN_ASM_KERNELS` - Kernels written in assembly language. Currently these include some Direct solvers, Winograd kernels and SCGEMM.
+* `MIOPEN_DEBUG_GCN_ASM_KERNELS` - Kernels written in assembly language. Currently these used in many convolutions (some Direct solvers, Winograd kernels, fused convolutions), batch normalization.
+* `MIOPEN_DEBUG_HIP_KERNELS` - Convoluton kernels written in HIP (today, all these implement ImplicitGemm algorithm).
 * `MIOPEN_DEBUG_OPENCL_CONVOLUTIONS` - Convolution kernels written in OpenCL (note that _only_ convolutions affected).
 * `MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES` - Binary kernels. Right now the library does not use binaries.
 
@@ -143,7 +144,29 @@ both MIOpenGEMM and rocBlas depending on the input configuration:
 
 To disable using rocBlas entirely, set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off` during MIOpen configuration.
 
-More information on logging with RocBlas can be found [here](https://github.com/ROCmSoftwarePlatform/rocBLAS/wiki/5.Logging).
+More information on logging with rocBlas can be found [here](https://github.com/ROCmSoftwarePlatform/rocBLAS/wiki/5.Logging).
+
+
+## Numerical Checking
+
+MIOpen provides the environmental variable `MIOPEN_CHECK_NUMERICS` to allow users to debug potential numerical abnormalities. Setting this variable will scan all inputs and outputs of each kernel called and attempt to detect infinities (infs), not-a-number (NaN), or all zeros. The environment variable has several settings that will help with debugging:
+
+* `MIOPEN_CHECK_NUMERICS=0x01`: Fully informative, prints results from all checks to console
+* `MIOPEN_CHECK_NUMERICS=0x02`: Warning information, prints results only if abnormality detected
+* `MIOPEN_CHECK_NUMERICS=0x04`: Throw error on detection, MIOpen execute MIOPEN_THROW on abnormal result
+* `MIOPEN_CHECK_NUMERICS=0x08`: Abort on abnormal result, this will allow users to drop into a debugging session
+* `MIOPEN_CHECK_NUMERICS=0x10`: Print stats, this will compute and print mean/absmean/min/max (note, this is much slower)
+
+
+## Controlling Parallel Compilation
+
+MIOpen's Convolution Find() calls will compile and benchmark a set of `solvers` contained in `miopenConvAlgoPerf_t` this is done in parallel per `miopenConvAlgorithm_t`. Parallelism per algorithm is set to 20 threads. Typically there are far fewer threads spawned due to the limited number of kernels under any given algorithm. The level of parallelism can be controlled using the environment variable `MIOPEN_COMPILE_PARALLEL_LEVEL`. 
+
+For example, to disable multi-threaded compilation:
+```
+export MIOPEN_COMPILE_PARALLEL_LEVEL=1
+```
+
 
 ## Experimental controls
 
@@ -173,7 +196,9 @@ Different ROCm versions use Code Object files of different versions (or, in othe
   * `0` - Always build to CO v2.
   * `1` - Always build to CO v3.
 
-### `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX`
+### Winograd Multi-pass Maximum Workspace throttling
+
+`MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX`
 
 Syntax of value:
 * decimal or hex (with `0x` prefix) value that should fit into `unsigned long` (64 bits).

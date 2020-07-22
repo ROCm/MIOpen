@@ -47,14 +47,24 @@ boost::optional<std::string>& testing_find_db_path_override()
 template <class TDb>
 std::string FindDbRecord_t<TDb>::GetInstalledPath(Handle& handle)
 {
+#if !MIOPEN_DISABLE_SYSDB
     return GetSystemDbPath() + "/" + handle.GetDbBasename() + "." + GetSystemFindDbSuffix() +
            ".fdb.txt";
+#else
+    (void)(handle);
+    return "";
+#endif
 }
 
 template <class TDb>
 std::string FindDbRecord_t<TDb>::GetUserPath(Handle& handle)
 {
+#if !MIOPEN_DISABLE_USERDB
     return GetUserDbPath() + "/" + handle.GetDbBasename() + "." + GetUserDbSuffix() + ".ufdb.txt";
+#else
+    (void)(handle);
+    return "";
+#endif
 }
 
 bool CheckInvokerSupport(const std::string& algo)
@@ -64,6 +74,9 @@ bool CheckInvokerSupport(const std::string& algo)
            algo == "miopenConvolutionBwdWeightsAlgoDirect" ||
            algo == "miopenConvolutionFwdAlgoWinograd" ||
            algo == "miopenConvolutionBwdDataAlgoWinograd" ||
+           algo == "miopenConvolutionFwdAlgoImplicitGEMM" ||
+           algo == "miopenConvolutionBwdDataAlgoImplicitGEMM" ||
+           algo == "miopenConvolutionBwdWeightsAlgoImplicitGEMM" ||
            algo == "miopenConvolutionFwdAlgoGEMM";
 }
 

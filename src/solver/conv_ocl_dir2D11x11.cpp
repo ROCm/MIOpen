@@ -44,6 +44,8 @@ bool ConvOclDirectFwd11x11::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.Is2d())
         return false;
+    if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
+        return false;
     if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
 
@@ -319,7 +321,7 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
             if(kernels.size() != 2)
                 MIOPEN_THROW("Two kernels were expected by solver");
 
-            return [=](Handle& handle, const boost::any& primitive_parameters) {
+            return [=](const Handle& handle, const boost::any& primitive_parameters) {
                 auto invoke_params  = boost::any_cast<conv::DataInvokeParams>(primitive_parameters);
                 const auto& tensors = invoke_params.tensors;
 

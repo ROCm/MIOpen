@@ -48,6 +48,12 @@
 #include <unistd.h>
 #endif // __linux__
 
+/// SWDEV-220166: hcc reports unknown target instead of amdgpu but reports "HCC" at least.
+#define WORKAROUND_SWDEV_220166 1
+/// SWDEV-233338: hip-clang reports unknown target instead of amdgpu.
+/// \todo Try to assemble AMD GCN source?
+#define WORKAROUND_SWDEV_233338 1
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH)
 
 static const char option_no_co_v3[] = "-mno-code-object-v3";
@@ -81,10 +87,13 @@ bool ValidateGcnAssemblerImpl()
     const auto path = GetGcnAssemblerPath();
     if(path.empty())
     {
+        MIOPEN_LOG_NQE("Path to assembler is not provided. Expect performance degradation.");
         return false;
     }
     if(!std::ifstream(path).good())
     {
+        MIOPEN_LOG_NQE("Wrong path to assembler: '" << path
+                                                    << "'. Expect performance degradation.");
         return false;
     }
 
@@ -100,23 +109,28 @@ bool ValidateGcnAssemblerImpl()
     std::string clang_result_line;
     std::getline(clang_stdout, clang_result_line);
     MIOPEN_LOG_NQI2(clang_result_line);
+
+#if WORKAROUND_SWDEV_220166
     if(clang_result_line.find("HCC") != std::string::npos)
-        // Temporary fix for SWDEV-220166 which causes clang to report unknown
-        // architecture for AMD GCN
         return true;
-    else if(clang_result_line.find("clang") != std::string::npos)
+#endif
+
+    if(clang_result_line.find("clang") != std::string::npos)
     {
         while(!clang_stdout.eof())
         {
             std::getline(clang_stdout, clang_result_line);
             MIOPEN_LOG_NQI2(clang_result_line);
-            if(clang_result_line.find("Target: ") != std::string::npos)
-            {
-                return clang_result_line.find("amdgcn") != std::string::npos;
-            }
+            if(clang_result_line.find("Target: ") != std::string::npos &&
+               clang_result_line.find("amdgcn") != std::string::npos)
+                return true;
         }
+#if WORKAROUND_SWDEV_233338
+        return true;
+#endif
     }
 #endif // __linux__
+    MIOPEN_LOG_NQE("Specified assembler does not support AMDGPU. Expect performance degradation.");
     return false;
 }
 
@@ -154,7 +168,7 @@ static std::string CleanupPath(const char* p)
  * Not intended to be used in production code, so error handling is very straghtforward,
  * just catch whatever possible and throw an exception.
  */
-void AmdgcnAssemble(std::string& source, const std::string& params)
+std::string AmdgcnAssemble(const std::string& source, const std::string& params)
 {
 #ifdef __linux__
     miopen::TempFile outfile("amdgcn-asm-out-XXXXXX");
@@ -183,6 +197,7 @@ void AmdgcnAssemble(std::string& source, const std::string& params)
         MIOPEN_THROW("Assembly error(" + std::to_string(clang_rc) + ")");
     }
 
+    std::string out;
     std::ifstream file(outfile, std::ios::binary | std::ios::ate);
     bool outfile_read_failed = false;
     do
@@ -193,14 +208,14 @@ void AmdgcnAssemble(std::string& source, const std::string& params)
             outfile_read_failed = true;
             break;
         }
-        source.resize(size, '\0');
+        out.resize(size, '\0');
         file.seekg(std::ios::beg);
         if(file.fail())
         {
             outfile_read_failed = true;
             break;
         }
-        if(file.rdbuf()->sgetn(&source[0], size) != size)
+        if(file.rdbuf()->sgetn(&out[0], size) != size)
         {
             outfile_read_failed = true;
             break;
@@ -211,6 +226,7 @@ void AmdgcnAssemble(std::string& source, const std::string& params)
     {
         MIOPEN_THROW("Error: X-AMDGCN-ASM: outfile_read_failed");
     }
+    return out;
 #else
     (void)source; // -warning
     (void)params; // -warning
