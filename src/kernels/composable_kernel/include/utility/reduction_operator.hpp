@@ -33,6 +33,27 @@ namespace ck {
 
 namespace reduce {
 
+// Every binary operator used in reduction is represented by a templated functor class. Each functor
+// class must provide at least
+// three members:
+// 1) GetZeroVal() -- the interface to return the "identity element" for the binary operator,
+// "identity element" is the unique
+//                    element in the algebraic space that doesn't affect the value of other elements
+//                    when operated with any of them.
+// 2) indexable -- boolean value indicating whether indices of the operated elements could be
+// recorded. Usually, Min/Max operator could
+//                 need to record the indices of elements. For operator like Add/Mul, no need to
+//                 record the indices.
+// 3) operator() -- the first argument of the operator must be both an input & output, and the
+// corresponding variable usually stores
+//                  the accumulated result of many operator() calls; the second argument is only an
+//                  input. For indexable binary
+//                  operator, the second version of operator() has third argument (which is an
+//                  output) to indicate whether the
+//                  accumulated value (the first argument) has changed, in which case the recorded
+//                  accumulated index also need be
+//                  changed.
+
 template <class T>
 struct Add
 {
@@ -124,6 +145,12 @@ __device__ half_t Min<half_t>::GetZeroVal()
 };
 
 }; // end of namespace reduce
+
+// The templated struct reduce_binary_operator maps the enum Ids of binary operators to their
+// respective functor classes.
+// The "GetZeroVal()" interface and boolean member "indexable" are also provided in
+// reduce_binary_operactor for
+// easier checking by the upper-layer codes in the kernels.
 
 template <typename T, ReduceTensorOp_t op>
 struct reduce_binary_operator;
