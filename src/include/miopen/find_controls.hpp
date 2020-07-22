@@ -130,7 +130,7 @@ class FindMode
         Hybrid,
         OptimizedHybrid,
         End_,
-        Default_ = OptimizedHybrid,
+        Default_ = Hybrid,
     };
 
     private:
