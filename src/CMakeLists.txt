@@ -638,20 +638,10 @@ rocm_export_targets(
 
 
 # Install db files
+file(GLOB FIND_DB_FILES kernels/*.fdb.txt)
 install(FILES
     kernels/miopen.db
-    kernels/gfx803_36.HIP.fdb.txt
-    kernels/gfx803_64.HIP.fdb.txt
-    kernels/gfx900_64.HIP.fdb.txt
-    kernels/gfx900_56.HIP.fdb.txt
-    kernels/gfx906_64.HIP.fdb.txt
-    kernels/gfx906_60.HIP.fdb.txt
-    kernels/gfx803_36.OpenCL.fdb.txt
-    kernels/gfx803_64.OpenCL.fdb.txt
-    kernels/gfx900_64.OpenCL.fdb.txt
-    kernels/gfx900_56.OpenCL.fdb.txt
-    kernels/gfx906_64.OpenCL.fdb.txt
-    kernels/gfx906_60.OpenCL.fdb.txt
+    ${FIND_DB_FILES}
  DESTINATION ${DATA_INSTALL_DIR}/db)
 
 rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})
