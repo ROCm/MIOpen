@@ -41,7 +41,12 @@ float CallImplGemmDynamicForward(const miopen::Handle& handle,
                                  Data_t dst,
                                  ConstData_t wei,
                                  const std::vector<KernelInvoke>& kernels);
-
+float CallImplGemmDynamicForward1x1(const miopen::Handle& handle,
+                                    const ProblemDescription& conv_problem,
+                                    ConstData_t src,
+                                    Data_t dst,
+                                    ConstData_t wei,
+                                    const std::vector<KernelInvoke>& kernels);
 float CallImplGemmDynamicBackwardData(const miopen::Handle& handle,
                                       const ProblemDescription& conv_problem,
                                       ConstData_t src,
@@ -50,6 +55,7 @@ float CallImplGemmDynamicBackwardData(const miopen::Handle& handle,
                                       const std::vector<KernelInvoke>& kernels);
 
 InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const ConvolutionContext& ctx);
+InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ConvolutionContext& ctx);
 InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ConvolutionContext& ctx);
 
 } // namespace conv
