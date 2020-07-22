@@ -195,7 +195,32 @@ function(add_custom_test NAME)
     endif()
 endfunction()
 
+
+function(add_perf_test NAME)
+    set(options SKIP_UNLESS_ALL ALLOW_BFLOAT16 ALLOW_HALF ALLOW_INT8)
+    set(oneValueArgs)
+    set(multiValueArgs)
+    cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    if((NOT (MIOPEN_TEST_INT8 OR MIOPEN_TEST_BFLOAT16 OR MIOPEN_TEST_HALF))
+    OR (MIOPEN_TEST_BFLOAT16 AND ${PARSE_ALLOW_BFLOAT16})
+    OR (MIOPEN_TEST_HALF AND ${PARSE_ALLOW_HALF})
+    OR (MIOPEN_TEST_INT8 AND ${PARSE_ALLOW_INT8}))
+        add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
+        if(NOT PARSE_SKIP_UNLESS_ALL OR MIOPEN_TEST_ALL)
+            add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
+            set_tests_properties(${NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "(FAILED)|(Perf Db: record not found)")
+            set_tests_properties(${NAME} PROPERTIES COST 600)
+        endif()
+    endif()
+endfunction()
+
 set(IMPLICITGEMM_ARGS ${MIOPEN_TEST_FLOAT_ARG})
+# ./bin/MIOpenDriver conv -n 128 -c 1024 -H 14 -W 14 -k 2048 -y 1 -x 1 -p 0 -q 0 -u 2 -v 2 -l 1 -j 1 -m conv -g 1 -F 1 -t 1
+# MIOPEN_DEBUG_CONV_IMMED_FALLBACK=0
+add_perf_test(test_conv_embed_db 
+COMMAND MIOPEN_DEBUG_CONV_IMMED_FALLBACK=0 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAD_ARG} --disable-validation --verbose --input 128 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
+)
 
 add_custom_test(test_conv_for_implicit_gemm SKIP_UNLESS_ALL ALLOW_BFLOAT16 ALLOW_HALF
 COMMAND	$<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose	--input	64	 16	28	28	--weights	192  16		3	3	--pads_strides_dilations	0	0	2	2	1	1
