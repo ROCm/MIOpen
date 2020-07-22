@@ -634,21 +634,8 @@ rocm_export_targets(
     ${PACKAGE_STATIC_DEPENDS}
 )
 
-set(DB_FILES
-    kernels/gfx803_36.HIP.fdb.txt
-    kernels/gfx803_64.HIP.fdb.txt
-    kernels/gfx900_64.HIP.fdb.txt
-    kernels/gfx900_56.HIP.fdb.txt
-    kernels/gfx906_64.HIP.fdb.txt
-    kernels/gfx906_60.HIP.fdb.txt
-    kernels/gfx803_36.OpenCL.fdb.txt
-    kernels/gfx803_64.OpenCL.fdb.txt
-    kernels/gfx900_64.OpenCL.fdb.txt
-    kernels/gfx900_56.OpenCL.fdb.txt
-    kernels/gfx906_64.OpenCL.fdb.txt
-    kernels/gfx906_60.OpenCL.fdb.txt
-    )
-
+# Install db files
+file(GLOB FIND_DB_FILES kernels/*.fdb.txt)
 if(NOT MIOPEN_EMBED_DB STREQUAL "")
     include(embed)
 
@@ -657,14 +644,11 @@ if(NOT MIOPEN_EMBED_DB STREQUAL "")
     add_embed_library(miopen_data ${CODE_OBJECTS})
     target_link_libraries(MIOpen PRIVATE miopen_data)
 else()
-    list(APPEND DB_FILES kernels/miopen.db)
+    list(APPEND FIND_DB_FILES kernels/miopen.db)
 endif()
-
-
-# Install db files
 if(NOT MIOPEN_DISABLE_SYSDB)
-  install(FILES
-          ${DB_FILES}
-   DESTINATION ${DATA_INSTALL_DIR}/db)
+    install(FILES
+        ${FIND_DB_FILES}
+     DESTINATION ${DATA_INSTALL_DIR}/db)
 endif()
 rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})
