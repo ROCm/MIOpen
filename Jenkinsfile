@@ -269,7 +269,8 @@ pipeline {
         stage("Aux tests"){
             parallel{
                 stage('Hip clang debug COMGR') {
-                    agent{ label rocmnode("vega") }
+                    // WORKAROUND for COMGR Vega10 testing problem. Should be "vega".
+                    agent{ label rocmnode("vega20") }
                     environment{
                         cmd = """
                             ulimit -c unlimited
