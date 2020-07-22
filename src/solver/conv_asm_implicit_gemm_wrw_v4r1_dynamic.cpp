@@ -151,7 +151,7 @@ size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ConvolutionCont
     gemmk_groups = conv::GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
 
     if(gemmk_groups == 0)
-        extra_groups = 0;
+        extra_groups = 1;
     else
         extra_groups = 1 << gemmk_groups;
     return k * c * y * x * ele_size * extra_groups;
