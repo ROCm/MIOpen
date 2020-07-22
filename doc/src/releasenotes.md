@@ -1,8 +1,22 @@
 
 ## MIOpen Release notes
 
+### 07/31/2020 [ 2.6.0 ]
 
-### 06/30/2020 [ 2.5.0 ]
+- This release contains convolution performance improvements, improved multi-threading behavior, and improved stability for half precision convolutions. Initial iteration time has been reduced with the introduction of hybrid find mode. Builds for a static library have been refined for this release.
+
+- Added MIOPEN_FIND_MODE=3 as the new default convolution Find mode; see documentation [here](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/find_and_immediate.html#find-modes) for details
+- Added a more runtime-parameterized version of pooling to reduce the number of online compilations
+- Improved the performance of backwards spatial batch normalization for small images
+- Fixed issue with std::logic_error in SQLite deleter [#306](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/306)
+- Fixed issues with half precision stability for convolutions
+- Fixed issues with multi-threaded SQLite database accesses
+- Fixed issues with 3-D convolutions and incorrect parameters
+- Fixed various issues with implicit GEMM static assert failures
+- Removed inactive implicit GEMM convolution solvers
+- Removed SCGEMM convolutional algorithm from MIOpen
+
+### 07/10/2020 [ 2.5.0 ]
 
 - This release contains convolution performance improvements, various minor fixes and documentation updates.
 
