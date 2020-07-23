@@ -528,11 +528,15 @@ static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
                                                                 std::make_tuple(64, 64, 1),
                                                                 std::make_tuple(64, 32, 1),
                                                                 std::make_tuple(64, 16, 1),
+                                                                std::make_tuple(32, 128, 1),
                                                                 std::make_tuple(32, 64, 1),
                                                                 std::make_tuple(32, 32, 2),
+                                                                std::make_tuple(16, 128, 1),
                                                                 std::make_tuple(16, 64, 1),
                                                                 std::make_tuple(16, 16, 4),
+                                                                std::make_tuple(8, 128, 1),
                                                                 std::make_tuple(8, 64, 1),
+                                                                std::make_tuple(4, 128, 1),
                                                                 std::make_tuple(4, 64, 1)};
 
     bool IsValidWaveGemm = false;

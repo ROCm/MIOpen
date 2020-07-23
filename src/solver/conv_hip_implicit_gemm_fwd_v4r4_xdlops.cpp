@@ -656,7 +656,6 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
         }
     }
 
-#if 0
     // avoid skinny blockwise GEMM whenever possible
     {
         int gemm_m = 0;
@@ -692,7 +691,6 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
                 return false;
         }
     }
-#endif
 
     // each thread should not too much data
     {

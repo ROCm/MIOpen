@@ -898,6 +898,18 @@ struct XdlopsGemm_t
     }
 
     template <>
+    static constexpr auto GetXdlopsInfo<half_t, 128, 32>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 64, 32, 2, 1>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<half_t, 64, 16>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_16x16x4f16, 64, 16, 2, 1>{};
+    }
+
+    template <>
     static constexpr auto GetXdlopsInfo<half_t, 64, 128>()
     {
         return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 64, 64, 1, 2>{};
@@ -922,6 +934,12 @@ struct XdlopsGemm_t
     }
 
     template <>
+    static constexpr auto GetXdlopsInfo<half_t, 32, 128>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 32, 128, 1, 2>{};
+    }
+
+    template <>
     static constexpr auto GetXdlopsInfo<half_t, 32, 64>()
     {
         return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 32, 64, 1, 1>{};
@@ -931,6 +949,12 @@ struct XdlopsGemm_t
     static constexpr auto GetXdlopsInfo<half_t, 32, 32>()
     {
         return xdlops_info<mfma_instr::mfma_f32_32x32x8f16, 32, 32, 1, 1>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<half_t, 16, 128>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_16x16x4f16, 16, 64, 1, 2>{};
     }
 
     template <>
@@ -946,9 +970,21 @@ struct XdlopsGemm_t
     }
 
     template <>
+    static constexpr auto GetXdlopsInfo<half_t, 8, 128>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_4x4x4f16, 8, 64, 1, 2>{};
+    }
+
+    template <>
     static constexpr auto GetXdlopsInfo<half_t, 8, 64>()
     {
         return xdlops_info<mfma_instr::mfma_f32_4x4x4f16, 8, 64, 1, 1>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<half_t, 4, 128>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_4x4x4f16, 4, 64, 1, 2>{};
     }
 
     template <>
@@ -967,6 +1003,18 @@ struct XdlopsGemm_t
     static constexpr auto GetXdlopsInfo<ushort, 128, 64>()
     {
         return xdlops_info<mfma_instr::mfma_f32_32x32x2bf16, 64, 64, 2, 1>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<ushort, 128, 32>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_32x32x2bf16, 64, 32, 2, 1>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<ushort, 128, 16>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_16x16x2bf16, 64, 16, 2, 1>{};
     }
 
     template <>
@@ -994,6 +1042,12 @@ struct XdlopsGemm_t
     }
 
     template <>
+    static constexpr auto GetXdlopsInfo<ushort, 32, 128>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_32x32x2bf16, 32, 64, 1, 2>{};
+    }
+
+    template <>
     static constexpr auto GetXdlopsInfo<ushort, 32, 64>()
     {
         return xdlops_info<mfma_instr::mfma_f32_32x32x2bf16, 32, 64, 1, 1>{};
@@ -1003,6 +1057,12 @@ struct XdlopsGemm_t
     static constexpr auto GetXdlopsInfo<ushort, 32, 32>()
     {
         return xdlops_info<mfma_instr::mfma_f32_32x32x4bf16, 32, 32, 1, 1>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<ushort, 16, 128>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_16x16x2bf16, 16, 64, 1, 2>{};
     }
 
     template <>
@@ -1018,9 +1078,21 @@ struct XdlopsGemm_t
     }
 
     template <>
+    static constexpr auto GetXdlopsInfo<ushort, 8, 128>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_4x4x2bf16, 8, 128, 1, 2>{};
+    }
+
+    template <>
     static constexpr auto GetXdlopsInfo<ushort, 8, 64>()
     {
         return xdlops_info<mfma_instr::mfma_f32_4x4x2bf16, 8, 64, 1, 1>{};
+    }
+
+    template <>
+    static constexpr auto GetXdlopsInfo<ushort, 4, 128>()
+    {
+        return xdlops_info<mfma_instr::mfma_f32_4x4x2bf16, 4, 64, 1, 2>{};
     }
 
     template <>
