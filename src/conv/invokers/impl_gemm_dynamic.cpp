@@ -221,6 +221,7 @@ InvokerFactory MakeImplGemmDynamicDataInvokerFactory(const ConvolutionContext& c
             return [=](const Handle& handle, const boost::any& primitive_parameters) {
                 const auto data_ctx = boost::any_cast<conv::WrWInvokeParams>(primitive_parameters);
                 const auto& tensors = data_ctx.tensors;
+                MIOPEN_LOG_I("fwd workspace size: " << data_ctx.workSpaceSize);
                 const auto& workSpace = data_ctx.workSpace;
 
                 std::vector<KernelInvoke> ks;
