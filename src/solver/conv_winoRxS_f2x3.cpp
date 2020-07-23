@@ -32,6 +32,7 @@
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/compiled_in_parameters.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 
 #include <boost/any.hpp>
 
@@ -694,13 +695,15 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
               group_cnt,
               GetTypeSize(params.weights_data_type));
 
-    result.invoker_factory = [=](std::vector<Kernel> kernels) {
-        return [=](const Handle& handle, const boost::any& primitive_params) {
-            const auto k        = handle.Run(kernels[0]);
-            const auto data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_params);
-            const auto tensors  = data_ctx.tensors;
+    if(!params.direction.IsBackwardWrW())
+    {
+        result.invoker_factory = [=](std::vector<Kernel> kernels) {
+            return [=](const Handle& handle, const boost::any& primitive_params) {
+                const auto k         = handle.Run(kernels[0]);
+                const auto& data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_params);
+                const auto& tensors  = data_ctx.tensors;
 
-            // clang-format off
+                // clang-format off
             MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                 << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
                 << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
@@ -713,44 +716,109 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                 << " d_buf.byte_stride.g=" << d_buf.byte_stride.g  << " o_buf.byte_stride.g="  << o_buf.byte_stride.g
                 << " f_buf.byte_stride.g=" << f_buf.byte_stride.g); // clang-format on
 
-            k(N,
-              C,
-              H,
-              W,
-              K,
-              n_groups,
-              flags,
-              reserved,
-              tensors.in,
-              tensors.w,
-              tensors.out,
-              reserved_ptr, // Unused return_addr.
-              R,
-              S,
-              pad_H, // Like Fwd wino.
-              pad_W,
-              out_H,
-              out_W,
-              reserved_ptr, // Unused bias_addr.
-              reserved,     // Unused relu_alpha.
-              d_buf.byte_stride.nk,
-              d_buf.byte_stride.c,
-              d_buf.byte_stride.h,
-              d_buf.byte_stride.w,
-              f_buf.byte_stride.nk,
-              f_buf.byte_stride.c,
-              f_buf.byte_stride.h,
-              f_buf.byte_stride.w,
-              o_buf.byte_stride.nk,
-              o_buf.byte_stride.c,
-              o_buf.byte_stride.h,
-              o_buf.byte_stride.w,
-              group_cnt,
-              d_buf.byte_stride.g,
-              f_buf.byte_stride.g,
-              o_buf.byte_stride.g);
+                k(N,
+                  C,
+                  H,
+                  W,
+                  K,
+                  n_groups,
+                  flags,
+                  reserved,
+                  tensors.in,
+                  tensors.w,
+                  tensors.out,
+                  reserved_ptr, // Unused return_addr.
+                  R,
+                  S,
+                  pad_H, // Like Fwd wino.
+                  pad_W,
+                  out_H,
+                  out_W,
+                  reserved_ptr, // Unused bias_addr.
+                  reserved,     // Unused relu_alpha.
+                  d_buf.byte_stride.nk,
+                  d_buf.byte_stride.c,
+                  d_buf.byte_stride.h,
+                  d_buf.byte_stride.w,
+                  f_buf.byte_stride.nk,
+                  f_buf.byte_stride.c,
+                  f_buf.byte_stride.h,
+                  f_buf.byte_stride.w,
+                  o_buf.byte_stride.nk,
+                  o_buf.byte_stride.c,
+                  o_buf.byte_stride.h,
+                  o_buf.byte_stride.w,
+                  group_cnt,
+                  d_buf.byte_stride.g,
+                  f_buf.byte_stride.g,
+                  o_buf.byte_stride.g);
+            };
         };
-    };
+    }
+    else
+    {
+        int unused = 0;
+        int N, C, H, W, K, n_groups, out_H, out_W, R, S;
+        GetCompiledInParameters(
+            params, &N, &K, &out_H, &out_W, &C, &n_groups, &H, &W, &R, &S, &unused, &unused);
+        int pad_H = params.conv_problem.GetConv().GetConvPads()[0];
+        int pad_W = params.conv_problem.GetConv().GetConvPads()[1];
+
+        result.invoker_factory = [=](std::vector<Kernel> kernels) {
+            return [=](const Handle& handle, const boost::any& primitive_params) {
+                const auto& data_ctx = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+                const auto& tensors  = data_ctx.tensors;
+                using dataType       = float;
+                static const int F_FLIP_K_C      = 1 << 2;
+                static const int F_NKC_STRIDES   = 1 << 9;
+                static const int F_GROUP_STRIDES = 1 << 10;
+                int reserved                     = 0;
+                int* reserved_ptr                = nullptr;
+                int flags                        = F_FLIP_K_C + F_NKC_STRIDES;
+                int d_N_stride                   = H * W * static_cast<int>(sizeof(dataType));
+                int d_C_stride                   = C * d_N_stride;
+                int f_K_stride = out_H * out_W * static_cast<int>(sizeof(dataType));
+                int f_C_stride = K * f_K_stride;
+                int o_N_stride = R * S * static_cast<int>(sizeof(dataType));
+                int o_K_stride = C * o_N_stride;
+
+                // clang-format off
+                MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
+                    << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
+                    << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
+                    << " d_N_stride=" << d_N_stride << " d_C_stride=" << d_C_stride
+                    << " f_K_stride=" << f_K_stride << " f_C_stride=" << f_C_stride
+                    << " o_N_stride=" << o_N_stride << " o_K_stride=" << o_K_stride); // clang-format on
+
+                handle.Run(kernels[0])(C,
+                                       N,
+                                       H,
+                                       W,
+                                       K,
+                                       n_groups,
+                                       flags,
+                                       reserved,
+                                       tensors.x,
+                                       tensors.dy,
+                                       tensors.dw,
+                                       reserved_ptr, // Unused return_addr.
+                                       out_H,
+                                       out_W,
+                                       pad_H, // Like Fwd wino.
+                                       pad_W,
+                                       R,
+                                       S,
+                                       reserved_ptr, // Unused bias_addr.
+                                       reserved,     // Unused relu_alpha.
+                                       d_N_stride,
+                                       d_C_stride,
+                                       f_K_stride,
+                                       f_C_stride,
+                                       o_N_stride,
+                                       o_K_stride);
+            };
+        };
+    }
 
     return result;
 }
