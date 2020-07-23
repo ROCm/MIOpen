@@ -551,6 +551,7 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::GetSolution(
             const auto& tensors      = invoke_params.tensors;
             float zero               = 0.f;
             auto elapsed             = 0.f;
+            MIOPEN_LOG_I("wrw workspace size: " << invoke_params.workSpaceSize);
 
             if(tensors.dwDesc.GetType() != miopenHalf && tensors.dwDesc.GetType() != miopenBFloat16)
             {
