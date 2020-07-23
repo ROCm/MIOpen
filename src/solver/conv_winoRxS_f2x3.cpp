@@ -771,7 +771,6 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                 using dataType       = float;
                 static const int F_FLIP_K_C      = 1 << 2;
                 static const int F_NKC_STRIDES   = 1 << 9;
-                static const int F_GROUP_STRIDES = 1 << 10;
                 int reserved                     = 0;
                 int* reserved_ptr                = nullptr;
                 int flags                        = F_FLIP_K_C + F_NKC_STRIDES;

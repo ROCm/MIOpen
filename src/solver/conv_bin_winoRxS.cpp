@@ -388,7 +388,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
         int o_K_stride                 = C * o_N_stride;
 
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-            return [=](Handle& handle, const boost::any& primitive_params) {
+            return [=](const Handle& handle, const boost::any& primitive_params) {
                 const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
                 const auto& tensors      = invoke_params.tensors;
                 // clang-format off
