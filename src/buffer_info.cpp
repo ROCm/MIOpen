@@ -80,7 +80,7 @@ BuffInfo::BuffInfo(
     if(!(vec_c != 0))
         MIOPEN_THROW(std::string("Internal error in BuffInfo: (vec_c != 0) "));
 
-    data_len_t = _data_len_t;
+    data_len_t         = _data_len_t;
     const size_t c_hi  = (c + vec_c - 1) / vec_c;
     const size_t count = nk * c_hi * h * w * _g * vec_c;
     total_byte_size    = count * data_len_t;

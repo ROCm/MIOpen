@@ -198,6 +198,7 @@ set( MIOpen_Source
     solver/conv_asm_dir_BwdWrW3x3.cpp
     solver/conv_asm_dir_BwdWrW1x1.cpp
     solver/conv_multipass_wino3x3WrW.cpp
+    solver/conv_MP_bidirectional_winograd.cpp
     solver/conv_bin_wino3x3U.cpp
     solver/conv_bin_winoRxS.cpp
     solver/conv_winoRxS_f3x2.cpp
@@ -281,6 +282,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride1_group.inc
         kernels/Conv_Winograd_v21_1_0_gfx9_fp32_stride2_group.inc
         kernels/Conv_Winograd_v21_1_0_metadata.inc
+        kernels/xform_bidirect_winograd_code.inc
         kernels/rocm_version.inc
         kernels/inst_wrappers.inc
         kernels/conv_common.inc
@@ -389,7 +391,10 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenCTCLoss.cl
         kernels/MIOpenDropout.cl
         kernels/xform_data.s
-        kernels/xform_filter.s)
+        kernels/xform_filter.s
+        kernels/xform_bidirect_winograd_data.s
+        kernels/xform_bidirect_winograd_filter.s
+        kernels/xform_bidirect_winograd_out.s)
 
     if(MIOPEN_USE_SCGEMM)
         list(APPEND MIOPEN_KERNELS
