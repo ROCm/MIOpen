@@ -150,11 +150,11 @@ static auto GetWindogradSolvers()
                                            miopen::solver::ConvBinWinogradRxSf3x2,
                                            miopen::solver::ConvBinWinogradRxSf2x3,
                                            miopen::solver::ConvBinWinogradRxS,
-                                           miopen::solver::ConvMPWinograd<2, 3>,
-                                           miopen::solver::ConvMPWinograd<3, 3>,
-                                           miopen::solver::ConvMPWinograd<4, 3>,
-                                           miopen::solver::ConvMPWinograd<5, 3>,
-                                           miopen::solver::ConvMPWinograd<6, 3>>{};
+                                           miopen::solver::ConvMPBidirectWinograd<2, 3>,
+                                           miopen::solver::ConvMPBidirectWinograd<3, 3>,
+                                           miopen::solver::ConvMPBidirectWinograd<4, 3>,
+                                           miopen::solver::ConvMPBidirectWinograd<5, 3>,
+                                           miopen::solver::ConvMPBidirectWinograd<6, 3>>{};
 }
 
 static auto GetImplicitGemmWrWSolvers()

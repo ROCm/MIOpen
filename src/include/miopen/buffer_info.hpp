@@ -86,6 +86,7 @@ inline unsigned int FillStride(BuffInfo*, unsigned int)
 {
     assert(0);
     // Unknown LPart_t
+    return 0;
 }
 
 template <>

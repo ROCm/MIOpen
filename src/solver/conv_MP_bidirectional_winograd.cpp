@@ -24,21 +24,18 @@
  *
  *******************************************************************************/
 
-#include <sstream>
 #include <limits>
 #include <cassert>
-#include <miopen/gcn_asm_utils.hpp>
-#include <miopen/stringutils.hpp>
-#include <miopen/env.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/handle.hpp>
-#include <miopen/generic_search.hpp>
-#include <miopen/tensor.hpp>
 #include <miopen/solver.hpp>
-#include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/env.hpp>
+#include <miopen/gcn_asm_utils.hpp>
+#include <miopen/tensor.hpp>
 #include <miopen/gemm_v2.hpp>
-#include "../../driver/conv_driver.hpp"
+
+#include <boost/any.hpp>
+
 #if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
+#include <miopen/conv/data_invoke_params.hpp>
 #define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
 #endif
 
@@ -55,13 +52,14 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 // Introduces a number of shader-specific aliases (names) in the current scope at zero cost.
 // These names represent shader parameters, e.g. shader C is batch_size etc and useful for
 // programming.
-#define DEFINE_GETXFORMHWSIZE(params)                                                       \
-    const auto wino_xform_h =                                                               \
-                   solver::ConvMPWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                       GetSolverWinoXformHWSize(),                                          \
-               wino_xform_w =                                                               \
-                   solver::ConvMPWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                       GetSolverWinoXformHWSize();
+#define DEFINE_GETXFORMHWSIZE(params)                                                        \
+    const auto                                                                               \
+        wino_xform_h =                                                                       \
+            solver::ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
+                GetSolverWinoXformHWSize(),                                                  \
+        wino_xform_w =                                                                       \
+            solver::ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
+                GetSolverWinoXformHWSize();
 
 #define DEFINE_SHADER_ALIASES(params)                      \
     const auto group_cnt = (params).group_counts;          \
@@ -87,12 +85,13 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
     GenerateClangDefsym((options), "xformy_f_size", WinoFilterH);                                  \
     GenerateClangDefsym((options), "fdilation_w", 1 /*params.kernel_stride_w*/);                   \
     GenerateClangDefsym((options), "fdilation_h", 1 /*params.kernel_stride_h*/);
-
+#if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
 static inline size_t Ceil(const size_t v, const size_t m)
 {
     assert(m > 0);
     return (v + m - 1) / m;
 }
+#endif
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 WinogradBufferInfo<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
@@ -124,7 +123,7 @@ GetWinoBuffer(const ConvolutionContext& params, const ConvWinoBuffType buff_type
 }
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
-bool ConvMPWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(
+bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(
     const ConvolutionContext& params) const
 {
 // HIP backend required for sending ptr (buffer + offset)
@@ -253,7 +252,7 @@ bool ConvMPWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicabl
 }
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
-size_t ConvMPWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetWorkspaceSize(
+size_t ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetWorkspaceSize(
     const ConvolutionContext& params) const
 {
     return (GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(params,
@@ -268,11 +267,13 @@ size_t ConvMPWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetWorksp
 }
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
-ConvSolution ConvMPWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolution(
+ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolution(
     const ConvolutionContext& params) const
 {
+
     ConvSolution result;
     result.workspce_sz = GetWorkspaceSize(params);
+#if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
 
     const int n_groups = params.GetStream().GetMaxComputeUnits();
     DEFINE_GETXFORMHWSIZE(params)
@@ -294,24 +295,30 @@ ConvSolution ConvMPWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Get
         options_in.str(),
         l_wk,
         g_wk,
-        ConvMPWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolverFileNames(0),
-        ConvMPWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolverKernelNames(0),
+        ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolverFileNames(
+            0),
+        ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::
+            GetSolverKernelNames(0),
     };
 
     KernelInfo FilterTransform{
         options_filter.str(),
         l_wk,
         g_wk,
-        ConvMPWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolverFileNames(1),
-        ConvMPWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolverKernelNames(1),
+        ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolverFileNames(
+            1),
+        ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::
+            GetSolverKernelNames(1),
     };
 
     KernelInfo OutTransform{
         options_out.str(),
         l_wk,
         g_wk,
-        ConvMPWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolverFileNames(2),
-        ConvMPWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolverKernelNames(2),
+        ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolverFileNames(
+            2),
+        ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::
+            GetSolverKernelNames(2),
     };
 
     result.construction_params.push_back(InTransform);
@@ -462,7 +469,6 @@ ConvSolution ConvMPWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Get
                         << " o_buf.byte_stride.h="  << o_buf->byte_stride.h <<  " o_buf->byte_stride.w=" << o_buf->byte_stride.w
                         << " d_buf->.byte_stride.g=" << d_buf->byte_stride.g  << " o_buf->byte_stride.g="  << o_buf->byte_stride.g);
                     // clang-format on
-                    hipDeviceSynchronize();
                     kernel(N,
                            C,
                            H,
@@ -513,14 +519,17 @@ ConvSolution ConvMPWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Get
             }
         };
     };
-
     return result;
+#else
+    (void)params;
+    MIOPEN_THROW(miopenStatusBadParm, "ConvMPBidirectWinograd Unsupported ");
+#endif
 }
-template struct ConvMPWinograd<2, 3>;
-template struct ConvMPWinograd<3, 3>;
-template struct ConvMPWinograd<4, 3>;
-template struct ConvMPWinograd<5, 3>;
-template struct ConvMPWinograd<6, 3>;
+template struct ConvMPBidirectWinograd<2, 3>;
+template struct ConvMPBidirectWinograd<3, 3>;
+template struct ConvMPBidirectWinograd<4, 3>;
+template struct ConvMPBidirectWinograd<5, 3>;
+template struct ConvMPBidirectWinograd<6, 3>;
 
 } // namespace solver
 } // namespace miopen

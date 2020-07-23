@@ -1478,7 +1478,7 @@ struct ConvBinWinogradRxSFused : SolverBase<ConvolutionContext>
 };
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFilterW = WinoFilterH>
-struct ConvMPWinograd : SolverBase<ConvolutionContext>
+struct ConvMPBidirectWinograd : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
     size_t GetWorkspaceSize(const ConvolutionContext& params) const;
@@ -1507,11 +1507,11 @@ struct ConvMPWinograd : SolverBase<ConvolutionContext>
 
     static int GetSolverWinoXformHWSize() { return WinoDataH + WinoFilterH - 1; }
 };
-extern template struct ConvMPWinograd<2, 3>;
-extern template struct ConvMPWinograd<3, 3>;
-extern template struct ConvMPWinograd<4, 3>;
-extern template struct ConvMPWinograd<5, 3>;
-extern template struct ConvMPWinograd<6, 3>;
+extern template struct ConvMPBidirectWinograd<2, 3>;
+extern template struct ConvMPBidirectWinograd<3, 3>;
+extern template struct ConvMPBidirectWinograd<4, 3>;
+extern template struct ConvMPBidirectWinograd<5, 3>;
+extern template struct ConvMPBidirectWinograd<6, 3>;
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFilterW = WinoFilterH>
 struct ConvWinograd3x3MultipassWrW : SolverBase<ConvolutionContext>
