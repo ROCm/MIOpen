@@ -638,9 +638,12 @@ rocm_export_targets(
 file(GLOB FIND_DB_FILES kernels/*.fdb.txt)
 if(NOT MIOPEN_EMBED_DB STREQUAL "")
     include(embed)
-
     set(CODE_OBJECTS)
     list(APPEND CODE_OBJECTS "kernels/miopen.db")
+    foreach(EMBED_ARCH ${MIOPEN_EMBED_DB})
+        message(STATUS "Adding file for arch: ${EMBED_ARCH}")
+        list(APPEND CODE_OBJECTS "kernels/${EMBED_ARCH}.${MIOPEN_BACKEND}.fdb.txt")
+    endforeach()
     add_embed_library(miopen_data ${CODE_OBJECTS})
     target_link_libraries(MIOpen PRIVATE miopen_data)
 else()

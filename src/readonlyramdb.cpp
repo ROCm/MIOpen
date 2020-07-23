@@ -27,6 +27,10 @@
 #include <miopen/readonlyramdb.hpp>
 #include <miopen/logger.hpp>
 
+#if MIOPEN_EMBED_DB
+#include <miopen_data.hpp>
+#endif
+
 #include <fstream>
 #include <mutex>
 #include <sstream>
@@ -75,7 +79,19 @@ static auto Measure(const std::string& funcName, TFunc&& func)
 void ReadonlyRamDb::Prefetch(const std::string& path, bool warn_if_unreadable)
 {
     Measure("Prefetch", [this, &path, warn_if_unreadable]() {
+#if MIPEN_EMBED_DB
+        boost::filesystem::path p(path);
+        const auto& it_p = miopen_data.find(p.filename().string() + ".o");
+        if(it_p == miopen_data().end())
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "Unknown database: " + filepath.string() + " in internal filesystem");
+
+        const auto& p = it_p->second;
+        ptrdiff_t sz  = p.second - p.first;
+        std::stringstream file(std::string(p.first, sz));
+#else
         auto file = std::ifstream{path};
+#endif
 
         if(!file)
         {
