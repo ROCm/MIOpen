@@ -73,6 +73,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
     const auto& out_H    = (params).out_height;            \
     const auto& out_W    = (params).out_width;
 
+#if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
 #define GENERATE_MAIN_OPTIONS(options)                                                             \
     GenerateClangDefsym((options), "acc_type", 1);                                                 \
     GenerateClangDefsym((options), "buf_type", (params.IsFp32() ? 1 : (params.IsFp16() ? 2 : 3))); \
@@ -85,7 +86,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
     GenerateClangDefsym((options), "xformy_f_size", WinoFilterH);                                  \
     GenerateClangDefsym((options), "fdilation_w", 1 /*params.kernel_stride_w*/);                   \
     GenerateClangDefsym((options), "fdilation_h", 1 /*params.kernel_stride_h*/);
-#if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
+
 static inline size_t Ceil(const size_t v, const size_t m)
 {
     assert(m > 0);
