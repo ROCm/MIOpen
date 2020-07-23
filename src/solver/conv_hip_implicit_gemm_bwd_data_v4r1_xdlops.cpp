@@ -389,7 +389,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValidValue() const
         && IsTwoPower<16,64>(GemmNPerWave); // clang-format on
 }
 
-bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue()
+bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue(const ConvolutionContext& ctx)
 {
     do
     {

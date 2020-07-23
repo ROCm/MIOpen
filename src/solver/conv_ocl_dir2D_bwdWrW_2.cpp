@@ -168,7 +168,7 @@ operator==(const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const
 }
 
 template <int N_BATCH_LOOPS>
-bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::SetNextValue()
+bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::SetNextValue(const ConvolutionContext& ctx)
 {
     // Increment with wrap-around:
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2_SEARCH_OPTIMIZED{}))

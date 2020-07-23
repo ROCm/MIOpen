@@ -340,7 +340,7 @@ bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::IsValidValue() const
     // clang-format on
 }
 
-bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::SetNextValue()
+bool PerformanceImplicitGemmV4R4GenXdlopsFwdFp32::SetNextValue(const ConvolutionContext& ctx)
 {
     do
     {

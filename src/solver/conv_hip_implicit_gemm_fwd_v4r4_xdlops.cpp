@@ -30,6 +30,13 @@
 #include <miopen/generic_search.hpp>
 #include <miopen/hip_build_utils.hpp>
 #include "implicitgemm_util.hpp"
+/* this fix is for fp16 xdlops vectorizable kernels due to followings, we may revisit this fix after
+  compiler fix:
+  1. compiler issues(25% impact)
+  2. LDS write performance(75% impact)
+*/
+MIOPEN_DECLARE_ENV_VAR(
+    MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R4_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM)
 
 namespace miopen {
 namespace solver {
@@ -78,16 +85,20 @@ operator==(const PerformanceImplicitGemmForwardV4R4Xdlops& other) const
     // clang-format on
 }
 
-bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue()
+bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue(const ConvolutionContext& ctx)
 {
     do
     {
         // list performance parameters in reverse order, in order for tuning to iterate over the
         // range in normal order
-        if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
+        if(miopen::IsEnabled(
+               MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R4_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
         {
-            if(!NextTwoPower<1, 8>(GemmBThreadDataPerRead_GemmN))
-                break;
+            if(ctx.IsFp16())
+            {
+                if(!NextTwoPower<1, 8>(GemmBThreadDataPerRead_GemmN))
+                    break;
+            }
         }
         if(!NextFlag<false, true>(GemmBThreadCopyMoreGemmKPack))
             break;
@@ -447,7 +458,8 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
         // calculate threadwise copy size
         auto data_per_thread_copy =
             std::max(1, (GemmKPerBlock * GemmNPerBlock * GemmKPack) / block_size);
-        if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
+        if(miopen::IsEnabled(
+               MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R4_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
         {
             if(ctx.IsFp16())
             {
@@ -456,13 +468,6 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
                     SrcDataPerRead_GemmN = GemmBThreadDataPerRead_GemmN;
                 }
                 else
-                {
-                    MIOPEN_THROW("invalid performance parameter");
-                }
-            }
-            else
-            {
-                if(SrcDataPerRead_GemmN != GemmBThreadDataPerRead_GemmN)
                 {
                     MIOPEN_THROW("invalid performance parameter");
                 }
@@ -492,7 +497,8 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
         // vector write into LDS
         DstDataPerWrite_GemmKPack = gcd(DstDataPerWrite_GemmKPack, data_per_thread_copy_gemmkpack);
 
-        if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
+        if(miopen::IsEnabled(
+               MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R4_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
         {
             if(ctx.IsFp16())
             {

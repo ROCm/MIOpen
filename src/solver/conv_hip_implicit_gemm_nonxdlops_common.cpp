@@ -423,7 +423,7 @@ bool PerformanceImplicitGemm::IsValidValue() const
         && IsTwoPower<16,128>(WeiBlockCopyClusterLengths_K); // clang-format on
 }
 
-bool PerformanceImplicitGemm::SetNextValue()
+bool PerformanceImplicitGemm::SetNextValue(const ConvolutionContext& ctx)
 {
     // GemmNRepeat = 2 cosntant
     do
