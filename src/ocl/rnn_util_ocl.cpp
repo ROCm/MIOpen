@@ -68,7 +68,7 @@ void LSTMForwardHiddenStateUpdate(const Handle& handle,
                          ? 4
                          : ((total_work >= 2 * max_active_threads && hy_h % 2 == 0) ? 2 : 1);
 
-    size_t total_item   = std::max(size_t(total_work / RD_BLCK), size_t(1));
+    size_t total_item   = std::max(total_work / RD_BLCK, size_t(1));
     size_t item_per_grp = total_item <= 64 ? 64 : total_item <= 128 ? 128 : 256;
     size_t glb_sz       = total_item < max_active_threads ? total_item : max_active_threads;
     size_t wg_sz        = (glb_sz + item_per_grp - 1) / item_per_grp;
@@ -196,7 +196,7 @@ void LSTMBackwardHiddenStateUpdate(const Handle& handle,
                          ? 4
                          : ((total_work >= 2 * max_active_threads && hy_h % 2 == 0) ? 2 : 1);
 
-    size_t total_item   = std::max(size_t(total_work / RD_BLCK), size_t(1));
+    size_t total_item   = std::max(total_work / RD_BLCK, size_t(1));
     size_t item_per_grp = total_item <= 64 ? 64 : total_item <= 128 ? 128 : 256;
     size_t glb_sz       = total_item < max_active_threads ? total_item : max_active_threads;
     size_t wg_sz        = (glb_sz + item_per_grp - 1) / item_per_grp;
