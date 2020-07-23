@@ -188,7 +188,8 @@ InvokerFactory MakeImplGemmDynamicDataInvokerFactory(const ConvolutionContext& c
             return [=](const Handle& handle, const boost::any& primitive_parameters) {
                 const auto data_ctx = boost::any_cast<conv::DataInvokeParams>(primitive_parameters);
                 const auto& tensors = data_ctx.tensors;
-                auto kernel         = handle.Run(kernels[0]);
+                MIOPEN_LOG_I("fwd workspace size: " << data_ctx.workSpaceSize);
+                auto kernel = handle.Run(kernels[0]);
                 if(kernel.GetName().find("igemm_v4r1_dynamic") == 0 ||
                    kernel.GetName().find("igemm_v4r1_1x1_dynamic") == 0)
                 {
