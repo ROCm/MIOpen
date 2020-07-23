@@ -66,7 +66,7 @@ enum class LPart_t
 struct BuffInfo
 {
     size_t total_byte_size = 0;
-    int data_len_t;
+    int data_len_t         = 4;
 
     struct
     {
@@ -129,23 +129,23 @@ inline unsigned int FillStride<LPart_t::G>(BuffInfo* b, unsigned int cum_stride)
 }
 
 template <LPart_t first, LPart_t... others>
-inline bool FillNextLayoutStride(BuffInfo* b, unsigned int cum_stride)
+inline void FillNextLayoutStride(BuffInfo* b, unsigned int cum_stride)
 {
     auto sum = FillStride<first>(b, cum_stride);
-    return FillNextLayoutStride<others...>(b, sum);
+    FillNextLayoutStride<others...>(b, sum);
 }
 template <>
-inline bool FillNextLayoutStride<LPart_t::LPart_begin>(BuffInfo*, unsigned int cum_stride)
+inline void FillNextLayoutStride<LPart_t::LPart_begin>(BuffInfo*, unsigned int)
 {
-    return cum_stride;
 }
 
 template <LPart_t... others>
-inline bool FillLayoutStride(BuffInfo* b)
+inline void FillLayoutStride(BuffInfo* b)
 {
-    return FillNextLayoutStride<others..., LPart_t::LPart_begin>(b, 1);
+    FillNextLayoutStride<others..., LPart_t::LPart_begin>(b, 1);
 }
-}
+
+} // namespace LayoutConstructor
 
 enum class ConvWinoBuffType
 {

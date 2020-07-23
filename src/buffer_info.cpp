@@ -90,7 +90,7 @@ BuffInfo::BuffInfo(
     size.h             = h;
     size.w             = w;
 
-    using namespace LayoutConstructor;
+    using LayoutConstructor::FillLayoutStride;
     switch(layout)
     {
     case MemLayout_t::NCHW:
