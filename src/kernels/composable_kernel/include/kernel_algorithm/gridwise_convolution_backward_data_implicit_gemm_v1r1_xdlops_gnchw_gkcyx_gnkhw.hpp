@@ -4,7 +4,7 @@
 #include "common_header.hpp"
 #include "tensor_descriptor.hpp"
 #include "tensor_descriptor_helper.hpp"
-#include "gridwise_gemm_xdlops.hpp"
+#include "gridwise_gemm_xdlops_fp16_bfp16.hpp"
 
 namespace ck {
 
@@ -13,8 +13,9 @@ namespace ck {
 // GemmK = K
 template <index_t GridSize,
           index_t BlockSize,
-          typename Float,
+          typename ABFloat,
           typename AccFloat,
+          typename CFloat,
           typename InGlobalDesc,
           typename WeiGlobalDesc,
           typename OutGlobalDesc,
@@ -25,23 +26,23 @@ template <index_t GridSize,
           index_t GemmMPerBlock,
           index_t GemmNPerBlock,
           index_t GemmKPerBlock,
+          index_t GemmKPACK,
           index_t GemmMPerWave,
           index_t GemmNPerWave,
-          index_t GemmThreadGemmDataPerReadM,
-          index_t GemmThreadGemmDataPerReadN,
-          typename GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM,
-          typename GemmABlockCopyThreadClusterLengths_GemmG_GemmK_GemmM,
-          index_t GemmABlockCopySrcDataPerRead_GemmN,
-          index_t GemmABlockCopyDstDataPerWrite_GemmN,
-          typename GemmBBlockCopyThreadSliceLengths_GemmG_GemmK_GemmN,
-          typename GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_GemmN,
+          typename GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM_GemmKPACK,
+          typename GemmABlockCopyThreadClusterLengths_GemmG_GemmK_GemmM_GemmKPACK,
+          index_t GemmABlockCopySrcDataPerRead_GemmM,
+          index_t GemmABlockCopyDstDataPerWrite_GemmKPACK,
+          typename GemmBBlockCopyThreadSliceLengths_GemmG_GemmK_GemmN_GemmKPACK,
+          typename GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_GemmN_GemmKPACK,
           index_t GemmBBlockCopySrcDataPerRead_GemmN,
-          index_t GemmBBlockCopyDstDataPerWrite_GemmN>
+          index_t GemmBBlockCopyDstDataPerWrite_GemmKPACK,
+          WorkgroupScheduleOrder WorkgroupSchdOrder>
 struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_gnchw_gkcyx_gnkhw
 {
-    __device__ void Run(Float* __restrict__ p_in_global,
-                        const Float* __restrict__ p_wei_global,
-                        const Float* __restrict__ p_out_global) const
+    __device__ void Run(CFloat* __restrict__ p_in_global,
+                        const ABFloat* __restrict__ p_wei_global,
+                        const ABFloat* __restrict__ p_out_global) const
     {
         constexpr auto I2 = Number<2>{};
         constexpr auto I3 = Number<3>{};
@@ -64,6 +65,11 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_gnchw_gkcyx_gnkhw
         constexpr index_t Y = wei_g_k_c_y_x_global_desc.GetLengths()[3];
         constexpr index_t X = wei_g_k_c_y_x_global_desc.GetLengths()[4];
 
+        static_assert(K % GemmKPACK == 0, "K needs to be in multiple of KPACK");
+        constexpr index_t GemmK = K / GemmKPACK;
+        constexpr index_t GemmN = N * Ho * Wo;
+        constexpr index_t GemmM = C * Y * X;
+
         constexpr index_t ConvStrideH = ConvStrides{}[0];
         constexpr index_t ConvStrideW = ConvStrides{}[1];
 
@@ -71,15 +77,39 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_gnchw_gkcyx_gnkhw
         constexpr index_t ConvDilationW = ConvDilations{}[1];
 
         // output tensor
-        constexpr auto out_gemmg_gemmk_gemmn_global_desc = transform_tensor_descriptor(
+        constexpr auto out_gemmg_gemmk_gemmkpack_gemmn_global_desc = transform_tensor_descriptor(
             unfold_tensor_descriptor(out_g_n_k_ho_wo_global_desc, I3, I4),
-            make_tuple(PassThrough<G>{}, PassThrough<K>{}, Merge<Sequence<N, Ho * Wo>>{}),
+            make_tuple(PassThrough<G>{},
+                       UnMerge<Sequence<GemmK, GemmKPACK>>{},
+                       Merge<Sequence<N, Ho * Wo>>{}),
             make_tuple(Sequence<0>{}, Sequence<2>{}, Sequence<1, 3>{}),
-            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}));
+            make_tuple(Sequence<0>{}, Sequence<1, 2>{}, Sequence<3>{}));
+
+        constexpr auto out_gemmg_gemmk_gemmn_gemmkpack_global_desc = transform_tensor_descriptor(
+            out_gemmg_gemmk_gemmkpack_gemmn_global_desc,
+            make_tuple(PassThrough<G>{},
+                       PassThrough<GemmK>{},
+                       PassThrough<GemmN>{},
+                       PassThrough<GemmKPACK>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<3>{}, Sequence<2>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
 
         // weight tensor
-        constexpr auto wei_gemmg_gemmk_gemmm_global_desc =
-            unfold_tensor_descriptor(wei_g_k_c_y_x_global_desc, I2, I4);
+        constexpr auto wei_gemmg_gemmk_gemmkpack_gemmm_global_desc = transform_tensor_descriptor(
+            unfold_tensor_descriptor(wei_g_k_c_y_x_global_desc, I2, I4),
+            make_tuple(
+                PassThrough<G>{}, UnMerge<Sequence<GemmK, GemmKPACK>>{}, PassThrough<GemmM>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
+            make_tuple(Sequence<0>{}, Sequence<1, 2>{}, Sequence<3>{}));
+
+        constexpr auto wei_gemmg_gemmk_gemmm_gemmkpack_global_desc = transform_tensor_descriptor(
+            wei_gemmg_gemmk_gemmkpack_gemmm_global_desc,
+            make_tuple(PassThrough<G>{},
+                       PassThrough<GemmK>{},
+                       PassThrough<GemmM>{},
+                       PassThrough<GemmKPACK>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<3>{}, Sequence<2>{}),
+            make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}, Sequence<3>{}));
 
         // input tensor
         constexpr auto in_g_n_c_hip_wip_global_desc = transform_tensor_descriptor(
@@ -121,38 +151,39 @@ struct GridwiseConvolutionBackwardDataImplicitGemm_v1r1_xdlops_gnchw_gkcyx_gnkhw
         constexpr auto in_memory_op =
             not_need_atomic ? InMemoryDataOperation::Set : InMemoryDataOperation::AtomicAdd;
 
-        constexpr auto gridwise_gemm = GridwiseBatchedGemmTransposedANormalBNormalCXdlops_v1<
+        constexpr auto gridwise_gemm = GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2<
             GridSize,
             BlockSize,
-            Float,
-            AccFloat,
-            decltype(wei_gemmg_gemmk_gemmm_global_desc),
-            decltype(out_gemmg_gemmk_gemmn_global_desc),
+            ABFloat,  // Input data type = fp16 (fp16) or ushort (bfp16)
+            AccFloat, // Acc data type = float
+            CFloat,   // Output data type = float  (not fp16/ushort as this kernel uses atomic
+                      // add.  No ISA for fp16/ushort atomic add)
+            decltype(wei_gemmg_gemmk_gemmm_gemmkpack_global_desc),
+            decltype(out_gemmg_gemmk_gemmn_gemmkpack_global_desc),
             decltype(in_gemmg_gemmm_gemmn_global_desc),
             GemmMPerBlock,
             GemmNPerBlock,
             GemmKPerBlock,
             GemmMPerWave,
             GemmNPerWave,
-            GemmThreadGemmDataPerReadM,
-            GemmThreadGemmDataPerReadN,
-            GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM,
-            GemmABlockCopyThreadClusterLengths_GemmG_GemmK_GemmM,
-            Sequence<0, 2, 1>,
-            Sequence<0, 2, 1>,
-            Sequence<0, 1, 2>,
+            GemmABlockCopyThreadSliceLengths_GemmG_GemmK_GemmM_GemmKPACK,
+            GemmABlockCopyThreadClusterLengths_GemmG_GemmK_GemmM_GemmKPACK,
+            Sequence<0, 2, 1, 3>,
+            Sequence<0, 2, 1, 3>,
+            Sequence<0, 1, 2, 3>,
             2,
-            GemmABlockCopySrcDataPerRead_GemmN,
-            GemmABlockCopyDstDataPerWrite_GemmN,
-            GemmBBlockCopyThreadSliceLengths_GemmG_GemmK_GemmN,
-            GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_GemmN,
-            Sequence<0, 1, 2>,
-            Sequence<0, 1, 2>,
-            Sequence<0, 1, 2>,
+            GemmABlockCopySrcDataPerRead_GemmM,
+            GemmABlockCopyDstDataPerWrite_GemmKPACK,
+            GemmBBlockCopyThreadSliceLengths_GemmG_GemmK_GemmN_GemmKPACK,
+            GemmBBlockCopyThreadClusterLengths_GemmG_GemmK_GemmN_GemmKPACK,
+            Sequence<0, 1, 2, 3>,
+            Sequence<0, 1, 2, 3>,
+            Sequence<0, 1, 2, 3>,
             2,
             GemmBBlockCopySrcDataPerRead_GemmN,
-            GemmBBlockCopyDstDataPerWrite_GemmN,
-            in_memory_op>{};
+            GemmBBlockCopyDstDataPerWrite_GemmKPACK,
+            in_memory_op,
+            WorkgroupSchdOrder>{};
 
         gridwise_gemm.Run(p_wei_global, p_out_global, p_in_global);
     }
