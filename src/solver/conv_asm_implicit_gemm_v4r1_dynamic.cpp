@@ -330,7 +330,7 @@ void PerformanceImplicitGemmV4R1Dynamic::Copy(const PerformanceImplicitGemmV4R1D
     WeiBlockCopyClusterLengths_K = other.WeiBlockCopyClusterLengths_K;
 }
 
-bool PerformanceImplicitGemmV4R1Dynamic::SetNextValue(const ConvolutionContext& ctx)
+bool PerformanceImplicitGemmV4R1Dynamic::SetNextValue()
 {
     do
     {

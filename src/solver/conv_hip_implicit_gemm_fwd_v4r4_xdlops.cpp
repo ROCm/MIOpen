@@ -41,6 +41,8 @@ MIOPEN_DECLARE_ENV_VAR(
 namespace miopen {
 namespace solver {
 
+bool PerformanceImplicitGemmForwardV4R4Xdlops::m_isFp16 = 0;
+
 PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops()
     : PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops(
           4, 4, 1, 4, 4, 1, false, false, 1)
@@ -85,7 +87,7 @@ operator==(const PerformanceImplicitGemmForwardV4R4Xdlops& other) const
     // clang-format on
 }
 
-bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue(const ConvolutionContext& ctx)
+bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue()
 {
     do
     {
@@ -94,7 +96,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue(const ConvolutionCon
         if(miopen::IsEnabled(
                MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R4_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
         {
-            if(ctx.IsFp16())
+            if(m_isFp16)
             {
                 if(!NextTwoPower<1, 8>(GemmBThreadDataPerRead_GemmN))
                     break;
@@ -125,6 +127,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue(const ConvolutionCon
 void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmForwardV4R4Xdlops tmp;
+    m_isFp16 = ctx.IsFp16();
 
     // loop over certain ranges of tuning parameter
     auto get_euristic_config = [&](auto is_valid_func) {

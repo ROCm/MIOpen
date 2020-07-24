@@ -78,7 +78,7 @@ class ComputedIterator : public std::iterator<std::input_iterator_tag, Performan
         {
             do
             {
-                if(!v.SetNextValue(*p))
+                if(!v.SetNextValue())
                 { // Wraparound, end reached. Iterator is useless from now.
                     p = nullptr;
                     break;

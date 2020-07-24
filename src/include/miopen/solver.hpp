@@ -150,7 +150,7 @@ struct PerformanceConfigConvAsm3x3U : Serializable<PerformanceConfigConvAsm3x3U>
 
     void EuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
-    bool SetNextValue(const ConvolutionContext& ctx);
+    bool SetNextValue();
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvAsm3x3U& other) const;
     std::string ToString() const;
@@ -225,7 +225,7 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
 
     void EuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
-    bool SetNextValue(const ConvolutionContext& ctx);
+    bool SetNextValue();
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvAsm1x1U& other) const;
     std::string ToString() const;
@@ -334,7 +334,7 @@ struct PerformanceConfigConvAsm1x1UV2 : Serializable<PerformanceConfigConvAsm1x1
 
     void EuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
-    bool SetNextValue(const ConvolutionContext& ctx);
+    bool SetNextValue();
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvAsm1x1UV2& other) const;
     std::string ToString() const;
@@ -457,7 +457,7 @@ struct PerformanceImplicitGemm : Serializable<PerformanceImplicitGemm>
 
     void EuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
-    bool SetNextValue(const ConvolutionContext& ctx);
+    bool SetNextValue();
     bool IsValid(const ConvolutionContext& ctx) const;
     bool operator==(const PerformanceImplicitGemm& other) const;
     std::string ToString() const;
@@ -549,7 +549,7 @@ struct PerformanceImplicitGemmV4R4Fwd : Serializable<PerformanceImplicitGemmV4R4
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     void EuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue(const ConvolutionContext& ctx);
+    bool SetNextValue();
     std::string ToString() const;
 };
 
@@ -605,7 +605,7 @@ struct PerformanceImplicitGemmV4R4WrW : Serializable<PerformanceImplicitGemmV4R4
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     void EuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue(const ConvolutionContext& ctx);
+    bool SetNextValue();
     std::string ToString() const;
 };
 
@@ -662,7 +662,7 @@ struct PerformanceImplicitGemmBwdDataV1R1 : Serializable<PerformanceImplicitGemm
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     void EuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue(const ConvolutionContext& ctx);
+    bool SetNextValue();
     std::string ToString() const;
 };
 
@@ -719,7 +719,7 @@ struct PerformanceImplicitGemmBwdDataV4R1 : Serializable<PerformanceImplicitGemm
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     void EuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue(const ConvolutionContext& ctx);
+    bool SetNextValue();
     std::string ToString() const;
 };
 
@@ -773,7 +773,7 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     void EuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue(const ConvolutionContext& ctx);
+    bool SetNextValue();
     std::string ToString() const;
 };
 
@@ -852,7 +852,7 @@ struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
 
     void EuristicInit(const ConvolutionContext& ctx);
     bool IsValidValue() const;
-    bool SetNextValue(const ConvolutionContext& ctx);
+    bool SetNextValue();
     bool IsValid(const ConvolutionContext& ctx) const;
     bool operator==(const PerformanceImplicitGemmV4R4GenXdlopsFwdFp32& other) const;
     std::string ToString() const;
@@ -953,7 +953,7 @@ struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlop
 
     void EuristicInit(const ConvolutionContext& ctx);
     bool IsValidValue() const;
-    bool SetNextValue(const ConvolutionContext& ctx);
+    bool SetNextValue();
     bool IsValid(const ConvolutionContext& ctx) const;
     bool operator==(const PerformanceImplicitGemmXdlops& other) const;
     std::string ToString() const;
@@ -971,6 +971,7 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     bool GemmAThreadCopyMoreGemmK;
     bool GemmBThreadCopyMoreGemmKPack;
     int GemmBThreadDataPerRead_GemmN;
+    static bool m_isFp16;
 
     PerformanceImplicitGemmForwardV4R4Xdlops(int, int, int, int, int, int, bool, bool, int);
     PerformanceImplicitGemmForwardV4R4Xdlops();
@@ -994,7 +995,7 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     std::string ToString() const;
 
     void EuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue(const ConvolutionContext& ctx);
+    bool SetNextValue();
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     bool IsReallyValid(const ConvolutionContext& ctx) const;
@@ -1088,7 +1089,7 @@ struct PerformanceImplicitGemmV4R4GenXdlopsWrWFp32
 
     void EuristicInit(const ConvolutionContext& ctx);
     bool IsValidValue() const;
-    bool SetNextValue(const ConvolutionContext& ctx);
+    bool SetNextValue();
     bool IsValid(const ConvolutionContext& ctx) const;
     bool operator==(const PerformanceImplicitGemmV4R4GenXdlopsWrWFp32& other) const;
     std::string ToString() const;
@@ -1312,7 +1313,7 @@ struct PerformanceImplicitGemmV4R1Dynamic : Serializable<PerformanceImplicitGemm
 
     void EuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
-    bool SetNextValue(const ConvolutionContext& ctx);
+    bool SetNextValue();
     bool IsValid(const ConvolutionContext& ctx) const;
     bool operator==(const PerformanceImplicitGemmV4R1Dynamic& other) const;
     std::string ToString() const;
@@ -1439,7 +1440,7 @@ struct PerformanceConfigConvBinWinogradRxSf2x3
 
     void EuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
-    bool SetNextValue(const ConvolutionContext& ctx);
+    bool SetNextValue();
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvBinWinogradRxSf2x3& other) const;
     std::string ToString() const;
@@ -1565,7 +1566,7 @@ struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirec
 
     void EuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
-    bool SetNextValue(const ConvolutionContext& ctx);
+    bool SetNextValue();
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigAsmDirect3x3WrW& other) const;
     std::string ToString() const;
@@ -1677,7 +1678,7 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
 
     void EuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
-    bool SetNextValue(const ConvolutionContext& ctx);
+    bool SetNextValue();
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const;
     std::string ToString() const;
@@ -1759,7 +1760,7 @@ struct PerformanceConfigConvOclBwdWrw2
 
     void EuristicInit(const ConvolutionContext& params);
     bool IsValidValue() const;
-    bool SetNextValue(const ConvolutionContext& ctx);
+    bool SetNextValue();
     bool IsValid(const ConvolutionContext& params) const;
     bool operator==(const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const;
     std::string ToString() const;

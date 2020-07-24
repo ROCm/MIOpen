@@ -187,7 +187,7 @@ struct buff_info
     }
 };
 
-bool PerformanceConfigConvAsm1x1UV2::SetNextValue(const ConvolutionContext& ctx)
+bool PerformanceConfigConvAsm1x1UV2::SetNextValue()
 {
     // Increment with wrap-around:
     do

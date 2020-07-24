@@ -59,10 +59,7 @@ auto PerfFieldRules()
 
 } // namespace
 
-bool PerformanceConfigConvAsm3x3U::SetNextValue(const ConvolutionContext& ctx)
-{
-    return !PerfFieldRules().Next(*this);
-}
+bool PerformanceConfigConvAsm3x3U::SetNextValue() { return !PerfFieldRules().Next(*this); }
 
 PerformanceConfigConvAsm3x3U::PerformanceConfigConvAsm3x3U(int lwc, int fpw, int olpw)
     : limit_wave_cnt(lwc), filters_per_wave(fpw), output_lines_per_wave(olpw)
