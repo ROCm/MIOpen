@@ -41,7 +41,7 @@ MIOPEN_DECLARE_ENV_VAR(
 namespace miopen {
 namespace solver {
 
-bool PerformanceImplicitGemmForwardV4R4Xdlops::m_isFp16 = 0;
+bool PerformanceImplicitGemmForwardV4R4Xdlops::m_isFp16 = false;
 
 PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops()
     : PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops(
