@@ -637,7 +637,7 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
         kernel_postfix += "_group";
 
     kernel.kernel_name = kernel_name + kernel_postfix;
-    kernel.kernel_file = "Conv_Winograd" + kernel_postfix + ".s";
+    kernel.kernel_file = kernel_file + kernel_postfix + ".s";
 
     result.construction_params.push_back(kernel);
 
