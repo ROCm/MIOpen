@@ -23,13 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
+#include <cstddef>
 #include "miopen/solver.hpp"
 #include "miopen/handle.hpp"
-#include <miopen/conv/wrw_invoke_params.hpp>
-#include <miopen/conv/invokers/impl_gemm_dynamic.hpp>
 #include <miopen/generic_search.hpp>
-#include <miopen/gcn_asm_utils.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 #include "implicitgemm_util.hpp"
+#include <miopen/gcn_asm_utils.hpp>
 
 namespace miopen {
 namespace solver {
@@ -38,6 +39,112 @@ namespace solver {
 //{  16, 128,  16,   2,   4,   4,   4,   4,   4,   4,  16,   1,  16,   1,    4,  64},
 //{  16, 128,  16,   2,   4,   4,   4,   4,   4,   4,  16,   1,  16,   1,   16,  16},
 //{   8,  32,   4,   2,   2,   2,   2,   4,   4,   2,   4,   2,   8,   1,    4,  16}
+
+static inline int GetImplicitGemmWrwV4R1DynamicGemmkGroups(const ConvolutionContext& ctx,
+                                                           const int& GemmKPerBlock)
+{
+    int gemmk        = ctx.batch_sz * ctx.in_height * ctx.in_width;
+    int gemmk_groups = 1;
+    for(int i = 0; i < 6; i++)
+    {
+        if(0 == (gemmk % ((1 << i) * GemmKPerBlock)))
+            gemmk_groups = i;
+        else
+            break;
+    }
+    // gemmk_groups = 0;
+    return gemmk_groups;
+}
+
+static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
+                                               const ConvolutionContext& ctx,
+                                               ConstData_t src,
+                                               ConstData_t dst,
+                                               Data_t wei,
+                                               Data_t wei_workspace,
+                                               const std::vector<KernelInvoke>& kernels)
+{
+    float elapsed = 0.0f;
+
+    auto kernel = kernels[0];
+    // clang-format off
+    int hi             = ctx.out_height;
+    int wi             = ctx.out_width;
+    int n              = ctx.n_outputs;
+    int k              = ctx.n_inputs;
+    int c              = ctx.batch_sz;
+    int ho             = ctx.kernel_size_h;
+    int wo             = ctx.kernel_size_w;
+    int stride_h       = ctx.kernel_dilation_h;
+    int stride_w       = ctx.kernel_dilation_w;
+    int dilation_h     = ctx.kernel_stride_h;
+    int dilation_w     = ctx.kernel_stride_w;
+    int pad_h          = ctx.pad_h;
+    int pad_w          = ctx.pad_w;
+    int y              = ctx.in_height;
+    int x              = ctx.in_width;
+    int gemmk_groups   = 0;
+    int GemmKPerBlock;
+
+    if (kernel.GetName().find(std::string("igemm_v4r1_dynamic_wrw_128x128x16")) != std::string::npos)
+        GemmKPerBlock = 16;
+    else 
+        GemmKPerBlock = 4;
+
+    gemmk_groups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
+
+    MIOPEN_LOG_I(kernel.GetName() << " with groups for reduction: " << (1 << gemmk_groups) << " GemmKPerBlock: " << GemmKPerBlock);
+
+    // clang-format on
+    std::vector<OpKernelArg> opArgs;
+    opArgs.emplace_back(src);
+    opArgs.emplace_back(dst);
+    if(gemmk_groups > 0)
+        opArgs.emplace_back(wei_workspace);
+    else
+        opArgs.emplace_back(wei);
+    opArgs.emplace_back(hi);
+    opArgs.emplace_back(wi);
+    opArgs.emplace_back(n);
+    opArgs.emplace_back(k);
+    opArgs.emplace_back(c);
+    opArgs.emplace_back(ho);
+    opArgs.emplace_back(wo);
+    opArgs.emplace_back(stride_h);
+    opArgs.emplace_back(stride_w);
+    opArgs.emplace_back(dilation_h);
+    opArgs.emplace_back(dilation_w);
+    opArgs.emplace_back(pad_h);
+    opArgs.emplace_back(pad_w);
+    opArgs.emplace_back(y);
+    opArgs.emplace_back(x);
+    opArgs.emplace_back(gemmk_groups);
+    kernel(opArgs);
+
+    if(handle.IsProfilingEnabled())
+        elapsed += handle.GetKernelTime();
+
+    // reduction section
+    if(gemmk_groups > 0)
+    {
+        auto kernel_reduction = kernels[1];
+        int reduction_groups  = 1 << gemmk_groups;
+        MIOPEN_LOG_I(kernel_reduction.GetName() << " with groups: " << reduction_groups);
+        std::vector<OpKernelArg> opArgs_reduction;
+        int reduction_per_thread = 8;
+        int in_stride            = n * k * ho * wo;
+        opArgs_reduction.emplace_back(wei);
+        opArgs_reduction.emplace_back(wei_workspace);
+        opArgs_reduction.emplace_back(reduction_per_thread);
+        opArgs_reduction.emplace_back(in_stride);
+        opArgs_reduction.emplace_back(reduction_groups);
+        kernel_reduction(opArgs_reduction);
+        if(handle.IsProfilingEnabled())
+            elapsed += handle.GetKernelTime();
+    }
+
+    return elapsed;
+}
 
 // find wrw dynamic kernel by a simple algo
 // check wether this kernel can be applicable
@@ -78,7 +185,7 @@ static inline bool FindImplicitGemmWrwV4R1DynamicKernel(const ConvolutionContext
         if(GemmM % GemmMPerBlock != 0)
             return false;
 
-        int log2_gemmk_groups = conv::GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
+        int log2_gemmk_groups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
         GemmKGroups           = 1 << log2_gemmk_groups;
         if(GemmK % (GemmKGroups * GemmKPerBlock) != 0)
             return false;
@@ -109,7 +216,7 @@ static inline bool FindImplicitGemmWrwV4R1DynamicKernel(const ConvolutionContext
         if(GemmM % GemmMPerBlock != 0)
             return false;
 
-        int log2_gemmk_groups = conv::GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
+        int log2_gemmk_groups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
         GemmKGroups           = 1 << log2_gemmk_groups;
         if(GemmK % (GemmKGroups * GemmKPerBlock) != 0)
             return false;
@@ -148,7 +255,7 @@ size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ConvolutionCont
     else
         ele_size = 2;
 
-    gemmk_groups = conv::GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
+    gemmk_groups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
 
     if(gemmk_groups == 0)
         extra_groups = 0;
@@ -200,8 +307,20 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionCon
     if(!ret)
         MIOPEN_THROW("this kernel should not run with igemm dynamic!");
 
-    int GemmKPerBlock = 16;
-    int gemmk_groups  = conv::GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
+    int k = ctx.n_inputs;
+    int c = ctx.n_outputs;
+    int y = ctx.kernel_size_h;
+    int x = ctx.kernel_size_w;
+    int GemmKPerBlock;
+    int GemmN = c * y * x;
+
+    if((k % 128 == 0) && (GemmN % 128 == 0))
+        GemmKPerBlock = 16;
+    else
+        GemmKPerBlock = 4;
+    int gemmk_groups  = GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx, GemmKPerBlock);
+
+    result.workspce_sz = GetWorkspaceSize(ctx);
 
     kernel.kernel_file = "igemm_v4r1_wrw_dynamic.s";
     kernel.kernel_name = kernel_name;
@@ -250,8 +369,27 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionCon
         result.construction_params.push_back(kernel_reduction);
     }
 
-    result.workspce_sz     = GetWorkspaceSize(ctx);
-    result.invoker_factory = conv::MakeImplGemmDynamicDataInvokerFactory(ctx);
+    result.invoker_factory = [ctx](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle, const boost::any& primitive_parameters) {
+            const auto data_ctx = boost::any_cast<conv::WrWInvokeParams>(primitive_parameters);
+            const auto& tensors = data_ctx.tensors;
+            MIOPEN_LOG_I("wrw workspace size: " << data_ctx.workSpaceSize);
+            const auto& workSpace = data_ctx.workSpace;
+            std::vector<KernelInvoke> ks;
+            std::transform(kernels.begin(),
+                           kernels.end(),
+                           std::back_inserter(ks),
+                           [&](const Kernel& k_wrw) { return handle.Run(k_wrw); });
+            float elapsed = 0;
+            elapsed       = CallImplicitGemmWrwDynamic(
+                handle, ctx, tensors.x, tensors.dy, tensors.dw, workSpace, ks);
+            if(handle.IsProfilingEnabled())
+            {
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
+            }
+        };
+    };
 
     return result;
 }

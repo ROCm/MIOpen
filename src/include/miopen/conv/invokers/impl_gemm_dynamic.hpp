@@ -45,18 +45,6 @@ float CallImplicitGemmDynamic(const miopen::Handle& handle,
                               ConstData_t wei,
                               const std::vector<KernelInvoke>& kernels);
 
-float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
-                                 const ConvolutionContext& ctx,
-                                 ConstData_t src,
-                                 ConstData_t dst,
-                                 Data_t wei,
-                                 Data_t wei_workspace,
-                                 const std::vector<KernelInvoke>& kernels);
-
-// compute gemmk groups
-int GetImplicitGemmWrwV4R1DynamicGemmkGroups(const ConvolutionContext& ctx,
-                                             const int& GemmKPerBlock);
-
 InvokerFactory MakeImplGemmDynamicDataInvokerFactory(const ConvolutionContext& ctx);
 
 } // namespace conv
