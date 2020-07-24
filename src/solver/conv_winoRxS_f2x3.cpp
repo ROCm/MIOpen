@@ -636,7 +636,7 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
     if(params.group_counts != 1 || params.direction.IsBackwardWrW())
         kernel_postfix += "_group";
 
-    kernel.kernel_name = "miopenSp3AsmConv" + kernel_postfix;
+    kernel.kernel_name = kernel_name + kernel_postfix;
     kernel.kernel_file = "Conv_Winograd" + kernel_postfix + ".s";
 
     result.construction_params.push_back(kernel);
