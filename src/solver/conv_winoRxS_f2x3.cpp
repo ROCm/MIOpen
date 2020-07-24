@@ -759,9 +759,9 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
     else
     {
         int unused = 0;
-        int N, C, H, W, K, n_groups, out_H, out_W, R, S;
+        int N, C, H, W, K, out_H, out_W, R, S;
         GetCompiledInParameters(
-            params, &N, &K, &out_H, &out_W, &C, &n_groups, &H, &W, &R, &S, &unused, &unused);
+            params, &N, &K, &out_H, &out_W, &C, &unused, &H, &W, &R, &S, &unused, &unused);
         int pad_H = params.conv_problem.GetConv().GetConvPads()[0];
         int pad_W = params.conv_problem.GetConv().GetConvPads()[1];
 
