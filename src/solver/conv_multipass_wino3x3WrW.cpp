@@ -27,6 +27,7 @@
 #include <miopen/conv/compiled_in_parameters.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/gcn_asm_utils.hpp>
+#include <miopen/gemm_v2.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/env.hpp>
 #include <miopen/logger.hpp>
@@ -34,6 +35,7 @@
 #include <miopen/generic_search.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/solver.hpp>
+
 #if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
 #define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
 #define WORKAROUND_SWDEV_234193 1
@@ -605,7 +607,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
     const auto pad_W          = params.pad_w;
 
     return [=](const std::vector<Kernel>& kernels) {
-        return [=](Handle& handle, const boost::any& primitive_params) {
+        return [=](const Handle& handle, const boost::any& primitive_params) {
             const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
             const auto& tensors      = invoke_params.tensors;
             float total_time         = 0;
@@ -614,17 +616,18 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                 MIOPEN_THROW("Not enough workspace for ConvWinograd3x3MultipassWrW");
 
             // clang-format on
-            for(const auto& cur_kernel : kernels)
+            for(decltype(auto) k : kernels)
             {
-                BuffInfo* d_buf         = nullptr;
-                BuffInfo* o_buf         = nullptr;
-                Data_t buff_out_adr     = nullptr;
-                auto f_buf              = &weights_buff_info;
-                auto const_buff_in_adr  = tensors.x;
-                auto buff_in_adr        = workSpace;
-                bool const_input        = false;
-                float cur_time          = 0;
-                int flat_GroupCountMult = 1;
+                decltype(auto) cur_kernel = handle.Run(k);
+                const BuffInfo* d_buf     = nullptr;
+                const BuffInfo* o_buf     = nullptr;
+                Data_t buff_out_adr       = nullptr;
+                auto f_buf                = &weights_buff_info;
+                auto const_buff_in_adr    = tensors.x;
+                auto buff_in_adr          = invoke_params.workSpace;
+                bool const_input          = false;
+                float cur_time            = 0;
+                int flat_GroupCountMult   = 1;
 
                 size_t buff_in_addr_offset = 0, buff_out_addr_offset = 0;
 
@@ -633,7 +636,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                     d_buf               = &in_buff_info;
                     o_buf               = &(wino_in.buff_info);
                     const_buff_in_adr   = tensors.x;
-                    buff_out_adr        = workSpace;
+                    buff_out_adr        = invoke_params.workSpace;
                     buff_in_addr_offset = wino_in_offset;
                     const_input         = true;
                     flat_GroupCountMult = GetGroupCountMult();
@@ -643,7 +646,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                     d_buf                = &weights_buff_info;
                     o_buf                = &(wino_wei.buff_info);
                     const_buff_in_adr    = tensors.dy;
-                    buff_out_adr         = workSpace;
+                    buff_out_adr         = invoke_params.workSpace;
                     buff_out_addr_offset = wino_wei_offset;
                     const_input          = true;
                     flat_GroupCountMult  = GetGroupCountMult();
@@ -666,11 +669,11 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                     {
                         CallGemmStridedBatched(handle,
                                     wino_gemm_desc,
-                                    workSpace,
+                                    invoke_params.workSpace,
                                     static_cast<int>(wino_in_offset / GetTypeSize(in_data_type)),
-                                    workSpace,
+                                    invoke_params.workSpace,
                                     static_cast<int>(wino_wei_offset / GetTypeSize(in_data_type)),
-                                    workSpace,
+                                    invoke_params.workSpace,
                                     static_cast<int>(wino_out_offset / GetTypeSize(in_data_type)),
                                     nullptr,
                                     false,
@@ -680,11 +683,11 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                     {
                         CallGemmTimeMeasure(handle,
                                     wino_gemm_desc,
-                                    workSpace,
+                                    invoke_params.workSpace,
                                     static_cast<int>(wino_in_offset / GetTypeSize(in_data_type)),
-                                    workSpace,
+                                    invoke_params.workSpace,
                                     static_cast<int>(wino_wei_offset / GetTypeSize(in_data_type)),
-                                    workSpace,
+                                    invoke_params.workSpace,
                                     static_cast<int>(wino_out_offset / GetTypeSize(in_data_type)),
                                     nullptr,
                                     time_precision,
@@ -697,7 +700,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
 
                     d_buf               = &(wino_out.buff_info);
                     o_buf               = &(out_buff_info);
-                    buff_in_adr         = workSpace;
+                    buff_in_adr         = invoke_params.workSpace;
                     buff_in_addr_offset = wino_out_offset;
                     buff_out_adr        = tensors.dw;
                 }
