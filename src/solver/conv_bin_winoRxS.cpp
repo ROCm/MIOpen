@@ -427,10 +427,9 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
             };
         };
     }
-
-    const auto is_forward = params.direction.IsForward();
-
-    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+    else
+    {
+        const auto is_forward     = params.direction.IsForward();
         constexpr int F_REVERSE_R = 1 << 0;
         constexpr int F_REVERSE_S = 1 << 1;
         constexpr int F_FLIP_K_C  = 1 << 2;
@@ -468,31 +467,33 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
                             << " out_W="
                             << out_W);
 
-        return [=](const Handle& handle, const boost::any& ctx) {
-            const auto k        = handle.Run(kernels[0]);
-            const auto fwd_ctx  = boost::any_cast<conv::DataInvokeParams>(ctx);
-            const auto& tensors = fwd_ctx.tensors;
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle, const boost::any& ctx) {
+                const auto k        = handle.Run(kernels[0]);
+                const auto fwd_ctx  = boost::any_cast<conv::DataInvokeParams>(ctx);
+                const auto& tensors = fwd_ctx.tensors;
 
-            k(N,
-              C,
-              H,
-              W,
-              K,
-              n_groups_,
-              flags,
-              reserved,
-              tensors.in,
-              tensors.w,
-              tensors.out,
-              reserved_ptr,
-              R,
-              S,
-              pad_H,
-              pad_W,
-              out_H,
-              out_W);
+                k(N,
+                  C,
+                  H,
+                  W,
+                  K,
+                  n_groups_,
+                  flags,
+                  reserved,
+                  tensors.in,
+                  tensors.w,
+                  tensors.out,
+                  reserved_ptr,
+                  R,
+                  S,
+                  pad_H,
+                  pad_W,
+                  out_H,
+                  out_W);
+            };
         };
-    };
+    }
 
     return result;
 }
