@@ -769,17 +769,17 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
                 const auto& data_ctx = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
                 const auto& tensors  = data_ctx.tensors;
                 using dataType       = float;
-                static const int F_FLIP_K_C      = 1 << 2;
-                static const int F_NKC_STRIDES   = 1 << 9;
-                int reserved                     = 0;
-                int* reserved_ptr                = nullptr;
-                int flags                        = F_FLIP_K_C + F_NKC_STRIDES;
-                int d_N_stride                   = H * W * static_cast<int>(sizeof(dataType));
-                int d_C_stride                   = C * d_N_stride;
-                int f_K_stride = out_H * out_W * static_cast<int>(sizeof(dataType));
-                int f_C_stride = K * f_K_stride;
-                int o_N_stride = R * S * static_cast<int>(sizeof(dataType));
-                int o_K_stride = C * o_N_stride;
+                static const int F_FLIP_K_C    = 1 << 2;
+                static const int F_NKC_STRIDES = 1 << 9;
+                int reserved                   = 0;
+                int* reserved_ptr              = nullptr;
+                int flags                      = F_FLIP_K_C + F_NKC_STRIDES;
+                int d_N_stride                 = H * W * static_cast<int>(sizeof(dataType));
+                int d_C_stride                 = C * d_N_stride;
+                int f_K_stride                 = out_H * out_W * static_cast<int>(sizeof(dataType));
+                int f_C_stride                 = K * f_K_stride;
+                int o_N_stride                 = R * S * static_cast<int>(sizeof(dataType));
+                int o_K_stride                 = C * o_N_stride;
 
                 // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
