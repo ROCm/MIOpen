@@ -245,7 +245,7 @@ struct GridwiseGemmTransposedANormalBNormalCFp16Bfp16_v1
         for(index_t k_block_data_begin = 0; k_block_data_begin + 2 * KPerBlock < K;
             k_block_data_begin += 2 * KPerBlock)
         {
-#pragma unroll
+#pragma unroll 2
             for(index_t iloop = 0; iloop < 2; ++iloop)
             {
                 const bool even_loop = (iloop % 2 == 0);

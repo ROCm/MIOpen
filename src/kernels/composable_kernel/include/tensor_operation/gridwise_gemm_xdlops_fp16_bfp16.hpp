@@ -831,11 +831,9 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
                                                    ? (block_work_id[2] * NPerBlock)
                                                    : (block_work_id[1] * NPerBlock);
 
-        //   LDS mem
         constexpr index_t max_align = KPack;
 
-        //   LDS
-        //     be careful of LDS alignment
+        //   LDS be careful of LDS alignment
         constexpr auto a_g_k_m_kpack_block_desc = make_native_tensor_descriptor_aligned(
             Sequence<1, KPerBlock, MPerBlock, KPack>{}, Number<max_align>{});
 
