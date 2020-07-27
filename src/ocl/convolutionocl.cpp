@@ -267,7 +267,7 @@ ConvolutionDescriptor::FindCellfftSolutions(Handle& handle,
     ctx.SetupFloats();
     try
     {
-        return ::FindCellfftSolutions(ctx);
+        return FindCellfftSolution(ctx);
     }
     catch(miopen::Exception& ex)
     {
