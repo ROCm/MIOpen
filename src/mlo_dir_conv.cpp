@@ -193,6 +193,11 @@ static auto GetBwdWrW2DSolvers()
                                            miopen::solver::ConvOclBwdWrW1x1>{};
 }
 
+static auto GetCellfftSolvers()
+{
+    return miopen::solver::SolverContainer<miopen::solver::ConvCellfft>{};
+}
+
 std::vector<miopen::solver::ConvSolution>
 FindAllDirectSolutions(const miopen::ConvolutionContext& ctx)
 {
@@ -253,6 +258,12 @@ std::vector<miopen::solver::ConvSolution>
 FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx)
 {
     return GetBwdWrW2DSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
+}
+
+std::vector<miopen::solver::ConvSolution>
+FindCellfftSolutions(const miopen::ConvolutionContext& ctx)
+{
+    return GetCellfftSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
 }
 
 void miopen::ConvolutionContext::SetupFloats()
