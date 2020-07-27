@@ -60,6 +60,13 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     if((stride_h >= dilation_h * (y - 1) + 1) &&
                        (stride_w >= dilation_w * (x - 1) + 1))
                     {
+
+                        float zero = 0.f;
+                        SetTensor(handle, tensors.outDesc, tensors.out, &zero);
+
+                        if(handle.IsProfilingEnabled())
+                            elapsed += handle.GetKernelTime();
+
                         kernel(tensors.in, tensors.w, tensors.out);
                         if(handle.IsProfilingEnabled())
                             elapsed += handle.GetKernelTime();
