@@ -135,7 +135,7 @@ static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
         int reduction_groups  = 1 << gemmk_groups;
         MIOPEN_LOG_I(kernel_reduction.GetName() << " with groups: " << reduction_groups);
         std::vector<OpKernelArg> opArgs_reduction;
-        int reduction_per_thread = 8;
+        int reduction_per_thread = 4;
         int in_stride            = n * k * ho * wo;
         opArgs_reduction.emplace_back(wei);
         opArgs_reduction.emplace_back(wei_workspace);
@@ -354,7 +354,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionCon
     if(gemmk_groups > 0)
     {
         KernelInfo kernel_reduction;
-        int reduction_per_thread     = 8;
+        int reduction_per_thread     = 4;
         kernel_reduction.kernel_file = "wrw_reduction_hip.cpp";
         kernel_reduction.kernel_name = "wrw_reduction_hip";
         kernel_reduction.g_wk.clear();
