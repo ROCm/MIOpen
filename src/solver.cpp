@@ -320,6 +320,5 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     RegisterWithSolver(registry, ++id, ConvCellfft{}, miopenConvolutionAlgoCellfft);
 }
-
 } // namespace solver
 } // namespace miopen
