@@ -80,6 +80,5 @@ void build_cellfft_params(cellfft_param_t&, const ConvolutionContext&);
 void build_cellfft_params_grad(cellfft_param_t&, const ConvolutionContext&);
 } // namespace cellfft
 } // namespace miopen
-
-#endif
 // clang-foramt on
+#endif
