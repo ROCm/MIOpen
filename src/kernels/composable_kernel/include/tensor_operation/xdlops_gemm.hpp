@@ -936,7 +936,7 @@ struct XdlopsGemm_t
     template <>
     static constexpr auto GetXdlopsInfo<half_t, 32, 128>()
     {
-        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 32, 128, 1, 2>{};
+        return xdlops_info<mfma_instr::mfma_f32_32x32x4f16, 32, 64, 1, 2>{};
     }
 
     template <>
