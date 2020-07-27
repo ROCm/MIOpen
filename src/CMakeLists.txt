@@ -451,8 +451,8 @@ if( MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
 endif()
 
 list(APPEND MIOPEN_KERNELS
-    kernels/cellfft_gfx900.hsaco
-    kernels/cellfft_gfx906.hsaco
+    kernels/cellfft_gfx900.s
+    kernels/cellfft_gfx906.s
 )
 
 list(APPEND MIOpen_Source
