@@ -115,8 +115,6 @@ void ProblemDescription::Serialize(std::ostream& stream) const
         stream << sep << GetWeightsLayout();
         stream << sep << GetOutLayout();
     }
-    stream << sep << GetWeightsLayout();
-    stream << sep << GetOutLayout();
     stream << sep << EncodeDataTypesForKey(GetInDataType(), GetWeightsDataType(), GetOutDataType());
 
     switch(GetDirection())
