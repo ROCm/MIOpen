@@ -387,9 +387,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenCTCLoss.cl
         kernels/MIOpenDropout.cl
         kernels/xform_data.s
-        kernels/xform_filter.s
-        kernels/cellfft_gfx900.s
-        kernels/cellfft_gfx906.s)
+        kernels/xform_filter.s)
 
     add_kernels("${MIOPEN_KERNELS}")
     add_kernel_includes("${MIOPEN_KERNEL_INCLUDES}")
@@ -452,18 +450,21 @@ if( MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
         )
 endif()
 
-list(APPEND MIOpen_Source
-    cellfft/include/cellfft_get_kernel.hpp
-    cellfft/include/cellfft_op.hpp
-    cellfft/include/cellfft_param.hpp
-    cellfft/source/cellfft_get_kernel.cpp
-    cellfft/source/cellfft_op.cpp
-    cellfft/source/cellfft_param.cpp
-    include/miopen/conv/invokers/cellfft.hpp
-    conv/invokers/cellfft.cpp
-    solver/conv_cellfft.cpp
-)
-
+if( MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
+    set(MIOPEN_KERNELS
+        kernels/cellfft_gfx900.s
+        kernels/cellfft_gfx906.s)
+    list(APPEND MIOpen_Source
+        cellfft/include/cellfft_get_kernel.hpp
+        cellfft/include/cellfft_op.hpp
+        cellfft/include/cellfft_param.hpp
+        cellfft/source/cellfft_get_kernel.cpp
+        cellfft/source/cellfft_op.cpp
+        cellfft/source/cellfft_param.cpp
+        include/miopen/conv/invokers/cellfft.hpp
+        conv/invokers/cellfft.cpp
+        solver/conv_cellfft.cpp)
+endif()
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     list(APPEND MIOpen_Source ${PROJECT_BINARY_DIR}/include/miopen_kernels.h)
