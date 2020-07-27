@@ -127,6 +127,7 @@ void ReadonlyRamDb::Prefetch(const std::string& path, bool warn_if_unreadable)
         constexpr bool isEmbedded = MIOPEN_EMBED_DB;
         if(!testing_find_db_path_override() && isEmbedded)
         {
+#if MIOPEN_EMBED_DB
             boost::filesystem::path filepath(path);
             const auto& it_p = miopen_data().find(filepath.filename().string() + ".o");
             if(it_p == miopen_data().end())
@@ -138,6 +139,7 @@ void ReadonlyRamDb::Prefetch(const std::string& path, bool warn_if_unreadable)
             MIOPEN_LOG_I2("Loading In Memory file: " << filepath);
             auto input_stream = std::stringstream(std::string(p.first, sz));
             ParseAndLoadDb(input_stream, path, warn_if_unreadable);
+#endif
         }
         else
         {
