@@ -211,7 +211,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                   bool exhaustiveSearch,
                                   bool isForward,
                                   const ConvolutionUserBuffers& bufs) const;
-                                  
+
     std::vector<miopen::solver::ConvSolution>
     FindCellfftSolutions(Handle& handle,
                          const TensorDescriptor& xDesc,
