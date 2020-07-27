@@ -1847,15 +1847,13 @@ struct gemm : SolverBase<ConvolutionContext>
         return ConvSolution{miopenStatusNotInitialized};
     }
 };
-    
-// clang-format off
+
 struct ConvCellfft : SolverBase<ConvolutionContext>
 {
-    bool         IsApplicable( const ConvolutionContext& ) const;
-    size_t       GetWorkspaceSize( const ConvolutionContext& ) const;
-    ConvSolution GetSolution( const ConvolutionContext& ) const;
+    bool IsApplicable(const ConvolutionContext&) const;
+    size_t GetWorkspaceSize(const ConvolutionContext&) const;
+    ConvSolution GetSolution(const ConvolutionContext&) const;
 };
-// clang-format on
 
 struct AnySolver;
 
