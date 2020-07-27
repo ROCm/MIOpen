@@ -721,8 +721,8 @@ static void DirConvFindCore(Handle& handle,
     {
         ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
         bufs.SetFwd(x, w, y);
-        const auto all = conv.FindCellfftSolutions(
-            handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs);
+        const auto all =
+            conv.FindCellfftSolutions(handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs);
         PrecompileSolutions(handle, all);
         const auto algorithm_name = AlgorithmName{"miopenConvolutionFwdAlgoCellfft"};
         EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
@@ -2233,8 +2233,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 const auto all = this->FindCellfftSolutions(
                     handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs);
                 PrecompileSolutions(handle, all);
-                const auto algorithm_name =
-                    AlgorithmName{"miopenConvolutionBwdDataAlgoCellfft"};
+                const auto algorithm_name = AlgorithmName{"miopenConvolutionBwdDataAlgoCellfft"};
                 EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
             }
 
