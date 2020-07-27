@@ -886,7 +886,7 @@ typedef enum {
     miopenTransposeBwdDataAlgoGEMM =
         4, /*!< Deprecated Transpose GEMM variant legacy, ToBe Removed */
     miopenConvolutionBwdDataAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions, fp32 only */
-    miopenConvolutionBwdDataAlgoCellfft  = 6, /*!< cellfft convolutions, fp32 only */
+    miopenConvolutionBwdDataAlgoCellfft      = 6, /*!< cellfft convolutions, fp32 only */
 } miopenConvBwdDataAlgorithm_t;
 
 /*! @enum miopenConvAlgorithm_t
