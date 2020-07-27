@@ -60,7 +60,7 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     bool need_atomic_add = (stride_h < dilation_h * (y - 1) + 1) &&
                                            (stride_w < dilation_w * (x - 1) + 1);
                     bool every_pixel_is_written =
-                        (dilation_h == 1 && stride_h <= Y) && (dilation_w == 1 && stride_w <= X);
+                        (dilation_h == 1 && stride_h <= y) && (dilation_w == 1 && stride_w <= x);
                     bool need_set_zero = need_atomic_add || !(every_pixel_is_written);
                     bool need_cast     = need_atomic_add;
 
