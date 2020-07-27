@@ -85,7 +85,7 @@ ConvSolution ConvCellfft::GetSolution( const ConvolutionContext& ctx ) const
 {
     ConvSolution solution;
     cellfft::cellfft_param_t params{};
-    const std::string file_name="cellfft_"+ctx.GetStream().GetDeviceName()+".hsaco";
+    const std::string file_name="cellfft_"+ctx.GetStream().GetDeviceName()+".s";
     if(!ctx.direction.IsBackwardWrW()){
         cellfft::build_cellfft_params( params, ctx );
     } else {
