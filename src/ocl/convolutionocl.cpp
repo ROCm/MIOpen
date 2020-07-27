@@ -244,6 +244,34 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
     }
 }
 
+std::vector<miopen::solver::ConvSolution>
+ConvolutionDescriptor::FindCellfftSolutions(Handle& handle,
+                                           const TensorDescriptor& xDesc,
+                                           const TensorDescriptor& wDesc,
+                                           const TensorDescriptor& yDesc,
+                                           bool exhaustiveSearch,
+                                           bool isForward,
+                                           const ConvolutionUserBuffers& bufs) const
+{
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CELLFFT{})) return {};
+    const auto dir    = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
+    auto ctx          = ConvolutionContext{xDesc, wDesc, yDesc, *this, dir};
+    ctx.do_search     = exhaustiveSearch;
+    ctx.save_srch_req = true;
+    ctx.general_compile_options = "";
+    ctx.SetStream(&handle);
+    ctx.SetBufs(bufs);
+    ctx.DetectRocm();
+    ctx.SetupFloats();
+    try{
+        return ::FindCellfftSolutions(ctx);
+    }
+    catch(miopen::Exception& ex){
+        MIOPEN_LOG_WE(ex.what());
+        return {};
+    }
+}
+
 template <class InvokeParams>
 static void EvaluateInvokers(Handle& handle,
                              const std::vector<solver::ConvSolution>& solutions,
