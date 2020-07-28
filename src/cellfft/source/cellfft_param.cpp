@@ -41,8 +41,8 @@ static inline uint32_t bim_fls( uint32_t n )
 }
 static inline miopen::cellfft::magic_t idiv_magic( uint32_t nmax, uint32_t d )
 {
-    miopen::cellfft::magic_t magic;
-    if(d==1){ magic.m=1; magic.s=0; return magic; }
+    miopen::cellfft::magic_t magic={1,0};
+    if(d==1) return magic;
     uint64_t nc=((nmax+1)/d)*d-1;
     uint32_t nbits=bim_fls(nmax);
     uint32_t r=(nbits<<1)+1;
