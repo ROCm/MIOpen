@@ -168,7 +168,7 @@ InvokerFactory MakeCellfftInvokerFactory( const cellfft::cellfft_param_t& conv_p
             const void* src=tensors.in;
             const void* fil=tensors.w;
             void* dst=tensors.out;
-            uint8_t* a=static_cast<uint8_t*>(auxbuf);
+            uint8_t* a=reinterpret_cast<uint8_t*>(auxbuf);
             uint8_t* b=a+(static_cast<uint64_t>(conv_params.nbanks*conv_params.abks)<<3);
             uint8_t* c=b+(static_cast<uint64_t>(conv_params.nbanks*conv_params.bbks)<<3);
             
