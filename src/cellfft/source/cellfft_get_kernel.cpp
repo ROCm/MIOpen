@@ -453,18 +453,18 @@ solver::KernelInfo get_kernel_c2r_grid( const cellfft_param_t& p, const std::str
 }
 solver::KernelInfo get_kernel_c2r_grad( const cellfft_param_t& p, const std::string& file_name )
 {
-    uint32_t kid=START_C2R+(p.id<<5)+p.cny-1;
     uint32_t nmax=p.cnx>p.cny?p.cnx:p.cny;
     uint32_t nmin=p.cnx<p.cny?p.cnx:p.cny;
-    if((p.cnx==p.cny)&&((p.cnx==3)||(p.cnx==5u)||(p.cnx==7u))){
-        kid=START_C2R_S+11*p.id+8+(p.cnx>>1)-1;
-    } else
-    if((nmin==1u)&&(((nmax&0x1)!=0u)&&(nmax>1u)&&(nmax<=9u))){
-        kid=START_C2R_S+11*p.id+(p.cnx>p.cny?0:4)+(nmax>>1)-1;
+    uint32_t kid=START_C2R+(p.id<<5)+p.cny-1;
+    uint32_t shx=4-p.id;
+    bool cc0=(p.cnx==p.cny)&&((p.cnx==3)||(p.cnx==5u)||(p.cnx==7u));
+    bool cc1=(nmin==1u)&&((nmax&0x1)!=0u)&&(nmax>1u)&&(nmax<=9u);
+    if(cc0||cc1){
+        kid=START_C2R_S+11*p.id+(cc0?8:(p.cnx>p.cny?0:4))+(nmax>>1)-1;
     }
-    const size_t gdx=(p.m+(1<<(4u-p.id))-1)>>(4u-p.id);
+    const size_t gdx=(p.m+(1<<shx)-1)>>shx;
     const size_t bdx=p.id==0u?256:512;
-    const std::vector<size_t> grid{gdx, p.n, 1};
+    const std::vector<size_t> grid{gdx,p.n,1};
     const std::vector<size_t> block{bdx,1,1};
     return solver::KernelInfo{ "", block, grid, file_name, g_knames[kid] };
 }
