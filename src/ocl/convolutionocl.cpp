@@ -2226,7 +2226,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     AlgorithmName{"miopenConvolutionBwdDataAlgoImplicitGEMM"};
                 EvaluateInvokers(handle, all, algorithm_name, network_config, invoke_ctx, record);
             }
-          
+
             if(!use_winograd_only)
             {
                 ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
