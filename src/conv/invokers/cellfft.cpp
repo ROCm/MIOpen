@@ -24,7 +24,6 @@
 *
 *******************************************************************************/
 
-// clang-format off
 #include <miopen/conv/invokers/cellfft.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/errors.hpp>
@@ -34,6 +33,7 @@
 #include <boost/any.hpp>
 #include "../../cellfft/include/cellfft_op.hpp"
 
+// clang-format off
 static void fft2d_r2c_a( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, const void* src )
 {
     if((p.pad_l|p.pad_t)!=0){
@@ -63,7 +63,7 @@ static void fft2d_r2c_grad_b( const miopen::Handle& handle, const miopen::Kernel
     miopen::cellfft::lk_fft2d_r2c_perm_b( handle, kern, p, dst, src );
 }
 static void fft2d_r2c_grid( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, const void* src )
-{   
+{
     if((p.pad_r|p.pad_t)!=0){
         miopen::cellfft::lk_fft2d_r2c_grid_perm_pad( handle, kern, p, dst, src );
     } else {
@@ -71,7 +71,7 @@ static void fft2d_r2c_grid( const miopen::Handle& handle, const miopen::Kernel& 
     }
 }
 static void fft2d_r2c_xgrad_a( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, const void* src )
-{   
+{
     if((p.pad_r|p.pad_t)!=0){
         miopen::cellfft::lk_fft2d_r2c_grid_perm_pad( handle, kern, p, dst, src );
     } else {
@@ -79,15 +79,15 @@ static void fft2d_r2c_xgrad_a( const miopen::Handle& handle, const miopen::Kerne
     }
 }
 static void fft2d_r2c_xgrad_b( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, const void* src )
-{   
+{
     miopen::cellfft::lk_fft2d_r2c_grid_perm_nov( handle, kern, p, dst, src );
 }
 static void fft2d_c2r( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, void* src )
-{   
+{
     miopen::cellfft::lk_fft2d_c2r_perm( handle, kern, p, dst, src );
 }
 static void fft2d_c2r_grid( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, void* src )
-{   
+{
     miopen::cellfft::lk_fft2d_c2r_grid_perm( handle, kern, p, dst, src );
 }
 static void fft2d_c2r_grad( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, void* src )
@@ -149,10 +149,8 @@ static void c2r( const miopen::Handle& handle, const miopen::Kernel& kern, const
     }
 }
 
-namespace miopen
-{
-namespace conv
-{
+namespace miopen {
+namespace conv {
 InvokerFactory MakeCellfftInvokerFactory( const cellfft::cellfft_param_t& conv_params, float alpha )
 {
     return [=]( const std::vector<Kernel>& kernels )
