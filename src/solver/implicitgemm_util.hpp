@@ -539,21 +539,14 @@ static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
                                                                 std::make_tuple(4, 128, 1),
                                                                 std::make_tuple(4, 64, 1)};
 
-    bool IsValidWaveGemm = false;
-
-    for(auto& it : validWaveGemmSize)
-    {
-        int validGemmMPerWave, validGemmNPerWave, validGemmKPerWave;
-        std::tie(validGemmMPerWave, validGemmNPerWave, validGemmKPerWave) = it;
-        if(validGemmMPerWave == GemmMPerWave && validGemmNPerWave == GemmNPerWave &&
-           GemmKPerBlock % validGemmKPerWave == 0)
-        {
-            IsValidWaveGemm = true;
-            break;
-        }
-    }
-
-    if(!IsValidWaveGemm)
+    if(!std::any_of(validWaveGemmSize.cbegin(),
+                    validWaveGemmSize.cend(),
+                    [ GemmMPerWave, GemmNPerWave, GemmKPerBlock ](const auto it) noexcept->bool {
+                        int validMPerWave, validNPerWave, validKPerWave;
+                        std::tie(validMPerWave, validNPerWave, validKPerWave) = it;
+                        return (GemmMPerWave == validMPerWave) && (GemmNPerWave == validNPerWave) &&
+                               (GemmKPerBlock % validKPerWave == 0);
+                    }))
         return false;
 
     const auto WaveSize = 64;
