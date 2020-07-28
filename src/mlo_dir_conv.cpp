@@ -260,8 +260,7 @@ FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx)
     return GetBwdWrW2DSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
 }
 
-std::vector<miopen::solver::ConvSolution>
-FindCellfftSolution(const miopen::ConvolutionContext& ctx)
+std::vector<miopen::solver::ConvSolution> FindCellfftSolution(const miopen::ConvolutionContext& ctx)
 {
     return GetCellfftSolvers().SearchForAllSolutions(ctx, GetDb(ctx));
 }
