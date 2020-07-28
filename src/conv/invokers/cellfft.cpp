@@ -92,13 +92,10 @@ static void fft2d_c2r_grid( const miopen::Handle& handle, const miopen::Kernel& 
 }
 static void fft2d_c2r_grad( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, void* src )
 {
-    if((p.cnx==p.cny)&&((p.cnx==3)||(p.cnx==5)||(p.cnx==7))){
-        miopen::cellfft::lk_fft2d_c2r_grad_perm_s( handle, kern, p, dst, src );
-    } else
-    if((p.cnx==1)&&((p.cny&0x1)!=0&&(p.cny>1)&&(p.cny<=9))){
-        miopen::cellfft::lk_fft2d_c2r_grad_perm_s( handle, kern, p, dst, src );
-    } else
-    if((p.cny==1)&&((p.cnx&0x1)!=0&&(p.cnx>1)&&(p.cnx<=9))){
+    bool cc0=(p.cnx==p.cny)&&((p.cnx==3)||(p.cnx==5)||(p.cnx==7));
+    bool cc1=(p.cnx==1)&&((p.cny&0x1)!=0&&(p.cny>1)&&(p.cny<=9));
+    bool cc2=(p.cny==1)&&((p.cnx&0x1)!=0&&(p.cnx>1)&&(p.cnx<=9));
+    if(cc0||cc1||cc2){
         miopen::cellfft::lk_fft2d_c2r_grad_perm_s( handle, kern, p, dst, src );
     } else {
         miopen::cellfft::lk_fft2d_c2r_grad_perm( handle, kern, p, dst, src );
