@@ -28,8 +28,6 @@
 #include <miopen/solver.hpp>
 #include <miopen/env.hpp>
 #include <miopen/kernel_build_params.hpp>
-#include <miopen/stringutils.hpp>
-#include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/tensors.hpp>
 #include <boost/any.hpp>
 #include <miopen/conv/invokers/cellfft.hpp>
