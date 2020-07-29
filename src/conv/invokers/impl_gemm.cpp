@@ -57,7 +57,7 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     const auto dilation_h = conv.GetConvDilations()[0];
                     const auto dilation_w = conv.GetConvDilations()[1];
 
-                    bool need_atomic_add = (stride_h < dilation_h * (y - 1) + 1) &&
+                    bool need_atomic_add = (stride_h < dilation_h * (y - 1) + 1) ||
                                            (stride_w < dilation_w * (x - 1) + 1);
                     bool every_pixel_is_written =
                         (dilation_h == 1 && stride_h <= y) && (dilation_w == 1 && stride_w <= x);
