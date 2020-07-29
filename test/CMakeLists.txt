@@ -151,6 +151,27 @@ function(add_sanitize_test TEST_SOURCE)
 endfunction()
 
 file(GLOB TESTS *.cpp)
+# All the tests are manually sorted in descending order of durations taken from
+# Jenkins, "Full long tests"/"HIP Release All". This is to exploit ctest's 
+# parallelizm as much as possible. Before this change, there were some long
+# jobs at the end, utilizing only one CPU core. This order can potentially
+# save up to ~23 minutes (20%) of total time of "HIP Release All".
+#
+# We use two lists, LONG_TESTS and SHORT_TESTS to implement the sorting
+# mentioned above. If you would like to add a new test, insert it into the
+# LONG_TESTS if it takes more than 800 seconds, or to SHORT_TESTS otherwise.
+# Please notice that each list is also sorted and it is highly recommended
+# to keep this sorting when adding new tests.
+
+set( LONG_TESTS
+    pooling2d.cpp
+    dropout.cpp
+    conv2d.cpp
+    pooling3d.cpp
+    soft_max.cpp
+    lrn_test.cpp
+    reduce_test.cpp
+    )
 
 foreach(TEST ${TESTS})
     get_filename_component(BASE_NAME ${TEST} NAME_WE)
