@@ -124,8 +124,6 @@ set( MIOpen_Source
     dropout_api.cpp
     readonlyramdb.cpp
     execution_context.cpp
-    kern_db.cpp
-    bz2.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -175,6 +173,7 @@ set( MIOpen_Source
     include/miopen/rnn_util.hpp
     include/miopen/bz2.hpp
     include/miopen/comgr.hpp
+    include/miopen/numeric.hpp
     md_graph.cpp
     mdg_expr.cpp
     conv/invokers/gcn_asm_1x1u.cpp
@@ -221,15 +220,20 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
     solver/conv_hip_implicit_gemm_bwd_data_v1r1.cpp
     solver/conv_hip_implicit_gemm_bwd_data_v4r1.cpp
-    solver/conv_hip_implicit_gemm_bwd_data_v1r1_xdlops.cpp
-    solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
     solver/conv_hip_implicit_gemm_bwd_data_v4r1_xdlops.cpp
+    solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops_fwd_fp32.cpp
+    solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops_nchw_kcyx_nkhw.cpp
+    solver/conv_asm_implicit_gemm_bwd_v4r1_dynamic.cpp
     )
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
 if(MIOPEN_ENABLE_SQLITE)
     list(APPEND MIOpen_Source sqlite_db.cpp include/miopen/sqlite_db.hpp )
+endif()
+
+if(MIOPEN_ENABLE_SQLITE AND MIOPEN_ENABLE_SQLITE_KERN_CACHE)
+    list(APPEND MIOpen_Source kern_db.cpp bz2.cpp include/miopen/kern_db.hpp)
 endif()
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
@@ -647,20 +651,10 @@ rocm_export_targets(
 
 
 # Install db files
+file(GLOB FIND_DB_FILES kernels/*.fdb.txt)
 install(FILES
     kernels/miopen.db
-    kernels/gfx803_36.HIP.fdb.txt
-    kernels/gfx803_64.HIP.fdb.txt
-    kernels/gfx900_64.HIP.fdb.txt
-    kernels/gfx900_56.HIP.fdb.txt
-    kernels/gfx906_64.HIP.fdb.txt
-    kernels/gfx906_60.HIP.fdb.txt
-    kernels/gfx803_36.OpenCL.fdb.txt
-    kernels/gfx803_64.OpenCL.fdb.txt
-    kernels/gfx900_64.OpenCL.fdb.txt
-    kernels/gfx900_56.OpenCL.fdb.txt
-    kernels/gfx906_64.OpenCL.fdb.txt
-    kernels/gfx906_60.OpenCL.fdb.txt
+    ${FIND_DB_FILES}
  DESTINATION ${DATA_INSTALL_DIR}/db)
 
 rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})

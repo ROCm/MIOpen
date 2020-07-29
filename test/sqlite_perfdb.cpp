@@ -49,6 +49,7 @@
 #include <thread>
 #include <vector>
 
+#if MIOPEN_ENABLE_SQLITE
 namespace miopen {
 namespace tests {
 static boost::filesystem::path& exe_path()
@@ -1270,9 +1271,14 @@ struct PerfDbDriver : test_driver
 };
 } // namespace tests
 } // namespace miopen
-
+#endif
 int main(int argc, const char* argv[])
 {
+#if MIOPEN_ENABLE_SQLITE
     miopen::tests::exe_path() = argv[0];
     test_drive<miopen::tests::PerfDbDriver>(argc, argv);
+#else
+    (void)(argc);
+    (void)(argv);
+#endif
 }
