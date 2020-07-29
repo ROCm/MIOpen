@@ -83,6 +83,21 @@ struct SetData
 #endif
 };
 
+template <index_t DataPerAccess>
+struct SetData<int, DataPerAccess>
+{
+    // This version is only for compatibility, don't use this version if possible
+    template <AddressSpace SrcAddressSpace, AddressSpace DstAddressSpace>
+    __device__ void Run(const int* p_src, index_t src_offset, int* p_dst, index_t dst_offset) const
+    {
+        SetData<float, DataPerAccess>{}.template Run<SrcAddressSpace, DstAddressSpace>(
+            reinterpret_cast<const float*>(reinterpret_cast<const void*>(p_src)),
+            src_offset,
+            reinterpret_cast<float*>(reinterpret_cast<void*>(p_dst)),
+            dst_offset);
+    }
+};
+
 template <typename T, index_t DataPerAccess>
 struct AtomicAddData
 {
