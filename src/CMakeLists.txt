@@ -124,6 +124,7 @@ set( MIOpen_Source
     dropout_api.cpp
     readonlyramdb.cpp
     execution_context.cpp
+    reducetensor.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -174,6 +175,8 @@ set( MIOpen_Source
     include/miopen/bz2.hpp
     include/miopen/comgr.hpp
     include/miopen/numeric.hpp
+    include/miopen/reducetensor.hpp
+    include/miopen/reduce_common.hpp
     md_graph.cpp
     mdg_expr.cpp
     conv/invokers/gcn_asm_1x1u.cpp
