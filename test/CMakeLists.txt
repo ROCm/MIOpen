@@ -572,6 +572,33 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --
 COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128  128 35 35 --weights 128  128 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128  256 56 56 --weights 64  256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights)
 
+set(CELLFFT_DISABLES
+    MIOPEN_DEBUG_CONV_FFT=0
+    MIOPEN_DEBUG_CONV_GEMM=0
+    MIOPEN_DEBUG_CONV_WINOGRAD=0
+    MIOPEN_DEBUG_CONV_IMPLICIT_GEMM=0)
+set(CELLFFT_ENVS
+    ${CELLFFT_DISABLES}
+    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvCellfft)
+
+add_custom_test(test_conv_cellfft SKIP_UNLESS_ALL
+COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 64  64 12 12 --weights  64  64 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 64  64 35 35 --weights  64  64 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 64  64 28 28 --weights  64  64 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 64  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 64  64 12 12 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 64  64 35 35 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 64  64 28 28 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 64  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 64  64 12 12 --weights  64  64 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 64  64 35 35 --weights  64  64 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 64  64 28 28 --weights  64  64 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 64  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 64  64 12 12 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 64  64 35 35 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 64  64 28 28 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${CELLFFT_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 64  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights)
+
 if(MIOPEN_TEST_DEEPBENCH)
     add_custom_test(test_deepbench_conv
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1						
