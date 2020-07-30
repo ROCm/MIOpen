@@ -196,17 +196,247 @@ void BatchNormForwardTraining(Handle& handle,
         std::string network_config =
             "variant" + std::to_string(variant) + "gx" + std::to_string(xgridsize) + "gy" +
             std::to_string(ygridsize) + "xl" + std::to_string(xlocalsize) + "yl" +
-            std::to_string(ylocalsize) + "ldsgcn" + std::to_string(ldsgcn) + "rs" +
-            std::to_string(static_cast<int>(resultsave)) + "rr" +
-            std::to_string(static_cast<int>(resultrunning)) + "fp16" +
+            std::to_string(ylocalsize) + "rs" + std::to_string(static_cast<int>(resultsave)) +
+            "rr" + std::to_string(static_cast<int>(resultrunning)) + "fp16" +
             std::to_string(static_cast<int>(bfp16parm)) + "fp32" +
             std::to_string(static_cast<int>(bfp32parm)) + "single" +
-            std::to_string(static_cast<int>(single)) + "n" + std::to_string(n) + "c" +
-            std::to_string(c) + "hw" + std::to_string(in_cstride);
+            std::to_string(static_cast<int>(single));
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
+        unsigned int RD_BLK = 1;
+        unsigned int GRPRD;
+        unsigned int MIO_BN_REM4;
+        unsigned int MIO_BN_LESS4;
+        unsigned int MIO_BN_REM;
+        unsigned int MIO_BN_LESS;
+        unsigned int MIO_BN_CHUNK;
+        unsigned int MIO_BN_REMOUT;
+        unsigned int MIO_BN_LESSOUT;
+        unsigned int MIO_MAX_READ = 2;
+
         if(single)
+        {
+            if(!kernels.empty())
+            {
+                auto kernel = kernels.front();
+                visit_float(bnScaleBiasMeanVarDesc.GetType(), [&](auto as_float) {
+                    if(resultsave && resultrunning)
+                    {
+
+                        kernel(x,
+                               y,
+                               bnScale,
+                               bnBias,
+                               as_float(inhw),
+                               expAvgFactor,
+                               resultRunningMean,
+                               resultRunningVariance,
+                               epsilon,
+                               resultSaveMean,
+                               resultSaveInvVariance,
+                               n,
+                               c,
+                               in_nhw,
+                               in_nstride,
+                               in_nchw,
+                               in_cstride,
+                               GRPRD,
+                               MIO_BN_REM4,
+                               MIO_BN_LESS4,
+                               MIO_BN_REM,
+                               MIO_BN_LESS,
+                               MIO_BN_CHUNK,
+                               MIO_BN_REMOUT,
+                               MIO_BN_LESSOUT,
+                               MIO_MAX_READ);
+                    }
+                    else if(resultsave)
+                    {
+                        kernel(x,
+                               y,
+                               bnScale,
+                               bnBias,
+                               as_float(inhw),
+                               epsilon,
+                               resultSaveMean,
+                               resultSaveInvVariance,
+                               n,
+                               c,
+                               in_nhw,
+                               in_nstride,
+                               in_nchw,
+                               in_cstride,
+                               GRPRD,
+                               MIO_BN_REM4,
+                               MIO_BN_LESS4,
+                               MIO_BN_REM,
+                               MIO_BN_LESS,
+                               MIO_BN_CHUNK,
+                               MIO_BN_REMOUT,
+                               MIO_BN_LESSOUT,
+                               MIO_MAX_READ);
+                    }
+                    else if(resultrunning)
+                    {
+                        kernel(x,
+                               y,
+                               bnScale,
+                               bnBias,
+                               as_float(inhw),
+                               expAvgFactor,
+                               resultRunningMean,
+                               resultRunningVariance,
+                               epsilon,
+                               n,
+                               c,
+                               in_nhw,
+                               in_nstride,
+                               in_nchw,
+                               in_cstride,
+                               GRPRD,
+                               MIO_BN_REM4,
+                               MIO_BN_LESS4,
+                               MIO_BN_REM,
+                               MIO_BN_LESS,
+                               MIO_BN_CHUNK,
+                               MIO_BN_REMOUT,
+                               MIO_BN_LESSOUT,
+                               MIO_MAX_READ);
+                    }
+                    else
+                    {
+                        kernel(x,
+                               y,
+                               bnScale,
+                               bnBias,
+                               as_float(inhw),
+                               epsilon,
+                               n,
+                               c,
+                               in_nhw,
+                               in_nstride,
+                               in_nchw,
+                               in_cstride,
+                               GRPRD,
+                               MIO_BN_REM4,
+                               MIO_BN_LESS4,
+                               MIO_BN_REM,
+                               MIO_BN_LESS,
+                               MIO_BN_CHUNK,
+                               MIO_BN_REMOUT,
+                               MIO_BN_LESSOUT,
+                               MIO_MAX_READ);
+                    }
+                });
+            }
+            else
+            {
+                std::string kernel_name;
+                std::string program_name;
+                std::string parms;
+
+                // unsigned int rd_blk = 1;
+                // unsigned int grprd;
+                // unsigned int mio_bn_REM4;
+                // unsigned int mio_bn_LESS4;
+                // unsigned int mio_bn_CHUNK4;
+                // unsigned int mio_bn_REMOUT4;
+                // unsigned int mio_bn_LESSOUT4;
+                // unsigned int mio_bn_REM;
+                // unsigned int mio_bn_LESS;
+                // unsigned int mio_bn_CHUNK;
+                // unsigned int mio_bn_REMOUT;
+                // unsigned int mio_bn_LESSOUT;
+                // unsigned int mio_max_read = 2;
+
+                if(in_cstride >= 4096)
+                {
+                    MIO_MAX_READ = 3;
+                }
+                GRPRD          = (xlocalsize * RD_BLK * 4);
+                MIO_BN_REM4    = (in_nhw - ((in_nhw / GRPRD) * GRPRD));
+                MIO_BN_LESS4   = (in_nhw - MIO_BN_REM4);
+                MIO_BN_REM     = (in_nhw - ((in_nhw / xlocalsize) * xlocalsize));
+                MIO_BN_LESS    = (in_nhw - MIO_BN_REM);
+                MIO_BN_CHUNK   = (MIO_MAX_READ * xlocalsize);
+                MIO_BN_REMOUT  = (in_nhw - ((in_nhw / MIO_BN_CHUNK) * MIO_BN_CHUNK));
+                MIO_BN_LESSOUT = (in_nhw - MIO_BN_REMOUT);
+
+                if(variant == 1)
+                    kernel_name = "MIOpenBatchNormFwdTrainSpatial_var1";
+                else
+                    kernel_name = "MIOpenBatchNormFwdTrainSpatial";
+
+                program_name = "MIOpenBatchNormFwdTrainSpatial.cl";
+
+                parms = " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
+                        " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                        " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
+                        " -DMIO_SAVE_MEAN_VARIANCE=" +
+                        std::to_string(static_cast<int>(resultsave)) + " -DMIO_RUNNING_RESULT=" +
+                        std::to_string(static_cast<int>(resultrunning)) + " -DMIO_BN_N=" +
+                        std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) + " -DMIO_BN_HW=" +
+                        std::to_string(in_cstride) + " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
+                        " -DMIO_BN_CHW=" + std::to_string(in_nstride) + " -DMIO_BN_NCHW=" +
+                        std::to_string(in_nchw) + " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
+                        " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) + " -DMIO_BN_VARIANT=" +
+                        std::to_string(variant) + " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
+                        " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" +
+                        std::to_string(zlocalsize);
+
+                MIOPEN_LOG_I2(kernel_name << ":: " << algo_name);
+                MIOPEN_LOG_I2("..." << parms);
+                MIOPEN_LOG_I2("..." << network_config);
+
+                vld.push_back(xlocalsize);
+                vld.push_back(ylocalsize);
+                vld.push_back(zlocalsize);
+
+                vgd.push_back(xgridsize);
+                vgd.push_back(ygridsize);
+                vgd.push_back(zgridsize);
+
+                bnFwdTrainSelectSingle(handle,
+                                       bnScaleBiasMeanVarDesc.GetType(),
+                                       program_name,
+                                       algo_name,
+                                       kernel_name,
+                                       network_config,
+                                       parms,
+                                       vld,
+                                       vgd,
+                                       x,
+                                       y,
+                                       bnScale,
+                                       bnBias,
+                                       resultsave,
+                                       resultrunning,
+                                       expAvgFactor,
+                                       resultRunningMean,
+                                       resultRunningVariance,
+                                       epsilon,
+                                       resultSaveMean,
+                                       resultSaveInvVariance,
+                                       inhw,
+                                       n,
+                                       c,
+                                       in_nhw,
+                                       in_nstride,
+                                       in_nchw,
+                                       in_cstride,
+                                       GRPRD,
+                                       MIO_BN_REM4,
+                                       MIO_BN_LESS4,
+                                       MIO_BN_REM,
+                                       MIO_BN_LESS,
+                                       MIO_BN_CHUNK,
+                                       MIO_BN_REMOUT,
+                                       MIO_BN_LESSOUT,
+                                       MIO_MAX_READ);
+            }
+        }
+        else
         {
             if(!kernels.empty())
             {
@@ -258,172 +488,6 @@ void BatchNormForwardTraining(Handle& handle,
             }
             else
             {
-                std::string kernel_name;
-                std::string program_name;
-                std::string parms;
-
-                unsigned int rd_blk = 1;
-                unsigned int grprd;
-                unsigned int mio_bn_REM4;
-                unsigned int mio_bn_LESS4;
-                unsigned int mio_bn_CHUNK4;
-                unsigned int mio_bn_REMOUT4;
-                unsigned int mio_bn_LESSOUT4;
-                unsigned int mio_bn_REM;
-                unsigned int mio_bn_LESS;
-                unsigned int mio_bn_CHUNK;
-                unsigned int mio_bn_REMOUT;
-                unsigned int mio_bn_LESSOUT;
-                unsigned int mio_max_read = 2;
-                if(in_cstride >= 4096)
-                {
-                    mio_max_read = 3;
-                }
-                grprd           = (xlocalsize * rd_blk * 4);
-                mio_bn_REM4     = (in_nhw - ((in_nhw / grprd) * grprd));
-                mio_bn_LESS4    = (in_nhw - mio_bn_REM4);
-                mio_bn_CHUNK4   = (mio_max_read * grprd);
-                mio_bn_REMOUT4  = (in_nhw - ((in_nhw / mio_bn_CHUNK4) * mio_bn_CHUNK4));
-                mio_bn_LESSOUT4 = (in_nhw - mio_bn_REMOUT4);
-                mio_bn_REM      = (in_nhw - ((in_nhw / xlocalsize) * xlocalsize));
-                mio_bn_LESS     = (in_nhw - mio_bn_REM);
-                mio_bn_CHUNK    = (mio_max_read * xlocalsize);
-                mio_bn_REMOUT   = (in_nhw - ((in_nhw / mio_bn_CHUNK) * mio_bn_CHUNK));
-                mio_bn_LESSOUT  = (in_nhw - mio_bn_REMOUT);
-
-                kernel_name  = "MIOpenBatchNormFwdTrainSpatial";
-                program_name = "MIOpenBatchNormFwdTrainSpatial.cl";
-
-                parms =
-                    " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
-                    " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
-                    " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
-                    " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(static_cast<int>(resultsave)) +
-                    " -DMIO_RUNNING_RESULT=" + std::to_string(static_cast<int>(resultrunning)) +
-                    " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
-                    " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
-                    std::to_string(in_nhw) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
-                    " -DMIO_BN_NCHW=" + std::to_string(in_nchw) + " -DMIO_BN_LDS_SIZE=" +
-                    std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
-                    " -DMIO_BN_VARIANT=" + std::to_string(variant) + " -DMIO_BN_GRP0=" +
-                    std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
-                    " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) + " -DMIO_MAX_READ=" +
-                    std::to_string(mio_max_read) + " -DRD_BLK=" + std::to_string(rd_blk) +
-                    " -DGRPRD=" + std::to_string(grprd) + " -DMIO_BN_REM4=" +
-                    std::to_string(mio_bn_REM4) + " -DMIO_BN_LESS4=" +
-                    std::to_string(mio_bn_LESS4) + " -DMIO_BN_CHUNK4=" +
-                    std::to_string(mio_bn_CHUNK4) + " -DMIO_BN_REMOUT4=" +
-                    std::to_string(mio_bn_REMOUT4) + " -DMIO_BN_LESSOUT4=" +
-                    std::to_string(mio_bn_LESSOUT4) + " -DMIO_BN_REM=" +
-                    std::to_string(mio_bn_REM) + " -DMIO_BN_LESS=" + std::to_string(mio_bn_LESS) +
-                    " -DMIO_BN_CHUNK=" + std::to_string(mio_bn_CHUNK) + " -DMIO_BN_REMOUT=" +
-                    std::to_string(mio_bn_REMOUT) + " -DMIO_BN_LESSOUT=" +
-                    std::to_string(mio_bn_LESSOUT);
-
-                MIOPEN_LOG_I2(kernel_name << ":: " << algo_name);
-                MIOPEN_LOG_I2("..." << parms);
-                MIOPEN_LOG_I2("..." << network_config);
-
-                vld.push_back(xlocalsize);
-                vld.push_back(ylocalsize);
-                vld.push_back(zlocalsize);
-
-                vgd.push_back(xgridsize);
-                vgd.push_back(ygridsize);
-                vgd.push_back(zgridsize);
-
-                bnFwdTrainSelectSingle(handle,
-                                       bnScaleBiasMeanVarDesc.GetType(),
-                                       program_name,
-                                       algo_name,
-                                       kernel_name,
-                                       network_config,
-                                       parms,
-                                       vld,
-                                       vgd,
-                                       x,
-                                       y,
-                                       bnScale,
-                                       bnBias,
-                                       resultsave,
-                                       resultrunning,
-                                       expAvgFactor,
-                                       resultRunningMean,
-                                       resultRunningVariance,
-                                       epsilon,
-                                       resultSaveMean,
-                                       resultSaveInvVariance,
-                                       inhw);
-            }
-        }
-        else
-        {
-            if(!kernels.empty())
-            {
-                float ctime = 0.;
-                visit_float(bnScaleBiasMeanVarDesc.GetType(), [&](auto as_float) {
-                    if(resultsave && resultrunning)
-                    {
-                        kernels[0](x, y);
-                        profileSequence(handle, 0, &ctime);
-
-                        kernels[1](y,
-                                   as_float(inhw),
-                                   expAvgFactor,
-                                   resultRunningMean,
-                                   resultRunningVariance,
-                                   epsilon,
-                                   resultSaveMean,
-                                   resultSaveInvVariance);
-                        profileSequence(handle, 1, &ctime);
-
-                        kernels[2](x, y, bnScale, bnBias);
-                        profileSequence(handle, 2, &ctime);
-                    }
-                    else if(resultsave)
-                    {
-                        kernels[0](x, y);
-                        profileSequence(handle, 0, &ctime);
-
-                        kernels[1](
-                            y, as_float(inhw), epsilon, resultSaveMean, resultSaveInvVariance);
-                        profileSequence(handle, 1, &ctime);
-
-                        kernels[2](x, y, bnScale, bnBias);
-                        profileSequence(handle, 2, &ctime);
-                    }
-                    else if(resultrunning)
-                    {
-
-                        kernels[0](x, y);
-                        profileSequence(handle, 0, &ctime);
-
-                        kernels[1](y,
-                                   as_float(inhw),
-                                   expAvgFactor,
-                                   resultRunningMean,
-                                   resultRunningVariance,
-                                   epsilon);
-                        profileSequence(handle, 1, &ctime);
-
-                        kernels[2](x, y, bnScale, bnBias);
-                        profileSequence(handle, 2, &ctime);
-                    }
-                    else
-                    {
-                        kernels[0](x, y);
-                        profileSequence(handle, 0, &ctime);
-
-                        kernels[1](y, as_float(inhw), epsilon);
-                        profileSequence(handle, 1, &ctime);
-
-                        kernels[2](x, y, bnScale, bnBias);
-                        profileSequence(handle, 2, &ctime);
-                    }
-                });
-            }
-            else
-            {
 
                 vld.push_back(xlocalsize);
                 vld.push_back(ylocalsize);
@@ -437,37 +501,26 @@ void BatchNormForwardTraining(Handle& handle,
                 std::string program_name;
                 std::string parms;
 
-                unsigned int rd_blk = 1;
-                unsigned int grprd;
-                unsigned int mio_bn_REM4;
-                unsigned int mio_bn_LESS4;
-                unsigned int mio_bn_CHUNK4;
-                unsigned int mio_bn_REMOUT4;
-                unsigned int mio_bn_LESSOUT4;
-                unsigned int mio_bn_REM;
-                unsigned int mio_bn_LESS;
-                unsigned int mio_bn_CHUNK;
-                unsigned int mio_bn_REMOUT;
-                unsigned int mio_bn_LESSOUT;
-                unsigned int mio_max_read = 2;
                 if(in_cstride >= 4096)
                 {
-                    mio_max_read = 3;
+                    MIO_MAX_READ = 3;
                 }
-                grprd           = (xlocalsize * rd_blk * 4);
-                mio_bn_REM4     = (in_nhw - ((in_nhw / grprd) * grprd));
-                mio_bn_LESS4    = (in_nhw - mio_bn_REM4);
-                mio_bn_CHUNK4   = (mio_max_read * grprd);
-                mio_bn_REMOUT4  = (in_nhw - ((in_nhw / mio_bn_CHUNK4) * mio_bn_CHUNK4));
-                mio_bn_LESSOUT4 = (in_nhw - mio_bn_REMOUT4);
-                mio_bn_REM      = (in_nhw - ((in_nhw / xlocalsize) * xlocalsize));
-                mio_bn_LESS     = (in_nhw - mio_bn_REM);
-                mio_bn_CHUNK    = (mio_max_read * xlocalsize);
-                mio_bn_REMOUT   = (in_nhw - ((in_nhw / mio_bn_CHUNK) * mio_bn_CHUNK));
-                mio_bn_LESSOUT  = (in_nhw - mio_bn_REMOUT);
+                GRPRD          = (xlocalsize * RD_BLK * 4);
+                MIO_BN_REM4    = (in_nhw - ((in_nhw / GRPRD) * GRPRD));
+                MIO_BN_LESS4   = (in_nhw - MIO_BN_REM4);
+                MIO_BN_REM     = (in_nhw - ((in_nhw / xlocalsize) * xlocalsize));
+                MIO_BN_LESS    = (in_nhw - MIO_BN_REM);
+                MIO_BN_CHUNK   = (MIO_MAX_READ * xlocalsize);
+                MIO_BN_REMOUT  = (in_nhw - ((in_nhw / MIO_BN_CHUNK) * MIO_BN_CHUNK));
+                MIO_BN_LESSOUT = (in_nhw - MIO_BN_REMOUT);
 
-                kernel_name  = "MIOpenBatchNormFwdTrainSpatial";
+                if(variant == 1)
+                    kernel_name = "MIOpenBatchNormFwdTrainSpatial_var1";
+                else
+                    kernel_name = "MIOpenBatchNormFwdTrainSpatial";
+
                 program_name = "MIOpenBatchNormFwdTrainSpatial.cl";
+
                 parms =
                     " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
                     " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
@@ -482,18 +535,7 @@ void BatchNormForwardTraining(Handle& handle,
                     " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" +
                     std::to_string(ldsgcn) + " -DMIO_BN_VARIANT=" + std::to_string(variant) +
                     " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
-                    std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
-                    " -DMIO_MAX_READ=" + std::to_string(mio_max_read) + " -DRD_BLK=" +
-                    std::to_string(rd_blk) + " -DGRPRD=" + std::to_string(grprd) +
-                    " -DMIO_BN_REM4=" + std::to_string(mio_bn_REM4) + " -DMIO_BN_LESS4=" +
-                    std::to_string(mio_bn_LESS4) + " -DMIO_BN_CHUNK4=" +
-                    std::to_string(mio_bn_CHUNK4) + " -DMIO_BN_REMOUT4=" +
-                    std::to_string(mio_bn_REMOUT4) + " -DMIO_BN_LESSOUT4=" +
-                    std::to_string(mio_bn_LESSOUT4) + " -DMIO_BN_REM=" +
-                    std::to_string(mio_bn_REM) + " -DMIO_BN_LESS=" + std::to_string(mio_bn_LESS) +
-                    " -DMIO_BN_CHUNK=" + std::to_string(mio_bn_CHUNK) + " -DMIO_BN_REMOUT=" +
-                    std::to_string(mio_bn_REMOUT) + " -DMIO_BN_LESSOUT=" +
-                    std::to_string(mio_bn_LESSOUT);
+                    std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
                 MIOPEN_LOG_I2(kernel_name << ":: " << parms);
 

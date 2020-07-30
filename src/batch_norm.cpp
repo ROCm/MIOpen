@@ -144,7 +144,7 @@ void profileSequence(const Handle& handle, unsigned char select, float* ctime)
     }
 }
 
-void bnFwdTrainSelectMulti(const Handle& handle,
+void bnFwdTrainSelectMulti(Handle& handle,
                            miopenDataType_t dtype,
                            const std::string& program_name,
                            const std::string& algo_name,
@@ -281,7 +281,22 @@ void bnFwdTrainSelectSingle(const Handle& handle,
                             double epsilon,
                             Data_t resultSaveMean,
                             Data_t resultSaveInvVariance,
-                            float inhw)
+                            float inhw,
+                            unsigned int input_n,
+                            unsigned int input_c,
+                            unsigned int input_nhw,
+                            unsigned int input_chw,
+                            unsigned int input_nchw,
+                            unsigned int MIO_BN_HW,
+                            unsigned int GRPRD,
+                            unsigned int MIO_BN_REM4,
+                            unsigned int MIO_BN_LESS4,
+                            unsigned int MIO_BN_REM,
+                            unsigned int MIO_BN_LESS,
+                            unsigned int MIO_BN_CHUNK,
+                            unsigned int MIO_BN_REMOUT,
+                            unsigned int MIO_BN_LESSOUT,
+                            unsigned int MIO_MAX_READ)
 {
 
 #if(MIOPEN_BN_CPP_DEBUG == 1)
@@ -306,7 +321,22 @@ void bnFwdTrainSelectSingle(const Handle& handle,
                 resultRunningVariance,
                 epsilon,
                 resultSaveMean,
-                resultSaveInvVariance);
+                resultSaveInvVariance,
+                input_n,
+                input_c,
+                input_nhw,
+                input_chw,
+                input_nchw,
+                MIO_BN_HW,
+                GRPRD,
+                MIO_BN_REM4,
+                MIO_BN_LESS4,
+                MIO_BN_REM,
+                MIO_BN_LESS,
+                MIO_BN_CHUNK,
+                MIO_BN_REMOUT,
+                MIO_BN_LESSOUT,
+                MIO_MAX_READ);
         }
         else if(resultsave)
         {
@@ -318,7 +348,22 @@ void bnFwdTrainSelectSingle(const Handle& handle,
                 as_float(inhw),
                 epsilon,
                 resultSaveMean,
-                resultSaveInvVariance);
+                resultSaveInvVariance,
+                input_n,
+                input_c,
+                input_nhw,
+                input_chw,
+                input_nchw,
+                MIO_BN_HW,
+                GRPRD,
+                MIO_BN_REM4,
+                MIO_BN_LESS4,
+                MIO_BN_REM,
+                MIO_BN_LESS,
+                MIO_BN_CHUNK,
+                MIO_BN_REMOUT,
+                MIO_BN_LESSOUT,
+                MIO_MAX_READ);
         }
         else if(resultrunning)
         {
@@ -331,12 +376,47 @@ void bnFwdTrainSelectSingle(const Handle& handle,
                 expAvgFactor,
                 resultRunningMean,
                 resultRunningVariance,
-                epsilon);
+                epsilon,
+                input_n,
+                input_c,
+                input_nhw,
+                input_chw,
+                input_nchw,
+                MIO_BN_HW,
+                GRPRD,
+                MIO_BN_REM4,
+                MIO_BN_LESS4,
+                MIO_BN_REM,
+                MIO_BN_LESS,
+                MIO_BN_CHUNK,
+                MIO_BN_REMOUT,
+                MIO_BN_LESSOUT,
+                MIO_MAX_READ);
         }
         else
         {
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                x, y, bnScale, bnBias, as_float(inhw), epsilon);
+                x,
+                y,
+                bnScale,
+                bnBias,
+                as_float(inhw),
+                epsilon,
+                input_n,
+                input_c,
+                input_nhw,
+                input_chw,
+                input_nchw,
+                MIO_BN_HW,
+                GRPRD,
+                MIO_BN_REM4,
+                MIO_BN_LESS4,
+                MIO_BN_REM,
+                MIO_BN_LESS,
+                MIO_BN_CHUNK,
+                MIO_BN_REMOUT,
+                MIO_BN_LESSOUT,
+                MIO_MAX_READ);
         }
     });
 }

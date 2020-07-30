@@ -66,7 +66,22 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultSaveMean,
                                __global _FLOAT_PREC* __restrict resultSaveInvVariance
 #endif
-                               )
+                               ,
+                               unsigned int input_n,
+                               unsigned int input_c,
+                               unsigned int input_nhw,
+                               unsigned int input_chw,
+                               unsigned int input_nchw,
+                               unsigned int input_hw,
+                               unsigned int FWD_GRPRD,
+                               unsigned int MIO_BN_FWD_REM4,
+                               unsigned int MIO_BN_FWD_LESS4,
+                               unsigned int MIO_BN_FWD_REM,
+                               unsigned int MIO_BN_FWD_LESS,
+                               unsigned int MIO_BN_FWD_CHUNK,
+                               unsigned int MIO_BN_FWD_REMOUT,
+                               unsigned int MIO_BN_FWD_LESSOUT,
+                               unsigned int MIO_BN_FWD_MAX_READ)
 {
 
     // SPATIAL
@@ -177,23 +192,38 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #elif(MIO_BN_VARIANT == 1)
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
-                               __global _FLOAT* __restrict out,
-                               __constant _FLOAT_PREC* __restrict scale,
-                               __constant _FLOAT_PREC* __restrict bias,
-                               _FLOAT_PREC INHW,
+MIOpenBatchNormFwdTrainSpatial_var1(const __global _FLOAT* __restrict in,
+                                    __global _FLOAT* __restrict out,
+                                    __constant _FLOAT_PREC* __restrict scale,
+                                    __constant _FLOAT_PREC* __restrict bias,
+                                    _FLOAT_PREC INHW,
 #if(MIO_RUNNING_RESULT == 1)
-                               double expAvgFactor,
-                               __global _FLOAT_PREC* __restrict resultRunningMean,
-                               __global _FLOAT_PREC* __restrict resultRunningVariance,
+                                    double expAvgFactor,
+                                    __global _FLOAT_PREC* __restrict resultRunningMean,
+                                    __global _FLOAT_PREC* __restrict resultRunningVariance,
 #endif
-                               double epsilon
+                                    double epsilon
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
-                               ,
-                               __global _FLOAT_PREC* __restrict resultSaveMean,
-                               __global _FLOAT_PREC* __restrict resultSaveInvVariance
+                                    ,
+                                    __global _FLOAT_PREC* __restrict resultSaveMean,
+                                    __global _FLOAT_PREC* __restrict resultSaveInvVariance
 #endif
-                               )
+                                    ,
+                                    unsigned int input_n,
+                                    unsigned int input_c,
+                                    unsigned int input_nhw,
+                                    unsigned int input_chw,
+                                    unsigned int input_nchw,
+                                    unsigned int input_hw,
+                                    unsigned int FWD_GRPRD,
+                                    unsigned int MIO_BN_FWD_REM4,
+                                    unsigned int MIO_BN_FWD_LESS4,
+                                    unsigned int MIO_BN_FWD_REM,
+                                    unsigned int MIO_BN_FWD_LESS,
+                                    unsigned int MIO_BN_FWD_CHUNK,
+                                    unsigned int MIO_BN_FWD_REMOUT,
+                                    unsigned int MIO_BN_FWD_LESSOUT,
+                                    unsigned int MIO_BN_FWD_MAX_READ)
 {
 
     // SPATIAL
@@ -209,7 +239,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     uint index = 0;
     uint lid   = get_local_id(0);
     uint grpid = get_group_id(0);
-    uint chwid = grpid * MIO_BN_HW;
+    uint chwid = grpid * input_hw;
     uint nidx  = 0;
     uint hwidx = 0;
 
@@ -220,69 +250,73 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
-#if(MIO_BN_HW >= 4096)
-    _FLOAT4 read4;
-    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid << 2; k < MIO_BN_LESS4;
-                                               k += GRPRD)
+    if(input_hw >= 4096)
     {
-        nidx  = k / MIO_BN_HW;
-        hwidx = k - (nidx * MIO_BN_HW);
-        index = nidx * MIO_BN_CHW + chwid + hwidx;
-        read4 = *((const global _FLOAT4*)(in + index));
-        mean += (_FLOAT_PREC)read4.x;
-        mean += (_FLOAT_PREC)read4.y;
-        mean += (_FLOAT_PREC)read4.z;
-        mean += (_FLOAT_PREC)read4.w;
-        variance = mad((_FLOAT_PREC)read4.x, (_FLOAT_PREC)read4.x, variance);
-        variance = mad((_FLOAT_PREC)read4.y, (_FLOAT_PREC)read4.y, variance);
-        variance = mad((_FLOAT_PREC)read4.z, (_FLOAT_PREC)read4.z, variance);
-        variance = mad((_FLOAT_PREC)read4.w, (_FLOAT_PREC)read4.w, variance);
-    }
+        _FLOAT4 read4;
+        __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid << 2; k < MIO_BN_FWD_LESS4;
+                                                   k += FWD_GRPRD)
+        {
+            nidx  = k / input_hw;
+            hwidx = k - (nidx * input_hw);
+            index = nidx * MIO_BN_CHW + chwid + hwidx;
+            read4 = *((const global _FLOAT4*)(in + index));
+            mean += (_FLOAT_PREC)read4.x;
+            mean += (_FLOAT_PREC)read4.y;
+            mean += (_FLOAT_PREC)read4.z;
+            mean += (_FLOAT_PREC)read4.w;
+            variance = mad((_FLOAT_PREC)read4.x, (_FLOAT_PREC)read4.x, variance);
+            variance = mad((_FLOAT_PREC)read4.y, (_FLOAT_PREC)read4.y, variance);
+            variance = mad((_FLOAT_PREC)read4.z, (_FLOAT_PREC)read4.z, variance);
+            variance = mad((_FLOAT_PREC)read4.w, (_FLOAT_PREC)read4.w, variance);
+        }
 
-#if(MIO_BN_REM4)
-    unsigned int remkey = (lid << 2) + MIO_BN_LESS4;
-    nidx                = remkey / MIO_BN_HW;
-    hwidx               = remkey - (nidx * MIO_BN_HW);
-    index               = nidx * MIO_BN_CHW + chwid + hwidx;
-    if(index < MIO_BN_NCHW)
-    {
-        read4 = *((const global _FLOAT4*)(in + index));
-        mean += (_FLOAT_PREC)read4.x;
-        mean += (_FLOAT_PREC)read4.y;
-        mean += (_FLOAT_PREC)read4.z;
-        mean += (_FLOAT_PREC)read4.w;
-        variance = mad((_FLOAT_PREC)read4.x, (_FLOAT_PREC)read4.x, variance);
-        variance = mad((_FLOAT_PREC)read4.y, (_FLOAT_PREC)read4.y, variance);
-        variance = mad((_FLOAT_PREC)read4.z, (_FLOAT_PREC)read4.z, variance);
-        variance = mad((_FLOAT_PREC)read4.w, (_FLOAT_PREC)read4.w, variance);
+        if(MIO_BN_FWD_REM4)
+        {
+            unsigned int remkey = (lid << 2) + MIO_BN_FWD_LESS4;
+            nidx                = remkey / input_hw;
+            hwidx               = remkey - (nidx * input_hw);
+            index               = nidx * MIO_BN_CHW + chwid + hwidx;
+            if(index < MIO_BN_NCHW)
+            {
+                read4 = *((const global _FLOAT4*)(in + index));
+                mean += (_FLOAT_PREC)read4.x;
+                mean += (_FLOAT_PREC)read4.y;
+                mean += (_FLOAT_PREC)read4.z;
+                mean += (_FLOAT_PREC)read4.w;
+                variance = mad((_FLOAT_PREC)read4.x, (_FLOAT_PREC)read4.x, variance);
+                variance = mad((_FLOAT_PREC)read4.y, (_FLOAT_PREC)read4.y, variance);
+                variance = mad((_FLOAT_PREC)read4.z, (_FLOAT_PREC)read4.z, variance);
+                variance = mad((_FLOAT_PREC)read4.w, (_FLOAT_PREC)read4.w, variance);
+            }
+        }
     }
-
-#endif
-
-#else
-    __attribute__((opencl_unroll_hint(4))) for(unsigned int k = lid; k < MIO_BN_LESS;
-                                               k += MIO_BN_GRP0)
+    else
     {
-        nidx            = k / MIO_BN_HW;
-        hwidx           = k - (nidx * MIO_BN_HW);
-        index           = nidx * MIO_BN_CHW + chwid + hwidx;
-        _FLOAT_PREC xin = (_FLOAT_PREC)(*(in + index));
-        mean += xin;
-        variance = mad(xin, xin, variance);
+        __attribute__((opencl_unroll_hint(4))) for(unsigned int k = lid; k < MIO_BN_FWD_LESS;
+                                                   k += MIO_BN_GRP0)
+        {
+            nidx            = k / input_hw;
+            hwidx           = k - (nidx * input_hw);
+            index           = nidx * MIO_BN_CHW + chwid + hwidx;
+            _FLOAT_PREC xin = (_FLOAT_PREC)(*(in + index));
+            mean += xin;
+            variance = mad(xin, xin, variance);
+        }
+        if(MIO_BN_FWD_REM)
+        {
+            if(lid < MIO_BN_FWD_REM)
+            {
+                unsigned int remkey = lid + MIO_BN_FWD_LESS;
+                nidx                = remkey / input_hw;
+                hwidx               = remkey - (nidx * input_hw);
+                index               = nidx * MIO_BN_CHW + chwid + hwidx;
+                _FLOAT_PREC xin =
+                    (index < MIO_BN_NCHW) ? (_FLOAT_PREC)(*(in + index)) : (_FLOAT_PREC)0.;
+                mean += xin;
+                variance = mad(xin, xin, variance);
+            }
+        }
     }
-#if(MIO_BN_REM)
-    if(lid < MIO_BN_REM)
-    {
-        unsigned int remkey = lid + MIO_BN_LESS;
-        nidx                = remkey / MIO_BN_HW;
-        hwidx               = remkey - (nidx * MIO_BN_HW);
-        index               = nidx * MIO_BN_CHW + chwid + hwidx;
-        _FLOAT_PREC xin = (index < MIO_BN_NCHW) ? (_FLOAT_PREC)(*(in + index)) : (_FLOAT_PREC)0.;
-        mean += xin;
-        variance = mad(xin, xin, variance);
-    }
-#endif
-#endif
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
 
 #ifndef __AMDGCN__
@@ -306,66 +340,71 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     pvscale = lcl_scale;
     pvbias  = lcl_bias;
 
-#if(MIO_BN_REM == 0)
-    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid; k < MIO_BN_LESS;
-                                               k += MIO_BN_GRP0)
+    if(MIO_BN_FWD_REM == 0)
     {
-        nidx  = k / MIO_BN_HW;
-        hwidx = k - (nidx * MIO_BN_HW);
-        index = nidx * MIO_BN_CHW + chwid + hwidx;
-        out[index] =
-            (_FLOAT)mad(pvscale, ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance, pvbias);
-    } // end for
-#else
-    _FLOAT_PREC xhat[3];
-    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = (MIO_MAX_READ * lid);
-                                               k < MIO_BN_LESSOUT;
-                                               k += MIO_BN_CHUNK)
+        __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid; k < MIO_BN_FWD_LESS;
+                                                   k += MIO_BN_GRP0)
+        {
+            nidx  = k / input_hw;
+            hwidx = k - (nidx * input_hw);
+            index = nidx * MIO_BN_CHW + chwid + hwidx;
+            out[index] =
+                (_FLOAT)mad(pvscale, ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance, pvbias);
+        } // end for
+    }
+    else
     {
-        for(unsigned int j = 0; j < MIO_MAX_READ; j++)
+        _FLOAT_PREC xhat[3];
+        __attribute__((opencl_unroll_hint(2))) for(unsigned int k = (MIO_BN_FWD_MAX_READ * lid);
+                                                   k < MIO_BN_FWD_LESSOUT;
+                                                   k += MIO_BN_FWD_CHUNK)
         {
-            unsigned int l = k + j;
-            nidx           = l / MIO_BN_HW;
-            hwidx          = l - (nidx * MIO_BN_HW);
-            index          = nidx * MIO_BN_CHW + chwid + hwidx;
-            xhat[j]        = ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance;
-        }
-        barrier(CLK_GLOBAL_MEM_FENCE);
-        for(unsigned int j = 0; j < MIO_MAX_READ; j++)
-        {
-            unsigned int l = k + j;
-            nidx           = l / MIO_BN_HW;
-            hwidx          = l - (nidx * MIO_BN_HW);
-            index          = nidx * MIO_BN_CHW + chwid + hwidx;
-            *(out + index) = (_FLOAT)mad(pvscale, xhat[j], pvbias);
-        }
-    } // end for
+            for(unsigned int j = 0; j < MIO_BN_FWD_MAX_READ; j++)
+            {
+                unsigned int l = k + j;
+                nidx           = l / input_hw;
+                hwidx          = l - (nidx * input_hw);
+                index          = nidx * MIO_BN_CHW + chwid + hwidx;
+                xhat[j]        = ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance;
+            }
+            barrier(CLK_GLOBAL_MEM_FENCE);
+            for(unsigned int j = 0; j < MIO_BN_FWD_MAX_READ; j++)
+            {
+                unsigned int l = k + j;
+                nidx           = l / input_hw;
+                hwidx          = l - (nidx * input_hw);
+                index          = nidx * MIO_BN_CHW + chwid + hwidx;
+                *(out + index) = (_FLOAT)mad(pvscale, xhat[j], pvbias);
+            }
+        } // end for
 
-#if(MIO_BN_REMOUT)
-    unsigned int remkeyout = (MIO_MAX_READ * lid) + MIO_BN_LESSOUT;
-    for(unsigned int j = 0; j < MIO_MAX_READ; j++)
-    {
-        unsigned int l  = remkeyout + j;
-        nidx            = l / MIO_BN_HW;
-        hwidx           = l - (nidx * MIO_BN_HW);
-        index           = nidx * MIO_BN_CHW + chwid + hwidx;
-        _FLOAT_PREC xin = (index < MIO_BN_NCHW) ? (_FLOAT_PREC)(*(in + index)) : (_FLOAT_PREC)0.;
-        xhat[j]         = (xin - mean) * invVariance;
-    }
-    barrier(CLK_GLOBAL_MEM_FENCE);
-    for(unsigned int j = 0; j < MIO_MAX_READ; j++)
-    {
-        unsigned int l = remkeyout + j;
-        nidx           = l / MIO_BN_HW;
-        hwidx          = l - (nidx * MIO_BN_HW);
-        index          = nidx * MIO_BN_CHW + chwid + hwidx;
-        if(index < MIO_BN_NCHW)
+        if(MIO_BN_FWD_REMOUT)
         {
-            *(out + index) = (_FLOAT)mad(pvscale, xhat[j], pvbias);
+            unsigned int remkeyout = (MIO_BN_FWD_MAX_READ * lid) + MIO_BN_FWD_LESSOUT;
+            for(unsigned int j = 0; j < MIO_BN_FWD_MAX_READ; j++)
+            {
+                unsigned int l = remkeyout + j;
+                nidx           = l / input_hw;
+                hwidx          = l - (nidx * input_hw);
+                index          = nidx * MIO_BN_CHW + chwid + hwidx;
+                _FLOAT_PREC xin =
+                    (index < MIO_BN_NCHW) ? (_FLOAT_PREC)(*(in + index)) : (_FLOAT_PREC)0.;
+                xhat[j] = (xin - mean) * invVariance;
+            }
+            barrier(CLK_GLOBAL_MEM_FENCE);
+            for(unsigned int j = 0; j < MIO_BN_FWD_MAX_READ; j++)
+            {
+                unsigned int l = remkeyout + j;
+                nidx           = l / input_hw;
+                hwidx          = l - (nidx * input_hw);
+                index          = nidx * MIO_BN_CHW + chwid + hwidx;
+                if(index < MIO_BN_NCHW)
+                {
+                    *(out + index) = (_FLOAT)mad(pvscale, xhat[j], pvbias);
+                }
+            }
         }
     }
-#endif
-#endif
 
     if(lid == 0)
     {
@@ -590,7 +629,22 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultSaveMean,
                                __global _FLOAT_PREC* __restrict resultSaveInvVariance
 #endif
-                               )
+                               ,
+                               unsigned int input_n,
+                               unsigned int input_c,
+                               unsigned int input_nhw,
+                               unsigned int input_chw,
+                               unsigned int input_nchw,
+                               unsigned int input_hw,
+                               unsigned int FWD_GRPRD,
+                               unsigned int MIO_BN_FWD_REM4,
+                               unsigned int MIO_BN_FWD_LESS4,
+                               unsigned int MIO_BN_FWD_REM,
+                               unsigned int MIO_BN_FWD_LESS,
+                               unsigned int MIO_BN_FWD_CHUNK,
+                               unsigned int MIO_BN_FWD_REMOUT,
+                               unsigned int MIO_BN_FWD_LESSOUT,
+                               unsigned int MIO_BN_FWD_MAX_READ)
 {
 
     // SPATIAL
