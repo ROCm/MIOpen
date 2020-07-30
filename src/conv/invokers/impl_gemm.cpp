@@ -57,8 +57,25 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     const auto dilation_h = conv.GetConvDilations()[0];
                     const auto dilation_w = conv.GetConvDilations()[1];
 
-                    if((stride_h >= dilation_h * (y - 1) + 1) &&
-                       (stride_w >= dilation_w * (x - 1) + 1))
+                    bool need_atomic_add = (stride_h < dilation_h * (y - 1) + 1) ||
+                                           (stride_w < dilation_w * (x - 1) + 1);
+                    bool every_pixel_is_written =
+                        (dilation_h == 1 && stride_h <= y) && (dilation_w == 1 && stride_w <= x);
+                    bool need_set_zero = need_atomic_add || !(every_pixel_is_written);
+                    bool need_cast     = need_atomic_add;
+
+                    if(need_set_zero && !need_cast)
+                    {
+                        float zero = 0.f;
+                        SetTensor(handle, tensors.outDesc, tensors.out, &zero);
+                        if(handle.IsProfilingEnabled())
+                            elapsed += handle.GetKernelTime();
+
+                        kernel(tensors.in, tensors.w, tensors.out);
+                        if(handle.IsProfilingEnabled())
+                            elapsed += handle.GetKernelTime();
+                    }
+                    else if(!need_set_zero && !need_cast)
                     {
                         kernel(tensors.in, tensors.w, tensors.out);
                         if(handle.IsProfilingEnabled())
