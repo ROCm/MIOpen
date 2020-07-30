@@ -35,7 +35,6 @@
 #include <miopen/solver.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/algorithm.hpp>
-#include <miopen/scgemm_utils.hpp>
 
 #include <cassert>
 #include <cstddef>
@@ -48,7 +47,6 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_SCGEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_WINOGRAD)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
 
@@ -462,8 +460,6 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
 
     const size_t implicit_gemm_workspace = ForwardBackwardGetWorkSpaceSizeImplicitGemm(ctx);
 
-    const size_t workspace_size_scgemm = ForwardBackwardDataGetWorkSpaceSizeSCGemm(handle, ctx);
-
     size_t workspace_size_gemm = 0;
 #if MIOPEN_USE_GEMM
     if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
@@ -487,16 +483,12 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
             /// \todo WORKAROUND for issue 1430
             if(gemm_trans > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
                 gemm_trans = 0;
-            return std::max(
-                {gemm_trans, direct_workspace, workspace_size_scgemm, implicit_gemm_workspace});
+            return std::max({gemm_trans, direct_workspace, implicit_gemm_workspace});
         }
 
         if(miopen::any_of(GetConvDilations(), [](auto v) { return v > 1; }))
         {
-            return std::max({workspace_size_gemm,
-                             direct_workspace,
-                             workspace_size_scgemm,
-                             implicit_gemm_workspace});
+            return std::max({workspace_size_gemm, direct_workspace, implicit_gemm_workspace});
         }
     }
 #endif
@@ -510,11 +502,8 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
             ? ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc)
             : 0;
 
-    const size_t workspace_size = std::max({workspace_size_fft,
-                                            workspace_size_gemm,
-                                            direct_workspace,
-                                            implicit_gemm_workspace,
-                                            workspace_size_scgemm});
+    const size_t workspace_size = std::max(
+        {workspace_size_fft, workspace_size_gemm, direct_workspace, implicit_gemm_workspace});
 
     MIOPEN_LOG_I2(workspace_size);
     return workspace_size;
@@ -748,35 +737,6 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
         MIOPEN_LOG_WE(ex.what());
         return 0;
     }
-}
-
-std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeSCGemm(
-    Handle& handle, const miopen::ConvolutionContext& ctx) const
-{
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_SCGEMM{}))
-    {
-        return 0;
-    }
-
-    std::size_t sz = 0;
-
-#if MIOPEN_USE_SCGEMM
-    /// Workaround for the following problem: This function reports non-zero workspace
-    /// even if none SCGEMM solutions are applicable.
-    /// \todo Full-blown fix.
-    if(FindAllFwdSCGemmSolutions(ctx).empty())
-        return 0;
-
-    sz = GetMaximumSCGemmConvFwdWorkSpaceSize(ctx);
-    if(sz > MAX_MEM_ALLOC_SZ)
-        sz = 0;
-#else
-    (void)MAX_MEM_ALLOC_SZ;
-    (void)handle;
-    (void)ctx;
-#endif
-
-    return sz;
 }
 
 std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(

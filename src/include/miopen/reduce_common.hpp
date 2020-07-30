@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,38 +23,44 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_SCGEMM_GEMM_HPP_
-#define GUARD_MIOPEN_SCGEMM_GEMM_HPP_
+#ifndef GUARD_MIOPEN_REDUCE_COMMON_HPP
+#define GUARD_MIOPEN_REDUCE_COMMON_HPP
 
-#include <miopen/scgemm/scgemm_op.hpp>
-#include <miopen/scgemm/tensorshape.hpp>
-#include <miopen/scgemm/scgemm.hpp>
-#include <string>
+#include <half.hpp>
+#include <miopen/bfloat16.hpp>
 
-namespace miopen {
-namespace scgemm {
+namespace reduce {
 
-bool is_fgemm(const std::string& kernel_name);
+template <typename Tdst, typename Tsrc>
+static inline Tdst convert_type(Tsrc x)
+{
+    return static_cast<Tdst>(x);
+}
 
-scgemm_gemm_routine_t get_fgemm_routine(const std::string& kernel_name);
+template <>
+inline float convert_type<float>(half_float::half x)
+{
+    return half_float::half_cast<float>(x);
+};
 
-int generate_fgemm_aux(void* auxbuf, const group_prop_t* gprop, uint32_t ntidx);
+template <>
+inline half_float::half convert_type<half_float::half>(float x)
+{
+    return half_float::half_cast<half_float::half>(x);
+};
 
-scgemm_fgemm_params create_fgemm_params(std::string&,
-                                        std::vector<uint32_t>&,
-                                        std::vector<uint32_t>&,
-                                        scgemm_gemm_routine_t,
-                                        const group_prop_t*,
-                                        uint32_t,
-                                        uint32_t);
+template <>
+inline float convert_type<float>(bfloat16 x)
+{
+    return float(x);
+};
 
-/*
-/// This fucintion is used to present how to fill in the kernel arguments for a
-/// Static Compiled GEMM - GEMM Kernel.
-/// Left the code here for reference.
-scgemm_kernel_args_t compiled_fgemm_args(
-    size_t&, const void*, const void*, const void*, void*, void*, scgemm_fgemm_params*, float);
-*/
-} // namespace scgemm
-} // namespace miopen
+template <>
+inline bfloat16 convert_type<bfloat16>(float x)
+{
+    return bfloat16(x);
+};
+
+}; // end of namespace reduce
+
 #endif

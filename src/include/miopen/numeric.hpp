@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,31 +23,41 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_SCGEMM_PARAM_HPP_
-#define GUARD_MIOPEN_SCGEMM_PARAM_HPP_
-#include <miopen/manage_ptr.hpp>
-#include <miopen/common.hpp>
-#include <miopen/allocator.hpp>
-#include <miopen/scgemm/scgemm.hpp>
+#ifndef GUARD_MLOPEN_NUMERIC_HPP
+#define GUARD_MLOPEN_NUMERIC_HPP
+
+#include <numeric>
+
 namespace miopen {
 
-enum SCGemmOpType
+template <typename T>
+T gcd(T x, T y)
 {
-    SCGemmOpFConv = scgemm::scgemm_fconv,
-    SCGemmOpFGemm = scgemm::scgemm_fgemm,
-};
+    assert(!(x == 0 && y == 0));
 
-struct SCGemmKernelParams
+    if(x == y || x == 0)
+    {
+        return y;
+    }
+    else if(y == 0)
+    {
+        return x;
+    }
+    else if(x > y)
+    {
+        return gcd(x - y, y);
+    }
+    else
+    {
+        return gcd(x, y - x);
+    }
+}
+
+template <typename T, typename... Ys>
+T gcd(T x, Ys... ys)
 {
-    SCGemmOpType type;
-    int routine;
-    std::string kernel_name;
-    std::vector<uint32_t> grids;
-    std::vector<uint32_t> blocks;
-    scgemm::scgemm_params_t params;
-    SCGemmKernelParams()
-        : type(SCGemmOpFGemm), routine(0), grids({0, 0, 0}), blocks({0, 0, 0}), params(nullptr){};
-};
+    return gcd(x, gcd(ys...));
+}
 
 } // namespace miopen
 
