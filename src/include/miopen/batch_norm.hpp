@@ -127,7 +127,7 @@ void bnFwdTrainSelectSingle(const Handle& handle,
                             unsigned int MIO_BN_LESSOUT,
                             unsigned int MIO_MAX_READ);
 
-void bnFwdTrainSelectMulti(Handle& handle,
+void bnFwdTrainSelectMulti(const Handle& handle,
                            miopenDataType_t dtype,
                            const std::string& program_name,
                            const std::string& algo_name,

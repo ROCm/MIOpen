@@ -144,7 +144,7 @@ void profileSequence(const Handle& handle, unsigned char select, float* ctime)
     }
 }
 
-void bnFwdTrainSelectMulti(Handle& handle,
+void bnFwdTrainSelectMulti(const Handle& handle,
                            miopenDataType_t dtype,
                            const std::string& program_name,
                            const std::string& algo_name,
