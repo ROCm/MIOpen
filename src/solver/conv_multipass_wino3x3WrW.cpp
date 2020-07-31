@@ -616,9 +616,9 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                 MIOPEN_THROW("Not enough workspace for ConvWinograd3x3MultipassWrW");
 
             // clang-format on
-            for(decltype(auto) k : kernels)
+            for(decltype(auto) kernel : kernels)
             {
-                decltype(auto) cur_kernel = handle.Run(k);
+                decltype(auto) cur_kernel = handle.Run(kernel);
                 const BuffInfo* d_buf     = nullptr;
                 const BuffInfo* o_buf     = nullptr;
                 Data_t buff_out_adr       = nullptr;
