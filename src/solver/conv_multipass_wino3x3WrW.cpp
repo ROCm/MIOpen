@@ -653,7 +653,6 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                 }
                 else // Output and GEMM
                 {
-                    const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
                     int m = N, n = K, k = wino_in.wino_c;
                     int lda = k, ldb = k, ldc = n;
                     int batch_count       = wino_xform_h * wino_xform_w;
