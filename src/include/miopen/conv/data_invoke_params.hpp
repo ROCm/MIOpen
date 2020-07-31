@@ -34,7 +34,7 @@ namespace conv {
 struct DataInvokeParams
 {
     ConvDataTensors tensors;
-    Data_t workSpace = nullptr;
+    Data_t workSpace          = nullptr;
     std::size_t workSpaceSize = 0;
 };
 
