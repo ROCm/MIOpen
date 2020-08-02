@@ -84,8 +84,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
     GenerateClangDefsym((options), "xformy_d_size", wino_xform_h);                                 \
     GenerateClangDefsym((options), "xformx_f_size", WinoFilterW);                                  \
     GenerateClangDefsym((options), "xformy_f_size", WinoFilterH);                                  \
-    GenerateClangDefsym((options), "fdilation_w", 1 /*params.kernel_stride_w*/);                   \
-    GenerateClangDefsym((options), "fdilation_h", 1 /*params.kernel_stride_h*/);
+    GenerateClangDefsym((options), "fdilation_w", params.kernel_stride_w);                         \
+    GenerateClangDefsym((options), "fdilation_h", params.kernel_stride_h);
 
 static inline size_t Ceil(const size_t v, const size_t m)
 {
@@ -476,7 +476,7 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
                            W,
                            K,
                            n_groups,
-                           512,
+                           unused,
                            reserved,
                            input_ptr,
                            reserved_ptr,

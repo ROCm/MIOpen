@@ -1517,7 +1517,7 @@ amdhsa.kernels:
     - { .size: 4, .offset:  12, .value_kind: by_value, .value_type: i32, .name: W }
     - { .size: 4, .offset:  16, .value_kind: by_value, .value_type: i32, .name: K }
     - { .size: 4, .offset:  20, .value_kind: by_value, .value_type: i32, .name: n_groups }
-    - { .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32, .name: flags }
+    - { .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32, .name: unused }
     - { .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32, .name: unused_1 }
     - { .size: 8, .offset:  32, .value_kind: global_buffer, .value_type: f32, .name: filter_ptr,   .address_space: global, .is_const: false }
     - { .size: 8, .offset:  40, .value_kind: global_buffer, .value_type: f32, .name: reserved2,    .address_space: global, .is_const: false }
@@ -1580,7 +1580,7 @@ amdhsa.kernels:
     .elseif (xform_output)
         .size miopenGcnAsmMPBidirectWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size, .Lfunc_end0 - miopenGcnAsmMPBidirectWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
     .endif
-    METADATA_WRAPPER %.AUTO_SGPR_COUNT, %.AUTO_VGPR_COUNT, %(64), %.AUTO_LDS_BYTE_SIZE, %KERNEL_ARGUMENTS_SIZE, _\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
+    METADATA_WRAPPER %.AUTO_SGPR_COUNT, %.AUTO_VGPR_COUNT, %(512), %.AUTO_LDS_BYTE_SIZE, %KERNEL_ARGUMENTS_SIZE, _\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
 .endm
 
 kernel_end %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
