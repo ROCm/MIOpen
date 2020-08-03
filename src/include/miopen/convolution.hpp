@@ -32,6 +32,8 @@
 #include <miopen/object.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/names.hpp>
+#include <miopen/db.hpp>
+#include <miopen/db_record.hpp>
 
 #include <string>
 #include <tuple>
@@ -136,6 +138,19 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                         const TensorDescriptor& wDesc,
                                         const TensorDescriptor& xDesc,
                                         const TensorDescriptor& yDesc) const;
+    void DirConvFindCore(Handle& handle,
+                         const TensorDescriptor& XDesc,
+                         ConstData_t x,
+                         const TensorDescriptor& wDesc,
+                         ConstData_t w,
+                         const TensorDescriptor& yDesc,
+                         Data_t y,
+                         Data_t workSpace,
+                         size_t workspaceSize,
+                         bool exhaustiveSearch,
+                         DbRecord& record,
+                         const ConvolutionContext& ctx,
+                         bool use_winograd_only) const;
 
     void FindConvFwdAlgorithm(Handle& handle,
                               const TensorDescriptor& xDesc,

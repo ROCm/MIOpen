@@ -309,21 +309,21 @@ static void EvaluateInvokers(Handle& handle,
     }
 }
 
-static void DirConvFindCore(Handle& handle,
-                            const TensorDescriptor& xDesc,
-                            ConstData_t x,
-                            const TensorDescriptor& wDesc,
-                            ConstData_t w,
-                            const TensorDescriptor& yDesc,
-                            Data_t y,
-                            Data_t workSpace,
-                            size_t workSpaceSize,
-                            const ConvolutionDescriptor& conv,
-                            bool exhaustiveSearch,
-                            DbRecord& record,
-                            const ConvolutionContext& ctx,
-                            bool use_winograd_only)
+void ConvolutionDescriptor::DirConvFindCore(Handle& handle,
+                                            const TensorDescriptor& xDesc,
+                                            ConstData_t x,
+                                            const TensorDescriptor& wDesc,
+                                            ConstData_t w,
+                                            const TensorDescriptor& yDesc,
+                                            Data_t y,
+                                            Data_t workSpace,
+                                            size_t workSpaceSize,
+                                            bool exhaustiveSearch,
+                                            DbRecord& record,
+                                            const ConvolutionContext& ctx,
+                                            bool use_winograd_only) const
 {
+    auto conv = *this;
     AutoEnableProfiling enableProfiling{handle};
     ValidateGroupCount(xDesc, wDesc, conv);
 
@@ -799,7 +799,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                             y,
                             workSpace,
                             workSpaceSize,
-                            *this,
                             exhaustiveSearch,
                             record,
                             ctx,
