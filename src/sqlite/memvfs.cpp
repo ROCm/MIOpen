@@ -532,7 +532,7 @@ __declspec(dllexport)
     ** This routine is called when the extension is loaded.
     ** Register the new VFS.
     */
-    int sqlite3_memvfs_init(sqlite3* db, char** pzErrMsg, const sqlite3_api_routines* pApi)
+    int miopen_sqlite3_memvfs_init(sqlite3* db, char** pzErrMsg, const sqlite3_api_routines* pApi)
 {
     int rc = SQLITE_OK;
     SQLITE_EXTENSION_INIT2(pApi);
