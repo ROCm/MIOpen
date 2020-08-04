@@ -52,7 +52,7 @@
 #include <string>
 
 extern "C" {
-int sqlite3_memvfs_init(sqlite3* db, char** pzErrMsg, const sqlite3_api_routines* pApi);
+int miopen_sqlite3_memvfs_init(sqlite3* db, char** pzErrMsg, const sqlite3_api_routines* pApi);
 }
 namespace miopen {
 
@@ -88,7 +88,7 @@ SQLite::impl<true>::impl(const std::string& filename_, bool is_system)
     boost::filesystem::path filepath(filename_);
     sqlite3* ptr_tmp = nullptr;
     int rc           = 0;
-    sqlite3_auto_extension(reinterpret_cast<void (*)(void)>(sqlite3_memvfs_init));
+    sqlite3_auto_extension(reinterpret_cast<void (*)(void)>(miopen_sqlite3_memvfs_init));
     // Open an in-memory database to use as a handle for loading the memvfs extension
     if(sqlite3_open(":memory:", &ptr_tmp) != SQLITE_OK)
     {
