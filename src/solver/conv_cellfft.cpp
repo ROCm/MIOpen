@@ -66,7 +66,7 @@ namespace solver {
 bool ConvCellfft::IsApplicable( const ConvolutionContext& ctx ) const
 {
     const auto name=ctx.GetStream().GetDeviceName();
-    if(name!="gfx900"||name!="gfx906") return false;
+    if(name!="gfx900" && name!="gfx906") return false;
     if((ctx.kernel_stride_w|ctx.kernel_stride_h|ctx.kernel_dilation_w|ctx.kernel_dilation_h|ctx.group_counts)!=1)
         return false;
     return (ctx.Is2d()&&ctx.IsFp32()&&(ctx.in_layout=="NCHW")&&(ctx.bias==0));
@@ -91,7 +91,11 @@ ConvSolution ConvCellfft::GetSolution( const ConvolutionContext& ctx ) const
     }
     solution.workspce_sz=cellfft::get_auxbuf_size(params);
     get_solution_cellfft( solution, params, file_name );
-    solution.invoker_factory=conv::MakeCellfftInvokerFactory( params, 1.f );
+    if(!ctx.direction.IsBackwardWrW()){
+        solution.invoker_factory=conv::MakeCellfftInvokerFactory( params, 1.f );
+    } else {
+        solution.invoker_factory=conv::MakeCellfftInvokerFactoryGrad( params, 1.f );
+    }
     return solution;
 }
 } // namespace solver

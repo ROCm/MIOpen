@@ -32,10 +32,8 @@
 #include <miopen/kernel.hpp>
 #include "cellfft_param.hpp"
 
-namespace miopen
-{
-namespace cellfft
-{
+namespace miopen {
+namespace cellfft {
 void lk_cgemm( const Handle&, const Kernel&, const cellfft_param_t&, void*, void*, void*, float );
 void lk_fft2d_r2c_perm_a( const Handle&, const Kernel&, const cellfft_param_t&, void*, const void* );
 void lk_fft2d_r2c_perm_b( const Handle&, const Kernel&, const cellfft_param_t&, void*, const void* );

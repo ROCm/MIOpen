@@ -154,10 +154,10 @@ InvokerFactory MakeCellfftInvokerFactory( const cellfft::cellfft_param_t& conv_p
     {
         return [=]( const Handle& handle, const boost::any& prim_params )
         {
-            const auto& params=boost::any_cast<DataInvokeParams>(prim_params);
             size_t auxsize=(conv_params.nbanks<<3)*(conv_params.abks+conv_params.bbks+conv_params.cbks);
             if(params.workSpace==nullptr||params.workSpaceSize<auxsize)
                 MIOPEN_THROW("Workspace is not enough for cellfft");
+            const auto& params=boost::any_cast<DataInvokeParams>(prim_params);
             const auto& tensors=params.tensors;
             auto& auxbuf=params.workSpace;
             const void* src=tensors.in;
@@ -166,17 +166,47 @@ InvokerFactory MakeCellfftInvokerFactory( const cellfft::cellfft_param_t& conv_p
             uint8_t* a=reinterpret_cast<uint8_t*>(auxbuf);
             uint8_t* b=a+(static_cast<uint64_t>(conv_params.nbanks*conv_params.abks)<<3);
             uint8_t* c=b+(static_cast<uint64_t>(conv_params.nbanks*conv_params.bbks)<<3);
-            
             float elapsed=0.f;
             ir2c( handle, kernels[1], conv_params, a, src );
             if(handle.IsProfilingEnabled()){ elapsed+=handle.GetKernelTime(); }
-
             fr2c( handle, kernels[2], conv_params, b, fil );
             if(handle.IsProfilingEnabled()){ elapsed+=handle.GetKernelTime(); }
-
             cgemm( handle, kernels[0], conv_params, c, a, b, alpha );
             if(handle.IsProfilingEnabled()){ elapsed+=handle.GetKernelTime(); }
-
+            c2r( handle, kernels[3], conv_params, dst, c );
+            if(handle.IsProfilingEnabled()){
+                elapsed += handle.GetKernelTime();
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
+            }
+        };
+    };
+}
+InvokerFactory MakeCellfftInvokerFactoryGrad( const cellfft::cellfft_param_t& conv_params, float alpha )
+{
+    return [=]( const std::vector<Kernel>& kernels )
+    {
+        return [=]( const Handle& handle, const boost::any& prim_params )
+        {
+            size_t auxsize=(conv_params.nbanks<<3)*(conv_params.abks+conv_params.bbks+conv_params.cbks);
+            if(params.workSpace==nullptr||params.workSpaceSize<auxsize)
+                MIOPEN_THROW("Workspace is not enough for cellfft");
+            const auto& params=boost::any_cast<WrWInvokeParams>(prim_params);
+            const auto& tensors=params.tensors;
+            auto& auxbuf=params.workSpace;
+            const void* pin=tensors.dy;
+            const void* qin=tensors.x;
+            void* dst=tensors.dw;
+            uint8_t* a=reinterpret_cast<uint8_t*>(auxbuf);
+            uint8_t* b=a+(static_cast<uint64_t>(conv_params.nbanks*conv_params.abks)<<3);
+            uint8_t* c=b+(static_cast<uint64_t>(conv_params.nbanks*conv_params.bbks)<<3);
+            float elapsed=0.f;
+            ir2c( handle, kernels[1], conv_params, a, pin );
+            if(handle.IsProfilingEnabled()){ elapsed+=handle.GetKernelTime(); }
+            fr2c( handle, kernels[2], conv_params, b, qin );
+            if(handle.IsProfilingEnabled()){ elapsed+=handle.GetKernelTime(); }
+            cgemm( handle, kernels[0], conv_params, c, a, b, alpha );
+            if(handle.IsProfilingEnabled()){ elapsed+=handle.GetKernelTime(); }
             c2r( handle, kernels[3], conv_params, dst, c );
             if(handle.IsProfilingEnabled()){
                 elapsed += handle.GetKernelTime();

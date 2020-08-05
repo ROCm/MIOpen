@@ -33,6 +33,7 @@
 namespace miopen {
 namespace conv {
 InvokerFactory MakeCellfftInvokerFactory( const cellfft::cellfft_param_t&, float );
+InvokerFactory MakeCellfftInvokerFactoryGrad( const cellfft::cellfft_param_t&, float );
 } // namespace conv
 } // namespace miopen
 // clang-format on
