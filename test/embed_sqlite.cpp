@@ -85,5 +85,8 @@ int main(int argc, const char* argv[])
 {
 #if MIOPEN_EMBED_DB
     test_drive<miopen::EmbedSQLite>(argc, argv);
+#else
+    (void)argc;
+    (void)argv;
 #endif
 }
