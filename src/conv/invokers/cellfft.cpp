@@ -26,6 +26,7 @@
 
 #include <miopen/conv/invokers/cellfft.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/kernel.hpp>
@@ -155,9 +156,9 @@ InvokerFactory MakeCellfftInvokerFactory( const cellfft::cellfft_param_t& conv_p
         return [=]( const Handle& handle, const boost::any& prim_params )
         {
             size_t auxsize=(conv_params.nbanks<<3)*(conv_params.abks+conv_params.bbks+conv_params.cbks);
+            const auto& params=boost::any_cast<DataInvokeParams>(prim_params);
             if(params.workSpace==nullptr||params.workSpaceSize<auxsize)
                 MIOPEN_THROW("Workspace is not enough for cellfft");
-            const auto& params=boost::any_cast<DataInvokeParams>(prim_params);
             const auto& tensors=params.tensors;
             auto& auxbuf=params.workSpace;
             const void* src=tensors.in;
@@ -189,9 +190,9 @@ InvokerFactory MakeCellfftInvokerFactoryGrad( const cellfft::cellfft_param_t& co
         return [=]( const Handle& handle, const boost::any& prim_params )
         {
             size_t auxsize=(conv_params.nbanks<<3)*(conv_params.abks+conv_params.bbks+conv_params.cbks);
+            const auto& params=boost::any_cast<WrWInvokeParams>(prim_params);
             if(params.workSpace==nullptr||params.workSpaceSize<auxsize)
                 MIOPEN_THROW("Workspace is not enough for cellfft");
-            const auto& params=boost::any_cast<WrWInvokeParams>(prim_params);
             const auto& tensors=params.tensors;
             auto& auxbuf=params.workSpace;
             const void* pin=tensors.dy;
