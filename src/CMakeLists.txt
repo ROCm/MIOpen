@@ -125,6 +125,7 @@ set( MIOpen_Source
     readonlyramdb.cpp
     execution_context.cpp
     reducetensor.cpp
+    reducetensor_api.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
