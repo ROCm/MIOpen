@@ -112,7 +112,6 @@ GetWinoBuffer(const ConvolutionContext& params, const ConvWinoBuffType buff_type
         S,
         (MemLayout_t::GCNHW),
         (ConvWinoXformType::N_GXhXw_C_Th_Tw),
-        1,
         GetTypeSize(params.in_data_type),
         buff_type,
         wino_xform_h,
@@ -334,7 +333,6 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
                      C,
                      H,
                      W,
-                     1,
                      group_cnt,
                      GetTypeSize(params.in_data_type)),
         // cppcheck-suppress unreadVariable
@@ -343,7 +341,6 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
                  K,
                  out_H,
                  out_W,
-                 1,
                  group_cnt,
                  GetTypeSize(params.out_data_type)),
         // cppcheck-suppress unreadVariable
@@ -355,7 +352,6 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
                      C,
                      R,
                      S,
-                     1,
                      group_cnt,
                      GetTypeSize(params.weights_data_type));
 

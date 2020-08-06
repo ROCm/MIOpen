@@ -73,9 +73,9 @@ struct BuffInfo
         unsigned int nk = 0, g = 0, c = 0, h = 0, w = 0;
     } stride{}, byte_stride{}, size{};
     BuffInfo() {}
-    BuffInfo(MemLayout_t layout, int nk, int c, int h, int w, int vec_c, int g, int _element_size);
-    BuffInfo(MemLayout_t layout, int nk, int c, int h, int w, int vec_c, int _element_size)
-        : BuffInfo(layout, nk, c, h, w, vec_c, 1, _element_size)
+    BuffInfo(MemLayout_t layout, int nk, int c, int h, int w, int g, int _element_size);
+    BuffInfo(MemLayout_t layout, int nk, int c, int h, int w, int _element_size)
+        : BuffInfo(layout, nk, c, h, w, 1, _element_size)
     {
     }
 };
@@ -187,7 +187,6 @@ struct WinogradBufferInfo
                        int wei_w,
                        MemLayout_t layout,
                        ConvWinoXformType xform_t,
-                       int vec_c,
                        int element_size,
                        ConvWinoBuffType buff_type,
                        int wino_xform_h,
@@ -221,7 +220,6 @@ struct WinogradBufferInfo
                                      c,
                                      wino_data.wino_tiles_HW[0],
                                      wino_data.wino_tiles_HW[1],
-                                     vec_c,
                                      wino_g,
                                      element_size);
                 wino_info = wino_data;
@@ -232,7 +230,6 @@ struct WinogradBufferInfo
                                      c,
                                      wino_filter.wino_tiles_HW[0],
                                      wino_filter.wino_tiles_HW[1],
-                                     vec_c,
                                      wino_g,
                                      element_size);
                 wino_info = wino_filter;
@@ -243,7 +240,6 @@ struct WinogradBufferInfo
                                      k,
                                      wino_data.wino_tiles_HW[0],
                                      wino_data.wino_tiles_HW[1],
-                                     vec_c,
                                      wino_g,
                                      element_size);
                 wino_info = wino_data;
@@ -258,13 +254,8 @@ struct WinogradBufferInfo
             switch(buff_type)
             {
             case ConvWinoBuffType::Input:
-                buff_info = BuffInfo(layout,
-                                     n,
-                                     wino_c,
-                                     wino_data.wino_HW[0],
-                                     wino_data.wino_HW[1],
-                                     vec_c,
-                                     element_size);
+                buff_info = BuffInfo(
+                    layout, n, wino_c, wino_data.wino_HW[0], wino_data.wino_HW[1], element_size);
                 wino_info = wino_data;
                 break;
             case ConvWinoBuffType::Weight:
@@ -273,13 +264,12 @@ struct WinogradBufferInfo
                                      wino_c,
                                      wino_filter.wino_HW[0],
                                      wino_filter.wino_HW[1],
-                                     vec_c,
                                      element_size);
                 wino_info = wino_filter;
                 break;
             case ConvWinoBuffType::Output:
                 buff_info = BuffInfo(
-                    layout, n, k, wino_data.wino_HW[0], wino_data.wino_HW[1], vec_c, element_size);
+                    layout, n, k, wino_data.wino_HW[0], wino_data.wino_HW[1], element_size);
                 wino_info = wino_data;
                 break;
             default: break;
@@ -297,7 +287,6 @@ struct WinogradBufferInfo
                        int wei_h,
                        int wei_w,
                        MemLayout_t layout,
-                       int vec_c,
                        int element_size,
                        ConvWinoBuffType buff_type,
                        int wino_xform_h,
@@ -312,7 +301,6 @@ struct WinogradBufferInfo
                              wei_w,
                              layout,
                              ConvWinoXformType::N_1_CThTw_Xh_Xw,
-                             vec_c,
                              element_size,
                              buff_type,
                              wino_xform_h,
