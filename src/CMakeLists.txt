@@ -125,6 +125,8 @@ set( MIOpen_Source
     dropout_api.cpp
     readonlyramdb.cpp
     execution_context.cpp
+    reducetensor.cpp
+    reducetensor_api.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -174,6 +176,9 @@ set( MIOpen_Source
     include/miopen/rnn_util.hpp
     include/miopen/bz2.hpp
     include/miopen/comgr.hpp
+    include/miopen/numeric.hpp
+    include/miopen/reducetensor.hpp
+    include/miopen/reduce_common.hpp
     md_graph.cpp
     mdg_expr.cpp
     conv/invokers/gcn_asm_1x1u.cpp
@@ -220,10 +225,12 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
     solver/conv_hip_implicit_gemm_bwd_data_v1r1.cpp
     solver/conv_hip_implicit_gemm_bwd_data_v4r1.cpp
-    solver/conv_hip_implicit_gemm_bwd_data_v1r1_xdlops.cpp
-    solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
     solver/conv_hip_implicit_gemm_bwd_data_v4r1_xdlops.cpp
+    solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
+    solver/conv_asm_implicit_gemm_wrw_v4r1_dynamic.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops_fwd_fp32.cpp
+    solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops_nchw_kcyx_nkhw.cpp
+    solver/conv_asm_implicit_gemm_bwd_v4r1_dynamic.cpp
     )
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
@@ -238,7 +245,8 @@ endif()
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_INCLUDE "kernels/composable_kernel/include/*/*.hpp")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_SOURCE "kernels/composable_kernel/src/*/*.cpp")
-    file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_SOURCE "kernels/dynamic_igemm/*.s")
+    file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_ASM_SOURCE "kernels/dynamic_igemm/*.s")
+    file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_CPP_SOURCE "kernels/dynamic_igemm/*.cpp")
 
     set(MIOPEN_KERNEL_INCLUDES
         ${COMPOSABLE_KERNEL_INCLUDE}
@@ -298,7 +306,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
 
     set(MIOPEN_KERNELS
         ${COMPOSABLE_KERNEL_SOURCE}
-        ${COMPOSABLE_KERNEL_DYNAMIC_SOURCE}
+        ${COMPOSABLE_KERNEL_DYNAMIC_ASM_SOURCE}
+        ${COMPOSABLE_KERNEL_DYNAMIC_CPP_SOURCE}
         kernels/MIOpenCheckNumerics.cl
         kernels/MIOpenBatchNormActivBwdPerAct.cl
         kernels/MIOpenBatchNormActivBwdSpatial.cl
