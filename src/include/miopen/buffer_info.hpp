@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -66,16 +66,16 @@ enum class LPart_t
 struct BuffInfo
 {
     size_t total_byte_size = 0;
-    int data_len_t         = 4;
+    int element_size       = 4;
 
     struct
     {
         unsigned int nk = 0, g = 0, c = 0, h = 0, w = 0;
     } stride{}, byte_stride{}, size{};
     BuffInfo() {}
-    BuffInfo(MemLayout_t layout, int nk, int c, int h, int w, int vec_c, int g, int _data_len_t);
-    BuffInfo(MemLayout_t layout, int nk, int c, int h, int w, int vec_c, int _data_len_t)
-        : BuffInfo(layout, nk, c, h, w, vec_c, 1, _data_len_t)
+    BuffInfo(MemLayout_t layout, int nk, int c, int h, int w, int vec_c, int g, int _element_size);
+    BuffInfo(MemLayout_t layout, int nk, int c, int h, int w, int vec_c, int _element_size)
+        : BuffInfo(layout, nk, c, h, w, vec_c, 1, _element_size)
     {
     }
 };
@@ -93,7 +93,7 @@ template <>
 inline unsigned int FillStride<LPart_t::H>(BuffInfo* b, unsigned int cum_stride)
 {
     b->stride.h      = cum_stride;
-    b->byte_stride.h = cum_stride * b->data_len_t;
+    b->byte_stride.h = cum_stride * b->element_size;
     return b->size.h * cum_stride;
 }
 
@@ -101,7 +101,7 @@ template <>
 inline unsigned int FillStride<LPart_t::W>(BuffInfo* b, unsigned int cum_stride)
 {
     b->stride.w      = cum_stride;
-    b->byte_stride.w = cum_stride * b->data_len_t;
+    b->byte_stride.w = cum_stride * b->element_size;
     return b->size.w * cum_stride;
 }
 
@@ -109,7 +109,7 @@ template <>
 inline unsigned int FillStride<LPart_t::C>(BuffInfo* b, unsigned int cum_stride)
 {
     b->stride.c      = cum_stride;
-    b->byte_stride.c = cum_stride * b->data_len_t;
+    b->byte_stride.c = cum_stride * b->element_size;
     return b->size.c * cum_stride;
 }
 
@@ -117,7 +117,7 @@ template <>
 inline unsigned int FillStride<LPart_t::N>(BuffInfo* b, unsigned int cum_stride)
 {
     b->stride.nk      = cum_stride;
-    b->byte_stride.nk = cum_stride * b->data_len_t;
+    b->byte_stride.nk = cum_stride * b->element_size;
     return b->size.nk * cum_stride;
 }
 
@@ -125,7 +125,7 @@ template <>
 inline unsigned int FillStride<LPart_t::G>(BuffInfo* b, unsigned int cum_stride)
 {
     b->stride.g      = cum_stride;
-    b->byte_stride.g = cum_stride * b->data_len_t;
+    b->byte_stride.g = cum_stride * b->element_size;
     return b->size.g * cum_stride;
 }
 
@@ -188,7 +188,7 @@ struct WinogradBufferInfo
                        MemLayout_t layout,
                        ConvWinoXformType xform_t,
                        int vec_c,
-                       int data_len_t,
+                       int element_size,
                        ConvWinoBuffType buff_type,
                        int wino_xform_h,
                        int wino_xform_w)
@@ -223,7 +223,7 @@ struct WinogradBufferInfo
                                      wino_data.wino_tiles_HW[1],
                                      vec_c,
                                      wino_g,
-                                     data_len_t);
+                                     element_size);
                 wino_info = wino_data;
                 break;
             case ConvWinoBuffType::Weight:
@@ -234,7 +234,7 @@ struct WinogradBufferInfo
                                      wino_filter.wino_tiles_HW[1],
                                      vec_c,
                                      wino_g,
-                                     data_len_t);
+                                     element_size);
                 wino_info = wino_filter;
                 break;
             case ConvWinoBuffType::Output:
@@ -245,7 +245,7 @@ struct WinogradBufferInfo
                                      wino_data.wino_tiles_HW[1],
                                      vec_c,
                                      wino_g,
-                                     data_len_t);
+                                     element_size);
                 wino_info = wino_data;
                 break;
             default: break;
@@ -264,7 +264,7 @@ struct WinogradBufferInfo
                                      wino_data.wino_HW[0],
                                      wino_data.wino_HW[1],
                                      vec_c,
-                                     data_len_t);
+                                     element_size);
                 wino_info = wino_data;
                 break;
             case ConvWinoBuffType::Weight:
@@ -274,12 +274,12 @@ struct WinogradBufferInfo
                                      wino_filter.wino_HW[0],
                                      wino_filter.wino_HW[1],
                                      vec_c,
-                                     data_len_t);
+                                     element_size);
                 wino_info = wino_filter;
                 break;
             case ConvWinoBuffType::Output:
                 buff_info = BuffInfo(
-                    layout, n, k, wino_data.wino_HW[0], wino_data.wino_HW[1], vec_c, data_len_t);
+                    layout, n, k, wino_data.wino_HW[0], wino_data.wino_HW[1], vec_c, element_size);
                 wino_info = wino_data;
                 break;
             default: break;
@@ -298,7 +298,7 @@ struct WinogradBufferInfo
                        int wei_w,
                        MemLayout_t layout,
                        int vec_c,
-                       int data_len_t,
+                       int element_size,
                        ConvWinoBuffType buff_type,
                        int wino_xform_h,
                        int wino_xform_w)
@@ -313,7 +313,7 @@ struct WinogradBufferInfo
                              layout,
                              ConvWinoXformType::N_1_CThTw_Xh_Xw,
                              vec_c,
-                             data_len_t,
+                             element_size,
                              buff_type,
                              wino_xform_h,
                              wino_xform_w)
