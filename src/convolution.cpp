@@ -45,10 +45,13 @@
 #include <boost/range/combine.hpp>
 #include <boost/range/adaptors.hpp>
 
+#include "cellfft/include/cellfft_param.hpp"
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_WINOGRAD)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_CELLFFT)
 
 // Workaround for issue 1430.
 // Vega20 fails to access GPU memory larger than the return value of GetMaxMemoryAllocSize() of
@@ -460,6 +463,8 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
 
     const size_t implicit_gemm_workspace = ForwardBackwardGetWorkSpaceSizeImplicitGemm(ctx);
 
+    const size_t cellfft_workspace = cellfft::get_auxbuf_size(ctx);
+
     size_t workspace_size_gemm = 0;
 #if MIOPEN_USE_GEMM
     if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
@@ -483,12 +488,12 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
             /// \todo WORKAROUND for issue 1430
             if(gemm_trans > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
                 gemm_trans = 0;
-            return std::max({gemm_trans, direct_workspace, implicit_gemm_workspace});
+            return std::max({gemm_trans, direct_workspace, implicit_gemm_workspace, cellfft_workspace});
         }
 
         if(miopen::any_of(GetConvDilations(), [](auto v) { return v > 1; }))
         {
-            return std::max({workspace_size_gemm, direct_workspace, implicit_gemm_workspace});
+            return std::max({workspace_size_gemm, direct_workspace, implicit_gemm_workspace, cellfft_workspace});
         }
     }
 #endif
@@ -503,7 +508,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
             : 0;
 
     const size_t workspace_size = std::max(
-        {workspace_size_fft, workspace_size_gemm, direct_workspace, implicit_gemm_workspace});
+        {workspace_size_fft, workspace_size_gemm, direct_workspace, implicit_gemm_workspace, cellfft_workspace});
 
     MIOPEN_LOG_I2(workspace_size);
     return workspace_size;
@@ -549,10 +554,12 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
 
     const size_t implicit_gemm_workspace = ForwardBackwardGetWorkSpaceSizeImplicitGemm(ctx);
 
+    const size_t cellfft_workspace = cellfft::get_auxbuf_size(ctx);
+
     size_t workspace_size_gemm = 0;
 
 #if MIOPEN_USE_GEMM
-    size_t tmp_max_workspace = std::max({direct_workspace, implicit_gemm_workspace});
+    size_t tmp_max_workspace = std::max({direct_workspace, implicit_gemm_workspace, cellfft_workspace});
     if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
     {
         workspace_size_gemm = BackwardDataGetWorkSpaceSizeGEMM(wDesc, dyDesc);
@@ -592,7 +599,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
             : 0;
 
     const size_t workspace_size = std::max(
-        {workspace_size_fft, workspace_size_gemm, direct_workspace, implicit_gemm_workspace});
+        {workspace_size_fft, workspace_size_gemm, direct_workspace, implicit_gemm_workspace, cellfft_workspace});
     MIOPEN_LOG_I2(workspace_size);
     return workspace_size;
 }
@@ -861,6 +868,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
     const size_t workspace_size = std::max({BackwardWeightsGetWorkSpaceSizeImplicitGemm(ctx),
                                             BackwardWeightsGetWorkSpaceSizeWinograd(ctx),
                                             BackwardWeightsGetWorkSpaceSizeDirect(ctx),
+                                            cellfft::get_auxbuf_size_grad(ctx),
                                             workspace_size_gemm});
     MIOPEN_LOG_I2(workspace_size);
     return workspace_size;

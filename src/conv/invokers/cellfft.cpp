@@ -165,8 +165,8 @@ InvokerFactory MakeCellfftInvokerFactory( const cellfft::cellfft_param_t& conv_p
             const void* fil=tensors.w;
             void* dst=tensors.out;
             uint8_t* a=reinterpret_cast<uint8_t*>(auxbuf);
-            uint8_t* b=a+(static_cast<uint64_t>(conv_params.nbanks*conv_params.abks)<<3);
-            uint8_t* c=b+(static_cast<uint64_t>(conv_params.nbanks*conv_params.bbks)<<3);
+            uint8_t* b=a+(static_cast<size_t>(conv_params.nbanks*conv_params.abks)<<3);
+            uint8_t* c=b+(static_cast<size_t>(conv_params.nbanks*conv_params.bbks)<<3);
             float elapsed=0.f;
             ir2c( handle, kernels[1], conv_params, a, src );
             if(handle.IsProfilingEnabled()){ elapsed+=handle.GetKernelTime(); }
@@ -199,8 +199,8 @@ InvokerFactory MakeCellfftInvokerFactoryGrad( const cellfft::cellfft_param_t& co
             const void* qin=tensors.x;
             void* dst=tensors.dw;
             uint8_t* a=reinterpret_cast<uint8_t*>(auxbuf);
-            uint8_t* b=a+(static_cast<uint64_t>(conv_params.nbanks*conv_params.abks)<<3);
-            uint8_t* c=b+(static_cast<uint64_t>(conv_params.nbanks*conv_params.bbks)<<3);
+            uint8_t* b=a+(static_cast<size_t>(conv_params.nbanks*conv_params.abks)<<3);
+            uint8_t* c=b+(static_cast<size_t>(conv_params.nbanks*conv_params.bbks)<<3);
             float elapsed=0.f;
             ir2c( handle, kernels[1], conv_params, a, pin );
             if(handle.IsProfilingEnabled()){ elapsed+=handle.GetKernelTime(); }

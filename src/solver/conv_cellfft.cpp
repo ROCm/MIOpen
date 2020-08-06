@@ -33,31 +33,32 @@
 #include <miopen/conv/invokers/cellfft.hpp>
 #include "../cellfft/include/cellfft_get_kernel.hpp"
 
-static void get_solution_cellfft( miopen::solver::ConvSolution& solution, const miopen::cellfft::cellfft_param_t& p, const std::string& file_name )
+static void get_solution_cellfft( const miopen::ConvolutionContext& ctx, miopen::solver::ConvSolution& solution, const miopen::cellfft::cellfft_param_t& p )
 {
-    solution.construction_params.push_back(miopen::cellfft::get_kernel_cgemm(p,file_name));
+    const std::string file_name="cellfft_"+ctx.GetStream().GetDeviceName()+".s";
+    solution.construction_params.push_back(miopen::cellfft::get_kernel_cgemm(ctx,p,file_name));
     if(p.dir!=2)
     {
         if((p.grid_x|p.grid_y)>1){
-            solution.construction_params.push_back(miopen::cellfft::get_kernel_r2c_grid(p,file_name));
-            solution.construction_params.push_back(miopen::cellfft::get_kernel_r2c_b(p,file_name));
-            solution.construction_params.push_back(miopen::cellfft::get_kernel_c2r_grid(p,file_name,0));
+            solution.construction_params.push_back(miopen::cellfft::get_kernel_r2c_grid(ctx,p,file_name));
+            solution.construction_params.push_back(miopen::cellfft::get_kernel_r2c_b(ctx,p,file_name));
+            solution.construction_params.push_back(miopen::cellfft::get_kernel_c2r_grid(ctx,p,file_name,0));
         } else {
-            solution.construction_params.push_back(miopen::cellfft::get_kernel_r2c_a(p,file_name,0));
-            solution.construction_params.push_back(miopen::cellfft::get_kernel_r2c_b(p,file_name));
-            solution.construction_params.push_back(miopen::cellfft::get_kernel_c2r(p,file_name,0));
+            solution.construction_params.push_back(miopen::cellfft::get_kernel_r2c_a(ctx,p,file_name));
+            solution.construction_params.push_back(miopen::cellfft::get_kernel_r2c_b(ctx,p,file_name));
+            solution.construction_params.push_back(miopen::cellfft::get_kernel_c2r(ctx,p,file_name,0));
         }
     }
     else
     {
         if((p.grid_x|p.grid_y)>1){
-            solution.construction_params.push_back(miopen::cellfft::get_kernel_r2c_xgrad_a(p,file_name));
-            solution.construction_params.push_back(miopen::cellfft::get_kernel_r2c_xgrad_b(p,file_name));
+            solution.construction_params.push_back(miopen::cellfft::get_kernel_r2c_xgrad_a(ctx,p,file_name));
+            solution.construction_params.push_back(miopen::cellfft::get_kernel_r2c_xgrad_b(ctx,p,file_name));
         } else {
-            solution.construction_params.push_back(miopen::cellfft::get_kernel_r2c_a(p,file_name,1));
-            solution.construction_params.push_back(miopen::cellfft::get_kernel_r2c_b(p,file_name));
+            solution.construction_params.push_back(miopen::cellfft::get_kernel_r2c_a(ctx,p,file_name));
+            solution.construction_params.push_back(miopen::cellfft::get_kernel_r2c_b(ctx,p,file_name));
         }
-        solution.construction_params.push_back(miopen::cellfft::get_kernel_c2r_grad(p,file_name));
+        solution.construction_params.push_back(miopen::cellfft::get_kernel_c2r_grad(ctx,p,file_name));
     }
 }
 
@@ -83,14 +84,13 @@ ConvSolution ConvCellfft::GetSolution( const ConvolutionContext& ctx ) const
 {
     ConvSolution solution;
     cellfft::cellfft_param_t params{};
-    const std::string file_name="cellfft_"+ctx.GetStream().GetDeviceName()+".s";
     if(!ctx.direction.IsBackwardWrW()){
         cellfft::build_cellfft_params( params, ctx );
     } else {
         cellfft::build_cellfft_params_grad( params, ctx );
     }
     solution.workspce_sz=cellfft::get_auxbuf_size(params);
-    get_solution_cellfft( solution, params, file_name );
+    get_solution_cellfft( ctx, solution, params );
     if(!ctx.direction.IsBackwardWrW()){
         solution.invoker_factory=conv::MakeCellfftInvokerFactory( params, 1.f );
     } else {

@@ -166,8 +166,7 @@ void build_cellfft_params( cellfft_param_t& p, const ConvolutionContext& ctx )
     uint32_t cny  =ctx.out_height;
     uint32_t pad_u=ctx.pad_w;
     uint32_t pad_v=ctx.pad_h;
-    p.dir=ctx.direction.IsForward()?0:1;
-    if(!ctx.direction.IsForward()){
+    if((p.dir=ctx.direction.IsForward()?0:1)!=0){
         pad_u=bnx-pad_u-1;
         pad_v=bny-pad_v-1;
     }

@@ -25,7 +25,9 @@
  *******************************************************************************/
 
 // clang-format off
+#include <sstream>
 #include <miopen/kernel_info.hpp>
+#include <miopen/gcn_asm_utils.hpp>
 #include "../include/cellfft_get_kernel.hpp"
 
 #define START_R2C_S   0
@@ -341,12 +343,12 @@ static uint32_t choose_cgemm_id( uint32_t m, uint32_t n )
 {
     uint32_t mi=(m+31u)>>5;
     uint32_t ni=(n+15u)>>4;
-    return (((0x12>>((ni&3)<<1))&0x3)+((mi&1)==0u?0:3));
+    return ((1^(mi&1))*3+((ni&3)==0?2:(ni&1)));
 }
 
 namespace miopen {
 namespace cellfft {
-solver::KernelInfo get_kernel_cgemm( const cellfft_param_t& p, const std::string& file_name )
+solver::KernelInfo get_kernel_cgemm( const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& file_name )
 {
     static const uint32_t blk[]={64,64,128,64,128,256};
     static const char* knames[][2]={
@@ -358,115 +360,130 @@ solver::KernelInfo get_kernel_cgemm( const cellfft_param_t& p, const std::string
         { "scgemm6x6", "scgemm6x6_ck" }
     };
     uint32_t tile_id=choose_cgemm_id( p.m, p.n );
-    uint32_t shx=(0x666555>>(tile_id<<2))&0xf;
+    uint32_t shx=tile_id<3?5:6;
     uint32_t shy=(0x654654>>(tile_id<<2))&0xf;
-    uint32_t shz=tile_id==0u?1:0;
+    uint32_t shz=tile_id==0?1:0;
     uint32_t gdx=(p.m+(1<<shx)-1)>>shx;
     uint32_t gdy=(p.n+(1<<shy)-1)>>shy;
     uint32_t gdz=p.nbanks>>shz;
-    const std::vector<size_t> grid{gdx,gdy,gdz};
     const std::vector<size_t> block{blk[tile_id],1,1};
-    return solver::KernelInfo{ "", block, grid, file_name, knames[tile_id][(p.k&7)!=0?1:0] };
+    const std::vector<size_t> grid{gdx*blk[tile_id],gdy,gdz};
+    std::ostringstream options;
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
+    return solver::KernelInfo{ options.str(), block, grid, file_name, knames[tile_id][(p.k&7)!=0?1:0] };
 }
-solver::KernelInfo get_kernel_r2c_a( const cellfft_param_t& p, const std::string& file_name, uint32_t g )
+solver::KernelInfo get_kernel_r2c_a( const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& file_name )
 {
     uint32_t kid=START_R2C+(p.id<<4)+p.any-1;
     uint32_t ncells=(p.m+15)>>4;
-    if((p.pad_l|p.pad_t)!=0u){
+    if((p.pad_l|p.pad_t)!=0){
         kid=START_R2C_PAD+(p.id<<4)+p.pad_t;
     }
-    const size_t gdx=g!=0u?p.k:ncells;
-    const size_t gdy=g!=0u?ncells:p.k;
-    const size_t bdx=p.id==0u?256:512;
-    const std::vector<size_t> grid{gdx,gdy,1};
+    const size_t bdx=p.id==0?256:512;
+    const size_t gdx=p.dir!=2?p.k:ncells;
+    const size_t gdy=p.dir!=2?ncells:p.k;
     const std::vector<size_t> block{bdx,1,1};
-    return solver::KernelInfo{ "", block, grid, file_name, g_knames[kid] };
+    const std::vector<size_t> grid{gdx*bdx,gdy,1};
+    std::ostringstream options;
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
+    return solver::KernelInfo{ options.str(), block, grid, file_name, g_knames[kid] };
 }
-solver::KernelInfo get_kernel_r2c_b( const cellfft_param_t& p, const std::string& file_name )
+solver::KernelInfo get_kernel_r2c_b( const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& file_name )
 {
     uint32_t ncells=(p.n+15)>>4;
-    uint32_t kid=START_R2C+(p.dir!=1u?0:48)+(p.id<<4)+p.bny-1;
-    if((p.bnx==p.bny)&&((p.bnx==3u)||(p.bnx==5u))){
-        kid=START_R2C_S+((p.id<<2)|((p.dir&0x1)<<1)|(p.bnx==3u?0:1));
+    uint32_t kid=START_R2C+(p.dir!=1?0:48)+(p.id<<4)+p.bny-1;
+    if((p.bnx==p.bny)&&((p.bnx==3)||(p.bnx==5))){
+        kid=START_R2C_S+((p.id<<2)|((p.dir&1)<<1)|(p.bnx==3?0:1));
     }
-    const size_t gdx=p.dir!=1u?p.k:ncells;
-    const size_t gdy=p.dir!=1u?ncells:p.k;
-    const size_t bdx=p.id==0u?256:512;
-    const std::vector<size_t> grid{gdx,gdy,1};
+    const size_t bdx=p.id==0?256:512;
+    const size_t gdx=p.dir==0?p.k:ncells;
+    const size_t gdy=p.dir==0?ncells:p.k;
     const std::vector<size_t> block{bdx,1,1};
-    return solver::KernelInfo{ "", block, grid, file_name, g_knames[kid] };
+    const std::vector<size_t> grid{gdx*bdx,gdy,1};
+    std::ostringstream options;
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
+    return solver::KernelInfo{ options.str(), block, grid, file_name, g_knames[kid] };
 }
-solver::KernelInfo get_kernel_r2c_grid( const cellfft_param_t& p, const std::string& file_name )
+solver::KernelInfo get_kernel_r2c_grid( const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& file_name )
 {   
     uint32_t nx=p.tile_x*p.grid_x+p.bnx-1;
     uint32_t ny=p.tile_y*p.grid_y+p.bny-1;
     uint32_t ex=((nx!=p.anx)||(ny!=p.any))?1:0;
     uint32_t kid=START_R2C_X+p.id*3;
-    kid+=((p.pad_r|p.pad_t)!=0u?2:ex);
+    kid+=((p.pad_r|p.pad_t)!=0?2:ex);
+    const size_t bdx=p.id==0?256:512;
     const size_t gdx=(p.m+15)>>4;
-    const size_t bdx=p.id==0u?256:512;
-    const std::vector<size_t> grid{gdx, p.k, 1};
     const std::vector<size_t> block{bdx,1,1};
-    return solver::KernelInfo{ "", block, grid, file_name, g_knames[kid] };
+    const std::vector<size_t> grid{gdx*bdx, p.k, 1};
+    std::ostringstream options;
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
+    return solver::KernelInfo{ options.str(), block, grid, file_name, g_knames[kid] };
 }
-solver::KernelInfo get_kernel_r2c_xgrad_a( const cellfft_param_t& p, const std::string& file_name )
+solver::KernelInfo get_kernel_r2c_xgrad_a( const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& file_name )
 {   
     uint32_t nx=p.tile_x*p.grid_x+p.bnx-1;
     uint32_t ny=p.tile_y*p.grid_y+p.bny-1;
     uint32_t ex=((nx!=p.anx)||(ny!=p.any))?1:0;
     uint32_t kid=START_R2C_Xg+(p.id<<2);
-    kid+=((p.pad_r|p.pad_t)!=0u?2:ex);
+    kid+=((p.pad_r|p.pad_t)!=0?2:ex);
+    const size_t bdx=p.id==0?256:512;
     const size_t gdx=(p.m+15)>>4;
-    const size_t bdx=p.id==0u?256:512;
-    const std::vector<size_t> grid{gdx, p.k, 1};
     const std::vector<size_t> block{bdx,1,1};
-    return solver::KernelInfo{ "", block, grid, file_name, g_knames[kid] };
+    const std::vector<size_t> grid{gdx*bdx, p.k, 1};
+    std::ostringstream options;
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
+    return solver::KernelInfo{ options.str(), block, grid, file_name, g_knames[kid] };
 }
-solver::KernelInfo get_kernel_r2c_xgrad_b( const cellfft_param_t& p, const std::string& file_name )
+solver::KernelInfo get_kernel_r2c_xgrad_b( const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& file_name )
 {   
     uint32_t kid=START_R2C_Xg+((p.id<<2)|3);
     const size_t gdx=(p.n+15)>>4;
-    const size_t bdx=p.id==0u?256:512;
-    const std::vector<size_t> grid{gdx, p.k, 1};
+    const size_t bdx=p.id==0?256:512;
     const std::vector<size_t> block{bdx,1,1};
-    return solver::KernelInfo{ "", block, grid, file_name, g_knames[kid] };
+    const std::vector<size_t> grid{gdx*bdx, p.k, 1};
+    std::ostringstream options;
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
+    return solver::KernelInfo{ options.str(), block, grid, file_name, g_knames[kid] };
 }
-solver::KernelInfo get_kernel_c2r( const cellfft_param_t& p, const std::string& file_name, uint32_t relu )
+solver::KernelInfo get_kernel_c2r( const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& file_name, uint32_t relu )
 {   
-    uint32_t shx=4u-p.id;
+    uint32_t shx=4-p.id;
     uint32_t kid=START_C2R+(p.id<<5)+(relu<<(p.id+4))+p.cny-1;
     const size_t gdx=(p.m+(1<<shx)-1)>>shx;
-    const size_t bdx=p.id==0u?256:512;
-    const std::vector<size_t> grid{gdx, p.n, 1};
-    const std::vector<size_t> block{bdx,1,1};
-    return solver::KernelInfo{ "", block, grid, file_name, g_knames[kid] };
+    const std::vector<size_t> block{256,1,1};
+    const std::vector<size_t> grid{gdx<<8, p.n, 1};
+    std::ostringstream options;
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
+    return solver::KernelInfo{ options.str(), block, grid, file_name, g_knames[kid] };
 }
-solver::KernelInfo get_kernel_c2r_grid( const cellfft_param_t& p, const std::string& file_name, uint32_t relu )
+solver::KernelInfo get_kernel_c2r_grid( const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& file_name, uint32_t relu )
 {   
-    uint32_t shx=4u-p.id;
+    uint32_t shx=4-p.id;
     uint32_t kid=START_C2R_X+((p.id<<1)|relu);
     const size_t gdx=(p.m+(1<<shx)-1)>>shx;
-    const size_t bdx=p.id==0u?256:512;
-    const std::vector<size_t> grid{gdx, p.n, 1};
-    const std::vector<size_t> block{bdx,1,1};
-    return solver::KernelInfo{ "", block, grid, file_name, g_knames[kid] };
+    const std::vector<size_t> block{256,1,1};
+    const std::vector<size_t> grid{gdx<<8, p.n, 1};
+    std::ostringstream options;
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
+    return solver::KernelInfo{ options.str(), block, grid, file_name, g_knames[kid] };
 }
-solver::KernelInfo get_kernel_c2r_grad( const cellfft_param_t& p, const std::string& file_name )
+solver::KernelInfo get_kernel_c2r_grad( const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& file_name )
 {
     uint32_t nmax=p.cnx>p.cny?p.cnx:p.cny;
     uint32_t nmin=p.cnx<p.cny?p.cnx:p.cny;
     uint32_t kid=START_C2R+(p.id<<5)+p.cny-1;
     uint32_t shx=4-p.id;
-    bool cc0=(p.cnx==p.cny)&&((p.cnx==3)||(p.cnx==5u)||(p.cnx==7u));
-    bool cc1=(nmin==1u)&&((nmax&0x1)!=0u)&&(nmax>1u)&&(nmax<=9u);
+    bool cc0=(p.cnx==p.cny)&&((p.cnx==3)||(p.cnx==5)||(p.cnx==7));
+    bool cc1=(nmin==1)&&((nmax&1)!=0)&&(nmax>1)&&(nmax<=9);
     if(cc0||cc1){
         kid=START_C2R_S+11*p.id+(cc0?8:(p.cnx>p.cny?0:4))+(nmax>>1)-1;
     }
     const size_t gdx=(p.m+(1<<shx)-1)>>shx;
-    const size_t bdx=p.id==0u?256:512;
-    const std::vector<size_t> grid{gdx,p.n,1};
-    const std::vector<size_t> block{bdx,1,1};
-    return solver::KernelInfo{ "", block, grid, file_name, g_knames[kid] };
+    const std::vector<size_t> block{256,1,1};
+    const std::vector<size_t> grid{gdx<<8,p.n,1};
+    std::ostringstream options;
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
+    return solver::KernelInfo{ options.str(), block, grid, file_name, g_knames[kid] };
 }
 } // namespace cellfft
 } // namespace miopen

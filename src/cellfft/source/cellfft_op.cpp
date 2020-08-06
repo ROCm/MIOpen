@@ -42,7 +42,7 @@ void lk_fft2d_r2c_perm_a( const Handle& handle, const Kernel& kern, const cellff
 }
 void lk_fft2d_r2c_perm_b( const Handle& handle, const Kernel& kern, const cellfft_param_t& p, void* dst, const void* src )
 {
-    handle.Run(kern)( dst, p.ldb, p.bbks, src, (p.dir!=1?0:0x80000000)|p.n, p.bnx, p.bldx, p.bldy );
+    handle.Run(kern)( dst, p.ldb, p.bbks, src, (p.dir==0?0:0x80000000)|p.n, p.bnx, p.bldx, p.bldy );
 }
 void lk_fft2d_r2c_perm_pad( const Handle& handle, const Kernel& kern, const cellfft_param_t& p, void* dst, const void* src )
 {
