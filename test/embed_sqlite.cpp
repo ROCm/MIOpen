@@ -68,7 +68,7 @@ struct EmbedSQLite : test_driver
             x.desc, w.desc, y.desc, filter, miopen::conv::Direction::Forward};
         ctx.SetStream(&handle);
         ctx.DetectRocm();
-        // Check PerfDb 
+        // Check PerfDb
         {
             // Get filename for the sys db
             // Check it in miopen_data()
