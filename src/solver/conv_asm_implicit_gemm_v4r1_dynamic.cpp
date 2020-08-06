@@ -57,8 +57,6 @@ struct TunableImplicitGemmV4R1Dynamic
     int WeiBlockCopyClusterLengths_E;
     int WeiBlockCopyClusterLengths_K;
 
-    int PreGeneratedKernelIndex;
-
     TunableImplicitGemmV4R1Dynamic(
         int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int);
     bool IsValid(const ConvolutionContext& ctx) const;
