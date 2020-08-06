@@ -1409,6 +1409,13 @@ struct ConvAsmImplicitGemmV4R1DynamicFwd_1x1 : SolverBase<ConvolutionContext>
                               float& elapsed_time) const;
 };
 
+struct ConvAsmImplicitGemmV4R1DynamicWrw : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& ctx) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+};
+
 struct ConvAsmImplicitGemmV4R1DynamicBwd : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext&) const;
