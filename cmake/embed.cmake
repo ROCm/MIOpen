@@ -47,7 +47,6 @@ function(generate_embed_source EMBED_NAME)
     foreach(idx RANGE ${LEN})
         list(GET PARSE_SYMBOLS ${idx} SYMBOL)
         list(GET PARSE_OBJECTS ${idx} OBJECT)
-    # foreach(SYMBOL ${PARSE_SYMBOLS})
         set(START_SYMBOL "_binary_${SYMBOL}_start")
         set(END_SYMBOL "_binary_${SYMBOL}_end")
         string(APPEND EXTERNS "

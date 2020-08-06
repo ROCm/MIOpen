@@ -56,7 +56,6 @@ int miopen_sqlite3_memvfs_init(sqlite3* db, char** pzErrMsg, const sqlite3_api_r
 }
 namespace miopen {
 
-template <bool in_mem>
 class SQLite::impl
 {
     struct SQLiteCloser
@@ -278,7 +277,7 @@ class SQLite::Statement::impl
 };
 
 SQLite::SQLite(const std::string& filename_, bool is_system)
-    : pImpl{std::make_unique<impl<InMemDb>>(filename_, is_system)}
+    : pImpl{std::make_unique<impl>(filename_, is_system)}
 {
 }
 

@@ -156,10 +156,9 @@ struct SQLiteSerializable
 
 class SQLite
 {
-    template <bool InMemDb>
     class impl;
     // do we need propagate const
-    std::unique_ptr<impl<InMemDb>> pImpl;
+    std::unique_ptr<impl> pImpl;
 
     public:
     class Statement
