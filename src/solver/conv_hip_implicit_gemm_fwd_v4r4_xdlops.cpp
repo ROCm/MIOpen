@@ -492,7 +492,6 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
 
         int data_per_thread_copy_gemmkpack = -1;
         int data_per_thread_copy_gemmk     = -1;
-
         if(GemmBThreadCopyMoreGemmKPack)
         {
             data_per_thread_copy_gemmkpack = gcd(GemmKPack, tmp);
@@ -507,6 +506,11 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
         // vector write into LDS
         DstDataPerWrite_GemmKPack = gcd(DstDataPerWrite_GemmKPack, data_per_thread_copy_gemmkpack);
 
+        if(!(data_per_thread_copy_gemmkpack > 0 && data_per_thread_copy_gemmk > 0 &&
+             data_per_thread_copy_gemmn > 0))
+        {
+            MIOPEN_THROW("invalid performance parameter");
+        }
         if(!(GemmKPerBlock % data_per_thread_copy_gemmk == 0 &&
              GemmNPerBlock % data_per_thread_copy_gemmn == 0 &&
              GemmKPack % data_per_thread_copy_gemmkpack == 0))
@@ -777,21 +781,24 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
         if(miopen::IsEnabled(
                MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R4_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
         {
-            int SrcDataPerRead_GemmN      = 0;
-            int DstDataPerWrite_GemmKPack = 0;
-            bool valid                    = false;
-            std::tie(std::ignore,
-                     std::ignore,
-                     std::ignore,
-                     SrcDataPerRead_GemmN,
-                     DstDataPerWrite_GemmKPack,
-                     valid) = CalculateGemmBBlockCopyPerformanceParameters(ctx);
-            if(valid && ctx.IsFp16())
+            if(ctx.IsFp16())
             {
-                if((SrcDataPerRead_GemmN > 1) &&
-                   ((DstDataPerWrite_GemmKPack == 1) || (DstDataPerWrite_GemmKPack == 2)))
+                int SrcDataPerRead_GemmN      = 0;
+                int DstDataPerWrite_GemmKPack = 0;
+                bool valid                    = false;
+                std::tie(std::ignore,
+                         std::ignore,
+                         std::ignore,
+                         SrcDataPerRead_GemmN,
+                         DstDataPerWrite_GemmKPack,
+                         valid) = CalculateGemmBBlockCopyPerformanceParameters(ctx);
+                if(valid)
                 {
-                    return false;
+                    if((SrcDataPerRead_GemmN > 1) &&
+                       ((DstDataPerWrite_GemmKPack == 1) || (DstDataPerWrite_GemmKPack == 2)))
+                    {
+                        return false;
+                    }
                 }
             }
         }
