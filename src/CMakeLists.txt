@@ -27,6 +27,7 @@
 cmake_policy(SET CMP0057 NEW)
 
 include (GenerateExportHeader)
+add_subdirectory(sqlite)
 
 # Truncation rounding or (default) rounding to nearest even (RNE) is enabled.
 # This switch controls two related but different aspects of MIOpen behavior
@@ -494,6 +495,7 @@ endif()
 # build library
 add_library( MIOpen
     ${MIOpen_Source}
+    $<TARGET_OBJECTS:sqlite_memvfs>
     )
 
 rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
@@ -641,13 +643,21 @@ rocm_export_targets(
     ${PACKAGE_STATIC_DEPENDS}
 )
 
-
-
 # Install db files
 file(GLOB FIND_DB_FILES kernels/*.fdb.txt)
-install(FILES
-    kernels/miopen.db
-    ${FIND_DB_FILES}
- DESTINATION ${DATA_INSTALL_DIR}/db)
+if(NOT MIOPEN_EMBED_DB STREQUAL "")
+    include(embed)
 
+    set(CODE_OBJECTS)
+    list(APPEND CODE_OBJECTS "kernels/miopen.db")
+    add_embed_library(miopen_data ${CODE_OBJECTS})
+    target_link_libraries(MIOpen PRIVATE miopen_data)
+else()
+    list(APPEND FIND_DB_FILES kernels/miopen.db)
+endif()
+if(NOT MIOPEN_DISABLE_SYSDB)
+    install(FILES
+        ${FIND_DB_FILES}
+     DESTINATION ${DATA_INSTALL_DIR}/db)
+endif()
 rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})
