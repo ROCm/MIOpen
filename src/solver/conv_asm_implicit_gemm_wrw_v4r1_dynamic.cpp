@@ -49,10 +49,17 @@ GetImplicitGemmWrwV4R1DynamicGemmkGroups(const conv::ProblemDescription& conv_pr
     int wo           = conv_problem.GetInWidth();
     int gemmk        = n * ho * wo;
     int gemmk_groups = 1;
+    int n_per_group;
     for(int i = 0; i < 6; i++)
     {
-        if(0 == (gemmk % ((1 << i) * GemmKPerBlock)))
-            gemmk_groups = i;
+        if(0 == n % (1 << i))
+        {
+            n_per_group = n >> i;
+            if(0 == (gemmk % (n_per_group * GemmKPerBlock)))
+                gemmk_groups = i;
+            else
+                break;
+        }
         else
             break;
     }
