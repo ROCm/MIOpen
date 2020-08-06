@@ -283,6 +283,7 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
 
     std::ostringstream options_in;
     GENERATE_MAIN_OPTIONS(options_in)
+    GenerateClangDefsym(options_in, "xform_mirror", 0);
 
     std::ostringstream options_filter;
     GENERATE_MAIN_OPTIONS(options_filter)
@@ -290,6 +291,7 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
 
     std::ostringstream options_out;
     GENERATE_MAIN_OPTIONS(options_out)
+    GenerateClangDefsym(options_out, "xform_mirror", 0);
 
     KernelInfo InTransform{
         options_in.str(),

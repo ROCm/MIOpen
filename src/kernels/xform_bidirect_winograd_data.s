@@ -26,7 +26,6 @@
 xform_data=1
 xform_filter=0
 xform_output=0
-xform_mirror=0
 
 
 .include "xform_bidirect_winograd_code.inc"
