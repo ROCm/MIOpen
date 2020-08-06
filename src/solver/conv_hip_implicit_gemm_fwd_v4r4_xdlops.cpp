@@ -41,8 +41,6 @@ MIOPEN_DECLARE_ENV_VAR(
 namespace miopen {
 namespace solver {
 
-bool PerformanceImplicitGemmForwardV4R4Xdlops::m_isFp16 = false;
-
 PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops()
     : PerformanceImplicitGemmForwardV4R4Xdlops::PerformanceImplicitGemmForwardV4R4Xdlops(
           4, 4, 1, 4, 4, 1, false, false, 1)
@@ -96,11 +94,8 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue()
         if(miopen::IsEnabled(
                MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R4_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
         {
-            if(m_isFp16)
-            {
-                if(!NextTwoPower<1, 8>(GemmBThreadDataPerRead_GemmN))
-                    break;
-            }
+            if(!NextTwoPower<1, 8>(GemmBThreadDataPerRead_GemmN))
+                break;
         }
         if(!NextFlag<false, true>(GemmBThreadCopyMoreGemmKPack))
             break;
@@ -127,7 +122,6 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue()
 void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmForwardV4R4Xdlops tmp;
-    m_isFp16 = ctx.IsFp16();
 
     // loop over certain ranges of tuning parameter
     auto get_euristic_config = [&](auto is_valid_func) {
@@ -142,6 +136,8 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
                 {
                     // list in reverse order of importance,
                     // and favor large GEMM
+                    if(!PreviousTwoPower<1, 8>(tmp.GemmBThreadDataPerRead_GemmN))
+                        break;
                     if(!PreviousTwoPower<1, 8>(tmp.GemmKPerBlock))
                         break;
                     if(!PreviousTwoPower<1, 4>(tmp.GemmKPack))
@@ -172,6 +168,8 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
                 {
                     // list in reverse order of importance,
                     // and favor large GEMM
+                    if(!PreviousTwoPower<1, 8>(tmp.GemmBThreadDataPerRead_GemmN))
+                        break;
                     if(!PreviousTwoPower<1, 8>(tmp.GemmKPerBlock))
                         break;
                     if(!PreviousTwoPower<4, 8>(tmp.GemmKPack))
@@ -203,6 +201,8 @@ void PerformanceImplicitGemmForwardV4R4Xdlops::EuristicInit(const ConvolutionCon
                 {
                     // list in reverse order of importance,
                     // and favor large GEMM
+                    if(!PreviousTwoPower<1, 8>(tmp.GemmBThreadDataPerRead_GemmN))
+                        break;
                     if(!PreviousTwoPower<1, 8>(tmp.GemmKPerBlock))
                         break;
                     if(!PreviousTwoPower<2, 8>(tmp.GemmKPack))
@@ -475,6 +475,13 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
                     MIOPEN_THROW("invalid performance parameter");
                 }
             }
+            else
+            {
+                if(SrcDataPerRead_GemmN != GemmBThreadDataPerRead_GemmN)
+                {
+                    MIOPEN_THROW("invalid performance parameter");
+                }
+            }
         }
         // make sure a thread can do a full vector load, at the cost that some threads
         // may not do threadwise copy at all
@@ -499,19 +506,6 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
 
         // vector write into LDS
         DstDataPerWrite_GemmKPack = gcd(DstDataPerWrite_GemmKPack, data_per_thread_copy_gemmkpack);
-
-        if(miopen::IsEnabled(
-               MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R4_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
-        {
-            if(ctx.IsFp16())
-            {
-                if((SrcDataPerRead_GemmN > 1) &&
-                   ((DstDataPerWrite_GemmKPack == 1) || (DstDataPerWrite_GemmKPack == 2)))
-                {
-                    MIOPEN_THROW("invalid performance parameter");
-                }
-            }
-        }
 
         if(!(GemmKPerBlock % data_per_thread_copy_gemmk == 0 &&
              GemmNPerBlock % data_per_thread_copy_gemmn == 0 &&
@@ -777,6 +771,31 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
         }
     }
 
+    // DstDataPerWrite_GemmKPack should not be too small, otherwise too many ds_write instruction
+    // would cause bad performance
+    {
+        if(miopen::IsEnabled(
+               MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R4_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
+        {
+            int SrcDataPerRead_GemmN      = 0;
+            int DstDataPerWrite_GemmKPack = 0;
+            bool valid                    = false;
+            std::tie(std::ignore,
+                     std::ignore,
+                     std::ignore,
+                     SrcDataPerRead_GemmN,
+                     DstDataPerWrite_GemmKPack,
+                     valid) = CalculateGemmBBlockCopyPerformanceParameters(ctx);
+            if(valid && ctx.IsFp16())
+            {
+                if((SrcDataPerRead_GemmN > 1) &&
+                   ((DstDataPerWrite_GemmKPack == 1) || (DstDataPerWrite_GemmKPack == 2)))
+                {
+                    return false;
+                }
+            }
+        }
+    }
     return true;
 }
 

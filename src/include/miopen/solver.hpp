@@ -971,7 +971,6 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     bool GemmAThreadCopyMoreGemmK;
     bool GemmBThreadCopyMoreGemmKPack;
     int GemmBThreadDataPerRead_GemmN;
-    static bool m_isFp16;
 
     PerformanceImplicitGemmForwardV4R4Xdlops(int, int, int, int, int, int, bool, bool, int);
     PerformanceImplicitGemmForwardV4R4Xdlops();
