@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-// clang-format off
 #include <miopen/solver.hpp>
 #include <miopen/env.hpp>
 #include <miopen/kernel_build_params.hpp>
@@ -33,6 +32,7 @@
 #include <miopen/conv/invokers/cellfft.hpp>
 #include "../cellfft/include/cellfft_get_kernel.hpp"
 
+// clang-format off
 static void get_solution_cellfft( const miopen::ConvolutionContext& ctx, miopen::solver::ConvSolution& solution, const miopen::cellfft::cellfft_param_t& p )
 {
     const std::string file_name="cellfft_"+ctx.GetStream().GetDeviceName()+".s";
@@ -61,7 +61,6 @@ static void get_solution_cellfft( const miopen::ConvolutionContext& ctx, miopen:
         solution.construction_params.push_back(miopen::cellfft::get_kernel_c2r_grad(ctx,p,file_name));
     }
 }
-
 namespace miopen {
 namespace solver {
 bool ConvCellfft::IsApplicable( const ConvolutionContext& ctx ) const
