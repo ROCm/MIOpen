@@ -51,19 +51,7 @@ static void fft2d_r2c_b( const miopen::Handle& handle, const miopen::Kernel& ker
         miopen::cellfft::lk_fft2d_r2c_perm_b( handle, kern, p, dst, src );
     }
 }
-static void fft2d_r2c_grad_a( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, const void* src )
-{
-    if((p.pad_l|p.pad_t)!=0){
-        miopen::cellfft::lk_fft2d_r2c_perm_pad( handle, kern, p, dst, src );
-    } else {
-        miopen::cellfft::lk_fft2d_r2c_perm_a( handle, kern, p, dst, src );
-    }
-}
-static void fft2d_r2c_grad_b( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, const void* src )
-{
-    miopen::cellfft::lk_fft2d_r2c_perm_b( handle, kern, p, dst, src );
-}
-static void fft2d_r2c_grid( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, const void* src )
+static void fft2d_r2c_grid_a( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, const void* src )
 {
     if((p.pad_r|p.pad_t)!=0){
         miopen::cellfft::lk_fft2d_r2c_grid_perm_pad( handle, kern, p, dst, src );
@@ -71,15 +59,7 @@ static void fft2d_r2c_grid( const miopen::Handle& handle, const miopen::Kernel& 
         miopen::cellfft::lk_fft2d_r2c_grid_perm( handle, kern, p, dst, src );
     }
 }
-static void fft2d_r2c_xgrad_a( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, const void* src )
-{
-    if((p.pad_r|p.pad_t)!=0){
-        miopen::cellfft::lk_fft2d_r2c_grid_perm_pad( handle, kern, p, dst, src );
-    } else {
-        miopen::cellfft::lk_fft2d_r2c_grid_perm( handle, kern, p, dst, src );
-    }
-}
-static void fft2d_r2c_xgrad_b( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, const void* src )
+static void fft2d_r2c_grid_b( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, const void* src )
 {
     miopen::cellfft::lk_fft2d_r2c_grid_perm_nov( handle, kern, p, dst, src );
 }
@@ -106,35 +86,23 @@ static void cgemm( const miopen::Handle& handle, const miopen::Kernel& kern, con
 {
     miopen::cellfft::lk_cgemm( handle, kern, p, c, a, b, alpha );
 }
-static void ir2c( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, const void* src )
+static void dtr( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, const void* src )
 {
-    if(p.dir!=2){
-        if((p.grid_x|p.grid_y)>1){
-            fft2d_r2c_grid( handle, kern, p, dst, src );
-        } else {
-            fft2d_r2c_a( handle, kern, p, dst, src );
-        }
+    if((p.grid_x|p.grid_y)>1){
+        fft2d_r2c_grid_a( handle, kern, p, dst, src );
     } else {
-        if((p.grid_x|p.grid_y)>1){
-            fft2d_r2c_xgrad_a( handle, kern, p, dst, src );
-        } else {
-            fft2d_r2c_grad_a( handle, kern, p, dst, src );
-        }
+        fft2d_r2c_a( handle, kern, p, dst, src );
     }
 }
-static void fr2c( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, const void* src )
+static void ftr( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, const void* src )
 {
-    if(p.dir!=2){
+    if((p.dir==2)&&((p.grid_x|p.grid_y)>1)){
+        fft2d_r2c_grid_b( handle, kern, p, dst, src );
+    } else {
         fft2d_r2c_b( handle, kern, p, dst, src );
-    } else {
-        if((p.grid_x|p.grid_y)>1){
-            fft2d_r2c_xgrad_b( handle, kern, p, dst, src );
-        } else {
-            fft2d_r2c_grad_b( handle, kern, p, dst, src );
-        }
     }
 }
-static void c2r( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, void* src )
+static void otr( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, void* src )
 {
     if(p.dir!=2){
         if((p.grid_x|p.grid_y)>1){
@@ -168,13 +136,13 @@ InvokerFactory MakeCellfftInvokerFactory( const cellfft::cellfft_param_t& conv_p
             uint8_t* b=a+(static_cast<size_t>(conv_params.nbanks*conv_params.abks)<<3);
             uint8_t* c=b+(static_cast<size_t>(conv_params.nbanks*conv_params.bbks)<<3);
             float elapsed=0.f;
-            ir2c( handle, kernels[1], conv_params, a, src );
+            dtr( handle, kernels[1], conv_params, a, src );
             if(handle.IsProfilingEnabled()){ elapsed+=handle.GetKernelTime(); }
-            fr2c( handle, kernels[2], conv_params, b, fil );
+            ftr( handle, kernels[2], conv_params, b, fil );
             if(handle.IsProfilingEnabled()){ elapsed+=handle.GetKernelTime(); }
             cgemm( handle, kernels[0], conv_params, c, a, b, alpha );
             if(handle.IsProfilingEnabled()){ elapsed+=handle.GetKernelTime(); }
-            c2r( handle, kernels[3], conv_params, dst, c );
+            otr( handle, kernels[3], conv_params, dst, c );
             if(handle.IsProfilingEnabled()){
                 elapsed += handle.GetKernelTime();
                 handle.ResetKernelTime();
@@ -202,13 +170,13 @@ InvokerFactory MakeCellfftInvokerFactoryGrad( const cellfft::cellfft_param_t& co
             uint8_t* b=a+(static_cast<size_t>(conv_params.nbanks*conv_params.abks)<<3);
             uint8_t* c=b+(static_cast<size_t>(conv_params.nbanks*conv_params.bbks)<<3);
             float elapsed=0.f;
-            ir2c( handle, kernels[1], conv_params, a, pin );
+            dtr( handle, kernels[1], conv_params, a, pin );
             if(handle.IsProfilingEnabled()){ elapsed+=handle.GetKernelTime(); }
-            fr2c( handle, kernels[2], conv_params, b, qin );
+            ftr( handle, kernels[2], conv_params, b, qin );
             if(handle.IsProfilingEnabled()){ elapsed+=handle.GetKernelTime(); }
             cgemm( handle, kernels[0], conv_params, c, a, b, alpha );
             if(handle.IsProfilingEnabled()){ elapsed+=handle.GetKernelTime(); }
-            c2r( handle, kernels[3], conv_params, dst, c );
+            otr( handle, kernels[3], conv_params, dst, c );
             if(handle.IsProfilingEnabled()){
                 elapsed += handle.GetKernelTime();
                 handle.ResetKernelTime();
