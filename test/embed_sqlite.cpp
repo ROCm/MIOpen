@@ -35,6 +35,7 @@
 #include <miopen/mlo_internal.hpp>
 #include <miopen/db.hpp>
 #include <miopen/sqlite_db.hpp>
+#include <miopen/find_db.hpp>
 
 #include <boost/filesystem/path.hpp>
 
@@ -67,15 +68,24 @@ struct EmbedSQLite : test_driver
             x.desc, w.desc, y.desc, filter, miopen::conv::Direction::Forward};
         ctx.SetStream(&handle);
         ctx.DetectRocm();
-        // Get filename for the sys db
-        // Check it in miopen_data()
-        boost::filesystem::path pdb_path(ctx.GetPerfDbPath());
-        const auto& it_p = miopen_data().find(pdb_path.filename().string() + ".o");
-        EXPECT(it_p != miopen_data().end());
-        // find all the entries in perf db
-        // Assert result is non-empty
-        auto pdb = GetDb(ctx);
-        EXPECT(pdb.FindRecord(ctx));
+        // Check PerfDb
+        {
+            // Get filename for the sys db
+            // Check it in miopen_data()
+            boost::filesystem::path pdb_path(ctx.GetPerfDbPath());
+            const auto& it_p = miopen_data().find(pdb_path.filename().string() + ".o");
+            EXPECT(it_p != miopen_data().end());
+            // find all the entries in perf db
+            // Assert result is non-empty
+            auto pdb = GetDb(ctx);
+            EXPECT(pdb.FindRecord(ctx));
+        }
+        // Check FindDb
+        {
+            // FindDb will throw if the file is not present
+            FindDbRecord rec{handle, ctx};
+            EXPECT(!rec.empty());
+        }
     }
 };
 } // namespace miopen
