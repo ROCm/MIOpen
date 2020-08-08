@@ -277,7 +277,7 @@ class SQLite::Statement::impl
 };
 
 SQLite::SQLite(const std::string& filename_, bool is_system)
-    : pImpl{std::make_unique<impl<InMemDb>>(filename_, is_system)}
+    : pImpl{std::make_unique<impl>(filename_, is_system)}
 {
 }
 
