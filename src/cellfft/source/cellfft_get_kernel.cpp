@@ -343,7 +343,7 @@ static uint32_t choose_cgemm_id( uint32_t m, uint32_t n )
 {
     uint32_t mi=(m+31u)>>5;
     uint32_t ni=(n+15u)>>4;
-    return ((1^(mi&1))*3+((ni&3)==0?2:(ni&1)));
+    return ((1^(mi&1))*3+((ni&3)==0?2:(1^(ni&1))));
 }
 
 namespace miopen {

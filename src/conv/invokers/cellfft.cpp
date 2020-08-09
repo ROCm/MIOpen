@@ -53,7 +53,7 @@ static void fft2d_r2c_b( const miopen::Handle& handle, const miopen::Kernel& ker
 }
 static void fft2d_r2c_grid_a( const miopen::Handle& handle, const miopen::Kernel& kern, const miopen::cellfft::cellfft_param_t& p, void* dst, const void* src )
 {
-    if((p.pad_r|p.pad_t)!=0){
+    if((p.pad_l|p.pad_t)!=0){
         miopen::cellfft::lk_fft2d_r2c_grid_perm_pad( handle, kern, p, dst, src );
     } else {
         miopen::cellfft::lk_fft2d_r2c_grid_perm( handle, kern, p, dst, src );
@@ -163,8 +163,8 @@ InvokerFactory MakeCellfftInvokerFactoryGrad( const cellfft::cellfft_param_t& co
                 MIOPEN_THROW("Workspace is not enough for cellfft");
             const auto& tensors=params.tensors;
             auto& auxbuf=params.workSpace;
-            const void* pin=tensors.dy;
-            const void* qin=tensors.x;
+            const void* pin=tensors.x;
+            const void* qin=tensors.dy;
             void* dst=tensors.dw;
             uint8_t* a=reinterpret_cast<uint8_t*>(auxbuf);
             uint8_t* b=a+(static_cast<size_t>(conv_params.nbanks*conv_params.abks)<<3);
