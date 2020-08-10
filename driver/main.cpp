@@ -39,7 +39,7 @@
 #include "ctc_driver.hpp"
 #include "dropout_driver.hpp"
 #include "tensorop_driver.hpp"
-//#include "reduce_driver.hpp"
+#include "reduce_driver.hpp"
 #include "miopen/config.h"
 
 int main(int argc, char* argv[])
@@ -166,7 +166,6 @@ int main(int argc, char* argv[])
     {
         drv = new TensorOpDriver<float16, float>();
     }
-/*    
     else if(base_arg == "reduce")
     {
         drv = new ReduceDriver<float, float>();
@@ -175,7 +174,6 @@ int main(int argc, char* argv[])
     {
         drv = new ReduceDriver<float16, float>();
     }
-*/
     else
     {
         printf("Incorrect BaseArg\n");
