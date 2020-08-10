@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,32 +23,44 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_SCGEMM_PARAM_HPP_
-#define GUARD_MIOPEN_SCGEMM_PARAM_HPP_
-#include <miopen/manage_ptr.hpp>
-#include <miopen/common.hpp>
-#include <miopen/allocator.hpp>
-#include <miopen/scgemm/scgemm.hpp>
-namespace miopen {
+#ifndef GUARD_MIOPEN_REDUCE_COMMON_HPP
+#define GUARD_MIOPEN_REDUCE_COMMON_HPP
 
-enum SCGemmOpType
+#include <half.hpp>
+#include <miopen/bfloat16.hpp>
+
+namespace reduce {
+
+template <typename Tdst, typename Tsrc>
+static inline Tdst convert_type(Tsrc x)
 {
-    SCGemmOpFConv = scgemm::scgemm_fconv,
-    SCGemmOpFGemm = scgemm::scgemm_fgemm,
+    return static_cast<Tdst>(x);
+}
+
+template <>
+inline float convert_type<float>(half_float::half x)
+{
+    return half_float::half_cast<float>(x);
 };
 
-struct SCGemmKernelParams
+template <>
+inline half_float::half convert_type<half_float::half>(float x)
 {
-    SCGemmOpType type;
-    int routine;
-    std::string kernel_name;
-    std::vector<uint32_t> grids;
-    std::vector<uint32_t> blocks;
-    scgemm::scgemm_params_t params;
-    SCGemmKernelParams()
-        : type(SCGemmOpFGemm), routine(0), grids({0, 0, 0}), blocks({0, 0, 0}), params(nullptr){};
+    return half_float::half_cast<half_float::half>(x);
 };
 
-} // namespace miopen
+template <>
+inline float convert_type<float>(bfloat16 x)
+{
+    return float(x);
+};
+
+template <>
+inline bfloat16 convert_type<bfloat16>(float x)
+{
+    return bfloat16(x);
+};
+
+}; // end of namespace reduce
 
 #endif

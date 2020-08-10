@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,38 +23,30 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_SCGEMM_GEMM_HPP_
-#define GUARD_MIOPEN_SCGEMM_GEMM_HPP_
+#include <hip/hip_runtime.h>
 
-#include <miopen/scgemm/scgemm_op.hpp>
-#include <miopen/scgemm/tensorshape.hpp>
-#include <miopen/scgemm/scgemm.hpp>
-#include <string>
+extern "C" __global__ __launch_bounds__(256, 2) void wrw_reduction_hip(
+    float* output, float* input, int out_length, int in_stride, int n_groups)
+{
+    float4 vec_in;
+    float4 vec_out;
+    int i_len, i_groups;
 
-namespace miopen {
-namespace scgemm {
+    unsigned int tid = threadIdx.x;
+    unsigned int bid = blockIdx.x;
+    int offset       = bid * out_length * 256 + tid * out_length;
 
-bool is_fgemm(const std::string& kernel_name);
+    float* local_in  = input + offset;
+    float* local_out = output + offset;
 
-scgemm_gemm_routine_t get_fgemm_routine(const std::string& kernel_name);
-
-int generate_fgemm_aux(void* auxbuf, const group_prop_t* gprop, uint32_t ntidx);
-
-scgemm_fgemm_params create_fgemm_params(std::string&,
-                                        std::vector<uint32_t>&,
-                                        std::vector<uint32_t>&,
-                                        scgemm_gemm_routine_t,
-                                        const group_prop_t*,
-                                        uint32_t,
-                                        uint32_t);
-
-/*
-/// This fucintion is used to present how to fill in the kernel arguments for a
-/// Static Compiled GEMM - GEMM Kernel.
-/// Left the code here for reference.
-scgemm_kernel_args_t compiled_fgemm_args(
-    size_t&, const void*, const void*, const void*, void*, void*, scgemm_fgemm_params*, float);
-*/
-} // namespace scgemm
-} // namespace miopen
-#endif
+    for(i_len = 0; i_len < out_length; i_len += 4)
+    {
+        vec_out = (float4)0;
+        for(i_groups = 0; i_groups < n_groups; i_groups++)
+        {
+            vec_in = *(float4*)(local_in + i_len + in_stride * i_groups);
+            vec_out += vec_in;
+        }
+        *(float4*)(local_out + i_len) = vec_out;
+    }
+}

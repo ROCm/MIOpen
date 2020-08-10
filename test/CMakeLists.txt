@@ -57,10 +57,10 @@ set(MIOPEN_TEST_FLOAT_ARG)
 
 if(MIOPEN_TEST_HALF)   
     if(MIOPEN_BACKEND_OPENCL)
-        set(SKIP_TESTS test_gru test_rnn_vanilla test_lstm test_conv_for_dynamic_implicit_gemm)
+        set(SKIP_TESTS test_gru test_rnn_vanilla test_lstm test_conv_igemm_dynamic)
     endif()
     if(MIOPEN_TEST_GFX908)
-       set(SKIP_TESTS test_immed_conv3d test_conv3d test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_for_dynamic_implicit_gemm)
+       set(SKIP_TESTS test_immed_conv3d test_conv3d test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_igemm_dynamic)
     endif()
     set(MIOPEN_TEST_FLOAT_ARG --half)
 elseif(MIOPEN_TEST_INT8)
@@ -73,7 +73,7 @@ elseif(MIOPEN_TEST_BFLOAT16)
     endif()
     set(MIOPEN_TEST_FLOAT_ARG --bfloat16)
 elseif(MIOPEN_TEST_GFX908)
-    set(SKIP_TESTS test_main test_tensor_scale test_tensor_set test_tensor_transform test_tensor_vec test_w_supertensor test_dropout test_immed_conv3d test_conv3d test_soft_max test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_for_dynamic_implicit_gemm)
+    set(SKIP_TESTS test_main test_tensor_scale test_tensor_set test_tensor_transform test_tensor_vec test_w_supertensor test_dropout test_immed_conv3d test_conv3d test_soft_max test_fusion_aux test_activation test_lrn_test test_ctc test_conv2d_bias test_conv3d_bias test_cba_inference test_cbna_inference test_pooling2d test_na_train test_na_inference test_bn_aux test_conv_igemm_dynamic)
 endif()
 
 
@@ -130,7 +130,11 @@ function(add_test_executable TEST_NAME)
     add_dependencies(tests ${TEST_NAME})
     add_dependencies(check ${TEST_NAME})
     set_tests_properties(${TEST_NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
-    target_link_libraries(${TEST_NAME} MIOpen)
+    if(NOT MIOPEN_EMBED_DB STREQUAL "")
+        target_link_libraries(${TEST_NAME} MIOpen miopen_data)
+    else()
+        target_link_libraries(${TEST_NAME} MIOpen)
+    endif()
 endfunction(add_test_executable)
 
 set(MIOPEN_TEST_SANITIZERS)
@@ -151,6 +155,27 @@ function(add_sanitize_test TEST_SOURCE)
 endfunction()
 
 file(GLOB TESTS *.cpp)
+# All the tests are manually sorted in descending order of durations taken from
+# Jenkins, "Full long tests"/"HIP Release All". This is to exploit ctest's 
+# parallelizm as much as possible. Before this change, there were some long
+# jobs at the end, utilizing only one CPU core. This order can potentially
+# save up to ~23 minutes (20%) of total time of "HIP Release All".
+#
+# We use two lists, LONG_TESTS and SHORT_TESTS to implement the sorting
+# mentioned above. If you would like to add a new test, insert it into the
+# LONG_TESTS if it takes more than 800 seconds, or to SHORT_TESTS otherwise.
+# Please notice that each list is also sorted and it is highly recommended
+# to keep this sorting when adding new tests.
+
+set( LONG_TESTS
+    pooling2d.cpp
+    dropout.cpp
+    conv2d.cpp
+    pooling3d.cpp
+    soft_max.cpp
+    lrn_test.cpp
+    reduce_test.cpp
+    )
 
 foreach(TEST ${TESTS})
     get_filename_component(BASE_NAME ${TEST} NAME_WE)
@@ -190,6 +215,26 @@ function(add_custom_test NAME)
         add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
         if(NOT PARSE_SKIP_UNLESS_ALL OR MIOPEN_TEST_ALL)
             add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
+            set_tests_properties(${NAME} PROPERTIES COST 600)
+        endif()
+    endif()
+endfunction()
+
+
+function(add_perf_test NAME)
+    set(options SKIP_UNLESS_ALL ALLOW_BFLOAT16 ALLOW_HALF ALLOW_INT8)
+    set(oneValueArgs)
+    set(multiValueArgs)
+    cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    if((NOT (MIOPEN_TEST_INT8 OR MIOPEN_TEST_BFLOAT16 OR MIOPEN_TEST_HALF))
+    OR (MIOPEN_TEST_BFLOAT16 AND ${PARSE_ALLOW_BFLOAT16})
+    OR (MIOPEN_TEST_HALF AND ${PARSE_ALLOW_HALF})
+    OR (MIOPEN_TEST_INT8 AND ${PARSE_ALLOW_INT8}))
+        add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
+        if(NOT PARSE_SKIP_UNLESS_ALL OR MIOPEN_TEST_ALL)
+            add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
+            set_tests_properties(${NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "(FAILED)|(Perf Db: record not found)")
             set_tests_properties(${NAME} PROPERTIES COST 600)
         endif()
     endif()
@@ -534,28 +579,54 @@ COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input  8  
 COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input 16    64   3    4     4  --weights    64    32   1  3    3  --pads_strides_dilations  0  0  0    1  2   3    1   2   3  --trans_output_pads 0 0 0 --group-count   4   --cmode trans  --pmode   default
 )
 
+set(DYNAMIC_IMPLICITGEMM_COMMON
+    MIOPEN_DEBUG_CONV_FFT=0
+    MIOPEN_DEBUG_CONV_GEMM=0
+    MIOPEN_DEBUG_CONV_WINOGRAD=0)
 set(DYNAMIC_IMPLICITGEMM_ENVS
-    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicFwd
-    MIOPEN_DEBUG_CONV_FFT=0
-    MIOPEN_DEBUG_CONV_GEMM=0)
+    ${DYNAMIC_IMPLICITGEMM_COMMON}
+    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicFwd)
 set(DYNAMIC_IMPLICITGEMM_1X1_ENVS
-    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicFwd_1x1
-    MIOPEN_DEBUG_CONV_FFT=0
-    MIOPEN_DEBUG_CONV_GEMM=0)
-add_custom_test(test_conv_for_dynamic_implicit_gemm
-COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64   64 56 56 --weights 256  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64  256 34 34 --weights 256  256 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128  128 35 35 --weights 128  128 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64 1536  8  8 --weights 256 1536 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128   48  7  7 --weights 128   48 5 5 --pads_strides_dilations 2 2 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128  128 17 17 --weights 128  128 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights
+    ${DYNAMIC_IMPLICITGEMM_COMMON}
+    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicFwd_1x1)
+set(DYNAMIC_IMPLICITGEMM_BWD_ENVS
+    ${DYNAMIC_IMPLICITGEMM_COMMON}
+    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicBwd)
 
+set(DYNAMIC_IMPLICITGEMM_WRW_ENVS
+    ${DYNAMIC_IMPLICITGEMM_COMMON}
+    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicWrw)
+
+add_custom_test(test_conv_igemm_dynamic_small
+COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input  16  16 56 56 --weights 64  16 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input  16  64 34 34 --weights 64  64 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input  32  32 17 17 --weights 32  32 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_1X1_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  16 384  8  8 --weights 64 384 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64  64 28 28 --weights 32  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64  64 28 28 --weights 16  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+)
+
+add_custom_test(test_conv_igemm_dynamic SKIP_UNLESS_ALL
+COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input  64   64 56 56 --weights 256  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input  64  256 34 34 --weights 256  256 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input 128  128 35 35 --weights 128  128 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input  64 1536  8  8 --weights 256 1536 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input 128   48  7  7 --weights 128   48 5 5 --pads_strides_dilations 2 2 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input 128  128 17 17 --weights 128  128 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_1X1_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128  256 28 28 --weights 128  256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_1X1_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64 1536  8  8 --weights 256 1536 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_1X1_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128  768 17 17 --weights 128  768 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64   64 56 56 --weights 256  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  32  128 34 34 --weights 64  128  3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128  128 35 35 --weights 128  128 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128  256 56 56 --weights 64  256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64   64 56 56 --weights 256  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  32  128 34 34 --weights 64  128  3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128  128 35 35 --weights 128  128 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128  256 56 56 --weights 64  256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
 )
-
 
 if(MIOPEN_TEST_DEEPBENCH)
     add_custom_test(test_deepbench_conv

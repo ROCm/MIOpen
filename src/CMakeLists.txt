@@ -27,6 +27,7 @@
 cmake_policy(SET CMP0057 NEW)
 
 include (GenerateExportHeader)
+add_subdirectory(sqlite)
 
 # Truncation rounding or (default) rounding to nearest even (RNE) is enabled.
 # This switch controls two related but different aspects of MIOpen behavior
@@ -124,8 +125,8 @@ set( MIOpen_Source
     dropout_api.cpp
     readonlyramdb.cpp
     execution_context.cpp
-    kern_db.cpp
-    bz2.cpp
+    reducetensor.cpp
+    reducetensor_api.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -175,6 +176,9 @@ set( MIOpen_Source
     include/miopen/rnn_util.hpp
     include/miopen/bz2.hpp
     include/miopen/comgr.hpp
+    include/miopen/numeric.hpp
+    include/miopen/reducetensor.hpp
+    include/miopen/reduce_common.hpp
     md_graph.cpp
     mdg_expr.cpp
     conv/invokers/gcn_asm_1x1u.cpp
@@ -211,11 +215,9 @@ set( MIOpen_Source
     solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
-    solver/conv_hip_implicit_gemm_v4.cpp
     solver/conv_hip_implicit_gemm_v4r1.cpp
     solver/conv_hip_implicit_gemm_v4r4.cpp
     solver/conv_hip_implicit_gemm_wrw_weights_v4r4.cpp
-    solver/conv_hip_implicit_gemm_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops_wrw_fp32.cpp
@@ -223,10 +225,12 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
     solver/conv_hip_implicit_gemm_bwd_data_v1r1.cpp
     solver/conv_hip_implicit_gemm_bwd_data_v4r1.cpp
-    solver/conv_hip_implicit_gemm_bwd_data_v1r1_xdlops.cpp
-    solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
     solver/conv_hip_implicit_gemm_bwd_data_v4r1_xdlops.cpp
+    solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
+    solver/conv_asm_implicit_gemm_wrw_v4r1_dynamic.cpp
     solver/conv_hip_implicit_gemm_v4r4_gen_xdlops_fwd_fp32.cpp
+    solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops_nchw_kcyx_nkhw.cpp
+    solver/conv_asm_implicit_gemm_bwd_v4r1_dynamic.cpp
     )
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
@@ -234,10 +238,15 @@ if(MIOPEN_ENABLE_SQLITE)
     list(APPEND MIOpen_Source sqlite_db.cpp include/miopen/sqlite_db.hpp )
 endif()
 
+if(MIOPEN_ENABLE_SQLITE AND MIOPEN_ENABLE_SQLITE_KERN_CACHE)
+    list(APPEND MIOpen_Source kern_db.cpp bz2.cpp include/miopen/kern_db.hpp)
+endif()
+
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_INCLUDE "kernels/composable_kernel/include/*/*.hpp")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_SOURCE "kernels/composable_kernel/src/*/*.cpp")
-    file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_SOURCE "kernels/dynamic_igemm/*.s")
+    file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_ASM_SOURCE "kernels/dynamic_igemm/*.s")
+    file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_CPP_SOURCE "kernels/dynamic_igemm/*.cpp")
 
     set(MIOPEN_KERNEL_INCLUDES
         ${COMPOSABLE_KERNEL_INCLUDE}
@@ -297,7 +306,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
 
     set(MIOPEN_KERNELS
         ${COMPOSABLE_KERNEL_SOURCE}
-        ${COMPOSABLE_KERNEL_DYNAMIC_SOURCE}
+        ${COMPOSABLE_KERNEL_DYNAMIC_ASM_SOURCE}
+        ${COMPOSABLE_KERNEL_DYNAMIC_CPP_SOURCE}
         kernels/MIOpenCheckNumerics.cl
         kernels/MIOpenBatchNormActivBwdPerAct.cl
         kernels/MIOpenBatchNormActivBwdSpatial.cl
@@ -391,13 +401,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/xform_data.s
         kernels/xform_filter.s)
 
-    if(MIOPEN_USE_SCGEMM)
-        list(APPEND MIOPEN_KERNELS
-            kernels/scgemm_v0_5_0_gfx906.so
-            kernels/SCGemmUtils.cl
-        )
-    endif()
-
     add_kernels("${MIOPEN_KERNELS}")
     add_kernel_includes("${MIOPEN_KERNEL_INCLUDES}")
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
@@ -485,24 +488,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     add_dependencies(tidy miopen_tidy_inlining)
 endif()
 
-if(MIOPEN_USE_SCGEMM)
-    list(APPEND MIOpen_Source
-        scgemm/scgemm.cpp
-        include/miopen/scgemm/scgemm.hpp
-        include/miopen/scgemm/tensorshape.hpp
-        include/miopen/scgemm/conv.hpp
-        include/miopen/scgemm/gemm.hpp
-        include/miopen/scgemm/scgemm_op.hpp
-        scgemm/tensorshape.cpp
-        scgemm/conv.cpp
-        scgemm/gemm.cpp
-        include/miopen/scgemm_utils.hpp
-        scgemm_utils.cpp
-        solver/conv_scgemm_fwd.cpp
-    )
-
-endif()
-
 if(MIOPEN_USE_COMGR)
     list(APPEND MIOpen_Source comgr.cpp)
 endif()
@@ -510,6 +495,7 @@ endif()
 # build library
 add_library( MIOpen
     ${MIOpen_Source}
+    $<TARGET_OBJECTS:sqlite_memvfs>
     )
 
 rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
@@ -657,23 +643,24 @@ rocm_export_targets(
     ${PACKAGE_STATIC_DEPENDS}
 )
 
-
-
 # Install db files
-install(FILES
-    kernels/miopen.db
-    kernels/gfx803_36.HIP.fdb.txt
-    kernels/gfx803_64.HIP.fdb.txt
-    kernels/gfx900_64.HIP.fdb.txt
-    kernels/gfx900_56.HIP.fdb.txt
-    kernels/gfx906_64.HIP.fdb.txt
-    kernels/gfx906_60.HIP.fdb.txt
-    kernels/gfx803_36.OpenCL.fdb.txt
-    kernels/gfx803_64.OpenCL.fdb.txt
-    kernels/gfx900_64.OpenCL.fdb.txt
-    kernels/gfx900_56.OpenCL.fdb.txt
-    kernels/gfx906_64.OpenCL.fdb.txt
-    kernels/gfx906_60.OpenCL.fdb.txt
- DESTINATION ${DATA_INSTALL_DIR}/db)
-
+if(NOT MIOPEN_EMBED_DB STREQUAL "")
+    include(embed)
+    set(CODE_OBJECTS)
+    list(APPEND CODE_OBJECTS "kernels/miopen.db")
+    foreach(EMBED_ARCH ${MIOPEN_EMBED_DB})
+        message(STATUS "Adding file for arch: ${EMBED_ARCH}")
+        list(APPEND CODE_OBJECTS "kernels/${EMBED_ARCH}.${MIOPEN_BACKEND}.fdb.txt")
+    endforeach()
+    add_embed_library(miopen_data ${CODE_OBJECTS})
+    target_link_libraries(MIOpen PRIVATE miopen_data)
+else()
+    file(GLOB FIND_DB_FILES kernels/*.fdb.txt)
+    list(APPEND FIND_DB_FILES kernels/miopen.db)
+    if(NOT MIOPEN_DISABLE_SYSDB)
+        install(FILES
+            ${FIND_DB_FILES}
+         DESTINATION ${DATA_INSTALL_DIR}/db)
+    endif()
+endif()
 rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})

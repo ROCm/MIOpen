@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,56 +23,42 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_SCGEMM_SCGEMMOP_HPP_
-#define GUARD_MIOPEN_SCGEMM_SCGEMMOP_HPP_
-#include <cstdint>
-#include <memory>
+#ifndef GUARD_MLOPEN_NUMERIC_HPP
+#define GUARD_MLOPEN_NUMERIC_HPP
+
+#include <numeric>
+
 namespace miopen {
-namespace scgemm {
 
-struct kernel_prop_t
+template <typename T>
+T gcd(T x, T y)
 {
-    std::string name;
-    uint32_t block_size;
-    uint32_t tile_x;
-    uint32_t tile_y;
-};
+    assert(!(x == 0 && y == 0));
 
-struct scgemm_fconv_params
+    if(x == y || x == 0)
+    {
+        return y;
+    }
+    else if(y == 0)
+    {
+        return x;
+    }
+    else if(x > y)
+    {
+        return gcd(x - y, y);
+    }
+    else
+    {
+        return gcd(x, y - x);
+    }
+}
+
+template <typename T, typename... Ys>
+T gcd(T x, Ys... ys)
 {
-    uint32_t ntidx;
-    uint32_t nb_amap;
-    uint32_t aozero;
-    uint32_t bozero;
-    uint32_t onc;
-    uint32_t ocs;
-    uint32_t ls;
-    uint32_t sgs;
-    uint32_t onpx;
+    return gcd(x, gcd(ys...));
+}
 
-    uint32_t pnx;
-    uint32_t pny;
-    uint32_t pnz;
-    uint32_t qnx;
-    uint32_t qny;
-    uint32_t qnz;
-    uint32_t fnx;
-    uint32_t fny;
-    uint32_t fnz;
-    uint32_t pnc;
-    uint32_t qnc;
-    uint32_t bat;
-};
-
-struct scgemm_fgemm_params
-{
-    uint32_t ntidx;
-    uint32_t dimx;
-    uint32_t bs;
-    uint32_t m;
-    uint32_t n;
-    uint32_t k;
-};
-} // namespace scgemm
 } // namespace miopen
+
 #endif
