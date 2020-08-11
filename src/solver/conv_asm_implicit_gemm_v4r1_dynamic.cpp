@@ -376,7 +376,9 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicFwd::GetSolution(const ConvolutionCon
         tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx); });
 
     if(it == tunables.end())
-        MIOPEN_THROW("should not happen!");
+        MIOPEN_THROW(
+            miopenStatusInternalError,
+            "no solution found in igemm v4r1 dynamic fwd, should call IsApplicable() first.");
 
     return GetSolutionBase(ctx, *it, AsmImplicitGemmV4R1);
 }
@@ -388,7 +390,9 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicFwd_1x1::GetSolution(const Convolutio
         tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx); });
 
     if(it == tunables.end())
-        MIOPEN_THROW("should not happen!");
+        MIOPEN_THROW(
+            miopenStatusInternalError,
+            "no solution found in igemm v4r1 dynamic fwd 1x1, should call IsApplicable() first.");
 
     return GetSolutionBase(ctx, *it, AsmImplicitGemmV4R1_1x1);
 }
