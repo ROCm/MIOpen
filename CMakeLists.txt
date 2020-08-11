@@ -115,6 +115,8 @@ set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header inter
 
 
 # Embedded Build Configuration
+set(MIOPEN_EMBED_DB "" CACHE STRING "Semi-colon separated list of of architecture CU pairs to embed on-disk DBs in the binary. Example gfx906_60:gfx900_56")
+set(MIOPEN_BINCACHE_PATH "" CACHE STRING "URL or path containing binary cache files to embed")
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
 option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_EMBED_BUILD})
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
@@ -449,6 +451,7 @@ enable_cppcheck(
         unusedStructMember
         # Ignore initializer lists in the tests
         useInitializationList:*test/*.cpp
+        *:*src/sqlite/*.cpp
         *:*.cl
         *:*src/kernels/*.h
         knownConditionTrueFalse:*src/kernels/composable_kernel/*/*
@@ -473,6 +476,7 @@ enable_cppcheck(
         MIOPEN_USE_MIOPENGEMM=1
         __linux__=1
 )
+
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)

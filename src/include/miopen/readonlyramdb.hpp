@@ -104,6 +104,8 @@ class ReadonlyRamDb
     ReadonlyRamDb& operator=(ReadonlyRamDb&&) = default;
 
     void Prefetch(const std::string& path, bool warn_if_unreadable);
+    void
+    ParseAndLoadDb(std::istream& input_stream, const std::string& path, bool warn_if_unreadable);
 };
 
 } // namespace miopen

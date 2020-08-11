@@ -27,6 +27,7 @@
 cmake_policy(SET CMP0057 NEW)
 
 include (GenerateExportHeader)
+add_subdirectory(sqlite)
 
 # Truncation rounding or (default) rounding to nearest even (RNE) is enabled.
 # This switch controls two related but different aspects of MIOpen behavior
@@ -125,6 +126,7 @@ set( MIOpen_Source
     readonlyramdb.cpp
     execution_context.cpp
     reducetensor.cpp
+    reducetensor_api.cpp
     include/miopen/buffer_info.hpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
@@ -493,6 +495,7 @@ endif()
 # build library
 add_library( MIOpen
     ${MIOpen_Source}
+    $<TARGET_OBJECTS:sqlite_memvfs>
     )
 
 rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
@@ -640,13 +643,34 @@ rocm_export_targets(
     ${PACKAGE_STATIC_DEPENDS}
 )
 
-
-
 # Install db files
-file(GLOB FIND_DB_FILES kernels/*.fdb.txt)
-install(FILES
-    kernels/miopen.db
-    ${FIND_DB_FILES}
- DESTINATION ${DATA_INSTALL_DIR}/db)
-
+if(NOT MIOPEN_EMBED_DB STREQUAL "")
+    include(embed)
+    set(CODE_OBJECTS)
+# embed perf db
+    list(APPEND CODE_OBJECTS "kernels/miopen.db")
+# embed find db
+    foreach(EMBED_ARCH ${MIOPEN_EMBED_DB})
+        message(STATUS "Adding find db for arch: ${EMBED_ARCH}")
+        list(APPEND CODE_OBJECTS "kernels/${EMBED_ARCH}.${MIOPEN_BACKEND}.fdb.txt")
+    endforeach()
+# Embed Bin Cache
+    if(NOT MIOPEN_BINCACHE_PATH STREQUAL "")
+        foreach(EMBED_ARCH ${MIOPEN_EMBED_DB})
+            message(STATUS "Adding binary cache for arch: ${EMBED_ARCH}")
+            download_binary(OUTPUT_PATH "${MIOPEN_BINCACHE_PATH}" "${EMBED_ARCH}")
+            list(APPEND CODE_OBJECTS "${OUTPUT_PATH}")
+        endforeach()
+    endif()
+    add_embed_library(miopen_data ${CODE_OBJECTS})
+    target_link_libraries(MIOpen PRIVATE miopen_data)
+else()
+    file(GLOB FIND_DB_FILES kernels/*.fdb.txt)
+    list(APPEND FIND_DB_FILES kernels/miopen.db)
+    if(NOT MIOPEN_DISABLE_SYSDB)
+        install(FILES
+            ${FIND_DB_FILES}
+         DESTINATION ${DATA_INSTALL_DIR}/db)
+    endif()
+endif()
 rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})
