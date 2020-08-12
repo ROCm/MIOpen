@@ -28,16 +28,17 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         index_t col;
     };
 
+#if CK_WORKAROUND_SWDEV_241664
     static constexpr index_t MRepeats = (GemmMPerWave > 64) ? (GemmMPerWave / 64) : 1;
     static constexpr index_t NRepeats = (GemmNPerWave > 64) ? (GemmNPerWave / 64) : 1;
 
     static constexpr index_t MPerXdlops = (GemmMPerWave > 64) ? 64 : GemmMPerWave;
     static constexpr index_t NPerXdlops = (GemmNPerWave > 64) ? 64 : GemmNPerWave;
 
-#if CK_WORKAROUND_SWDEV_241664
     static constexpr auto XdlopsGemm =
         XdlopsGemm_t<Float, MPerXdlops, NPerXdlops, GemmDataPerReadA, GemmDataPerReadB>{};
 #else
+
 #if CK_USE_AMD_XDLOPS_INLINE_ASM
     static constexpr auto XdlopsGemm =
         XdlopsGemmAsm_t<Float, GemmMPerWave, GemmNPerWave, GemmDataPerReadA, GemmDataPerReadB>{};
@@ -45,6 +46,7 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
     static constexpr auto XdlopsGemm =
         XdlopsGemm_t<Float, GemmMPerWave, GemmNPerWave, GemmDataPerReadA, GemmDataPerReadB>{};
 #endif
+
 #endif
 
     index_t mMyWaveOffsetA;
