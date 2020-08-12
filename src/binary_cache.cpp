@@ -147,9 +147,15 @@ std::string LoadBinary(const std::string& device,
     MIOPEN_LOG_I2("Loading binary for: " << name << " ;args: " << args);
     auto record = db.FindRecord(cfg);
     if(record)
+    {
+        MIOPEN_LOG_I2("Sucessfully loaded binary for: " << name << " ;args: " << args);
         return record.get();
+    }
     else
+    {
+        MIOPEN_LOG_I2("Unable to load binary for: " << name << " ;args: " << args);
         return {};
+    }
 }
 
 void SaveBinary(const std::string& hsaco,
