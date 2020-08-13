@@ -143,6 +143,20 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         return MatrixIndex{row, col};
     }
 
+    __device__ static MatrixIndex GetBeginOfThreadMatrixC()
+    {
+
+        const index_t waveId = get_thread_local_1d_id() / WaveSize;
+
+        const auto thread_mtx_on_blk = XdlopsGemm.GetBeginOfThreadXdlops();
+
+        const index_t col = (waveId % GemmNWaves) * GemmNPerWave + thread_mtx_on_blk.col;
+
+        const index_t row = (waveId / GemmNWaves) * GemmMPerWave + thread_mtx_on_blk.row;
+
+        return MatrixIndex{row, col};
+    }
+
     __device__ static MatrixIndex GetBeginOfThreadMatrixC(index_t i)
     {
 
