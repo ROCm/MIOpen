@@ -43,6 +43,8 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
 
     __device__ constexpr auto GetOutputLayout() const { return XdlopsGemm.GetOutputLayout(); }
 
+    __device__ constexpr auto GetOutputLayout_v2() const { return XdlopsGemm.GetOutputLayout_v2(); }
+
     __device__ constexpr auto GetNumBlks() const
     {
         return XdlopsGemm.GetOutputLayout().GetNumBlks();
@@ -89,6 +91,20 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
             &p_a_block[mMyWaveOffsetA], &p_b_block[mMyWaveOffsetB], p_c_thread);
     }
 
+    __device__ static MatrixIndex GetBeginOfThreadMatrixC()
+    {
+
+        const index_t waveId = get_thread_local_1d_id() / WaveSize;
+
+        const auto thread_mtx_on_blk = XdlopsGemm.GetBeginOfThreadXdlops();
+
+        const index_t col = (waveId % GemmNWaves) * GemmNPerWave + thread_mtx_on_blk.col;
+
+        const index_t row = (waveId / GemmNWaves) * GemmMPerWave + thread_mtx_on_blk.row;
+
+        return MatrixIndex{row, col};
+    }
+
     __device__ static MatrixIndex GetBeginOfThreadMatrixC(index_t i)
     {
 
@@ -109,6 +125,15 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
     }
 
     __device__ void XdlopsMatrixCSetZero() const { XdlopsGemm.SetZeroXdlopsRegs(); }
+
+    template <class FloatC>
+    __device__ void XdlopsMatrixCSetZero(FloatC* __restrict__ p_c_thread) const
+    {
+        constexpr index_t c_thread_size = GemmMPerWave * GemmNPerWave / WaveSize;
+        for(index_t i     = 0; i < c_thread_size; ++i)
+            p_c_thread[i] = FloatC(0);
+        XdlopsGemm.SetZeroXdlopsRegs();
+    }
 
     template <class FloatC>
     __device__ void XdlopsMatrixCRead(FloatC* __restrict__ p_c_thread) const
