@@ -56,7 +56,10 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
 
     __device__ constexpr auto GetOutputLayout() const { return XdlopsGemm.GetOutputLayout(); }
 
-    __device__ constexpr auto GetOutputLayout_v2() const { return XdlopsGemm.GetOutputLayout_v2(); }
+    __device__ constexpr auto GetOutputLayout_v2() const
+    {
+        return XdlopsGemm.template GetOutputLayout_v2<MRepeats, NRepeats>();
+    }
 
     __device__ constexpr auto GetNumBlks() const
     {
@@ -135,7 +138,6 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         const auto thread_mtx_on_blk = XdlopsGemm.GetBeginOfThreadXdlops();
 
         const index_t col = (waveId % GemmNWaves) * GemmNPerWave + thread_mtx_on_blk.col;
-
         const index_t row = (waveId / GemmNWaves) * GemmMPerWave + thread_mtx_on_blk.row;
 
         return MatrixIndex{row, col};
@@ -157,7 +159,6 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
 
         const index_t col =
             (waveId % GemmNWaves) * GemmNPerWave + n * NPerXdlops + thread_mtx_on_blk.col;
-
         const index_t row =
             (waveId / GemmNWaves) * GemmMPerWave + m * MPerXdlops + thread_mtx_on_blk.row;
 #else

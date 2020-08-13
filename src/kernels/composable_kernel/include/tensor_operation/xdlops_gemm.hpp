@@ -775,9 +775,10 @@ struct XdlopsGemm_t
 
     __device__ static constexpr auto GetOutputLayout() { return OutputLayout{}; }
 
+    template <index_t MRepeats_, index_t NRepeats_>
     struct OutputLayout_v2
     {
-        __device__ static constexpr index_t M5() { return MRepeats; }
+        __device__ static constexpr index_t M5() { return MRepeats_; }
 
         __device__ static constexpr index_t M4()
         {
@@ -795,7 +796,7 @@ struct XdlopsGemm_t
 
         __device__ static constexpr index_t M0() { return mfma_type.group_size; }
 
-        __device__ static constexpr index_t N2() { return NRepeats; }
+        __device__ static constexpr index_t N2() { return NRepeats_; }
 
         __device__ static constexpr index_t N1()
         {
@@ -812,8 +813,6 @@ struct XdlopsGemm_t
         }
     };
 
-    __device__ static constexpr auto GetOutputLayout_v2() { return OutputLayout_v2{}; }
-
     __device__ void SetZeroXdlopsRegs() const {}
 
     template <class FloatC>
@@ -821,7 +820,6 @@ struct XdlopsGemm_t
     {
     }
 
-    protected:
     template <class data_type_  = data_type,
               index_t MPerWave_ = GemmMPerWave,
               index_t NPerWave_ = GemmNPerWave>
@@ -1160,6 +1158,12 @@ struct XdlopsGemm_t
     static constexpr bool IsABroadcast = GetXdlopsInfo().IsABroadcast();
 
     static constexpr auto mfma_type = GetXdlopsInfo().mfma_type;
+
+    template <index_t MRepeats_ = MRepeats, index_t NRepeats_ = NRepeats>
+    __device__ static constexpr auto GetOutputLayout_v2()
+    {
+        return OutputLayout_v2<MRepeats_, NRepeats_>{};
+    }
 };
 
 } // namespace ck
