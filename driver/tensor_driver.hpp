@@ -79,11 +79,18 @@ std::vector<int> GetTensorStrides(miopenTensorDescriptor_t& tensor)
             tensor, &nstride, &cstride, &dstride, &hstride, &wstride);
         return std::vector<int>({nstride, cstride, dstride, hstride, wstride});
     }
-    else
+    else if(size == 4)
     {
         miopenGet4dTensorDescriptorStrides(tensor, &nstride, &cstride, &hstride, &wstride);
         return std::vector<int>({nstride, cstride, hstride, wstride});
     }
+
+    std::vector<int> tensor_strides;
+    tensor_strides.resize(miopen::deref(tensor).GetSize());
+
+    miopenGetTensorDescriptor(tensor, nullptr, nullptr, tensor_strides.data());
+
+    return tensor_strides;
 }
 
 int SetTensor4d(miopenTensorDescriptor_t t,
