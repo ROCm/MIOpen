@@ -65,8 +65,6 @@ namespace miopen {
 namespace solver {
 bool ConvCellfft::IsApplicable( const ConvolutionContext& ctx ) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CELLFFT{}))
-        return false;
     const auto name=ctx.GetStream().GetDeviceName();
     if(name!="gfx900" && name!="gfx906") return false;
     if((ctx.kernel_stride_w|ctx.kernel_stride_h|ctx.kernel_dilation_w|ctx.kernel_dilation_h|ctx.group_counts)!=1)
