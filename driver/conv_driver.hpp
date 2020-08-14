@@ -1689,7 +1689,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
     const auto ws_size = perf_results[0].memory;
     is_fwd_igemm       = (algo == miopenConvolutionFwdAlgoImplicitGEMM);
 
-    is_fwd_cellfft     = (algo == miopenConvolutionFwdAlgoCellfft);
+    is_fwd_cellfft = (algo == miopenConvolutionFwdAlgoCellfft);
     ResizeWorkspaceDev(ctx, ws_size);
     wall.start(wall_enabled);
 
@@ -1897,7 +1897,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
         PrintForwardTime(kernel_total_time, kernel_first_time);
     }
 
-    is_fwd_igemm = (selected->algorithm == miopenConvolutionAlgoImplicitGEMM);
+    is_fwd_igemm   = (selected->algorithm == miopenConvolutionAlgoImplicitGEMM);
     is_fwd_cellfft = (selected->algorithm == miopenConvolutionAlgoCellfft);
     return miopenStatusSuccess;
 }
@@ -2098,7 +2098,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
     const auto algo    = perf_results_data[0].bwd_data_algo;
     const auto ws_size = perf_results_data[0].memory;
     is_bwd_igemm       = (algo == miopenConvolutionBwdDataAlgoImplicitGEMM);
-    is_bwd_cellfft = (algo == miopenConvolutionBwdDataAlgoCellfft);
+    is_bwd_cellfft     = (algo == miopenConvolutionBwdDataAlgoCellfft);
 
     ResizeWorkspaceDev(ctx, ws_size);
     wall.start(wall_enabled);
@@ -2305,7 +2305,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
     const auto ws_size = perf_results_weights[0].memory;
     is_wrw_winograd    = (algo == miopenConvolutionBwdWeightsAlgoWinograd);
     is_wrw_igemm       = (algo == miopenConvolutionBwdWeightsAlgoImplicitGEMM);
-    is_bww_cellfft = (algo == miopenConvolutionBwdWeightsAlgoCellfft);
+    is_bww_cellfft     = (algo == miopenConvolutionBwdWeightsAlgoCellfft);
 
     ResizeWorkspaceDev(ctx, ws_size);
     wall.start(wall_enabled);
@@ -2594,7 +2594,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
         PrintBackwardDataTime(kernel_total_time, kernel_first_time);
     }
 
-    is_bwd_igemm = (selected->algorithm == miopenConvolutionAlgoImplicitGEMM);
+    is_bwd_igemm   = (selected->algorithm == miopenConvolutionAlgoImplicitGEMM);
     is_bwd_cellfft = (selected->algorithm == miopenConvolutionAlgoCellfft);
     din_dev->FromGPU(GetStream(), din.data());
     return rc;
@@ -2953,7 +2953,7 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
     auto tolerance = GetDefaultTolerance();
     // iGemm's deviation is higher than other algorithms.
     // The reason is most likely different order of computations.
-    if(is_fwd_igemm||is_fwd_cellfft)
+    if(is_fwd_igemm || is_fwd_cellfft)
         tolerance = tolerance * 10;
 
     if(error > tolerance)
@@ -2990,7 +2990,7 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         auto tolerance = GetDefaultTolerance();
         // iGemm's deviation is higher than other algorithms.
         // The reason is most likely different order of computations.
-        if(is_bwd_igemm||is_bwd_cellfft)
+        if(is_bwd_igemm || is_bwd_cellfft)
             tolerance = tolerance * 10;
 
         if(error_data > tolerance)
