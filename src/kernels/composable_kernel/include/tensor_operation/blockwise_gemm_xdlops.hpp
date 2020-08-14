@@ -139,8 +139,9 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
 
         const auto thread_mtx_on_blk = XdlopsGemm.GetBeginOfThreadBlk(j);
 
-        const index_t col =
-            (waveId % GemmNWaves) * GemmNPerWave + n * NPerXdlops + thread_mtx_on_blk.col;
+        //const index_t col =
+        //(waveId % GemmNWaves) * GemmNPerWave + n * NPerXdlops + thread_mtx_on_blk.col;
+        const index_t col = n * NPerXdlops + thread_mtx_on_blk.col;
 
         const index_t row =
             (waveId / GemmNWaves) * GemmMPerWave + m * MPerXdlops + thread_mtx_on_blk.row;

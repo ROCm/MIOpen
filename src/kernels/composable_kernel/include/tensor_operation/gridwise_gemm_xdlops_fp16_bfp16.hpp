@@ -779,8 +779,8 @@ template <index_t GridSize,
           index_t ABlockCopySrcVectorReadDim,
           index_t ABlockCopySrcDataPerRead,
           index_t ABlockCopyDstDataPerWrite_KPACK,
-          class BBlockCopyThreadSliceLengths_G_K_N_KPACK,
-          class BBlockCopyThreadClusterLengths_G_K_N_KPACK,
+          class BBlockCopyThreadSliceLengths_G_K_n1_b_KPack,
+          class BBlockCopyThreadClusterLengths_G_K_n1_b_KPack,
           class BBlockCopyThreadClusterArrangeOrder,
           class BBlockCopySrcAccessOrder,
           class BBlockCopyDstAccessOrder,
@@ -798,17 +798,22 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
         constexpr auto True = integral_constant<bool, true>{};
 
         constexpr auto a_g_k_m_kpack_global_desc = AGlobalDesc{};
-        constexpr auto b_g_k_n_kpack_global_desc = BGlobalDesc{};
+        constexpr auto b_g_k_n1_b_kpack_global_desc = BGlobalDesc{};
         constexpr auto c_g_m_n_global_desc       = CGlobalDesc{};
 
         constexpr auto G     = c_g_m_n_global_desc.GetLengths()[0];
         constexpr auto M     = c_g_m_n_global_desc.GetLengths()[1];
         constexpr auto N     = c_g_m_n_global_desc.GetLengths()[2];
-        constexpr auto K     = b_g_k_n_kpack_global_desc.GetLengths()[1];
-        constexpr auto KPack = b_g_k_n_kpack_global_desc.GetLengths()[3];
+
+        constexpr auto K     = b_g_k_n1_b_kpack_global_desc.GetLengths()[1];
+        constexpr auto in_N1 = b_g_k_n1_b_kpack_global_desc.GetLengths()[2];
+        constexpr auto B     = b_g_k_n1_b_kpack_global_desc.GetLengths()[3];
+        constexpr auto KPack = b_g_k_n1_b_kpack_global_desc.GetLengths()[4];
+
+        constexpr index_t BPerBlock = NPerBlock / in_N1;
 
         // divide block work by [M, N]
-        static_assert(M % MPerBlock == 0 && N % NPerBlock == 0 && K % KPerBlock == 0,
+        static_assert(M % MPerBlock == 0 && B % BPerBlock == 0 && K % KPerBlock == 0,
                       "wrong! cannot divide work evenly among block");
 
         constexpr index_t MBlockWork = M / MPerBlock;
@@ -827,9 +832,9 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
         const index_t m_block_data_on_global = (WorkgroupSchdOrder == MBlock1NBlock0)
                                                    ? (block_work_id[1] * MPerBlock)
                                                    : (block_work_id[2] * MPerBlock);
-        const index_t n_block_data_on_global = (WorkgroupSchdOrder == MBlock1NBlock0)
-                                                   ? (block_work_id[2] * NPerBlock)
-                                                   : (block_work_id[1] * NPerBlock);
+        const index_t b_block_data_on_global = (WorkgroupSchdOrder == MBlock1NBlock0)
+                                                   ? (block_work_id[2] * BPerBlock)
+                                                   : (block_work_id[1] * BPerBlock);
 
         constexpr index_t max_align = KPack;
 
@@ -857,29 +862,29 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
             InMemoryDataOperation::Set>({g_block_data_on_global, 0, m_block_data_on_global, 0},
                                         {0, 0, 0, 0});
 
-        constexpr auto b_g_k_n_kpack_block_desc = make_native_tensor_descriptor_aligned(
-            Sequence<1, KPerBlock, NPerBlock, KPack>{}, Number<max_align>{});
+        constexpr auto b_g_k_n1_b_kpack_block_desc = make_native_tensor_descriptor_aligned(
+            Sequence<1, KPerBlock, in_N1, BPerBlock, KPack>{}, Number<max_align>{});
 
         // input blockwise copy
         auto b_blockwise_copy = BlockwiseGenericTensorSliceCopy_v4<
             BlockSize,
-            decltype(b_g_k_n_kpack_global_desc),
-            decltype(b_g_k_n_kpack_block_desc),
-            decltype(b_g_k_n_kpack_block_desc.GetLengths()),
-            BBlockCopyThreadSliceLengths_G_K_N_KPACK,
-            BBlockCopyThreadClusterLengths_G_K_N_KPACK,
+            decltype(b_g_k_n1_b_kpack_global_desc),
+            decltype(b_g_k_n1_b_kpack_block_desc),
+            decltype(b_g_k_n1_b_kpack_block_desc.GetLengths()),
+            BBlockCopyThreadSliceLengths_G_K_n1_b_KPack,
+            BBlockCopyThreadClusterLengths_G_K_n1_b_KPack,
             BBlockCopyThreadClusterArrangeOrder,
             BBlockCopySrcAccessOrder,
             BBlockCopyDstAccessOrder,
             BBlockCopySrcVectorReadDim, // Src dim to be read in vector form
-            3,                          // Dst dim to be written in vector form (KPack dimension)
+            4,                          // Dst dim to be written in vector form (KPack dimension)
             BBlockCopySrcDataPerRead,
             BBlockCopyDstDataPerWrite_KPACK,
             AddressSpace::Global,
             AddressSpace::Vgpr,
             AddressSpace::Lds,
-            InMemoryDataOperation::Set>({g_block_data_on_global, 0, n_block_data_on_global, 0},
-                                        {0, 0, 0, 0});
+            InMemoryDataOperation::Set>({g_block_data_on_global, 0, 0, b_block_data_on_global, 0},
+                                        {0, 0, 0, 0, 0});
 
         // GEMM definition
         // c_mtx += transpose(a_mtx) * b_mtx
@@ -910,7 +915,7 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
             math::integer_least_multiple(a_g_k_m_kpack_block_desc.GetElementSpace(), max_align);
 
         constexpr index_t b_block_space =
-            math::integer_least_multiple(b_g_k_n_kpack_block_desc.GetElementSpace(), max_align);
+            math::integer_least_multiple(b_g_k_n1_b_kpack_block_desc.GetElementSpace(), max_align);
 
         __shared__ ABFloat p_a_block[a_block_space];
         __shared__ ABFloat p_b_block[b_block_space];
@@ -929,7 +934,7 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
         }
 
         constexpr auto blockwise_a_copy_src_step = Sequence<0, KPerBlock, 0, 0>{};
-        constexpr auto blockwise_b_copy_src_step = Sequence<0, KPerBlock, 0, 0>{};
+        constexpr auto blockwise_b_copy_src_step = Sequence<0, KPerBlock, 0, 0, 0>{};
 
         // main body
         for(index_t k_block_data_begin = 0; k_block_data_begin < K - KPerBlock;
@@ -1018,8 +1023,10 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
                 const index_t m_thread_data_on_global =
                     m_block_data_on_global + c_thread_mtx_on_block.row;
 
+                const auto wave_id = get_thread_local_1d_id() / 64;
+
                 const index_t n_thread_data_on_global =
-                    n_block_data_on_global + c_thread_mtx_on_block.col;
+                    b_block_data_on_global + c_thread_mtx_on_block.col + (wave_id % in_N1) * B;
 
                 ThreadwiseGenericTensorSliceCopy_v4r2<decltype(c_g_m0_m1_m2_n_thread_desc),
                                                       decltype(c_g_m0_m1_m2_n_global_desc),
