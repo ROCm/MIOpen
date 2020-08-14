@@ -39,8 +39,8 @@ struct magic_t
 };
 struct cellfft_param_t
 {
-    magic_t xmag;
-    magic_t ymag;
+    magic_t  xmag;
+    magic_t  ymag;
     uint32_t grid_x;
     uint32_t grid_y;
     uint32_t tile_x;

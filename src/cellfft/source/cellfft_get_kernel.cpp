@@ -360,12 +360,13 @@ solver::KernelInfo get_kernel_cgemm( const ConvolutionContext& ctx, const cellff
         { "scgemm6x6", "scgemm6x6_ck" }
     };
     uint32_t tile_id=choose_cgemm_id( p.m, p.n );
-    uint32_t shx=tile_id<3?5:6;
-    uint32_t shy=(0x654654>>(tile_id<<2))&0xf;
-    uint32_t shz=tile_id==0?1:0;
-    uint32_t gdx=(p.m+(1<<shx)-1)>>shx;
-    uint32_t gdy=(p.n+(1<<shy)-1)>>shy;
-    uint32_t gdz=p.nbanks>>shz;
+    tile_id=(tile_id==3?0:tile_id);
+    const uint32_t shx=tile_id<3?5:6;
+    const uint32_t shy=(0x654654>>(tile_id<<2))&0xf;
+    const uint32_t shz=tile_id==0?1:0;
+    const uint32_t gdx=(p.m+(1<<shx)-1)>>shx;
+    const uint32_t gdy=(p.n+(1<<shy)-1)>>shy;
+    const uint32_t gdz=p.nbanks>>shz;
     const std::vector<size_t> block{blk[tile_id],1,1};
     const std::vector<size_t> grid{gdx*blk[tile_id],gdy,gdz};
     std::ostringstream options;
@@ -375,13 +376,13 @@ solver::KernelInfo get_kernel_cgemm( const ConvolutionContext& ctx, const cellff
 solver::KernelInfo get_kernel_r2c_a( const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& file_name )
 {
     uint32_t kid=START_R2C+(p.id<<4)+p.any-1;
-    uint32_t ncells=(p.m+15)>>4;
     if((p.pad_l|p.pad_t)!=0){
         kid=START_R2C_PAD+(p.id<<4)+p.pad_t;
     }
+    const uint32_t r=(p.m+15)>>4;
     const size_t bdx=p.id==0?256:512;
-    const size_t gdx=p.dir!=2?p.k:ncells;
-    const size_t gdy=p.dir!=2?ncells:p.k;
+    const size_t gdx=p.dir!=2?p.k:r;
+    const size_t gdy=p.dir!=2?r:p.k;
     const std::vector<size_t> block{bdx,1,1};
     const std::vector<size_t> grid{gdx*bdx,gdy,1};
     std::ostringstream options;
@@ -390,14 +391,14 @@ solver::KernelInfo get_kernel_r2c_a( const ConvolutionContext& ctx, const cellff
 }
 solver::KernelInfo get_kernel_r2c_b( const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& file_name )
 {
-    uint32_t ncells=(p.n+15)>>4;
     uint32_t kid=START_R2C+(p.dir!=1?0:48)+(p.id<<4)+p.bny-1;
     if((p.bnx==p.bny)&&((p.bnx==3)||(p.bnx==5))){
         kid=START_R2C_S+((p.id<<2)|((p.dir&1)<<1)|(p.bnx==3?0:1));
     }
+    const uint32_t r=(p.n+15)>>4;
     const size_t bdx=p.id==0?256:512;
-    const size_t gdx=p.dir==0?p.k:ncells;
-    const size_t gdy=p.dir==0?ncells:p.k;
+    const size_t gdx=p.dir==0?p.k:r;
+    const size_t gdy=p.dir==0?r:p.k;
     const std::vector<size_t> block{bdx,1,1};
     const std::vector<size_t> grid{gdx*bdx,gdy,1};
     std::ostringstream options;
@@ -405,78 +406,79 @@ solver::KernelInfo get_kernel_r2c_b( const ConvolutionContext& ctx, const cellff
     return solver::KernelInfo{ options.str(), block, grid, file_name, g_knames[kid] };
 }
 solver::KernelInfo get_kernel_r2c_grid( const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& file_name )
-{   
-    uint32_t nx=p.tile_x*p.grid_x+p.bnx-1;
-    uint32_t ny=p.tile_y*p.grid_y+p.bny-1;
-    uint32_t ex=((nx!=p.anx)||(ny!=p.any))?1:0;
-    uint32_t kid=START_R2C_X+p.id*3;
-    kid+=((p.pad_r|p.pad_t)!=0?2:ex);
+{
+    const uint32_t nx=p.tile_x*p.grid_x+p.bnx-1;
+    const uint32_t ny=p.tile_y*p.grid_y+p.bny-1;
+    const uint32_t ex=((nx!=p.anx)||(ny!=p.any))?1:0;
+    const uint32_t kid=START_R2C_X+p.id*3+((p.pad_l|p.pad_t)!=0?2:ex);
     const size_t bdx=p.id==0?256:512;
     const size_t gdx=(p.m+15)>>4;
     const std::vector<size_t> block{bdx,1,1};
-    const std::vector<size_t> grid{gdx*bdx, p.k, 1};
+    const std::vector<size_t> grid{gdx*bdx,p.k,1};
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
     return solver::KernelInfo{ options.str(), block, grid, file_name, g_knames[kid] };
 }
 solver::KernelInfo get_kernel_r2c_xgrad_a( const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& file_name )
-{   
-    uint32_t nx=p.tile_x*p.grid_x+p.bnx-1;
-    uint32_t ny=p.tile_y*p.grid_y+p.bny-1;
-    uint32_t ex=((nx!=p.anx)||(ny!=p.any))?1:0;
-    uint32_t kid=START_R2C_Xg+(p.id<<2);
-    kid+=((p.pad_r|p.pad_t)!=0?2:ex);
+{
+    const uint32_t nx=p.tile_x*p.grid_x+p.bnx-1;
+    const uint32_t ny=p.tile_y*p.grid_y+p.bny-1;
+    const uint32_t ex=((nx!=p.anx)||(ny!=p.any))?1:0;
+    const uint32_t kid=START_R2C_Xg+(p.id<<2)+((p.pad_l|p.pad_t)!=0?2:ex);
     const size_t bdx=p.id==0?256:512;
     const size_t gdx=(p.m+15)>>4;
     const std::vector<size_t> block{bdx,1,1};
-    const std::vector<size_t> grid{gdx*bdx, p.k, 1};
+    const std::vector<size_t> grid{gdx*bdx,p.k,1};
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
     return solver::KernelInfo{ options.str(), block, grid, file_name, g_knames[kid] };
 }
 solver::KernelInfo get_kernel_r2c_xgrad_b( const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& file_name )
-{   
-    uint32_t kid=START_R2C_Xg+((p.id<<2)|3);
-    const size_t gdx=(p.n+15)>>4;
+{
+    const uint32_t kid=START_R2C_Xg+((p.id<<2)|3);
     const size_t bdx=p.id==0?256:512;
+    const size_t gdx=(p.n+15)>>4;
     const std::vector<size_t> block{bdx,1,1};
-    const std::vector<size_t> grid{gdx*bdx, p.k, 1};
+    const std::vector<size_t> grid{gdx*bdx,p.k,1};
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
     return solver::KernelInfo{ options.str(), block, grid, file_name, g_knames[kid] };
 }
 solver::KernelInfo get_kernel_c2r( const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& file_name, uint32_t relu )
-{   
-    uint32_t shx=4-p.id;
-    uint32_t kid=START_C2R+(p.id<<5)+(relu<<(p.id+4))+p.cny-1;
+{
+    const uint32_t shx=4-p.id;
+    const uint32_t kid=START_C2R+(p.id<<5)+(relu<<(p.id+4))+p.cny-1;
     const size_t gdx=(p.m+(1<<shx)-1)>>shx;
     const std::vector<size_t> block{256,1,1};
-    const std::vector<size_t> grid{gdx<<8, p.n, 1};
+    const std::vector<size_t> grid{gdx<<8,p.n,1};
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
     return solver::KernelInfo{ options.str(), block, grid, file_name, g_knames[kid] };
 }
 solver::KernelInfo get_kernel_c2r_grid( const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& file_name, uint32_t relu )
-{   
-    uint32_t shx=4-p.id;
-    uint32_t kid=START_C2R_X+((p.id<<1)|relu);
+{
+    const uint32_t shx=4-p.id;
+    const uint32_t kid=START_C2R_X+((p.id<<1)|relu);
     const size_t gdx=(p.m+(1<<shx)-1)>>shx;
     const std::vector<size_t> block{256,1,1};
-    const std::vector<size_t> grid{gdx<<8, p.n, 1};
+    const std::vector<size_t> grid{gdx<<8,p.n,1};
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3()?5:4);
     return solver::KernelInfo{ options.str(), block, grid, file_name, g_knames[kid] };
 }
 solver::KernelInfo get_kernel_c2r_grad( const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& file_name )
 {
-    uint32_t nmax=p.cnx>p.cny?p.cnx:p.cny;
-    uint32_t nmin=p.cnx<p.cny?p.cnx:p.cny;
+    const uint32_t nmax=p.cnx>p.cny?p.cnx:p.cny;
+    const uint32_t nmin=p.cnx>p.cny?p.cny:p.cnx;
+    const uint32_t shx=4-p.id;
+    const bool cc0=(p.cnx==p.cny)&&((p.cnx==3)||(p.cnx==5)||(p.cnx==7));
+    const bool cc1=(nmin==1)&&((nmax&1)!=0)&&(nmax>1)&&(nmax<=9);
     uint32_t kid=START_C2R+(p.id<<5)+p.cny-1;
-    uint32_t shx=4-p.id;
-    bool cc0=(p.cnx==p.cny)&&((p.cnx==3)||(p.cnx==5)||(p.cnx==7));
-    bool cc1=(nmin==1)&&((nmax&1)!=0)&&(nmax>1)&&(nmax<=9);
-    if(cc0||cc1){
-        kid=START_C2R_S+11*p.id+(cc0?8:(p.cnx>p.cny?0:4))+(nmax>>1)-1;
+    if(cc0){
+        kid=START_C2R_S+11*p.id+8+(p.cnx>>1)-1;
+    } else
+    if(cc1){
+        kid=START_C2R_S+11*p.id+(p.cnx>p.cny?0:4)+(nmax>>1)-1;
     }
     const size_t gdx=(p.m+(1<<shx)-1)>>shx;
     const std::vector<size_t> block{256,1,1};

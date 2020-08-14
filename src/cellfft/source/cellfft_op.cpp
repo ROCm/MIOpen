@@ -27,10 +27,8 @@
 // clang-format off
 #include "../include/cellfft_op.hpp"
 
-namespace miopen
-{
-namespace cellfft
-{
+namespace miopen {
+namespace cellfft {
 void lk_cgemm( const Handle& handle, const Kernel& kern, const cellfft_param_t& p, void* c, void* a, void* b, float alpha )
 {
     float coef=alpha*(p.id==0?0.00390625f:0.0009765625f);

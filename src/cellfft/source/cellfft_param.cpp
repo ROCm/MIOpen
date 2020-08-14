@@ -79,21 +79,21 @@ namespace cellfft
 {
 size_t get_auxbuf_size( const ConvolutionContext& ctx )
 {
-    uint32_t bs   =ctx.batch_sz;
-    uint32_t inc  =ctx.n_inputs;
-    uint32_t onc  =ctx.n_outputs;
-    uint32_t anx  =ctx.in_width;
-    uint32_t any  =ctx.in_height;
-    uint32_t fnx  =ctx.kernel_size_w;
-    uint32_t fny  =ctx.kernel_size_h;
-    uint32_t pad_u=ctx.pad_w;
-    uint32_t pad_v=ctx.pad_h;
+    uint32_t bs =ctx.batch_sz;
+    uint32_t inc=ctx.n_inputs;
+    uint32_t onc=ctx.n_outputs;
+    uint32_t anx=ctx.in_width;
+    uint32_t any=ctx.in_height;
+    uint32_t fnx=ctx.kernel_size_w;
+    uint32_t fny=ctx.kernel_size_h;
+    uint32_t pu =ctx.pad_w;
+    uint32_t pv =ctx.pad_h;
     if(!ctx.direction.IsForward()){
-        pad_u=fnx-pad_u-1;
-        pad_v=fny-pad_v-1;
+        pu=fnx-pu-1;
+        pv=fny-pv-1;
     }
-    uint32_t pnx=anx+(pad_u<<1);
-    uint32_t pny=any+(pad_v<<1);
+    uint32_t pnx=anx+(pu<<1);
+    uint32_t pny=any+(pv<<1);
     uint32_t id=choose_optimal_cell_id( pnx, pny, fnx, fny );
     uint32_t cell=1<<(4+id);
     uint32_t nbanks=cell*((cell>>1)+1);
@@ -109,27 +109,27 @@ size_t get_auxbuf_size( const ConvolutionContext& ctx )
     uint32_t ldb=PSIZE(n,31)>>5;
     lda=(lda+(1^(lda&1)))<<5;
     ldb=(ldb+(1^(ldb&1)))<<5;
-    uint64_t abks=lda*ek+16;
-    uint64_t bbks=ldb*ek+16;
-    uint64_t cbks=lda* n+16;
+    uint32_t abks=lda*ek+16;
+    uint32_t bbks=ldb*ek+16;
+    uint32_t cbks=lda* n+16;
     return ((abks+bbks+cbks)*(nbanks<<3));
 }
 size_t get_auxbuf_size_grad( const ConvolutionContext& ctx )
 {
-    uint32_t bs   =ctx.batch_sz;
-    uint32_t pnc  =ctx.n_outputs;
-    uint32_t qnc  =ctx.n_inputs;
-    uint32_t cnx  =ctx.kernel_size_w;
-    uint32_t cny  =ctx.kernel_size_h;
-    uint32_t anx  =ctx.out_width;
-    uint32_t any  =ctx.out_height;
-    uint32_t pad_u=ctx.pad_w;
-    uint32_t pad_v=ctx.pad_h;
+    uint32_t bs =ctx.batch_sz;
+    uint32_t pnc=ctx.n_outputs;
+    uint32_t qnc=ctx.n_inputs;
+    uint32_t cnx=ctx.kernel_size_w;
+    uint32_t cny=ctx.kernel_size_h;
+    uint32_t anx=ctx.out_width;
+    uint32_t any=ctx.out_height;
+    uint32_t pu =ctx.pad_w;
+    uint32_t pv =ctx.pad_h;
     uint32_t pnx=anx;
     uint32_t pny=any;
-    if((pad_u|pad_v)!=0){
-        pnx+=pad_u<<1;
-        pny+=pad_v<<1;
+    if((pu|pv)!=0){
+        pnx+=pu<<1;
+        pny+=pv<<1;
     }
     uint32_t id=choose_optimal_cell_id( pnx, pny, cnx, cny );
     uint32_t cell=1<<(4+id);
@@ -155,34 +155,34 @@ size_t get_auxbuf_size( const cellfft_param_t& p )
 }
 void build_cellfft_params( cellfft_param_t& p, const ConvolutionContext& ctx )
 {
-    uint32_t bs   =ctx.batch_sz;
-    uint32_t inc  =ctx.n_inputs;
-    uint32_t onc  =ctx.n_outputs;
-    uint32_t anx  =ctx.in_width;
-    uint32_t any  =ctx.in_height;
-    uint32_t bnx  =ctx.kernel_size_w;
-    uint32_t bny  =ctx.kernel_size_h;
-    uint32_t cnx  =ctx.out_width;
-    uint32_t cny  =ctx.out_height;
-    uint32_t pad_u=ctx.pad_w;
-    uint32_t pad_v=ctx.pad_h;
+    uint32_t bs =ctx.batch_sz;
+    uint32_t inc=ctx.n_inputs;
+    uint32_t onc=ctx.n_outputs;
+    uint32_t pu =ctx.pad_w;
+    uint32_t pv =ctx.pad_h;
+    p.anx=ctx.in_width;
+    p.any=ctx.in_height;
+    p.bnx=ctx.kernel_size_w;
+    p.bny=ctx.kernel_size_h;
+    p.cnx=ctx.out_width;
+    p.cny=ctx.out_height;
     if((p.dir=ctx.direction.IsForward()?0:1)!=0){
-        pad_u=bnx-pad_u-1;
-        pad_v=bny-pad_v-1;
+        pu=p.bnx-pu-1;
+        pv=p.bny-pv-1;
     }
-    p.pad_l=pad_u;
-    p.pad_r=pad_u;
-    p.pad_t=pad_v;
-    p.pad_b=pad_v;
-    uint32_t pnx=anx+(pad_u<<1);
-    uint32_t pny=any+(pad_v<<1);
-    p.id=choose_optimal_cell_id( pnx, pny, bnx, bny );
+    p.pad_l=pu;
+    p.pad_r=pu;
+    p.pad_t=pv;
+    p.pad_b=pv;
+    uint32_t pnx=p.anx+(pu<<1);
+    uint32_t pny=p.any+(pv<<1);
+    p.id=choose_optimal_cell_id( pnx, pny, p.bnx, p.bny );
     uint32_t cell=1<<(4+p.id);
     p.nbanks=cell*((cell>>1)+1);
-    p.tile_x=cell-bnx+1;
-    p.tile_y=cell-bny+1;
-    p.grid_x=(pnx+p.tile_x-bnx)/p.tile_x;
-    p.grid_y=(pny+p.tile_y-bny)/p.tile_y;
+    p.tile_x=cell-p.bnx+1;
+    p.tile_y=cell-p.bny+1;
+    p.grid_x=(pnx+p.tile_x-p.bnx)/p.tile_x;
+    p.grid_y=(pny+p.tile_y-p.bny)/p.tile_y;
     p.m=bs*p.grid_x*p.grid_y;
     p.n=onc;
     p.k=inc;
@@ -194,20 +194,13 @@ void build_cellfft_params( cellfft_param_t& p, const ConvolutionContext& ctx )
     p.abks=p.lda*ek+16;
     p.bbks=p.ldb*ek+16;
     p.cbks=p.lda*p.n+16;
-    p.aldy=anx*any;
-    p.cldy=cnx*cny;
-    p.bldy=bnx*bny;
+    p.aldy=p.anx*p.any;
+    p.cldy=p.cnx*p.cny;
+    p.bldy=p.bnx*p.bny;
     p.aldx=inc*p.aldy;
     p.cldx=onc*p.cldy;
-    uint32_t pnc=p.dir==0?inc:onc;
-    p.bldx=(p.dir==0?pnc:1)*p.bldy;
-    p.bldy=(p.dir==0?1:pnc)*p.bldy;
-    p.anx=anx;
-    p.any=any;
-    p.cnx=cnx;
-    p.cny=cny;
-    p.bnx=bnx;
-    p.bny=bny;
+    p.bldx=(p.dir==0?inc:1)*p.bldy;
+    p.bldy=(p.dir==0?1:onc)*p.bldy;
     if((p.grid_x|p.grid_y)!=1){
         uint32_t pm=PSIZE(p.m,15);
         uint32_t reso=p.grid_x*p.grid_y;
@@ -217,35 +210,31 @@ void build_cellfft_params( cellfft_param_t& p, const ConvolutionContext& ctx )
 }
 void build_cellfft_params_grad( cellfft_param_t& p, const ConvolutionContext& ctx )
 {
-    uint32_t bs   =ctx.batch_sz;
-    uint32_t pnc  =ctx.n_outputs;
-    uint32_t qnc  =ctx.n_inputs;
-    uint32_t anx  =ctx.out_width;
-    uint32_t any  =ctx.out_height;
-    uint32_t bnx  =ctx.in_width;
-    uint32_t bny  =ctx.in_height;
-    uint32_t cnx  =ctx.kernel_size_w;
-    uint32_t cny  =ctx.kernel_size_h;
-    uint32_t pad_u=ctx.pad_w;
-    uint32_t pad_v=ctx.pad_h;
-    uint32_t pnx=anx;
-    uint32_t pny=any;
-    if((pad_u|pad_v)!=0){
-        pnx+=pad_u<<1;
-        pny+=pad_v<<1;
-    }
+    uint32_t bs =ctx.batch_sz;
+    uint32_t pnc=ctx.n_outputs;
+    uint32_t qnc=ctx.n_inputs;
+    uint32_t pu =ctx.pad_w;
+    uint32_t pv =ctx.pad_h;
+    p.anx=ctx.out_width;
+    p.any=ctx.out_height;
+    p.bnx=ctx.in_width;
+    p.bny=ctx.in_height;
+    p.cnx=ctx.kernel_size_w;
+    p.cny=ctx.kernel_size_h;
+    uint32_t pnx=p.anx+(pu<<1);
+    uint32_t pny=p.any+(pv<<1);
     p.dir=2;
-    p.pad_l=pad_u;
-    p.pad_r=pad_u;
-    p.pad_t=pad_v;
-    p.pad_b=pad_v;
-    p.id=choose_optimal_cell_id( pnx, pny, cnx, cny );
+    p.pad_l=pu;
+    p.pad_r=pu;
+    p.pad_t=pv;
+    p.pad_b=pv;
+    p.id=choose_optimal_cell_id( pnx, pny, p.cnx, p.cny );
     uint32_t cell=1<<(4+p.id);
     p.nbanks=cell*((cell>>1)+1);
-    p.tile_x=cell-cnx+1;
-    p.tile_y=cell-cny+1;
-    p.grid_x=(pnx+p.tile_x-cnx)/p.tile_x;
-    p.grid_y=(pny+p.tile_y-cny)/p.tile_y;
+    p.tile_x=cell-p.cnx+1;
+    p.tile_y=cell-p.cny+1;
+    p.grid_x=(pnx+p.tile_x-p.cnx)/p.tile_x;
+    p.grid_y=(pny+p.tile_y-p.cny)/p.tile_y;
     p.m=pnc;
     p.n=qnc;
     p.k=bs*p.grid_x*p.grid_y;
@@ -257,22 +246,16 @@ void build_cellfft_params_grad( cellfft_param_t& p, const ConvolutionContext& ct
     p.abks=p.lda* ek+16;
     p.bbks=p.ldb* ek+16;
     p.cbks=p.lda*p.n+16;
-    p.aldx=anx*any;
-    p.bldx=bnx*bny;
-    p.cldx=cnx*cny;
+    p.aldx=p.anx*p.any;
+    p.bldx=p.bnx*p.bny;
+    p.cldx=p.cnx*p.cny;
     p.aldy=p.m*p.aldx;
     p.bldy=p.n*p.bldx;
     p.cldy=p.m*p.cldx;
-    p.anx=anx;
-    p.any=any;
-    p.bnx=bnx;
-    p.bny=bny;
-    p.cnx=cnx;
-    p.cny=cny;
     if((p.grid_x|p.grid_y)!=1){
-        uint32_t xk=PSIZE(p.k,15);
+        uint32_t pk=PSIZE(p.k,15);
         uint32_t reso=p.grid_x*p.grid_y;
-        p.xmag=idiv_magic(xk,reso);
+        p.xmag=idiv_magic(pk,reso);
         p.ymag=idiv_magic(reso,p.grid_x);
     }
 }
