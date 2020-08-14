@@ -75,8 +75,6 @@ bool ConvCellfft::IsApplicable( const ConvolutionContext& ctx ) const
 }
 size_t ConvCellfft::GetWorkspaceSize( const ConvolutionContext& ctx ) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CELLFFT{}))
-        return 0;
     if(!ctx.direction.IsBackwardWrW()){
         return cellfft::get_auxbuf_size(ctx);
     } else {
