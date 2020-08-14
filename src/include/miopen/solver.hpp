@@ -970,8 +970,9 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     int GemmKPack;
     bool GemmAThreadCopyMoreGemmK;
     bool GemmBThreadCopyMoreGemmKPack;
+    int GemmBThreadDataPerRead_GemmN;
 
-    PerformanceImplicitGemmForwardV4R4Xdlops(int, int, int, int, int, int, bool, bool);
+    PerformanceImplicitGemmForwardV4R4Xdlops(int, int, int, int, int, int, bool, bool, int);
     PerformanceImplicitGemmForwardV4R4Xdlops();
     PerformanceImplicitGemmForwardV4R4Xdlops(bool) : PerformanceImplicitGemmForwardV4R4Xdlops() {}
 
@@ -986,6 +987,7 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
         f(self.GemmKPack, "GemmKPack");
         f(self.GemmAThreadCopyMoreGemmK, "GemmAThreadCopyMoreGemmK");
         f(self.GemmBThreadCopyMoreGemmKPack, "GemmBThreadCopyMoreGemmKPack");
+        f(self.GemmBThreadDataPerRead_GemmN, "GemmBThreadDataPerRead_GemmN");
     }
 
     bool operator==(const PerformanceImplicitGemmForwardV4R4Xdlops& other) const;
