@@ -26,6 +26,14 @@
 
 #include <miopen/readonlyramdb.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/errors.hpp>
+
+#if MIOPEN_EMBED_DB
+#include <miopen_data.hpp>
+#endif
+
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/path.hpp>
 
 #include <fstream>
 #include <mutex>
@@ -33,6 +41,8 @@
 #include <map>
 
 namespace miopen {
+extern boost::optional<std::string>&
+testing_find_db_path_override(); /// \todo Remove when #1723 is resolved.
 ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path,
                                         bool warn_if_unreadable,
                                         const std::string& /*arch*/,
@@ -72,44 +82,71 @@ static auto Measure(const std::string& funcName, TFunc&& func)
     MIOPEN_LOG_I("Db::" << funcName << " time: " << (end - start).count() * .000001f << " ms");
 }
 
+void ReadonlyRamDb::ParseAndLoadDb(std::istream& input_stream,
+                                   const std::string& path,
+                                   bool warn_if_unreadable)
+{
+    if(!input_stream)
+    {
+        const auto log_level = (warn_if_unreadable && !MIOPEN_DISABLE_SYSDB) ? LoggingLevel::Warning
+                                                                             : LoggingLevel::Info;
+        MIOPEN_LOG(log_level, "File is unreadable: " << path);
+        return;
+    }
+
+    auto line   = std::string{};
+    auto n_line = 0;
+
+    while(std::getline(input_stream, line))
+    {
+        ++n_line;
+
+        if(line.empty())
+            continue;
+
+        const auto key_size = line.find('=');
+        const bool is_key   = (key_size != std::string::npos && key_size != 0);
+
+        if(!is_key)
+        {
+            MIOPEN_LOG_E("Ill-formed record: key not found: " << path << "#" << n_line);
+            continue;
+        }
+
+        const auto key      = line.substr(0, key_size);
+        const auto contents = line.substr(key_size + 1);
+
+        cache.emplace(key, CacheItem{n_line, contents});
+    }
+}
+
 void ReadonlyRamDb::Prefetch(const std::string& path, bool warn_if_unreadable)
 {
     Measure("Prefetch", [this, &path, warn_if_unreadable]() {
-        auto file = std::ifstream{path};
 
-        if(!file)
+        constexpr bool isEmbedded = MIOPEN_EMBED_DB;
+        if(!testing_find_db_path_override() && isEmbedded)
         {
-            const auto log_level = (warn_if_unreadable && !MIOPEN_DISABLE_SYSDB)
-                                       ? LoggingLevel::Warning
-                                       : LoggingLevel::Info;
-            MIOPEN_LOG(log_level, "File is unreadable: " << path);
-            return;
+#if MIOPEN_EMBED_DB
+            boost::filesystem::path filepath(path);
+            const auto& it_p = miopen_data().find(filepath.filename().string() + ".o");
+            if(it_p == miopen_data().end())
+                MIOPEN_THROW(miopenStatusInternalError,
+                             "Unknown database: " + filepath.string() + " in internal filesystem");
+
+            const auto& p = it_p->second;
+            ptrdiff_t sz  = p.second - p.first;
+            MIOPEN_LOG_I2("Loading In Memory file: " << filepath);
+            auto input_stream = std::stringstream(std::string(p.first, sz));
+            ParseAndLoadDb(input_stream, path, warn_if_unreadable);
+#endif
+        }
+        else
+        {
+            auto input_stream = std::ifstream{path};
+            ParseAndLoadDb(input_stream, path, warn_if_unreadable);
         }
 
-        auto line   = std::string{};
-        auto n_line = 0;
-
-        while(std::getline(file, line))
-        {
-            ++n_line;
-
-            if(line.empty())
-                continue;
-
-            const auto key_size = line.find('=');
-            const bool is_key   = (key_size != std::string::npos && key_size != 0);
-
-            if(!is_key)
-            {
-                MIOPEN_LOG_E("Ill-formed record: key not found: " << path << "#" << n_line);
-                continue;
-            }
-
-            const auto key      = line.substr(0, key_size);
-            const auto contents = line.substr(key_size + 1);
-
-            cache.emplace(key, CacheItem{n_line, contents});
-        }
     });
 }
 } // namespace miopen
