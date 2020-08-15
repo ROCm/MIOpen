@@ -402,16 +402,19 @@ miopenStatus_t CallGemmMIOpenTensile(const Handle& handle,
                               {mtA_str0, mtA_str1},
                               {mtA_b_n, mtA_b_str},
                               miopen_tensile_type_float,
+                              gemm_desc.transA,
                               Data_t(reinterpret_cast<const float*>(A) + a_offset)};
     miopen_tensile_matrix mtB{{mtB_len0, mtB_len1},
                               {mtB_str0, mtB_str1},
                               {mtB_b_n, mtB_b_str},
                               miopen_tensile_type_float,
+                              gemm_desc.transB,
                               Data_t(reinterpret_cast<const float*>(B) + b_offset)};
     miopen_tensile_matrix mtC{{mtC_len0, mtC_len1},
                               {mtC_str0, mtC_str1},
                               {mtC_b_n, mtC_b_str},
                               miopen_tensile_type_float,
+                              false,
                               Data_t(reinterpret_cast<float*>(C) + c_offset)};
 
     miopen_tensile_status mt_status = miopen_tensile_status_no_solution;
