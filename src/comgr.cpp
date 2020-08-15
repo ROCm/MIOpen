@@ -53,6 +53,20 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN)
 /// \todo see issue #1222, PR #1316
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 
+#ifndef MIOPEN_AMD_COMGR_VERSION_MAJOR
+#define MIOPEN_AMD_COMGR_VERSION_MAJOR 0
+#endif
+#ifndef MIOPEN_AMD_COMGR_VERSION_MINOR
+#define MIOPEN_AMD_COMGR_VERSION_MINOR 0
+#endif
+#ifndef MIOPEN_AMD_COMGR_VERSION_PATCH
+#define MIOPEN_AMD_COMGR_VERSION_PATCH 0
+#endif
+
+#define COMGR_VERSION                                                                  \
+    ((MIOPEN_AMD_COMGR_VERSION_MAJOR * 1000 + MIOPEN_AMD_COMGR_VERSION_MINOR) * 1000 + \
+     MIOPEN_AMD_COMGR_VERSION_PATCH)
+
 #define COMPILER_LC 1
 
 #define EC_BASE(comgrcall, info, action)                                  \
@@ -92,13 +106,47 @@ namespace compiler {
 
 #if COMPILER_LC
 namespace lc {
+
+static auto GetOptionsNoSplit()
+{
+    static const std::vector<std::string> rv = {
+        "-isystem", "-L", "-Wl,-rpath", "-Xclang", "-hip-path", "-mllvm", "-x"};
+    return rv;
+}
+
+namespace gcnasm {
+
+static void RemoveOptionsUnwanted(OptionList& list)
+{
+    list.erase(remove_if(list.begin(),
+                         list.end(),
+                         [&](const auto& option) { return StartsWith(option, "-mcpu="); }),
+               list.end());
+}
+
+} // namespace gcnasm
+
+namespace ocl {
+
+#define OCL_COMPILE_SOURCE_WITH_DEVICE_LIBS (COMGR_VERSION >= 1007000)
+
 #define OCL_EARLY_INLINE 1
 
-static void AddOcl20CompilerOptions(OptionList& list)
+#define OCL_STANDARD 200 // For experiments.
+
+#if !(OCL_STANDARD == 200 || OCL_STANDARD == 120)
+#error "Wrong OCL_STANDARD"
+#endif
+
+static void AddCompilerOptions(OptionList& list)
 {
     list.push_back("-cl-kernel-arg-info");
+#if 0 // For experimients.
+    list.push_back("-cl-denorms-are-zero");
+    list.push_back("-cl-fast-relaxed-math");
+#endif
     list.push_back("-D__IMAGE_SUPPORT__=1");
-    list.push_back("-D__OPENCL_VERSION__=200");
+    list.push_back("-D__OPENCL_VERSION__=" MIOPEN_STRINGIZE(OCL_STANDARD));
 #if OCL_EARLY_INLINE
     list.push_back("-mllvm");
     list.push_back("-amdgpu-early-inline-all");
@@ -123,7 +171,7 @@ static void AddOcl20CompilerOptions(OptionList& list)
 /// (or even can be harmful) for building via comgr layer.
 ///
 /// \todo Produce proper options in, er, proper places, and get rid of this.
-static void RemoveOclOptionsUnwanted(OptionList& list)
+static void RemoveOptionsUnwanted(OptionList& list)
 {
     list.erase(remove_if(list.begin(),
                          list.end(),
@@ -131,12 +179,7 @@ static void RemoveOclOptionsUnwanted(OptionList& list)
                list.end());
 }
 
-static auto GetOptionsNoSplit()
-{
-    static const std::vector<std::string> rv = {
-        "-isystem", "-L", "-Wl,-rpath", "-Xclang", "-hip-path", "-mllvm", "-x"};
-    return rv;
-}
+} // namespace ocl
 
 namespace hip {
 
@@ -249,6 +292,26 @@ static std::string to_string(const amd_comgr_data_kind_t val)
 static std::string to_string(const amd_comgr_action_kind_t val)
 {
     std::ostringstream oss;
+#if COMGR_VERSION >= 1007000
+    MIOPEN_LOG_ENUM(oss,
+                    val,
+                    AMD_COMGR_ACTION_SOURCE_TO_PREPROCESSOR,
+                    AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS,
+                    AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC,
+                    AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES,
+                    AMD_COMGR_ACTION_LINK_BC_TO_BC,
+                    AMD_COMGR_ACTION_OPTIMIZE_BC_TO_BC,
+                    AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE,
+                    AMD_COMGR_ACTION_CODEGEN_BC_TO_ASSEMBLY,
+                    AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_RELOCATABLE,
+                    AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE,
+                    AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE,
+                    AMD_COMGR_ACTION_DISASSEMBLE_RELOCATABLE_TO_SOURCE,
+                    AMD_COMGR_ACTION_DISASSEMBLE_EXECUTABLE_TO_SOURCE,
+                    AMD_COMGR_ACTION_DISASSEMBLE_BYTES_TO_SOURCE,
+                    AMD_COMGR_ACTION_COMPILE_SOURCE_TO_FATBIN,
+                    AMD_COMGR_ACTION_COMPILE_SOURCE_WITH_DEVICE_LIBS_TO_BC);
+#else
     MIOPEN_LOG_ENUM(oss,
                     val,
                     AMD_COMGR_ACTION_SOURCE_TO_PREPROCESSOR,
@@ -266,6 +329,7 @@ static std::string to_string(const amd_comgr_action_kind_t val)
                     AMD_COMGR_ACTION_DISASSEMBLE_EXECUTABLE_TO_SOURCE,
                     AMD_COMGR_ACTION_DISASSEMBLE_BYTES_TO_SOURCE,
                     AMD_COMGR_ACTION_COMPILE_SOURCE_TO_FATBIN);
+#endif
     return oss.str();
 }
 
@@ -647,17 +711,25 @@ void BuildOcl(const std::string& name,
         const Dataset inputs;
         inputs.AddData(name, text, AMD_COMGR_DATA_KIND_SOURCE);
         const ActionInfo action;
+#if OCL_STANDARD == 200
         action.SetLanguage(AMD_COMGR_LANGUAGE_OPENCL_2_0);
+#else
+        action.SetLanguage(AMD_COMGR_LANGUAGE_OPENCL_1_2);
+#endif
         SetIsaName(action, device);
         action.SetLogging(true);
 
         auto optCompile = miopen::SplitSpaceSeparated(options);
-        compiler::lc::RemoveOclOptionsUnwanted(optCompile);
-        compiler::lc::AddOcl20CompilerOptions(optCompile);
+        compiler::lc::ocl::RemoveOptionsUnwanted(optCompile);
+        compiler::lc::ocl::AddCompilerOptions(optCompile);
         action.SetOptionList(optCompile);
 
         const Dataset addedPch;
         action.Do(AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS, inputs, addedPch);
+#if OCL_COMPILE_SOURCE_WITH_DEVICE_LIBS
+        const Dataset linkedBc;
+        action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_WITH_DEVICE_LIBS_TO_BC, addedPch, linkedBc);
+#else
         const Dataset compiledBc;
         action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC, addedPch, compiledBc);
 
@@ -669,7 +741,7 @@ void BuildOcl(const std::string& name,
                 optLink.push_back("correctly_rounded_sqrt");
             else if(opt == "-cl-denorms-are-zero")
                 optLink.push_back("daz_opt");
-            else if(opt == "-cl-finite-math-only" || opt == "cl-fast-relaxed-math")
+            else if(opt == "-cl-finite-math-only" || opt == "-cl-fast-relaxed-math")
                 optLink.push_back("finite_only");
             else if(opt == "-cl-unsafe-math-optimizations" || opt == "-cl-fast-relaxed-math")
                 optLink.push_back("unsafe_math");
@@ -682,10 +754,52 @@ void BuildOcl(const std::string& name,
         action.Do(AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES, compiledBc, addedDevLibs);
         const Dataset linkedBc;
         action.Do(AMD_COMGR_ACTION_LINK_BC_TO_BC, addedDevLibs, linkedBc);
+#endif
 
         action.SetOptionList(optCompile);
         const Dataset relocatable;
         action.Do(AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE, linkedBc, relocatable);
+
+        action.SetOptionList(OptionList());
+        const Dataset exe;
+        action.Do(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE, relocatable, exe);
+
+        constexpr auto INTENTIONALY_UNKNOWN = static_cast<amd_comgr_status_t>(0xffff);
+        if(exe.GetDataCount(AMD_COMGR_DATA_KIND_EXECUTABLE) < 1)
+            throw ComgrError{INTENTIONALY_UNKNOWN, "Executable binary not found"};
+        // Assume that the first exec data contains the binary we need.
+        const auto data = exe.GetData(AMD_COMGR_DATA_KIND_EXECUTABLE, 0);
+        data.GetBytes(binary);
+    }
+    catch(ComgrError& ex)
+    {
+        MIOPEN_LOG_E("comgr status = " << GetStatusText(ex.status));
+        if(!ex.text.empty())
+            MIOPEN_LOG_W(ex.text);
+    }
+}
+
+void BuildAsm(const std::string& name,
+              const std::string& text,
+              const std::string& options,
+              const std::string& device,
+              std::vector<char>& binary)
+{
+    PrintVersion();
+    try
+    {
+        const Dataset inputs;
+        inputs.AddData(name, text, AMD_COMGR_DATA_KIND_SOURCE);
+
+        const ActionInfo action;
+        SetIsaName(action, device);
+        action.SetLogging(true);
+        auto optAsm = miopen::SplitSpaceSeparated(options);
+        compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
+        action.SetOptionList(optAsm);
+
+        const Dataset relocatable;
+        action.Do(AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE, inputs, relocatable);
 
         action.SetOptionList(OptionList());
         const Dataset exe;

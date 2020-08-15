@@ -24,13 +24,16 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
-#include "miopen/handle.hpp"
+#include <miopen/solver.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
-#include "miopen/stringutils.hpp"
-#include "implicitgemm_util.hpp"
-#include "miopen/implicitgemm_params.hpp"
+#include <miopen/stringutils.hpp>
+#include <miopen/implicitgemm_params.hpp>
 #include <miopen/env.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/tensor_ops.hpp>
+
+#include "implicitgemm_util.hpp"
 
 namespace miopen {
 namespace solver {
@@ -541,6 +544,31 @@ ConvSolution ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::GetSolution(
     // clang-format on
 
     result.construction_params.push_back(construction_parameters);
+
+    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle, const boost::any& primitive_params) {
+            const auto invoke_params = boost::any_cast<conv::WrWInvokeParams>(primitive_params);
+            const auto& tensors      = invoke_params.tensors;
+            float zero               = 0.f;
+            auto elapsed             = 0.f;
+
+            if(tensors.dwDesc.GetType() != miopenHalf && tensors.dwDesc.GetType() != miopenBFloat16)
+            {
+                SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+            }
+
+            handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
+            if(handle.IsProfilingEnabled())
+            {
+                elapsed += handle.GetKernelTime();
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
+            }
+        };
+    };
+
     return result;
 }
 
@@ -562,6 +590,8 @@ int ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::RunAndMeasureSolution(const miopen:
 
 bool ConvHipImplicitGemmV4R4GenXdlopsWrWFp32::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
 /// \todo Fix and remove this workaround.
 /// There are random failures with certain configs,
 /// see https://github.com/ROCmSoftwarePlatform/MIOpen/pull/228

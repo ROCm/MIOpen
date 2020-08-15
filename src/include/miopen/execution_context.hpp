@@ -30,6 +30,8 @@
 #include <miopen/handle.hpp>
 #include <miopen/sqlite_db.hpp>
 
+#include <boost/filesystem.hpp>
+
 #include <string>
 
 class rocm_meta_version
@@ -74,7 +76,8 @@ struct ExecutionContext
     // to optimize the getWorkspaceSize() calls for speed. This specific optimization is correct
     // because Solvers shall be written so that the required workspace size does not depend on the
     // performance config.
-    bool disable_perfdb_access = false;
+    bool disable_perfdb_access                                                = false;
+    bool skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage = false;
 
     inline Handle& GetStream() const { return *stream; }
     inline void SetStream(Handle* stream_) { stream = stream_; }

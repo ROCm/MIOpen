@@ -35,7 +35,6 @@
 #include <miopen/solver.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/algorithm.hpp>
-#include <miopen/scgemm_utils.hpp>
 
 #include <cassert>
 #include <cstddef>
@@ -48,7 +47,6 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_SCGEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_WINOGRAD)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
 
@@ -431,7 +429,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     }
 
     /// \ref ffind_special_cases
-    const miopen::FindMode fm;
+    const miopen::FindMode fm(ctx);
     while(fm.IsFast() || fm.IsHybrid())
     {
         /// \section ffind_gwss_why_not_0
@@ -449,7 +447,11 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         miopenConvSolution_t sol;
         GetForwardSolutions(handle, wDesc, xDesc, yDesc, 1, &count, &sol);
         if(count < 1 || (fm.IsHybrid() && sol.time < 0))
+        {
+            ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
+                fm.IsFastHybrid();
             break; // Fall down to Normal Find.
+        }
         MIOPEN_LOG_I2(sol.workspace_size);
         return sol.workspace_size;
     }
@@ -461,8 +463,6 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     const size_t direct_workspace = ForwardBackwardDataGetWorkSpaceSizeDirect(ctx);
 
     const size_t implicit_gemm_workspace = ForwardBackwardGetWorkSpaceSizeImplicitGemm(ctx);
-
-    const size_t workspace_size_scgemm = ForwardBackwardDataGetWorkSpaceSizeSCGemm(handle, ctx);
 
     size_t workspace_size_gemm = 0;
 #if MIOPEN_USE_GEMM
@@ -487,16 +487,12 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
             /// \todo WORKAROUND for issue 1430
             if(gemm_trans > MAX_MEM_ALLOC_SZ /* handle.GetMaxMemoryAllocSize() */)
                 gemm_trans = 0;
-            return std::max(
-                {gemm_trans, direct_workspace, workspace_size_scgemm, implicit_gemm_workspace});
+            return std::max({gemm_trans, direct_workspace, implicit_gemm_workspace});
         }
 
         if(miopen::any_of(GetConvDilations(), [](auto v) { return v > 1; }))
         {
-            return std::max({workspace_size_gemm,
-                             direct_workspace,
-                             workspace_size_scgemm,
-                             implicit_gemm_workspace});
+            return std::max({workspace_size_gemm, direct_workspace, implicit_gemm_workspace});
         }
     }
 #endif
@@ -510,11 +506,8 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
             ? ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc)
             : 0;
 
-    const size_t workspace_size = std::max({workspace_size_fft,
-                                            workspace_size_gemm,
-                                            direct_workspace,
-                                            implicit_gemm_workspace,
-                                            workspace_size_scgemm});
+    const size_t workspace_size = std::max(
+        {workspace_size_fft, workspace_size_gemm, direct_workspace, implicit_gemm_workspace});
 
     MIOPEN_LOG_I2(workspace_size);
     return workspace_size;
@@ -539,7 +532,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
     }
 
     /// \ref ffind_special_cases
-    const miopen::FindMode fm;
+    const miopen::FindMode fm(ctx);
     while(fm.IsFast() || fm.IsHybrid())
     {
         /// \ref ffind_gwss_why_not_0
@@ -547,7 +540,11 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         miopenConvSolution_t sol;
         GetBackwardSolutions(handle, dyDesc, wDesc, dxDesc, 1, &count, &sol);
         if(count < 1 || (fm.IsHybrid() && sol.time < 0))
+        {
+            ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
+                fm.IsFastHybrid();
             break; // Fall down to Normal Find.
+        }
         MIOPEN_LOG_I2(sol.workspace_size);
         return sol.workspace_size;
     }
@@ -750,35 +747,6 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
     }
 }
 
-std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeSCGemm(
-    Handle& handle, const miopen::ConvolutionContext& ctx) const
-{
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_SCGEMM{}))
-    {
-        return 0;
-    }
-
-    std::size_t sz = 0;
-
-#if MIOPEN_USE_SCGEMM
-    /// Workaround for the following problem: This function reports non-zero workspace
-    /// even if none SCGEMM solutions are applicable.
-    /// \todo Full-blown fix.
-    if(FindAllFwdSCGemmSolutions(ctx).empty())
-        return 0;
-
-    sz = GetMaximumSCGemmConvFwdWorkSpaceSize(ctx);
-    if(sz > MAX_MEM_ALLOC_SZ)
-        sz = 0;
-#else
-    (void)MAX_MEM_ALLOC_SZ;
-    (void)handle;
-    (void)ctx;
-#endif
-
-    return sz;
-}
-
 std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(
     const miopen::ConvolutionContext& ctx) const
 {
@@ -867,7 +835,8 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
                                                        const TensorDescriptor& dwDesc) const
 {
     MIOPEN_LOG_I("");
-    const miopen::FindMode fm;
+    auto ctx = ConvolutionContext(xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights);
+    const miopen::FindMode fm(ctx);
     while(fm.IsFast() || fm.IsHybrid())
     {
         /// \ref ffind_gwss_why_not_0
@@ -875,12 +844,15 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
         miopenConvSolution_t sol;
         GetWrwSolutions(handle, dyDesc, xDesc, dwDesc, 1, &count, &sol);
         if(count < 1 || (fm.IsHybrid() && sol.time < 0))
+        {
+            ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
+                fm.IsFastHybrid();
             break; // Fall down to Normal Find.
+        }
         MIOPEN_LOG_I2(sol.workspace_size);
         return sol.workspace_size;
     }
 
-    auto ctx = ConvolutionContext(xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights);
     ctx.SetStream(&handle);
     ctx.DetectRocm();
     ctx.SetupFloats();
