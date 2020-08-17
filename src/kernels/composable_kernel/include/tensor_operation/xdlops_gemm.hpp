@@ -648,10 +648,17 @@ struct XdlopsGemm_t
         static_assert(sizeof(FloatA) % (sizeof(data_type) * mfma_type.k_base) == 0,
                       "wrong! FloatA is consistent with mfma");
 
-        constexpr index_t nxdlops = sizeof(FloatA) / (sizeof(data_type) * mfma_type.k_base);
-
         static_assert(!IsKReduction || K % mfma_type.num_input_blks == 0,
                       "K cannot divided by mfma_type.num_input_blks!");
+
+        static_assert(!IsKReduction || (MRepeats == 1 && NRepeats == 1),
+                      "KReduction does not support M/N Repeats!");
+
+        constexpr index_t nxdlops = sizeof(FloatA) / (sizeof(data_type) * mfma_type.k_base);
+
+        // get pointer of registers
+        auto pa = reinterpret_cast<const data_type*>(&a);
+        auto pb = reinterpret_cast<const data_type*>(&b);
 
         static_if<!IsKReduction>{}([&](auto) {
 
@@ -663,28 +670,24 @@ struct XdlopsGemm_t
                 for(index_t k_i      = 0; k_i < K; ++k_i)
                     b[k_i + n_i * K] = p_b_wave[k_i * N + laneId + NPerXdlops * n_i];
 
-            // get pointer of registers
-            auto pa = reinterpret_cast<const data_type*>(&a);
-            auto pb = reinterpret_cast<const data_type*>(&b);
-
             for(index_t m_i = 0; m_i < MRepeats; ++m_i)
             {
+                const index_t a_off = m_i * K * (nxdlops * mfma_type.k_base);
 
                 for(index_t n_i = 0; n_i < NRepeats; ++n_i)
                 {
+                    const index_t b_off = n_i * K * (nxdlops * mfma_type.k_base);
+                    const index_t c_off = (NRepeats * m_i + n_i) * GetRegSizePerXdlops();
 
 #if CK_WORKAROUND_SWDEV_229564
 #pragma unroll
 #endif
-                    for(index_t k_i = 0; k_i < K; ++k_i)
+                    for(index_t k_i = 0; k_i < K * nxdlops; ++k_i)
                     {
-                        for(index_t i = 0; i < nxdlops; ++i)
-                            mfma_type.template run<MPerXdlops, NPerXdlops>(
-                                &pa[(k_i * nxdlops + i) * mfma_type.k_base +
-                                    m_i * K * nxdlops * mfma_type.k_base],
-                                &pb[(k_i * nxdlops + i) * mfma_type.k_base +
-                                    n_i * K * nxdlops * mfma_type.k_base],
-                                p_c_thread + (NRepeats * m_i + n_i) * GetRegSizePerXdlops());
+                        mfma_type.template run<MPerXdlops, NPerXdlops>(
+                            &pa[k_i * mfma_type.k_base + a_off],
+                            &pb[k_i * mfma_type.k_base + b_off],
+                            p_c_thread + c_off);
                     }
                 }
             }
@@ -700,10 +703,6 @@ struct XdlopsGemm_t
                 a[k_i] = p_a_wave[(k_i + blk_id) * M + blk_td];
                 b[k_i] = p_b_wave[(k_i + blk_id) * N + blk_td];
             }
-
-            // get pointer of registers
-            auto pa = reinterpret_cast<const data_type*>(&a);
-            auto pb = reinterpret_cast<const data_type*>(&b);
 
 #if CK_WORKAROUND_SWDEV_229564
 #pragma unroll
