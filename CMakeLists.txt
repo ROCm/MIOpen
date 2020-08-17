@@ -236,6 +236,9 @@ if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+$")
         PATH_SUFFIXES bin
         PATHS /opt/rocm/llvm
     )
+    # we are using hip-clang and need to remove repeated hip compiler args
+    string(REGEX REPLACE -amdgpu-early-inline-all=true "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+    string(REGEX REPLACE -amdgpu-function-calls=false "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
 endif()
 if(MIOPEN_OFFLOADBUNDLER_BIN)
     message(STATUS "clang-offload-bundler found: ${MIOPEN_OFFLOADBUNDLER_BIN}")
