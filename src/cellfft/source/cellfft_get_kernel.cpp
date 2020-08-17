@@ -359,8 +359,7 @@ solver::KernelInfo get_kernel_cgemm( const ConvolutionContext& ctx, const cellff
         { "scgemm6x5", "scgemm6x5_ck" },
         { "scgemm6x6", "scgemm6x6_ck" }
     };
-    uint32_t tile_id=choose_cgemm_id( p.m, p.n );
-    tile_id=(tile_id==3?0:tile_id);
+    const uint32_t tile_id=choose_cgemm_id( p.m, p.n );
     const uint32_t shx=tile_id<3?5:6;
     const uint32_t shy=(0x654654>>(tile_id<<2))&0xf;
     const uint32_t shz=tile_id==0?1:0;
@@ -468,19 +467,16 @@ solver::KernelInfo get_kernel_c2r_grid( const ConvolutionContext& ctx, const cel
 }
 solver::KernelInfo get_kernel_c2r_grad( const ConvolutionContext& ctx, const cellfft_param_t& p, const std::string& file_name )
 {
-    const uint32_t nmax=p.cnx>p.cny?p.cnx:p.cny;
-    const uint32_t nmin=p.cnx>p.cny?p.cny:p.cnx;
-    const uint32_t shx=4-p.id;
-    const bool cc0=(p.cnx==p.cny)&&((p.cnx==3)||(p.cnx==5)||(p.cnx==7));
-    const bool cc1=(nmin==1)&&((nmax&1)!=0)&&(nmax>1)&&(nmax<=9);
+    uint32_t nmax=p.cnx>p.cny?p.cnx:p.cny;
+    uint32_t nmin=p.cnx>p.cny?p.cny:p.cnx;
+    uint32_t shx=4-p.id;
     uint32_t kid=START_C2R+(p.id<<5)+p.cny-1;
-    if(cc0){
-        kid=START_C2R_S+11*p.id+8+(p.cnx>>1)-1;
-    } else
-    if(cc1){
-        kid=START_C2R_S+11*p.id+(p.cnx>p.cny?0:4)+(nmax>>1)-1;
+    bool cc0=(p.cnx==p.cny)&&((p.cnx==3)||(p.cnx==5)||(p.cnx==7));
+    bool cc1=(nmin==1)&&((nmax&1)!=0)&&(nmax>1)&&(nmax<=9);
+    if(cc0||cc1){
+        kid=START_C2R_S+11*p.id+(cc0?8:(p.cnx>p.cny?0:4))+(nmax>>1)-1;
     }
-    const size_t gdx=(p.m+(1<<shx)-1)>>shx;
+    size_t gdx=(p.m+(1<<shx)-1)>>shx;
     const std::vector<size_t> block{256,1,1};
     const std::vector<size_t> grid{gdx<<8,p.n,1};
     std::ostringstream options;
