@@ -557,6 +557,8 @@ int ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::RunAndMeasureSolution(const miopen:
 
 bool ConvHipImplicitGemmV4R4GenXdlopsFwdFp32::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
     if(!(ctx.IsFp32()))
         return false;
     if(!ctx.use_hip_kernels)

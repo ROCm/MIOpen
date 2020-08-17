@@ -635,13 +635,18 @@ size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ConvolutionContext
 
 bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx) const
 {
+    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
+        return false;
     if(!ctx.direction.IsBackwardData())
         return false;
     if(!ctx.use_hip_kernels)
         return false;
     if(!ctx.Is2d() && !(ctx.Is3d() && ctx.IsFp32()))
         return false;
-    if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
+
+    // TBD Renable fp16 once the root cause of
+    // fp16 failures, observed in CI, is resolved.
+    if(!(ctx.IsFp32() || ctx.IsBfp16()))
         return false;
     if(ctx.group_counts != 1)
         return false;

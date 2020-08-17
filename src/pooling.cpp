@@ -57,7 +57,8 @@ PoolingDescriptor::PoolingDescriptor(miopenPoolingMode_t m,
       mode(m),
       pmode(pm),
       indexType(miopenIndexUint8),
-      workspaceIndexMode(miopenPoolingWorkspaceIndexMask)
+      workspaceIndexMode(size == 3 ? miopenPoolingWorkspaceIndexImage
+                                   : miopenPoolingWorkspaceIndexMask)
 {
 }
 
@@ -74,6 +75,8 @@ PoolingDescriptor::PoolingDescriptor(miopenPoolingMode_t m,
       indexType(miopenIndexUint8),
       workspaceIndexMode(miopenPoolingWorkspaceIndexMask)
 {
+    if(plens.size() == 3)
+        workspaceIndexMode = miopenPoolingWorkspaceIndexImage;
 }
 
 void PoolingDescriptor::SetIndexType(miopenIndexType_t index_type) { indexType = index_type; }

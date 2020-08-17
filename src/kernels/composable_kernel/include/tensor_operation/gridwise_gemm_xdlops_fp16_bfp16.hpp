@@ -831,11 +831,9 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
                                                    ? (block_work_id[2] * NPerBlock)
                                                    : (block_work_id[1] * NPerBlock);
 
-        //   LDS mem
         constexpr index_t max_align = KPack;
 
-        //   LDS
-        //     be careful of LDS alignment
+        //   LDS be careful of LDS alignment
         constexpr auto a_g_k_m_kpack_block_desc = make_native_tensor_descriptor_aligned(
             Sequence<1, KPerBlock, MPerBlock, KPack>{}, Number<max_align>{});
 
@@ -997,7 +995,8 @@ struct GridwiseBatchGemmXdlops_gkmkpack_gknkpack_gmn_v2
 
             constexpr auto c_g_m0_m1_m2_n_global_desc = transform_tensor_descriptor(
                 c_g_m_n_global_desc,
-                make_tuple(PassThrough<G>{}, UnMerge<Sequence<M0, M1, M2>>{}, PassThrough<N>{}),
+                make_tuple(
+                    PassThrough<G>{}, UnMerge<Sequence<M / (M1 * M2), M1, M2>>{}, PassThrough<N>{}),
                 make_tuple(Sequence<0>{}, Sequence<1>{}, Sequence<2>{}),
                 make_tuple(Sequence<0>{}, Sequence<1, 2, 3>{}, Sequence<4>{}));
 
