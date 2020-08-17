@@ -174,12 +174,6 @@ target_flags(HIP_COMPILER_FLAGS hip::device)
 # Remove cuda arch flags
 string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
 
-message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
-
-add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
-
-
-
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     set(MIOPEN_BACKEND_HIP 1)
@@ -237,9 +231,11 @@ if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+$")
         PATHS /opt/rocm/llvm
     )
     # we are using hip-clang and need to remove repeated hip compiler args
-    string(REGEX REPLACE -amdgpu-early-inline-all=true "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
-    string(REGEX REPLACE -amdgpu-function-calls=false "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+    string(REGEX REPLACE "-mllvm -amdgpu-early-inline-all=true -mllvm -amdgpu-function-calls=false" "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
 endif()
+message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
+
+add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
 if(MIOPEN_OFFLOADBUNDLER_BIN)
     message(STATUS "clang-offload-bundler found: ${MIOPEN_OFFLOADBUNDLER_BIN}")
     set(MIOPEN_OFFLOADBUNDLER_BIN "${MIOPEN_OFFLOADBUNDLER_BIN}")
