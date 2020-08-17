@@ -122,14 +122,13 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     params += MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
     if(IsHccCompiler())
     {
-        env += std::string("KMOPTLLC=\"-mattr=+enable-ds128 -amdgpu-enable-global-sgpr-addr");
+        env += std::string("KMOPTLLC=\"-mattr=+enable-ds128 ");
         if(miopen::HipCompilerVersion() >= external_tool_version_t{2, 8, 0})
             env += " --amdgpu-spill-vgpr-to-agpr=0";
         env += '\"';
     }
     else if(IsHipClangCompiler())
     {
-        params += " -mllvm -amdgpu-enable-global-sgpr-addr";
         params += " -mllvm --amdgpu-spill-vgpr-to-agpr=0";
     }
 
