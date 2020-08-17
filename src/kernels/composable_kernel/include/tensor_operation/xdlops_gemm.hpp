@@ -49,11 +49,11 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x1xf32>
     static constexpr index_t cycles          = 64;
     static constexpr index_t k_base          = 1;
 
-    template <index_t MPerXdlops, index_t NPerXdlops>
-    __device__ void run(const float* a, const float* b, float* reg_c) const
+    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
+    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
     {
-        const auto p_a = a;
-        const auto p_b = b;
+        const auto p_a = reinterpret_cast<const float*>(a);
+        const auto p_b = reinterpret_cast<const float*>(b);
         auto p_c       = reinterpret_cast<float32_t*>(reg_c);
 
         intrin_mfma_f32_32x32x1f32<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
@@ -77,11 +77,11 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x2xf32>
     static constexpr index_t cycles          = 64;
     static constexpr index_t k_base          = 1;
 
-    template <index_t MPerXdlops, index_t NPerXdlops>
-    __device__ void run(const float* a, const float* b, float* reg_c) const
+    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
+    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
     {
-        const auto p_a = a;
-        const auto p_b = b;
+        const auto p_a = reinterpret_cast<const float*>(a);
+        const auto p_b = reinterpret_cast<const float*>(b);
         auto p_c       = reinterpret_cast<float16_t*>(reg_c);
 
         intrin_mfma_f32_32x32x2f32(p_a, p_b, p_c);
@@ -105,11 +105,11 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x4xf32>
     static constexpr index_t cycles          = 32;
     static constexpr index_t k_base          = 1;
 
-    template <index_t MPerXdlops, index_t NPerXdlops>
-    __device__ void run(const float* a, const float* b, float* reg_c) const
+    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
+    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
     {
-        const auto p_a = a;
-        const auto p_b = b;
+        const auto p_a = reinterpret_cast<const float*>(a);
+        const auto p_b = reinterpret_cast<const float*>(b);
         auto p_c       = reinterpret_cast<float4_t*>(reg_c);
 
         intrin_mfma_f32_16x16x4f32(p_a, p_b, p_c);
@@ -133,11 +133,11 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x1xf32>
     static constexpr index_t cycles          = 32;
     static constexpr index_t k_base          = 1;
 
-    template <index_t MPerXdlops, index_t NPerXdlops>
-    __device__ void run(const float* a, const float* b, float* reg_c) const
+    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
+    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
     {
-        const auto p_a = a;
-        const auto p_b = b;
+        const auto p_a = reinterpret_cast<const float*>(a);
+        const auto p_b = reinterpret_cast<const float*>(b);
         auto p_c       = reinterpret_cast<float16_t*>(reg_c);
 
         intrin_mfma_f32_16x16x1f32<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
@@ -162,11 +162,11 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x1xf32>
     static constexpr index_t cycles          = 8;
     static constexpr index_t k_base          = 1;
 
-    template <index_t MPerXdlops, index_t NPerXdlops>
-    __device__ void run(const float* a, const float* b, float* reg_c) const
+    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
+    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
     {
-        const auto p_a = a;
-        const auto p_b = b;
+        const auto p_a = reinterpret_cast<const float*>(a);
+        const auto p_b = reinterpret_cast<const float*>(b);
         auto p_c       = reinterpret_cast<float4_t*>(reg_c);
 
         intrin_mfma_f32_4x4x1f32<MPerXdlops, NPerXdlops>(p_a, p_b, p_c);
@@ -190,8 +190,8 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x4f16>
     static constexpr index_t cycles          = 64;
     static constexpr index_t k_base          = 4;
 
-    template <index_t MPerXdlops, index_t NPerXdlops>
-    __device__ void run(const half_t* a, const half_t* b, float* reg_c) const
+    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
+    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
     {
         const auto p_a = reinterpret_cast<const half4_t*>(a);
         const auto p_b = reinterpret_cast<const half4_t*>(b);
@@ -218,8 +218,8 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x8f16>
     static constexpr index_t cycles          = 64;
     static constexpr index_t k_base          = 4;
 
-    template <index_t MPerXdlops, index_t NPerXdlops>
-    __device__ void run(const half_t* a, const half_t* b, float* reg_c) const
+    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
+    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
     {
         const auto p_a = reinterpret_cast<const half4_t*>(a);
         const auto p_b = reinterpret_cast<const half4_t*>(b);
@@ -246,8 +246,8 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x16f16>
     static constexpr index_t cycles          = 32;
     static constexpr index_t k_base          = 4;
 
-    template <index_t MPerXdlops, index_t NPerXdlops>
-    __device__ void run(const half_t* a, const half_t* b, float* reg_c) const
+    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
+    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
     {
         const auto p_a = reinterpret_cast<const half4_t*>(a);
         const auto p_b = reinterpret_cast<const half4_t*>(b);
@@ -274,8 +274,8 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x4f16>
     static constexpr index_t cycles          = 32;
     static constexpr index_t k_base          = 4;
 
-    template <index_t MPerXdlops, index_t NPerXdlops>
-    __device__ void run(const half_t* a, const half_t* b, float* reg_c) const
+    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
+    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
     {
         const auto p_a = reinterpret_cast<const half4_t*>(a);
         const auto p_b = reinterpret_cast<const half4_t*>(b);
@@ -302,8 +302,8 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x4f16>
     static constexpr index_t cycles          = 8;
     static constexpr index_t k_base          = 4;
 
-    template <index_t MPerXdlops, index_t NPerXdlops>
-    __device__ void run(const half_t* a, const half_t* b, float* reg_c) const
+    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
+    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
     {
         const auto p_a = reinterpret_cast<const half4_t*>(a);
         const auto p_b = reinterpret_cast<const half4_t*>(b);
@@ -330,8 +330,8 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x2bf16>
     static constexpr index_t cycles          = 64;
     static constexpr index_t k_base          = 2;
 
-    template <index_t MPerXdlops, index_t NPerXdlops>
-    __device__ void run(const ushort* a, const ushort* b, float* reg_c) const
+    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
+    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
     {
         const auto p_a = reinterpret_cast<const ushort2_t*>(a);
         const auto p_b = reinterpret_cast<const ushort2_t*>(b);
@@ -358,8 +358,8 @@ struct mfma_info<mfma_instr::mfma_f32_32x32x4bf16>
     static constexpr index_t cycles          = 64;
     static constexpr index_t k_base          = 2;
 
-    template <index_t MPerXdlops, index_t NPerXdlops>
-    __device__ void run(const ushort* a, const ushort* b, float* reg_c) const
+    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
+    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
     {
         const auto p_a = reinterpret_cast<const ushort2_t*>(a);
         const auto p_b = reinterpret_cast<const ushort2_t*>(b);
@@ -386,8 +386,8 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x8bf16>
     static constexpr index_t cycles          = 32;
     static constexpr index_t k_base          = 2;
 
-    template <index_t MPerXdlops, index_t NPerXdlops>
-    __device__ void run(const ushort* a, const ushort* b, float* reg_c) const
+    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
+    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
     {
         const auto p_a = reinterpret_cast<const ushort2_t*>(a);
         const auto p_b = reinterpret_cast<const ushort2_t*>(b);
@@ -414,8 +414,8 @@ struct mfma_info<mfma_instr::mfma_f32_16x16x2bf16>
     static constexpr index_t cycles          = 32;
     static constexpr index_t k_base          = 2;
 
-    template <index_t MPerXdlops, index_t NPerXdlops>
-    __device__ void run(const ushort* a, const ushort* b, float* reg_c) const
+    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
+    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
     {
         const auto p_a = reinterpret_cast<const ushort2_t*>(a);
         const auto p_b = reinterpret_cast<const ushort2_t*>(b);
@@ -442,8 +442,8 @@ struct mfma_info<mfma_instr::mfma_f32_4x4x2bf16>
     static constexpr index_t cycles          = 8;
     static constexpr index_t k_base          = 2;
 
-    template <index_t MPerXdlops, index_t NPerXdlops>
-    __device__ void run(const ushort* a, const ushort* b, float* reg_c) const
+    template <index_t MPerXdlops, index_t NPerXdlops, class FloatA, class FloatB, class FloatC>
+    __device__ void run(const FloatA* a, const FloatB* b, FloatC* reg_c) const
     {
         const auto p_a = reinterpret_cast<const ushort2_t*>(a);
         const auto p_b = reinterpret_cast<const ushort2_t*>(b);
@@ -654,9 +654,8 @@ struct XdlopsGemm_t
         static_assert(!IsKReduction || (MRepeats == 1 && NRepeats == 1),
                       "KReduction does not support M/N Repeats!");
 
-        constexpr index_t nxdlops = sizeof(FloatA) / (sizeof(data_type) * mfma_type.k_base);
+        constexpr index_t KRepeats = sizeof(FloatA) / (sizeof(data_type) * mfma_type.k_base);
 
-        // get pointer of registers
         auto pa = reinterpret_cast<const data_type*>(&a);
         auto pb = reinterpret_cast<const data_type*>(&b);
 
@@ -672,17 +671,17 @@ struct XdlopsGemm_t
 
             for(index_t m_i = 0; m_i < MRepeats; ++m_i)
             {
-                const index_t a_off = m_i * K * (nxdlops * mfma_type.k_base);
+                const index_t a_off = m_i * K * (KRepeats * mfma_type.k_base);
 
                 for(index_t n_i = 0; n_i < NRepeats; ++n_i)
                 {
-                    const index_t b_off = n_i * K * (nxdlops * mfma_type.k_base);
+                    const index_t b_off = n_i * K * (KRepeats * mfma_type.k_base);
                     const index_t c_off = (NRepeats * m_i + n_i) * GetRegSizePerXdlops();
 
 #if CK_WORKAROUND_SWDEV_229564
 #pragma unroll
 #endif
-                    for(index_t k_i = 0; k_i < K * nxdlops; ++k_i)
+                    for(index_t k_i = 0; k_i < K * KRepeats; ++k_i)
                     {
                         mfma_type.template run<MPerXdlops, NPerXdlops>(
                             &pa[k_i * mfma_type.k_base + a_off],
@@ -709,10 +708,10 @@ struct XdlopsGemm_t
 #endif
             for(index_t k_i = 0; k_i < K; k_i += mfma_type.num_input_blks)
             {
-                for(index_t i = 0; i < nxdlops; ++i)
+                for(index_t i = 0; i < KRepeats; ++i)
                     mfma_type.template run<MPerXdlops, NPerXdlops>(
-                        &pa[(k_i * nxdlops + i) * mfma_type.k_base],
-                        &pb[(k_i * nxdlops + i) * mfma_type.k_base],
+                        &pa[(k_i * KRepeats + i) * mfma_type.k_base],
+                        &pb[(k_i * KRepeats + i) * mfma_type.k_base],
                         p_c_thread);
             }
 
