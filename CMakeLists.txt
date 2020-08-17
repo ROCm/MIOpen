@@ -187,6 +187,9 @@ add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     set(MIOPEN_BACKEND_HIP 1)
     set(MIOPEN_USE_MIOPENGEMM OFF CACHE BOOL "")
+    # miopentensile
+    set(MIOPEN_USE_MIOPENTENSILE ON CACHE BOOL "")
+
     find_program(HIP_OC_COMPILER clang-ocl
         PATH_SUFFIXES bin
         PATHS /opt/rocm
@@ -216,6 +219,8 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     else()
         # Hcc's clang always defines __HCC__ even when not using hcc driver
         add_definitions(-U__HCC__)
+        # Disable miopentensile
+        set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
     endif()
     # end hack
 
@@ -230,9 +235,6 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     else()
         message(STATUS "Build without rocblas")
     endif()
-
-    # miopentensile
-    set(MIOPEN_USE_MIOPENTENSILE ON CACHE BOOL "")
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
 	
