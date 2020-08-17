@@ -115,12 +115,16 @@ set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header inter
 
 
 # Embedded Build Configuration
-set(MIOPEN_EMBED_DB "" CACHE STRING "Semi-colon separated list of of architecture CU pairs to embed on-disk DBs in the binary. Example gfx906_60:gfx900_56")
+set(MIOPEN_EMBED_DB "" CACHE STRING "Semi-colon separated list of architecture CU pairs to embed on-disk DBs in the binary. Example gfx906_60;gfx900_56")
+option(MIOPEN_DISABLE_SYSDB  "Disable sys database access" ${MIOPEN_EMBED_BUILD})
+if(NOT MIOPEN_EMBED_DB STREQUAL "")
+    set(MIOPEN_DISABLE_SYSDB Off CACHE BOOL "" FORCE)
+endif()
 set(MIOPEN_BINCACHE_PATH "" CACHE STRING "URL or path containing binary cache files to embed")
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
 option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_EMBED_BUILD})
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
-option(MIOPEN_DISABLE_SYSDB  "Disable sys database access" ${MIOPEN_EMBED_BUILD})
+
 
 # MIOPEN_USE_HIP_KERNELS is a Workaround for COMgr issues
 if(MIOPEN_EMBED_BUILD)
