@@ -3710,23 +3710,22 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
             ConvolutionContext{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
         ctx.SetStream(&handle);
 
-        if(CheckInvokerSupport(solver_id, conv::Direction::BackwardWeights))
-        {
-            const auto invoker =
-                LoadOrPrepareInvoker(handle, ctx, solver_id, conv::Direction::BackwardWeights);
-            const auto invoke_ctx = conv::WrWInvokeParams{tensors, workSpace, workSpaceSize};
-            invoker(handle, invoke_ctx);
-            return;
-        }
-
         if(solver_id == solver::Id::gemm())
         {
             BackwardWeightsGemm(handle, tensors, workSpace, workSpaceSize);
             return;
         }
 
-        MIOPEN_THROW("Solver " + solver_id.ToString() +
-                     " requested in immediate WrW, which is not supported.");
+        if(!CheckInvokerSupport(solver_id, conv::Direction::BackwardWeights))
+        {
+            MIOPEN_THROW("Solver " + solver_id.ToString() +
+                         " requested in immediate WrW, which is not supported.");
+        }
+
+        const auto invoker =
+            LoadOrPrepareInvoker(handle, ctx, solver_id, conv::Direction::BackwardWeights);
+        const auto invoke_ctx = conv::WrWInvokeParams{tensors, workSpace, workSpaceSize};
+        invoker(handle, invoke_ctx);
     });
 }
 
