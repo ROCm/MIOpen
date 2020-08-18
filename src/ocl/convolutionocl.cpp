@@ -3725,36 +3725,7 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
             return;
         }
 
-        const auto network_config = ctx.BuildConfKey();
-        auto algo_name            = solver_id.GetAlgo(conv::Direction::BackwardWeights);
-        const auto&& chk_kernels  = handle.GetKernels(algo_name, network_config);
-        auto v_chk_kernels = std::vector<KernelInvoke>{chk_kernels.begin(), chk_kernels.end()};
-        if(!v_chk_kernels.empty())
-        {
-            MIOPEN_THROW("Invalid algorithm: " + algo_name);
-            return;
-        }
-
-        const FindDbRecord fdb_record{handle, ctx};
-
-        for(const auto& pair : fdb_record)
-        {
-            if(solver::Id{pair.second.solver_id} != solver_id)
-                continue;
-
-            const auto&& kernels = handle.GetKernels(pair.second.kcache_key.algorithm_name,
-                                                     pair.second.kcache_key.network_config);
-            auto v_kernels = std::vector<KernelInvoke>{kernels.begin(), kernels.end()};
-
-            if(v_kernels.empty())
-                v_kernels = CompileSolver(handle, ctx, solver_id, pair.second.kcache_key);
-
-            MIOPEN_THROW("Invalid algorithm: " + pair.second.kcache_key.algorithm_name);
-            return;
-        }
-
-        // Todo: solver not found in find-db.
-        MIOPEN_THROW(miopenStatusNotImplemented);
+        MIOPEN_THROW("Solver " + solver_id.ToString() + " requested in immediate WrW, which is not supported.");
     });
 }
 
