@@ -9,6 +9,7 @@ typedef float float2_t __attribute__((ext_vector_type(2)));
 typedef float float4_t __attribute__((ext_vector_type(4)));
 typedef float float16_t __attribute__((ext_vector_type(16)));
 typedef float float32_t __attribute__((ext_vector_type(32)));
+typedef float float64_t __attribute__((ext_vector_type(64)));
 
 // float16
 typedef _Float16 half_t;
@@ -20,11 +21,6 @@ typedef _Float16 half8_t __attribute__((ext_vector_type(8)));
 typedef ushort ushort2_t __attribute__((ext_vector_type(2)));
 typedef ushort ushort4_t __attribute__((ext_vector_type(4)));
 typedef ushort ushort8_t __attribute__((ext_vector_type(8)));
-
-typedef struct
-{
-    float32_t c0, c1;
-} float64_t;
 
 template <class T, index_t N>
 struct vector_type

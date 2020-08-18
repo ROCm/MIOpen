@@ -112,10 +112,9 @@ struct BlockwiseGemmBlockABlockBThreadCTransANormalBNormalC_xdlops
         {
             for(index_t n = 0; n < NRepeats; n++)
             {
-                XdlopsGemm.template Run<M, N, K>(
-                    &p_a_block[mMyWaveOffsetA + MPerXdlops * m],
-                    &p_b_block[mMyWaveOffsetB + NPerXdlops * n],
-                    p_c_thread + (NRepeats * m + n) * XdlopsGemm.GetNumXdlops());
+                XdlopsGemm.template Run<M, N, K>(&p_a_block[mMyWaveOffsetA + MPerXdlops * m],
+                                                 &p_b_block[mMyWaveOffsetB + NPerXdlops * n],
+                                                 p_c_thread + (NRepeats * m + n));
             }
         }
 #else

@@ -679,7 +679,7 @@ struct XdlopsGemm_t
                 for(index_t n_i = 0; n_i < NRepeats; ++n_i)
                 {
                     const index_t b_off = n_i * K * (KRepeats * mfma_type.k_base);
-                    const index_t c_off = (NRepeats * m_i + n_i) * GetNumXdlops();
+                    const index_t c_off = (NRepeats * m_i + n_i);
 
 #if CK_WORKAROUND_SWDEV_229564
 #pragma unroll
@@ -689,7 +689,7 @@ struct XdlopsGemm_t
                         mfma_type.template run<MPerXdlops, NPerXdlops>(
                             &pa[k_i * mfma_type.k_base + a_off],
                             &pb[k_i * mfma_type.k_base + b_off],
-                            p_c_thread + c_off);
+                            &p_c_thread[c_off]);
                     }
                 }
             }
